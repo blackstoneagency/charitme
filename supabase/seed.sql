@@ -1,31 +1,43 @@
 -- =============================================================================
--- RaiseMoney / GiveRise — seed data for local development
+-- RaiseMoney / GiveRise — seed data
 -- =============================================================================
--- BEFORE RUNNING:
---   1. Sign up two accounts via the app (any email+password or Google).
---   2. Copy their auth.users UUIDs from the Supabase Auth dashboard.
---   3. Replace ADMIN_USER_ID and DONOR_USER_ID below with those UUIDs.
+-- HOW TO USE:
+--   1. Sign up at least ONE account through your app first.
+--   2. Paste this entire file into Supabase SQL Editor and run it.
+--   The seed automatically uses the first signed-up user as the organizer.
 -- =============================================================================
 
 do $$
 declare
-  v_admin_id   uuid := '00000000-0000-0000-0000-000000000001'; -- REPLACE
-  v_donor_id   uuid := '00000000-0000-0000-0000-000000000002'; -- REPLACE
+  v_admin_id   uuid;
+  v_donor_id   uuid;
   v_c1_id      uuid := gen_random_uuid();
   v_c2_id      uuid := gen_random_uuid();
   v_c3_id      uuid := gen_random_uuid();
   v_suffix     text := to_hex(floor(extract(epoch from now()))::bigint);
 begin
+
   -- -------------------------------------------------------------------------
-  -- Profiles (rows must match existing auth.users)
+  -- Find real users from auth.users (must exist before running seed)
   -- -------------------------------------------------------------------------
-  insert into public.profiles(id, email, full_name, roles, identity_verified, trust_passport_score)
-  values
-    (v_admin_id, 'admin@giverise.com', 'Admin User', '["admin","fundraiser","donor"]'::jsonb, true,  95),
-    (v_donor_id, 'donor@example.com', 'Jane Donor',  '["donor"]'::jsonb,                      false, 50)
-  on conflict (id) do update set
-    full_name = excluded.full_name,
-    roles     = excluded.roles;
+  select id into v_admin_id from auth.users order by created_at asc limit 1;
+  select id into v_donor_id from auth.users order by created_at asc offset 1 limit 1;
+
+  if v_admin_id is null then
+    raise exception 'No users found in auth.users. Sign up at least one account through the app first, then re-run this seed.';
+  end if;
+
+  -- If only one user exists, use them as both organizer and donor
+  if v_donor_id is null then
+    v_donor_id := v_admin_id;
+  end if;
+
+  -- -------------------------------------------------------------------------
+  -- Promote first user to admin + fundraiser role
+  -- -------------------------------------------------------------------------
+  update public.profiles
+  set roles = '["admin","fundraiser","donor"]'::jsonb
+  where id = v_admin_id;
 
   -- -------------------------------------------------------------------------
   -- Campaigns
@@ -87,9 +99,12 @@ begin
   -- Trust scores
   -- -------------------------------------------------------------------------
   insert into public.trust_scores(campaign_id, score, status, signals, model) values
-    (v_c1_id, 82, 'Verified',      '["identity_verified","description_complete","cover_image"]'::jsonb,                                       'deterministic'),
-    (v_c2_id, 74, 'Established',   '["description_complete","cover_image","active_backers"]'::jsonb,                                          'deterministic'),
-    (v_c3_id, 91, 'Highly Trusted','["identity_verified","nonprofit_verified","description_complete","cover_image","active_backers"]'::jsonb,  'deterministic')
+    (v_c1_id, 82, 'Verified',
+      '["identity_verified","description_complete","cover_image"]'::jsonb, 'deterministic'),
+    (v_c2_id, 74, 'Established',
+      '["description_complete","cover_image","active_backers"]'::jsonb, 'deterministic'),
+    (v_c3_id, 91, 'Highly Trusted',
+      '["identity_verified","nonprofit_verified","description_complete","cover_image","active_backers"]'::jsonb, 'deterministic')
   on conflict do nothing;
 
   -- -------------------------------------------------------------------------
@@ -103,5 +118,7 @@ begin
     (v_c2_id, v_donor_id,  2500, 'Stay strong, Millbrook!',          false, 'completed'),
     (v_c3_id, v_donor_id, 15000, 'Education changes everything.',    false, 'completed')
   on conflict do nothing;
+
+  raise notice 'Seed complete. Admin user: %, Donor user: %', v_admin_id, v_donor_id;
 
 end $$;
