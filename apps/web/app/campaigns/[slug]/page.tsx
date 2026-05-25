@@ -18,45 +18,58 @@ interface Props {
 }
 
 async function getCampaign(slug: string) {
-  const { data } = await supabaseAdmin
-    .from('campaigns')
-    .select(`
-      *,
-      profiles:user_id (full_name, avatar_url)
-    `)
-    .eq('slug', slug)
-    .single();
-  return data;
+  try {
+    const { data } = await supabaseAdmin
+      .from('campaigns')
+      .select(`*, profiles:user_id (full_name, avatar_url)`)
+      .eq('slug', slug)
+      .single();
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 async function getRecentDonations(campaignId: string) {
-  const { data } = await supabaseAdmin
-    .from('donations')
-    .select('id, amount_cents, message, anonymous, created_at, profiles:donor_id(full_name)')
-    .eq('campaign_id', campaignId)
-    .eq('status', 'completed')
-    .order('created_at', { ascending: false })
-    .limit(10);
-  return data ?? [];
+  try {
+    const { data } = await supabaseAdmin
+      .from('donations')
+      .select('id, amount_cents, message, anonymous, created_at, profiles:donor_id(full_name)')
+      .eq('campaign_id', campaignId)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(10);
+    return data ?? [];
+  } catch {
+    return [];
+  }
 }
 
 async function getUpdates(campaignId: string) {
-  const { data } = await supabaseAdmin
-    .from('campaign_updates')
-    .select('id, title, body, created_at')
-    .eq('campaign_id', campaignId)
-    .order('created_at', { ascending: false });
-  return data ?? [];
+  try {
+    const { data } = await supabaseAdmin
+      .from('campaign_updates')
+      .select('id, title, body, created_at')
+      .eq('campaign_id', campaignId)
+      .order('created_at', { ascending: false });
+    return data ?? [];
+  } catch {
+    return [];
+  }
 }
 
 async function getLedger(campaignId: string) {
-  const { data } = await supabaseAdmin
-    .from('transparency_ledger_items')
-    .select('id, item_type, title, amount_cents, category, status, created_at')
-    .eq('campaign_id', campaignId)
-    .order('created_at', { ascending: false })
-    .limit(8);
-  return data ?? [];
+  try {
+    const { data } = await supabaseAdmin
+      .from('transparency_ledger_items')
+      .select('id, item_type, title, amount_cents, category, status, created_at')
+      .eq('campaign_id', campaignId)
+      .order('created_at', { ascending: false })
+      .limit(8);
+    return data ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

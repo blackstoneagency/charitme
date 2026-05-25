@@ -6,22 +6,30 @@ import { AI_MOAT_FEATURES, BRAND, GROWTH_PLAYBOOK, TRUST_PILLARS, calculateTrust
 export const dynamic = 'force-dynamic';
 
 async function getFeaturedCampaigns() {
-  const { data } = await supabaseAdmin
-    .from('campaigns')
-    .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status')
-    .eq('status', 'active')
-    .order('raised_amount', { ascending: false })
-    .limit(6);
-  return data ?? [];
+  try {
+    const { data } = await supabaseAdmin
+      .from('campaigns')
+      .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status')
+      .eq('status', 'active')
+      .order('raised_amount', { ascending: false })
+      .limit(6);
+    return data ?? [];
+  } catch {
+    return [];
+  }
 }
 
 async function getStats() {
-  const { data } = await supabaseAdmin.from('campaigns').select('raised_amount, backer_count').eq('status', 'active');
-  return {
-    total: (data ?? []).reduce((sum, campaign) => sum + (campaign.raised_amount ?? 0), 0),
-    donors: (data ?? []).reduce((sum, campaign) => sum + (campaign.backer_count ?? 0), 0),
-    count: data?.length ?? 0,
-  };
+  try {
+    const { data } = await supabaseAdmin.from('campaigns').select('raised_amount, backer_count').eq('status', 'active');
+    return {
+      total: (data ?? []).reduce((sum, campaign) => sum + (campaign.raised_amount ?? 0), 0),
+      donors: (data ?? []).reduce((sum, campaign) => sum + (campaign.backer_count ?? 0), 0),
+      count: data?.length ?? 0,
+    };
+  } catch {
+    return { total: 0, donors: 0, count: 0 };
+  }
 }
 
 export default async function HomePage() {

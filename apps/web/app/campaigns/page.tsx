@@ -14,17 +14,21 @@ interface Props {
 }
 
 async function getCampaigns(category?: string, q?: string) {
-  let query = supabaseAdmin
-    .from('campaigns')
-    .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category')
-    .eq('status', 'active')
-    .order('raised_amount', { ascending: false });
+  try {
+    let query = supabaseAdmin
+      .from('campaigns')
+      .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category')
+      .eq('status', 'active')
+      .order('raised_amount', { ascending: false });
 
-  if (category) query = query.eq('category', category);
-  if (q) query = query.ilike('title', `%${q}%`);
+    if (category) query = query.eq('category', category);
+    if (q) query = query.ilike('title', `%${q}%`);
 
-  const { data } = await query.limit(50);
-  return data ?? [];
+    const { data } = await query.limit(50);
+    return data ?? [];
+  } catch {
+    return [];
+  }
 }
 
 function daysLeft(deadline: string | null): number | null {

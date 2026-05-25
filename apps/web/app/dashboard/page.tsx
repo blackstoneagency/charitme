@@ -12,41 +12,57 @@ export const dynamic = 'force-dynamic';
 const RENDER_TIME = Date.now();
 
 async function getMyCampaigns(userId: string) {
-  const { data } = await supabaseAdmin
-    .from('campaigns')
-    .select('id, slug, title, tagline, description, cover_image_url, goal_amount, raised_amount, backer_count, deadline, status')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-  return data ?? [];
+  try {
+    const { data } = await supabaseAdmin
+      .from('campaigns')
+      .select('id, slug, title, tagline, description, cover_image_url, goal_amount, raised_amount, backer_count, deadline, status')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    return data ?? [];
+  } catch {
+    return [];
+  }
 }
 
 async function getRecentDonations(userId: string) {
-  const { data } = await supabaseAdmin
-    .from('donations')
-    .select('id, amount_cents, message, anonymous, created_at, campaigns!inner(title, slug, user_id), profiles:donor_id(full_name)')
-    .eq('campaigns.user_id', userId)
-    .eq('status', 'completed')
-    .order('created_at', { ascending: false })
-    .limit(20);
-  return data ?? [];
+  try {
+    const { data } = await supabaseAdmin
+      .from('donations')
+      .select('id, amount_cents, message, anonymous, created_at, campaigns!inner(title, slug, user_id), profiles:donor_id(full_name)')
+      .eq('campaigns.user_id', userId)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(20);
+    return data ?? [];
+  } catch {
+    return [];
+  }
 }
 
 async function getProfile(userId: string) {
-  const { data } = await supabaseAdmin
-    .from('profiles')
-    .select('full_name')
-    .eq('id', userId)
-    .single();
-  return data;
+  try {
+    const { data } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name')
+      .eq('id', userId)
+      .single();
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 async function getConnectedAccount(userId: string) {
-  const { data } = await supabaseAdmin
-    .from('connected_accounts')
-    .select('stripe_account_id, details_submitted, payouts_enabled, verification_status')
-    .eq('user_id', userId)
-    .maybeSingle();
-  return data;
+  try {
+    const { data } = await supabaseAdmin
+      .from('connected_accounts')
+      .select('stripe_account_id, details_submitted, payouts_enabled, verification_status')
+      .eq('user_id', userId)
+      .maybeSingle();
+    return data;
+  } catch {
+    return null;
+  }
 }
 
 export default async function DashboardPage() {
