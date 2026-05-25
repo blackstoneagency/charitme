@@ -9,13 +9,46 @@ begin
 end;
 $$;
 
-create or replace function is_admin()
-returns boolean language sql stable as $$
-  select exists (
-    select 1 from public.profiles
-    where id = auth.uid()
-    and roles ? 'admin'
-  );
+-- is_admin() is defined AFTER the profiles table below (ordering requirement).
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  requested_roles jsonb;
+begin
+  requested_roles := coalesce(new.raw_user_meta_data -> 'roles', '["donor"]'::jsonb);
+
+  if jsonb_typeof(requested_roles) <> 'array' then
+    requested_roles := '["donor"]'::jsonb;
+  end if;
+
+  insert into public.profiles (
+    id,
+    email,
+    full_name,
+    avatar_url,
+    roles
+  )
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name'),
+    new.raw_user_meta_data ->> 'avatar_url',
+    requested_roles
+  )
+  on conflict (id) do update
+  set
+    email = excluded.email,
+    full_name = coalesce(public.profiles.full_name, excluded.full_name),
+    avatar_url = coalesce(public.profiles.avatar_url, excluded.avatar_url),
+    updated_at = now();
+
+  return new;
+end;
 $$;
 
 create table if not exists profiles (
@@ -29,6 +62,16 @@ create table if not exists profiles (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Defined here so public.profiles already exists when this function is parsed.
+create or replace function is_admin()
+returns boolean language sql stable security definer as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid()
+    and roles ? 'admin'
+  );
+$$;
 
 create table if not exists connected_accounts (
   id uuid primary key default uuid_generate_v4(),
@@ -300,6 +343,8 @@ drop trigger if exists donations_increment_campaign_stats on donations;
 
 drop trigger if exists profiles_set_updated_at on profiles;
 create trigger profiles_set_updated_at before update on profiles for each row execute function set_updated_at();
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_user();
 drop trigger if exists connected_accounts_set_updated_at on connected_accounts;
 create trigger connected_accounts_set_updated_at before update on connected_accounts for each row execute function set_updated_at();
 drop trigger if exists campaigns_set_updated_at on campaigns;
@@ -337,6 +382,7 @@ alter table ai_generations enable row level security;
 alter table campaign_reports enable row level security;
 
 create policy profiles_read on profiles for select using (true);
+create policy profiles_insert_self on profiles for insert with check (auth.uid() = id or is_admin());
 create policy profiles_update_own on profiles for update using (auth.uid() = id or is_admin());
 
 create policy connected_accounts_own_read on connected_accounts for select using (auth.uid() = user_id or is_admin());
