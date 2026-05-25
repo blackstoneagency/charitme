@@ -6,6 +6,7 @@ import type { User } from '@supabase/supabase-js';
 import { createClient } from '../lib/supabase-browser';
 
 const NAV = [
+  ['Features', '/features'],
   ['How it works', '/how-it-works'],
   ['Pricing', '/pricing'],
   ['Trust', '/trust-safety'],
