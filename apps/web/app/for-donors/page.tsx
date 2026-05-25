@@ -124,7 +124,7 @@ export default function ForDonorsPage() {
               <p className="mt-4 leading-7 text-slate-600">
                 Every GiveRise campaign displays a set of trust indicators on its public page.
                 These are objective verification signals — not subjective ratings.
-                No campaign is labeled "fraudulent" publicly — instead, you see exactly which evidence is present.
+                No campaign is labeled &ldquo;fraudulent&rdquo; publicly — instead, you see exactly which evidence is present.
               </p>
               <Link href="/trust-safety" className="mt-6 inline-block text-sm font-black text-blue-700">
                 Read our full trust & safety policy →

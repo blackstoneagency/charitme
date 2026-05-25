@@ -89,7 +89,7 @@ export default function TrustSafetyPage() {
               <h2 className="text-3xl font-black text-slate-950">How the AI trust score works</h2>
               <p className="mt-4 leading-7 text-slate-600">
                 The trust score is a 0–99 number computed automatically from objective signals — not subjective impressions.
-                It never publicly labels a campaign as "fraudulent" — it describes the strength of evidence available for donors to evaluate.
+                It never publicly labels a campaign as &ldquo;fraudulent&rdquo; — it describes the strength of evidence available for donors to evaluate.
               </p>
               <div className="mt-6 space-y-4">
                 {[

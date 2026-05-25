@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { PAYOUT_OPTIONS } from '../../lib/pricing';
 
 export const metadata: Metadata = {
   title: 'Fast Payouts — Stripe Verified Payouts',

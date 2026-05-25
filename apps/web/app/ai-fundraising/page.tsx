@@ -21,7 +21,7 @@ export default function AiFundraisingPage() {
               AI that helps campaigns<br className="hidden sm:block" /> earn trust and raise more.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-              GiveRise AI doesn't replace your story — it helps you tell it better.
+              GiveRise AI doesn&apos;t replace your story — it helps you tell it better.
               Generate campaigns, outreach, updates, and trust signals without losing the authenticity donors respond to.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -119,7 +119,7 @@ export default function AiFundraisingPage() {
               <h2 className="text-2xl font-black text-slate-950">Build trust that donors can see</h2>
               <p className="mt-3 leading-7 text-slate-600">
                 The AI Trust Engine evaluates every campaign across six dimensions and computes a public trust score (0–99).
-                The score tells donors not "trust this" or "don't trust this" — but exactly which signals are verified.
+                The score tells donors not &ldquo;trust this&rdquo; or &ldquo;don&apos;t trust this&rdquo; — but exactly which signals are verified.
               </p>
               <div className="mt-6 space-y-3">
                 {[

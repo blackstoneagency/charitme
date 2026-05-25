@@ -129,7 +129,7 @@ export default function ForNonprofitsPage() {
               <p className="mt-4 leading-7 text-slate-600">
                 GiveRise AI tools are built for authentic storytelling — not generic templates.
                 Generate campaign stories, thank-you sequences, lapsed donor appeals, and grant summaries
-                in your organization's voice.
+                in your organization&apos;s voice.
               </p>
               <div className="mt-6 space-y-3">
                 {[
