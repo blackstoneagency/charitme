@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
   const { data: campaign } = await supabaseAdmin
     .from('campaigns')
-    .select('id, title, slug, status, user_id, profiles:user_id(stripe_account_id, stripe_onboarded)')
+    .select('id, title, slug, status, user_id')
     .eq('id', campaignId)
     .single();
 
@@ -46,7 +46,12 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const origin = getAppOrigin();
-  const profile = campaign.profiles as { stripe_account_id?: string; stripe_onboarded?: boolean } | null;
+  const { data: connectedAccount } = await supabaseAdmin
+    .from('connected_accounts')
+    .select('stripe_account_id, payouts_enabled, details_submitted')
+    .eq('user_id', campaign.user_id)
+    .eq('verification_status', 'verified')
+    .maybeSingle();
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
     {
       price_data: {
@@ -98,10 +103,10 @@ export async function POST(request: NextRequest) {
       processingFeeCents: String(processingFeeCents),
     },
     payment_intent_data: {
-      ...(profile?.stripe_onboarded && profile.stripe_account_id
+      ...(connectedAccount?.details_submitted && connectedAccount.payouts_enabled && connectedAccount.stripe_account_id
         ? {
-            application_fee_amount: tipCents,
-            transfer_data: { destination: profile.stripe_account_id },
+            application_fee_amount: tipCents + processingFeeCents,
+            transfer_data: { destination: connectedAccount.stripe_account_id },
           }
         : {}),
     },

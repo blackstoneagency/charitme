@@ -9,13 +9,13 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { data: profile } = await supabaseAdmin
-    .from('profiles')
-    .select('stripe_account_id')
-    .eq('id', user.id)
+  const { data: connectedAccount } = await supabaseAdmin
+    .from('connected_accounts')
+    .select('id, stripe_account_id')
+    .eq('user_id', user.id)
     .single();
 
-  let accountId = profile?.stripe_account_id;
+  let accountId = connectedAccount?.stripe_account_id;
 
   if (!accountId) {
     const account = await stripe.accounts.create({
@@ -25,9 +25,8 @@ export async function POST() {
     });
     accountId = account.id;
     await supabaseAdmin
-      .from('profiles')
-      .update({ stripe_account_id: accountId })
-      .eq('id', user.id);
+      .from('connected_accounts')
+      .insert({ user_id: user.id, stripe_account_id: accountId });
   }
 
   const origin = getAppOrigin();
@@ -36,34 +35,51 @@ export async function POST() {
     refresh_url: `${origin}/dashboard`,
     return_url: `${origin}/api/stripe/connect?account=${accountId}&user=${user.id}`,
     type: 'account_onboarding',
-  }, {
-    idempotencyKey: `connect_link_${user.id}_${accountId}`,
   });
 
   return NextResponse.json({ url: link.url });
 }
 
 export async function GET(request: Request) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return Response.redirect(`${getAppOrigin()}/login`);
+
   const { searchParams } = new URL(request.url);
   const accountId = searchParams.get('account');
   const userId = searchParams.get('user');
 
+  if (userId !== user.id) {
+    return Response.redirect(`${getAppOrigin()}/dashboard`);
+  }
+
   if (accountId && userId) {
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('stripe_account_id')
-      .eq('id', userId)
+    const { data: connectedAccount } = await supabaseAdmin
+      .from('connected_accounts')
+      .select('id, stripe_account_id')
+      .eq('user_id', userId)
+      .eq('stripe_account_id', accountId)
       .single();
 
-    if (profile?.stripe_account_id !== accountId) {
+    if (!connectedAccount) {
       return Response.redirect(`${getAppOrigin()}/dashboard`);
     }
 
     const account = await stripe.accounts.retrieve(accountId);
+    await supabaseAdmin
+      .from('connected_accounts')
+      .update({
+        charges_enabled: account.charges_enabled,
+        payouts_enabled: account.payouts_enabled,
+        details_submitted: account.details_submitted,
+        verification_status: account.details_submitted ? 'verified' : 'pending',
+      })
+      .eq('id', connectedAccount.id);
+
     if (account.details_submitted) {
       await supabaseAdmin
         .from('profiles')
-        .update({ stripe_onboarded: true })
+        .update({ identity_verified: true })
         .eq('id', userId);
     }
   }

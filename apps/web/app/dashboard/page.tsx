@@ -34,18 +34,28 @@ async function getRecentDonations(userId: string) {
 async function getProfile(userId: string) {
   const { data } = await supabaseAdmin
     .from('profiles')
-    .select('full_name, stripe_account_id, stripe_onboarded')
+    .select('full_name')
     .eq('id', userId)
     .single();
   return data;
 }
 
+async function getConnectedAccount(userId: string) {
+  const { data } = await supabaseAdmin
+    .from('connected_accounts')
+    .select('stripe_account_id, details_submitted, payouts_enabled, verification_status')
+    .eq('user_id', userId)
+    .maybeSingle();
+  return data;
+}
+
 export default async function DashboardPage() {
   const user = await requireUser();
-  const [campaigns, donations, profile] = await Promise.all([
+  const [campaigns, donations, profile, connectedAccount] = await Promise.all([
     getMyCampaigns(user.id),
     getRecentDonations(user.id),
     getProfile(user.id),
+    getConnectedAccount(user.id),
   ]);
 
   const totalRaised = campaigns.reduce((s, c) => s + (c.raised_amount ?? 0), 0);
@@ -92,17 +102,17 @@ export default async function DashboardPage() {
         <div>
           <div style={{ fontWeight: 700, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             Payouts
-            {profile?.stripe_onboarded
+            {connectedAccount?.details_submitted
               ? <Badge color="green">Connected</Badge>
               : <Badge color="gray">Not set up</Badge>}
           </div>
           <p style={{ fontSize: '13px', color: 'var(--t3)' }}>
-            {profile?.stripe_onboarded
+            {connectedAccount?.details_submitted
               ? 'Your Stripe account is connected. Donations will be paid out automatically.'
               : 'Connect Stripe to receive payouts from your campaigns.'}
           </p>
         </div>
-        {!profile?.stripe_onboarded && (
+        {!connectedAccount?.details_submitted && (
           <ConnectButton />
         )}
       </Card>

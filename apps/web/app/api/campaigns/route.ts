@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
+import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 
 function slugify(text: string): string {
   return text
@@ -17,8 +18,8 @@ const CreateSchema = z.object({
   tagline: z.string().max(160).optional(),
   description: z.string().min(20),
   goalAmount: z.number().int().min(100),
-  deadline: z.string().nullable().optional(),
-  category: z.string(),
+  deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  category: z.enum(CAMPAIGN_CATEGORIES),
   coverImageUrl: z.string().url().nullable().optional(),
   beneficiaryName: z.string().max(120).optional(),
   beneficiaryRelationship: z.string().max(120).optional(),
@@ -59,7 +60,10 @@ export async function POST(request: NextRequest) {
     .select('id, slug')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('Campaign create failed', error);
+    return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' }, { status: 500 });
+  }
 
   return NextResponse.json(data, { status: 201 });
 }
@@ -80,7 +84,10 @@ export async function GET(request: NextRequest) {
   if (q) query = query.ilike('title', `%${q}%`);
 
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('Campaign list failed', error);
+    return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' }, { status: 500 });
+  }
 
   return NextResponse.json(data);
 }

@@ -261,6 +261,8 @@ create index if not exists campaigns_slug_idx on campaigns(slug);
 create index if not exists donations_campaign_id_idx on donations(campaign_id);
 create index if not exists donations_donor_id_idx on donations(donor_id);
 create unique index if not exists donations_stripe_payment_intent_id_uidx on donations(stripe_payment_intent_id) where stripe_payment_intent_id is not null;
+create unique index if not exists donor_tips_stripe_payment_intent_id_uidx on donor_tips(stripe_payment_intent_id) where stripe_payment_intent_id is not null;
+create unique index if not exists platform_fees_stripe_payment_intent_id_uidx on platform_fees(stripe_payment_intent_id) where stripe_payment_intent_id is not null;
 create index if not exists payouts_campaign_id_idx on payouts(campaign_id);
 create index if not exists risk_flags_status_idx on risk_flags(status);
 create index if not exists ledger_campaign_id_idx on transparency_ledger_items(campaign_id);
@@ -275,6 +277,42 @@ begin
   where id = p_campaign_id;
 end;
 $$;
+
+create or replace function increment_campaign_stats_after_donation()
+returns trigger language plpgsql security definer as $$
+begin
+  if new.status = 'completed' then
+    update campaigns
+    set raised_amount = raised_amount + new.amount_cents,
+        backer_count = backer_count + 1,
+        updated_at = now()
+    where id = new.campaign_id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists donations_increment_campaign_stats on donations;
+create trigger donations_increment_campaign_stats
+  after insert on donations
+  for each row execute function increment_campaign_stats_after_donation();
+
+drop trigger if exists profiles_set_updated_at on profiles;
+create trigger profiles_set_updated_at before update on profiles for each row execute function set_updated_at();
+drop trigger if exists connected_accounts_set_updated_at on connected_accounts;
+create trigger connected_accounts_set_updated_at before update on connected_accounts for each row execute function set_updated_at();
+drop trigger if exists campaigns_set_updated_at on campaigns;
+create trigger campaigns_set_updated_at before update on campaigns for each row execute function set_updated_at();
+drop trigger if exists payouts_set_updated_at on payouts;
+create trigger payouts_set_updated_at before update on payouts for each row execute function set_updated_at();
+drop trigger if exists risk_flags_set_updated_at on risk_flags;
+create trigger risk_flags_set_updated_at before update on risk_flags for each row execute function set_updated_at();
+drop trigger if exists subscriptions_set_updated_at on subscriptions;
+create trigger subscriptions_set_updated_at before update on subscriptions for each row execute function set_updated_at();
+drop trigger if exists admin_reviews_set_updated_at on admin_reviews;
+create trigger admin_reviews_set_updated_at before update on admin_reviews for each row execute function set_updated_at();
+drop trigger if exists campaign_reports_set_updated_at on campaign_reports;
+create trigger campaign_reports_set_updated_at before update on campaign_reports for each row execute function set_updated_at();
 
 alter table profiles enable row level security;
 alter table connected_accounts enable row level security;
@@ -308,6 +346,16 @@ create policy donations_donor_or_owner_read on donations for select using (
   auth.uid() = donor_id or is_admin() or exists (select 1 from campaigns where campaigns.id = donations.campaign_id and campaigns.user_id = auth.uid())
 );
 create policy donations_insert_service on donations for insert with check (true);
+
+create policy donor_tips_owner_read on donor_tips for select using (
+  auth.uid() = donor_id or is_admin() or exists (select 1 from campaigns where campaigns.id = donor_tips.campaign_id and campaigns.user_id = auth.uid())
+);
+create policy donor_tips_insert_service on donor_tips for insert with check (true);
+
+create policy platform_fees_owner_read on platform_fees for select using (
+  is_admin() or exists (select 1 from campaigns where campaigns.id = platform_fees.campaign_id and campaigns.user_id = auth.uid())
+);
+create policy platform_fees_insert_service on platform_fees for insert with check (true);
 
 create policy payouts_owner_admin_read on payouts for select using (auth.uid() = user_id or is_admin());
 create policy payouts_owner_insert on payouts for insert with check (auth.uid() = user_id);
