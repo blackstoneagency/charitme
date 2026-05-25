@@ -1,11 +1,11 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase-browser';
 import { getAuthCallbackUrl, safeNextPath } from '../../lib/auth-config';
 import { Btn, Input } from '../../components/ui';
 
-export default function LoginPage() {
+function LoginForm() {
   const params = useSearchParams();
   const router = useRouter();
   const next = safeNextPath(params.get('next'));
@@ -138,5 +138,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: 'calc(100vh - 64px)', background: 'var(--s1)' }} />}>
+      <LoginForm />
+    </Suspense>
   );
 }

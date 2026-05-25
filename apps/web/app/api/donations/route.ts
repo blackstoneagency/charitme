@@ -1,14 +1,15 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import type Stripe from 'stripe';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 import { stripe } from '../../../lib/stripe';
-import { platformFee, MIN_DONATION_CENTS } from '@shared/fees';
+import { platformFee, MIN_DONATION_CENTS, MAX_DONATION_CENTS } from '@shared/fees';
 import { getAppOrigin } from '../../../lib/auth-config';
 
 const DonateSchema = z.object({
   campaignId: z.string().uuid(),
-  amountCents: z.number().int().min(MIN_DONATION_CENTS),
+  amountCents: z.number().int().min(MIN_DONATION_CENTS).max(MAX_DONATION_CENTS),
   message: z.string().max(500).optional(),
   anonymous: z.boolean().optional(),
 });
@@ -16,7 +17,12 @@ const DonateSchema = z.object({
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const parsed = DonateSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Invalid donation request', code: 'INVALID_INPUT', details: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
 
   const { campaignId, amountCents, message, anonymous } = parsed.data;
 
@@ -26,8 +32,10 @@ export async function POST(request: NextRequest) {
     .eq('id', campaignId)
     .single();
 
-  if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
-  if (campaign.status !== 'active') return NextResponse.json({ error: 'Campaign is not active' }, { status: 400 });
+  if (!campaign) return NextResponse.json({ error: 'Campaign not found', code: 'NOT_FOUND' }, { status: 404 });
+  if (campaign.status !== 'active') {
+    return NextResponse.json({ error: 'Campaign is not active', code: 'CAMPAIGN_INACTIVE' }, { status: 400 });
+  }
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -36,7 +44,7 @@ export async function POST(request: NextRequest) {
   const origin = getAppOrigin();
   const profile = campaign.profiles as { stripe_account_id?: string; stripe_onboarded?: boolean } | null;
 
-  const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'payment',
     line_items: [
       {
@@ -69,7 +77,10 @@ export async function POST(request: NextRequest) {
     },
   };
 
-  const session = await stripe.checkout.sessions.create(sessionParams);
+  const requestKey = request.headers.get('idempotency-key') ?? crypto.randomUUID();
+  const session = await stripe.checkout.sessions.create(sessionParams, {
+    idempotencyKey: `donation_${campaignId}_${amountCents}_${user?.id ?? 'guest'}_${requestKey}`,
+  });
 
   return NextResponse.json({ url: session.url });
 }

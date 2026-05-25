@@ -3,9 +3,10 @@ import { supabaseAdmin } from '../../../lib/supabase';
 import { ProgressBar, Badge, Card } from '../../../components/ui';
 import { formatCents } from '../../../lib/stripe';
 import DonateButton from './DonateButton';
+import { calculateTrustScore, getTrustLabel, getTrustSignals } from '../../../lib/ai-platform';
 import type { Metadata } from 'next';
 
-export const revalidate = 30;
+export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -64,6 +65,8 @@ export default async function CampaignPage({ params }: Props) {
   ]);
 
   const pct = Math.min(100, Math.round(((campaign.raised_amount ?? 0) / campaign.goal_amount) * 100));
+  const trustScore = calculateTrustScore(campaign);
+  const trustSignals = getTrustSignals(campaign);
   const days = campaign.deadline
     ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - Date.now()) / 86_400_000))
     : null;
@@ -89,6 +92,7 @@ export default async function CampaignPage({ params }: Props) {
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
             <Badge color="gray">{campaign.category}</Badge>
+            <Badge color={trustScore >= 70 ? 'green' : 'blue'}>{getTrustLabel(trustScore)}</Badge>
             {campaign.status === 'completed' && <Badge color="green">Goal reached</Badge>}
             {days === 0 && <Badge color="red">Ended</Badge>}
           </div>
@@ -128,6 +132,32 @@ export default async function CampaignPage({ params }: Props) {
           }}>
             {campaign.description}
           </div>
+
+          <Card style={{ padding: '22px', marginBottom: '40px', background: 'linear-gradient(135deg, #ffffff, #f8fafc)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', marginBottom: '18px' }}>
+              <div>
+                <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '4px' }}>AI trust review</h2>
+                <p style={{ fontSize: '13px', color: 'var(--t3)' }}>
+                  Donor confidence signals are generated from campaign completeness, proof, and momentum.
+                </p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '28px', fontWeight: 800, color: trustScore >= 70 ? 'var(--green)' : 'var(--blue)' }}>{trustScore}%</div>
+                <div style={{ fontSize: '12px', color: 'var(--t4)' }}>{getTrustLabel(trustScore)}</div>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+              {trustSignals.map((signal) => (
+                <div key={signal.label} style={{ border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '12px', background: '#fff' }}>
+                  <Badge color={signal.state === 'verified' ? 'green' : signal.state === 'watch' ? 'blue' : 'gray'}>
+                    {signal.state}
+                  </Badge>
+                  <div style={{ fontSize: '14px', fontWeight: 800, marginTop: '10px', marginBottom: '4px' }}>{signal.label}</div>
+                  <p style={{ fontSize: '12px', color: 'var(--t3)', lineHeight: 1.45 }}>{signal.detail}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
 
           {/* Updates */}
           {updates.length > 0 && (
@@ -187,6 +217,21 @@ export default async function CampaignPage({ params }: Props) {
               </span>
             </div>
             <ProgressBar value={campaign.raised_amount ?? 0} max={campaign.goal_amount} />
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '8px',
+              marginTop: '14px',
+            }}>
+              <div style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '10px' }}>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: trustScore >= 70 ? 'var(--green)' : 'var(--blue)' }}>{trustScore}%</div>
+                <div style={{ fontSize: '11px', color: 'var(--t4)' }}>Trust score</div>
+              </div>
+              <div style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '10px' }}>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--t1)' }}>5%</div>
+                <div style={{ fontSize: '11px', color: 'var(--t4)' }}>Platform fee</div>
+              </div>
+            </div>
             <div style={{ display: 'flex', gap: '20px', margin: '14px 0 24px', fontSize: '13px', color: 'var(--t3)' }}>
               <span><strong style={{ color: 'var(--t1)' }}>{pct}%</strong> funded</span>
               <span><strong style={{ color: 'var(--t1)' }}>{campaign.backer_count ?? 0}</strong> donors</span>

@@ -4,6 +4,7 @@ import { ProgressBar, Badge, Card, EmptyState } from '../../components/ui';
 import { formatCents } from '../../lib/stripe';
 import Link from 'next/link';
 import ConnectButton from './ConnectButton';
+import { calculateTrustScore, getTrustLabel, GROWTH_PLAYBOOK } from '../../lib/ai-platform';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'Dashboard' };
@@ -12,7 +13,7 @@ export const dynamic = 'force-dynamic';
 async function getMyCampaigns(userId: string) {
   const { data } = await supabaseAdmin
     .from('campaigns')
-    .select('id, slug, title, goal_amount, raised_amount, backer_count, deadline, status')
+    .select('id, slug, title, tagline, description, cover_image_url, goal_amount, raised_amount, backer_count, deadline, status')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
   return data ?? [];
@@ -76,6 +77,7 @@ export default async function DashboardPage() {
           { label: 'Total raised', value: formatCents(totalRaised) },
           { label: 'Total donors', value: totalDonors.toLocaleString() },
           { label: 'Active campaigns', value: campaigns.filter((c) => c.status === 'active').length.toString() },
+          { label: 'Avg trust score', value: campaigns.length > 0 ? `${Math.round(campaigns.reduce((s, c) => s + calculateTrustScore(c), 0) / campaigns.length)}%` : '0%' },
         ].map((s) => (
           <Card key={s.label} style={{ padding: '20px' }}>
             <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--t1)', marginBottom: '4px' }}>{s.value}</div>
@@ -102,6 +104,23 @@ export default async function DashboardPage() {
         {!profile?.stripe_onboarded && (
           <ConnectButton userId={user.id} />
         )}
+      </Card>
+
+      <Card style={{ padding: '24px', marginBottom: '32px', background: 'linear-gradient(135deg, #ffffff, #f8fafc)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', marginBottom: '18px' }}>
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--green)', marginBottom: '4px' }}>AI Growth Engine</div>
+            <h2 style={{ fontSize: '18px', fontWeight: 800 }}>Recommended next moves</h2>
+          </div>
+          <Badge color="blue">Campaign health</Badge>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' }}>
+          {GROWTH_PLAYBOOK.slice(0, 4).map((item) => (
+            <div key={item} style={{ border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '12px', fontSize: '13px', fontWeight: 600, color: 'var(--t2)', background: '#fff' }}>
+              {item}
+            </div>
+          ))}
+        </div>
       </Card>
 
       {/* My campaigns */}
@@ -132,6 +151,7 @@ export default async function DashboardPage() {
                         {c.title}
                       </Link>
                       <Badge color={c.status === 'active' ? 'green' : 'gray'}>{c.status}</Badge>
+                      <Badge color={calculateTrustScore(c) >= 70 ? 'green' : 'blue'}>{getTrustLabel(calculateTrustScore(c))}</Badge>
                     </div>
                     <ProgressBar value={c.raised_amount ?? 0} max={c.goal_amount} />
                     <div style={{ fontSize: '13px', color: 'var(--t3)', marginTop: '8px' }}>

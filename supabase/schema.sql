@@ -73,6 +73,9 @@ create table if not exists donations (
 
 create index if not exists donations_campaign_id_idx on donations(campaign_id);
 create index if not exists donations_donor_id_idx on donations(donor_id);
+create unique index if not exists donations_stripe_payment_intent_id_uidx
+  on donations(stripe_payment_intent_id)
+  where stripe_payment_intent_id is not null;
 
 -- ─── Campaign updates ─────────────────────────────────────────────────────────
 create table if not exists campaign_updates (

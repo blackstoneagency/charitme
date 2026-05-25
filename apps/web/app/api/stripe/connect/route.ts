@@ -34,8 +34,10 @@ export async function POST() {
   const link = await stripe.accountLinks.create({
     account: accountId,
     refresh_url: `${origin}/dashboard`,
-    return_url: `${origin}/api/stripe/connect/return?account=${accountId}&user=${user.id}`,
+    return_url: `${origin}/api/stripe/connect?account=${accountId}&user=${user.id}`,
     type: 'account_onboarding',
+  }, {
+    idempotencyKey: `connect_link_${user.id}_${accountId}`,
   });
 
   return NextResponse.json({ url: link.url });
@@ -47,6 +49,16 @@ export async function GET(request: Request) {
   const userId = searchParams.get('user');
 
   if (accountId && userId) {
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('stripe_account_id')
+      .eq('id', userId)
+      .single();
+
+    if (profile?.stripe_account_id !== accountId) {
+      return Response.redirect(`${getAppOrigin()}/dashboard`);
+    }
+
     const account = await stripe.accounts.retrieve(accountId);
     if (account.details_submitted) {
       await supabaseAdmin

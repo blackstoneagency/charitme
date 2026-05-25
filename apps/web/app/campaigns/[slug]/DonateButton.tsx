@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { Btn } from '../../../components/ui';
+import { MAX_DONATION_CENTS } from '@shared/fees';
 
 export default function DonateButton({ campaignId, campaignTitle }: { campaignId: string; campaignTitle: string }) {
   const [amount, setAmount] = useState('25');
@@ -17,12 +18,16 @@ export default function DonateButton({ campaignId, campaignTitle }: { campaignId
       setError('Minimum donation is $1.00');
       return;
     }
+    if (cents > MAX_DONATION_CENTS) {
+      setError('Maximum donation is $1,000,000');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
       const res = await fetch('/api/donations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() },
         body: JSON.stringify({ campaignId, amountCents: cents, message, anonymous }),
       });
       const data = await res.json();
@@ -36,6 +41,14 @@ export default function DonateButton({ campaignId, campaignTitle }: { campaignId
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* Preset amounts */}
+      <div style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '12px' }}>
+        <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '4px' }}>Donor confidence</div>
+        <p style={{ fontSize: '12px', color: 'var(--t3)', lineHeight: 1.45 }}>
+          Your gift is processed by Stripe and tracked with campaign trust signals, payout status, and future impact updates.
+        </p>
+      </div>
+
       {/* Preset amounts */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
         {presets.map((p) => (

@@ -22,21 +22,40 @@ export async function POST(request: NextRequest) {
     if (!campaignId) return NextResponse.json({ ok: true });
 
     const amountCents = session.amount_total ?? 0;
+    const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null;
 
-    await supabaseAdmin.from('donations').insert({
+    if (paymentIntentId) {
+      const { data: existingDonation } = await supabaseAdmin
+        .from('donations')
+        .select('id')
+        .eq('stripe_payment_intent_id', paymentIntentId)
+        .maybeSingle();
+
+      if (existingDonation) return NextResponse.json({ ok: true });
+    }
+
+    const { error: insertError } = await supabaseAdmin.from('donations').insert({
       campaign_id: campaignId,
       donor_id: donorId || null,
       amount_cents: amountCents,
       message: message || null,
       anonymous: anonymous === '1',
-      stripe_payment_intent_id: typeof session.payment_intent === 'string' ? session.payment_intent : null,
+      stripe_payment_intent_id: paymentIntentId,
       status: 'completed',
     });
 
-    await supabaseAdmin.rpc('increment_campaign_stats', {
+    if (insertError) {
+      return NextResponse.json({ error: 'Unable to record donation', code: 'DONATION_RECORD_FAILED' }, { status: 500 });
+    }
+
+    const { error: statsError } = await supabaseAdmin.rpc('increment_campaign_stats', {
       p_campaign_id: campaignId,
       p_amount: amountCents,
     });
+
+    if (statsError) {
+      return NextResponse.json({ error: 'Unable to update campaign totals', code: 'CAMPAIGN_STATS_FAILED' }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true });

@@ -1,9 +1,9 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
 import type { User } from '@supabase/supabase-js';
+import { createClient } from '../lib/supabase-browser';
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   const path = usePathname();
@@ -11,7 +11,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   return (
     <Link href={href} style={{
       fontSize: '14px',
-      fontWeight: 500,
+      fontWeight: 600,
       color: active ? 'var(--green)' : 'var(--t2)',
       padding: '6px 4px',
       borderBottom: active ? '2px solid var(--green)' : '2px solid transparent',
@@ -26,10 +26,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -37,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -62,29 +59,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           height: '64px',
           gap: '32px',
         }}>
-          {/* Logo */}
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             <div style={{
-              width: '32px', height: '32px',
+              width: '32px',
+              height: '32px',
               background: 'var(--green)',
               borderRadius: '8px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', fontSize: '18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              fontSize: '12px',
+              fontWeight: 800,
             }}>
-              ↑
+              AI
             </div>
-            <span style={{ fontWeight: 800, fontSize: '17px', color: 'var(--t1)', letterSpacing: '-0.3px' }}>
+            <span style={{ fontWeight: 800, fontSize: '17px', color: 'var(--t1)' }}>
               RaiseMoney
             </span>
           </Link>
 
-          {/* Desktop nav */}
           <nav style={{ display: 'flex', alignItems: 'center', gap: '24px', flex: 1 }} className="desktop-nav">
-            <NavLink href="/campaigns">Browse</NavLink>
-            {user && <NavLink href="/dashboard">Dashboard</NavLink>}
+            <NavLink href="/campaigns">Trusted campaigns</NavLink>
+            {user && <NavLink href="/dashboard">AI dashboard</NavLink>}
           </nav>
 
-          {/* Desktop actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }} className="desktop-nav">
             {user ? (
               <>
@@ -93,23 +92,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   background: 'var(--green)',
                   color: '#fff',
                   borderRadius: 'var(--r)',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: '14px',
                 }}>
-                  Start a campaign
+                  Start trusted campaign
                 </Link>
-                <button onClick={handleSignOut} style={{
-                  fontSize: '14px',
-                  color: 'var(--t3)',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                }}>
+                <button onClick={handleSignOut} style={{ fontSize: '14px', color: 'var(--t3)', fontWeight: 600 }}>
                   Sign out
                 </button>
               </>
             ) : (
               <>
-                <Link href="/login" style={{ fontSize: '14px', fontWeight: 500, color: 'var(--t2)' }}>
+                <Link href="/login" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--t2)' }}>
                   Sign in
                 </Link>
                 <Link href="/login?mode=signup" style={{
@@ -117,7 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   background: 'var(--green)',
                   color: '#fff',
                   borderRadius: 'var(--r)',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: '14px',
                 }}>
                   Get started
@@ -126,17 +120,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
 
-          {/* Mobile hamburger */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="mobile-menu-btn"
+            aria-label="Open navigation"
             style={{ fontSize: '22px', color: 'var(--t1)', display: 'none' }}
           >
-            {menuOpen ? '✕' : '☰'}
+            {menuOpen ? 'x' : 'menu'}
           </button>
         </div>
 
-        {/* Mobile drawer */}
         {menuOpen && (
           <div style={{
             borderTop: '1px solid var(--b1)',
@@ -146,17 +139,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             gap: '16px',
             background: '#fff',
           }} className="mobile-drawer">
-            <Link href="/campaigns" onClick={() => setMenuOpen(false)} style={{ fontWeight: 500, color: 'var(--t2)' }}>Browse campaigns</Link>
-            {user && <Link href="/dashboard" onClick={() => setMenuOpen(false)} style={{ fontWeight: 500, color: 'var(--t2)' }}>Dashboard</Link>}
+            <Link href="/campaigns" onClick={() => setMenuOpen(false)} style={{ fontWeight: 600, color: 'var(--t2)' }}>Trusted campaigns</Link>
+            {user && <Link href="/dashboard" onClick={() => setMenuOpen(false)} style={{ fontWeight: 600, color: 'var(--t2)' }}>AI dashboard</Link>}
             {user ? (
               <>
-                <Link href="/create" onClick={() => setMenuOpen(false)} style={{ fontWeight: 600, color: 'var(--green)' }}>Start a campaign</Link>
-                <button onClick={handleSignOut} style={{ fontWeight: 500, color: 'var(--t3)', textAlign: 'left' }}>Sign out</button>
+                <Link href="/create" onClick={() => setMenuOpen(false)} style={{ fontWeight: 700, color: 'var(--green)' }}>Start trusted campaign</Link>
+                <button onClick={handleSignOut} style={{ fontWeight: 600, color: 'var(--t3)', textAlign: 'left' }}>Sign out</button>
               </>
             ) : (
               <>
-                <Link href="/login" onClick={() => setMenuOpen(false)} style={{ fontWeight: 500 }}>Sign in</Link>
-                <Link href="/login?mode=signup" onClick={() => setMenuOpen(false)} style={{ fontWeight: 600, color: 'var(--green)' }}>Get started</Link>
+                <Link href="/login" onClick={() => setMenuOpen(false)} style={{ fontWeight: 600 }}>Sign in</Link>
+                <Link href="/login?mode=signup" onClick={() => setMenuOpen(false)} style={{ fontWeight: 700, color: 'var(--green)' }}>Get started</Link>
               </>
             )}
           </div>
@@ -172,8 +165,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         background: 'var(--s1)',
       }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <span style={{ fontWeight: 700, color: 'var(--t2)' }}>RaiseMoney</span>
-          <span style={{ fontSize: '13px', color: 'var(--t4)' }}>© {new Date().getFullYear()} RaiseMoney. All rights reserved.</span>
+          <span style={{ fontWeight: 800, color: 'var(--t2)' }}>RaiseMoney</span>
+          <span style={{ fontSize: '13px', color: 'var(--t4)' }}>Copyright {new Date().getFullYear()} RaiseMoney. Trust-first fundraising.</span>
         </div>
       </footer>
 

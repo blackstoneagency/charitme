@@ -3,10 +3,11 @@ import { supabaseAdmin } from '../../lib/supabase';
 import { ProgressBar, Badge, Card, EmptyState } from '../../components/ui';
 import { formatCents } from '../../lib/stripe';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
+import { calculateTrustScore, getTrustLabel } from '../../lib/ai-platform';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'Browse Campaigns' };
-export const revalidate = 30;
+export const dynamic = 'force-dynamic';
 
 interface Props {
   searchParams: Promise<{ category?: string; q?: string }>;
@@ -38,8 +39,8 @@ export default async function CampaignsPage({ searchParams }: Props) {
   return (
     <div className="container" style={{ padding: '40px 24px' }}>
       <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px' }}>Browse campaigns</h1>
-        <p style={{ color: 'var(--t3)', fontSize: '15px' }}>Support causes that matter to you.</p>
+        <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px' }}>Browse trusted campaigns</h1>
+        <p style={{ color: 'var(--t3)', fontSize: '15px' }}>Support causes with visible AI trust signals, momentum data, and transparent goals.</p>
       </div>
 
       {/* Search + filter bar */}
@@ -120,19 +121,34 @@ export default async function CampaignsPage({ searchParams }: Props) {
                     position: 'relative',
                   }}>
                     <div style={{ position: 'absolute', top: '12px', left: '12px' }}>
-                      <Badge color="gray">{c.category}</Badge>
+                          <Badge color="gray">{c.category}</Badge>
+                          <Badge color={calculateTrustScore(c) >= 70 ? 'green' : 'blue'}>
+                            {getTrustLabel(calculateTrustScore(c))}
+                          </Badge>
                     </div>
                   </div>
                   <div style={{ padding: '18px' }}>
                     <h2 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '6px', color: 'var(--t1)' }}>
                       {c.title}
                     </h2>
-                    {c.tagline && (
-                      <p style={{ fontSize: '13px', color: 'var(--t3)', marginBottom: '14px', lineHeight: 1.4 }}>
-                        {c.tagline}
-                      </p>
-                    )}
-                    <ProgressBar value={c.raised_amount ?? 0} max={c.goal_amount} />
+                        {c.tagline && (
+                          <p style={{ fontSize: '13px', color: 'var(--t3)', marginBottom: '14px', lineHeight: 1.4 }}>
+                            {c.tagline}
+                          </p>
+                        )}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '14px' }}>
+                          {[
+                            { label: 'Trust', value: `${calculateTrustScore(c)}%` },
+                            { label: 'Donors', value: `${c.backer_count ?? 0}` },
+                            { label: 'Goal', value: formatCents(c.goal_amount) },
+                          ].map((signal) => (
+                            <div key={signal.label} style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '8px' }}>
+                              <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--t1)' }}>{signal.value}</div>
+                              <div style={{ fontSize: '10px', color: 'var(--t4)', marginTop: '1px' }}>{signal.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <ProgressBar value={c.raised_amount ?? 0} max={c.goal_amount} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', flexWrap: 'wrap', gap: '4px' }}>
                       <div>
                         <span style={{ fontWeight: 700, color: 'var(--green)', fontSize: '14px' }}>

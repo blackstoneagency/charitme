@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input, Textarea, Select, Btn } from '../../components/ui';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
+import { GROWTH_PLAYBOOK, TRUST_PILLARS } from '../../lib/ai-platform';
 
 export default function CreatePage() {
   const router = useRouter();
@@ -78,26 +79,32 @@ export default function CreatePage() {
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <Input label="Campaign title *" value={form.title} onChange={set('title')} placeholder="e.g. Help rebuild after the flood" required maxLength={100} />
-                <Input label="Short tagline" value={form.tagline} onChange={set('tagline')} placeholder="A one-sentence description" maxLength={160} />
+                <Input label="AI-optimized tagline" value={form.tagline} onChange={set('tagline')} placeholder="A clear, authentic one-sentence donor hook" maxLength={160} />
                 <Select label="Category *" value={form.category} onChange={set('category')}>
                   {CAMPAIGN_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </Select>
+                <div style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '14px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '8px' }}>AI trust setup</div>
+                  <p style={{ fontSize: '12px', color: 'var(--t3)', lineHeight: 1.5 }}>
+                    The launch flow is designed to collect the signals donors need: identity, real story, proof, urgency, and payout confidence.
+                  </p>
+                </div>
               </div>
             </>
           )}
 
           {step === 2 && (
             <>
-              <h1 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '8px' }}>Tell your story</h1>
+              <h1 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '8px' }}>AI Campaign Copilot</h1>
               <p style={{ color: 'var(--t3)', fontSize: '14px', marginBottom: '28px' }}>
-                A compelling story increases donations significantly.
+                Write naturally. The platform will shape this into a clear, emotionally honest donor story.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <Textarea
                   label="Campaign description *"
                   value={form.description}
                   onChange={set('description')}
-                  placeholder="Share who you are, why you're raising money, and how it will be used…"
+                  placeholder="Who needs help? What happened? Why now? How will donations be used?"
                   style={{ minHeight: '200px' }}
                 />
                 <Input
@@ -105,17 +112,24 @@ export default function CreatePage() {
                   value={form.coverImageUrl}
                   onChange={set('coverImageUrl')}
                   placeholder="https://…"
-                  hint="Link to a photo that represents your campaign"
+                  hint="A real image improves donor trust and future fraud screening."
                 />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+                  {TRUST_PILLARS.slice(0, 3).map((pillar) => (
+                    <div key={pillar} style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '10px', fontSize: '12px', color: 'var(--t2)', fontWeight: 600 }}>
+                      {pillar}
+                    </div>
+                  ))}
+                </div>
               </div>
             </>
           )}
 
           {step === 3 && (
             <>
-              <h1 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '8px' }}>Set your goal</h1>
+              <h1 style={{ fontSize: '22px', fontWeight: 800, marginBottom: '8px' }}>Goal and growth plan</h1>
               <p style={{ color: 'var(--t3)', fontSize: '14px', marginBottom: '28px' }}>
-                You&apos;ll receive all donations even if you don&apos;t hit your goal.
+                Launch with a realistic target and the first actions the AI Growth Engine will recommend.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <Input
@@ -128,6 +142,14 @@ export default function CreatePage() {
                   placeholder="5000"
                   hint="How much do you need to raise?"
                 />
+                <div style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '14px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '10px' }}>After launch, AI will help you:</div>
+                  <div style={{ display: 'grid', gap: '8px' }}>
+                    {GROWTH_PLAYBOOK.slice(0, 4).map((item) => (
+                      <div key={item} style={{ fontSize: '12px', color: 'var(--t2)' }}>{item}</div>
+                    ))}
+                  </div>
+                </div>
                 <Input
                   label="End date (optional)"
                   type="date"
@@ -165,7 +187,7 @@ export default function CreatePage() {
                 onClick={handleSubmit}
                 disabled={!form.goal}
               >
-                Launch campaign 🚀
+                Launch trusted campaign
               </Btn>
             )}
           </div>
