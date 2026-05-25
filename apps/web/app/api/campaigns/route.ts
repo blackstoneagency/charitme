@@ -20,6 +20,8 @@ const CreateSchema = z.object({
   deadline: z.string().nullable().optional(),
   category: z.string(),
   coverImageUrl: z.string().url().nullable().optional(),
+  beneficiaryName: z.string().max(120).optional(),
+  beneficiaryRelationship: z.string().max(120).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -31,7 +33,7 @@ export async function POST(request: NextRequest) {
   const parsed = CreateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const { title, tagline, description, goalAmount, deadline, category, coverImageUrl } = parsed.data;
+  const { title, tagline, description, goalAmount, deadline, category, coverImageUrl, beneficiaryName, beneficiaryRelationship } = parsed.data;
 
   const baseSlug = slugify(title);
   const slug = `${baseSlug}-${Date.now().toString(36)}`;
@@ -50,6 +52,8 @@ export async function POST(request: NextRequest) {
       deadline: deadline ?? null,
       category,
       cover_image_url: coverImageUrl ?? null,
+      beneficiary_name: beneficiaryName ?? null,
+      beneficiary_relationship: beneficiaryRelationship ?? null,
       status: 'active',
     })
     .select('id, slug')

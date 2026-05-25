@@ -9,6 +9,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 export const dynamic = 'force-dynamic';
+const RENDER_TIME = Date.now();
 
 async function getMyCampaigns(userId: string) {
   const { data } = await supabaseAdmin
@@ -102,7 +103,7 @@ export default async function DashboardPage() {
           </p>
         </div>
         {!profile?.stripe_onboarded && (
-          <ConnectButton userId={user.id} />
+          <ConnectButton />
         )}
       </Card>
 
@@ -140,7 +141,7 @@ export default async function DashboardPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '40px' }}>
           {campaigns.map((c) => {
             const days = c.deadline
-              ? Math.max(0, Math.ceil((new Date(c.deadline).getTime() - Date.now()) / 86_400_000))
+              ? Math.max(0, Math.ceil((new Date(c.deadline).getTime() - RENDER_TIME) / 86_400_000))
               : null;
             return (
               <Card key={c.id} style={{ padding: '20px' }}>

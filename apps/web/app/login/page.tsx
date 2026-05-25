@@ -1,5 +1,5 @@
 'use client';
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase-browser';
 import { getAuthCallbackUrl, safeNextPath } from '../../lib/auth-config';
@@ -19,13 +19,13 @@ function LoginForm() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) router.replace(next);
     });
-  }, []);
+  }, [next, router, supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

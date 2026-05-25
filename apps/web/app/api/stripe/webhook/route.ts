@@ -21,7 +21,9 @@ export async function POST(request: NextRequest) {
 
     if (!campaignId) return NextResponse.json({ ok: true });
 
-    const amountCents = session.amount_total ?? 0;
+    const amountCents = Number(session.metadata?.donationAmountCents ?? session.amount_total ?? 0);
+    const tipCents = Number(session.metadata?.tipCents ?? 0);
+    const processingFeeCents = Number(session.metadata?.processingFeeCents ?? 0);
     const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null;
 
     if (paymentIntentId) {
@@ -43,6 +45,24 @@ export async function POST(request: NextRequest) {
       stripe_payment_intent_id: paymentIntentId,
       status: 'completed',
     });
+
+    if (tipCents > 0) {
+      await supabaseAdmin.from('donor_tips').insert({
+        campaign_id: campaignId,
+        donor_id: donorId || null,
+        amount_cents: tipCents,
+        stripe_payment_intent_id: paymentIntentId,
+      });
+    }
+
+    if (processingFeeCents > 0) {
+      await supabaseAdmin.from('platform_fees').insert({
+        campaign_id: campaignId,
+        amount_cents: processingFeeCents,
+        fee_type: 'processing_fee_coverage',
+        stripe_payment_intent_id: paymentIntentId,
+      });
+    }
 
     if (insertError) {
       return NextResponse.json({ error: 'Unable to record donation', code: 'DONATION_RECORD_FAILED' }, { status: 500 });

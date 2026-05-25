@@ -1,24 +1,33 @@
 'use client';
-import React, { useState } from 'react';
-import { Btn } from '../../../components/ui';
-import { MAX_DONATION_CENTS } from '@shared/fees';
+import React, { useMemo, useState } from 'react';
+import { MAX_DONATION_CENTS, TIP_OPTIONS, donationTotal, donorTip, processingFee } from '@shared/fees';
 
 export default function DonateButton({ campaignId, campaignTitle }: { campaignId: string; campaignTitle: string }) {
-  const [amount, setAmount] = useState('25');
+  const [amount, setAmount] = useState('50');
   const [message, setMessage] = useState('');
   const [anonymous, setAnonymous] = useState(false);
+  const [coverProcessingFee, setCoverProcessingFee] = useState(true);
+  const [tipPercent, setTipPercent] = useState(8);
+  const [customTip, setCustomTip] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const presets = [10, 25, 50, 100];
+  const amountCents = Math.round((Number.parseFloat(amount) || 0) * 100);
+  const effectiveTipPercent = customTip ? Number.parseFloat(customTip) || 0 : tipPercent;
+  const breakdown = useMemo(() => ({
+    tip: donorTip(amountCents, effectiveTipPercent),
+    processing: coverProcessingFee ? processingFee(amountCents + donorTip(amountCents, effectiveTipPercent)) : 0,
+    total: donationTotal(amountCents, coverProcessingFee, effectiveTipPercent),
+  }), [amountCents, coverProcessingFee, effectiveTipPercent]);
+
+  const money = (cents: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
 
   const handleDonate = async () => {
-    const cents = Math.round(parseFloat(amount) * 100);
-    if (isNaN(cents) || cents < 100) {
+    if (Number.isNaN(amountCents) || amountCents < 100) {
       setError('Minimum donation is $1.00');
       return;
     }
-    if (cents > MAX_DONATION_CENTS) {
+    if (amountCents > MAX_DONATION_CENTS) {
       setError('Maximum donation is $1,000,000');
       return;
     }
@@ -28,7 +37,7 @@ export default function DonateButton({ campaignId, campaignTitle }: { campaignId
       const res = await fetch('/api/donations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() },
-        body: JSON.stringify({ campaignId, amountCents: cents, message, anonymous }),
+        body: JSON.stringify({ campaignId, amountCents, message, anonymous, coverProcessingFee, tipPercent: effectiveTipPercent }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed to start checkout');
@@ -40,100 +49,63 @@ export default function DonateButton({ campaignId, campaignTitle }: { campaignId
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      {/* Preset amounts */}
-      <div style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '12px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 800, marginBottom: '4px' }}>Donor confidence</div>
-        <p style={{ fontSize: '12px', color: 'var(--t3)', lineHeight: 1.45 }}>
-          Your gift is processed by Stripe and tracked with campaign trust signals, payout status, and future impact updates.
-        </p>
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+        <div className="text-sm font-black text-emerald-800">0% mandatory platform fee</div>
+        <p className="mt-1 text-xs leading-5 text-emerald-800">GiveRise is supported by optional donor tips. Every fee is shown before checkout.</p>
       </div>
 
-      {/* Preset amounts */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-        {presets.map((p) => (
-          <button
-            key={p}
-            onClick={() => setAmount(String(p))}
-            style={{
-              padding: '8px',
-              border: `2px solid ${amount === String(p) ? 'var(--green)' : 'var(--b1)'}`,
-              borderRadius: 'var(--r)',
-              fontWeight: 600,
-              fontSize: '14px',
-              cursor: 'pointer',
-              background: amount === String(p) ? 'var(--green-light)' : '#fff',
-              color: amount === String(p) ? 'var(--green-dark)' : 'var(--t2)',
-              transition: 'all .15s',
-            }}
-          >
-            ${p}
+      <div className="grid grid-cols-4 gap-2">
+        {[25, 50, 100, 250].map((preset) => (
+          <button key={preset} onClick={() => setAmount(String(preset))} className={`rounded-xl border px-3 py-2 text-sm font-black ${amount === String(preset) ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-700'}`}>
+            ${preset}
           </button>
         ))}
       </div>
 
-      {/* Custom amount */}
-      <div style={{ position: 'relative' }}>
-        <span style={{
-          position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)',
-          fontSize: '14px', color: 'var(--t3)', fontWeight: 600,
-        }}>$</span>
-        <input
-          type="number"
-          min="1"
-          step="1"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="Other amount"
-          style={{
-            width: '100%',
-            padding: '10px 12px 10px 24px',
-            border: '1px solid var(--b1)',
-            borderRadius: 'var(--r)',
-            fontSize: '14px',
-            outline: 'none',
-          }}
-        />
+      <label className="block">
+        <span className="text-sm font-bold text-slate-700">Donation amount</span>
+        <div className="mt-1 flex items-center rounded-xl border border-slate-200 bg-white px-3">
+          <span className="font-black text-slate-500">$</span>
+          <input className="w-full border-0 px-2 py-3 outline-none" type="number" min="1" step="1" value={amount} onChange={(e) => setAmount(e.target.value)} />
+        </div>
+      </label>
+
+      <div>
+        <div className="text-sm font-bold text-slate-700">Optional GiveRise support tip</div>
+        <div className="mt-2 grid grid-cols-5 gap-2">
+          {TIP_OPTIONS.map((option) => (
+            <button key={option} onClick={() => { setTipPercent(option); setCustomTip(''); }} className={`rounded-xl border px-2 py-2 text-sm font-black ${!customTip && tipPercent === option ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-700'}`}>
+              {option}%
+            </button>
+          ))}
+        </div>
+        <input className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none" placeholder="Custom tip percent" value={customTip} onChange={(e) => setCustomTip(e.target.value)} />
       </div>
 
-      {/* Message */}
-      <textarea
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Leave a message (optional)"
-        rows={2}
-        style={{
-          width: '100%',
-          padding: '10px 12px',
-          border: '1px solid var(--b1)',
-          borderRadius: 'var(--r)',
-          fontSize: '14px',
-          resize: 'none',
-          fontFamily: 'var(--font)',
-          outline: 'none',
-        }}
-      />
+      <label className="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-sm font-bold text-slate-700">
+        <input type="checkbox" checked={coverProcessingFee} onChange={(e) => setCoverProcessingFee(e.target.checked)} />
+        Cover estimated processing fee
+      </label>
 
-      {/* Anonymous toggle */}
-      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--t2)' }}>
-        <input
-          type="checkbox"
-          checked={anonymous}
-          onChange={(e) => setAnonymous(e.target.checked)}
-          style={{ width: '16px', height: '16px', accentColor: 'var(--green)', cursor: 'pointer' }}
-        />
+      <textarea className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Leave a message (optional)" rows={2} />
+      <label className="flex items-center gap-2 text-sm font-bold text-slate-700">
+        <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} />
         Donate anonymously
       </label>
 
-      {error && <p style={{ fontSize: '13px', color: 'var(--red)' }}>{error}</p>}
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm">
+        <div className="mb-2 font-black text-slate-950">Transparent breakdown</div>
+        <div className="flex justify-between py-1"><span>Donation</span><span>{money(amountCents)}</span></div>
+        <div className="flex justify-between py-1"><span>Processing fee coverage</span><span>{money(breakdown.processing)}</span></div>
+        <div className="flex justify-between py-1"><span>Optional GiveRise tip</span><span>{money(breakdown.tip)}</span></div>
+        <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 font-black"><span>Total</span><span>{money(breakdown.total)}</span></div>
+      </div>
 
-      <Btn size="lg" loading={loading} onClick={handleDonate} style={{ width: '100%', justifyContent: 'center' }}>
-        Donate ${amount || '0'} to {campaignTitle.slice(0, 20)}{campaignTitle.length > 20 ? '…' : ''}
-      </Btn>
-
-      <p style={{ fontSize: '11px', color: 'var(--t4)', textAlign: 'center' }}>
-        Secured by Stripe · 5% platform fee applies
-      </p>
+      {error && <p className="text-sm font-bold text-red-600">{error}</p>}
+      <button disabled={loading} onClick={handleDonate} className="w-full rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white disabled:opacity-60">
+        {loading ? 'Opening secure checkout...' : `Donate to ${campaignTitle.slice(0, 28)}`}
+      </button>
     </div>
   );
 }

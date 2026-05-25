@@ -3,8 +3,8 @@ import './globals.css';
 import { AppShell } from '../components/AppShell';
 
 export const metadata: Metadata = {
-  title: { default: 'RaiseMoney - AI-Powered Trusted Fundraising', template: '%s | RaiseMoney' },
-  description: 'The safest and smartest way to raise money online with AI trust, growth, and transparency.',
+  title: { default: 'GiveRise - Free Fundraising Powered by AI', template: '%s | GiveRise' },
+  description: 'Fundraising with built-in trust, AI campaign tools, transparent pricing, and fast verified Stripe payouts.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

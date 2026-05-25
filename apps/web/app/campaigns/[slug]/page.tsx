@@ -1,10 +1,15 @@
+/* eslint-disable @next/next/no-img-element */
 import { notFound } from 'next/navigation';
+import Image from 'next/image';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { ProgressBar, Badge, Card } from '../../../components/ui';
 import { formatCents } from '../../../lib/stripe';
 import DonateButton from './DonateButton';
 import { calculateTrustScore, getTrustLabel, getTrustSignals } from '../../../lib/ai-platform';
 import type { Metadata } from 'next';
+import ReportButton from './ReportButton';
+
+const RENDER_TIME = Date.now();
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +49,16 @@ async function getUpdates(campaignId: string) {
   return data ?? [];
 }
 
+async function getLedger(campaignId: string) {
+  const { data } = await supabaseAdmin
+    .from('transparency_ledger_items')
+    .select('id, item_type, title, amount_cents, category, status, created_at')
+    .eq('campaign_id', campaignId)
+    .order('created_at', { ascending: false })
+    .limit(8);
+  return data ?? [];
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const campaign = await getCampaign(slug);
@@ -63,12 +78,13 @@ export default async function CampaignPage({ params }: Props) {
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
   ]);
+  const ledger = await getLedger(campaign.id);
 
   const pct = Math.min(100, Math.round(((campaign.raised_amount ?? 0) / campaign.goal_amount) * 100));
   const trustScore = calculateTrustScore(campaign);
   const trustSignals = getTrustSignals(campaign);
   const days = campaign.deadline
-    ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - Date.now()) / 86_400_000))
+    ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - RENDER_TIME) / 86_400_000))
     : null;
 
   return (
@@ -85,8 +101,7 @@ export default async function CampaignPage({ params }: Props) {
               aspectRatio: '16/9',
               background: 'var(--s2)',
             }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={campaign.cover_image_url} alt={campaign.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <Image src={campaign.cover_image_url} alt={campaign.title} width={960} height={540} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
           )}
 
@@ -120,6 +135,15 @@ export default async function CampaignPage({ params }: Props) {
                 by {(campaign.profiles as { full_name?: string }).full_name ?? 'Anonymous'}
               </span>
             </div>
+          )}
+
+          {(campaign.beneficiary_name || campaign.beneficiary_relationship) && (
+            <Card style={{ padding: '20px', marginBottom: '28px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '8px' }}>Beneficiary</h2>
+              <p style={{ fontSize: '14px', color: 'var(--t2)' }}>
+                {campaign.beneficiary_name ?? 'Beneficiary'}{campaign.beneficiary_relationship ? ` · ${campaign.beneficiary_relationship}` : ''}
+              </p>
+            </Card>
           )}
 
           {/* Description */}
@@ -176,6 +200,29 @@ export default async function CampaignPage({ params }: Props) {
               </div>
             </div>
           )}
+
+          <div style={{ marginBottom: '40px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '16px' }}>Transparency ledger</h2>
+            {ledger.length > 0 ? (
+              <div style={{ display: 'grid', gap: '12px' }}>
+                {ledger.map((item) => (
+                  <Card key={item.id} style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                      <div>
+                        <div style={{ fontWeight: 800 }}>{item.title}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--t4)' }}>{item.category} · {item.item_type} · {item.status}</div>
+                      </div>
+                      {item.amount_cents ? <div style={{ fontWeight: 800, color: 'var(--green)' }}>{formatCents(item.amount_cents)}</div> : null}
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card style={{ padding: '18px', background: 'var(--s1)' }}>
+                <p style={{ fontSize: '14px', color: 'var(--t3)' }}>No ledger items yet. Organizers can add receipts, milestones, payout records, and impact updates after launch.</p>
+              </Card>
+            )}
+          </div>
 
           {/* Recent donors */}
           {donations.length > 0 && (
@@ -253,6 +300,7 @@ export default async function CampaignPage({ params }: Props) {
                 This campaign has ended
               </div>
             )}
+            <ReportButton campaignId={campaign.id} />
           </Card>
         </div>
       </div>

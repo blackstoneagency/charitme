@@ -1,61 +1,64 @@
-# RaiseMoney
+# GiveRise
 
-RaiseMoney is an AI-first fundraising platform built around trust, speed, donor confidence, and campaign growth.
+GiveRise is a production-oriented AI-first fundraising platform scaffold.
 
-The product is not positioned as another crowdfunding website. It is designed to become the safest and smartest way to raise money online: a trusted fundraising network with AI-assisted campaign creation, donor-facing trust signals, transparent payouts, and growth guidance.
+Core positioning:
+- Free fundraising powered by AI.
+- Fundraising with built-in trust.
+- The safest and smartest way to raise money online.
 
-## Product Moat
+## What Is Included
 
-- AI Trust Engine: campaign completeness, identity, payout, image, duplicate-story, and fraud-risk signals.
-- AI Campaign Copilot: a fast campaign creation flow that helps organizers tell clear, authentic stories.
-- AI Growth Engine: campaign health scoring, share recommendations, donor outreach prompts, and update nudges.
-- Transparency Ledger: milestone, receipt, payout, and impact tracking for donor confidence.
-- Fast payout path: Stripe Connect-based payouts with future risk scoring for accelerated access.
+- Next.js App Router, React, TypeScript, Tailwind CSS.
+- Supabase Auth, Postgres schema, Storage-ready media records, and RLS SQL.
+- Stripe Checkout, Stripe Connect Express onboarding, and webhook handling.
+- OpenAI Campaign Copilot endpoint with deterministic local fallback.
+- Resend receipt email helper.
+- Public marketing pages: home, pricing, how it works, trust and safety, fast payouts, AI fundraising, individuals, nonprofits, donors, FAQ, contact.
+- Campaign creation wizard with 8 steps.
+- Public campaign pages with trust score, donation tiers-ready checkout, ledger, updates, recent donors, beneficiary details, and report flow.
+- Organizer, donor, profile, and admin dashboard scaffolds.
+- Seed data for staging/demo.
+- Unit and E2E test scaffolding.
 
-## Current Structure
-
-```text
-apps/web              Next.js App Router application
-packages/shared       Shared fee and category utilities
-supabase/schema.sql   Initial database schema and RLS policies
-render.yaml           Current hosting config
-AGENTS.md             Engineering and agent rules
-```
-
-## Local Setup
+## Local Run
 
 ```bash
 npm install
 npm run dev
 ```
 
-The web app runs at `http://localhost:3000`.
+Open `http://localhost:3000`.
 
-## Required Environment Variables
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-STRIPE_SECRET_KEY=
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
-STRIPE_WEBHOOK_SECRET=
-NEXT_PUBLIC_APP_URL=
-ADMIN_EMAILS=
-```
-
-## Core Commands
+## Verification
 
 ```bash
 npm run typecheck
+npm run lint --workspace=apps/web
+npm run test --workspace=apps/web
 npm run build
 ```
 
-## Implementation Priorities
+## Supabase
 
-1. Harden payment trust: webhook idempotency, payout verification, and fraud-risk gates.
-2. Add rate limiting to public mutation endpoints.
-3. Add migrations and CI.
-4. Build the real AI Campaign Copilot and Trust Engine behind the current deterministic scaffolding.
-5. Add campaign updates, receipt tracking, image upload validation, and donor share kits.
-6. Add Playwright smoke tests for create, donate, auth, and dashboard flows.
+Run:
+
+```bash
+supabase db reset
+```
+
+Or apply manually:
+
+1. `supabase/schema.sql`
+2. `supabase/seed.sql` for staging/demo data
+
+## Guides
+
+- `docs/stripe-setup.md`
+- `docs/openai-setup.md`
+- `docs/vercel-deployment.md`
+- `docs/production-readiness.md`
+
+## Important Production Notes
+
+This codebase is wired for production deployment, but real production launch still requires real Supabase projects, Stripe webhook registration, verified Connect settings, OpenAI/Resend keys, legal policy pages, compliance review, and live payment QA.

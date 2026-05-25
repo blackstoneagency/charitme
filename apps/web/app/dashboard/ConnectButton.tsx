@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Btn } from '../../components/ui';
 
-export default function ConnectButton({ userId }: { userId: string }) {
+export default function ConnectButton() {
   const [loading, setLoading] = useState(false);
 
   const handleConnect = async () => {
