@@ -38,6 +38,7 @@ create table if not exists connected_accounts (
   payouts_enabled boolean not null default false,
   details_submitted boolean not null default false,
   verification_status text not null default 'pending',
+  first_payout_hold_until timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -95,6 +96,7 @@ create table if not exists donations (
   message text,
   anonymous boolean not null default false,
   stripe_payment_intent_id text,
+  stripe_checkout_session_id text,
   status text not null default 'completed' check (status in ('pending','completed','refunded','failed')),
   created_at timestamptz not null default now()
 );
@@ -292,10 +294,9 @@ begin
 end;
 $$;
 
+-- Trigger removed: campaign stats are updated atomically inside record_donation() RPC.
+-- Keeping the trigger would double-count every donation.
 drop trigger if exists donations_increment_campaign_stats on donations;
-create trigger donations_increment_campaign_stats
-  after insert on donations
-  for each row execute function increment_campaign_stats_after_donation();
 
 drop trigger if exists profiles_set_updated_at on profiles;
 create trigger profiles_set_updated_at before update on profiles for each row execute function set_updated_at();
@@ -337,6 +338,10 @@ alter table campaign_reports enable row level security;
 
 create policy profiles_read on profiles for select using (true);
 create policy profiles_update_own on profiles for update using (auth.uid() = id or is_admin());
+
+create policy connected_accounts_own_read on connected_accounts for select using (auth.uid() = user_id or is_admin());
+create policy connected_accounts_own_insert on connected_accounts for insert with check (auth.uid() = user_id or is_admin());
+create policy connected_accounts_own_update on connected_accounts for update using (auth.uid() = user_id or is_admin());
 
 create policy campaigns_public_read on campaigns for select using (status = 'active' or auth.uid() = user_id or is_admin());
 create policy campaigns_insert_own on campaigns for insert with check (auth.uid() = user_id);
@@ -1061,3 +1066,68 @@ drop trigger if exists membership_tiers_set_updated_at on membership_tiers;
 create trigger membership_tiers_set_updated_at before update on membership_tiers for each row execute function set_updated_at();
 drop trigger if exists digital_products_set_updated_at on digital_products;
 create trigger digital_products_set_updated_at before update on digital_products for each row execute function set_updated_at();
+
+-- Atomic donation recording: claims idempotency key, inserts donation + tip + fee, updates stats.
+-- Called from the Stripe webhook handler. Returns {"status":"ok"} or {"status":"already_processed"}.
+create or replace function record_donation(
+  p_stripe_event_id text,
+  p_campaign_id uuid,
+  p_donor_id uuid,
+  p_amount_cents bigint,
+  p_tip_cents bigint,
+  p_processing_fee_cents bigint,
+  p_message text,
+  p_anonymous boolean,
+  p_stripe_payment_intent_id text,
+  p_stripe_checkout_session_id text
+) returns jsonb language plpgsql security definer as $$
+declare
+  v_donation_id uuid;
+begin
+  -- Claim the event slot; if another handler already processed it, bail out immediately
+  insert into webhook_events(stripe_event_id, event_type, payload, processed_at)
+  values (p_stripe_event_id, 'checkout.session.completed', '{}'::jsonb, now())
+  on conflict (stripe_event_id) do nothing;
+
+  if not found then
+    return jsonb_build_object('status', 'already_processed');
+  end if;
+
+  -- Insert the donation
+  insert into donations(
+    campaign_id, donor_id, amount_cents, message, anonymous,
+    stripe_payment_intent_id, stripe_checkout_session_id, status
+  ) values (
+    p_campaign_id, p_donor_id, p_amount_cents, p_message, p_anonymous,
+    p_stripe_payment_intent_id, p_stripe_checkout_session_id, 'completed'
+  ) returning id into v_donation_id;
+
+  -- Optional donor tip
+  if p_tip_cents > 0 then
+    insert into donor_tips(campaign_id, donor_id, amount_cents, stripe_payment_intent_id)
+    values (p_campaign_id, p_donor_id, p_tip_cents, p_stripe_payment_intent_id);
+  end if;
+
+  -- Optional processing fee coverage
+  if p_processing_fee_cents > 0 then
+    insert into platform_fees(campaign_id, amount_cents, fee_type, stripe_payment_intent_id)
+    values (p_campaign_id, p_processing_fee_cents, 'processing_fee', p_stripe_payment_intent_id);
+  end if;
+
+  -- Atomically update campaign stats (skips trigger to avoid double-count)
+  update campaigns
+  set raised_amount = raised_amount + p_amount_cents,
+      backer_count  = backer_count + 1,
+      updated_at    = now()
+  where id = p_campaign_id;
+
+  return jsonb_build_object('status', 'ok', 'donation_id', v_donation_id);
+
+exception when others then
+  -- Mark event as errored so ops can investigate; re-raise so Stripe retries
+  update webhook_events
+  set processing_error = sqlerrm
+  where stripe_event_id = p_stripe_event_id;
+  raise;
+end;
+$$;
