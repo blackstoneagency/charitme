@@ -25,7 +25,7 @@ const PLANS = [
     name: 'Starter',
     audience: 'For individuals and small campaigns',
     monthlyPrice: 19,
-    yearlyPrice: 15,
+    yearlyPrice: 19,
     features: [
       'Create up to 5 active campaigns',
       'Custom campaign URL',
@@ -42,7 +42,7 @@ const PLANS = [
     name: 'Pro',
     audience: 'For growing organizations',
     monthlyPrice: 59,
-    yearlyPrice: 47,
+    yearlyPrice: 59,
     features: [
       'Unlimited active campaigns',
       'Advanced analytics & reports',
@@ -177,11 +177,11 @@ export default function PricingPage() {
               </strong>
               <small>
                 {plan.name === 'Starter' && yearly
-                  ? `Billed annually at $${(15 * 12)}. Save $${annualSavings}/yr`
+                  ? 'Billed annually at $228'
                   : plan.name === 'Starter' && !yearly
                   ? 'Billed monthly at $19/month'
                   : plan.name === 'Pro' && yearly
-                  ? `Billed annually at $${(47 * 12)}. Save $${annualSavings}/yr`
+                  ? 'Billed annually at $708'
                   : plan.name === 'Pro' && !yearly
                   ? 'Billed monthly at $59/month'
                   : plan.name === 'Free'
