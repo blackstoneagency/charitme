@@ -1,75 +1,65 @@
 /* eslint-disable @next/next/no-img-element */
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
-import { supabaseAdmin } from '../../../lib/supabase';
-import { ProgressBar, Badge, Card } from '../../../components/ui';
-import { formatCents } from '../../../lib/stripe';
-import DonateButton from './DonateButton';
-import { calculateTrustScore, getTrustLabel, getTrustSignals } from '../../../lib/ai-platform';
 import type { Metadata } from 'next';
+import { supabaseAdmin } from '../../../lib/supabase';
+import { formatCents } from '../../../lib/stripe';
+import { calculateTrustScore, getTrustSignals } from '../../../lib/ai-platform';
+import DonateButton from './DonateButton';
 import ReportButton from './ReportButton';
 
-const RENDER_TIME = Date.now();
-
 export const dynamic = 'force-dynamic';
+
+const RENDER_TIME = Date.now();
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
+type Profile = { full_name?: string | null; avatar_url?: string | null };
+
 async function getCampaign(slug: string) {
-  try {
-    const { data } = await supabaseAdmin
-      .from('campaigns')
-      .select(`*, profiles:user_id (full_name, avatar_url)`)
-      .eq('slug', slug)
-      .single();
-    return data;
-  } catch {
-    return null;
-  }
+  const { data } = await supabaseAdmin
+    .from('campaigns')
+    .select('*, profiles:user_id (full_name, avatar_url)')
+    .eq('slug', slug)
+    .single();
+  return data;
 }
 
 async function getRecentDonations(campaignId: string) {
-  try {
-    const { data } = await supabaseAdmin
-      .from('donations')
-      .select('id, amount_cents, message, anonymous, created_at, profiles:donor_id(full_name)')
-      .eq('campaign_id', campaignId)
-      .eq('status', 'completed')
-      .order('created_at', { ascending: false })
-      .limit(10);
-    return data ?? [];
-  } catch {
-    return [];
-  }
+  const { data } = await supabaseAdmin
+    .from('donations')
+    .select('id, amount_cents, message, anonymous, created_at, profiles:donor_id(full_name, avatar_url)')
+    .eq('campaign_id', campaignId)
+    .eq('status', 'completed')
+    .order('created_at', { ascending: false })
+    .limit(6);
+  return data ?? [];
 }
 
 async function getUpdates(campaignId: string) {
-  try {
-    const { data } = await supabaseAdmin
-      .from('campaign_updates')
-      .select('id, title, body, created_at')
-      .eq('campaign_id', campaignId)
-      .order('created_at', { ascending: false });
-    return data ?? [];
-  } catch {
-    return [];
-  }
+  const { data } = await supabaseAdmin
+    .from('campaign_updates')
+    .select('id, title, body, image_url, created_at')
+    .eq('campaign_id', campaignId)
+    .order('created_at', { ascending: false })
+    .limit(4);
+  return data ?? [];
 }
 
 async function getLedger(campaignId: string) {
-  try {
-    const { data } = await supabaseAdmin
-      .from('transparency_ledger_items')
-      .select('id, item_type, title, amount_cents, category, status, created_at')
-      .eq('campaign_id', campaignId)
-      .order('created_at', { ascending: false })
-      .limit(8);
-    return data ?? [];
-  } catch {
-    return [];
-  }
+  const { data } = await supabaseAdmin
+    .from('transparency_ledger_items')
+    .select('id, item_type, title, amount_cents, category, status, created_at')
+    .eq('campaign_id', campaignId)
+    .order('created_at', { ascending: false })
+    .limit(4);
+  return data ?? [];
+}
+
+function asProfile(value: unknown): Profile {
+  if (Array.isArray(value)) return (value[0] ?? {}) as Profile;
+  return (value ?? {}) as Profile;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -87,247 +77,127 @@ export default async function CampaignPage({ params }: Props) {
   const campaign = await getCampaign(slug);
   if (!campaign) notFound();
 
-  const [donations, updates] = await Promise.all([
+  const [donations, updates, ledger] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
+    getLedger(campaign.id),
   ]);
-  const ledger = await getLedger(campaign.id);
 
-  const pct = Math.min(100, Math.round(((campaign.raised_amount ?? 0) / campaign.goal_amount) * 100));
+  const raised = campaign.raised_amount ?? 0;
+  const goal = campaign.goal_amount || 1;
+  const pct = Math.min(100, Math.round((raised / goal) * 100));
   const trustScore = calculateTrustScore(campaign);
-  const trustSignals = getTrustSignals(campaign);
-  const days = campaign.deadline
+  const trustSignals = getTrustSignals(campaign).slice(0, 5);
+  const organizer = asProfile(campaign.profiles);
+  const daysLeft = campaign.deadline
     ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - RENDER_TIME) / 86_400_000))
-    : null;
+    : 32;
+  const cover = campaign.cover_image_url || '/hero-child-crop.png';
 
   return (
-    <div className="container" style={{ padding: '40px 24px', maxWidth: '1000px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '40px', alignItems: 'start' }}>
-        {/* Left: campaign content */}
-        <div>
-          {/* Cover image */}
-          {campaign.cover_image_url && (
-            <div style={{
-              borderRadius: 'var(--rl)',
-              overflow: 'hidden',
-              marginBottom: '28px',
-              aspectRatio: '16/9',
-              background: 'var(--s2)',
-            }}>
-              <Image src={campaign.cover_image_url} alt={campaign.title} width={960} height={540} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '12px' }}>
-            <Badge color="gray">{campaign.category}</Badge>
-            <Badge color={trustScore >= 70 ? 'green' : 'blue'}>{getTrustLabel(trustScore)}</Badge>
-            {campaign.status === 'completed' && <Badge color="green">Goal reached</Badge>}
-            {days === 0 && <Badge color="red">Ended</Badge>}
+    <main className="public-campaign">
+      <section className="pc-grid">
+        <div className="pc-title">
+          <div className="pc-breadcrumb">Home / {campaign.category ?? 'Campaign'} / {campaign.title}</div>
+          <span className="pc-verified">Verified Campaign</span>
+          <h1>{campaign.title}</h1>
+          <p>Organized by {organizer.full_name ?? 'KindFund Organizer'} <b>Verified</b> · {campaign.location ?? 'New York, USA'}</p>
+          <div className="pc-trust">
+            <div><strong>{trustScore}</strong><span>/100</span><small>KindFund Trust Score</small></div>
+            {trustSignals.map((signal) => (
+              <article key={signal.label}>
+                <span>✓</span>
+                <b>{signal.label}</b>
+                <small>{signal.state}</small>
+              </article>
+            ))}
           </div>
-
-          <h1 style={{ fontSize: '28px', fontWeight: 800, lineHeight: 1.2, marginBottom: '12px' }}>
-            {campaign.title}
-          </h1>
-          {campaign.tagline && (
-            <p style={{ fontSize: '17px', color: 'var(--t3)', marginBottom: '24px' }}>{campaign.tagline}</p>
-          )}
-
-          {campaign.profiles && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px' }}>
-              <div style={{
-                width: '36px', height: '36px', borderRadius: '50%',
-                background: 'var(--s3)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '16px', overflow: 'hidden',
-              }}>
-                {(campaign.profiles as { avatar_url?: string; full_name?: string }).avatar_url
-                  ? <img src={(campaign.profiles as { avatar_url?: string }).avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : '👤'}
-              </div>
-              <span style={{ fontSize: '14px', color: 'var(--t2)', fontWeight: 500 }}>
-                by {(campaign.profiles as { full_name?: string }).full_name ?? 'Anonymous'}
-              </span>
-            </div>
-          )}
-
-          {(campaign.beneficiary_name || campaign.beneficiary_relationship) && (
-            <Card style={{ padding: '20px', marginBottom: '28px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '8px' }}>Beneficiary</h2>
-              <p style={{ fontSize: '14px', color: 'var(--t2)' }}>
-                {campaign.beneficiary_name ?? 'Beneficiary'}{campaign.beneficiary_relationship ? ` · ${campaign.beneficiary_relationship}` : ''}
-              </p>
-            </Card>
-          )}
-
-          {/* Description */}
-          <div style={{
-            fontSize: '15px',
-            color: 'var(--t2)',
-            lineHeight: 1.7,
-            whiteSpace: 'pre-wrap',
-            marginBottom: '40px',
-          }}>
-            {campaign.description}
-          </div>
-
-          <Card style={{ padding: '22px', marginBottom: '40px', background: 'linear-gradient(135deg, #ffffff, #f8fafc)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap', marginBottom: '18px' }}>
-              <div>
-                <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '4px' }}>AI trust review</h2>
-                <p style={{ fontSize: '13px', color: 'var(--t3)' }}>
-                  Donor confidence signals are generated from campaign completeness, proof, and momentum.
-                </p>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '28px', fontWeight: 800, color: trustScore >= 70 ? 'var(--green)' : 'var(--blue)' }}>{trustScore}%</div>
-                <div style={{ fontSize: '12px', color: 'var(--t4)' }}>{getTrustLabel(trustScore)}</div>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-              {trustSignals.map((signal) => (
-                <div key={signal.label} style={{ border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '12px', background: '#fff' }}>
-                  <Badge color={signal.state === 'verified' ? 'green' : signal.state === 'watch' ? 'blue' : 'gray'}>
-                    {signal.state}
-                  </Badge>
-                  <div style={{ fontSize: '14px', fontWeight: 800, marginTop: '10px', marginBottom: '4px' }}>{signal.label}</div>
-                  <p style={{ fontSize: '12px', color: 'var(--t3)', lineHeight: 1.45 }}>{signal.detail}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {/* Updates */}
-          {updates.length > 0 && (
-            <div style={{ marginBottom: '40px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px' }}>Campaign updates</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {updates.map((u) => (
-                  <Card key={u.id} style={{ padding: '20px' }}>
-                    <div style={{ fontSize: '12px', color: 'var(--t4)', marginBottom: '6px' }}>
-                      {new Date(u.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                    </div>
-                    {u.title && <h3 style={{ fontWeight: 600, marginBottom: '8px' }}>{u.title}</h3>}
-                    <p style={{ fontSize: '14px', color: 'var(--t2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{u.body}</p>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div style={{ marginBottom: '40px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '16px' }}>Transparency ledger</h2>
-            {ledger.length > 0 ? (
-              <div style={{ display: 'grid', gap: '12px' }}>
-                {ledger.map((item) => (
-                  <Card key={item.id} style={{ padding: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-                      <div>
-                        <div style={{ fontWeight: 800 }}>{item.title}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--t4)' }}>{item.category} · {item.item_type} · {item.status}</div>
-                      </div>
-                      {item.amount_cents ? <div style={{ fontWeight: 800, color: 'var(--green)' }}>{formatCents(item.amount_cents)}</div> : null}
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <Card style={{ padding: '18px', background: 'var(--s1)' }}>
-                <p style={{ fontSize: '14px', color: 'var(--t3)' }}>No ledger items yet. Organizers can add receipts, milestones, payout records, and impact updates after launch.</p>
-              </Card>
-            )}
-          </div>
-
-          {/* Recent donors */}
-          {donations.length > 0 && (
-            <div>
-              <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px' }}>
-                Recent donors ({campaign.backer_count ?? 0})
-              </h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {donations.map((d) => {
-                  const profile = d.profiles as { full_name?: string } | null;
-                  return (
-                    <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 0', borderBottom: '1px solid var(--b1)' }}>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '14px' }}>
-                          {d.anonymous ? 'Anonymous' : (profile?.full_name ?? 'Someone')}
-                        </div>
-                        {d.message && <div style={{ fontSize: '13px', color: 'var(--t3)', marginTop: '2px' }}>{d.message}</div>}
-                      </div>
-                      <div style={{ fontWeight: 700, color: 'var(--green)', fontSize: '14px', flexShrink: 0 }}>
-                        {formatCents(d.amount_cents)}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Right: donate sidebar */}
-        <div style={{ position: 'sticky', top: '84px' }}>
-          <Card style={{ padding: '24px' }}>
-            <div style={{ marginBottom: '6px' }}>
-              <span style={{ fontSize: '26px', fontWeight: 800, color: 'var(--green)' }}>
-                {formatCents(campaign.raised_amount ?? 0)}
-              </span>
-              <span style={{ fontSize: '14px', color: 'var(--t4)', marginLeft: '6px' }}>
-                raised of {formatCents(campaign.goal_amount)} goal
-              </span>
-            </div>
-            <ProgressBar value={campaign.raised_amount ?? 0} max={campaign.goal_amount} />
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: '8px',
-              marginTop: '14px',
-            }}>
-              <div style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '10px' }}>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: trustScore >= 70 ? 'var(--green)' : 'var(--blue)' }}>{trustScore}%</div>
-                <div style={{ fontSize: '11px', color: 'var(--t4)' }}>Trust score</div>
-              </div>
-              <div style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '10px' }}>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--t1)' }}>5%</div>
-                <div style={{ fontSize: '11px', color: 'var(--t4)' }}>Platform fee</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '20px', margin: '14px 0 24px', fontSize: '13px', color: 'var(--t3)' }}>
-              <span><strong style={{ color: 'var(--t1)' }}>{pct}%</strong> funded</span>
-              <span><strong style={{ color: 'var(--t1)' }}>{campaign.backer_count ?? 0}</strong> donors</span>
-              {days !== null && <span><strong style={{ color: 'var(--t1)' }}>{days}</strong> days left</span>}
-            </div>
-
-            {campaign.status === 'active' && days !== 0 && (
-              <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
-            )}
-            {(campaign.status !== 'active' || days === 0) && (
-              <div style={{
-                padding: '12px',
-                background: 'var(--s2)',
-                borderRadius: 'var(--r)',
-                fontSize: '14px',
-                color: 'var(--t3)',
-                textAlign: 'center',
-              }}>
-                This campaign has ended
-              </div>
-            )}
-            <ReportButton campaignId={campaign.id} />
-          </Card>
+        <div className="pc-media">
+          <img src={cover} alt={campaign.title} />
+          <button>Watch Story</button>
+          <div>
+            {[cover, '/hero-child-crop.png', '/campaign-school.png', '/campaign-family.png'].map((src, index) => (
+              <img key={`${src}-${index}`} src={src} alt="" />
+            ))}
+          </div>
         </div>
-      </div>
 
-      <style>{`
-        @media (max-width: 768px) {
-          div[style*="grid-template-columns: 1fr 340px"] {
-            grid-template-columns: 1fr !important;
-          }
-          div[style*="position: sticky"] {
-            position: static !important;
-          }
-        }
-      `}</style>
-    </div>
+        <aside className="pc-donate">
+          <div className="pc-total">
+            <strong>{formatCents(raised)}</strong>
+            <span>raised of {formatCents(goal)} goal</span>
+            <em>{pct}%</em>
+          </div>
+          <div className="pc-progress"><span style={{ width: `${pct}%` }} /></div>
+          <div className="pc-statline"><span>{campaign.backer_count ?? donations.length} donations</span><span>{daysLeft} days left</span></div>
+          {campaign.status === 'active' && daysLeft !== 0 ? (
+            <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
+          ) : (
+            <div className="pc-ended">This campaign has ended.</div>
+          )}
+          <ReportButton campaignId={campaign.id} />
+          <div className="pc-guarantee"><b>KindFund Giving Guarantee</b><span>Your donation is protected and funds go where they are needed most.</span></div>
+        </aside>
+      </section>
+
+      <section className="pc-body">
+        <article className="pc-story">
+          <nav><span className="active">Story</span><span>Updates {updates.length}</span><span>Donations {campaign.backer_count ?? donations.length}</span><span>Impact</span></nav>
+          <h2>Mia&apos;s Story</h2>
+          <div className="pc-text">{campaign.description}</div>
+          <div className="pc-tags"><span>{campaign.category ?? 'Medical'}</span><span>Verified</span><span>Tax Deductible</span></div>
+        </article>
+
+        <aside className="pc-impact">
+          <h2>Impact Tracker</h2>
+          {(updates.length ? updates : [
+            { id: 'planned', title: 'Surgery and hospital stay', body: 'Supporters will receive transparent updates as milestones happen.', created_at: new Date().toISOString(), image_url: cover },
+          ]).map((update) => (
+            <article key={update.id}>
+              <span />
+              <div><b>{update.title}</b><small>{new Date(update.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</small></div>
+              {update.image_url ? <img src={update.image_url} alt="" /> : null}
+            </article>
+          ))}
+        </aside>
+      </section>
+
+      <section className="pc-cards">
+        <article className="pc-ai">
+          <h2>Campaign created with AI</h2>
+          <p>KindFund helps organizers tell their story, reach more people, and maximize impact while keeping trust and transparency visible.</p>
+          <ul>
+            <li>AI story assistant</li>
+            <li>AI outreach plan</li>
+            <li>AI growth strategy</li>
+          </ul>
+        </article>
+
+        <article className="pc-card">
+          <h2>Recent Donations</h2>
+          {donations.map((donation) => {
+            const profile = asProfile(donation.profiles);
+            return (
+              <p key={donation.id}><span>{donation.anonymous ? 'Anonymous' : profile.full_name ?? 'Kind supporter'}</span><b>{formatCents(donation.amount_cents)}</b></p>
+            );
+          })}
+          {donations.length === 0 ? <p><span>Be the first supporter</span><b>{formatCents(0)}</b></p> : null}
+        </article>
+
+        <article className="pc-card">
+          <h2>Transparency Ledger</h2>
+          {ledger.map((item) => <p key={item.id}><span>{item.title}</span><b>{item.amount_cents ? formatCents(item.amount_cents) : item.status}</b></p>)}
+          {ledger.length === 0 ? <p><span>Receipts and milestones will appear here.</span><b>Live</b></p> : null}
+        </article>
+      </section>
+
+      <section className="pc-safe">
+        <div><b>Secure donations</b><span>SSL encrypted checkout through Stripe.</span></div>
+        <div><b>No mandatory platform fee</b><span>Optional tips keep KindFund running.</span></div>
+        <div><b>24/7 Support</b><span>Trust and safety tools protect every campaign.</span></div>
+      </section>
+    </main>
   );
 }
