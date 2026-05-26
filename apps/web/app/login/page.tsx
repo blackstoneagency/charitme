@@ -28,7 +28,8 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  // Pre-populate error from URL (e.g. ?error=... set by the OAuth callback route)
+  const [error, setError] = useState(params.get('error') ?? '');
   const [success, setSuccess] = useState('');
 
   useEffect(() => {

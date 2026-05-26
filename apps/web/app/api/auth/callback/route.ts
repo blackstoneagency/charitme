@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { safeNextPath } from '../../../../lib/auth-config';
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
@@ -16,25 +15,41 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   const next = safeNextPath(searchParams.get('next'));
+  const origin = getRequestOrigin(request);
 
-  if (code) {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-anon-key',
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll(); },
-          setAll(cookiesToSet: CookieToSet[]) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
+  // Build the redirect response FIRST so we can set cookies directly on it.
+  // Using next/headers `cookies()` + `NextResponse.redirect` loses the cookie
+  // because they are different response objects. Attaching to the redirect
+  // response ensures the session cookie actually reaches the browser.
+  const redirectResponse = NextResponse.redirect(new URL(next, origin));
+
+  if (!code) return redirectResponse;
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-anon-key',
+    {
+      cookies: {
+        // Read cookies from the incoming request
+        getAll() { return request.cookies.getAll(); },
+        // Write cookies directly onto the redirect response
+        setAll(cookiesToSet: CookieToSet[]) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            redirectResponse.cookies.set(name, value, options);
+          });
         },
-      }
-    );
-    await supabase.auth.exchangeCodeForSession(code);
+      },
+    }
+  );
+
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (error) {
+    // Redirect to login and surface the error so the user knows what happened
+    const loginUrl = new URL('/login', origin);
+    loginUrl.searchParams.set('error', error.message);
+    return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.redirect(new URL(next, getRequestOrigin(request)));
+  return redirectResponse;
 }

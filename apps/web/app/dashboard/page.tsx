@@ -1,16 +1,97 @@
 import Link from 'next/link';
 import { KindFundShell, KFIcon } from '../../components/KindFundApp';
+import { requireUser } from '../../lib/auth';
+import { supabaseAdmin } from '../../lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
-const metrics = [
-  { label: 'Total Raised', value: '$24,350', change: '+ 28% vs last 7 days', icon: 'gift', tone: 'violet' },
-  { label: 'Total Donations', value: '487', change: '+ 18% vs last 7 days', icon: 'users', tone: 'green' },
-  { label: 'Total Supporters', value: '563', change: '+ 22% vs last 7 days', icon: 'team', tone: 'blue' },
-  { label: 'Avg. Donation', value: '$52.84', change: '+ 9% vs last 7 days', icon: 'chart', tone: 'orange' },
-];
+// ─────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────
+type CampaignRow = {
+  id: string;
+  title: string;
+  slug: string;
+  status: string;
+  goal_amount: number;
+  raised_amount: number;
+  backer_count: number;
+  cover_image_url: string | null;
+};
 
-const campaigns = [
+type DashData = {
+  firstName: string;
+  userName: string | null;
+  campaigns: CampaignRow[];
+  totalRaised: number;
+  totalDonations: number;
+  totalSupporters: number;
+  avgDonation: number;
+};
+
+// ─────────────────────────────────────────────
+// Data fetching
+// ─────────────────────────────────────────────
+async function getDashboardData(userId: string): Promise<DashData> {
+  try {
+    const [{ data: profile }, { data: campaignData }] = await Promise.all([
+      supabaseAdmin.from('profiles').select('full_name').eq('id', userId).single(),
+      supabaseAdmin
+        .from('campaigns')
+        .select('id, title, slug, status, goal_amount, raised_amount, backer_count, cover_image_url')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5),
+    ]);
+
+    const campaigns = (campaignData ?? []) as CampaignRow[];
+    const totalRaised = campaigns.reduce((s, c) => s + (c.raised_amount ?? 0), 0);
+    const totalDonations = campaigns.reduce((s, c) => s + (c.backer_count ?? 0), 0);
+    const avgDonation = totalDonations > 0 ? Math.round(totalRaised / totalDonations) : 0;
+
+    const fullName: string | null = (profile as { full_name?: string | null } | null)?.full_name ?? null;
+    const firstName = fullName ? fullName.split(' ')[0] : 'there';
+
+    return {
+      firstName,
+      userName: fullName,
+      campaigns,
+      totalRaised,
+      totalDonations,
+      totalSupporters: totalDonations, // backer_count ≈ supporter count
+      avgDonation,
+    };
+  } catch {
+    return {
+      firstName: 'there',
+      userName: null,
+      campaigns: [],
+      totalRaised: 0,
+      totalDonations: 0,
+      totalSupporters: 0,
+      avgDonation: 0,
+    };
+  }
+}
+
+// ─────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────
+function fmtCents(cents: number): string {
+  const dollars = cents / 100;
+  if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1)}M`;
+  if (dollars >= 1_000) return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  return `$${dollars.toFixed(2)}`;
+}
+
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+// ─────────────────────────────────────────────
+// Sample / fallback data for empty-state users
+// ─────────────────────────────────────────────
+const SAMPLE_CAMPAIGNS = [
   {
     title: 'Help Mia Get Life-Saving Heart Surgery',
     image: '/hero-child-crop.png',
@@ -21,6 +102,7 @@ const campaigns = [
     donations: '487',
     views: '12,450',
     conversion: '3.9%',
+    href: '/create',
   },
   {
     title: 'Support Our Family After House Fire',
@@ -32,6 +114,7 @@ const campaigns = [
     donations: '162',
     views: '5,230',
     conversion: '3.1%',
+    href: '/create',
   },
   {
     title: 'Emergency Vet Care for Max',
@@ -43,29 +126,71 @@ const campaigns = [
     donations: '38',
     views: '1,120',
     conversion: '3.4%',
+    href: '/create',
   },
 ];
 
-const tasks = [
+const SAMPLE_METRICS = [
+  { label: 'Total Raised',      value: '$24,350', change: '+ 28% vs last 7 days', icon: 'gift',  tone: 'violet' },
+  { label: 'Total Donations',   value: '487',     change: '+ 18% vs last 7 days', icon: 'users', tone: 'green' },
+  { label: 'Total Supporters',  value: '563',     change: '+ 22% vs last 7 days', icon: 'team',  tone: 'blue' },
+  { label: 'Avg. Donation',     value: '$52.84',  change: '+ 9% vs last 7 days',  icon: 'chart', tone: 'orange' },
+];
+
+const TASKS = [
   ['Post campaign update', 'Due today'],
   ['Thank new donors (12)', 'Due today'],
   ['Send update email', 'Due tomorrow'],
   ['Review AI recommendations', 'Due tomorrow'],
 ];
 
-const activity = [
+const ACTIVITY = [
   ['James Miller donated $100', '2 min ago', 'JM'],
   ['Sophia Chen shared your campaign', '15 min ago', 'SC'],
   ['You received a new message', '1 hr ago', 'KF'],
 ];
 
-export default function DashboardPage() {
+// ─────────────────────────────────────────────
+// Page
+// ─────────────────────────────────────────────
+export default async function DashboardPage() {
+  const user = await requireUser();
+  const data = await getDashboardData(user.id);
+
+  const hasRealCampaigns = data.campaigns.length > 0;
+
+  // Build metrics from real data (or show zeros with a "start fundraising" nudge)
+  const metrics = hasRealCampaigns
+    ? [
+        { label: 'Total Raised',     value: fmtCents(data.totalRaised),    change: 'all time',          icon: 'gift',  tone: 'violet' },
+        { label: 'Total Donations',  value: String(data.totalDonations),   change: 'all campaigns',     icon: 'users', tone: 'green' },
+        { label: 'Total Supporters', value: String(data.totalSupporters),  change: 'unique donors',     icon: 'team',  tone: 'blue' },
+        { label: 'Avg. Donation',    value: fmtCents(data.avgDonation),    change: 'per transaction',   icon: 'chart', tone: 'orange' },
+      ]
+    : SAMPLE_METRICS;
+
+  // Map real campaigns to display shape
+  const displayCampaigns = hasRealCampaigns
+    ? data.campaigns.slice(0, 3).map((c) => ({
+        title: c.title,
+        image: c.cover_image_url ?? 'medical',
+        status: capitalize(c.status),
+        raised: fmtCents(c.raised_amount),
+        goal: fmtCents(c.goal_amount),
+        progress: c.goal_amount > 0 ? Math.min(100, Math.round((c.raised_amount / c.goal_amount) * 100)) : 0,
+        donations: String(c.backer_count),
+        views: '—',
+        conversion: '—',
+        href: `/dashboard/campaigns`,
+      }))
+    : SAMPLE_CAMPAIGNS;
+
   return (
-    <KindFundShell active="Dashboard">
+    <KindFundShell active="Dashboard" userName={data.userName}>
       <div className="dash-home">
         <header className="dash-head">
           <div>
-            <h1>Welcome back, Sarah! <span aria-hidden="true">&#128075;</span></h1>
+            <h1>Welcome back, {data.firstName}! <span aria-hidden="true">&#128075;</span></h1>
             <p>Here&apos;s what&apos;s happening with your campaigns.</p>
           </div>
           <div className="dash-actions">
@@ -99,8 +224,23 @@ export default function DashboardPage() {
                 <h2>Your Campaigns</h2>
                 <button>Sort by: Performance <span>v</span></button>
               </div>
+
+              {!hasRealCampaigns && (
+                <div style={{ padding: '12px 20px 4px' }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '10px 14px', borderRadius: '10px',
+                    background: 'rgba(108,53,255,0.07)', border: '1px solid rgba(108,53,255,0.15)',
+                    fontSize: '13px', fontWeight: 700, color: '#4e16f5',
+                  }}>
+                    <KFIcon name="send" />
+                    <span>These are example campaigns — <Link href="/create" style={{ textDecoration: 'underline' }}>create your first campaign</Link> to see real data here.</span>
+                  </div>
+                </div>
+              )}
+
               <div className="campaign-list">
-                {campaigns.map((campaign) => (
+                {displayCampaigns.map((campaign) => (
                   <article className="campaign-item" key={campaign.title}>
                     <CampaignImage image={campaign.image} />
                     <div className="campaign-copy">
@@ -112,7 +252,7 @@ export default function DashboardPage() {
                     <CampaignStat value={campaign.donations} label="Donations" />
                     <CampaignStat value={campaign.views} label="Views" />
                     <CampaignStat value={campaign.conversion} label="Conversion" />
-                    <Link className="campaign-detail" href="/dashboard/campaigns">View Details <span>&gt;</span></Link>
+                    <Link className="campaign-detail" href={campaign.href}>View Details <span>&gt;</span></Link>
                     <button className="campaign-menu" aria-label={`More options for ${campaign.title}`}>...</button>
                   </article>
                 ))}
@@ -139,8 +279,8 @@ export default function DashboardPage() {
                     <div className="perf-days"><span>May 14</span><span>May 15</span><span>May 16</span><span>May 17</span><span>May 18</span><span>May 19</span><span>May 20</span></div>
                   </div>
                   <div className="perf-summary">
-                    <PerfNumber value="$3,420" label="Raised this week" change="+ 28%" />
-                    <PerfNumber value="487" label="Donations" change="+ 18%" />
+                    <PerfNumber value={fmtCents(data.totalRaised) || '$3,420'} label="Raised this week" change="+ 28%" />
+                    <PerfNumber value={String(data.totalDonations) || '487'} label="Donations" change="+ 18%" />
                     <PerfNumber value="12,450" label="Views" change="+ 36%" />
                     <PerfNumber value="3.9%" label="Conversion Rate" change="+ 12%" />
                   </div>
@@ -150,7 +290,7 @@ export default function DashboardPage() {
               <section className="dash-card source-card">
                 <h2>Donations by Source</h2>
                 <div className="source-body">
-                  <div className="source-donut"><span><b>487</b><small>Total</small></span></div>
+                  <div className="source-donut"><span><b>{data.totalDonations || 487}</b><small>Total</small></span></div>
                   <div className="source-list">
                     {[
                       ['Facebook', '32%', '#6c35ff'],
@@ -169,17 +309,17 @@ export default function DashboardPage() {
           <aside className="dash-side">
             <section className="dash-card ai-assistant">
               <div className="assistant-title"><h2><KFIcon name="send" /> AI Assistant <span>*</span></h2><em>Beta</em></div>
-              <h3>Good morning, Sarah!</h3>
+              <h3>Good morning, {data.firstName}!</h3>
               <p>I&apos;ve analyzed your campaigns and found opportunities to grow.</p>
               <AssistantAction icon="doc" tone="violet" title="Post a video update" text="Campaigns with video get 3x more donations." />
-              <AssistantAction icon="users" tone="green" title="Re-engage past donors" text="You have 78 past donors you haven't contacted." />
+              <AssistantAction icon="users" tone="green" title="Re-engage past donors" text="You have 78 past donors you haven&apos;t contacted." />
               <AssistantAction icon="send" tone="orange" title="Boost on social media" text="Your campaign could reach 2.5x more people with a boost." />
               <button>Ask AI Assistant</button>
             </section>
 
             <section className="dash-card task-card">
               <div className="dash-card-title side-title"><h2>Your Tasks</h2><Link href="#">View all</Link></div>
-              {tasks.map(([title, due], index) => (
+              {TASKS.map(([title, due], index) => (
                 <label key={title} className="task-row">
                   <input type="checkbox" />
                   <span>{title}</span>
@@ -190,7 +330,7 @@ export default function DashboardPage() {
 
             <section className="dash-card recent-card">
               <div className="dash-card-title side-title"><h2>Recent Activity</h2><Link href="#">View all</Link></div>
-              {activity.map(([title, time, initials]) => (
+              {ACTIVITY.map(([title, time, initials]) => (
                 <p className="recent-row" key={title}><span>{initials}</span><b>{title}<small>{time}</small></b></p>
               ))}
             </section>
@@ -198,7 +338,7 @@ export default function DashboardPage() {
 
           <section className="dash-card growth-strip">
             <div className="growth-brand"><span><KFIcon name="send" /></span><div><h2>AI Growth Engine <em>New</em></h2><p>Our AI is working to grow your campaigns 24/7</p></div></div>
-            <GrowthMetric label="Content Created" value="24" sub="Posts & updates" />
+            <GrowthMetric label="Content Created" value="24" sub="Posts &amp; updates" />
             <GrowthMetric label="People Reached" value="18,450" sub="+ 32% this week" />
             <GrowthMetric label="Engagement" value="2,340" sub="+ 28% this week" />
             <GrowthMetric label="New Donors" value="78" sub="+ 22% this week" />
@@ -210,6 +350,9 @@ export default function DashboardPage() {
   );
 }
 
+// ─────────────────────────────────────────────
+// Sub-components
+// ─────────────────────────────────────────────
 function CampaignImage({ image }: { image: string }) {
   if (image.startsWith('/')) return <div className="campaign-img" style={{ backgroundImage: `url(${image})` }} />;
   return <div className={`campaign-img ${image}`} />;
