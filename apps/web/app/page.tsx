@@ -1,481 +1,201 @@
 import Link from 'next/link';
-import { supabaseAdmin } from '../lib/supabase';
-import { formatCents } from '../lib/stripe';
-import { calculateTrustScore } from '../lib/ai-platform';
+import type React from 'react';
 
-export const dynamic = 'force-dynamic';
-const BUILD_TIME = Date.now();
-
-async function getFeaturedCampaigns() {
-  try {
-    const { data } = await supabaseAdmin
-      .from('campaigns')
-      .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, identity_verified, stripe_onboarded')
-      .eq('status', 'active')
-      .order('raised_amount', { ascending: false })
-      .limit(6);
-    return data ?? [];
-  } catch {
-    return [];
-  }
-}
-
-async function getHeroCampaign() {
-  try {
-    const { data } = await supabaseAdmin
-      .from('campaigns')
-      .select('id, slug, title, tagline, goal_amount, raised_amount, backer_count, deadline, identity_verified, stripe_onboarded, cover_image_url')
-      .eq('status', 'active')
-      .order('raised_amount', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    return data;
-  } catch {
-    return null;
-  }
-}
-
-const HERO_FEATURES = [
-  { icon: '✏️', label: 'AI Campaign Builder' },
-  { icon: '🚀', label: 'AI Growth Engine' },
-  { icon: '🛡️', label: 'AI Trust & Safety' },
-  { icon: '💬', label: '24/7 AI Support' },
+const FEATURES = [
+  { icon: 'edit', title: 'AI Campaign Builder', body: 'Create a powerful campaign in minutes with our AI assistant.', tone: 'violet' },
+  { icon: 'rocket', title: 'AI Growth Engine', body: 'Our AI finds your ideal donors and grows your campaign automatically.', tone: 'green' },
+  { icon: 'shield', title: 'AI Trust & Safety', body: 'Advanced verification protects donors and builds trust from day one.', tone: 'blue' },
+  { icon: 'chart', title: 'AI Optimization', body: 'Real-time insights and AI recommendations to maximize your results.', tone: 'orange' },
+  { icon: 'heart', title: 'AI Impact Updates', body: 'Automatically share updates and show donors the real world impact.', tone: 'pink' },
 ];
 
-const AI_FEATURES = [
-  {
-    icon: '✏️',
-    title: 'AI Campaign Builder',
-    body: 'Create a powerful campaign in minutes with our AI assistant.',
-  },
-  {
-    icon: '🚀',
-    title: 'AI Growth Engine',
-    body: 'Our AI finds your ideal donors and grows your campaign automatically.',
-  },
-  {
-    icon: '🛡️',
-    title: 'AI Trust & Safety',
-    body: 'Advanced verification protects donors and builds trust from day one.',
-  },
-  {
-    icon: '📊',
-    title: 'AI Optimization',
-    body: 'Real-time insights and AI recommendations to maximize your results.',
-  },
-  {
-    icon: '❤️',
-    title: 'AI Impact Updates',
-    body: 'Automatically share updates and show donors the real world impact.',
-  },
+const STATS = [
+  ['$2.8B+', 'Raised on KindFund'],
+  ['8M+', 'Successful Campaigns'],
+  ['50M+', 'Donors Worldwide'],
+  ['98%', 'Trust Score Average'],
+  ['195', 'Countries Supported'],
 ];
 
 const TESTIMONIALS = [
   {
-    quote: 'GiveRise\'s AI helped us raise 3x more than we ever thought possible. The support was incredible.',
+    quote: "KindFund's AI helped us raise 3x more than we ever thought possible. The support was incredible.",
     name: 'James R.',
     role: 'Father & Organizer',
     raised: '$78,543',
-    initials: 'JR',
+    image: 'linear-gradient(135deg, #8b5cf6, #f59e0b)',
   },
   {
     quote: 'The transparency and updates kept our donors engaged the entire way. Best experience ever.',
     name: 'Melissa K.',
     role: 'Nonprofit Director',
     raised: '$120,890',
-    initials: 'MK',
+    image: 'linear-gradient(135deg, #10b981, #f472b6)',
   },
   {
-    quote: 'The AI Growth Engine found donors I didn\'t even know existed. Game changer.',
+    quote: "The AI Growth Engine found donors I didn't even know existed. Game changer.",
     name: 'David L.',
     role: 'Community Leader',
     raised: '$56,230',
-    initials: 'DL',
+    image: 'linear-gradient(135deg, #0f172a, #06b6d4)',
   },
 ];
 
-const TRUST_BULLETS = [
-  'Industry-leading Trust Score',
-  'Real-time fraud detection',
-  'Bank-level security',
-  'Transparent impact tracking',
-];
+const PRESS = ['Forbes', 'FAST COMPANY', 'TC TechCrunch', 'The New York Times', 'USA TODAY'];
 
-const PRESS = ['Forbes', 'Fast Company', 'TechCrunch', 'The New York Times', 'USA Today'];
+function Icon({ name, className = 'h-5 w-5' }: { name: string; className?: string }) {
+  const common = { className, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  const paths: Record<string, React.ReactNode> = {
+    sparkle: <><path d="M12 3l1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6L12 3z" /><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z" /></>,
+    edit: <><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></>,
+    rocket: <><path d="M4.5 16.5c-1.1 1.1-1.5 3-1.5 3s1.9-.4 3-1.5c.6-.6.7-1.5.2-2.1-.5-.5-1.4-.4-1.7.6Z" /><path d="M9 15l-2-2a16 16 0 0 1 8-9 5 5 0 0 1 5 5 16 16 0 0 1-9 8l-2-2Z" /><path d="M15 9h.01" /></>,
+    shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />,
+    chart: <><path d="M3 3v18h18" /><path d="M7 15l4-4 3 3 5-7" /></>,
+    heart: <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />,
+    users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>,
+    clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+    play: <path d="M9 7l8 5-8 5V7Z" />,
+    check: <path d="M20 6L9 17l-5-5" />,
+    arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,
+  };
 
-export default async function HomePage() {
-  const [campaigns, heroCampaign] = await Promise.all([getFeaturedCampaigns(), getHeroCampaign()]);
+  return <svg {...common}>{paths[name]}</svg>;
+}
 
-  const heroTitle = heroCampaign?.title ?? 'Help Mia Get Life-Saving Heart Surgery';
-  const heroRaised = heroCampaign?.raised_amount ?? 2435000;
-  const heroGoal = heroCampaign?.goal_amount ?? 5000000;
-  const heroDonors = heroCampaign?.backer_count ?? 487;
-  const heroPct = Math.min(100, Math.round((heroRaised / heroGoal) * 100));
-  const heroSlug = heroCampaign?.slug ?? 'create';
-  const heroVerified = heroCampaign?.identity_verified ?? true;
-  const heroDaysLeft = heroCampaign?.deadline
-    ? Math.max(0, Math.ceil((new Date(heroCampaign.deadline).getTime() - BUILD_TIME) / 86_400_000))
-    : 32;
-  const heroScore = heroCampaign ? calculateTrustScore(heroCampaign) : 94;
-
+export default function HomePage() {
   return (
-    <div className="bg-white">
-
-      {/* ─── HERO ─────────────────────────────────────────────────────────── */}
-      <section className="hero-mesh border-b border-violet-100 py-16 sm:py-24">
-        <div className="container grid items-center gap-12 lg:grid-cols-[1.1fr_.95fr]">
-
-          {/* Left */}
-          <div>
-            {/* Badge */}
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white px-4 py-1.5 text-sm font-bold text-violet-700 shadow-sm">
-              <span className="text-violet-500">✦</span>
-              The World&apos;s #1 AI Fundraising Platform
-            </div>
-
-            {/* Headline */}
-            <h1 className="text-5xl font-black tracking-tight text-slate-950 sm:text-6xl lg:text-7xl">
-              Fundraising that{' '}
-              <em className="not-italic" style={{
-                background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}>thinks</em>
-              {' '}for you.
+    <div className="kind-page">
+      <section className="kind-hero">
+        <div className="container kind-hero-grid">
+          <div className="kind-hero-copy">
+            <div className="kind-badge"><Icon name="sparkle" className="h-4 w-4" /> The World&apos;s #1 AI Fundraising Platform</div>
+            <h1>
+              Fundraising that <span>thinks</span> for you.
             </h1>
-
-            <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
-              Create, grow, and succeed with the power of AI.<br />
-              More trust. More donors. More impact.
-            </p>
-
-            {/* CTA buttons */}
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/create"
-                className="rounded-xl bg-violet-600 px-7 py-3.5 text-sm font-black text-white shadow-soft transition hover:bg-violet-700"
-              >
-                Start Your Fundraiser
-              </Link>
-              <Link
-                href="/how-it-works"
-                className="flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-7 py-3.5 text-sm font-black text-slate-800 transition hover:border-violet-300"
-              >
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-xs text-violet-700">▶</span>
-                See How It Works
-              </Link>
+            <div className="kind-scribble" aria-hidden="true" />
+            <p>Create, grow, and succeed with the power of AI.<br />More trust. More donors. More impact.</p>
+            <div className="kind-actions">
+              <Link href="/create" className="kind-btn kind-btn-primary">Start Your Fundraiser</Link>
+              <Link href="/how-it-works" className="kind-btn kind-btn-secondary">See How It Works <span><Icon name="play" className="h-3.5 w-3.5" /></span></Link>
             </div>
-
-            {/* Feature tags */}
-            <div className="mt-8 flex flex-wrap gap-3">
-              {HERO_FEATURES.map((f) => (
-                <div key={f.label} className="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600">
-                  <span>{f.icon}</span> {f.label}
-                </div>
+            <div className="kind-pills">
+              {['AI Campaign Builder', 'AI Growth Engine', 'AI Trust & Safety', '24/7 AI Support'].map((item, index) => (
+                <div key={item}><Icon name={index === 0 ? 'sparkle' : index === 1 ? 'rocket' : index === 2 ? 'shield' : 'users'} className="h-3.5 w-3.5" />{item}</div>
               ))}
             </div>
-
-            {/* Social proof */}
-            <div className="mt-6 flex items-center gap-3">
-              {/* Avatar stack */}
-              <div className="flex -space-x-2">
-                {['bg-violet-200', 'bg-pink-200', 'bg-blue-200', 'bg-amber-200', 'bg-emerald-200'].map((bg, i) => (
-                  <div key={i} className={`h-8 w-8 rounded-full border-2 border-white ${bg}`} />
-                ))}
+            <div className="kind-proof">
+              <span>Trusted by millions</span>
+              <div className="kind-avatar-stack">
+                {[0, 1, 2, 3, 4].map((i) => <i key={i} />)}
               </div>
-              <div>
-                <div className="flex items-center gap-1 text-sm font-black text-slate-950">
-                  <span className="text-amber-400">★★★★★</span>
-                  <span className="ml-1">4.9/5</span>
-                </div>
-                <div className="text-xs text-slate-500">Trusted by millions · 50,000+ reviews</div>
-              </div>
+              <strong>★★★★★</strong>
+              <span>4.9/5 from 50,000+ reviews</span>
             </div>
           </div>
 
-          {/* Right — Campaign card + floating stats */}
-          <div className="relative">
-            {/* Floating stats — right edge */}
-            <div className="absolute -right-3 top-4 z-10 flex flex-col gap-2 sm:-right-6">
-              {[
-                { icon: '🛡️', label: 'Trust Score', value: String(heroScore), sub: 'Excellent' },
-                { icon: '👥', label: 'Donors', value: heroDonors.toLocaleString(), sub: '' },
-                { icon: '📤', label: 'Shares', value: '2.4K', sub: '' },
-                { icon: '🔔', label: 'Real-time', value: 'Impact', sub: 'Updates' },
-              ].map((s) => (
-                <div key={s.label} className="rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-center shadow-md" style={{ minWidth: '88px' }}>
-                  <div className="text-lg">{s.icon}</div>
-                  <div className="text-sm font-black text-slate-950">{s.value}</div>
-                  <div className="text-[10px] text-slate-500 leading-tight">{s.label}{s.sub && <><br />{s.sub}</>}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Main campaign card */}
-            <div className="mr-20 sm:mr-24 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
-              {/* Cover image placeholder */}
-              <div className="relative h-48 bg-gradient-to-br from-violet-100 via-purple-50 to-pink-100">
-                <div className="absolute inset-0 flex items-center justify-center text-6xl opacity-30">🙏</div>
-                {heroVerified && (
-                  <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-emerald-500 px-3 py-1 text-xs font-black text-white">
-                    ✓ VERIFIED CAMPAIGN
-                  </div>
-                )}
-              </div>
-
-              <div className="p-5">
-                <h3 className="text-lg font-black text-slate-950 leading-tight">{heroTitle}</h3>
-                <div className="mt-1 flex items-center gap-1 text-sm text-slate-500">
-                  <span>Organized by GiveRise Organizer</span>
-                  {heroVerified && <span className="text-violet-600">✓</span>}
-                </div>
-
-                {/* Progress */}
-                <div className="mt-4">
-                  <div className="flex justify-between text-sm mb-1.5">
-                    <span className="font-black text-slate-950">{formatCents(heroRaised)} <span className="font-normal text-slate-500">raised</span></span>
-                    <span className="text-slate-500">{formatCents(heroGoal)} goal</span>
-                  </div>
-                  <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{ width: `${heroPct}%`, background: 'linear-gradient(90deg, #7c3aed, #a855f7)' }}
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-3 flex gap-4 text-xs text-slate-500">
-                  <span className="font-bold text-slate-700">{heroDonors.toLocaleString()} donations</span>
-                  <span>{heroDaysLeft} days left</span>
-                </div>
-
-                <Link
-                  href={`/campaigns/${heroSlug}`}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-black text-white transition hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}
-                >
-                  ❤️ Donate Now
-                </Link>
-              </div>
+          <div className="kind-hero-art">
+            <div className="kind-photo" />
+            <div className="kind-floating kind-floating-1"><Icon name="shield" /><div><span>Trust Score</span><strong>98</strong><small>Excellent</small></div></div>
+            <div className="kind-floating kind-floating-2"><Icon name="users" /><div><strong>487</strong><span>Donors</span></div></div>
+            <div className="kind-floating kind-floating-3"><Icon name="chart" /><div><strong>2.4K</strong><span>Shares</span></div></div>
+            <div className="kind-floating kind-floating-4"><Icon name="clock" /><div><strong>Real-time</strong><span>Impact Updates</span></div></div>
+            <div className="kind-campaign-card">
+              <div className="kind-verified"><Icon name="check" className="h-3.5 w-3.5" /> VERIFIED CAMPAIGN</div>
+              <h2>Help Mia Get Life-Saving Heart Surgery</h2>
+              <p>Organized by Sarah Thompson <b /></p>
+              <div className="kind-raise-row"><strong>$24,350 <span>raised</span></strong><span>$50,000 goal</span></div>
+              <div className="kind-progress"><i /></div>
+              <div className="kind-raise-row kind-small"><span>487 donations</span><span>32 days left</span></div>
+              <Link href="/campaigns" className="kind-donate"><Icon name="heart" className="h-4 w-4" /> Donate Now</Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─── AI WORKS. YOU WIN. ───────────────────────────────────────────── */}
-      <section className="py-16 sm:py-20">
+      <section className="kind-section kind-ai">
         <div className="container">
-          <h2 className="mb-12 text-center text-3xl font-black text-slate-950 sm:text-4xl">
-            AI Works. You Win.
-          </h2>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
-            {AI_FEATURES.map((feature) => (
-              <div key={feature.title} className="group rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-violet-200 hover:shadow-md">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-2xl">
-                  {feature.icon}
-                </div>
-                <h3 className="font-black text-slate-950">{feature.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-500">{feature.body}</p>
-                <div className="mt-4 text-xs font-black text-violet-600 group-hover:underline">
-                  Learn more →
-                </div>
-              </div>
+          <h2>AI Works. You Win.</h2>
+          <div className="kind-feature-grid">
+            {FEATURES.map((feature) => (
+              <article className="kind-feature" key={feature.title}>
+                <div className={`kind-icon kind-icon-${feature.tone}`}><Icon name={feature.icon} /></div>
+                <h3>{feature.title}</h3>
+                <p>{feature.body}</p>
+                <Link href="/features">Learn more <Icon name="arrow" className="h-3.5 w-3.5" /></Link>
+              </article>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ─── STATS BAR ────────────────────────────────────────────────────── */}
-      <section className="border-y border-violet-100 bg-white py-10">
-        <div className="container">
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
-            {[
-              { value: '$2.8B+', label: 'Raised on GiveRise' },
-              { value: '8M+', label: 'Successful Campaigns' },
-              { value: '50M+', label: 'Donors Worldwide' },
-              { value: '98%', label: 'Trust Score Average' },
-              { value: '195', label: 'Countries Supported' },
-            ].map((s) => (
-              <div key={s.label} className="text-center">
-                <div className="text-3xl font-black text-violet-600 sm:text-4xl">{s.value}</div>
-                <div className="mt-1 text-sm font-bold text-slate-500">{s.label}</div>
-              </div>
+      <section className="container kind-stats">
+        {STATS.map(([value, label]) => (
+          <div key={label}><strong>{value}</strong><span>{label}</span></div>
+        ))}
+      </section>
+
+      <section className="kind-section kind-trust">
+        <div className="container kind-trust-grid">
+          <div>
+            <span className="kind-eyebrow">More than a platform</span>
+            <h2>A movement powered<br />by trust and technology.</h2>
+            <p>We combine human compassion with artificial intelligence to help more people succeed and more good happen in the world.</p>
+            <ul>
+              {['Industry-leading Trust Score', 'Real-time fraud detection', 'Bank-level security', 'Transparent impact tracking'].map((item) => (
+                <li key={item}><Icon name="check" className="h-3 w-3" /> {item}</li>
+              ))}
+            </ul>
+            <Link href="/trust-safety">Our Trust Promise <Icon name="arrow" className="h-3.5 w-3.5" /></Link>
+          </div>
+          <div className="kind-testimonials">
+            {TESTIMONIALS.map((item) => (
+              <article key={item.name}>
+                <div className="kind-quote">&quot;</div>
+                <p>{item.quote}</p>
+                <div className="kind-person">
+                  <i style={{ background: item.image }} />
+                  <div><strong>{item.name}</strong><span>{item.role}</span><b>Raised {item.raised}</b></div>
+                </div>
+              </article>
             ))}
           </div>
         </div>
-      </section>
-
-      {/* ─── TRUST + TESTIMONIALS ─────────────────────────────────────────── */}
-      <section className="py-16 sm:py-24">
-        <div className="container">
-          <div className="grid gap-12 lg:grid-cols-[420px_1fr]">
-            {/* Left */}
-            <div>
-              <div className="mb-3 text-xs font-black uppercase tracking-widest text-violet-600">More than a platform</div>
-              <h2 className="text-3xl font-black text-slate-950 sm:text-4xl">
-                A movement powered<br />by trust and technology.
-              </h2>
-              <p className="mt-4 leading-7 text-slate-600">
-                We combine human compassion with artificial intelligence to help more people succeed and more good happen in the world.
-              </p>
-              <ul className="mt-6 space-y-3">
-                {TRUST_BULLETS.map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-sm font-bold text-slate-700">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-violet-100 text-xs text-violet-700">✓</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/trust-safety" className="mt-6 inline-block text-sm font-black text-violet-700">
-                Our Trust Promise →
-              </Link>
-            </div>
-
-            {/* Right — testimonials */}
-            <div className="grid gap-4 sm:grid-cols-3">
-              {TESTIMONIALS.map((t) => (
-                <div key={t.name} className="flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <div>
-                    <div className="mb-4 text-3xl text-violet-300">&ldquo;</div>
-                    <p className="text-sm leading-6 text-slate-700">{t.quote}</p>
-                  </div>
-                  <div className="mt-5 flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-100 text-sm font-black text-violet-700">
-                      {t.initials}
-                    </div>
-                    <div>
-                      <div className="text-sm font-black text-slate-950">{t.name}</div>
-                      <div className="text-xs text-slate-500">{t.role}</div>
-                      <div className="text-xs font-black text-violet-600">Raised {t.raised}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Press logos */}
-          <div className="mt-14 flex flex-wrap items-center justify-center gap-8 border-t border-slate-100 pt-10">
-            {PRESS.map((name) => (
-              <div key={name} className="text-base font-black tracking-tight text-slate-300 sm:text-lg">
-                {name}
-              </div>
-            ))}
-          </div>
+        <div className="container kind-press">
+          {PRESS.map((item) => <span key={item}>{item}</span>)}
         </div>
       </section>
 
-      {/* ─── FEATURED CAMPAIGNS ───────────────────────────────────────────── */}
-      {campaigns.length > 0 && (
-        <section className="bg-slate-50 py-16">
-          <div className="container">
-            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <h2 className="text-3xl font-black text-slate-950">Trusted campaigns</h2>
-                <p className="mt-2 text-slate-600">A donor-first campaign marketplace with public trust signals.</p>
-              </div>
-              <Link href="/campaigns" className="text-sm font-black text-violet-700">Browse all →</Link>
-            </div>
-            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-              {campaigns.map((campaign) => {
-                const score = calculateTrustScore(campaign);
-                const pct = Math.min(100, Math.round(((campaign.raised_amount ?? 0) / campaign.goal_amount) * 100));
-                return (
-                  <Link key={campaign.id} href={`/campaigns/${campaign.slug}`} className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
-                    <div
-                      className="h-44 bg-gradient-to-br from-violet-100 to-purple-50"
-                      style={campaign.cover_image_url ? { background: `url(${campaign.cover_image_url}) center/cover` } : undefined}
-                    />
-                    <div className="p-5">
-                      <div className="mb-3 flex flex-wrap gap-2">
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600">{campaign.category}</span>
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-black ${score >= 88 ? 'bg-emerald-100 text-emerald-700' : score >= 70 ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-600'}`}>
-                          {score >= 88 ? 'Verified' : score >= 70 ? 'Strong Trust' : 'Needs More Info'}
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-black text-slate-950 group-hover:text-violet-700 transition">{campaign.title}</h3>
-                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{campaign.tagline}</p>
-                      <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
-                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, #7c3aed, #a855f7)' }} />
-                      </div>
-                      <div className="mt-3 flex justify-between text-sm">
-                        <span className="font-black text-violet-700">{formatCents(campaign.raised_amount ?? 0)}</span>
-                        <span className="font-semibold text-slate-500">{campaign.backer_count ?? 0} donors</span>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ─── THE FUTURE SECTION ───────────────────────────────────────────── */}
-      <section style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%)' }} className="py-16 sm:py-24">
-        <div className="container">
-          <div className="grid gap-12 lg:grid-cols-[1fr_1fr] lg:items-center">
-            {/* Left */}
-            <div>
-              <h2 className="text-3xl font-black text-white sm:text-4xl">
-                The future of fundraising<br />is intelligent.
-              </h2>
-              <p className="mt-4 max-w-md leading-7 text-violet-200">
-                GiveRise&apos;s AI works behind the scenes so you can focus on what matters most — your mission.
-              </p>
-            </div>
-
-            {/* Right — 3 icons */}
-            <div className="relative flex items-center justify-around gap-4">
-              {[
-                { icon: '✦', label: 'Smarter Campaigns', desc: 'AI creates and optimizes for maximum impact.' },
-                { icon: '👥', label: 'Stronger Connections', desc: 'AI matches you with the right supporters.' },
-                { icon: '❤️', label: 'Bigger Impact', desc: 'AI helps you change more lives.' },
-              ].map((item, i) => (
-                <div key={item.label} className="flex flex-col items-center text-center">
-                  <div className={`flex h-16 w-16 items-center justify-center rounded-full text-2xl ${i === 0 ? 'bg-violet-400' : i === 1 ? 'bg-violet-500' : 'bg-pink-400'}`}>
-                    {item.icon}
-                  </div>
-                  <div className="mt-3 text-sm font-black text-white">{item.label}</div>
-                  <div className="mt-1 max-w-[120px] text-xs text-violet-300 leading-4">{item.desc}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+      <section className="container kind-future">
+        <div className="kind-future-bg" />
+        <div className="kind-future-copy">
+          <h2>The future of fundraising<br />is intelligent.</h2>
+          <p>KindFund&apos;s AI works behind the scenes so you can focus on what matters most - your mission.</p>
+        </div>
+        <div className="kind-orbits">
+          {[
+            ['sparkle', 'Smarter Campaigns', 'AI creates and optimizes for maximum impact.'],
+            ['users', 'Stronger Connections', 'AI matches you with the right supporters.'],
+            ['heart', 'Bigger Impact', 'AI helps you change more lives.'],
+          ].map(([icon, title, body], i) => (
+            <article key={title}>
+              <div className={i === 1 ? 'green' : i === 2 ? 'orange' : ''}><Icon name={icon} /></div>
+              <strong>{title}</strong>
+              <span>{body}</span>
+            </article>
+          ))}
         </div>
       </section>
 
-      {/* ─── CTA BANNER ───────────────────────────────────────────────────── */}
-      <section style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)' }} className="py-16">
-        <div className="container">
-          <div className="flex flex-wrap items-center justify-between gap-8">
-            <div>
-              <h2 className="text-2xl font-black text-white sm:text-3xl">
-                Ready to turn your story into impact?
-              </h2>
-              <p className="mt-2 text-violet-200">
-                Join millions of fundraisers who are reaching their goals with AI.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/create"
-                className="rounded-xl bg-white px-7 py-3.5 text-sm font-black text-violet-700 transition hover:bg-violet-50"
-              >
-                Start Your Fundraiser
-              </Link>
-              <Link
-                href="/contact"
-                className="rounded-xl border-2 border-white/40 px-7 py-3.5 text-sm font-black text-white transition hover:border-white"
-              >
-                Talk to an Expert
-              </Link>
-            </div>
-          </div>
+      <section className="container kind-cta">
+        <div>
+          <h2>Ready to turn your story into impact?</h2>
+          <p>Join millions of fundraisers who are reaching their goals with AI.</p>
+        </div>
+        <div>
+          <Link href="/create" className="kind-btn kind-btn-white">Start Your Fundraiser</Link>
+          <Link href="/contact" className="kind-btn kind-btn-outline">Talk to an Expert</Link>
         </div>
       </section>
-
     </div>
   );
 }

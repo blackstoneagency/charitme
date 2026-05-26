@@ -15,15 +15,29 @@ Public API URL:
 - `seed.sql` - staging/demo seed data.
 - `migrations/20260525000000_initial_schema.sql` - deployable initial schema migration.
 - `migrations/20260525001000_storage_buckets.sql` - storage buckets and RLS policies.
+- `migrations/20260525130000_auth_profile_bootstrap.sql` - creates profiles and default roles for new Auth users.
 
 ## Apply Remotely
 
 ```bash
-supabase link --project-ref nengpvscsgukotheptri
-supabase db push
+npm run provision
 ```
 
-For staging/demo data only:
+Required environment variables:
+
+- `SUPABASE_ACCESS_TOKEN`
+- `SUPABASE_DB_PASSWORD` or `SUPABASE_DB_URL`
+
+Optional Vercel automation:
+
+- `VERCEL_TOKEN`
+- `VERCEL_PROJECT_ID` or `VERCEL_PROJECT_NAME` (defaults to `money-raise`)
+- `VERCEL_TEAM_ID` or `VERCEL_TEAM_SLUG` for team-owned projects
+- `VERCEL_APP_URL` to set `APP_URL` and `NEXT_PUBLIC_APP_URL`
+
+The provisioning script runs Supabase migrations, reads the Supabase anon and service role keys, updates Vercel build settings, and upserts Supabase-related Vercel environment variables.
+
+For staging/demo data only, run after provisioning:
 
 ```bash
 supabase db execute --file supabase/seed.sql

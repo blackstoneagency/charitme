@@ -2,10 +2,18 @@
   "name": "money-raise",
   "version": "0.1.0",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspace=apps/web",
-    "typecheck": "npm run typecheck --workspace=apps/web"
+    "typecheck": "npm run typecheck --workspace=apps/web",
+    "provision": "node scripts/provision-supabase-vercel.mjs"
+  },
+  "devDependencies": {
+    "supabase": "^2.101.0",
+    "vercel": "^54.4.1"
   }
 }

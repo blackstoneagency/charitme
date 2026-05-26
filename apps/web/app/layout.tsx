@@ -3,8 +3,8 @@ import './globals.css';
 import { AppShell } from '../components/AppShell';
 
 export const metadata: Metadata = {
-  title: { default: 'GiveRise - Free Fundraising Powered by AI', template: '%s | GiveRise' },
-  description: 'Fundraising with built-in trust, AI campaign tools, transparent pricing, and fast verified Stripe payouts.',
+  title: { default: 'KindFund - AI Fundraising Platform', template: '%s | KindFund' },
+  description: 'AI-powered fundraising with campaign building, donor growth, trust tools, and impact updates.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
