@@ -7,28 +7,31 @@ import type { User } from '@supabase/supabase-js';
 import { createClient } from '../lib/supabase-browser';
 
 const NAV = [
+  ['Home', '/'],
+  ['About Us', '/about-us'],
   ['How It Works', '/how-it-works'],
   ['AI Fundraising', '/ai-fundraising'],
-  ['Success Stories', '/campaigns'],
+  ['Success Stories', '/success-stories'],
   ['Pricing', '/pricing'],
-  ['Resources', '/faq'],
+  ['Blog', '/blog'],
+  ['Contact Us', '/contact'],
 ] as const;
 
 const FOOTER_LINKS = {
   Platform: [
     ['How It Works', '/how-it-works'],
     ['AI Fundraising', '/ai-fundraising'],
-    ['Success Stories', '/campaigns'],
+    ['Success Stories', '/success-stories'],
     ['Pricing', '/pricing'],
   ],
   Resources: [
-    ['Blog', '/faq'],
+    ['Blog', '/blog'],
     ['Guides', '/how-it-works'],
     ['Help Center', '/faq'],
     ['Webinars', '/contact'],
   ],
   Company: [
-    ['About Us', '/contact'],
+    ['About Us', '/about-us'],
     ['Careers', '/contact'],
     ['Press', '/contact'],
     ['Contact', '/contact'],
@@ -55,14 +58,6 @@ function Logo() {
   );
 }
 
-function Chevron() {
-  return (
-    <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M4 6l4 4 4-4" />
-    </svg>
-  );
-}
-
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const [user, setUser] = useState<User | null>(null);
@@ -85,16 +80,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Logo />
           <nav>
             {NAV.map(([label, href]) => (
-              <Link key={href} href={href}>
+              <Link key={href} href={href} className={path === href ? 'active' : ''}>
                 {label}
-                {(label === 'AI Fundraising' || label === 'Resources') && <Chevron />}
+                {label === 'AI Fundraising' && <span className="kind-new">New</span>}
               </Link>
             ))}
           </nav>
           <div className="kind-auth">
             {user && <Link href="/dashboard" className="kind-login">Dashboard</Link>}
             {!user && <Link href="/login" className="kind-login">Log in</Link>}
-            <Link href={user ? '/create' : '/login?mode=signup'} className="kind-start">Start Fundraising</Link>
+            <Link href={user ? '/create' : '/login?mode=signup'} className="kind-start">Get Started</Link>
           </div>
           <button className="kind-menu" onClick={() => setMenuOpen((open) => !open)} aria-label="Toggle navigation">
             <span />
@@ -106,7 +101,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="kind-mobile">
             {NAV.map(([label, href]) => <Link key={href} href={href} onClick={() => setMenuOpen(false)}>{label}</Link>)}
             <Link href="/login" onClick={() => setMenuOpen(false)}>Log in</Link>
-            <Link href="/login?mode=signup" onClick={() => setMenuOpen(false)}>Start Fundraising</Link>
+            <Link href="/login?mode=signup" onClick={() => setMenuOpen(false)}>Get Started</Link>
           </div>
         )}
       </header>
