@@ -4,6 +4,7 @@ import { formatCents } from '../lib/stripe';
 import { calculateTrustScore } from '../lib/ai-platform';
 
 export const dynamic = 'force-dynamic';
+const BUILD_TIME = Date.now();
 
 async function getFeaturedCampaigns() {
   try {
@@ -113,7 +114,7 @@ export default async function HomePage() {
   const heroSlug = heroCampaign?.slug ?? 'create';
   const heroVerified = heroCampaign?.identity_verified ?? true;
   const heroDaysLeft = heroCampaign?.deadline
-    ? Math.max(0, Math.ceil((new Date(heroCampaign.deadline).getTime() - Date.now()) / 86_400_000))
+    ? Math.max(0, Math.ceil((new Date(heroCampaign.deadline).getTime() - BUILD_TIME) / 86_400_000))
     : 32;
   const heroScore = heroCampaign ? calculateTrustScore(heroCampaign) : 94;
 
