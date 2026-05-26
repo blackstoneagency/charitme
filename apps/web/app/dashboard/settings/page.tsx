@@ -2,8 +2,13 @@ import Link from 'next/link';
 import { KindFundShell, TopBar, KFIcon } from '../../../components/KindFundApp';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import BillingPortalButton from './BillingPortalButton';
 
 export const dynamic = 'force-dynamic';
+
+interface PageProps {
+  searchParams: Promise<{ subscription?: string; plan?: string }>;
+}
 
 // ─────────────────────────────────────────────
 // Types
@@ -12,6 +17,8 @@ type Profile = {
   full_name: string | null;
   bio: string | null;
   avatar_url: string | null;
+  plan: string | null;
+  stripe_customer_id: string | null;
 };
 
 // ─────────────────────────────────────────────
@@ -36,26 +43,39 @@ async function fetchProfile(userId: string): Promise<Profile> {
   try {
     const { data } = await supabaseAdmin
       .from('profiles')
-      .select('full_name,bio,avatar_url')
+      .select('full_name,bio,avatar_url,plan,stripe_customer_id')
       .eq('id', userId)
       .single();
-    if (!data) return { full_name: null, bio: null, avatar_url: null };
+    if (!data) return { full_name: null, bio: null, avatar_url: null, plan: 'free', stripe_customer_id: null };
     return data as Profile;
   } catch {
-    return { full_name: null, bio: null, avatar_url: null };
+    return { full_name: null, bio: null, avatar_url: null, plan: 'free', stripe_customer_id: null };
   }
 }
 
 // ─────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────
-export default async function SettingsPage() {
+const PLAN_LABELS: Record<string, { label: string; desc: string; color: 'violet' | 'green' | 'blue' }> = {
+  free:     { label: 'Free',    desc: '1 active campaign · Basic features · Email support', color: 'violet' },
+  starter:  { label: 'Starter', desc: 'Up to 5 campaigns · Custom URL · Social sharing tools', color: 'green' },
+  pro:      { label: 'Pro',     desc: 'Unlimited campaigns · Advanced analytics · Custom branding', color: 'blue' },
+};
+
+export default async function SettingsPage({ searchParams }: PageProps) {
   const user = await requireUser();
-  const profile = await fetchProfile(user.id);
+  const [profile, sp] = await Promise.all([
+    fetchProfile(user.id),
+    searchParams,
+  ]);
 
   const displayName = profile.full_name ?? user.email ?? 'User';
   const userEmail = user.email ?? '';
   const userInitials = initials(profile.full_name, userEmail);
+  const currentPlan = (profile.plan ?? 'free').toLowerCase();
+  const planInfo = PLAN_LABELS[currentPlan] ?? PLAN_LABELS.free;
+  const subscriptionSuccess = sp.subscription === 'success';
+  const upgradedPlan = sp.plan ?? '';
 
   const navSections = [
     { label: 'Profile', icon: 'users' },
@@ -68,6 +88,16 @@ export default async function SettingsPage() {
   return (
     <KindFundShell active="Settings">
       <TopBar title="Settings" subtitle="Manage your account and preferences." />
+      {subscriptionSuccess ? (
+        <div style={{ margin: '0 32px 8px', padding: '14px 18px', borderRadius: 10, background: '#e8f8ee', border: '1px solid #b6eecb', display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, fontWeight: 750, color: '#0f6e3f' }}>
+          <KFIcon name="send" />
+          {upgradedPlan ? (
+            <span>🎉 You&apos;re now on <strong style={{ textTransform: 'capitalize' }}>{upgradedPlan}</strong>! Your plan is active.</span>
+          ) : (
+            <span>🎉 Subscription activated! Your plan is now live.</span>
+          )}
+        </div>
+      ) : null}
       <div className="kf-content-grid">
         <main className="kf-settings-layout">
           {/* ── Sidebar nav ── */}
@@ -301,6 +331,7 @@ export default async function SettingsPage() {
                 </div>
               </div>
               <div style={{ padding: '0 20px 20px' }}>
+                {/* Current plan */}
                 <div
                   style={{
                     display: 'flex',
@@ -315,51 +346,55 @@ export default async function SettingsPage() {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                       <KFIcon name="crown" />
-                      <strong style={{ fontSize: 16 }}>Free Plan</strong>
-                      <span className="kf-pill violet" style={{ fontSize: 11 }}>
+                      <strong style={{ fontSize: 16 }}>{planInfo.label} Plan</strong>
+                      <span className={`kf-pill ${planInfo.color}`} style={{ fontSize: 11 }}>
                         Current
                       </span>
                     </div>
-                    <p style={{ fontSize: 13, color: 'var(--t3)', margin: 0 }}>
-                      3 campaigns · 5% platform fee · Email support
-                    </p>
+                    <p style={{ fontSize: 13, color: 'var(--t3)', margin: 0 }}>{planInfo.desc}</p>
                   </div>
+                  {profile.stripe_customer_id ? (
+                    <BillingPortalButton />
+                  ) : null}
                 </div>
-                <div
-                  style={{
-                    background: 'linear-gradient(135deg, var(--s3), var(--s4))',
-                    border: '1px solid var(--b2)',
-                    borderRadius: 'var(--r)',
-                    padding: '20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 16,
-                  }}
-                >
-                  <div>
-                    <strong style={{ fontSize: 15 }}>Upgrade to KindFund Pro</strong>
-                    <p style={{ fontSize: 13, color: 'var(--t2)', margin: '4px 0 0' }}>
-                      Unlimited campaigns, 2% fee, AI tools, priority support, and more.
-                    </p>
-                  </div>
-                  <Link
-                    href="/pricing"
+                {/* Upgrade CTA — only shown if not on Pro */}
+                {currentPlan !== 'pro' ? (
+                  <div
                     style={{
-                      flexShrink: 0,
-                      fontSize: 13,
-                      fontWeight: 700,
-                      background: 'var(--green)',
-                      color: '#fff',
-                      textDecoration: 'none',
+                      background: 'linear-gradient(135deg, var(--s3), var(--s4))',
+                      border: '1px solid var(--b2)',
                       borderRadius: 'var(--r)',
-                      padding: '10px 20px',
-                      whiteSpace: 'nowrap',
+                      padding: '20px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 16,
                     }}
                   >
-                    Upgrade Now
-                  </Link>
-                </div>
+                    <div>
+                      <strong style={{ fontSize: 15 }}>Upgrade to KindFund Pro</strong>
+                      <p style={{ fontSize: 13, color: 'var(--t2)', margin: '4px 0 0' }}>
+                        Unlimited campaigns, custom branding, AI tools, and priority support.
+                      </p>
+                    </div>
+                    <Link
+                      href="/pricing"
+                      style={{
+                        flexShrink: 0,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        background: 'var(--green)',
+                        color: '#fff',
+                        textDecoration: 'none',
+                        borderRadius: 'var(--r)',
+                        padding: '10px 20px',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Upgrade Now
+                    </Link>
+                  </div>
+                ) : null}
               </div>
             </section>
           </div>
