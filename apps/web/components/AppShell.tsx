@@ -53,16 +53,23 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   );
 }
 
+const SHELL_BYPASS = ['/dashboard', '/admin', '/profile', '/create'];
+
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const path = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const supabase = useMemo(() => createClient(), []);
+
+  const bypass = SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/'));
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => setUser(session?.user ?? null));
     return () => subscription.unsubscribe();
   }, [supabase]);
+
+  if (bypass) return <>{children}</>;
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
