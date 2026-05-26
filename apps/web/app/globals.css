@@ -55,9 +55,13 @@ img, video { display: block; max-width: 100%; }
 
 .hero-mesh {
   background:
-    radial-gradient(circle at 20% 20%, rgba(20, 184, 166, .18), transparent 30%),
-    radial-gradient(circle at 80% 10%, rgba(59, 130, 246, .14), transparent 26%),
-    linear-gradient(135deg, #f8fafc 0%, #ecfdf5 52%, #eef2ff 100%);
+    radial-gradient(circle at 20% 20%, rgba(124, 58, 237, .10), transparent 30%),
+    radial-gradient(circle at 80% 10%, rgba(139, 92, 246, .10), transparent 26%),
+    linear-gradient(135deg, #faf5ff 0%, #f5f3ff 52%, #ede9fe 100%);
+}
+
+.shadow-soft {
+  box-shadow: 0 4px 24px rgba(124, 58, 237, .18);
 }
 
 @media (max-width: 640px) {
