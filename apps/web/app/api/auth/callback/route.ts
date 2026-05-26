@@ -1,9 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { safeNextPath, getAppOrigin } from '../../../../lib/auth-config';
+import { safeNextPath } from '../../../../lib/auth-config';
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
+
+function getRequestOrigin(request: NextRequest) {
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const forwardedProto = request.headers.get('x-forwarded-proto') ?? 'https';
+  if (forwardedHost) return `${forwardedProto}://${forwardedHost}`;
+  return request.nextUrl.origin;
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -29,5 +36,5 @@ export async function GET(request: NextRequest) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  return NextResponse.redirect(`${getAppOrigin()}${next}`);
+  return NextResponse.redirect(new URL(next, getRequestOrigin(request)));
 }
