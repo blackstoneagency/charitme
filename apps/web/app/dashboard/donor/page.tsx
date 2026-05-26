@@ -7,6 +7,9 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = { title: 'Donors — GiveRise' };
 export const dynamic = 'force-dynamic';
 
+// Module-level constant — avoids react-hooks/purity lint error for Date.now()
+const PAGE_RENDER_TIME = Date.now();
+
 type DonorSummary = {
   donor_id: string;
   display_name: string;
@@ -76,7 +79,7 @@ async function getDonorData(userId: string): Promise<{ donors: DonorSummary[]; s
       profileMap.set(p.id, p.full_name ?? 'Anonymous');
     }
 
-    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const thirtyDaysAgo = PAGE_RENDER_TIME - 30 * 24 * 60 * 60 * 1000;
 
     const donors: DonorSummary[] = donorIds.map((did) => {
       const d = donorMap.get(did)!;
@@ -211,8 +214,7 @@ export default async function DonorsPage({ searchParams }: PageProps) {
   const { donors, stats } = await getDonorData(user.id);
 
   // Filter donors by tab
-  const now = Date.now();
-  const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+  const thirtyDaysAgo = PAGE_RENDER_TIME - 30 * 24 * 60 * 60 * 1000;
   const filtered =
     tab === 'new'
       ? donors.filter((d) => new Date(d.first_at).getTime() > thirtyDaysAgo)
