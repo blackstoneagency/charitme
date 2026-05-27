@@ -1,32 +1,11 @@
 import 'server-only';
-import { PageScaffold, type TableRow, type Metric } from '../../../components/KindFundShellServer';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import AuditLogClient, { type AuditEvent, type DayPoint, type CategoryCount } from './_components/AuditLogClient';
 
 export const dynamic = 'force-dynamic';
 
-// ─────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────
-function fmtDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-/** Derive a human-readable category from a Stripe event type string. */
 function eventCategory(eventType: string): string {
   if (eventType.startsWith('payment_intent')) return 'Payments';
   if (eventType.startsWith('charge')) return 'Charges';
@@ -38,35 +17,43 @@ function eventCategory(eventType: string): string {
   return 'System';
 }
 
-// ─────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────
+function fmtDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function dayKey(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export default async function AuditLogPage() {
   await requireAdmin();
 
-  const oneDayAgo = new Date();
-  oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   const [
     { data: events, count: totalCount },
-    { count: recentCount },
     { count: failedCount },
+    { data: thirtyDayEvents },
+    donorCountResult,
   ] = await Promise.all([
     supabaseAdmin
       .from('webhook_events')
-      .select('id, event_type, stripe_event_id, processed_at, processing_error, created_at', {
-        count: 'exact',
-      })
+      .select('id, event_type, stripe_event_id, processed_at, processing_error, created_at', { count: 'exact' })
       .order('created_at', { ascending: false })
-      .limit(100),
+      .limit(200),
     supabaseAdmin
       .from('webhook_events')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', oneDayAgo.toISOString()),
-    supabaseAdmin
-      .from('webhook_events')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .not('processing_error', 'is', null),
+    supabaseAdmin
+      .from('webhook_events')
+      .select('created_at')
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .order('created_at', { ascending: true }),
+    supabaseAdmin.from('donations').select('donor_id'),
   ]);
 
   type WebhookEvent = {
@@ -79,63 +66,80 @@ export default async function AuditLogPage() {
   };
 
   const eventList = (events ?? []) as WebhookEvent[];
+  const totalEvents = totalCount ?? 0;
+  const failedEvents = failedCount ?? 0;
 
-  // Count unique event types for the "categories" metric
-  const uniqueTypes = new Set(eventList.map(e => eventCategory(e.event_type))).size;
+  // Unique donors
+  const donorRows = (donorCountResult.data ?? []) as { donor_id: string }[];
+  const uniqueUsers = new Set(donorRows.map(d => d.donor_id)).size;
 
-  const rows: TableRow[] = eventList.map(e => ({
-    title: e.event_type,
-    subtitle: e.stripe_event_id ?? 'Internal event',
+  // Build audit events
+  const auditEvents: AuditEvent[] = eventList.map(e => ({
+    id: e.id,
+    dateTime: fmtDateTime(e.created_at),
+    user: 'System',
+    action: e.event_type,
+    category: eventCategory(e.event_type),
     status: e.processing_error ? 'Failed' : (e.processed_at ? 'Processed' : 'Pending'),
-    amount: eventCategory(e.event_type),
-    meta: [fmtDate(e.created_at), fmtDateTime(e.created_at)],
+    eventType: e.event_type,
+    stripeEventId: e.stripe_event_id,
+    processingError: e.processing_error,
   }));
 
-  const metrics: Metric[] = [
-    {
-      label: 'Total Events',
-      value: (totalCount ?? 0).toLocaleString(),
-      change: 'all time',
-      icon: 'audit',
-      tone: 'violet',
-    },
-    {
-      label: 'Last 24 Hours',
-      value: (recentCount ?? 0).toLocaleString(),
-      change: 'recent activity',
-      icon: 'users',
-      tone: 'green',
-    },
-    {
-      label: 'Categories',
-      value: String(uniqueTypes),
-      change: 'event types',
-      icon: 'stack',
-      tone: 'blue',
-    },
-    {
-      label: 'Failed',
-      value: (failedCount ?? 0).toLocaleString(),
-      change: 'processing errors',
-      icon: 'doc',
-      tone: 'orange',
-    },
-  ];
+  // Build category counts
+  const catMap: Record<string, number> = {};
+  for (const e of eventList) {
+    const cat = eventCategory(e.event_type);
+    catMap[cat] = (catMap[cat] ?? 0) + 1;
+  }
+
+  const COLORS: Record<string, string> = {
+    Payments: '#6c35ff',
+    Charges: '#ec3fb4',
+    Customers: '#2f80ed',
+    Checkout: '#19b86a',
+    Payouts: '#f59e0b',
+    Invoices: '#ff3b5f',
+    Subscriptions: '#8b5cf6',
+    System: '#67718e',
+  };
+
+  const categories: CategoryCount[] = Object.entries(catMap)
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, count]) => ({ label, count, color: COLORS[label] ?? '#8c95b2' }));
+
+  // Build day points for last 30 days
+  const dayBuckets: Map<string, number> = new Map();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    dayBuckets.set(dayKey(d.toISOString()), 0);
+  }
+
+  for (const e of (thirtyDayEvents ?? []) as { created_at: string }[]) {
+    const k = dayKey(e.created_at);
+    if (dayBuckets.has(k)) {
+      dayBuckets.set(k, (dayBuckets.get(k) ?? 0) + 1);
+    }
+  }
+
+  const dayPoints: DayPoint[] = [...dayBuckets.entries()].map(([label, count]) => ({ label, count }));
 
   return (
-    <PageScaffold
-      mode="admin"
-      active="Audit Log"
-      title="Audit Log"
-      subtitle="Track, review and monitor Stripe webhook events and platform activity."
-      metrics={metrics}
-      rows={rows}
-      tabs={[
-        `All Events (${totalCount ?? 0})`,
-        'Payments',
-        'Payouts',
-        `Failed (${failedCount ?? 0})`,
-      ]}
-    />
+    <KindFundShell active="Audit Log" mode="admin">
+      <TopBar
+        title="Audit Log"
+        subtitle="Track, review and monitor Stripe webhook events and platform activity."
+        actions={<></>}
+      />
+      <AuditLogClient
+        events={auditEvents}
+        totalEvents={totalEvents}
+        uniqueUsers={uniqueUsers}
+        categories={categories}
+        failedCount={failedEvents}
+        dayPoints={dayPoints}
+      />
+    </KindFundShell>
   );
 }

@@ -1,7 +1,7 @@
 import 'server-only';
 import { createClient } from './supabase-server';
-import { supabaseAdmin } from './supabase';
 import { redirect } from 'next/navigation';
+import { isAdmin } from './roles';
 
 export async function getUser() {
   const supabase = await createClient();
@@ -16,17 +16,13 @@ export async function requireUser() {
 }
 
 /**
- * Requires the session user to have the 'admin' role in their profiles.roles jsonb array.
+ * Requires the session user to be an admin.
+ * Checks ADMIN_EMAILS env var first, then profile roles.
  * Redirects to /dashboard if not an admin.
  */
 export async function requireAdmin() {
   const user = await requireUser();
-  const { data: profile } = await supabaseAdmin
-    .from('profiles')
-    .select('roles')
-    .eq('id', user.id)
-    .single();
-  const roles: string[] = Array.isArray(profile?.roles) ? (profile.roles as string[]) : [];
-  if (!roles.includes('admin')) redirect('/dashboard');
+  const allowed = await isAdmin(user.id, user.email);
+  if (!allowed) redirect('/dashboard');
   return user;
 }

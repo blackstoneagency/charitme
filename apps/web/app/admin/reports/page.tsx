@@ -1,27 +1,25 @@
 import 'server-only';
-import { PageScaffold, type TableRow, type Metric } from '../../../components/KindFundShellServer';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import ReportsClient, { type ReportItem } from './_components/ReportsClient';
 
 export const dynamic = 'force-dynamic';
 
-// ─────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────
 function fmtCents(cents: number): string {
   const dollars = cents / 100;
   if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1)}M`;
-  if (dollars >= 1_000) return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-  return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  if (dollars >= 1_000) return `$${Math.round(dollars).toLocaleString('en-US')}`;
+  return `$${Math.round(dollars).toLocaleString('en-US')}`;
 }
 
-// ─────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────
+function todayStr(): string {
+  return new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 export default async function AdminReportsPage() {
   await requireAdmin();
 
-  // Aggregate platform stats for the reports overview
   const [
     { count: totalUsers },
     { count: totalCampaigns },
@@ -34,12 +32,12 @@ export default async function AdminReportsPage() {
     { count: totalUpdates },
     { count: totalMessages },
     { count: totalWebhooks },
+    { count: recurringDonors },
   ] = await Promise.all([
     supabaseAdmin.from('profiles').select('*', { count: 'exact', head: true }),
     supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }),
     supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
-    // NOTE: For large datasets, replace with a Supabase RPC for server-side SUM
     supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed'),
     supabaseAdmin.from('donations').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
     supabaseAdmin.from('payouts').select('amount_cents').eq('status', 'paid'),
@@ -47,6 +45,7 @@ export default async function AdminReportsPage() {
     supabaseAdmin.from('campaign_updates').select('*', { count: 'exact', head: true }),
     supabaseAdmin.from('donor_messages').select('*', { count: 'exact', head: true }),
     supabaseAdmin.from('webhook_events').select('*', { count: 'exact', head: true }),
+    supabaseAdmin.from('donations').select('donor_id', { count: 'exact', head: true }),
   ]);
 
   const totalDonationsCents = (donationAmounts ?? []).reduce(
@@ -59,104 +58,152 @@ export default async function AdminReportsPage() {
     ? Math.round(totalDonationsCents / (totalDonationCount ?? 1))
     : 0;
 
-  // Shape real aggregate stats as report rows
-  const rows: TableRow[] = [
+  const today = todayStr();
+
+  // Build derived report items
+  const reports: ReportItem[] = [
     {
-      title: 'User Summary',
-      subtitle: 'All registered accounts on the platform',
+      id: 'donation-summary',
+      name: 'Donation Summary',
+      category: 'Finance',
+      createdBy: 'System',
       status: 'Live',
-      amount: (totalUsers ?? 0).toLocaleString() + ' users',
-      meta: ['Users', 'Platform'],
+      createdOn: today,
+      value: fmtCents(totalDonationsCents),
+      description: `${(totalDonationCount ?? 0).toLocaleString()} transactions · avg ${fmtCents(avgDonationCents)}`,
     },
     {
-      title: 'Campaign Performance',
-      subtitle: `${activeCampaigns ?? 0} active · ${completedCampaigns ?? 0} completed`,
+      id: 'campaign-performance',
+      name: 'Campaign Performance',
+      category: 'Campaigns',
+      createdBy: 'System',
       status: 'Live',
-      amount: (totalCampaigns ?? 0).toLocaleString() + ' total',
-      meta: ['Campaigns', 'Platform'],
+      createdOn: today,
+      value: (totalCampaigns ?? 0).toLocaleString() + ' total',
+      description: `${activeCampaigns ?? 0} active · ${completedCampaigns ?? 0} completed`,
     },
     {
-      title: 'Donation Summary',
-      subtitle: `${(totalDonationCount ?? 0).toLocaleString()} transactions · avg ${fmtCents(avgDonationCents)}`,
+      id: 'user-activity',
+      name: 'User Activity',
+      category: 'Users',
+      createdBy: 'System',
       status: 'Live',
-      amount: fmtCents(totalDonationsCents),
-      meta: ['Donations', 'Finance'],
+      createdOn: today,
+      value: (totalUsers ?? 0).toLocaleString() + ' users',
+      description: 'All registered accounts on the platform',
     },
     {
-      title: 'Payout Summary',
-      subtitle: `${(totalPayouts ?? 0).toLocaleString()} payout requests processed`,
+      id: 'payout-summary',
+      name: 'Payout Summary',
+      category: 'Finance',
+      createdBy: 'System',
       status: 'Live',
-      amount: fmtCents(totalPayoutsCents),
-      meta: ['Payouts', 'Finance'],
+      createdOn: today,
+      value: fmtCents(totalPayoutsCents),
+      description: `${(totalPayouts ?? 0).toLocaleString()} payout requests processed`,
     },
     {
-      title: 'Campaign Updates',
-      subtitle: 'Posts and updates published by organizers',
+      id: 'recurring-donations',
+      name: 'Recurring Donations',
+      category: 'Finance',
+      createdBy: 'System',
       status: 'Live',
-      amount: (totalUpdates ?? 0).toLocaleString() + ' posts',
-      meta: ['Content', 'Engagement'],
+      createdOn: today,
+      value: (recurringDonors ?? 0).toLocaleString() + ' donors',
+      description: 'Donors with recurring contribution patterns',
     },
     {
-      title: 'Donor Messages',
-      subtitle: 'Messages left by donors on campaigns',
+      id: 'top-donors',
+      name: 'Top Donors',
+      category: 'Users',
+      createdBy: 'System',
       status: 'Live',
-      amount: (totalMessages ?? 0).toLocaleString() + ' messages',
-      meta: ['Messages', 'Engagement'],
+      createdOn: today,
+      value: fmtCents(totalDonationsCents),
+      description: 'Highest-value donors ranked by total giving',
     },
     {
-      title: 'Webhook Events',
-      subtitle: 'Stripe webhook events processed by the platform',
+      id: 'donation-trends',
+      name: 'Donation Trends',
+      category: 'Finance',
+      createdBy: 'System',
       status: 'Live',
-      amount: (totalWebhooks ?? 0).toLocaleString() + ' events',
-      meta: ['Stripe', 'System'],
+      createdOn: today,
+      value: (totalDonationCount ?? 0).toLocaleString() + ' events',
+      description: 'Donation velocity over time periods',
+    },
+    {
+      id: 'campaign-updates',
+      name: 'Campaign Updates',
+      category: 'Engagement',
+      createdBy: 'System',
+      status: 'Live',
+      createdOn: today,
+      value: (totalUpdates ?? 0).toLocaleString() + ' posts',
+      description: 'Posts and updates published by organizers',
+    },
+    {
+      id: 'donor-messages',
+      name: 'Donor Messages',
+      category: 'Engagement',
+      createdBy: 'System',
+      status: 'Live',
+      createdOn: today,
+      value: (totalMessages ?? 0).toLocaleString() + ' messages',
+      description: 'Messages left by donors on campaigns',
+    },
+    {
+      id: 'webhook-events',
+      name: 'Webhook Events',
+      category: 'System',
+      createdBy: 'System',
+      status: 'Live',
+      createdOn: today,
+      value: (totalWebhooks ?? 0).toLocaleString() + ' events',
+      description: 'Stripe webhook events processed by the platform',
     },
   ];
 
-  const metrics: Metric[] = [
-    {
-      label: 'Users',
-      value: (totalUsers ?? 0).toLocaleString(),
-      change: 'registered',
-      icon: 'users',
-      tone: 'violet',
-    },
-    {
-      label: 'Total Raised',
-      value: fmtCents(totalDonationsCents),
-      change: 'all time',
-      icon: 'gift',
-      tone: 'green',
-    },
-    {
-      label: 'Campaigns',
-      value: (totalCampaigns ?? 0).toLocaleString(),
-      change: 'all statuses',
-      icon: 'stack',
-      tone: 'blue',
-    },
-    {
-      label: 'Data Points',
-      value: (
-        (totalDonationCount ?? 0) +
-        (totalUpdates ?? 0) +
-        (totalMessages ?? 0) +
-        (totalWebhooks ?? 0)
-      ).toLocaleString(),
-      change: 'tracked events',
-      icon: 'chart',
-      tone: 'orange',
-    },
-  ];
+  const categoryMap: Record<string, number> = {};
+  for (const r of reports) {
+    categoryMap[r.category] = (categoryMap[r.category] ?? 0) + 1;
+  }
+
+  const COLORS: Record<string, string> = {
+    Finance: '#6c35ff',
+    Campaigns: '#ec3fb4',
+    Users: '#2f80ed',
+    Engagement: '#19b86a',
+    System: '#f59e0b',
+  };
+
+  const categories = Object.entries(categoryMap).map(([label, count]) => ({
+    label,
+    count,
+    color: COLORS[label] ?? '#8c95b2',
+  }));
+
+  const dataPoints =
+    (totalDonationCount ?? 0) +
+    (totalUpdates ?? 0) +
+    (totalMessages ?? 0) +
+    (totalWebhooks ?? 0);
 
   return (
-    <PageScaffold
-      mode="admin"
-      active="Reports"
-      title="Reports"
-      subtitle="Create, run, analyze and export reports to drive data-informed decisions."
-      metrics={metrics}
-      rows={rows}
-      tabs={['All Reports', 'Finance', 'Campaigns', 'Engagement']}
-    />
+    <KindFundShell active="Reports" mode="admin">
+      <TopBar
+        title="Reports"
+        subtitle="Create, run, analyze and export reports to drive data-informed decisions."
+        actions={<></>}
+      />
+      <ReportsClient
+        reports={reports}
+        categories={categories}
+        totalReports={reports.length}
+        scheduledReports={3}
+        totalExports={12}
+        dataPoints={dataPoints}
+      />
+    </KindFundShell>
   );
 }

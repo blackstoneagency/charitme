@@ -1,0 +1,287 @@
+'use client';
+
+import { useState } from 'react';
+import { KFIcon, StatusPill } from '../../../../components/KindFundApp';
+
+export type ReportItem = {
+  id: string;
+  name: string;
+  category: string;
+  createdBy: string;
+  status: 'Completed' | 'Failed' | 'Live';
+  createdOn: string;
+  value: string;
+  description: string;
+};
+
+type CategoryBreakdown = {
+  label: string;
+  count: number;
+  color: string;
+};
+
+type Props = {
+  reports: ReportItem[];
+  categories: CategoryBreakdown[];
+  totalReports: number;
+  scheduledReports: number;
+  totalExports: number;
+  dataPoints: number;
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  Finance: '#6c35ff',
+  Campaigns: '#ec3fb4',
+  Users: '#2f80ed',
+  Engagement: '#19b86a',
+  System: '#f59e0b',
+  Payouts: '#ff3b5f',
+};
+
+export default function ReportsClient({ reports, categories, totalReports, scheduledReports, totalExports, dataPoints }: Props) {
+  const [search, setSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [exportReport, setExportReport] = useState<ReportItem | null>(null);
+
+  const allCategories = ['All', ...categories.map(c => c.label)];
+
+  const filtered = reports.filter(r => {
+    const matchesSearch = search === '' ||
+      r.name.toLowerCase().includes(search.toLowerCase()) ||
+      r.category.toLowerCase().includes(search.toLowerCase()) ||
+      r.description.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = activeCategory === 'All' || r.category === activeCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const metrics = [
+    { label: 'Total Reports', value: totalReports.toString(), tone: 'violet' as const, icon: 'doc' },
+    { label: 'Scheduled Reports', value: scheduledReports.toString(), tone: 'green' as const, icon: 'check' },
+    { label: 'Total Exports', value: totalExports.toString(), tone: 'blue' as const, icon: 'upload' },
+    { label: 'Data Points', value: dataPoints.toLocaleString(), tone: 'orange' as const, icon: 'chart' },
+  ];
+
+  return (
+    <div style={{ padding: '0 32px 32px', display: 'grid', gap: 22 }}>
+      {/* KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18 }}>
+        {metrics.map((m) => (
+          <article key={m.label} className="kf-card kf-metric">
+            <div className={`kf-square ${m.tone}`}><KFIcon name={m.icon} /></div>
+            <div>
+              <span>{m.label}</span>
+              <strong>{m.value}</strong>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {/* Two-column layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 20, alignItems: 'start' }}>
+        {/* Left: category overview + donut */}
+        <div style={{ display: 'grid', gap: 18 }}>
+          {/* Category breakdown */}
+          <section className="kf-card" style={{ padding: 20 }}>
+            <h2 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950 }}>Reports Overview</h2>
+            {categories.map((c) => (
+              <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <i style={{ width: 10, height: 10, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 750 }}>{c.label}</span>
+                <b style={{ fontSize: 13, fontWeight: 950 }}>{c.count}</b>
+              </div>
+            ))}
+            {/* Simple donut */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+              <div style={{ position: 'relative', width: 120, height: 120 }}>
+                <svg viewBox="0 0 42 42" style={{ width: 120, height: 120, transform: 'rotate(-90deg)' }}>
+                  {(() => {
+                    const total = categories.reduce((s, c) => s + c.count, 0) || 1;
+                    let cum = 0;
+                    return categories.map((c, i) => {
+                      const pct = (c.count / total) * 100;
+                      const offset = 100 - cum;
+                      cum += pct;
+                      return (
+                        <circle
+                          key={i}
+                          cx={21} cy={21} r={15.9}
+                          fill="none"
+                          stroke={c.color}
+                          strokeWidth={6}
+                          strokeDasharray={`${pct} ${100 - pct}`}
+                          strokeDashoffset={offset}
+                        />
+                      );
+                    });
+                  })()}
+                </svg>
+                <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
+                  <strong style={{ fontSize: 18, fontWeight: 950 }}>{totalReports}</strong>
+                  <small style={{ color: '#67718e', fontSize: 10 }}>reports</small>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Recent reports */}
+          <section className="kf-card" style={{ overflow: 'hidden' }}>
+            <div className="kf-card-head"><h2>Recent Reports</h2></div>
+            {reports.slice(0, 5).map(r => (
+              <div key={r.id} style={{ padding: '10px 16px', borderBottom: '1px solid #eef0f7' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <strong style={{ fontSize: 12, fontWeight: 850, flex: 1 }}>{r.name}</strong>
+                  <StatusPill>{r.status}</StatusPill>
+                </div>
+                <small style={{ color: '#67718e', fontSize: 11 }}>{r.category} · {r.createdOn}</small>
+              </div>
+            ))}
+          </section>
+        </div>
+
+        {/* Right: all reports table */}
+        <section className="kf-card" style={{ overflow: 'hidden' }}>
+          <div className="kf-card-head">
+            <h2>All Reports</h2>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="kf-primary"
+              style={{ height: 40, padding: '0 18px', fontSize: 13 }}
+            >
+              + Create Report
+            </button>
+          </div>
+
+          {/* Search + category filter */}
+          <div style={{ padding: '0 20px 14px', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <label className="kf-search" style={{ width: 260, height: 44 }}>
+              <KFIcon name="search" />
+              <input
+                placeholder="Search reports..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {allCategories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  style={{
+                    height: 34, padding: '0 14px', borderRadius: 8, fontSize: 12, fontWeight: 850,
+                    border: '1px solid', cursor: 'pointer',
+                    borderColor: activeCategory === cat ? '#6c35ff' : '#e0e4ef',
+                    background: activeCategory === cat ? '#f0eaff' : '#fff',
+                    color: activeCategory === cat ? '#551cf2' : '#111944',
+                  }}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Table header */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 120px 90px 80px 80px', gap: 12, padding: '8px 20px', background: '#f8f9fc', borderTop: '1px solid #eef0f7', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 950, color: '#4b5676', textTransform: 'uppercase' }}>
+            <span>Report Name</span>
+            <span>Category</span>
+            <span>Created By</span>
+            <span>Status</span>
+            <span>Date</span>
+            <span>Actions</span>
+          </div>
+
+          {/* Table rows */}
+          {filtered.map(r => (
+            <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '1fr 110px 120px 90px 80px 80px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7', alignItems: 'center' }}>
+              <div>
+                <strong style={{ display: 'block', fontSize: 13, fontWeight: 850 }}>{r.name}</strong>
+                <small style={{ color: '#67718e', fontSize: 11 }}>{r.description}</small>
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 850, color: CATEGORY_COLORS[r.category] ?? '#551cf2' }}>
+                {r.category}
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 750, color: '#334064' }}>{r.createdBy}</span>
+              <StatusPill>{r.status}</StatusPill>
+              <span style={{ fontSize: 11, color: '#67718e' }}>{r.createdOn}</span>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  onClick={() => setExportReport(r)}
+                  style={{ height: 30, padding: '0 10px', borderRadius: 7, border: '1px solid #e0e4ef', background: '#fff', color: '#551cf2', fontSize: 11, fontWeight: 950, cursor: 'pointer' }}
+                >
+                  Export
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {filtered.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 32, color: '#67718e', fontSize: 13 }}>
+              No reports match your filter.
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* Create Report Modal */}
+      {showCreateModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999 }} onClick={() => setShowCreateModal(false)}>
+          <div style={{ width: 440, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ margin: '0 0 20px', fontSize: 20, fontWeight: 950 }}>Create New Report</h2>
+            <div style={{ display: 'grid', gap: 14 }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' }}>
+                Report Name
+                <input style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 13 }} placeholder="e.g. Monthly Donation Summary" />
+              </label>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' }}>
+                Category
+                <select style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 13, background: '#fff' }}>
+                  <option>Finance</option>
+                  <option>Campaigns</option>
+                  <option>Users</option>
+                  <option>Engagement</option>
+                  <option>System</option>
+                </select>
+              </label>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' }}>
+                Date Range
+                <select style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 13, background: '#fff' }}>
+                  <option>Last 7 days</option>
+                  <option>Last 30 days</option>
+                  <option>Last 90 days</option>
+                  <option>All time</option>
+                </select>
+              </label>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowCreateModal(false)} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontWeight: 850, cursor: 'pointer' }}>Cancel</button>
+              <button className="kf-primary" style={{ height: 42, padding: '0 22px' }} onClick={() => setShowCreateModal(false)}>Generate Report</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Export Modal */}
+      {exportReport && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999 }} onClick={() => setExportReport(null)}>
+          <div style={{ width: 380, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 950 }}>Export Report</h2>
+            <p style={{ margin: '0 0 20px', color: '#67718e', fontSize: 13 }}>{exportReport.name}</p>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {(['CSV', 'Excel', 'PDF'] as const).map(fmt => (
+                <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: '1px solid #e0e4ef', borderRadius: 9, cursor: 'pointer', fontSize: 14, fontWeight: 850 }}>
+                  <input type="radio" name="fmt" value={fmt} defaultChecked={fmt === 'CSV'} />
+                  Export as {fmt}
+                </label>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+              <button onClick={() => setExportReport(null)} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontWeight: 850, cursor: 'pointer' }}>Cancel</button>
+              <button className="kf-primary" style={{ height: 42, padding: '0 22px' }} onClick={() => setExportReport(null)}>Download</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
