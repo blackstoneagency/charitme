@@ -21,8 +21,10 @@ const CreateSchema = z.object({
   deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   category: z.enum(CAMPAIGN_CATEGORIES),
   coverImageUrl: z.string().url().nullable().optional(),
+  imageUrls: z.array(z.string().url()).max(10).optional(),
   beneficiaryName: z.string().max(120).optional(),
   beneficiaryRelationship: z.string().max(120).optional(),
+  evidenceNote: z.string().max(1000).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -34,7 +36,7 @@ export async function POST(request: NextRequest) {
   const parsed = CreateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const { title, tagline, description, goalAmount, deadline, category, coverImageUrl, beneficiaryName, beneficiaryRelationship } = parsed.data;
+  const { title, tagline, description, goalAmount, deadline, category, coverImageUrl, imageUrls, beneficiaryName, beneficiaryRelationship, evidenceNote } = parsed.data;
 
   const baseSlug = slugify(title);
   const slug = `${baseSlug}-${Date.now().toString(36)}`;
@@ -53,6 +55,7 @@ export async function POST(request: NextRequest) {
       deadline: deadline ?? null,
       category,
       cover_image_url: coverImageUrl ?? null,
+      image_urls: imageUrls ?? [],
       beneficiary_name: beneficiaryName ?? null,
       beneficiary_relationship: beneficiaryRelationship ?? null,
       status: 'active',
@@ -63,6 +66,24 @@ export async function POST(request: NextRequest) {
   if (error) {
     console.error('Campaign create failed', error);
     return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' }, { status: 500 });
+  }
+
+  if (evidenceNote?.trim()) {
+    const { error: ledgerError } = await supabaseAdmin
+      .from('transparency_ledger_items')
+      .insert({
+        campaign_id: data.id,
+        item_type: 'milestone',
+        title: 'Organizer evidence note',
+        description: evidenceNote.trim(),
+        category: 'Trust',
+        status: 'published',
+      });
+
+    if (ledgerError) {
+      console.error('Campaign evidence save failed', ledgerError);
+      return NextResponse.json({ error: 'Campaign created, but evidence note could not be saved.', code: 'EVIDENCE_SAVE_FAILED', slug: data.slug }, { status: 500 });
+    }
   }
 
   return NextResponse.json(data, { status: 201 });

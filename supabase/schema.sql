@@ -103,6 +103,7 @@ create table if not exists campaigns (
   beneficiary_name text,
   beneficiary_relationship text,
   cover_image_url text,
+  image_urls text[] not null default '{}',
   trust_status text not null default 'Needs More Info',
   campaign_health_score int not null default 0,
   payout_frozen boolean not null default false,

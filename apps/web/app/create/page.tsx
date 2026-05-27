@@ -203,7 +203,6 @@ export default function CreatePage() {
         );
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uploadedImages.length]);
 
   const removeImage = useCallback(async (img: UploadedImage) => {
@@ -284,6 +283,7 @@ export default function CreatePage() {
           deadline:                form.deadline || null,
           category:                form.category,
           coverImageUrl:           form.coverImageUrl || null,
+          imageUrls:               uploadedImages.filter(img => img.status === 'done').map(img => img.url),
           beneficiaryName:         form.beneficiaryName.trim() || undefined,
           beneficiaryRelationship: form.beneficiaryRelationship.trim() || undefined,
         }),

@@ -16,6 +16,7 @@ interface Props {
 }
 
 type Profile = { full_name?: string | null; avatar_url?: string | null };
+type CampaignWithImages = { image_urls?: string[] | null };
 
 async function getCampaign(slug: string) {
   const { data } = await supabaseAdmin
@@ -40,7 +41,7 @@ async function getRecentDonations(campaignId: string) {
 async function getUpdates(campaignId: string) {
   const { data } = await supabaseAdmin
     .from('campaign_updates')
-    .select('id, title, body, image_url, created_at')
+    .select('id, title, body, created_at')
     .eq('campaign_id', campaignId)
     .order('created_at', { ascending: false })
     .limit(4);
@@ -94,6 +95,15 @@ export default async function CampaignPage({ params }: Props) {
     : 32;
   const cover = campaign.cover_image_url || '/hero-child-crop.png';
 
+  // Real uploaded images: use image_urls array if present, else fall back to cover only
+  const rawImageUrls = (campaign as CampaignWithImages).image_urls ?? [];
+  const galleryImages: string[] =
+    rawImageUrls.length > 0
+      ? rawImageUrls
+      : campaign.cover_image_url
+      ? [campaign.cover_image_url]
+      : [];
+
   return (
     <main className="public-campaign">
       <section className="pc-grid">
@@ -116,12 +126,13 @@ export default async function CampaignPage({ params }: Props) {
 
         <div className="pc-media">
           <img src={cover} alt={campaign.title} />
-          <button>Watch Story</button>
-          <div>
-            {[cover, '/hero-child-crop.png', '/campaign-school.png', '/campaign-family.png'].map((src, index) => (
-              <img key={`${src}-${index}`} src={src} alt="" />
-            ))}
-          </div>
+          {galleryImages.length > 1 && (
+            <div>
+              {galleryImages.map((src, index) => (
+                <img key={`${src}-${index}`} src={src} alt="" />
+              ))}
+            </div>
+          )}
         </div>
 
         <aside className="pc-donate">
@@ -153,12 +164,11 @@ export default async function CampaignPage({ params }: Props) {
         <aside className="pc-impact">
           <h2>Impact Tracker</h2>
           {(updates.length ? updates : [
-            { id: 'planned', title: 'Surgery and hospital stay', body: 'Supporters will receive transparent updates as milestones happen.', created_at: new Date().toISOString(), image_url: cover },
+            { id: 'planned', title: 'Surgery and hospital stay', body: 'Supporters will receive transparent updates as milestones happen.', created_at: new Date().toISOString() },
           ]).map((update) => (
             <article key={update.id}>
               <span />
               <div><b>{update.title}</b><small>{new Date(update.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</small></div>
-              {update.image_url ? <img src={update.image_url} alt="" /> : null}
             </article>
           ))}
         </aside>
