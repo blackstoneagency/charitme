@@ -22,6 +22,7 @@ export interface ContentClientProps {
   publishedCount: number;
   draftCount: number;
   archivedCount: number;
+  aiGeneratedCount: number;
   contentByType: { type: string; count: number }[];
   content: ContentRecord[];
 }
@@ -299,7 +300,7 @@ function CreateContentWizard({ onClose }: { onClose: () => void }) {
 // Main component
 // ─────────────────────────────────────────────
 export default function ContentClient({
-  totalContent, publishedCount, draftCount, archivedCount, contentByType, content,
+  totalContent, publishedCount, draftCount, archivedCount, aiGeneratedCount, contentByType, content,
 }: ContentClientProps) {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -342,7 +343,7 @@ export default function ContentClient({
           { label: 'Total Content', value: totalContent.toLocaleString(), tone: 'violet', icon: 'doc' },
           { label: 'Published', value: publishedCount.toLocaleString(), tone: 'green', icon: 'check' },
           { label: 'Drafts', value: draftCount.toLocaleString(), tone: 'orange', icon: 'chart' },
-          { label: 'Archived', value: archivedCount.toLocaleString(), tone: 'blue', icon: 'stack' },
+          { label: 'AI Generated', value: aiGeneratedCount.toLocaleString(), tone: 'blue', icon: 'stack' },
         ].map(m => (
           <article key={m.label} className="kf-card kf-metric">
             <div className={`kf-square ${m.tone}`}>

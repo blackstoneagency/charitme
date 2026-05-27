@@ -19,20 +19,11 @@ export default async function AdminContentPage() {
     updated_at: string | null;
   };
 
-  const [
-    { data: updates, count: totalCount },
-    { count: aiCount },
-  ] = await Promise.all([
-    supabaseAdmin
-      .from('campaign_updates')
-      .select('id,title,body,ai_generated,campaign_id,created_at,updated_at', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .limit(100),
-    supabaseAdmin
-      .from('campaign_updates')
-      .select('id', { count: 'exact', head: true })
-      .eq('ai_generated', true),
-  ]);
+  const { data: updates, count: totalCount } = await supabaseAdmin
+    .from('campaign_updates')
+    .select('id,title,body,ai_generated,campaign_id,created_at,updated_at', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .limit(100);
 
   const updateList = (updates ?? []) as UpdateRow[];
 
@@ -46,14 +37,6 @@ export default async function AdminContentPage() {
       campaignMap.set(c.id, c.title);
     }
   }
-
-  // Resolve authors (organizer profiles)
-  const organizerIds = [...new Set(
-    (updates ?? []).map(u => {
-      const cid = (u as UpdateRow).campaign_id;
-      return cid ? cid : null;
-    }).filter(Boolean)
-  )] as string[];
 
   // Build content records
   const content: ContentRecord[] = updateList.map(u => ({
@@ -79,6 +62,7 @@ export default async function AdminContentPage() {
   const publishedCount = content.length; // all are "published" in this schema
   const draftCount = 0;
   const archivedCount = 0;
+  const aiGeneratedCount = content.filter(c => c.type === 'AI Generated').length;
 
   return (
     <KindFundShell active="Content" mode="admin">
@@ -96,6 +80,7 @@ export default async function AdminContentPage() {
         publishedCount={publishedCount}
         draftCount={draftCount}
         archivedCount={archivedCount}
+        aiGeneratedCount={aiGeneratedCount}
         contentByType={contentByType}
         content={content}
       />

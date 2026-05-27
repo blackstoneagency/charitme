@@ -302,7 +302,7 @@ export default function PayoutsClient({
         {[
           { label: 'Total Paid Out', value: fmtCents(totalCents), tone: 'violet', icon: 'wallet' },
           { label: 'Pending', value: fmtCents(pendingCents), tone: 'orange', icon: 'audit' },
-          { label: 'Completed', value: completedCount.toLocaleString(), tone: 'green', icon: 'check' },
+          { label: 'Completed', value: fmtCents(completedCents), tone: 'green', icon: 'check' },
           { label: 'Failed', value: failedCount.toLocaleString(), tone: 'pink', icon: 'doc' },
         ].map(m => (
           <article key={m.label} className="kf-card kf-metric">
