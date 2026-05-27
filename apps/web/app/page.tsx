@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type React from 'react';
 import { supabaseAdmin } from '../lib/supabase';
 
@@ -13,11 +14,26 @@ const FEATURES = [
 ];
 
 const PRESS = ['Forbes', 'FAST COMPANY', 'TC TechCrunch', 'The New York Times', 'USA TODAY'];
+const STORY_FILTERS = [
+  { label: 'All Stories', value: '', icon: 'grid' },
+  { label: 'Individuals', value: 'individuals', icon: 'user' },
+  { label: 'Nonprofits', value: 'nonprofits', icon: 'building' },
+  { label: 'Communities', value: 'community', icon: 'users' },
+  { label: 'Emergencies', value: 'emergency', icon: 'bell' },
+];
+const STORY_SORTS = [
+  { label: 'Latest', value: 'latest' },
+  { label: 'Most Raised', value: 'raised' },
+  { label: 'Most Donors', value: 'donors' },
+];
 
 type HeroCampaign = {
   slug: string;
   title: string;
   description: string | null;
+  category: string | null;
+  cover_image_url: string | null;
+  image_urls: string[] | null;
   goal_amount: number;
   raised_amount: number;
   backer_count: number;
@@ -25,6 +41,12 @@ type HeroCampaign = {
   campaign_health_score: number;
   deadline: string | null;
   profiles: { full_name: string | null } | { full_name: string | null }[] | null;
+};
+
+type StoryFilters = {
+  storyCategory?: string;
+  storyQ?: string;
+  storySort?: string;
 };
 
 function formatCents(cents: number): string {
@@ -44,25 +66,72 @@ function profileName(value: HeroCampaign['profiles']): string {
   return profile?.full_name ?? 'KindFund Organizer';
 }
 
-async function getHomeData(): Promise<{
+function storyHref(filters: StoryFilters, updates: StoryFilters): string {
+  const params = new URLSearchParams();
+  const next = { ...filters, ...updates };
+  if (next.storyCategory) params.set('storyCategory', next.storyCategory);
+  if (next.storyQ) params.set('storyQ', next.storyQ);
+  if (next.storySort && next.storySort !== 'latest') params.set('storySort', next.storySort);
+  const query = params.toString();
+  return query ? `/?${query}#stories` : '/#stories';
+}
+
+function storyImage(campaign: HeroCampaign): string | null {
+  return campaign.cover_image_url || campaign.image_urls?.[0] || null;
+}
+
+function storyTone(category: string | null): string {
+  const value = (category ?? '').toLowerCase();
+  if (value.includes('medical') || value.includes('health') || value.includes('emergency')) return 'medical';
+  if (value.includes('education') || value.includes('school')) return 'education';
+  if (value.includes('animal') || value.includes('pet')) return 'animal';
+  return 'community';
+}
+
+async function getHomeData(filters: StoryFilters): Promise<{
   stats: string[][];
   heroCampaign: HeroCampaign | null;
   featuredCampaigns: HeroCampaign[];
+  carouselCampaigns: HeroCampaign[];
   heroPercent: number;
   daysLeft: number;
 }> {
+  const storyCategory = filters.storyCategory?.trim();
+  const storyQ = filters.storyQ?.replace(/[,%()]/g, ' ').trim();
+  const storySort = filters.storySort === 'raised' || filters.storySort === 'donors' ? filters.storySort : 'latest';
+  let carouselQuery = supabaseAdmin
+    .from('campaigns')
+    .select('slug,title,description,category,cover_image_url,image_urls,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,created_at,profiles:user_id(full_name)')
+    .in('status', ['active', 'completed']);
+
+  if (storyCategory) {
+    carouselQuery = carouselQuery.ilike('category', `%${storyCategory}%`);
+  }
+  if (storyQ) {
+    carouselQuery = carouselQuery.or(`title.ilike.%${storyQ}%,description.ilike.%${storyQ}%,category.ilike.%${storyQ}%`);
+  }
+  if (storySort === 'raised') {
+    carouselQuery = carouselQuery.order('raised_amount', { ascending: false });
+  } else if (storySort === 'donors') {
+    carouselQuery = carouselQuery.order('backer_count', { ascending: false });
+  } else {
+    carouselQuery = carouselQuery.order('created_at', { ascending: false });
+  }
+
   const [
     { data: campaigns },
+    { data: carouselCampaigns },
     { count: campaignCount },
     { count: donationCount },
     { data: trustScores },
   ] = await Promise.all([
     supabaseAdmin
       .from('campaigns')
-      .select('slug,title,description,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,profiles:user_id(full_name)')
+      .select('slug,title,description,category,cover_image_url,image_urls,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,profiles:user_id(full_name)')
       .eq('status', 'active')
       .order('raised_amount', { ascending: false })
       .limit(3),
+    carouselQuery.limit(8),
     supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
     supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
     supabaseAdmin.from('trust_scores').select('score').limit(1000),
@@ -82,6 +151,7 @@ async function getHomeData(): Promise<{
   return {
     heroCampaign,
     featuredCampaigns,
+    carouselCampaigns: (carouselCampaigns ?? []) as HeroCampaign[],
     heroPercent: Math.min(100, Math.round((raisedTotal / goalTotal) * 100)),
     daysLeft,
     stats: [
@@ -103,6 +173,13 @@ function Icon({ name, className = 'h-5 w-5' }: { name: string; className?: strin
     shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />,
     chart: <><path d="M3 3v18h18" /><path d="M7 15l4-4 3 3 5-7" /></>,
     heart: <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />,
+    grid: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>,
+    user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
+    building: <><path d="M4 21V5a2 2 0 0 1 2-2h8v18" /><path d="M14 8h4a2 2 0 0 1 2 2v11" /><path d="M8 7h2M8 11h2M8 15h2M17 13h.01M17 17h.01" /></>,
+    bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></>,
+    search: <><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></>,
+    calendar: <><path d="M8 2v4M16 2v4" /><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18" /></>,
+    dollar: <><path d="M12 2v20" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6" /></>,
     users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>,
     clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
     play: <path d="M9 7l8 5-8 5V7Z" />,
@@ -113,8 +190,10 @@ function Icon({ name, className = 'h-5 w-5' }: { name: string; className?: strin
   return <svg {...common}>{paths[name]}</svg>;
 }
 
-export default async function HomePage() {
-  const { stats, heroCampaign, featuredCampaigns, heroPercent, daysLeft } = await getHomeData();
+export default async function HomePage({ searchParams }: { searchParams?: Promise<StoryFilters> }) {
+  const filters = await searchParams ?? {};
+  const activeSort = filters.storySort === 'raised' || filters.storySort === 'donors' ? filters.storySort : 'latest';
+  const { stats, heroCampaign, featuredCampaigns, carouselCampaigns, heroPercent, daysLeft } = await getHomeData(filters);
   const heroTitle = heroCampaign?.title ?? 'Start a trusted campaign on KindFund';
   const heroHref = heroCampaign ? `/campaigns/${heroCampaign.slug}` : '/campaigns';
 
@@ -187,6 +266,72 @@ export default async function HomePage() {
         {stats.map(([value, label]) => (
           <div key={label}><strong>{value}</strong><span>{label}</span></div>
         ))}
+      </section>
+
+      <section id="stories" className="container kind-story-carousel">
+        <div className="kind-story-toolbar">
+          <span>Filter by</span>
+          <div className="kind-story-filters">
+            {STORY_FILTERS.map((filter) => {
+              const active = (filters.storyCategory ?? '') === filter.value;
+              return (
+                <Link className={active ? 'active' : ''} href={storyHref(filters, { storyCategory: filter.value })} key={filter.label}>
+                  <Icon name={filter.icon} className="h-4 w-4" />
+                  {filter.label}
+                </Link>
+              );
+            })}
+          </div>
+          <form action="/" className="kind-story-search">
+            {filters.storyCategory && <input type="hidden" name="storyCategory" value={filters.storyCategory} />}
+            {activeSort !== 'latest' && <input type="hidden" name="storySort" value={activeSort} />}
+            <Icon name="search" className="h-4 w-4" />
+            <input name="storyQ" defaultValue={filters.storyQ ?? ''} placeholder="Search stories..." />
+            <button type="submit" aria-label="Search stories"><Icon name="search" className="h-4 w-4" /></button>
+          </form>
+          <form action="/" className="kind-story-sort">
+            {filters.storyCategory && <input type="hidden" name="storyCategory" value={filters.storyCategory} />}
+            {filters.storyQ && <input type="hidden" name="storyQ" value={filters.storyQ} />}
+            <label htmlFor="storySort">Sort by:</label>
+            <select id="storySort" name="storySort" defaultValue={activeSort}>
+              {STORY_SORTS.map((sort) => <option key={sort.value} value={sort.value}>{sort.label}</option>)}
+            </select>
+            <button type="submit">Apply</button>
+          </form>
+        </div>
+        <div className="kind-story-track" aria-label="Live campaign stories">
+          {carouselCampaigns.map((campaign) => {
+            const image = storyImage(campaign);
+            return (
+              <article className="kind-story-card" key={campaign.slug}>
+                <Link className={`kind-story-media ${storyTone(campaign.category)}`} href={`/campaigns/${campaign.slug}`}>
+                  {image && <Image src={image} alt="" fill sizes="(max-width: 760px) 88vw, (max-width: 1020px) 48vw, 25vw" />}
+                  <span>{campaign.category ?? 'Campaign'}</span>
+                  <em><Icon name="shield" className="h-3.5 w-3.5" /> {campaign.trust_status || 'Verified'}</em>
+                  <i><Icon name="heart" className="h-6 w-6" /></i>
+                </Link>
+                <div className="kind-story-body">
+                  <h2><Link href={`/campaigns/${campaign.slug}`}>{campaign.title}</Link></h2>
+                  <p>{campaign.description ?? 'Follow this campaign story and its verified fundraising progress.'}</p>
+                  <div className="kind-story-meta">
+                    <span><Icon name="users" className="h-4 w-4" /><b>{campaign.backer_count.toLocaleString()}</b><small>Donors</small></span>
+                    <span><Icon name="dollar" className="h-4 w-4" /><b>{formatCents(campaign.raised_amount)}</b><small>Raised</small></span>
+                    <span><Icon name="calendar" className="h-4 w-4" /><b>{campaign.deadline ? new Date(campaign.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Live now'}</b></span>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+          {carouselCampaigns.length === 0 && (
+            <article className="kind-story-card empty">
+              <div className="kind-story-media community"><span>Live Data</span></div>
+              <div className="kind-story-body">
+                <h2>No matching stories yet</h2>
+                <p>Campaign stories will appear here as soon as matching Supabase campaign records are available.</p>
+              </div>
+            </article>
+          )}
+        </div>
       </section>
 
       <section className="kind-section kind-trust">

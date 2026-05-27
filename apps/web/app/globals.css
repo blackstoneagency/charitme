@@ -263,6 +263,271 @@ img, svg { display: block; }
 .kind-stats strong { display: block; color: #6636ff; font-size: 29px; line-height: 1; font-weight: 950; }
 .kind-stats span { display: block; margin-top: 10px; color: #29304d; font-size: 13px; font-weight: 800; }
 
+.kind-story-carousel {
+  margin-bottom: 38px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(248,246,255,.92), rgba(255,255,255,.74));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.88);
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+.kind-story-toolbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(240px, 340px) 170px;
+  gap: 14px;
+  align-items: center;
+}
+.kind-story-toolbar > span {
+  color: #0c1450;
+  font-size: 13px;
+  font-weight: 950;
+}
+.kind-story-filters {
+  display: flex;
+  gap: 11px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.kind-story-filters::-webkit-scrollbar,
+.kind-story-track::-webkit-scrollbar { display: none; }
+.kind-story-filters a,
+.kind-story-search,
+.kind-story-sort {
+  height: 42px;
+  border: 1px solid #d9def4;
+  border-radius: 999px;
+  background: rgba(255,255,255,.86);
+  color: #08104a;
+  box-shadow: 0 10px 26px rgba(35,28,95,.04);
+}
+.kind-story-filters a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  padding: 0 20px;
+  font-size: 12px;
+  font-weight: 950;
+}
+.kind-story-filters a svg { color: #4d1ee0; }
+.kind-story-filters a.active {
+  border-color: #7b35ff;
+  color: #3612d7;
+  background: #fbf9ff;
+  box-shadow: 0 12px 28px rgba(91,34,240,.09);
+}
+.kind-story-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 0 14px;
+}
+.kind-story-search > svg,
+.kind-story-search button { color: #263b93; }
+.kind-story-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #0c1450;
+  font-size: 12px;
+  font-weight: 750;
+}
+.kind-story-search input::placeholder { color: #415182; }
+.kind-story-search button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.kind-story-sort {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 4px;
+  padding: 0 13px;
+}
+.kind-story-sort label {
+  color: #0c1450;
+  font-size: 12px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+.kind-story-sort select {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #08104a;
+  font-size: 12px;
+  font-weight: 950;
+}
+.kind-story-sort button {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.kind-story-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(278px, calc((100% - 60px) / 4));
+  gap: 20px;
+  margin-top: 18px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.kind-story-card {
+  overflow: hidden;
+  min-height: 303px;
+  border: 1px solid #dee3f6;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 18px 36px rgba(40,30,110,.11);
+  scroll-snap-align: start;
+}
+.kind-story-media {
+  position: relative;
+  display: block;
+  height: 138px;
+  overflow: visible;
+  background-size: cover;
+  background-position: center;
+}
+.kind-story-media img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.kind-story-media > img { z-index: 0; }
+.kind-story-media.education { background: linear-gradient(135deg,#093f2c,#e9d29e 58%,#111842); }
+.kind-story-media.medical { background: linear-gradient(135deg,#e0f2fe,#8dc6e8 50%,#16213f); }
+.kind-story-media.community { background: linear-gradient(135deg,#237b45,#b7dc82 48%,#2c55aa); }
+.kind-story-media.animal { background: linear-gradient(135deg,#f8d08c,#c97938 50%,#1f2937); }
+.kind-story-media > span {
+  position: absolute;
+  z-index: 1;
+  left: 13px;
+  top: 11px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: #06124c;
+  background: #dcffe7;
+  font-size: 11px;
+  font-weight: 950;
+}
+.kind-story-media.medical > span { color: #dc2626; background: #fff2df; }
+.kind-story-media.community > span { color: #2516d8; background: #dceeff; }
+.kind-story-media.animal > span { color: #db2777; background: #ffe4ef; }
+.kind-story-media em {
+  position: absolute;
+  z-index: 1;
+  right: 13px;
+  top: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 132px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  color: #4d1ee0;
+  background: rgba(231,221,255,.94);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 950;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kind-story-media i {
+  position: absolute;
+  z-index: 1;
+  right: 13px;
+  bottom: -24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid #d8d0ff;
+  border-radius: 50%;
+  color: #ec297b;
+  background: #fff;
+  box-shadow: 0 10px 22px rgba(91,34,240,.16);
+}
+.kind-story-body { padding: 17px 17px 15px; }
+.kind-story-body h2 {
+  margin: 0 58px 8px 0;
+  color: #10154d;
+  font-size: 15px;
+  line-height: 1.18;
+  font-weight: 950;
+}
+.kind-story-body p {
+  display: -webkit-box;
+  min-height: 38px;
+  margin: 0;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  color: #1d2b62;
+  font-size: 12px;
+  line-height: 1.55;
+  font-weight: 720;
+}
+.kind-story-meta {
+  display: grid;
+  grid-template-columns: .8fr 1fr 1.15fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+.kind-story-meta span {
+  display: grid;
+  grid-template-columns: 25px minmax(0,1fr);
+  column-gap: 7px;
+  align-items: center;
+  min-width: 0;
+  color: #3817e8;
+  font-size: 11px;
+}
+.kind-story-meta svg {
+  grid-row: span 2;
+  width: 25px;
+  height: 25px;
+  padding: 5px;
+  border-radius: 50%;
+  background: #eee8ff;
+}
+.kind-story-meta span:nth-child(2) svg { color: #059669; background: #dcfce7; }
+.kind-story-meta span:nth-child(3) svg { color: #1e3a8a; background: transparent; padding: 3px; border-radius: 0; }
+.kind-story-meta b {
+  min-width: 0;
+  color: #10154d;
+  font-size: 11px;
+  font-weight: 950;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kind-story-meta small {
+  color: #2c3768;
+  font-size: 9px;
+  font-weight: 750;
+}
+.kind-story-card.empty .kind-story-body { padding-top: 28px; }
+
 .kind-trust { padding-top: 0; }
 .kind-trust-grid { display: grid; grid-template-columns: 420px 1fr; gap: 70px; align-items: start; }
 .kind-eyebrow { display: block; margin-bottom: 10px; color: #5b22f0; font-size: 12px; font-weight: 950; text-transform: uppercase; }
@@ -384,6 +649,11 @@ img, svg { display: block; }
   .kind-hero-grid, .kind-trust-grid, .kind-future { grid-template-columns: 1fr; }
   .kind-hero-art { max-width: 650px; width: 100%; margin: 10px auto 0; }
   .kind-feature-grid { grid-template-columns: repeat(2, 1fr); }
+  .kind-story-toolbar { grid-template-columns: 1fr; }
+  .kind-story-toolbar > span { font-size: 12px; }
+  .kind-story-search,
+  .kind-story-sort { width: 100%; }
+  .kind-story-track { grid-auto-columns: minmax(286px, 48%); }
   .kind-testimonials { grid-template-columns: 1fr; }
   .kind-footer-grid { grid-template-columns: 1fr 1fr; }
   .kind-footer-links { grid-column: 1 / -1; order: 3; }
@@ -412,6 +682,13 @@ img, svg { display: block; }
   .kind-feature-grid, .kind-stats, .kind-orbits, .kind-footer-grid, .kind-footer-links { grid-template-columns: 1fr; }
   .kind-stats { gap: 20px; }
   .kind-stats div { border-left: 0; }
+  .kind-story-carousel { border-radius: 14px; padding-top: 18px; padding-bottom: 18px; }
+  .kind-story-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; overflow: visible; }
+  .kind-story-filters a { justify-content: center; padding: 0 12px; }
+  .kind-story-track { grid-auto-columns: minmax(286px, 88%); gap: 14px; }
+  .kind-story-card { min-height: 300px; }
+  .kind-story-meta { grid-template-columns: 1fr 1fr; }
+  .kind-story-meta span:nth-child(3) { grid-column: 1 / -1; }
   .kind-future { padding-top: 34px; padding-bottom: 86px; }
   .kind-orbits article::before { display: none; }
   .kind-footer-apps, .kind-social { border-left: 0; padding-left: 0; }
