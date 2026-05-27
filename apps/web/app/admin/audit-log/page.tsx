@@ -1,4 +1,4 @@
-import { PageScaffold } from '../../../components/KindFundApp';
+import { PageScaffold } from '../../../components/KindFundShellServer';
 
 const rows = ['Updated user role', 'Created campaign', 'Donation refunded', 'Approved payout', 'Published content', 'Login failed', 'Password changed'].map((title, i) => ({ title, subtitle: ['Admin User', 'System', 'User John'][i % 3], status: i === 5 ? 'Failed' : 'Success', amount: ['Users', 'Campaigns', 'Donations', 'Payouts'][i % 4], meta: ['May 31, 2024', '10:24 AM UTC'] }));
 

@@ -19,12 +19,14 @@ export type TableRow = {
   href?: string;
 };
 
-type ShellProps = {
+export type ShellProps = {
   active: string;
   children: React.ReactNode;
   mode?: 'dashboard' | 'admin';
   userName?: string | null;
   userEmail?: string;
+  userRole?: string | null;
+  userAvatarUrl?: string | null;
 };
 
 export type ShellVariant = 'dashboard' | 'admin';
@@ -103,8 +105,10 @@ export function Logo() {
   );
 }
 
-export function KindFundShell({ active, children, mode = 'dashboard', userName, userEmail }: ShellProps) {
+export function KindFundShell({ active, children, mode = 'dashboard', userName, userEmail, userRole, userAvatarUrl }: ShellProps) {
   const nav = mode === 'admin' ? adminNav : dashboardNav;
+  const displayName = userName || userEmail?.split('@')[0] || (mode === 'admin' ? 'Admin User' : 'My Account');
+  const displayRole = userRole || (mode === 'admin' ? 'Super Admin' : 'Organizer');
   return (
     <div className="kf-app">
       <aside className="kf-sidebar">
@@ -129,8 +133,11 @@ export function KindFundShell({ active, children, mode = 'dashboard', userName, 
           <Link href="/pricing">Upgrade Now</Link>
         </div>
         <div className="kf-profile">
-          <Avatar name={userName || userEmail || 'Sarah Thompson'} />
-          <div><strong>{userName || (mode === 'admin' ? 'Admin User' : 'Sarah Thompson')}</strong><span>{mode === 'admin' ? 'Super Admin' : 'Organizer'}</span></div>
+          <Avatar name={displayName} imageUrl={userAvatarUrl} />
+          <div>
+            <strong>{displayName}</strong>
+            <span>{displayRole}</span>
+          </div>
         </div>
       </aside>
       <main className="kf-main">{children}</main>
@@ -138,7 +145,7 @@ export function KindFundShell({ active, children, mode = 'dashboard', userName, 
   );
 }
 
-export function TopBar({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: React.ReactNode }) {
+export function TopBar({ title, subtitle, actions, userName, userAvatarUrl }: { title: string; subtitle?: string; actions?: React.ReactNode; userName?: string | null; userAvatarUrl?: string | null }) {
   return (
     <header className="kf-topbar">
       <div>
@@ -149,14 +156,25 @@ export function TopBar({ title, subtitle, actions }: { title: string; subtitle?:
         <label className="kf-search"><KFIcon name="search" /><input placeholder={`Search ${title.toLowerCase()}...`} /></label>
         {actions}
         <button className="kf-icon-btn"><KFIcon name="bell" /><span>8</span></button>
-        <Avatar name="Sarah Thompson" />
+        <Avatar name={userName || 'My Account'} imageUrl={userAvatarUrl} />
       </div>
     </header>
   );
 }
 
-export function Avatar({ name }: { name: string }) {
-  const initials = name.split(/\s+/).map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+export function Avatar({ name, imageUrl }: { name: string; imageUrl?: string | null }) {
+  const initials = name.split(/\s+/).filter(Boolean).map((n) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
+  if (imageUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={imageUrl}
+        alt={name}
+        className="kf-avatar"
+        style={{ objectFit: 'cover', padding: 0 }}
+      />
+    );
+  }
   return <div className="kf-avatar">{initials}</div>;
 }
 

@@ -1,5 +1,5 @@
 import 'server-only';
-import { KindFundShell, TopBar } from '../../../components/KindFundApp';
+import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import SettingsClient from './SettingsClient';

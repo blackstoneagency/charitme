@@ -1,4 +1,4 @@
-import { PageScaffold } from '../../../components/KindFundApp';
+import { PageScaffold } from '../../../components/KindFundShellServer';
 
 const rows = ['Lisa Martinez', 'Helping Hands Foundation', 'Michael Brown', 'Care Foundation', 'Emily Davis', 'David Lee', 'Priya Patel'].map((name, i) => ({ title: name, subtitle: ['Clean Water for All', 'Education for Kids', 'Medical Aid Fund'][i % 3], status: ['Pending', 'Completed', 'Failed'][i % 3], amount: ['$2,500.00', '$1,250.00', '$750.00', '$1,000.00', '$600.00', '$2,000.00', '$600.00'][i], meta: ['Bank Transfer', 'May 30, 2024'] }));
 

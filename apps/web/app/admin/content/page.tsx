@@ -1,4 +1,4 @@
-import { PageScaffold } from '../../../components/KindFundApp';
+import { PageScaffold } from '../../../components/KindFundShellServer';
 
 const rows = ['Clean Water Initiative', 'About Us', 'Partnership Update', 'Volunteer Stories', 'Annual Report 2024', 'Event Gallery', 'Privacy Policy'].map((title, i) => ({ title, subtitle: ['Blog Post', 'Page', 'News', 'Document'][i % 4], status: i === 3 || i === 5 ? 'Draft' : 'Published', amount: ['1,254 views', '324 shares', '82 conversions'][i % 3], meta: ['Updated May 30, 2024', 'Sarah Johnson'] }));
 

@@ -1,4 +1,4 @@
-import { PageScaffold } from '../../../components/KindFundApp';
+import { PageScaffold } from '../../../components/KindFundShellServer';
 
 const rows = ['Sarah Johnson', 'Michael Brown', 'Emily Davis', 'James Wilson', 'Lisa Martinez', 'David Lee', 'Priya Patel'].map((name, i) => ({ title: name, subtitle: ['Clean Water for All', 'Education for Kids', 'Medical Aid Fund', 'Save the Oceans'][i % 4], status: ['Completed', 'Completed', 'Refunded', 'Pending'][i % 4], amount: ['$100.00', '$250.00', '$75.00', '$120.00', '$60.00', '$200.00', '$50.00'][i], meta: ['May 30, 2024', 'Visa •••• 4242'] }));
 

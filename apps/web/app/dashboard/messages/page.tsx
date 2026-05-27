@@ -1,4 +1,4 @@
-import { KindFundShell, TopBar, Avatar, KFIcon } from '../../../components/KindFundApp';
+import { KindFundShell, TopBar, Avatar, KFIcon } from '../../../components/KindFundShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 

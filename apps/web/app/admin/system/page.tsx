@@ -1,4 +1,4 @@
-import { PageScaffold } from '../../../components/KindFundApp';
+import { PageScaffold } from '../../../components/KindFundShellServer';
 
 const rows = ['General', 'Security', 'Email', 'Payment', 'Integrations', 'Notifications', 'Storage', 'System Maintenance', 'Feature Flags', 'Advanced'].map((title, i) => ({ title, subtitle: ['Basic platform configuration', 'Security policies and authentication', 'Email server and templates', 'Payment gateways and fees'][i % 4], status: i === 4 ? 'Disabled' : 'Enabled', amount: i === 4 ? 'Action needed' : 'Operational', meta: ['Updated May 30, 2024'] }));
 

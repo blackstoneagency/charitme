@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { KindFundShell, KFIcon } from '../../components/KindFundApp';
+import { KindFundShell, KFIcon } from '../../components/KindFundShellServer';
 import { requireUser } from '../../lib/auth';
 import { supabaseAdmin } from '../../lib/supabase';
 

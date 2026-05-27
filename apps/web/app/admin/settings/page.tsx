@@ -1,4 +1,4 @@
-import { PageScaffold, KFIcon, type Metric, type TableRow } from '../../../components/KindFundApp';
+import { PageScaffold, KFIcon, type Metric, type TableRow } from '../../../components/KindFundShellServer';
 
 const metrics: Metric[] = [
   { label: 'Categories', value: '12', icon: 'grid', tone: 'violet' },

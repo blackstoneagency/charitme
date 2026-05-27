@@ -1,4 +1,4 @@
-import { PageScaffold } from '../../../components/KindFundApp';
+import { PageScaffold } from '../../../components/KindFundShellServer';
 
 const rows = ['Sarah Johnson', 'Michael Brown', 'Emily Davis', 'James Wilson', 'Lisa Martinez'].map((name, i) => ({
   title: name,

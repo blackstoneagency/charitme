@@ -1,4 +1,4 @@
-import { PageScaffold, campaignRows } from '../../components/KindFundApp';
+import { PageScaffold, campaignRows } from '../../components/KindFundShellServer';
 
 export default function AdminDashboardPage() {
   return (

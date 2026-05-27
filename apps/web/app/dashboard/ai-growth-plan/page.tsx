@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { KindFundShell, TopBar, KFIcon, MetricGrid } from '../../../components/KindFundApp';
+import { KindFundShell, TopBar, KFIcon, MetricGrid } from '../../../components/KindFundShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
-import type { Metric } from '../../../components/KindFundApp';
+import type { Metric } from '../../../components/KindFundShellServer';
 
 export const dynamic = 'force-dynamic';
 
