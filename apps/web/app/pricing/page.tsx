@@ -157,9 +157,6 @@ export default function PricingPage() {
           const price = yearly && 'yearlyPrice' in plan && plan.yearlyPrice != null
             ? plan.yearlyPrice
             : plan.monthlyPrice;
-          const annualSavings = 'yearlyPrice' in plan && plan.yearlyPrice != null && yearly
-            ? ((plan.monthlyPrice - plan.yearlyPrice) * 12)
-            : 0;
           const isLoading = 'plan' in plan && loading === plan.plan;
 
           const isPopular = 'popular' in plan && plan.popular === true;

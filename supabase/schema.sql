@@ -1177,3 +1177,19 @@ exception when others then
   raise;
 end;
 $$;
+
+-- ── Settings columns added to profiles ────────────────────────────────────────
+alter table profiles add column if not exists bio text;
+alter table profiles add column if not exists plan text not null default 'free';
+alter table profiles add column if not exists stripe_customer_id text;
+alter table profiles add column if not exists stripe_subscription_id text;
+alter table profiles add column if not exists org_name text;
+alter table profiles add column if not exists org_website text;
+alter table profiles add column if not exists org_tagline text;
+alter table profiles add column if not exists timezone text not null default 'America/New_York';
+alter table profiles add column if not exists currency text not null default 'usd';
+alter table profiles add column if not exists language text not null default 'en';
+alter table profiles add column if not exists date_format text not null default 'MM/DD/YYYY';
+alter table profiles add column if not exists time_format text not null default '12h';
+alter table profiles add column if not exists show_public_profile boolean not null default true;
+alter table profiles add column if not exists campaign_recommendations boolean not null default true;
