@@ -2,19 +2,17 @@
 /**
  * SessionWatcher
  *
- * Mounted once in the root layout. Handles two scenarios:
+ * Mounted once in the root layout. Listens for Supabase SIGNED_OUT events
+ * (token expiry, explicit sign-out) and redirects to /login immediately so
+ * the user isn't left on a protected page with stale state.
  *
- * 1. SESSION EXPIRY (while browser is open)
- *    Supabase fires SIGNED_OUT when the refresh token can no longer renew
- *    the access token.  We redirect to /login immediately so the user isn't
- *    left on a protected page with stale state.
+ * Browser-close logout is handled entirely by session-scoped cookies
+ * (no maxAge / expires) set in middleware.ts and api/auth/callback —
+ * the browser discards them when the window closes without any JS needed.
  *
- * 2. BROWSER / TAB CLOSE
- *    We fire signOut() on `pagehide` (fires reliably on tab/window close,
- *    back-navigation, and page unload — unlike beforeunload which some
- *    browsers suppress).  The session cookies are already session-scoped
- *    (no maxAge) so the browser clears them on close anyway; this call
- *    also revokes the refresh token server-side for belt-and-suspenders.
+ * NOTE: We intentionally do NOT use pagehide + sendBeacon here.
+ * pagehide fires on ALL hard navigations (not just tab/window close),
+ * which deletes the PKCE code-verifier cookie and breaks Google OAuth.
  */
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -26,7 +24,6 @@ export default function SessionWatcher() {
   useEffect(() => {
     const supabase = createClient();
 
-    // ── 1. React to auth state changes ──────────────────────────────────
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event) => {
         if (event === 'SIGNED_OUT') {
@@ -35,23 +32,7 @@ export default function SessionWatcher() {
       },
     );
 
-    // ── 2. Sign out when the tab / browser window is closed ─────────────
-    // `pagehide` fires on:  tab close, window close, back/forward cache entry,
-    //                        and page unload — more reliable than beforeunload.
-    // We use `navigator.sendBeacon` so the request survives the page teardown.
-    const handlePageHide = () => {
-      // Best-effort: sign out on the server so the refresh token is revoked.
-      // The cookies are already session-scoped and will be cleared by the
-      // browser, but revoking the token prevents replay attacks.
-      navigator.sendBeacon('/api/auth/signout');
-    };
-
-    window.addEventListener('pagehide', handlePageHide);
-
-    return () => {
-      subscription.unsubscribe();
-      window.removeEventListener('pagehide', handlePageHide);
-    };
+    return () => subscription.unsubscribe();
   }, [router]);
 
   return null;

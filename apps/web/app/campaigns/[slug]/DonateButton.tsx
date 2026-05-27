@@ -8,6 +8,7 @@ import {
   donorTip,
   processingFee,
 } from '@shared/fees';
+import { createClient } from '../../../lib/supabase-browser';
 
 const VIOLET = '#7b35ff';
 const VIOLET_LIGHT = '#f5f0ff';
@@ -48,6 +49,14 @@ export default function DonateButton({
   );
 
   const handleDonate = async () => {
+    // Require sign-in before proceeding to checkout
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+      return;
+    }
+
     if (Number.isNaN(amountCents) || amountCents < 100) {
       setError('Minimum donation is $1.00');
       return;

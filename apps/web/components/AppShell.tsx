@@ -44,7 +44,7 @@ const FOOTER_LINKS = {
   ],
 } as const;
 
-const SHELL_BYPASS = ['/dashboard', '/admin', '/profile', '/create'];
+const SHELL_BYPASS = ['/dashboard', '/admin', '/profile', '/create', '/campaigns'];
 
 function Logo() {
   return (
