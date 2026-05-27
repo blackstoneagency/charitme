@@ -4,11 +4,24 @@ import { safeNextPath } from '../../../../lib/auth-config';
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
-/** Strip maxAge/expires so auth cookies are cleared when the browser closes. */
+/**
+ * Strip maxAge/expires so auth cookies become session-scoped (browser-close
+ * clears them).  Deletion cookies must pass through unchanged — otherwise the
+ * PKCE code-verifier cookie is not properly cleared after the exchange.
+ *
+ * A cookie is a deletion signal when EITHER:
+ *   • maxAge is 0 or negative, OR
+ *   • expires is a past date (Date object in the past, or ISO string ≤ now)
+ */
 function toSessionCookie(options: CookieOptions): CookieOptions {
-  const { maxAge, expires, ...rest } = options;
-  if (typeof maxAge === 'number' && maxAge <= 0) return options; // keep deletion cookies
-  void maxAge; void expires;
+  const { maxAge, expires } = options;
+  // Keep deletion cookies intact
+  if (typeof maxAge === 'number' && maxAge <= 0) return options;
+  if (expires instanceof Date && expires.getTime() <= Date.now()) return options;
+  if (typeof expires === 'string' && new Date(expires).getTime() <= Date.now()) return options;
+  // Strip expiry so the session cookie dies with the browser
+  const { maxAge: _m, expires: _e, ...rest } = options;
+  void _m; void _e;
   return rest;
 }
 

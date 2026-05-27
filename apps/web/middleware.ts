@@ -8,13 +8,17 @@ type CookieToSet = { name: string; value: string; options: CookieOptions };
 /**
  * Convert a persistent auth cookie into a session cookie by removing
  * maxAge / expires.  The browser will clear it when the window closes.
- * Deletion cookies (maxAge === 0) are passed through unchanged.
+ * Deletion cookies must pass through unchanged — Supabase deletes the
+ * PKCE code-verifier after a successful exchange using either maxAge:0
+ * or expires: past-date, so both forms need to be detected.
  */
 function toSessionCookie(options: CookieOptions): CookieOptions {
-  const { maxAge, expires, ...rest } = options;
-  // Keep deletion signals intact; strip expiry for all other auth cookies
+  const { maxAge, expires } = options;
   if (typeof maxAge === 'number' && maxAge <= 0) return options;
-  void maxAge; void expires; // consumed — not forwarded
+  if (expires instanceof Date && expires.getTime() <= Date.now()) return options;
+  if (typeof expires === 'string' && new Date(expires).getTime() <= Date.now()) return options;
+  const { maxAge: _m, expires: _e, ...rest } = options;
+  void _m; void _e;
   return rest;
 }
 
