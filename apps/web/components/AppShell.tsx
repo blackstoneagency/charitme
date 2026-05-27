@@ -73,9 +73,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (bypass) return <>{children}</>;
 
+  const shellClass = path === '/contact' ? 'kind-shell-contact' : '';
+
   return (
     <>
-      <header className="kind-header">
+      <header className={`kind-header ${shellClass}`}>
         <div className="container">
           <Logo />
           <nav>
