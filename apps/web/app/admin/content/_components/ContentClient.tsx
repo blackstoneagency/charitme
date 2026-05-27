@@ -300,7 +300,7 @@ function CreateContentWizard({ onClose }: { onClose: () => void }) {
 // Main component
 // ─────────────────────────────────────────────
 export default function ContentClient({
-  totalContent, publishedCount, draftCount, archivedCount, aiGeneratedCount, contentByType, content,
+  totalContent, publishedCount, draftCount, aiGeneratedCount, contentByType, content,
 }: ContentClientProps) {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
