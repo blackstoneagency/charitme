@@ -30,14 +30,15 @@ const STORY_SORTS = [
 type HeroCampaign = {
   slug: string;
   title: string;
-  description: string | null;
+  tagline?: string | null;
+  description?: string | null;
   category: string | null;
   cover_image_url: string | null;
   goal_amount: number;
   raised_amount: number;
   backer_count: number;
-  trust_status: string;
-  campaign_health_score: number;
+  trust_status?: string;
+  campaign_health_score?: number;
   deadline: string | null;
   profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
 };
@@ -100,9 +101,8 @@ async function getHomeData(filters: StoryFilters): Promise<{
   const storySort = filters.storySort === 'raised' || filters.storySort === 'donors' ? filters.storySort : 'latest';
   let carouselQuery = supabaseAdmin
     .from('campaigns')
-    .select('slug,title,description,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,created_at')
-    .neq('status', 'rejected')
-    .neq('status', 'frozen');
+    .select('slug,title,tagline,category,cover_image_url,goal_amount,raised_amount,backer_count,deadline,status')
+    .eq('status', 'active');
 
   if (storyCategory) {
     carouselQuery = carouselQuery.ilike('category', `%${storyCategory}%`);
@@ -307,12 +307,12 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
                 <Link className={`kind-story-media ${storyTone(campaign.category)}`} href={`/campaigns/${campaign.slug}`}>
                   {image && <Image src={image} alt="" fill sizes="(max-width: 760px) 88vw, (max-width: 1020px) 48vw, 25vw" />}
                   <span>{campaign.category ?? 'Campaign'}</span>
-                  <em><Icon name="shield" className="h-3.5 w-3.5" /> {campaign.trust_status || 'Verified'}</em>
+                  <em><Icon name="shield" className="h-3.5 w-3.5" /> Verified</em>
                   <i><Icon name="heart" className="h-6 w-6" /></i>
                 </Link>
                 <div className="kind-story-body">
                   <h2><Link href={`/campaigns/${campaign.slug}`}>{campaign.title}</Link></h2>
-                  <p>{campaign.description ?? 'Follow this campaign story and its verified fundraising progress.'}</p>
+                  <p>{campaign.description ?? campaign.tagline ?? 'Follow this campaign story and its verified fundraising progress.'}</p>
                   <div className="kind-story-meta">
                     <span><Icon name="users" className="h-4 w-4" /><b>{campaign.backer_count.toLocaleString()}</b><small>Donors</small></span>
                     <span><Icon name="dollar" className="h-4 w-4" /><b>{formatCents(campaign.raised_amount)}</b><small>Raised</small></span>
