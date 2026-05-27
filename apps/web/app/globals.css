@@ -968,7 +968,8 @@ img, svg { display: block; }
 .ai-assistant article b, .ai-assistant article small { display: block; }
 .ai-assistant article b { font-size: 14px; }
 .ai-assistant article small { margin-top: 5px; color: #4b5676; line-height: 1.35; font-size: 13px; font-weight: 700; }
-.ai-assistant > button { width: 100%; height: 48px; margin-top: 18px; border: 0; border-radius: 10px; color: #fff; background: linear-gradient(135deg, #6c35ff, #551cf2); font-size: 15px; font-weight: 950; box-shadow: 0 14px 26px rgba(85,28,242,.2); }
+.ai-assistant > button,
+.ai-assistant > a { width: 100%; height: 48px; margin-top: 18px; border: 0; border-radius: 10px; color: #fff; background: linear-gradient(135deg, #6c35ff, #551cf2); font-size: 15px; font-weight: 950; box-shadow: 0 14px 26px rgba(85,28,242,.2); display: inline-flex; align-items: center; justify-content: center; }
 .side-title { min-height: 57px; padding: 0 20px; }
 .side-title a { color: #551cf2; font-size: 12px; font-weight: 950; }
 .task-card { padding-bottom: 16px; }

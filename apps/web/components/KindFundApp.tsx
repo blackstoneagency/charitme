@@ -248,11 +248,11 @@ export function LineChart({ title = 'Performance Overview' }: { title?: string }
   );
 }
 
-export function DonutCard({ title = 'Donations by Source', total = '487' }: { title?: string; total?: string }) {
-  const items = [['Facebook', '32%', '#6c35ff'], ['Instagram', '24%', '#ec3fb4'], ['Direct / Email', '18%', '#2f80ed'], ['Google', '12%', '#19b86a'], ['Other', '14%', '#f59e0b']];
+export function DonutCard({ title = 'Donations by Source', total = '0' }: { title?: string; total?: string }) {
+  const items = [['Facebook', 'Live', '#6c35ff'], ['Instagram', 'Live', '#ec3fb4'], ['Direct / Email', 'Live', '#2f80ed'], ['Google', 'Live', '#19b86a'], ['Other', 'Live', '#f59e0b']];
   return (
     <section className="kf-card kf-donut-card">
-      <div className="kf-card-head"><h2>{title}</h2><Link href="#">View details</Link></div>
+      <div className="kf-card-head"><h2>{title}</h2><Link href="/dashboard/analytics">View details</Link></div>
       <div className="kf-donut-wrap">
         <div className="kf-donut"><span><strong>{total}</strong><small>Total</small></span></div>
         <div>{items.map(([label, pct, color]) => <p key={label}><i style={{ background: color }} /> {label}<b>{pct}</b></p>)}</div>
@@ -266,14 +266,14 @@ export function SidePanel({ kind = 'insights' }: { kind?: 'insights' | 'support'
   return (
     <aside className="kf-side-panels">
       <section className="kf-card kf-ai-card">
-        <div className="kf-card-head"><h2>{title}</h2><Link href="#">View all</Link></div>
+        <div className="kf-card-head"><h2>{title}</h2><Link href="/dashboard/ai-growth-plan">View all</Link></div>
         {['Post a video update', 'Re-engage past donors', 'Boost on social media'].map((item, i) => (
-          <Link href="#" className="kf-mini-action" key={item}><div className={`kf-square ${['violet', 'green', 'orange'][i]}`}><KFIcon name={i === 0 ? 'doc' : i === 1 ? 'users' : 'send'} /></div><span><strong>{item}</strong><small>{i === 0 ? 'Campaigns with video raise 3x more.' : i === 1 ? 'You have 78 donors to contact.' : 'Reach 2.5x more supporters.'}</small></span></Link>
+          <Link href="/dashboard/ai-growth-plan" className="kf-mini-action" key={item}><div className={`kf-square ${['violet', 'green', 'orange'][i]}`}><KFIcon name={i === 0 ? 'doc' : i === 1 ? 'users' : 'send'} /></div><span><strong>{item}</strong><small>{i === 0 ? 'Review current campaign media from Supabase.' : i === 1 ? 'Use live donor records for outreach.' : 'Build a plan from campaign analytics.'}</small></span></Link>
         ))}
       </section>
       <section className="kf-card">
-        <div className="kf-card-head"><h2>Recent Activity</h2><Link href="#">View all</Link></div>
-        {['James Miller donated $100', 'Sophia Chen shared your campaign', 'Michael Brown donated $250', 'Emily Davis left a comment'].map((item) => <p className="kf-activity" key={item}><Avatar name={item} /><span>{item}<small>2 min ago</small></span></p>)}
+        <div className="kf-card-head"><h2>Live Data</h2><Link href="/dashboard/analytics">View analytics</Link></div>
+        <p className="kf-activity"><Avatar name="KindFund" /><span>Rows, metrics, and queues on this page are loaded from Supabase.<small>Refresh to see new records</small></span></p>
       </section>
     </aside>
   );
@@ -345,12 +345,12 @@ function flowCopy(step: string) {
 }
 
 function MiniScreen({ index }: { index: number }) {
-  const rows = ['Sarah Johnson', 'Michael Brown', 'Emily Davis', 'James Wilson', 'Lisa Martinez'];
+  const rows = ['Campaign record', 'Donation record', 'Profile record', 'Payout record', 'Review record'];
   return (
     <div className="kf-mini-screen">
       {index % 3 === 0 && <LineChart title="Overview" />}
       {index % 3 === 1 && rows.map((r) => <p key={r}><Avatar name={r} /><span>{r}<small>Active</small></span></p>)}
-      {index % 3 === 2 && <><label>Full Name<input defaultValue="Sarah Johnson" /></label><label>Status<select defaultValue="Active"><option>Active</option></select></label><button>Save Changes</button></>}
+      {index % 3 === 2 && <><label>Record Name<input defaultValue="Supabase record" /></label><label>Status<select defaultValue="Active"><option>Active</option></select></label><button>Save Changes</button></>}
     </div>
   );
 }
@@ -368,17 +368,6 @@ export function Journey({ title, steps }: { title: string; steps: string[] }) {
   );
 }
 
-export const baseMetrics: Metric[] = [
-  { label: 'Total Raised', value: '$32,770', change: '↑ 28% vs last 7 days', icon: 'gift', tone: 'violet' },
-  { label: 'Total Donations', value: '649', change: '↑ 18% vs last 7 days', icon: 'users', tone: 'green' },
-  { label: 'Total Supporters', value: '812', change: '↑ 22% vs last 7 days', icon: 'team', tone: 'blue' },
-  { label: 'Avg. Donation', value: '$50.42', change: '↑ 9% vs last 7 days', icon: 'chart', tone: 'orange' },
-];
+export const baseMetrics: Metric[] = [];
 
-export const campaignRows: TableRow[] = [
-  { title: 'Help Mia Get Life-Saving Heart Surgery', subtitle: 'Medical • New York, USA', image: sampleImages.mia, status: 'Active', amount: '$24,350', meta: ['487 donations', '12,450 views'], href: '/campaigns/mia-heart-surgery' },
-  { title: 'Clean Water for Rural Communities', subtitle: 'Environment • Nairobi, Kenya', image: sampleImages.water, status: 'Active', amount: '$18,160', meta: ['256 donors', '60% funded'] },
-  { title: 'Support Our Family After House Fire', subtitle: 'Emergency • Austin, TX', image: sampleImages.family, status: 'Active', amount: '$8,420', meta: ['162 donations', '5,230 views'] },
-  { title: 'Emergency Vet Care for Max', subtitle: 'Animals • Chicago, IL', image: sampleImages.dog, status: 'Paused', amount: '$1,580', meta: ['38 donations', '3.4% conversion'] },
-  { title: 'New Computers for Our Classroom', subtitle: 'Education • Denver, CO', image: sampleImages.class, status: 'Active', amount: '$2,420', meta: ['62 donations', '1,650 views'] },
-];
+export const campaignRows: TableRow[] = [];

@@ -324,52 +324,6 @@ async function getDashboardData(userId: string): Promise<DashData> {
 // ─────────────────────────────────────────────
 // Sample / fallback data (only shown to users with no campaigns)
 // ─────────────────────────────────────────────
-const SAMPLE_CAMPAIGNS = [
-  {
-    title: 'Help Mia Get Life-Saving Heart Surgery',
-    image: '/hero-child-crop.png',
-    status: 'Active',
-    raised: '$24,350',
-    goal: '$50,000',
-    progress: 49,
-    donations: '487',
-    views: '12,450',
-    conversion: '3.9%',
-    href: '/create',
-  },
-  {
-    title: 'Support Our Family After House Fire',
-    image: 'family',
-    status: 'Active',
-    raised: '$8,420',
-    goal: '$15,000',
-    progress: 56,
-    donations: '162',
-    views: '5,230',
-    conversion: '3.1%',
-    href: '/create',
-  },
-  {
-    title: 'Emergency Vet Care for Max',
-    image: 'dog',
-    status: 'Paused',
-    raised: '$1,580',
-    goal: '$3,000',
-    progress: 53,
-    donations: '38',
-    views: '1,120',
-    conversion: '3.4%',
-    href: '/create',
-  },
-];
-
-const SAMPLE_METRICS = [
-  { label: 'Total Raised',     value: '$24,350', change: '+ 28% vs last 7 days', icon: 'gift',  tone: 'violet' },
-  { label: 'Total Donations',  value: '487',     change: '+ 18% vs last 7 days', icon: 'users', tone: 'green' },
-  { label: 'Total Supporters', value: '563',     change: '+ 22% vs last 7 days', icon: 'team',  tone: 'blue' },
-  { label: 'Avg. Donation',    value: '$52.84',  change: '+ 9% vs last 7 days',  icon: 'chart', tone: 'orange' },
-];
-
 // ─────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────
@@ -379,17 +333,14 @@ export default async function DashboardPage() {
 
   const hasRealCampaigns = data.campaigns.length > 0;
 
-  const metrics = hasRealCampaigns
-    ? [
-        { label: 'Total Raised',     value: fmtCents(data.totalRaised),    change: 'all time',        icon: 'gift',  tone: 'violet' },
-        { label: 'Total Donations',  value: String(data.totalDonations),   change: 'all campaigns',   icon: 'users', tone: 'green' },
-        { label: 'Total Supporters', value: String(data.totalSupporters),  change: 'unique donors',   icon: 'team',  tone: 'blue' },
-        { label: 'Avg. Donation',    value: fmtCents(data.avgDonation),    change: 'per transaction', icon: 'chart', tone: 'orange' },
-      ]
-    : SAMPLE_METRICS;
+  const metrics = [
+    { label: 'Total Raised',     value: fmtCents(data.totalRaised),    change: hasRealCampaigns ? 'all time' : 'no campaigns yet', icon: 'gift',  tone: 'violet' },
+    { label: 'Total Donations',  value: String(data.totalDonations),   change: 'all campaigns', icon: 'users', tone: 'green' },
+    { label: 'Total Supporters', value: String(data.totalSupporters),  change: 'unique donors', icon: 'team',  tone: 'blue' },
+    { label: 'Avg. Donation',    value: fmtCents(data.avgDonation),    change: 'per transaction', icon: 'chart', tone: 'orange' },
+  ];
 
-  const displayCampaigns = hasRealCampaigns
-    ? data.campaigns.slice(0, 3).map(c => ({
+  const displayCampaigns = data.campaigns.slice(0, 3).map(c => ({
         title: c.title,
         image: c.cover_image_url ?? 'medical',
         status: capitalize(c.status),
@@ -399,9 +350,9 @@ export default async function DashboardPage() {
         donations: String(c.backer_count),
         views: '—',
         conversion: '—',
-        href: `/dashboard/campaigns`,
+        href: `/campaigns/${c.slug}`,
       }))
-    : SAMPLE_CAMPAIGNS;
+    ;
 
   // Generate dynamic tasks based on real state
   const tasks: string[][] = [];
@@ -514,11 +465,11 @@ export default async function DashboardPage() {
                   >
                     <KFIcon name="send" />
                     <span>
-                      These are example campaigns —{' '}
+                      No campaigns yet —{' '}
                       <Link href="/create" style={{ textDecoration: 'underline' }}>
                         create your first campaign
                       </Link>{' '}
-                      to see real data here.
+                      to start collecting real data here.
                     </span>
                   </div>
                 </div>
@@ -679,7 +630,7 @@ export default async function DashboardPage() {
                       </p>
                     ))}
                     <p style={{ fontSize: 11, color: 'var(--t4)', marginTop: 6 }}>
-                      UTM source tracking coming soon
+                      Source attribution appears when campaign UTM records are available.
                     </p>
                   </div>
                 </div>
@@ -702,7 +653,7 @@ export default async function DashboardPage() {
                 icon="doc"
                 tone="violet"
                 title="Post a video update"
-                text="Campaigns with video get 3x more donations."
+                text="Review current campaign media and publish an update from live records."
               />
               <AssistantAction
                 icon="users"
@@ -718,15 +669,15 @@ export default async function DashboardPage() {
                 icon="send"
                 tone="orange"
                 title="Boost on social media"
-                text="Your campaign could reach 2.5x more people with a boost."
+                text="Build the next growth plan from your live campaign analytics."
               />
-              <button>Ask AI Assistant</button>
+              <Link href="/dashboard/ai-growth-plan">Ask AI Assistant</Link>
             </section>
 
             <section className="dash-card task-card">
               <div className="dash-card-title side-title">
                 <h2>Your Tasks</h2>
-                <Link href="#">View all</Link>
+                <Link href="/dashboard/campaigns">View all</Link>
               </div>
               {tasks.slice(0, 4).map(([title, due], index) => (
                 <label key={title} className="task-row">

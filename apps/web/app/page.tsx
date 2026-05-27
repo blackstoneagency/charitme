@@ -1,5 +1,8 @@
 import Link from 'next/link';
 import type React from 'react';
+import { supabaseAdmin } from '../lib/supabase';
+
+export const dynamic = 'force-dynamic';
 
 const FEATURES = [
   { icon: 'edit', title: 'AI Campaign Builder', body: 'Create a powerful campaign in minutes with our AI assistant.', tone: 'violet' },
@@ -9,39 +12,87 @@ const FEATURES = [
   { icon: 'heart', title: 'AI Impact Updates', body: 'Automatically share updates and show donors the real world impact.', tone: 'pink' },
 ];
 
-const STATS = [
-  ['$2.8B+', 'Raised on KindFund'],
-  ['8M+', 'Successful Campaigns'],
-  ['50M+', 'Donors Worldwide'],
-  ['98%', 'Trust Score Average'],
-  ['195', 'Countries Supported'],
-];
-
-const TESTIMONIALS = [
-  {
-    quote: "KindFund's AI helped us raise 3x more than we ever thought possible. The support was incredible.",
-    name: 'James R.',
-    role: 'Father & Organizer',
-    raised: '$78,543',
-    image: 'linear-gradient(135deg, #8b5cf6, #f59e0b)',
-  },
-  {
-    quote: 'The transparency and updates kept our donors engaged the entire way. Best experience ever.',
-    name: 'Melissa K.',
-    role: 'Nonprofit Director',
-    raised: '$120,890',
-    image: 'linear-gradient(135deg, #10b981, #f472b6)',
-  },
-  {
-    quote: "The AI Growth Engine found donors I didn't even know existed. Game changer.",
-    name: 'David L.',
-    role: 'Community Leader',
-    raised: '$56,230',
-    image: 'linear-gradient(135deg, #0f172a, #06b6d4)',
-  },
-];
-
 const PRESS = ['Forbes', 'FAST COMPANY', 'TC TechCrunch', 'The New York Times', 'USA TODAY'];
+
+type HeroCampaign = {
+  slug: string;
+  title: string;
+  description: string | null;
+  goal_amount: number;
+  raised_amount: number;
+  backer_count: number;
+  trust_status: string;
+  campaign_health_score: number;
+  deadline: string | null;
+  profiles: { full_name: string | null } | { full_name: string | null }[] | null;
+};
+
+function formatCents(cents: number): string {
+  const dollars = cents / 100;
+  if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1)}M`;
+  return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+}
+
+function shortCount(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return value.toLocaleString();
+}
+
+function profileName(value: HeroCampaign['profiles']): string {
+  const profile = Array.isArray(value) ? value[0] : value;
+  return profile?.full_name ?? 'KindFund Organizer';
+}
+
+async function getHomeData(): Promise<{
+  stats: string[][];
+  heroCampaign: HeroCampaign | null;
+  featuredCampaigns: HeroCampaign[];
+  heroPercent: number;
+  daysLeft: number;
+}> {
+  const [
+    { data: campaigns },
+    { count: campaignCount },
+    { count: donationCount },
+    { data: trustScores },
+  ] = await Promise.all([
+    supabaseAdmin
+      .from('campaigns')
+      .select('slug,title,description,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,profiles:user_id(full_name)')
+      .eq('status', 'active')
+      .order('raised_amount', { ascending: false })
+      .limit(3),
+    supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+    supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
+    supabaseAdmin.from('trust_scores').select('score').limit(1000),
+  ]);
+
+  const featuredCampaigns = (campaigns ?? []) as HeroCampaign[];
+  const heroCampaign = featuredCampaigns[0] ?? null;
+  const raisedTotal = heroCampaign?.raised_amount ?? 0;
+  const goalTotal = heroCampaign?.goal_amount ?? 1;
+  const trustAverage = (trustScores ?? []).length > 0
+    ? Math.round((trustScores ?? []).reduce((sum, row) => sum + ((row as { score: number }).score ?? 0), 0) / (trustScores ?? []).length)
+    : 0;
+  const daysLeft = heroCampaign?.deadline
+    ? Math.max(0, Math.ceil((new Date(heroCampaign.deadline).getTime() - Date.now()) / 86_400_000))
+    : 0;
+
+  return {
+    heroCampaign,
+    featuredCampaigns,
+    heroPercent: Math.min(100, Math.round((raisedTotal / goalTotal) * 100)),
+    daysLeft,
+    stats: [
+      [formatCents(raisedTotal), 'Raised on KindFund'],
+      [(campaignCount ?? 0).toLocaleString(), 'Active Campaigns'],
+      [shortCount(donationCount ?? 0), 'Donations Recorded'],
+      [`${trustAverage}%`, 'Trust Score Average'],
+      ['Live', 'Supabase Powered'],
+    ],
+  };
+}
 
 function Icon({ name, className = 'h-5 w-5' }: { name: string; className?: string }) {
   const common = { className, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
@@ -62,7 +113,11 @@ function Icon({ name, className = 'h-5 w-5' }: { name: string; className?: strin
   return <svg {...common}>{paths[name]}</svg>;
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const { stats, heroCampaign, featuredCampaigns, heroPercent, daysLeft } = await getHomeData();
+  const heroTitle = heroCampaign?.title ?? 'Start a trusted campaign on KindFund';
+  const heroHref = heroCampaign ? `/campaigns/${heroCampaign.slug}` : '/campaigns';
+
   return (
     <div className="kind-page">
       <section className="kind-hero">
@@ -84,29 +139,29 @@ export default function HomePage() {
               ))}
             </div>
             <div className="kind-proof">
-              <span>Trusted by millions</span>
+              <span>{stats[1][0]} active campaigns</span>
               <div className="kind-avatar-stack">
                 {[0, 1, 2, 3, 4].map((i) => <i key={i} />)}
               </div>
-              <strong>★★★★★</strong>
-              <span>4.9/5 from 50,000+ reviews</span>
+              <strong>{stats[2][0]}</strong>
+              <span>completed donations tracked</span>
             </div>
           </div>
 
           <div className="kind-hero-art">
             <div className="kind-photo" />
-            <div className="kind-floating kind-floating-1"><Icon name="shield" /><div><span>Trust Score</span><strong>98</strong><small>Excellent</small></div></div>
-            <div className="kind-floating kind-floating-2"><Icon name="users" /><div><strong>487</strong><span>Donors</span></div></div>
-            <div className="kind-floating kind-floating-3"><Icon name="chart" /><div><strong>2.4K</strong><span>Shares</span></div></div>
+            <div className="kind-floating kind-floating-1"><Icon name="shield" /><div><span>Trust Score</span><strong>{heroCampaign?.campaign_health_score ?? 0}</strong><small>{heroCampaign?.trust_status ?? 'Live'}</small></div></div>
+            <div className="kind-floating kind-floating-2"><Icon name="users" /><div><strong>{heroCampaign?.backer_count ?? 0}</strong><span>Donors</span></div></div>
+            <div className="kind-floating kind-floating-3"><Icon name="chart" /><div><strong>{heroPercent}%</strong><span>Funded</span></div></div>
             <div className="kind-floating kind-floating-4"><Icon name="clock" /><div><strong>Real-time</strong><span>Impact Updates</span></div></div>
             <div className="kind-campaign-card">
               <div className="kind-verified"><Icon name="check" className="h-3.5 w-3.5" /> VERIFIED CAMPAIGN</div>
-              <h2>Help Mia Get Life-Saving Heart Surgery</h2>
-              <p>Organized by Sarah Thompson <b /></p>
-              <div className="kind-raise-row"><strong>$24,350 <span>raised</span></strong><span>$50,000 goal</span></div>
-              <div className="kind-progress"><i /></div>
-              <div className="kind-raise-row kind-small"><span>487 donations</span><span>32 days left</span></div>
-              <Link href="/campaigns" className="kind-donate"><Icon name="heart" className="h-4 w-4" /> Donate Now</Link>
+              <h2>{heroTitle}</h2>
+              <p>Organized by {profileName(heroCampaign?.profiles ?? null)} <b /></p>
+              <div className="kind-raise-row"><strong>{formatCents(heroCampaign?.raised_amount ?? 0)} <span>raised</span></strong><span>{formatCents(heroCampaign?.goal_amount ?? 0)} goal</span></div>
+              <div className="kind-progress"><i style={{ width: `${heroPercent}%` }} /></div>
+              <div className="kind-raise-row kind-small"><span>{heroCampaign?.backer_count ?? 0} donations</span><span>{daysLeft} days left</span></div>
+              <Link href={heroHref} className="kind-donate"><Icon name="heart" className="h-4 w-4" /> Donate Now</Link>
             </div>
           </div>
         </div>
@@ -129,7 +184,7 @@ export default function HomePage() {
       </section>
 
       <section className="container kind-stats">
-        {STATS.map(([value, label]) => (
+        {stats.map(([value, label]) => (
           <div key={label}><strong>{value}</strong><span>{label}</span></div>
         ))}
       </section>
@@ -148,16 +203,26 @@ export default function HomePage() {
             <Link href="/trust-safety">Our Trust Promise <Icon name="arrow" className="h-3.5 w-3.5" /></Link>
           </div>
           <div className="kind-testimonials">
-            {TESTIMONIALS.map((item) => (
-              <article key={item.name}>
+            {featuredCampaigns.map((item, index) => (
+              <article key={item.slug}>
                 <div className="kind-quote">&quot;</div>
-                <p>{item.quote}</p>
+                <p>{item.description ?? `${item.title} is collecting support through verified KindFund records.`}</p>
                 <div className="kind-person">
-                  <i style={{ background: item.image }} />
-                  <div><strong>{item.name}</strong><span>{item.role}</span><b>Raised {item.raised}</b></div>
+                  <i style={{ background: ['linear-gradient(135deg, #8b5cf6, #f59e0b)', 'linear-gradient(135deg, #10b981, #f472b6)', 'linear-gradient(135deg, #0f172a, #06b6d4)'][index % 3] }} />
+                  <div><strong>{profileName(item.profiles)}</strong><span>{item.title}</span><b>Raised {formatCents(item.raised_amount)}</b></div>
                 </div>
               </article>
             ))}
+            {featuredCampaigns.length === 0 && (
+              <article>
+                <div className="kind-quote">&quot;</div>
+                <p>Campaign stories will appear here as soon as active campaigns are available in Supabase.</p>
+                <div className="kind-person">
+                  <i style={{ background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)' }} />
+                  <div><strong>KindFund</strong><span>Live Supabase data</span><b>Awaiting campaigns</b></div>
+                </div>
+              </article>
+            )}
           </div>
         </div>
         <div className="container kind-press">

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { resend } from '../../../lib/email';
 import { checkRateLimit } from '../../../lib/rate-limit';
+import { supabaseAdmin } from '../../../lib/supabase';
 
 const ContactSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -30,8 +31,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const { name, email, subject, message } = parsed.data;
+  const ipHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip))
+    .then((buffer) => Buffer.from(buffer).toString('hex'));
+  const { error } = await supabaseAdmin.from('contact_messages').insert({
+    name,
+    email,
+    subject,
+    message,
+    ip_hash: ipHash,
+  });
+
+  if (error) {
+    return NextResponse.json({ error: 'Unable to save your message right now.', code: 'CONTACT_SAVE_FAILED' }, { status: 500 });
+  }
+
   if (resend) {
-    const { name, email, subject, message } = parsed.data;
     await resend.emails.send({
       from: process.env.EMAIL_FROM ?? 'KindFund <hello@kindfund.com>',
       to: contactRecipients(),

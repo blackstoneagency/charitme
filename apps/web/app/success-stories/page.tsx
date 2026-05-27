@@ -1,22 +1,67 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { PublicIcon } from '../../components/PublicIcon';
+import { supabaseAdmin } from '../../lib/supabase';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Success Stories',
   description: 'Real KindFund success stories from fundraisers and communities creating impact.',
 };
 
-const stories = [
-  ['Education', 'student', 'Help Sarah Fund Her College', 'With the support of 842 donors, Sarah raised $28,450 for her higher education.', '842', '$28,450', 'May 10, 2024'],
-  ['Medical', 'medical', 'Save Liam\'s Heart Surgery', 'A community came together to help Liam get life-saving surgery.', '1,245', '$65,120', 'Apr 22, 2024'],
-  ['Community', 'community', 'Clean Water for Rural Villages', 'Raised $42,300 to provide clean drinking water to 7 villages.', '967', '$42,300', 'Apr 15, 2024'],
-  ['Animal Welfare', 'dog', 'Rescue Shelter Expansion', 'Thanks to 610 donors, the shelter expanded and saved 300+ animals.', '610', '$18,760', 'Mar 30, 2024'],
-];
-
 const filters = ['All Stories', 'Individuals', 'Nonprofits', 'Communities', 'Emergencies'];
 
-export default function SuccessStoriesPage() {
+type StoryCampaign = {
+  slug: string;
+  title: string;
+  description: string | null;
+  category: string | null;
+  raised_amount: number;
+  backer_count: number;
+  created_at: string;
+};
+
+function formatCents(cents: number): string {
+  return `$${(cents / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+}
+
+function shortCount(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return value.toLocaleString();
+}
+
+function storyImage(category: string | null): string {
+  const value = (category ?? '').toLowerCase();
+  if (value.includes('medical')) return 'medical';
+  if (value.includes('education')) return 'student';
+  if (value.includes('animal')) return 'dog';
+  return 'community';
+}
+
+async function getStoryData() {
+  const [{ data: campaigns }, { count: campaignCount }, { count: donationCount }] = await Promise.all([
+    supabaseAdmin
+      .from('campaigns')
+      .select('slug,title,description,category,raised_amount,backer_count,created_at')
+      .in('status', ['active', 'completed'])
+      .order('raised_amount', { ascending: false })
+      .limit(8),
+    supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).in('status', ['active', 'completed']),
+    supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
+  ]);
+
+  const stories = (campaigns ?? []) as StoryCampaign[];
+  const totalRaised = stories.reduce((sum, story) => sum + story.raised_amount, 0);
+  const totalDonors = stories.reduce((sum, story) => sum + story.backer_count, 0);
+
+  return { stories, campaignCount: campaignCount ?? 0, donationCount: donationCount ?? 0, totalRaised, totalDonors };
+}
+
+export default async function SuccessStoriesPage() {
+  const { stories, campaignCount, donationCount, totalRaised, totalDonors } = await getStoryData();
+
   return (
     <div className="pub-page">
       <section className="stories-hero">
@@ -35,10 +80,10 @@ export default function SuccessStoriesPage() {
             <div className="story-photo donation" />
             <div className="story-message">Together,<br />we create <em>change.</em></div>
             <div className="story-stats">
-              <Stat icon="users" value="320,000+" label="Campaigns Created" />
-              <Stat icon="dollar" value="$48M+" label="Raised" />
-              <Stat icon="heart" value="2.1M+" label="Donors" />
-              <Stat icon="globe" value="180+" label="Countries" />
+              <Stat icon="users" value={campaignCount.toLocaleString()} label="Campaigns Tracked" />
+              <Stat icon="dollar" value={formatCents(totalRaised)} label="Raised" />
+              <Stat icon="heart" value={shortCount(donationCount)} label="Donations" />
+              <Stat icon="globe" value={shortCount(totalDonors)} label="Supporters" />
             </div>
           </div>
         </div>
@@ -52,34 +97,42 @@ export default function SuccessStoriesPage() {
           <select defaultValue="Latest"><option>Latest</option><option>Most Raised</option></select>
         </div>
         <div className="story-grid">
-          {stories.map(([category, image, title, body, donors, raised, date]) => (
-            <article className="story-card" key={title}>
-              <div className={`story-card-img ${image}`}><span>{category}</span><button aria-label="Save story"><PublicIcon name="heart" /></button></div>
-              <h2>{title}</h2>
-              <p>{body}</p>
+          {stories.map((story) => (
+            <article className="story-card" key={story.slug}>
+              <div className={`story-card-img ${storyImage(story.category)}`}><span>{story.category ?? 'Campaign'}</span><Link href={`/campaigns/${story.slug}`} aria-label="View story"><PublicIcon name="heart" /></Link></div>
+              <h2>{story.title}</h2>
+              <p>{story.description ?? 'This campaign is tracking verified support through KindFund.'}</p>
               <div className="story-meta">
-                <span><PublicIcon name="users" /><b>{donors}</b><small>Donors</small></span>
-                <span><PublicIcon name="dollar" /><b>{raised}</b><small>Raised</small></span>
-                <span><PublicIcon name="calendar" /><b>{date}</b></span>
+                <span><PublicIcon name="users" /><b>{story.backer_count.toLocaleString()}</b><small>Donors</small></span>
+                <span><PublicIcon name="dollar" /><b>{formatCents(story.raised_amount)}</b><small>Raised</small></span>
+                <span><PublicIcon name="calendar" /><b>{new Date(story.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</b></span>
               </div>
             </article>
           ))}
+          {stories.length === 0 && (
+            <article className="story-card">
+              <div className="story-card-img community"><span>Live Data</span></div>
+              <h2>No published stories yet</h2>
+              <p>Campaign success stories will appear here as soon as Supabase has active or completed campaigns.</p>
+            </article>
+          )}
         </div>
       </section>
 
       <section className="story-bottom">
         <div className="story-quotes">
           <h2>What our fundraisers say</h2>
-          {['KindFund made it so easy to share my story and reach people who truly care.', 'The tools and support helped us raise funds faster and make a bigger impact.', 'Our community felt connected every step of the way.'].map((quote, index) => (
-            <article key={quote}><span>&quot;</span><p>{quote}</p><b>- {['Emily Johnson', 'Michael Torres', 'Aisha Patel'][index]}</b></article>
+          {(stories.length > 0 ? stories.slice(0, 3) : []).map((story) => (
+            <article key={story.slug}><span>&quot;</span><p>{story.description ?? `${story.title} is building momentum with live campaign data.`}</p><b>- {story.title}</b></article>
           ))}
+          {stories.length === 0 && <article><span>&quot;</span><p>Fundraiser quotes will populate from live campaign records.</p><b>- KindFund</b></article>}
         </div>
         <div className="community-impact">
           <h2>Our Community Impact</h2>
-          <Stat icon="heart" value="320,000+" label="Stories Shared" />
-          <Stat icon="users" value="2.1M+" label="Lives Impacted" />
-          <Stat icon="dollar" value="$48M+" label="Raised Together" />
-          <Stat icon="globe" value="180+" label="Countries Reached" />
+          <Stat icon="heart" value={shortCount(campaignCount)} label="Stories Shared" />
+          <Stat icon="users" value={shortCount(totalDonors)} label="Supporters" />
+          <Stat icon="dollar" value={formatCents(totalRaised)} label="Raised Together" />
+          <Stat icon="globe" value={shortCount(donationCount)} label="Donations Recorded" />
         </div>
       </section>
     </div>
