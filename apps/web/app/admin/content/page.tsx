@@ -1,92 +1,104 @@
 import 'server-only';
-import { PageScaffold, type Metric, type TableRow } from '../../../components/KindFundShellServer';
+import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import ContentClient, { type ContentRecord } from './_components/ContentClient';
 
 export const dynamic = 'force-dynamic';
-
-type UpdateRow = {
-  id: string;
-  title: string | null;
-  body: string;
-  ai_generated: boolean;
-  created_at: string;
-};
-
-type LedgerRow = {
-  id: string;
-  item_type: string;
-  title: string;
-  category: string;
-  status: string;
-  created_at: string;
-};
-
-function dateLabel(value: string): string {
-  return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
 
 export default async function AdminContentPage() {
   await requireAdmin();
 
+  type UpdateRow = {
+    id: string;
+    title: string | null;
+    body: string;
+    ai_generated: boolean;
+    campaign_id: string;
+    created_at: string;
+    updated_at: string | null;
+  };
+
   const [
-    { data: updates, count: updateCount },
-    { count: aiUpdateCount },
-    { data: ledger, count: ledgerCount },
-    { count: messageCount },
-    { count: publicPostCount },
+    { data: updates, count: totalCount },
+    { count: aiCount },
   ] = await Promise.all([
     supabaseAdmin
       .from('campaign_updates')
-      .select('id,title,body,ai_generated,created_at', { count: 'exact' })
+      .select('id,title,body,ai_generated,campaign_id,created_at,updated_at', { count: 'exact' })
       .order('created_at', { ascending: false })
-      .limit(6),
+      .limit(100),
     supabaseAdmin
       .from('campaign_updates')
       .select('id', { count: 'exact', head: true })
       .eq('ai_generated', true),
-    supabaseAdmin
-      .from('transparency_ledger_items')
-      .select('id,item_type,title,category,status,created_at', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .limit(6),
-    supabaseAdmin.from('donor_messages').select('id', { count: 'exact', head: true }),
-    supabaseAdmin.from('exclusive_posts').select('id', { count: 'exact', head: true }).eq('visibility', 'public'),
   ]);
 
-  const updateRows: TableRow[] = ((updates ?? []) as UpdateRow[]).map((item) => ({
-    title: item.title ?? item.body.slice(0, 58),
-    subtitle: item.body.slice(0, 96),
-    status: item.ai_generated ? 'AI Generated' : 'Published',
-    amount: dateLabel(item.created_at),
-    meta: ['Campaign update'],
+  const updateList = (updates ?? []) as UpdateRow[];
+
+  // Resolve campaign titles
+  const campaignIds = [...new Set(updateList.map(u => u.campaign_id).filter(Boolean))];
+  const campaignMap = new Map<string, string>();
+  if (campaignIds.length > 0) {
+    const { data: campaigns } = await supabaseAdmin
+      .from('campaigns').select('id,title,user_id').in('id', campaignIds);
+    for (const c of (campaigns ?? []) as { id: string; title: string; user_id: string }[]) {
+      campaignMap.set(c.id, c.title);
+    }
+  }
+
+  // Resolve authors (organizer profiles)
+  const organizerIds = [...new Set(
+    (updates ?? []).map(u => {
+      const cid = (u as UpdateRow).campaign_id;
+      return cid ? cid : null;
+    }).filter(Boolean)
+  )] as string[];
+
+  // Build content records
+  const content: ContentRecord[] = updateList.map(u => ({
+    id: u.id,
+    title: u.title ?? u.body.slice(0, 60),
+    body: u.body,
+    type: u.ai_generated ? 'AI Generated' : 'Campaign Update',
+    status: 'Published',
+    author: 'Organizer',
+    campaign_title: campaignMap.get(u.campaign_id) ?? 'Unknown Campaign',
+    created_at: u.created_at,
+    updated_at: u.updated_at ?? u.created_at,
   }));
 
-  const ledgerRows: TableRow[] = ((ledger ?? []) as LedgerRow[]).map((item) => ({
-    title: item.title,
-    subtitle: `${item.category} transparency item`,
-    status: item.status,
-    amount: item.item_type.replace(/_/g, ' '),
-    meta: [dateLabel(item.created_at)],
-  }));
+  // Content by type
+  const typeMap = new Map<string, number>();
+  for (const c of content) {
+    typeMap.set(c.type, (typeMap.get(c.type) ?? 0) + 1);
+  }
+  const contentByType = [...typeMap.entries()].map(([type, count]) => ({ type, count }));
 
-  const rows = [...updateRows, ...ledgerRows].slice(0, 10);
-  const metrics: Metric[] = [
-    { label: 'Campaign Updates', value: (updateCount ?? 0).toLocaleString(), change: 'from campaign_updates', icon: 'doc', tone: 'violet' },
-    { label: 'AI Content', value: (aiUpdateCount ?? 0).toLocaleString(), change: 'generated updates', icon: 'send', tone: 'blue' },
-    { label: 'Ledger Items', value: (ledgerCount ?? 0).toLocaleString(), change: 'transparency records', icon: 'stack', tone: 'green' },
-    { label: 'Messages', value: ((messageCount ?? 0) + (publicPostCount ?? 0)).toLocaleString(), change: 'donor and public posts', icon: 'chat', tone: 'orange' },
-  ];
+  const totalContent = totalCount ?? 0;
+  const publishedCount = content.length; // all are "published" in this schema
+  const draftCount = 0;
+  const archivedCount = 0;
 
   return (
-    <PageScaffold
-      mode="admin"
-      active="Content"
-      title="Content"
-      subtitle="Campaign updates, transparency records, donor messages, and public posts from Supabase."
-      metrics={metrics}
-      rows={rows}
-      tabs={['All Content', 'Updates', 'Ledger', 'Messages']}
-    />
+    <KindFundShell active="Content" mode="admin">
+      <TopBar
+        title="Content"
+        subtitle="Campaign updates, posts, and content from Supabase."
+        actions={
+          <button className="kf-primary" style={{ height: 44, padding: '0 20px', fontSize: 13, fontWeight: 900 }}>
+            + Create Content
+          </button>
+        }
+      />
+      <ContentClient
+        totalContent={totalContent}
+        publishedCount={publishedCount}
+        draftCount={draftCount}
+        archivedCount={archivedCount}
+        contentByType={contentByType}
+        content={content}
+      />
+    </KindFundShell>
   );
 }

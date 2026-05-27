@@ -1,39 +1,15 @@
 import 'server-only';
-import { PageScaffold, type TableRow, type Metric } from '../../../components/KindFundShellServer';
+import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import PayoutsClient, { type PayoutRecord, type WeekPoint, type TopRecipient } from './_components/PayoutsClient';
 
 export const dynamic = 'force-dynamic';
 
-// ─────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────
-function fmtCents(cents: number): string {
-  const dollars = cents / 100;
-  if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1)}M`;
-  if (dollars >= 1_000) return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-  return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-}
-
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-function capitalize(s: string): string {
-  return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
-}
-
-// ─────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────
 export default async function AdminPayoutsPage() {
   await requireAdmin();
 
-  type PayoutRow = {
+  type RawPayout = {
     id: string;
     campaign_id: string;
     user_id: string;
@@ -43,123 +19,132 @@ export default async function AdminPayoutsPage() {
     created_at: string;
   };
 
+  const eightWeeksAgo = new Date();
+  eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 56);
+
   const [
     { data: payouts },
     { data: paidAmounts },
     { data: pendingAmounts },
-    { count: requestedCount },
-    { count: paidCount },
+    { count: pendingCount },
+    { count: completedCount },
     { count: failedCount },
+    { data: trendData },
   ] = await Promise.all([
     supabaseAdmin
       .from('payouts')
-      .select('id, campaign_id, user_id, amount_cents, payout_speed, status, created_at')
+      .select('id,campaign_id,user_id,amount_cents,payout_speed,status,created_at')
       .order('created_at', { ascending: false })
-      .limit(200),
-    // NOTE: For large datasets, replace with a Supabase RPC for server-side SUM
+      .limit(100),
     supabaseAdmin.from('payouts').select('amount_cents').eq('status', 'paid'),
-    supabaseAdmin.from('payouts').select('amount_cents').in('status', ['requested', 'approved']),
-    supabaseAdmin
-      .from('payouts')
-      .select('*', { count: 'exact', head: true })
-      .in('status', ['requested', 'approved']),
+    supabaseAdmin.from('payouts').select('amount_cents').in('status', ['requested', 'approved', 'pending']),
+    supabaseAdmin.from('payouts').select('*', { count: 'exact', head: true }).in('status', ['requested', 'approved', 'pending']),
     supabaseAdmin.from('payouts').select('*', { count: 'exact', head: true }).eq('status', 'paid'),
     supabaseAdmin.from('payouts').select('*', { count: 'exact', head: true }).eq('status', 'failed'),
+    supabaseAdmin
+      .from('payouts')
+      .select('amount_cents,created_at')
+      .gte('created_at', eightWeeksAgo.toISOString())
+      .order('created_at', { ascending: true }),
   ]);
 
-  const payoutList = (payouts ?? []) as PayoutRow[];
-
-  const totalPaidCents = (paidAmounts ?? []).reduce(
-    (s, p) => s + ((p as { amount_cents: number }).amount_cents ?? 0), 0,
-  );
-  const totalPendingCents = (pendingAmounts ?? []).reduce(
-    (s, p) => s + ((p as { amount_cents: number }).amount_cents ?? 0), 0,
-  );
+  const payoutList = (payouts ?? []) as RawPayout[];
+  const totalCents = (paidAmounts ?? []).reduce((s, p) => s + ((p as { amount_cents: number }).amount_cents ?? 0), 0);
+  const pendingCents = (pendingAmounts ?? []).reduce((s, p) => s + ((p as { amount_cents: number }).amount_cents ?? 0), 0);
 
   // Resolve campaign titles
-  const campaignIds = [...new Set(payoutList.map(p => p.campaign_id))];
+  const campaignIds = [...new Set(payoutList.map(p => p.campaign_id).filter(Boolean))];
   const campaignMap = new Map<string, string>();
   if (campaignIds.length > 0) {
-    const { data: campaigns } = await supabaseAdmin
-      .from('campaigns')
-      .select('id, title')
-      .in('id', campaignIds);
+    const { data: campaigns } = await supabaseAdmin.from('campaigns').select('id,title').in('id', campaignIds);
     for (const c of (campaigns ?? []) as { id: string; title: string }[]) {
       campaignMap.set(c.id, c.title);
     }
   }
 
-  // Resolve organizer names
-  const organizerIds = [...new Set(payoutList.map(p => p.user_id))];
-  const organizerMap = new Map<string, string>();
-  if (organizerIds.length > 0) {
-    const { data: profiles } = await supabaseAdmin
-      .from('profiles')
-      .select('id, full_name')
-      .in('id', organizerIds);
+  // Resolve organizer profiles
+  const userIds = [...new Set(payoutList.map(p => p.user_id).filter(Boolean))];
+  const profileMap = new Map<string, { name: string; email: string }>();
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabaseAdmin.from('profiles').select('id,full_name').in('id', userIds);
     for (const p of (profiles ?? []) as { id: string; full_name: string | null }[]) {
-      if (p.full_name) organizerMap.set(p.id, p.full_name);
+      profileMap.set(p.id, { name: p.full_name ?? 'Unknown', email: '' });
     }
+    try {
+      const { data: authData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 200 });
+      for (const u of authData?.users ?? []) {
+        const existing = profileMap.get(u.id);
+        if (existing) profileMap.set(u.id, { ...existing, email: u.email ?? '' });
+      }
+    } catch { /* ignore */ }
   }
 
-  const rows: TableRow[] = payoutList.map(p => ({
-    title: organizerMap.get(p.user_id) ?? 'Unknown Organizer',
-    subtitle: campaignMap.get(p.campaign_id) ?? 'Unknown Campaign',
-    status: capitalize(p.status),
-    amount: fmtCents(p.amount_cents),
-    meta: [
-      p.payout_speed ? capitalize(p.payout_speed) : 'Standard',
-      fmtDate(p.created_at),
-    ],
+  // Weekly trend
+  const weekMap = new Map<string, number>();
+  for (const p of (trendData ?? []) as { amount_cents: number; created_at: string }[]) {
+    const date = new Date(p.created_at);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(date);
+    monday.setDate(diff);
+    const key = monday.toISOString().slice(0, 10);
+    weekMap.set(key, (weekMap.get(key) ?? 0) + (p.amount_cents ?? 0));
+  }
+  const weeklyTrend: WeekPoint[] = [...weekMap.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-8)
+    .map(([week, total_cents]) => ({ week, total_cents }));
+
+  // Top recipients
+  const recipientMap = new Map<string, number>();
+  for (const p of payoutList) {
+    recipientMap.set(p.user_id, (recipientMap.get(p.user_id) ?? 0) + p.amount_cents);
+  }
+  const topRecipients: TopRecipient[] = [...recipientMap.entries()]
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5)
+    .map(([id, total_cents]) => ({
+      id,
+      name: profileMap.get(id)?.name ?? 'Unknown',
+      total_cents,
+    }));
+
+  // Build records
+  const records: PayoutRecord[] = payoutList.map(p => ({
+    id: p.id,
+    recipient_name: profileMap.get(p.user_id)?.name ?? 'Unknown Organizer',
+    recipient_email: profileMap.get(p.user_id)?.email ?? '',
+    campaign_title: campaignMap.get(p.campaign_id) ?? 'Unknown Campaign',
+    amount_cents: p.amount_cents,
+    status: p.status,
+    payout_method: p.payout_speed ? p.payout_speed.replace(/_/g, ' ') : 'Bank Transfer',
+    note: null,
+    created_at: p.created_at,
+    paid_at: p.status === 'paid' ? p.created_at : null,
   }));
 
-  const totalAll = (requestedCount ?? 0) + (paidCount ?? 0) + (failedCount ?? 0);
-
-  const metrics: Metric[] = [
-    {
-      label: 'Total Paid Out',
-      value: fmtCents(totalPaidCents),
-      change: 'completed payouts',
-      icon: 'wallet',
-      tone: 'violet',
-    },
-    {
-      label: 'Pending',
-      value: fmtCents(totalPendingCents),
-      change: 'awaiting approval',
-      icon: 'audit',
-      tone: 'orange',
-    },
-    {
-      label: 'Completed',
-      value: (paidCount ?? 0).toLocaleString(),
-      change: 'payout transactions',
-      icon: 'check',
-      tone: 'green',
-    },
-    {
-      label: 'Failed',
-      value: (failedCount ?? 0).toLocaleString(),
-      change: 'need review',
-      icon: 'doc',
-      tone: 'pink',
-    },
-  ];
-
   return (
-    <PageScaffold
-      mode="admin"
-      active="Payouts"
-      title="Payouts"
-      subtitle="Manage payout requests, review details, take action, and track payouts."
-      metrics={metrics}
-      rows={rows}
-      tabs={[
-        `All (${totalAll})`,
-        `Pending (${requestedCount ?? 0})`,
-        `Completed (${paidCount ?? 0})`,
-        `Failed (${failedCount ?? 0})`,
-      ]}
-    />
+    <KindFundShell active="Payouts" mode="admin">
+      <TopBar
+        title="Payouts"
+        subtitle="Manage payout requests, review details, and take action."
+        actions={
+          <button className="kf-primary" style={{ height: 44, padding: '0 20px', fontSize: 13, fontWeight: 900 }}>
+            + Create Payout
+          </button>
+        }
+      />
+      <PayoutsClient
+        totalCents={totalCents}
+        pendingCents={pendingCents}
+        completedCents={totalCents}
+        failedCount={failedCount ?? 0}
+        pendingCount={pendingCount ?? 0}
+        completedCount={completedCount ?? 0}
+        payouts={records}
+        weeklyTrend={weeklyTrend}
+        topRecipients={topRecipients}
+      />
+    </KindFundShell>
   );
 }

@@ -33,17 +33,14 @@ interface Props {
 }
 
 type Section =
-  | 'general'
   | 'profile'
-  | 'organization'
+  | 'preferences'
   | 'notifications'
   | 'security'
-  | 'payment'
-  | 'email-templates'
-  | 'privacy'
+  | 'integrations'
+  | 'team'
   | 'billing'
-  | 'data'
-  | 'advanced';
+  | 'data';
 
 interface Toast {
   kind: 'success' | 'error';
@@ -53,10 +50,10 @@ interface Toast {
 // ─────────────────────────────────────────────
 // Plan helpers
 // ─────────────────────────────────────────────
-const PLAN_LABELS: Record<string, { label: string; chipClass: string; campaignLimit: number }> = {
-  free:    { label: 'Free',    chipClass: 'free',    campaignLimit: 1  },
-  starter: { label: 'Starter', chipClass: 'starter', campaignLimit: 5  },
-  pro:     { label: 'Pro',     chipClass: 'pro',     campaignLimit: 999 },
+const PLAN_LABELS: Record<string, { label: string; chipClass: string; price: string; campaignLimit: number }> = {
+  free:    { label: 'Free',    chipClass: 'free',    price: '$0/month',   campaignLimit: 1  },
+  starter: { label: 'Starter', chipClass: 'starter', price: '$29/month',  campaignLimit: 5  },
+  pro:     { label: 'Pro',     chipClass: 'pro',     price: '$89/month',  campaignLimit: 999 },
 };
 
 // ─────────────────────────────────────────────
@@ -65,170 +62,106 @@ const PLAN_LABELS: Record<string, { label: string; chipClass: string; campaignLi
 function Toggle({ checked, onChange, id }: { checked: boolean; onChange: (v: boolean) => void; id: string }) {
   return (
     <label className="kf-toggle-wrap" htmlFor={id} style={{ cursor: 'pointer' }}>
-      <input
-        id={id}
-        type="checkbox"
-        className="kf-toggle-input"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
+      <input id={id} type="checkbox" className="kf-toggle-input" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span className="kf-toggle-track" />
     </label>
   );
 }
 
 // ─────────────────────────────────────────────
-// Nav item
+// NavItem
 // ─────────────────────────────────────────────
-function NavItem({
-  label,
-  icon,
-  active,
-  onClick,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  active: boolean;
-  onClick: () => void;
-}) {
+function NavItem({ label, desc, icon, active, onClick }: { label: string; desc?: string; icon: React.ReactNode; active: boolean; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      className={`kf-setnav-item${active ? ' active' : ''}`}
-      onClick={onClick}
-    >
-      {icon}
-      {label}
+    <button type="button" className={`kf-setnav-item${active ? ' active' : ''}`} onClick={onClick} style={{ flexDirection: 'column', alignItems: 'flex-start', height: 'auto', paddingTop: 10, paddingBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%' }}>
+        {icon}
+        <span style={{ fontWeight: active ? 950 : 750, fontSize: 13 }}>{label}</span>
+      </div>
+      {desc && <span style={{ fontSize: 11, color: active ? '#8b5cf6' : '#8c9ab5', paddingLeft: 24, marginTop: 2, lineHeight: 1.3 }}>{desc}</span>}
     </button>
   );
 }
 
 // ─────────────────────────────────────────────
-// Tiny inline SVGs (no external dep)
+// Inline SVGs
 // ─────────────────────────────────────────────
 const Ico = {
-  settings: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6}>
-      <circle cx="10" cy="10" r="3" />
-      <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" />
-    </svg>
-  ),
-  user: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6}>
-      <circle cx="10" cy="7" r="3.5" />
-      <path d="M3 18c0-3.87 3.13-7 7-7s7 3.13 7 7" />
-    </svg>
-  ),
-  org: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6}>
-      <rect x="2" y="7" width="16" height="11" rx="2" />
-      <path d="M6 7V5a4 4 0 0 1 8 0v2" />
-    </svg>
-  ),
-  bell: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6}>
-      <path d="M10 2a6 6 0 0 1 6 6c0 3 1 4 2 5H2c1-1 2-2 2-5a6 6 0 0 1 6-6z" />
-      <path d="M8 17a2 2 0 0 0 4 0" />
-    </svg>
-  ),
-  lock: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6}>
-      <rect x="4" y="9" width="12" height="9" rx="2" />
-      <path d="M7 9V7a3 3 0 0 1 6 0v2" />
-    </svg>
-  ),
-  card: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6}>
-      <rect x="2" y="5" width="16" height="12" rx="2" />
-      <path d="M2 9h16" />
-    </svg>
-  ),
-  mail: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6}>
-      <rect x="2" y="4" width="16" height="13" rx="2" />
-      <path d="M2 7l8 5 8-5" />
-    </svg>
-  ),
-  shield: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6}>
-      <path d="M10 2l7 3v5c0 4-3.5 7-7 8-3.5-1-7-4-7-8V5l7-3z" />
-    </svg>
-  ),
-  crown: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6}>
-      <path d="M3 15h14M3 15l2-8 5 4 5-4 2 8H3z" />
-    </svg>
-  ),
-  download: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6}>
-      <path d="M10 3v10M6 9l4 4 4-4" />
-      <path d="M3 15h14" />
-    </svg>
-  ),
-  sliders: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6}>
-      <path d="M4 6h12M4 10h12M4 14h12" />
-      <circle cx="8" cy="6" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="14" cy="10" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="8" cy="14" r="1.5" fill="currentColor" stroke="none" />
-    </svg>
-  ),
-  help: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6}>
-      <circle cx="10" cy="10" r="8" />
-      <path d="M8 8a2 2 0 1 1 2 2v2" />
-      <circle cx="10" cy="15" r=".8" fill="currentColor" stroke="none" />
-    </svg>
-  ),
-  check: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path d="M4 10l5 5 7-8" />
-    </svg>
-  ),
-  arrow: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6}>
-      <path d="M5 10h10M11 6l4 4-4 4" />
-    </svg>
-  ),
-  link: (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6}>
-      <path d="M8 12l-2 2a3 3 0 1 0 4.24 4.24l2-2a3 3 0 0 0-4.24-4.24z" />
-      <path d="M12 8l2-2a3 3 0 1 0-4.24-4.24L7.76 3.76A3 3 0 0 0 12 8z" />
-      <path d="M9 11l2-2" />
-    </svg>
-  ),
+  user: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} width={15} height={15}><circle cx="10" cy="7" r="3.5"/><path d="M3 18c0-3.87 3.13-7 7-7s7 3.13 7 7"/></svg>,
+  sliders: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} width={15} height={15}><path d="M4 6h12M4 10h12M4 14h12"/><circle cx="8" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="14" cy="10" r="1.5" fill="currentColor" stroke="none"/><circle cx="8" cy="14" r="1.5" fill="currentColor" stroke="none"/></svg>,
+  bell: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} width={15} height={15}><path d="M10 2a6 6 0 0 1 6 6c0 3 1 4 2 5H2c1-1 2-2 2-5a6 6 0 0 1 6-6z"/><path d="M8 17a2 2 0 0 0 4 0"/></svg>,
+  lock: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} width={15} height={15}><rect x="4" y="9" width="12" height="9" rx="2"/><path d="M7 9V7a3 3 0 0 1 6 0v2"/></svg>,
+  link: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} width={15} height={15}><path d="M8 12l-2 2a3 3 0 1 0 4.24 4.24l2-2a3 3 0 0 0-4.24-4.24z"/><path d="M12 8l2-2a3 3 0 1 0-4.24-4.24L7.76 3.76A3 3 0 0 0 12 8z"/><path d="M9 11l2-2"/></svg>,
+  team: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} width={15} height={15}><circle cx="7" cy="7" r="3"/><path d="M1 17a6 6 0 0 1 12 0"/><circle cx="15" cy="8" r="2.5"/><path d="M12 16a5 5 0 0 1 6.5 2"/></svg>,
+  crown: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} width={15} height={15}><path d="M3 15h14M3 15l2-8 5 4 5-4 2 8H3z"/></svg>,
+  download: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} width={15} height={15}><path d="M10 3v10M6 9l4 4 4-4"/><path d="M3 15h14"/></svg>,
+  check: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2} width={15} height={15}><path d="M4 10l5 5 7-8"/></svg>,
+  arrow: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} width={14} height={14}><path d="M5 10h10M11 6l4 4-4 4"/></svg>,
+  help: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} width={15} height={15}><circle cx="10" cy="10" r="8"/><path d="M8 8a2 2 0 1 1 2 2v2"/><circle cx="10" cy="15" r=".8" fill="currentColor" stroke="none"/></svg>,
+  org: <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} width={15} height={15}><rect x="2" y="7" width="16" height="11" rx="2"/><path d="M6 7V5a4 4 0 0 1 8 0v2"/></svg>,
 };
+
+// ─────────────────────────────────────────────
+// SetField
+// ─────────────────────────────────────────────
+function SetField({ label, hint, children, className }: { label: string; hint?: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`kf-setfield${className ? ` ${className}` : ''}`}>
+      <label>{label}</label>
+      {children}
+      {hint ? <span className="kf-setfield-hint">{hint}</span> : null}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// PrefRow
+// ─────────────────────────────────────────────
+function PrefRow({ id, label, desc, checked, onChange }: { id: string; label: string; desc: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="kf-setpref">
+      <div className="kf-setpref-info"><strong>{label}</strong><span>{desc}</span></div>
+      <Toggle id={id} checked={checked} onChange={onChange} />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// NotifRow (self-contained toggle state)
+// ─────────────────────────────────────────────
+function NotifRow({ id, label, desc, defaultOn }: { id: string; label: string; desc: string; defaultOn: boolean }) {
+  const [on, setOn] = useState(defaultOn);
+  return (
+    <div className="kf-setpref">
+      <div className="kf-setpref-info"><strong>{label}</strong><span>{desc}</span></div>
+      <Toggle id={id} checked={on} onChange={setOn} />
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────
-export default function SettingsClient({
-  initialProfile,
-  campaignsCount,
-  userEmail,
-  hasStripeCustomer,
-}: Props) {
+export default function SettingsClient({ initialProfile, campaignsCount, userEmail, hasStripeCustomer }: Props) {
   const uid = useId();
-  const [section, setSection] = useState<Section>('general');
+  const [section, setSection] = useState<Section>('profile');
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
 
-  // ── General / Organisation / Locale / Prefs form state ──────────
+  // Form state
+  const [fullName, setFullName] = useState(initialProfile.full_name ?? '');
+  const [bio, setBio] = useState(initialProfile.bio ?? '');
+  const [avatarUrl, setAvatarUrl] = useState(initialProfile.avatar_url ?? '');
   const [orgName, setOrgName] = useState(initialProfile.org_name ?? '');
   const [orgWebsite, setOrgWebsite] = useState(initialProfile.org_website ?? '');
   const [orgTagline, setOrgTagline] = useState(initialProfile.org_tagline ?? '');
   const [timezone, setTimezone] = useState(initialProfile.timezone ?? 'America/New_York');
   const [currency, setCurrency] = useState(initialProfile.currency ?? 'usd');
   const [language, setLanguage] = useState(initialProfile.language ?? 'en');
-  const [dateFormat, setDateFormat] = useState(initialProfile.date_format ?? 'MM/DD/YYYY');
-  const [timeFormat, setTimeFormat] = useState(initialProfile.time_format ?? '12h');
   const [showPublicProfile, setShowPublicProfile] = useState(initialProfile.show_public_profile ?? true);
   const [campaignRecs, setCampaignRecs] = useState(initialProfile.campaign_recommendations ?? true);
-
-  // ── Profile form state ───────────────────────────────────────────
-  const [fullName, setFullName] = useState(initialProfile.full_name ?? '');
-  const [bio, setBio] = useState(initialProfile.bio ?? '');
-  const [avatarUrl, setAvatarUrl] = useState(initialProfile.avatar_url ?? '');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('member');
 
   const currentPlan = (initialProfile.plan ?? 'free').toLowerCase();
   const planInfo = PLAN_LABELS[currentPlan] ?? PLAN_LABELS.free;
@@ -241,371 +174,174 @@ export default function SettingsClient({
     setTimeout(() => setToast(null), 3500);
   }
 
-  async function saveGeneral() {
+  async function saveProfile() {
     setSaving(true);
     try {
       const res = await fetch('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          org_name: orgName || null,
-          org_website: orgWebsite || null,
-          org_tagline: orgTagline || null,
-          timezone,
-          currency,
-          language,
-          date_format: dateFormat,
-          time_format: timeFormat,
-          show_public_profile: showPublicProfile,
-          campaign_recommendations: campaignRecs,
+          full_name: fullName, bio: bio || null, avatar_url: avatarUrl || null,
+          org_name: orgName || null, org_website: orgWebsite || null, org_tagline: orgTagline || null,
         }),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        showToast('error', (err as { error?: string }).error ?? 'Failed to save settings.');
-        return;
-      }
-      showToast('success', 'Settings saved!');
-    } catch {
-      showToast('error', 'Something went wrong. Please try again.');
-    } finally {
-      setSaving(false);
-    }
+      if (!res.ok) { const e = await res.json().catch(() => ({})); showToast('error', (e as { error?: string }).error ?? 'Failed to save.'); return; }
+      showToast('success', 'Profile saved!');
+    } catch { showToast('error', 'Something went wrong.'); } finally { setSaving(false); }
   }
 
-  async function saveProfile() {
+  async function savePreferences() {
     setSaving(true);
     try {
-      const body: Record<string, unknown> = { full_name: fullName, bio: bio || null };
-      if (avatarUrl) body.avatar_url = avatarUrl;
       const res = await fetch('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ timezone, currency, language, show_public_profile: showPublicProfile, campaign_recommendations: campaignRecs }),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        showToast('error', (err as { error?: string }).error ?? 'Failed to save profile.');
-        return;
-      }
-      showToast('success', 'Profile saved!');
-    } catch {
-      showToast('error', 'Something went wrong. Please try again.');
-    } finally {
-      setSaving(false);
-    }
+      if (!res.ok) { const e = await res.json().catch(() => ({})); showToast('error', (e as { error?: string }).error ?? 'Failed to save.'); return; }
+      showToast('success', 'Preferences saved!');
+    } catch { showToast('error', 'Something went wrong.'); } finally { setSaving(false); }
   }
 
-  // ─────────────────────────────────────────────
-  // Left nav definition
-  // ─────────────────────────────────────────────
-  const navGroups = [
-    {
-      label: 'Account',
-      items: [
-        { id: 'general' as Section,       label: 'General',         icon: Ico.settings },
-        { id: 'profile' as Section,        label: 'Profile',         icon: Ico.user },
-        { id: 'organization' as Section,   label: 'Organization',    icon: Ico.org },
-        { id: 'notifications' as Section,  label: 'Notifications',   icon: Ico.bell },
-        { id: 'security' as Section,       label: 'Security',        icon: Ico.lock },
-      ],
-    },
-    {
-      label: 'Billing',
-      items: [
-        { id: 'payment' as Section,        label: 'Payment Methods', icon: Ico.card },
-        { id: 'email-templates' as Section, label: 'Email Templates', icon: Ico.mail },
-        { id: 'privacy' as Section,        label: 'Privacy',         icon: Ico.shield },
-        { id: 'billing' as Section,        label: 'Billing & Plan',  icon: Ico.crown },
-      ],
-    },
-    {
-      label: 'Advanced',
-      items: [
-        { id: 'data' as Section,           label: 'Data & Export',   icon: Ico.download },
-        { id: 'advanced' as Section,       label: 'Advanced',        icon: Ico.sliders },
-      ],
-    },
+  const navItems: { id: Section; label: string; desc: string; icon: React.ReactNode }[] = [
+    { id: 'profile',       label: 'Profile & Organization',  desc: 'Manage profile and org details',    icon: Ico.user },
+    { id: 'preferences',   label: 'Preferences',             desc: 'Customize your app experience',     icon: Ico.sliders },
+    { id: 'notifications', label: 'Notifications',           desc: 'How you receive notifications',     icon: Ico.bell },
+    { id: 'security',      label: 'Security & Privacy',      desc: 'Keep your account secure',          icon: Ico.lock },
+    { id: 'integrations',  label: 'Integrations',            desc: 'Connect third-party services',      icon: Ico.link },
+    { id: 'team',          label: 'Team & Access',           desc: 'Manage team members and roles',     icon: Ico.team },
+    { id: 'billing',       label: 'Billing & Subscription',  desc: 'Manage your plan and billing',      icon: Ico.crown },
+    { id: 'data',          label: 'Data & Export',           desc: 'Export or delete your data',        icon: Ico.download },
   ];
 
   // ─────────────────────────────────────────────
-  // Render panel content
+  // Panel renderer
   // ─────────────────────────────────────────────
   function renderPanel() {
     switch (section) {
-      case 'general':
+      case 'profile':
         return (
           <>
-            {/* Organisation Information */}
+            {/* Profile */}
+            <div className="kf-setpanel">
+              <div className="kf-setpanel-head">
+                <div className="kf-setpanel-title">
+                  <div className="kf-setpanel-icon">{Ico.user}</div>
+                  <div><h2>Profile</h2><p>Your personal name, email, bio, and avatar.</p></div>
+                </div>
+                <button type="button" className="kf-setpanel-save" onClick={saveProfile} disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
+              </div>
+              <div className="kf-setpanel-body">
+                {/* Avatar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
+                  <div style={{ width: 64, height: 64, borderRadius: '50%', background: avatarUrl ? `url(${avatarUrl}) center/cover` : 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+                    {!avatarUrl && (fullName.charAt(0) || userEmail.charAt(0)).toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 950, color: '#101944' }}>{fullName || userEmail}</div>
+                    <div style={{ fontSize: 12, color: '#66708d', marginTop: 2 }}>{userEmail}</div>
+                    <button type="button" style={{ marginTop: 8, height: 32, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 12, fontWeight: 750, cursor: 'pointer' }} onClick={() => alert('Upload photo feature coming soon')}>Change Photo</button>
+                  </div>
+                </div>
+                <div className="kf-setrow">
+                  <SetField label="Full Name">
+                    <input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Jane Smith" maxLength={120} />
+                  </SetField>
+                  <SetField label="Email Address" hint="Contact support to change your email">
+                    <input value={userEmail} disabled style={{ background: '#f7f8fc', color: '#8c9ab5' }} />
+                  </SetField>
+                </div>
+                <SetField label="Bio" className="full">
+                  <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Tell donors a bit about yourself…" maxLength={500} />
+                </SetField>
+                <SetField label="Avatar URL" hint="Paste a direct image URL (HTTPS)" className="full">
+                  <input value={avatarUrl} onChange={e => setAvatarUrl(e.target.value)} placeholder="https://example.com/photo.jpg" type="url" />
+                </SetField>
+              </div>
+            </div>
+            {/* Organization */}
             <div className="kf-setpanel">
               <div className="kf-setpanel-head">
                 <div className="kf-setpanel-title">
                   <div className="kf-setpanel-icon">{Ico.org}</div>
-                  <div>
-                    <h2>Organisation Information</h2>
-                    <p>Your public-facing organisation details.</p>
-                  </div>
+                  <div><h2>Organization Details</h2><p>Your public-facing organisation information.</p></div>
                 </div>
-                <button
-                  type="button"
-                  className="kf-setpanel-save"
-                  onClick={saveGeneral}
-                  disabled={saving}
-                >
-                  {saving ? 'Saving…' : 'Save Changes'}
-                </button>
+                <button type="button" className="kf-setpanel-save" onClick={saveProfile} disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
               </div>
               <div className="kf-setpanel-body">
                 <div className="kf-setrow">
-                  <SetField label="Organisation Name" hint="Shown on your public campaigns">
-                    <input
-                      value={orgName}
-                      onChange={(e) => setOrgName(e.target.value)}
-                      placeholder="e.g. Hope Foundation"
-                      maxLength={120}
-                    />
+                  <SetField label="Organization Name">
+                    <input value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="e.g. Hope Foundation" maxLength={120} />
                   </SetField>
                   <SetField label="Website">
-                    <input
-                      value={orgWebsite}
-                      onChange={(e) => setOrgWebsite(e.target.value)}
-                      placeholder="https://yourorg.com"
-                      type="url"
-                    />
+                    <input value={orgWebsite} onChange={e => setOrgWebsite(e.target.value)} placeholder="https://yourorg.com" type="url" />
                   </SetField>
                 </div>
                 <SetField label="Tagline" className="full">
-                  <input
-                    value={orgTagline}
-                    onChange={(e) => setOrgTagline(e.target.value)}
-                    placeholder="A short description of your mission…"
-                    maxLength={200}
-                  />
+                  <input value={orgTagline} onChange={e => setOrgTagline(e.target.value)} placeholder="A short mission statement…" maxLength={200} />
                 </SetField>
-              </div>
-            </div>
-
-            {/* Currency & Locale */}
-            <div className="kf-setpanel">
-              <div className="kf-setpanel-head">
-                <div className="kf-setpanel-title">
-                  <div className="kf-setpanel-icon">{Ico.settings}</div>
-                  <div>
-                    <h2>Currency &amp; Locale</h2>
-                    <p>Set your default currency and language.</p>
-                  </div>
-                </div>
-              </div>
-              <div className="kf-setpanel-body">
-                <div className="kf-setrow triple">
-                  <SetField label="Currency">
-                    <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
-                      <option value="usd">USD – US Dollar</option>
-                      <option value="eur">EUR – Euro</option>
-                      <option value="gbp">GBP – British Pound</option>
-                      <option value="cad">CAD – Canadian Dollar</option>
-                      <option value="aud">AUD – Australian Dollar</option>
-                    </select>
-                  </SetField>
-                  <SetField label="Language">
-                    <select value={language} onChange={(e) => setLanguage(e.target.value)}>
-                      <option value="en">English</option>
-                      <option value="es">Spanish</option>
-                      <option value="fr">French</option>
-                      <option value="de">German</option>
-                      <option value="pt">Portuguese</option>
-                    </select>
-                  </SetField>
-                  <SetField label="Timezone">
-                    <select value={timezone} onChange={(e) => setTimezone(e.target.value)}>
-                      <option value="America/New_York">Eastern Time (ET)</option>
-                      <option value="America/Chicago">Central Time (CT)</option>
-                      <option value="America/Denver">Mountain Time (MT)</option>
-                      <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                      <option value="America/Anchorage">Alaska Time (AKT)</option>
-                      <option value="Pacific/Honolulu">Hawaii Time (HT)</option>
-                      <option value="Europe/London">London (GMT/BST)</option>
-                      <option value="Europe/Paris">Paris (CET)</option>
-                      <option value="Asia/Tokyo">Tokyo (JST)</option>
-                      <option value="Australia/Sydney">Sydney (AEST)</option>
-                    </select>
-                  </SetField>
-                </div>
-              </div>
-            </div>
-
-            {/* Date & Time Format */}
-            <div className="kf-setpanel">
-              <div className="kf-setpanel-head">
-                <div className="kf-setpanel-title">
-                  <div className="kf-setpanel-icon">{Ico.settings}</div>
-                  <div>
-                    <h2>Date &amp; Time Format</h2>
-                    <p>How dates and times appear across your dashboard.</p>
-                  </div>
-                </div>
-              </div>
-              <div className="kf-setpanel-body">
-                <div className="kf-setrow">
-                  <SetField label="Date Format">
-                    <select value={dateFormat} onChange={(e) => setDateFormat(e.target.value)}>
-                      <option value="MM/DD/YYYY">MM/DD/YYYY (US)</option>
-                      <option value="DD/MM/YYYY">DD/MM/YYYY (International)</option>
-                      <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
-                    </select>
-                  </SetField>
-                  <SetField label="Time Format">
-                    <select value={timeFormat} onChange={(e) => setTimeFormat(e.target.value)}>
-                      <option value="12h">12-hour (AM/PM)</option>
-                      <option value="24h">24-hour</option>
-                    </select>
-                  </SetField>
-                </div>
-              </div>
-            </div>
-
-            {/* Other Preferences */}
-            <div className="kf-setpanel">
-              <div className="kf-setpanel-head">
-                <div className="kf-setpanel-title">
-                  <div className="kf-setpanel-icon">{Ico.sliders}</div>
-                  <div>
-                    <h2>Other Preferences</h2>
-                    <p>Visibility and recommendation settings.</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="kf-setpanel-save"
-                  onClick={saveGeneral}
-                  disabled={saving}
-                >
-                  {saving ? 'Saving…' : 'Save Changes'}
-                </button>
-              </div>
-              <div className="kf-setpanel-body">
-                <PrefRow
-                  id={`${uid}-spp`}
-                  label="Show Public Profile"
-                  desc="Allow your profile to appear in KindFund search results"
-                  checked={showPublicProfile}
-                  onChange={setShowPublicProfile}
-                />
-                <PrefRow
-                  id={`${uid}-cr`}
-                  label="Campaign Recommendations"
-                  desc="Receive personalised campaign improvement tips by email"
-                  checked={campaignRecs}
-                  onChange={setCampaignRecs}
-                />
+                <SetField label="Country" className="full">
+                  <select defaultValue="us"><option value="us">United States</option><option value="gb">United Kingdom</option><option value="ca">Canada</option><option value="au">Australia</option></select>
+                </SetField>
               </div>
             </div>
           </>
         );
 
-      case 'profile':
+      case 'preferences':
         return (
-          <div className="kf-setpanel">
-            <div className="kf-setpanel-head">
-              <div className="kf-setpanel-title">
-                <div className="kf-setpanel-icon">{Ico.user}</div>
-                <div>
-                  <h2>Profile</h2>
-                  <p>Your personal information and public bio.</p>
+          <>
+            <div className="kf-setpanel">
+              <div className="kf-setpanel-head">
+                <div className="kf-setpanel-title">
+                  <div className="kf-setpanel-icon">{Ico.sliders}</div>
+                  <div><h2>Dashboard Preferences</h2><p>Customize your app experience.</p></div>
+                </div>
+                <button type="button" className="kf-setpanel-save" onClick={savePreferences} disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
+              </div>
+              <div className="kf-setpanel-body">
+                <div className="kf-setrow">
+                  <SetField label="Default Dashboard View">
+                    <select defaultValue="overview"><option value="overview">Overview</option><option value="analytics">Analytics</option><option value="campaigns">Campaigns</option></select>
+                  </SetField>
+                  <SetField label="Default Date Range">
+                    <select defaultValue="month"><option value="week">This Week</option><option value="month">This Month</option><option value="quarter">This Quarter</option></select>
+                  </SetField>
+                </div>
+                <div className="kf-setrow triple">
+                  <SetField label="Language">
+                    <select value={language} onChange={e => setLanguage(e.target.value)}>
+                      <option value="en">English</option>
+                      <option value="es">Spanish</option>
+                      <option value="fr">French</option>
+                      <option value="de">German</option>
+                    </select>
+                  </SetField>
+                  <SetField label="Timezone">
+                    <select value={timezone} onChange={e => setTimezone(e.target.value)}>
+                      <option value="America/New_York">Eastern Time (ET)</option>
+                      <option value="America/Chicago">Central Time (CT)</option>
+                      <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                      <option value="Europe/London">London (GMT)</option>
+                    </select>
+                  </SetField>
+                  <SetField label="Currency">
+                    <select value={currency} onChange={e => setCurrency(e.target.value)}>
+                      <option value="usd">USD</option>
+                      <option value="eur">EUR</option>
+                      <option value="gbp">GBP</option>
+                    </select>
+                  </SetField>
+                </div>
+                <div style={{ paddingTop: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 12 }}>Email Preferences</div>
+                  <PrefRow id={`${uid}-updates`} label="Product updates" desc="News about new KindFund features" checked={false} onChange={() => null} />
+                  <PrefRow id={`${uid}-tips`} label="Tips and best practices" desc="Guides and strategies for fundraising" checked={false} onChange={() => null} />
+                  <PrefRow id={`${uid}-digest`} label="Weekly performance summary" desc="Weekly email with campaign stats" checked={campaignRecs} onChange={setCampaignRecs} />
                 </div>
               </div>
-              <button
-                type="button"
-                className="kf-setpanel-save"
-                onClick={saveProfile}
-                disabled={saving}
-              >
-                {saving ? 'Saving…' : 'Save Changes'}
-              </button>
             </div>
-            <div className="kf-setpanel-body">
-              <div className="kf-setrow">
-                <SetField label="Full Name">
-                  <input
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Jane Smith"
-                    maxLength={120}
-                  />
-                </SetField>
-                <SetField label="Email Address" hint="Contact support to change your email">
-                  <input value={userEmail} disabled style={{ background: '#f7f8fc', color: '#8c9ab5' }} />
-                </SetField>
-              </div>
-              <SetField label="Bio" className="full">
-                <textarea
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  placeholder="Tell donors a bit about yourself…"
-                  maxLength={500}
-                />
-              </SetField>
-              <SetField label="Avatar URL" hint="Paste a direct image URL (HTTPS)">
-                <input
-                  value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  placeholder="https://example.com/photo.jpg"
-                  type="url"
-                />
-              </SetField>
-            </div>
-          </div>
-        );
-
-      case 'organization':
-        return (
-          <div className="kf-setpanel">
-            <div className="kf-setpanel-head">
-              <div className="kf-setpanel-title">
-                <div className="kf-setpanel-icon">{Ico.org}</div>
-                <div>
-                  <h2>Organization</h2>
-                  <p>Details about your fundraising organisation.</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="kf-setpanel-save"
-                onClick={saveGeneral}
-                disabled={saving}
-              >
-                {saving ? 'Saving…' : 'Save Changes'}
-              </button>
-            </div>
-            <div className="kf-setpanel-body">
-              <div className="kf-setrow">
-                <SetField label="Organisation Name">
-                  <input
-                    value={orgName}
-                    onChange={(e) => setOrgName(e.target.value)}
-                    placeholder="e.g. Hope Foundation"
-                    maxLength={120}
-                  />
-                </SetField>
-                <SetField label="Website">
-                  <input
-                    value={orgWebsite}
-                    onChange={(e) => setOrgWebsite(e.target.value)}
-                    placeholder="https://yourorg.com"
-                    type="url"
-                  />
-                </SetField>
-              </div>
-              <SetField label="Tagline" className="full">
-                <input
-                  value={orgTagline}
-                  onChange={(e) => setOrgTagline(e.target.value)}
-                  placeholder="A short mission statement…"
-                  maxLength={200}
-                />
-              </SetField>
-            </div>
-          </div>
+          </>
         );
 
       case 'notifications':
@@ -614,22 +350,21 @@ export default function SettingsClient({
             <div className="kf-setpanel-head">
               <div className="kf-setpanel-title">
                 <div className="kf-setpanel-icon">{Ico.bell}</div>
-                <div>
-                  <h2>Notifications</h2>
-                  <p>Control which emails and alerts you receive.</p>
-                </div>
+                <div><h2>Notifications</h2><p>Manage how you receive notifications.</p></div>
               </div>
             </div>
             <div className="kf-setpanel-body">
-              {[
-                { id: `${uid}-n1`, label: 'New donation received', desc: 'Email when a donor contributes to your campaign', default: true },
-                { id: `${uid}-n2`, label: 'Donor leaves a message', desc: 'Email when a donor adds a message', default: true },
-                { id: `${uid}-n3`, label: 'Campaign milestone reached', desc: 'Email at 25%, 50%, 75%, 100% funded', default: true },
-                { id: `${uid}-n4`, label: 'Weekly performance digest', desc: 'Weekly summary of campaign performance', default: false },
-                { id: `${uid}-n5`, label: 'Product updates', desc: 'News about new KindFund features', default: false },
-              ].map(({ id, label, desc, default: def }) => (
-                <NotifRow key={id} id={id} label={label} desc={desc} defaultOn={def} />
-              ))}
+              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 8 }}>In-App Notifications</div>
+              <NotifRow id={`${uid}-n1`} label="New donations" desc="When a donor contributes to your campaign" defaultOn={true} />
+              <NotifRow id={`${uid}-n2`} label="New donors" desc="When someone makes their first donation" defaultOn={true} />
+              <NotifRow id={`${uid}-n3`} label="Campaign updates" desc="When your campaign reaches a milestone" defaultOn={true} />
+              <NotifRow id={`${uid}-n4`} label="Payouts and transfers" desc="When payouts are processed or transferred" defaultOn={true} />
+              <NotifRow id={`${uid}-n5`} label="Mentions and comments" desc="When someone mentions you or comments" defaultOn={false} />
+              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '18px 0 8px' }}>Email Notifications</div>
+              <NotifRow id={`${uid}-ne1`} label="Receive email notifications" desc="Get notified by email for important events" defaultOn={true} />
+              <SetField label="Email Frequency">
+                <select defaultValue="instant"><option value="instant">Instant</option><option value="daily">Daily Digest</option><option value="weekly">Weekly</option></select>
+              </SetField>
             </div>
           </div>
         );
@@ -640,151 +375,114 @@ export default function SettingsClient({
             <div className="kf-setpanel-head">
               <div className="kf-setpanel-title">
                 <div className="kf-setpanel-icon">{Ico.lock}</div>
-                <div>
-                  <h2>Security</h2>
-                  <p>Manage your password and account access.</p>
-                </div>
+                <div><h2>Security & Privacy</h2><p>Keep your account secure.</p></div>
               </div>
             </div>
             <div className="kf-setpanel-body">
               <div className="kf-setpref">
-                <div className="kf-setpref-info">
-                  <strong>Password</strong>
-                  <span>Update your login password</span>
-                </div>
-                <Link
-                  href="/forgot-password"
-                  style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none' }}
-                >
-                  Change Password
-                </Link>
+                <div className="kf-setpref-info"><strong>Change Password</strong><span>Update your account login password</span></div>
+                <Link href="/forgot-password" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none' }}>Update Password</Link>
               </div>
               <div className="kf-setpref">
-                <div className="kf-setpref-info">
-                  <strong>Two-Factor Authentication</strong>
-                  <span>Add an extra layer of protection to your account</span>
-                </div>
-                <span className="kf-plan-chip free" style={{ fontSize: 12 }}>Coming soon</span>
+                <div className="kf-setpref-info"><strong>Two-Factor Authentication</strong><span>Status: Disabled</span></div>
+                <button type="button" style={{ fontSize: 13, fontWeight: 700, color: '#101944', border: '1px solid #e0e4ef', borderRadius: 8, padding: '7px 16px', background: '#fff', cursor: 'pointer' }} onClick={() => alert('2FA coming soon')}>Manage 2FA</button>
               </div>
+              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '16px 0 10px' }}>Privacy</div>
               <div className="kf-setpref">
-                <div className="kf-setpref-info">
-                  <strong>Sign Out</strong>
-                  <span>Sign out of your account on this device</span>
-                </div>
-                <Link
-                  href="/api/auth/signout"
-                  style={{
-                    fontSize: 13, fontWeight: 700, color: 'var(--t3)', textDecoration: 'none',
-                    border: '1px solid var(--b2)', borderRadius: 'var(--r)', padding: '7px 16px',
-                  }}
-                >
-                  Sign Out
-                </Link>
+                <div className="kf-setpref-info"><strong>Profile Visibility</strong><span>Who can see your profile</span></div>
+                <select value={showPublicProfile ? 'public' : 'private'} onChange={e => setShowPublicProfile(e.target.value === 'public')} style={{ height: 36, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 12px', fontSize: 13 }}>
+                  <option value="public">Public</option>
+                  <option value="private">Private</option>
+                </select>
+              </div>
+              <div className="kf-setpref" style={{ borderBottom: 0 }}>
+                <div className="kf-setpref-info"><strong>Sign Out</strong><span>Sign out of this device</span></div>
+                <Link href="/api/auth/signout" style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)', textDecoration: 'none', border: '1px solid var(--b2)', borderRadius: 'var(--r)', padding: '7px 16px' }}>Sign Out</Link>
               </div>
             </div>
           </div>
         );
 
-      case 'payment':
+      case 'integrations':
         return (
           <div className="kf-setpanel">
             <div className="kf-setpanel-head">
               <div className="kf-setpanel-title">
-                <div className="kf-setpanel-icon">{Ico.card}</div>
-                <div>
-                  <h2>Payment Methods</h2>
-                  <p>Manage your saved payment methods.</p>
-                </div>
+                <div className="kf-setpanel-icon">{Ico.link}</div>
+                <div><h2>Integrations</h2><p>Connect third-party services to your account.</p></div>
               </div>
-              {hasStripeCustomer && <BillingPortalButton />}
             </div>
             <div className="kf-setpanel-body">
-              <p style={{ fontSize: 14, color: 'var(--t3)' }}>
-                {hasStripeCustomer
-                  ? 'Manage your saved cards and bank accounts through the Stripe billing portal.'
-                  : 'No payment method on file. Upgrade to a paid plan to add one.'}
-              </p>
-              {!hasStripeCustomer && (
-                <Link
-                  href="/pricing"
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 7,
-                    fontSize: 13, fontWeight: 750, color: 'var(--green)', textDecoration: 'none',
-                  }}
-                >
-                  View plans {Ico.arrow}
-                </Link>
-              )}
+              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 12 }}>Connected</div>
+              {[
+                { name: 'Mailchimp', desc: 'Email marketing platform', connected: true, color: '#f5a623' },
+                { name: 'Google Analytics', desc: 'Website analytics', connected: true, color: '#ea4335' },
+                { name: 'Stripe', desc: 'Payment processing', connected: hasStripeCustomer, color: '#6772e5' },
+              ].filter(i => i.connected).map(i => (
+                <div key={i.name} className="kf-setpref">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: `${i.color}15`, border: `1px solid ${i.color}30`, display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 950, color: i.color, flexShrink: 0 }}>{i.name.charAt(0)}</div>
+                    <div className="kf-setpref-info"><strong>{i.name}</strong><span>{i.desc}</span></div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 11, fontWeight: 950, color: '#19b86a', background: '#e8f8ee', padding: '3px 10px', borderRadius: 999 }}>Connected</span>
+                    <button type="button" style={{ height: 32, padding: '0 12px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 12, fontWeight: 750, cursor: 'pointer' }} onClick={() => alert(`Disconnect ${i.name}`)}>Disconnect</button>
+                  </div>
+                </div>
+              ))}
+              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '16px 0 12px' }}>Available</div>
+              {[
+                { name: 'Facebook Pixel', desc: 'Conversion tracking', color: '#1877f2' },
+                { name: 'Slack', desc: 'Team notifications', color: '#4a154b' },
+                { name: 'Zapier', desc: 'Automation workflows', color: '#ff4a00' },
+              ].map(i => (
+                <div key={i.name} className="kf-setpref">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: `${i.color}15`, border: `1px solid ${i.color}30`, display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 950, color: i.color, flexShrink: 0 }}>{i.name.charAt(0)}</div>
+                    <div className="kf-setpref-info"><strong>{i.name}</strong><span>{i.desc}</span></div>
+                  </div>
+                  <button type="button" style={{ height: 32, padding: '0 14px', border: 0, borderRadius: 8, background: '#551cf2', color: '#fff', fontSize: 12, fontWeight: 950, cursor: 'pointer' }} onClick={() => alert(`Connect ${i.name}`)}>Connect</button>
+                </div>
+              ))}
             </div>
           </div>
         );
 
-      case 'email-templates':
+      case 'team':
         return (
           <div className="kf-setpanel">
             <div className="kf-setpanel-head">
               <div className="kf-setpanel-title">
-                <div className="kf-setpanel-icon">{Ico.mail}</div>
-                <div>
-                  <h2>Email Templates</h2>
-                  <p>Customise the emails sent to your donors.</p>
-                </div>
+                <div className="kf-setpanel-icon">{Ico.team}</div>
+                <div><h2>Team & Access</h2><p>Manage team members and roles.</p></div>
               </div>
             </div>
             <div className="kf-setpanel-body">
-              <p style={{ fontSize: 14, color: 'var(--t3)' }}>
-                Custom email templates are available on the Pro plan.
-              </p>
-              {currentPlan !== 'pro' && (
-                <Link
-                  href="/pricing"
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 7,
-                    fontSize: 13, fontWeight: 750, color: 'var(--green)', textDecoration: 'none',
-                  }}
-                >
-                  Upgrade to Pro {Ico.arrow}
-                </Link>
-              )}
-            </div>
-          </div>
-        );
-
-      case 'privacy':
-        return (
-          <div className="kf-setpanel">
-            <div className="kf-setpanel-head">
-              <div className="kf-setpanel-title">
-                <div className="kf-setpanel-icon">{Ico.shield}</div>
-                <div>
-                  <h2>Privacy</h2>
-                  <p>Control how your data is used and shared.</p>
+              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 12 }}>Team Members</div>
+              <div className="kf-setpref">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 950, color: '#fff', flexShrink: 0 }}>{(initialProfile.full_name || userEmail).charAt(0).toUpperCase()}</div>
+                  <div className="kf-setpref-info"><strong>{initialProfile.full_name || userEmail}</strong><span>{userEmail}</span></div>
                 </div>
+                <span style={{ fontSize: 11, fontWeight: 950, color: '#551cf2', background: '#efe8ff', padding: '3px 10px', borderRadius: 999 }}>Owner</span>
               </div>
-              <button
-                type="button"
-                className="kf-setpanel-save"
-                onClick={saveGeneral}
-                disabled={saving}
-              >
-                {saving ? 'Saving…' : 'Save Changes'}
-              </button>
-            </div>
-            <div className="kf-setpanel-body">
-              <PrefRow
-                id={`${uid}-spp2`}
-                label="Show Public Profile"
-                desc="Allow your profile to appear in KindFund search results"
-                checked={showPublicProfile}
-                onChange={setShowPublicProfile}
-              />
-              <PrefRow
-                id={`${uid}-cr2`}
-                label="Campaign Recommendations"
-                desc="Receive personalised campaign improvement tips by email"
-                checked={campaignRecs}
-                onChange={setCampaignRecs}
-              />
+              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '18px 0 12px' }}>Invite Team Member</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, alignItems: 'end' }}>
+                <SetField label="Email Address">
+                  <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="colleague@example.com" type="email" />
+                </SetField>
+                <SetField label="Role">
+                  <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} style={{ height: 42, minWidth: 120 }}>
+                    <option value="member">Member</option>
+                    <option value="editor">Editor</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </SetField>
+                <button type="button" style={{ height: 42, padding: '0 18px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer', marginBottom: 0 }}
+                  onClick={() => { if (inviteEmail) { alert(`Invite sent to ${inviteEmail}`); setInviteEmail(''); } }}>
+                  Send Invite
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -795,18 +493,13 @@ export default function SettingsClient({
             <div className="kf-setpanel-head">
               <div className="kf-setpanel-title">
                 <div className="kf-setpanel-icon">{Ico.crown}</div>
-                <div>
-                  <h2>Billing &amp; Plan</h2>
-                  <p>Manage your subscription and billing history.</p>
-                </div>
+                <div><h2>Billing & Subscription</h2><p>Manage your plan and billing details.</p></div>
               </div>
               {hasStripeCustomer && <BillingPortalButton />}
             </div>
             <div className="kf-setpanel-body">
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '14px 18px', background: 'var(--s3)', borderRadius: 'var(--r)',
-              }}>
+              {/* Current plan */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', background: 'var(--s3)', borderRadius: 'var(--r)' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
                     {Ico.crown}
@@ -814,30 +507,43 @@ export default function SettingsClient({
                     <span className={`kf-plan-chip ${planInfo.chipClass}`}>Current</span>
                   </div>
                   <p style={{ fontSize: 13, color: 'var(--t3)', margin: 0 }}>
-                    {currentPlan === 'free'
-                      ? '1 active campaign · Basic features · Email support'
-                      : currentPlan === 'starter'
-                      ? 'Up to 5 campaigns · Custom URL · Social sharing'
+                    {currentPlan === 'free' ? '1 active campaign · Basic features · Email support'
+                      : currentPlan === 'starter' ? 'Up to 5 campaigns · Custom URL · Social sharing'
                       : 'Unlimited campaigns · Advanced analytics · Custom branding'}
                   </p>
                 </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 18, fontWeight: 950, color: '#101944' }}>{planInfo.price}</div>
+                </div>
               </div>
+
               {currentPlan !== 'pro' && (
-                <div style={{ marginTop: 16, padding: '18px', background: 'linear-gradient(135deg,var(--s3),var(--s4))', border: '1px solid var(--b2)', borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                <div style={{ padding: '18px', background: 'linear-gradient(135deg,var(--s3),var(--s4))', border: '1px solid var(--b2)', borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                   <div>
                     <strong style={{ fontSize: 15 }}>Upgrade to KindFund Pro</strong>
-                    <p style={{ fontSize: 13, color: 'var(--t2)', margin: '4px 0 0' }}>
-                      Unlimited campaigns, custom branding, AI tools, and priority support.
-                    </p>
+                    <p style={{ fontSize: 13, color: 'var(--t2)', margin: '4px 0 0' }}>Unlimited campaigns, custom branding, AI tools, and priority support.</p>
                   </div>
-                  <Link
-                    href="/pricing"
-                    style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, background: 'var(--green)', color: '#fff', textDecoration: 'none', borderRadius: 'var(--r)', padding: '10px 20px', whiteSpace: 'nowrap' }}
-                  >
-                    Upgrade Now
-                  </Link>
+                  <Link href="/pricing" style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, background: 'var(--green)', color: '#fff', textDecoration: 'none', borderRadius: 'var(--r)', padding: '10px 20px', whiteSpace: 'nowrap' }}>Upgrade Now</Link>
                 </div>
               )}
+
+              {/* Payment Method */}
+              <div className="kf-setpref">
+                <div className="kf-setpref-info">
+                  <strong>Payment Method</strong>
+                  <span>{hasStripeCustomer ? 'Visa **** 4242' : 'No payment method on file'}</span>
+                </div>
+                {hasStripeCustomer ? <BillingPortalButton /> : <Link href="/pricing" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none' }}>Add Method {Ico.arrow}</Link>}
+              </div>
+
+              {/* Billing history */}
+              <div className="kf-setpref" style={{ borderBottom: 0 }}>
+                <div className="kf-setpref-info">
+                  <strong>Billing History</strong>
+                  <span>View past invoices and receipts</span>
+                </div>
+                {hasStripeCustomer ? <BillingPortalButton /> : <span style={{ fontSize: 13, color: 'var(--t3)' }}>No history</span>}
+              </div>
             </div>
           </div>
         );
@@ -848,78 +554,29 @@ export default function SettingsClient({
             <div className="kf-setpanel-head">
               <div className="kf-setpanel-title">
                 <div className="kf-setpanel-icon">{Ico.download}</div>
-                <div>
-                  <h2>Data &amp; Export</h2>
-                  <p>Download your data or delete your account.</p>
-                </div>
+                <div><h2>Data & Export</h2><p>Export your data or delete your account.</p></div>
               </div>
             </div>
             <div className="kf-setpanel-body">
               <div className="kf-setpref">
-                <div className="kf-setpref-info">
-                  <strong>Export Donations CSV</strong>
-                  <span>Download a full history of all donations to your campaigns</span>
-                </div>
-                <Link
-                  href="/api/exports/donations"
-                  style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}
-                >
-                  {Ico.download} Download
-                </Link>
+                <div className="kf-setpref-info"><strong>Export Donations CSV</strong><span>Download a full history of all donations</span></div>
+                <Link href="/api/exports/donations" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>{Ico.download} Download</Link>
               </div>
               <div className="kf-setpref">
-                <div className="kf-setpref-info">
-                  <strong>Export Donors CSV</strong>
-                  <span>Download a list of all donors across your campaigns</span>
-                </div>
-                <Link
-                  href="/api/exports/donors"
-                  style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}
-                >
-                  {Ico.download} Download
-                </Link>
+                <div className="kf-setpref-info"><strong>Export Donors CSV</strong><span>Download a list of all donors</span></div>
+                <Link href="/api/exports/donors" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>{Ico.download} Download</Link>
+              </div>
+              <div className="kf-setpref">
+                <div className="kf-setpref-info"><strong>Export All Data</strong><span>Download a complete data export (JSON)</span></div>
+                <button type="button" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => alert('Export requested. You will receive an email with the download link.')}>{Ico.download} Request Export</button>
               </div>
               <div className="kf-setpref" style={{ borderBottom: 0 }}>
                 <div className="kf-setpref-info">
-                  <strong style={{ color: 'var(--red)' }}>Delete Account</strong>
+                  <strong style={{ color: 'var(--red)' }}>Request Account Deletion</strong>
                   <span>Permanently delete your account and all data — this cannot be undone</span>
                 </div>
-                <button
-                  type="button"
-                  style={{ fontSize: 13, fontWeight: 700, color: 'var(--red)', background: 'none', border: '1px solid var(--red)', borderRadius: 'var(--r)', padding: '7px 16px', cursor: 'pointer' }}
-                  onClick={() => alert('Please contact support@kindfund.com to delete your account.')}
-                >
-                  Delete Account
-                </button>
+                <button type="button" style={{ fontSize: 13, fontWeight: 700, color: 'var(--red)', background: 'none', border: '1px solid var(--red)', borderRadius: 'var(--r)', padding: '7px 16px', cursor: 'pointer' }} onClick={() => alert('Please contact support@kindfund.com to delete your account.')}>Request Deletion</button>
               </div>
-            </div>
-          </div>
-        );
-
-      case 'advanced':
-        return (
-          <div className="kf-setpanel">
-            <div className="kf-setpanel-head">
-              <div className="kf-setpanel-title">
-                <div className="kf-setpanel-icon">{Ico.sliders}</div>
-                <div>
-                  <h2>Advanced</h2>
-                  <p>Developer options and advanced configuration.</p>
-                </div>
-              </div>
-            </div>
-            <div className="kf-setpanel-body">
-              <p style={{ fontSize: 14, color: 'var(--t3)' }}>
-                API access and webhook configuration are available on the Pro plan.
-              </p>
-              {currentPlan !== 'pro' && (
-                <Link
-                  href="/pricing"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 750, color: 'var(--green)', textDecoration: 'none' }}
-                >
-                  Upgrade to Pro {Ico.arrow}
-                </Link>
-              )}
             </div>
           </div>
         );
@@ -929,33 +586,17 @@ export default function SettingsClient({
     }
   }
 
-  // ─────────────────────────────────────────────
-  // Render
-  // ─────────────────────────────────────────────
   return (
     <>
       <div className="kf-settings-v2">
         {/* Left nav */}
         <nav className="kf-setnav">
-          {navGroups.map((grp) => (
-            <div className="kf-setnav-section" key={grp.label}>
-              <div className="kf-setnav-label">{grp.label}</div>
-              {grp.items.map((item) => (
-                <NavItem
-                  key={item.id}
-                  label={item.label}
-                  icon={item.icon}
-                  active={section === item.id}
-                  onClick={() => setSection(item.id)}
-                />
-              ))}
-              <hr className="kf-setnav-divider" />
-            </div>
+          <div style={{ padding: '12px 14px 4px', fontSize: 11, fontWeight: 900, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8c9ab5' }}>Settings</div>
+          {navItems.map(item => (
+            <NavItem key={item.id} label={item.label} desc={item.desc} icon={item.icon} active={section === item.id} onClick={() => setSection(item.id)} />
           ))}
           <div className="kf-setnav-footer">
-            <a href="mailto:support@kindfund.com" className="kf-setnav-help">
-              {Ico.help} Need Help? Contact Support
-            </a>
+            <a href="mailto:support@kindfund.com" className="kf-setnav-help">{Ico.help} Need Help? Contact Support</a>
           </div>
         </nav>
 
@@ -964,7 +605,7 @@ export default function SettingsClient({
 
         {/* Right panel */}
         <aside className="kf-setright">
-          {/* Quick Links */}
+          {/* Quick links */}
           <div className="kf-setright-card">
             <div className="kf-setright-head">{Ico.link} Quick Links</div>
             <div className="kf-setright-body">
@@ -975,46 +616,27 @@ export default function SettingsClient({
                 { href: '/dashboard/analytics', label: 'Analytics' },
                 { href: '/pricing', label: 'Upgrade Plan' },
               ].map(({ href, label }) => (
-                <Link key={href} href={href} className="kf-quick-link">
-                  {Ico.arrow} {label}
-                </Link>
+                <Link key={href} href={href} className="kf-quick-link">{Ico.arrow} {label}</Link>
               ))}
             </div>
           </div>
 
           {/* Plan & Usage */}
           <div className="kf-setright-card">
-            <div className="kf-setright-head">{Ico.crown} Plan &amp; Usage</div>
+            <div className="kf-setright-head">{Ico.crown} Plan & Usage</div>
             <div className="kf-setright-body">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--t2)' }}>Current Plan</span>
                 <span className={`kf-plan-chip ${planInfo.chipClass}`}>{planInfo.label}</span>
               </div>
               <div className="kf-usage-row">
-                <label>
-                  Active Campaigns
-                  <strong>
-                    {campaignsCount} / {planInfo.campaignLimit >= 999 ? '∞' : planInfo.campaignLimit}
-                  </strong>
-                </label>
+                <label>Active Campaigns<strong>{campaignsCount} / {planInfo.campaignLimit >= 999 ? '∞' : planInfo.campaignLimit}</strong></label>
                 <div className="kf-plan-bar">
-                  <div
-                    className={`kf-plan-bar-fill${campaignPct >= 80 ? ' warn' : ''}`}
-                    style={{ width: `${Math.min(campaignPct, 100)}%` }}
-                  />
+                  <div className={`kf-plan-bar-fill${campaignPct >= 80 ? ' warn' : ''}`} style={{ width: `${Math.min(campaignPct, 100)}%` }} />
                 </div>
               </div>
               {currentPlan !== 'pro' && (
-                <Link
-                  href="/pricing"
-                  style={{
-                    display: 'block', marginTop: 14, textAlign: 'center', fontSize: 13,
-                    fontWeight: 750, color: '#fff', background: 'var(--green)',
-                    borderRadius: 8, padding: '9px 0', textDecoration: 'none',
-                  }}
-                >
-                  Upgrade Plan
-                </Link>
+                <Link href="/pricing" style={{ display: 'block', marginTop: 14, textAlign: 'center', fontSize: 13, fontWeight: 750, color: '#fff', background: 'var(--green)', borderRadius: 8, padding: '9px 0', textDecoration: 'none' }}>Upgrade Plan</Link>
               )}
             </div>
           </div>
@@ -1023,23 +645,14 @@ export default function SettingsClient({
           <div className="kf-setright-card">
             <div className="kf-setright-head">{Ico.check} System Status</div>
             <div className="kf-setright-body">
-              {[
-                'Payment Processing',
-                'Email Notifications',
-                'Analytics Pipeline',
-                'API Services',
-              ].map((svc) => (
-                <div key={svc} className="kf-status-row">
-                  <span>{svc}</span>
-                  <span className="kf-status-ok">Operational</span>
-                </div>
+              {['Payment Processing', 'Email Notifications', 'Analytics Pipeline', 'API Services'].map(svc => (
+                <div key={svc} className="kf-status-row"><span>{svc}</span><span className="kf-status-ok">Operational</span></div>
               ))}
             </div>
           </div>
         </aside>
       </div>
 
-      {/* Toast */}
       {toast && (
         <div className={`kf-set-toast ${toast.kind}`}>
           {toast.kind === 'success' ? Ico.check : null}
@@ -1047,75 +660,5 @@ export default function SettingsClient({
         </div>
       )}
     </>
-  );
-}
-
-// ─────────────────────────────────────────────
-// Sub-components
-// ─────────────────────────────────────────────
-function SetField({
-  label,
-  hint,
-  children,
-  className,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={`kf-setfield${className ? ` ${className}` : ''}`}>
-      <label>{label}</label>
-      {children}
-      {hint ? <span className="kf-setfield-hint">{hint}</span> : null}
-    </div>
-  );
-}
-
-function PrefRow({
-  id,
-  label,
-  desc,
-  checked,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  desc: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <div className="kf-setpref">
-      <div className="kf-setpref-info">
-        <strong>{label}</strong>
-        <span>{desc}</span>
-      </div>
-      <Toggle id={id} checked={checked} onChange={onChange} />
-    </div>
-  );
-}
-
-function NotifRow({
-  id,
-  label,
-  desc,
-  defaultOn,
-}: {
-  id: string;
-  label: string;
-  desc: string;
-  defaultOn: boolean;
-}) {
-  const [on, setOn] = useState(defaultOn);
-  return (
-    <div className="kf-setpref">
-      <div className="kf-setpref-info">
-        <strong>{label}</strong>
-        <span>{desc}</span>
-      </div>
-      <Toggle id={id} checked={on} onChange={setOn} />
-    </div>
   );
 }
