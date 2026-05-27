@@ -35,9 +35,14 @@ file_size_limit = "10MiB"
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
+site_url = "https://www.eli54u.com"
 additional_redirect_urls = [
+  "http://localhost:3000",
   "http://localhost:3000/api/auth/callback",
+  "https://www.eli54u.com/api/auth/callback",
+  "https://eli54u.com/api/auth/callback",
+  "https://money-raise-web.vercel.app/api/auth/callback",
+  "https://*.vercel.app/api/auth/callback",
   "https://nengpvscsgukotheptri.supabase.co/auth/v1/callback"
 ]
 jwt_expiry = 3600
