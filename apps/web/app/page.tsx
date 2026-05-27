@@ -39,7 +39,7 @@ type HeroCampaign = {
   trust_status: string;
   campaign_health_score: number;
   deadline: string | null;
-  profiles: { full_name: string | null } | { full_name: string | null }[] | null;
+  profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
 };
 
 type StoryFilters = {
@@ -100,7 +100,7 @@ async function getHomeData(filters: StoryFilters): Promise<{
   const storySort = filters.storySort === 'raised' || filters.storySort === 'donors' ? filters.storySort : 'latest';
   let carouselQuery = supabaseAdmin
     .from('campaigns')
-    .select('slug,title,description,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,created_at,profiles:user_id(full_name)')
+    .select('slug,title,description,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,created_at')
     .neq('status', 'rejected')
     .neq('status', 'frozen');
 
