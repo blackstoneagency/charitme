@@ -115,7 +115,7 @@ async function getHomeData(filters: StoryFilters): Promise<{
   } else if (storySort === 'donors') {
     carouselQuery = carouselQuery.order('backer_count', { ascending: false });
   } else {
-    carouselQuery = carouselQuery.order('created_at', { ascending: false });
+    carouselQuery = carouselQuery.order('raised_amount', { ascending: false });
   }
 
   const [
