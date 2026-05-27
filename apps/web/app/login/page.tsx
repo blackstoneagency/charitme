@@ -5,6 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '../../lib/supabase-browser';
 import { getAuthCallbackUrl, safeNextPath } from '../../lib/auth-config';
 
+// Google OAuth is initiated server-side via /api/auth/signin so the
+// PKCE code-verifier is set as an HTTP cookie (not document.cookie).
+// This prevents the "PKCE code verifier not found" error caused by
+// browser-client cookie storage being unavailable at callback time.
+
 function GoogleMark() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -68,13 +73,11 @@ function LoginForm() {
     }
   };
 
-  const handleGoogle = async () => {
-    setError('');
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${getAuthCallbackUrl()}?next=${encodeURIComponent(next)}` },
-    });
-    if (oauthError) setError(oauthError.message);
+  const handleGoogle = () => {
+    // Navigate to the server-side OAuth initiation route.
+    // The server generates the code-verifier and writes it as a Set-Cookie
+    // header before redirecting to Google — no document.cookie needed.
+    window.location.href = `/api/auth/signin?next=${encodeURIComponent(next)}`;
   };
 
   const toggleMode = () => {
