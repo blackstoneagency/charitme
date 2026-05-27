@@ -5,6 +5,19 @@ import { safeNextPath } from './lib/auth-config';
 const PROTECTED = ['/create', '/dashboard', '/profile', '/admin', '/campaigns'];
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
+/**
+ * Convert a persistent auth cookie into a session cookie by removing
+ * maxAge / expires.  The browser will clear it when the window closes.
+ * Deletion cookies (maxAge === 0) are passed through unchanged.
+ */
+function toSessionCookie(options: CookieOptions): CookieOptions {
+  const { maxAge, expires, ...rest } = options;
+  // Keep deletion signals intact; strip expiry for all other auth cookies
+  if (typeof maxAge === 'number' && maxAge <= 0) return options;
+  void maxAge; void expires; // consumed — not forwarded
+  return rest;
+}
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
@@ -35,7 +48,8 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            // Use session cookies so auth is cleared when the browser closes
+            response.cookies.set(name, value, toSessionCookie(options))
           );
         },
       },

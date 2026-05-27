@@ -4,6 +4,14 @@ import { safeNextPath } from '../../../../lib/auth-config';
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
+/** Strip maxAge/expires so auth cookies are cleared when the browser closes. */
+function toSessionCookie(options: CookieOptions): CookieOptions {
+  const { maxAge, expires, ...rest } = options;
+  if (typeof maxAge === 'number' && maxAge <= 0) return options; // keep deletion cookies
+  void maxAge; void expires;
+  return rest;
+}
+
 function getRequestOrigin(request: NextRequest) {
   const forwardedHost = request.headers.get('x-forwarded-host');
   const forwardedProto = request.headers.get('x-forwarded-proto') ?? 'https';
@@ -32,10 +40,10 @@ export async function GET(request: NextRequest) {
       cookies: {
         // Read cookies from the incoming request
         getAll() { return request.cookies.getAll(); },
-        // Write cookies directly onto the redirect response
+        // Write cookies directly onto the redirect response (as session cookies)
         setAll(cookiesToSet: CookieToSet[]) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            redirectResponse.cookies.set(name, value, options);
+            redirectResponse.cookies.set(name, value, toSessionCookie(options));
           });
         },
       },
