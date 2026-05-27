@@ -97,11 +97,11 @@ export default function ReportsClient({ reports, categories, totalReports, sched
                 <svg viewBox="0 0 42 42" style={{ width: 120, height: 120, transform: 'rotate(-90deg)' }}>
                   {(() => {
                     const total = categories.reduce((s, c) => s + c.count, 0) || 1;
-                    let cum = 0;
                     return categories.map((c, i) => {
                       const pct = (c.count / total) * 100;
-                      const offset = 100 - cum;
-                      cum += pct;
+                      const offset = 100 - categories
+                        .slice(0, i)
+                        .reduce((sum, item) => sum + (item.count / total) * 100, 0);
                       return (
                         <circle
                           key={i}

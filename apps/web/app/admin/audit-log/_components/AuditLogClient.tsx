@@ -84,15 +84,14 @@ function MiniLineChart({ points }: { points: DayPoint[] }) {
 
 function CategoryDonut({ categories }: { categories: CategoryCount[] }) {
   const total = categories.reduce((s, c) => s + c.count, 0) || 1;
-  let cum = 0;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 24, padding: '10px 20px 20px' }}>
       <div style={{ position: 'relative', width: 110, height: 110, flexShrink: 0 }}>
         <svg viewBox="0 0 42 42" style={{ width: 110, height: 110, transform: 'rotate(-90deg)' }}>
           {categories.map((c, i) => {
             const pct = (c.count / total) * 100;
+            const cum = categories.slice(0, i).reduce((sum, item) => sum + (item.count / total) * 100, 0);
             const offset = 100 - cum;
-            cum += pct;
             return (
               <circle key={i} cx={21} cy={21} r={15.9} fill="none" stroke={c.color} strokeWidth={6}
                 strokeDasharray={`${pct} ${100 - pct}`} strokeDashoffset={offset} />

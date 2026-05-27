@@ -122,7 +122,6 @@ function WeeklyLineChart({ points }: { points: WeekPoint[] }) {
 // ─────────────────────────────────────────────
 function SourceDonut({ sources, total }: { sources: SourceItem[]; total: string }) {
   const totalPct = sources.reduce((s, it) => s + it.pct, 0) || 100;
-  let cumPct = 0;
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 32, padding: '10px 22px 20px' }}>
@@ -130,8 +129,9 @@ function SourceDonut({ sources, total }: { sources: SourceItem[]; total: string 
         <svg viewBox="0 0 42 42" style={{ width: 150, height: 150, transform: 'rotate(-90deg)' }}>
           {sources.map((src, i) => {
             const pct = (src.pct / totalPct) * 100;
-            const offset = 100 - cumPct;
-            cumPct += pct;
+            const offset = 100 - sources
+              .slice(0, i)
+              .reduce((sum, item) => sum + (item.pct / totalPct) * 100, 0);
             return (
               <circle
                 key={i}
