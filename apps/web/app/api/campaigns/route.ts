@@ -41,31 +41,47 @@ export async function POST(request: NextRequest) {
   const baseSlug = slugify(title);
   const slug = `${baseSlug}-${Date.now().toString(36)}`;
 
-  const { data, error } = await supabaseAdmin
+  const baseInsert = {
+    user_id: user.id,
+    slug,
+    title,
+    tagline: tagline ?? null,
+    description,
+    goal_amount: goalAmount,
+    raised_amount: 0,
+    backer_count: 0,
+    deadline: deadline ?? null,
+    category,
+    cover_image_url: coverImageUrl ?? null,
+    beneficiary_name: beneficiaryName ?? null,
+    beneficiary_relationship: beneficiaryRelationship ?? null,
+    status: 'active',
+  };
+
+  // Try inserting with image_urls; fall back gracefully if column doesn't exist yet
+  let result = await supabaseAdmin
     .from('campaigns')
-    .insert({
-      user_id: user.id,
-      slug,
-      title,
-      tagline: tagline ?? null,
-      description,
-      goal_amount: goalAmount,
-      raised_amount: 0,
-      backer_count: 0,
-      deadline: deadline ?? null,
-      category,
-      cover_image_url: coverImageUrl ?? null,
-      image_urls: imageUrls ?? [],
-      beneficiary_name: beneficiaryName ?? null,
-      beneficiary_relationship: beneficiaryRelationship ?? null,
-      status: 'active',
-    })
+    .insert({ ...baseInsert, image_urls: imageUrls ?? [] } as typeof baseInsert)
     .select('id, slug')
     .single();
 
+  if (result.error?.code === '42703' && result.error.message?.includes('image_urls')) {
+    // Column not yet migrated — insert without it
+    result = await supabaseAdmin
+      .from('campaigns')
+      .insert(baseInsert)
+      .select('id, slug')
+      .single();
+  }
+
+  const { data, error } = result;
+
   if (error) {
-    console.error('Campaign create failed', error);
-    return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' }, { status: 500 });
+    console.error('Campaign create failed', error.code, error.message);
+    return NextResponse.json(
+      { error: `Campaign could not be saved: ${error.message}`, code: error.code },
+      { status: 500 },
+    );
   }
 
   if (evidenceNote?.trim()) {

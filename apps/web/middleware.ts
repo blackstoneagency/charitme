@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { safeNextPath } from './lib/auth-config';
 
-const PROTECTED = ['/create', '/dashboard', '/profile', '/admin'];
+const PROTECTED = ['/create', '/dashboard', '/profile', '/admin', '/campaigns'];
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 export async function middleware(request: NextRequest) {
