@@ -33,7 +33,6 @@ type HeroCampaign = {
   description: string | null;
   category: string | null;
   cover_image_url: string | null;
-  image_urls: string[] | null;
   goal_amount: number;
   raised_amount: number;
   backer_count: number;
@@ -77,7 +76,7 @@ function storyHref(filters: StoryFilters, updates: StoryFilters): string {
 }
 
 function storyImage(campaign: HeroCampaign): string | null {
-  return campaign.cover_image_url || campaign.image_urls?.[0] || null;
+  return campaign.cover_image_url || null;
 }
 
 function storyTone(category: string | null): string {
@@ -101,8 +100,9 @@ async function getHomeData(filters: StoryFilters): Promise<{
   const storySort = filters.storySort === 'raised' || filters.storySort === 'donors' ? filters.storySort : 'latest';
   let carouselQuery = supabaseAdmin
     .from('campaigns')
-    .select('slug,title,description,category,cover_image_url,image_urls,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,created_at,profiles:user_id(full_name)')
-    .in('status', ['active', 'completed']);
+    .select('slug,title,description,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,created_at,profiles:user_id(full_name)')
+    .neq('status', 'rejected')
+    .neq('status', 'frozen');
 
   if (storyCategory) {
     carouselQuery = carouselQuery.ilike('category', `%${storyCategory}%`);
@@ -127,7 +127,7 @@ async function getHomeData(filters: StoryFilters): Promise<{
   ] = await Promise.all([
     supabaseAdmin
       .from('campaigns')
-      .select('slug,title,description,category,cover_image_url,image_urls,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,profiles:user_id(full_name)')
+      .select('slug,title,description,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,profiles:user_id(full_name)')
       .eq('status', 'active')
       .order('raised_amount', { ascending: false })
       .limit(3),
