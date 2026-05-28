@@ -411,11 +411,6 @@ export default function AdminCampaignsClient({ campaigns: initialCampaigns }: Pr
   // ─────────────────────────────────────────────────────
   // Render helpers
   // ─────────────────────────────────────────────────────
-  const tabCounts = useMemo(() => ({
-    donations: donations?.length ?? (selected ? '—' : 0),
-    updates: updates?.length ?? (selected ? '—' : 0),
-  }), [donations, updates, selected]);
-
   // ─────────────────────────────────────────────────────
   // ── VIEW: LIST
   // ─────────────────────────────────────────────────────

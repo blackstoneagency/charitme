@@ -221,7 +221,7 @@ type View = 'overview' | 'list' | 'detail' | 'add' | 'success';
 export default function AdminUsersClient({
   users,
   activities,
-  roles,
+  roles: _roles,
   totals,
   weeklyGrowth,
   recentUsers,

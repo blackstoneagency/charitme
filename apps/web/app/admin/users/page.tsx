@@ -112,7 +112,7 @@ export default async function AdminUsersPage() {
   const authIds = authUsers.map((u) => u.id);
 
   // ── 2. Fetch existing profiles ────────────────────────────────────────────
-  let profileMap = new Map<string, ProfileRow>();
+  const profileMap = new Map<string, ProfileRow>();
 
   if (authIds.length > 0) {
     const { data: existingProfiles } = await supabaseAdmin
