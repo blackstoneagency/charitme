@@ -43,6 +43,39 @@ export default function ReportsClient({ reports, categories, totalReports, sched
   const [activeCategory, setActiveCategory] = useState('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [exportReport, setExportReport] = useState<ReportItem | null>(null);
+  const [exportFmt, setExportFmt] = useState<'CSV' | 'Excel' | 'PDF'>('CSV');
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportError, setExportError] = useState('');
+
+  async function downloadReport() {
+    if (!exportReport) return;
+    setExportLoading(true);
+    setExportError('');
+    try {
+      const res = await fetch('/api/admin/reports/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportId: exportReport.id }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        setExportError(err.error ?? 'Export failed.');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${exportReport.id}-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setExportReport(null);
+    } catch {
+      setExportError('Network error. Please try again.');
+    } finally {
+      setExportLoading(false);
+    }
+  }
 
   const allCategories = ['All', ...categories.map(c => c.label)];
 
@@ -269,15 +302,16 @@ export default function ReportsClient({ reports, categories, totalReports, sched
             <p style={{ margin: '0 0 20px', color: '#67718e', fontSize: 13 }}>{exportReport.name}</p>
             <div style={{ display: 'grid', gap: 10 }}>
               {(['CSV', 'Excel', 'PDF'] as const).map(fmt => (
-                <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: '1px solid #e0e4ef', borderRadius: 9, cursor: 'pointer', fontSize: 14, fontWeight: 850 }}>
-                  <input type="radio" name="fmt" value={fmt} defaultChecked={fmt === 'CSV'} />
+                <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: `1px solid ${exportFmt === fmt ? '#6c35ff' : '#e0e4ef'}`, borderRadius: 9, cursor: 'pointer', fontSize: 14, fontWeight: 850 }}>
+                  <input type="radio" name="fmt" value={fmt} checked={exportFmt === fmt} onChange={() => setExportFmt(fmt)} />
                   Export as {fmt}
                 </label>
               ))}
             </div>
+            {exportError && <p style={{ margin: '10px 0 0', color: '#e11d48', fontSize: 13 }}>{exportError}</p>}
             <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
-              <button onClick={() => setExportReport(null)} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontWeight: 850, cursor: 'pointer' }}>Cancel</button>
-              <button className="kf-primary" style={{ height: 42, padding: '0 22px' }} onClick={() => setExportReport(null)}>Download</button>
+              <button onClick={() => { setExportReport(null); setExportError(''); }} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontWeight: 850, cursor: 'pointer' }}>Cancel</button>
+              <button className="kf-primary" style={{ height: 42, padding: '0 22px', opacity: exportLoading ? 0.7 : 1 }} onClick={downloadReport} disabled={exportLoading}>{exportLoading ? 'Exporting…' : 'Download'}</button>
             </div>
           </div>
         </div>

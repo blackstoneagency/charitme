@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 
 // ─────────────────────────────────────────────
 // Types
@@ -13,6 +13,7 @@ export interface ContentRecord {
   status: string;
   author: string;
   campaign_title: string;
+  campaign_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -33,7 +34,6 @@ export interface ContentClientProps {
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
-
 function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
@@ -46,8 +46,7 @@ function StatusPill({ status }: { status: string }) {
   const tone = s.includes('published') || s.includes('active') ? 'green'
     : s.includes('draft') ? 'orange'
     : s.includes('archived') ? 'violet'
-    : s.includes('ai') ? 'blue'
-    : 'violet';
+    : s.includes('ai') ? 'blue' : 'violet';
   const colors: Record<string, { bg: string; color: string }> = {
     green: { bg: '#def7e7', color: '#079447' },
     orange: { bg: '#fff0dc', color: '#f97316' },
@@ -67,10 +66,8 @@ function StatusPill({ status }: { status: string }) {
 // ─────────────────────────────────────────────
 function TypeDonut({ items }: { items: { type: string; count: number }[] }) {
   const colors = ['#6c35ff', '#ec3fb4', '#2f80ed', '#19b86a', '#f59e0b'];
-  const total = items.reduce((s, x) => s + x.count, 1);
-  const r = 56;
-  const cx = 72;
-  const cy = 72;
+  const total = Math.max(items.reduce((s, x) => s + x.count, 0), 1);
+  const r = 56; const cx = 72; const cy = 72;
   const circumference = 2 * Math.PI * r;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
@@ -78,20 +75,16 @@ function TypeDonut({ items }: { items: { type: string; count: number }[] }) {
         {items.map((item, i) => {
           const frac = item.count / total;
           const dash = frac * circumference;
-          const offset = items.slice(0, i).reduce((sum, previous) => sum + (previous.count / total), 0);
+          const offset = items.slice(0, i).reduce((sum, p) => sum + (p.count / total), 0);
           return (
-            <circle key={item.type}
-              cx={cx} cy={cy} r={r}
-              fill="none"
-              stroke={colors[i % colors.length]}
-              strokeWidth="22"
+            <circle key={item.type} cx={cx} cy={cy} r={r} fill="none"
+              stroke={colors[i % colors.length]} strokeWidth="22"
               strokeDasharray={`${dash} ${circumference - dash}`}
-              strokeDashoffset={-offset * circumference + circumference / 4}
-            />
+              strokeDashoffset={-offset * circumference + circumference / 4} />
           );
         })}
         <circle cx={cx} cy={cy} r={r - 11} fill="#fff" />
-        <text x={cx} y={cy - 4} textAnchor="middle" fontSize="16" fontWeight="950" fill="#101944">{total - 1}</text>
+        <text x={cx} y={cy - 4} textAnchor="middle" fontSize="16" fontWeight="950" fill="#101944">{total}</text>
         <text x={cx} y={cy + 14} textAnchor="middle" fontSize="9" fill="#8c9ab5">Total</text>
       </svg>
       <div style={{ display: 'grid', gap: 7 }}>
@@ -108,15 +101,122 @@ function TypeDonut({ items }: { items: { type: string; count: number }[] }) {
 }
 
 // ─────────────────────────────────────────────
-// Content detail panel
+// Edit Content Modal
 // ─────────────────────────────────────────────
-function ContentDetailPanel({ item, onClose }: { item: ContentRecord; onClose: () => void }) {
+function EditModal({ item, onClose, onSaved }: { item: ContentRecord; onClose: () => void; onSaved: (id: string, title: string, body: string) => void }) {
+  const [title, setTitle] = useState(item.title);
+  const [body, setBody] = useState(item.body);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSave() {
+    if (!body.trim()) { setError('Content body is required.'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/admin/content/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title.trim() || null, body: body.trim() }),
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) { setError(data.error ?? 'Failed to save.'); return; }
+      onSaved(item.id, title.trim(), body.trim());
+      onClose();
+    } catch {
+      setError('Network error. Please try again.');
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ width: 560, background: '#fff', borderRadius: 16, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 950 }}>Edit Content</h2>
+          <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5' }}>×</button>
+        </div>
+        <div style={{ padding: '24px', display: 'grid', gap: 16 }}>
+          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+            Title (optional)
+            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Update title…" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
+          </label>
+          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+            Content <span style={{ color: '#e11d48' }}>*</span>
+            <textarea value={body} onChange={e => setBody(e.target.value)} style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 160, resize: 'vertical' }} />
+          </label>
+          {error && <p style={{ margin: 0, color: '#e11d48', fontSize: 13 }}>{error}</p>}
+        </div>
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSave} disabled={saving} style={{ height: 42, padding: '0 22px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.65 : 1 }}>
+            {saving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Delete Confirm Modal
+// ─────────────────────────────────────────────
+function DeleteModal({ item, onClose, onDeleted }: { item: ContentRecord; onClose: () => void; onDeleted: (id: string) => void }) {
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleDelete() {
+    setDeleting(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/admin/content/${item.id}`, { method: 'DELETE' });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) { setError(data.error ?? 'Delete failed.'); return; }
+      onDeleted(item.id);
+      onClose();
+    } catch {
+      setError('Network error. Please try again.');
+    } finally { setDeleting(false); }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ width: 420, background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 24px 80px rgba(20,20,80,.18)' }}>
+        <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 950, color: '#0f0f30' }}>Delete Content?</h2>
+        <p style={{ margin: '0 0 4px', color: '#26335c', fontSize: 14 }}>
+          <strong>&ldquo;{item.title || 'Untitled'}&rdquo;</strong>
+        </p>
+        <p style={{ margin: '0 0 20px', color: '#66708d', fontSize: 13 }}>This will permanently remove the update from the campaign. This action cannot be undone.</p>
+        {error && <p style={{ margin: '0 0 12px', color: '#e11d48', fontSize: 13 }}>{error}</p>}
+        <div style={{ display: 'flex', gap: 12 }}>
+          <button onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleDelete} disabled={deleting} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#e11d48', color: '#fff', fontSize: 13, fontWeight: 950, cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.65 : 1 }}>
+            {deleting ? 'Deleting…' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Content detail panel (slide-in)
+// ─────────────────────────────────────────────
+function ContentDetailPanel({
+  item, onClose, onEdit, onDelete,
+}: {
+  item: ContentRecord;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const [activeTab, setActiveTab] = useState('overview');
   const tabs = ['overview', 'content', 'history'];
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ marginLeft: 'auto', width: 520, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -126,7 +226,7 @@ function ContentDetailPanel({ item, onClose }: { item: ContentRecord; onClose: (
             </div>
             <div style={{ fontSize: 17, fontWeight: 950, color: '#0f0f30', lineHeight: 1.3 }}>{item.title || 'Untitled'}</div>
           </div>
-          <button type="button" onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5', lineHeight: 1, flexShrink: 0 }}>×</button>
+          <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5', flexShrink: 0 }}>×</button>
         </div>
 
         <div style={{ display: 'flex', borderBottom: '1px solid #eef0f7', padding: '0 24px' }}>
@@ -141,20 +241,6 @@ function ContentDetailPanel({ item, onClose }: { item: ContentRecord; onClose: (
         <div style={{ padding: '20px 24px', flex: 1 }}>
           {activeTab === 'overview' && (
             <div style={{ display: 'grid', gap: 2 }}>
-              {/* Performance */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
-                {[
-                  { label: 'Views', value: '—' },
-                  { label: 'Engagement', value: '—' },
-                  { label: 'Shares', value: '—' },
-                  { label: 'Conversions', value: '—' },
-                ].map(m => (
-                  <div key={m.label} style={{ padding: '14px', border: '1px solid #e6e9f2', borderRadius: 10, background: '#fbf9ff' }}>
-                    <div style={{ fontSize: 12, color: '#66708d', fontWeight: 700 }}>{m.label}</div>
-                    <div style={{ fontSize: 20, fontWeight: 950, color: '#101944', marginTop: 4 }}>{m.value}</div>
-                  </div>
-                ))}
-              </div>
               {[
                 ['Type', item.type],
                 ['Author', item.author],
@@ -162,7 +248,7 @@ function ContentDetailPanel({ item, onClose }: { item: ContentRecord; onClose: (
                 ['Status', item.status],
                 ['Created', fmtDate(item.created_at)],
                 ['Updated', fmtDate(item.updated_at)],
-                ['Content ID', item.id.slice(0, 18) + '...'],
+                ['Content ID', item.id.slice(0, 18) + '…'],
               ].map(([label, val]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
                   <span style={{ color: '#66708d', fontWeight: 700 }}>{label}</span>
@@ -171,20 +257,16 @@ function ContentDetailPanel({ item, onClose }: { item: ContentRecord; onClose: (
               ))}
             </div>
           )}
-
           {activeTab === 'content' && (
-            <div>
-              <div style={{ fontSize: 14, color: '#26335c', lineHeight: 1.7, whiteSpace: 'pre-wrap', maxHeight: 400, overflowY: 'auto', padding: '16px', background: '#fbf9ff', borderRadius: 10, border: '1px solid #e6e9f2' }}>
-                {item.body || 'No content available.'}
-              </div>
+            <div style={{ fontSize: 14, color: '#26335c', lineHeight: 1.7, whiteSpace: 'pre-wrap', maxHeight: 500, overflowY: 'auto', padding: '16px', background: '#fbf9ff', borderRadius: 10, border: '1px solid #e6e9f2' }}>
+              {item.body || 'No content.'}
             </div>
           )}
-
           {activeTab === 'history' && (
             <div style={{ display: 'grid', gap: 12 }}>
               {[
                 { event: 'Content created', date: item.created_at, color: '#19b86a' },
-                { event: 'Content updated', date: item.updated_at, color: '#6c35ff' },
+                { event: 'Content last updated', date: item.updated_at, color: '#6c35ff' },
               ].map((ev, i) => (
                 <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: ev.color, marginTop: 5, flexShrink: 0 }} />
@@ -198,13 +280,11 @@ function ContentDetailPanel({ item, onClose }: { item: ContentRecord; onClose: (
           )}
         </div>
 
-        {/* Actions */}
         <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'grid', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <button type="button" style={{ height: 40, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }} onClick={() => alert('Edit')}>Edit Content</button>
-            <button type="button" style={{ height: 40, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }} onClick={() => alert('Duplicate')}>Duplicate</button>
+            <button type="button" onClick={onEdit} style={{ height: 40, border: '1px solid #6c35ff', borderRadius: 9, background: '#f3ecff', color: '#551cf2', fontSize: 13, fontWeight: 850, cursor: 'pointer' }}>Edit Content</button>
+            <button type="button" onClick={onDelete} style={{ height: 40, border: '1px solid #ff3b5f30', borderRadius: 9, background: '#fff0f3', color: '#ff3b5f', fontSize: 13, fontWeight: 850, cursor: 'pointer' }}>Delete Content</button>
           </div>
-          <button type="button" style={{ height: 40, border: '1px solid #ff3b5f30', borderRadius: 9, background: '#fff0f3', color: '#ff3b5f', fontSize: 13, fontWeight: 850, cursor: 'pointer' }} onClick={() => alert('Delete')}>Delete Content</button>
         </div>
       </div>
     </div>
@@ -212,84 +292,132 @@ function ContentDetailPanel({ item, onClose }: { item: ContentRecord; onClose: (
 }
 
 // ─────────────────────────────────────────────
-// Create content wizard
+// Create Content Wizard (3 steps)
 // ─────────────────────────────────────────────
-function CreateContentWizard({ onClose }: { onClose: () => void }) {
+function CreateContentWizard({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (rec: ContentRecord) => void;
+}) {
   const [step, setStep] = useState(1);
-  const [contentType, setContentType] = useState('');
+  const [campaignId, setCampaignId] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [publishMode, setPublishMode] = useState('draft');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSubmit() {
+    if (!body.trim()) { setError('Content body is required.'); return; }
+    if (!campaignId.trim()) { setError('Campaign ID is required.'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      const res = await fetch('/api/admin/content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title.trim() || undefined, body: body.trim(), campaignId: campaignId.trim() }),
+      });
+      const data = await res.json() as { error?: string; update?: { id: string; title: string | null; body: string; created_at: string; updated_at: string; campaign_id: string } };
+      if (!res.ok) { setError(data.error ?? 'Failed to create content.'); return; }
+      const u = data.update!;
+      onCreated({
+        id: u.id,
+        title: u.title ?? title.trim(),
+        body: u.body,
+        type: 'Campaign Update',
+        status: 'Published',
+        author: 'Admin',
+        campaign_title: `Campaign ${u.campaign_id.slice(0, 8)}…`,
+        campaign_id: u.campaign_id,
+        created_at: u.created_at,
+        updated_at: u.updated_at,
+      });
+      onClose();
+    } catch {
+      setError('Network error. Please try again.');
+    } finally { setSaving(false); }
+  }
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ width: 520, background: '#fff', borderRadius: 18, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 950, color: '#0f0f30' }}>Create New Content</div>
+            <div style={{ fontSize: 16, fontWeight: 950, color: '#0f0f30' }}>Create Campaign Update</div>
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               {[1, 2, 3].map(s => (
                 <div key={s} style={{ width: 28, height: 4, borderRadius: 2, background: step >= s ? '#6c35ff' : '#e6e9f2' }} />
               ))}
             </div>
           </div>
-          <button type="button" onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5', lineHeight: 1 }}>×</button>
+          <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5' }}>×</button>
         </div>
 
         <div style={{ padding: '24px' }}>
           {step === 1 && (
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 950, color: '#101944', marginBottom: 16 }}>Select Content Type</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {['Blog Post', 'Page', 'News', 'Media', 'Document', 'Other'].map(t => (
-                  <button key={t} type="button"
-                    onClick={() => setContentType(t)}
-                    style={{ height: 52, border: `2px solid ${contentType === t ? '#6c35ff' : '#e6e9f2'}`, borderRadius: 10, background: contentType === t ? '#f3ecff' : '#fff', color: contentType === t ? '#551cf2' : '#26335c', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>
-                    {t}
-                  </button>
-                ))}
-              </div>
+            <div style={{ display: 'grid', gap: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 950, color: '#101944', marginBottom: 4 }}>Campaign Target</div>
+              <p style={{ margin: 0, fontSize: 13, color: '#66708d' }}>Enter the Campaign ID this update belongs to. You can find campaign IDs in Admin → Campaigns.</p>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+                Campaign ID <span style={{ color: '#e11d48' }}>*</span>
+                <input
+                  value={campaignId}
+                  onChange={e => setCampaignId(e.target.value)}
+                  placeholder="e.g. a1b2c3d4-..."
+                  style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}
+                />
+              </label>
             </div>
           )}
           {step === 2 && (
             <div style={{ display: 'grid', gap: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 950, color: '#101944', marginBottom: 4 }}>Content Details</div>
               <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
-                Title
-                <input value={title} onChange={e => setTitle(e.target.value)} placeholder={`${contentType} title…`} style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
+                Title (optional)
+                <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Update title…" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
               <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
-                Content
-                <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write your content here…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 120, resize: 'vertical' }} />
+                Content <span style={{ color: '#e11d48' }}>*</span>
+                <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write the campaign update…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 140, resize: 'vertical' }} />
               </label>
             </div>
           )}
           {step === 3 && (
             <div style={{ display: 'grid', gap: 16 }}>
               <div style={{ fontSize: 15, fontWeight: 950, color: '#101944', marginBottom: 4 }}>Review & Publish</div>
-              <div style={{ padding: '14px', background: '#fbf9ff', borderRadius: 10, border: '1px solid #e6e9f2', fontSize: 13, lineHeight: 1.6 }}>
-                <div><b>Type:</b> {contentType}</div>
+              <div style={{ padding: '14px', background: '#fbf9ff', borderRadius: 10, border: '1px solid #e6e9f2', fontSize: 13, lineHeight: 1.8 }}>
+                <div><b>Campaign ID:</b> {campaignId}</div>
                 <div><b>Title:</b> {title || '(untitled)'}</div>
-                <div><b>Body:</b> {body.slice(0, 100)}{body.length > 100 ? '…' : ''}</div>
+                <div><b>Content preview:</b> {body.slice(0, 120)}{body.length > 120 ? '…' : ''}</div>
               </div>
-              {['Publish Now', 'Schedule for later', 'Save as Draft'].map(m => (
-                <label key={m} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, fontWeight: 700, color: '#26335c' }}>
-                  <input type="radio" name="publish" value={m} checked={publishMode === m} onChange={e => setPublishMode(e.target.value)} />
-                  {m}
-                </label>
-              ))}
+              {error && <p style={{ margin: 0, color: '#e11d48', fontSize: 13 }}>{error}</p>}
             </div>
           )}
         </div>
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-          {step > 1 && <button type="button" onClick={() => setStep(s => s - 1)} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>Back</button>}
-          <button type="button" onClick={() => { if (step < 3) setStep(s => s + 1); else { alert(`Content saved as ${publishMode}`); onClose(); } }}
-            disabled={step === 1 && !contentType}
-            style={{ height: 42, padding: '0 24px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer', opacity: (step === 1 && !contentType) ? 0.5 : 1 }}>
-            {step < 3 ? 'Next →' : 'Save Content'}
-          </button>
+          {step > 1 && (
+            <button onClick={() => { setStep(s => s - 1); setError(''); }} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>← Back</button>
+          )}
+          {step < 3 ? (
+            <button
+              onClick={() => {
+                if (step === 1 && !campaignId.trim()) { setError('Campaign ID is required.'); return; }
+                if (step === 2 && !body.trim()) { setError('Content body is required.'); return; }
+                setError('');
+                setStep(s => s + 1);
+              }}
+              style={{ height: 42, padding: '0 24px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer' }}>
+              Next →
+            </button>
+          ) : (
+            <button onClick={handleSubmit} disabled={saving} style={{ height: 42, padding: '0 24px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.65 : 1 }}>
+              {saving ? 'Publishing…' : 'Publish Update'}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -300,13 +428,15 @@ function CreateContentWizard({ onClose }: { onClose: () => void }) {
 // Main component
 // ─────────────────────────────────────────────
 export default function ContentClient({
-  totalContent, publishedCount, draftCount, aiGeneratedCount, contentByType, content,
+  totalContent, publishedCount, draftCount, aiGeneratedCount, contentByType, content: initialContent,
 }: ContentClientProps) {
+  const [content, setContent] = useState<ContentRecord[]>(initialContent);
   const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<ContentRecord | null>(null);
+  const [editItem, setEditItem] = useState<ContentRecord | null>(null);
+  const [deleteItem, setDeleteItem] = useState<ContentRecord | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [activeTab, setActiveTab] = useState('content');
 
@@ -314,33 +444,52 @@ export default function ContentClient({
 
   const filtered = useMemo(() => {
     let list = content;
-    if (filterStatus !== 'all') list = list.filter(c => c.status.toLowerCase() === filterStatus);
     if (filterType !== 'all') list = list.filter(c => c.type.toLowerCase() === filterType.toLowerCase());
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(c => c.title.toLowerCase().includes(q) || c.body.toLowerCase().includes(q));
     }
     return list;
-  }, [content, filterStatus, filterType, search]);
+  }, [content, filterType, search]);
 
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const panelTabs = ['content', 'activity', 'reports', 'bulk', 'audit'];
+  const handleSaved = useCallback((id: string, newTitle: string, newBody: string) => {
+    setContent(prev => prev.map(c => c.id === id ? { ...c, title: newTitle, body: newBody, updated_at: new Date().toISOString() } : c));
+    setSelected(prev => prev && prev.id === id ? { ...prev, title: newTitle, body: newBody, updated_at: new Date().toISOString() } : prev);
+  }, []);
 
-  const recentActivity = content.slice(0, 5).map(c => ({
-    title: c.title || 'Untitled',
-    type: c.type,
-    author: c.author,
-    date: c.updated_at,
-  }));
+  const handleDeleted = useCallback((id: string) => {
+    setContent(prev => prev.filter(c => c.id !== id));
+    setSelected(prev => prev?.id === id ? null : prev);
+  }, []);
+
+  const handleCreated = useCallback((rec: ContentRecord) => {
+    setContent(prev => [rec, ...prev]);
+  }, []);
+
+  function openEdit() {
+    if (!selected) return;
+    setEditItem(selected);
+    setSelected(null);
+  }
+
+  function openDelete() {
+    if (!selected) return;
+    setDeleteItem(selected);
+    setSelected(null);
+  }
+
+  const panelTabs = ['content', 'activity', 'audit'];
+  const recentActivity = content.slice(0, 5).map(c => ({ title: c.title || 'Untitled', type: c.type, author: c.author, date: c.updated_at }));
 
   return (
     <div style={{ padding: '0 32px 40px' }}>
       {/* KPI */}
       <div className="kf-metrics" style={{ marginBottom: 24 }}>
         {[
-          { label: 'Total Content', value: totalContent.toLocaleString(), tone: 'violet', icon: 'doc' },
+          { label: 'Total Content', value: content.length.toLocaleString(), tone: 'violet', icon: 'doc' },
           { label: 'Published', value: publishedCount.toLocaleString(), tone: 'green', icon: 'check' },
           { label: 'Drafts', value: draftCount.toLocaleString(), tone: 'orange', icon: 'chart' },
           { label: 'AI Generated', value: aiGeneratedCount.toLocaleString(), tone: 'blue', icon: 'stack' },
@@ -354,10 +503,7 @@ export default function ContentClient({
                 {m.icon === 'stack' && <><path d="M12 2l9 5-9 5-9-5 9-5Z"/><path d="M3 12l9 5 9-5"/><path d="M3 17l9 5 9-5"/></>}
               </svg>
             </div>
-            <div>
-              <span>{m.label}</span>
-              <strong>{m.value}</strong>
-            </div>
+            <div><span>{m.label}</span><strong>{m.value}</strong></div>
           </article>
         ))}
       </div>
@@ -367,10 +513,9 @@ export default function ContentClient({
         <section className="kf-card">
           <div className="kf-card-head"><h2>Content by Type</h2></div>
           <div style={{ padding: '10px 20px 20px' }}>
-            <TypeDonut items={contentByType.length > 0 ? contentByType : [{ type: 'Campaign Updates', count: totalContent }]} />
+            <TypeDonut items={contentByType.length > 0 ? contentByType : [{ type: 'Campaign Updates', count: content.length }]} />
           </div>
         </section>
-
         <section className="kf-card">
           <div className="kf-card-head"><h2>Recent Activity</h2></div>
           <div>
@@ -384,12 +529,12 @@ export default function ContentClient({
                 <div style={{ fontSize: 11, color: '#8c9ab5', flexShrink: 0 }}>{fmtDate(a.date)}</div>
               </div>
             ))}
-            {recentActivity.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: '#8c9ab5', fontSize: 14 }}>No recent activity</div>}
+            {recentActivity.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: '#8c9ab5', fontSize: 14 }}>No content yet</div>}
           </div>
         </section>
       </div>
 
-      {/* Main table section */}
+      {/* Main table */}
       <section className="kf-card">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', borderBottom: '1px solid #eef0f7' }}>
           <div style={{ display: 'flex', gap: 0 }}>
@@ -400,61 +545,46 @@ export default function ContentClient({
               </button>
             ))}
           </div>
-          <button type="button" onClick={() => setShowCreate(true)}
-            style={{ height: 40, padding: '0 18px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer' }}>
+          <button type="button" onClick={() => setShowCreate(true)} style={{ height: 40, padding: '0 18px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer' }}>
             + Create Content
           </button>
         </div>
 
         {activeTab === 'content' && (
           <div>
-            {/* Filters */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: '#fff' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={15} height={15}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
                 <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Search content…" style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }} />
               </label>
-              <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(0); }} style={{ height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', fontSize: 13, background: '#fff' }}>
-                <option value="all">All Status</option>
-                <option value="published">Published</option>
-                <option value="draft">Draft</option>
-                <option value="archived">Archived</option>
-              </select>
               <select value={filterType} onChange={e => { setFilterType(e.target.value); setPage(0); }} style={{ height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', fontSize: 13, background: '#fff' }}>
                 <option value="all">All Types</option>
                 {contentByType.map(t => <option key={t.type} value={t.type}>{t.type}</option>)}
               </select>
             </div>
 
-            {/* Table header */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 120px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 900, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
-              <span>Title</span>
-              <span>Type</span>
-              <span>Status</span>
-              <span>Author</span>
-              <span>Updated</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 900, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+              <span>Title</span><span>Type</span><span>Campaign</span><span>Updated</span>
             </div>
 
             {currentPage.map(c => (
               <div key={c.id}
-                style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+                style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => setSelected(c)}
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 850, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title || 'Untitled'}</div>
-                  <div style={{ fontSize: 11, color: '#8c9ab5', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.body.slice(0, 60)}{c.body.length > 60 ? '…' : ''}</div>
+                  <div style={{ fontSize: 11, color: '#8c9ab5', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.body.slice(0, 70)}{c.body.length > 70 ? '…' : ''}</div>
                 </div>
                 <span style={{ fontSize: 12, color: '#66708d', fontWeight: 700 }}>{c.type}</span>
-                <StatusPill status={c.status} />
-                <span style={{ fontSize: 12, color: '#66708d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.author}</span>
+                <span style={{ fontSize: 12, color: '#66708d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campaign_title}</span>
                 <span style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(c.updated_at)}</span>
               </div>
             ))}
 
             {currentPage.length === 0 && <div style={{ padding: '32px', textAlign: 'center', color: '#8c9ab5', fontSize: 14 }}>No content found</div>}
 
-            {/* Pagination */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderTop: '1px solid #eef0f7' }}>
               <span style={{ fontSize: 13, color: '#66708d' }}>Showing {filtered.length === 0 ? 0 : page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}</span>
               <div style={{ display: 'flex', gap: 6 }}>
@@ -468,71 +598,57 @@ export default function ContentClient({
         {activeTab === 'activity' && (
           <div style={{ padding: '20px' }}>
             <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950 }}>Content Activity</h3>
-            {content.slice(0, 8).map((c, i) => (
+            {content.slice(0, 10).map((c, i) => (
               <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6c35ff', marginTop: 4, flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
                   <span style={{ fontWeight: 850, color: '#101944' }}>{c.title || 'Untitled'}</span>
-                  <span style={{ color: '#66708d', marginLeft: 6 }}>was updated</span>
+                  <span style={{ color: '#66708d', marginLeft: 6 }}>· {c.campaign_title}</span>
                 </div>
                 <span style={{ color: '#8c9ab5', flexShrink: 0 }}>{fmtDate(c.updated_at)}</span>
               </div>
             ))}
-          </div>
-        )}
-
-        {activeTab === 'reports' && (
-          <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 950 }}>Content Reports</h3>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-              <select style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 13 }}>
-                <option>Performance Report</option>
-                <option>Engagement Report</option>
-                <option>Content Summary</option>
-              </select>
-              <select style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 13 }}>
-                <option>Last 30 Days</option>
-                <option>Last 90 Days</option>
-                <option>This Year</option>
-              </select>
-              <button type="button" style={{ height: 42, padding: '0 20px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer' }} onClick={() => alert('Generating report…')}>Generate Report</button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'bulk' && (
-          <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950 }}>Bulk Actions</h3>
-            <p style={{ color: '#66708d', fontSize: 14, marginBottom: 16 }}>Select items in the content list to enable bulk actions.</p>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {['Publish All', 'Unpublish All', 'Archive Selected', 'Delete Selected', 'Export Selected'].map(a => (
-                <button key={a} type="button" style={{ height: 40, padding: '0 16px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }} onClick={() => alert(a)}>{a}</button>
-              ))}
-            </div>
+            {content.length === 0 && <p style={{ color: '#8c9ab5', fontSize: 14 }}>No content yet.</p>}
           </div>
         )}
 
         {activeTab === 'audit' && (
           <div style={{ padding: '20px' }}>
             <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950 }}>Audit Log</h3>
-            {[
-              { event: 'Content published', item: 'Campaign Update', time: '2 hours ago', color: '#19b86a' },
-              { event: 'Content archived', item: 'Blog Post', time: '1 day ago', color: '#8c9ab5' },
-              { event: 'Content deleted', item: 'News Article', time: '2 days ago', color: '#ff3b5f' },
-              { event: 'Content created', item: 'Campaign Update', time: '3 days ago', color: '#6c35ff' },
-            ].map((e, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: e.color, flexShrink: 0 }} />
-                <span style={{ flex: 1, color: '#26335c', fontWeight: 700 }}>{e.event}: <em style={{ fontStyle: 'normal', color: '#8c9ab5' }}>{e.item}</em></span>
-                <span style={{ color: '#8c9ab5' }}>{e.time}</span>
-              </div>
-            ))}
+            <p style={{ color: '#66708d', fontSize: 13 }}>Content actions (create, edit, delete) are logged in the platform audit log. View full logs in Admin → Audit Log, filtering by target type &ldquo;campaign_update&rdquo;.</p>
           </div>
         )}
       </section>
 
-      {selected && <ContentDetailPanel item={selected} onClose={() => setSelected(null)} />}
-      {showCreate && <CreateContentWizard onClose={() => setShowCreate(false)} />}
+      {/* Modals */}
+      {selected && (
+        <ContentDetailPanel
+          item={selected}
+          onClose={() => setSelected(null)}
+          onEdit={openEdit}
+          onDelete={openDelete}
+        />
+      )}
+      {editItem && (
+        <EditModal
+          item={editItem}
+          onClose={() => setEditItem(null)}
+          onSaved={handleSaved}
+        />
+      )}
+      {deleteItem && (
+        <DeleteModal
+          item={deleteItem}
+          onClose={() => setDeleteItem(null)}
+          onDeleted={handleDeleted}
+        />
+      )}
+      {showCreate && (
+        <CreateContentWizard
+          onClose={() => setShowCreate(false)}
+          onCreated={handleCreated}
+        />
+      )}
     </div>
   );
 }

@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Write audit log entry
-  await supabaseAdmin.from('audit_log').insert({
+  await supabaseAdmin.from('audit_logs').insert({
     action: 'system_settings.updated',
     target_type: 'platform_settings',
     target_id: '1',

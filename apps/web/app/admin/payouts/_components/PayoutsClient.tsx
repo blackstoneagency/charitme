@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 
 // ─────────────────────────────────────────────
 // Types
@@ -267,6 +267,21 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
 // ─────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────
+type AuditEntry = { id: string; action: string; actorName: string; metadata: Record<string, unknown>; createdAt: string };
+
+function exportCsv(rows: PayoutRecord[]) {
+  const header = ['Recipient', 'Email', 'Campaign', 'Amount_USD', 'Status', 'Method', 'Date'].join(',');
+  const lines = rows.map(p => [
+    p.recipient_name, p.recipient_email, p.campaign_title,
+    (p.amount_cents / 100).toFixed(2), p.status, p.payout_method,
+    new Date(p.created_at).toISOString(),
+  ].map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
+  const blob = new Blob([[header, ...lines].join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `payouts-${Date.now()}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function PayoutsClient({
   totalCents, pendingCents, completedCents, failedCount, pendingCount, completedCount,
   payouts, weeklyTrend, topRecipients,
@@ -276,6 +291,20 @@ export default function PayoutsClient({
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<PayoutRecord | null>(null);
   const [activeTab, setActiveTab] = useState('payouts');
+
+  // ── Add payout form state
+  const [addUserId, setAddUserId] = useState('');
+  const [addCampaignId, setAddCampaignId] = useState('');
+  const [addAmount, setAddAmount] = useState('');
+  const [addMethod, setAddMethod] = useState('Bank Transfer');
+  const [addNote, setAddNote] = useState('');
+  const [addError, setAddError] = useState('');
+  const [addSaving, setAddSaving] = useState(false);
+  const [addSuccess, setAddSuccess] = useState(false);
+
+  // ── Audit log state
+  const [auditEntries, setAuditEntries] = useState<AuditEntry[] | null>(null);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   const PAGE_SIZE = 10;
   const totalCount = pendingCount + completedCount + failedCount;
@@ -294,6 +323,44 @@ export default function PayoutsClient({
   const currentPage = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const panelTabs = ['payouts', 'recurring', 'add', 'methods', 'reports', 'export', 'audit'];
+
+  const loadAuditLog = useCallback(async () => {
+    if (auditEntries !== null) return; // already loaded
+    setAuditLoading(true);
+    try {
+      const res = await fetch('/api/admin/audit?target_type=payout&limit=30');
+      if (res.ok) setAuditEntries(await res.json() as AuditEntry[]);
+    } finally { setAuditLoading(false); }
+  }, [auditEntries]);
+
+  function handleTabChange(t: string) {
+    setActiveTab(t);
+    if (t === 'audit') loadAuditLog();
+  }
+
+  async function handleCreatePayout() {
+    setAddError('');
+    const amountCents = Math.round(parseFloat(addAmount.replace(/,/g, '')) * 100);
+    if (!addUserId.trim()) { setAddError('Recipient User ID is required.'); return; }
+    if (!amountCents || amountCents < 1) { setAddError('Enter a valid amount greater than $0.'); return; }
+    setAddSaving(true);
+    try {
+      const res = await fetch('/api/admin/payouts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: addUserId.trim(), campaign_id: addCampaignId.trim() || undefined, amount_cents: amountCents, payout_method: addMethod, note: addNote.trim() || undefined }),
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) { setAddError(data.error ?? 'Failed to create payout.'); return; }
+      setAddSuccess(true);
+      setAddUserId(''); setAddCampaignId(''); setAddAmount(''); setAddNote('');
+      // Reset audit cache so next view is fresh
+      setAuditEntries(null);
+      setTimeout(() => setAddSuccess(false), 5000);
+    } catch {
+      setAddError('Network error. Please try again.');
+    } finally { setAddSaving(false); }
+  }
 
   return (
     <div style={{ padding: '0 32px 40px' }}>
@@ -377,7 +444,7 @@ export default function PayoutsClient({
       <section className="kf-card">
         <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #eef0f7', padding: '0 20px', overflowX: 'auto' }}>
           {panelTabs.map(t => (
-            <button key={t} type="button" onClick={() => setActiveTab(t)}
+            <button key={t} type="button" onClick={() => handleTabChange(t)}
               style={{ height: 50, padding: '0 14px', border: 0, borderBottom: `2px solid ${activeTab === t ? '#6c35ff' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? '#551cf2' : '#202b55', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               {capitalize(t)}
             </button>
@@ -398,7 +465,7 @@ export default function PayoutsClient({
                 <option value="requested">Requested</option>
                 <option value="failed">Failed</option>
               </select>
-              <button type="button" style={{ height: 42, padding: '0 18px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }} onClick={() => alert('Exporting…')}>Export</button>
+              <button type="button" style={{ height: 42, padding: '0 18px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }} onClick={() => exportCsv(filtered)}>Export CSV</button>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 900, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
@@ -459,35 +526,45 @@ export default function PayoutsClient({
 
         {activeTab === 'add' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 950 }}>Add Manual Payout</h3>
+            <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 950 }}>Add Manual Payout</h3>
+            <p style={{ margin: '0 0 20px', fontSize: 13, color: '#66708d' }}>Create a payout for an existing platform user. Find User IDs in Admin → Users.</p>
+            {addSuccess && (
+              <div style={{ padding: '12px 16px', borderRadius: 9, background: '#def7e7', color: '#079447', fontSize: 13, fontWeight: 850, marginBottom: 16 }}>
+                ✓ Payout created successfully. Reload the page to see it in the list.
+              </div>
+            )}
             <div style={{ maxWidth: 460, display: 'grid', gap: 16 }}>
-              {[
-                { label: 'Recipient', type: 'text', placeholder: 'Select recipient…' },
-                { label: 'Amount ($)', type: 'number', placeholder: '0.00' },
-              ].map(f => (
-                <label key={f.label} style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
-                  {f.label}
-                  <input type={f.type} placeholder={f.placeholder} style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
-                </label>
-              ))}
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+                Recipient User ID <span style={{ color: '#e11d48' }}>*</span>
+                <input type="text" value={addUserId} onChange={e => setAddUserId(e.target.value)} placeholder="e.g. 12a3bc45-6d7e-..." style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
+              </label>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+                Campaign ID (optional)
+                <input type="text" value={addCampaignId} onChange={e => setAddCampaignId(e.target.value)} placeholder="Leave blank for unattached payout" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
+              </label>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+                Amount (USD) <span style={{ color: '#e11d48' }}>*</span>
+                <input type="number" min="0.01" step="0.01" value={addAmount} onChange={e => setAddAmount(e.target.value)} placeholder="0.00" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
+              </label>
               <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
                 Payout Method
-                <select style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
+                <select value={addMethod} onChange={e => setAddMethod(e.target.value)} style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
                   <option>Bank Transfer</option>
                   <option>PayPal</option>
                   <option>Wise</option>
                   <option>Stripe Connect</option>
+                  <option>Check</option>
                 </select>
               </label>
               <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
-                Note
-                <textarea placeholder="Optional note…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 80, resize: 'vertical' }} />
+                Internal Note
+                <textarea value={addNote} onChange={e => setAddNote(e.target.value)} placeholder="Reason for manual payout…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 80, resize: 'vertical' }} />
               </label>
+              {addError && <p style={{ margin: 0, color: '#e11d48', fontSize: 13, fontWeight: 750 }}>{addError}</p>}
               <div style={{ display: 'flex', gap: 12 }}>
-                <button type="button" style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>Cancel</button>
-                <button type="button" style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer' }}
-                  onClick={() => fetch('/api/admin/payouts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount_cents: 0 }) }).then(() => alert('Payout created'))}>
-                  Create Payout
+                <button type="button" onClick={() => { setAddUserId(''); setAddCampaignId(''); setAddAmount(''); setAddNote(''); setAddError(''); setAddSuccess(false); }} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>Clear</button>
+                <button type="button" onClick={handleCreatePayout} disabled={addSaving} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: addSaving ? 'default' : 'pointer', opacity: addSaving ? 0.65 : 1 }}>
+                  {addSaving ? 'Creating…' : 'Create Payout'}
                 </button>
               </div>
             </div>
@@ -529,33 +606,60 @@ export default function PayoutsClient({
 
         {activeTab === 'export' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 950 }}>Export Payouts</h3>
+            <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 950 }}>Export Payouts</h3>
+            <p style={{ margin: '0 0 20px', fontSize: 13, color: '#66708d' }}>{payouts.length.toLocaleString()} total payouts available for export.</p>
             <div style={{ maxWidth: 420, display: 'grid', gap: 16 }}>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>Format <select style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}><option>CSV</option><option>Excel</option><option>PDF</option></select></label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#26335c' }}>
-                <input type="checkbox" defaultChecked /> Include payout fees
-              </label>
-              <button type="button" style={{ height: 44, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 14, fontWeight: 950, cursor: 'pointer' }} onClick={() => alert('Export started')}>Export Payouts</button>
+              <div style={{ padding: '14px 16px', border: '1px solid #e6e9f2', borderRadius: 10, background: '#fbf9ff', fontSize: 13 }}>
+                <div style={{ fontWeight: 850, marginBottom: 4, color: '#101944' }}>Columns included:</div>
+                <div style={{ color: '#66708d' }}>Recipient, Email, Campaign, Amount (USD), Status, Method, Date</div>
+              </div>
+              <button
+                type="button"
+                style={{ height: 44, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 14, fontWeight: 950, cursor: 'pointer' }}
+                onClick={() => exportCsv(payouts)}
+              >
+                Download CSV ({payouts.length.toLocaleString()} rows)
+              </button>
+              <button
+                type="button"
+                style={{ height: 44, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer', color: '#551cf2' }}
+                onClick={() => exportCsv(filtered)}
+              >
+                Export Current Filter ({filtered.length.toLocaleString()} rows)
+              </button>
             </div>
           </div>
         )}
 
         {activeTab === 'audit' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950 }}>Audit Log</h3>
-            {[
-              { event: 'Payout approved', amount: '$500', time: '1 hour ago', color: '#19b86a' },
-              { event: 'Payout rejected', amount: '$200', time: '3 hours ago', color: '#ff3b5f' },
-              { event: 'Note added to payout', amount: '', time: '1 day ago', color: '#6c35ff' },
-              { event: 'Payout marked as paid', amount: '$1,200', time: '2 days ago', color: '#0fa456' },
-            ].map((e, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: e.color, flexShrink: 0 }} />
-                <span style={{ flex: 1, color: '#26335c', fontWeight: 700 }}>{e.event}</span>
-                {e.amount && <strong style={{ color: '#101944' }}>{e.amount}</strong>}
-                <span style={{ color: '#8c9ab5' }}>{e.time}</span>
-              </div>
-            ))}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 950 }}>Payout Audit Log</h3>
+              {!auditLoading && auditEntries === null && (
+                <button type="button" onClick={loadAuditLog} style={{ height: 36, padding: '0 16px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>Load Log</button>
+              )}
+            </div>
+            {auditLoading && <div style={{ padding: '24px 0', textAlign: 'center', color: '#8c9ab5', fontSize: 14 }}>Loading audit log…</div>}
+            {!auditLoading && auditEntries !== null && auditEntries.length === 0 && (
+              <div style={{ padding: '24px 0', textAlign: 'center', color: '#8c9ab5', fontSize: 14 }}>No payout audit entries yet.</div>
+            )}
+            {!auditLoading && auditEntries && auditEntries.map(e => {
+              const isGood = e.action.includes('paid') || e.action.includes('approv');
+              const isBad = e.action.includes('reject') || e.action.includes('cancel') || e.action.includes('fail');
+              const color = isGood ? '#19b86a' : isBad ? '#ff3b5f' : '#6c35ff';
+              const amtCents = (e.metadata as { amount_cents?: number }).amount_cents;
+              return (
+                <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontWeight: 750, color: '#26335c' }}>{e.action.replace('payout.', '').replace(/_/g, ' ')}</span>
+                    <span style={{ color: '#8c9ab5', marginLeft: 8, fontSize: 11 }}>by {e.actorName}</span>
+                  </div>
+                  {amtCents && <strong style={{ color: '#101944' }}>{fmtCents(amtCents)}</strong>}
+                  <span style={{ color: '#8c9ab5', fontSize: 11 }}>{new Date(e.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              );
+            })}
           </div>
         )}
       </section>

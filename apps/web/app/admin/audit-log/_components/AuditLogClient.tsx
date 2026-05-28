@@ -116,12 +116,26 @@ function CategoryDonut({ categories }: { categories: CategoryCount[] }) {
   );
 }
 
+function exportEventsCsv(events: AuditEvent[]) {
+  const header = ['DateTime', 'Action', 'Category', 'Status', 'EventType', 'StripeEventId'].join(',');
+  const rows = events.map(e => [e.dateTime, e.action, e.category, e.status, e.eventType, e.stripeEventId ?? '']
+    .map(v => `"${String(v).replace(/"/g, '""')}"`)
+    .join(','));
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `audit-log-${Date.now()}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function AuditLogClient({ events, totalEvents, uniqueUsers, categories, failedCount, dayPoints }: Props) {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFmt, setExportFmt] = useState<'CSV' | 'Excel' | 'PDF'>('CSV');
 
   const categoryNames = ['All', ...categories.map(c => c.label)];
 
@@ -353,15 +367,18 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
             <p style={{ margin: '0 0 20px', color: '#67718e', fontSize: 13 }}>Choose the format to export {totalEvents.toLocaleString()} events.</p>
             <div style={{ display: 'grid', gap: 10 }}>
               {(['CSV', 'Excel', 'PDF'] as const).map(fmt => (
-                <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: '1px solid #e0e4ef', borderRadius: 9, cursor: 'pointer', fontSize: 14, fontWeight: 850 }}>
-                  <input type="radio" name="export-fmt" value={fmt} defaultChecked={fmt === 'CSV'} />
+                <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: `1px solid ${exportFmt === fmt ? '#6c35ff' : '#e0e4ef'}`, borderRadius: 9, cursor: 'pointer', fontSize: 14, fontWeight: 850 }}>
+                  <input type="radio" name="export-fmt" value={fmt} checked={exportFmt === fmt} onChange={() => setExportFmt(fmt)} />
                   Export as {fmt}
                 </label>
               ))}
             </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+            <p style={{ margin: '8px 0 0', color: '#67718e', fontSize: 12 }}>
+              {filtered.length.toLocaleString()} filtered events will be exported
+            </p>
+            <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
               <button onClick={() => setShowExportModal(false)} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontWeight: 850, cursor: 'pointer' }}>Cancel</button>
-              <button className="kf-primary" style={{ height: 42, padding: '0 22px' }} onClick={() => setShowExportModal(false)}>Download</button>
+              <button className="kf-primary" style={{ height: 42, padding: '0 22px' }} onClick={() => { exportEventsCsv(filtered); setShowExportModal(false); }}>Download</button>
             </div>
           </div>
         </div>

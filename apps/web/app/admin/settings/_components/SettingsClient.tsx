@@ -92,13 +92,27 @@ export default function SettingsClient({ categories, settings: initialSettings, 
     setSettings((current) => ({ ...current, [key]: value }));
   }
 
+  function buildPayload(): { category: string; settings: Record<string, unknown> } {
+    const cat = activeCategory;
+    if (cat === 'General') return { category: 'general', settings: { platformName: settings.platformName, tagline: settings.tagline, supportEmail: settings.supportEmail, supportPhone: settings.supportPhone, timezone: settings.timezone } };
+    if (cat === 'Branding') return { category: 'general', settings: { logoUrl: settings.logoUrl, primaryColor: settings.brandPrimaryColor, accentColor: settings.brandAccentColor, platformName: settings.platformName } };
+    if (cat === 'Email') return { category: 'email', settings: { fromName: settings.emailFromName, fromEmail: settings.emailFromAddress, emailVerification: settings.emailVerification, campaignApproval: settings.notifyCampaignApproval } };
+    if (cat === 'Payment') return { category: 'payment', settings: { stripeLive: settings.stripeLiveMode, platformFeePct: settings.platformFeePercent, donationFeePct: settings.donationFeePercent, stripeConnect: settings.stripeConnectEnabled, currency: settings.currency } };
+    if (cat === 'Notifications') return { category: 'notifications', settings: { emailEnabled: settings.notifyAdminOnDonation, campaignApproval: settings.notifyCampaignApproval } };
+    if (cat === 'Security') return { category: 'security', settings: { requireMfa: settings.requireMfaForAdmins, sessionTimeoutMinutes: settings.sessionTimeoutMinutes, googleOAuth: settings.googleOAuthEnabled, allowNewRegistrations: settings.allowNewRegistrations } };
+    if (cat === 'Integrations') return { category: 'integrations', settings: { googleAnalyticsEnabled: settings.googleOAuthEnabled, stripeConnect: settings.stripeConnectEnabled } };
+    // Advanced
+    return { category: 'maintenance', settings: { maintenanceMode: settings.maintenanceMode, maxUploadMb: settings.maxUploadMb, logRetentionDays: settings.auditRetentionDays } };
+  }
+
   function handleSave() {
     setNotice('');
     startTransition(async () => {
+      const payload = buildPayload();
       const response = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(payload),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {

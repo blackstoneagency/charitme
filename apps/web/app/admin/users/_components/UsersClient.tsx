@@ -39,6 +39,23 @@ function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
 
+function exportUsersCsv(users: UserRecord[]) {
+  const header = ['ID', 'Name', 'Email', 'Role', 'Joined'].join(',');
+  const rows = users.map(u => [
+    u.id,
+    u.full_name ?? '',
+    u.email,
+    getPrimaryRole(u.roles),
+    fmtDate(u.created_at),
+  ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(','));
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `users-export-${Date.now()}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
 function getInitials(name: string | null, email: string): string {
   if (name && name.trim()) {
     return name.trim().split(/\s+/).map(n => n[0]).join('').slice(0, 2).toUpperCase();
@@ -92,6 +109,42 @@ function GrowthChart({ points }: { points: WeekPoint[] }) {
 // ─────────────────────────────────────────────
 function UserDetailPanel({ user, onClose }: { user: UserRecord; onClose: () => void }) {
   const [activeTab, setActiveTab] = useState('overview');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionError, setActionError] = useState('');
+  const [actionDone, setActionDone] = useState('');
+  const [showRolePicker, setShowRolePicker] = useState(false);
+  const [pendingRole, setPendingRole] = useState(getPrimaryRole(user.roles).toLowerCase());
+
+  async function handleAction(action: string) {
+    setActionError(''); setActionDone('');
+    if (action === 'delete' && !confirm(`Permanently delete ${user.email}? This cannot be undone.`)) return;
+    setActionLoading(action);
+    try {
+      let res: Response;
+      if (action === 'delete') {
+        res = await fetch(`/api/admin/users/${user.id}`, { method: 'DELETE' });
+      } else if (action === 'change-role') {
+        res = await fetch(`/api/admin/users/${user.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: pendingRole }) });
+      } else {
+        res = await fetch(`/api/admin/users/${user.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) });
+      }
+      const data = await res.json().catch(() => ({})) as { error?: string };
+      if (!res.ok) { setActionError(data.error ?? 'Action failed.'); return; }
+      const msgs: Record<string, string> = {
+        'change-role': `Role changed to ${pendingRole}.`,
+        'reset-password': 'Password reset email sent.',
+        'suspend': 'User suspended.',
+        'delete': 'User deleted.',
+      };
+      setActionDone(msgs[action] ?? 'Done.');
+      setShowRolePicker(false);
+      if (action === 'delete') setTimeout(onClose, 1500);
+    } catch {
+      setActionError('Something went wrong.');
+    } finally {
+      setActionLoading(null);
+    }
+  }
 
   return (
     <div
@@ -162,18 +215,46 @@ function UserDetailPanel({ user, onClose }: { user: UserRecord; onClose: () => v
 
           {activeTab === 'settings' && (
             <div style={{ display: 'grid', gap: 10 }}>
-              {[
-                { label: 'Change Role', color: '#2563eb', bg: '#eaf1ff' },
-                { label: 'Reset Password', color: '#f97316', bg: '#fff0e4' },
-                { label: 'Suspend User', color: '#ff3b5f', bg: '#fff0f3' },
-                { label: 'Delete User', color: '#ff3b5f', bg: '#fff0f3' },
-              ].map(({ label, color, bg }) => (
-                <button key={label} type="button"
-                  style={{ width: '100%', height: 44, border: `1px solid ${color}20`, borderRadius: 10, background: bg, color, fontWeight: 850, fontSize: 13, cursor: 'pointer' }}
-                  onClick={() => alert(`Action: ${label}`)}>
-                  {label}
+              {actionError && <div style={{ padding: '10px 14px', background: '#fff0f3', borderRadius: 9, color: '#ff3b5f', fontSize: 13, fontWeight: 700 }}>{actionError}</div>}
+              {actionDone && <div style={{ padding: '10px 14px', background: '#f0fdf5', borderRadius: 9, color: '#15803d', fontSize: 13, fontWeight: 700 }}>{actionDone}</div>}
+              {showRolePicker ? (
+                <div style={{ padding: 14, border: '1px solid #dfe3ee', borderRadius: 10, display: 'grid', gap: 10 }}>
+                  <div style={{ fontSize: 13, fontWeight: 850, color: '#26335c' }}>Select New Role</div>
+                  <select value={pendingRole} onChange={e => setPendingRole(e.target.value)}
+                    style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
+                    <option value="donor">Donor</option>
+                    <option value="organizer">Organizer</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" onClick={() => handleAction('change-role')} disabled={actionLoading === 'change-role'}
+                      style={{ flex: 1, height: 38, border: 0, borderRadius: 9, background: '#2563eb', color: '#fff', fontWeight: 850, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'change-role' ? 0.6 : 1 }}>
+                      {actionLoading === 'change-role' ? 'Saving…' : 'Confirm'}
+                    </button>
+                    <button type="button" onClick={() => setShowRolePicker(false)}
+                      style={{ flex: 1, height: 38, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontWeight: 750, fontSize: 13, cursor: 'pointer' }}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setShowRolePicker(true)}
+                  style={{ width: '100%', height: 44, border: '1px solid #2563eb20', borderRadius: 10, background: '#eaf1ff', color: '#2563eb', fontWeight: 850, fontSize: 13, cursor: 'pointer' }}>
+                  Change Role
                 </button>
-              ))}
+              )}
+              <button type="button" disabled={!!actionLoading} onClick={() => handleAction('reset-password')}
+                style={{ width: '100%', height: 44, border: '1px solid #f9731620', borderRadius: 10, background: '#fff0e4', color: '#f97316', fontWeight: 850, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'reset-password' ? 0.6 : 1 }}>
+                {actionLoading === 'reset-password' ? 'Sending…' : 'Reset Password'}
+              </button>
+              <button type="button" disabled={!!actionLoading} onClick={() => handleAction('suspend')}
+                style={{ width: '100%', height: 44, border: '1px solid #ff3b5f20', borderRadius: 10, background: '#fff0f3', color: '#ff3b5f', fontWeight: 850, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'suspend' ? 0.6 : 1 }}>
+                {actionLoading === 'suspend' ? 'Updating…' : 'Suspend User'}
+              </button>
+              <button type="button" disabled={!!actionLoading} onClick={() => handleAction('delete')}
+                style={{ width: '100%', height: 44, border: '1px solid #ff3b5f', borderRadius: 10, background: '#fff0f3', color: '#ff3b5f', fontWeight: 850, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'delete' ? 0.6 : 1 }}>
+                {actionLoading === 'delete' ? 'Deleting…' : '⚠ Delete User'}
+              </button>
             </div>
           )}
         </div>
@@ -495,7 +576,7 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
                   </select>
                 </label>
               ))}
-              <button type="button" style={{ height: 44, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 14, fontWeight: 950, cursor: 'pointer' }} onClick={() => alert('Export started')}>
+              <button type="button" style={{ height: 44, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 14, fontWeight: 950, cursor: 'pointer' }} onClick={() => exportUsersCsv(users)}>
                 Export Users
               </button>
             </div>
@@ -505,18 +586,12 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
         {activeSection === 'audit' && (
           <div style={{ padding: '20px' }}>
             <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950 }}>Audit Log</h3>
-            {[
-              { event: 'User created via admin', time: '1 hour ago', color: '#19b86a' },
-              { event: 'Role changed to Admin', time: '3 hours ago', color: '#6c35ff' },
-              { event: 'User suspended', time: '1 day ago', color: '#ff3b5f' },
-              { event: 'Password reset email sent', time: '2 days ago', color: '#f97316' },
-            ].map((e, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: e.color, flexShrink: 0 }} />
-                <span style={{ flex: 1, color: '#26335c', fontWeight: 700 }}>{e.event}</span>
-                <span style={{ color: '#8c9ab5' }}>{e.time}</span>
-              </div>
-            ))}
+            <div style={{ padding: '16px', background: '#f8f9fc', borderRadius: 10, fontSize: 14, color: '#66708d', lineHeight: 1.6 }}>
+              User activity is recorded in the platform-wide audit log.{' '}
+              <a href="/admin/audit-log" style={{ color: '#551cf2', fontWeight: 750, textDecoration: 'none' }}>
+                View full Audit Log →
+              </a>
+            </div>
           </div>
         )}
       </section>
