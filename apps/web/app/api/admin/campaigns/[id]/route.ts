@@ -1,3 +1,4 @@
+import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { verifyAdmin } from '../../users/_auth';
@@ -36,6 +37,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   if (typeof body.payout_frozen === 'boolean') update.payout_frozen = body.payout_frozen;
+  if (typeof body.featured === 'boolean') update.featured = body.featured;
+  if (typeof body.pinned === 'boolean') update.pinned = body.pinned;
 
   if (typeof body.campaign_health_score === 'number') {
     update.campaign_health_score = Math.max(0, Math.min(100, Math.round(body.campaign_health_score)));
@@ -53,7 +56,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     .from('campaigns')
     .update(update)
     .eq('id', id)
-    .select('id, title, status, trust_status, payout_frozen, campaign_health_score, goal_amount, updated_at')
+    .select('id, title, status, trust_status, payout_frozen, featured, pinned, campaign_health_score, goal_amount, updated_at')
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -73,4 +76,25 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   return NextResponse.json({ ok: true, campaign: data });
+}
+
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await verifyAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { id } = await params;
+
+  const { error } = await supabaseAdmin.from('campaigns').delete().eq('id', id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await supabaseAdmin.from('audit_logs').insert({
+    actor_id: admin.id,
+    action: 'campaign.deleted',
+    target_type: 'campaign',
+    target_id: id,
+    metadata: {},
+    created_at: new Date().toISOString(),
+  }).then(() => undefined);
+
+  return NextResponse.json({ ok: true });
 }

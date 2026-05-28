@@ -22,11 +22,11 @@ export default async function AdminCampaignsPage() {
     supabaseAdmin
       .from('campaigns')
       .select(
-        'id, title, tagline, description, status, raised_amount, goal_amount, backer_count, category, user_id, trust_status, campaign_health_score, payout_frozen, created_at',
+        'id, slug, title, tagline, description, status, raised_amount, goal_amount, backer_count, category, user_id, trust_status, campaign_health_score, payout_frozen, featured, pinned, cover_image_url, deadline, beneficiary_name, created_at',
         { count: 'exact' },
       )
       .order('created_at', { ascending: false })
-      .limit(100),
+      .limit(200),
     supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'draft'),
     supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).in('status', ['paused', 'frozen', 'rejected']),
@@ -34,6 +34,7 @@ export default async function AdminCampaignsPage() {
 
   type CampaignRow = {
     id: string;
+    slug: string;
     title: string;
     tagline: string | null;
     description: string | null;
@@ -46,6 +47,11 @@ export default async function AdminCampaignsPage() {
     trust_status: string | null;
     campaign_health_score: number | null;
     payout_frozen: boolean | null;
+    featured: boolean | null;
+    pinned: boolean | null;
+    cover_image_url: string | null;
+    deadline: string | null;
+    beneficiary_name: string | null;
     created_at: string;
   };
 
@@ -65,18 +71,25 @@ export default async function AdminCampaignsPage() {
 
   const adminCampaigns: AdminCampaign[] = campaignList.map(c => ({
     id: c.id,
+    slug: c.slug,
     title: c.title,
     tagline: c.tagline ?? '',
     description: c.description ?? '',
     status: c.status,
     trustStatus: c.trust_status ?? 'Needs More Info',
     payoutFrozen: Boolean(c.payout_frozen),
+    featured: Boolean(c.featured),
+    pinned: Boolean(c.pinned),
     healthScore: c.campaign_health_score ?? 0,
     raisedAmount: c.raised_amount ?? 0,
     goalAmount: c.goal_amount ?? 0,
     backerCount: c.backer_count ?? 0,
     category: c.category ? capitalize(c.category) : 'Uncategorized',
     organizer: profileMap.get(c.user_id) ?? 'Unknown Organizer',
+    organizerId: c.user_id,
+    coverImageUrl: c.cover_image_url ?? null,
+    deadline: c.deadline ?? null,
+    beneficiaryName: c.beneficiary_name ?? null,
     createdAt: c.created_at,
   }));
 
