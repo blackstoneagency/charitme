@@ -428,7 +428,7 @@ function CreateContentWizard({
 // Main component
 // ─────────────────────────────────────────────
 export default function ContentClient({
-  totalContent, publishedCount, draftCount, aiGeneratedCount, contentByType, content: initialContent,
+  totalContent: _totalContent, publishedCount, draftCount, aiGeneratedCount, contentByType, content: initialContent,
 }: ContentClientProps) {
   const [content, setContent] = useState<ContentRecord[]>(initialContent);
   const [search, setSearch] = useState('');

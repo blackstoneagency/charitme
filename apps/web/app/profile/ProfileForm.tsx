@@ -13,6 +13,7 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
   const [bio, setBio] = useState(profile.bio ?? '');
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [pwResetMsg, setPwResetMsg] = useState('');
 
   const initials = (name || email).slice(0, 2).toUpperCase();
 
@@ -125,15 +126,18 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
                   <div className="text-sm font-black text-slate-950">Password</div>
                   <div className="text-xs text-slate-500">Change your account password via email</div>
                 </div>
-                <button
-                  onClick={async () => {
-                    const res = await fetch('/api/auth/reset-password', { method: 'POST' });
-                    if (res.ok) alert('Password reset link sent to ' + email);
-                  }}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-black text-slate-700 hover:border-emerald-300 hover:text-emerald-700"
-                >
-                  Send reset link
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                  {pwResetMsg && <span style={{ fontSize: 11, color: '#15803d', fontWeight: 600 }}>{pwResetMsg}</span>}
+                  <button
+                    onClick={async () => {
+                      const res = await fetch('/api/auth/reset-password', { method: 'POST' });
+                      if (res.ok) { setPwResetMsg(`Reset link sent to ${email}`); setTimeout(() => setPwResetMsg(''), 4000); }
+                    }}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-black text-slate-700 hover:border-emerald-300 hover:text-emerald-700"
+                  >
+                    Send reset link
+                  </button>
+                </div>
               </div>
               <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <div>

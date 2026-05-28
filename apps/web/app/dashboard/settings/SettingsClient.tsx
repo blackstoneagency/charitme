@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useId } from 'react';
+import React, { useState, useId, useRef } from 'react';
 import Link from 'next/link';
 import BillingPortalButton from './BillingPortalButton';
 
@@ -160,8 +160,26 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
   const [language, setLanguage] = useState(initialProfile.language ?? 'en');
   const [showPublicProfile, setShowPublicProfile] = useState(initialProfile.show_public_profile ?? true);
   const [campaignRecs, setCampaignRecs] = useState(initialProfile.campaign_recommendations ?? true);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('member');
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarFileRef = useRef<HTMLInputElement>(null);
+
+  async function handleAvatarFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload/profile-image', { method: 'POST', body: formData });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); showToast('error', (d as { error?: string }).error ?? 'Upload failed.'); return; }
+      const { url } = await res.json() as { url: string };
+      setAvatarUrl(url);
+      showToast('success', 'Photo uploaded! Click Save Changes to apply.');
+    } catch { showToast('error', 'Upload failed. Please try again.'); } finally {
+      setAvatarUploading(false);
+      if (avatarFileRef.current) avatarFileRef.current.value = '';
+    }
+  }
 
   const currentPlan = (initialProfile.plan ?? 'free').toLowerCase();
   const planInfo = PLAN_LABELS[currentPlan] ?? PLAN_LABELS.free;
@@ -234,13 +252,27 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               <div className="kf-setpanel-body">
                 {/* Avatar */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
-                  <div style={{ width: 64, height: 64, borderRadius: '50%', background: avatarUrl ? `url(${avatarUrl}) center/cover` : 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+                  <div style={{ width: 64, height: 64, borderRadius: '50%', background: avatarUrl ? `url(${avatarUrl}) center/cover no-repeat` : 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
                     {!avatarUrl && (fullName.charAt(0) || userEmail.charAt(0)).toUpperCase()}
                   </div>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 950, color: '#101944' }}>{fullName || userEmail}</div>
                     <div style={{ fontSize: 12, color: '#66708d', marginTop: 2 }}>{userEmail}</div>
-                    <button type="button" style={{ marginTop: 8, height: 32, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 12, fontWeight: 750, cursor: 'pointer' }} onClick={() => alert('Upload photo feature coming soon')}>Change Photo</button>
+                    <input
+                      ref={avatarFileRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      style={{ display: 'none' }}
+                      onChange={handleAvatarFileChange}
+                    />
+                    <button
+                      type="button"
+                      style={{ marginTop: 8, height: 32, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 12, fontWeight: 750, cursor: avatarUploading ? 'wait' : 'pointer', opacity: avatarUploading ? 0.6 : 1 }}
+                      disabled={avatarUploading}
+                      onClick={() => avatarFileRef.current?.click()}
+                    >
+                      {avatarUploading ? 'Uploading…' : 'Change Photo'}
+                    </button>
                   </div>
                 </div>
                 <div className="kf-setrow">
@@ -384,8 +416,8 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 <Link href="/forgot-password" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none' }}>Update Password</Link>
               </div>
               <div className="kf-setpref">
-                <div className="kf-setpref-info"><strong>Two-Factor Authentication</strong><span>Status: Disabled</span></div>
-                <button type="button" style={{ fontSize: 13, fontWeight: 700, color: '#101944', border: '1px solid #e0e4ef', borderRadius: 8, padding: '7px 16px', background: '#fff', cursor: 'pointer' }} onClick={() => alert('2FA coming soon')}>Manage 2FA</button>
+                <div className="kf-setpref-info"><strong>Two-Factor Authentication</strong><span>Add an extra layer of security to your account</span></div>
+                <Link href="/dashboard/settings/mfa" style={{ fontSize: 13, fontWeight: 700, color: '#101944', border: '1px solid #e0e4ef', borderRadius: 8, padding: '7px 16px', background: '#fff', textDecoration: 'none', display: 'inline-block' }}>Manage 2FA</Link>
               </div>
               <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '16px 0 10px' }}>Privacy</div>
               <div className="kf-setpref">
@@ -414,34 +446,34 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
             </div>
             <div className="kf-setpanel-body">
               <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 12 }}>Connected</div>
-              {[
-                { name: 'Mailchimp', desc: 'Email marketing platform', connected: true, color: '#f5a623' },
-                { name: 'Google Analytics', desc: 'Website analytics', connected: true, color: '#ea4335' },
-                { name: 'Stripe', desc: 'Payment processing', connected: hasStripeCustomer, color: '#6772e5' },
-              ].filter(i => i.connected).map(i => (
-                <div key={i.name} className="kf-setpref">
+              {hasStripeCustomer ? (
+                <div className="kf-setpref">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: `${i.color}15`, border: `1px solid ${i.color}30`, display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 950, color: i.color, flexShrink: 0 }}>{i.name.charAt(0)}</div>
-                    <div className="kf-setpref-info"><strong>{i.name}</strong><span>{i.desc}</span></div>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: '#6772e515', border: '1px solid #6772e530', display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 950, color: '#6772e5', flexShrink: 0 }}>S</div>
+                    <div className="kf-setpref-info"><strong>Stripe</strong><span>Payment processing</span></div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 11, fontWeight: 950, color: '#19b86a', background: '#e8f8ee', padding: '3px 10px', borderRadius: 999 }}>Connected</span>
-                    <button type="button" style={{ height: 32, padding: '0 12px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 12, fontWeight: 750, cursor: 'pointer' }} onClick={() => alert(`Disconnect ${i.name}`)}>Disconnect</button>
+                    <BillingPortalButton />
                   </div>
                 </div>
-              ))}
+              ) : (
+                <p style={{ fontSize: 13, color: 'var(--t3)', padding: '8px 0' }}>No integrations connected yet.</p>
+              )}
               <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '16px 0 12px' }}>Available</div>
               {[
                 { name: 'Facebook Pixel', desc: 'Conversion tracking', color: '#1877f2' },
                 { name: 'Slack', desc: 'Team notifications', color: '#4a154b' },
                 { name: 'Zapier', desc: 'Automation workflows', color: '#ff4a00' },
+                { name: 'Mailchimp', desc: 'Email marketing', color: '#f5a623' },
+                { name: 'Google Analytics', desc: 'Website analytics', color: '#ea4335' },
               ].map(i => (
                 <div key={i.name} className="kf-setpref">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: `${i.color}15`, border: `1px solid ${i.color}30`, display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 950, color: i.color, flexShrink: 0 }}>{i.name.charAt(0)}</div>
                     <div className="kf-setpref-info"><strong>{i.name}</strong><span>{i.desc}</span></div>
                   </div>
-                  <button type="button" style={{ height: 32, padding: '0 14px', border: 0, borderRadius: 8, background: '#551cf2', color: '#fff', fontSize: 12, fontWeight: 950, cursor: 'pointer' }} onClick={() => alert(`Connect ${i.name}`)}>Connect</button>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', padding: '4px 12px', border: '1px solid var(--b2)', borderRadius: 8 }}>Coming Soon</span>
                 </div>
               ))}
             </div>
@@ -467,21 +499,9 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 <span style={{ fontSize: 11, fontWeight: 950, color: '#551cf2', background: '#efe8ff', padding: '3px 10px', borderRadius: 999 }}>Owner</span>
               </div>
               <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '18px 0 12px' }}>Invite Team Member</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, alignItems: 'end' }}>
-                <SetField label="Email Address">
-                  <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="colleague@example.com" type="email" />
-                </SetField>
-                <SetField label="Role">
-                  <select value={inviteRole} onChange={e => setInviteRole(e.target.value)} style={{ height: 42, minWidth: 120 }}>
-                    <option value="member">Member</option>
-                    <option value="editor">Editor</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </SetField>
-                <button type="button" style={{ height: 42, padding: '0 18px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer', marginBottom: 0 }}
-                  onClick={() => { if (inviteEmail) { alert(`Invite sent to ${inviteEmail}`); setInviteEmail(''); } }}>
-                  Send Invite
-                </button>
+              <div style={{ padding: '14px 16px', background: 'var(--s3)', borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                <p style={{ fontSize: 13, color: 'var(--t2)', margin: 0 }}>Invite collaborators and manage permissions from the Team page.</p>
+                <Link href="/dashboard/team" style={{ flexShrink: 0, fontSize: 13, fontWeight: 750, color: '#551cf2', textDecoration: 'none', background: '#efe8ff', borderRadius: 8, padding: '8px 16px', whiteSpace: 'nowrap' }}>Go to Team →</Link>
               </div>
             </div>
           </div>
@@ -568,14 +588,14 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               </div>
               <div className="kf-setpref">
                 <div className="kf-setpref-info"><strong>Export All Data</strong><span>Download a complete data export (JSON)</span></div>
-                <button type="button" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => alert('Export requested. You will receive an email with the download link.')}>{Ico.download} Request Export</button>
+                <Link href="/api/exports/full" download style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>{Ico.download} Download Export</Link>
               </div>
               <div className="kf-setpref" style={{ borderBottom: 0 }}>
                 <div className="kf-setpref-info">
                   <strong style={{ color: 'var(--red)' }}>Request Account Deletion</strong>
                   <span>Permanently delete your account and all data — this cannot be undone</span>
                 </div>
-                <button type="button" style={{ fontSize: 13, fontWeight: 700, color: 'var(--red)', background: 'none', border: '1px solid var(--red)', borderRadius: 'var(--r)', padding: '7px 16px', cursor: 'pointer' }} onClick={() => alert('Please contact support@kindfund.com to delete your account.')}>Request Deletion</button>
+                <a href="mailto:support@kindfund.com?subject=Account%20Deletion%20Request" style={{ fontSize: 13, fontWeight: 700, color: 'var(--red)', border: '1px solid var(--red)', borderRadius: 'var(--r)', padding: '7px 16px', textDecoration: 'none', display: 'inline-block' }}>Request Deletion</a>
               </div>
             </div>
           </div>

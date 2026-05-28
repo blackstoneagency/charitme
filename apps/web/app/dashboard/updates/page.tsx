@@ -119,7 +119,7 @@ export default async function UpdatesPage({
         title="Updates"
         subtitle="Share progress and stories with your supporters."
         actions={
-          <Link href="#" className="kf-primary">
+          <Link href="/dashboard/updates/new" className="kf-primary">
             + Post Update
           </Link>
         }
@@ -163,7 +163,7 @@ export default async function UpdatesPage({
                 No updates yet. Post your first update to keep donors engaged.
               </p>
               <Link
-                href="#"
+                href="/dashboard/updates/new"
                 className="kf-primary"
                 style={{ display: 'inline-block', marginTop: 16 }}
               >

@@ -122,9 +122,8 @@ export default async function AnalyticsPage({
     .reduce((sum, d) => sum + d.amount_cents, 0);
 
   const totalBackers = campaigns.reduce((sum, c) => sum + c.backer_count, 0);
-  // Placeholder: 12,450 views (no view tracking in schema)
-  const PLACEHOLDER_VIEWS = 12450;
-  const conversionRate = ((totalBackers / PLACEHOLDER_VIEWS) * 100).toFixed(1);
+  const totalRaised = donations.reduce((sum, d) => sum + d.amount_cents, 0);
+  const avgDonation = donations.length > 0 ? Math.round(totalRaised / donations.length) : 0;
 
   // Best performing campaign
   const bestCampaign =
@@ -137,7 +136,7 @@ export default async function AnalyticsPage({
   const metrics = [
     { label: 'Raised This Week', value: fmtCents(weeklyRaised), change: 'last 7 days', icon: 'gift', tone: 'violet' as const },
     { label: 'Raised This Month', value: fmtCents(monthlyRaised), change: 'last 30 days', icon: 'chart', tone: 'green' as const },
-    { label: 'Conversion Rate', value: `${conversionRate}%`, change: 'est. from backers / views', icon: 'filter', tone: 'orange' as const },
+    { label: 'Total Backers', value: totalBackers.toLocaleString(), change: `avg ${fmtCents(avgDonation)} / donation`, icon: 'users', tone: 'orange' as const },
     { label: 'Top Campaign', value: bestCampaign ? fmtCents(bestCampaign.raised_amount) : '$0', change: bestCampaign ? bestCampaign.title.slice(0, 28) + (bestCampaign.title.length > 28 ? '…' : '') : 'No campaigns yet', icon: 'send', tone: 'blue' as const },
   ];
 
@@ -173,9 +172,14 @@ export default async function AnalyticsPage({
         title="Analytics"
         subtitle="Track your performance and grow your impact."
         actions={
-          <button className="kf-outline">
-            <KFIcon name="upload" /> Export
-          </button>
+          <Link
+            href={`/api/analytics/export?userId=${encodeURIComponent(userId)}`}
+            className="kf-outline"
+            download
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+          >
+            <KFIcon name="upload" /> Export CSV
+          </Link>
         }
       />
 
@@ -341,37 +345,44 @@ export default async function AnalyticsPage({
 
         {/* Bottom row: Donations by Source donut + Top Performing Days sparklines */}
         <div className="kf-two-col" style={{ marginTop: 24 }}>
-          {/* Donations by Source (static donut) */}
-          <section className="kf-card kf-donut-card">
+          {/* Donations by Campaign */}
+          <section className="kf-card">
             <div className="kf-card-head">
-              <h2>Donations by Source</h2>
-              <Link href="#" style={{ fontSize: 13, color: 'var(--green)' }}>
-                View details
+              <h2>Donations by Campaign</h2>
+              <Link href="/dashboard/campaigns" style={{ fontSize: 13, color: 'var(--green)' }}>
+                View all
               </Link>
             </div>
-            <div className="kf-donut-wrap">
-              <div className="kf-donut">
-                <span>
-                  <strong>{totalBackers}</strong>
-                  <small>Donors</small>
-                </span>
-              </div>
-              <div>
-                {(
-                  [
-                    ['Facebook', '32%', '#6c35ff'],
-                    ['Instagram', '24%', '#ec3fb4'],
-                    ['Direct / Email', '18%', '#2f80ed'],
-                    ['Google', '12%', '#19b86a'],
-                    ['Other', '14%', '#f59e0b'],
-                  ] as [string, string, string][]
-                ).map(([label, pct, color]) => (
-                  <p key={label}>
-                    <i style={{ background: color }} /> {label}
-                    <b>{pct}</b>
-                  </p>
-                ))}
-              </div>
+            <div style={{ padding: '8px 20px 16px' }}>
+              {campaigns.length === 0 ? (
+                <p style={{ color: 'var(--t3)', fontSize: 13, paddingTop: 8 }}>No campaigns yet.</p>
+              ) : (
+                (() => {
+                  const bycamp = campaigns
+                    .map(c => ({
+                      id: c.id,
+                      title: c.title,
+                      total: donations.filter(d => d.campaign_id === c.id).reduce((s, d) => s + d.amount_cents, 0),
+                    }))
+                    .sort((a, b) => b.total - a.total);
+                  const maxTotal = Math.max(...bycamp.map(c => c.total), 1);
+                  const colors = ['#6c35ff', '#19b86a', '#2f80ed', '#f59e0b', '#ec3fb4'];
+                  return bycamp.slice(0, 5).map((c, idx) => {
+                    const barPct = (c.total / maxTotal) * 100;
+                    return (
+                      <div key={c.id} style={{ marginBottom: 12 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                          <span style={{ color: 'var(--t2)', fontWeight: 600, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</span>
+                          <span style={{ color: 'var(--green)', fontWeight: 700 }}>{fmtCents(c.total)}</span>
+                        </div>
+                        <div style={{ height: 6, borderRadius: 3, background: 'var(--b2)', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${barPct}%`, background: colors[idx % colors.length], borderRadius: 3 }} />
+                        </div>
+                      </div>
+                    );
+                  });
+                })()
+              )}
             </div>
           </section>
 

@@ -7,6 +7,20 @@ const config = [
   {
     ignores: ['.next/**', 'node_modules/**', 'coverage/**', 'playwright-report/**'],
   },
+  {
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          vars: 'all',
+          args: 'after-used',
+          varsIgnorePattern: '^_',
+          argsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
+    },
+  },
 ];
 
 export default config;
