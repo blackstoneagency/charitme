@@ -1,59 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import { isAdmin } from '../../../../lib/roles';
-import { createClient } from '../../../../lib/supabase-server';
+import { verifyAdmin } from '../users/_auth';
 
-async function verifyAdmin(): Promise<{ userId: string; email: string | null } | null> {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-    const allowed = await isAdmin(user.id, user.email);
-    if (!allowed) return null;
-    return { userId: user.id, email: user.email ?? null };
-  } catch {
-    return null;
-  }
-}
+const defaultSettings = {
+  platformName: 'KindFund',
+  tagline: 'Fundraising that thinks for you.',
+  supportEmail: 'support@kindfund.com',
+  supportPhone: '',
+  timezone: 'America/New_York',
+  dateFormat: 'MM/DD/YYYY',
+  currency: 'USD',
+  itemsPerPage: 25,
+  maintenanceMode: false,
+  allowNewRegistrations: true,
+  emailVerification: true,
+  brandPrimaryColor: '#6c35ff',
+  brandAccentColor: '#ec3fb4',
+  logoUrl: '',
+  emailFromName: 'KindFund',
+  emailFromAddress: 'support@kindfund.com',
+  donationFeePercent: 2.9,
+  platformFeePercent: 5,
+  stripeLiveMode: true,
+  notifyAdminOnDonation: true,
+  notifyCampaignApproval: true,
+  requireMfaForAdmins: false,
+  sessionTimeoutMinutes: 60,
+  googleOAuthEnabled: true,
+  stripeConnectEnabled: true,
+  maxUploadMb: 10,
+  auditRetentionDays: 365,
+};
 
 export async function GET() {
   const admin = await verifyAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Try to get settings from platform_settings table, fall back to defaults
   const { data, error } = await supabaseAdmin
     .from('platform_settings')
-    .select('*')
-    .limit(1)
+    .select('config')
+    .eq('id', 1)
     .maybeSingle();
 
-  if (error || !data) {
-    // Return defaults
-    return NextResponse.json({
-      platformName: 'KindFund',
-      tagline: 'Fundraising that thinks for you.',
-      supportEmail: 'support@kindfund.com',
-      supportPhone: '',
-      timezone: 'America/New_York',
-      dateFormat: 'MM/DD/YYYY',
-      currency: 'USD',
-      itemsPerPage: 25,
-      maintenanceMode: false,
-      allowNewRegistrations: true,
-      emailVerification: true,
-    });
+  if (error && error.code !== '42P01') {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json(data);
+  const config = data?.config && typeof data.config === 'object' ? data.config : {};
+  return NextResponse.json({ ...defaultSettings, ...config });
 }
 
 export async function POST(request: NextRequest) {
   const admin = await verifyAdmin();
-  if (!admin) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   let body: unknown;
   try {
@@ -62,24 +61,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  if (typeof body !== 'object' || body === null) {
-    return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ error: 'Invalid settings body' }, { status: 400 });
   }
 
-  const settings = body as Record<string, unknown>;
-
-  // Upsert settings
+  const config = { ...defaultSettings, ...(body as Record<string, unknown>) };
   const { error } = await supabaseAdmin
     .from('platform_settings')
-    .upsert({ id: 1, ...settings, updated_at: new Date().toISOString(), updated_by: admin.userId });
+    .upsert({
+      id: 1,
+      config,
+      updated_at: new Date().toISOString(),
+      updated_by: admin.id,
+    });
 
-  if (error) {
-    // If table doesn't exist, return success anyway (graceful degradation)
-    if (error.code === '42P01') {
-      return NextResponse.json({ ok: true, note: 'Settings stored in memory only — platform_settings table not found' });
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ ok: true });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true, settings: config });
 }

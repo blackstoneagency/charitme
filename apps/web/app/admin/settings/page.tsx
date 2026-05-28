@@ -2,7 +2,7 @@ import 'server-only';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
-import SettingsClient, { type SettingCategory, type GeneralSettings, type OverviewStats } from './_components/SettingsClient';
+import SettingsClient, { type SettingCategory, type PlatformSettings, type OverviewStats } from './_components/SettingsClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +35,7 @@ export default async function AdminSettingsPage() {
     { key: 'advanced', label: 'Advanced', icon: 'sliders', description: 'Advanced system configurations' },
   ];
 
-  const settings: GeneralSettings = {
+  const defaultSettings: PlatformSettings = {
     platformName: 'KindFund',
     tagline: 'Fundraising that thinks for you.',
     supportEmail: adminEmail,
@@ -47,12 +47,39 @@ export default async function AdminSettingsPage() {
     maintenanceMode: false,
     allowNewRegistrations: true,
     emailVerification: true,
+    brandPrimaryColor: '#6c35ff',
+    brandAccentColor: '#ec3fb4',
+    logoUrl: '',
+    emailFromName: 'KindFund',
+    emailFromAddress: adminEmail,
+    donationFeePercent: 2.9,
+    platformFeePercent: 5,
+    stripeLiveMode: true,
+    notifyAdminOnDonation: true,
+    notifyCampaignApproval: true,
+    requireMfaForAdmins: false,
+    sessionTimeoutMinutes: 60,
+    googleOAuthEnabled: true,
+    stripeConnectEnabled: true,
+    maxUploadMb: 10,
+    auditRetentionDays: 365,
+  };
+
+  const { data: savedSettings } = await supabaseAdmin
+    .from('platform_settings')
+    .select('config')
+    .eq('id', 1)
+    .maybeSingle();
+
+  const settings: PlatformSettings = {
+    ...defaultSettings,
+    ...((savedSettings?.config && typeof savedSettings.config === 'object') ? savedSettings.config : {}),
   };
 
   const overview: OverviewStats = {
     platformStatus: 'Online',
     categoriesCount: categories.length,
-    configurations: 45,
+    configurations: Object.keys(settings).length,
     integrations,
   };
 

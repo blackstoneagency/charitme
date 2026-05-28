@@ -1,6 +1,7 @@
 import 'server-only';
 import { createClient } from '../lib/supabase-server';
 import { supabaseAdmin } from '../lib/supabase';
+import { isAdmin } from '../lib/roles';
 import {
   KindFundShell as _KindFundShell,
   PageScaffold as _PageScaffold,
@@ -44,13 +45,14 @@ type ShellUser = {
   email: string;
   role: string;
   avatarUrl: string | null;
+  hasAdminAccess: boolean;
 };
 
 async function fetchShellUser(): Promise<ShellUser> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { name: null, email: '', role: 'Organizer', avatarUrl: null };
+    if (!user) return { name: null, email: '', role: 'Organizer', avatarUrl: null, hasAdminAccess: false };
 
     const { data: profile } = await supabaseAdmin
       .from('profiles')
@@ -59,7 +61,8 @@ async function fetchShellUser(): Promise<ShellUser> {
       .single();
 
     const roles: string[] = Array.isArray(profile?.roles) ? profile.roles : [];
-    const role = roles.includes('admin') ? 'Admin'
+    const hasAdminAccess = await isAdmin(user.id, user.email);
+    const role = hasAdminAccess ? 'Admin'
       : roles.includes('moderator') ? 'Moderator'
       : 'Organizer';
 
@@ -68,9 +71,10 @@ async function fetchShellUser(): Promise<ShellUser> {
       email: user.email ?? '',
       role,
       avatarUrl: profile?.avatar_url ?? null,
+      hasAdminAccess,
     };
   } catch {
-    return { name: null, email: '', role: 'Organizer', avatarUrl: null };
+    return { name: null, email: '', role: 'Organizer', avatarUrl: null, hasAdminAccess: false };
   }
 }
 
@@ -88,6 +92,7 @@ export async function KindFundShell(props: ShellProps) {
       userEmail={user.email}
       userRole={user.role}
       userAvatarUrl={user.avatarUrl}
+      hasAdminAccess={user.hasAdminAccess}
     />
   );
 }

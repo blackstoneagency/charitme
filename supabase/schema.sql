@@ -154,6 +154,23 @@ create table if not exists donor_tips (
   created_at timestamptz not null default now()
 );
 
+create table if not exists platform_settings (
+  id int primary key default 1 check (id = 1),
+  config jsonb not null default '{}'::jsonb,
+  updated_by uuid references profiles(id) on delete set null,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists audit_logs (
+  id uuid primary key default uuid_generate_v4(),
+  actor_id uuid references profiles(id) on delete set null,
+  action text not null,
+  target_type text,
+  target_id text,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists platform_fees (
   id uuid primary key default uuid_generate_v4(),
   campaign_id uuid references campaigns(id) on delete set null,
@@ -306,6 +323,9 @@ create index if not exists campaigns_user_id_idx on campaigns(user_id);
 create index if not exists campaigns_slug_idx on campaigns(slug);
 create index if not exists donations_campaign_id_idx on donations(campaign_id);
 create index if not exists donations_donor_id_idx on donations(donor_id);
+create index if not exists audit_logs_actor_idx on audit_logs(actor_id);
+create index if not exists audit_logs_target_idx on audit_logs(target_type, target_id);
+create index if not exists audit_logs_created_at_idx on audit_logs(created_at desc);
 create unique index if not exists donations_stripe_payment_intent_id_uidx on donations(stripe_payment_intent_id) where stripe_payment_intent_id is not null;
 create unique index if not exists donor_tips_stripe_payment_intent_id_uidx on donor_tips(stripe_payment_intent_id) where stripe_payment_intent_id is not null;
 create unique index if not exists platform_fees_stripe_payment_intent_id_uidx on platform_fees(stripe_payment_intent_id) where stripe_payment_intent_id is not null;
@@ -368,6 +388,8 @@ alter table campaign_media enable row level security;
 alter table campaign_updates enable row level security;
 alter table donations enable row level security;
 alter table donor_tips enable row level security;
+alter table platform_settings enable row level security;
+alter table audit_logs enable row level security;
 alter table platform_fees enable row level security;
 alter table payouts enable row level security;
 alter table trust_scores enable row level security;
@@ -428,6 +450,10 @@ create policy reports_admin_read on campaign_reports for select using (is_admin(
 
 create policy own_subscriptions on subscriptions for select using (auth.uid() = user_id or is_admin());
 create policy own_ai_generations on ai_generations for select using (auth.uid() = user_id or is_admin());
+
+create policy platform_settings_admin_all on platform_settings for all using (is_admin()) with check (is_admin());
+create policy audit_logs_admin_read on audit_logs for select using (is_admin());
+create policy audit_logs_admin_insert on audit_logs for insert with check (is_admin());
 create policy public_trust_scores on trust_scores for select using (true);
 create policy public_updates on campaign_updates for select using (true);
 create policy owner_updates on campaign_updates for insert with check (is_admin() or exists (select 1 from campaigns where campaigns.id = campaign_id and campaigns.user_id = auth.uid()));

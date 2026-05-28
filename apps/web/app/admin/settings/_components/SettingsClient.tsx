@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import type React from 'react';
+import { useState, useTransition } from 'react';
 import { KFIcon } from '../../../../components/KindFundApp';
 
 export type SettingCategory = {
@@ -10,7 +11,7 @@ export type SettingCategory = {
   description: string;
 };
 
-export type GeneralSettings = {
+export type PlatformSettings = {
   platformName: string;
   tagline: string;
   supportEmail: string;
@@ -22,6 +23,22 @@ export type GeneralSettings = {
   maintenanceMode: boolean;
   allowNewRegistrations: boolean;
   emailVerification: boolean;
+  brandPrimaryColor: string;
+  brandAccentColor: string;
+  logoUrl: string;
+  emailFromName: string;
+  emailFromAddress: string;
+  donationFeePercent: number;
+  platformFeePercent: number;
+  stripeLiveMode: boolean;
+  notifyAdminOnDonation: boolean;
+  notifyCampaignApproval: boolean;
+  requireMfaForAdmins: boolean;
+  sessionTimeoutMinutes: number;
+  googleOAuthEnabled: boolean;
+  stripeConnectEnabled: boolean;
+  maxUploadMb: number;
+  auditRetentionDays: number;
 };
 
 export type OverviewStats = {
@@ -33,23 +50,18 @@ export type OverviewStats = {
 
 type Props = {
   categories: SettingCategory[];
-  settings: GeneralSettings;
+  settings: PlatformSettings;
   overview: OverviewStats;
 };
 
-const TOGGLE_STYLE_ON: React.CSSProperties = {
-  display: 'inline-flex', width: 44, height: 24, borderRadius: 999, background: '#6c35ff', border: 'none', cursor: 'pointer', padding: 3, alignItems: 'center', justifyContent: 'flex-end',
-};
-const TOGGLE_STYLE_OFF: React.CSSProperties = {
-  ...{} as React.CSSProperties,
-  display: 'inline-flex', width: 44, height: 24, borderRadius: 999, background: '#e0e4ef', border: 'none', cursor: 'pointer', padding: 3, alignItems: 'center', justifyContent: 'flex-start',
-};
+const fieldStyle: React.CSSProperties = { height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 14, background: '#fff' };
+const labelStyle: React.CSSProperties = { display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' };
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
       type="button"
-      style={value ? TOGGLE_STYLE_ON : TOGGLE_STYLE_OFF}
+      style={{ display: 'inline-flex', width: 44, height: 24, borderRadius: 999, background: value ? '#6c35ff' : '#e0e4ef', border: 'none', cursor: 'pointer', padding: 3, alignItems: 'center', justifyContent: value ? 'flex-end' : 'flex-start' }}
       onClick={() => onChange(!value)}
       aria-pressed={value}
     >
@@ -58,170 +70,144 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   );
 }
 
+function SettingToggle({ title, description, value, onChange }: { title: string; description: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 16px', border: '1px solid #eef0f7', borderRadius: 10 }}>
+      <div>
+        <strong style={{ display: 'block', fontSize: 14, fontWeight: 850 }}>{title}</strong>
+        <small style={{ color: '#67718e', fontSize: 12 }}>{description}</small>
+      </div>
+      <Toggle value={value} onChange={onChange} />
+    </div>
+  );
+}
+
 export default function SettingsClient({ categories, settings: initialSettings, overview }: Props) {
   const [activeCategory, setActiveCategory] = useState('General');
   const [settings, setSettings] = useState(initialSettings);
-  const [saved, setSaved] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [isPending, startTransition] = useTransition();
+
+  function set<K extends keyof PlatformSettings>(key: K, value: PlatformSettings[K]) {
+    setSettings((current) => ({ ...current, [key]: value }));
+  }
 
   function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setNotice('');
+    startTransition(async () => {
+      const response = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setNotice(result.error ?? 'Settings could not be saved.');
+        return;
+      }
+      setNotice('Settings saved to production configuration.');
+      setTimeout(() => setNotice(''), 2500);
+    });
   }
 
   function renderDetailPanel() {
-    if (activeCategory !== 'General') {
+    if (activeCategory === 'General') {
       return (
-        <div style={{ padding: '32px', textAlign: 'center', color: '#67718e', fontSize: 14 }}>
-          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#f0eaff', display: 'grid', placeItems: 'center', margin: '0 auto 16px', color: '#551cf2' }}>
-            <KFIcon name={categories.find(c => c.label === activeCategory)?.icon ?? 'gear'} />
+        <>
+          <Panel title="Platform Information">
+            <Field label="Platform Name"><input value={settings.platformName} onChange={e => set('platformName', e.target.value)} style={fieldStyle} /></Field>
+            <Field label="Tagline"><input value={settings.tagline} onChange={e => set('tagline', e.target.value)} style={fieldStyle} /></Field>
+            <Field label="Support Email"><input type="email" value={settings.supportEmail} onChange={e => set('supportEmail', e.target.value)} style={fieldStyle} /></Field>
+            <Field label="Support Phone"><input value={settings.supportPhone} onChange={e => set('supportPhone', e.target.value)} style={fieldStyle} /></Field>
+          </Panel>
+          <Panel title="Localization">
+            <Field label="Default Timezone"><select value={settings.timezone} onChange={e => set('timezone', e.target.value)} style={fieldStyle}><option value="America/New_York">Eastern Time (ET)</option><option value="America/Chicago">Central Time (CT)</option><option value="America/Denver">Mountain Time (MT)</option><option value="America/Los_Angeles">Pacific Time (PT)</option><option value="UTC">UTC</option></select></Field>
+            <Field label="Date Format"><select value={settings.dateFormat} onChange={e => set('dateFormat', e.target.value)} style={fieldStyle}><option value="MM/DD/YYYY">MM/DD/YYYY</option><option value="DD/MM/YYYY">DD/MM/YYYY</option><option value="YYYY-MM-DD">YYYY-MM-DD</option></select></Field>
+            <Field label="Currency"><select value={settings.currency} onChange={e => set('currency', e.target.value)} style={fieldStyle}><option value="USD">USD - US Dollar</option><option value="EUR">EUR - Euro</option><option value="GBP">GBP - British Pound</option><option value="CAD">CAD - Canadian Dollar</option></select></Field>
+            <Field label="Items Per Page"><select value={settings.itemsPerPage} onChange={e => set('itemsPerPage', Number(e.target.value))} style={fieldStyle}><option value={10}>10</option><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option></select></Field>
+          </Panel>
+        </>
+      );
+    }
+
+    if (activeCategory === 'Branding') {
+      return (
+        <Panel title="Brand Controls">
+          <Field label="Primary Color"><input type="color" value={settings.brandPrimaryColor} onChange={e => set('brandPrimaryColor', e.target.value)} style={{ ...fieldStyle, padding: 6 }} /></Field>
+          <Field label="Accent Color"><input type="color" value={settings.brandAccentColor} onChange={e => set('brandAccentColor', e.target.value)} style={{ ...fieldStyle, padding: 6 }} /></Field>
+          <Field label="Logo URL"><input value={settings.logoUrl} onChange={e => set('logoUrl', e.target.value)} placeholder="https://..." style={fieldStyle} /></Field>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, border: '1px solid #eef0f7', borderRadius: 10 }}>
+            <span style={{ width: 36, height: 36, borderRadius: 12, background: settings.brandPrimaryColor }} />
+            <span style={{ width: 36, height: 36, borderRadius: 12, background: settings.brandAccentColor }} />
+            <strong style={{ color: '#101842' }}>{settings.platformName}</strong>
           </div>
-          <strong style={{ display: 'block', fontSize: 16, fontWeight: 950, color: '#0f1238', marginBottom: 8 }}>{activeCategory}</strong>
-          <p style={{ margin: 0 }}>{categories.find(c => c.label === activeCategory)?.description}</p>
-          <p style={{ margin: '16px 0 0', fontSize: 12, color: '#8c95b2' }}>Configuration panel coming soon.</p>
-        </div>
+        </Panel>
+      );
+    }
+
+    if (activeCategory === 'Email') {
+      return (
+        <Panel title="Email Delivery">
+          <Field label="From Name"><input value={settings.emailFromName} onChange={e => set('emailFromName', e.target.value)} style={fieldStyle} /></Field>
+          <Field label="From Address"><input type="email" value={settings.emailFromAddress} onChange={e => set('emailFromAddress', e.target.value)} style={fieldStyle} /></Field>
+          <SettingToggle title="Require Email Verification" description="New accounts must verify email before fundraising." value={settings.emailVerification} onChange={v => set('emailVerification', v)} />
+          <SettingToggle title="Campaign Approval Emails" description="Notify organizers when admin review changes a campaign." value={settings.notifyCampaignApproval} onChange={v => set('notifyCampaignApproval', v)} />
+        </Panel>
+      );
+    }
+
+    if (activeCategory === 'Payment') {
+      return (
+        <Panel title="Payment Controls">
+          <Field label="Donation Fee Percent"><input type="number" min={0} step={0.1} value={settings.donationFeePercent} onChange={e => set('donationFeePercent', Number(e.target.value))} style={fieldStyle} /></Field>
+          <Field label="Platform Fee Percent"><input type="number" min={0} step={0.1} value={settings.platformFeePercent} onChange={e => set('platformFeePercent', Number(e.target.value))} style={fieldStyle} /></Field>
+          <SettingToggle title="Stripe Live Mode" description="Use live Stripe credentials for checkout and payouts." value={settings.stripeLiveMode} onChange={v => set('stripeLiveMode', v)} />
+          <SettingToggle title="Stripe Connect" description="Allow organizers to connect payout accounts." value={settings.stripeConnectEnabled} onChange={v => set('stripeConnectEnabled', v)} />
+        </Panel>
+      );
+    }
+
+    if (activeCategory === 'Notifications') {
+      return (
+        <Panel title="Notification Rules">
+          <SettingToggle title="Admin Donation Alerts" description="Send admin alerts when donations are completed." value={settings.notifyAdminOnDonation} onChange={v => set('notifyAdminOnDonation', v)} />
+          <SettingToggle title="Campaign Review Alerts" description="Notify admins when campaigns need review." value={settings.notifyCampaignApproval} onChange={v => set('notifyCampaignApproval', v)} />
+        </Panel>
+      );
+    }
+
+    if (activeCategory === 'Security') {
+      return (
+        <Panel title="Security Policy">
+          <SettingToggle title="Require MFA For Admins" description="Admins must use stronger authentication for sensitive tools." value={settings.requireMfaForAdmins} onChange={v => set('requireMfaForAdmins', v)} />
+          <Field label="Session Timeout Minutes"><input type="number" min={5} value={settings.sessionTimeoutMinutes} onChange={e => set('sessionTimeoutMinutes', Number(e.target.value))} style={fieldStyle} /></Field>
+          <SettingToggle title="Google OAuth" description="Allow Google sign-in for supported accounts." value={settings.googleOAuthEnabled} onChange={v => set('googleOAuthEnabled', v)} />
+          <SettingToggle title="New Registrations" description="Allow new users to create accounts." value={settings.allowNewRegistrations} onChange={v => set('allowNewRegistrations', v)} />
+        </Panel>
+      );
+    }
+
+    if (activeCategory === 'Integrations') {
+      return (
+        <Panel title="Integration Switches">
+          <SettingToggle title="Google OAuth" description="Enable Google as an auth provider." value={settings.googleOAuthEnabled} onChange={v => set('googleOAuthEnabled', v)} />
+          <SettingToggle title="Stripe Connect" description="Enable connected accounts and payout onboarding." value={settings.stripeConnectEnabled} onChange={v => set('stripeConnectEnabled', v)} />
+          <p style={{ margin: 0, color: '#67718e', fontWeight: 750 }}>Connected integrations: {overview.integrations.toLocaleString()}</p>
+        </Panel>
       );
     }
 
     return (
-      <div>
-        {/* Platform info */}
-        <div style={{ padding: '22px 26px', borderTop: '1px solid #eef0f7' }}>
-          <h3 style={{ margin: '0 0 18px', fontSize: 16, fontWeight: 950 }}>Platform Information</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' }}>
-              Platform Name
-              <input
-                value={settings.platformName}
-                onChange={e => setSettings(s => ({ ...s, platformName: e.target.value }))}
-                style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 14 }}
-              />
-            </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' }}>
-              Tagline
-              <input
-                value={settings.tagline}
-                onChange={e => setSettings(s => ({ ...s, tagline: e.target.value }))}
-                style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 14 }}
-              />
-            </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' }}>
-              Support Email
-              <input
-                value={settings.supportEmail}
-                onChange={e => setSettings(s => ({ ...s, supportEmail: e.target.value }))}
-                style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 14 }}
-              />
-            </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' }}>
-              Support Phone
-              <input
-                value={settings.supportPhone}
-                onChange={e => setSettings(s => ({ ...s, supportPhone: e.target.value }))}
-                style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 14 }}
-              />
-            </label>
-          </div>
-        </div>
-
-        {/* Localization */}
-        <div style={{ padding: '22px 26px', borderTop: '1px solid #eef0f7' }}>
-          <h3 style={{ margin: '0 0 18px', fontSize: 16, fontWeight: 950 }}>Localization</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' }}>
-              Default Timezone
-              <select
-                value={settings.timezone}
-                onChange={e => setSettings(s => ({ ...s, timezone: e.target.value }))}
-                style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 14, background: '#fff' }}
-              >
-                <option value="America/New_York">Eastern Time (ET)</option>
-                <option value="America/Chicago">Central Time (CT)</option>
-                <option value="America/Denver">Mountain Time (MT)</option>
-                <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                <option value="UTC">UTC</option>
-              </select>
-            </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' }}>
-              Date Format
-              <select
-                value={settings.dateFormat}
-                onChange={e => setSettings(s => ({ ...s, dateFormat: e.target.value }))}
-                style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 14, background: '#fff' }}
-              >
-                <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-              </select>
-            </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' }}>
-              Currency
-              <select
-                value={settings.currency}
-                onChange={e => setSettings(s => ({ ...s, currency: e.target.value }))}
-                style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 14, background: '#fff' }}
-              >
-                <option value="USD">USD — US Dollar</option>
-                <option value="EUR">EUR — Euro</option>
-                <option value="GBP">GBP — British Pound</option>
-                <option value="CAD">CAD — Canadian Dollar</option>
-              </select>
-            </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' }}>
-              Items Per Page
-              <select
-                value={settings.itemsPerPage}
-                onChange={e => setSettings(s => ({ ...s, itemsPerPage: parseInt(e.target.value) }))}
-                style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 14, background: '#fff' }}
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        {/* Site settings */}
-        <div style={{ padding: '22px 26px', borderTop: '1px solid #eef0f7' }}>
-          <h3 style={{ margin: '0 0 18px', fontSize: 16, fontWeight: 950 }}>Site Settings</h3>
-          <div style={{ display: 'grid', gap: 14 }}>
-            {([
-              ['maintenanceMode', 'Maintenance Mode', 'Temporarily disable the site for maintenance'],
-              ['allowNewRegistrations', 'Allow New Registrations', 'Allow new users to sign up'],
-              ['emailVerification', 'Email Verification', 'Require email verification for new accounts'],
-            ] as [keyof GeneralSettings, string, string][]).map(([key, label, desc]) => (
-              <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', border: '1px solid #eef0f7', borderRadius: 10 }}>
-                <div>
-                  <strong style={{ display: 'block', fontSize: 14, fontWeight: 850 }}>{label}</strong>
-                  <small style={{ color: '#67718e', fontSize: 12 }}>{desc}</small>
-                </div>
-                <Toggle
-                  value={settings[key] as boolean}
-                  onChange={v => setSettings(s => ({ ...s, [key]: v }))}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Save button */}
-        <div style={{ padding: '16px 26px', borderTop: '1px solid #eef0f7', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-          {saved && <span style={{ color: '#079447', fontSize: 13, fontWeight: 850, alignSelf: 'center' }}>Settings saved!</span>}
-          <button className="kf-outline" style={{ height: 44, padding: '0 20px' }} onClick={() => setSettings(initialSettings)}>
-            Reset
-          </button>
-          <button className="kf-primary" style={{ height: 44, padding: '0 24px' }} onClick={handleSave}>
-            Save Changes
-          </button>
-        </div>
-      </div>
+      <Panel title="Advanced Limits">
+        <SettingToggle title="Maintenance Mode" description="Temporarily prevent normal app usage during maintenance." value={settings.maintenanceMode} onChange={v => set('maintenanceMode', v)} />
+        <Field label="Max Upload MB"><input type="number" min={1} value={settings.maxUploadMb} onChange={e => set('maxUploadMb', Number(e.target.value))} style={fieldStyle} /></Field>
+        <Field label="Audit Retention Days"><input type="number" min={30} value={settings.auditRetentionDays} onChange={e => set('auditRetentionDays', Number(e.target.value))} style={fieldStyle} /></Field>
+      </Panel>
     );
   }
 
   return (
     <div style={{ padding: '0 32px 32px', display: 'grid', gap: 22 }}>
-      {/* Overview stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18 }}>
         {[
           { label: 'Platform Status', value: overview.platformStatus, icon: 'check', tone: 'green' as const },
@@ -231,53 +217,50 @@ export default function SettingsClient({ categories, settings: initialSettings, 
         ].map(m => (
           <article key={m.label} className="kf-card kf-metric">
             <div className={`kf-square ${m.tone}`}><KFIcon name={m.icon} /></div>
-            <div>
-              <span>{m.label}</span>
-              <strong>{m.value}</strong>
-            </div>
+            <div><span>{m.label}</span><strong>{m.value}</strong></div>
           </article>
         ))}
       </div>
 
-      {/* Main settings layout */}
       <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 20, alignItems: 'start' }}>
-        {/* Category nav */}
         <nav className="kf-settings-nav">
           <h3 style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 950, textTransform: 'uppercase', color: '#4b5676', letterSpacing: '0.05em' }}>Settings</h3>
           {categories.map(cat => (
-            <button
-              key={cat.key}
-              onClick={() => setActiveCategory(cat.label)}
-              style={{
-                minHeight: 46, display: 'flex', alignItems: 'center', gap: 13,
-                padding: '0 14px', borderRadius: 9, border: 'none', cursor: 'pointer',
-                fontWeight: 800, fontSize: 14, textAlign: 'left', width: '100%',
-                background: activeCategory === cat.label ? '#f0eaff' : 'transparent',
-                color: activeCategory === cat.label ? '#551cf2' : '#18234d',
-              }}
-            >
+            <button key={cat.key} onClick={() => setActiveCategory(cat.label)} style={{ minHeight: 46, display: 'flex', alignItems: 'center', gap: 13, padding: '0 14px', borderRadius: 9, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 14, textAlign: 'left', width: '100%', background: activeCategory === cat.label ? '#f0eaff' : 'transparent', color: activeCategory === cat.label ? '#551cf2' : '#18234d' }}>
               <KFIcon name={cat.icon} />
-              <div>
-                <span>{cat.label}</span>
-                <small style={{ display: 'block', fontSize: 11, fontWeight: 650, color: activeCategory === cat.label ? '#7c50f5' : '#67718e', marginTop: 2 }}>{cat.description}</small>
-              </div>
+              <div><span>{cat.label}</span><small style={{ display: 'block', fontSize: 11, fontWeight: 650, color: activeCategory === cat.label ? '#7c50f5' : '#67718e', marginTop: 2 }}>{cat.description}</small></div>
             </button>
           ))}
         </nav>
 
-        {/* Detail panel */}
         <section className="kf-card kf-form-card" style={{ overflow: 'hidden' }}>
           <div className="kf-card-head">
             <div>
               <h2>{activeCategory}</h2>
-              <p className="kf-card-head" style={{ margin: 0, padding: 0, fontSize: 13, color: '#4b5676' }}>
-                {categories.find(c => c.label === activeCategory)?.description ?? ''}
-              </p>
+              <p style={{ margin: 0, fontSize: 13, color: '#4b5676' }}>{categories.find(c => c.label === activeCategory)?.description ?? ''}</p>
             </div>
           </div>
           {renderDetailPanel()}
+          <div style={{ padding: '16px 26px', borderTop: '1px solid #eef0f7', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+            {notice && <span style={{ color: notice.includes('could not') ? '#e11d48' : '#079447', fontSize: 13, fontWeight: 850, alignSelf: 'center' }}>{notice}</span>}
+            <button className="kf-outline" style={{ height: 44, padding: '0 20px' }} onClick={() => setSettings(initialSettings)} disabled={isPending}>Reset</button>
+            <button className="kf-primary" style={{ height: 44, padding: '0 24px' }} onClick={handleSave} disabled={isPending}>{isPending ? 'Saving...' : 'Save Changes'}</button>
+          </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <label style={labelStyle}>{label}{children}</label>;
+}
+
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ padding: '22px 26px', borderTop: '1px solid #eef0f7' }}>
+      <h3 style={{ margin: '0 0 18px', fontSize: 16, fontWeight: 950 }}>{title}</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>{children}</div>
     </div>
   );
 }

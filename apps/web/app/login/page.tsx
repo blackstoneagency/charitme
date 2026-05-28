@@ -21,6 +21,14 @@ function GoogleMark() {
   );
 }
 
+function authErrorMessage(raw: string | null): string {
+  if (!raw) return '';
+  if (raw.toLowerCase().includes('pkce code verifier')) {
+    return 'Your Google sign-in session expired. Please try Continue with Google again from this browser.';
+  }
+  return raw;
+}
+
 function LoginForm() {
   const params = useSearchParams();
   const router = useRouter();
@@ -34,7 +42,7 @@ function LoginForm() {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   // Pre-populate error from URL (e.g. ?error=... set by the OAuth callback route)
-  const [error, setError] = useState(params.get('error') ?? '');
+  const [error, setError] = useState(authErrorMessage(params.get('error')));
   const [success, setSuccess] = useState('');
 
   useEffect(() => {

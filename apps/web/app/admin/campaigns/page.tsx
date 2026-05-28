@@ -1,27 +1,15 @@
 import 'server-only';
-import { PageScaffold, type TableRow, type Metric } from '../../../components/KindFundShellServer';
+import { KindFundShell, TopBar, MetricGrid, type Metric } from '../../../components/KindFundShellServer';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import AdminCampaignsClient, { type AdminCampaign } from './_components/AdminCampaignsClient';
 
 export const dynamic = 'force-dynamic';
-
-// ─────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────
-function fmtCents(cents: number): string {
-  const dollars = cents / 100;
-  if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1)}M`;
-  if (dollars >= 1_000) return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-  return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-}
 
 function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
 
-// ─────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────
 export default async function AdminCampaignsPage() {
   await requireAdmin();
 
@@ -29,113 +17,87 @@ export default async function AdminCampaignsPage() {
     { data: campaigns, count: totalCount },
     { count: activeCount },
     { count: draftCount },
-    { count: pendingCount },
+    { count: attentionCount },
   ] = await Promise.all([
     supabaseAdmin
       .from('campaigns')
       .select(
-        'id, title, status, raised_amount, goal_amount, backer_count, category, user_id, created_at',
+        'id, title, tagline, description, status, raised_amount, goal_amount, backer_count, category, user_id, trust_status, campaign_health_score, payout_frozen, created_at',
         { count: 'exact' },
       )
       .order('created_at', { ascending: false })
       .limit(100),
-    supabaseAdmin
-      .from('campaigns')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'active'),
-    supabaseAdmin
-      .from('campaigns')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'draft'),
-    supabaseAdmin
-      .from('campaigns')
-      .select('*', { count: 'exact', head: true })
-      .in('status', ['pending', 'paused']),
+    supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+    supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'draft'),
+    supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).in('status', ['paused', 'frozen', 'rejected']),
   ]);
 
   type CampaignRow = {
     id: string;
     title: string;
+    tagline: string | null;
+    description: string | null;
     status: string;
-    raised_amount: number;
-    goal_amount: number;
-    backer_count: number;
+    raised_amount: number | null;
+    goal_amount: number | null;
+    backer_count: number | null;
     category: string | null;
     user_id: string;
+    trust_status: string | null;
+    campaign_health_score: number | null;
+    payout_frozen: boolean | null;
     created_at: string;
   };
 
   const campaignList = (campaigns ?? []) as CampaignRow[];
-
-  // Resolve organizer names
   const organizerIds = [...new Set(campaignList.map(c => c.user_id))];
   const profileMap = new Map<string, string>();
+
   if (organizerIds.length > 0) {
     const { data: profiles } = await supabaseAdmin
       .from('profiles')
-      .select('id, full_name')
+      .select('id, full_name, email')
       .in('id', organizerIds);
-    for (const p of (profiles ?? []) as { id: string; full_name: string | null }[]) {
-      if (p.full_name) profileMap.set(p.id, p.full_name);
+    for (const p of (profiles ?? []) as { id: string; full_name: string | null; email: string | null }[]) {
+      profileMap.set(p.id, p.full_name || p.email || 'Unknown Organizer');
     }
   }
 
-  const rows: TableRow[] = campaignList.map(c => ({
+  const adminCampaigns: AdminCampaign[] = campaignList.map(c => ({
+    id: c.id,
     title: c.title,
-    subtitle: profileMap.get(c.user_id) ?? 'Unknown Organizer',
-    status: capitalize(c.status),
-    amount: fmtCents(c.raised_amount ?? 0),
-    meta: [
-      c.category ? capitalize(c.category) : 'Uncategorized',
-      `${(c.backer_count ?? 0).toLocaleString()} donors · Goal ${fmtCents(c.goal_amount ?? 0)}`,
-    ],
+    tagline: c.tagline ?? '',
+    description: c.description ?? '',
+    status: c.status,
+    trustStatus: c.trust_status ?? 'Needs More Info',
+    payoutFrozen: Boolean(c.payout_frozen),
+    healthScore: c.campaign_health_score ?? 0,
+    raisedAmount: c.raised_amount ?? 0,
+    goalAmount: c.goal_amount ?? 0,
+    backerCount: c.backer_count ?? 0,
+    category: c.category ? capitalize(c.category) : 'Uncategorized',
+    organizer: profileMap.get(c.user_id) ?? 'Unknown Organizer',
+    createdAt: c.created_at,
   }));
 
   const metrics: Metric[] = [
-    {
-      label: 'All Campaigns',
-      value: (totalCount ?? 0).toLocaleString(),
-      change: 'all statuses',
-      icon: 'stack',
-      tone: 'violet',
-    },
-    {
-      label: 'Active',
-      value: (activeCount ?? 0).toLocaleString(),
-      change: 'live right now',
-      icon: 'check',
-      tone: 'green',
-    },
-    {
-      label: 'Pending / Paused',
-      value: (pendingCount ?? 0).toLocaleString(),
-      change: 'need attention',
-      icon: 'audit',
-      tone: 'orange',
-    },
-    {
-      label: 'Drafts',
-      value: (draftCount ?? 0).toLocaleString(),
-      change: 'not yet published',
-      icon: 'doc',
-      tone: 'blue',
-    },
+    { label: 'All Campaigns', value: (totalCount ?? 0).toLocaleString(), change: 'all statuses', icon: 'stack', tone: 'violet' },
+    { label: 'Active', value: (activeCount ?? 0).toLocaleString(), change: 'live right now', icon: 'check', tone: 'green' },
+    { label: 'Needs Attention', value: (attentionCount ?? 0).toLocaleString(), change: 'paused, frozen, rejected', icon: 'audit', tone: 'orange' },
+    { label: 'Drafts', value: (draftCount ?? 0).toLocaleString(), change: 'not yet published', icon: 'doc', tone: 'blue' },
   ];
 
   return (
-    <PageScaffold
-      mode="admin"
-      active="Campaigns"
-      title="Campaigns"
-      subtitle="Create, review, approve, manage and track campaigns from start to finish."
-      metrics={metrics}
-      rows={rows}
-      tabs={[
-        `All (${totalCount ?? 0})`,
-        `Active (${activeCount ?? 0})`,
-        `Draft (${draftCount ?? 0})`,
-        `Pending (${pendingCount ?? 0})`,
-      ]}
-    />
+    <KindFundShell active="Campaigns" mode="admin">
+      <TopBar
+        title="Campaigns"
+        subtitle="Create, review, approve, manage and track campaigns from start to finish."
+        actions={<></>}
+      />
+      <div style={{ padding: '0 32px 20px' }}>
+        <MetricGrid metrics={metrics} />
+      </div>
+      <AdminCampaignsClient campaigns={adminCampaigns} />
+    </KindFundShell>
   );
 }
