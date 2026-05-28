@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 // Types
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 export interface DonationRecord {
   id: string;
   donor_name: string;
@@ -52,9 +52,44 @@ export interface DonationsClientProps {
   topDonors: TopDonor[];
 }
 
-// ─────────────────────────────────────────────
+interface AuditEntry {
+  id: string;
+  action: string;
+  actorName: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+interface DonationDetail {
+  id: string;
+  campaignId: string;
+  campaignTitle: string;
+  campaignSlug: string;
+  donorId: string | null;
+  donorName: string;
+  donorEmail: string;
+  amountCents: number;
+  status: string;
+  anonymous: boolean;
+  message: string;
+  paymentMethod: string | null;
+  source: string | null;
+  notes: string | null;
+  isSpam: boolean;
+  receiptSentAt: string | null;
+  refundedAt: string | null;
+  refundReason: string | null;
+  stripePaymentIntentId: string | null;
+  createdAt: string;
+  auditLog: AuditEntry[];
+}
+
+type ViewState = 'overview' | 'detail';
+type SuccessType = 'refund' | 'note' | 'receipt' | 'spam';
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Helpers
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 function fmtCents(cents: number): string {
   const d = cents / 100;
   if (d >= 1_000_000) return `$${(d / 1_000_000).toFixed(1)}M`;
@@ -63,16 +98,45 @@ function fmtCents(cents: number): string {
 }
 
 function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+  });
+}
+
+function fmtDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+  });
 }
 
 function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
 
-// ─────────────────────────────────────────────
-// Mini SVG line chart
-// ─────────────────────────────────────────────
+function auditActionLabel(action: string): string {
+  const map: Record<string, string> = {
+    'donation.refunded': 'Refund Processed',
+    'donation.note_added': 'Note Added',
+    'donation.receipt_sent': 'Receipt Sent',
+    'donation.updated': 'Record Updated',
+    'donation.spam_marked': 'Marked as Spam',
+    'donation.spam_unmarked': 'Unmarked as Spam',
+  };
+  return map[action] ?? capitalize(action.replace(/\./g, ' '));
+}
+
+function auditActionColor(action: string): string {
+  if (action.includes('refund')) return '#ff3b5f';
+  if (action.includes('receipt')) return '#2563eb';
+  if (action.includes('note')) return '#551cf2';
+  if (action.includes('spam')) return '#f97316';
+  return '#0fa456';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TrendLine
+// ─────────────────────────────────────────────────────────────────────────────
 function TrendLine({ points }: { points: WeekPoint[] }) {
   if (points.length < 2) {
     return (
@@ -114,9 +178,9 @@ function TrendLine({ points }: { points: WeekPoint[] }) {
   );
 }
 
-// ─────────────────────────────────────────────
-// Mini donut chart
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// DonutChart
+// ─────────────────────────────────────────────────────────────────────────────
 function DonutChart({ slices }: { slices: { label: string; value: number; color: string }[] }) {
   const total = slices.reduce((s, x) => s + x.value, 1);
   const r = 60;
@@ -131,11 +195,8 @@ function DonutChart({ slices }: { slices: { label: string; value: number; color:
           const dash = frac * circumference;
           const offset = slices.slice(0, index).reduce((sum, item) => sum + (item.value / total), 0);
           return (
-            <circle key={s.label}
-              cx={cx} cy={cy} r={r}
-              fill="none"
-              stroke={s.color}
-              strokeWidth="24"
+            <circle key={s.label} cx={cx} cy={cy} r={r}
+              fill="none" stroke={s.color} strokeWidth="24"
               strokeDasharray={`${dash} ${circumference - dash}`}
               strokeDashoffset={-offset * circumference + circumference / 4}
               style={{ transition: 'all .3s' }}
@@ -157,9 +218,9 @@ function DonutChart({ slices }: { slices: { label: string; value: number; color:
   );
 }
 
-// ─────────────────────────────────────────────
-// Status pill
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// StatusPill
+// ─────────────────────────────────────────────────────────────────────────────
 function StatusPill({ status }: { status: string }) {
   const s = status.toLowerCase();
   const tone = s.includes('completed') || s.includes('success') ? 'green'
@@ -170,127 +231,615 @@ function StatusPill({ status }: { status: string }) {
   return <span className={`kf-pill ${tone}`}>{capitalize(status)}</span>;
 }
 
-// ─────────────────────────────────────────────
-// Detail slide-in panel
-// ─────────────────────────────────────────────
-function DetailPanel({ donation, onClose }: { donation: DonationRecord; onClose: () => void }) {
-  const [activeTab, setActiveTab] = useState('info');
-  const tabs = ['info', 'history', 'actions'];
+// ─────────────────────────────────────────────────────────────────────────────
+// ActionItem
+// ─────────────────────────────────────────────────────────────────────────────
+function ActionItem({
+  label, color, bg, onClick, disabled, loading,
+}: {
+  label: string;
+  color: string;
+  bg: string;
+  onClick: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled ?? loading}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        width: '100%', padding: '10px 14px', marginBottom: 6,
+        border: `1px solid ${color}22`, borderRadius: 10, background: bg,
+        color, fontWeight: 850, fontSize: 13, cursor: disabled ?? loading ? 'default' : 'pointer',
+        opacity: disabled ? 0.45 : 1, transition: 'opacity .15s',
+        textAlign: 'left',
+      }}
+    >
+      {loading ? (
+        <span style={{ fontSize: 12 }}>⏳</span>
+      ) : null}
+      {label}
+    </button>
+  );
+}
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MoreActionsPanel
+// ─────────────────────────────────────────────────────────────────────────────
+interface MoreActionsPanelProps {
+  detail: DonationDetail;
+  onClose: () => void;
+  onRefund: () => void;
+  onNote: () => void;
+  onSpam: () => void;
+  onReceipt: () => void;
+  spamLoading: boolean;
+  receiptLoading: boolean;
+}
+
+function MoreActionsPanel({
+  detail, onClose, onRefund, onNote, onSpam, onReceipt, spamLoading, receiptLoading,
+}: MoreActionsPanelProps) {
   return (
     <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 1000, display: 'flex',
-        background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)',
-      }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{
-        marginLeft: 'auto', width: 480, background: '#fff',
-        height: '100%', overflowY: 'auto',
-        boxShadow: '-12px 0 56px rgba(20,20,80,.14)',
-        display: 'flex', flexDirection: 'column',
-      }}>
-        {/* Header */}
-        <div style={{ padding: '22px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 950, color: '#0f0f30' }}>{donation.donor_name}</div>
-            <div style={{ fontSize: 13, color: '#66708d', marginTop: 2 }}>{donation.donor_email || 'No email'}</div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <StatusPill status={donation.status} />
-            <button type="button" onClick={onClose}
-              style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5', lineHeight: 1 }}>
-              ×
-            </button>
-          </div>
+      <div className="ado-actions-panel">
+        <div className="ado-panel-head">
+          <span>More Actions</span>
+          <button type="button" className="ado-close-btn" onClick={onClose}>×</button>
         </div>
+        <div style={{ padding: '16px 20px', overflowY: 'auto', flex: 1 }}>
+          <div className="ado-panel-section">Edit</div>
+          <ActionItem
+            label="Refund Donation"
+            color="#ff3b5f" bg="#fff5f7"
+            onClick={onRefund}
+            disabled={detail.status === 'refunded'}
+          />
+          <ActionItem label="Add Note" color="#551cf2" bg="#f5f0ff" onClick={onNote} />
+          <ActionItem
+            label={detail.isSpam ? 'Unmark as Spam' : 'Mark as Spam'}
+            color="#f97316" bg="#fff6ed"
+            onClick={onSpam}
+            loading={spamLoading}
+          />
 
-        {/* Amount */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', background: '#fbf9ff' }}>
-          <div style={{ fontSize: 32, fontWeight: 950, color: '#101944', letterSpacing: '-.03em' }}>{fmtCents(donation.amount_cents)}</div>
-          <div style={{ fontSize: 13, color: '#66708d', marginTop: 4 }}>{fmtDate(donation.created_at)}</div>
-        </div>
+          <div className="ado-panel-divider" />
+          <div className="ado-panel-section">Send</div>
+          <ActionItem
+            label={detail.receiptSentAt ? 'Resend Receipt' : 'Send Receipt'}
+            color="#2563eb" bg="#eaf1ff"
+            onClick={onReceipt}
+            loading={receiptLoading}
+          />
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', borderBottom: '1px solid #eef0f7', padding: '0 24px' }}>
-          {tabs.map(t => (
-            <button key={t} type="button" onClick={() => setActiveTab(t)}
-              style={{
-                height: 44, border: 0, borderBottom: `2px solid ${activeTab === t ? '#6c35ff' : 'transparent'}`,
-                background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13,
-                color: activeTab === t ? '#551cf2' : '#66708d', marginRight: 20, cursor: 'pointer',
-              }}>
-              {capitalize(t)}
-            </button>
-          ))}
-        </div>
-
-        {/* Content */}
-        <div style={{ padding: '20px 24px', flex: 1 }}>
-          {activeTab === 'info' && (
-            <div style={{ display: 'grid', gap: 14 }}>
-              {[
-                ['Campaign', donation.campaign_title],
-                ['Amount', fmtCents(donation.amount_cents)],
-                ['Status', capitalize(donation.status)],
-                ['Payment Method', donation.payment_method || 'N/A'],
-                ['Donation ID', donation.id.slice(0, 18) + '...'],
-                ['Donated On', fmtDate(donation.created_at)],
-                ['Anonymous', donation.anonymous ? 'Yes' : 'No'],
-                ['Message', donation.message || '—'],
-              ].map(([label, val]) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
-                  <span style={{ color: '#66708d', fontWeight: 700 }}>{label}</span>
-                  <span style={{ color: '#101944', fontWeight: 750, textAlign: 'right', maxWidth: '60%', wordBreak: 'break-all' }}>{val}</span>
-                </div>
-              ))}
-            </div>
+          <div className="ado-panel-divider" />
+          <div className="ado-panel-section">Navigate</div>
+          {detail.donorId && (
+            <ActionItem
+              label="View Donor Profile"
+              color="#0fa456" bg="#e8f8ee"
+              onClick={() => window.open(`/admin/users?id=${detail.donorId}`, '_blank')}
+            />
           )}
+          <ActionItem
+            label="View Campaign"
+            color="#6c35ff" bg="#f5f0ff"
+            onClick={() => window.open(`/campaigns/${detail.campaignSlug}`, '_blank')}
+          />
 
-          {activeTab === 'history' && (
-            <div style={{ display: 'grid', gap: 12 }}>
-              {[
-                { event: 'Donation Received', date: donation.created_at, color: '#0fa456' },
-                { event: `Status: ${capitalize(donation.status)}`, date: donation.created_at, color: '#6c35ff' },
-              ].map((ev, i) => (
-                <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: ev.color, marginTop: 5, flexShrink: 0 }} />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 750, color: '#101944' }}>{ev.event}</div>
-                    <div style={{ fontSize: 12, color: '#8c9ab5', marginTop: 2 }}>{fmtDate(ev.date)}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {activeTab === 'actions' && (
-            <div style={{ display: 'grid', gap: 10 }}>
-              {[
-                { label: 'Refund Donation', color: '#ff3b5f', bg: '#fff0f3' },
-                { label: 'Send Receipt', color: '#2563eb', bg: '#eaf1ff' },
-                { label: 'Mark as Spam', color: '#f97316', bg: '#fff0e4' },
-                { label: 'Add Note', color: '#551cf2', bg: '#f0eaff' },
-                { label: 'View Donor Profile', color: '#0fa456', bg: '#e8f8ee' },
-              ].map(({ label, color, bg }) => (
-                <button key={label} type="button"
-                  style={{ width: '100%', height: 44, border: `1px solid ${color}20`, borderRadius: 10, background: bg, color, fontWeight: 850, fontSize: 13, cursor: 'pointer' }}
-                  onClick={() => alert(`Action: ${label}`)}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="ado-panel-divider" />
+          <div className="ado-panel-section">Export</div>
+          <ActionItem
+            label="Export This Donation"
+            color="#66708d" bg="#f4f5fa"
+            onClick={() => window.open(`/api/admin/reports/export?type=donation&id=${detail.id}`, '_blank')}
+          />
         </div>
       </div>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// RefundModal
+// ─────────────────────────────────────────────────────────────────────────────
+function RefundModal({
+  detail,
+  onClose,
+  onSuccess,
+}: {
+  detail: DonationDetail;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [amount, setAmount] = useState((detail.amountCents / 100).toFixed(2));
+  const [reason, setReason] = useState('Donor request');
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function handleRefund() {
+    const parsed = parseFloat(amount);
+    if (isNaN(parsed) || parsed <= 0) { setErr('Enter a valid refund amount.'); return; }
+    const cents = Math.round(parsed * 100);
+    if (cents > detail.amountCents) { setErr(`Cannot exceed ${fmtCents(detail.amountCents)}.`); return; }
+    setLoading(true);
+    setErr('');
+    try {
+      const r = await fetch(`/api/admin/donations/${detail.id}/refund`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount_cents: cents, reason }),
+      });
+      const data: { error?: string } = await r.json();
+      if (!r.ok) throw new Error(data.error ?? 'Refund failed');
+      onSuccess();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="ado-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="ado-modal">
+        <div className="ado-modal-head">
+          <h3>Process Refund</h3>
+          <button type="button" className="ado-close-btn" onClick={onClose}>×</button>
+        </div>
+        <div className="ado-modal-body">
+          <p style={{ margin: '0 0 20px', fontSize: 13, color: '#66708d', lineHeight: 1.5 }}>
+            Refunding donation of <strong>{fmtCents(detail.amountCents)}</strong> from{' '}
+            <strong>{detail.donorName}</strong>. This action will be logged.
+          </p>
+          <div className="ado-field">
+            <label>Refund Amount ($)</label>
+            <input
+              className="ac-input"
+              type="number"
+              step="0.01"
+              min="0.01"
+              max={(detail.amountCents / 100).toFixed(2)}
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+            />
+            <small style={{ color: '#8c9ab5', fontSize: 11 }}>Max: {fmtCents(detail.amountCents)}</small>
+          </div>
+          <div className="ado-field">
+            <label>Reason</label>
+            <select className="ac-input" value={reason} onChange={e => setReason(e.target.value)}>
+              <option>Donor request</option>
+              <option>Duplicate charge</option>
+              <option>Fraudulent</option>
+              <option>Campaign cancelled</option>
+              <option>Other</option>
+            </select>
+          </div>
+          {err && <div className="ado-error">{err}</div>}
+        </div>
+        <div className="ado-modal-foot">
+          <button type="button" className="kf-outline" onClick={onClose} disabled={loading}>Cancel</button>
+          <button type="button" className="kf-danger" onClick={handleRefund} disabled={loading}>
+            {loading ? 'Processing…' : 'Process Refund'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NoteModal
+// ─────────────────────────────────────────────────────────────────────────────
+function NoteModal({
+  detail,
+  onClose,
+  onSuccess,
+}: {
+  detail: DonationDetail;
+  onClose: () => void;
+  onSuccess: (note: string) => void;
+}) {
+  const [note, setNote] = useState(detail.notes ?? '');
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+
+  async function handleSave() {
+    if (!note.trim()) { setErr('Note cannot be empty.'); return; }
+    setLoading(true);
+    setErr('');
+    try {
+      const r = await fetch(`/api/admin/donations/${detail.id}/note`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: note.trim() }),
+      });
+      const data: { error?: string } = await r.json();
+      if (!r.ok) throw new Error(data.error ?? 'Failed to save note');
+      onSuccess(note.trim());
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="ado-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="ado-modal">
+        <div className="ado-modal-head">
+          <h3>Add / Edit Note</h3>
+          <button type="button" className="ado-close-btn" onClick={onClose}>×</button>
+        </div>
+        <div className="ado-modal-body">
+          <div className="ado-field">
+            <label>Internal Note</label>
+            <textarea
+              className="ac-textarea"
+              rows={5}
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="Enter internal note visible only to admins…"
+              // eslint-disable-next-line jsx-a11y/no-autofocus
+              autoFocus
+            />
+          </div>
+          {err && <div className="ado-error">{err}</div>}
+        </div>
+        <div className="ado-modal-foot">
+          <button type="button" className="kf-outline" onClick={onClose} disabled={loading}>Cancel</button>
+          <button type="button" className="kf-primary" onClick={handleSave} disabled={loading || !note.trim()}>
+            {loading ? 'Saving…' : 'Save Note'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SuccessView
+// ─────────────────────────────────────────────────────────────────────────────
+function SuccessView({
+  type,
+  donorName,
+  amountCents,
+  onBack,
+  onViewAll,
+}: {
+  type: SuccessType;
+  donorName: string;
+  amountCents: number;
+  onBack: () => void;
+  onViewAll: () => void;
+}) {
+  const msgs: Record<SuccessType, { title: string; desc: string }> = {
+    refund: {
+      title: 'Refund Processed',
+      desc: `${fmtCents(amountCents)} has been refunded to ${donorName}. The donation status has been updated.`,
+    },
+    note: {
+      title: 'Note Saved',
+      desc: 'Your internal note has been saved and is visible only to admins.',
+    },
+    receipt: {
+      title: 'Receipt Sent',
+      desc: `A donation receipt has been sent to ${donorName}.`,
+    },
+    spam: {
+      title: 'Spam Status Updated',
+      desc: `The spam status for this donation has been updated successfully.`,
+    },
+  };
+  const m = msgs[type];
+  return (
+    <div className="ado-success-wrap">
+      <div className="ado-success">
+        <div className="ado-success-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" width={36} height={36}>
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+        </div>
+        <h2>{m.title}</h2>
+        <p>{m.desc}</p>
+        <div className="ado-success-btns">
+          <button type="button" className="kf-primary" onClick={onBack}>← Back to Donation</button>
+          <button type="button" className="kf-outline" onClick={onViewAll}>View All Donations</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DetailView
+// ─────────────────────────────────────────────────────────────────────────────
+function DetailView({
+  initialDetail,
+  onBack,
+  onRefresh,
+}: {
+  initialDetail: DonationDetail;
+  onBack: () => void;
+  onRefresh: (id: string) => void;
+}) {
+  const [detail, setDetail] = useState<DonationDetail>(initialDetail);
+  const [showMoreActions, setShowMoreActions] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [spamLoading, setSpamLoading] = useState(false);
+  const [receiptLoading, setReceiptLoading] = useState(false);
+  const [successType, setSuccessType] = useState<SuccessType | null>(null);
+  const [actionErr, setActionErr] = useState('');
+
+  useEffect(() => { setDetail(initialDetail); }, [initialDetail]);
+
+  async function handleToggleSpam() {
+    setSpamLoading(true);
+    setActionErr('');
+    try {
+      const r = await fetch(`/api/admin/donations/${detail.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_spam: !detail.isSpam }),
+      });
+      const data: { error?: string } = await r.json();
+      if (!r.ok) throw new Error(data.error ?? 'Failed to update spam status');
+      setDetail(d => ({ ...d, isSpam: !d.isSpam }));
+      setShowMoreActions(false);
+      setSuccessType('spam');
+    } catch (e) {
+      setActionErr((e as Error).message);
+    } finally {
+      setSpamLoading(false);
+    }
+  }
+
+  async function handleSendReceipt() {
+    setReceiptLoading(true);
+    setActionErr('');
+    try {
+      const r = await fetch(`/api/admin/donations/${detail.id}/receipt`, { method: 'POST' });
+      const data: { error?: string } = await r.json();
+      if (!r.ok) throw new Error(data.error ?? 'Failed to send receipt');
+      const now = new Date().toISOString();
+      setDetail(d => ({ ...d, receiptSentAt: now }));
+      setShowMoreActions(false);
+      setSuccessType('receipt');
+    } catch (e) {
+      setActionErr((e as Error).message);
+    } finally {
+      setReceiptLoading(false);
+    }
+  }
+
+  function handleRefundSuccess() {
+    setShowRefundModal(false);
+    setDetail(d => ({ ...d, status: 'refunded', refundedAt: new Date().toISOString() }));
+    setSuccessType('refund');
+  }
+
+  function handleNoteSuccess(note: string) {
+    setDetail(d => ({ ...d, notes: note }));
+    setShowNoteModal(false);
+    setSuccessType('note');
+  }
+
+  if (successType) {
+    return (
+      <SuccessView
+        type={successType}
+        donorName={detail.donorName}
+        amountCents={detail.amountCents}
+        onBack={() => { setSuccessType(null); onRefresh(detail.id); }}
+        onViewAll={onBack}
+      />
+    );
+  }
+
+  // Build timeline
+  type TimelineEvent = { event: string; date: string; color: string };
+  const timeline: TimelineEvent[] = [
+    { event: 'Donation Received', date: detail.createdAt, color: '#0fa456' },
+    ...(detail.status === 'completed' ? [{ event: 'Payment Confirmed', date: detail.createdAt, color: '#2563eb' }] : []),
+    ...(detail.status === 'failed' ? [{ event: 'Payment Failed', date: detail.createdAt, color: '#ff3b5f' }] : []),
+    ...(detail.receiptSentAt ? [{ event: 'Receipt Sent', date: detail.receiptSentAt, color: '#2563eb' }] : []),
+    ...(detail.refundedAt ? [{ event: `Refund Processed — ${detail.refundReason ?? ''}`.trim().replace(/ —$/, ''), date: detail.refundedAt, color: '#ff3b5f' }] : []),
+    ...(detail.isSpam ? [{ event: 'Marked as Spam', date: detail.createdAt, color: '#f97316' }] : []),
+    ...detail.auditLog.map(a => ({ event: auditActionLabel(a.action), date: a.createdAt, color: auditActionColor(a.action) })),
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  return (
+    <div style={{ padding: '0 32px 48px' }}>
+      {/* Header bar */}
+      <div className="ado-detail-bar">
+        <button type="button" className="ado-back-btn" onClick={onBack}>
+          ← Donations
+        </button>
+        <span className="ado-detail-id">
+          {detail.id.slice(0, 8).toUpperCase()}
+        </span>
+        <button
+          type="button"
+          className="kf-outline"
+          style={{ height: 38, padding: '0 18px', fontSize: 13 }}
+          onClick={() => setShowMoreActions(true)}
+        >
+          More Actions ▾
+        </button>
+      </div>
+
+      {actionErr && (
+        <div className="ado-error" style={{ marginBottom: 16 }}>{actionErr}</div>
+      )}
+
+      {/* Donor hero row */}
+      <div className="ado-donor-row kf-card">
+        <div className="ado-donor-avatar">{detail.donorName.charAt(0).toUpperCase()}</div>
+        <div className="ado-donor-info">
+          <strong>{detail.donorName}</strong>
+          {detail.donorEmail && <span>{detail.donorEmail}</span>}
+          {detail.anonymous && <span style={{ color: '#8c9ab5', fontSize: 11, fontStyle: 'italic' }}>Anonymous donation</span>}
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 30, fontWeight: 950, color: '#0f1238', letterSpacing: '-.02em', lineHeight: 1 }}>
+              {fmtCents(detail.amountCents)}
+            </div>
+            <div style={{ fontSize: 12, color: '#8c9ab5', marginTop: 4 }}>{fmtDateTime(detail.createdAt)}</div>
+          </div>
+          <StatusPill status={detail.status} />
+          {detail.status !== 'refunded' && (
+            <button
+              type="button"
+              className="kf-danger"
+              style={{ height: 40, padding: '0 20px', fontSize: 13, fontWeight: 900, borderRadius: 10 }}
+              onClick={() => setShowRefundModal(true)}
+            >
+              Refund
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Two-column detail grid */}
+      <div className="ado-detail-grid">
+        {/* Left: info cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Donation Information */}
+          <section className="kf-card">
+            <div className="kf-card-head"><h2>Donation Information</h2></div>
+            <div style={{ padding: '0 20px 20px' }}>
+              {([
+                ['Amount', fmtCents(detail.amountCents)],
+                ['Status', capitalize(detail.status)],
+                ['Campaign', detail.campaignTitle],
+                ['Payment Method', detail.paymentMethod ?? 'Card'],
+                ['Source', detail.source ?? 'Web'],
+                ['Date', fmtDateTime(detail.createdAt)],
+                ['Stripe Payment ID', detail.stripePaymentIntentId ?? 'N/A'],
+                ['Donation ID', detail.id],
+              ] as [string, string][]).map(([label, val]) => (
+                <div key={label} className="ado-info-row">
+                  <span className="ado-info-label">{label}</span>
+                  <span
+                    className="ado-info-val"
+                    style={{ fontFamily: (label === 'Donation ID' || label === 'Stripe Payment ID') ? 'monospace' : 'inherit', fontSize: label === 'Donation ID' ? 11 : 13 }}
+                  >
+                    {val}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Additional Details */}
+          <section className="kf-card">
+            <div className="kf-card-head"><h2>Additional Details</h2></div>
+            <div style={{ padding: '0 20px 20px' }}>
+              {([
+                ['Anonymous', detail.anonymous ? 'Yes' : 'No'],
+                ['Message', detail.message || '—'],
+                ['Internal Notes', detail.notes || '—'],
+                ['Marked as Spam', detail.isSpam ? 'Yes' : 'No'],
+                ['Receipt Sent', detail.receiptSentAt ? fmtDate(detail.receiptSentAt) : 'No'],
+              ] as [string, string][]).map(([label, val]) => (
+                <div key={label} className="ado-info-row">
+                  <span className="ado-info-label">{label}</span>
+                  <span
+                    className="ado-info-val"
+                    style={{ color: label === 'Marked as Spam' && detail.isSpam ? '#f97316' : undefined }}
+                  >
+                    {val}
+                  </span>
+                </div>
+              ))}
+              {detail.refundedAt && (
+                <>
+                  <div className="ado-info-row">
+                    <span className="ado-info-label">Refunded At</span>
+                    <span className="ado-info-val">{fmtDate(detail.refundedAt)}</span>
+                  </div>
+                  <div className="ado-info-row">
+                    <span className="ado-info-label">Refund Reason</span>
+                    <span className="ado-info-val">{detail.refundReason ?? '—'}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+        </div>
+
+        {/* Right: History timeline */}
+        <section className="kf-card" style={{ alignSelf: 'flex-start' }}>
+          <div className="kf-card-head"><h2>History</h2></div>
+          <div style={{ padding: '4px 20px 20px' }}>
+            {timeline.length === 0 ? (
+              <p style={{ color: '#8c9ab5', fontSize: 13, margin: '16px 0 0' }}>No history available.</p>
+            ) : (
+              <div className="ado-timeline">
+                {timeline.map((ev, i) => (
+                  <div key={i} className="ado-timeline-item">
+                    <div className="ado-timeline-left">
+                      <div className="ado-timeline-dot" style={{ background: ev.color }} />
+                      {i < timeline.length - 1 && <div className="ado-timeline-line-seg" />}
+                    </div>
+                    <div style={{ paddingBottom: i < timeline.length - 1 ? 20 : 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: '#101944' }}>{ev.event}</div>
+                      <div style={{ fontSize: 12, color: '#8c9ab5', marginTop: 2 }}>{fmtDateTime(ev.date)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+
+      {/* More Actions slide-in */}
+      {showMoreActions && (
+        <MoreActionsPanel
+          detail={detail}
+          onClose={() => setShowMoreActions(false)}
+          onRefund={() => { setShowMoreActions(false); setShowRefundModal(true); }}
+          onNote={() => { setShowMoreActions(false); setShowNoteModal(true); }}
+          onSpam={handleToggleSpam}
+          onReceipt={handleSendReceipt}
+          spamLoading={spamLoading}
+          receiptLoading={receiptLoading}
+        />
+      )}
+
+      {/* Refund modal */}
+      {showRefundModal && (
+        <RefundModal
+          detail={detail}
+          onClose={() => setShowRefundModal(false)}
+          onSuccess={handleRefundSuccess}
+        />
+      )}
+
+      {/* Note modal */}
+      {showNoteModal && (
+        <NoteModal
+          detail={detail}
+          onClose={() => setShowNoteModal(false)}
+          onSuccess={handleNoteSuccess}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main component
-// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
 export default function DonationsClient({
   totalCents,
   donorCount,
@@ -305,24 +854,53 @@ export default function DonationsClient({
   campaignVolumes,
   topDonors,
 }: DonationsClientProps) {
+  // View state
+  const [viewState, setViewState] = useState<ViewState>('overview');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<DonationDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState('');
+
+  // Overview panel tabs
+  const [panelTab, setPanelTab] = useState('Donations');
+  const panelTabs = ['Donations', 'Donors', 'Recurring', 'Refunds', 'Reports', 'Export', 'Audit'];
+
+  // List / filter state
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [page, setPage] = useState(0);
-  const [activeTab, setActiveTab] = useState('all');
-  const [selected, setSelected] = useState<DonationRecord | null>(null);
   const [exportFormat, setExportFormat] = useState('csv');
 
   const PAGE_SIZE = 10;
 
+  // ── Fetch detail ────────────────────────────────────────────────────────────
+  const fetchDetail = useCallback(async (id: string) => {
+    setDetailLoading(true);
+    setDetailError('');
+    try {
+      const r = await fetch(`/api/admin/donations/${id}`);
+      const data: DonationDetail & { error?: string } = await r.json();
+      if (!r.ok) throw new Error(data.error ?? 'Failed to load donation');
+      setDetail(data);
+      setViewState('detail');
+    } catch (e) {
+      setDetailError((e as Error).message);
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
+  // ── Filter / paginate donations ─────────────────────────────────────────────
   const filtered = useMemo(() => {
     let list = donations;
     if (filterStatus !== 'all') list = list.filter(d => d.status.toLowerCase() === filterStatus);
     if (search.trim()) {
       const q = search.toLowerCase();
-      list = list.filter(d =>
-        d.donor_name.toLowerCase().includes(q) ||
-        d.donor_email.toLowerCase().includes(q) ||
-        d.campaign_title.toLowerCase().includes(q)
+      list = list.filter(
+        d =>
+          d.donor_name.toLowerCase().includes(q) ||
+          d.donor_email.toLowerCase().includes(q) ||
+          d.campaign_title.toLowerCase().includes(q),
       );
     }
     return list;
@@ -339,20 +917,52 @@ export default function DonationsClient({
     { id: 'failed', label: `Failed (${failedCount})` },
   ];
 
-  const panelTabs = ['Donations', 'Donors', 'Recurring', 'Refunds', 'Reports', 'Export', 'Audit'];
-
-  const top5Campaigns = campaignVolumes.slice(0, 5);
+  // ── Chart helpers ───────────────────────────────────────────────────────────
+  const top5 = campaignVolumes.slice(0, 5);
   const othersTotal = campaignVolumes.slice(5).reduce((s, c) => s + c.total_cents, 0);
-  const campaignTotal = campaignVolumes.reduce((s, c) => s + c.total_cents, 1);
+  const campaignTotal = Math.max(campaignVolumes.reduce((s, c) => s + c.total_cents, 0), 1);
 
-  const recentFive = donations.slice(0, 5);
+  // ── Detail view ─────────────────────────────────────────────────────────────
+  if (viewState === 'detail') {
+    if (detailLoading) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 400, color: '#8c9ab5', fontSize: 14 }}>
+          Loading donation…
+        </div>
+      );
+    }
+    if (detailError) {
+      return (
+        <div style={{ padding: '40px 32px' }}>
+          <div className="ado-error">{detailError}</div>
+          <button type="button" className="kf-outline" style={{ marginTop: 16 }} onClick={() => setViewState('overview')}>← Back</button>
+        </div>
+      );
+    }
+    if (detail) {
+      return (
+        <DetailView
+          initialDetail={detail}
+          onBack={() => { setViewState('overview'); setDetail(null); setSelectedId(null); }}
+          onRefresh={fetchDetail}
+        />
+      );
+    }
+  }
 
+  // ── Overview ────────────────────────────────────────────────────────────────
   return (
     <div style={{ padding: '0 32px 40px' }}>
+      {detailLoading && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'grid', placeItems: 'center', background: 'rgba(10,15,60,.25)', backdropFilter: 'blur(2px)' }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: '28px 40px', fontSize: 14, color: '#26335c', fontWeight: 750 }}>Loading donation…</div>
+        </div>
+      )}
+
       {/* KPI row */}
       <div className="kf-metrics" style={{ marginBottom: 24 }}>
         {[
-          { label: 'Total Donations', value: fmtCents(totalCents), change: 'Completed donations', icon: 'gift', tone: 'violet' },
+          { label: 'Total Raised', value: fmtCents(totalCents), change: 'Completed donations', icon: 'gift', tone: 'violet' },
           { label: 'Total Donors', value: donorCount.toLocaleString(), change: 'Unique donors', icon: 'users', tone: 'green' },
           { label: 'Average Donation', value: fmtCents(avgCents), change: 'Per completed tx', icon: 'chart', tone: 'blue' },
           { label: 'Total Count', value: totalDonationCount.toLocaleString(), change: 'All donations', icon: 'check', tone: 'orange' },
@@ -386,21 +996,19 @@ export default function DonationsClient({
             <TrendLine points={weeklyTrend} />
           </div>
         </section>
-
         <section className="kf-card">
           <div className="kf-card-head"><h2>Donations by Campaign</h2></div>
           <div style={{ padding: '0 20px 20px' }}>
-            <DonutChart slices={
-              [...top5Campaigns.map(c => ({
+            <DonutChart slices={[
+              ...top5.map((c, idx) => ({
                 label: c.campaign_title.slice(0, 20) + (c.campaign_title.length > 20 ? '…' : ''),
                 value: Math.round(c.total_cents / 100),
-                color: ['#6c35ff','#ec3fb4','#2f80ed','#19b86a','#f59e0b'][top5Campaigns.indexOf(c) % 5],
+                color: (['#6c35ff', '#ec3fb4', '#2f80ed', '#19b86a', '#f59e0b'] as string[])[idx % 5],
               })),
-              ...(othersTotal > 0 ? [{ label: 'Others', value: Math.round(othersTotal / 100), color: '#a9afc2' }] : [])
-              ]
-            } />
+              ...(othersTotal > 0 ? [{ label: 'Others', value: Math.round(othersTotal / 100), color: '#a9afc2' }] : []),
+            ]} />
             <div style={{ marginTop: 12 }}>
-              {top5Campaigns.map(c => (
+              {top5.map(c => (
                 <div key={c.campaign_id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
                   <span style={{ color: '#26335c', fontWeight: 700 }}>{c.campaign_title.slice(0, 28)}</span>
                   <div style={{ textAlign: 'right' }}>
@@ -418,80 +1026,84 @@ export default function DonationsClient({
       <div className="kf-two-col" style={{ marginBottom: 24 }}>
         <section className="kf-card">
           <div className="kf-card-head"><h2>Recent Donations</h2></div>
-          <div>
-            {recentFive.map(d => (
-              <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid #f0f2f8' }}>
-                <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
-                  {d.donor_name.charAt(0).toUpperCase()}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 850, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.donor_name}</div>
-                  <div style={{ fontSize: 12, color: '#66708d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.campaign_title}</div>
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 950, color: '#101944' }}>{fmtCents(d.amount_cents)}</div>
-                  <div style={{ fontSize: 11, color: '#8c9ab5' }}>{fmtDate(d.created_at)}</div>
-                </div>
+          {donations.slice(0, 5).map(d => (
+            <div
+              key={d.id}
+              style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer' }}
+              onClick={() => { setSelectedId(d.id); fetchDetail(d.id); }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+            >
+              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+                {d.donor_name.charAt(0).toUpperCase()}
               </div>
-            ))}
-          </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 850, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.donor_name}</div>
+                <div style={{ fontSize: 12, color: '#66708d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.campaign_title}</div>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 950, color: '#101944' }}>{fmtCents(d.amount_cents)}</div>
+                <div style={{ fontSize: 11, color: '#8c9ab5' }}>{fmtDate(d.created_at)}</div>
+              </div>
+            </div>
+          ))}
           <div style={{ height: 48, display: 'grid', placeItems: 'center', borderTop: '1px solid #f0f2f8' }}>
             <button type="button" style={{ background: 'none', border: 'none', color: '#551cf2', fontWeight: 950, fontSize: 14, cursor: 'pointer' }}
-              onClick={() => setActiveTab('Donations')}>
+              onClick={() => setPanelTab('Donations')}>
               View all donations →
             </button>
           </div>
         </section>
-
         <section className="kf-card">
           <div className="kf-card-head"><h2>Top Donors</h2></div>
-          <div>
-            {topDonors.slice(0, 5).map((d, i) => (
-              <div key={d.donor_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid #f0f2f8' }}>
-                <span style={{ width: 22, textAlign: 'center', fontSize: 12, fontWeight: 900, color: '#8c9ab5' }}>{i + 1}</span>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
-                  {d.donor_name.charAt(0).toUpperCase()}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 850, color: '#101944' }}>{d.donor_name}</div>
-                  <div style={{ fontSize: 12, color: '#66708d' }}>{d.donation_count} donation{d.donation_count !== 1 ? 's' : ''}</div>
-                </div>
-                <strong style={{ fontSize: 15, color: '#101944' }}>{fmtCents(d.total_cents)}</strong>
+          {topDonors.slice(0, 5).map((d, i) => (
+            <div key={d.donor_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid #f0f2f8' }}>
+              <span style={{ width: 22, textAlign: 'center', fontSize: 12, fontWeight: 900, color: '#8c9ab5' }}>{i + 1}</span>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+                {d.donor_name.charAt(0).toUpperCase()}
               </div>
-            ))}
-          </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 850, color: '#101944' }}>{d.donor_name}</div>
+                <div style={{ fontSize: 12, color: '#66708d' }}>{d.donation_count} donation{d.donation_count !== 1 ? 's' : ''}</div>
+              </div>
+              <strong style={{ fontSize: 15, color: '#101944' }}>{fmtCents(d.total_cents)}</strong>
+            </div>
+          ))}
           {topDonors.length === 0 && (
             <div style={{ padding: '24px', textAlign: 'center', color: '#8c9ab5', fontSize: 14 }}>No donors yet</div>
           )}
         </section>
       </div>
 
-      {/* Main table section */}
+      {/* Main tabbed section */}
       <section className="kf-card" style={{ marginBottom: 24 }}>
         {/* Panel tabs */}
         <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #eef0f7', overflowX: 'auto', padding: '0 20px' }}>
           {panelTabs.map(t => (
-            <button key={t} type="button"
-              onClick={() => setActiveTab(t)}
+            <button key={t} type="button" onClick={() => setPanelTab(t)}
               style={{
-                height: 50, padding: '0 16px', border: 0, borderBottom: `2px solid ${activeTab === t ? '#6c35ff' : 'transparent'}`,
-                background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13,
-                color: activeTab === t ? '#551cf2' : '#202b55', cursor: 'pointer', whiteSpace: 'nowrap',
+                height: 50, padding: '0 16px', border: 0,
+                borderBottom: `2px solid ${panelTab === t ? '#6c35ff' : 'transparent'}`,
+                background: 'none', fontWeight: panelTab === t ? 950 : 750, fontSize: 13,
+                color: panelTab === t ? '#551cf2' : '#202b55', cursor: 'pointer', whiteSpace: 'nowrap',
               }}>
               {t}
             </button>
           ))}
         </div>
 
-        {/* Donations tab */}
-        {activeTab === 'Donations' && (
+        {/* ── Donations tab ─────────────────────────────────────────────────── */}
+        {panelTab === 'Donations' && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: '#fff' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={16} height={16}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
-                <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }}
+                <input
+                  value={search}
+                  onChange={e => { setSearch(e.target.value); setPage(0); }}
                   placeholder="Search by donor, email, or campaign…"
-                  style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }} />
+                  style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }}
+                />
               </label>
               <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(0); }}
                 style={{ height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', fontSize: 13, background: '#fff' }}>
@@ -503,18 +1115,19 @@ export default function DonationsClient({
               </select>
               <button type="button"
                 style={{ height: 42, padding: '0 18px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}
-                onClick={() => alert('Export as ' + exportFormat.toUpperCase())}>
+                onClick={() => window.open('/api/admin/reports/export?type=donations&format=' + exportFormat, '_blank')}>
                 Export
               </button>
             </div>
 
-            {/* Status filter tabs */}
+            {/* Status sub-tabs */}
             <div style={{ display: 'flex', gap: 0, padding: '0 20px', borderBottom: '1px solid #eef0f7' }}>
               {statusTabs.map(t => (
                 <button key={t.id} type="button"
                   onClick={() => { setFilterStatus(t.id); setPage(0); }}
                   style={{
-                    height: 44, padding: '0 14px', border: 0, borderBottom: `2px solid ${filterStatus === t.id ? '#6c35ff' : 'transparent'}`,
+                    height: 44, padding: '0 14px', border: 0,
+                    borderBottom: `2px solid ${filterStatus === t.id ? '#6c35ff' : 'transparent'}`,
                     background: 'none', fontWeight: filterStatus === t.id ? 950 : 700, fontSize: 12,
                     color: filterStatus === t.id ? '#551cf2' : '#66708d', cursor: 'pointer',
                   }}>
@@ -525,20 +1138,18 @@ export default function DonationsClient({
 
             {/* Table header */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 900, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
-              <span>Donor</span>
-              <span>Campaign</span>
-              <span>Amount</span>
-              <span>Status</span>
-              <span>Date</span>
+              <span>Donor</span><span>Campaign</span><span>Amount</span><span>Status</span><span>Date</span>
             </div>
 
             {/* Table rows */}
             {currentPage.map(d => (
-              <div key={d.id}
+              <div
+                key={d.id}
                 style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
-                onClick={() => setSelected(d)}
+                onClick={() => { setSelectedId(d.id); fetchDetail(d.id); }}
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
                     {d.donor_name.charAt(0).toUpperCase()}
@@ -578,36 +1189,44 @@ export default function DonationsClient({
           </div>
         )}
 
-        {/* Donors tab */}
-        {activeTab === 'Donors' && (
+        {/* ── Donors tab ──────────────────────────────────────────────────────── */}
+        {panelTab === 'Donors' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950 }}>Top Donors</h3>
-            {topDonors.slice(0, 10).map((d, i) => (
-              <div key={d.donor_id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 0', borderBottom: '1px solid #f0f2f8' }}>
-                <span style={{ width: 28, fontSize: 13, fontWeight: 900, color: i < 3 ? '#6c35ff' : '#8c9ab5' }}>#{i + 1}</span>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
-                  {d.donor_name.charAt(0).toUpperCase()}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 850, color: '#101944' }}>{d.donor_name}</div>
-                  <div style={{ fontSize: 12, color: '#66708d' }}>{d.donation_count} donation{d.donation_count !== 1 ? 's' : ''}</div>
-                </div>
-                <strong style={{ fontSize: 16, fontWeight: 950, color: '#101944' }}>{fmtCents(d.total_cents)}</strong>
+            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950, color: '#0f1238' }}>All Donors</h3>
+            {topDonors.length === 0 && (
+              <p style={{ color: '#8c9ab5', fontSize: 14 }}>No donor data available.</p>
+            )}
+            <div style={{ border: '1px solid #e6e9f2', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr 1fr 1fr', gap: 12, padding: '10px 18px', background: '#f9faff', borderBottom: '1px solid #e6e9f2', color: '#66708d', fontSize: 11, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                <span>Donor</span><span>Total Donated</span><span>Donations</span><span>Avg / Gift</span>
               </div>
-            ))}
-            {topDonors.length === 0 && <p style={{ color: '#8c9ab5', fontSize: 14 }}>No donor data available</p>}
+              {topDonors.slice(0, 20).map((d, i) => (
+                <div key={d.donor_id} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr 1fr 1fr', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < topDonors.length - 1 ? '1px solid #f0f2f8' : 'none', background: '#fff' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ width: 22, fontSize: 12, fontWeight: 900, color: i < 3 ? '#6c35ff' : '#8c9ab5', textAlign: 'center' }}>#{i + 1}</span>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+                      {d.donor_name.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 850, color: '#101944' }}>{d.donor_name}</div>
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 950, color: '#6c35ff' }}>{fmtCents(d.total_cents)}</div>
+                  <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 750 }}>{d.donation_count}×</div>
+                  <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 750 }}>{fmtCents(Math.round(d.total_cents / d.donation_count))}</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Recurring tab */}
-        {activeTab === 'Recurring' && (
+        {/* ── Recurring tab ──────────────────────────────────────────────────── */}
+        {panelTab === 'Recurring' && (
           <div style={{ padding: '20px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 24 }}>
               {[
-                { label: 'Total Recurring', value: totalDonationCount, color: '#6c35ff' },
+                { label: 'Total Recurring', value: topDonors.filter(d => d.donation_count >= 2).length, color: '#6c35ff' },
                 { label: 'Active', value: completedCount, color: '#19b86a' },
-                { label: 'Paused', value: pendingCount, color: '#f97316' },
-                { label: 'Cancelled', value: 0, color: '#ff3b5f' },
+                { label: 'Pending', value: pendingCount, color: '#f97316' },
+                { label: 'Refunded', value: refundedCount, color: '#ff3b5f' },
               ].map(s => (
                 <div key={s.label} style={{ padding: '18px', border: '1px solid #e6e9f2', borderRadius: 12, background: '#fff' }}>
                   <div style={{ fontSize: 12, color: '#66708d', marginBottom: 6, fontWeight: 700 }}>{s.label}</div>
@@ -615,7 +1234,6 @@ export default function DonationsClient({
                 </div>
               ))}
             </div>
-            {/* Recurring donors table — derived from top donors with multiple donations */}
             {(() => {
               const recurring = topDonors.filter(d => d.donation_count >= 2);
               if (recurring.length === 0) {
@@ -623,158 +1241,192 @@ export default function DonationsClient({
                   <div style={{ textAlign: 'center', padding: '40px 20px', color: '#8c9ab5' }}>
                     <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#f3f0ff', display: 'grid', placeItems: 'center', margin: '0 auto 14px', color: '#7c3aed' }}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={24} height={24} strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                        <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                        <path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
                       </svg>
                     </div>
-                    <strong style={{ display: 'block', color: '#26335c', fontSize: 15, fontWeight: 900, marginBottom: 6 }}>No recurring donations found</strong>
+                    <strong style={{ display: 'block', color: '#26335c', fontSize: 15, fontWeight: 900, marginBottom: 6 }}>No recurring donors found</strong>
                     <span style={{ fontSize: 13 }}>Donors who give more than once will appear here.</span>
                   </div>
                 );
               }
               return (
                 <div style={{ border: '1px solid #e6e9f2', borderRadius: 12, overflow: 'hidden' }}>
-                  {/* Header row */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr 1fr .9fr .9fr 140px', gap: 12, padding: '10px 18px', background: '#f9faff', borderBottom: '1px solid #e6e9f2', color: '#66708d', fontSize: 11, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                    <span>Donor</span>
-                    <span>Total Donated</span>
-                    <span>Donations</span>
-                    <span>Avg / Gift</span>
-                    <span>Status</span>
-                    <span>Actions</span>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr 1fr .9fr .9fr', gap: 12, padding: '10px 18px', background: '#f9faff', borderBottom: '1px solid #e6e9f2', color: '#66708d', fontSize: 11, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                    <span>Donor</span><span>Total Donated</span><span>Donations</span><span>Avg / Gift</span><span>Status</span>
                   </div>
-                  {recurring.map((d, i) => {
-                    const avgCents = Math.round(d.total_cents / d.donation_count);
-                    return (
-                      <div key={d.donor_id} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr 1fr .9fr .9fr 140px', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < recurring.length - 1 ? '1px solid #f0f2f8' : 'none', background: '#fff' }}>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 850, color: '#101944' }}>{d.donor_name}</div>
-                        </div>
-                        <div style={{ fontSize: 14, fontWeight: 950, color: '#6c35ff' }}>{fmtCents(d.total_cents)}</div>
-                        <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 750 }}>{d.donation_count}×</div>
-                        <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 750 }}>{fmtCents(avgCents)}</div>
-                        <div>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 24, padding: '0 10px', borderRadius: 99, background: '#e8faf1', color: '#19b86a', fontSize: 11, fontWeight: 950 }}>
-                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#19b86a', display: 'inline-block' }} />
-                            Active
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button
-                            type="button"
-                            style={{ height: 30, padding: '0 10px', border: '1px solid #e0d9ff', borderRadius: 7, background: '#f8f5ff', color: '#551cf2', fontSize: 11, fontWeight: 850, cursor: 'pointer' }}
-                            onClick={() => alert(`Pause recurring for ${d.donor_name}`)}
-                          >Pause</button>
-                          <button
-                            type="button"
-                            style={{ height: 30, padding: '0 10px', border: '1px solid #fecdd3', borderRadius: 7, background: '#fff5f7', color: '#e11d48', fontSize: 11, fontWeight: 850, cursor: 'pointer' }}
-                            onClick={() => alert(`Cancel recurring for ${d.donor_name}`)}
-                          >Cancel</button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {recurring.map((d, i) => (
+                    <div key={d.donor_id} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr 1fr .9fr .9fr', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < recurring.length - 1 ? '1px solid #f0f2f8' : 'none', background: '#fff' }}>
+                      <div style={{ fontSize: 13, fontWeight: 850, color: '#101944' }}>{d.donor_name}</div>
+                      <div style={{ fontSize: 14, fontWeight: 950, color: '#6c35ff' }}>{fmtCents(d.total_cents)}</div>
+                      <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 750 }}>{d.donation_count}×</div>
+                      <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 750 }}>{fmtCents(Math.round(d.total_cents / d.donation_count))}</div>
+                      <span className="kf-pill green">Active</span>
+                    </div>
+                  ))}
                 </div>
               );
             })()}
           </div>
         )}
 
-        {/* Refunds tab */}
-        {activeTab === 'Refunds' && (
+        {/* ── Refunds tab ────────────────────────────────────────────────────── */}
+        {panelTab === 'Refunds' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 950 }}>Process Refund</h3>
-            <div style={{ maxWidth: 460, display: 'grid', gap: 16 }}>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
-                Refund Amount ($)
-                <input type="number" placeholder="0.00" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
-              </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
-                Reason
-                <select style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
-                  <option>Duplicate charge</option>
-                  <option>Fraudulent</option>
-                  <option>Donor request</option>
-                  <option>Other</option>
-                </select>
-              </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
-                Note
-                <textarea placeholder="Optional note..." style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 80, resize: 'vertical' }} />
-              </label>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <button type="button" style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>Cancel</button>
-                <button type="button" style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#ff3b5f', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer' }}
-                  onClick={() => alert('Refund processed')}>Process Refund</button>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 950, color: '#0f1238' }}>Refunded Donations</h3>
+              <span className="kf-pill red">{refundedCount} refunded</span>
             </div>
+            {donations.filter(d => d.status === 'refunded').length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px', color: '#8c9ab5', fontSize: 14 }}>No refunded donations.</div>
+            ) : (
+              <div style={{ border: '1px solid #e6e9f2', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 130px', gap: 12, padding: '10px 18px', background: '#f9faff', borderBottom: '1px solid #e6e9f2', color: '#66708d', fontSize: 11, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                  <span>Donor</span><span>Campaign</span><span>Amount</span><span>Date</span>
+                </div>
+                {donations.filter(d => d.status === 'refunded').map((d, i, arr) => (
+                  <div key={d.id}
+                    style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 130px', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < arr.length - 1 ? '1px solid #f0f2f8' : 'none', background: '#fff', cursor: 'pointer' }}
+                    onClick={() => { setSelectedId(d.id); fetchDetail(d.id); }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#fff5f7')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
+                    <div style={{ fontSize: 13, fontWeight: 850, color: '#101944' }}>{d.donor_name}</div>
+                    <div style={{ fontSize: 13, color: '#26335c', fontWeight: 700 }}>{d.campaign_title}</div>
+                    <div style={{ fontSize: 14, fontWeight: 950, color: '#ff3b5f' }}>{fmtCents(d.amount_cents)}</div>
+                    <div style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(d.created_at)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* Reports tab */}
-        {activeTab === 'Reports' && (
+        {/* ── Reports tab ───────────────────────────────────────────────────── */}
+        {panelTab === 'Reports' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950 }}>Reports & Analytics</h3>
+            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 950, color: '#0f1238' }}>Reports & Analytics</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
-              {['Donation Summary', 'Donor Insights', 'Campaign Performance', 'Payment Methods', 'Recurring Donations', 'Custom Report'].map(r => (
-                <button key={r} type="button"
-                  style={{ height: 64, border: '1px solid #e6e9f2', borderRadius: 12, background: '#fff', fontSize: 14, fontWeight: 750, color: '#26335c', cursor: 'pointer' }}
-                  onClick={() => alert(`Generating: ${r}`)}>
-                  {r}
+              {[
+                { label: 'Donation Summary', desc: 'All donations with status breakdown', icon: '📊' },
+                { label: 'Donor Insights', desc: 'Top donors & retention metrics', icon: '👥' },
+                { label: 'Campaign Performance', desc: 'Revenue per campaign', icon: '🎯' },
+                { label: 'Payment Methods', desc: 'Breakdown by payment type', icon: '💳' },
+                { label: 'Monthly Trends', desc: 'Month-over-month donation trends', icon: '📈' },
+                { label: 'Custom Report', desc: 'Filter and export custom data', icon: '⚙️' },
+              ].map(r => (
+                <button key={r.label} type="button"
+                  style={{ padding: '18px', border: '1px solid #e6e9f2', borderRadius: 12, background: '#fff', textAlign: 'left', cursor: 'pointer' }}
+                  onClick={() => window.open(`/api/admin/reports/export?type=${r.label.toLowerCase().replace(/ /g, '_')}`, '_blank')}>
+                  <div style={{ fontSize: 20, marginBottom: 8 }}>{r.icon}</div>
+                  <div style={{ fontSize: 14, fontWeight: 850, color: '#0f1238', marginBottom: 4 }}>{r.label}</div>
+                  <div style={{ fontSize: 12, color: '#8c9ab5' }}>{r.desc}</div>
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Export tab */}
-        {activeTab === 'Export' && (
+        {/* ── Export tab ────────────────────────────────────────────────────── */}
+        {panelTab === 'Export' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 950 }}>Export Data</h3>
-            <div style={{ maxWidth: 460, display: 'grid', gap: 16 }}>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
-                Data Type
-                <select style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}><option>Donations</option></select>
-              </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
-                Format
-                <select value={exportFormat} onChange={e => setExportFormat(e.target.value)} style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
+            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 950, color: '#0f1238' }}>Export Data</h3>
+            <div style={{ maxWidth: 460, display: 'grid', gap: 18 }}>
+              <div className="ado-field">
+                <label>Data Type</label>
+                <select className="ac-input">
+                  <option>All Donations</option>
+                  <option>Completed Only</option>
+                  <option>Refunded Only</option>
+                  <option>Donors</option>
+                </select>
+              </div>
+              <div className="ado-field">
+                <label>Format</label>
+                <select className="ac-input" value={exportFormat} onChange={e => setExportFormat(e.target.value)}>
                   <option value="csv">CSV</option>
                   <option value="excel">Excel</option>
                   <option value="pdf">PDF</option>
                 </select>
-              </label>
-              <button type="button"
-                style={{ height: 44, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 14, fontWeight: 950, cursor: 'pointer' }}
-                onClick={() => fetch('/api/admin/reports/export', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ format: exportFormat, type: 'donations' }) }).then(() => alert('Export started'))}>
+              </div>
+              <div className="ado-field">
+                <label>Date Range</label>
+                <select className="ac-input">
+                  <option>All time</option>
+                  <option>Last 30 days</option>
+                  <option>Last 90 days</option>
+                  <option>This year</option>
+                </select>
+              </div>
+              <button type="button" className="kf-primary"
+                style={{ height: 44, fontSize: 14, fontWeight: 950 }}
+                onClick={() =>
+                  fetch('/api/admin/reports/export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ format: exportFormat, type: 'donations' }),
+                  }).then(r => r.blob()).then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `donations.${exportFormat}`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }).catch(() => undefined)
+                }>
                 Export Donations
               </button>
             </div>
           </div>
         )}
 
-        {/* Audit tab */}
-        {activeTab === 'Audit' && (
-          <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950 }}>Audit Log</h3>
-            {[
-              { event: 'Refund processed', amount: '$50.00', time: '2 hours ago', color: '#ff3b5f' },
-              { event: 'Note added to donation', amount: '', time: '5 hours ago', color: '#6c35ff' },
-              { event: 'Receipt sent', amount: '$120.00', time: '1 day ago', color: '#2563eb' },
-              { event: 'Status changed to Completed', amount: '$75.00', time: '2 days ago', color: '#0fa456' },
-            ].map((e, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: e.color, flexShrink: 0 }} />
-                <span style={{ flex: 1, color: '#26335c', fontWeight: 700 }}>{e.event}</span>
-                {e.amount && <strong style={{ color: '#101944' }}>{e.amount}</strong>}
-                <span style={{ color: '#8c9ab5' }}>{e.time}</span>
-              </div>
-            ))}
-          </div>
+        {/* ── Audit tab ─────────────────────────────────────────────────────── */}
+        {panelTab === 'Audit' && (
+          <AuditTab />
         )}
       </section>
+    </div>
+  );
+}
 
-      {/* Detail panel */}
-      {selected && <DetailPanel donation={selected} onClose={() => setSelected(null)} />}
+// ─────────────────────────────────────────────────────────────────────────────
+// AuditTab — fetches real audit log for donations
+// ─────────────────────────────────────────────────────────────────────────────
+function AuditTab() {
+  const [loading, setLoading] = useState(true);
+  const [entries, setEntries] = useState<AuditEntry[]>([]);
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    fetch('/api/admin/audit?target_type=donation&limit=50')
+      .then(r => r.json())
+      .then((data: AuditEntry[] | { error?: string }) => {
+        if ('error' in data) throw new Error(data.error);
+        setEntries(data as AuditEntry[]);
+      })
+      .catch(e => setErr((e as Error).message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div style={{ padding: '32px 20px', color: '#8c9ab5', fontSize: 14 }}>Loading audit log…</div>;
+  if (err) return <div style={{ padding: '20px' }} className="ado-error">{err}</div>;
+
+  return (
+    <div style={{ padding: '20px' }}>
+      <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950, color: '#0f1238' }}>Audit Log</h3>
+      {entries.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '32px', color: '#8c9ab5', fontSize: 14 }}>No audit entries yet.</div>
+      ) : (
+        entries.map(e => (
+          <div key={e.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '12px 0', borderBottom: '1px solid #f0f2f8' }}>
+            <div style={{ width: 10, height: 10, borderRadius: '50%', background: auditActionColor(e.action), marginTop: 4, flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#26335c' }}>{auditActionLabel(e.action)}</div>
+              <div style={{ fontSize: 11, color: '#8c9ab5', marginTop: 2 }}>by {e.actorName}</div>
+            </div>
+            <span style={{ fontSize: 12, color: '#8c9ab5', flexShrink: 0 }}>{fmtDateTime(e.createdAt)}</span>
+          </div>
+        ))
+      )}
     </div>
   );
 }

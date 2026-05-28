@@ -2727,3 +2727,76 @@ img, svg { display: block; }
   .ac-step { padding: 8px 12px; font-size: 12px; }
   .ac-actions-panel { width: 100%; }
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   Admin Donations (ado-*) — detail view, modals, panels, success
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Detail page bar */
+.ado-detail-bar { display: flex; align-items: center; gap: 14px; padding: 20px 0 18px; margin-bottom: 20px; }
+.ado-back-btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 16px; border: 1.5px solid #e0e4ef; border-radius: 9px; background: #fff; font-size: 13px; font-weight: 850; color: #26335c; cursor: pointer; white-space: nowrap; }
+.ado-back-btn:hover { background: #f5f0ff; border-color: #c4b5fd; color: #551cf2; }
+.ado-detail-id { flex: 1; font-size: 11px; font-family: monospace; color: #8c9ab5; letter-spacing: .08em; }
+
+/* Donor hero row */
+.ado-donor-row { display: flex; align-items: center; gap: 18px; padding: 22px 24px; margin-bottom: 20px; flex-wrap: wrap; }
+.ado-donor-avatar { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg,#efe8ff,#6c35ff); display: grid; place-items: center; font-size: 20px; font-weight: 950; color: #fff; flex-shrink: 0; }
+.ado-donor-info { display: flex; flex-direction: column; gap: 3px; }
+.ado-donor-info strong { font-size: 18px; font-weight: 950; color: #0f1238; }
+.ado-donor-info span { font-size: 13px; color: #66708d; }
+
+/* Detail two-column grid */
+.ado-detail-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; }
+
+/* Info rows */
+.ado-info-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid #f0f2f8; }
+.ado-info-row:last-child { border-bottom: none; }
+.ado-info-label { font-size: 12px; font-weight: 850; color: #66708d; flex-shrink: 0; margin-right: 12px; text-transform: uppercase; letter-spacing: .03em; }
+.ado-info-val { font-size: 13px; font-weight: 750; color: #101944; text-align: right; word-break: break-all; max-width: 65%; }
+
+/* History timeline */
+.ado-timeline { padding-top: 8px; }
+.ado-timeline-item { display: flex; gap: 14px; }
+.ado-timeline-left { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.ado-timeline-dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 2px; flex-shrink: 0; border: 2.5px solid #fff; box-shadow: 0 0 0 2px rgba(0,0,0,.08); }
+.ado-timeline-line-seg { width: 2px; flex: 1; background: #eef0f7; margin: 4px 0; min-height: 16px; }
+
+/* More Actions panel */
+.ado-actions-panel { margin-left: auto; width: 300px; background: #fff; height: 100%; overflow-y: auto; box-shadow: -12px 0 56px rgba(20,20,80,.14); display: flex; flex-direction: column; }
+.ado-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 20px 16px; border-bottom: 1px solid #eef0f7; font-size: 15px; font-weight: 950; color: #0f1238; }
+.ado-close-btn { width: 32px; height: 32px; border: 1px solid #e6e9f2; border-radius: 50%; background: #fff; font-size: 20px; line-height: 1; display: grid; place-items: center; cursor: pointer; color: #8c9ab5; }
+.ado-close-btn:hover { background: #f5f0ff; color: #551cf2; }
+.ado-panel-section { font-size: 10px; font-weight: 950; text-transform: uppercase; letter-spacing: .08em; color: #b0b8d4; margin: 0 0 8px; }
+.ado-panel-divider { height: 1px; background: #eef0f7; margin: 12px 0 14px; }
+
+/* Modal */
+.ado-modal-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(10,15,60,.48); backdrop-filter: blur(4px); display: grid; place-items: center; padding: 24px; }
+.ado-modal { background: #fff; border-radius: 18px; width: 100%; max-width: 460px; box-shadow: 0 24px 80px rgba(15,18,56,.22); overflow: hidden; }
+.ado-modal-head { display: flex; align-items: center; justify-content: space-between; padding: 22px 24px 18px; border-bottom: 1px solid #eef0f7; }
+.ado-modal-head h3 { margin: 0; font-size: 17px; font-weight: 950; color: #0f1238; }
+.ado-modal-body { padding: 22px 24px; display: grid; gap: 16px; }
+.ado-modal-foot { padding: 16px 24px 22px; border-top: 1px solid #eef0f7; display: flex; gap: 12px; justify-content: flex-end; }
+
+/* Form field */
+.ado-field { display: flex; flex-direction: column; gap: 6px; }
+.ado-field label { font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; color: #67718e; }
+
+/* Error */
+.ado-error { background: #fff5f7; border: 1.5px solid #fecdd3; border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 750; color: #e11d48; }
+
+/* Success */
+.ado-success-wrap { display: flex; align-items: center; justify-content: center; min-height: 500px; padding: 48px 32px; }
+.ado-success { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; max-width: 380px; }
+.ado-success-icon { width: 76px; height: 76px; border-radius: 50%; background: #d1fae5; color: #059669; display: flex; align-items: center; justify-content: center; }
+.ado-success h2 { margin: 0; font-size: 26px; font-weight: 950; color: #0f1238; }
+.ado-success p { margin: 0; font-size: 14px; color: #67718e; line-height: 1.55; }
+.ado-success-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 8px; }
+.ado-success-btns button { width: 100%; height: 44px; font-size: 14px; font-weight: 900; }
+
+/* Responsive */
+@media (max-width: 860px) {
+  .ado-detail-grid { grid-template-columns: 1fr; }
+  .ado-actions-panel { width: 100%; }
+  .ado-donor-row { padding: 16px; }
+}
