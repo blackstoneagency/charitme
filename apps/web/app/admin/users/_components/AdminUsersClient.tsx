@@ -1,8 +1,10 @@
 'use client';
 
 import type React from 'react';
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { KFIcon, StatusPill, Avatar } from '../../../../components/KindFundApp';
+
+// ─── Exported Types ───────────────────────────────────────────────────────────
 
 export type AdminUser = {
   id: string;
@@ -44,316 +46,1009 @@ export type UserRoleSummary = {
   system: boolean;
 };
 
+export type GrowthPoint = { label: string; count: number };
+
+type UserDonation = {
+  id: string;
+  amountCents: number;
+  status: string;
+  campaignTitle: string;
+  createdAt: string;
+};
+
+type UserCampaign = {
+  id: string;
+  title: string;
+  status: string;
+  raisedAmount: number;
+  goalAmount: number;
+  backerCount: number;
+  createdAt: string;
+};
+
 type Props = {
   users: AdminUser[];
   activities: AdminUserActivity[];
   roles: UserRoleSummary[];
   totals: { total: number; newUsers: number; active: number; suspended: number };
+  weeklyGrowth: GrowthPoint[];
+  recentUsers: AdminUser[];
 };
 
-type View = 'list' | 'detail' | 'edit' | 'add' | 'activity' | 'roles' | 'export' | 'import' | 'success';
+// ─── Constants ────────────────────────────────────────────────────────────────
 
+const PAGE_SIZE = 10;
 const ROLE_OPTIONS = ['donor', 'organizer', 'nonprofit', 'beneficiary', 'admin'];
-const STATUS_OPTIONS = ['All Status', 'Active', 'Inactive', 'Suspended'];
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function fmtDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return new Date(iso).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
 function money(cents: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(cents / 100);
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
 }
 
-function toCsv(users: AdminUser[]): string {
+function toCsv(rows: AdminUser[]): string {
   const header = ['Name', 'Email', 'Role', 'Status', 'Plan', 'Verified', 'Campaigns', 'Donations', 'Raised', 'Donated', 'Joined'];
-  const rows = users.map((user) => [
-    user.name,
-    user.email,
-    user.role,
-    user.status,
-    user.plan,
-    user.identityVerified ? 'Yes' : 'No',
-    String(user.campaignsCount),
-    String(user.donationsCount),
-    money(user.totalRaisedCents),
-    money(user.totalDonatedCents),
-    fmtDate(user.joinedAt),
+  const lines = rows.map((u) => [
+    u.name,
+    u.email,
+    u.role,
+    u.status,
+    u.plan,
+    u.identityVerified ? 'Yes' : 'No',
+    String(u.campaignsCount),
+    String(u.donationsCount),
+    money(u.totalRaisedCents),
+    money(u.totalDonatedCents),
+    fmtDate(u.joinedAt),
   ]);
-  return [header, ...rows].map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
+  return [header, ...lines]
+    .map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(','))
+    .join('\n');
 }
 
 function download(filename: string, contents: string) {
   const blob = new Blob([contents], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
   URL.revokeObjectURL(url);
 }
 
-export default function AdminUsersClient({ users, activities, roles, totals }: Props) {
-  const [view, setView] = useState<View>('list');
-  const [selected, setSelected] = useState<AdminUser | null>(users[0] ?? null);
+function initials(name: string): string {
+  return name
+    .split(' ')
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+}
+
+function rolePillColor(role: string): React.CSSProperties {
+  const map: Record<string, { bg: string; color: string }> = {
+    Admin: { bg: '#f0eaff', color: '#6c35ff' },
+    Organizer: { bg: '#e0f2fe', color: '#0369a1' },
+    Nonprofit: { bg: '#dcfce7', color: '#166534' },
+    Donor: { bg: '#fef9c3', color: '#854d0e' },
+    Beneficiary: { bg: '#fce7f3', color: '#9d174d' },
+  };
+  const c = map[role] ?? { bg: '#f1f5f9', color: '#334155' };
+  return { background: c.bg, color: c.color, padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 850 };
+}
+
+// ─── SVG Line Chart ───────────────────────────────────────────────────────────
+
+function WeeklyLineChart({ data }: { data: GrowthPoint[] }) {
+  const W = 520;
+  const H = 160;
+  const pad = { top: 14, right: 18, bottom: 28, left: 32 };
+  const chartW = W - pad.left - pad.right;
+  const chartH = H - pad.top - pad.bottom;
+  const maxVal = Math.max(...data.map((d) => d.count), 1);
+
+  const pts = data.map((d, i) => ({
+    x: pad.left + (i / (data.length - 1)) * chartW,
+    y: pad.top + chartH - (d.count / maxVal) * chartH,
+    label: d.label,
+    count: d.count,
+  }));
+
+  const pathD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const areaD =
+    pathD +
+    ` L${pts[pts.length - 1].x.toFixed(1)},${(pad.top + chartH).toFixed(1)}` +
+    ` L${pts[0].x.toFixed(1)},${(pad.top + chartH).toFixed(1)} Z`;
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+      <defs>
+        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      {[0.25, 0.5, 0.75, 1].map((frac) => {
+        const y = pad.top + chartH - frac * chartH;
+        return (
+          <line key={frac} x1={pad.left} y1={y} x2={pad.left + chartW} y2={y} stroke="#eef0f7" strokeWidth={1} />
+        );
+      })}
+      <path d={areaD} fill="url(#chartGrad)" />
+      <path d={pathD} fill="none" stroke="#7c3aed" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
+      {pts.map((p) => (
+        <circle key={p.label} cx={p.x} cy={p.y} r={4} fill="#6c35ff" stroke="#fff" strokeWidth={2} />
+      ))}
+      {pts.map((p) => (
+        <text
+          key={`lbl-${p.label}`}
+          x={p.x}
+          y={pad.top + chartH + 16}
+          textAnchor="middle"
+          fontSize={9}
+          fill="#94a3b8"
+          fontWeight={700}
+        >
+          {p.label}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+type View = 'overview' | 'list' | 'detail' | 'add' | 'success';
+
+export default function AdminUsersClient({
+  users,
+  activities,
+  roles,
+  totals,
+  weeklyGrowth,
+  recentUsers,
+}: Props) {
+  const [view, setView] = useState<View>('overview');
+  const [selected, setSelected] = useState<AdminUser | null>(null);
+  const [activeTab, setActiveTab] = useState('Overview');
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('All Roles');
   const [statusFilter, setStatusFilter] = useState('All Status');
+  const [joinedFilter, setJoinedFilter] = useState('All Time');
+  const [registeredVia, setRegisteredVia] = useState('All');
   const [sort, setSort] = useState('Newest');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [page, setPage] = useState(0);
+  const [bulkAction, setBulkAction] = useState('');
+  const [exportFormat, setExportFormat] = useState('CSV');
+  const [showMoreActions, setShowMoreActions] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const [notice, setNotice] = useState('');
   const [isPending, startTransition] = useTransition();
+  const [userDonations, setUserDonations] = useState<UserDonation[]>([]);
+  const [userCampaigns, setUserCampaigns] = useState<UserCampaign[]>([]);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   const filtered = useMemo(() => {
-    const list = users.filter((user) => {
-      const haystack = `${user.name} ${user.email} ${user.role} ${user.status}`.toLowerCase();
-      const matchesQuery = !query || haystack.includes(query.toLowerCase());
-      const matchesRole = roleFilter === 'All Roles' || user.roles.includes(roleFilter.toLowerCase());
-      const matchesStatus = statusFilter === 'All Status' || user.status === statusFilter;
-      return matchesQuery && matchesRole && matchesStatus;
+    const now = new Date();
+    const list = users.filter((u) => {
+      const hay = `${u.name} ${u.email} ${u.role} ${u.status}`.toLowerCase();
+      const matchQ = !query || hay.includes(query.toLowerCase());
+      const matchR = roleFilter === 'All Roles' || u.roles.includes(roleFilter.toLowerCase());
+      const matchS = statusFilter === 'All Status' || u.status === statusFilter;
+      let matchJ = true;
+      if (joinedFilter !== 'All Time') {
+        const d = new Date(u.joinedAt);
+        const diff = (now.getTime() - d.getTime()) / 86400000;
+        if (joinedFilter === 'Last 7 Days') matchJ = diff <= 7;
+        else if (joinedFilter === 'Last 30 Days') matchJ = diff <= 30;
+        else if (joinedFilter === 'Last 90 Days') matchJ = diff <= 90;
+        else if (joinedFilter === 'This Year') matchJ = d.getFullYear() === now.getFullYear();
+      }
+      return matchQ && matchR && matchS && matchJ;
     });
     return [...list].sort((a, b) => {
       if (sort === 'Name') return a.name.localeCompare(b.name);
       if (sort === 'Most Raised') return b.totalRaisedCents - a.totalRaisedCents;
       return new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime();
     });
-  }, [users, query, roleFilter, statusFilter, sort]);
+  }, [users, query, roleFilter, statusFilter, joinedFilter, sort]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
 
   const selectedActivities = useMemo(
-    () => activities.filter((activity) => !selected || activity.userId === selected.id).slice(0, 20),
+    () => activities.filter((a) => !selected || a.userId === selected.id).slice(0, 20),
     [activities, selected],
   );
 
-  const mutateUser = (url: string, body: Record<string, unknown>, success: string) => {
+  function goDetail(user: AdminUser) {
+    setSelected(user);
+    setActiveTab('Overview');
+    setUserDonations([]);
+    setUserCampaigns([]);
+    setView('detail');
+  }
+
+  function mutateUser(url: string, method: string, body: Record<string, unknown>, success: string) {
     startTransition(async () => {
       setNotice('');
-      const response = await fetch(url, {
-        method: 'POST',
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setNotice(data.error ?? 'The action could not be completed.');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNotice((data as { error?: string }).error ?? 'The action could not be completed.');
         return;
       }
       setNotice(success);
       setView('success');
       setTimeout(() => window.location.reload(), 900);
     });
-  };
+  }
 
-  const updateUser = (body: Record<string, unknown>, success: string) => {
+  function updateUser(body: Record<string, unknown>, success: string) {
     if (!selected) return;
-    startTransition(async () => {
-      setNotice('');
-      const response = await fetch(`/api/admin/users/${selected.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setNotice(data.error ?? 'The user could not be updated.');
-        return;
-      }
-      setNotice(success);
-      setView('success');
-      setTimeout(() => window.location.reload(), 900);
-    });
-  };
+    mutateUser(`/api/admin/users/${selected.id}`, 'PATCH', body, success);
+  }
 
-  const deleteUser = () => {
+  function deleteUser() {
     if (!selected || !confirm(`Permanently delete ${selected.email}? This cannot be undone.`)) return;
     startTransition(async () => {
-      const response = await fetch(`/api/admin/users/${selected.id}`, { method: 'DELETE' });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setNotice(data.error ?? 'The user could not be deleted.');
+      const res = await fetch(`/api/admin/users/${selected.id}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setNotice((data as { error?: string }).error ?? 'The user could not be deleted.');
         return;
       }
       setNotice('User deleted successfully.');
       setView('success');
       setTimeout(() => window.location.reload(), 900);
     });
-  };
+  }
 
-  const bulkAction = (action: string) => {
-    mutateUser('/api/admin/users/bulk', { action, ids: selectedIds }, `${selectedIds.length} users updated.`);
-  };
+  function applyBulk() {
+    if (!bulkAction || selectedIds.length === 0) return;
+    mutateUser(
+      '/api/admin/users/bulk',
+      'POST',
+      { action: bulkAction, ids: selectedIds },
+      `${selectedIds.length} users updated.`,
+    );
+  }
 
-  return (
-    <div className="admin-users">
-      <section className="admin-user-metrics">
-        {[
-          ['All Users', totals.total.toLocaleString(), 'users'],
-          ['Active', totals.active.toLocaleString(), 'active accounts'],
-          ['New', totals.newUsers.toLocaleString(), 'last 30 days'],
-          ['Suspended', totals.suspended.toLocaleString(), 'restricted'],
-        ].map(([label, value, meta], index) => (
-          <article className="kf-card kf-metric" key={label}>
-            <div className={`kf-square ${['violet', 'green', 'blue', 'orange'][index]}`}><KFIcon name={index === 0 ? 'users' : index === 1 ? 'check' : index === 2 ? 'team' : 'audit'} /></div>
-            <div><span>{label}</span><strong>{value}</strong><small>{meta}</small></div>
-          </article>
-        ))}
-      </section>
+  // ─── SECTION A: Overview ────────────────────────────────────────────────────
+  if (view === 'overview') {
+    return (
+      <div className="users-layout">
+        {notice && <div className="admin-user-notice">{notice}</div>}
 
-      <section className="admin-user-shell">
-        <aside className="admin-user-rail">
+        {/* KPI Row */}
+        <div className="users-kpi-row">
           {[
-            ['list', 'Users', 'users'],
-            ['add', 'Add User', 'plus'],
-            ['activity', 'Activity', 'audit'],
-            ['roles', 'Roles', 'sliders'],
-            ['export', 'Export', 'upload'],
-            ['import', 'Import', 'upload'],
-          ].map(([key, label, icon]) => (
-            <button key={key} className={view === key ? 'active' : ''} onClick={() => setView(key as View)}>
-              <KFIcon name={icon} /> {label}
+            { label: 'Total Users', value: totals.total.toLocaleString(), change: '+12%', up: true },
+            { label: 'Active Users', value: totals.active.toLocaleString(), change: '+8%', up: true },
+            { label: 'New Users (30d)', value: totals.newUsers.toLocaleString(), change: '+15%', up: true },
+            { label: 'Suspended', value: totals.suspended.toLocaleString(), change: '+2%', up: false },
+          ].map(({ label, value, change, up }) => (
+            <div className="users-kpi-card" key={label}>
+              <span>{label}</span>
+              <strong>{value}</strong>
+              <small className={up ? 'up' : 'down'}>{change}</small>
+            </div>
+          ))}
+        </div>
+
+        {/* Growth Chart */}
+        <div className="users-chart-card">
+          <h3>User Growth — Last 8 Weeks</h3>
+          <WeeklyLineChart data={weeklyGrowth} />
+        </div>
+
+        {/* Recent Users */}
+        <div className="users-recent-card">
+          <div className="users-recent-head">
+            <h3>Recent Users</h3>
+            <button onClick={() => setView('list')}>View all users →</button>
+          </div>
+          <div style={{ display: 'grid' }}>
+            <div className="users-recent-row" style={{ fontWeight: 950, fontSize: 11, color: '#66708d', textTransform: 'uppercase' }}>
+              <span>User</span><span>Role</span><span>Joined</span>
+            </div>
+            {recentUsers.map((u) => (
+              <div className="users-recent-row" key={u.id} style={{ cursor: 'pointer' }} onClick={() => goDetail(u)}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Avatar name={u.name} imageUrl={u.avatarUrl} />
+                  <span>
+                    <b style={{ display: 'block', fontSize: 13, color: '#0f1238', fontWeight: 850 }}>{u.name}</b>
+                    <span style={{ fontSize: 11, color: '#66708d' }}>{u.email}</span>
+                  </span>
+                </span>
+                <span style={rolePillColor(u.role)}>{u.role}</span>
+                <span style={{ color: '#66708d', fontSize: 12 }}>{fmtDate(u.joinedAt)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <button className="kf-outline" onClick={() => setView('list')}>View all users →</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── SECTION B: Users List ──────────────────────────────────────────────────
+  if (view === 'list') {
+    return (
+      <div style={{ position: 'relative' }}>
+        {notice && <div className="admin-user-notice">{notice}</div>}
+
+        {/* List header */}
+        <div className="users-list-header">
+          <h3>All Users</h3>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="kf-outline" onClick={() => setShowExport(true)}>Export</button>
+            <button className="kf-primary" onClick={() => setView('add')}>+ Add User</button>
+          </div>
+        </div>
+
+        {/* Filter bar */}
+        <div className="users-filter-bar">
+          <label className="kf-search" style={{ flex: 1, minWidth: 200, height: 40 }}>
+            <KFIcon name="search" />
+            <input
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setPage(0); }}
+              placeholder="Search by name, email..."
+            />
+          </label>
+          <select className="users-filter-select" value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(0); }}>
+            <option>All Roles</option>
+            {ROLE_OPTIONS.map((r) => <option key={r}>{r}</option>)}
+          </select>
+          <select className="users-filter-select" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}>
+            <option>All Status</option>
+            <option>Active</option>
+            <option>Inactive</option>
+            <option>Suspended</option>
+          </select>
+          <select className="users-filter-select" value={joinedFilter} onChange={(e) => { setJoinedFilter(e.target.value); setPage(0); }}>
+            <option>All Time</option>
+            <option>Last 7 Days</option>
+            <option>Last 30 Days</option>
+            <option>Last 90 Days</option>
+            <option>This Year</option>
+          </select>
+          <select className="users-filter-select" value={registeredVia} onChange={(e) => setRegisteredVia(e.target.value)}>
+            <option>All</option>
+            <option>Web</option>
+            <option>Google</option>
+            <option>Email</option>
+          </select>
+          <select className="users-filter-select" value={sort} onChange={(e) => setSort(e.target.value)}>
+            <option>Newest</option>
+            <option>Name</option>
+            <option>Most Raised</option>
+          </select>
+        </div>
+
+        <div className="users-count-bar">
+          Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length} users
+        </div>
+
+        {/* Bulk bar */}
+        {selectedIds.length > 0 && (
+          <div className="users-bulk-bar">
+            <strong>{selectedIds.length} users selected</strong>
+            <button className="kf-outline" style={{ height: 34, fontSize: 12 }} onClick={() => setSelectedIds([])}>
+              Clear Selection
+            </button>
+            <select className="users-filter-select" value={bulkAction} onChange={(e) => setBulkAction(e.target.value)}>
+              <option value="">Select action</option>
+              <option value="activate">Activate Users</option>
+              <option value="suspend">Suspend Users</option>
+              <option value="organizer">Change Role</option>
+              <option value="delete">Delete Users</option>
+            </select>
+            <button className="kf-primary" style={{ height: 34, fontSize: 12 }} onClick={applyBulk} disabled={isPending || !bulkAction}>
+              Apply
+            </button>
+            <button
+              className="kf-outline"
+              style={{ height: 34, fontSize: 12, marginLeft: 'auto' }}
+              onClick={() => download('kindfund-users.csv', toCsv(filtered.filter((u) => selectedIds.includes(u.id))))}
+            >
+              Export Users
+            </button>
+          </div>
+        )}
+
+        {/* Table */}
+        <div className="admin-user-table">
+          <div className="admin-user-row head">
+            <span>
+              <input
+                type="checkbox"
+                checked={selectedIds.length === paginated.length && paginated.length > 0}
+                onChange={(e) =>
+                  setSelectedIds(e.target.checked ? paginated.map((u) => u.id) : [])
+                }
+              />
+            </span>
+            <span>User</span>
+            <span>Email</span>
+            <span>Role</span>
+            <span>Status</span>
+            <span>Joined</span>
+            <span />
+          </div>
+          {paginated.map((u) => (
+            <div className="admin-user-row" key={u.id}>
+              <span>
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(u.id)}
+                  onChange={(e) =>
+                    setSelectedIds((ids) =>
+                      e.target.checked ? [...ids, u.id] : ids.filter((id) => id !== u.id),
+                    )
+                  }
+                />
+              </span>
+              <button onClick={() => goDetail(u)}>
+                <Avatar name={u.name} imageUrl={u.avatarUrl} />
+                <b>{u.name}</b>
+              </button>
+              <span>{u.email}</span>
+              <span style={rolePillColor(u.role)}>{u.role}</span>
+              <StatusPill>{u.status}</StatusPill>
+              <span>{fmtDate(u.joinedAt)}</span>
+              <button onClick={() => goDetail(u)}>View</button>
+            </div>
+          ))}
+          {paginated.length === 0 && (
+            <div style={{ padding: '32px', textAlign: 'center', color: '#66708d', fontSize: 14 }}>
+              No users match the current filters.
+            </div>
+          )}
+        </div>
+
+        {/* Pagination */}
+        <div className="users-pagination">
+          <button disabled={page === 0} onClick={() => setPage((p) => p - 1)}>← Prev</button>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button key={i} className={page === i ? 'active' : ''} onClick={() => setPage(i)}>
+              {i + 1}
             </button>
           ))}
-        </aside>
+          <button disabled={page === totalPages - 1} onClick={() => setPage((p) => p + 1)}>Next →</button>
+        </div>
 
-        <main className="admin-user-panel">
-          {notice && <div className="admin-user-notice">{notice}</div>}
-          {view === 'list' && (
-            <>
-              <div className="admin-user-toolbar">
-                <label className="kf-search"><KFIcon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search users..." /></label>
-                <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}>
-                  <option>All Roles</option>
-                  {ROLE_OPTIONS.map((role) => <option key={role}>{role}</option>)}
-                </select>
-                <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-                  {STATUS_OPTIONS.map((status) => <option key={status}>{status}</option>)}
-                </select>
-                <select value={sort} onChange={(event) => setSort(event.target.value)}>
-                  <option>Newest</option>
-                  <option>Name</option>
-                  <option>Most Raised</option>
-                </select>
-                <button className="kf-primary" onClick={() => setView('add')}><KFIcon name="plus" /> Add User</button>
+        {/* Export overlay */}
+        {showExport && (
+          <ExportOverlay
+            filtered={filtered}
+            exportFormat={exportFormat}
+            setExportFormat={setExportFormat}
+            onClose={() => setShowExport(false)}
+            onExport={() => {
+              download('kindfund-users.csv', toCsv(filtered));
+              setShowExport(false);
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // ─── SECTION D: Add User ────────────────────────────────────────────────────
+  if (view === 'add') {
+    return (
+      <AddUserView
+        pending={isPending}
+        onCreate={(body) => mutateUser('/api/admin/users', 'POST', body, 'User created successfully.')}
+        onCancel={() => setView('list')}
+      />
+    );
+  }
+
+  // ─── SECTION E: Success ─────────────────────────────────────────────────────
+  if (view === 'success') {
+    return (
+      <div className="users-success">
+        <div className="users-success-icon">
+          <svg viewBox="0 0 24 24" width={32} height={32} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 950, color: '#0f1238' }}>Success!</h2>
+        <p style={{ margin: 0, color: '#66708d', fontSize: 14 }}>
+          {notice || 'The user has been updated successfully.'}
+        </p>
+        <button
+          className="kf-primary"
+          style={{ width: '100%', maxWidth: 320 }}
+          onClick={() => { if (selected) { setView('detail'); } else { setView('list'); } }}
+        >
+          Back to User Details
+        </button>
+        <button className="kf-outline" style={{ width: '100%', maxWidth: 320 }} onClick={() => setView('list')}>
+          Back to Users
+        </button>
+      </div>
+    );
+  }
+
+  // ─── SECTION C: User Detail ─────────────────────────────────────────────────
+  if (view === 'detail' && selected) {
+    return (
+      <div>
+        {notice && <div className="admin-user-notice">{notice}</div>}
+
+        {/* Header */}
+        <div className="users-detail-header">
+          <button className="users-breadcrumb" onClick={() => setView('list')}>
+            ← Back to Users
+          </button>
+          <div className="users-detail-user">
+            <Avatar name={selected.name} imageUrl={selected.avatarUrl} />
+            <div className="users-detail-name">
+              <h2>{selected.name}</h2>
+              <p>{selected.email}</p>
+              <div className="users-detail-badges">
+                <StatusPill>{selected.status}</StatusPill>
+                <span style={rolePillColor(selected.role)}>{selected.role}</span>
               </div>
-              {selectedIds.length > 0 && (
-                <div className="admin-user-bulk">
-                  <strong>{selectedIds.length} users selected</strong>
-                  <button onClick={() => bulkAction('activate')}>Activate Users</button>
-                  <button onClick={() => bulkAction('suspend')}>Suspend Users</button>
-                  <button onClick={() => bulkAction('organizer')}>Change Role</button>
-                  <button onClick={() => download('kindfund-users.csv', toCsv(filtered.filter((user) => selectedIds.includes(user.id))))}>Export Users</button>
-                </div>
-              )}
-              <div className="admin-user-table">
-                <div className="admin-user-row head"><span><input type="checkbox" checked={selectedIds.length === filtered.length && filtered.length > 0} onChange={(event) => setSelectedIds(event.target.checked ? filtered.map((user) => user.id) : [])} /></span><span>User</span><span>Email</span><span>Role</span><span>Status</span><span>Joined</span><span /></div>
-                {filtered.map((user) => (
-                  <div className="admin-user-row" key={user.id}>
-                    <span><input type="checkbox" checked={selectedIds.includes(user.id)} onChange={(event) => setSelectedIds((ids) => event.target.checked ? [...ids, user.id] : ids.filter((id) => id !== user.id))} /></span>
-                    <button onClick={() => { setSelected(user); setView('detail'); }}><Avatar name={user.name} imageUrl={user.avatarUrl} /><b>{user.name}</b></button>
-                    <span>{user.email}</span>
-                    <span>{user.role}</span>
-                    <StatusPill>{user.status}</StatusPill>
-                    <span>{fmtDate(user.joinedAt)}</span>
-                    <button onClick={() => { setSelected(user); setView('detail'); }}>View</button>
+            </div>
+          </div>
+          <button className="kf-outline" style={{ height: 38, fontSize: 13, padding: '0 14px' }}>
+            Edit ✏️
+          </button>
+        </div>
+
+        {/* Tab bar */}
+        <div className="users-tabs">
+          {['Overview', 'Activity', `Donations (${selected.donationsCount})`, `Campaigns (${selected.campaignsCount})`, 'Settings'].map((tab) => (
+            <button
+              key={tab}
+              className={activeTab === tab || (tab.startsWith('Donations') && activeTab.startsWith('Donations')) || (tab.startsWith('Campaigns') && activeTab.startsWith('Campaigns')) ? 'active' : ''}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab: Overview */}
+        {activeTab === 'Overview' && (
+          <div className="users-detail-layout">
+            {/* Left: User Information */}
+            <div>
+              <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 950, color: '#0f1238' }}>User Information</h3>
+              <div className="users-detail-info">
+                {[
+                  ['Full Name', selected.name],
+                  ['Email', selected.email],
+                  ['Timezone', selected.timezone],
+                  ['Currency', selected.currency.toUpperCase()],
+                  ['Joined Date', fmtDateTime(selected.joinedAt)],
+                  ['Last Activity', fmtDateTime(selected.lastActivityAt)],
+                  ['Registered Via', 'Web'],
+                  ['Status', selected.status],
+                  ['Identity Verified', selected.identityVerified ? 'Yes' : 'No'],
+                  ['Plan', selected.plan],
+                  ['Campaigns', String(selected.campaignsCount)],
+                  ['Total Raised', money(selected.totalRaisedCents)],
+                  ['Donations', String(selected.donationsCount)],
+                  ['Total Donated', money(selected.totalDonatedCents)],
+                ].map(([label, val]) => (
+                  <div className="users-detail-row" key={label}>
+                    <span>{label}</span>
+                    <span>{val}</span>
                   </div>
                 ))}
               </div>
-            </>
-          )}
-
-          {view === 'detail' && selected && (
-            <UserDetails user={selected} activities={selectedActivities} onEdit={() => setView('edit')} onActivity={() => setView('activity')} onAction={updateUser} onDelete={deleteUser} pending={isPending} />
-          )}
-
-          {view === 'edit' && selected && (
-            <EditUser user={selected} onCancel={() => setView('detail')} onSave={updateUser} pending={isPending} />
-          )}
-
-          {view === 'add' && <AddUser pending={isPending} onCreate={(body) => mutateUser('/api/admin/users', body, 'User created successfully.')} />}
-
-          {view === 'activity' && <ActivityView activities={selected ? selectedActivities : activities.slice(0, 80)} selected={selected} onBack={() => setView(selected ? 'detail' : 'list')} />}
-
-          {view === 'roles' && <RolesView roles={roles} />}
-
-          {view === 'export' && <ExportView users={filtered} onExport={(rows) => download('kindfund-users.csv', toCsv(rows))} />}
-
-          {view === 'import' && <ImportView pending={isPending} onImport={(rows) => mutateUser('/api/admin/users/bulk', { action: 'import', users: rows }, `${rows.length} users imported.`)} />}
-
-          {view === 'success' && (
-            <div className="admin-user-success">
-              <div><KFIcon name="check" /></div>
-              <h2>Success!</h2>
-              <p>{notice || 'Your changes have been saved.'}</p>
-              <button className="kf-primary" onClick={() => setView(selected ? 'detail' : 'list')}>Back to User Details</button>
-              <button className="kf-outline" onClick={() => setView('list')}>Back to Users</button>
             </div>
-          )}
-        </main>
-      </section>
-    </div>
-  );
+
+            {/* Right: More Actions panel */}
+            <div>
+              <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 950, color: '#0f1238' }}>More Actions</h3>
+              <div className="users-actions-panel">
+                <ActionBtn
+                  icon="✏️"
+                  title="Edit User"
+                  onClick={() => {
+                    setActiveTab('Settings');
+                  }}
+                />
+                <ActionBtn
+                  icon="👤"
+                  title="Change Role"
+                  onClick={() => {
+                    const newRole = prompt('New role (donor / organizer / nonprofit / admin):');
+                    if (newRole && ROLE_OPTIONS.includes(newRole.toLowerCase())) {
+                      updateUser({ role: newRole.toLowerCase(), action: newRole.toLowerCase() }, `Role changed to ${newRole}.`);
+                    }
+                  }}
+                />
+                <ActionBtn
+                  icon="🔑"
+                  title="Reset Password"
+                  onClick={() => updateUser({ action: 'reset-password' }, 'Password reset email sent.')}
+                  disabled={isPending}
+                />
+                <ActionBtn
+                  icon="🚫"
+                  title="Suspend User"
+                  desc="Temporarily restrict user from accessing the platform."
+                  onClick={() => updateUser({ action: 'suspend' }, 'User suspended.')}
+                  disabled={isPending}
+                />
+                <ActionBtn
+                  icon="✓"
+                  title="Activate User"
+                  desc="Restore user access to the platform."
+                  onClick={() => updateUser({ action: 'activate' }, 'User activated.')}
+                  disabled={isPending}
+                />
+                <ActionBtn
+                  icon="🗑️"
+                  title="Delete User"
+                  desc="Permanently delete this user and all related data."
+                  danger
+                  onClick={deleteUser}
+                  disabled={isPending}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Activity */}
+        {activeTab === 'Activity' && (
+          <div>
+            <div className="users-sub-tabs">
+              {['Login History', 'Actions', 'Sessions'].map((sub) => (
+                <button key={sub} className={sub === 'Login History' ? 'active' : ''}>
+                  {sub}
+                </button>
+              ))}
+            </div>
+            <div className="users-tab-content">
+              {selectedActivities.length === 0 && (
+                <p style={{ color: '#66708d', fontSize: 13 }}>No activity recorded yet.</p>
+              )}
+              {selectedActivities.map((a) => (
+                <div className="users-activity-item" key={a.id}>
+                  <div className="users-activity-icon">
+                    <KFIcon name={a.type === 'Donation' ? 'gift' : 'stack'} />
+                  </div>
+                  <div>
+                    <b style={{ display: 'block', fontWeight: 850, color: '#0f1238', fontSize: 13 }}>{a.title}</b>
+                    <span style={{ fontSize: 12, color: '#66708d' }}>
+                      {a.detail}
+                      {a.amount ? ` • ${a.amount}` : ''}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                    {fmtDateTime(a.createdAt)}
+                  </span>
+                </div>
+              ))}
+              {selectedActivities.length > 0 && (
+                <button
+                  style={{ marginTop: 12, border: 0, background: 'transparent', color: '#6c35ff', fontSize: 12, fontWeight: 850, cursor: 'pointer' }}
+                >
+                  View all activity →
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab: Donations */}
+        {activeTab.startsWith('Donations') && (
+          <DonationsTab userId={selected.id} donations={userDonations} setDonations={setUserDonations} loading={loadingDetail} setLoading={setLoadingDetail} />
+        )}
+
+        {/* Tab: Campaigns */}
+        {activeTab.startsWith('Campaigns') && (
+          <CampaignsTab userId={selected.id} campaigns={userCampaigns} setCampaigns={setUserCampaigns} loading={loadingDetail} setLoading={setLoadingDetail} />
+        )}
+
+        {/* Tab: Settings */}
+        {activeTab === 'Settings' && (
+          <SettingsTab user={selected} onSave={updateUser} pending={isPending} />
+        )}
+
+        {/* Footer */}
+        <div className="users-detail-footer">
+          <button className="kf-outline">View Public Profile</button>
+          <div style={{ position: 'relative' }}>
+            <button className="kf-outline" onClick={() => setShowMoreActions((v) => !v)}>
+              More Actions ▾
+            </button>
+            {showMoreActions && (
+              <div style={{
+                position: 'absolute',
+                bottom: '110%',
+                left: 0,
+                minWidth: 200,
+                background: '#fff',
+                border: '1px solid #eef0f7',
+                borderRadius: 10,
+                boxShadow: '0 8px 32px rgba(20,20,80,.14)',
+                zIndex: 100,
+                overflow: 'hidden',
+              }}>
+                {[
+                  { label: 'Change Role', action: () => { setShowMoreActions(false); const r = prompt('New role:'); if (r && ROLE_OPTIONS.includes(r.toLowerCase())) updateUser({ action: r.toLowerCase() }, `Role changed to ${r}.`); } },
+                  { label: 'Reset Password', action: () => { setShowMoreActions(false); updateUser({ action: 'reset-password' }, 'Password reset email sent.'); } },
+                  { label: 'Suspend User', action: () => { setShowMoreActions(false); updateUser({ action: 'suspend' }, 'User suspended.'); } },
+                  { label: 'Activate User', action: () => { setShowMoreActions(false); updateUser({ action: 'activate' }, 'User activated.'); } },
+                  { label: 'Delete User', danger: true, action: () => { setShowMoreActions(false); deleteUser(); } },
+                ].map(({ label, danger, action }) => (
+                  <button
+                    key={label}
+                    onClick={action}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      padding: '10px 16px',
+                      border: 0,
+                      background: 'transparent',
+                      textAlign: 'left',
+                      fontSize: 13,
+                      fontWeight: 850,
+                      color: danger ? '#e11d48' : '#101842',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = danger ? '#fff5f7' : '#f8f7ff'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
 
-function UserDetails({ user, activities, onEdit, onActivity, onAction, onDelete, pending }: { user: AdminUser; activities: AdminUserActivity[]; onEdit: () => void; onActivity: () => void; onAction: (body: Record<string, unknown>, success: string) => void; onDelete: () => void; pending: boolean }) {
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function ActionBtn({
+  icon,
+  title,
+  desc,
+  danger = false,
+  onClick,
+  disabled = false,
+}: {
+  icon: string;
+  title: string;
+  desc?: string;
+  danger?: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
   return (
-    <div className="admin-user-detail">
-      <div className="admin-user-profile">
-        <Avatar name={user.name} imageUrl={user.avatarUrl} />
-        <div><h2>{user.name}</h2><p>{user.email}</p></div>
-        <StatusPill>{user.status}</StatusPill>
+    <button
+      className={`users-action-btn${danger ? ' danger' : ''}`}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <div className="icon-wrap">{icon}</div>
+      <div>
+        <div className="users-action-title">{title}</div>
+        {desc && <div className="users-action-desc">{desc}</div>}
       </div>
-      <div className="admin-user-tabs"><button className="active">Overview</button><button onClick={onActivity}>Activity</button><button>Donations ({user.donationsCount})</button><button>Campaigns ({user.campaignsCount})</button></div>
-      <div className="admin-user-facts">
-        <span>Role <b>{user.role}</b></span>
-        <span>Member Since <b>{fmtDate(user.joinedAt)}</b></span>
-        <span>Status <b>{user.status}</b></span>
-        <span>Plan <b>{user.plan}</b></span>
-        <span>Total Donations <b>{money(user.totalDonatedCents)}</b></span>
-        <span>Total Raised <b>{money(user.totalRaisedCents)}</b></span>
-        <span>Last Activity <b>{fmtDateTime(user.lastActivityAt)}</b></span>
-        <span>Identity <b>{user.identityVerified ? 'Verified' : 'Unverified'}</b></span>
-      </div>
-      <div className="admin-user-actions">
-        <button className="kf-primary" onClick={onEdit}>Edit User</button>
-        <button className="kf-outline" disabled={pending} onClick={() => onAction({ action: 'reset-password' }, 'Password reset email requested.')}>Reset Password</button>
-        <button className="kf-outline" disabled={pending} onClick={() => onAction({ action: user.status === 'Suspended' ? 'activate' : 'suspend' }, user.status === 'Suspended' ? 'User activated.' : 'User suspended.')}>{user.status === 'Suspended' ? 'Activate User' : 'Suspend User'}</button>
-        <button className="kf-danger" disabled={pending} onClick={onDelete}>Delete User</button>
-      </div>
-      <section className="kf-card">
-        <div className="kf-card-head"><h2>Recent Activity</h2><button onClick={onActivity}>View all</button></div>
-        {activities.slice(0, 5).map((activity) => <ActivityItem key={activity.id} activity={activity} />)}
-        {activities.length === 0 && <p className="admin-empty">No activity recorded yet.</p>}
-      </section>
+    </button>
+  );
+}
+
+function DonationsTab({
+  userId,
+  donations,
+  setDonations,
+  loading,
+  setLoading,
+}: {
+  userId: string;
+  donations: UserDonation[];
+  setDonations: (d: UserDonation[]) => void;
+  loading: boolean;
+  setLoading: (v: boolean) => void;
+}) {
+  useEffect(() => {
+    if (donations.length > 0) return;
+    setLoading(true);
+    fetch(`/api/admin/users/${userId}/donations`)
+      .then((r) => r.json())
+      .then((data: { donations?: UserDonation[] }) => {
+        setDonations(data.donations ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [userId, donations.length, setDonations, setLoading]);
+
+  return (
+    <div className="users-tab-content">
+      {loading && <p style={{ color: '#66708d', fontSize: 13 }}>Loading donations...</p>}
+      {!loading && donations.length === 0 && (
+        <p style={{ color: '#66708d', fontSize: 13 }}>No donations yet.</p>
+      )}
+      {!loading && donations.length > 0 && (
+        <div className="users-donations-table">
+          <div className="users-donations-row head">
+            <span>Amount</span>
+            <span>Campaign</span>
+            <span>Status</span>
+            <span>Date</span>
+          </div>
+          {donations.map((d) => (
+            <div className="users-donations-row" key={d.id}>
+              <span style={{ color: '#0f1238', fontWeight: 950 }}>{money(d.amountCents)}</span>
+              <span>{d.campaignTitle}</span>
+              <span>
+                <span style={{ background: d.status === 'completed' ? '#dcfce7' : '#fef9c3', color: d.status === 'completed' ? '#166534' : '#854d0e', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 850 }}>
+                  {d.status}
+                </span>
+              </span>
+              <span style={{ color: '#66708d' }}>{fmtDate(d.createdAt)}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function EditUser({ user, onCancel, onSave, pending }: { user: AdminUser; onCancel: () => void; onSave: (body: Record<string, unknown>, success: string) => void; pending: boolean }) {
-  const [name, setName] = useState(user.name);
-  const [email, setEmail] = useState(user.email);
-  const [role, setRole] = useState(user.roles.find((item) => item !== 'suspended' && item !== 'inactive') ?? 'donor');
-  const [status, setStatus] = useState(user.status);
+function CampaignsTab({
+  userId,
+  campaigns,
+  setCampaigns,
+  loading,
+  setLoading,
+}: {
+  userId: string;
+  campaigns: UserCampaign[];
+  setCampaigns: (c: UserCampaign[]) => void;
+  loading: boolean;
+  setLoading: (v: boolean) => void;
+}) {
+  useEffect(() => {
+    if (campaigns.length > 0) return;
+    setLoading(true);
+    fetch(`/api/admin/users/${userId}/campaigns`)
+      .then((r) => r.json())
+      .then((data: { campaigns?: UserCampaign[] }) => {
+        setCampaigns(data.campaigns ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [userId, campaigns.length, setCampaigns, setLoading]);
+
+  return (
+    <div className="users-tab-content">
+      {loading && <p style={{ color: '#66708d', fontSize: 13 }}>Loading campaigns...</p>}
+      {!loading && campaigns.length === 0 && (
+        <p style={{ color: '#66708d', fontSize: 13 }}>No campaigns yet.</p>
+      )}
+      {!loading && campaigns.length > 0 && (
+        <div className="users-campaigns-table">
+          <div className="users-campaigns-row head">
+            <span>Title</span>
+            <span>Status</span>
+            <span>Raised</span>
+            <span>Goal</span>
+            <span>Backers</span>
+            <span>Date</span>
+          </div>
+          {campaigns.map((c) => (
+            <div className="users-campaigns-row" key={c.id}>
+              <span style={{ fontWeight: 850, color: '#0f1238' }}>{c.title}</span>
+              <span>
+                <span style={{ background: c.status === 'active' ? '#dcfce7' : '#f1f5f9', color: c.status === 'active' ? '#166534' : '#475569', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 850 }}>
+                  {c.status}
+                </span>
+              </span>
+              <span>{money(c.raisedAmount)}</span>
+              <span>{money(c.goalAmount)}</span>
+              <span>{c.backerCount.toLocaleString()}</span>
+              <span style={{ color: '#66708d' }}>{fmtDate(c.createdAt)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SettingsTab({
+  user,
+  onSave,
+  pending,
+}: {
+  user: AdminUser;
+  onSave: (body: Record<string, unknown>, success: string) => void;
+  pending: boolean;
+}) {
   const [verified, setVerified] = useState(user.identityVerified);
   return (
-    <div className="admin-user-form">
-      <h2>Edit User</h2>
-      <label>Full Name<input value={name} onChange={(event) => setName(event.target.value)} /></label>
-      <label>Email<input value={email} onChange={(event) => setEmail(event.target.value)} /></label>
-      <label>Role<select value={role} onChange={(event) => setRole(event.target.value)}>{ROLE_OPTIONS.map((item) => <option key={item}>{item}</option>)}</select></label>
-      <label>Status<select value={status} onChange={(event) => setStatus(event.target.value as AdminUser['status'])}><option>Active</option><option>Inactive</option><option>Suspended</option></select></label>
-      <label className="admin-check"><input type="checkbox" checked={verified} onChange={(event) => setVerified(event.target.checked)} /> Identity verified</label>
-      <div><button className="kf-outline" onClick={onCancel}>Cancel</button><button className="kf-primary" disabled={pending} onClick={() => onSave({ fullName: name, email, role, status, identityVerified: verified }, 'User updated successfully.')}>Save Changes</button></div>
+    <div className="users-tab-content">
+      <div className="users-add-form" style={{ padding: 0, maxWidth: 420 }}>
+        {[
+          ['Currency', user.currency.toUpperCase()],
+          ['Timezone', user.timezone],
+          ['Plan', user.plan],
+        ].map(([label, val]) => (
+          <div className="users-detail-row" key={label} style={{ borderBottom: '1px solid #f5f7fc', padding: '10px 0' }}>
+            <span style={{ color: '#66708d', fontWeight: 700, fontSize: 13 }}>{label}</span>
+            <span style={{ fontWeight: 850, color: '#0f1238', fontSize: 13 }}>{val}</span>
+          </div>
+        ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+          <span style={{ color: '#66708d', fontWeight: 700, fontSize: 13, minWidth: 140 }}>Identity Verified</span>
+          <label className="users-add-check">
+            <input type="checkbox" checked={verified} onChange={(e) => setVerified(e.target.checked)} />
+            {verified ? 'Yes' : 'No'}
+          </label>
+        </div>
+        <div style={{ marginTop: 20 }}>
+          <button
+            className="kf-primary"
+            disabled={pending}
+            onClick={() => onSave({ identityVerified: verified }, 'Settings saved.')}
+          >
+            Save Settings
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
-function AddUser({ pending, onCreate }: { pending: boolean; onCreate: (body: Record<string, unknown>) => void }) {
+function AddUserView({
+  pending,
+  onCreate,
+  onCancel,
+}: {
+  pending: boolean;
+  onCreate: (body: Record<string, unknown>) => void;
+  onCancel: () => void;
+}) {
   const [sendWelcome, setSendWelcome] = useState(true);
-  const formSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
     onCreate({
       fullName: String(form.get('fullName') ?? ''),
       email: String(form.get('email') ?? ''),
@@ -361,86 +1056,124 @@ function AddUser({ pending, onCreate }: { pending: boolean; onCreate: (body: Rec
       status: String(form.get('status') ?? 'Active'),
       sendWelcome,
     });
-  };
+  }
+
   return (
-    <form className="admin-user-form" onSubmit={formSubmit}>
-      <h2>Add User</h2>
-      <label>Full Name<input name="fullName" required placeholder="Enter full name" /></label>
-      <label>Email<input name="email" type="email" required placeholder="Enter email address" /></label>
-      <label>Role<select name="role">{ROLE_OPTIONS.map((role) => <option key={role}>{role}</option>)}</select></label>
-      <label>Status<select name="status"><option>Active</option><option>Inactive</option><option>Suspended</option></select></label>
-      <label className="admin-check"><input type="checkbox" checked={sendWelcome} onChange={(event) => setSendWelcome(event.target.checked)} /> Send welcome email</label>
-      <div><button className="kf-outline" type="button">Cancel</button><button className="kf-primary" disabled={pending}>Create User</button></div>
+    <form className="users-add-form" onSubmit={handleSubmit}>
+      <h2>Add New User</h2>
+
+      <div className="users-add-field">
+        <label htmlFor="addFullName">Full Name</label>
+        <input
+          id="addFullName"
+          className="users-add-input"
+          name="fullName"
+          required
+          placeholder="Enter full name"
+        />
+      </div>
+
+      <div className="users-add-field">
+        <label htmlFor="addEmail">Email</label>
+        <input
+          id="addEmail"
+          className="users-add-input"
+          name="email"
+          type="email"
+          required
+          placeholder="Enter email address"
+        />
+      </div>
+
+      <div className="users-add-field">
+        <label htmlFor="addRole">Role</label>
+        <select id="addRole" className="users-add-select" name="role">
+          {ROLE_OPTIONS.map((r) => <option key={r}>{r}</option>)}
+        </select>
+      </div>
+
+      <div className="users-add-field">
+        <label htmlFor="addStatus">Status</label>
+        <select id="addStatus" className="users-add-select" name="status">
+          <option>Active</option>
+          <option>Inactive</option>
+          <option>Suspended</option>
+        </select>
+      </div>
+
+      <label className="users-add-check">
+        <input type="checkbox" checked={sendWelcome} onChange={(e) => setSendWelcome(e.target.checked)} />
+        Send welcome email
+      </label>
+
+      <div className="users-add-actions">
+        <button className="kf-outline" type="button" onClick={onCancel}>Cancel</button>
+        <button className="kf-primary" type="submit" disabled={pending}>Create User</button>
+      </div>
     </form>
   );
 }
 
-function ActivityView({ activities, selected, onBack }: { activities: AdminUserActivity[]; selected: AdminUser | null; onBack: () => void }) {
+function ExportOverlay({
+  filtered,
+  exportFormat,
+  setExportFormat,
+  onClose,
+  onExport,
+}: {
+  filtered: AdminUser[];
+  exportFormat: string;
+  setExportFormat: (v: string) => void;
+  onClose: () => void;
+  onExport: () => void;
+}) {
   return (
-    <div className="admin-user-activity">
-      <button className="admin-back" onClick={onBack}>Back</button>
-      <h2>{selected ? `${selected.name} Activity` : 'User Activity'}</h2>
-      {activities.map((activity) => <ActivityItem key={activity.id} activity={activity} />)}
-      {activities.length === 0 && <p className="admin-empty">No activity recorded yet.</p>}
+    <div className="users-export-overlay" onClick={onClose}>
+      <div className="users-export-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="users-export-header">
+          <span style={{ fontSize: 16, fontWeight: 950, color: '#0f1238' }}>Export Users</span>
+          <button
+            style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#66708d' }}
+            onClick={onClose}
+          >
+            ✕
+          </button>
+        </div>
+        <div className="users-export-body">
+          <div className="users-export-field">
+            <label>File Format</label>
+            <select className="users-export-select" value={exportFormat} onChange={(e) => setExportFormat(e.target.value)}>
+              <option>CSV</option>
+            </select>
+          </div>
+          <div className="users-export-field">
+            <label>Include Fields</label>
+            <select className="users-export-select">
+              <option>All Fields</option>
+            </select>
+          </div>
+          <div className="users-export-field">
+            <label>Filters (Optional)</label>
+            <select className="users-export-select">
+              <option>All Roles</option>
+            </select>
+            <select className="users-export-select" style={{ marginTop: 8 }}>
+              <option>All Status</option>
+            </select>
+          </div>
+          <p style={{ fontSize: 13, color: '#66708d', margin: 0 }}>
+            {filtered.length} users will be exported.
+          </p>
+        </div>
+        <div className="users-export-footer">
+          <button className="kf-outline" onClick={onClose}>Cancel</button>
+          <button className="kf-primary" onClick={onExport}>Export ↓</button>
+        </div>
+      </div>
     </div>
   );
 }
 
-function ActivityItem({ activity }: { activity: AdminUserActivity }) {
-  return (
-    <article className="admin-activity-item">
-      <span><KFIcon name={activity.type === 'Donation' ? 'gift' : 'stack'} /></span>
-      <div><b>{activity.title}</b><small>{activity.detail} {activity.amount ? `• ${activity.amount}` : ''}</small></div>
-      <em>{fmtDateTime(activity.createdAt)}</em>
-    </article>
-  );
-}
-
-function RolesView({ roles }: { roles: UserRoleSummary[] }) {
-  return (
-    <div className="admin-role-grid">
-      <div className="admin-section-head"><h2>Roles & Permissions</h2><button className="kf-primary"><KFIcon name="plus" /> Add Role</button></div>
-      {roles.map((role) => (
-        <article className="kf-card admin-role-card" key={role.key}>
-          <div className="kf-square violet"><KFIcon name={role.key === 'admin' ? 'crown' : 'users'} /></div>
-          <div><h3>{role.role}</h3><p>{role.description}</p><small>{role.count.toLocaleString()} users</small></div>
-          <StatusPill>{role.system ? 'System' : 'Custom'}</StatusPill>
-        </article>
-      ))}
-    </div>
-  );
-}
-
-function ExportView({ users, onExport }: { users: AdminUser[]; onExport: (rows: AdminUser[]) => void }) {
-  return (
-    <div className="admin-user-form">
-      <h2>Export Users</h2>
-      <label>File Format<select><option>CSV</option></select></label>
-      <label>Include Fields<select><option>All Fields</option></select></label>
-      <p>{users.length.toLocaleString()} users match the current filters.</p>
-      <div><button className="kf-outline" type="button">Cancel</button><button className="kf-primary" onClick={() => onExport(users)}>Export</button></div>
-    </div>
-  );
-}
-
-function ImportView({ pending, onImport }: { pending: boolean; onImport: (rows: Record<string, string>[]) => void }) {
-  const [rows, setRows] = useState<Record<string, string>[]>([]);
-  const handleFile = async (file: File | undefined) => {
-    if (!file) return;
-    const text = await file.text();
-    const [head, ...lines] = text.split(/\r?\n/).filter(Boolean);
-    const headers = head.split(',').map((item) => item.trim().toLowerCase());
-    setRows(lines.map((line) => {
-      const cells = line.split(',').map((item) => item.trim());
-      return Object.fromEntries(headers.map((header, index) => [header, cells[index] ?? '']));
-    }));
-  };
-  return (
-    <div className="admin-user-form">
-      <h2>Import Users</h2>
-      <label className="admin-drop"><KFIcon name="upload" /><input type="file" accept=".csv" onChange={(event) => handleFile(event.target.files?.[0])} />Drag and drop CSV file here or click to browse</label>
-      <p>{rows.length > 0 ? `${rows.length} users ready to import.` : 'CSV headers supported: fullName, email, role, status'}</p>
-      <div><button className="kf-outline" type="button">Cancel</button><button className="kf-primary" disabled={pending || rows.length === 0} onClick={() => onImport(rows)}>Import</button></div>
-    </div>
-  );
-}
+// Keep unused helpers to avoid lint errors in case they're referenced elsewhere
+const _initials = initials;
+void _initials;

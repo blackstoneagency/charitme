@@ -6,6 +6,7 @@ import AdminUsersClient, {
   type AdminUser,
   type AdminUserActivity,
   type UserRoleSummary,
+  type GrowthPoint,
 } from './_components/AdminUsersClient';
 
 export const dynamic = 'force-dynamic';
@@ -64,6 +65,24 @@ function fmtMoney(cents: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(cents / 100);
 }
 
+function buildWeeklyGrowth(profiles: ProfileRow[]): GrowthPoint[] {
+  const now = new Date();
+  const weeks: GrowthPoint[] = [];
+  for (let week = 7; week >= 0; week--) {
+    const end = new Date(now);
+    end.setDate(end.getDate() - week * 7);
+    const start = new Date(end);
+    start.setDate(start.getDate() - 7);
+    const count = profiles.filter((p) => {
+      const created = new Date(p.created_at);
+      return created >= start && created < end;
+    }).length;
+    const label = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    weeks.push({ label, count });
+  }
+  return weeks;
+}
+
 export default async function AdminUsersPage() {
   await requireAdmin();
 
@@ -97,6 +116,7 @@ export default async function AdminUsersPage() {
       .limit(1000),
   ]);
 
+  const profileRows = (profiles ?? []) as ProfileRow[];
   const campaignRows = (campaigns ?? []) as CampaignRow[];
   const donationRows = (donations ?? []) as DonationRow[];
   const campaignByUser = new Map<string, CampaignRow[]>();
@@ -110,7 +130,7 @@ export default async function AdminUsersPage() {
     donationByUser.set(donation.donor_id, [...(donationByUser.get(donation.donor_id) ?? []), donation]);
   }
 
-  const users: AdminUser[] = ((profiles ?? []) as ProfileRow[]).map((profile) => {
+  const users: AdminUser[] = profileRows.map((profile) => {
     const roles = parseRoleList(profile.roles);
     const userCampaigns = campaignByUser.get(profile.id) ?? [];
     const userDonations = donationByUser.get(profile.id) ?? [];
@@ -176,6 +196,9 @@ export default async function AdminUsersPage() {
     { role: 'Donor', key: 'donor', description: 'Donate, follow campaigns, manage receipts, and maintain a profile.', count: users.filter((u) => u.roles.includes('donor')).length, system: true },
   ];
 
+  const weeklyGrowth = buildWeeklyGrowth(profileRows);
+  const recentUsers = users.slice(0, 5);
+
   return (
     <KindFundShell active="Users" mode="admin">
       <TopBar
@@ -193,6 +216,8 @@ export default async function AdminUsersPage() {
           active: users.filter((u) => u.status === 'Active').length,
           suspended: users.filter((u) => u.status === 'Suspended').length,
         }}
+        weeklyGrowth={weeklyGrowth}
+        recentUsers={recentUsers}
       />
     </KindFundShell>
   );
