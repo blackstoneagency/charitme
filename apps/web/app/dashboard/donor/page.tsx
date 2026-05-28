@@ -1,4 +1,5 @@
 import 'server-only';
+import Link from 'next/link';
 import { KindFundShell, TopBar, MetricGrid, KFIcon, type Metric } from '../../../components/KindFundShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -169,10 +170,16 @@ async function fetchDonorData(userId: string): Promise<{
 // ─────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────
-export default async function DonorsPage() {
+export default async function DonorsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const user = await requireUser();
-  const { donors, totalCents, totalUnique, newLast30, avgDonationCents } =
-    await fetchDonorData(user.id);
+  const [{ donors, totalCents, totalUnique, newLast30, avgDonationCents }, params] =
+    await Promise.all([fetchDonorData(user.id), searchParams]);
+
+  const activeTab = String(params.tab ?? 'all').toLowerCase();
 
   const metrics: Metric[] = [
     {
@@ -205,9 +212,24 @@ export default async function DonorsPage() {
     },
   ];
 
-  // Top donors for the tab counts
+  // Tab counts
   const topDonors = donors.filter(d => d.totalCents >= 10000); // $100+
   const recurringDonors = donors.filter(d => d.donationCount > 1);
+  const newDonors = donors.filter(d => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return new Date(d.lastDonation) >= thirtyDaysAgo && d.donationCount === 1;
+  });
+
+  // Tab-based filtering
+  const filtered =
+    activeTab === 'new'
+      ? newDonors
+      : activeTab === 'top-donors'
+      ? topDonors
+      : activeTab === 'recurring'
+      ? recurringDonors
+      : donors;
 
   return (
     <KindFundShell active="Donors">
@@ -227,12 +249,18 @@ export default async function DonorsPage() {
             </div>
 
             <div className="kf-tabs">
-              <span className="active">
+              <Link href="?tab=all" className={activeTab === 'all' ? 'active' : ''} style={{ textDecoration: 'none' }}>
                 All ({totalUnique})
-              </span>
-              <span>New ({newLast30})</span>
-              <span>Top Donors ({topDonors.length})</span>
-              <span>Recurring ({recurringDonors.length})</span>
+              </Link>
+              <Link href="?tab=new" className={activeTab === 'new' ? 'active' : ''} style={{ textDecoration: 'none' }}>
+                New ({newLast30})
+              </Link>
+              <Link href="?tab=top-donors" className={activeTab === 'top-donors' ? 'active' : ''} style={{ textDecoration: 'none' }}>
+                Top Donors ({topDonors.length})
+              </Link>
+              <Link href="?tab=recurring" className={activeTab === 'recurring' ? 'active' : ''} style={{ textDecoration: 'none' }}>
+                Recurring ({recurringDonors.length})
+              </Link>
             </div>
 
             {/* Table header */}
@@ -257,17 +285,21 @@ export default async function DonorsPage() {
             </div>
 
             {/* Rows or empty state */}
-            {donors.length === 0 ? (
+            {filtered.length === 0 ? (
               <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--t3)' }}>
                 <KFIcon name="users" />
-                <p style={{ marginTop: 12, fontWeight: 600 }}>No donors yet.</p>
+                <p style={{ marginTop: 12, fontWeight: 600 }}>
+                  {donors.length === 0 ? 'No donors yet.' : `No ${activeTab === 'all' ? '' : activeTab + ' '}donors found.`}
+                </p>
                 <p style={{ fontSize: 13, marginTop: 4 }}>
-                  Donors will appear here once your campaigns receive contributions.
+                  {donors.length === 0
+                    ? 'Donors will appear here once your campaigns receive contributions.'
+                    : 'Try a different filter tab.'}
                 </p>
               </div>
             ) : (
               <div className="kf-rows">
-                {donors.map((donor, i) => (
+                {filtered.map((donor, i) => (
                   <div
                     key={donor.key}
                     className="kf-row"
@@ -347,12 +379,12 @@ export default async function DonorsPage() {
               </div>
             )}
 
-            {donors.length > 0 && (
+            {filtered.length > 0 && (
               <div
                 className="kf-table-footer"
                 style={{ padding: '12px 20px', fontSize: 13, color: 'var(--t3)' }}
               >
-                Showing {donors.length.toLocaleString()} donor{donors.length !== 1 ? 's' : ''}
+                Showing {filtered.length.toLocaleString()} of {donors.length.toLocaleString()} donor{donors.length !== 1 ? 's' : ''}
               </div>
             )}
           </section>

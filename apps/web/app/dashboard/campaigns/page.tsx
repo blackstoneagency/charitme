@@ -107,6 +107,7 @@ export default async function MyCampaignsPage({
   const totalRaised = campaigns.reduce((s, c) => s + (c.raised_amount ?? 0), 0);
   const activeCampaigns = campaigns.filter((c) => c.status === 'active').length;
   const totalDonors = campaigns.reduce((s, c) => s + (c.backer_count ?? 0), 0);
+  const avgGift = totalDonors > 0 ? Math.round(totalRaised / totalDonors) : 0;
 
   const metrics = [
     {
@@ -131,9 +132,9 @@ export default async function MyCampaignsPage({
       tone: 'blue' as const,
     },
     {
-      label: 'Avg. Conversion',
-      value: '3.6%',
-      change: 'industry avg 2.8%',
+      label: 'Avg. Gift Size',
+      value: avgGift > 0 ? fmtCents(avgGift) : '—',
+      change: avgGift > 0 ? 'per donor' : 'no donations yet',
       icon: 'chart',
       tone: 'orange' as const,
     },

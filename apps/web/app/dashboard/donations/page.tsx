@@ -257,9 +257,14 @@ export default async function DonationsPage({
         title="Donations"
         subtitle="Track every donation across all your campaigns."
         actions={
-          <button className="kf-outline" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <KFIcon name="upload" /> Export
-          </button>
+          <a
+            href="/api/exports/donations"
+            download
+            className="kf-outline"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+          >
+            <KFIcon name="upload" /> Export CSV
+          </a>
         }
       />
 

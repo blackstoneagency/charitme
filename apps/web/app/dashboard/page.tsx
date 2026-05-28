@@ -414,7 +414,6 @@ export default async function DashboardPage() {
             </label>
             <button className="dash-bell" aria-label="Notifications">
               <KFIcon name="bell" />
-              <span>8</span>
             </button>
             <div className="dash-photo" />
           </div>

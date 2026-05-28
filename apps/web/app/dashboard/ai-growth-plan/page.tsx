@@ -1,3 +1,4 @@
+import React from 'react';
 import Link from 'next/link';
 import { KindFundShell, TopBar, KFIcon, MetricGrid } from '../../../components/KindFundShellServer';
 import { requireUser } from '../../../lib/auth';
@@ -38,11 +39,14 @@ type RoadmapStep = {
   description: string;
   impact: 'High' | 'Medium' | 'Low';
   status: 'todo' | 'in-progress' | 'done';
+  href?: string;
 };
 
 type GrowthData = {
   campaigns: Campaign[];
   donations: Donation[];
+  contentCreated: number;
+  engagement: number;
 };
 
 // ─────────────────────────────────────────────
@@ -115,12 +119,32 @@ async function getGrowthData(userId: string): Promise<GrowthData> {
       donations = (donationData ?? []) as Donation[];
     }
 
+    // Fetch content created (campaign updates) and engagement (donor messages)
+    let contentCreated = 0;
+    let engagement = 0;
+    if (cids.length > 0) {
+      const [{ count: updatesCount }, { count: messagesCount }] = await Promise.all([
+        supabaseAdmin
+          .from('campaign_updates')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId),
+        supabaseAdmin
+          .from('donor_messages')
+          .select('*', { count: 'exact', head: true })
+          .in('campaign_id', cids),
+      ]);
+      contentCreated = updatesCount ?? 0;
+      engagement = messagesCount ?? 0;
+    }
+
     return {
       campaigns: (campaigns ?? []) as Campaign[],
       donations,
+      contentCreated,
+      engagement,
     };
   } catch {
-    return { campaigns: [], donations: [] };
+    return { campaigns: [], donations: [], contentCreated: 0, engagement: 0 };
   }
 }
 
@@ -152,6 +176,7 @@ function buildRoadmap(campaigns: Campaign[], donations: Donation[]): RoadmapStep
         : 'Campaigns with video updates raise up to 80% more. Record a 60-second update to build donor trust and momentum.',
       impact: 'High',
       status: topVelocity >= 1.5 ? 'in-progress' : 'todo',
+      href: '/dashboard/updates/new',
     },
     {
       emoji: '💌',
@@ -161,6 +186,7 @@ function buildRoadmap(campaigns: Campaign[], donations: Donation[]): RoadmapStep
         : 'Send a personal follow-up to your past donors. Re-engaged supporters donate 2× more on average.',
       impact: 'High',
       status: 'todo',
+      href: '/dashboard/messages',
     },
     {
       emoji: '📣',
@@ -170,6 +196,7 @@ function buildRoadmap(campaigns: Campaign[], donations: Donation[]): RoadmapStep
         : 'Share your campaign on Facebook, Instagram, and TikTok. Each share exposes your cause to 2.5× more potential supporters.',
       impact: 'High',
       status: 'todo',
+      href: '/dashboard/campaigns',
     },
     {
       emoji: '🔁',
@@ -179,6 +206,7 @@ function buildRoadmap(campaigns: Campaign[], donations: Donation[]): RoadmapStep
         : 'Add a monthly giving option to your campaign. Recurring donors contribute 42% more over time than one-time donors.',
       impact: 'Medium',
       status: activeCampaigns >= 2 ? 'done' : 'todo',
+      href: '/dashboard/campaigns',
     },
     {
       emoji: '🤝',
@@ -188,6 +216,7 @@ function buildRoadmap(campaigns: Campaign[], donations: Donation[]): RoadmapStep
         : 'Launch a matching challenge with a partner or large donor. Campaigns with matching often double their donation rates during the challenge window.',
       impact: 'High',
       status: 'todo',
+      href: '/dashboard/updates/new',
     },
     {
       emoji: '🙏',
@@ -197,6 +226,7 @@ function buildRoadmap(campaigns: Campaign[], donations: Donation[]): RoadmapStep
         : 'Send a heartfelt thank-you to every donor within 24 hours. This single habit increases long-term retention by 35%.',
       impact: 'Medium',
       status: totalBackers > 0 ? 'in-progress' : 'todo',
+      href: '/dashboard/messages',
     },
     {
       emoji: '🏁',
@@ -206,6 +236,7 @@ function buildRoadmap(campaigns: Campaign[], donations: Donation[]): RoadmapStep
         : 'Break your goal into visible milestones. Each milestone you hit gets 3× more social shares and creates a celebration moment for donors.',
       impact: 'Medium',
       status: 'todo',
+      href: '/dashboard/updates/new',
     },
   ];
 }
@@ -332,10 +363,10 @@ function ImpactBadge({ impact }: { impact: RoadmapStep['impact'] }) {
   );
 }
 
-function StepActionBtn({ status }: { status: RoadmapStep['status'] }) {
+function StepActionBtn({ status, href }: { status: RoadmapStep['status']; href?: string }) {
   if (status === 'done') {
     return (
-      <button
+      <span
         style={{
           padding: '6px 16px',
           borderRadius: '8px',
@@ -344,50 +375,43 @@ function StepActionBtn({ status }: { status: RoadmapStep['status'] }) {
           color: 'var(--t3, #9ca3af)',
           fontSize: '13px',
           fontWeight: 600,
-          cursor: 'pointer',
           flexShrink: 0,
         }}
       >
         Done ✓
-      </button>
+      </span>
     );
   }
   if (status === 'in-progress') {
-    return (
-      <button
-        style={{
-          padding: '6px 16px',
-          borderRadius: '8px',
-          border: '1.5px solid #6c35ff',
-          background: 'rgba(108,53,255,0.07)',
-          color: '#6c35ff',
-          fontSize: '13px',
-          fontWeight: 600,
-          cursor: 'pointer',
-          flexShrink: 0,
-        }}
-      >
-        Continue
-      </button>
-    );
+    const style: React.CSSProperties = {
+      padding: '6px 16px',
+      borderRadius: '8px',
+      border: '1.5px solid #6c35ff',
+      background: 'rgba(108,53,255,0.07)',
+      color: '#6c35ff',
+      fontSize: '13px',
+      fontWeight: 600,
+      cursor: 'pointer',
+      flexShrink: 0,
+      textDecoration: 'none',
+      display: 'inline-block',
+    };
+    return href ? <Link href={href} style={style}>Continue</Link> : <button style={style}>Continue</button>;
   }
-  return (
-    <button
-      style={{
-        padding: '6px 16px',
-        borderRadius: '8px',
-        border: 'none',
-        background: 'var(--green, #19b86a)',
-        color: '#fff',
-        fontSize: '13px',
-        fontWeight: 600,
-        cursor: 'pointer',
-        flexShrink: 0,
-      }}
-    >
-      Start
-    </button>
-  );
+  const style: React.CSSProperties = {
+    padding: '6px 16px',
+    borderRadius: '8px',
+    border: 'none',
+    background: 'var(--green, #19b86a)',
+    color: '#fff',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    flexShrink: 0,
+    textDecoration: 'none',
+    display: 'inline-block',
+  };
+  return href ? <Link href={href} style={style}>Start</Link> : <button style={style}>Start</button>;
 }
 
 function CampaignThumb({ url }: { url: string | null }) {
@@ -422,9 +446,18 @@ function CampaignThumb({ url }: { url: string | null }) {
 // ─────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────
-export default async function AiGrowthPlanPage() {
+export default async function AiGrowthPlanPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const user = await requireUser();
-  const { campaigns, donations } = await getGrowthData(user.id);
+  const [{ campaigns, donations, contentCreated, engagement }, params] = await Promise.all([
+    getGrowthData(user.id),
+    searchParams,
+  ]);
+
+  const roadmapFilter = String(params.filter ?? 'all').toLowerCase();
 
   const hasCampaigns = campaigns.length > 0;
   const topCampaign = campaigns[0] ?? null;
@@ -439,33 +472,33 @@ export default async function AiGrowthPlanPage() {
   // Top campaign momentum
   const topMomentum = topCampaign ? momentumScore(topCampaign, donations) : 0;
 
-  // KPI metrics — blend real data with static context metrics
+  // KPI metrics — all real data from Supabase
   const metrics: Metric[] = [
     {
       label: 'Content Created',
-      value: '24',
-      change: 'Posts & updates',
+      value: contentCreated.toLocaleString(),
+      change: 'Campaign updates posted',
       icon: 'doc',
       tone: 'violet',
     },
     {
       label: 'People Reached',
-      value: '18,450',
-      change: '+ 32% this week',
+      value: totalBackers.toLocaleString(),
+      change: 'Total campaign backers',
       icon: 'users',
       tone: 'green',
     },
     {
       label: 'Engagement',
-      value: '2,340',
-      change: '+ 28% this week',
+      value: engagement.toLocaleString(),
+      change: 'Donor messages received',
       icon: 'chart',
       tone: 'blue',
     },
     {
-      label: 'New Donors',
-      value: hasCampaigns ? totalBackers.toLocaleString() : '78',
-      change: '+ 22% this week',
+      label: 'Total Backers',
+      value: hasCampaigns ? totalBackers.toLocaleString() : '0',
+      change: 'All campaigns combined',
       icon: 'gift',
       tone: 'orange',
     },
@@ -475,6 +508,16 @@ export default async function AiGrowthPlanPage() {
   const doneCt = roadmap.filter((s) => s.status === 'done').length;
   const inProgressCt = roadmap.filter((s) => s.status === 'in-progress').length;
   const todoCt = roadmap.filter((s) => s.status === 'todo').length;
+
+  // Filter roadmap based on URL param
+  const displayRoadmap =
+    roadmapFilter === 'todo'
+      ? roadmap.filter((s) => s.status === 'todo')
+      : roadmapFilter === 'in-progress'
+      ? roadmap.filter((s) => s.status === 'in-progress')
+      : roadmapFilter === 'done'
+      ? roadmap.filter((s) => s.status === 'done')
+      : roadmap;
 
   // AI Insights — data-aware bullet points
   const insights: string[] = hasCampaigns
@@ -536,9 +579,14 @@ export default async function AiGrowthPlanPage() {
         title="AI Growth Plan"
         subtitle="Your personalized plan to reach more donors and raise more."
         actions={
-          <button className="kf-outline">
+          <a
+            href="/api/exports/full"
+            download
+            className="kf-outline"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+          >
             <KFIcon name="upload" /> Export Plan
-          </button>
+          </a>
         }
       />
 
@@ -646,7 +694,11 @@ export default async function AiGrowthPlanPage() {
                   color: 'var(--t3, #9ca3af)',
                 }}
               >
-                Your campaign is performing better than 68% of similar campaigns.
+                {topMomentum >= 70
+                  ? 'Excellent momentum — your campaign is growing fast.'
+                  : topMomentum >= 40
+                  ? 'Good momentum — keep engaging your donors.'
+                  : 'Momentum needs a boost — post an update to re-engage supporters.'}
               </p>
 
               {/* Inline metrics row */}
@@ -701,15 +753,15 @@ export default async function AiGrowthPlanPage() {
           <div className="kf-card-head" style={{ flexWrap: 'wrap' as const, gap: '12px' }}>
             <h2 style={{ margin: 0 }}>Your 7-Step AI Growth Roadmap</h2>
             <div className="kf-tabs compact">
-              <button className="active">All Steps (7)</button>
-              <button>To Do ({todoCt})</button>
-              <button>In Progress ({inProgressCt})</button>
-              <button>Completed ({doneCt})</button>
+              <Link href="?filter=all" className={roadmapFilter === 'all' ? 'active' : ''} style={{ textDecoration: 'none' }}>All ({roadmap.length})</Link>
+              <Link href="?filter=todo" className={roadmapFilter === 'todo' ? 'active' : ''} style={{ textDecoration: 'none' }}>To Do ({todoCt})</Link>
+              <Link href="?filter=in-progress" className={roadmapFilter === 'in-progress' ? 'active' : ''} style={{ textDecoration: 'none' }}>In Progress ({inProgressCt})</Link>
+              <Link href="?filter=done" className={roadmapFilter === 'done' ? 'active' : ''} style={{ textDecoration: 'none' }}>Completed ({doneCt})</Link>
             </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0' }}>
-            {roadmap.map((step, i) => (
+            {displayRoadmap.map((step, i) => (
               <article
                 key={step.title}
                 style={{
@@ -759,7 +811,7 @@ export default async function AiGrowthPlanPage() {
                   }}
                 >
                   <ImpactBadge impact={step.impact} />
-                  <StepActionBtn status={step.status} />
+                  <StepActionBtn status={step.status} href={step.href} />
                 </div>
               </article>
             ))}

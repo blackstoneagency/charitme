@@ -1220,3 +1220,35 @@ alter table profiles add column if not exists date_format text not null default 
 alter table profiles add column if not exists time_format text not null default '12h';
 alter table profiles add column if not exists show_public_profile boolean not null default true;
 alter table profiles add column if not exists campaign_recommendations boolean not null default true;
+
+-- ── Campaign owner replies (campaign owner → donor thread replies) ─────────────
+create table if not exists campaign_owner_replies (
+  id uuid primary key default uuid_generate_v4(),
+  campaign_id uuid not null references campaigns(id) on delete cascade,
+  donor_message_id uuid references donor_messages(id) on delete set null,
+  owner_id uuid not null references profiles(id) on delete cascade,
+  message text not null check (char_length(message) >= 1 and char_length(message) <= 5000),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists owner_replies_campaign_idx on campaign_owner_replies(campaign_id);
+create index if not exists owner_replies_owner_idx on campaign_owner_replies(owner_id);
+
+alter table campaign_owner_replies enable row level security;
+
+-- Campaign owners can manage their own replies; admins can see all
+create policy owner_replies_owner_all on campaign_owner_replies
+  for all
+  using (auth.uid() = owner_id or is_admin())
+  with check (auth.uid() = owner_id);
+
+-- Donors can read replies directed at their messages
+create policy owner_replies_donor_read on campaign_owner_replies
+  for select
+  using (
+    exists (
+      select 1 from donor_messages dm
+      where dm.id = campaign_owner_replies.donor_message_id
+        and dm.donor_id = auth.uid()
+    )
+  );
