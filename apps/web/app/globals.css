@@ -73,7 +73,7 @@ img, svg { display: block; }
 .kind-logo b { right: 2px; background: linear-gradient(135deg, #b84aff, #6d35ff); opacity: .9; }
 .kind-logo strong { font-size: 24px; letter-spacing: -.02em; color: #111331; line-height: 1; }
 .kind-header nav { display: flex; align-items: center; gap: 33px; flex: 1; }
-.kind-header nav a { display: inline-flex; align-items: center; gap: 7px; color: #121838; font-size: 13px; font-weight: 700; }
+.kind-header nav a { display: inline-flex; align-items: center; gap: 7px; color: #121838; font-size: 13px; font-weight: 700; white-space: nowrap; }
 .kind-header nav a.active { position: relative; color: #4015e8; }
 .kind-header nav a.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -26px; height: 2px; background: #5521f1; }
 .kind-new { display: inline-grid; place-items: center; height: 20px; padding: 0 8px; border-radius: 7px; color: #9a5a00; background: #fff0c8; font-size: 11px; font-weight: 900; }
@@ -1799,35 +1799,7 @@ img, svg { display: block; }
 .kf-set-toast.error { background: #ff3b5f; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
-.kind-header.kind-shell-contact {
-  width: 100%;
-  margin: 0;
-  border-bottom: 1px solid #e5e2f5;
-  border-radius: 0;
-  box-shadow: none;
-}
-.kind-header.kind-shell-contact > .container { max-width: 1536px; height: 74px; padding: 0 37px; }
-.kind-header.kind-shell-contact nav { gap: 43px; }
-.kind-header.kind-shell-contact nav a.active::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -11px;
-  width: 7px;
-  height: 4px;
-  border-radius: 999px;
-  background: #4b1cff;
-  transform: translateX(-50%);
-}
-.kind-header.kind-shell-contact .kind-login,
-.kind-header.kind-shell-contact .kind-start { border-radius: 5px; height: 36px; }
-.kind-header.kind-shell-contact .kind-login { border-color: #5a2cff; color: #2210a8; padding: 0 30px; }
-.kind-header.kind-shell-contact .kind-start {
-  min-width: 108px;
-  background: linear-gradient(135deg, #4d19f7, #2f10de);
-  box-shadow: 0 10px 24px rgba(63, 26, 233, .22);
-}
-.kind-header.kind-shell-contact .kind-new { color: #551cf2; background: #efe8ff; }
+/* kind-shell-contact: contact page uses the same header style as every other page */
 
 .contact-page {
   overflow: hidden;
