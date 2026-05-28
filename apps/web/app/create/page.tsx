@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { KindFundShell, TopBar, KFIcon } from '../../components/KindFundApp';
+import { createClient } from '../../lib/supabase-browser';
 
 // ─────────────────────────────────────────────
 // Types
@@ -73,6 +74,30 @@ export default function CreatePage() {
   const [aiLoading, setAiLoading]     = useState(false);
   const [error, setError]             = useState('');
   const [publishedSlug, setPublishedSlug] = useState('');
+  const [userName, setUserName]       = useState<string | null>(null);
+  const [userEmail, setUserEmail]     = useState<string | undefined>(undefined);
+  const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
+
+  // Fetch the logged-in user once so the shell shows their real name
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      setUserEmail(user.email ?? undefined);
+      // Try to pull display name + avatar from the profiles table
+      void supabase
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setUserName((data as { full_name?: string | null; avatar_url?: string | null }).full_name ?? null);
+            setUserAvatarUrl((data as { full_name?: string | null; avatar_url?: string | null }).avatar_url ?? null);
+          }
+        });
+    });
+  }, []);
 
   const [form, setForm] = useState<FormState>({
     category: 'Medical',
@@ -318,7 +343,7 @@ export default function CreatePage() {
   });
 
   return (
-    <KindFundShell active="My Campaigns">
+    <KindFundShell active="My Campaigns" userName={userName} userEmail={userEmail} userAvatarUrl={userAvatarUrl}>
       <TopBar
         title="Create Campaign"
         subtitle="Launch a trusted fundraiser in minutes with AI Copilot."

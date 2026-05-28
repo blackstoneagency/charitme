@@ -59,13 +59,19 @@ export async function POST(request: NextRequest) {
   };
 
   // Try inserting with image_urls; fall back gracefully if column doesn't exist yet
+  // PostgREST schema-cache miss = PGRST204; PostgreSQL undefined_column = 42703
+  const isImageUrlsError = (err: { code?: string; message?: string } | null) =>
+    err != null &&
+    (err.code === 'PGRST204' || err.code === '42703') &&
+    (err.message ?? '').includes('image_urls');
+
   let result = await supabaseAdmin
     .from('campaigns')
     .insert({ ...baseInsert, image_urls: imageUrls ?? [] } as typeof baseInsert)
     .select('id, slug')
     .single();
 
-  if (result.error?.code === '42703' && result.error.message?.includes('image_urls')) {
+  if (isImageUrlsError(result.error)) {
     // Column not yet migrated — insert without it
     result = await supabaseAdmin
       .from('campaigns')
