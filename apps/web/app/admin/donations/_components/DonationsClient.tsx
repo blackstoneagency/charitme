@@ -486,7 +486,6 @@ function NoteModal({
               value={note}
               onChange={e => setNote(e.target.value)}
               placeholder="Enter internal note visible only to admins…"
-              // eslint-disable-next-line jsx-a11y/no-autofocus
               autoFocus
             />
           </div>
@@ -577,8 +576,6 @@ function DetailView({
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [successType, setSuccessType] = useState<SuccessType | null>(null);
   const [actionErr, setActionErr] = useState('');
-
-  useEffect(() => { setDetail(initialDetail); }, [initialDetail]);
 
   async function handleToggleSpam() {
     setSpamLoading(true);
@@ -856,7 +853,6 @@ export default function DonationsClient({
 }: DonationsClientProps) {
   // View state
   const [viewState, setViewState] = useState<ViewState>('overview');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<DonationDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
@@ -943,7 +939,7 @@ export default function DonationsClient({
       return (
         <DetailView
           initialDetail={detail}
-          onBack={() => { setViewState('overview'); setDetail(null); setSelectedId(null); }}
+          onBack={() => { setViewState('overview'); setDetail(null); }}
           onRefresh={fetchDetail}
         />
       );
@@ -1030,7 +1026,7 @@ export default function DonationsClient({
             <div
               key={d.id}
               style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer' }}
-              onClick={() => { setSelectedId(d.id); fetchDetail(d.id); }}
+              onClick={() => { fetchDetail(d.id); }}
               onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
@@ -1146,7 +1142,7 @@ export default function DonationsClient({
               <div
                 key={d.id}
                 style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
-                onClick={() => { setSelectedId(d.id); fetchDetail(d.id); }}
+                onClick={() => { fetchDetail(d.id); }}
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
@@ -1287,7 +1283,7 @@ export default function DonationsClient({
                 {donations.filter(d => d.status === 'refunded').map((d, i, arr) => (
                   <div key={d.id}
                     style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 130px', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < arr.length - 1 ? '1px solid #f0f2f8' : 'none', background: '#fff', cursor: 'pointer' }}
-                    onClick={() => { setSelectedId(d.id); fetchDetail(d.id); }}
+                    onClick={() => { fetchDetail(d.id); }}
                     onMouseEnter={e => (e.currentTarget.style.background = '#fff5f7')}
                     onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
                     <div style={{ fontSize: 13, fontWeight: 850, color: '#101944' }}>{d.donor_name}</div>
