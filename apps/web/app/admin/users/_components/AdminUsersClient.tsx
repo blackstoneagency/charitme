@@ -565,11 +565,21 @@ export default function AdminUsersClient({
   // ─── SECTION D: Add User ────────────────────────────────────────────────────
   if (view === 'add') {
     return (
-      <AddUserView
-        pending={isPending}
-        onCreate={(body) => mutateUser('/api/admin/users', 'POST', body, 'User created successfully.')}
-        onCancel={() => setView('list')}
-      />
+      <div>
+        {notice && (
+          <div className="admin-user-notice" style={{ margin: '0 32px 16px', color: notice.toLowerCase().includes('success') ? '#166534' : '#b91c1c', background: notice.toLowerCase().includes('success') ? '#dcfce7' : '#fee2e2', borderColor: notice.toLowerCase().includes('success') ? '#bbf7d0' : '#fecaca' }}>
+            {notice}
+          </div>
+        )}
+        <AddUserView
+          pending={isPending}
+          onCreate={(body) => {
+            setNotice('');
+            mutateUser('/api/admin/users', 'POST', body, 'User created successfully.');
+          }}
+          onCancel={() => { setNotice(''); setView('list'); }}
+        />
+      </div>
     );
   }
 
@@ -1000,34 +1010,157 @@ function SettingsTab({
   onSave: (body: Record<string, unknown>, success: string) => void;
   pending: boolean;
 }) {
+  const [fullName, setFullName] = useState(user.name);
+  const [email, setEmail] = useState(user.email);
+  const [role, setRole] = useState(user.role.toLowerCase());
+  const [status, setStatus] = useState<string>(user.status);
+  const [timezone, setTimezone] = useState(user.timezone);
+  const [currency, setCurrency] = useState(user.currency.toUpperCase());
+  const [plan, setPlan] = useState(user.plan);
   const [verified, setVerified] = useState(user.identityVerified);
+  const [newPassword, setNewPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+
+  function genPassword() {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
+    const pw = Array.from({ length: 14 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    setNewPassword(pw);
+    setShowPw(true);
+  }
+
+  function handleSave() {
+    const body: Record<string, unknown> = {
+      fullName: fullName.trim(),
+      email: email.trim().toLowerCase(),
+      role,
+      status,
+      timezone,
+      currency: currency.toLowerCase(),
+      plan: plan.toLowerCase(),
+      identityVerified: verified,
+    };
+    if (newPassword.trim()) body.newPassword = newPassword.trim();
+    onSave(body, 'User updated successfully.');
+  }
+
+  const pwValid = !newPassword || newPassword.length >= 8;
+
   return (
     <div className="users-tab-content">
-      <div className="users-add-form" style={{ padding: 0, maxWidth: 420 }}>
-        {[
-          ['Currency', user.currency.toUpperCase()],
-          ['Timezone', user.timezone],
-          ['Plan', user.plan],
-        ].map(([label, val]) => (
-          <div className="users-detail-row" key={label} style={{ borderBottom: '1px solid #f5f7fc', padding: '10px 0' }}>
-            <span style={{ color: '#66708d', fontWeight: 700, fontSize: 13 }}>{label}</span>
-            <span style={{ fontWeight: 850, color: '#0f1238', fontSize: 13 }}>{val}</span>
+      <div style={{ maxWidth: 480, display: 'grid', gap: 18 }}>
+
+        <div className="users-add-field">
+          <label>Full Name</label>
+          <input className="users-add-input" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" />
+        </div>
+
+        <div className="users-add-field">
+          <label>Email Address</label>
+          <input className="users-add-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
+        </div>
+
+        <div className="users-add-field">
+          <label>
+            New Password
+            <span style={{ fontWeight: 600, color: '#8c9ab5', marginLeft: 6, fontSize: 11 }}>(leave blank to keep current)</span>
+          </label>
+          <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
+            <input
+              className="users-add-input"
+              type={showPw ? 'text' : 'password'}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Min 8 characters"
+              style={{ flex: 1 }}
+              autoComplete="new-password"
+            />
+            <button type="button" onClick={() => setShowPw((v) => !v)}
+              style={{ position: 'absolute', right: 90, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#8c9ab5', fontSize: 13, padding: '0 6px' }}>
+              {showPw ? '🙈' : '👁'}
+            </button>
+            <button type="button" onClick={genPassword}
+              style={{ height: 42, padding: '0 12px', border: '1.5px solid #dfe3f0', borderRadius: 10, background: '#f8f7ff', color: '#551cf2', fontSize: 12, fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              Generate
+            </button>
           </div>
-        ))}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
-          <span style={{ color: '#66708d', fontWeight: 700, fontSize: 13, minWidth: 140 }}>Identity Verified</span>
-          <label className="users-add-check">
+          {newPassword && (
+            <small style={{ color: newPassword.length >= 8 ? '#166534' : '#b91c1c', fontSize: 11, marginTop: 3 }}>
+              {newPassword.length >= 8 ? `✓ ${newPassword.length} characters` : `⚠ Need at least 8 (${newPassword.length} entered)`}
+            </small>
+          )}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="users-add-field">
+            <label>Role</label>
+            <select className="users-add-select" value={role} onChange={(e) => setRole(e.target.value)}>
+              {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+            </select>
+          </div>
+          <div className="users-add-field">
+            <label>Status</label>
+            <select className="users-add-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Suspended">Suspended</option>
+            </select>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="users-add-field">
+            <label>Plan</label>
+            <select className="users-add-select" value={plan} onChange={(e) => setPlan(e.target.value)}>
+              <option value="free">Free</option>
+              <option value="pro">Pro</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </div>
+          <div className="users-add-field">
+            <label>Currency</label>
+            <select className="users-add-select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              {['USD', 'EUR', 'GBP', 'CAD', 'AUD'].map((c) => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="users-add-field">
+          <label>Timezone</label>
+          <select className="users-add-select" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+            {[
+              'America/New_York', 'America/Chicago', 'America/Denver',
+              'America/Los_Angeles', 'America/Phoenix', 'America/Anchorage',
+              'Pacific/Honolulu', 'Europe/London', 'Europe/Paris',
+              'Europe/Berlin', 'Asia/Tokyo', 'Asia/Shanghai',
+              'Australia/Sydney', 'UTC',
+            ].map((tz) => <option key={tz}>{tz}</option>)}
+          </select>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <label className="users-add-check" style={{ margin: 0 }}>
             <input type="checkbox" checked={verified} onChange={(e) => setVerified(e.target.checked)} />
-            {verified ? 'Yes' : 'No'}
+            Identity Verified
           </label>
         </div>
-        <div style={{ marginTop: 20 }}>
-          <button
-            className="kf-primary"
-            disabled={pending}
-            onClick={() => onSave({ identityVerified: verified }, 'Settings saved.')}
-          >
-            Save Settings
+
+        <div style={{ display: 'flex', gap: 12, paddingTop: 8, borderTop: '1px solid #f0f2f8' }}>
+          <button className="kf-primary" disabled={pending || !pwValid} onClick={handleSave}>
+            {pending ? 'Saving…' : 'Save Changes'}
+          </button>
+          <button type="button" className="kf-outline" disabled={pending}
+            onClick={() => {
+              setFullName(user.name);
+              setEmail(user.email);
+              setRole(user.role.toLowerCase());
+              setStatus(user.status);
+              setTimezone(user.timezone);
+              setCurrency(user.currency.toUpperCase());
+              setPlan(user.plan);
+              setVerified(user.identityVerified);
+              setNewPassword('');
+            }}>
+            Reset
           </button>
         </div>
       </div>
@@ -1045,17 +1178,27 @@ function AddUserView({
   onCancel: () => void;
 }) {
   const [sendWelcome, setSendWelcome] = useState(true);
+  const [showPw, setShowPw] = useState(false);
+  const [password, setPassword] = useState('');
+
+  function genPassword() {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
+    setPassword(Array.from({ length: 14 }, () => chars[Math.floor(Math.random() * chars.length)]).join(''));
+    setShowPw(true);
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    onCreate({
-      fullName: String(form.get('fullName') ?? ''),
-      email: String(form.get('email') ?? ''),
+    const body: Record<string, unknown> = {
+      fullName: String(form.get('fullName') ?? '').trim(),
+      email: String(form.get('email') ?? '').trim(),
       role: String(form.get('role') ?? 'donor'),
       status: String(form.get('status') ?? 'Active'),
       sendWelcome,
-    });
+    };
+    if (password.trim()) body.password = password.trim();
+    onCreate(body);
   }
 
   return (
@@ -1086,6 +1229,44 @@ function AddUserView({
       </div>
 
       <div className="users-add-field">
+        <label htmlFor="addPassword">
+          Password
+          <span style={{ fontWeight: 600, color: '#8c9ab5', marginLeft: 6, fontSize: 11 }}>(leave blank to auto-generate)</span>
+        </label>
+        <div style={{ position: 'relative', display: 'flex', gap: 8 }}>
+          <input
+            id="addPassword"
+            className="users-add-input"
+            type={showPw ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Min 8 characters"
+            style={{ flex: 1, paddingRight: 44 }}
+            autoComplete="new-password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPw((v) => !v)}
+            style={{ position: 'absolute', right: 90, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#8c9ab5', fontSize: 13, padding: '0 6px' }}
+          >
+            {showPw ? '🙈' : '👁'}
+          </button>
+          <button
+            type="button"
+            onClick={genPassword}
+            style={{ height: 42, padding: '0 12px', border: '1.5px solid #dfe3f0', borderRadius: 10, background: '#f8f7ff', color: '#551cf2', fontSize: 12, fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+          >
+            Generate
+          </button>
+        </div>
+        {password && (
+          <small style={{ color: password.length >= 8 ? '#166534' : '#b91c1c', fontSize: 11, marginTop: 3 }}>
+            {password.length >= 8 ? `✓ ${password.length} characters` : `⚠ Need at least 8 characters (${password.length} entered)`}
+          </small>
+        )}
+      </div>
+
+      <div className="users-add-field">
         <label htmlFor="addRole">Role</label>
         <select id="addRole" className="users-add-select" name="role">
           {ROLE_OPTIONS.map((r) => <option key={r}>{r}</option>)}
@@ -1103,12 +1284,14 @@ function AddUserView({
 
       <label className="users-add-check">
         <input type="checkbox" checked={sendWelcome} onChange={(e) => setSendWelcome(e.target.checked)} />
-        Send welcome email
+        Send welcome / set-password email
       </label>
 
       <div className="users-add-actions">
         <button className="kf-outline" type="button" onClick={onCancel}>Cancel</button>
-        <button className="kf-primary" type="submit" disabled={pending}>Create User</button>
+        <button className="kf-primary" type="submit" disabled={pending || (password.length > 0 && password.length < 8)}>
+          {pending ? 'Creating…' : 'Create User'}
+        </button>
       </div>
     </form>
   );

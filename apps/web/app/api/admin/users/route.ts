@@ -1,3 +1,4 @@
+import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { randomPassword, rolesFor, verifyAdmin } from './_auth';
@@ -9,6 +10,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null) as {
     fullName?: string;
     email?: string;
+    password?: string;
     role?: string;
     status?: string;
     sendWelcome?: boolean;
@@ -23,7 +25,8 @@ export async function POST(request: NextRequest) {
   const role = body?.role ?? 'donor';
   const status = body?.status ?? 'Active';
   const roles = rolesFor(role, status);
-  const password = randomPassword();
+  const rawPw = body?.password?.trim();
+  const password = rawPw && rawPw.length >= 8 ? rawPw : randomPassword();
 
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
