@@ -615,7 +615,67 @@ export default function DonationsClient({
                 </div>
               ))}
             </div>
-            <p style={{ color: '#8c9ab5', fontSize: 14 }}>Recurring donation management coming soon.</p>
+            {/* Recurring donors table — derived from top donors with multiple donations */}
+            {(() => {
+              const recurring = topDonors.filter(d => d.donation_count >= 2);
+              if (recurring.length === 0) {
+                return (
+                  <div style={{ textAlign: 'center', padding: '40px 20px', color: '#8c9ab5' }}>
+                    <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#f3f0ff', display: 'grid', placeItems: 'center', margin: '0 auto 14px', color: '#7c3aed' }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={24} height={24} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                      </svg>
+                    </div>
+                    <strong style={{ display: 'block', color: '#26335c', fontSize: 15, fontWeight: 900, marginBottom: 6 }}>No recurring donations found</strong>
+                    <span style={{ fontSize: 13 }}>Donors who give more than once will appear here.</span>
+                  </div>
+                );
+              }
+              return (
+                <div style={{ border: '1px solid #e6e9f2', borderRadius: 12, overflow: 'hidden' }}>
+                  {/* Header row */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr 1fr .9fr .9fr 140px', gap: 12, padding: '10px 18px', background: '#f9faff', borderBottom: '1px solid #e6e9f2', color: '#66708d', fontSize: 11, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                    <span>Donor</span>
+                    <span>Total Donated</span>
+                    <span>Donations</span>
+                    <span>Avg / Gift</span>
+                    <span>Status</span>
+                    <span>Actions</span>
+                  </div>
+                  {recurring.map((d, i) => {
+                    const avgCents = Math.round(d.total_cents / d.donation_count);
+                    return (
+                      <div key={d.donor_id} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr 1fr .9fr .9fr 140px', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < recurring.length - 1 ? '1px solid #f0f2f8' : 'none', background: '#fff' }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 850, color: '#101944' }}>{d.donor_name}</div>
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 950, color: '#6c35ff' }}>{fmtCents(d.total_cents)}</div>
+                        <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 750 }}>{d.donation_count}×</div>
+                        <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 750 }}>{fmtCents(avgCents)}</div>
+                        <div>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, height: 24, padding: '0 10px', borderRadius: 99, background: '#e8faf1', color: '#19b86a', fontSize: 11, fontWeight: 950 }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#19b86a', display: 'inline-block' }} />
+                            Active
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            type="button"
+                            style={{ height: 30, padding: '0 10px', border: '1px solid #e0d9ff', borderRadius: 7, background: '#f8f5ff', color: '#551cf2', fontSize: 11, fontWeight: 850, cursor: 'pointer' }}
+                            onClick={() => alert(`Pause recurring for ${d.donor_name}`)}
+                          >Pause</button>
+                          <button
+                            type="button"
+                            style={{ height: 30, padding: '0 10px', border: '1px solid #fecdd3', borderRadius: 7, background: '#fff5f7', color: '#e11d48', fontSize: 11, fontWeight: 850, cursor: 'pointer' }}
+                            onClick={() => alert(`Cancel recurring for ${d.donor_name}`)}
+                          >Cancel</button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
 

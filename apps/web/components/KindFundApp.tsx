@@ -24,6 +24,7 @@ export type ShellProps = {
   active: string;
   children: React.ReactNode;
   mode?: 'dashboard' | 'admin';
+  hasAdminAccess?: boolean;
   userName?: string | null;
   userEmail?: string;
   userRole?: string | null;
@@ -107,7 +108,7 @@ export function Logo() {
   );
 }
 
-export function KindFundShell({ active, children, mode = 'dashboard', userName, userEmail, userRole, userAvatarUrl }: ShellProps) {
+export function KindFundShell({ active, children, mode = 'dashboard', hasAdminAccess = false, userName, userEmail, userRole, userAvatarUrl }: ShellProps) {
   const nav = mode === 'admin' ? adminNav : dashboardNav;
   const displayName = userName || userEmail?.split('@')[0] || (mode === 'admin' ? 'Admin User' : 'My Account');
   const displayRole = userRole || (mode === 'admin' ? 'Super Admin' : 'Organizer');
@@ -129,6 +130,24 @@ export function KindFundShell({ active, children, mode = 'dashboard', userName, 
             );
           })}
         </nav>
+        {mode === 'dashboard' && hasAdminAccess && (
+          <div className="kf-admin-nav">
+            <div className="kf-section-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} width={13} height={13} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
+              </svg>
+              Admin
+            </div>
+            <nav className="kf-nav">
+              {adminNav.map(([label, href, icon]) => (
+                <Link key={href} href={href}>
+                  <KFIcon name={icon} />
+                  <span>{label}</span>
+                </Link>
+              ))}
+            </nav>
+          </div>
+        )}
         <div className="kf-pro">
           <div><KFIcon name="crown" /> KindFund Pro</div>
           <p>Unlock advanced tools, insights, automation, and priority support.</p>

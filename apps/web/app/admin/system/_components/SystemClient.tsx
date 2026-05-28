@@ -48,16 +48,232 @@ export default function SystemClient({ categories, overview, recentActivity }: P
     { label: 'Disk Space', value: 26, color: '#2f80ed' },
   ];
 
+  type FieldDef = { label: string; type: 'text' | 'password' | 'number' | 'select' | 'toggle' | 'textarea'; placeholder?: string; options?: string[]; defaultValue?: string; hint?: string };
+  type SectionDef = { title: string; fields: FieldDef[] };
+
+  function getCategoryConfig(cat: string): SectionDef[] {
+    switch (cat) {
+      case 'Security':
+        return [
+          {
+            title: 'Authentication',
+            fields: [
+              { label: 'Session Timeout (minutes)', type: 'number', placeholder: '60', defaultValue: '60', hint: 'How long before inactive sessions expire' },
+              { label: 'Max Login Attempts', type: 'number', placeholder: '5', defaultValue: '5', hint: 'Lockout after this many failed logins' },
+              { label: 'Two-Factor Authentication', type: 'toggle', defaultValue: 'true', hint: 'Require 2FA for all admin accounts' },
+              { label: 'Password Min Length', type: 'number', placeholder: '12', defaultValue: '12' },
+            ],
+          },
+          {
+            title: 'Access Control',
+            fields: [
+              { label: 'Admin IP Allowlist', type: 'textarea', placeholder: '192.168.1.0/24\n10.0.0.0/8', hint: 'One CIDR range per line. Leave empty to allow all.' },
+              { label: 'Force HTTPS', type: 'toggle', defaultValue: 'true' },
+              { label: 'HSTS Max Age (seconds)', type: 'number', placeholder: '31536000', defaultValue: '31536000' },
+            ],
+          },
+        ];
+      case 'Email':
+        return [
+          {
+            title: 'SMTP Server',
+            fields: [
+              { label: 'SMTP Host', type: 'text', placeholder: 'smtp.sendgrid.net', hint: 'Outbound mail server hostname' },
+              { label: 'SMTP Port', type: 'number', placeholder: '587', defaultValue: '587' },
+              { label: 'SMTP Username', type: 'text', placeholder: 'apikey' },
+              { label: 'SMTP Password', type: 'password', placeholder: '••••••••••••' },
+              { label: 'Encryption', type: 'select', options: ['TLS', 'SSL', 'None'], defaultValue: 'TLS' },
+            ],
+          },
+          {
+            title: 'Sender Identity',
+            fields: [
+              { label: 'From Name', type: 'text', placeholder: 'KindFund', defaultValue: 'KindFund' },
+              { label: 'From Email', type: 'text', placeholder: 'noreply@kindfund.org' },
+              { label: 'Reply-To Email', type: 'text', placeholder: 'support@kindfund.org' },
+            ],
+          },
+        ];
+      case 'Payment':
+        return [
+          {
+            title: 'Stripe',
+            fields: [
+              { label: 'Stripe Publishable Key', type: 'text', placeholder: 'pk_live_…', hint: 'Baked into the client bundle at build time' },
+              { label: 'Stripe Secret Key', type: 'password', placeholder: 'sk_live_…' },
+              { label: 'Webhook Signing Secret', type: 'password', placeholder: 'whsec_…' },
+            ],
+          },
+          {
+            title: 'Fees & Limits',
+            fields: [
+              { label: 'Platform Fee (%)', type: 'number', placeholder: '3', defaultValue: '3', hint: 'Percentage charged on each successful donation' },
+              { label: 'Minimum Donation (cents)', type: 'number', placeholder: '100', defaultValue: '100', hint: 'e.g. 100 = $1.00' },
+              { label: 'Maximum Donation (cents)', type: 'number', placeholder: '1000000', defaultValue: '1000000' },
+              { label: 'Currency', type: 'select', options: ['USD', 'CAD', 'GBP', 'EUR', 'AUD'], defaultValue: 'USD' },
+            ],
+          },
+        ];
+      case 'Integrations':
+        return [
+          {
+            title: 'Webhook Endpoints',
+            fields: [
+              { label: 'Donation Success Webhook URL', type: 'text', placeholder: 'https://your-app.com/hooks/donation', hint: 'POST request on every completed donation' },
+              { label: 'Campaign Created Webhook URL', type: 'text', placeholder: 'https://your-app.com/hooks/campaign' },
+              { label: 'Refund Webhook URL', type: 'text', placeholder: 'https://your-app.com/hooks/refund' },
+              { label: 'Webhook Secret', type: 'password', placeholder: 'whsec_custom_…', hint: 'HMAC-SHA256 signing key for outbound webhooks' },
+            ],
+          },
+          {
+            title: 'Third-Party Services',
+            fields: [
+              { label: 'Google Analytics ID', type: 'text', placeholder: 'G-XXXXXXXXXX' },
+              { label: 'Intercom App ID', type: 'text', placeholder: 'abc12345' },
+              { label: 'Slack Webhook URL', type: 'text', placeholder: 'https://hooks.slack.com/services/…', hint: 'Post admin alerts to Slack' },
+            ],
+          },
+        ];
+      case 'Notifications':
+        return [
+          {
+            title: 'In-App Notifications',
+            fields: [
+              { label: 'New Donation Alerts', type: 'toggle', defaultValue: 'true' },
+              { label: 'Campaign Milestone Alerts', type: 'toggle', defaultValue: 'true' },
+              { label: 'Failed Payment Alerts', type: 'toggle', defaultValue: 'true' },
+              { label: 'New User Signup Alerts', type: 'toggle', defaultValue: 'false' },
+            ],
+          },
+          {
+            title: 'Email Notifications',
+            fields: [
+              { label: 'Admin Digest Frequency', type: 'select', options: ['Real-time', 'Hourly', 'Daily', 'Weekly', 'Disabled'], defaultValue: 'Daily' },
+              { label: 'Digest Recipient Emails', type: 'textarea', placeholder: 'admin@example.com\nops@example.com', hint: 'One email per line' },
+            ],
+          },
+        ];
+      case 'Storage':
+        return [
+          {
+            title: 'File Storage',
+            fields: [
+              { label: 'Storage Provider', type: 'select', options: ['Supabase Storage', 'AWS S3', 'Cloudflare R2'], defaultValue: 'Supabase Storage' },
+              { label: 'Bucket Name', type: 'text', placeholder: 'kindfund-assets' },
+              { label: 'Max Upload Size (MB)', type: 'number', placeholder: '10', defaultValue: '10' },
+              { label: 'Allowed File Types', type: 'text', placeholder: 'jpg,jpeg,png,gif,webp,pdf', defaultValue: 'jpg,jpeg,png,gif,webp,pdf' },
+            ],
+          },
+          {
+            title: 'CDN',
+            fields: [
+              { label: 'CDN Base URL', type: 'text', placeholder: 'https://cdn.kindfund.org', hint: 'Leave empty to use Supabase Storage URLs' },
+              { label: 'Image Optimization', type: 'toggle', defaultValue: 'true', hint: 'Auto-compress uploaded images via Next.js Image' },
+            ],
+          },
+        ];
+      case 'System Maintenance':
+        return [
+          {
+            title: 'Backups',
+            fields: [
+              { label: 'Automatic Backups', type: 'toggle', defaultValue: 'true' },
+              { label: 'Backup Frequency', type: 'select', options: ['Hourly', 'Daily', 'Weekly'], defaultValue: 'Daily' },
+              { label: 'Backup Retention (days)', type: 'number', placeholder: '30', defaultValue: '30' },
+              { label: 'Backup Destination', type: 'text', placeholder: 's3://my-bucket/backups', hint: 'S3-compatible URI for backup exports' },
+            ],
+          },
+          {
+            title: 'Maintenance Mode',
+            fields: [
+              { label: 'Enable Maintenance Mode', type: 'toggle', defaultValue: 'false', hint: 'Shows a maintenance page to all non-admin visitors' },
+              { label: 'Maintenance Message', type: 'textarea', placeholder: "We're performing scheduled maintenance. Back soon!", defaultValue: "We're performing scheduled maintenance. Back soon!" },
+            ],
+          },
+        ];
+      case 'Feature Flags':
+        return [
+          {
+            title: 'Platform Features',
+            fields: [
+              { label: 'Recurring Donations', type: 'toggle', defaultValue: 'true', hint: 'Allow donors to set up recurring giving' },
+              { label: 'Anonymous Donations', type: 'toggle', defaultValue: 'true' },
+              { label: 'Team Fundraising', type: 'toggle', defaultValue: 'true', hint: 'Let organizers create team campaigns' },
+              { label: 'Gift Aid (UK)', type: 'toggle', defaultValue: 'false' },
+              { label: 'Corporate Matching', type: 'toggle', defaultValue: 'false', hint: 'Enable employer match contribution prompts' },
+              { label: 'Crypto Donations (beta)', type: 'toggle', defaultValue: 'false' },
+            ],
+          },
+        ];
+      case 'Advanced':
+        return [
+          {
+            title: 'Performance',
+            fields: [
+              { label: 'API Rate Limit (req/min)', type: 'number', placeholder: '120', defaultValue: '120' },
+              { label: 'Cache TTL (seconds)', type: 'number', placeholder: '3600', defaultValue: '3600', hint: 'Server-side cache lifetime for public pages' },
+              { label: 'Database Pool Size', type: 'number', placeholder: '10', defaultValue: '10' },
+            ],
+          },
+          {
+            title: 'Debugging',
+            fields: [
+              { label: 'Verbose Logging', type: 'toggle', defaultValue: 'false', hint: 'Log all API requests to stdout — not for production' },
+              { label: 'Error Reporting DSN', type: 'text', placeholder: 'https://…@sentry.io/12345', hint: 'Sentry or compatible DSN for error tracking' },
+            ],
+          },
+        ];
+      default:
+        return [];
+    }
+  }
+
   function renderCategoryDetail() {
     if (activeCategory !== 'General') {
+      const sections = getCategoryConfig(activeCategory);
       return (
-        <div style={{ padding: '32px', textAlign: 'center', color: '#67718e', fontSize: 14 }}>
-          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#f0eaff', display: 'grid', placeItems: 'center', margin: '0 auto 16px', color: '#551cf2' }}>
-            <KFIcon name={categories.find(c => c.label === activeCategory)?.icon ?? 'gear'} />
+        <div style={{ padding: '22px 26px', display: 'grid', gap: 28 }}>
+          {sections.map(section => (
+            <div key={section.title}>
+              <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 950, color: '#0f1238' }}>{section.title}</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                {section.fields.map(field => (
+                  <div key={field.label} style={{ gridColumn: field.type === 'textarea' ? 'span 2' : 'span 1' }}>
+                    <label style={{ display: 'grid', gap: 5 }}>
+                      <span style={{ fontSize: 12, fontWeight: 850, color: '#26335c' }}>{field.label}</span>
+                      {field.hint && <span style={{ fontSize: 11, color: '#8c9ab5', marginTop: -2 }}>{field.hint}</span>}
+                      {field.type === 'toggle' ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 }}>
+                          <div style={{ width: 40, height: 22, borderRadius: 99, background: field.defaultValue === 'true' ? '#6c35ff' : '#d1d5e8', position: 'relative', cursor: 'pointer', flexShrink: 0, transition: 'background .2s' }}>
+                            <div style={{ position: 'absolute', top: 3, left: field.defaultValue === 'true' ? 21 : 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
+                          </div>
+                          <span style={{ fontSize: 12, color: field.defaultValue === 'true' ? '#551cf2' : '#66708d', fontWeight: 750 }}>{field.defaultValue === 'true' ? 'Enabled' : 'Disabled'}</span>
+                        </div>
+                      ) : field.type === 'select' ? (
+                        <select defaultValue={field.defaultValue} style={{ height: 40, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 12px', fontSize: 13, fontWeight: 750, color: '#101842', background: '#fff', marginTop: 2 }}>
+                          {(field.options ?? []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                      ) : field.type === 'textarea' ? (
+                        <textarea defaultValue={field.defaultValue ?? ''} placeholder={field.placeholder} rows={3} style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 12px', fontSize: 13, fontWeight: 750, color: '#101842', resize: 'vertical', fontFamily: 'inherit', marginTop: 2 }} />
+                      ) : (
+                        <input type={field.type} defaultValue={field.defaultValue ?? ''} placeholder={field.placeholder} style={{ height: 40, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 12px', fontSize: 13, fontWeight: 750, color: '#101842', marginTop: 2 }} />
+                      )}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
+            <button type="button" style={{ height: 40, padding: '0 20px', border: 0, borderRadius: 9, background: 'linear-gradient(135deg, #6c35ff, #551cf2)', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer', boxShadow: '0 8px 18px rgba(85,28,242,.18)' }}
+              onClick={() => alert(`${activeCategory} settings saved`)}>
+              Save Changes
+            </button>
+            <button type="button" style={{ height: 40, padding: '0 16px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', color: '#26335c', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}
+              onClick={() => {}}>
+              Reset to Defaults
+            </button>
           </div>
-          <strong style={{ display: 'block', fontSize: 16, fontWeight: 950, color: '#0f1238', marginBottom: 8 }}>{activeCategory}</strong>
-          <p style={{ margin: 0 }}>{categories.find(c => c.label === activeCategory)?.description}</p>
-          <p style={{ margin: '16px 0 0', fontSize: 12, color: '#8c95b2' }}>Configuration panel coming soon.</p>
         </div>
       );
     }
