@@ -2,7 +2,8 @@ import 'server-only';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
-import SystemClient, { type SystemCategory, type RecentActivity, type SystemOverview } from './_components/SystemClient';
+import SystemClient, { type SystemCategory, type RecentActivity, type SystemOverview, type AllSettings } from './_components/SystemClient';
+import { DEFAULTS } from '../../../lib/settings-defaults';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,13 @@ function relativeTime(iso: string): string {
   return `${days}d ago`;
 }
 
+function mergeCategory(raw: unknown, defaults: Record<string, unknown>): Record<string, unknown> {
+  const stored = (raw && typeof raw === 'object' && !Array.isArray(raw))
+    ? (raw as Record<string, unknown>)
+    : {};
+  return { ...defaults, ...stored };
+}
+
 export default async function SystemSettingsPage() {
   await requireAdmin();
 
@@ -35,6 +43,7 @@ export default async function SystemSettingsPage() {
     webhookEventsResult,
     webhookErrorsResult,
     integrationCountResult,
+    settingsResult,
   ] = await Promise.all([
     supabaseAdmin
       .from('webhook_events')
@@ -49,6 +58,11 @@ export default async function SystemSettingsPage() {
       .from('integration_connections')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'connected'),
+    supabaseAdmin
+      .from('platform_settings')
+      .select('config')
+      .eq('id', 1)
+      .maybeSingle(),
   ]);
 
   type WebhookEvent = {
@@ -95,6 +109,24 @@ export default async function SystemSettingsPage() {
     errorRate,
   };
 
+  // Merge stored config with defaults per category
+  const rawConfig = (settingsResult.data?.config && typeof settingsResult.data.config === 'object' && !Array.isArray(settingsResult.data.config))
+    ? (settingsResult.data.config as Record<string, unknown>)
+    : {};
+
+  const initialSettings: AllSettings = {
+    general: mergeCategory(rawConfig.general, DEFAULTS.general),
+    security: mergeCategory(rawConfig.security, DEFAULTS.security),
+    email: mergeCategory(rawConfig.email, DEFAULTS.email),
+    payment: mergeCategory(rawConfig.payment, DEFAULTS.payment),
+    integrations: mergeCategory(rawConfig.integrations, DEFAULTS.integrations),
+    notifications: mergeCategory(rawConfig.notifications, DEFAULTS.notifications),
+    storage: mergeCategory(rawConfig.storage, DEFAULTS.storage),
+    maintenance: mergeCategory(rawConfig.maintenance, DEFAULTS.maintenance),
+    flags: mergeCategory(rawConfig.flags, DEFAULTS.flags),
+    advanced: mergeCategory(rawConfig.advanced, DEFAULTS.advanced),
+  };
+
   return (
     <KindFundShell active="System Settings" mode="admin">
       <TopBar
@@ -106,6 +138,7 @@ export default async function SystemSettingsPage() {
         categories={categories}
         overview={overview}
         recentActivity={recentActivity}
+        initialSettings={initialSettings}
       />
     </KindFundShell>
   );
