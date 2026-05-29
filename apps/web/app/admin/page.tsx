@@ -73,6 +73,40 @@ export default async function AdminDashboardPage() {
     supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
   ]);
 
+  // Surface DB connectivity errors immediately
+  if (donationsResult.error) {
+    const errMsg = donationsResult.error.message;
+    const isKeyMissing = errMsg.includes('not set') || errMsg.includes('Invalid API');
+    return (
+      <KindFundShell active="Dashboard" mode="admin">
+        <div style={{ padding: '40px 32px', maxWidth: 720 }}>
+          <div style={{ padding: '24px 28px', background: '#fff0f3', border: '1.5px solid #fecdd3', borderRadius: 14 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 900, color: '#be123c', margin: '0 0 10px' }}>
+              ❌ {isKeyMissing ? 'Missing Supabase credentials' : 'Database connection error'}
+            </h2>
+            <p style={{ fontFamily: 'monospace', fontSize: 13, color: '#be123c', margin: '0 0 14px', lineHeight: 1.7 }}>
+              {donationsResult.error.code}: {errMsg}
+            </p>
+            <div style={{ fontSize: 14, color: '#334064', lineHeight: 1.8 }}>
+              <strong>Steps to fix:</strong>
+              <ol style={{ paddingLeft: 20, margin: '8px 0' }}>
+                <li>Go to <strong>Vercel → your project → Settings → Environment Variables</strong></li>
+                <li>Set <code>SUPABASE_SERVICE_ROLE_KEY</code> to your Supabase service role key</li>
+                <li>Set <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to your Supabase anon key</li>
+                <li>Set <code>NEXT_PUBLIC_SUPABASE_URL</code> to <code>https://nengpvscsgukotheptri.supabase.co</code></li>
+                <li>Redeploy from Vercel dashboard (env vars require a new deploy)</li>
+                <li>Then run <code>schema.sql</code> in Supabase SQL Editor if not done yet</li>
+              </ol>
+            </div>
+            <a href="/api/health" target="_blank" style={{ display: 'inline-block', marginTop: 12, padding: '10px 22px', background: '#6c35ff', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+              Run Diagnostic → /api/health
+            </a>
+          </div>
+        </div>
+      </KindFundShell>
+    );
+  }
+
   // Total donations
   const allDonations = (donationsResult.data ?? []) as { amount_cents: number }[];
   const totalDonationsCents = allDonations.reduce((s, d) => s + (d.amount_cents ?? 0), 0);

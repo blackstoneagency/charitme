@@ -14,10 +14,10 @@ export default async function AdminCampaignsPage() {
   await requireAdmin();
 
   const [
-    { data: campaigns, count: totalCount },
-    { count: activeCount },
-    { count: draftCount },
-    { count: attentionCount },
+    campaignsResult,
+    activeResult,
+    draftResult,
+    attentionResult,
   ] = await Promise.all([
     supabaseAdmin
       .from('campaigns')
@@ -31,6 +31,40 @@ export default async function AdminCampaignsPage() {
     supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).eq('status', 'draft'),
     supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).in('status', ['paused', 'frozen', 'rejected']),
   ]);
+
+  // Surface DB errors clearly in the admin UI
+  const dbError = campaignsResult.error;
+  const { data: campaigns, count: totalCount } = campaignsResult;
+  const { count: activeCount } = activeResult;
+  const { count: draftCount } = draftResult;
+  const { count: attentionCount } = attentionResult;
+
+  if (dbError) {
+    return (
+      <KindFundShell active="Campaigns" mode="admin">
+        <TopBar title="Campaigns" subtitle="Database error" actions={<></>} />
+        <div style={{ padding: '32px', maxWidth: 700 }}>
+          <div style={{ padding: '20px 24px', background: '#fff0f3', border: '1.5px solid #fecdd3', borderRadius: 14 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 900, color: '#be123c', margin: '0 0 8px' }}>
+              ❌ Supabase Query Error
+            </h2>
+            <p style={{ fontFamily: 'monospace', fontSize: 13, color: '#be123c', margin: '0 0 12px', lineHeight: 1.6 }}>
+              {dbError.code}: {dbError.message}
+            </p>
+            <p style={{ fontSize: 13, color: '#64748b', margin: 0, lineHeight: 1.6 }}>
+              <strong>Likely causes:</strong>
+              <br />1. <code>SUPABASE_SERVICE_ROLE_KEY</code> is not set in Vercel environment variables
+              <br />2. The database schema has not been applied — run <code>schema.sql</code> in the Supabase SQL Editor
+              <br />3. The &ldquo;campaigns&rdquo; table does not exist — verify in Supabase → Table Editor
+            </p>
+            <a href="/api/health" target="_blank" style={{ display: 'inline-block', marginTop: 16, padding: '8px 20px', background: '#6c35ff', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+              Run Diagnostic → /api/health
+            </a>
+          </div>
+        </div>
+      </KindFundShell>
+    );
+  }
 
   type CampaignRow = {
     id: string;

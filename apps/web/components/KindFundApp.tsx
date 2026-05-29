@@ -61,6 +61,7 @@ const adminNav = [
   ['Settings', '/admin/settings', 'gear'],
   ['Audit Log', '/admin/audit-log', 'audit'],
   ['System Settings', '/admin/system', 'sliders'],
+  ['⚙ Setup Diagnostic', '/admin/setup', 'check'],
 ] as const;
 
 export const sampleImages = {
