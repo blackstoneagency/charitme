@@ -174,9 +174,6 @@ export default async function MyCampaignsPage({
             {/* Card header */}
             <div className="kf-card-head">
               <h2>Campaigns</h2>
-              <div className="kf-card-tools">
-                <button>Sort by: Newest First</button>
-              </div>
             </div>
 
             {/* Tab bar */}

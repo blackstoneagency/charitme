@@ -41,7 +41,6 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default function ReportsClient({ reports, categories, totalReports, scheduledReports, totalExports, dataPoints }: Props) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [exportReport, setExportReport] = useState<ReportItem | null>(null);
   const [exportFmt, setExportFmt] = useState<'CSV' | 'Excel' | 'PDF'>('CSV');
   const [exportLoading, setExportLoading] = useState(false);
@@ -176,13 +175,6 @@ export default function ReportsClient({ reports, categories, totalReports, sched
         <section className="kf-card" style={{ overflow: 'hidden' }}>
           <div className="kf-card-head">
             <h2>All Reports</h2>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="kf-primary"
-              style={{ height: 40, padding: '0 18px', fontSize: 13 }}
-            >
-              + Create Report
-            </button>
           </div>
 
           {/* Search + category filter */}
@@ -255,44 +247,6 @@ export default function ReportsClient({ reports, categories, totalReports, sched
           )}
         </section>
       </div>
-
-      {/* Create Report Modal */}
-      {showCreateModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999 }} onClick={() => setShowCreateModal(false)}>
-          <div style={{ width: 440, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ margin: '0 0 20px', fontSize: 20, fontWeight: 950 }}>Create New Report</h2>
-            <div style={{ display: 'grid', gap: 14 }}>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' }}>
-                Report Name
-                <input style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 13 }} placeholder="e.g. Monthly Donation Summary" />
-              </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' }}>
-                Category
-                <select style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 13, background: '#fff' }}>
-                  <option>Finance</option>
-                  <option>Campaigns</option>
-                  <option>Users</option>
-                  <option>Engagement</option>
-                  <option>System</option>
-                </select>
-              </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' }}>
-                Date Range
-                <select style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 13, background: '#fff' }}>
-                  <option>Last 7 days</option>
-                  <option>Last 30 days</option>
-                  <option>Last 90 days</option>
-                  <option>All time</option>
-                </select>
-              </label>
-            </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowCreateModal(false)} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontWeight: 850, cursor: 'pointer' }}>Cancel</button>
-              <button className="kf-primary" style={{ height: 42, padding: '0 22px' }} onClick={() => setShowCreateModal(false)}>Generate Report</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Export Modal */}
       {exportReport && (

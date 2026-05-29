@@ -69,11 +69,7 @@ export default async function AdminContentPage() {
       <TopBar
         title="Content"
         subtitle="Campaign updates, posts, and content from Supabase."
-        actions={
-          <button className="kf-primary" style={{ height: 44, padding: '0 20px', fontSize: 13, fontWeight: 900 }}>
-            + Create Content
-          </button>
-        }
+        actions={<></>}
       />
       <ContentClient
         totalContent={totalContent}

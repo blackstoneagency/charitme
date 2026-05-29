@@ -200,8 +200,8 @@ export default async function AdminReportsPage() {
         reports={reports}
         categories={categories}
         totalReports={reports.length}
-        scheduledReports={3}
-        totalExports={12}
+        scheduledReports={0}
+        totalExports={0}
         dataPoints={dataPoints}
       />
     </KindFundShell>

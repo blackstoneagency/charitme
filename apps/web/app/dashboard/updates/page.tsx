@@ -131,9 +131,6 @@ export default async function UpdatesPage({
         <section className="kf-card kf-table-card">
           <div className="kf-card-head">
             <h2>Campaign Updates</h2>
-            <div className="kf-card-tools">
-              <button>Sort by: Newest First</button>
-            </div>
           </div>
 
           {/* Tabs */}
@@ -188,7 +185,7 @@ export default async function UpdatesPage({
                       {fmtDate(update.created_at)}
                     </small>
                   </div>
-                  <span className="kf-row-action">Read More</span>
+                  <Link href={`/dashboard/campaigns/${update.campaign_id}`} className="kf-row-action">View Campaign</Link>
                 </div>
               ))}
             </div>

@@ -103,7 +103,7 @@ export default async function SystemSettingsPage() {
 
   const overview: SystemOverview = {
     healthStatus: webhookErrors === 0 ? 'Healthy' : 'Degraded',
-    servicesOnline: 18,
+    servicesOnline: categories.length, // number of configured system modules
     integrationsActive,
     scheduledJobs,
     errorRate,

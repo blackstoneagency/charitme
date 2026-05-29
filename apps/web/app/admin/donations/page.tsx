@@ -1,4 +1,5 @@
 import 'server-only';
+import Link from 'next/link';
 import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -170,9 +171,14 @@ export default async function AdminDonationsPage() {
         title="Donations"
         subtitle="Manage donations, donors, and transactions from start to finish."
         actions={
-          <button className="kf-primary" style={{ height: 44, padding: '0 20px', fontSize: 13, fontWeight: 900 }}>
-            + Export
-          </button>
+          <Link
+            href="/api/exports/donations"
+            download
+            className="kf-primary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 20px', fontSize: 13, fontWeight: 900, textDecoration: 'none' }}
+          >
+            Export CSV
+          </Link>
         }
       />
       <DonationsClient

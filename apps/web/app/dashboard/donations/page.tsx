@@ -276,9 +276,6 @@ export default async function DonationsPage({
             {/* Card header */}
             <div className="kf-card-head">
               <h2>Donation History</h2>
-              <div className="kf-card-tools">
-                <button>Sort by: Newest First</button>
-              </div>
             </div>
 
             {/* Tab bar */}

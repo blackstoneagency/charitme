@@ -128,11 +128,7 @@ export default async function AdminPayoutsPage() {
       <TopBar
         title="Payouts"
         subtitle="Manage payout requests, review details, and take action."
-        actions={
-          <button className="kf-primary" style={{ height: 44, padding: '0 20px', fontSize: 13, fontWeight: 900 }}>
-            + Create Payout
-          </button>
-        }
+        actions={<></>}
       />
       <PayoutsClient
         totalCents={totalCents}

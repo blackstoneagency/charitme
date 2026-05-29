@@ -51,6 +51,10 @@ export default async function AdminDashboardPage() {
     weeklyDonationsResult,
     integrationCountResult,
     webhookErrorsResult,
+    donStatusCompletedResult,
+    donStatusPendingResult,
+    donStatusRefundedResult,
+    donStatusFailedResult,
   ] = await Promise.all([
     supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed'),
     supabaseAdmin.from('donations').select('donor_id, amount_cents').eq('status', 'completed').gte('created_at', monthAgo.toISOString()),
@@ -63,6 +67,10 @@ export default async function AdminDashboardPage() {
     supabaseAdmin.from('donations').select('amount_cents, created_at').eq('status', 'completed').gte('created_at', eightWeeksAgo.toISOString()),
     supabaseAdmin.from('integration_connections').select('id', { count: 'exact', head: true }).eq('status', 'connected'),
     supabaseAdmin.from('webhook_events').select('id', { count: 'exact', head: true }).not('processing_error', 'is', null),
+    supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
+    supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'refunded'),
+    supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
   ]);
 
   // Total donations
@@ -208,14 +216,20 @@ export default async function AdminDashboardPage() {
     value: Math.round(value / 100), // in dollars
   }));
 
-  // Sources (from utm_source - fallback to synthetic distribution based on amounts)
+  // Donation status breakdown — real counts from DB
+  const cntCompleted = donStatusCompletedResult.count ?? 0;
+  const cntPending = donStatusPendingResult.count ?? 0;
+  const cntRefunded = donStatusRefundedResult.count ?? 0;
+  const cntFailed = donStatusFailedResult.count ?? 0;
+  const cntTotal = cntCompleted + cntPending + cntRefunded + cntFailed || 1;
+  const pct = (n: number) => Math.round((n / cntTotal) * 100);
+
   const sources: SourceItem[] = [
-    { label: 'Direct / Email', pct: 38, color: '#6c35ff' },
-    { label: 'Social Media', pct: 27, color: '#ec3fb4' },
-    { label: 'Referral', pct: 18, color: '#2f80ed' },
-    { label: 'Search', pct: 11, color: '#19b86a' },
-    { label: 'Other', pct: 6, color: '#f59e0b' },
-  ];
+    { label: 'Completed', pct: pct(cntCompleted), color: '#19b86a' },
+    { label: 'Pending', pct: pct(cntPending), color: '#f59e0b' },
+    { label: 'Refunded', pct: pct(cntRefunded), color: '#8c9ab5' },
+    { label: 'Failed', pct: pct(cntFailed), color: '#ef4444' },
+  ].filter(s => s.pct > 0);
 
   // System health services
   const webhookErrors = webhookErrorsResult.count ?? 0;
@@ -235,12 +249,7 @@ export default async function AdminDashboardPage() {
       <TopBar
         title="Admin Dashboard"
         subtitle="High-level platform overview — all data live from Supabase."
-        actions={
-          <>
-            <button className="kf-outline"><KFIconInline name="filter" /> Filters</button>
-            <button className="kf-outline"><KFIconInline name="upload" /> Export</button>
-          </>
-        }
+        actions={<></>}
       />
       <AdminDashboardClient
         metrics={metrics}
@@ -254,22 +263,3 @@ export default async function AdminDashboardPage() {
   );
 }
 
-// Small inline icon helper for server component actions (server-rendered HTML)
-function KFIconInline({ name }: { name: string }) {
-  // We use KFIcon from KindFundApp which is client-compatible (just JSX)
-  const icons: Record<string, string> = {
-    filter: 'M22 3H2l8 9v7l4 2v-9l8-9Z',
-    upload: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M17 8l-5-5-5 5M12 3v12',
-  };
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="kf-icon">
-      {name === 'filter' && <path d={icons.filter} />}
-      {name === 'upload' && (
-        <>
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <path d="M17 8l-5-5-5 5M12 3v12" />
-        </>
-      )}
-    </svg>
-  );
-}

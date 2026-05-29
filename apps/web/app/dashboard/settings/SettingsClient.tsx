@@ -473,7 +473,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: `${i.color}15`, border: `1px solid ${i.color}30`, display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 950, color: i.color, flexShrink: 0 }}>{i.name.charAt(0)}</div>
                     <div className="kf-setpref-info"><strong>{i.name}</strong><span>{i.desc}</span></div>
                   </div>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', padding: '4px 12px', border: '1px solid var(--b2)', borderRadius: 8 }}>Coming Soon</span>
+                  <Link href="/dashboard/integrations" style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)', padding: '4px 12px', border: '1px solid var(--green)', borderRadius: 8, textDecoration: 'none' }}>Connect →</Link>
                 </div>
               ))}
             </div>

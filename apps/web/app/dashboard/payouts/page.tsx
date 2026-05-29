@@ -159,9 +159,6 @@ export default async function PayoutsPage({
         <section className="kf-card kf-table-card">
           <div className="kf-card-head">
             <h2>Payout History</h2>
-            <div className="kf-card-tools">
-              <button>Sort by: Newest First</button>
-            </div>
           </div>
 
           {/* Tabs */}

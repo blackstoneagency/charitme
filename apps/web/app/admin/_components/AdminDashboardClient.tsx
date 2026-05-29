@@ -202,7 +202,7 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
         </section>
         {/* Donut */}
         <section className="kf-card kf-donut-card">
-          <div className="kf-card-head"><h2>Donations by Source</h2></div>
+          <div className="kf-card-head"><h2>Donations by Status</h2></div>
           <SourceDonut sources={sources} total={totalStr} />
         </section>
       </div>

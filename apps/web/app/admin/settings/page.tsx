@@ -39,7 +39,7 @@ export default async function AdminSettingsPage() {
     platformName: 'KindFund',
     tagline: 'Fundraising that thinks for you.',
     supportEmail: adminEmail,
-    supportPhone: '+1 (800) 555-KIND',
+    supportPhone: '',
     timezone: 'America/New_York',
     dateFormat: 'MM/DD/YYYY',
     currency: 'USD',
