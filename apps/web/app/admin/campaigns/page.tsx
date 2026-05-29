@@ -22,6 +22,8 @@ export default async function AdminCampaignsPage() {
     supabaseAdmin
       .from('campaigns')
       .select(
+        // image_urls and video_url are added via ALTER TABLE — may not exist in older DBs.
+        // They default to [] and null in the mapping below if missing.
         'id, slug, title, tagline, description, status, raised_amount, goal_amount, backer_count, category, user_id, trust_status, campaign_health_score, payout_frozen, featured, pinned, cover_image_url, image_urls, video_url, deadline, beneficiary_name, created_at',
         { count: 'exact' },
       )
@@ -32,9 +34,25 @@ export default async function AdminCampaignsPage() {
     supabaseAdmin.from('campaigns').select('*', { count: 'exact', head: true }).in('status', ['paused', 'frozen', 'rejected']),
   ]);
 
+  // If query failed due to missing new columns (image_urls / video_url),
+  // retry without those columns so the page still works on older schemas.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let campaignsResult2: any = campaignsResult;
+  if (campaignsResult.error) {
+    const { code, message } = campaignsResult.error;
+    const isMissingCol = code === '42703' || (message ?? '').includes('image_urls') || (message ?? '').includes('video_url');
+    if (isMissingCol) {
+      campaignsResult2 = await supabaseAdmin
+        .from('campaigns')
+        .select('id, slug, title, tagline, description, status, raised_amount, goal_amount, backer_count, category, user_id, trust_status, campaign_health_score, payout_frozen, featured, pinned, cover_image_url, deadline, beneficiary_name, created_at', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .limit(200);
+    }
+  }
+
   // Surface DB errors clearly in the admin UI
-  const dbError = campaignsResult.error;
-  const { data: campaigns, count: totalCount } = campaignsResult;
+  const dbError = campaignsResult2.error;
+  const { data: campaigns, count: totalCount } = campaignsResult2;
   const { count: activeCount } = activeResult;
   const { count: draftCount } = draftResult;
   const { count: attentionCount } = attentionResult;

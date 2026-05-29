@@ -224,6 +224,8 @@ export default function AdminCampaignsClient({ campaigns: initialCampaigns }: Pr
   function patchCampaign(patch: Record<string, unknown>, optimistic?: Partial<AdminCampaign>) {
     if (!selected) return;
     const id = selected.id;
+    // Snapshot pre-edit state for rollback
+    const selectedSnapshot = { ...selected };
     if (optimistic) {
       const updated = { ...selected, ...optimistic };
       setSelected(updated);
@@ -235,17 +237,25 @@ export default function AdminCampaignsClient({ campaigns: initialCampaigns }: Pr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(patch),
       });
-      const result = await res.json().catch(() => ({})) as { ok?: boolean; error?: string };
+      const result = await res.json().catch(() => ({})) as { ok?: boolean; error?: string; warning?: string; campaign?: Partial<AdminCampaign> };
       if (!res.ok) {
-        setNotice(result.error ?? 'Update failed.');
-        // Revert
-        if (optimistic && selected) {
-          setSelected(selected);
-          setCampaigns(cs => cs.map(c => c.id === id ? selected : c));
+        setNotice(`❌ ${result.error ?? 'Update failed. Please try again.'}`);
+        // Revert optimistic update
+        if (optimistic) {
+          setCampaigns(cs => cs.map(c => c.id === id ? { ...c, ...selectedSnapshot } : c));
+          setSelected(prev => prev ? { ...prev, ...selectedSnapshot } : prev);
         }
       } else {
-        setNotice('Campaign updated successfully.');
-        setTimeout(() => setNotice(''), 3000);
+        // Merge confirmed DB values back into state
+        if (result.campaign) {
+          setCampaigns(cs => cs.map(c => c.id === id ? { ...c, ...result.campaign } : c));
+          setSelected(prev => prev ? { ...prev, ...result.campaign } : prev);
+        }
+        const msg = result.warning
+          ? `✓ Saved (note: ${result.warning})`
+          : '✓ Campaign saved successfully.';
+        setNotice(msg);
+        setTimeout(() => setNotice(''), 4000);
       }
     });
   }
@@ -1101,7 +1111,21 @@ function EditForm({
   const [mediaError, setMediaError] = useState('');
   const coverInputRef = React.useRef<HTMLInputElement>(null);
   const galleryInputRef = React.useRef<HTMLInputElement>(null);
+  // Track the campaign id we last initialised draft from
+  const lastInitId = React.useRef(campaign.id);
 
+  // When a DIFFERENT campaign is opened, reset the draft entirely.
+  // When the SAME campaign's prop changes (after an optimistic update from the
+  // parent), we only reset fields the user has NOT yet locally modified.
+  // The simplest safe approach: re-initialise if the id changes.
+  React.useEffect(() => {
+    if (campaign.id !== lastInitId.current) {
+      setDraft(campaign);
+      lastInitId.current = campaign.id;
+    }
+  }, [campaign]);
+
+  // Deep-compare so Save button only enables when there are actual changes
   const changed = JSON.stringify(draft) !== JSON.stringify(campaign);
 
   function upd<K extends keyof AdminCampaign>(k: K, v: AdminCampaign[K]) {
