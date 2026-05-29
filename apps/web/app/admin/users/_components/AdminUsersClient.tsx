@@ -78,7 +78,15 @@ type Props = {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10;
-const ROLE_OPTIONS = ['donor', 'organizer', 'nonprofit', 'beneficiary', 'admin'];
+// All possible role values in the jsonb roles array
+const ROLE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'admin',       label: 'Admin'       },
+  { value: 'user',        label: 'User'        },
+  { value: 'donor',       label: 'Donor'       },
+  { value: 'organizer',   label: 'Organizer'   },
+  { value: 'nonprofit',   label: 'Nonprofit'   },
+  { value: 'beneficiary', label: 'Beneficiary' },
+];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -145,13 +153,16 @@ function initials(name: string): string {
 
 function rolePillColor(role: string): React.CSSProperties {
   const map: Record<string, { bg: string; color: string }> = {
-    Admin: { bg: '#f0eaff', color: '#6c35ff' },
-    Organizer: { bg: '#e0f2fe', color: '#0369a1' },
-    Nonprofit: { bg: '#dcfce7', color: '#166534' },
-    Donor: { bg: '#fef9c3', color: '#854d0e' },
+    Admin:       { bg: '#f0eaff', color: '#6c35ff' },
+    Organizer:   { bg: '#e0f2fe', color: '#0369a1' },
+    Nonprofit:   { bg: '#dcfce7', color: '#166534' },
+    Donor:       { bg: '#fef9c3', color: '#854d0e' },
     Beneficiary: { bg: '#fce7f3', color: '#9d174d' },
+    User:        { bg: '#f1f5f9', color: '#475569' },
   };
-  const c = map[role] ?? { bg: '#f1f5f9', color: '#334155' };
+  // Normalize — 'admin' → 'Admin', etc.
+  const key = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+  const c = map[key] ?? { bg: '#f1f5f9', color: '#334155' };
   return { background: c.bg, color: c.color, padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 850 };
 }
 
@@ -250,9 +261,11 @@ export default function AdminUsersClient({
   const filtered = useMemo(() => {
     const now = new Date();
     const list = users.filter((u) => {
-      const hay = `${u.name} ${u.email} ${u.role} ${u.status}`.toLowerCase();
+      const hay = `${u.name} ${u.email} ${u.role} ${u.status} ${u.roles.join(' ')}`.toLowerCase();
       const matchQ = !query || hay.includes(query.toLowerCase());
-      const matchR = roleFilter === 'All Roles' || u.roles.includes(roleFilter.toLowerCase());
+      // roleFilter is already a lowercase value like 'admin', 'donor', 'user'
+      const matchR = roleFilter === 'All Roles' || u.roles.includes(roleFilter);
+      // statusFilter values: 'Active', 'Inactive', 'Suspended' — match AdminUser.status exactly
       const matchS = statusFilter === 'All Status' || u.status === statusFilter;
       let matchJ = true;
       if (joinedFilter !== 'All Time') {
@@ -346,15 +359,15 @@ export default function AdminUsersClient({
         {/* KPI Row */}
         <div className="users-kpi-row">
           {[
-            { label: 'Total Users', value: totals.total.toLocaleString(), change: '+12%', up: true },
-            { label: 'Active Users', value: totals.active.toLocaleString(), change: '+8%', up: true },
-            { label: 'New Users (30d)', value: totals.newUsers.toLocaleString(), change: '+15%', up: true },
-            { label: 'Suspended', value: totals.suspended.toLocaleString(), change: '+2%', up: false },
-          ].map(({ label, value, change, up }) => (
+            { label: 'Total Users',    value: totals.total.toLocaleString(),    sub: 'all time' },
+            { label: 'Active Users',   value: totals.active.toLocaleString(),   sub: `${totals.total > 0 ? Math.round((totals.active / totals.total) * 100) : 0}% of total` },
+            { label: 'New (30 days)',  value: totals.newUsers.toLocaleString(), sub: 'last 30 days' },
+            { label: 'Suspended',      value: totals.suspended.toLocaleString(), sub: 'requires review' },
+          ].map(({ label, value, sub }) => (
             <div className="users-kpi-card" key={label}>
               <span>{label}</span>
               <strong>{value}</strong>
-              <small className={up ? 'up' : 'down'}>{change}</small>
+              <small style={{ color: '#64748b' }}>{sub}</small>
             </div>
           ))}
         </div>
@@ -424,8 +437,8 @@ export default function AdminUsersClient({
             />
           </label>
           <select className="users-filter-select" value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(0); }}>
-            <option>All Roles</option>
-            {ROLE_OPTIONS.map((r) => <option key={r}>{r}</option>)}
+            <option value="All Roles">All Roles</option>
+            {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
           <select className="users-filter-select" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}>
             <option>All Status</option>
@@ -697,7 +710,7 @@ export default function AdminUsersClient({
                   title="Change Role"
                   onClick={() => {
                     const newRole = prompt('New role (donor / organizer / nonprofit / admin):');
-                    if (newRole && ROLE_OPTIONS.includes(newRole.toLowerCase())) {
+                    if (newRole && ROLE_OPTIONS.some(o => o.value === newRole.toLowerCase())) {
                       updateUser({ role: newRole.toLowerCase(), action: newRole.toLowerCase() }, `Role changed to ${newRole}.`);
                     }
                   }}
@@ -813,7 +826,7 @@ export default function AdminUsersClient({
                 overflow: 'hidden',
               }}>
                 {[
-                  { label: 'Change Role', action: () => { setShowMoreActions(false); const r = prompt('New role:'); if (r && ROLE_OPTIONS.includes(r.toLowerCase())) updateUser({ action: r.toLowerCase() }, `Role changed to ${r}.`); } },
+                  { label: 'Change Role', action: () => { setShowMoreActions(false); const r = prompt('New role (admin/user/donor/organizer/nonprofit):'); if (r && ROLE_OPTIONS.some(o => o.value === r.toLowerCase())) updateUser({ action: r.toLowerCase() }, `Role changed to ${r}.`); } },
                   { label: 'Reset Password', action: () => { setShowMoreActions(false); updateUser({ action: 'reset-password' }, 'Password reset email sent.'); } },
                   { label: 'Suspend User', action: () => { setShowMoreActions(false); updateUser({ action: 'suspend' }, 'User suspended.'); } },
                   { label: 'Activate User', action: () => { setShowMoreActions(false); updateUser({ action: 'activate' }, 'User activated.'); } },
@@ -1094,7 +1107,7 @@ function SettingsTab({
           <div className="users-add-field">
             <label>Role</label>
             <select className="users-add-select" value={role} onChange={(e) => setRole(e.target.value)}>
-              {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
+              {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </div>
           <div className="users-add-field">
@@ -1269,7 +1282,7 @@ function AddUserView({
       <div className="users-add-field">
         <label htmlFor="addRole">Role</label>
         <select id="addRole" className="users-add-select" name="role">
-          {ROLE_OPTIONS.map((r) => <option key={r}>{r}</option>)}
+          {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
         </select>
       </div>
 

@@ -11,14 +11,15 @@ import AdminUsersClient, {
 
 export const dynamic = 'force-dynamic';
 
-// ─── Row types ────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type ProfileRow = {
   id: string;
   full_name: string | null;
   email: string | null;
   avatar_url: string | null;
-  roles: unknown;
+  roles: unknown;            // jsonb — could be array, string, or null
+  status: string | null;
   identity_verified: boolean | null;
   plan: string | null;
   timezone: string | null;
@@ -45,27 +46,39 @@ type DonationRow = {
   created_at: string;
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function parseRoleList(roles: unknown): string[] {
-  if (Array.isArray(roles)) return roles.map(String).filter(Boolean);
-  if (typeof roles === 'string') {
-    try { return JSON.parse(roles) as string[]; } catch { return [roles]; }
+/** Parse roles jsonb → string[].  Handles arrays, stringified arrays, plain strings. */
+function parseRoles(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
+  if (typeof raw === 'string' && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+      return [raw];
+    } catch {
+      return [raw];
+    }
   }
   return ['donor'];
 }
 
+/** First display-friendly role from the roles array. */
 function primaryRole(roles: string[]): string {
-  if (roles.includes('admin')) return 'Admin';
-  if (roles.includes('nonprofit')) return 'Nonprofit';
-  if (roles.includes('organizer')) return 'Organizer';
+  if (roles.includes('admin'))       return 'Admin';
+  if (roles.includes('nonprofit'))   return 'Nonprofit';
+  if (roles.includes('organizer'))   return 'Organizer';
   if (roles.includes('beneficiary')) return 'Beneficiary';
+  if (roles.includes('user'))        return 'User';
   return 'Donor';
 }
 
-function userStatus(roles: string[]): AdminUser['status'] {
-  if (roles.includes('suspended')) return 'Suspended';
-  if (roles.includes('inactive')) return 'Inactive';
+/** Derive status from roles array (suspended/inactive override) or profile.status column. */
+function deriveStatus(roles: string[], profileStatus: string | null): AdminUser['status'] {
+  if (roles.includes('suspended'))   return 'Suspended';
+  if (roles.includes('inactive'))    return 'Inactive';
+  if (profileStatus === 'suspended') return 'Suspended';
+  if (profileStatus === 'inactive')  return 'Inactive';
   return 'Active';
 }
 
@@ -78,11 +91,11 @@ function fmtMoney(cents: number): string {
 function buildWeeklyGrowth(createdAts: string[]): GrowthPoint[] {
   const now = new Date();
   return Array.from({ length: 8 }, (_, weekOffset) => {
-    const end = new Date(now);
+    const end   = new Date(now);
     end.setDate(end.getDate() - weekOffset * 7);
     const start = new Date(end);
     start.setDate(start.getDate() - 7);
-    const count = createdAts.filter((ts) => {
+    const count = createdAts.filter(ts => {
       const d = new Date(ts);
       return d >= start && d < end;
     }).length;
@@ -98,105 +111,49 @@ function buildWeeklyGrowth(createdAts: string[]): GrowthPoint[] {
 export default async function AdminUsersPage() {
   await requireAdmin();
 
-  // ── 1. Fetch ALL auth users (source of truth) ─────────────────────────────
-  const { data: authData, error: authListError } = await supabaseAdmin.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  });
+  // ── 1. PRIMARY SOURCE: public.profiles ───────────────────────────────────
+  //    Direct query — no auth.admin.listUsers dependency.
+  const { data: profileData, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('id, full_name, email, avatar_url, roles, identity_verified, plan, timezone, currency, created_at, updated_at')
+    .order('created_at', { ascending: false });
 
-  if (authListError) {
-    console.error('[AdminUsersPage] listUsers error:', authListError.message);
+  // Temporary debug logging (remove after confirmed working)
+  console.log('[AdminUsersPage] profiles returned:', profileData?.length ?? 0);
+  console.log('[AdminUsersPage] supabase error:', profileError ?? null);
+
+  if (profileError) {
+    console.error('[AdminUsersPage] profiles query error:', profileError.code, profileError.message);
   }
 
-  const authUsers = authData?.users ?? [];
-  const authIds = authUsers.map((u) => u.id);
+  const profiles = (profileData ?? []) as ProfileRow[];
 
-  // ── 2. Fetch existing profiles ────────────────────────────────────────────
-  const profileMap = new Map<string, ProfileRow>();
+  // ── 2. SUPPLEMENTAL: campaigns & donations for stats ─────────────────────
+  //    Wrapped in try/catch — page works even if these tables are empty.
+  let campaignRows: CampaignRow[] = [];
+  let donationRows: DonationRow[] = [];
 
-  if (authIds.length > 0) {
-    const { data: existingProfiles } = await supabaseAdmin
-      .from('profiles')
-      .select('id, full_name, email, avatar_url, roles, identity_verified, plan, timezone, currency, created_at, updated_at')
-      .in('id', authIds);
-
-    for (const p of (existingProfiles ?? []) as ProfileRow[]) {
-      profileMap.set(p.id, p);
-    }
+  try {
+    const [{ data: campaigns }, { data: donations }] = await Promise.all([
+      supabaseAdmin
+        .from('campaigns')
+        .select('id, user_id, title, status, raised_amount, backer_count, created_at')
+        .order('created_at', { ascending: false })
+        .limit(1000),
+      supabaseAdmin
+        .from('donations')
+        .select('id, donor_id, amount_cents, status, created_at')
+        .order('created_at', { ascending: false })
+        .limit(1000),
+    ]);
+    campaignRows = (campaigns ?? []) as CampaignRow[];
+    donationRows = (donations ?? []) as DonationRow[];
+  } catch (e) {
+    console.warn('[AdminUsersPage] campaigns/donations fetch failed (non-fatal):', e);
   }
-
-  // ── 3. Auto-create missing profiles so all auth users are editable ────────
-  const missingAuthUsers = authUsers.filter((u) => !profileMap.has(u.id));
-  if (missingAuthUsers.length > 0) {
-    const rows = missingAuthUsers.map((u) => {
-      const metaName = u.user_metadata?.full_name as string | null | undefined;
-      const derivedName = metaName?.trim() || u.email?.split('@')[0] || 'User';
-      const metaRoles = Array.isArray(u.user_metadata?.roles)
-        ? (u.user_metadata.roles as string[])
-        : ['donor'];
-      return {
-        id: u.id,
-        email: u.email ?? '',
-        full_name: derivedName,
-        roles: metaRoles,
-        identity_verified: Boolean(u.email_confirmed_at),
-        plan: 'free',
-        timezone: 'America/New_York',
-        currency: 'usd',
-        created_at: u.created_at,
-        updated_at: u.updated_at ?? u.created_at,
-      };
-    });
-
-    const { data: created } = await supabaseAdmin
-      .from('profiles')
-      .upsert(rows, { onConflict: 'id' })
-      .select('id, full_name, email, avatar_url, roles, identity_verified, plan, timezone, currency, created_at, updated_at');
-
-    for (const p of (created ?? []) as ProfileRow[]) {
-      profileMap.set(p.id, p);
-    }
-
-    // If upsert returned nothing (can happen with RLS), build minimal entries
-    for (const row of rows) {
-      if (!profileMap.has(row.id)) {
-        profileMap.set(row.id, {
-          id: row.id,
-          email: row.email,
-          full_name: row.full_name,
-          avatar_url: null,
-          roles: row.roles,
-          identity_verified: row.identity_verified,
-          plan: row.plan,
-          timezone: row.timezone,
-          currency: row.currency,
-          created_at: row.created_at,
-          updated_at: row.updated_at,
-        });
-      }
-    }
-  }
-
-  // ── 4. Campaigns & donations (stats) ─────────────────────────────────────
-  const [{ data: campaigns }, { data: donations }] = await Promise.all([
-    supabaseAdmin
-      .from('campaigns')
-      .select('id, user_id, title, status, raised_amount, backer_count, created_at')
-      .order('created_at', { ascending: false })
-      .limit(1000),
-    supabaseAdmin
-      .from('donations')
-      .select('id, donor_id, amount_cents, status, created_at')
-      .order('created_at', { ascending: false })
-      .limit(1000),
-  ]);
-
-  const campaignRows = (campaigns ?? []) as CampaignRow[];
-  const donationRows = (donations ?? []) as DonationRow[];
 
   const campaignByUser = new Map<string, CampaignRow[]>();
   const donationByUser = new Map<string, DonationRow[]>();
-
   for (const c of campaignRows) {
     campaignByUser.set(c.user_id, [...(campaignByUser.get(c.user_id) ?? []), c]);
   }
@@ -205,121 +162,110 @@ export default async function AdminUsersPage() {
     donationByUser.set(d.donor_id, [...(donationByUser.get(d.donor_id) ?? []), d]);
   }
 
-  // ── 5. Build AdminUser records (auth-first merge) ─────────────────────────
-  const users: AdminUser[] = authUsers.map((authUser) => {
-    const profile = profileMap.get(authUser.id);
-
-    // Email: profile wins, then auth
-    const email = profile?.email || authUser.email || '';
-
-    // Name: profile wins, then auth metadata, then email-based fallback
-    const metaName = authUser.user_metadata?.full_name as string | null | undefined;
-    const fullName = profile?.full_name || metaName?.trim() || email.split('@')[0] || 'Unnamed User';
-
-    // Roles: profile wins, then auth metadata
-    const rawRoles = profile?.roles ?? authUser.user_metadata?.roles;
-    const roles = parseRoleList(rawRoles);
-
-    const createdAt = profile?.created_at ?? authUser.created_at;
-    const updatedAt = profile?.updated_at ?? authUser.updated_at ?? createdAt;
-
-    const userCampaigns = campaignByUser.get(authUser.id) ?? [];
-    const userDonations = donationByUser.get(authUser.id) ?? [];
+  // ── 3. Build AdminUser records directly from profiles ────────────────────
+  const users: AdminUser[] = profiles.map((profile) => {
+    const roles         = parseRoles(profile.roles);
+    const status        = deriveStatus(roles, profile.status ?? null);
+    const userCampaigns = campaignByUser.get(profile.id) ?? [];
+    const userDonations = donationByUser.get(profile.id) ?? [];
+    const updatedAt     = profile.updated_at ?? profile.created_at;
 
     return {
-      id: authUser.id,
-      name: fullName,
-      email,
-      avatarUrl: profile?.avatar_url ?? null,
+      id:               profile.id,
+      name:             profile.full_name || profile.email?.split('@')[0] || 'User',
+      email:            profile.email || '',
+      avatarUrl:        profile.avatar_url ?? null,
       roles,
-      role: primaryRole(roles),
-      status: userStatus(roles),
-      plan: profile?.plan ?? 'free',
-      identityVerified: Boolean(profile?.identity_verified ?? authUser.email_confirmed_at),
-      timezone: profile?.timezone ?? 'America/New_York',
-      currency: (profile?.currency ?? 'usd').toUpperCase(),
-      joinedAt: createdAt,
+      role:             primaryRole(roles),
+      status,
+      plan:             profile.plan ?? 'free',
+      identityVerified: Boolean(profile.identity_verified),
+      timezone:         profile.timezone ?? 'America/New_York',
+      currency:         (profile.currency ?? 'usd').toUpperCase(),
+      joinedAt:         profile.created_at,
       updatedAt,
-      campaignsCount: userCampaigns.length,
-      donationsCount: userDonations.length,
+      campaignsCount:   userCampaigns.length,
+      donationsCount:   userDonations.length,
       totalRaisedCents: userCampaigns.reduce((s, c) => s + (c.raised_amount ?? 0), 0),
-      totalDonatedCents: userDonations.reduce((s, d) => s + (d.amount_cents ?? 0), 0),
+      totalDonatedCents:userDonations.reduce((s, d) => s + (d.amount_cents ?? 0), 0),
       lastActivityAt:
         [updatedAt, userCampaigns[0]?.created_at, userDonations[0]?.created_at]
           .filter(Boolean)
           .sort()
-          .reverse()[0] ?? createdAt,
+          .reverse()[0] ?? profile.created_at,
     };
   });
 
-  // ── 6. Counts ─────────────────────────────────────────────────────────────
+  console.log('[AdminUsersPage] users built:', users.length);
+
+  // ── 4. Metrics ────────────────────────────────────────────────────────────
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  const totalCount = (authData as { total?: number } | null)?.total ?? users.length;
-  const newUsersCount = users.filter(
-    (u) => new Date(u.joinedAt) >= thirtyDaysAgo,
-  ).length;
+  const totals = {
+    total:     users.length,
+    active:    users.filter(u => u.status === 'Active').length,
+    newUsers:  users.filter(u => new Date(u.joinedAt) >= thirtyDaysAgo).length,
+    suspended: users.filter(u => u.status === 'Suspended').length,
+  };
 
-  // ── 7. Activities ─────────────────────────────────────────────────────────
+  // ── 5. Activity feed ──────────────────────────────────────────────────────
   const activities: AdminUserActivity[] = [];
   for (const c of campaignRows.slice(0, 80)) {
-    const user = users.find((u) => u.id === c.user_id);
+    const user = users.find(u => u.id === c.user_id);
     activities.push({
-      id: `campaign-${c.id}`,
-      userId: c.user_id,
-      userName: user?.name ?? 'Unknown',
-      type: 'Campaign',
-      title: `Campaign ${c.status}`,
-      detail: c.title,
-      amount: fmtMoney(c.raised_amount),
+      id:        `campaign-${c.id}`,
+      userId:    c.user_id,
+      userName:  user?.name ?? 'Unknown',
+      type:      'Campaign',
+      title:     `Campaign ${c.status}`,
+      detail:    c.title,
+      amount:    fmtMoney(c.raised_amount),
       createdAt: c.created_at,
     });
   }
   for (const d of donationRows.slice(0, 80)) {
     if (!d.donor_id) continue;
-    const user = users.find((u) => u.id === d.donor_id);
+    const user = users.find(u => u.id === d.donor_id);
     activities.push({
-      id: `donation-${d.id}`,
-      userId: d.donor_id,
-      userName: user?.name ?? 'Anonymous',
-      type: 'Donation',
-      title: `Donation ${d.status}`,
-      detail: 'Donation recorded',
-      amount: fmtMoney(d.amount_cents),
+      id:        `donation-${d.id}`,
+      userId:    d.donor_id,
+      userName:  user?.name ?? 'Anonymous',
+      type:      'Donation',
+      title:     `Donation ${d.status}`,
+      detail:    'Donation recorded',
+      amount:    fmtMoney(d.amount_cents),
       createdAt: d.created_at,
     });
   }
   activities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  // ── 8. Role summaries ─────────────────────────────────────────────────────
+  // ── 6. Role summaries ─────────────────────────────────────────────────────
   const roleSummaries: UserRoleSummary[] = [
-    { role: 'Super Admin', key: 'admin', description: 'Full platform access.', count: users.filter((u) => u.roles.includes('admin')).length, system: true },
-    { role: 'Organizer', key: 'organizer', description: 'Create and manage campaigns.', count: users.filter((u) => u.roles.includes('organizer')).length, system: false },
-    { role: 'Nonprofit', key: 'nonprofit', description: 'Manage nonprofit campaigns.', count: users.filter((u) => u.roles.includes('nonprofit')).length, system: false },
-    { role: 'Donor', key: 'donor', description: 'Donate and manage profile.', count: users.filter((u) => u.roles.includes('donor')).length, system: true },
+    { role: 'Super Admin', key: 'admin',       description: 'Full platform access.',         count: users.filter(u => u.roles.includes('admin')).length,       system: true  },
+    { role: 'Organizer',   key: 'organizer',   description: 'Create and manage campaigns.',  count: users.filter(u => u.roles.includes('organizer')).length,   system: false },
+    { role: 'Nonprofit',   key: 'nonprofit',   description: 'Manage nonprofit campaigns.',   count: users.filter(u => u.roles.includes('nonprofit')).length,   system: false },
+    { role: 'Donor',       key: 'donor',       description: 'Donate and manage profile.',    count: users.filter(u => u.roles.includes('donor')).length,       system: true  },
+    { role: 'User',        key: 'user',        description: 'Standard platform user.',       count: users.filter(u => u.roles.includes('user')).length,        system: true  },
   ];
 
-  const weeklyGrowth = buildWeeklyGrowth(users.map((u) => u.joinedAt));
-  const recentUsers = [...users].sort((a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime()).slice(0, 5);
+  const weeklyGrowth  = buildWeeklyGrowth(users.map(u => u.joinedAt));
+  const recentUsers   = [...users]
+    .sort((a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime())
+    .slice(0, 5);
 
   return (
     <KindFundShell active="Users" mode="admin">
       <TopBar
         title="Users"
-        subtitle="Manage platform users, roles, permissions, and account status."
+        subtitle={`${users.length.toLocaleString()} users · sourced from public.profiles`}
         actions={<></>}
       />
       <AdminUsersClient
         users={users}
         activities={activities}
         roles={roleSummaries}
-        totals={{
-          total: totalCount,
-          newUsers: newUsersCount,
-          active: users.filter((u) => u.status === 'Active').length,
-          suspended: users.filter((u) => u.status === 'Suspended').length,
-        }}
+        totals={totals}
         weeklyGrowth={weeklyGrowth}
         recentUsers={recentUsers}
       />
