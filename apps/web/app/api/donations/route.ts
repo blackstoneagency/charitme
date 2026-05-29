@@ -14,6 +14,7 @@ const DonateSchema = z.object({
   anonymous: z.boolean().optional(),
   coverProcessingFee: z.boolean().optional(),
   tipPercent: z.number().min(0).max(100).optional(),
+  donorEmail: z.string().email().optional(), // used for guest donations
 });
 
 export async function POST(request: NextRequest) {
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { campaignId, amountCents, message, anonymous, coverProcessingFee } = parsed.data;
+  const { campaignId, amountCents, message, anonymous, coverProcessingFee, donorEmail } = parsed.data;
   const tipPercent = parsed.data.tipPercent ?? Number(process.env.DEFAULT_DONOR_TIP_PERCENT ?? DEFAULT_DONOR_TIP_PERCENT);
   const tipCents = donorTip(amountCents, tipPercent);
   const processingFeeCents = coverProcessingFee ? processingFee(amountCents + tipCents) : 0;
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
     lineItems.push({
       price_data: {
         currency: 'usd',
-        product_data: { name: 'Optional GiveRise support tip' },
+        product_data: { name: 'Optional KindFund support tip' },
         unit_amount: tipCents,
       },
       quantity: 1,
@@ -88,9 +89,13 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  // Determine email for Stripe — authenticated user > provided guest email
+  const stripeEmail = user?.email ?? donorEmail ?? undefined;
+
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'payment',
     line_items: lineItems,
+    ...(stripeEmail ? { customer_email: stripeEmail } : {}),
     success_url: `${origin}/campaigns/${campaign.slug}?donated=1`,
     cancel_url: `${origin}/campaigns/${campaign.slug}`,
     metadata: {

@@ -35,11 +35,11 @@ export function fallbackAiCampaign(input: AiCampaignRequest): AiCampaignResponse
 
   return {
     title: `Help ${beneficiary} with ${category.toLowerCase()} support`,
-    story: `We are raising funds for ${beneficiary} because this need is urgent and real. Contributions will help cover the most important expenses, and updates will be shared through the GiveRise transparency ledger so donors can see progress and impact. ${input.notes}`,
+    story: `We are raising funds for ${beneficiary} because this need is urgent and real. Contributions will help cover the most important expenses, and updates will be shared through the KindFund transparency ledger so donors can see progress and impact. ${input.notes}`,
     socialCaption: `Please help ${beneficiary}. Every donation and share can make a real difference.`,
-    longPost: `I started a GiveRise campaign for ${beneficiary}. The goal is to raise $${goal.toLocaleString()} with transparent updates, donor receipts, and trust signals. Please consider donating or sharing.`,
+    longPost: `I started a KindFund campaign for ${beneficiary}. The goal is to raise $${goal.toLocaleString()} with transparent updates, donor receipts, and trust signals. Please consider donating or sharing.`,
     sms: `Can you help ${beneficiary}? Donate or share here: [campaign link]`,
-    email: `Hi,\n\nI am raising funds for ${beneficiary}. Your support would help cover urgent expenses and every update will be shared transparently through GiveRise.\n\nThank you for considering a donation or share.`,
+    email: `Hi,\n\nI am raising funds for ${beneficiary}. Your support would help cover urgent expenses and every update will be shared transparently through KindFund.\n\nThank you for considering a donation or share.`,
     donorFaq: ['How will funds be used?', 'Who receives the payout?', 'Will updates be shared?'],
     donationTiers: [
       { amount: 25, label: 'Covers an immediate essential' },

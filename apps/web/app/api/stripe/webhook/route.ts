@@ -1,8 +1,9 @@
 import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import type Stripe from 'stripe';
-import { stripe } from '../../../../lib/stripe';
+import { stripe, formatCents } from '../../../../lib/stripe';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import { sendReceiptEmail } from '../../../../lib/email';
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -47,6 +48,31 @@ export async function POST(request: NextRequest) {
 
       if ((data as { status: string } | null)?.status === 'already_processed') {
         return NextResponse.json({ ok: true });
+      }
+
+      // Send receipt email to donor (fire-and-forget — don't block webhook response)
+      const donorId = meta.donorId;
+      if (donorId && amountCents > 0) {
+        void (async () => {
+          try {
+            const [{ data: donorProfile }, { data: campaignData }] = await Promise.all([
+              supabaseAdmin.from('profiles').select('full_name, email').eq('id', donorId).single(),
+              supabaseAdmin.from('campaigns').select('title, slug').eq('id', meta.campaignId).single(),
+            ]);
+            if (donorProfile?.email && campaignData) {
+              await sendReceiptEmail({
+                to: donorProfile.email,
+                donorName: donorProfile.full_name,
+                campaignTitle: campaignData.title,
+                campaignSlug: campaignData.slug,
+                amountFormatted: formatCents(amountCents),
+                donationId: event.id,
+              });
+            }
+          } catch {
+            // Receipt email failure must not block webhook acknowledgment
+          }
+        })();
       }
     } else if (meta.plan && meta.userId) {
       // Subscription checkout — provision plan immediately

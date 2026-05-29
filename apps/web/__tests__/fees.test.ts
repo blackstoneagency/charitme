@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { donationTotal, donorTip, platformFee, processingFee } from '@shared/fees';
 
-describe('GiveRise fee model', () => {
+describe('KindFund fee model', () => {
   it('uses 0% mandatory platform fee', () => {
     expect(platformFee(10_000)).toBe(0);
   });

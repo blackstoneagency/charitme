@@ -8,9 +8,12 @@ export const metadata: Metadata = {
 };
 
 const posts = [
-  ['AI Fundraising', 'How to write a campaign story donors trust', 'Use structure, proof, and emotion to help supporters understand the need quickly.'],
-  ['Growth', 'Five updates that keep donations moving', 'A practical playbook for keeping supporters engaged after launch day.'],
-  ['Trust & Safety', 'What donors look for before giving', 'Clear identity, transparent goals, and public updates make every campaign stronger.'],
+  { tag: 'AI Fundraising', title: 'How to write a campaign story donors trust', body: 'Use structure, proof, and emotion to help supporters understand the need quickly.', href: '/how-it-works' },
+  { tag: 'Growth', title: 'Five updates that keep donations moving', body: 'A practical playbook for keeping supporters engaged after launch day.', href: '/features' },
+  { tag: 'Trust & Safety', title: 'What donors look for before giving', body: 'Clear identity, transparent goals, and public updates make every campaign stronger.', href: '/trust-safety' },
+  { tag: 'Nonprofits', title: 'Recurring donations for nonprofits', body: 'How to turn one-time supporters into long-term recurring donors with KindFund.', href: '/for-nonprofits' },
+  { tag: 'Payouts', title: 'How fast payouts work on KindFund', body: 'Standard, same-day, and instant payout options explained — and how to qualify.', href: '/fast-payouts' },
+  { tag: 'Donors', title: 'Trust signals every donor should check', body: 'Five things to look for before donating to any online fundraiser.', href: '/for-donors' },
 ];
 
 export default function BlogPage() {
@@ -22,12 +25,12 @@ export default function BlogPage() {
         <p>Practical resources for organizers, nonprofits, teams, and donors who want every campaign to perform better and feel safer.</p>
       </section>
       <section className="blog-grid">
-        {posts.map(([tag, title, body]) => (
+        {posts.map(({ tag, title, body, href }) => (
           <article key={title}>
             <span>{tag}</span>
             <h2>{title}</h2>
             <p>{body}</p>
-            <Link href="/how-it-works">Read article <PublicIcon name="arrow" /></Link>
+            <Link href={href}>Read article <PublicIcon name="arrow" /></Link>
           </article>
         ))}
       </section>

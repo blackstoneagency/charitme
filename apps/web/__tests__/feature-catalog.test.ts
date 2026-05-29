@@ -119,6 +119,6 @@ describe('feature catalog', () => {
   it('reports aggregate coverage', () => {
     const coverage = getFeatureCoverage();
     expect(coverage.featureCount).toBe(REQUIRED_COMPETITOR_FEATURES.length);
-    expect(coverage.competitors.map((competitor) => competitor.name)).toContain('GiveRise');
+    expect(coverage.competitors.map((competitor) => competitor.name)).toContain('KindFund');
   });
 });

@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: FeaturePageProps) {
   const { slug } = await params;
   const platformModule = getPlatformModule(slug);
   return {
-    title: platformModule ? `${platformModule.title} | GiveRise Features` : 'GiveRise Features',
+    title: platformModule ? `${platformModule.title} | KindFund Features` : 'KindFund Features',
     description: platformModule?.summary,
   };
 }

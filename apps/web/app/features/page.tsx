@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getFeatureCoverage, PLATFORM_MODULES } from '../../lib/feature-catalog';
 
 export const metadata = {
-  title: 'GiveRise Feature Platform',
+  title: 'KindFund Feature Platform',
   description: 'A production-ready AI-first fundraising platform covering modern fundraising, memberships, nonprofit CRM, events, creator commerce, and trust.',
 };
 
@@ -19,7 +19,7 @@ export default function FeaturesPage() {
               Every table-stakes fundraising feature, plus the AI trust layer competitors do not have.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">
-              GiveRise combines campaign fundraising, project launches, recurring memberships, nonprofit operations, creator commerce,
+              KindFund combines campaign fundraising, project launches, recurring memberships, nonprofit operations, creator commerce,
               events, auctions, analytics, and AI-powered trust into one production-ready platform.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">

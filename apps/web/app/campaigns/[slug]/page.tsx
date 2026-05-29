@@ -90,9 +90,10 @@ export default async function CampaignPage({ params }: Props) {
   const trustScore = calculateTrustScore(campaign);
   const trustSignals = getTrustSignals(campaign).slice(0, 5);
   const organizer = asProfile(campaign.profiles);
-  const daysLeft = campaign.deadline
+  const daysLeft: number | null = campaign.deadline
     ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - RENDER_TIME) / 86_400_000))
-    : 32;
+    : null;
+  const isActive = campaign.status === 'active' && (daysLeft === null || daysLeft > 0);
   const cover = campaign.cover_image_url || '/hero-child-crop.png';
 
   // Real uploaded images: use image_urls array if present, else fall back to cover only
@@ -142,8 +143,11 @@ export default async function CampaignPage({ params }: Props) {
             <em>{pct}%</em>
           </div>
           <div className="pc-progress"><span style={{ width: `${pct}%` }} /></div>
-          <div className="pc-statline"><span>{campaign.backer_count ?? donations.length} donations</span><span>{daysLeft} days left</span></div>
-          {campaign.status === 'active' && daysLeft !== 0 ? (
+          <div className="pc-statline">
+            <span>{campaign.backer_count ?? donations.length} donations</span>
+            <span>{daysLeft !== null ? `${daysLeft} days left` : 'No deadline'}</span>
+          </div>
+          {isActive ? (
             <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
           ) : (
             <div className="pc-ended">This campaign has ended.</div>
@@ -153,28 +157,70 @@ export default async function CampaignPage({ params }: Props) {
         </aside>
       </section>
 
-      <section className="pc-body">
+      <section className="pc-body" id="story">
         <article className="pc-story">
-          <nav><span className="active">Story</span><span>Updates {updates.length}</span><span>Donations {campaign.backer_count ?? donations.length}</span><span>Impact</span></nav>
-          <h2>Mia&apos;s Story</h2>
+          <nav>
+            <a href="#story" className="active">Story</a>
+            <a href="#updates">Updates ({updates.length})</a>
+            <a href="#donations">Donors ({campaign.backer_count ?? donations.length})</a>
+            <a href="#impact">Impact</a>
+          </nav>
+          <h2>{organizer.full_name ? `${organizer.full_name.split(' ')[0]}'s Story` : 'Campaign Story'}</h2>
           <div className="pc-text">{campaign.description}</div>
-          <div className="pc-tags"><span>{campaign.category ?? 'Medical'}</span><span>Verified</span><span>Tax Deductible</span></div>
+          <div className="pc-tags">
+            <span>{campaign.category ?? 'Campaign'}</span>
+            {campaign.trust_status === 'Verified' && <span>Verified</span>}
+            {(campaign as { nonprofit_verified?: boolean }).nonprofit_verified && <span>Tax Deductible</span>}
+          </div>
+          {/* Share bar */}
+          <div className="pc-share" style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginRight: 4 }}>Share:</span>
+            <a
+              href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://www.eli54u.com/campaigns/${campaign.slug}`)}`}
+              target="_blank" rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, background: '#1877f2', color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
+            >
+              Facebook
+            </a>
+            <a
+              href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(`https://www.eli54u.com/campaigns/${campaign.slug}`)}&text=${encodeURIComponent(campaign.title)}`}
+              target="_blank" rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, background: '#000', color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
+            >
+              X / Twitter
+            </a>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(`${campaign.title} https://www.eli54u.com/campaigns/${campaign.slug}`)}`}
+              target="_blank" rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, background: '#25d366', color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
+            >
+              WhatsApp
+            </a>
+            <a
+              href={`mailto:?subject=${encodeURIComponent(campaign.title)}&body=${encodeURIComponent(`Please support: https://www.eli54u.com/campaigns/${campaign.slug}`)}`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, background: 'var(--s3)', color: 'var(--t1)', fontSize: 12, fontWeight: 700, textDecoration: 'none', border: '1px solid var(--b2)' }}
+            >
+              Email
+            </a>
+          </div>
         </article>
 
-        <aside className="pc-impact">
+        <aside className="pc-impact" id="impact">
           <h2>Impact Tracker</h2>
-          {(updates.length ? updates : [
-            { id: 'planned', title: 'Surgery and hospital stay', body: 'Supporters will receive transparent updates as milestones happen.', created_at: new Date().toISOString() },
-          ]).map((update) => (
+          {updates.length > 0 ? updates.map((update) => (
             <article key={update.id}>
               <span />
               <div><b>{update.title}</b><small>{new Date(update.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</small></div>
             </article>
-          ))}
+          )) : (
+            <p style={{ fontSize: 13, color: 'var(--t3)', padding: '12px 0' }}>
+              Supporters will receive transparent updates as milestones happen.
+            </p>
+          )}
         </aside>
       </section>
 
-      <section className="pc-cards">
+      <section className="pc-cards" id="updates">
         <article className="pc-ai">
           <h2>Campaign created with AI</h2>
           <p>KindFund helps organizers tell their story, reach more people, and maximize impact while keeping trust and transparency visible.</p>
@@ -185,7 +231,7 @@ export default async function CampaignPage({ params }: Props) {
           </ul>
         </article>
 
-        <article className="pc-card">
+        <article className="pc-card" id="donations">
           <h2>Recent Donations</h2>
           {donations.map((donation) => {
             const profile = asProfile(donation.profiles);

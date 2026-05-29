@@ -26,7 +26,7 @@ export type CampaignTrustInput = {
 };
 
 export const BRAND = {
-  name: 'GiveRise',
+  name: 'KindFund',
   positioning: 'Free fundraising powered by AI.',
   promise: 'Fundraising with built-in trust.',
   mission: 'Create the world’s most trusted, fastest, AI-powered fundraising platform.',

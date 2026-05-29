@@ -4,7 +4,7 @@ import { TRUST_PILLARS } from '../../lib/ai-platform';
 
 export const metadata: Metadata = {
   title: 'Trust & Safety',
-  description: 'How GiveRise uses AI trust scores, identity verification, fraud screening, and transparent moderation to protect donors and fundraisers.',
+  description: 'How KindFund uses AI trust scores, identity verification, fraud screening, and transparent moderation to protect donors and fundraisers.',
 };
 
 const TRUST_SIGNALS = [
@@ -46,7 +46,7 @@ export default function TrustSafetyPage() {
               Built-in trust signals<br className="hidden sm:block" /> before donors give.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-              GiveRise computes a public AI trust score for every campaign from identity, story, evidence, and donor signals —
+              KindFund computes a public AI trust score for every campaign from identity, story, evidence, and donor signals —
               so donors can give with confidence, and fundraisers earn the trust they deserve.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -66,7 +66,7 @@ export default function TrustSafetyPage() {
         <div className="container">
           <div className="mb-10 max-w-2xl">
             <h2 className="text-3xl font-black text-slate-950">Six pillars of trust</h2>
-            <p className="mt-3 text-slate-600">Every GiveRise campaign is evaluated across six evidence-based dimensions. Donors see the score and the signals publicly.</p>
+            <p className="mt-3 text-slate-600">Every KindFund campaign is evaluated across six evidence-based dimensions. Donors see the score and the signals publicly.</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {TRUST_PILLARS.map((pillar, i) => (
@@ -186,7 +186,7 @@ export default function TrustSafetyPage() {
                 You should never feel pressured to donate to a campaign you are uncertain about.
                 Use trust scores, verification badges, and donor comments to make informed decisions.
                 If something feels wrong, report it — even if you are unsure.
-                Your payment information is never stored by GiveRise.
+                Your payment information is never stored by KindFund.
               </p>
               <Link href="/campaigns" className="mt-6 inline-block rounded-xl bg-blue-600 px-6 py-3 text-sm font-black text-white">
                 Browse verified campaigns →

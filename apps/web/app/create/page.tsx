@@ -836,20 +836,7 @@ export default function CreatePage() {
                 <p style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 800, color: 'var(--t3)' }}>
                   Share your campaign
                 </p>
-                <div className="kf-share-row">
-                  {[
-                    { label: 'Copy Link', icon: 'link'  },
-                    { label: 'Facebook',  icon: 'users' },
-                    { label: 'Twitter/X', icon: 'send'  },
-                    { label: 'WhatsApp',  icon: 'chat'  },
-                    { label: 'Email',     icon: 'doc'   },
-                  ].map(({ label, icon }) => (
-                    <button key={label} type="button" className="kf-share-btn">
-                      <KFIcon name={icon} />
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                <ShareButtons slug={publishedSlug} />
               </div>
             </div>
           </section>
@@ -876,6 +863,108 @@ export default function CreatePage() {
 // ─────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────
+function ShareButtons({ slug }: { slug: string }) {
+  const url = `https://www.eli54u.com/campaigns/${slug}`;
+  const [copied, setCopied] = React.useState(false);
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback: select text
+      const input = document.createElement('input');
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const shareItems = [
+    {
+      label: copied ? 'Copied!' : 'Copy Link',
+      icon: 'link',
+      onClick: () => void copyLink(),
+      bg: copied ? '#19b86a' : 'var(--s3)',
+      color: copied ? '#fff' : 'var(--t1)',
+      border: '1px solid var(--b2)',
+    },
+    {
+      label: 'Facebook',
+      icon: 'users',
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+      bg: '#1877f2',
+      color: '#fff',
+    },
+    {
+      label: 'Twitter/X',
+      icon: 'send',
+      href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}`,
+      bg: '#000',
+      color: '#fff',
+    },
+    {
+      label: 'WhatsApp',
+      icon: 'chat',
+      href: `https://wa.me/?text=${encodeURIComponent(url)}`,
+      bg: '#25d366',
+      color: '#fff',
+    },
+    {
+      label: 'Email',
+      icon: 'doc',
+      href: `mailto:?subject=Support%20my%20campaign&body=${encodeURIComponent(`Please support: ${url}`)}`,
+      bg: 'var(--s3)',
+      color: 'var(--t1)',
+      border: '1px solid var(--b2)',
+    },
+  ] as const;
+
+  const btnStyle = (item: typeof shareItems[number]) => ({
+    display: 'inline-flex', alignItems: 'center', gap: 6,
+    padding: '8px 16px', borderRadius: 9, fontSize: 13, fontWeight: 700,
+    cursor: 'pointer', textDecoration: 'none',
+    background: item.bg, color: item.color,
+    border: 'border' in item ? item.border : '0',
+    transition: 'opacity .15s',
+  });
+
+  return (
+    <div className="kf-share-row" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      {shareItems.map((item) => (
+        'href' in item && item.href ? (
+          <a
+            key={item.label}
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={btnStyle(item)}
+          >
+            <KFIcon name={item.icon} />
+            {item.label}
+          </a>
+        ) : (
+          <button
+            key={item.label}
+            type="button"
+            className="kf-share-btn"
+            onClick={item.onClick}
+            style={btnStyle(item)}
+          >
+            <KFIcon name={item.icon} />
+            {item.label}
+          </button>
+        )
+      ))}
+    </div>
+  );
+}
+
 function TrustRow({ label, done }: { label: string; done: boolean }) {
   return (
     <div className={`kf-trust-row${done ? ' done' : ''}`}>

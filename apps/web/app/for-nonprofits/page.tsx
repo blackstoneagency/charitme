@@ -4,7 +4,7 @@ import { PRICING_TIERS } from '../../lib/pricing';
 
 export const metadata: Metadata = {
   title: 'For Nonprofits — AI-Powered Fundraising',
-  description: 'GiveRise gives nonprofits donor CRM, recurring donations, automated tax receipts, team access, campaign templates, and AI-powered outreach tools.',
+  description: 'KindFund gives nonprofits donor CRM, recurring donations, automated tax receipts, team access, campaign templates, and AI-powered outreach tools.',
 };
 
 const NONPROFIT_FEATURES = [
@@ -21,7 +21,7 @@ const NONPROFIT_FEATURES = [
   {
     icon: '🧾',
     title: 'Automated tax receipts',
-    body: 'GiveRise sends IRS-formatted tax receipts for qualifying donations to verified 501(c)(3) organizations — automatically and at scale.',
+    body: 'KindFund sends IRS-formatted tax receipts for qualifying donations to verified 501(c)(3) organizations — automatically and at scale.',
   },
   {
     icon: '🏛️',
@@ -66,7 +66,7 @@ export default function ForNonprofitsPage() {
               AI-powered fundraising<br className="hidden sm:block" /> for mission-driven teams.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-              GiveRise gives nonprofits a complete fundraising stack — donor CRM, recurring giving, tax receipts,
+              KindFund gives nonprofits a complete fundraising stack — donor CRM, recurring giving, tax receipts,
               team roles, campaign templates, and AI-powered outreach — starting at $29/month.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -127,7 +127,7 @@ export default function ForNonprofitsPage() {
               <div className="mb-3 text-sm font-black uppercase tracking-wide text-purple-700">AI for nonprofits</div>
               <h2 className="text-3xl font-black text-slate-950">Your fundraising team, augmented by AI</h2>
               <p className="mt-4 leading-7 text-slate-600">
-                GiveRise AI tools are built for authentic storytelling — not generic templates.
+                KindFund AI tools are built for authentic storytelling — not generic templates.
                 Generate campaign stories, thank-you sequences, lapsed donor appeals, and grant summaries
                 in your organization&apos;s voice.
               </p>

@@ -1,4 +1,4 @@
--- GiveRise production schema
+-- KindFund production schema
 create extension if not exists "uuid-ossp";
 
 create or replace function set_updated_at()
@@ -1252,3 +1252,12 @@ create policy owner_replies_donor_read on campaign_owner_replies
         and dm.donor_id = auth.uid()
     )
   );
+
+-- ── Missing campaign columns ───────────────────────────────────────────────────
+alter table campaigns add column if not exists location text;
+alter table campaigns add column if not exists featured boolean not null default false;
+alter table campaigns add column if not exists pinned boolean not null default false;
+alter table campaigns add column if not exists nonprofit_verified boolean not null default false;
+-- Allow admins to set these
+create index if not exists campaigns_featured_idx on campaigns(featured) where featured = true;
+create index if not exists campaigns_pinned_idx on campaigns(pinned) where pinned = true;
