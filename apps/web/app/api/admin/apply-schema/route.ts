@@ -573,6 +573,21 @@ const SCHEMA_CHUNKS: { name: string; sql: string }[] = [
       raise;
     end; $$;
   ` },
+  // ── THIS IS THE CRITICAL MISSING PIECE ───────────────────────────────────
+  // When tables are created via the Management API (not Supabase dashboard),
+  // Postgres does NOT auto-grant access to the PostgREST roles.
+  // Without these grants, ALL supabaseAdmin queries return empty errors
+  // even though the tables exist and are visible in the Table Editor.
+  { name: 'Role grants (CRITICAL — fixes supabaseAdmin access)', sql: `
+    grant usage on schema public to anon, authenticated, service_role;
+    grant all   on all tables    in schema public to anon, authenticated, service_role;
+    grant all   on all sequences in schema public to anon, authenticated, service_role;
+    grant all   on all routines  in schema public to anon, authenticated, service_role;
+    alter default privileges in schema public grant all on tables    to anon, authenticated, service_role;
+    alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+    alter default privileges in schema public grant all on routines  to anon, authenticated, service_role;
+    select pg_notify('pgrst', 'reload schema');
+  ` },
   { name: 'Bootstrap data', sql: `
     insert into public.platform_settings (id, config) values (1, '{
       "platformName":"KindFund","tagline":"Fundraising that thinks for you.",

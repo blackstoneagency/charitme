@@ -64,9 +64,21 @@ export async function POST(_req: NextRequest) {
     }
   }
 
-  // Primary: Supabase Management API to execute NOTIFY
+  // Primary: Supabase Management API — grant permissions AND reload cache
   if (ref && token) {
     try {
+      // Step 1: grant all permissions to PostgREST roles (the real fix)
+      await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body:    JSON.stringify({ query: `
+          grant usage on schema public to anon, authenticated, service_role;
+          grant all   on all tables    in schema public to anon, authenticated, service_role;
+          grant all   on all sequences in schema public to anon, authenticated, service_role;
+          grant all   on all routines  in schema public to anon, authenticated, service_role;
+        ` }),
+      });
+      // Step 2: reload PostgREST schema cache
       await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
