@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import LogoutButton from './LogoutButton';
+import NotificationBell from './NotificationBell';
 
 export type Metric = {
   label: string;
@@ -187,24 +188,8 @@ export function TopBar({ title, subtitle, actions }: { title: string; subtitle?:
   );
 }
 
-/** Fetches unread message count once; only renders the badge when count > 0 */
-function NotificationBell() {
-  const [count, setCount] = React.useState<number | null>(null);
-
-  React.useEffect(() => {
-    fetch('/api/notifications/count')
-      .then(r => r.json())
-      .then((d: { count?: number }) => setCount(d.count ?? 0))
-      .catch(() => setCount(0));
-  }, []);
-
-  return (
-    <button className="kf-icon-btn" aria-label={count ? `${count} unread messages` : 'Notifications'}>
-      <KFIcon name="bell" />
-      {count !== null && count > 0 && <span>{count > 99 ? '99+' : count}</span>}
-    </button>
-  );
-}
+// NotificationBell is a 'use client' component in ./NotificationBell.tsx
+// It uses useState/useEffect — must NOT be defined here (no 'use client' directive)
 
 export function Avatar({ name, imageUrl }: { name: string; imageUrl?: string | null }) {
   const initials = name.split(/\s+/).filter(Boolean).map((n) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
