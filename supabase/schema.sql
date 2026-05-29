@@ -1318,3 +1318,35 @@ begin
   end if;
 end;
 $$;
+
+-- ── Ensure platform owner has admin role ──────────────────────────────────────
+-- Adds 'admin' to the roles array for the platform owner's account if it exists.
+-- Safe to run multiple times (jsonb_array_elements check prevents duplicates).
+do $$
+declare
+  v_user_id uuid;
+begin
+  -- Look up the auth user ID by email
+  select id into v_user_id
+  from auth.users
+  where email = 'blackstoneagencyllc@gmail.com'
+  limit 1;
+
+  if v_user_id is not null then
+    -- Upsert the profile row (creates it if missing)
+    insert into public.profiles (id, email, roles)
+    values (v_user_id, 'blackstoneagencyllc@gmail.com', '["admin","donor"]'::jsonb)
+    on conflict (id) do update
+      set roles = (
+        -- Merge existing roles with 'admin', keeping unique values
+        select jsonb_agg(distinct role)
+        from (
+          select jsonb_array_elements_text(profiles.roles) as role
+          union
+          select 'admin'
+        ) merged
+      ),
+      updated_at = now();
+  end if;
+end;
+$$;

@@ -15,8 +15,23 @@ export async function getUserRoles(userId: string): Promise<UserRole[]> {
   return parseRoles(data?.roles);
 }
 
+// Emails that are always treated as admins regardless of DB roles or env vars.
+// Add additional owner/operator emails here.
+const HARDCODED_ADMIN_EMAILS: ReadonlySet<string> = new Set([
+  'blackstoneagencyllc@gmail.com',
+]);
+
 export async function isAdmin(userId: string, email?: string | null): Promise<boolean> {
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '').split(',').map((item) => item.trim().toLowerCase()).filter(Boolean);
+  // 1. Hardcoded owner emails — highest priority, always admin
+  if (email && HARDCODED_ADMIN_EMAILS.has(email.toLowerCase())) return true;
+
+  // 2. ADMIN_EMAILS env var (comma-separated, set in Vercel / .env.local)
+  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
   if (email && adminEmails.includes(email.toLowerCase())) return true;
+
+  // 3. Database roles array on the user's profile
   return (await getUserRoles(userId)).includes('admin');
 }
