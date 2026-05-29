@@ -36,7 +36,13 @@ export default function ApplySchemaButton() {
 
       setResults(data.results ?? []);
       setMessage(data.message ?? '');
-      setState(data.ok ? 'done' : 'error');
+      if (data.ok) {
+        setState('done');
+        // Auto-refresh after 1.5 s so the DB checks update immediately
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        setState('error');
+      }
     } catch (e) {
       setMessage(e instanceof Error ? e.message : 'Network error');
       setState('error');

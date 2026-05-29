@@ -34,11 +34,40 @@ async function execSQL(sql: string): Promise<{ ok: boolean; error?: string }> {
     body: JSON.stringify({ query: sql }),
   });
 
-  if (res.ok) return { ok: true };
+  // Always parse the body — Supabase Management API returns HTTP 200
+  // even when SQL execution fails, with error details in the response body.
+  let body: unknown;
+  try {
+    body = await res.json();
+  } catch {
+    const text = await res.text().catch(() => res.statusText);
+    return { ok: false, error: `${res.status}: ${text.slice(0, 300)}` };
+  }
 
-  let body = '';
-  try { body = await res.text(); } catch { body = res.statusText; }
-  return { ok: false, error: `${res.status}: ${body.slice(0, 200)}` };
+  // Check for error in response body (multiple possible formats)
+  if (body && typeof body === 'object') {
+    const b = body as Record<string, unknown>;
+    // Format 1: { "error": "..." }
+    if (typeof b.error === 'string' && b.error) {
+      // "already exists" errors are idempotency warnings, not failures
+      const alreadyExists = b.error.includes('already exists') ||
+                            b.error.includes('duplicate') ||
+                            b.error.includes('42P07') ||
+                            b.error.includes('42710');
+      if (alreadyExists) return { ok: true };
+      return { ok: false, error: b.error.slice(0, 300) };
+    }
+    // Format 2: { "message": "..." } with non-2xx
+    if (!res.ok && typeof b.message === 'string') {
+      return { ok: false, error: b.message.slice(0, 300) };
+    }
+  }
+
+  if (!res.ok) {
+    return { ok: false, error: `HTTP ${res.status}` };
+  }
+
+  return { ok: true };
 }
 
 // ─── Schema chunks (CREATE TABLE IF NOT EXISTS — safe to run multiple times) ─
