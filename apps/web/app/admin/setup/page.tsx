@@ -49,12 +49,16 @@ async function runChecks(): Promise<Check[]> {
         .select('*', { count: 'exact', head: true });
 
       if (error) {
+        const code = error.code ?? 'PGRST';
+        const msg  = error.message ?? JSON.stringify(error);
+        // PostgREST returns code PGRST116/undefined when table doesn't exist
+        const tableNotFound = !error.code || msg.includes('does not exist') || msg.includes('relation') || msg.includes('PGRST');
         checks.push({
           label: `DB: ${table}`,
           status: 'error',
-          value: `${error.code}: ${error.message}`,
-          fix: error.code === '42P01'
-            ? 'Run schema.sql in Supabase SQL Editor — table does not exist'
+          value: tableNotFound ? 'TABLE MISSING' : `${code}: ${msg}`,
+          fix: tableNotFound
+            ? '→ Schema not applied. Run schema.sql in Supabase SQL Editor'
             : 'Check Supabase connection and RLS policies',
         });
       } else {
@@ -123,13 +127,24 @@ export default async function AdminSetupPage() {
         </div>
 
         {errors.length > 0 && (
-          <div style={{ padding: '16px 20px', background: '#fff0f3', border: '1.5px solid #fecdd3', borderRadius: 12, marginBottom: 20 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 800, color: '#be123c', margin: '0 0 8px' }}>
-              ❌ {errors.length} critical issue{errors.length !== 1 ? 's' : ''} must be fixed
+          <div style={{ padding: '20px 24px', background: '#fff0f3', border: '2px solid #fca5a5', borderRadius: 14, marginBottom: 20 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 900, color: '#be123c', margin: '0 0 10px' }}>
+              ❌ {errors.length} critical issue{errors.length !== 1 ? 's' : ''} — Schema not applied
             </h3>
-            <p style={{ fontSize: 13, color: '#be123c', margin: 0 }}>
-              Until these are resolved, data will not flow from Supabase to the admin pages.
+            <p style={{ fontSize: 14, color: '#7f1d1d', margin: '0 0 14px', lineHeight: 1.6 }}>
+              <strong>All DB tables are missing.</strong> The schema has not been run against your Supabase project.
             </p>
+            <div style={{ background: '#fff', border: '1px solid #fca5a5', borderRadius: 10, padding: '14px 18px', fontSize: 13, lineHeight: 1.9, color: '#334064' }}>
+              <strong>To fix — do this right now:</strong>
+              <ol style={{ paddingLeft: 20, margin: '6px 0 0' }}>
+                <li>Click <strong>&ldquo;Open Supabase SQL Editor&rdquo;</strong> below</li>
+                <li>Click <strong>&ldquo;+ New query&rdquo;</strong> to open a fresh blank tab</li>
+                <li>Go to your local file: <code>supabase/schema.sql</code></li>
+                <li>Copy the <strong>entire file</strong> (Ctrl+A, Ctrl+C)</li>
+                <li>Paste into Supabase SQL Editor and click <strong>Run</strong></li>
+                <li>Wait ~15 seconds for it to complete, then <strong>refresh this page</strong></li>
+              </ol>
+            </div>
           </div>
         )}
 
