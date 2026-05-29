@@ -230,8 +230,11 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
         </section>
 
         {/* Beneficiary */}
-        <section className="kf-card" style={{ padding: 24 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 800, margin: '0 0 18px' }}>Beneficiary</h2>
+        <section className="kf-card" style={{ padding: 24, position: 'relative' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>Beneficiary</h2>
+            <BeneficiaryInviteButton campaignId={campaignId} />
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <Field label="Beneficiary Name">
               <input value={form.beneficiaryName} onChange={e => upd('beneficiaryName', e.target.value)} placeholder="Jane Smith" />
@@ -310,5 +313,73 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       {label}
       {children}
     </label>
+  );
+}
+
+function BeneficiaryInviteButton({ campaignId }: { campaignId: string }) {
+  const [open, setOpen] = React.useState(false);
+  const [email, setEmail] = React.useState('');
+  const [name, setName] = React.useState('');
+  const [msg, setMsg] = React.useState('');
+  const [sending, setSending] = React.useState(false);
+  const [done, setDone] = React.useState('');
+  const [err, setErr] = React.useState('');
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)}
+        style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)', padding: '6px 14px', border: '1px solid var(--green)', borderRadius: 8, background: '#f0fff8', cursor: 'pointer' }}>
+        + Invite Beneficiary
+      </button>
+    );
+  }
+
+  if (done) {
+    return (
+      <div style={{ fontSize: 13, color: '#065f46', fontWeight: 700, padding: '6px 14px', background: '#f0fff8', borderRadius: 8 }}>
+        ✓ {done}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ position: 'absolute', right: 0, top: 0, zIndex: 50, background: '#fff', border: '1.5px solid #e0d5ff', borderRadius: 12, padding: 18, boxShadow: '0 8px 32px rgba(108,53,255,.15)', width: 320 }}>
+      <p style={{ fontWeight: 800, fontSize: 14, margin: '0 0 12px', color: '#1a1a2e' }}>Invite Beneficiary</p>
+      {err && <p style={{ fontSize: 12, color: '#be123c', margin: '0 0 8px' }}>{err}</p>}
+      <label style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
+        Name *
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith"
+          style={{ height: 38, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 10px', fontSize: 13 }} />
+      </label>
+      <label style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
+        Email *
+        <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jane@example.com"
+          style={{ height: 38, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 10px', fontSize: 13 }} />
+      </label>
+      <label style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>
+        Personal message (optional)
+        <textarea value={msg} onChange={e => setMsg(e.target.value)} rows={2} maxLength={500}
+          style={{ border: '1px solid #dfe3ee', borderRadius: 8, padding: '8px 10px', fontSize: 13, resize: 'none' }} />
+      </label>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="button" disabled={sending || !email || !name}
+          onClick={async () => {
+            if (!email || !name) return;
+            setSending(true); setErr('');
+            const res = await fetch('/api/beneficiaries', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ campaignId, beneficiaryEmail: email, beneficiaryName: name, message: msg || undefined }) });
+            const data = await res.json() as { ok?: boolean; message?: string; error?: string };
+            if (!res.ok) { setErr(data.error ?? 'Failed to send.'); setSending(false); return; }
+            setDone(data.message ?? 'Invitation sent!');
+          }}
+          style={{ flex: 1, height: 36, border: 0, borderRadius: 8, background: '#6c35ff', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: sending ? 0.6 : 1 }}>
+          {sending ? 'Sending…' : 'Send Invite'}
+        </button>
+        <button type="button" onClick={() => setOpen(false)}
+          style={{ height: 36, padding: '0 14px', border: '1px solid #dfe3ee', borderRadius: 8, background: '#fff', fontSize: 13, cursor: 'pointer' }}>
+          Cancel
+        </button>
+      </div>
+    </div>
   );
 }

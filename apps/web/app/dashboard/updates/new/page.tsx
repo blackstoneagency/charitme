@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { KindFundShell, TopBar } from '../../../../components/KindFundApp';
-import { createClient } from '../../../../lib/supabase-browser';
+import { createClient } from '../../../../lib/supabase-browser'; // used for auth check + campaign list
 
 type Campaign = { id: string; title: string };
 
@@ -42,21 +42,14 @@ export default function NewUpdatePage() {
     setSaving(true);
     setError('');
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/login'); return; }
-
-      const { error: err } = await supabase
-        .from('campaign_updates')
-        .insert({
-          campaign_id: campaignId,
-          user_id: user.id,
-          title: title.trim() || null,
-          body: body.trim(),
-          ai_generated: false,
-        });
-
-      if (err) { setError(err.message); return; }
+      // Use the updates API which saves AND emails donors
+      const res = await fetch(`/api/campaigns/${campaignId}/updates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title.trim() || undefined, body: body.trim(), notifyDonors: true }),
+      });
+      const data = await res.json() as { ok?: boolean; error?: string };
+      if (!res.ok) { setError(data.error ?? 'Failed to post update.'); return; }
       router.push('/dashboard/updates');
     } catch {
       setError('Something went wrong. Please try again.');

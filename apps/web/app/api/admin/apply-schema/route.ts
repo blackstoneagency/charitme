@@ -588,6 +588,19 @@ const SCHEMA_CHUNKS: { name: string; sql: string }[] = [
     alter default privileges in schema public grant all on routines  to anon, authenticated, service_role;
     select pg_notify('pgrst', 'reload schema');
   ` },
+  { name: 'GRANT ALL to PostgREST roles', sql: `
+    grant usage on schema public to anon, authenticated, service_role;
+    grant all on all tables    in schema public to anon, authenticated, service_role;
+    grant all on all sequences in schema public to anon, authenticated, service_role;
+    grant all on all routines  in schema public to anon, authenticated, service_role;
+    alter default privileges in schema public
+      grant all on tables    to anon, authenticated, service_role;
+    alter default privileges in schema public
+      grant all on sequences to anon, authenticated, service_role;
+    alter default privileges in schema public
+      grant all on routines  to anon, authenticated, service_role;
+    select pg_notify('pgrst', 'reload schema');
+  ` },
   { name: 'Bootstrap data', sql: `
     insert into public.platform_settings (id, config) values (1, '{
       "platformName":"KindFund","tagline":"Fundraising that thinks for you.",
