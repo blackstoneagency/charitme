@@ -21,14 +21,7 @@ create or replace function public.set_updated_at()
 returns trigger language plpgsql as $$
 begin new.updated_at = now(); return new; end; $$;
 
-create or replace function public.is_admin()
-returns boolean language sql stable security definer set search_path = public as $$
-  select exists (
-    select 1 from public.profiles
-    where id = auth.uid() and roles ? 'admin'
-  );
-$$;
-
+-- handle_new_user uses plpgsql (late binding — profiles table may not exist yet at definition time)
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare v_roles jsonb;
@@ -77,6 +70,16 @@ create table public.profiles (
   created_at              timestamptz not null default now(),
   updated_at              timestamptz not null default now()
 );
+
+-- is_admin() MUST be defined after profiles — SQL-language functions validate
+-- referenced objects at creation time (unlike plpgsql which uses late binding).
+create or replace function public.is_admin()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and roles ? 'admin'
+  );
+$$;
 
 -- ── connected_accounts ───────────────────────────────────────────────────────
 create table public.connected_accounts (
