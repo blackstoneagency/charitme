@@ -69,9 +69,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const campaign = await getCampaign(slug);
   if (!campaign) return { title: 'Campaign not found' };
+
+  const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com';
+  const campaignUrl = `${ORIGIN}/campaigns/${slug}`;
+  const description = campaign.tagline ?? campaign.description?.slice(0, 160) ?? '';
+  const image = campaign.cover_image_url ?? `${ORIGIN}/og-default.png`;
+
   return {
     title: campaign.title,
-    description: campaign.tagline ?? campaign.description?.slice(0, 160),
+    description,
+    openGraph: {
+      title: campaign.title,
+      description,
+      url: campaignUrl,
+      siteName: 'KindFund',
+      images: [{ url: image, width: 1200, height: 630, alt: campaign.title }],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: campaign.title,
+      description,
+      images: [image],
+    },
+    alternates: { canonical: campaignUrl },
   };
 }
 
@@ -99,7 +120,8 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const isActive = campaign.status === 'active' && (daysLeft === null || daysLeft > 0);
   const cover = campaign.cover_image_url || '/hero-child-crop.png';
   const videoUrl: string | null = (campaign as { video_url?: string | null }).video_url ?? null;
-  const campaignUrl = `https://www.eli54u.com/campaigns/${campaign.slug}`;
+  const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com';
+  const campaignUrl = `${ORIGIN}/campaigns/${campaign.slug}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(campaignUrl)}&color=6c35ff&bgcolor=ffffff&margin=10`;
 
   // Real uploaded images: use image_urls array if present, else fall back to cover only
@@ -183,28 +205,28 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           <div className="pc-share" style={{ marginTop: 24, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginRight: 4 }}>Share:</span>
             <a
-              href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://www.eli54u.com/campaigns/${campaign.slug}`)}`}
+              href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${ORIGIN}/campaigns/${campaign.slug}`)}`}
               target="_blank" rel="noopener noreferrer"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, background: '#1877f2', color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
             >
               Facebook
             </a>
             <a
-              href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(`https://www.eli54u.com/campaigns/${campaign.slug}`)}&text=${encodeURIComponent(campaign.title)}`}
+              href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(`${ORIGIN}/campaigns/${campaign.slug}`)}&text=${encodeURIComponent(campaign.title)}`}
               target="_blank" rel="noopener noreferrer"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, background: '#000', color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
             >
               X / Twitter
             </a>
             <a
-              href={`https://wa.me/?text=${encodeURIComponent(`${campaign.title} https://www.eli54u.com/campaigns/${campaign.slug}`)}`}
+              href={`https://wa.me/?text=${encodeURIComponent(`${campaign.title} ${ORIGIN}/campaigns/${campaign.slug}`)}`}
               target="_blank" rel="noopener noreferrer"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, background: '#25d366', color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
             >
               WhatsApp
             </a>
             <a
-              href={`mailto:?subject=${encodeURIComponent(campaign.title)}&body=${encodeURIComponent(`Please support: https://www.eli54u.com/campaigns/${campaign.slug}`)}`}
+              href={`mailto:?subject=${encodeURIComponent(campaign.title)}&body=${encodeURIComponent(`Please support: ${ORIGIN}/campaigns/${campaign.slug}`)}`}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, background: 'var(--s3)', color: 'var(--t1)', fontSize: 12, fontWeight: 700, textDecoration: 'none', border: '1px solid var(--b2)' }}
             >
               Email

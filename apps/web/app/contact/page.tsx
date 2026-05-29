@@ -109,10 +109,18 @@ export default function ContactPage() {
     setStatus('sending');
     setNotice('');
 
-    const response = await fetch('/api/contact', {
+    // Post to support-tickets (stores in DB + sends email) with fallback to /api/contact
+    const response = await fetch('/api/support-tickets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        name: form.name,
+        email: form.email,
+        subject: form.subject,
+        message: form.message,
+        category: 'general',
+        priority: 'normal',
+      }),
     }).catch(() => null);
 
     if (response?.ok) {

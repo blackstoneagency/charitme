@@ -16,8 +16,8 @@ function slugify(text: string): string {
 const CreateSchema = z.object({
   title: z.string().min(3).max(100),
   tagline: z.string().max(160).optional(),
-  description: z.string().min(20),
-  goalAmount: z.number().int().min(100),
+  description: z.string().min(1),    // allow short description for drafts
+  goalAmount: z.number().int().min(1),
   deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   category: z.enum(CAMPAIGN_CATEGORIES),
   coverImageUrl: z.string().url().nullable().optional(),
@@ -25,6 +25,10 @@ const CreateSchema = z.object({
   beneficiaryName: z.string().max(120).optional(),
   beneficiaryRelationship: z.string().max(120).optional(),
   evidenceNote: z.string().max(1000).optional(),
+  location: z.string().max(120).optional(),
+  videoUrl: z.string().url().nullable().optional(),
+  // 'draft' saves without publishing; 'active' publishes immediately (default)
+  status: z.enum(['draft', 'active']).default('active'),
 });
 
 export async function POST(request: NextRequest) {
@@ -36,7 +40,7 @@ export async function POST(request: NextRequest) {
   const parsed = CreateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const { title, tagline, description, goalAmount, deadline, category, coverImageUrl, imageUrls, beneficiaryName, beneficiaryRelationship, evidenceNote } = parsed.data;
+  const { title, tagline, description, goalAmount, deadline, category, coverImageUrl, imageUrls, beneficiaryName, beneficiaryRelationship, evidenceNote, location, videoUrl, status } = parsed.data;
 
   const baseSlug = slugify(title);
   const slug = `${baseSlug}-${Date.now().toString(36)}`;
@@ -55,7 +59,9 @@ export async function POST(request: NextRequest) {
     cover_image_url: coverImageUrl ?? null,
     beneficiary_name: beneficiaryName ?? null,
     beneficiary_relationship: beneficiaryRelationship ?? null,
-    status: 'active',
+    location: location ?? null,
+    video_url: videoUrl ?? null,
+    status: status ?? 'active',
   };
 
   // Try inserting with image_urls; fall back gracefully if column doesn't exist yet

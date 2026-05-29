@@ -279,19 +279,21 @@ export default function CreatePage() {
     }
   };
 
-  // ── Publish ───────────────────────────────────────────
-  const publish = async () => {
+  // ── Shared submit helper ──────────────────────────────
+  const submitCampaign = async (status: 'draft' | 'active') => {
     if (form.title.trim().length < 3) {
       setError('Campaign title must be at least 3 characters.');
       return;
     }
-    if (form.description.trim().length < 20) {
-      setError('Campaign story must be at least 20 characters.');
-      return;
-    }
-    if (goalCents < 100) {
-      setError('Fundraising goal must be at least $1.00.');
-      return;
+    if (status === 'active') {
+      if (form.description.trim().length < 20) {
+        setError('Campaign story must be at least 20 characters.');
+        return;
+      }
+      if (goalCents < 100) {
+        setError('Fundraising goal must be at least $1.00.');
+        return;
+      }
     }
 
     setLoading(true);
@@ -303,28 +305,38 @@ export default function CreatePage() {
         body: JSON.stringify({
           title:                   form.title.trim(),
           tagline:                 form.tagline.trim() || undefined,
-          description:             form.description.trim(),
-          goalAmount:              goalCents,
+          description:             form.description.trim() || 'Draft — story coming soon.',
+          goalAmount:              goalCents || 100,
           deadline:                form.deadline || null,
           category:                form.category,
           coverImageUrl:           form.coverImageUrl || null,
           imageUrls:               uploadedImages.filter(img => img.status === 'done').map(img => img.url),
           beneficiaryName:         form.beneficiaryName.trim() || undefined,
           beneficiaryRelationship: form.beneficiaryRelationship.trim() || undefined,
+          status,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(typeof data.error === 'string' ? data.error : 'Failed to publish campaign.');
+        throw new Error(typeof data.error === 'string' ? data.error : `Failed to ${status === 'draft' ? 'save draft' : 'publish'}.`);
+      }
+      if (status === 'draft') {
+        setError('');
+        // Redirect to dashboard to continue editing later
+        window.location.href = '/dashboard/campaigns';
+        return;
       }
       setPublishedSlug(typeof data.slug === 'string' ? data.slug : '');
       setStep('live');
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Publish failed. Please try again.');
+      setError(e instanceof Error ? e.message : 'Failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  const publish = () => submitCampaign('active');
+  const saveDraft = () => submitCampaign('draft');
 
   // ── Misc ─────────────────────────────────────────────
   const journeyState = (i: number): 'done' | 'active' | '' => {
@@ -455,7 +467,35 @@ export default function CreatePage() {
                     />
                   </div>
                   <div className="kf-field">
-                    <label>Fundraising Goal ($) *</label>
+                    <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>Fundraising Goal ($) *</span>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!form.category) return;
+                          setAiLoading(true);
+                          try {
+                            const res = await fetch('/api/ai/goal-recommend', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                category: form.category,
+                                beneficiary: form.beneficiaryName || 'the beneficiary',
+                                notes: form.description || undefined,
+                              }),
+                            });
+                            const data = await res.json() as { goal_cents?: number; reasoning?: string };
+                            if (data.goal_cents) {
+                              upd('goal', String(Math.round(data.goal_cents / 100)));
+                            }
+                          } catch { /* silent */ } finally { setAiLoading(false); }
+                        }}
+                        disabled={aiLoading}
+                        style={{ fontSize: 11, fontWeight: 700, color: '#6c35ff', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 6, background: '#f0eaff' } as React.CSSProperties}
+                      >
+                        {aiLoading ? '✨ Thinking…' : '✨ AI Suggest'}
+                      </button>
+                    </label>
                     <input
                       type="number"
                       value={form.goal}
@@ -734,15 +774,34 @@ export default function CreatePage() {
                   ← Back
                 </button>
 
-                {step === 'preview' ? (
-                  <button type="button" className="kf-nav-launch" onClick={publish} disabled={loading}>
-                    {loading ? 'Launching…' : '🚀 Launch Campaign'}
-                  </button>
-                ) : (
-                  <button type="button" className="kf-nav-next" onClick={goNext}>
-                    Continue →
-                  </button>
-                )}
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  {/* Save draft always visible from step 2 onwards */}
+                  {stepIdx >= 1 && step !== 'preview' && (
+                    <button
+                      type="button"
+                      onClick={() => void saveDraft()}
+                      disabled={loading}
+                      style={{
+                        height: 44, padding: '0 20px', border: '1px solid var(--b2)',
+                        borderRadius: 10, background: '#fff', fontSize: 13,
+                        fontWeight: 700, cursor: 'pointer', color: 'var(--t2)',
+                        opacity: loading ? 0.6 : 1,
+                      }}
+                    >
+                      {loading ? 'Saving…' : 'Save Draft'}
+                    </button>
+                  )}
+
+                  {step === 'preview' ? (
+                    <button type="button" className="kf-nav-launch" onClick={() => void publish()} disabled={loading}>
+                      {loading ? 'Launching…' : '🚀 Launch Campaign'}
+                    </button>
+                  ) : (
+                    <button type="button" className="kf-nav-next" onClick={goNext}>
+                      Continue →
+                    </button>
+                  )}
+                </div>
               </div>
             </section>
 
@@ -864,7 +923,7 @@ export default function CreatePage() {
 // Sub-components
 // ─────────────────────────────────────────────
 function ShareButtons({ slug }: { slug: string }) {
-  const url = `https://www.eli54u.com/campaigns/${slug}`;
+  const url = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com'}/campaigns/${slug}`;
   const [copied, setCopied] = React.useState(false);
 
   const copyLink = async () => {

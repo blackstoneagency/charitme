@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { KindFundShell, TopBar } from '../../../../../components/KindFundApp';
 import { createClient } from '../../../../../lib/supabase-browser';
 
-const ORIGIN = 'https://www.eli54u.com';
+const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com';
 
 type Campaign = { id: string; title: string; slug: string };
 
