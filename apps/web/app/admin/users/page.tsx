@@ -112,16 +112,35 @@ export default async function AdminUsersPage() {
   await requireAdmin();
 
   // ── 1. PRIMARY SOURCE: public.profiles ───────────────────────────────────
-  //    Direct query — no auth.admin.listUsers dependency.
-  const { data: profileData, error: profileError } = await supabaseAdmin
-    .from('profiles')
-    .select('id, full_name, email, avatar_url, roles, identity_verified, plan, timezone, currency, created_at, updated_at')
-    .order('created_at', { ascending: false });
+  //    Fetch in parallel: exact total count + paginated rows (up to 2000).
+  //    PostgREST default cap is 1000 rows per query — we must use a separate
+  //    count query to get the real total (e.g. 1,005 not 1,000).
+  const _thirtyDaysAgo = new Date();
+  _thirtyDaysAgo.setDate(_thirtyDaysAgo.getDate() - 30);
+  const thirtyDaysIso = _thirtyDaysAgo.toISOString();
+  const [profileDataResult, countResult, newUsersCountResult] = await Promise.all([
+    supabaseAdmin
+      .from('profiles')
+      .select('id, full_name, email, avatar_url, roles, identity_verified, plan, timezone, currency, created_at, updated_at')
+      .order('created_at', { ascending: false })
+      .limit(2000),
+    // Exact total — never capped
+    supabaseAdmin
+      .from('profiles')
+      .select('*', { count: 'exact', head: true }),
+    // New users in last 30 days — exact count
+    supabaseAdmin
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', thirtyDaysIso),
+  ]);
 
-  // Temporary debug logging (remove after confirmed working)
-  console.log('[AdminUsersPage] profiles returned:', profileData?.length ?? 0);
-  console.log('[AdminUsersPage] supabase error:', profileError ?? null);
+  const profileError  = profileDataResult.error;
+  const profileData   = profileDataResult.data;
+  const exactTotal    = countResult.count ?? 0;       // real total — never capped at 1000
+  const exactNew30d   = newUsersCountResult.count ?? 0; // new in last 30 days
 
+  console.log('[AdminUsersPage] profiles fetched:', profileData?.length ?? 0, '| exact total:', exactTotal);
   if (profileError) {
     console.error('[AdminUsersPage] profiles query error:', profileError.code, profileError.message);
   }
@@ -203,9 +222,9 @@ export default async function AdminUsersPage() {
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
   const totals = {
-    total:     users.length,
-    active:    users.filter(u => u.status === 'Active').length,
-    newUsers:  users.filter(u => new Date(u.joinedAt) >= thirtyDaysAgo).length,
+    total:     exactTotal > 0 ? exactTotal : users.length, // exact from DB count query
+    active:    users.filter(u => u.status === 'Active').length, // from fetched rows (good enough for ≤2000)
+    newUsers:  exactNew30d > 0 ? exactNew30d : users.filter(u => new Date(u.joinedAt) >= thirtyDaysAgo).length,
     suspended: users.filter(u => u.status === 'Suspended').length,
   };
 
@@ -258,7 +277,7 @@ export default async function AdminUsersPage() {
     <KindFundShell active="Users" mode="admin">
       <TopBar
         title="Users"
-        subtitle={`${users.length.toLocaleString()} users · sourced from public.profiles`}
+        subtitle={`${(exactTotal > 0 ? exactTotal : users.length).toLocaleString()} total users · public.profiles`}
         actions={<></>}
       />
       <AdminUsersClient

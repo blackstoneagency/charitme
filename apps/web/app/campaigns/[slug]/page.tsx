@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -159,7 +160,17 @@ export default async function CampaignPage({ params, searchParams }: Props) {
       />
       <section className="pc-grid">
         <div className="pc-title">
-          <div className="pc-breadcrumb">Home / {campaign.category ?? 'Campaign'} / {campaign.title}</div>
+          <nav className="pc-breadcrumb" aria-label="Breadcrumb">
+            <Link href="/">Home</Link>
+            <span aria-hidden="true"> / </span>
+            <Link href={`/campaigns?category=${encodeURIComponent(campaign.category ?? '')}`}>
+              {campaign.category ?? 'Campaign'}
+            </Link>
+            <span aria-hidden="true"> / </span>
+            <span aria-current="page" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', verticalAlign: 'bottom' }}>
+              {campaign.title}
+            </span>
+          </nav>
           <span className="pc-verified">Verified Campaign</span>
           <h1>{campaign.title}</h1>
           <p>Organized by {organizer.full_name ?? 'KindFund Organizer'} <b>Verified</b> · {campaign.location ?? 'New York, USA'}</p>

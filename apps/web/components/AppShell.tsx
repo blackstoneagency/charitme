@@ -44,7 +44,9 @@ const FOOTER_LINKS = {
   ],
 } as const;
 
-const SHELL_BYPASS = ['/dashboard', '/admin', '/profile', '/create', '/campaigns'];
+// Bypass the public marketing shell for routes that have their own shell (dashboard/admin)
+// NOTE: /campaigns is intentionally NOT bypassed — public campaign pages need the header
+const SHELL_BYPASS = ['/dashboard', '/admin', '/profile', '/create'];
 
 function Logo() {
   return (

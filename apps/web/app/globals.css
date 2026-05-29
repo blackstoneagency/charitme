@@ -1257,7 +1257,10 @@ img, svg { display: block; }
 
 .public-campaign { width: min(1900px, 100%); margin: 0 auto; padding: 34px 42px 48px; color: var(--ink); }
 .pc-grid { display: grid; grid-template-columns: 1fr 1.05fr 420px; gap: 34px; align-items: start; }
-.pc-breadcrumb { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+.pc-breadcrumb { color: var(--muted); font-size: 13px; margin-bottom: 22px; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
+.pc-breadcrumb a { color: var(--muted); text-decoration: none; transition: color .15s; }
+.pc-breadcrumb a:hover { color: #19b86a; text-decoration: underline; }
+.pc-breadcrumb span[aria-current="page"] { color: var(--ink); font-weight: 600; }
 .pc-verified { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #96e7bd; border-radius: 999px; color: #079a4d; background: #f0fff6; padding: 7px 12px; font-size: 12px; font-weight: 950; text-transform: uppercase; }
 .pc-title h1 { margin: 20px 0 14px; font-size: clamp(42px, 5vw, 64px); line-height: 1.05; letter-spacing: -.045em; }
 .pc-title p { margin: 0 0 28px; color: #4d567a; font-size: 15px; }
