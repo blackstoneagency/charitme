@@ -15,6 +15,7 @@ export type RotatorCampaign = {
   campaign_health_score: number | null;
   deadline: string | null;
   organizer_name: string | null;
+  featured: boolean | null;  // featured campaigns sort first in the rotator
 };
 
 function formatCents(cents: number): string {
@@ -143,9 +144,16 @@ export default function HeroRotator({ campaigns, fallbackImageUrl = '/hero-child
 
       {/* ── Campaign card — position:relative so the progress bar can anchor to its bottom ── */}
       <div className="kind-campaign-card" style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1, position: 'relative', overflow: 'hidden' }}>
-        <div className="kind-verified">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width={14} height={14}><path d="M20 6L9 17l-5-5"/></svg>
-          VERIFIED CAMPAIGN
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <div className="kind-verified">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width={14} height={14}><path d="M20 6L9 17l-5-5"/></svg>
+            VERIFIED CAMPAIGN
+          </div>
+          {campaign?.featured && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px', borderRadius: 999, background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e', fontSize: 11, fontWeight: 950 }}>
+              ⭐ FEATURED
+            </span>
+          )}
         </div>
         <h2>{heroTitle}</h2>
         <p>

@@ -135,13 +135,15 @@ async function getHomeData(filters: StoryFilters): Promise<{
       .order('raised_amount', { ascending: false })
       .limit(3),
     carouselQuery.limit(8),
-    // Hero rotator: active campaigns WITH a photo, EXCLUDING video-only campaigns
+    // Hero rotator: active campaigns WITH a photo.
+    // featured=true campaigns sort first so admin-curated picks lead the rotation.
     supabaseAdmin
       .from('campaigns')
-      .select('slug,title,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,video_url,profiles:user_id(full_name)')
+      .select('slug,title,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,video_url,featured,profiles:user_id(full_name)')
       .eq('status', 'active')
       .not('cover_image_url', 'is', null)
-      .order('raised_amount', { ascending: false })
+      .order('featured',      { ascending: false })  // featured=true first
+      .order('raised_amount', { ascending: false })   // then by raised amount
       .limit(20),
     supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
     supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
@@ -155,6 +157,7 @@ async function getHomeData(filters: StoryFilters): Promise<{
   type RawRotator = {
     slug: string; title: string; category: string | null;
     cover_image_url: string | null; video_url: string | null;
+    featured: boolean | null;
     goal_amount: number; raised_amount: number; backer_count: number;
     trust_status: string | null; campaign_health_score: number | null;
     deadline: string | null;
@@ -174,6 +177,7 @@ async function getHomeData(filters: StoryFilters): Promise<{
       trust_status:          c.trust_status,
       campaign_health_score: c.campaign_health_score,
       deadline:              c.deadline,
+      featured:              c.featured ?? false,
       organizer_name:        Array.isArray(c.profiles)
         ? (c.profiles[0]?.full_name ?? null)
         : ((c.profiles as { full_name: string | null } | null)?.full_name ?? null),

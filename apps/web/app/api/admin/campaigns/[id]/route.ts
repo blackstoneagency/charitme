@@ -5,7 +5,8 @@ import { supabaseAdmin } from '../../../../../lib/supabase';
 import { verifyAdmin } from '../../users/_auth';
 
 const allowedStatuses    = new Set(['draft', 'active', 'paused', 'completed', 'rejected', 'frozen']);
-const allowedTrustStatus = new Set(['Needs More Info', 'Under Review', 'Verified', 'Flagged']);
+// 'Trusted' is a valid DB value (between 'Under Review' and 'Verified')
+const allowedTrustStatus = new Set(['Needs More Info', 'Under Review', 'Trusted', 'Verified', 'Flagged']);
 
 const PatchSchema = z.object({
   // Core text fields

@@ -1207,7 +1207,7 @@ function EditForm({
       </div>
       <div className="ac-field"><label>Trust Status</label>
         <select className="ac-input" value={draft.trustStatus} onChange={e => upd('trustStatus', e.target.value)}>
-          {['Needs More Info','Under Review','Verified','Flagged'].map(s => <option key={s}>{s}</option>)}
+          {['Needs More Info','Under Review','Trusted','Verified','Flagged'].map(s => <option key={s}>{s}</option>)}
         </select>
       </div>
       <div className="ac-field"><label>Goal Amount ($)</label><input className="ac-input" type="number" min={0} value={Math.round(draft.goalAmount / 100)} onChange={e => upd('goalAmount', Number(e.target.value) * 100)} /></div>
@@ -1389,6 +1389,39 @@ function EditForm({
               Supported: YouTube (youtube.com/watch?v=, youtu.be/) and Vimeo (vimeo.com/). The video will be embedded on the public campaign page.
             </p>
           </div>
+        )}
+      </div>
+
+      {/* ── Feature Campaign ── */}
+      <div className="ac-field full" style={{ borderTop: '1px solid #eef0f7', paddingTop: 20, marginTop: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <strong style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e', display: 'block', marginBottom: 4 }}>
+              {draft.featured ? '⭐ Featured on Homepage' : '☆ Feature on Homepage'}
+            </strong>
+            <span style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
+              Featured campaigns appear <strong>first</strong> in the homepage hero rotator.<br />
+              Campaign must have a cover photo and be active to show in the rotator.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => upd('featured', !draft.featured)}
+            style={{
+              height: 40, padding: '0 20px', borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: 'pointer',
+              border: draft.featured ? '1.5px solid #f59e0b' : '1.5px solid #6c35ff',
+              background: draft.featured ? '#fffbeb' : '#f0eaff',
+              color: draft.featured ? '#92400e' : '#4d1ee0',
+              transition: 'all .15s', flexShrink: 0,
+            }}
+          >
+            {draft.featured ? '★ Remove from Featured' : '☆ Add to Featured'}
+          </button>
+        </div>
+        {draft.featured && !draft.coverImageUrl && (
+          <p style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, margin: '8px 0 0' }}>
+            ⚠ This campaign has no cover image — it will not appear in the rotator until one is added.
+          </p>
         )}
       </div>
 
