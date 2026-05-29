@@ -22,7 +22,7 @@ export default async function AdminCampaignsPage() {
     supabaseAdmin
       .from('campaigns')
       .select(
-        'id, slug, title, tagline, description, status, raised_amount, goal_amount, backer_count, category, user_id, trust_status, campaign_health_score, payout_frozen, featured, pinned, cover_image_url, deadline, beneficiary_name, created_at',
+        'id, slug, title, tagline, description, status, raised_amount, goal_amount, backer_count, category, user_id, trust_status, campaign_health_score, payout_frozen, featured, pinned, cover_image_url, image_urls, video_url, deadline, beneficiary_name, created_at',
         { count: 'exact' },
       )
       .order('created_at', { ascending: false })
@@ -84,6 +84,8 @@ export default async function AdminCampaignsPage() {
     featured: boolean | null;
     pinned: boolean | null;
     cover_image_url: string | null;
+    image_urls: string[] | null;
+    video_url: string | null;
     deadline: string | null;
     beneficiary_name: string | null;
     created_at: string;
@@ -122,6 +124,8 @@ export default async function AdminCampaignsPage() {
     organizer: profileMap.get(c.user_id) ?? 'Unknown Organizer',
     organizerId: c.user_id,
     coverImageUrl: c.cover_image_url ?? null,
+    imageUrls: (c.image_urls as string[] | null) ?? [],
+    videoUrl: (c.video_url as string | null) ?? null,
     deadline: c.deadline ?? null,
     beneficiaryName: c.beneficiary_name ?? null,
     createdAt: c.created_at,

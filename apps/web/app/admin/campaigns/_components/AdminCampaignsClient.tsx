@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition, useCallback, useRef } from 'react';
+import React, { useMemo, useState, useTransition, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { KFIcon } from '../../../../components/KindFundApp';
 
@@ -26,6 +26,8 @@ export type AdminCampaign = {
   organizer: string;
   organizerId: string;
   coverImageUrl: string | null;
+  imageUrls: string[];
+  videoUrl: string | null;
   deadline: string | null;
   beneficiaryName: string | null;
   createdAt: string;
@@ -383,6 +385,8 @@ export default function AdminCampaignsClient({ campaigns: initialCampaigns }: Pr
         organizer: 'Admin',
         organizerId: '',
         coverImageUrl: createDraft.coverImageUrl || null,
+        imageUrls: [],
+        videoUrl: null,
         deadline: createDraft.deadline || null,
         beneficiaryName: createDraft.beneficiaryName || null,
         createdAt: new Date().toISOString(),
@@ -1091,6 +1095,13 @@ function EditForm({
   isPending: boolean;
 }) {
   const [draft, setDraft] = useState(campaign);
+  const [mediaSection, setMediaSection] = useState<'cover' | 'gallery' | 'video'>('cover');
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [mediaError, setMediaError] = useState('');
+  const coverInputRef = React.useRef<HTMLInputElement>(null);
+  const galleryInputRef = React.useRef<HTMLInputElement>(null);
+
   const changed = JSON.stringify(draft) !== JSON.stringify(campaign);
 
   function upd<K extends keyof AdminCampaign>(k: K, v: AdminCampaign[K]) {
@@ -1108,11 +1119,61 @@ function EditForm({
       payout_frozen: draft.payoutFrozen,
       campaign_health_score: draft.healthScore,
       goal_amount: draft.goalAmount,
+      cover_image_url: draft.coverImageUrl,
+      image_urls: draft.imageUrls,
+      video_url: draft.videoUrl,
     }, draft);
   }
 
+  async function uploadCover(file: File) {
+    setUploadingCover(true); setMediaError('');
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const res = await fetch('/api/upload/campaign-image', { method: 'POST', body: fd });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok) { setMediaError(data.error ?? 'Upload failed.'); return; }
+      if (data.url) upd('coverImageUrl', data.url);
+    } catch { setMediaError('Upload failed. Please try again.'); }
+    finally { setUploadingCover(false); }
+  }
+
+  async function uploadGalleryImage(file: File) {
+    setUploadingGallery(true); setMediaError('');
+    try {
+      const fd = new FormData(); fd.append('file', file);
+      const res = await fetch('/api/upload/campaign-image', { method: 'POST', body: fd });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok) { setMediaError(data.error ?? 'Upload failed.'); return; }
+      if (data.url) upd('imageUrls', [...(draft.imageUrls ?? []), data.url]);
+    } catch { setMediaError('Upload failed. Please try again.'); }
+    finally { setUploadingGallery(false); }
+  }
+
+  function removeGalleryImage(url: string) {
+    upd('imageUrls', (draft.imageUrls ?? []).filter(u => u !== url));
+  }
+
+  function getVideoEmbedUrl(url: string): string | null {
+    if (!url) return null;
+    const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+    if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+    const vm = url.match(/vimeo\.com\/(\d+)/);
+    if (vm) return `https://player.vimeo.com/video/${vm[1]}`;
+    return null;
+  }
+
+  const sectionTabStyle = (active: boolean) => ({
+    padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' as const,
+    border: 'none',
+    background: active ? '#6c35ff' : 'transparent',
+    color: active ? '#fff' : '#64748b',
+    transition: 'all .15s',
+  });
+
   return (
     <div className="ac-form-grid">
+
+      {/* ── Core fields ── */}
       <div className="ac-field full"><label>Title</label><input className="ac-input" value={draft.title} onChange={e => upd('title', e.target.value)} /></div>
       <div className="ac-field"><label>Category</label><input className="ac-input" value={draft.category} onChange={e => upd('category', e.target.value)} /></div>
       <div className="ac-field"><label>Status</label>
@@ -1132,6 +1193,182 @@ function EditForm({
       </div>
       <div className="ac-field full"><label>Tagline</label><input className="ac-input" value={draft.tagline} onChange={e => upd('tagline', e.target.value)} /></div>
       <div className="ac-field full"><label>Description</label><textarea className="ac-textarea" rows={5} value={draft.description} onChange={e => upd('description', e.target.value)} /></div>
+
+      {/* ── MEDIA MANAGEMENT ── */}
+      <div className="ac-field full" style={{ borderTop: '1px solid #eef0f7', paddingTop: 20, marginTop: 4 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <strong style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e' }}>Media Management</strong>
+          <div style={{ display: 'flex', gap: 4, background: '#f8f9fc', borderRadius: 10, padding: 4 }}>
+            <button style={sectionTabStyle(mediaSection === 'cover')}   onClick={() => setMediaSection('cover')}>Cover Image</button>
+            <button style={sectionTabStyle(mediaSection === 'gallery')} onClick={() => setMediaSection('gallery')}>Gallery ({(draft.imageUrls ?? []).length})</button>
+            <button style={sectionTabStyle(mediaSection === 'video')}   onClick={() => setMediaSection('video')}>Video</button>
+          </div>
+        </div>
+
+        {mediaError && (
+          <div style={{ padding: '10px 14px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 9, color: '#be123c', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+            ⚠ {mediaError}
+          </div>
+        )}
+
+        {/* ── Cover Image ── */}
+        {mediaSection === 'cover' && (
+          <div>
+            {draft.coverImageUrl ? (
+              <div style={{ position: 'relative', display: 'inline-block', marginBottom: 14 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={draft.coverImageUrl}
+                  alt="Cover image"
+                  style={{ width: '100%', maxWidth: 480, height: 200, objectFit: 'cover', borderRadius: 12, border: '1px solid #e2e8f0', display: 'block' }}
+                />
+                <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 6 }}>
+                  <a
+                    href={draft.coverImageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(0,0,0,.55)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, textDecoration: 'none' }}
+                    title="View full size"
+                  >↗</a>
+                  <button
+                    type="button"
+                    title="Remove cover image"
+                    onClick={() => { upd('coverImageUrl', null); }}
+                    style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(190,18,60,.85)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >×</button>
+                </div>
+                <div style={{ marginTop: 6, fontSize: 11, color: '#64748b', wordBreak: 'break-all' }}>
+                  {draft.coverImageUrl.slice(0, 80)}{draft.coverImageUrl.length > 80 ? '…' : ''}
+                </div>
+              </div>
+            ) : (
+              <div style={{ width: '100%', maxWidth: 480, height: 160, borderRadius: 12, border: '2px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 14, fontWeight: 600, marginBottom: 14 }}>
+                No cover image set
+              </div>
+            )}
+            <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) void uploadCover(f); e.target.value = ''; }} />
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button type="button" disabled={uploadingCover} onClick={() => coverInputRef.current?.click()}
+                style={{ padding: '8px 18px', border: '1px solid #6c35ff', borderRadius: 9, background: '#f0eaff', color: '#6c35ff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                {uploadingCover ? 'Uploading…' : draft.coverImageUrl ? '↑ Replace Cover Image' : '↑ Upload Cover Image'}
+              </button>
+              {draft.coverImageUrl && (
+                <button type="button" onClick={() => upd('coverImageUrl', null)}
+                  style={{ padding: '8px 18px', border: '1px solid #fca5a5', borderRadius: 9, background: '#fff0f3', color: '#be123c', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                  Remove Cover
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Gallery ── */}
+        {mediaSection === 'gallery' && (
+          <div>
+            {(draft.imageUrls ?? []).length === 0 ? (
+              <div style={{ padding: '24px', textAlign: 'center', border: '2px dashed #e2e8f0', borderRadius: 12, color: '#94a3b8', fontSize: 14, marginBottom: 14 }}>
+                No gallery images. Upload up to 10 photos.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))', gap: 10, marginBottom: 14 }}>
+                {(draft.imageUrls ?? []).map((url, i) => (
+                  <div key={url} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt={`Gallery image ${i + 1}`} style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} />
+                    <div style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4 }}>
+                      {i === 0 && (
+                        <span style={{ padding: '2px 8px', background: '#6c35ff', color: '#fff', fontSize: 10, fontWeight: 800, borderRadius: 6 }}>
+                          COVER
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ position: 'absolute', bottom: 0, right: 0, left: 0, display: 'flex', justifyContent: 'space-between', padding: '4px 6px', background: 'linear-gradient(0deg,rgba(0,0,0,.6),transparent)' }}>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,.8)' }}>#{i + 1}</span>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <a href={url} target="_blank" rel="noopener noreferrer"
+                          style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(255,255,255,.2)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, textDecoration: 'none' }}
+                          title="View full size">↗</a>
+                        <button type="button" onClick={() => removeGalleryImage(url)}
+                          title="Remove image"
+                          style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(190,18,60,.75)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple style={{ display: 'none' }}
+              onChange={async e => {
+                const files = Array.from(e.target.files ?? []).slice(0, 10 - (draft.imageUrls ?? []).length);
+                for (const f of files) await uploadGalleryImage(f);
+                e.target.value = '';
+              }} />
+            <button type="button"
+              disabled={uploadingGallery || (draft.imageUrls ?? []).length >= 10}
+              onClick={() => galleryInputRef.current?.click()}
+              style={{ padding: '8px 18px', border: '1px solid #6c35ff', borderRadius: 9, background: '#f0eaff', color: '#6c35ff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              {uploadingGallery ? 'Uploading…' : `↑ Add Images (${(draft.imageUrls ?? []).length}/10)`}
+            </button>
+            {(draft.imageUrls ?? []).length > 0 && (
+              <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>
+                First image is used as the cover on the campaign page if no separate cover image is set.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* ── Video ── */}
+        {mediaSection === 'video' && (
+          <div>
+            {draft.videoUrl && getVideoEmbedUrl(draft.videoUrl) ? (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: 12, background: '#000', maxWidth: 480 }}>
+                  <iframe
+                    src={getVideoEmbedUrl(draft.videoUrl)!}
+                    title="Campaign video preview"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+                  />
+                </div>
+                <p style={{ fontSize: 12, color: '#64748b', marginTop: 6, wordBreak: 'break-all' }}>{draft.videoUrl}</p>
+              </div>
+            ) : draft.videoUrl ? (
+              <div style={{ padding: '14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, marginBottom: 14 }}>
+                <p style={{ fontSize: 13, color: '#92400e', margin: 0 }}>⚠ URL set but not a recognized YouTube/Vimeo link. It will still be saved.</p>
+                <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0', wordBreak: 'break-all' }}>{draft.videoUrl}</p>
+              </div>
+            ) : (
+              <div style={{ padding: '24px', textAlign: 'center', border: '2px dashed #e2e8f0', borderRadius: 12, color: '#94a3b8', fontSize: 14, marginBottom: 14 }}>
+                No video set. Paste a YouTube or Vimeo URL below.
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <input
+                className="ac-input"
+                value={draft.videoUrl ?? ''}
+                onChange={e => upd('videoUrl', e.target.value || null)}
+                placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
+                style={{ flex: 1 }}
+              />
+              {draft.videoUrl && (
+                <button type="button" onClick={() => upd('videoUrl', null)}
+                  style={{ padding: '8px 14px', border: '1px solid #fca5a5', borderRadius: 9, background: '#fff0f3', color: '#be123c', fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+                  Remove
+                </button>
+              )}
+            </div>
+            <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>
+              Supported: YouTube (youtube.com/watch?v=, youtu.be/) and Vimeo (vimeo.com/). The video will be embedded on the public campaign page.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* ── Save ── */}
       <div className="ac-field full">
         <button className="ac-btn-primary" disabled={!changed || isPending} onClick={save}>
           {isPending ? 'Saving…' : 'Save Changes'}
