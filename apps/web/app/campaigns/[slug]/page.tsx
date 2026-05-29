@@ -7,6 +7,7 @@ import { calculateTrustScore, getTrustSignals } from '../../../lib/ai-platform';
 import DonateButton from './DonateButton';
 import ReportButton from './ReportButton';
 import DonationSuccess from './DonationSuccess';
+import MobileDonateCTA from './MobileDonateCTA';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,6 +61,17 @@ async function getLedger(campaignId: string) {
   return data ?? [];
 }
 
+async function getFAQs(campaignId: string) {
+  const { data } = await supabaseAdmin
+    .from('campaign_faqs')
+    .select('id, question, answer, sort_order')
+    .eq('campaign_id', campaignId)
+    .eq('is_public', true)
+    .order('sort_order', { ascending: true })
+    .limit(10);
+  return (data ?? []) as { id: string; question: string; answer: string; sort_order: number }[];
+}
+
 function asProfile(value: unknown): Profile {
   if (Array.isArray(value)) return (value[0] ?? {}) as Profile;
   return (value ?? {}) as Profile;
@@ -102,10 +114,11 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const campaign = await getCampaign(slug);
   if (!campaign) notFound();
 
-  const [donations, updates, ledger] = await Promise.all([
+  const [donations, updates, ledger, faqs] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
     getLedger(campaign.id),
+    getFAQs(campaign.id),
   ]);
 
   const raised = campaign.raised_amount ?? 0;
@@ -136,6 +149,14 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   return (
     <main className="public-campaign">
       {justDonated && <DonationSuccess />}
+      <MobileDonateCTA
+        campaignTitle={campaign.title}
+        raised={raised}
+        goal={goal}
+        pct={pct}
+        isActive={isActive}
+        campaignId={campaign.id}
+      />
       <section className="pc-grid">
         <div className="pc-title">
           <div className="pc-breadcrumb">Home / {campaign.category ?? 'Campaign'} / {campaign.title}</div>
@@ -318,6 +339,28 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           {ledger.length === 0 ? <p><span>Receipts and milestones will appear here.</span><b>Live</b></p> : null}
         </article>
       </section>
+
+      {/* ── FAQ section ── */}
+      {faqs.length > 0 && (
+        <section style={{ maxWidth: 800, margin: '0 auto 40px', padding: '0 24px' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 16, color: '#1a1a2e' }}>
+            Frequently Asked Questions
+          </h2>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {faqs.map(faq => (
+              <details key={faq.id} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 12, overflow: 'hidden' }}>
+                <summary style={{ padding: '16px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer', color: '#1a1a2e', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  {faq.question}
+                  <span style={{ fontSize: 20, color: '#6c35ff', flexShrink: 0, marginLeft: 12 }}>+</span>
+                </summary>
+                <div style={{ padding: '4px 20px 18px', fontSize: 14, color: '#64748b', lineHeight: 1.7 }}>
+                  {faq.answer}
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="pc-safe">
         <div><b>Secure donations</b><span>SSL encrypted checkout through Stripe.</span></div>

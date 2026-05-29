@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { KindFundShell, TopBar, KFIcon } from '../../../../components/KindFundShellServer';
 import { requireUser } from '../../../../lib/auth';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import CampaignControls from './_components/CampaignControls';
 
 export const dynamic = 'force-dynamic';
 
@@ -394,6 +395,7 @@ export default async function CampaignDetailPage({
               { href: `/dashboard/campaigns/${campaign.id}/share`, icon: 'send', label: 'Share & AI Content', desc: 'UTM links + AI posts' },
               { href: `/dashboard/campaigns/${campaign.id}/thank-donors`, icon: 'chat', label: 'Thank Donors', desc: 'Email your supporters' },
               { href: `/dashboard/campaigns/${campaign.id}/ledger`, icon: 'doc', label: 'Fund Ledger', desc: 'Track how funds are used' },
+              { href: `/dashboard/campaigns/${campaign.id}/faqs`, icon: 'doc', label: 'Manage FAQs', desc: 'AI-generated Q&A' },
               { href: `/dashboard/campaigns/${campaign.id}/edit`, icon: 'doc', label: 'Edit Campaign', desc: 'Update title, story, media' },
               { href: `/api/campaigns/${campaign.id}/qr-poster`, icon: 'send', label: 'Print QR Poster', desc: 'Download & print' },
               { href: `/dashboard/updates/new`, icon: 'doc', label: 'Post Update', desc: 'Keep donors informed' },
@@ -407,6 +409,9 @@ export default async function CampaignDetailPage({
             ))}
           </div>
         </section>
+
+        {/* ── Campaign Controls ── */}
+        <CampaignControls campaignId={campaign.id} currentStatus={campaign.status} />
 
       </div>
     </KindFundShell>

@@ -2800,3 +2800,11 @@ img, svg { display: block; }
   .ado-actions-panel { width: 100%; }
   .ado-donor-row { padding: 16px; }
 }
+
+/* Mobile sticky donate bar — only visible on small screens */
+.mobile-donate-bar { display: none !important; }
+@media (max-width: 768px) {
+  .mobile-donate-bar { display: flex !important; }
+  /* Add bottom padding so content isn't hidden behind sticky bar */
+  .public-campaign { padding-bottom: 80px; }
+}

@@ -9,10 +9,11 @@ const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com';
 const FROM   = process.env.EMAIL_FROM ?? 'KindFund <hello@eli54u.com>';
 
 const Schema = z.object({
-  title:       z.string().max(200).optional(),
-  body:        z.string().trim().min(10).max(10000),
-  aiGenerated: z.boolean().optional(),
+  title:        z.string().max(200).optional(),
+  body:         z.string().trim().min(10).max(10000),
+  aiGenerated:  z.boolean().optional(),
   notifyDonors: z.boolean().default(true),
+  scheduledAt:  z.string().datetime().nullable().optional(), // ISO datetime — null = publish now
 });
 
 // POST /api/campaigns/[id]/updates
@@ -47,7 +48,8 @@ export async function POST(
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
   }
 
-  const { title, body: updateBody, aiGenerated, notifyDonors } = parsed.data;
+  const { title, body: updateBody, aiGenerated, notifyDonors, scheduledAt } = parsed.data;
+  const isScheduled = Boolean(scheduledAt && new Date(scheduledAt) > new Date());
 
   // Insert the update
   const { data: update, error: insertErr } = await supabaseAdmin
@@ -58,14 +60,21 @@ export async function POST(
       title:        title?.trim() || null,
       body:         updateBody,
       ai_generated: aiGenerated ?? false,
-      published_at: new Date().toISOString(),
+      // Only set published_at if publishing now (not scheduled)
+      published_at: isScheduled ? null : new Date().toISOString(),
+      scheduled_at: isScheduled ? scheduledAt : null,
     })
-    .select('id, title, body, created_at')
+    .select('id, title, body, created_at, scheduled_at')
     .single();
 
   if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 500 });
 
-  // Email donors (fire-and-forget — non-blocking)
+  // If scheduled, return early — emails sent when cron/scheduler publishes it
+  if (isScheduled) {
+    return NextResponse.json({ ok: true, update, scheduled: true, scheduledAt }, { status: 201 });
+  }
+
+  // Email donors immediately (fire-and-forget — non-blocking)
   if (notifyDonors && resend) {
     void (async () => {
       try {

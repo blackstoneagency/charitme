@@ -13,11 +13,14 @@ export default function NewUpdatePage() {
   const [campaignId, setCampaignId] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [loadingCampaigns, setLoadingCampaigns] = useState(true);
 
   useEffect(() => {
+
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { router.push('/login'); return; }
@@ -46,7 +49,12 @@ export default function NewUpdatePage() {
       const res = await fetch(`/api/campaigns/${campaignId}/updates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim() || undefined, body: body.trim(), notifyDonors: true }),
+        body: JSON.stringify({
+          title: title.trim() || undefined,
+          body: body.trim(),
+          notifyDonors: !scheduleMode, // don't email until actually published
+          scheduledAt: scheduleMode && scheduledAt ? new Date(scheduledAt).toISOString() : null,
+        }),
       });
       const data = await res.json() as { ok?: boolean; error?: string };
       if (!res.ok) { setError(data.error ?? 'Failed to post update.'); return; }
@@ -141,17 +149,34 @@ export default function NewUpdatePage() {
                     <span style={{ fontSize: 11, color: 'var(--t3)', textAlign: 'right' }}>{body.length}/5000</span>
                   </label>
 
+                  {/* Schedule option */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 4 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={scheduleMode} onChange={e => setScheduleMode(e.target.checked)} style={{ width: 16, height: 16 }} />
+                      Schedule for later
+                    </label>
+                    {scheduleMode && (
+                      <input
+                        type="datetime-local"
+                        value={scheduledAt}
+                        onChange={e => setScheduledAt(e.target.value)}
+                        required={scheduleMode}
+                        style={{ height: 38, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 10px', fontSize: 13 }}
+                      />
+                    )}
+                  </div>
+
                   <div style={{ display: 'flex', gap: 12, paddingTop: 8 }}>
                     <button
                       type="submit"
-                      disabled={saving || !body.trim()}
+                      disabled={saving || !body.trim() || (scheduleMode && !scheduledAt)}
                       style={{
                         height: 48, padding: '0 32px', border: 0, borderRadius: 11,
                         background: saving || !body.trim() ? '#c0b8e8' : 'linear-gradient(135deg,#6c35ff,#551cf2)',
                         color: '#fff', fontWeight: 950, fontSize: 15, cursor: saving ? 'wait' : 'pointer',
                       }}
                     >
-                      {saving ? 'Posting…' : 'Post Update'}
+                      {saving ? (scheduleMode ? 'Scheduling…' : 'Posting…') : (scheduleMode ? 'Schedule Update' : 'Post Update')}
                     </button>
                     <button
                       type="button"

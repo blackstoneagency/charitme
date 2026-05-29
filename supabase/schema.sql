@@ -1517,3 +1517,39 @@ begin
       updated_at = now();
   end if;
 end; $$;
+
+-- ── campaign_faqs (AI-generated + manual) ─────────────────────────────────────
+create table if not exists public.campaign_faqs (
+  id          uuid primary key default uuid_generate_v4(),
+  campaign_id uuid not null references campaigns(id) on delete cascade,
+  question    text not null check (char_length(question) between 5 and 300),
+  answer      text not null check (char_length(answer)  between 5 and 2000),
+  sort_order  int  not null default 0,
+  is_public   boolean not null default true,
+  ai_generated boolean not null default false,
+  created_at  timestamptz not null default now()
+);
+create index if not exists idx_campaign_faqs_campaign_id on campaign_faqs(campaign_id);
+alter table campaign_faqs enable row level security;
+do $$
+begin
+  if not exists (select 1 from pg_policies where tablename='campaign_faqs' and policyname='faqs_public_read') then
+    create policy faqs_public_read on campaign_faqs for select using (is_public = true or is_admin() or exists (select 1 from campaigns where campaigns.id = campaign_id and campaigns.user_id = auth.uid()));
+  end if;
+  if not exists (select 1 from pg_policies where tablename='campaign_faqs' and policyname='faqs_owner_write') then
+    create policy faqs_owner_write on campaign_faqs for insert with check (is_admin() or exists (select 1 from campaigns where campaigns.id = campaign_id and campaigns.user_id = auth.uid()));
+  end if;
+  if not exists (select 1 from pg_policies where tablename='campaign_faqs' and policyname='faqs_owner_update') then
+    create policy faqs_owner_update on campaign_faqs for update using (is_admin() or exists (select 1 from campaigns where campaigns.id = campaign_id and campaigns.user_id = auth.uid()));
+  end if;
+  if not exists (select 1 from pg_policies where tablename='campaign_faqs' and policyname='faqs_owner_delete') then
+    create policy faqs_owner_delete on campaign_faqs for delete using (is_admin() or exists (select 1 from campaigns where campaigns.id = campaign_id and campaigns.user_id = auth.uid()));
+  end if;
+end $$;
+
+-- ── Re-grant to PostgREST roles after adding new tables ────────────────────────
+grant usage on schema public to anon, authenticated, service_role;
+grant all on all tables    in schema public to anon, authenticated, service_role;
+grant all on all sequences in schema public to anon, authenticated, service_role;
+grant all on all routines  in schema public to anon, authenticated, service_role;
+select pg_notify('pgrst', 'reload schema');

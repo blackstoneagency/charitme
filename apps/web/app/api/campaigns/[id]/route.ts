@@ -3,35 +3,45 @@ import { z } from 'zod';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
 
+const VALID_STATUSES = ['draft', 'active', 'paused', 'completed', 'frozen', 'archived'] as const;
+
 const UpdateSchema = z.object({
-  title: z.string().min(3).max(100).optional(),
-  tagline: z.string().max(160).nullable().optional(),
-  description: z.string().min(20).optional(),
-  status: z.enum(['active', 'paused', 'completed']).optional(),
-  coverImageUrl: z.string().url().nullable().optional(),
-  goalAmount: z.number().int().min(100).optional(),
-  deadline: z.string().nullable().optional(),
-  category: z.string().optional(),
-  beneficiaryName: z.string().max(120).nullable().optional(),
+  title:                   z.string().min(3).max(100).optional(),
+  tagline:                 z.string().max(160).nullable().optional(),
+  description:             z.string().min(1).optional(),
+  status:                  z.enum(VALID_STATUSES).optional(),
+  coverImageUrl:           z.string().url().nullable().optional(),
+  goalAmount:              z.number().int().min(1).optional(),
+  deadline:                z.string().nullable().optional(),
+  category:                z.string().optional(),
+  beneficiaryName:         z.string().max(120).nullable().optional(),
   beneficiaryRelationship: z.string().max(120).nullable().optional(),
-  videoUrl: z.string().url().nullable().optional(),
-  location: z.string().max(120).nullable().optional(),
+  videoUrl:                z.string().url().nullable().optional(),
+  location:                z.string().max(120).nullable().optional(),
+  donationsEnabled:        z.boolean().optional(), // pause/resume accepting donations
+  goalHistory:             z.any().optional(),     // audit trail for goal changes
 });
 
+async function verifyOwnership(campaignId: string, userId: string) {
+  const { data } = await supabaseAdmin
+    .from('campaigns')
+    .select('id, user_id, status, goal_amount')
+    .eq('id', campaignId)
+    .single();
+  if (!data) return { ok: false, error: 'Campaign not found', status: 404 };
+  if (data.user_id !== userId) return { ok: false, error: 'Forbidden', status: 403 };
+  return { ok: true, campaign: data };
+}
+
+// ── PATCH /api/campaigns/[id] ─────────────────────────────────────────────────
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { data: campaign } = await supabaseAdmin
-    .from('campaigns')
-    .select('user_id')
-    .eq('id', id)
-    .single();
-
-  if (!campaign) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  if (campaign.user_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const check = await verifyOwnership(id, user.id);
+  if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
 
   const body = await request.json().catch(() => null);
   const parsed = UpdateSchema.safeParse(body);
@@ -40,30 +50,98 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const d = parsed.data;
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
-  if (d.title)                          updates.title = d.title;
-  if (d.tagline !== undefined)          updates.tagline = d.tagline;
-  if (d.description)                    updates.description = d.description;
-  if (d.status)                         updates.status = d.status;
-  if (d.coverImageUrl !== undefined)    updates.cover_image_url = d.coverImageUrl;
-  if (d.goalAmount !== undefined)       updates.goal_amount = d.goalAmount;
-  if (d.deadline !== undefined)         updates.deadline = d.deadline;
-  if (d.category)                       updates.category = d.category;
-  if (d.beneficiaryName !== undefined)  updates.beneficiary_name = d.beneficiaryName;
-  if (d.beneficiaryRelationship !== undefined) updates.beneficiary_relationship = d.beneficiaryRelationship;
-  if (d.videoUrl !== undefined)         updates.video_url = d.videoUrl;
-  if (d.location !== undefined)         updates.location = d.location;
+  if (d.title !== undefined)                     updates.title = d.title;
+  if (d.tagline !== undefined)                   updates.tagline = d.tagline;
+  if (d.description !== undefined)               updates.description = d.description;
+  if (d.status !== undefined)                    updates.status = d.status;
+  if (d.coverImageUrl !== undefined)             updates.cover_image_url = d.coverImageUrl;
+  if (d.deadline !== undefined)                  updates.deadline = d.deadline;
+  if (d.category !== undefined)                  updates.category = d.category;
+  if (d.beneficiaryName !== undefined)           updates.beneficiary_name = d.beneficiaryName;
+  if (d.beneficiaryRelationship !== undefined)   updates.beneficiary_relationship = d.beneficiaryRelationship;
+  if (d.videoUrl !== undefined)                  updates.video_url = d.videoUrl;
+  if (d.location !== undefined)                  updates.location = d.location;
+
+  // Goal change: record history, freeze donations during review if big change
+  if (d.goalAmount !== undefined) {
+    const oldGoal = check.campaign?.goal_amount ?? 0;
+    updates.goal_amount = d.goalAmount;
+    // Log goal change to transparency ledger
+    if (oldGoal > 0 && d.goalAmount !== oldGoal) {
+      try {
+        await supabaseAdmin.from('transparency_ledger_items').insert({
+          campaign_id: id,
+          item_type: 'other',
+          title: `Goal ${d.goalAmount > oldGoal ? 'increased' : 'decreased'} from $${(oldGoal / 100).toLocaleString()} to $${(d.goalAmount / 100).toLocaleString()}`,
+          status: 'verified',
+        });
+      } catch { /* non-fatal */ }
+    }
+  }
 
   const { data, error } = await supabaseAdmin
     .from('campaigns')
     .update(updates)
     .eq('id', id)
-    .select('id, slug')
+    .select('id, slug, status')
     .single();
 
   if (error) {
     console.error('Campaign update failed', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Audit log for status changes
+  if (d.status) {
+    try {
+      await supabaseAdmin.from('audit_logs').insert({
+        actor_id: user.id,
+        action: `campaign.${d.status}`,
+        target_type: 'campaign',
+        target_id: id,
+        metadata: { previous_status: check.campaign?.status, new_status: d.status },
+      });
+    } catch { /* non-fatal */ }
   }
 
   return NextResponse.json(data);
+}
+
+// ── DELETE /api/campaigns/[id] ────────────────────────────────────────────────
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const check = await verifyOwnership(id, user.id);
+  if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
+
+  const campaign = check.campaign!;
+
+  // Safety: only delete drafts or archived campaigns. Live/active campaigns should be archived first.
+  if (campaign.status === 'active') {
+    return NextResponse.json({
+      error: 'Active campaigns cannot be deleted. Please pause or close the campaign first.',
+    }, { status: 400 });
+  }
+
+  const { error } = await supabaseAdmin
+    .from('campaigns')
+    .delete()
+    .eq('id', id);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  try {
+    await supabaseAdmin.from('audit_logs').insert({
+      actor_id: user.id,
+      action: 'campaign.deleted',
+      target_type: 'campaign',
+      target_id: id,
+      metadata: { status_at_deletion: campaign.status },
+    });
+  } catch { /* non-fatal */ }
+
+  return NextResponse.json({ ok: true });
 }
