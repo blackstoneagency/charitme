@@ -81,6 +81,91 @@ const FAQS = [
   ['Is there a free trial for paid plans?', 'Yes! Starter and Pro both come with a 14-day free trial. No credit card required to start.'],
 ] as const;
 
+function FeeCalculator() {
+  const [amount, setAmount] = useState(1000);
+  const cents = amount * 100;
+  const stripeFixed = 30;
+  const stripePct = 0.029;
+  const tipPct = 0.08;
+
+  // KindFund with donor covering fee + 0% tip
+  const kfStripe = Math.round(cents * stripePct) + stripeFixed;
+  const kfNet = cents - kfStripe; // donor covers fee, 0% tip
+
+  // KindFund with tip (default 8%)
+  const kfTip = Math.round(cents * tipPct);
+
+  // GoFundMe: 0% platform + ~2.9%+$0.30 Stripe (same), but 5% on recurring
+  const gfmStripe = kfStripe;
+  const gfmNet = cents - gfmStripe;
+  const gfmRecurringFee = Math.round(cents * 0.05);
+  const gfmNetRecurring = cents - gfmStripe - gfmRecurringFee;
+
+  const fmt = (n: number) => `$${n.toLocaleString('en-US')}`;
+  const pct = (n: number) => `${((n / cents) * 100).toFixed(1)}%`;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+        <label style={{ fontSize: 14, fontWeight: 700, color: '#26335c' }}>
+          Donation amount:
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+            <span style={{ fontSize: 18, fontWeight: 900, color: '#64748b' }}>$</span>
+            <input type="number" value={amount} onChange={e => setAmount(Math.max(1, Number(e.target.value)))}
+              min="1" style={{ width: 120, height: 42, border: '1.5px solid #e0d5ff', borderRadius: 10, padding: '0 12px', fontSize: 16, fontWeight: 700, outline: 'none' }} />
+          </div>
+        </label>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 22 }}>
+          {[100, 500, 1000, 5000].map(v => (
+            <button key={v} type="button" onClick={() => setAmount(v)}
+              style={{ height: 36, padding: '0 16px', borderRadius: 8, border: `1.5px solid ${amount === v ? '#6c35ff' : '#e0d5ff'}`, background: amount === v ? '#f0eaff' : '#fff', color: amount === v ? '#551cf2' : '#64748b', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              ${v.toLocaleString()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {/* KindFund */}
+        <div style={{ background: '#f0fff8', border: '2px solid #19b86a', borderRadius: 16, padding: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <span style={{ fontWeight: 900, fontSize: 16, color: '#065f46' }}>💚 KindFund</span>
+            <span style={{ background: '#19b86a', color: '#fff', fontSize: 11, fontWeight: 900, padding: '3px 10px', borderRadius: 20 }}>BEST VALUE</span>
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: '#047857', marginBottom: 4 }}>{fmt(kfNet)}</div>
+          <div style={{ fontSize: 13, color: '#065f46', marginBottom: 16 }}>reaches the fundraiser ({pct(kfNet)} of {fmt(amount)})</div>
+          <div style={{ fontSize: 12, color: '#047857', lineHeight: 1.8 }}>
+            <div>Platform fee: <strong>$0</strong> (0%)</div>
+            <div>Stripe processing: <strong>−{fmt(kfStripe)}</strong></div>
+            <div>Optional donor tip: <strong>+{fmt(kfTip)}</strong> (8% default, donor chooses)</div>
+            <div style={{ marginTop: 8, fontWeight: 900 }}>Monthly recurring: <strong>$0 extra fee</strong></div>
+          </div>
+        </div>
+
+        {/* GoFundMe */}
+        <div style={{ background: '#faf8ff', border: '1px solid #e0d5ff', borderRadius: 16, padding: 24 }}>
+          <div style={{ fontWeight: 900, fontSize: 16, color: '#334064', marginBottom: 16 }}>GoFundMe</div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: '#4b5676', marginBottom: 4 }}>{fmt(gfmNet)}</div>
+          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>reaches the fundraiser ({pct(gfmNet)} of {fmt(amount)})</div>
+          <div style={{ fontSize: 12, color: '#4b5676', lineHeight: 1.8 }}>
+            <div>Platform fee: <strong>$0</strong> (0%)</div>
+            <div>Stripe processing: <strong>−{fmt(gfmStripe)}</strong></div>
+            <div style={{ color: '#e11d48', fontWeight: 700 }}>
+              Monthly recurring: <strong>−{fmt(gfmRecurringFee)}</strong> extra (5% fee on recurring)
+            </div>
+            <div style={{ marginTop: 8 }}>Recurring fundraiser gets: <strong style={{ color: '#e11d48' }}>{fmt(gfmNetRecurring)}</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <p style={{ textAlign: 'center', fontSize: 12, color: '#94a3b8', marginTop: 16 }}>
+        * Stripe fees (2.9% + $0.30) apply to both platforms. KindFund charges 0% on all donations including recurring. GoFundMe charges 5% on recurring donations.
+        Donors can optionally cover Stripe fees on KindFund.
+      </p>
+    </div>
+  );
+}
+
 export default function PricingPage() {
   const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
   const [loading, setLoading] = useState<string | null>(null);
@@ -209,6 +294,17 @@ export default function PricingPage() {
             </article>
           );
         })}
+      </section>
+
+      {/* ── Fee calculator vs GoFundMe ── */}
+      <section style={{ maxWidth: 760, margin: '0 auto 48px', padding: '0 24px' }}>
+        <h2 style={{ textAlign: 'center', fontWeight: 900, fontSize: 26, marginBottom: 8 }}>
+          Real fee comparison
+        </h2>
+        <p style={{ textAlign: 'center', color: '#64748b', marginBottom: 28, fontSize: 15 }}>
+          On a $1,000 campaign — what actually reaches the fundraiser?
+        </p>
+        <FeeCalculator />
       </section>
 
       <section className="pricing-promises">

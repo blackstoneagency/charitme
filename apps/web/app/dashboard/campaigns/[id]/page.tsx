@@ -199,7 +199,11 @@ export default async function CampaignDetailPage({
         title={campaign.title}
         subtitle={campaign.tagline ?? campaign.category ?? 'Campaign details'}
         actions={
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <Link href={`/dashboard/campaigns/${campaign.id}/edit`} className="kf-primary"
+              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <KFIcon name="doc" /> Edit Campaign
+            </Link>
             <a
               href={`/campaigns/${campaign.slug}`}
               target="_blank"

@@ -5,10 +5,17 @@ import { createClient } from '../../../../lib/supabase-server';
 
 const UpdateSchema = z.object({
   title: z.string().min(3).max(100).optional(),
-  tagline: z.string().max(160).optional(),
+  tagline: z.string().max(160).nullable().optional(),
   description: z.string().min(20).optional(),
   status: z.enum(['active', 'paused', 'completed']).optional(),
   coverImageUrl: z.string().url().nullable().optional(),
+  goalAmount: z.number().int().min(100).optional(),
+  deadline: z.string().nullable().optional(),
+  category: z.string().optional(),
+  beneficiaryName: z.string().max(120).nullable().optional(),
+  beneficiaryRelationship: z.string().max(120).nullable().optional(),
+  videoUrl: z.string().url().nullable().optional(),
+  location: z.string().max(120).nullable().optional(),
 });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -30,13 +37,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const parsed = UpdateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const updates: Record<string, unknown> = {};
-  if (parsed.data.title) updates.title = parsed.data.title;
-  if (parsed.data.tagline !== undefined) updates.tagline = parsed.data.tagline;
-  if (parsed.data.description) updates.description = parsed.data.description;
-  if (parsed.data.status) updates.status = parsed.data.status;
-  if (parsed.data.coverImageUrl !== undefined) updates.cover_image_url = parsed.data.coverImageUrl;
-  updates.updated_at = new Date().toISOString();
+  const d = parsed.data;
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+
+  if (d.title)                          updates.title = d.title;
+  if (d.tagline !== undefined)          updates.tagline = d.tagline;
+  if (d.description)                    updates.description = d.description;
+  if (d.status)                         updates.status = d.status;
+  if (d.coverImageUrl !== undefined)    updates.cover_image_url = d.coverImageUrl;
+  if (d.goalAmount !== undefined)       updates.goal_amount = d.goalAmount;
+  if (d.deadline !== undefined)         updates.deadline = d.deadline;
+  if (d.category)                       updates.category = d.category;
+  if (d.beneficiaryName !== undefined)  updates.beneficiary_name = d.beneficiaryName;
+  if (d.beneficiaryRelationship !== undefined) updates.beneficiary_relationship = d.beneficiaryRelationship;
+  if (d.videoUrl !== undefined)         updates.video_url = d.videoUrl;
+  if (d.location !== undefined)         updates.location = d.location;
 
   const { data, error } = await supabaseAdmin
     .from('campaigns')
@@ -47,7 +62,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   if (error) {
     console.error('Campaign update failed', error);
-    return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 
   return NextResponse.json(data);

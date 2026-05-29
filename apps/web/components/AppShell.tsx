@@ -26,21 +26,21 @@ const FOOTER_LINKS = {
   ],
   Resources: [
     ['Blog', '/blog'],
-    ['Guides', '/how-it-works'],
-    ['Help Center', '/faq'],
-    ['Webinars', '/contact'],
+    ['Help Center', '/help'],
+    ['FAQ', '/faq'],
+    ['Fundraising Guides', '/how-it-works'],
   ],
   Company: [
     ['About Us', '/about-us'],
-    ['Careers', '/contact'],
-    ['Press', '/contact'],
-    ['Contact', '/contact'],
+    ['Contact Us', '/contact'],
+    ['Pricing', '/pricing'],
+    ['Trust & Safety', '/trust-safety'],
   ],
   Legal: [
-    ['Trust & Safety', '/trust-safety'],
     ['Privacy Policy', '/privacy'],
     ['Terms of Service', '/terms'],
-    ['Security', '/trust-safety'],
+    ['Security', '/security'],
+    ['Prohibited Use', '/prohibited-use'],
   ],
 } as const;
 

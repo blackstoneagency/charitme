@@ -98,6 +98,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     : null;
   const isActive = campaign.status === 'active' && (daysLeft === null || daysLeft > 0);
   const cover = campaign.cover_image_url || '/hero-child-crop.png';
+  const videoUrl: string | null = (campaign as { video_url?: string | null }).video_url ?? null;
+  const campaignUrl = `https://www.eli54u.com/campaigns/${campaign.slug}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(campaignUrl)}&color=6c35ff&bgcolor=ffffff&margin=10`;
 
   // Real uploaded images: use image_urls array if present, else fall back to cover only
   const rawImageUrls = (campaign as CampaignWithImages).image_urls ?? [];
@@ -222,6 +225,47 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             </p>
           )}
         </aside>
+      </section>
+
+      {/* ── Video embed (if campaign has a video URL) ── */}
+      {videoUrl && (() => {
+        // Convert YouTube/Vimeo watch URLs to embed URLs
+        let embedUrl = videoUrl;
+        const ytMatch = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+        if (ytMatch) embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}`;
+        const vimeoMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
+        if (vimeoMatch) embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+        return (
+          <section style={{ maxWidth: 800, margin: '0 auto', padding: '0 24px 24px' }}>
+            <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: 16, background: '#000' }}>
+              <iframe
+                src={embedUrl}
+                title="Campaign video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+              />
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* ── QR code + share section ── */}
+      <section style={{ maxWidth: 800, margin: '0 auto', padding: '0 24px 32px', display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+          <img src={qrUrl} alt={`QR code for ${campaign.title}`} width={120} height={120} style={{ borderRadius: 10, border: '1px solid var(--b2)' }} />
+          <span style={{ fontSize: 11, color: 'var(--t3)', textAlign: 'center' }}>Scan to donate</span>
+        </div>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <p style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px', color: 'var(--t2)' }}>📱 Share this campaign</p>
+          <p style={{ fontSize: 12, color: 'var(--t3)', margin: '0 0 10px', lineHeight: 1.5 }}>
+            Print the QR code for events, places of worship, schools, or anywhere people gather.
+          </p>
+          <a href={`/api/campaigns/${campaign.id}/qr-poster`} target="_blank"
+            style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)', textDecoration: 'none' }}>
+            🖨 Download printable poster →
+          </a>
+        </div>
       </section>
 
       <section className="pc-cards" id="updates">
