@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { KindFundShell, TopBar, MetricGrid, KFIcon } from '../../../components/KindFundShellServer';
+// Note: this page shows donations received by the organizer's campaigns.
+// Donors can request refunds for their own donations at /dashboard/refund.
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 
@@ -257,14 +259,23 @@ export default async function DonationsPage({
         title="Donations"
         subtitle="Track every donation across all your campaigns."
         actions={
-          <a
-            href="/api/exports/donations"
-            download
-            className="kf-outline"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
-          >
-            <KFIcon name="upload" /> Export CSV
-          </a>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Link
+              href="/dashboard/refund"
+              className="kf-outline"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+            >
+              Request Refund
+            </Link>
+            <a
+              href="/api/exports/donations"
+              download
+              className="kf-outline"
+              style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+            >
+              <KFIcon name="upload" /> Export CSV
+            </a>
+          </div>
         }
       />
 
@@ -419,8 +430,14 @@ export default async function DonationsPage({
 
                     {/* Status pill */}
                     <div>
-                      <span className="kf-pill green" style={{ fontSize: 11 }}>
-                        Completed
+                      <span
+                        className={`kf-pill ${
+                          d.status === 'refunded' ? 'orange' :
+                          d.status === 'failed'   ? 'red'    : 'green'
+                        }`}
+                        style={{ fontSize: 11, textTransform: 'capitalize' }}
+                      >
+                        {d.status}
                       </span>
                     </div>
                   </div>

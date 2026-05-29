@@ -1261,3 +1261,60 @@ alter table campaigns add column if not exists nonprofit_verified boolean not nu
 -- Allow admins to set these
 create index if not exists campaigns_featured_idx on campaigns(featured) where featured = true;
 create index if not exists campaigns_pinned_idx on campaigns(pinned) where pinned = true;
+
+-- ── Refund request support ─────────────────────────────────────────────────
+-- The refunds table already exists (see line ~279) but lacked donor-facing
+-- columns and RLS policies. Adding them here via safe ALTER + CREATE POLICY.
+
+alter table refunds add column if not exists requested_by uuid references profiles(id) on delete set null;
+alter table refunds add column if not exists notes text;
+
+-- Index for fast per-donor lookups
+create index if not exists refunds_requested_by_idx on refunds(requested_by);
+create index if not exists refunds_donation_idx on refunds(donation_id);
+
+-- Donors can see and create their own refund requests; admins see everything.
+-- (RLS was enabled previously; policies were missing.)
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename  = 'refunds'
+      and policyname = 'refunds_donor_read'
+  ) then
+    execute $policy$
+      create policy refunds_donor_read on refunds
+        for select
+        using (auth.uid() = requested_by or is_admin())
+    $policy$;
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename  = 'refunds'
+      and policyname = 'refunds_donor_insert'
+  ) then
+    execute $policy$
+      create policy refunds_donor_insert on refunds
+        for insert
+        with check (auth.uid() = requested_by)
+    $policy$;
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename  = 'refunds'
+      and policyname = 'refunds_admin_update'
+  ) then
+    execute $policy$
+      create policy refunds_admin_update on refunds
+        for update
+        using (is_admin())
+        with check (is_admin())
+    $policy$;
+  end if;
+end;
+$$;
