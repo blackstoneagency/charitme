@@ -2,7 +2,7 @@
 
 import type React from 'react';
 import { useEffect, useMemo, useState, useTransition } from 'react';
-import { KFIcon, StatusPill, Avatar } from '../../../../components/KindFundApp';
+import { KFIcon, StatusPill, Avatar } from '../../../../components/CharitMeApp';
 
 // ─── Exported Types ───────────────────────────────────────────────────────────
 
@@ -490,7 +490,7 @@ export default function AdminUsersClient({
             <button
               className="kf-outline"
               style={{ height: 34, fontSize: 12, marginLeft: 'auto' }}
-              onClick={() => download('kindfund-users.csv', toCsv(filtered.filter((u) => selectedIds.includes(u.id))))}
+              onClick={() => download('CharitMe-users.csv', toCsv(filtered.filter((u) => selectedIds.includes(u.id))))}
             >
               Export Users
             </button>
@@ -566,7 +566,7 @@ export default function AdminUsersClient({
             setExportFormat={setExportFormat}
             onClose={() => setShowExport(false)}
             onExport={() => {
-              download('kindfund-users.csv', toCsv(filtered));
+              download('CharitMe-users.csv', toCsv(filtered));
               setShowExport(false);
             }}
           />

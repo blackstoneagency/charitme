@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { KindFundShell, TopBar } from '../../../../../components/KindFundApp';
+import { CharitMeShell, TopBar } from '../../../../../components/CharitMeApp';
 import { createClient } from '../../../../../lib/supabase-browser';
 
 type LedgerItem = {
@@ -101,13 +101,13 @@ export default function LedgerPage({ params }: { params: Promise<{ id: string }>
     setItems(prev => prev.filter(i => i.id !== id));
   }
 
-  if (loading) return <KindFundShell active="My Campaigns"><TopBar title="Transparency Ledger" subtitle="Loading…" /><div style={{ padding: 32, color: 'var(--t3)' }}>Loading…</div></KindFundShell>;
+  if (loading) return <CharitMeShell active="My Campaigns"><TopBar title="Transparency Ledger" subtitle="Loading…" /><div style={{ padding: 32, color: 'var(--t3)' }}>Loading…</div></CharitMeShell>;
 
   const typeLabel = (t: string) => ITEM_TYPES.find(x => x.value === t)?.label ?? t;
   const statusColor = (s: string) => s === 'verified' || s === 'paid' || s === 'received' ? 'green' : 'orange';
 
   return (
-    <KindFundShell active="My Campaigns">
+    <CharitMeShell active="My Campaigns">
       <TopBar
         title="Transparency Ledger"
         subtitle={`Show donors exactly how ${campaign?.title ?? 'this campaign'}'s funds are used.`}
@@ -214,9 +214,9 @@ export default function LedgerPage({ params }: { params: Promise<{ id: string }>
         </section>
 
         <p style={{ fontSize: 12, color: 'var(--t3)', lineHeight: 1.5 }}>
-          💡 Ledger entries are shown publicly on your campaign page. Keep them accurate and up-to-date to build donor trust. Verified entries may improve your KindFund Trust Score.
+          💡 Ledger entries are shown publicly on your campaign page. Keep them accurate and up-to-date to build donor trust. Verified entries may improve your CharitMe Trust Score.
         </p>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

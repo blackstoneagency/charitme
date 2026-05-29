@@ -7,7 +7,7 @@ import { calculateTrustScore, getTrustLabel } from '../../lib/ai-platform';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Browse Campaigns — KindFund',
+  title: 'Browse Campaigns — CharitMe',
   description: 'Discover verified fundraising campaigns across medical, emergency, education, community, and more.',
 };
 export const dynamic = 'force-dynamic';

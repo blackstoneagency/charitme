@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { KFIcon, StatusPill } from '../../../../components/KindFundApp';
+import { KFIcon, StatusPill } from '../../../../components/CharitMeApp';
 
 export type AuditEvent = {
   id: string;

@@ -4,7 +4,7 @@ import { AppShell } from '../components/AppShell';
 import SessionWatcher from '../components/SessionWatcher';
 
 export const metadata: Metadata = {
-  title: { default: 'KindFund - AI Fundraising Platform', template: '%s | KindFund' },
+  title: { default: 'CharitMe - AI Fundraising Platform', template: '%s | CharitMe' },
   description: 'AI-powered fundraising with campaign building, donor growth, trust tools, and impact updates.',
 };
 

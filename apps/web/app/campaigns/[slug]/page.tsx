@@ -95,7 +95,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: campaign.title,
       description,
       url: campaignUrl,
-      siteName: 'KindFund',
+      siteName: 'CharitMe',
       images: [{ url: image, width: 1200, height: 630, alt: campaign.title }],
       type: 'website',
     },
@@ -173,9 +173,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           </nav>
           <span className="pc-verified">Verified Campaign</span>
           <h1>{campaign.title}</h1>
-          <p>Organized by {organizer.full_name ?? 'KindFund Organizer'} <b>Verified</b> · {campaign.location ?? 'New York, USA'}</p>
+          <p>Organized by {organizer.full_name ?? 'CharitMe Organizer'} <b>Verified</b> · {campaign.location ?? 'New York, USA'}</p>
           <div className="pc-trust">
-            <div><strong>{trustScore}</strong><span>/100</span><small>KindFund Trust Score</small></div>
+            <div><strong>{trustScore}</strong><span>/100</span><small>CharitMe Trust Score</small></div>
             {trustSignals.map((signal) => (
               <article key={signal.label}>
                 <span>✓</span>
@@ -214,7 +214,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             <div className="pc-ended">This campaign has ended.</div>
           )}
           <ReportButton campaignId={campaign.id} />
-          <div className="pc-guarantee"><b>KindFund Giving Guarantee</b><span>Your donation is protected and funds go where they are needed most.</span></div>
+          <div className="pc-guarantee"><b>CharitMe Giving Guarantee</b><span>Your donation is protected and funds go where they are needed most.</span></div>
         </aside>
       </section>
 
@@ -325,7 +325,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
       <section className="pc-cards" id="updates">
         <article className="pc-ai">
           <h2>Campaign created with AI</h2>
-          <p>KindFund helps organizers tell their story, reach more people, and maximize impact while keeping trust and transparency visible.</p>
+          <p>CharitMe helps organizers tell their story, reach more people, and maximize impact while keeping trust and transparency visible.</p>
           <ul>
             <li>AI story assistant</li>
             <li>AI outreach plan</li>
@@ -375,7 +375,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
       <section className="pc-safe">
         <div><b>Secure donations</b><span>SSL encrypted checkout through Stripe.</span></div>
-        <div><b>No mandatory platform fee</b><span>Optional tips keep KindFund running.</span></div>
+        <div><b>No mandatory platform fee</b><span>Optional tips keep CharitMe running.</span></div>
         <div><b>24/7 Support</b><span>Trust and safety tools protect every campaign.</span></div>
       </section>
     </main>

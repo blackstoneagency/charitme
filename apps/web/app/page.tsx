@@ -64,7 +64,7 @@ function shortCount(value: number): string {
 
 function profileName(value: HeroCampaign['profiles']): string {
   const profile = Array.isArray(value) ? value[0] : value;
-  return profile?.full_name ?? 'KindFund Organizer';
+  return profile?.full_name ?? 'CharitMe Organizer';
 }
 
 function storyHref(filters: StoryFilters, updates: StoryFilters): string {
@@ -199,7 +199,7 @@ async function getHomeData(filters: StoryFilters): Promise<{
     heroPercent: Math.min(100, Math.round((raisedTotal / goalTotal) * 100)),
     daysLeft,
     stats: [
-      [formatCents(raisedTotal), 'Raised on KindFund'],
+      [formatCents(raisedTotal), 'Raised on CharitMe'],
       [(campaignCount ?? 0).toLocaleString(), 'Active Campaigns'],
       [shortCount(donationCount ?? 0), 'Donations Recorded'],
       [`${trustAverage}%`, 'Trust Score Average'],
@@ -238,7 +238,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   const filters = await searchParams ?? {};
   const activeSort = filters.storySort === 'raised' || filters.storySort === 'donors' ? filters.storySort : 'latest';
   const { stats, heroCampaign, featuredCampaigns, carouselCampaigns, rotatorCampaigns, heroPercent, daysLeft } = await getHomeData(filters);
-  const heroTitle = heroCampaign?.title ?? 'Start a trusted campaign on KindFund';
+  const heroTitle = heroCampaign?.title ?? 'Start a trusted campaign on CharitMe';
   const heroHref = heroCampaign ? `/campaigns/${heroCampaign.slug}` : '/campaigns';
 
   return (
@@ -383,7 +383,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             {featuredCampaigns.map((item, index) => (
               <article key={item.slug}>
                 <div className="kind-quote">&quot;</div>
-                <p>{item.description ?? `${item.title} is collecting support through verified KindFund records.`}</p>
+                <p>{item.description ?? `${item.title} is collecting support through verified CharitMe records.`}</p>
                 <div className="kind-person">
                   <i style={{ background: ['linear-gradient(135deg, #8b5cf6, #f59e0b)', 'linear-gradient(135deg, #10b981, #f472b6)', 'linear-gradient(135deg, #0f172a, #06b6d4)'][index % 3] }} />
                   <div><strong>{profileName(item.profiles)}</strong><span>{item.title}</span><b>Raised {formatCents(item.raised_amount)}</b></div>
@@ -396,7 +396,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
                 <p>Campaign stories will appear here as soon as active campaigns are available in Supabase.</p>
                 <div className="kind-person">
                   <i style={{ background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)' }} />
-                  <div><strong>KindFund</strong><span>Live Supabase data</span><b>Awaiting campaigns</b></div>
+                  <div><strong>CharitMe</strong><span>Live Supabase data</span><b>Awaiting campaigns</b></div>
                 </div>
               </article>
             )}
@@ -411,7 +411,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         <div className="kind-future-bg" />
         <div className="kind-future-copy">
           <h2>The future of fundraising<br />is intelligent.</h2>
-          <p>KindFund&apos;s AI works behind the scenes so you can focus on what matters most - your mission.</p>
+          <p>CharitMe&apos;s AI works behind the scenes so you can focus on what matters most - your mission.</p>
         </div>
         <div className="kind-orbits">
           {[

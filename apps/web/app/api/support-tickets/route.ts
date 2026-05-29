@@ -5,7 +5,7 @@ import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 import { resend } from '../../../lib/email';
 
-const FROM = process.env.EMAIL_FROM ?? 'KindFund <hello@eli54u.com>';
+const FROM = process.env.EMAIL_FROM ?? 'CharitMe <hello@eli54u.com>';
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL ?? 'hello@eli54u.com';
 
 const Schema = z.object({
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         from: FROM,
         to: email,
         subject: `We received your message — ${ticketRef}`,
-        text: `Hi ${name},\n\nThank you for reaching out. We've received your message and will respond within 24–48 hours (${priority === 'urgent' ? '4 hours for urgent issues' : 'typically within 1 business day'}).\n\nYour reference: ${ticketRef}\nSubject: ${subject}\n\nKindFund Support`,
+        text: `Hi ${name},\n\nThank you for reaching out. We've received your message and will respond within 24–48 hours (${priority === 'urgent' ? '4 hours for urgent issues' : 'typically within 1 business day'}).\n\nYour reference: ${ticketRef}\nSubject: ${subject}\n\nCharitMe Support`,
       });
     } catch { /* email failure is non-fatal */ }
   }

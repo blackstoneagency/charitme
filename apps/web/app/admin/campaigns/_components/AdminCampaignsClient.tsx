@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useTransition, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { KFIcon } from '../../../../components/KindFundApp';
+import { KFIcon } from '../../../../components/CharitMeApp';
 
 // ─────────────────────────────────────────────────────────
 // Types

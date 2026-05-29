@@ -1,9 +1,9 @@
 import React from 'react';
 import Link from 'next/link';
-import { KindFundShell, TopBar, KFIcon, MetricGrid } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar, KFIcon, MetricGrid } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
-import type { Metric } from '../../../components/KindFundShellServer';
+import type { Metric } from '../../../components/CharitMeShellServer';
 
 export const dynamic = 'force-dynamic';
 
@@ -574,7 +574,7 @@ export default async function AiGrowthPlanPage({
       ];
 
   return (
-    <KindFundShell active="AI Growth Plan">
+    <CharitMeShell active="AI Growth Plan">
       <TopBar
         title="AI Growth Plan"
         subtitle="Your personalized plan to reach more donors and raise more."
@@ -623,7 +623,7 @@ export default async function AiGrowthPlanPage({
               Create your first campaign to unlock your AI Growth Plan
             </h2>
             <p style={{ margin: 0, color: 'var(--t3, #9ca3af)', maxWidth: '480px', lineHeight: 1.6 }}>
-              Once you launch a campaign, KindFund AI will analyze your performance and generate a
+              Once you launch a campaign, CharitMe AI will analyze your performance and generate a
               personalized 7-step roadmap to help you raise more — faster.
             </p>
             <Link
@@ -959,6 +959,6 @@ export default async function AiGrowthPlanPage({
           </section>
         </div>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

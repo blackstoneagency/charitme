@@ -6,7 +6,7 @@ import { createClient } from '../../../lib/supabase-server';
 import { resend } from '../../../lib/email';
 
 const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com';
-const FROM   = process.env.EMAIL_FROM ?? 'KindFund <hello@eli54u.com>';
+const FROM   = process.env.EMAIL_FROM ?? 'CharitMe <hello@eli54u.com>';
 
 const InviteSchema = z.object({
   campaignId:        z.string().uuid(),
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
 <table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.08)">
   <tr><td style="background:linear-gradient(135deg,#6c35ff,#4d1ee0);padding:24px 32px">
-    <div style="font-size:22px;font-weight:900;color:#fff">💚 KindFund</div>
+    <div style="font-size:22px;font-weight:900;color:#fff">💚 CharitMe</div>
     <div style="font-size:13px;color:rgba(255,255,255,.75);margin-top:4px">Beneficiary Invitation</div>
   </td></tr>
   <tr><td style="padding:28px 32px">
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       <div style="font-size:12px;color:#065f46;font-weight:700;text-transform:uppercase;margin-bottom:6px">What happens next</div>
       <ul style="font-size:13px;color:#065f46;margin:0;padding:0 0 0 16px;line-height:1.8">
         <li>Click "Accept Invitation" below</li>
-        <li>Create or sign in to your KindFund account</li>
+        <li>Create or sign in to your CharitMe account</li>
         <li>Connect your bank account via Stripe</li>
         <li>Start receiving payouts when donations come in</li>
       </ul>
@@ -127,13 +127,13 @@ export async function POST(request: NextRequest) {
     </p>
   </td></tr>
   <tr><td style="background:#f8f9fc;padding:16px 32px;text-align:center;border-top:1px solid #f0f0f0">
-    <p style="font-size:11px;color:#94a3b8;margin:0">© ${new Date().getFullYear()} KindFund</p>
+    <p style="font-size:11px;color:#94a3b8;margin:0">© ${new Date().getFullYear()} CharitMe</p>
   </td></tr>
 </table>
 </td></tr></table>
 </body>
 </html>`,
-      text: `Hi ${beneficiaryName},\n\n${organizerName} invited you to receive funds from "${campaign.title}".\n\nAccept here: ${acceptUrl}\n\nThis link expires in 7 days.\n\n© ${new Date().getFullYear()} KindFund`,
+      text: `Hi ${beneficiaryName},\n\n${organizerName} invited you to receive funds from "${campaign.title}".\n\nAccept here: ${acceptUrl}\n\nThis link expires in 7 days.\n\n© ${new Date().getFullYear()} CharitMe`,
     }).catch(() => undefined);
   }
 

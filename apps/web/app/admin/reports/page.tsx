@@ -1,7 +1,7 @@
 import 'server-only';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
-import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import ReportsClient, { type ReportItem } from './_components/ReportsClient';
 
 export const dynamic = 'force-dynamic';
@@ -190,7 +190,7 @@ export default async function AdminReportsPage() {
     (totalWebhooks ?? 0);
 
   return (
-    <KindFundShell active="Reports" mode="admin">
+    <CharitMeShell active="Reports" mode="admin">
       <TopBar
         title="Reports"
         subtitle="Create, run, analyze and export reports to drive data-informed decisions."
@@ -204,6 +204,6 @@ export default async function AdminReportsPage() {
         totalExports={0}
         dataPoints={dataPoints}
       />
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

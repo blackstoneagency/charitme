@@ -4,7 +4,7 @@ import { PublicIcon } from '../../components/PublicIcon';
 
 export const metadata: Metadata = {
   title: 'How It Works',
-  description: 'Learn how KindFund makes fundraising simple, trusted, and effective — from campaign creation to verified payouts.',
+  description: 'Learn how CharitMe makes fundraising simple, trusted, and effective — from campaign creation to verified payouts.',
 };
 
 const STATS = [
@@ -56,7 +56,7 @@ const DONOR_STEPS = [
   {
     num: '01',
     title: 'Find campaigns you trust',
-    body: 'Browse by category, search by keyword, or sort by trust score. Every campaign displays a KindFund AI trust signal, fundraiser verification status, and live donation momentum.',
+    body: 'Browse by category, search by keyword, or sort by trust score. Every campaign displays a CharitMe AI trust signal, fundraiser verification status, and live donation momentum.',
     icon: 'search',
   },
   {
@@ -68,7 +68,7 @@ const DONOR_STEPS = [
   {
     num: '03',
     title: 'Donate transparently',
-    body: "Choose your amount, optionally add a message, and decide whether to give anonymously. See the exact fee breakdown before you pay — including the optional KindFund tip you can set to $0.",
+    body: "Choose your amount, optionally add a message, and decide whether to give anonymously. See the exact fee breakdown before you pay — including the optional CharitMe tip you can set to $0.",
     icon: 'heart',
   },
   {
@@ -107,7 +107,7 @@ export default function HowItWorksPage() {
         <span className="pub-badge"><PublicIcon name="ai" /><span>Powered by AI</span></span>
         <h1>Create, verify, share,<br /><em>receive support.</em></h1>
         <p>
-          KindFund keeps campaign creation simple while adding trust checks, AI optimisation,
+          CharitMe keeps campaign creation simple while adding trust checks, AI optimisation,
           and payout transparency behind the scenes — so every campaign can reach its potential.
         </p>
         <div className="pub-actions hiw-hero-actions">
@@ -175,7 +175,7 @@ export default function HowItWorksPage() {
             <h2>Why trust matters on every campaign</h2>
             <p>
               Most crowdfunding platforms tell donors to trust campaigns based on writing quality alone.
-              KindFund computes a public trust score from identity verification, beneficiary verification,
+              CharitMe computes a public trust score from identity verification, beneficiary verification,
               payout verification, story quality, evidence, donor momentum, and admin review — giving
               every donor a clear, objective signal before they give.
             </p>

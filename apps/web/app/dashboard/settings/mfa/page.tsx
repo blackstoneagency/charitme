@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '../../../../lib/supabase-browser';
-import { KindFundShell, TopBar } from '../../../../components/KindFundApp';
+import { CharitMeShell, TopBar } from '../../../../components/CharitMeApp';
 
 type MfaFactor = {
   id: string;
@@ -110,7 +110,7 @@ export default function MfaPage() {
   }
 
   return (
-    <KindFundShell active="Settings">
+    <CharitMeShell active="Settings">
       <TopBar
         title="Two-Factor Authentication"
         subtitle="Add an extra layer of security to your account with an authenticator app."
@@ -213,6 +213,6 @@ export default function MfaPage() {
           </div>
         )}
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

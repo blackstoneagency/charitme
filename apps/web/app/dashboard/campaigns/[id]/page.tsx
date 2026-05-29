@@ -1,7 +1,7 @@
 import 'server-only';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { KindFundShell, TopBar, KFIcon } from '../../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar, KFIcon } from '../../../../components/CharitMeShellServer';
 import { requireUser } from '../../../../lib/auth';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import CampaignControls from './_components/CampaignControls';
@@ -195,7 +195,7 @@ export default async function CampaignDetailPage({
   const deadline = daysLeft(campaign.deadline);
 
   return (
-    <KindFundShell active="My Campaigns">
+    <CharitMeShell active="My Campaigns">
       <TopBar
         title={campaign.title}
         subtitle={campaign.tagline ?? campaign.category ?? 'Campaign details'}
@@ -414,6 +414,6 @@ export default async function CampaignDetailPage({
         <CampaignControls campaignId={campaign.id} currentStatus={campaign.status} />
 
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

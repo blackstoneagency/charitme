@@ -7,9 +7,9 @@ export type SettingsCategory = typeof VALID_CATEGORIES[number];
 
 export const DEFAULTS: Record<SettingsCategory, Record<string, unknown>> = {
   general: {
-    platformName: 'KindFund',
+    platformName: 'CharitMe',
     tagline: 'Fundraising that thinks for you.',
-    supportEmail: 'support@kindfund.com',
+    supportEmail: 'support@charitme.com',
     supportPhone: '+1 (555) 123-4567',
     timezone: 'America/New_York',
     logoUrl: '',
@@ -23,9 +23,9 @@ export const DEFAULTS: Record<SettingsCategory, Record<string, unknown>> = {
     ipWhitelist: '',
   },
   email: {
-    fromName: 'KindFund',
-    fromEmail: 'noreply@kindfund.org',
-    replyToEmail: 'support@kindfund.org',
+    fromName: 'CharitMe',
+    fromEmail: 'noreply@charitme.org',
+    replyToEmail: 'support@charitme.org',
     emailProvider: 'sendgrid',
     apiKey: '',
     defaultLanguage: 'en',
@@ -46,7 +46,7 @@ export const DEFAULTS: Record<SettingsCategory, Record<string, unknown>> = {
     slackEnabled: false,
     slackWebhook: '',
     zapierEnabled: true,
-    webhookUrl: 'https://api.kindfund.org/webhook',
+    webhookUrl: 'https://api.charitme.org/webhook',
   },
   notifications: {
     inAppEnabled: true,

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { KindFundShell, TopBar, MetricGrid, KFIcon } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 
@@ -167,7 +167,7 @@ export default async function AnalyticsPage({
   ].join(' ');
 
   return (
-    <KindFundShell active="Analytics">
+    <CharitMeShell active="Analytics">
       <TopBar
         title="Analytics"
         subtitle="Track your performance and grow your impact."
@@ -440,6 +440,6 @@ export default async function AnalyticsPage({
           </section>
         </div>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

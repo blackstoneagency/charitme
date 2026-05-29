@@ -1,5 +1,5 @@
 import 'server-only';
-import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import ContentClient, { type ContentRecord } from './_components/ContentClient';
@@ -65,7 +65,7 @@ export default async function AdminContentPage() {
   const aiGeneratedCount = content.filter(c => c.type === 'AI Generated').length;
 
   return (
-    <KindFundShell active="Content" mode="admin">
+    <CharitMeShell active="Content" mode="admin">
       <TopBar
         title="Content"
         subtitle="Campaign updates, posts, and content from Supabase."
@@ -80,6 +80,6 @@ export default async function AdminContentPage() {
         contentByType={contentByType}
         content={content}
       />
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { KindFundShell, TopBar, KFIcon } from '../../../../../components/KindFundApp';
+import { CharitMeShell, TopBar, KFIcon } from '../../../../../components/CharitMeApp';
 import { createClient } from '../../../../../lib/supabase-browser';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 
@@ -158,15 +158,15 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
 
   if (loading) {
     return (
-      <KindFundShell active="My Campaigns">
+      <CharitMeShell active="My Campaigns">
         <TopBar title="Edit Campaign" subtitle="Loading…" />
         <div style={{ padding: '32px', color: 'var(--t3)' }}>Loading campaign…</div>
-      </KindFundShell>
+      </CharitMeShell>
     );
   }
 
   return (
-    <KindFundShell active="My Campaigns">
+    <CharitMeShell active="My Campaigns">
       <TopBar
         title="Edit Campaign"
         subtitle="Update your campaign details. Changes are live immediately."
@@ -303,7 +303,7 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
           </Link>
         </div>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }
 

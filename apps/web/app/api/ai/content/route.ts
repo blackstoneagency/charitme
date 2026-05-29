@@ -104,7 +104,7 @@ ${context ? `Additional context: ${context}` : ''}`;
 }
 
 function generateFallback(type: string, title: string, url: string, raised: string, pct: number): string {
-  if (type === 'twitter') return `Help us reach our goal! "${title}" has raised ${raised} (${pct}% of goal). Every donation counts. 💚\n${url}\n#Fundraising #KindFund`;
+  if (type === 'twitter') return `Help us reach our goal! "${title}" has raised ${raised} (${pct}% of goal). Every donation counts. 💚\n${url}\n#Fundraising #CharitMe`;
   if (type === 'sms') return `Option 1: I'm fundraising for "${title}". Would you support us? ${url}\n\nOption 2: We've raised ${raised} so far! Can you help us go further? ${url}`;
   if (type === 'update') return `Thank you so much for your support! We've raised ${raised} together — that's ${pct}% of our goal. Every donation is making a real difference. We'll keep you updated as we continue this journey. Thank you for believing in us. 💚`;
   return `We're raising funds for "${title}" and would love your support. We've raised ${raised} so far. Visit ${url} to donate or share. Thank you! 💚`;

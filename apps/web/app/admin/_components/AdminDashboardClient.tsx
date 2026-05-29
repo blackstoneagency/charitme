@@ -1,6 +1,6 @@
 'use client';
 
-import { KFIcon, StatusPill } from '../../../components/KindFundApp';
+import { KFIcon, StatusPill } from '../../../components/CharitMeApp';
 
 // ─────────────────────────────────────────────
 // Types

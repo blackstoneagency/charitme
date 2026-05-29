@@ -1,7 +1,7 @@
 import 'server-only';
 import { requireAdmin } from '../../lib/auth';
 import { supabaseAdmin } from '../../lib/supabase';
-import { KindFundShell, TopBar } from '../../components/KindFundShellServer';
+import { CharitMeShell, TopBar } from '../../components/CharitMeShellServer';
 import AdminDashboardClient, { type DashMetric, type CampaignRow, type DonationRow, type WeekPoint, type SourceItem, type SystemService } from './_components/AdminDashboardClient';
 
 export const dynamic = 'force-dynamic';
@@ -78,7 +78,7 @@ export default async function AdminDashboardPage() {
     const errMsg = donationsResult.error.message;
     const isKeyMissing = errMsg.includes('not set') || errMsg.includes('Invalid API');
     return (
-      <KindFundShell active="Dashboard" mode="admin">
+      <CharitMeShell active="Dashboard" mode="admin">
         <div style={{ padding: '40px 32px', maxWidth: 720 }}>
           <div style={{ padding: '24px 28px', background: '#fff0f3', border: '1.5px solid #fecdd3', borderRadius: 14 }}>
             <h2 style={{ fontSize: 18, fontWeight: 900, color: '#be123c', margin: '0 0 10px' }}>
@@ -103,7 +103,7 @@ export default async function AdminDashboardPage() {
             </a>
           </div>
         </div>
-      </KindFundShell>
+      </CharitMeShell>
     );
   }
 
@@ -279,7 +279,7 @@ export default async function AdminDashboardPage() {
   ];
 
   return (
-    <KindFundShell active="Dashboard" mode="admin">
+    <CharitMeShell active="Dashboard" mode="admin">
       <TopBar
         title="Admin Dashboard"
         subtitle="High-level platform overview — all data live from Supabase."
@@ -293,7 +293,7 @@ export default async function AdminDashboardPage() {
         sources={sources}
         services={services}
       />
-    </KindFundShell>
+    </CharitMeShell>
   );
 }
 

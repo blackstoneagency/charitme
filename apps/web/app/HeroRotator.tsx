@@ -82,7 +82,7 @@ export default function HeroRotator({ campaigns, fallbackImageUrl = '/hero-child
     : 0;
   const photoUrl = campaign?.cover_image_url || fallbackImageUrl;
   const heroHref = campaign ? `/campaigns/${campaign.slug}` : '/campaigns';
-  const heroTitle = campaign?.title ?? 'Start a trusted campaign on KindFund';
+  const heroTitle = campaign?.title ?? 'Start a trusted campaign on CharitMe';
   const trustScore = campaign?.campaign_health_score ?? campaign?.trust_status ?? '—';
 
   return (
@@ -157,7 +157,7 @@ export default function HeroRotator({ campaigns, fallbackImageUrl = '/hero-child
         </div>
         <h2>{heroTitle}</h2>
         <p>
-          Organized by {campaign?.organizer_name ?? 'KindFund Organizer'}
+          Organized by {campaign?.organizer_name ?? 'CharitMe Organizer'}
           <b aria-hidden="true" />
         </p>
         <div className="kind-raise-row">

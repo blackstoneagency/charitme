@@ -150,7 +150,7 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
                   placeholder="teammate@example.com"
                   style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}
                 />
-                <span style={{ fontSize: 11, color: '#8c9ab5', fontWeight: 400 }}>The user must already have a KindFund account.</span>
+                <span style={{ fontSize: 11, color: '#8c9ab5', fontWeight: 400 }}>The user must already have a CharitMe account.</span>
               </label>
 
               <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>

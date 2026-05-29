@@ -36,7 +36,7 @@ export async function GET(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Donate to ${campaign.title} — KindFund</title>
+  <title>Donate to ${campaign.title} — CharitMe</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     @page { size: letter portrait; margin: 0; }
@@ -82,7 +82,7 @@ export async function GET(
 <body>
   <div class="poster">
     <div class="poster-header">
-      <div class="poster-logo">💚 KindFund</div>
+      <div class="poster-logo">💚 CharitMe</div>
       <div class="poster-title">${campaign.title.replace(/</g, '&lt;')}</div>
       ${campaign.tagline ? `<div class="poster-tagline">${campaign.tagline.replace(/</g, '&lt;')}</div>` : ''}
     </div>
@@ -97,7 +97,7 @@ export async function GET(
       </div>
       <div class="poster-url">📱 Scan QR or visit:<br>${campaignUrl}</div>
       <div class="poster-cta">Scan to Donate Now</div>
-      <div class="poster-footer">Powered by KindFund · 0% mandatory platform fee</div>
+      <div class="poster-footer">Powered by CharitMe · 0% mandatory platform fee</div>
     </div>
   </div>
   <script>window.addEventListener('load', () => setTimeout(() => window.print(), 800));</script>

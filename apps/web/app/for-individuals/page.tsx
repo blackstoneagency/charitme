@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'For Individuals — Personal Fundraising',
-  description: 'KindFund makes personal fundraising for medical bills, emergencies, memorials, and family needs simple, trusted, and fast — with a free AI Copilot and 0% platform fee.',
+  description: 'CharitMe makes personal fundraising for medical bills, emergencies, memorials, and family needs simple, trusted, and fast — with a free AI Copilot and 0% platform fee.',
 };
 
 const CATEGORIES = [
@@ -45,7 +45,7 @@ const INDIVIDUAL_STEPS = [
 const INDIVIDUAL_FAQS = [
   {
     q: 'Is there a fee to start?',
-    a: 'No. Creating and running a campaign is completely free. KindFund charges 0% mandatory platform fee. Donors can optionally add a support tip at checkout.',
+    a: 'No. Creating and running a campaign is completely free. CharitMe charges 0% mandatory platform fee. Donors can optionally add a support tip at checkout.',
   },
   {
     q: 'How do I get my money?',
@@ -118,7 +118,7 @@ export default function ForIndividualsPage() {
         <div className="container">
           <div className="mb-10 max-w-2xl">
             <h2 className="text-3xl font-black text-slate-950">Fundraise for anything that matters to you</h2>
-            <p className="mt-3 text-slate-600">KindFund supports personal, emergency, and community fundraisers across all major categories.</p>
+            <p className="mt-3 text-slate-600">CharitMe supports personal, emergency, and community fundraisers across all major categories.</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {CATEGORIES.map((cat) => (
@@ -143,7 +143,7 @@ export default function ForIndividualsPage() {
         <div className="container">
           <div className="mb-12">
             <h2 className="text-3xl font-black text-slate-950">From idea to funded in 4 steps</h2>
-            <p className="mt-3 text-slate-600">No fundraising experience needed. KindFund guides you through every step.</p>
+            <p className="mt-3 text-slate-600">No fundraising experience needed. CharitMe guides you through every step.</p>
           </div>
           <div className="space-y-5">
             {INDIVIDUAL_STEPS.map((step) => (

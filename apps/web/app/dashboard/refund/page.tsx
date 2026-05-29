@@ -1,4 +1,4 @@
-import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import RefundForm, { type RefundableDonation } from './RefundForm';
@@ -57,7 +57,7 @@ export default async function RefundPage({
   if (donations.length === 0) {
     // No donations in window — pass empty list directly
     return (
-      <KindFundShell active="Refund">
+      <CharitMeShell active="Refund">
         <TopBar
           title="Request a Refund"
           subtitle="Submit a refund request for a recent donation."
@@ -65,7 +65,7 @@ export default async function RefundPage({
         <div style={{ padding: '0 32px 40px', maxWidth: 640 }}>
           <RefundForm donations={[]} preselectedId={null} />
         </div>
-      </KindFundShell>
+      </CharitMeShell>
     );
   }
 
@@ -105,7 +105,7 @@ export default async function RefundPage({
   }));
 
   return (
-    <KindFundShell active="Refund">
+    <CharitMeShell active="Refund">
       <TopBar
         title="Request a Refund"
         subtitle="Select a donation and describe your reason. Our team reviews requests within 3–5 business days."
@@ -113,6 +113,6 @@ export default async function RefundPage({
       <div style={{ padding: '0 32px 40px' }}>
         <RefundForm donations={enriched} preselectedId={preselectedId} />
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

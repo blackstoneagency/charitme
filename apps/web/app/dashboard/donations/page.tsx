@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { KindFundShell, TopBar, MetricGrid, KFIcon } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/CharitMeShellServer';
 // Note: this page shows donations received by the organizer's campaigns.
 // Donors can request refunds for their own donations at /dashboard/refund.
 import { requireUser } from '../../../lib/auth';
@@ -254,7 +254,7 @@ export default async function DonationsPage({
   }
 
   return (
-    <KindFundShell active="Donations">
+    <CharitMeShell active="Donations">
       <TopBar
         title="Donations"
         subtitle="Track every donation across all your campaigns."
@@ -460,6 +460,6 @@ export default async function DonationsPage({
           </section>
         </div>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

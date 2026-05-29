@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { KindFundShell, KFIcon } from '../../components/KindFundShellServer';
+import { CharitMeShell, KFIcon } from '../../components/CharitMeShellServer';
 import { requireUser } from '../../lib/auth';
 import { supabaseAdmin } from '../../lib/supabase';
 
@@ -396,7 +396,7 @@ export default async function DashboardPage() {
   const g = data.growthCounts;
 
   return (
-    <KindFundShell active="Dashboard" userName={data.userName}>
+    <CharitMeShell active="Dashboard" userName={data.userName}>
       <div className="dash-home">
         <header className="dash-head">
           <div>
@@ -749,7 +749,7 @@ export default async function DashboardPage() {
           </section>
         </section>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }
 

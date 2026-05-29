@@ -603,7 +603,7 @@ const SCHEMA_CHUNKS: { name: string; sql: string }[] = [
   ` },
   { name: 'Bootstrap data', sql: `
     insert into public.platform_settings (id, config) values (1, '{
-      "platformName":"KindFund","tagline":"Fundraising that thinks for you.",
+      "platformName":"CharitMe","tagline":"Fundraising that thinks for you.",
       "supportEmail":"hello@eli54u.com","currency":"USD",
       "platformFeePercent":0,"donationFeePercent":2.9,
       "stripeLiveMode":true,"allowNewRegistrations":true,"maintenanceMode":false
@@ -639,7 +639,7 @@ export async function POST(_request: NextRequest) {
       message: 'SUPABASE_ACCESS_TOKEN not set in Vercel environment variables.',
       instructions: [
         '1. Go to https://supabase.com/dashboard/account/tokens',
-        '2. Click "Generate new token" and name it "KindFund Deploy"',
+        '2. Click "Generate new token" and name it "CharitMe Deploy"',
         '3. Copy the token',
         '4. Go to Vercel → your project → Settings → Environment Variables',
         '5. Add: SUPABASE_ACCESS_TOKEN = (your token)',

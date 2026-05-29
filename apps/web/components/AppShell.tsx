@@ -50,12 +50,12 @@ const SHELL_BYPASS = ['/dashboard', '/admin', '/profile', '/create'];
 
 function Logo() {
   return (
-    <Link href="/" className="kind-logo" aria-label="KindFund home">
+    <Link href="/" className="kind-logo" aria-label="CharitMe home">
       <span>
         <i />
         <b />
       </span>
-      <strong>KindFund</strong>
+      <strong>CharitMe</strong>
     </Link>
   );
 }

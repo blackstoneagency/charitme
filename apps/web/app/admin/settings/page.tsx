@@ -1,7 +1,7 @@
 import 'server-only';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
-import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import SettingsClient, { type SettingCategory, type PlatformSettings, type OverviewStats } from './_components/SettingsClient';
 
 export const dynamic = 'force-dynamic';
@@ -21,8 +21,8 @@ export default async function AdminSettingsPage() {
   const integrations = integrationCountResult.count ?? 0;
   const adminEmail =
     (adminEmailResult.data ?? []).length > 0
-      ? ((adminEmailResult.data![0] as { email: string | null }).email ?? 'admin@kindfund.com')
-      : 'admin@kindfund.com';
+      ? ((adminEmailResult.data![0] as { email: string | null }).email ?? 'admin@CharitMe.com')
+      : 'admin@CharitMe.com';
 
   const categories: SettingCategory[] = [
     { key: 'general', label: 'General', icon: 'gear', description: 'Basic platform information' },
@@ -36,7 +36,7 @@ export default async function AdminSettingsPage() {
   ];
 
   const defaultSettings: PlatformSettings = {
-    platformName: 'KindFund',
+    platformName: 'CharitMe',
     tagline: 'Fundraising that thinks for you.',
     supportEmail: adminEmail,
     supportPhone: '',
@@ -50,7 +50,7 @@ export default async function AdminSettingsPage() {
     brandPrimaryColor: '#6c35ff',
     brandAccentColor: '#ec3fb4',
     logoUrl: '',
-    emailFromName: 'KindFund',
+    emailFromName: 'CharitMe',
     emailFromAddress: adminEmail,
     donationFeePercent: 2.9,
     platformFeePercent: 5,
@@ -84,7 +84,7 @@ export default async function AdminSettingsPage() {
   };
 
   return (
-    <KindFundShell active="Settings" mode="admin">
+    <CharitMeShell active="Settings" mode="admin">
       <TopBar
         title="Settings"
         subtitle="Configure platform behavior, branding, email, payments, and integrations."
@@ -95,6 +95,6 @@ export default async function AdminSettingsPage() {
         settings={settings}
         overview={overview}
       />
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

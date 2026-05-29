@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { KFIcon } from './KindFundApp';
+import { KFIcon } from './CharitMeApp';
 
 /**
  * Signs the user out by hitting the server-side signout endpoint,

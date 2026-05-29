@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Prohibited Use Policy — KindFund',
-  description: 'Activities and campaigns that are not permitted on the KindFund platform.',
+  title: 'Prohibited Use Policy — CharitMe',
+  description: 'Activities and campaigns that are not permitted on the CharitMe platform.',
 };
 
 export default function ProhibitedUsePage() {
@@ -12,7 +12,7 @@ export default function ProhibitedUsePage() {
         <div className="pub-breadcrumb">Home <span>&gt;</span> <b>Prohibited Use Policy</b></div>
         <h1>Prohibited Use Policy</h1>
         <p>Last updated: May 2025</p>
-        <p>KindFund is a platform for legitimate fundraising. The following uses are strictly prohibited.</p>
+        <p>CharitMe is a platform for legitimate fundraising. The following uses are strictly prohibited.</p>
       </section>
 
       <article className="legal-body">

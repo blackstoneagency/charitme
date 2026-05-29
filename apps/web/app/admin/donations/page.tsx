@@ -1,6 +1,6 @@
 import 'server-only';
 import Link from 'next/link';
-import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import DonationsClient, {
@@ -166,7 +166,7 @@ export default async function AdminDonationsPage() {
   }));
 
   return (
-    <KindFundShell active="Donations" mode="admin">
+    <CharitMeShell active="Donations" mode="admin">
       <TopBar
         title="Donations"
         subtitle="Manage donations, donors, and transactions from start to finish."
@@ -195,6 +195,6 @@ export default async function AdminDonationsPage() {
         campaignVolumes={campaignVolumes}
         topDonors={topDonors}
       />
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

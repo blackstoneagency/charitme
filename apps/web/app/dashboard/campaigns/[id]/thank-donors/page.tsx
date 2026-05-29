@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { KindFundShell, TopBar } from '../../../../../components/KindFundApp';
+import { CharitMeShell, TopBar } from '../../../../../components/CharitMeApp';
 import { createClient } from '../../../../../lib/supabase-browser';
 
 type Donation = {
@@ -116,16 +116,16 @@ export default function ThankDonorsPage({ params }: { params: Promise<{ id: stri
 
   if (loading) {
     return (
-      <KindFundShell active="My Campaigns">
+      <CharitMeShell active="My Campaigns">
         <TopBar title="Thank Donors" subtitle="Loading…" />
         <div style={{ padding: 32, color: 'var(--t3)' }}>Loading…</div>
-      </KindFundShell>
+      </CharitMeShell>
     );
   }
 
   if (success) {
     return (
-      <KindFundShell active="My Campaigns">
+      <CharitMeShell active="My Campaigns">
         <TopBar title="Thank Donors" subtitle="Thank-you emails sent!" />
         <div style={{ padding: '0 32px 40px', maxWidth: 560 }}>
           <div style={{ background: '#f0fff8', border: '1.5px solid #bbf7d0', borderRadius: 14, padding: '32px 28px', textAlign: 'center' }}>
@@ -139,12 +139,12 @@ export default function ThankDonorsPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
         </div>
-      </KindFundShell>
+      </CharitMeShell>
     );
   }
 
   return (
-    <KindFundShell active="My Campaigns">
+    <CharitMeShell active="My Campaigns">
       <TopBar
         title="Thank Your Donors"
         subtitle={campaign ? `Send personalised thank-you emails to ${campaign.title} donors.` : 'Thank your supporters.'}
@@ -216,6 +216,6 @@ export default function ThankDonorsPage({ params }: { params: Promise<{ id: stri
           </>
         )}
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

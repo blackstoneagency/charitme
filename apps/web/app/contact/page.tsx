@@ -15,7 +15,7 @@ const SUBJECTS = [
 ] as const;
 
 const FAQS = [
-  'How does KindFund work?',
+  'How does CharitMe work?',
   'Is there a platform fee?',
   'How long does it take to receive donations?',
   'Can I track my campaign performance?',
@@ -28,7 +28,7 @@ const CONTACT_METHODS = [
     title: 'Live Chat',
     body: 'Chat with our support team in real-time.',
     action: 'Start Chat',
-    href: 'mailto:hello@kindfund.com?subject=Live%20chat%20request',
+    href: 'mailto:hello@CharitMe.com?subject=Live%20chat%20request',
   },
   {
     icon: 'book',
@@ -49,7 +49,7 @@ const CONTACT_METHODS = [
     title: 'Press Inquiries',
     body: 'For media and partnership opportunities.',
     action: 'Contact Press Team',
-    href: 'mailto:press@kindfund.com?subject=Press%20inquiry',
+    href: 'mailto:press@CharitMe.com?subject=Press%20inquiry',
   },
 ] as const;
 
@@ -153,7 +153,7 @@ export default function ContactPage() {
             <p className="contact-intro">Have a question, need support, or just want to say hello? Our team is ready to help you succeed.</p>
 
             <div className="contact-details">
-              <ContactInfo icon="mail" title="Email Us" lines={['hello@kindfund.com', 'We typically reply within 24 hours.']} />
+              <ContactInfo icon="mail" title="Email Us" lines={['hello@CharitMe.com', 'We typically reply within 24 hours.']} />
               <ContactInfo icon="phone" title="Call Us" lines={['+1 (888) 123-4567', 'Mon - Fri, 9:00 AM - 6:00 PM (EST)']} />
               <ContactInfo icon="pin" title="Our Office" lines={['123 Impact Way, Suite 400', 'San Francisco, CA 94107, USA']} />
             </div>
@@ -250,7 +250,7 @@ export default function ContactPage() {
                 <strong>Still need help?</strong>
                 <p>Our team is here for you. We&apos;re committed to helping you create successful campaigns and make a bigger impact.</p>
               </div>
-              <Link href="mailto:hello@kindfund.com?subject=Schedule%20a%20call" className="contact-schedule"><Icon name="calendar" /> Schedule a Call</Link>
+              <Link href="mailto:hello@CharitMe.com?subject=Schedule%20a%20call" className="contact-schedule"><Icon name="calendar" /> Schedule a Call</Link>
             </div>
           </div>
         </div>

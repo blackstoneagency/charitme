@@ -1,4 +1,4 @@
-import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import IntegrationsClient, { type Connection, type CatalogItem } from './IntegrationsClient';
@@ -43,9 +43,9 @@ export default async function IntegrationsPage() {
   const connections = await fetchConnections(user.id);
 
   return (
-    <KindFundShell active="Integrations">
+    <CharitMeShell active="Integrations">
       <TopBar title="Integrations" subtitle="Connect your favorite tools to automate your fundraising workflow." />
       <IntegrationsClient initialConnections={connections} catalog={CATALOG} />
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

@@ -152,7 +152,7 @@ export default function DonateButton({
           border: `1px solid ${GREEN}30`,
         }}>
           <div style={{ fontWeight: 900, fontSize: 13, color: GREEN }}>
-            💚 0% KindFund fee on recurring donations
+            💚 0% CharitMe fee on recurring donations
           </div>
           <div style={{ fontSize: 12, color: GREEN, marginTop: 3, lineHeight: 1.45, opacity: 0.85 }}>
             GoFundMe charges 5% on monthly donations. We charge $0. Cancel any time.
@@ -168,7 +168,7 @@ export default function DonateButton({
         }}>
           <div style={{ fontWeight: 900, fontSize: 13, color: '#065f46' }}>0% mandatory platform fee</div>
           <div style={{ fontSize: 12, color: '#065f46', marginTop: 3, lineHeight: 1.45 }}>
-            KindFund is supported by optional donor tips. Every fee is shown before checkout.
+            CharitMe is supported by optional donor tips. Every fee is shown before checkout.
           </div>
         </div>
       )}
@@ -228,7 +228,7 @@ export default function DonateButton({
           margin: '0 0 8px', fontSize: 11, fontWeight: 900,
           color: MUTED, textTransform: 'uppercase', letterSpacing: '.05em',
         }}>
-          Optional KindFund tip
+          Optional CharitMe tip
         </p>
         <div style={{ display: 'flex', gap: 6 }}>
           {TIP_OPTIONS.map((opt) => {
@@ -347,7 +347,7 @@ export default function DonateButton({
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
           <Row label={isMonthly ? 'Monthly donation' : 'Donation'} value={money(amountCents)} />
-          {breakdown.tip > 0 && <Row label={`KindFund tip (${tipPercent}%)`} value={money(breakdown.tip)} />}
+          {breakdown.tip > 0 && <Row label={`CharitMe tip (${tipPercent}%)`} value={money(breakdown.tip)} />}
           {breakdown.processing > 0 && <Row label="Processing fee" value={money(breakdown.processing)} />}
           <div style={{
             borderTop: `1px solid ${BORDER}`, marginTop: 6, paddingTop: 8,

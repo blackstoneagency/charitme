@@ -367,7 +367,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 </div>
                 <div style={{ paddingTop: 8 }}>
                   <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 12 }}>Email Preferences</div>
-                  <PrefRow id={`${uid}-updates`} label="Product updates" desc="News about new KindFund features" checked={false} onChange={() => null} />
+                  <PrefRow id={`${uid}-updates`} label="Product updates" desc="News about new CharitMe features" checked={false} onChange={() => null} />
                   <PrefRow id={`${uid}-tips`} label="Tips and best practices" desc="Guides and strategies for fundraising" checked={false} onChange={() => null} />
                   <PrefRow id={`${uid}-digest`} label="Weekly performance summary" desc="Weekly email with campaign stats" checked={campaignRecs} onChange={setCampaignRecs} />
                 </div>
@@ -540,7 +540,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               {currentPlan !== 'pro' && (
                 <div style={{ padding: '18px', background: 'linear-gradient(135deg,var(--s3),var(--s4))', border: '1px solid var(--b2)', borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                   <div>
-                    <strong style={{ fontSize: 15 }}>Upgrade to KindFund Pro</strong>
+                    <strong style={{ fontSize: 15 }}>Upgrade to CharitMe Pro</strong>
                     <p style={{ fontSize: 13, color: 'var(--t2)', margin: '4px 0 0' }}>Unlimited campaigns, custom branding, AI tools, and priority support.</p>
                   </div>
                   <Link href="/pricing" style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, background: 'var(--green)', color: '#fff', textDecoration: 'none', borderRadius: 'var(--r)', padding: '10px 20px', whiteSpace: 'nowrap' }}>Upgrade Now</Link>
@@ -595,7 +595,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                   <strong style={{ color: 'var(--red)' }}>Request Account Deletion</strong>
                   <span>Permanently delete your account and all data — this cannot be undone</span>
                 </div>
-                <a href="mailto:support@kindfund.com?subject=Account%20Deletion%20Request" style={{ fontSize: 13, fontWeight: 700, color: 'var(--red)', border: '1px solid var(--red)', borderRadius: 'var(--r)', padding: '7px 16px', textDecoration: 'none', display: 'inline-block' }}>Request Deletion</a>
+                <a href="mailto:support@CharitMe.com?subject=Account%20Deletion%20Request" style={{ fontSize: 13, fontWeight: 700, color: 'var(--red)', border: '1px solid var(--red)', borderRadius: 'var(--r)', padding: '7px 16px', textDecoration: 'none', display: 'inline-block' }}>Request Deletion</a>
               </div>
             </div>
           </div>
@@ -616,7 +616,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
             <NavItem key={item.id} label={item.label} desc={item.desc} icon={item.icon} active={section === item.id} onClick={() => setSection(item.id)} />
           ))}
           <div className="kf-setnav-footer">
-            <a href="mailto:support@kindfund.com" className="kf-setnav-help">{Ico.help} Need Help? Contact Support</a>
+            <a href="mailto:support@CharitMe.com" className="kf-setnav-help">{Ico.help} Need Help? Contact Support</a>
           </div>
         </nav>
 

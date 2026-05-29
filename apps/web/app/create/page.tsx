@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
-import { KindFundShell, TopBar, KFIcon } from '../../components/KindFundApp';
+import { CharitMeShell, TopBar, KFIcon } from '../../components/CharitMeApp';
 import { createClient } from '../../lib/supabase-browser';
 
 // ─────────────────────────────────────────────
@@ -355,7 +355,7 @@ export default function CreatePage() {
   });
 
   return (
-    <KindFundShell active="My Campaigns" userName={userName} userEmail={userEmail} userAvatarUrl={userAvatarUrl}>
+    <CharitMeShell active="My Campaigns" userName={userName} userEmail={userEmail} userAvatarUrl={userAvatarUrl}>
       <TopBar
         title="Create Campaign"
         subtitle="Launch a trusted fundraiser in minutes with AI Copilot."
@@ -915,7 +915,7 @@ export default function CreatePage() {
         </div>
 
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }
 

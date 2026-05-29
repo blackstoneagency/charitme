@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'For Donors — Give with Confidence',
-  description: 'KindFund gives every donor AI-computed trust scores, transparent fee breakdowns, anonymous giving, receipts, and impact updates — so you can give confidently.',
+  description: 'CharitMe gives every donor AI-computed trust scores, transparent fee breakdowns, anonymous giving, receipts, and impact updates — so you can give confidently.',
 };
 
 const DONOR_FEATURES = [
@@ -20,7 +20,7 @@ const DONOR_FEATURES = [
   {
     icon: '👁️',
     title: 'Transparent fee breakdown',
-    body: 'See exactly where every dollar goes before you pay — how much reaches the campaign, what Stripe charges, and the optional KindFund tip you control.',
+    body: 'See exactly where every dollar goes before you pay — how much reaches the campaign, what Stripe charges, and the optional CharitMe tip you control.',
   },
   {
     icon: '🕶️',
@@ -62,7 +62,7 @@ export default function ForDonorsPage() {
               Give with confidence.<br className="hidden sm:block" /> Not just hope.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-              KindFund shows you trust scores, verification badges, transparent fee breakdowns, and impact updates —
+              CharitMe shows you trust scores, verification badges, transparent fee breakdowns, and impact updates —
               so every donation is backed by evidence, not just emotion.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -101,7 +101,7 @@ export default function ForDonorsPage() {
         <div className="container">
           <div className="mb-10 max-w-2xl">
             <h2 className="text-3xl font-black text-slate-950">What donors get on every campaign</h2>
-            <p className="mt-3 text-slate-600">KindFund was built to protect donors first. Every feature below is available on every campaign — free, public, and automatic.</p>
+            <p className="mt-3 text-slate-600">CharitMe was built to protect donors first. Every feature below is available on every campaign — free, public, and automatic.</p>
           </div>
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {DONOR_FEATURES.map((feature) => (
@@ -122,7 +122,7 @@ export default function ForDonorsPage() {
             <div>
               <h2 className="text-3xl font-black text-slate-950">What the trust signals mean</h2>
               <p className="mt-4 leading-7 text-slate-600">
-                Every KindFund campaign displays a set of trust indicators on its public page.
+                Every CharitMe campaign displays a set of trust indicators on its public page.
                 These are objective verification signals — not subjective ratings.
                 No campaign is labeled &ldquo;fraudulent&rdquo; publicly — instead, you see exactly which evidence is present.
               </p>
@@ -151,7 +151,7 @@ export default function ForDonorsPage() {
           <div className="mb-10 max-w-2xl">
             <h2 className="text-3xl font-black text-slate-950">Transparent checkout — always</h2>
             <p className="mt-3 text-slate-600">
-              Before you confirm payment, KindFund shows you a complete fee breakdown. No hidden charges.
+              Before you confirm payment, CharitMe shows you a complete fee breakdown. No hidden charges.
             </p>
           </div>
           <div className="mx-auto max-w-lg rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
@@ -162,7 +162,7 @@ export default function ForDonorsPage() {
               {[
                 { label: 'Campaign receives', value: '$94.00', color: 'text-emerald-700', note: '' },
                 { label: 'Stripe processing fee', value: '$3.20', color: 'text-slate-600', note: '2.9% + $0.30' },
-                { label: 'Optional KindFund tip', value: '$8.00', color: 'text-slate-600', note: 'Default 8% — change to $0' },
+                { label: 'Optional CharitMe tip', value: '$8.00', color: 'text-slate-600', note: 'Default 8% — change to $0' },
               ].map((row) => (
                 <div key={row.label} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
                   <div>

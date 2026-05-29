@@ -697,7 +697,7 @@ img, svg { display: block; }
   .kind-footer-apps, .kind-social { border-left: 0; padding-left: 0; }
 }
 
-/* KindFund product app */
+/* CharitMe product app */
 .kf-app {
   min-height: 100vh;
   display: grid;

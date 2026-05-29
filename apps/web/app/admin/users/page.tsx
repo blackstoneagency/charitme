@@ -1,5 +1,5 @@
 import 'server-only';
-import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import AdminUsersClient, {
@@ -274,7 +274,7 @@ export default async function AdminUsersPage() {
     .slice(0, 5);
 
   return (
-    <KindFundShell active="Users" mode="admin">
+    <CharitMeShell active="Users" mode="admin">
       <TopBar
         title="Users"
         subtitle={`${(exactTotal > 0 ? exactTotal : users.length).toLocaleString()} total users · public.profiles`}
@@ -288,6 +288,6 @@ export default async function AdminUsersPage() {
         weeklyGrowth={weeklyGrowth}
         recentUsers={recentUsers}
       />
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

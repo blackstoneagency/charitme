@@ -1,5 +1,5 @@
 import 'server-only';
-import { KindFundShell, TopBar, MetricGrid, type Metric } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar, MetricGrid, type Metric } from '../../../components/CharitMeShellServer';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import AdminCampaignsClient, { type AdminCampaign } from './_components/AdminCampaignsClient';
@@ -59,7 +59,7 @@ export default async function AdminCampaignsPage() {
 
   if (dbError) {
     return (
-      <KindFundShell active="Campaigns" mode="admin">
+      <CharitMeShell active="Campaigns" mode="admin">
         <TopBar title="Campaigns" subtitle="Database error" actions={<></>} />
         <div style={{ padding: '32px', maxWidth: 700 }}>
           <div style={{ padding: '20px 24px', background: '#fff0f3', border: '1.5px solid #fecdd3', borderRadius: 14 }}>
@@ -80,7 +80,7 @@ export default async function AdminCampaignsPage() {
             </a>
           </div>
         </div>
-      </KindFundShell>
+      </CharitMeShell>
     );
   }
 
@@ -157,7 +157,7 @@ export default async function AdminCampaignsPage() {
   ];
 
   return (
-    <KindFundShell active="Campaigns" mode="admin">
+    <CharitMeShell active="Campaigns" mode="admin">
       <TopBar
         title="Campaigns"
         subtitle="Create, review, approve, manage and track campaigns from start to finish."
@@ -167,6 +167,6 @@ export default async function AdminCampaignsPage() {
         <MetricGrid metrics={metrics} />
       </div>
       <AdminCampaignsClient campaigns={adminCampaigns} />
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

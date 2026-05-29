@@ -4,7 +4,7 @@ import { Resend } from 'resend';
 const apiKey = process.env.RESEND_API_KEY;
 export const resend = apiKey ? new Resend(apiKey) : null;
 
-const FROM = process.env.EMAIL_FROM ?? 'KindFund <hello@eli54u.com>';
+const FROM = process.env.EMAIL_FROM ?? 'CharitMe <hello@eli54u.com>';
 const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com';
 
 // ─────────────────────────────────────────────
@@ -33,7 +33,7 @@ export async function sendReceiptEmail(input: {
       <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.08);">
         <!-- Header -->
         <tr><td style="background:linear-gradient(135deg,#6c35ff,#4d1ee0);padding:32px 40px;text-align:center;">
-          <div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:-0.5px;">KindFund</div>
+          <div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:-0.5px;">CharitMe</div>
           <div style="font-size:13px;color:rgba(255,255,255,.75);margin-top:4px;">Donation Receipt</div>
         </td></tr>
         <!-- Body -->
@@ -68,13 +68,13 @@ export async function sendReceiptEmail(input: {
           </table>
 
           <p style="font-size:13px;color:#94a3b8;line-height:1.6;margin:0;">
-            Payments are processed securely by Stripe. KindFund never stores your card details.
+            Payments are processed securely by Stripe. CharitMe never stores your card details.
             If you have questions, reply to this email.
           </p>
         </td></tr>
         <!-- Footer -->
         <tr><td style="background:#f8f9fc;padding:20px 40px;text-align:center;border-top:1px solid #f0f0f0;">
-          <p style="font-size:11px;color:#94a3b8;margin:0;">© ${year} KindFund · <a href="${ORIGIN}" style="color:#94a3b8;">eli54u.com</a></p>
+          <p style="font-size:11px;color:#94a3b8;margin:0;">© ${year} CharitMe · <a href="${ORIGIN}" style="color:#94a3b8;">eli54u.com</a></p>
         </td></tr>
       </table>
     </td></tr>
@@ -85,9 +85,9 @@ export async function sendReceiptEmail(input: {
   await resend.emails.send({
     from: FROM,
     to: input.to,
-    subject: `Your KindFund receipt — ${input.campaignTitle}`,
+    subject: `Your CharitMe receipt — ${input.campaignTitle}`,
     html,
-    text: `Thank you for donating ${input.amountFormatted} to "${input.campaignTitle}".\n\nView the campaign: ${campaignUrl}\nYour donations: ${dashboardUrl}\n\n© ${year} KindFund`,
+    text: `Thank you for donating ${input.amountFormatted} to "${input.campaignTitle}".\n\nView the campaign: ${campaignUrl}\nYour donations: ${dashboardUrl}\n\n© ${year} CharitMe`,
   });
 }
 

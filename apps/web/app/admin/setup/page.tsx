@@ -2,7 +2,7 @@ import 'server-only';
 import Link from 'next/link';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
-import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import ApplySchemaButton from './_components/ApplySchemaButton';
 import ReloadCacheButton from './_components/ReloadCacheButton';
 
@@ -92,7 +92,7 @@ export default async function AdminSetupPage() {
   const tableMissing = checks.filter(c => c.label.startsWith('DB:') && (c.status === 'error' || c.status === 'missing')).length;
 
   return (
-    <KindFundShell active="Dashboard" mode="admin">
+    <CharitMeShell active="Dashboard" mode="admin">
       <TopBar
         title="Setup Diagnostic"
         subtitle="Check environment variables, database connectivity, and table status."
@@ -184,6 +184,6 @@ export default async function AdminSetupPage() {
           </Link>
         </div>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

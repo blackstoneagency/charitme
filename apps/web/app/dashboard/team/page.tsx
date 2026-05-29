@@ -1,4 +1,4 @@
-import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { TeamClient, type Campaign, type TeamMember, type Profile } from './_components/TeamClient';
@@ -60,7 +60,7 @@ export default async function TeamPage() {
   const { campaigns, members, profiles } = await fetchData(user.id);
 
   return (
-    <KindFundShell active="Team">
+    <CharitMeShell active="Team">
       <TopBar
         title="Team"
         subtitle="Manage your team members and permissions."
@@ -75,6 +75,6 @@ export default async function TeamPage() {
           />
         </div>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

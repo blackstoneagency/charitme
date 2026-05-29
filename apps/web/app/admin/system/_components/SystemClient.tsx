@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { KFIcon, StatusPill } from '../../../../components/KindFundApp';
+import { KFIcon, StatusPill } from '../../../../components/CharitMeApp';
 
 export type SystemCategory = {
   key: string;
@@ -606,7 +606,7 @@ export default function SystemClient({ categories, overview, recentActivity, ini
           <h3>Webhook Endpoint</h3>
           <div className="sys-fields one-col">
             <Field label="Webhook URL" hint="Your platform webhook endpoint. All events will be POSTed here.">
-              <input className="sys-input" type="text" value={String(s.webhookUrl ?? '')} onChange={e => setField('integrations', 'webhookUrl', e.target.value)} placeholder="https://api.kindfund.org/webhook" />
+              <input className="sys-input" type="text" value={String(s.webhookUrl ?? '')} onChange={e => setField('integrations', 'webhookUrl', e.target.value)} placeholder="https://api.CharitMe.org/webhook" />
             </Field>
           </div>
         </div>

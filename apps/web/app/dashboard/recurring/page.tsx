@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { KindFundShell, TopBar, KFIcon } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 
@@ -61,7 +61,7 @@ export default async function RecurringPage() {
   const totalMonthly = active.reduce((sum, r) => sum + (r.cadence === 'monthly' ? r.amount_cents : 0), 0);
 
   return (
-    <KindFundShell active="Recurring">
+    <CharitMeShell active="Recurring">
       <TopBar
         title="Recurring Donations"
         subtitle="Manage your monthly and recurring giving commitments."
@@ -87,7 +87,7 @@ export default async function RecurringPage() {
 
         {/* 0% fee badge */}
         <div style={{ padding: '14px 18px', background: '#f0fff8', border: '1px solid #bbf7d0', borderRadius: 12, fontSize: 13, color: '#065f46', fontWeight: 600 }}>
-          💚 KindFund charges <strong>0%</strong> on all recurring donations. GoFundMe charges 5%. You&apos;re maximizing impact.
+          💚 CharitMe charges <strong>0%</strong> on all recurring donations. GoFundMe charges 5%. You&apos;re maximizing impact.
         </div>
 
         {/* Subscription list */}
@@ -154,7 +154,7 @@ export default async function RecurringPage() {
           For questions, <Link href="/contact" style={{ color: 'var(--green)' }}>contact support</Link>.
         </p>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }
 

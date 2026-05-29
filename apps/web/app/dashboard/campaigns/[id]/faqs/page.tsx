@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { KindFundShell, TopBar } from '../../../../../components/KindFundApp';
+import { CharitMeShell, TopBar } from '../../../../../components/CharitMeApp';
 import { createClient } from '../../../../../lib/supabase-browser';
 
 type FAQ = { id: string; question: string; answer: string; sort_order: number; is_public?: boolean };
@@ -76,11 +76,11 @@ export default function CampaignFAQsPage({ params }: { params: Promise<{ id: str
   }
 
   if (loading) {
-    return <KindFundShell active="My Campaigns"><TopBar title="Campaign FAQs" subtitle="Loading…" /><div style={{ padding: 32, color: 'var(--t3)' }}>Loading…</div></KindFundShell>;
+    return <CharitMeShell active="My Campaigns"><TopBar title="Campaign FAQs" subtitle="Loading…" /><div style={{ padding: 32, color: 'var(--t3)' }}>Loading…</div></CharitMeShell>;
   }
 
   return (
-    <KindFundShell active="My Campaigns">
+    <CharitMeShell active="My Campaigns">
       <TopBar
         title="Campaign FAQs"
         subtitle="Answer common donor questions. Shown publicly on your campaign page."
@@ -158,6 +158,6 @@ export default function CampaignFAQsPage({ params }: { params: Promise<{ id: str
           💡 FAQs appear on your public campaign page. They help donors understand where money goes and build trust.
         </p>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

@@ -1,6 +1,6 @@
 import 'server-only';
 import Link from 'next/link';
-import { KindFundShell, TopBar, MetricGrid, KFIcon, type Metric } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar, MetricGrid, KFIcon, type Metric } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 
@@ -232,7 +232,7 @@ export default async function DonorsPage({
       : donors;
 
   return (
-    <KindFundShell active="Donors">
+    <CharitMeShell active="Donors">
       <TopBar title="Donors" subtitle="Build stronger relationships with your supporters." />
 
       <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
@@ -390,6 +390,6 @@ export default async function DonorsPage({
           </section>
         </div>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

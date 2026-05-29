@@ -12,7 +12,7 @@ const ContactSchema = z.object({
 });
 
 function contactRecipients(): string[] {
-  const configured = process.env.CONTACT_EMAIL ?? process.env.ADMIN_EMAILS ?? 'hello@kindfund.com';
+  const configured = process.env.CONTACT_EMAIL ?? process.env.ADMIN_EMAILS ?? 'hello@CharitMe.com';
   return configured.split(',').map((email) => email.trim()).filter(Boolean);
 }
 
@@ -48,10 +48,10 @@ export async function POST(request: NextRequest) {
 
   if (resend) {
     await resend.emails.send({
-      from: process.env.EMAIL_FROM ?? 'KindFund <hello@kindfund.com>',
+      from: process.env.EMAIL_FROM ?? 'CharitMe <hello@CharitMe.com>',
       to: contactRecipients(),
       replyTo: email,
-      subject: `KindFund contact: ${subject}`,
+      subject: `CharitMe contact: ${subject}`,
       text: [
         `Name: ${name}`,
         `Email: ${email}`,

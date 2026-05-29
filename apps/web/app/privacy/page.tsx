@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — KindFund',
-  description: 'How KindFund collects, uses, and protects your personal information.',
+  title: 'Privacy Policy — CharitMe',
+  description: 'How CharitMe collects, uses, and protects your personal information.',
 };
 
 const LAST_UPDATED = 'May 2025';
@@ -19,7 +19,7 @@ export default function PrivacyPage() {
       <article className="legal-body">
         <h2>1. Who We Are</h2>
         <p>
-          KindFund (&ldquo;KindFund,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;) operates the
+          CharitMe (&ldquo;CharitMe,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;) operates the
           fundraising platform at eli54u.com. This Privacy Policy describes how we collect, use, and protect
           your personal information when you use our platform.
         </p>
@@ -41,7 +41,7 @@ export default function PrivacyPage() {
 
         <h2>3. How We Use Your Information</h2>
         <ul>
-          <li>To operate and improve the KindFund platform</li>
+          <li>To operate and improve the CharitMe platform</li>
           <li>To process donations and send receipts via email</li>
           <li>To display campaign information to donors</li>
           <li>To communicate platform updates and support responses</li>
@@ -71,7 +71,7 @@ export default function PrivacyPage() {
         <p>We use HTTPS, Supabase Row Level Security, and Stripe&rsquo;s PCI DSS-certified infrastructure to protect your data. No security system is perfect — please use a strong, unique password.</p>
 
         <h2>9. Children</h2>
-        <p>KindFund is not intended for use by children under 13. We do not knowingly collect personal information from children.</p>
+        <p>CharitMe is not intended for use by children under 13. We do not knowingly collect personal information from children.</p>
 
         <h2>10. Changes to This Policy</h2>
         <p>We may update this policy. Material changes will be communicated by email or prominent notice on the platform.</p>

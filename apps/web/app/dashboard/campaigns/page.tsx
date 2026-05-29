@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { KindFundShell, TopBar, MetricGrid, KFIcon } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 
@@ -155,7 +155,7 @@ export default async function MyCampaignsPage({
       : campaigns.filter((c) => c.status.toLowerCase() === activeTab);
 
   return (
-    <KindFundShell active="My Campaigns">
+    <CharitMeShell active="My Campaigns">
       <TopBar
         title="My Campaigns"
         subtitle="Manage and grow all your fundraising campaigns."
@@ -395,6 +395,6 @@ export default async function MyCampaignsPage({
           </section>
         </div>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

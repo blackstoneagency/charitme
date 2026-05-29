@@ -1,4 +1,4 @@
-import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import MessagesClient, { type Thread, type OwnerReply } from './MessagesClient';
@@ -114,9 +114,9 @@ export default async function MessagesPage() {
   const { threads, campaignMap, replies } = await fetchData(user.id);
 
   return (
-    <KindFundShell active="Messages">
+    <CharitMeShell active="Messages">
       <TopBar title="Messages" subtitle="Communicate with your supporters." />
       <MessagesClient threads={threads} campaignMap={campaignMap} replies={replies} />
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

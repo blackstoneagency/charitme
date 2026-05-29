@@ -1,5 +1,5 @@
 import type React from 'react';
-import { KindFundShell, type ShellVariant } from './KindFundApp';
+import { CharitMeShell, type ShellVariant } from './CharitMeApp';
 
 type Props = {
   children: React.ReactNode;
@@ -9,13 +9,13 @@ type Props = {
 
 export function DashboardShell({ children, variant = 'dashboard', user }: Props) {
   return (
-    <KindFundShell
+    <CharitMeShell
       active={variant === 'admin' ? 'Dashboard' : 'Dashboard'}
       mode={variant}
       userName={user.name}
       userEmail={user.email}
     >
       {children}
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — KindFund',
-  description: 'The terms that govern your use of the KindFund fundraising platform.',
+  title: 'Terms of Service — CharitMe',
+  description: 'The terms that govern your use of the CharitMe fundraising platform.',
 };
 
 const LAST_UPDATED = 'May 2025';
@@ -19,16 +19,16 @@ export default function TermsPage() {
       <article className="legal-body">
         <h2>1. Acceptance of Terms</h2>
         <p>
-          By accessing or using KindFund at eli54u.com (&ldquo;the Platform&rdquo;), you agree to these
+          By accessing or using CharitMe at eli54u.com (&ldquo;the Platform&rdquo;), you agree to these
           Terms of Service. If you do not agree, do not use the Platform.
         </p>
 
-        <h2>2. What KindFund Does</h2>
+        <h2>2. What CharitMe Does</h2>
         <p>
-          KindFund is a fundraising platform that allows individuals, teams, and nonprofits to create
+          CharitMe is a fundraising platform that allows individuals, teams, and nonprofits to create
           campaign pages, accept donations from donors, and receive payouts through Stripe Connect.
-          KindFund is a technology platform — it is not a charity, foundation, or financial institution.
-          KindFund does not verify the truth of campaign claims, guarantee fundraising outcomes, or
+          CharitMe is a technology platform — it is not a charity, foundation, or financial institution.
+          CharitMe does not verify the truth of campaign claims, guarantee fundraising outcomes, or
           provide tax-deduction status except where a verified 501(c)(3) nonprofit is confirmed.
         </p>
 
@@ -46,7 +46,7 @@ export default function TermsPage() {
 
         <h2>5. Donations</h2>
         <p>
-          Donations are voluntary contributions. KindFund charges 0% mandatory platform fee. Donors may optionally add a support tip to KindFund at checkout (default 8%, changeable to $0). Stripe charges 2.9% + $0.30 per transaction, which donors may optionally cover.
+          Donations are voluntary contributions. CharitMe charges 0% mandatory platform fee. Donors may optionally add a support tip to CharitMe at checkout (default 8%, changeable to $0). Stripe charges 2.9% + $0.30 per transaction, which donors may optionally cover.
         </p>
         <p>
           Donations are generally non-refundable except where campaign funds are misused or fraud is confirmed. Contact the organizer first for any refund request.
@@ -54,7 +54,7 @@ export default function TermsPage() {
 
         <h2>6. Payouts</h2>
         <p>
-          Campaign organizers receive funds through Stripe Connect. Payouts require identity verification and a connected bank account. KindFund does not hold funds — donations are held in your Stripe Connect balance until you request a payout.
+          Campaign organizers receive funds through Stripe Connect. Payouts require identity verification and a connected bank account. CharitMe does not hold funds — donations are held in your Stripe Connect balance until you request a payout.
         </p>
 
         <h2>7. Prohibited Uses</h2>
@@ -68,11 +68,11 @@ export default function TermsPage() {
         </ul>
 
         <h2>8. Platform Fees</h2>
-        <p>KindFund&rsquo;s free plan charges 0% mandatory platform fee. Paid subscription plans (Starter, Pro) offer additional features. Subscription fees are charged monthly or yearly and are non-refundable after the billing period begins.</p>
+        <p>CharitMe&rsquo;s free plan charges 0% mandatory platform fee. Paid subscription plans (Starter, Pro) offer additional features. Subscription fees are charged monthly or yearly and are non-refundable after the billing period begins.</p>
 
         <h2>9. Limitation of Liability</h2>
         <p>
-          KindFund provides the Platform &ldquo;as is.&rdquo; To the maximum extent permitted by law, KindFund is not liable for any indirect, incidental, or consequential damages. Our total liability to you shall not exceed the fees you paid to KindFund in the 12 months preceding the claim.
+          CharitMe provides the Platform &ldquo;as is.&rdquo; To the maximum extent permitted by law, CharitMe is not liable for any indirect, incidental, or consequential damages. Our total liability to you shall not exceed the fees you paid to CharitMe in the 12 months preceding the claim.
         </p>
 
         <h2>10. Governing Law</h2>

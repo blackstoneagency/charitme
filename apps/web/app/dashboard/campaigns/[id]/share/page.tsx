@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { KindFundShell, TopBar } from '../../../../../components/KindFundApp';
+import { CharitMeShell, TopBar } from '../../../../../components/CharitMeApp';
 import { createClient } from '../../../../../lib/supabase-browser';
 
 const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com';
@@ -85,11 +85,11 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
   };
 
   if (!campaign) {
-    return <KindFundShell active="My Campaigns"><TopBar title="Share Campaign" subtitle="Loading…" /><div style={{ padding: 32, color: 'var(--t3)' }}>Loading…</div></KindFundShell>;
+    return <CharitMeShell active="My Campaigns"><TopBar title="Share Campaign" subtitle="Loading…" /><div style={{ padding: 32, color: 'var(--t3)' }}>Loading…</div></CharitMeShell>;
   }
 
   return (
-    <KindFundShell active="My Campaigns">
+    <CharitMeShell active="My Campaigns">
       <TopBar
         title="Share & Grow"
         subtitle={`Share "${campaign.title}" and AI-generate content for every channel.`}
@@ -169,6 +169,6 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
           )}
         </section>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

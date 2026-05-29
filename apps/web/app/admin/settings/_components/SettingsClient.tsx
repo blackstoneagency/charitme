@@ -2,7 +2,7 @@
 
 import type React from 'react';
 import { useState, useTransition } from 'react';
-import { KFIcon } from '../../../../components/KindFundApp';
+import { KFIcon } from '../../../../components/CharitMeApp';
 
 export type SettingCategory = {
   key: string;

@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     lineItems.push({
       price_data: {
         currency: 'usd',
-        product_data: { name: 'Optional KindFund support tip' },
+        product_data: { name: 'Optional CharitMe support tip' },
         unit_amount: tipCents,
       },
       quantity: 1,

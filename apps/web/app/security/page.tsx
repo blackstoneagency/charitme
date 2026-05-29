@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Security — KindFund',
-  description: 'How KindFund protects your data, payments, and account using industry-standard security controls.',
+  title: 'Security — CharitMe',
+  description: 'How CharitMe protects your data, payments, and account using industry-standard security controls.',
 };
 
 export default function SecurityPage() {
@@ -10,14 +10,14 @@ export default function SecurityPage() {
     <div className="pub-page simple-public legal-page">
       <section>
         <div className="pub-breadcrumb">Home <span>&gt;</span> <b>Security</b></div>
-        <h1>Security at KindFund</h1>
+        <h1>Security at CharitMe</h1>
         <p>We take security seriously. Here is how we protect your account, payments, and data.</p>
       </section>
 
       <article className="legal-body">
         <h2>Payment Security</h2>
         <ul>
-          <li><strong>Stripe PCI DSS Level 1</strong> — All card payments are processed by Stripe, the highest-certified payment processor. KindFund never sees, stores, or handles your card number, CVV, or bank account details.</li>
+          <li><strong>Stripe PCI DSS Level 1</strong> — All card payments are processed by Stripe, the highest-certified payment processor. CharitMe never sees, stores, or handles your card number, CVV, or bank account details.</li>
           <li><strong>3D Secure / SCA</strong> — Strong Customer Authentication is supported for European and other regulated transactions.</li>
           <li><strong>Webhook signature verification</strong> — All Stripe webhook events are verified using HMAC-SHA256 signatures before processing.</li>
         </ul>
@@ -41,7 +41,7 @@ export default function SecurityPage() {
         <ul>
           <li><strong>Stripe KYC</strong> — Organizers must complete Stripe Connect identity verification (name, DOB, address, SSN last 4) before payouts are enabled.</li>
           <li><strong>Trust Score</strong> — An AI-computed trust score (0–100) is visible on every campaign. It reflects identity verification, story quality, and fundraising activity.</li>
-          <li><strong>Verified badge</strong> — Campaigns with fully verified organizers display a KindFund Verified badge.</li>
+          <li><strong>Verified badge</strong> — Campaigns with fully verified organizers display a CharitMe Verified badge.</li>
         </ul>
 
         <h2>Data Protection</h2>

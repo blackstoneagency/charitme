@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { KindFundShell, TopBar } from '../../../components/KindFundApp';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeApp';
 import { createClient } from '../../../lib/supabase-browser';
 
 type Message = { role: 'user' | 'assistant'; content: string };
@@ -115,7 +115,7 @@ export default function AiCoachPage() {
   const selectedTitle = campaigns.find(c => c.id === selectedCampaign)?.title;
 
   return (
-    <KindFundShell active="AI Coach">
+    <CharitMeShell active="AI Coach">
       <TopBar
         title="AI Fundraising Coach"
         subtitle="Get expert fundraising advice, content, and strategy — powered by AI."
@@ -148,7 +148,7 @@ export default function AiCoachPage() {
                   🤖
                 </div>
                 <div style={{ background: 'var(--s2)', border: '1px solid var(--b2)', borderRadius: '4px 14px 14px 14px', padding: '14px 18px', maxWidth: 480, fontSize: 14, lineHeight: 1.6, color: 'var(--t1)' }}>
-                  Hi! I&apos;m your KindFund AI Fundraising Coach. I can help you raise more money, write posts, craft emails, and grow your campaign. What do you need help with today?
+                  Hi! I&apos;m your CharitMe AI Fundraising Coach. I can help you raise more money, write posts, craft emails, and grow your campaign. What do you need help with today?
                 </div>
               </div>
               <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 12 }}>
@@ -231,6 +231,6 @@ export default function AiCoachPage() {
           </p>
         </div>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

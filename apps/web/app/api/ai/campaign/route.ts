@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       input: [
         {
           role: 'system',
-          content: 'You are KindFund AI Campaign Copilot. Write authentic, non-manipulative fundraising content. Return strict JSON matching: title, story, socialCaption, longPost, sms, email, donorFaq array, donationTiers array of amount/label, missingTrustSignals array, qualityScore number.',
+          content: 'You are CharitMe AI Campaign Copilot. Write authentic, non-manipulative fundraising content. Return strict JSON matching: title, story, socialCaption, longPost, sms, email, donorFaq array, donationTiers array of amount/label, missingTrustSignals array, qualityScore number.',
         },
         { role: 'user', content: JSON.stringify(parsed.data) },
       ],

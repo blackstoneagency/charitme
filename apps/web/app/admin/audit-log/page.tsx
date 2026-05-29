@@ -1,7 +1,7 @@
 import 'server-only';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
-import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import AuditLogClient, { type AuditEvent, type DayPoint, type CategoryCount } from './_components/AuditLogClient';
 
 export const dynamic = 'force-dynamic';
@@ -126,7 +126,7 @@ export default async function AuditLogPage() {
   const dayPoints: DayPoint[] = [...dayBuckets.entries()].map(([label, count]) => ({ label, count }));
 
   return (
-    <KindFundShell active="Audit Log" mode="admin">
+    <CharitMeShell active="Audit Log" mode="admin">
       <TopBar
         title="Audit Log"
         subtitle="Track, review and monitor Stripe webhook events and platform activity."
@@ -140,6 +140,6 @@ export default async function AuditLogPage() {
         failedCount={failedEvents}
         dayPoints={dayPoints}
       />
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

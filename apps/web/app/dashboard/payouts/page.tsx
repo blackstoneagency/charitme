@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { KindFundShell, TopBar, MetricGrid, KFIcon } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 
@@ -147,7 +147,7 @@ export default async function PayoutsPage({
   ];
 
   return (
-    <KindFundShell active="Payouts">
+    <CharitMeShell active="Payouts">
       <TopBar
         title="Payouts"
         subtitle="Review and manage payouts to your beneficiaries."
@@ -237,6 +237,6 @@ export default async function PayoutsPage({
           </div>
         </section>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-test('homepage presents KindFund trust positioning', async ({ page }) => {
+test('homepage presents CharitMe trust positioning', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByText('KindFund').first()).toBeVisible();
+  await expect(page.getByText('CharitMe').first()).toBeVisible();
   await expect(page.getByText('0%')).toBeVisible();
   await expect(page.getByText('Start free fundraiser')).toBeVisible();
 });

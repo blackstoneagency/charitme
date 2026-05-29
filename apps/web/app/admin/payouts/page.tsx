@@ -1,5 +1,5 @@
 import 'server-only';
-import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import PayoutsClient, { type PayoutRecord, type WeekPoint, type TopRecipient } from './_components/PayoutsClient';
@@ -124,7 +124,7 @@ export default async function AdminPayoutsPage() {
   }));
 
   return (
-    <KindFundShell active="Payouts" mode="admin">
+    <CharitMeShell active="Payouts" mode="admin">
       <TopBar
         title="Payouts"
         subtitle="Manage payout requests, review details, and take action."
@@ -141,6 +141,6 @@ export default async function AdminPayoutsPage() {
         weeklyTrend={weeklyTrend}
         topRecipients={topRecipients}
       />
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

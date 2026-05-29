@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Success Stories',
-  description: 'Real KindFund success stories from fundraisers and communities creating impact.',
+  description: 'Real CharitMe success stories from fundraisers and communities creating impact.',
 };
 
 const filters = ['All Stories', 'Individuals', 'Nonprofits', 'Communities', 'Emergencies'];
@@ -69,7 +69,7 @@ export default async function SuccessStoriesPage() {
         <div className="stories-hero-grid">
           <div>
             <h1>Real people. Real stories. Real <em>impact.</em></h1>
-            <p>See how individuals, nonprofits and communities achieved their goals with KindFund.</p>
+            <p>See how individuals, nonprofits and communities achieved their goals with CharitMe.</p>
             <div className="pub-actions">
               <Link href="/login?mode=signup" className="pub-btn primary">Share Your Story <PublicIcon name="edit" /></Link>
               <a href="#stories" className="pub-btn secondary">Browse All Stories <PublicIcon name="arrow" /></a>
@@ -101,7 +101,7 @@ export default async function SuccessStoriesPage() {
             <article className="story-card" key={story.slug}>
               <div className={`story-card-img ${storyImage(story.category)}`}><span>{story.category ?? 'Campaign'}</span><Link href={`/campaigns/${story.slug}`} aria-label="View story"><PublicIcon name="heart" /></Link></div>
               <h2>{story.title}</h2>
-              <p>{story.description ?? 'This campaign is tracking verified support through KindFund.'}</p>
+              <p>{story.description ?? 'This campaign is tracking verified support through CharitMe.'}</p>
               <div className="story-meta">
                 <span><PublicIcon name="users" /><b>{story.backer_count.toLocaleString()}</b><small>Donors</small></span>
                 <span><PublicIcon name="dollar" /><b>{formatCents(story.raised_amount)}</b><small>Raised</small></span>
@@ -125,7 +125,7 @@ export default async function SuccessStoriesPage() {
           {(stories.length > 0 ? stories.slice(0, 3) : []).map((story) => (
             <article key={story.slug}><span>&quot;</span><p>{story.description ?? `${story.title} is building momentum with live campaign data.`}</p><b>- {story.title}</b></article>
           ))}
-          {stories.length === 0 && <article><span>&quot;</span><p>Fundraiser quotes will populate from live campaign records.</p><b>- KindFund</b></article>}
+          {stories.length === 0 && <article><span>&quot;</span><p>Fundraiser quotes will populate from live campaign records.</p><b>- CharitMe</b></article>}
         </div>
         <div className="community-impact">
           <h2>Our Community Impact</h2>

@@ -1,5 +1,5 @@
 import 'server-only';
-import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import SettingsClient from './SettingsClient';
@@ -82,7 +82,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
   const upgradedPlan = sp.plan ?? '';
 
   return (
-    <KindFundShell active="Settings">
+    <CharitMeShell active="Settings">
       <TopBar title="Settings" subtitle="Manage your account, organisation, and preferences." />
       {subscriptionSuccess ? (
         <div style={{
@@ -116,6 +116,6 @@ export default async function SettingsPage({ searchParams }: PageProps) {
         userEmail={user.email ?? ''}
         hasStripeCustomer={!!profile.stripe_customer_id}
       />
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

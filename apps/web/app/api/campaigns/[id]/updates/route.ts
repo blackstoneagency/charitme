@@ -6,7 +6,7 @@ import { createClient } from '../../../../../lib/supabase-server';
 import { resend } from '../../../../../lib/email';
 
 const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com';
-const FROM   = process.env.EMAIL_FROM ?? 'KindFund <hello@eli54u.com>';
+const FROM   = process.env.EMAIL_FROM ?? 'CharitMe <hello@eli54u.com>';
 
 const Schema = z.object({
   title:        z.string().max(200).optional(),
@@ -115,7 +115,7 @@ export async function POST(
   <tr><td align="center">
     <table width="520" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.08)">
       <tr><td style="background:linear-gradient(135deg,#6c35ff,#4d1ee0);padding:24px 32px">
-        <div style="font-size:22px;font-weight:900;color:#fff">💚 KindFund</div>
+        <div style="font-size:22px;font-weight:900;color:#fff">💚 CharitMe</div>
         <div style="font-size:13px;color:rgba(255,255,255,.75);margin-top:4px">Campaign Update</div>
       </td></tr>
       <tr><td style="padding:28px 32px">
@@ -128,14 +128,14 @@ export async function POST(
         <a href="${campaignUrl}" style="display:block;text-align:center;background:linear-gradient(135deg,#6c35ff,#4d1ee0);color:#fff;font-size:14px;font-weight:700;padding:14px;border-radius:10px;text-decoration:none">View Campaign Updates</a>
       </td></tr>
       <tr><td style="background:#f8f9fc;padding:16px 32px;text-align:center;border-top:1px solid #f0f0f0">
-        <p style="font-size:11px;color:#94a3b8;margin:0">© ${year} KindFund · <a href="${ORIGIN}/donor" style="color:#94a3b8">Manage email preferences</a></p>
+        <p style="font-size:11px;color:#94a3b8;margin:0">© ${year} CharitMe · <a href="${ORIGIN}/donor" style="color:#94a3b8">Manage email preferences</a></p>
       </td></tr>
     </table>
   </td></tr>
 </table>
 </body>
 </html>`,
-            text: `Hi ${firstName},\n\nNew update from "${campaign.title}":\n\n${title ? `${title}\n\n` : ''}${updateBody}\n\nView campaign: ${campaignUrl}\n\n© ${year} KindFund`,
+            text: `Hi ${firstName},\n\nNew update from "${campaign.title}":\n\n${title ? `${title}\n\n` : ''}${updateBody}\n\nView campaign: ${campaignUrl}\n\n© ${year} CharitMe`,
           }).catch(() => undefined); // silent per-email failure
         }
       } catch { /* silent — email send failure must not affect response */ }

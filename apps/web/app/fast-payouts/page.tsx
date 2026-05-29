@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Fast Payouts — Stripe Verified Payouts',
-  description: 'KindFund uses Stripe Connect Express to deliver donations to fundraisers. Standard payouts are free. Same-day and instant payouts are available for eligible verified users.',
+  description: 'CharitMe uses Stripe Connect Express to deliver donations to fundraisers. Standard payouts are free. Same-day and instant payouts are available for eligible verified users.',
 };
 
 const VERIFICATION_STEPS = [
@@ -11,7 +11,7 @@ const VERIFICATION_STEPS = [
     step: '01',
     icon: '🔗',
     title: 'Connect a Stripe account',
-    body: 'Click "Connect payouts" from your dashboard. KindFund opens the Stripe Express onboarding flow — takes 2–3 minutes for most users.',
+    body: 'Click "Connect payouts" from your dashboard. CharitMe opens the Stripe Express onboarding flow — takes 2–3 minutes for most users.',
   },
   {
     step: '02',
@@ -40,7 +40,7 @@ const PAYOUT_FAQS = [
   },
   {
     q: 'What countries support payouts?',
-    a: 'KindFund supports payouts in all countries where Stripe Connect Express is available — 40+ countries. Payout timing, currency, and method depend on your country and Stripe Connect rules.',
+    a: 'CharitMe supports payouts in all countries where Stripe Connect Express is available — 40+ countries. Payout timing, currency, and method depend on your country and Stripe Connect rules.',
   },
   {
     q: 'Why would my payout be frozen?',
@@ -51,8 +51,8 @@ const PAYOUT_FAQS = [
     a: 'Standard payouts process in 2 business days. Same-day payouts (1% fee) process on the same business day. Instant payouts (1.5% fee) transfer to an eligible debit card or bank account in minutes. Instant payouts require low-risk verified accounts only.',
   },
   {
-    q: 'Does KindFund ever hold my money?',
-    a: 'KindFund is not a money transmitter and does not hold campaign funds. Donations are processed by Stripe and held in your Stripe Connect balance until payout. KindFund instructs Stripe to transfer funds on the schedule you choose.',
+    q: 'Does CharitMe ever hold my money?',
+    a: 'CharitMe is not a money transmitter and does not hold campaign funds. Donations are processed by Stripe and held in your Stripe Connect balance until payout. CharitMe instructs Stripe to transfer funds on the schedule you choose.',
   },
 ];
 
@@ -70,7 +70,7 @@ export default function FastPayoutsPage() {
               Get donations to your<br className="hidden sm:block" /> bank when you need them.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-              KindFund uses Stripe Connect Express to deliver funds directly to your bank.
+              CharitMe uses Stripe Connect Express to deliver funds directly to your bank.
               Standard payouts are always free. Same-day and instant options are available for eligible verified users.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -193,9 +193,9 @@ export default function FastPayoutsPage() {
             <div>
               <h2 className="text-3xl font-black text-slate-950">Powered by Stripe — trusted by millions</h2>
               <p className="mt-4 leading-7 text-slate-600">
-                KindFund uses Stripe Connect Express to process and deliver all donations.
+                CharitMe uses Stripe Connect Express to process and deliver all donations.
                 Stripe is a PCI DSS Level 1 certified payment processor used by Amazon, Google, and Shopify.
-                KindFund never sees, stores, or handles your bank account or card details.
+                CharitMe never sees, stores, or handles your bank account or card details.
               </p>
               <div className="mt-6 space-y-3">
                 {[

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { KindFundShell, TopBar } from '../../../../components/KindFundApp';
+import { CharitMeShell, TopBar } from '../../../../components/CharitMeApp';
 import { createClient } from '../../../../lib/supabase-browser'; // used for auth check + campaign list
 
 type Campaign = { id: string; title: string };
@@ -67,7 +67,7 @@ export default function NewUpdatePage() {
   }
 
   return (
-    <KindFundShell active="Updates">
+    <CharitMeShell active="Updates">
       <TopBar
         title="Post Update"
         subtitle="Share progress, milestones, and stories with your supporters."
@@ -192,6 +192,6 @@ export default function NewUpdatePage() {
           </div>
         </form>
       </div>
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

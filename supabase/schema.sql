@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- KindFund Production Schema — complete rebuild with 500-row seed data
+-- CharitMe Production Schema — complete rebuild with 500-row seed data
 -- Run in Supabase SQL Editor with service-role key (required for auth.users seed)
 -- ─────────────────────────────────────────────────────────────────────────────
 
@@ -393,7 +393,7 @@ create table public.platform_settings (
   updated_at timestamptz not null default now()
 );
 insert into public.platform_settings (id, config) values (1, '{
-  "platformName": "KindFund",
+  "platformName": "CharitMe",
   "tagline": "Fundraising that thinks for you.",
   "supportEmail": "hello@eli54u.com",
   "supportPhone": "",
@@ -916,7 +916,7 @@ begin
       trust_passport_score, timezone, currency, created_at, updated_at
     ) values (
       new_id,
-      lower(fn) || '.' || lower(ln) || i || '@kindfund.example',
+      lower(fn) || '.' || lower(ln) || i || '@CharitMe.example',
       fn || ' ' || ln,
       'Passionate about making a difference in the community. Fundraiser and donor.',
       case when i <= 3  then '["admin","donor"]'::jsonb
@@ -1025,7 +1025,7 @@ begin
            when i % 15 = 0 then 'document'
            else 'image' end,
       'campaigns/' || substr(md5(i::text), 1, 16) || '.' || (case when i % 10 = 0 then 'mp4' when i % 15 = 0 then 'pdf' else 'jpg' end),
-      'https://storage.kindfund.example/campaigns/media_' || i || '.jpg',
+      'https://storage.CharitMe.example/campaigns/media_' || i || '.jpg',
       'Campaign media ' || i || ' — showing progress and impact.',
       'Photo showing the campaign beneficiary and supporters',
       i % 5,
@@ -1252,11 +1252,11 @@ begin
       campaign_ids[1 + ((i - 1) % 500)],
       doc_types[1    + ((i - 1) % 6)],
       doc_storage_paths[1 + ((i - 1) % 6)],
-      case when i % 3 = 0 then 'https://storage.kindfund.example/' || doc_storage_paths[1+((i-1)%6)] else null end,
+      case when i % 3 = 0 then 'https://storage.CharitMe.example/' || doc_storage_paths[1+((i-1)%6)] else null end,
       i % 3 = 0,
       i % 2 = 0,
       case when i % 2 = 0 then now() - ((500-i) * interval '2 hours') else null end,
-      case when i % 2 = 0 then 'Document reviewed and approved by KindFund trust team.' else null end,
+      case when i % 2 = 0 then 'Document reviewed and approved by CharitMe trust team.' else null end,
       now() - ((500 - i) * interval '5 hours')
     );
   end loop;
@@ -1587,7 +1587,7 @@ declare
     'Small donation but huge belief in what you are doing.',
     'I found you through a friend — so glad I did.',
     'Just donated my birthday money to your campaign!',
-    'Thank you for using KindFund — love the transparency.',
+    'Thank you for using CharitMe — love the transparency.',
     'Will share at church this Sunday. Expect more donations!',
     'This cause is close to my heart for personal reasons.'
   ];

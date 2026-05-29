@@ -1,7 +1,7 @@
 import 'server-only';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
-import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import SystemClient, { type SystemCategory, type RecentActivity, type SystemOverview, type AllSettings } from './_components/SystemClient';
 import { DEFAULTS } from '../../../lib/settings-defaults';
 
@@ -128,7 +128,7 @@ export default async function SystemSettingsPage() {
   };
 
   return (
-    <KindFundShell active="System Settings" mode="admin">
+    <CharitMeShell active="System Settings" mode="admin">
       <TopBar
         title="System Settings"
         subtitle="Live system health and configuration. All data from Supabase."
@@ -140,6 +140,6 @@ export default async function SystemSettingsPage() {
         recentActivity={recentActivity}
         initialSettings={initialSettings}
       />
-    </KindFundShell>
+    </CharitMeShell>
   );
 }

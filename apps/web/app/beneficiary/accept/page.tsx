@@ -24,7 +24,7 @@ function AcceptForm() {
         <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 8px' }}>Invalid or expired invitation</h1>
         <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 20px' }}>{errorText || 'This invitation link is no longer valid.'}</p>
         <Link href="/" style={{ padding: '10px 24px', background: '#6c35ff', color: '#fff', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
-          Go to KindFund
+          Go to CharitMe
         </Link>
       </div>
     );
@@ -49,7 +49,7 @@ function AcceptForm() {
           You&apos;ve been invited to receive funds
         </h1>
         <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 24px', lineHeight: 1.7 }}>
-          Someone has started a fundraiser for you on KindFund. By accepting, you&apos;ll be able
+          Someone has started a fundraiser for you on CharitMe. By accepting, you&apos;ll be able
           to connect your bank account and receive payouts from donations.
         </p>
 
@@ -57,7 +57,7 @@ function AcceptForm() {
           <div style={{ fontSize: 12, fontWeight: 700, color: '#6c35ff', textTransform: 'uppercase', marginBottom: 8 }}>How it works</div>
           {[
             'Click "Accept & Set Up Account" below',
-            'Create a free KindFund account (or sign in)',
+            'Create a free CharitMe account (or sign in)',
             'Connect your bank account via Stripe (2–3 minutes)',
             'Receive payouts as donations come in',
           ].map((step, i) => (
@@ -86,7 +86,7 @@ function AcceptForm() {
         </button>
 
         <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 16 }}>
-          Free to use · KindFund charges 0% platform fee · Powered by Stripe
+          Free to use · CharitMe charges 0% platform fee · Powered by Stripe
         </p>
       </div>
     </div>

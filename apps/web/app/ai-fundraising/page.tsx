@@ -4,7 +4,7 @@ import { PublicIcon } from '../../components/PublicIcon';
 
 export const metadata: Metadata = {
   title: 'AI Fundraising',
-  description: 'KindFund AI tools help fundraisers create campaigns, connect with donors, and optimize results.',
+  description: 'CharitMe AI tools help fundraisers create campaigns, connect with donors, and optimize results.',
 };
 
 const tools = [
@@ -32,7 +32,7 @@ export default function AiFundraisingPage() {
           <div className="pub-hero-copy">
             <div className="pub-badge">New <span>AI-Powered Fundraising</span></div>
             <h1>Raise More. Save Time. Powered by <em>AI.</em></h1>
-            <p>KindFund&apos;s AI tools help you create compelling campaigns, connect with the right donors, and optimize results so you can focus on making a bigger impact.</p>
+            <p>CharitMe&apos;s AI tools help you create compelling campaigns, connect with the right donors, and optimize results so you can focus on making a bigger impact.</p>
             <div className="pub-actions">
               <Link href="/login?mode=signup" className="pub-btn primary">Start with AI <PublicIcon name="ai" /></Link>
               <Link href="/how-it-works" className="pub-btn secondary">See How It Works <PublicIcon name="play" /></Link>

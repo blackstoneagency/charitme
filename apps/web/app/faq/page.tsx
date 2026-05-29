@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'FAQ',
-  description: 'Answers to the most common questions about KindFund — fees, payouts, AI tools, trust scores, and donor safety.',
+  description: 'Answers to the most common questions about CharitMe — fees, payouts, AI tools, trust scores, and donor safety.',
 };
 
 const FAQ_SECTIONS = [
@@ -19,9 +19,9 @@ const FAQ_SECTIONS = [
   {
     title: 'Fees and pricing',
     items: [
-      { q: 'What is the platform fee?', a: 'KindFund charges 0% mandatory platform fee. We earn only from optional donor support tips that donors choose to add at checkout. The default tip is 8% of the donation amount, but donors can change it to any amount including $0.' },
-      { q: 'What does Stripe charge?', a: 'Stripe charges 2.9% + $0.30 per transaction for standard card payments. This is Stripe\'s fee, not KindFund\'s. Donors can optionally check a box at checkout to cover this fee so 100% of their stated donation reaches you.' },
-      { q: 'How does the optional donor tip work?', a: 'At checkout, donors see a transparent breakdown showing exactly how much goes to the campaign, how much covers processing, and the optional tip to KindFund. The tip is pre-filled at 8% but the donor can change it to 0%, 5%, 10%, 12%, or any custom amount before paying.' },
+      { q: 'What is the platform fee?', a: 'CharitMe charges 0% mandatory platform fee. We earn only from optional donor support tips that donors choose to add at checkout. The default tip is 8% of the donation amount, but donors can change it to any amount including $0.' },
+      { q: 'What does Stripe charge?', a: 'Stripe charges 2.9% + $0.30 per transaction for standard card payments. This is Stripe\'s fee, not CharitMe\'s. Donors can optionally check a box at checkout to cover this fee so 100% of their stated donation reaches you.' },
+      { q: 'How does the optional donor tip work?', a: 'At checkout, donors see a transparent breakdown showing exactly how much goes to the campaign, how much covers processing, and the optional tip to CharitMe. The tip is pre-filled at 8% but the donor can change it to 0%, 5%, 10%, 12%, or any custom amount before paying.' },
       { q: 'Are there fees to withdraw or receive payouts?', a: 'Standard payouts are always free. Same-day payouts have a 1% fee and instant payouts have a 1.5% fee. These are optional speed upgrades, not mandatory fees.' },
     ],
   },
@@ -30,7 +30,7 @@ const FAQ_SECTIONS = [
     items: [
       { q: 'How do I receive money from my campaign?', a: 'Connect a Stripe Express account from your dashboard. After verification, donations are transferred directly to your Stripe account on the standard schedule (typically 2 business days after donation).' },
       { q: 'How long does payout verification take?', a: 'Stripe identity verification typically takes 1–3 minutes for most users. Some accounts require additional document review, which can take 1–2 business days. Payouts are available as soon as verification is complete.' },
-      { q: 'Can someone outside the US receive payouts?', a: 'KindFund supports payouts in all countries where Stripe Express is available — over 40 countries. Payout availability, timing, and currency depend on your country and Stripe Connect rules.' },
+      { q: 'Can someone outside the US receive payouts?', a: 'CharitMe supports payouts in all countries where Stripe Express is available — over 40 countries. Payout availability, timing, and currency depend on your country and Stripe Connect rules.' },
       { q: 'Why are payouts held for new accounts?', a: 'New fundraiser accounts have a 7-day payout hold on their first campaign to allow for fraud review and donor dispute resolution. This is standard industry practice. Established accounts with prior clean history do not have this hold.' },
     ],
   },
@@ -56,8 +56,8 @@ const FAQ_SECTIONS = [
     items: [
       { q: 'Can I donate anonymously?', a: 'Yes. Check "Make my donation anonymous" at checkout. Your name will not appear on the public campaign page. The campaign organizer also will not see your name — only the donation amount and timestamp.' },
       { q: 'Will I get a receipt?', a: 'Yes. Stripe sends an automated payment receipt to your email after every donation. For donations to verified nonprofit campaigns, a formal tax receipt is also emailed where applicable.' },
-      { q: 'Can I get a refund?', a: 'Refund policies depend on the campaign organizer. Contact the organizer first. If a campaign is found to be fraudulent, KindFund will work with Stripe to issue refunds. Report a campaign if you believe it is fraudulent.' },
-      { q: 'Is my payment information secure?', a: 'Yes. All payments are processed by Stripe, a PCI DSS Level 1 certified payment processor. KindFund never sees, stores, or handles your card number, CVV, or bank account details.' },
+      { q: 'Can I get a refund?', a: 'Refund policies depend on the campaign organizer. Contact the organizer first. If a campaign is found to be fraudulent, CharitMe will work with Stripe to issue refunds. Report a campaign if you believe it is fraudulent.' },
+      { q: 'Is my payment information secure?', a: 'Yes. All payments are processed by Stripe, a PCI DSS Level 1 certified payment processor. CharitMe never sees, stores, or handles your card number, CVV, or bank account details.' },
     ],
   },
 ];

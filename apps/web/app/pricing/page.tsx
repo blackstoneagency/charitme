@@ -14,7 +14,7 @@ const PLANS = [
     features: [
       'Create 1 active campaign',
       'Basic campaign templates',
-      'Accept donations (KindFund branding)',
+      'Accept donations (CharitMe branding)',
       'Donor management',
       'Email support',
     ],
@@ -46,7 +46,7 @@ const PLANS = [
     features: [
       'Unlimited active campaigns',
       'Advanced analytics & reports',
-      'Custom branding (remove KindFund badge)',
+      'Custom branding (remove CharitMe badge)',
       'Automated donor email sequences',
       'Offline donations',
       'Team members (up to 5)',
@@ -77,7 +77,7 @@ const PLANS = [
 const FAQS = [
   ['Is there a setup fee?', 'No setup fees ever. Start for free and upgrade only when you need more features.'],
   ['Can I change my plan later?', 'Yes, upgrade or downgrade at any time. Changes take effect on your next billing cycle.'],
-  ['Does KindFund charge a platform fee?', 'Never. Our platform is 100% free from mandatory platform fees — we only charge for premium plans.'],
+  ['Does CharitMe charge a platform fee?', 'Never. Our platform is 100% free from mandatory platform fees — we only charge for premium plans.'],
   ['Is there a free trial for paid plans?', 'Yes! Starter and Pro both come with a 14-day free trial. No credit card required to start.'],
 ] as const;
 
@@ -88,11 +88,11 @@ function FeeCalculator() {
   const stripePct = 0.029;
   const tipPct = 0.08;
 
-  // KindFund with donor covering fee + 0% tip
+  // CharitMe with donor covering fee + 0% tip
   const kfStripe = Math.round(cents * stripePct) + stripeFixed;
   const kfNet = cents - kfStripe; // donor covers fee, 0% tip
 
-  // KindFund with tip (default 8%)
+  // CharitMe with tip (default 8%)
   const kfTip = Math.round(cents * tipPct);
 
   // GoFundMe: 0% platform + ~2.9%+$0.30 Stripe (same), but 5% on recurring
@@ -126,10 +126,10 @@ function FeeCalculator() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        {/* KindFund */}
+        {/* CharitMe */}
         <div style={{ background: '#f0fff8', border: '2px solid #19b86a', borderRadius: 16, padding: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <span style={{ fontWeight: 900, fontSize: 16, color: '#065f46' }}>💚 KindFund</span>
+            <span style={{ fontWeight: 900, fontSize: 16, color: '#065f46' }}>💚 CharitMe</span>
             <span style={{ background: '#19b86a', color: '#fff', fontSize: 11, fontWeight: 900, padding: '3px 10px', borderRadius: 20 }}>BEST VALUE</span>
           </div>
           <div style={{ fontSize: 28, fontWeight: 900, color: '#047857', marginBottom: 4 }}>{fmt(kfNet)}</div>
@@ -159,8 +159,8 @@ function FeeCalculator() {
       </div>
 
       <p style={{ textAlign: 'center', fontSize: 12, color: '#94a3b8', marginTop: 16 }}>
-        * Stripe fees (2.9% + $0.30) apply to both platforms. KindFund charges 0% on all donations including recurring. GoFundMe charges 5% on recurring donations.
-        Donors can optionally cover Stripe fees on KindFund.
+        * Stripe fees (2.9% + $0.30) apply to both platforms. CharitMe charges 0% on all donations including recurring. GoFundMe charges 5% on recurring donations.
+        Donors can optionally cover Stripe fees on CharitMe.
       </p>
     </div>
   );
