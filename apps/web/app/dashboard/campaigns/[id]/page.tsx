@@ -386,6 +386,28 @@ export default async function CampaignDetailPage({
           </section>
         )}
 
+        {/* ── Quick actions ── */}
+        <section className="kf-card" style={{ padding: 24 }}>
+          <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800 }}>Campaign Tools</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+            {[
+              { href: `/dashboard/campaigns/${campaign.id}/share`, icon: 'send', label: 'Share & AI Content', desc: 'UTM links + AI posts' },
+              { href: `/dashboard/campaigns/${campaign.id}/thank-donors`, icon: 'chat', label: 'Thank Donors', desc: 'Email your supporters' },
+              { href: `/dashboard/campaigns/${campaign.id}/ledger`, icon: 'doc', label: 'Fund Ledger', desc: 'Track how funds are used' },
+              { href: `/dashboard/campaigns/${campaign.id}/edit`, icon: 'doc', label: 'Edit Campaign', desc: 'Update title, story, media' },
+              { href: `/api/campaigns/${campaign.id}/qr-poster`, icon: 'send', label: 'Print QR Poster', desc: 'Download & print' },
+              { href: `/dashboard/updates/new`, icon: 'doc', label: 'Post Update', desc: 'Keep donors informed' },
+            ].map(action => (
+              <Link key={action.href} href={action.href} target={action.href.startsWith('/api') ? '_blank' : undefined}
+                style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 16px', border: '1px solid var(--b2)', borderRadius: 12, textDecoration: 'none', background: 'var(--s1)', transition: 'border-color .15s' }}>
+                <KFIcon name={action.icon} />
+                <strong style={{ fontSize: 13, color: 'var(--t1)', marginTop: 6 }}>{action.label}</strong>
+                <span style={{ fontSize: 11, color: 'var(--t3)' }}>{action.desc}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
       </div>
     </KindFundShell>
   );

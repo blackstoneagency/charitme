@@ -1352,3 +1352,23 @@ begin
   end if;
 end;
 $$;
+
+-- ── Offline donation support columns ──────────────────────────────────────────
+alter table donations add column if not exists offline boolean not null default false;
+alter table donations add column if not exists offline_method text;
+alter table donations add column if not exists offline_donor_name text;
+alter table donations add column if not exists offline_donor_email text;
+
+-- ── AI coach conversation tracking (optional) ─────────────────────────────────
+-- coach_sessions stores conversation metadata for analytics; content is ephemeral
+create table if not exists coach_sessions (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  campaign_id uuid references campaigns(id) on delete set null,
+  message_count int not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table coach_sessions enable row level security;
+create policy coach_sessions_own on coach_sessions for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
