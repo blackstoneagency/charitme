@@ -141,8 +141,8 @@ export default function HeroRotator({ campaigns, fallbackImageUrl = '/hero-child
         </div>
       </div>
 
-      {/* ── Campaign card ── */}
-      <div className="kind-campaign-card" style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>
+      {/* ── Campaign card — position:relative so the progress bar can anchor to its bottom ── */}
+      <div className="kind-campaign-card" style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1, position: 'relative', overflow: 'hidden' }}>
         <div className="kind-verified">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width={14} height={14}><path d="M20 6L9 17l-5-5"/></svg>
           VERIFIED CAMPAIGN
@@ -167,41 +167,48 @@ export default function HeroRotator({ campaigns, fallbackImageUrl = '/hero-child
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width={16} height={16}><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>
           Donate Now
         </Link>
+
+        {/* Auto-play progress bar anchored to the BOTTOM of the campaign card */}
+        {count > 1 && !paused && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0, left: 0, right: 0,
+              height: 3,
+              background: 'rgba(108,53,255,.12)',
+              overflow: 'hidden',
+              borderRadius: '0 0 22px 22px', // match card's bottom border-radius
+            }}
+          >
+            <div
+              key={`${active}-progress`}
+              style={{
+                height: '100%',
+                background: 'linear-gradient(90deg,#6c35ff,#b43bef)',
+                animation: `heroProgress ${ROTATION_INTERVAL}ms linear`,
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* ── Rotation controls (only when multiple campaigns) ── */}
       {count > 1 && (
         <>
-          {/* Prev / Next arrows */}
-          <button
-            type="button"
-            aria-label="Previous campaign"
-            onClick={retreat}
-            style={{
-              position: 'absolute', right: 88, top: 168,
-              width: 34, height: 34, borderRadius: '50%',
-              background: 'rgba(255,255,255,.88)', border: '1px solid rgba(108,53,255,.25)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(0,0,0,.12)', zIndex: 10, fontSize: 14, color: '#6c35ff',
-            }}
-          >‹</button>
-          <button
-            type="button"
-            aria-label="Next campaign"
-            onClick={advance}
-            style={{
-              position: 'absolute', right: 48, top: 168,
-              width: 34, height: 34, borderRadius: '50%',
-              background: 'rgba(255,255,255,.88)', border: '1px solid rgba(108,53,255,.25)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(0,0,0,.12)', zIndex: 10, fontSize: 14, color: '#6c35ff',
-            }}
-          >›</button>
-
-          {/* Dot indicators */}
+          {/*
+            Dot indicators — positioned OUTSIDE the floating badge column.
+            Floating boxes sit at right:0. We use right:-20px so the dots
+            appear to the right of (outside) those boxes.
+          */}
           <div style={{
-            position: 'absolute', right: 40, top: 212,
-            display: 'flex', flexDirection: 'column', gap: 6, zIndex: 10,
+            position: 'absolute',
+            right: -20,           // outside the floating boxes column
+            top: 80,              // start at the level of the first badge
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            zIndex: 12,
+            alignItems: 'center',
           }}>
             {campaigns.map((_, i) => (
               <button
@@ -210,34 +217,64 @@ export default function HeroRotator({ campaigns, fallbackImageUrl = '/hero-child
                 aria-label={`Go to campaign ${i + 1}`}
                 onClick={() => goTo(i)}
                 style={{
-                  width: i === active ? 8 : 6,
-                  height: i === active ? 8 : 6,
+                  width: i === active ? 10 : 7,
+                  height: i === active ? 10 : 7,
                   borderRadius: '50%',
-                  background: i === active ? '#6c35ff' : 'rgba(108,53,255,.3)',
-                  border: 'none',
+                  background: i === active ? '#6c35ff' : 'rgba(108,53,255,.28)',
+                  border: i === active ? '2px solid rgba(108,53,255,.5)' : 'none',
                   cursor: 'pointer',
                   padding: 0,
                   transition: 'all .2s',
+                  flexShrink: 0,
                 }}
               />
             ))}
           </div>
 
-          {/* Auto-play progress bar at bottom of photo */}
-          {!paused && (
-            <div style={{
-              position: 'absolute', right: 122, top: 390,
-              width: 386, height: 4, background: 'rgba(255,255,255,.3)', borderRadius: 2, overflow: 'hidden', zIndex: 5,
-            }}>
-              <div
-                key={`${active}-progress`}
-                style={{
-                  height: '100%', background: '#6c35ff', borderRadius: 2,
-                  animation: `heroProgress ${ROTATION_INTERVAL}ms linear`,
-                }}
-              />
-            </div>
-          )}
+          {/*
+            Prev / Next arrows — below the Real-time Impact Updates badge.
+            That badge is at top:358px and is ~60px tall → arrows below at top:432px.
+            Placed in the floating badge column at right:0.
+          */}
+          <div style={{
+            position: 'absolute',
+            right: 0,
+            top: 432,
+            display: 'flex',
+            gap: 8,
+            zIndex: 12,
+          }}>
+            <button
+              type="button"
+              aria-label="Previous campaign"
+              onClick={retreat}
+              style={{
+                width: 32, height: 32, borderRadius: '50%',
+                background: 'rgba(255,255,255,.92)',
+                border: '1px solid rgba(108,53,255,.3)',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(0,0,0,.10)',
+                fontSize: 16, color: '#6c35ff', fontWeight: 700,
+                transition: 'background .15s',
+              }}
+            >‹</button>
+            <button
+              type="button"
+              aria-label="Next campaign"
+              onClick={advance}
+              style={{
+                width: 32, height: 32, borderRadius: '50%',
+                background: 'rgba(255,255,255,.92)',
+                border: '1px solid rgba(108,53,255,.3)',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(0,0,0,.10)',
+                fontSize: 16, color: '#6c35ff', fontWeight: 700,
+                transition: 'background .15s',
+              }}
+            >›</button>
+          </div>
         </>
       )}
     </div>
