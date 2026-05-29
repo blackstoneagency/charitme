@@ -166,6 +166,9 @@ img, svg { display: block; }
 .kind-avatar-stack i:nth-child(4) { background: linear-gradient(135deg, #be185d, #93c5fd); }
 .kind-avatar-stack i:nth-child(5) { background: linear-gradient(135deg, #0f172a, #60a5fa); }
 
+/* Hero rotator progress animation */
+@keyframes heroProgress { from { width: 0 } to { width: 100% } }
+
 .kind-hero-art { min-height: 545px; position: relative; }
 .kind-photo {
   position: absolute;

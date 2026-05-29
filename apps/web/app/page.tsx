@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type React from 'react';
 import { supabaseAdmin } from '../lib/supabase';
+import HeroRotator, { type RotatorCampaign } from './HeroRotator';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,6 +94,7 @@ async function getHomeData(filters: StoryFilters): Promise<{
   heroCampaign: HeroCampaign | null;
   featuredCampaigns: HeroCampaign[];
   carouselCampaigns: HeroCampaign[];
+  rotatorCampaigns: RotatorCampaign[];
   heroPercent: number;
   daysLeft: number;
 }> {
@@ -121,6 +123,7 @@ async function getHomeData(filters: StoryFilters): Promise<{
   const [
     { data: campaigns },
     { data: carouselCampaigns },
+    { data: rotatorRaw },
     { count: campaignCount },
     { count: donationCount },
     { data: trustScores },
@@ -132,6 +135,14 @@ async function getHomeData(filters: StoryFilters): Promise<{
       .order('raised_amount', { ascending: false })
       .limit(3),
     carouselQuery.limit(8),
+    // Hero rotator: active campaigns WITH a photo, EXCLUDING video-only campaigns
+    supabaseAdmin
+      .from('campaigns')
+      .select('slug,title,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,video_url,profiles:user_id(full_name)')
+      .eq('status', 'active')
+      .not('cover_image_url', 'is', null)
+      .order('raised_amount', { ascending: false })
+      .limit(20),
     supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
     supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
     supabaseAdmin.from('trust_scores').select('score').limit(1000),
@@ -139,6 +150,34 @@ async function getHomeData(filters: StoryFilters): Promise<{
 
   const featuredCampaigns = (campaigns ?? []) as HeroCampaign[];
   const heroCampaign = featuredCampaigns[0] ?? null;
+
+  // Build rotator list: campaigns with photos, no video-only (video_url check)
+  type RawRotator = {
+    slug: string; title: string; category: string | null;
+    cover_image_url: string | null; video_url: string | null;
+    goal_amount: number; raised_amount: number; backer_count: number;
+    trust_status: string | null; campaign_health_score: number | null;
+    deadline: string | null;
+    profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
+  };
+  const rotatorCampaigns: RotatorCampaign[] = ((rotatorRaw ?? []) as RawRotator[])
+    // exclude campaigns where only a video is set and cover_image_url is missing/placeholder
+    .filter(c => c.cover_image_url && c.cover_image_url.length > 0)
+    .map(c => ({
+      slug:                  c.slug,
+      title:                 c.title,
+      category:              c.category,
+      cover_image_url:       c.cover_image_url!,
+      goal_amount:           c.goal_amount,
+      raised_amount:         c.raised_amount,
+      backer_count:          c.backer_count,
+      trust_status:          c.trust_status,
+      campaign_health_score: c.campaign_health_score,
+      deadline:              c.deadline,
+      organizer_name:        Array.isArray(c.profiles)
+        ? (c.profiles[0]?.full_name ?? null)
+        : ((c.profiles as { full_name: string | null } | null)?.full_name ?? null),
+    }));
   const raisedTotal = heroCampaign?.raised_amount ?? 0;
   const goalTotal = heroCampaign?.goal_amount ?? 1;
   const trustAverage = (trustScores ?? []).length > 0
@@ -152,6 +191,7 @@ async function getHomeData(filters: StoryFilters): Promise<{
     heroCampaign,
     featuredCampaigns,
     carouselCampaigns: (carouselCampaigns ?? []) as HeroCampaign[],
+    rotatorCampaigns,
     heroPercent: Math.min(100, Math.round((raisedTotal / goalTotal) * 100)),
     daysLeft,
     stats: [
@@ -193,7 +233,7 @@ function Icon({ name, className = 'h-5 w-5' }: { name: string; className?: strin
 export default async function HomePage({ searchParams }: { searchParams?: Promise<StoryFilters> }) {
   const filters = await searchParams ?? {};
   const activeSort = filters.storySort === 'raised' || filters.storySort === 'donors' ? filters.storySort : 'latest';
-  const { stats, heroCampaign, featuredCampaigns, carouselCampaigns, heroPercent, daysLeft } = await getHomeData(filters);
+  const { stats, heroCampaign, featuredCampaigns, carouselCampaigns, rotatorCampaigns, heroPercent, daysLeft } = await getHomeData(filters);
   const heroTitle = heroCampaign?.title ?? 'Start a trusted campaign on KindFund';
   const heroHref = heroCampaign ? `/campaigns/${heroCampaign.slug}` : '/campaigns';
 
@@ -227,22 +267,10 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             </div>
           </div>
 
-          <div className="kind-hero-art">
-            <div className="kind-photo" />
-            <div className="kind-floating kind-floating-1"><Icon name="shield" /><div><span>Trust Score</span><strong>{heroCampaign?.campaign_health_score ?? 0}</strong><small>{heroCampaign?.trust_status ?? 'Live'}</small></div></div>
-            <div className="kind-floating kind-floating-2"><Icon name="users" /><div><strong>{heroCampaign?.backer_count ?? 0}</strong><span>Donors</span></div></div>
-            <div className="kind-floating kind-floating-3"><Icon name="chart" /><div><strong>{heroPercent}%</strong><span>Funded</span></div></div>
-            <div className="kind-floating kind-floating-4"><Icon name="clock" /><div><strong>Real-time</strong><span>Impact Updates</span></div></div>
-            <div className="kind-campaign-card">
-              <div className="kind-verified"><Icon name="check" className="h-3.5 w-3.5" /> VERIFIED CAMPAIGN</div>
-              <h2>{heroTitle}</h2>
-              <p>Organized by {profileName(heroCampaign?.profiles ?? null)} <b /></p>
-              <div className="kind-raise-row"><strong>{formatCents(heroCampaign?.raised_amount ?? 0)} <span>raised</span></strong><span>{formatCents(heroCampaign?.goal_amount ?? 0)} goal</span></div>
-              <div className="kind-progress"><i style={{ width: `${heroPercent}%` }} /></div>
-              <div className="kind-raise-row kind-small"><span>{heroCampaign?.backer_count ?? 0} donations</span><span>{daysLeft} days left</span></div>
-              <Link href={heroHref} className="kind-donate"><Icon name="heart" className="h-4 w-4" /> Donate Now</Link>
-            </div>
-          </div>
+          <HeroRotator
+            campaigns={rotatorCampaigns}
+            fallbackImageUrl="/hero-child-crop.png"
+          />
         </div>
       </section>
 
