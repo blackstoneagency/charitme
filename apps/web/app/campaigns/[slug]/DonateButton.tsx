@@ -34,6 +34,8 @@ export default function DonateButton({
   const [tipPercent, setTipPercent] = useState<number>(DEFAULT_DONOR_TIP_PERCENT);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+  const [isGuest, setIsGuest] = useState<boolean | null>(null); // null = not yet checked
 
   const amountCents = Math.round((Number.parseFloat(amount) || 0) * 100);
 
@@ -49,14 +51,6 @@ export default function DonateButton({
   );
 
   const handleDonate = async () => {
-    // Require sign-in before proceeding to checkout
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
-      return;
-    }
-
     if (Number.isNaN(amountCents) || amountCents < 100) {
       setError('Minimum donation is $1.00');
       return;
@@ -65,6 +59,23 @@ export default function DonateButton({
       setError('Maximum donation is $1,000,000');
       return;
     }
+
+    // Check auth state once
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // If guest and haven't shown email prompt yet, ask for email
+    if (!user && isGuest === null) {
+      setIsGuest(true);
+      return;
+    }
+
+    // If guest and email is empty, show error
+    if (!user && !guestEmail.trim()) {
+      setError('Please enter your email to receive a receipt.');
+      return;
+    }
+
     setError('');
     setLoading(true);
     try {
@@ -81,6 +92,7 @@ export default function DonateButton({
           anonymous,
           coverProcessingFee,
           tipPercent,
+          donorEmail: !user && guestEmail.trim() ? guestEmail.trim() : undefined,
         }),
       });
       const data = (await res.json()) as { url?: string; error?: string };
@@ -262,6 +274,41 @@ export default function DonateButton({
           </div>
         </div>
       </div>
+
+      {/* ── Guest email (shown after first donate attempt when not signed in) ── */}
+      {isGuest && (
+        <div style={{
+          background: '#fffbeb', borderRadius: 12, padding: '14px 16px',
+          border: '1px solid #fde68a',
+        }}>
+          <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#92400e' }}>
+            Enter your email to receive a receipt:
+          </p>
+          <input
+            type="email"
+            value={guestEmail}
+            onChange={e => setGuestEmail(e.target.value)}
+            placeholder="your@email.com"
+            aria-label="Email for receipt"
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              border: '1.5px solid #fcd34d', borderRadius: 9,
+              padding: '10px 12px', fontSize: 14, fontFamily: 'inherit',
+              outline: 'none', background: '#fff',
+            }}
+          />
+          <p style={{ margin: '8px 0 0', fontSize: 11, color: '#a16207' }}>
+            Or{' '}
+            <a
+              href={`/login?next=${encodeURIComponent(window.location.pathname)}`}
+              style={{ color: VIOLET, fontWeight: 700 }}
+            >
+              sign in
+            </a>
+            {' '}to skip this step.
+          </p>
+        </div>
+      )}
 
       {/* ── Error ── */}
       {error && (

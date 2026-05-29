@@ -6,6 +6,7 @@ import { formatCents } from '../../../lib/stripe';
 import { calculateTrustScore, getTrustSignals } from '../../../lib/ai-platform';
 import DonateButton from './DonateButton';
 import ReportButton from './ReportButton';
+import DonationSuccess from './DonationSuccess';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,7 @@ const RENDER_TIME = Date.now();
 
 interface Props {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ donated?: string }>;
 }
 
 type Profile = { full_name?: string | null; avatar_url?: string | null };
@@ -73,8 +75,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function CampaignPage({ params }: Props) {
-  const { slug } = await params;
+export default async function CampaignPage({ params, searchParams }: Props) {
+  const [{ slug }, sp] = await Promise.all([params, searchParams ?? Promise.resolve({} as { donated?: string })]);
+  const justDonated = sp.donated === '1';
   const campaign = await getCampaign(slug);
   if (!campaign) notFound();
 
@@ -107,6 +110,7 @@ export default async function CampaignPage({ params }: Props) {
 
   return (
     <main className="public-campaign">
+      {justDonated && <DonationSuccess />}
       <section className="pc-grid">
         <div className="pc-title">
           <div className="pc-breadcrumb">Home / {campaign.category ?? 'Campaign'} / {campaign.title}</div>

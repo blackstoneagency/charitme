@@ -38,8 +38,8 @@ const FOOTER_LINKS = {
   ],
   Legal: [
     ['Trust & Safety', '/trust-safety'],
-    ['Privacy Policy', '/contact'],
-    ['Terms of Service', '/contact'],
+    ['Privacy Policy', '/privacy'],
+    ['Terms of Service', '/terms'],
     ['Security', '/trust-safety'],
   ],
 } as const;
@@ -123,16 +123,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ))}
           </div>
           <div className="kind-footer-apps">
-            <h3>Get the app</h3>
+            <h3>Contact</h3>
             <div>
-              <Link href="/">App Store</Link>
-              <Link href="/">Google Play</Link>
-            </div>
-          </div>
-          <div className="kind-social">
-            <h3>Follow us</h3>
-            <div>
-              {['f', 'ig', 'in', 'tk', 'yt'].map((item) => <Link key={item} href="/">{item}</Link>)}
+              <a href="mailto:hello@eli54u.com">hello@eli54u.com</a>
             </div>
           </div>
         </div>
