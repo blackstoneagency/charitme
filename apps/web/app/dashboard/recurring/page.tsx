@@ -61,7 +61,7 @@ export default async function RecurringPage() {
   const totalMonthly = active.reduce((sum, r) => sum + (r.cadence === 'monthly' ? r.amount_cents : 0), 0);
 
   return (
-    <KindFundShell active="Donations">
+    <KindFundShell active="Recurring">
       <TopBar
         title="Recurring Donations"
         subtitle="Manage your monthly and recurring giving commitments."

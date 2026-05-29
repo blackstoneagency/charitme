@@ -115,7 +115,7 @@ export default function AiCoachPage() {
   const selectedTitle = campaigns.find(c => c.id === selectedCampaign)?.title;
 
   return (
-    <KindFundShell active="AI Growth Plan">
+    <KindFundShell active="AI Coach">
       <TopBar
         title="AI Fundraising Coach"
         subtitle="Get expert fundraising advice, content, and strategy — powered by AI."

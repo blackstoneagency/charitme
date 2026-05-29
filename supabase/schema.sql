@@ -1553,3 +1553,75 @@ grant all on all tables    in schema public to anon, authenticated, service_role
 grant all on all sequences in schema public to anon, authenticated, service_role;
 grant all on all routines  in schema public to anon, authenticated, service_role;
 select pg_notify('pgrst', 'reload schema');
+
+-- ── Seed 500 donor_messages scattered across campaigns & profiles ──────────────
+-- Run ONLY in dev/staging — the session_replication_role bypass is already set
+-- above so FK constraints are deferred.
+do $$
+declare
+  messages text[] := array[
+    'Sending all my love and support to you and your family!',
+    'This cause touched my heart. Keep going strong!',
+    'Donated in honor of someone I lost. You are not alone.',
+    'Shared with my whole network. More is coming your way!',
+    'What you are doing is truly inspiring. Keep pushing!',
+    'Every dollar counts. Praying for a swift recovery.',
+    'So proud of this community coming together. Thank you!',
+    'Matched by my employer! Double the impact!',
+    'This made me cry in the best possible way. Thank you.',
+    'Wishing you strength and healing. You got this!',
+    'Just a small token but given with a big heart.',
+    'Sharing on all my social media. You deserve this!',
+    'Amazing cause. Thank you for being so transparent.',
+    'My kids and I donated together as a family activity.',
+    'Keep updating us — we are all cheering for you!',
+    'Donated anonymously but thinking of you always.',
+    'Your story moved me to tears. Much love from afar.',
+    'May every dollar bring you one step closer to your goal.',
+    'Blessed to be able to give. Stay hopeful!',
+    'This is exactly the kind of campaign the world needs more of.',
+    'Covered the processing fee too — 100% for you!',
+    'Recurring donation set up. You can count on me monthly!',
+    'Your transparency ledger is amazing. Keep it up!',
+    'Rooting for you from across the country!',
+    'Small donation but huge belief in what you are doing.',
+    'I found you through a friend — so glad I did.',
+    'Just donated my birthday money to your campaign!',
+    'Thank you for using KindFund — love the transparency.',
+    'Will share at church this Sunday. Expect more donations!',
+    'This cause is close to my heart for personal reasons.'
+  ];
+  campaign_ids_arr uuid[];
+  profile_ids_arr  uuid[];
+  i int;
+begin
+  -- Collect available campaign and profile IDs
+  select array_agg(id) into campaign_ids_arr from (select id from campaigns order by backer_count desc limit 50) c;
+  select array_agg(id) into profile_ids_arr  from (select id from profiles  order by created_at desc limit 100) p;
+
+  if campaign_ids_arr is null or array_length(campaign_ids_arr, 1) = 0 then
+    raise notice 'No campaigns found — skipping donor_messages seed.';
+    return;
+  end if;
+
+  for i in 1..500 loop
+    insert into donor_messages (
+      campaign_id,
+      donor_id,
+      message,
+      anonymous,
+      created_at
+    ) values (
+      campaign_ids_arr[1 + ((i - 1) % array_length(campaign_ids_arr, 1))],
+      case when profile_ids_arr is not null and array_length(profile_ids_arr, 1) > 0 and i % 8 != 0
+        then profile_ids_arr[1 + ((i - 1) % array_length(profile_ids_arr, 1))]
+        else null
+      end,
+      messages[1 + ((i - 1) % array_length(messages, 1))],
+      i % 7 = 0,  -- ~14% anonymous
+      now() - ((500 - i) * interval '4 hours')
+    );
+  end loop;
+
+  raise notice 'Seeded 500 donor_messages.';
+end $$;

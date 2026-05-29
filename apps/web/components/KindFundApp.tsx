@@ -1,5 +1,5 @@
+import React from 'react';
 import Link from 'next/link';
-import type React from 'react';
 import LogoutButton from './LogoutButton';
 
 export type Metric = {
@@ -170,7 +170,7 @@ export function KindFundShell({ active, children, mode = 'dashboard', hasAdminAc
   );
 }
 
-export function TopBar({ title, subtitle, actions, userName, userAvatarUrl }: { title: string; subtitle?: string; actions?: React.ReactNode; userName?: string | null; userAvatarUrl?: string | null }) {
+export function TopBar({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: React.ReactNode; userName?: string | null; userAvatarUrl?: string | null }) {
   return (
     <header className="kf-topbar">
       <div>
@@ -180,10 +180,29 @@ export function TopBar({ title, subtitle, actions, userName, userAvatarUrl }: { 
       <div className="kf-top-actions">
         <label className="kf-search"><KFIcon name="search" /><input placeholder={`Search ${title.toLowerCase()}...`} /></label>
         {actions}
-        <button className="kf-icon-btn"><KFIcon name="bell" /><span>8</span></button>
-        <Avatar name={userName || 'My Account'} imageUrl={userAvatarUrl} />
+        {/* Notification bell — count fetched client-side; hidden when count is 0 */}
+        <NotificationBell />
       </div>
     </header>
+  );
+}
+
+/** Fetches unread message count once; only renders the badge when count > 0 */
+function NotificationBell() {
+  const [count, setCount] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    fetch('/api/notifications/count')
+      .then(r => r.json())
+      .then((d: { count?: number }) => setCount(d.count ?? 0))
+      .catch(() => setCount(0));
+  }, []);
+
+  return (
+    <button className="kf-icon-btn" aria-label={count ? `${count} unread messages` : 'Notifications'}>
+      <KFIcon name="bell" />
+      {count !== null && count > 0 && <span>{count > 99 ? '99+' : count}</span>}
+    </button>
   );
 }
 

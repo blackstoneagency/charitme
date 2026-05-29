@@ -31,7 +31,7 @@ export default function CancelRecurringPage() {
 
   if (!subscriptionId) {
     return (
-      <KindFundShell active="Donations">
+      <KindFundShell active="Recurring">
         <TopBar title="Cancel Recurring Donation" subtitle="" />
         <div style={{ padding: '32px', color: 'var(--t3)' }}>Invalid request. <Link href="/dashboard/recurring" style={{ color: 'var(--green)' }}>Back to recurring donations.</Link></div>
       </KindFundShell>
@@ -40,7 +40,7 @@ export default function CancelRecurringPage() {
 
   if (done) {
     return (
-      <KindFundShell active="Donations">
+      <KindFundShell active="Recurring">
         <TopBar title="Subscription Cancelled" subtitle="" />
         <div style={{ padding: '0 32px 40px', maxWidth: 500 }}>
           <div style={{ background: '#f0fff8', border: '1.5px solid #bbf7d0', borderRadius: 14, padding: '32px 28px', textAlign: 'center' }}>
@@ -59,7 +59,7 @@ export default function CancelRecurringPage() {
   }
 
   return (
-    <KindFundShell active="Donations">
+    <KindFundShell active="Recurring">
       <TopBar title="Cancel Recurring Donation" subtitle="This action will stop future billing." />
       <div style={{ padding: '0 32px 40px', maxWidth: 500 }}>
         <div style={{ background: 'var(--s2)', border: '1px solid var(--b2)', borderRadius: 14, padding: '28px 28px', textAlign: 'center' }}>

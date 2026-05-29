@@ -57,7 +57,7 @@ export default async function RefundPage({
   if (donations.length === 0) {
     // No donations in window — pass empty list directly
     return (
-      <KindFundShell active="Donations">
+      <KindFundShell active="Refund">
         <TopBar
           title="Request a Refund"
           subtitle="Submit a refund request for a recent donation."
@@ -105,7 +105,7 @@ export default async function RefundPage({
   }));
 
   return (
-    <KindFundShell active="Donations">
+    <KindFundShell active="Refund">
       <TopBar
         title="Request a Refund"
         subtitle="Select a donation and describe your reason. Our team reviews requests within 3–5 business days."
