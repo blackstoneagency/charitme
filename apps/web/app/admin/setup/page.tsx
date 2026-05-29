@@ -4,6 +4,7 @@ import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { KindFundShell, TopBar } from '../../../components/KindFundShellServer';
 import ApplySchemaButton from './_components/ApplySchemaButton';
+import ReloadCacheButton from './_components/ReloadCacheButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -121,16 +122,20 @@ export default async function AdminSetupPage() {
         {tableMissing > 0 && (
           <div style={{ padding: '22px 26px', background: '#fff0f3', border: '2px solid #fca5a5', borderRadius: 16, marginBottom: 24 }}>
             <h3 style={{ fontSize: 17, fontWeight: 900, color: '#be123c', margin: '0 0 8px' }}>
-              ❌ {tableMissing} table{tableMissing !== 1 ? 's' : ''} missing — Schema not applied
+              ❌ {tableMissing} table{tableMissing !== 1 ? 's' : ''} not reachable via API
             </h3>
-            <p style={{ fontSize: 14, color: '#7f1d1d', margin: '0 0 18px', lineHeight: 1.6 }}>
-              The KindFund database schema has never been run against this Supabase project.
-              Click the button below to apply it automatically — no SQL editor needed.
+            <p style={{ fontSize: 14, color: '#7f1d1d', margin: '0 0 6px', lineHeight: 1.6 }}>
+              <strong>If tables exist in Supabase Table Editor:</strong> PostgREST schema cache is stale — click <strong>Reload Cache</strong>.
             </p>
-            <ApplySchemaButton />
-            <p style={{ fontSize: 12, color: '#be123c', margin: '12px 0 0', lineHeight: 1.5 }}>
-              This creates all tables, enables RLS, sets up triggers, and bootstraps platform settings.
-              Safe to run multiple times — uses <code>CREATE TABLE IF NOT EXISTS</code>.
+            <p style={{ fontSize: 14, color: '#7f1d1d', margin: '0 0 18px', lineHeight: 1.6 }}>
+              <strong>If tables do not exist yet:</strong> Click <strong>Apply Schema Now</strong>.
+            </p>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+              <ReloadCacheButton />
+              <ApplySchemaButton />
+            </div>
+            <p style={{ fontSize: 12, color: '#be123c', margin: 0, lineHeight: 1.5 }}>
+              Safe to run both — <code>CREATE TABLE IF NOT EXISTS</code> and schema reload are idempotent.
             </p>
           </div>
         )}
