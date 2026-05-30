@@ -122,6 +122,16 @@ export async function POST(request: NextRequest) {
     },
   };
 
-  const session = await stripe.checkout.sessions.create(sessionParams);
+  let session: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>;
+  try {
+    session = await stripe.checkout.sessions.create(sessionParams);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Stripe error';
+    console.error('[donations/recurring] Stripe error:', msg);
+    if (msg.includes('STRIPE_SECRET_KEY')) {
+      return NextResponse.json({ error: 'Payment processing is not configured. Please contact support.' }, { status: 503 });
+    }
+    return NextResponse.json({ error: msg }, { status: 502 });
+  }
   return NextResponse.json({ url: session.url });
 }

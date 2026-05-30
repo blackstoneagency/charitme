@@ -104,9 +104,10 @@ export default function DonateButton({
         }),
       });
 
-      const data = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok) throw new Error(data.error ?? 'Failed to start checkout');
-      if (!data.url) throw new Error('No checkout URL returned from server');
+      const text = await res.text();
+      const data = text ? (JSON.parse(text) as { url?: string; error?: string }) : {};
+      if (!res.ok) throw new Error((data as { error?: string }).error ?? `Server error (${res.status})`);
+      if (!(data as { url?: string }).url) throw new Error('No checkout URL returned. Please try again.');
       window.location.href = data.url;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
