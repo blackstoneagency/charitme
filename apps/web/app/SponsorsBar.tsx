@@ -27,10 +27,12 @@ export default function SponsorsBar() {
           {items.map((s, i) => (
             s.website ? (
               <a key={`${s.id}-${i}`} href={s.website} target="_blank" rel="noopener noreferrer" className="kind-sponsor-logo" title={s.name}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={s.logo_url} alt={s.name} />
               </a>
             ) : (
               <span key={`${s.id}-${i}`} className="kind-sponsor-logo" title={s.name}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={s.logo_url} alt={s.name} />
               </span>
             )

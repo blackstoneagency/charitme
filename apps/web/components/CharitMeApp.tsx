@@ -114,7 +114,7 @@ export function Logo() {
 }
 
 export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAccess = false, userName, userEmail, userRole, userAvatarUrl }: ShellProps) {
-  const nav = mode === 'admin' ? adminNav : dashboardNav;
+  const _nav = mode === 'admin' ? adminNav : dashboardNav; void _nav;
   const displayName = userName || userEmail?.split('@')[0] || (mode === 'admin' ? 'Admin User' : 'My Account');
   const displayRole = userRole || (mode === 'admin' ? 'Super Admin' : 'Organizer');
   return (

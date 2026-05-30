@@ -31,6 +31,7 @@ function SponsorRow({
       {/* Logo preview */}
       <div style={{ width: 80, height: 44, borderRadius: 8, border: '1px solid #eef0f7', background: '#f8f9fc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
         {sponsor.logo_url
+          // eslint-disable-next-line @next/next/no-img-element
           ? <img src={sponsor.logo_url} alt={sponsor.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
           : <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>No logo</span>}
       </div>
@@ -100,14 +101,14 @@ export default function AdminSponsorsClient() {
 
   function flash(msg: string) { setNotice(msg); setTimeout(() => setNotice(''), 4000); }
 
-  async function load() {
-    setLoading(true);
-    const res = await fetch('/api/admin/sponsors');
-    if (res.ok) { const d = await res.json() as { sponsors: Sponsor[] }; setSponsors(d.sponsors); }
-    setLoading(false);
-  }
-
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/admin/sponsors')
+      .then(r => r.ok ? r.json() : { sponsors: [] })
+      .then((d: { sponsors: Sponsor[] }) => { if (!cancelled) { setSponsors(d.sponsors); setLoading(false); } })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   async function addSponsor() {
     if (!newName.trim()) return;
