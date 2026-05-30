@@ -180,11 +180,21 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
           </>
         )}
 
-        <div className="kf-pro">
-          <div><KFIcon name="crown" /> CharitMe Pro</div>
-          <p>Unlock advanced tools, insights, automation, and priority support.</p>
-          <Link href="/pricing">Upgrade Now</Link>
-        </div>
+        {mode !== 'admin' && (
+          <div className="kf-pro">
+            <div><KFIcon name="crown" /> CharitMe Pro</div>
+            <p>Unlock advanced tools, insights, automation, and priority support.</p>
+            <Link href="/pricing">Upgrade Now</Link>
+          </div>
+        )}
+
+        {mode === 'admin' && (
+          <Link href="/dashboard" className="kf-back-to-dashboard">
+            <KFIcon name="home" />
+            Back to Dashboard
+          </Link>
+        )}
+
         <div className="kf-profile">
           <Avatar name={displayName} imageUrl={userAvatarUrl} />
           <div>

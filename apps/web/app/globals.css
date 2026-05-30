@@ -984,6 +984,24 @@ img, svg { display: block; }
 .kf-pro div { display: flex; align-items: center; gap: 10px; color: #551cf2; font-size: 17px; font-weight: 950; }
 .kf-pro p { margin: 13px 0 18px; color: #334064; font-size: 13px; line-height: 1.5; font-weight: 650; }
 .kf-pro a { height: 42px; display: grid; place-items: center; border: 1px solid #dfd4ff; border-radius: 8px; background: #fff; color: #551cf2; font-weight: 950; }
+.kf-back-to-dashboard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 11px 16px;
+  border-radius: 10px;
+  border: 1.5px solid #7c3aed;
+  background: linear-gradient(135deg, #7c3aed, #6c35ff);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: opacity .15s;
+}
+.kf-back-to-dashboard:hover { opacity: .88; }
+.kf-back-to-dashboard svg { width: 16px; height: 16px; flex-shrink: 0; }
+
 .kf-profile {
   display: flex;
   flex-wrap: wrap;
