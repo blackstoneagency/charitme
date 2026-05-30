@@ -6,21 +6,23 @@ import { supabaseAdmin } from '../../../../lib/supabase';
 const BUCKET = 'campaign-media';
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif']);
+const ALLOWED_SLOT_TYPES = new Set(['cover', 'gallery', 'video']);
 
-// ─────────────────────────────────────────────
+function isBucketMissing(msg: string): boolean {
+  return msg.toLowerCase().includes('bucket') || msg.toLowerCase().includes('not found');
+}
+
 // POST /api/upload/campaign-image
-// Body: multipart/form-data { file: File }
-// Returns: { url: string; path: string }
-// ─────────────────────────────────────────────
+// Body: multipart/form-data { file, campaignId?, type? }
+// type: 'cover' | 'gallery' | 'video' — defaults to 'cover'
+// Returns: { url, path }
 export async function POST(req: NextRequest) {
-  // Auth
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Parse multipart
   let formData: FormData;
   try {
     formData = await req.formData();
@@ -33,7 +35,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing file field' }, { status: 400 });
   }
 
-  // Validate
   if (!ALLOWED_TYPES.has(file.type)) {
     return NextResponse.json(
       { error: 'Invalid file type. Use JPG, PNG, GIF, WebP, or AVIF.' },
@@ -44,14 +45,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'File too large. Max size is 10MB.' }, { status: 400 });
   }
 
-  // Build storage path scoped to the user
-  const ext = (file.name.split('.').pop() ?? 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const storagePath = `campaigns/${user.id}/${safeName}`;
+  // Optional: campaignId scopes the path under the campaign folder
+  // Optional: type is one of cover | gallery | video
+  const rawCampaignId = formData.get('campaignId');
+  const rawType       = formData.get('type');
+  const campaignId    = typeof rawCampaignId === 'string' && rawCampaignId.trim() ? rawCampaignId.trim() : null;
+  const slotType      = typeof rawType === 'string' && ALLOWED_SLOT_TYPES.has(rawType) ? rawType : 'cover';
 
-  // Convert File → Uint8Array
+  const ext      = (file.name.split('.').pop() ?? 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+  // Path: campaigns/{campaignId}/{type}/{file}  OR  campaigns/{userId}/{type}/{file}
+  const folder      = campaignId ? `campaigns/${campaignId}` : `campaigns/${user.id}`;
+  const storagePath = `${folder}/${slotType}/${safeName}`;
+
   const arrayBuffer = await file.arrayBuffer();
-  const buffer = new Uint8Array(arrayBuffer);
+  const buffer      = new Uint8Array(arrayBuffer);
+
+  console.log(`[upload] bucket="${BUCKET}" path="${storagePath}"`);
 
   const { data, error: uploadError } = await supabaseAdmin.storage
     .from(BUCKET)
@@ -62,7 +73,11 @@ export async function POST(req: NextRequest) {
     });
 
   if (uploadError) {
-    return NextResponse.json({ error: uploadError.message }, { status: 500 });
+    const msg = isBucketMissing(uploadError.message)
+      ? `Storage bucket "${BUCKET}" was not found. Please create it in the Supabase dashboard.`
+      : uploadError.message;
+    console.error(`[upload] error: ${uploadError.message}`);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 
   const { data: { publicUrl } } = supabaseAdmin.storage
@@ -72,12 +87,9 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ url: publicUrl, path: data.path });
 }
 
-// ─────────────────────────────────────────────
 // DELETE /api/upload/campaign-image
 // Body: { path: string }
-// ─────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
-  // Auth
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
@@ -97,14 +109,26 @@ export async function DELETE(req: NextRequest) {
 
   const path = (body as { path: string }).path;
 
-  // Security: path must belong to this user
+  // Security: path must belong to this user or a campaign they own
   if (!path.startsWith(`campaigns/${user.id}/`)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    // Also allow paths scoped to a campaign the user owns
+    const { data: campaign } = await supabaseAdmin
+      .from('campaigns')
+      .select('id')
+      .eq('user_id', user.id)
+      .filter('id', 'eq', path.split('/')[1] ?? '')
+      .maybeSingle();
+    if (!campaign) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
   }
 
   const { error: removeError } = await supabaseAdmin.storage.from(BUCKET).remove([path]);
   if (removeError) {
-    return NextResponse.json({ error: removeError.message }, { status: 500 });
+    const msg = isBucketMissing(removeError.message)
+      ? `Storage bucket "${BUCKET}" was not found.`
+      : removeError.message;
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

@@ -953,6 +953,7 @@ export default function AdminCampaignsClient({ campaigns: initialCampaigns }: Pr
                   if (!file) return;
                   const fd = new FormData();
                   fd.append('file', file);
+                  fd.append('type', 'cover');
                   const res = await fetch('/api/upload/campaign-image', { method: 'POST', body: fd });
                   if (res.ok) {
                     const data = await res.json() as { url?: string };
@@ -1154,7 +1155,10 @@ function EditForm({
   async function uploadCover(file: File) {
     setUploadingCover(true); setMediaError('');
     try {
-      const fd = new FormData(); fd.append('file', file);
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('campaignId', campaign.id);
+      fd.append('type', 'cover');
       const res = await fetch('/api/upload/campaign-image', { method: 'POST', body: fd });
       const data = await res.json() as { url?: string; error?: string };
       if (!res.ok) { setMediaError(data.error ?? 'Upload failed.'); return; }
@@ -1166,7 +1170,10 @@ function EditForm({
   async function uploadGalleryImage(file: File) {
     setUploadingGallery(true); setMediaError('');
     try {
-      const fd = new FormData(); fd.append('file', file);
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('campaignId', campaign.id);
+      fd.append('type', 'gallery');
       const res = await fetch('/api/upload/campaign-image', { method: 'POST', body: fd });
       const data = await res.json() as { url?: string; error?: string };
       if (!res.ok) { setMediaError(data.error ?? 'Upload failed.'); return; }

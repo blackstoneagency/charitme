@@ -43,35 +43,19 @@ export async function POST(req: NextRequest) {
   const arrayBuffer = await file.arrayBuffer();
   const buffer = new Uint8Array(arrayBuffer);
 
-  // Try uploading to 'avatars' bucket; fall back to 'campaign-images' if avatars bucket doesn't exist
-  let publicUrl: string | null = null;
-  for (const bucket of [BUCKET, 'campaign-images']) {
-    const { data, error: uploadError } = await supabaseAdmin.storage
-      .from(bucket)
-      .upload(
-        bucket === BUCKET ? storagePath : `avatars/${user.id}/avatar.${ext}`,
-        buffer,
-        { contentType: file.type, cacheControl: '31536000', upsert: true },
-      );
+  const { data, error: uploadError } = await supabaseAdmin.storage
+    .from(BUCKET)
+    .upload(storagePath, buffer, { contentType: file.type, cacheControl: '31536000', upsert: true });
 
-    if (uploadError) {
-      if (uploadError.message?.includes('bucket') || uploadError.message?.includes('not found')) {
-        continue; // Try next bucket
-      }
-      return NextResponse.json({ error: uploadError.message }, { status: 500 });
-    }
-
-    const { data: { publicUrl: url } } = supabaseAdmin.storage
-      .from(bucket)
-      .getPublicUrl(data.path);
-
-    publicUrl = url;
-    break;
+  if (uploadError) {
+    const msg = uploadError.message?.toLowerCase().includes('bucket') || uploadError.message?.toLowerCase().includes('not found')
+      ? `Storage bucket "${BUCKET}" was not found. Please create it in the Supabase dashboard.`
+      : uploadError.message;
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 
-  if (!publicUrl) {
-    return NextResponse.json({ error: 'Upload failed: storage bucket unavailable.' }, { status: 500 });
-  }
+  const { data: { publicUrl: url } } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(data.path);
+  const publicUrl = url;
 
   // Immediately update the profile avatar_url
   await supabaseAdmin
