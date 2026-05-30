@@ -335,17 +335,13 @@ export default function PricingPage() {
                 {price !== null && price > 0 ? <span>/{yearly ? 'mo' : 'month'}</span> : null}
               </strong>
               <small>
-                {plan.name === 'Starter' && yearly
-                  ? 'Billed annually at $228'
-                  : plan.name === 'Starter' && !yearly
-                  ? 'Billed monthly at $19/month'
-                  : plan.name === 'Pro' && yearly
-                  ? 'Billed annually at $708'
-                  : plan.name === 'Pro' && !yearly
-                  ? 'Billed monthly at $59/month'
-                  : plan.name === 'Free'
+                {price === 0
                   ? 'Forever free'
-                  : 'Tailored to your needs'}
+                  : price === null
+                  ? 'Tailored to your needs'
+                  : yearly
+                  ? `Billed annually at $${(price * 12).toLocaleString()}`
+                  : `Billed monthly at $${price}/month`}
               </small>
 
               <button
@@ -359,13 +355,13 @@ export default function PricingPage() {
               </button>
 
               <hr />
-              <b>{plan.name === 'Free' ? 'Includes:' : plan.name === 'Starter' ? 'Everything in Free, plus:' : plan.name === 'Pro' ? 'Everything in Starter, plus:' : 'Everything in Pro, plus:'}</b>
+              <b>{price === 0 ? 'Includes:' : 'Everything in previous plan, plus:'}</b>
               <ul>
                 {(plan.features as readonly string[]).map((feature) => (
                   <li key={feature}><PublicIcon name="check" /> {feature}</li>
                 ))}
               </ul>
-              {plan.name === 'Free' ? (
+              {price === 0 ? (
                 <div className="no-card"><PublicIcon name="heart" /> No credit card required</div>
               ) : null}
             </article>
