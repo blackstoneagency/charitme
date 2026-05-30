@@ -127,13 +127,13 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
           <>
             <div className="kf-section-label">Admin</div>
             <nav className="kf-nav">
-              {adminNav.map(([label, href, icon, badge]) => {
+              {adminNav.map((item) => {
+                const [label, href, icon] = item;
                 const isActive = active === label;
                 return (
                   <Link key={href} href={href} className={isActive ? 'active' : ''}>
                     <KFIcon name={icon} />
                     <span>{label}</span>
-                    {badge && <em>{badge}</em>}
                   </Link>
                 );
               })}
