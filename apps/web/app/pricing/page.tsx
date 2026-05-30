@@ -254,11 +254,11 @@ export default function PricingPage() {
   const handleCTA = async (plan: typeof PLANS[number]) => {
     setError('');
 
-    if (plan.name === 'Free') {
+    if (plan.monthlyPrice === 0) {
       router.push('/login?mode=signup');
       return;
     }
-    if (plan.name === 'Enterprise') {
+    if (plan.monthlyPrice === null) {
       router.push('/contact');
       return;
     }

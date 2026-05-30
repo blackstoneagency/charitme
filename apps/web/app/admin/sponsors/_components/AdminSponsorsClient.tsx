@@ -174,6 +174,7 @@ export default function AdminSponsorsClient() {
           </div>
           <div style={{ display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap' }}>
             {visible.map(s => (
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img key={s.id} src={s.logo_url!} alt={s.name} style={{ height: 32, maxWidth: 120, objectFit: 'contain', filter: 'grayscale(1)', opacity: .7 }} />
             ))}
           </div>
