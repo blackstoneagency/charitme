@@ -105,10 +105,10 @@ export default function DonateButton({
       });
 
       const text = await res.text();
-      const data = text ? (JSON.parse(text) as { url?: string; error?: string }) : {};
-      if (!res.ok) throw new Error((data as { error?: string }).error ?? `Server error (${res.status})`);
-      if (!(data as { url?: string }).url) throw new Error('No checkout URL returned. Please try again.');
-      window.location.href = data.url;
+      const data = (text ? JSON.parse(text) : {}) as { url?: string; error?: string };
+      if (!res.ok) throw new Error(data.error ?? `Server error (${res.status})`);
+      if (!data.url) throw new Error('No checkout URL returned. Please try again.');
+      window.location.href = data.url!;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.');
       setLoading(false);
