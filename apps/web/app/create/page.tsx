@@ -9,7 +9,16 @@ import { createClient } from '../../lib/supabase-browser';
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
-type WizardStep = 'type' | 'details' | 'story' | 'media' | 'preview' | 'live';
+type WizardStep = 'type' | 'details' | 'story' | 'media' | 'preview' | 'payout' | 'live';
+
+type PayoutMethod = 'stripe' | 'paypal' | 'plaid' | 'skip';
+type PayoutAccount = {
+  id: string;
+  stripe_account_id: string;
+  payouts_enabled: boolean;
+  details_submitted: boolean;
+  verification_status: string;
+} | null;
 
 interface FormState {
   category: string;
@@ -42,6 +51,7 @@ const WIZARD_STEPS: { key: WizardStep; label: string; num: number }[] = [
   { key: 'story',   label: 'Your Story',    num: 3 },
   { key: 'media',   label: 'Media & Trust', num: 4 },
   { key: 'preview', label: 'Preview',       num: 5 },
+  { key: 'payout',  label: 'Get Paid',      num: 6 },
 ];
 
 const JOURNEY_STEPS = ['Plan', 'Create', 'Launch', 'Manage', 'Celebrate', 'Impact'];
@@ -77,6 +87,11 @@ export default function CreatePage() {
   const [userName, setUserName]       = useState<string | null>(null);
   const [userEmail, setUserEmail]     = useState<string | undefined>(undefined);
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
+  const [payoutAccount, setPayoutAccount] = useState<PayoutAccount>(null);
+  const [payoutLoading, setPayoutLoading] = useState(false);
+  const [payoutMethod, setPayoutMethod]   = useState<PayoutMethod | null>(null);
+  const [paypalEmail, setPaypalEmail]     = useState('');
+  const [connectingStripe, setConnectingStripe] = useState(false);
 
   // Fetch the logged-in user once so the shell shows their real name
   useEffect(() => {
@@ -129,6 +144,25 @@ export default function CreatePage() {
     const first = uploadedImages.find(img => img.status === 'done');
     setForm(prev => ({ ...prev, coverImageUrl: first?.url ?? '' }));
   }, [uploadedImages]);
+
+  // Fetch payout account when entering payout step
+  useEffect(() => {
+    if (step !== 'payout') return;
+    setPayoutLoading(true);
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { setPayoutLoading(false); return; }
+      supabase
+        .from('connected_accounts')
+        .select('id, stripe_account_id, payouts_enabled, details_submitted, verification_status')
+        .eq('user_id', user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          setPayoutAccount(data as PayoutAccount);
+          setPayoutLoading(false);
+        });
+    });
+  }, [step]);
 
   // ────────────────────────────────────────────────────
   const upd = (k: keyof FormState, v: string) =>
@@ -338,6 +372,42 @@ export default function CreatePage() {
   const publish = () => submitCampaign('active');
   const saveDraft = () => submitCampaign('draft');
 
+  // ── Payout handlers ──────────────────────────────────
+  const connectStripe = async () => {
+    setConnectingStripe(true);
+    setError('');
+    try {
+      const res = await fetch('/api/stripe/connect', { method: 'POST' });
+      const data = await res.json() as { url?: string; error?: string };
+      if (!res.ok || !data.url) throw new Error(data.error ?? 'Could not start Stripe onboarding');
+      window.location.href = data.url;
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to connect Stripe. Please try again.');
+      setConnectingStripe(false);
+    }
+  };
+
+  const savePaypal = async () => {
+    if (!paypalEmail.trim() || !paypalEmail.includes('@')) {
+      setError('Please enter a valid PayPal email address.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      await supabase.from('profiles').update({ paypal_email: paypalEmail.trim() } as Record<string, string>).eq('id', user.id);
+      setPayoutMethod(null);
+      setPayoutAccount({ id: 'paypal', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified' });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to save PayPal email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ── Misc ─────────────────────────────────────────────
   const journeyState = (i: number): 'done' | 'active' | '' => {
     if (i === 0) return 'done';
@@ -419,6 +489,7 @@ export default function CreatePage() {
                     {step === 'story'   && 'Your Story & Content'}
                     {step === 'media'   && 'Media & Trust Signals'}
                     {step === 'preview' && 'Preview Your Campaign'}
+                    {step === 'payout'  && 'Set Up Payouts'}
                   </h2>
                   <p style={{ fontSize: 13, color: 'var(--t3)', margin: '4px 0 0' }}>
                     {step === 'type'    && 'Select the category that best describes your fundraiser.'}
@@ -426,6 +497,7 @@ export default function CreatePage() {
                     {step === 'story'   && 'Write a compelling story — this is what donors read before giving.'}
                     {step === 'media'   && 'Upload photos to make your campaign 3× more effective.'}
                     {step === 'preview' && 'Review how your campaign will appear to donors before going live.'}
+                    {step === 'payout'  && 'Connect your payout account so donations reach you. 0% platform fees.'}
                   </p>
                 </div>
               </div>
@@ -753,6 +825,198 @@ export default function CreatePage() {
                 </div>
               )}
 
+              {/* ── Step: Payout Setup ── */}
+              {step === 'payout' && (
+                <div style={{ padding: '4px 0 8px' }}>
+                  {payoutLoading ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--t3)', fontSize: 14 }}>
+                      Checking your payout account…
+                    </div>
+                  ) : payoutAccount?.payouts_enabled && payoutAccount?.details_submitted ? (
+                    /* ── Already verified ── */
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 14, marginBottom: 20 }}>
+                        <span style={{ fontSize: 28 }}>✅</span>
+                        <div>
+                          <div style={{ fontWeight: 900, fontSize: 15, color: '#15803d' }}>Payout Account Verified</div>
+                          <div style={{ fontSize: 13, color: '#166534', marginTop: 2 }}>
+                            Your Stripe account is connected and ready to receive funds.
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ padding: '14px 18px', background: '#f8f9fc', borderRadius: 12, border: '1px solid #eef0f7', fontSize: 13, color: 'var(--t2)' }}>
+                        <strong>Account ID:</strong> {payoutAccount.stripe_account_id.slice(0, 12)}…
+                        <span style={{ marginLeft: 16, color: '#16a34a', fontWeight: 700 }}>● Payouts enabled</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPayoutAccount(null)}
+                        style={{ marginTop: 14, fontSize: 12, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        Connect a different account instead
+                      </button>
+                    </div>
+                  ) : payoutAccount && !payoutAccount.payouts_enabled ? (
+                    /* ── Account exists but not fully onboarded ── */
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', background: '#fffbeb', border: '1.5px solid #fcd34d', borderRadius: 14, marginBottom: 20 }}>
+                        <span style={{ fontSize: 28 }}>⚠️</span>
+                        <div>
+                          <div style={{ fontWeight: 900, fontSize: 15, color: '#92400e' }}>Stripe Onboarding Incomplete</div>
+                          <div style={{ fontSize: 13, color: '#78350f', marginTop: 2 }}>
+                            You started connecting Stripe but didn&apos;t finish. Complete setup to receive payouts.
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void connectStripe()}
+                        disabled={connectingStripe}
+                        style={{ width: '100%', height: 46, background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 10 }}
+                      >
+                        {connectingStripe ? 'Redirecting to Stripe…' : 'Complete Stripe Setup →'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void publish()}
+                        disabled={loading}
+                        style={{ width: '100%', height: 40, background: 'none', color: 'var(--t3)', border: '1px solid var(--b2)', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        Skip for now — set up payouts later
+                      </button>
+                    </div>
+                  ) : payoutMethod === 'stripe' ? (
+                    /* ── Stripe Connect flow ── */
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8 }}>Connect with Stripe</div>
+                      <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 20, lineHeight: 1.6 }}>
+                        Stripe is the most trusted way to receive donations. You&apos;ll be redirected to Stripe to verify your identity and connect your bank account. Takes 5 minutes.
+                      </p>
+                      <div style={{ display: 'flex', gap: 10, padding: '14px 18px', background: '#f0eaff', borderRadius: 12, marginBottom: 20, fontSize: 13 }}>
+                        <span>🔒</span>
+                        <span style={{ color: '#4c1d95', fontWeight: 700 }}>Bank-level encryption · No card fees charged by CharitMe · Funds deposited directly to your bank</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void connectStripe()}
+                        disabled={connectingStripe}
+                        style={{ width: '100%', height: 48, background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', marginBottom: 10 }}
+                      >
+                        {connectingStripe ? 'Redirecting to Stripe…' : '🏦 Connect Bank via Stripe →'}
+                      </button>
+                      <button type="button" onClick={() => setPayoutMethod(null)}
+                        style={{ fontSize: 12, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                        ← Back to options
+                      </button>
+                    </div>
+                  ) : payoutMethod === 'paypal' ? (
+                    /* ── PayPal flow ── */
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8 }}>Connect PayPal</div>
+                      <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 20, lineHeight: 1.6 }}>
+                        Enter your PayPal email address. CharitMe will send donations directly to this account. PayPal fees apply on their end.
+                      </p>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: 'var(--t2)', marginBottom: 6 }}>PayPal Email Address</label>
+                      <input
+                        type="email"
+                        value={paypalEmail}
+                        onChange={e => setPaypalEmail(e.target.value)}
+                        placeholder="you@paypal.com"
+                        style={{ width: '100%', height: 44, border: '1.5px solid var(--b2)', borderRadius: 10, padding: '0 14px', fontSize: 14, marginBottom: 14, boxSizing: 'border-box' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => void savePaypal()}
+                        disabled={loading || !paypalEmail.trim()}
+                        style={{ width: '100%', height: 46, background: '#003087', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 10 }}
+                      >
+                        {loading ? 'Saving…' : '💙 Save PayPal Account'}
+                      </button>
+                      <button type="button" onClick={() => setPayoutMethod(null)}
+                        style={{ fontSize: 12, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                        ← Back to options
+                      </button>
+                    </div>
+                  ) : payoutMethod === 'plaid' ? (
+                    /* ── Plaid flow ── */
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8 }}>Connect Bank via Plaid</div>
+                      <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 20, lineHeight: 1.6 }}>
+                        Plaid lets you instantly link your bank account by logging in with your online banking credentials. Secure and instant.
+                      </p>
+                      <div style={{ padding: '14px 18px', background: '#eff6ff', borderRadius: 12, marginBottom: 20, fontSize: 13, color: '#1e40af', fontWeight: 700 }}>
+                        🔗 Plaid integration coming soon. Use Stripe Connect for immediate bank deposits.
+                      </div>
+                      <button type="button" onClick={() => setPayoutMethod('stripe')}
+                        style={{ width: '100%', height: 46, background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 10 }}>
+                        Switch to Stripe Connect Instead →
+                      </button>
+                      <button type="button" onClick={() => setPayoutMethod(null)}
+                        style={{ fontSize: 12, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                        ← Back to options
+                      </button>
+                    </div>
+                  ) : (
+                    /* ── Choose method ── */
+                    <div>
+                      <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 6, color: 'var(--t1)' }}>
+                        How do you want to receive donations?
+                      </div>
+                      <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 22, lineHeight: 1.6 }}>
+                        Set up your payout account so donations go directly to you. CharitMe charges 0% platform fees.
+                      </p>
+
+                      {/* Stripe — recommended */}
+                      <button type="button" onClick={() => setPayoutMethod('stripe')}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', marginBottom: 12, background: '#fff', border: '2px solid #6c35ff', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
+                        <span style={{ fontSize: 28, flexShrink: 0 }}>🏦</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 900, fontSize: 14, color: '#1a1a2e' }}>Stripe Connect <span style={{ fontSize: 11, background: '#6c35ff', color: '#fff', padding: '2px 8px', borderRadius: 6, marginLeft: 6, fontWeight: 800 }}>RECOMMENDED</span></div>
+                          <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 3 }}>Direct bank deposit · Identity verified · Most trusted</div>
+                        </div>
+                        <span style={{ color: '#6c35ff', fontWeight: 900, fontSize: 18 }}>›</span>
+                      </button>
+
+                      {/* PayPal */}
+                      <button type="button" onClick={() => setPayoutMethod('paypal')}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', marginBottom: 12, background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
+                        <span style={{ fontSize: 28, flexShrink: 0 }}>💙</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 900, fontSize: 14, color: '#1a1a2e' }}>PayPal</div>
+                          <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 3 }}>Send to your PayPal account · PayPal fees apply</div>
+                        </div>
+                        <span style={{ color: 'var(--t3)', fontWeight: 900, fontSize: 18 }}>›</span>
+                      </button>
+
+                      {/* Plaid */}
+                      <button type="button" onClick={() => setPayoutMethod('plaid')}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', marginBottom: 20, background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
+                        <span style={{ fontSize: 28, flexShrink: 0 }}>🔗</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 900, fontSize: 14, color: '#1a1a2e' }}>Plaid Bank Link <span style={{ fontSize: 11, background: '#f1f5f9', color: '#64748b', padding: '2px 8px', borderRadius: 6, marginLeft: 6, fontWeight: 800 }}>COMING SOON</span></div>
+                          <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 3 }}>Instant bank connection · No manual routing numbers</div>
+                        </div>
+                        <span style={{ color: 'var(--t3)', fontWeight: 900, fontSize: 18 }}>›</span>
+                      </button>
+
+                      <div style={{ textAlign: 'center', borderTop: '1px solid var(--b2)', paddingTop: 16 }}>
+                        <button
+                          type="button"
+                          onClick={() => void publish()}
+                          disabled={loading}
+                          style={{ fontSize: 13, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer' }}
+                        >
+                          Skip for now — I&apos;ll set up payouts after launch
+                        </button>
+                        <div style={{ fontSize: 11, color: 'var(--t4)', marginTop: 4 }}>
+                          You can connect your payout account anytime from your dashboard.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Error message */}
               {error && (
                 <div style={{
@@ -776,7 +1040,7 @@ export default function CreatePage() {
 
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                   {/* Save draft always visible from step 2 onwards */}
-                  {stepIdx >= 1 && step !== 'preview' && (
+                  {stepIdx >= 1 && step !== 'preview' && step !== 'payout' && (
                     <button
                       type="button"
                       onClick={() => void saveDraft()}
@@ -792,9 +1056,13 @@ export default function CreatePage() {
                     </button>
                   )}
 
-                  {step === 'preview' ? (
+                  {step === 'payout' ? (
                     <button type="button" className="kf-nav-launch" onClick={() => void publish()} disabled={loading}>
                       {loading ? 'Launching…' : '🚀 Launch Campaign'}
+                    </button>
+                  ) : step === 'preview' ? (
+                    <button type="button" className="kf-nav-next" onClick={goNext}>
+                      Continue →
                     </button>
                   ) : (
                     <button type="button" className="kf-nav-next" onClick={goNext}>
