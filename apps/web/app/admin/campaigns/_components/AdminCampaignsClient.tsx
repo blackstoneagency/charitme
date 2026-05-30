@@ -121,12 +121,24 @@ function SPill({ status }: { status: string }) {
 // ─────────────────────────────────────────────────────────
 // Props
 // ─────────────────────────────────────────────────────────
-type Props = { campaigns: AdminCampaign[] };
+type Props = {
+  campaigns: AdminCampaign[];
+  totalCount?: number;
+  activeCount?: number;
+  attentionCount?: number;
+  draftCount?: number;
+};
 
 // ─────────────────────────────────────────────────────────
 // Main Component
 // ─────────────────────────────────────────────────────────
-export default function AdminCampaignsClient({ campaigns: initialCampaigns }: Props) {
+export default function AdminCampaignsClient({
+  campaigns: initialCampaigns,
+  totalCount,
+  activeCount,
+  attentionCount,
+  draftCount,
+}: Props) {
   // ── Core state
   const [campaigns, setCampaigns] = useState(initialCampaigns);
   const [view, setView] = useState<'list' | 'detail' | 'create' | 'submitted' | 'live'>('list');
@@ -181,12 +193,13 @@ export default function AdminCampaignsClient({ campaigns: initialCampaigns }: Pr
     const text = `${c.title} ${c.organizer} ${c.category}`.toLowerCase();
     const matchQuery = text.includes(query.toLowerCase());
     let matchTab = false;
-    if (statusTab === 'all')      matchTab = true;
+    if (statusTab === 'all')        matchTab = true;
     else if (statusTab === 'featured') matchTab = c.featured;
     else if (statusTab === 'homepage') matchTab =
       c.status === 'active' &&
       c.coverImageUrl !== null &&
       (c.coverImageUrl ?? '').startsWith('http');
+    else if (statusTab === 'paused')   matchTab = ['paused', 'frozen', 'rejected'].includes(c.status);
     else matchTab = c.status === statusTab;
     return matchQuery && matchTab;
   }), [campaigns, query, statusTab]);
@@ -441,8 +454,96 @@ export default function AdminCampaignsClient({ campaigns: initialCampaigns }: Pr
   // ─────────────────────────────────────────────────────
   // ── VIEW: LIST
   // ─────────────────────────────────────────────────────
+  // DB-level counts (for metric cards, more accurate than filtered local set)
+  const dbTotal      = totalCount      ?? counts.all;
+  const dbActive     = activeCount     ?? counts.active;
+  const dbAttention  = attentionCount  ?? (counts.paused + counts.rejected);
+  const dbDraft      = draftCount      ?? counts.draft;
+
+  const metricCards = [
+    {
+      key: 'all',
+      label: 'All Campaigns',
+      value: dbTotal.toLocaleString(),
+      sub: 'all statuses',
+      icon: 'stack',
+      tone: '#6c35ff',
+      bg: '#f0eaff',
+    },
+    {
+      key: 'active',
+      label: 'Active',
+      value: dbActive.toLocaleString(),
+      sub: 'live right now',
+      icon: 'check',
+      tone: '#16a34a',
+      bg: '#f0fdf4',
+    },
+    {
+      key: 'attention',
+      label: 'Needs Attention',
+      value: dbAttention.toLocaleString(),
+      sub: 'paused, frozen, rejected',
+      icon: 'audit',
+      tone: '#d97706',
+      bg: '#fffbeb',
+      filterKey: 'paused',
+    },
+    {
+      key: 'draft',
+      label: 'Drafts',
+      value: dbDraft.toLocaleString(),
+      sub: 'not yet published',
+      icon: 'doc',
+      tone: '#2563eb',
+      bg: '#eff6ff',
+    },
+  ];
+
   if (view === 'list') return (
     <div className="ac-wrap">
+      {/* Clickable metric cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 14, marginBottom: 24 }}>
+        {metricCards.map(m => {
+          const tabKey = (m as { filterKey?: string }).filterKey ?? m.key;
+          const isActive = statusTab === tabKey;
+          return (
+            <button
+              key={m.key}
+              onClick={() => { setStatusTab(tabKey); setPage(1); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                padding: '16px 18px', borderRadius: 14, textAlign: 'left',
+                background: isActive ? m.tone : '#fff',
+                border: `2px solid ${isActive ? m.tone : '#eef0f7'}`,
+                cursor: 'pointer', transition: 'all .15s',
+                boxShadow: isActive ? `0 4px 14px ${m.tone}33` : '0 1px 4px rgba(0,0,0,.06)',
+              }}
+            >
+              <div style={{
+                width: 42, height: 42, borderRadius: 10, flexShrink: 0,
+                background: isActive ? 'rgba(255,255,255,.25)' : m.bg,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: isActive ? '#fff' : m.tone, fontSize: 18,
+              }}>
+                <KFIcon name={m.icon} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: isActive ? 'rgba(255,255,255,.75)' : '#94a3b8', letterSpacing: '.04em', marginBottom: 2 }}>
+                  {m.label.toUpperCase()}
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: isActive ? '#fff' : '#1a1a2e', lineHeight: 1 }}>
+                  {m.value}
+                </div>
+                <div style={{ fontSize: 11, color: isActive ? 'rgba(255,255,255,.7)' : '#94a3b8', marginTop: 2 }}>
+                  {m.sub}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Header */}
       <div className="ac-list-head">
         <h2>Campaigns</h2>
@@ -457,7 +558,7 @@ export default function AdminCampaignsClient({ campaigns: initialCampaigns }: Pr
           { key: 'all',      label: `All (${counts.all})` },
           { key: 'active',   label: `Published (${counts.active})` },
           { key: 'draft',    label: `Draft (${counts.draft})` },
-          { key: 'paused',   label: `Paused (${counts.paused})` },
+          { key: 'paused',   label: `Needs Attention (${counts.paused + counts.rejected})` },
           { key: 'rejected', label: `Archived (${counts.rejected})` },
           { key: 'featured', label: `⭐ Featured (${counts.featured})`, accent: true },
           { key: 'homepage', label: `🏠 Homepage (${counts.homepage})`, accent: true },

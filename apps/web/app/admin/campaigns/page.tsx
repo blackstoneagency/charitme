@@ -1,5 +1,5 @@
 import 'server-only';
-import { CharitMeShell, TopBar, MetricGrid, type Metric } from '../../../components/CharitMeShellServer';
+import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import AdminCampaignsClient, { type AdminCampaign } from './_components/AdminCampaignsClient';
@@ -149,13 +149,6 @@ export default async function AdminCampaignsPage() {
     createdAt: c.created_at,
   }));
 
-  const metrics: Metric[] = [
-    { label: 'All Campaigns', value: (totalCount ?? 0).toLocaleString(), change: 'all statuses', icon: 'stack', tone: 'violet' },
-    { label: 'Active', value: (activeCount ?? 0).toLocaleString(), change: 'live right now', icon: 'check', tone: 'green' },
-    { label: 'Needs Attention', value: (attentionCount ?? 0).toLocaleString(), change: 'paused, frozen, rejected', icon: 'audit', tone: 'orange' },
-    { label: 'Drafts', value: (draftCount ?? 0).toLocaleString(), change: 'not yet published', icon: 'doc', tone: 'blue' },
-  ];
-
   return (
     <CharitMeShell active="Campaigns" mode="admin">
       <TopBar
@@ -163,10 +156,13 @@ export default async function AdminCampaignsPage() {
         subtitle="Create, review, approve, manage and track campaigns from start to finish."
         actions={<></>}
       />
-      <div style={{ padding: '0 32px 20px' }}>
-        <MetricGrid metrics={metrics} />
-      </div>
-      <AdminCampaignsClient campaigns={adminCampaigns} />
+      <AdminCampaignsClient
+        campaigns={adminCampaigns}
+        totalCount={totalCount ?? 0}
+        activeCount={activeCount ?? 0}
+        attentionCount={attentionCount ?? 0}
+        draftCount={draftCount ?? 0}
+      />
     </CharitMeShell>
   );
 }
