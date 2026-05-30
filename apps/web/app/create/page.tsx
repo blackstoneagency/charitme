@@ -1095,7 +1095,7 @@ export default function CreatePage() {
                     ].map(row => (
                       <div key={row.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 20px', borderBottom: '1px solid #f0f2f7' }}>
                         <span style={{ fontSize: 13, color: 'var(--t3)', fontWeight: 700, minWidth: 110 }}>{row.label}</span>
-                        <span style={{ fontSize: 13, color: 'var(--t1)', fontWeight: row.ok ? 700 : 600, textAlign: 'right', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: row.ok ? 'var(--t1)' : '#ef4444' }}>
+                        <span style={{ fontSize: 13, fontWeight: row.ok ? 700 : 600, textAlign: 'right', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: row.ok ? 'var(--t1)' : '#ef4444' }}>
                           {row.value}
                         </span>
                       </div>
