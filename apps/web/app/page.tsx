@@ -238,9 +238,7 @@ function Icon({ name, className = 'h-5 w-5' }: { name: string; className?: strin
 export default async function HomePage({ searchParams }: { searchParams?: Promise<StoryFilters> }) {
   const filters = await searchParams ?? {};
   const activeSort = filters.storySort === 'raised' || filters.storySort === 'donors' ? filters.storySort : 'latest';
-  const { stats, heroCampaign, featuredCampaigns, carouselCampaigns, rotatorCampaigns, heroPercent, daysLeft } = await getHomeData(filters);
-  const heroTitle = heroCampaign?.title ?? 'Start a trusted campaign on CharitMe';
-  const heroHref = heroCampaign ? `/campaigns/${heroCampaign.slug}` : '/campaigns';
+  const { stats, heroCampaign: _heroCampaign, featuredCampaigns, carouselCampaigns, rotatorCampaigns } = await getHomeData(filters);
 
   return (
     <div className="kind-page">

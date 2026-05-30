@@ -41,7 +41,14 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
   const [nextIndex, setNextIndex] = useState<number | null>(null);
   // countdown: ms remaining until next rotation (0–ROTATION_INTERVAL)
   const [countdown, setCountdown] = useState(ROTATION_INTERVAL);
+  const [now, setNow]             = useState(() => Date.now());
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Keep `now` current so daysLeft is never stale and avoids impure Date.now() in render
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   // ── Live fetch ──────────────────────────────────────────
   const fetchCampaigns = useCallback(async () => {
@@ -104,11 +111,8 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
 
   // Countdown ticker — updates every 100ms for smooth status bar
   useEffect(() => {
-    if (paused || count < 2) {
-      setCountdown(ROTATION_INTERVAL);
-      return;
-    }
-    setCountdown(ROTATION_INTERVAL);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    if (paused || count < 2) return;
     const tick = 100;
     countdownRef.current = setInterval(() => {
       setCountdown(prev => {
@@ -126,7 +130,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
     ? Math.min(100, Math.round(((campaign.raised_amount ?? 0) / (campaign.goal_amount || 1)) * 100))
     : 0;
   const daysLeft = campaign?.deadline
-    ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - Date.now()) / 86_400_000))
+    ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - now) / 86_400_000))
     : 0;
   const photoUrl  = campaign?.cover_image_url || fallbackImageUrl;
   const heroHref  = campaign ? `/campaigns/${campaign.slug}` : '/campaigns';
