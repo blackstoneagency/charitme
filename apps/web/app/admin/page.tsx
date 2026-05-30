@@ -93,7 +93,7 @@ export default async function AdminDashboardPage() {
                 <li>Go to <strong>Vercel → your project → Settings → Environment Variables</strong></li>
                 <li>Set <code>SUPABASE_SERVICE_ROLE_KEY</code> to your Supabase service role key</li>
                 <li>Set <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to your Supabase anon key</li>
-                <li>Set <code>NEXT_PUBLIC_SUPABASE_URL</code> to <code>https://nengpvscsgukotheptri.supabase.co</code></li>
+                <li>Set <code>NEXT_PUBLIC_SUPABASE_URL</code> to <code>https://yanexccimwooursawynm.supabase.co</code></li>
                 <li>Redeploy from Vercel dashboard (env vars require a new deploy)</li>
                 <li>Then run <code>schema.sql</code> in Supabase SQL Editor if not done yet</li>
               </ol>

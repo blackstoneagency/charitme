@@ -1,12 +1,12 @@
-# GiveRise Supabase Project
+# CharitMe Supabase Project
 
-Project ref: `nengpvscsgukotheptri`
+Project ref: `yanexccimwooursawynm`
 
 Dashboard:
-`https://supabase.com/dashboard/project/nengpvscsgukotheptri`
+`https://supabase.com/dashboard/project/yanexccimwooursawynm`
 
 Public API URL:
-`https://nengpvscsgukotheptri.supabase.co`
+`https://yanexccimwooursawynm.supabase.co`
 
 ## Files
 

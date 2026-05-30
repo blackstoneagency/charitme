@@ -1146,6 +1146,8 @@ function EditForm({
       cover_image_url: draft.coverImageUrl,
       image_urls: draft.imageUrls,
       video_url: draft.videoUrl,
+      featured: draft.featured,
+      pinned: draft.pinned,
     }, draft);
   }
 

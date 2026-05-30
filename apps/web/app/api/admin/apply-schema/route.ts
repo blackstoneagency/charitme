@@ -13,7 +13,7 @@ import { requireAdmin } from '../../../../lib/auth';
 // ─────────────────────────────────────────────────────────────────────────────
 function getProjectRef(): string | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-  // https://nengpvscsgukotheptri.supabase.co → nengpvscsgukotheptri
+  // https://yanexccimwooursawynm.supabase.co → yanexccimwooursawynm
   const match = url.match(/https?:\/\/([^.]+)\.supabase\.co/);
   return match?.[1] ?? null;
 }

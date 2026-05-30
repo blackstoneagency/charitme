@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const projectRef = process.env.SUPABASE_PROJECT_REF ?? 'nengpvscsgukotheptri';
+const projectRef = process.env.SUPABASE_PROJECT_REF ?? 'yanexccimwooursawynm';
 const supabaseUrl = `https://${projectRef}.supabase.co`;
 const targets = ['production', 'preview', 'development'];
 const root = process.cwd();
