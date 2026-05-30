@@ -170,6 +170,57 @@ img, svg { display: block; }
 @keyframes heroProgress { from { width: 0 } to { width: 100% } }
 @keyframes spin { to { transform: rotate(360deg) } }
 
+/* ── Sponsors bar ── */
+@keyframes sponsorScroll { from { transform: translateX(0) } to { transform: translateX(-50%) } }
+.kind-sponsors-wrap {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 0;
+  border-top: 1px solid #eef0f7;
+  border-bottom: 1px solid #eef0f7;
+  overflow: hidden;
+}
+.kind-sponsors-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 0 20px;
+}
+.kind-sponsors-track-wrap {
+  flex: 1;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+}
+.kind-sponsors-track {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+  animation: sponsorScroll 24s linear infinite;
+  width: max-content;
+}
+.kind-sponsors-track:hover { animation-play-state: paused; }
+.kind-sponsor-logo {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.kind-sponsor-logo img {
+  height: 28px;
+  max-width: 110px;
+  object-fit: contain;
+  filter: grayscale(1);
+  opacity: .6;
+  transition: opacity .2s, filter .2s;
+}
+.kind-sponsor-logo:hover img { opacity: 1; filter: grayscale(0); }
+
 .kind-hero-art { min-height: 545px; position: relative; }
 .kind-photo {
   position: absolute;

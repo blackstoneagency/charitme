@@ -3,6 +3,7 @@ import Image from 'next/image';
 import type React from 'react';
 import { supabaseAdmin } from '../lib/supabase';
 import HeroRotator, { type RotatorCampaign } from './HeroRotator';
+import SponsorsBar from './SponsorsBar';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,6 @@ const FEATURES = [
   { icon: 'heart', title: 'AI Impact Updates', body: 'Automatically share updates and show donors the real world impact.', tone: 'pink' },
 ];
 
-const PRESS = ['Forbes', 'FAST COMPANY', 'TC TechCrunch', 'The New York Times', 'USA TODAY'];
 const STORY_FILTERS = [
   { label: 'All Stories', value: '', icon: 'grid' },
   { label: 'Individuals', value: 'individuals', icon: 'user' },
@@ -420,9 +420,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             )}
           </div>
         </div>
-        <div className="container kind-press">
-          {PRESS.map((item) => <span key={item}>{item}</span>)}
-        </div>
+        <SponsorsBar />
       </section>
 
       <section className="container kind-future">
@@ -453,7 +451,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         </div>
         <div>
           <Link href="/create" className="kind-btn kind-btn-white">Start Your Fundraiser</Link>
-          <Link href="/contact" className="kind-btn kind-btn-outline">Talk to an Expert</Link>
         </div>
       </section>
     </div>

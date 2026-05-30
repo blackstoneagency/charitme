@@ -57,6 +57,7 @@ const adminNav = [
   ['Campaigns', '/admin/campaigns', 'stack'],
   ['Donations', '/admin/donations', 'gift'],
   ['Payouts', '/admin/payouts', 'wallet'],
+  ['Sponsors', '/admin/sponsors', 'crown'],
   ['Content', '/admin/content', 'doc'],
   ['Reports', '/admin/reports', 'chart'],
   ['Settings', '/admin/settings', 'gear'],
