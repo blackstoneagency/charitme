@@ -128,10 +128,23 @@ export async function POST(request: NextRequest) {
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Stripe error';
     console.error('[donations/recurring] Stripe error:', msg);
+
     if (msg.includes('STRIPE_SECRET_KEY')) {
       return NextResponse.json({ error: 'Payment processing is not configured. Please contact support.' }, { status: 503 });
     }
-    return NextResponse.json({ error: msg }, { status: 502 });
+
+    // Connected account invalid — retry without transfer
+    if (msg.includes('No such destination') || msg.includes('account') || msg.includes('transfer')) {
+      console.warn('[donations/recurring] Falling back to direct charge:', msg);
+      const fallbackParams = { ...sessionParams, payment_intent_data: {} };
+      try {
+        session = await stripe.checkout.sessions.create(fallbackParams);
+      } catch (fe: unknown) {
+        return NextResponse.json({ error: fe instanceof Error ? fe.message : 'Stripe error' }, { status: 502 });
+      }
+    } else {
+      return NextResponse.json({ error: msg }, { status: 502 });
+    }
   }
-  return NextResponse.json({ url: session.url });
+  return NextResponse.json({ url: session!.url });
 }

@@ -119,19 +119,38 @@ export async function POST(request: NextRequest) {
 
   const requestKey = request.headers.get('idempotency-key') ?? crypto.randomUUID();
 
+  const idempotencyKey = `donation_${campaignId}_${amountCents}_${user?.id ?? 'guest'}_${requestKey}`;
+
   let session: Stripe.Checkout.Session;
   try {
-    session = await stripe.checkout.sessions.create(sessionParams, {
-      idempotencyKey: `donation_${campaignId}_${amountCents}_${user?.id ?? 'guest'}_${requestKey}`,
-    });
+    session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Stripe error';
     console.error('[donations] Stripe error:', msg);
+
     if (msg.includes('STRIPE_SECRET_KEY')) {
       return NextResponse.json({ error: 'Payment processing is not configured. Please contact support.' }, { status: 503 });
     }
-    return NextResponse.json({ error: msg }, { status: 502 });
+
+    // Connected account is invalid/not in this Stripe account — retry without transfer
+    if (msg.includes('No such destination') || msg.includes('account') || msg.includes('transfer')) {
+      console.warn('[donations] Falling back to direct charge — connected account invalid:', msg);
+      const fallbackParams = { ...sessionParams };
+      if (fallbackParams.payment_intent_data) {
+        fallbackParams.payment_intent_data = {};
+      }
+      try {
+        session = await stripe.checkout.sessions.create(fallbackParams, {
+          idempotencyKey: `${idempotencyKey}_fallback`,
+        });
+      } catch (fallbackErr: unknown) {
+        const fallbackMsg = fallbackErr instanceof Error ? fallbackErr.message : 'Stripe error';
+        return NextResponse.json({ error: fallbackMsg }, { status: 502 });
+      }
+    } else {
+      return NextResponse.json({ error: msg }, { status: 502 });
+    }
   }
 
-  return NextResponse.json({ url: session.url });
+  return NextResponse.json({ url: session!.url });
 }
