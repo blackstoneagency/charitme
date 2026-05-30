@@ -19,7 +19,7 @@ export default function TermsPage() {
       <article className="legal-body">
         <h2>1. Acceptance of Terms</h2>
         <p>
-          By accessing or using CharitMe at eli54u.com (&ldquo;the Platform&rdquo;), you agree to these
+          By accessing or using CharitMe at charitme.com (&ldquo;the Platform&rdquo;), you agree to these
           Terms of Service. If you do not agree, do not use the Platform.
         </p>
 
@@ -83,7 +83,7 @@ export default function TermsPage() {
 
         <h2>12. Contact</h2>
         <p>
-          Questions? Email <a href="mailto:legal@eli54u.com">legal@eli54u.com</a>.
+          Questions? Email <a href="mailto:legal@charitme.com">legal@charitme.com</a>.
         </p>
       </article>
     </div>

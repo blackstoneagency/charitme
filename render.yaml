@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: money-raise
+    name: charitme
     runtime: node
     rootDir: apps/web
     buildCommand: npm install && npm run build

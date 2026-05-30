@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
   if (body?.sendWelcome) {
     await supabaseAdmin.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com'}/login`,
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com'}/login`,
     });
   }
 

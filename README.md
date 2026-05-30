@@ -1,6 +1,6 @@
-# GiveRise
+# CharitMe
 
-GiveRise is a production-oriented AI-first fundraising platform scaffold.
+CharitMe is a production-oriented AI-first fundraising platform scaffold.
 
 Core positioning:
 - Free fundraising powered by AI.

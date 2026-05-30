@@ -1,5 +1,5 @@
 -- =============================================================================
--- RaiseMoney / GiveRise — seed data
+-- RaiseMoney / CharitMe — seed data
 -- =============================================================================
 -- HOW TO USE:
 --   1. Sign up at least ONE account through your app first.
@@ -57,7 +57,7 @@ begin
       'already exceeded $40,000 and the bills keep coming. Every dollar you donate goes directly '
       'to her medical bills, childcare during chemo, and living expenses. Sarah has submitted her '
       'medical records and identity documents for verification. 100% of donations go directly to '
-      'Sarah — GiveRise charges no platform fee.',
+      'Sarah — CharitMe charges no platform fee.',
       'Medical',
       1500000, 427850, 83, 'active',
       current_date + interval '45 days',
@@ -72,7 +72,7 @@ begin
       'more than 180 residents. The town has little insurance coverage for damage of this magnitude. '
       'We are raising funds to provide temporary housing, clear debris, and begin rebuilding. Local '
       'volunteers are already on the ground. Every dollar is tracked through our transparency ledger. '
-      '100% of donations go to affected families — GiveRise charges no platform fee.',
+      '100% of donations go to affected families — CharitMe charges no platform fee.',
       'Disaster Relief',
       5000000, 1823400, 312, 'active',
       current_date + interval '30 days',
@@ -87,7 +87,7 @@ begin
       'we want to send 20 girls to a 2-week residential camp covering robotics, coding, and '
       'biomedical engineering. Each scholarship covers tuition ($1,200), travel, housing, and meals. '
       'Past campers have earned engineering degrees at MIT, Stanford, and Georgia Tech. '
-      '100% of donations fund scholarships — GiveRise charges no platform fee.',
+      '100% of donations fund scholarships — CharitMe charges no platform fee.',
       'Education',
       2400000, 965000, 148, 'active',
       current_date + interval '60 days',

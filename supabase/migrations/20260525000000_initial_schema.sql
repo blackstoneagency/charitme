@@ -1,4 +1,4 @@
--- GiveRise production schema
+-- CharitMe production schema
 create extension if not exists "uuid-ossp";
 
 create or replace function set_updated_at()

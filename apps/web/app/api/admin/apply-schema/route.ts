@@ -604,7 +604,7 @@ const SCHEMA_CHUNKS: { name: string; sql: string }[] = [
   { name: 'Bootstrap data', sql: `
     insert into public.platform_settings (id, config) values (1, '{
       "platformName":"CharitMe","tagline":"Fundraising that thinks for you.",
-      "supportEmail":"hello@eli54u.com","currency":"USD",
+      "supportEmail":"hello@charitme.com","currency":"USD",
       "platformFeePercent":0,"donationFeePercent":2.9,
       "stripeLiveMode":true,"allowNewRegistrations":true,"maintenanceMode":false
     }'::jsonb) on conflict (id) do nothing;

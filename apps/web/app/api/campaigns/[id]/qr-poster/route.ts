@@ -2,7 +2,7 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 
-const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com';
+const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
 
 // GET /api/campaigns/[id]/qr-poster
 // Returns an SVG/HTML poster page suitable for printing that includes

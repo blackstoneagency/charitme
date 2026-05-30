@@ -8,11 +8,11 @@ import SponsorsBar from './SponsorsBar';
 export const dynamic = 'force-dynamic';
 
 const FEATURES = [
-  { icon: 'edit', title: 'AI Campaign Builder', body: 'Create a powerful campaign in minutes with our AI assistant.', tone: 'violet' },
-  { icon: 'rocket', title: 'AI Growth Engine', body: 'Our AI finds your ideal donors and grows your campaign automatically.', tone: 'green' },
-  { icon: 'shield', title: 'AI Trust & Safety', body: 'Advanced verification protects donors and builds trust from day one.', tone: 'blue' },
-  { icon: 'chart', title: 'AI Optimization', body: 'Real-time insights and AI recommendations to maximize your results.', tone: 'orange' },
-  { icon: 'heart', title: 'AI Impact Updates', body: 'Automatically share updates and show donors the real world impact.', tone: 'pink' },
+  { icon: 'edit', title: 'CharitMe AI Builder', body: 'Write your entire fundraiser in seconds — title, story, goal, and strategy — powered by CharitMe AI.', tone: 'violet' },
+  { icon: 'rocket', title: 'AI Growth Engine', body: 'CharitMe AI finds your ideal donors, optimizes your campaign, and grows donations automatically.', tone: 'green' },
+  { icon: 'shield', title: 'CharitScore™ Trust', body: 'Our AI-powered trust score gives every campaign a 0–100 CharitScore so donors give with confidence.', tone: 'blue' },
+  { icon: 'chart', title: 'AI Optimization', body: 'Real-time AI insights, next-best-action suggestions, and campaign health monitoring 24/7.', tone: 'orange' },
+  { icon: 'heart', title: 'AI Donor Relationships', body: 'CharitMe AI writes thank-you notes, updates, and donor messages that feel personal and real.', tone: 'pink' },
 ];
 
 const STORY_FILTERS = [
@@ -263,19 +263,19 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       <section className="kind-hero">
         <div className="container kind-hero-grid">
           <div className="kind-hero-copy">
-            <div className="kind-badge"><Icon name="sparkle" className="h-4 w-4" /> The World&apos;s #1 AI Fundraising Platform</div>
+            <div className="kind-badge"><Icon name="sparkle" className="h-4 w-4" /> The AI Fundraising Platform</div>
             <h1>
-              Fundraising that <span>thinks</span> for you.
+              Raise More. Faster. <span>With AI.</span>
             </h1>
             <div className="kind-scribble" aria-hidden="true" />
-            <p>Create, grow, and succeed with the power of AI.<br />More trust. More donors. More impact.</p>
+            <p>CharitMe is the world&apos;s first AI-powered fundraising platform that helps people, teams, creators, and nonprofits create trusted campaigns and grow donations.</p>
             <div className="kind-actions">
-              <Link href="/create" className="kind-btn kind-btn-primary">Start Your Fundraiser</Link>
-              <Link href="/how-it-works" className="kind-btn kind-btn-secondary">See How It Works <span><Icon name="play" className="h-3.5 w-3.5" /></span></Link>
+              <Link href="/create" className="kind-btn kind-btn-primary">Create My Fundraiser With AI</Link>
+              <Link href="/features" className="kind-btn kind-btn-secondary">Why We Beat GoFundMe <span><Icon name="arrow" className="h-3.5 w-3.5" /></span></Link>
             </div>
             <div className="kind-pills">
-              {['AI Campaign Builder', 'AI Growth Engine', 'AI Trust & Safety', '24/7 AI Support'].map((item, index) => (
-                <div key={item}><Icon name={index === 0 ? 'sparkle' : index === 1 ? 'rocket' : index === 2 ? 'shield' : 'users'} className="h-3.5 w-3.5" />{item}</div>
+              {['CharitMe AI Builder', 'AI Growth Engine', 'CharitScore Trust', '0% Platform Fees'].map((item, index) => (
+                <div key={item}><Icon name={index === 0 ? 'sparkle' : index === 1 ? 'rocket' : index === 2 ? 'shield' : 'gift'} className="h-3.5 w-3.5" />{item}</div>
               ))}
             </div>
             <div className="kind-proof">
@@ -297,7 +297,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
 
       <section className="kind-section kind-ai">
         <div className="container">
-          <h2>AI Works. You Win.</h2>
+          <h2>Meet CharitMe AI — Your Personal Fundraising Team.</h2>
           <div className="kind-feature-grid">
             {FEATURES.map((feature) => (
               <article className="kind-feature" key={feature.title}>
@@ -445,11 +445,11 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
 
       <section className="container kind-cta">
         <div>
-          <h2>Ready to turn your story into impact?</h2>
-          <p>Join millions of fundraisers who are reaching their goals with AI.</p>
+          <h2>GoFundMe gives you a page. CharitMe gives you a team.</h2>
+          <p>Join thousands of fundraisers raising more, faster, with CharitMe AI.</p>
         </div>
         <div>
-          <Link href="/create" className="kind-btn kind-btn-white">Start Your Fundraiser</Link>
+          <Link href="/create" className="kind-btn kind-btn-white">Create My Fundraiser With AI</Link>
         </div>
       </section>
     </div>

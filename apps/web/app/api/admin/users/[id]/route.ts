@@ -49,7 +49,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'User does not have an email address.' }, { status: 400 });
     }
     const { error } = await supabaseAdmin.auth.resetPasswordForEmail(current.email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com'}/login`,
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com'}/login`,
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ ok: true });

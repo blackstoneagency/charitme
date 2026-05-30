@@ -20,7 +20,7 @@ export default function PrivacyPage() {
         <h2>1. Who We Are</h2>
         <p>
           CharitMe (&ldquo;CharitMe,&rdquo; &ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;) operates the
-          fundraising platform at eli54u.com. This Privacy Policy describes how we collect, use, and protect
+          fundraising platform at charitme.com. This Privacy Policy describes how we collect, use, and protect
           your personal information when you use our platform.
         </p>
 
@@ -65,7 +65,7 @@ export default function PrivacyPage() {
         <p>We retain your account data as long as your account is active. Donation records are retained for tax and legal compliance purposes (minimum 7 years). You may request account deletion by contacting us.</p>
 
         <h2>7. Your Rights</h2>
-        <p>You may request access to, correction of, or deletion of your personal data by emailing <a href="mailto:privacy@eli54u.com">privacy@eli54u.com</a>. We will respond within 30 days.</p>
+        <p>You may request access to, correction of, or deletion of your personal data by emailing <a href="mailto:privacy@charitme.com">privacy@charitme.com</a>. We will respond within 30 days.</p>
 
         <h2>8. Security</h2>
         <p>We use HTTPS, Supabase Row Level Security, and Stripe&rsquo;s PCI DSS-certified infrastructure to protect your data. No security system is perfect — please use a strong, unique password.</p>
@@ -78,7 +78,7 @@ export default function PrivacyPage() {
 
         <h2>11. Contact</h2>
         <p>
-          Questions? Email us at <a href="mailto:privacy@eli54u.com">privacy@eli54u.com</a>.
+          Questions? Email us at <a href="mailto:privacy@charitme.com">privacy@charitme.com</a>.
         </p>
       </article>
     </div>

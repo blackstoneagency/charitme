@@ -63,7 +63,7 @@ const ARTICLES: Article[] = [
   { id: 'acc-1', category: 'account', question: 'How do I upgrade to Pro?', answer: 'Go to Dashboard → Settings → Billing or visit the Pricing page. Choose Starter or Pro and complete the Stripe checkout. Your plan upgrades instantly. Monthly and annual billing are both available.' },
   { id: 'acc-2', category: 'account', question: 'Can I cancel my subscription?', answer: 'Yes. Dashboard → Settings → Billing → Cancel Subscription. You keep Pro features until the end of your billing period, then revert to Free.' },
   { id: 'acc-3', category: 'account', question: 'How do I change my password?', answer: 'Dashboard → Settings → Security → Change Password. Or use "Forgot Password" on the login page to reset via email.' },
-  { id: 'acc-4', category: 'account', question: 'How do I delete my account?', answer: 'Dashboard → Settings → Privacy → Request Account Deletion. Send an email to support@eli54u.com from your registered address. We\'ll confirm and process the deletion within 30 days per our privacy policy.' },
+  { id: 'acc-4', category: 'account', question: 'How do I delete my account?', answer: 'Dashboard → Settings → Privacy → Request Account Deletion. Send an email to support@charitme.com from your registered address. We\'ll confirm and process the deletion within 30 days per our privacy policy.' },
 ];
 
 export default function HelpPage() {

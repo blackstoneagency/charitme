@@ -55,7 +55,7 @@ export default function SecurityPage() {
         <h2>Vulnerability Disclosure</h2>
         <p>
           If you discover a security vulnerability, please email{' '}
-          <a href="mailto:security@eli54u.com">security@eli54u.com</a> immediately.
+          <a href="mailto:security@charitme.com">security@charitme.com</a> immediately.
           Do not disclose publicly until we have had 90 days to respond and patch.
           We appreciate responsible disclosure.
         </p>

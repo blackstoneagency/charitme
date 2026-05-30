@@ -31,7 +31,7 @@ Required environment variables:
 Optional Vercel automation:
 
 - `VERCEL_TOKEN`
-- `VERCEL_PROJECT_ID` or `VERCEL_PROJECT_NAME` (defaults to `money-raise`)
+- `VERCEL_PROJECT_ID` or `VERCEL_PROJECT_NAME` (defaults to `charitme`)
 - `VERCEL_TEAM_ID` or `VERCEL_TEAM_SLUG` for team-owned projects
 - `VERCEL_APP_URL` to set `APP_URL` and `NEXT_PUBLIC_APP_URL`
 

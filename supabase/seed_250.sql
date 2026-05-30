@@ -1,5 +1,5 @@
 -- =============================================================================
--- RaiseMoney / GiveRise — seed data
+-- RaiseMoney / CharitMe — seed data
 -- Creates 250 fake entries per seeded table for testing
 -- =============================================================================
 -- HOW TO USE:
@@ -107,7 +107,7 @@ begin
       v_slug_title || '-' || v_suffix,
       v_title,
       'A test campaign created for QA, demo, performance, and workflow validation.',
-      'This is realistic fake seed data for testing the RaiseMoney / GiveRise fundraising platform. '
+      'This is realistic fake seed data for testing the RaiseMoney / CharitMe fundraising platform. '
       || 'The campaign includes a meaningful story, a measurable goal, donor activity, trust status, '
       || 'and enough variation to test search, filtering, dashboards, reporting, campaign pages, and admin workflows. '
       || 'Campaign number ' || i || ' is safe to edit or delete during QA testing.',

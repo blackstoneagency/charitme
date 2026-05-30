@@ -5,8 +5,8 @@ import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 import { resend } from '../../../lib/email';
 
-const FROM = process.env.EMAIL_FROM ?? 'CharitMe <hello@eli54u.com>';
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL ?? 'hello@eli54u.com';
+const FROM = process.env.EMAIL_FROM ?? 'CharitMe <hello@charitme.com>';
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL ?? 'hello@charitme.com';
 
 const Schema = z.object({
   name: z.string().trim().min(2).max(120),

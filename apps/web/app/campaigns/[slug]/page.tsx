@@ -83,7 +83,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const campaign = await getCampaign(slug);
   if (!campaign) return { title: 'Campaign not found' };
 
-  const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com';
+  const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
   const campaignUrl = `${ORIGIN}/campaigns/${slug}`;
   const description = campaign.tagline ?? campaign.description?.slice(0, 160) ?? '';
   const image = campaign.cover_image_url ?? `${ORIGIN}/og-default.png`;
@@ -134,7 +134,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const isActive = campaign.status === 'active' && (daysLeft === null || daysLeft > 0);
   const cover = campaign.cover_image_url || '/hero-child-crop.png';
   const videoUrl: string | null = (campaign as { video_url?: string | null }).video_url ?? null;
-  const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com';
+  const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
   const campaignUrl = `${ORIGIN}/campaigns/${campaign.slug}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(campaignUrl)}&color=6c35ff&bgcolor=ffffff&margin=10`;
 

@@ -395,7 +395,7 @@ create table public.platform_settings (
 insert into public.platform_settings (id, config) values (1, '{
   "platformName": "CharitMe",
   "tagline": "Fundraising that thinks for you.",
-  "supportEmail": "hello@eli54u.com",
+  "supportEmail": "hello@charitme.com",
   "supportPhone": "",
   "timezone": "America/New_York",
   "currency": "USD",

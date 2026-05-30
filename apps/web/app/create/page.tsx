@@ -923,7 +923,7 @@ export default function CreatePage() {
 // Sub-components
 // ─────────────────────────────────────────────
 function ShareButtons({ slug }: { slug: string }) {
-  const url = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com'}/campaigns/${slug}`;
+  const url = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com'}/campaigns/${slug}`;
   const [copied, setCopied] = React.useState(false);
 
   const copyLink = async () => {

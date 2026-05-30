@@ -19,4 +19,4 @@
    - `STRIPE_WEBHOOK_SECRET`
    - `STRIPE_CONNECT_WEBHOOK_SECRET`
 
-GiveRise uses 0% mandatory platform fees. Optional donor tips are collected as the application fee when destination charges are available.
+CharitMe uses 0% mandatory platform fees. Optional donor tips are collected as the application fee when destination charges are available.

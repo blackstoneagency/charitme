@@ -4,8 +4,8 @@ import { Resend } from 'resend';
 const apiKey = process.env.RESEND_API_KEY;
 export const resend = apiKey ? new Resend(apiKey) : null;
 
-const FROM = process.env.EMAIL_FROM ?? 'CharitMe <hello@eli54u.com>';
-const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com';
+const FROM = process.env.EMAIL_FROM ?? 'CharitMe <hello@charitme.com>';
+const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
 
 // ─────────────────────────────────────────────
 // Donation receipt
@@ -74,7 +74,7 @@ export async function sendReceiptEmail(input: {
         </td></tr>
         <!-- Footer -->
         <tr><td style="background:#f8f9fc;padding:20px 40px;text-align:center;border-top:1px solid #f0f0f0;">
-          <p style="font-size:11px;color:#94a3b8;margin:0;">© ${year} CharitMe · <a href="${ORIGIN}" style="color:#94a3b8;">eli54u.com</a></p>
+          <p style="font-size:11px;color:#94a3b8;margin:0;">© ${year} CharitMe · <a href="${ORIGIN}" style="color:#94a3b8;">charitme.com</a></p>
         </td></tr>
       </table>
     </td></tr>

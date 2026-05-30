@@ -65,13 +65,13 @@ export default function ProhibitedUsePage() {
         <p>
           Violations may result in immediate campaign hold, account suspension, funds being held pending investigation,
           and referral to law enforcement. If you suspect a violation, use the &ldquo;Report Campaign&rdquo; button on any campaign page
-          or email <a href="mailto:trust@eli54u.com">trust@eli54u.com</a>.
+          or email <a href="mailto:trust@charitme.com">trust@charitme.com</a>.
         </p>
 
         <h2>Appeals</h2>
         <p>
           If your campaign has been held or removed and you believe this was in error, email{' '}
-          <a href="mailto:appeals@eli54u.com">appeals@eli54u.com</a> with your campaign ID and explanation.
+          <a href="mailto:appeals@charitme.com">appeals@charitme.com</a> with your campaign ID and explanation.
           We review all appeals within 5 business days.
         </p>
       </article>

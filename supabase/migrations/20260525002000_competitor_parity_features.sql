@@ -325,7 +325,7 @@ create table if not exists embedded_buttons (
   campaign_id uuid references campaigns(id) on delete cascade,
   creator_profile_id uuid references creator_profiles(id) on delete cascade,
   donation_form_id uuid references donation_forms(id) on delete cascade,
-  label text not null default 'Support GiveRise',
+  label text not null default 'Support CharitMe',
   button_type text not null default 'donate' check (button_type in ('donate','tip','membership','product')),
   config jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),

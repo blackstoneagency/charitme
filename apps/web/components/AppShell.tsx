@@ -127,7 +127,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="kind-footer-apps">
             <h3>Contact</h3>
             <div>
-              <a href="mailto:hello@eli54u.com">hello@eli54u.com</a>
+              <a href="mailto:hello@charitme.com">hello@charitme.com</a>
             </div>
           </div>
         </div>

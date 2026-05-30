@@ -127,7 +127,7 @@ async function main() {
   const vercelProject = process.env.VERCEL_PROJECT_ID
     ?? readVercelProjectId()
     ?? process.env.VERCEL_PROJECT_NAME
-    ?? 'money-raise';
+    ?? 'charitme';
 
   const dbUrl = databaseUrl();
   if (dbUrl) {

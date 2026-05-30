@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
   if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
 
-  const campaignUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com'}/campaigns/${campaign.slug}`;
+  const campaignUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com'}/campaigns/${campaign.slug}`;
   const pct = campaign.goal_amount > 0
     ? Math.round((campaign.raised_amount / campaign.goal_amount) * 100)
     : 0;

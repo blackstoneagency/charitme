@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar } from '../../../../../components/CharitMeApp';
 import { createClient } from '../../../../../lib/supabase-browser';
 
-const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.eli54u.com';
+const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
 
 type Campaign = { id: string; title: string; slug: string };
 
