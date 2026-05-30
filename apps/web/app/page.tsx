@@ -162,7 +162,6 @@ async function getHomeData(filters: StoryFilters): Promise<{
   ]);
 
   const featuredCampaigns = (campaigns ?? []) as HeroCampaign[];
-  const heroCampaign = featuredCampaigns[0] ?? null;
 
   // Build rotator list: campaigns with photos, no video-only (video_url check)
   type RawRotator = {
