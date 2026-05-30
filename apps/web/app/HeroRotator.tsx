@@ -210,7 +210,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
       {/* ── Campaign card ── */}
       <div
         className="kind-campaign-card"
-        style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1, position: 'relative', overflow: 'hidden' }}
+        style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <div className="kind-verified">
@@ -246,50 +246,51 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width={16} height={16}><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>
           Donate Now
         </Link>
-
-        {/* ── Status bar: next campaign countdown ── */}
-        {count > 1 && (
-          <div style={{
-            position: 'absolute',
-            bottom: 0, left: 0, right: 0,
-            background: 'rgba(108,53,255,.06)',
-            borderTop: '1px solid rgba(108,53,255,.08)',
-            borderRadius: '0 0 22px 22px',
-          }}>
-            {/* Progress fill */}
-            <div style={{
-              height: 3,
-              background: 'rgba(108,53,255,.1)',
-              overflow: 'hidden',
-            }}>
-              <div style={{
-                height: '100%',
-                width: `${progressPct}%`,
-                background: 'linear-gradient(90deg,#6c35ff,#b43bef)',
-                transition: paused ? 'none' : 'width 0.1s linear',
-              }} />
-            </div>
-            {/* Label row */}
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '5px 14px 6px',
-              fontSize: 11, color: 'rgba(108,53,255,.7)', fontWeight: 600,
-            }}>
-              <span>Campaign {active + 1} of {count}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                {paused ? (
-                  <>⏸ Paused</>
-                ) : (
-                  <>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width={10} height={10}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-                    Next in {secondsLeft}s
-                  </>
-                )}
-              </span>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* ── Status bar: sits BELOW the card, never overlaps Donate Now ── */}
+      {count > 1 && (
+        <div style={{
+          position: 'absolute',
+          left: 24,
+          width: 392,
+          top: 598,
+          background: 'rgba(255,255,255,.88)',
+          border: '1px solid rgba(108,53,255,.14)',
+          borderRadius: 12,
+          backdropFilter: 'blur(8px)',
+          overflow: 'hidden',
+          boxShadow: '0 2px 8px rgba(108,53,255,.08)',
+        }}>
+          {/* Progress fill */}
+          <div style={{ height: 3, background: 'rgba(108,53,255,.08)' }}>
+            <div style={{
+              height: '100%',
+              width: `${progressPct}%`,
+              background: 'linear-gradient(90deg,#6c35ff,#b43bef)',
+              transition: paused ? 'none' : 'width 0.1s linear',
+            }} />
+          </div>
+          {/* Label row */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '6px 14px 7px',
+            fontSize: 11, color: 'rgba(108,53,255,.8)', fontWeight: 700,
+          }}>
+            <span>Campaign {active + 1} of {count}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {paused ? (
+                <>⏸ Paused</>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width={10} height={10}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                  Next in {secondsLeft}s
+                </>
+              )}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* ── Dot indicators ── */}
       {count > 1 && (
