@@ -163,18 +163,31 @@ export default function AdminCampaignsClient({ campaigns: initialCampaigns }: Pr
 
   // ── Derived counts for tabs
   const counts = useMemo(() => ({
-    all: campaigns.length,
-    active: campaigns.filter(c => c.status === 'active').length,
-    draft: campaigns.filter(c => c.status === 'draft').length,
-    paused: campaigns.filter(c => c.status === 'paused').length,
+    all:      campaigns.length,
+    active:   campaigns.filter(c => c.status === 'active').length,
+    draft:    campaigns.filter(c => c.status === 'draft').length,
+    paused:   campaigns.filter(c => c.status === 'paused').length,
     rejected: campaigns.filter(c => c.status === 'rejected').length,
+    featured: campaigns.filter(c => c.featured).length,
+    homepage: campaigns.filter(c =>
+      c.status === 'active' &&
+      c.coverImageUrl !== null &&
+      c.coverImageUrl.startsWith('http')
+    ).length,
   }), [campaigns]);
 
   // ── Filtered + paginated
   const filtered = useMemo(() => campaigns.filter(c => {
     const text = `${c.title} ${c.organizer} ${c.category}`.toLowerCase();
     const matchQuery = text.includes(query.toLowerCase());
-    const matchTab = statusTab === 'all' || c.status === statusTab;
+    let matchTab = false;
+    if (statusTab === 'all')      matchTab = true;
+    else if (statusTab === 'featured') matchTab = c.featured;
+    else if (statusTab === 'homepage') matchTab =
+      c.status === 'active' &&
+      c.coverImageUrl !== null &&
+      (c.coverImageUrl ?? '').startsWith('http');
+    else matchTab = c.status === statusTab;
     return matchQuery && matchTab;
   }), [campaigns, query, statusTab]);
 
@@ -441,19 +454,33 @@ export default function AdminCampaignsClient({ campaigns: initialCampaigns }: Pr
       {/* Status tabs */}
       <div className="ac-status-tabs">
         {[
-          { key: 'all', label: `All (${counts.all})` },
-          { key: 'active', label: `Published (${counts.active})` },
-          { key: 'draft', label: `Draft (${counts.draft})` },
-          { key: 'paused', label: `Paused (${counts.paused})` },
+          { key: 'all',      label: `All (${counts.all})` },
+          { key: 'active',   label: `Published (${counts.active})` },
+          { key: 'draft',    label: `Draft (${counts.draft})` },
+          { key: 'paused',   label: `Paused (${counts.paused})` },
           { key: 'rejected', label: `Archived (${counts.rejected})` },
+          { key: 'featured', label: `⭐ Featured (${counts.featured})`, accent: true },
+          { key: 'homepage', label: `🏠 Homepage (${counts.homepage})`, accent: true },
         ].map(t => (
           <button
             key={t.key}
-            className={`ac-stab${statusTab === t.key ? ' active' : ''}`}
+            className={`ac-stab${statusTab === t.key ? ' active' : ''}${(t as { accent?: boolean }).accent ? ' accent' : ''}`}
             onClick={() => { setStatusTab(t.key); setPage(1); }}
           >{t.label}</button>
         ))}
       </div>
+
+      {/* Context banner for special tabs */}
+      {statusTab === 'featured' && (
+        <div style={{ margin: '0 0 14px', padding: '10px 16px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 10, fontSize: 13, color: '#92400e', fontWeight: 600 }}>
+          ⭐ Featured campaigns appear <strong>first</strong> in the homepage hero rotator. Toggle via the campaign&apos;s <em>More</em> tab → &ldquo;Feature on Homepage&rdquo;.
+        </div>
+      )}
+      {statusTab === 'homepage' && (
+        <div style={{ margin: '0 0 14px', padding: '10px 16px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, fontSize: 13, color: '#1e40af', fontWeight: 600 }}>
+          🏠 These are all <strong>active campaigns with a cover photo</strong> — they rotate on the homepage carousel. Featured ones appear first.
+        </div>
+      )}
 
       {/* Search */}
       <div className="ac-toolbar">
@@ -476,6 +503,7 @@ export default function AdminCampaignsClient({ campaigns: initialCampaigns }: Pr
           <span>Raised</span>
           <span>Donors</span>
           <span>Status</span>
+          <span>Flags</span>
           <span>Created</span>
         </div>
         {paginated.length === 0 && (
@@ -497,6 +525,14 @@ export default function AdminCampaignsClient({ campaigns: initialCampaigns }: Pr
             <span className="ac-cell"><b>{fmtCents(c.raisedAmount)}</b></span>
             <span className="ac-cell">{c.backerCount.toLocaleString()}</span>
             <span className="ac-cell"><SPill status={c.status} /></span>
+            <span className="ac-cell" style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {c.featured && (
+                <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 6, background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e' }}>⭐ Featured</span>
+              )}
+              {c.coverImageUrl?.startsWith('http') && c.status === 'active' && (
+                <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 6, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af' }}>🏠 Carousel</span>
+              )}
+            </span>
             <span className="ac-cell ac-date">{fmtDate(c.createdAt)}</span>
           </button>
         ))}

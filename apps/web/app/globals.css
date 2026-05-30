@@ -2558,6 +2558,9 @@ img, svg { display: block; }
 .ac-stab { height: 38px; padding: 0 16px; border: none; background: none; font-size: 13px; font-weight: 750; color: #67718e; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; white-space: nowrap; }
 .ac-stab.active { color: #551cf2; border-bottom-color: #551cf2; font-weight: 900; }
 .ac-stab:hover { color: #3a1cb8; }
+.ac-stab.accent { color: #92400e; }
+.ac-stab.accent.active { color: #b45309; border-bottom-color: #f59e0b; }
+.ac-stab.accent:hover { color: #78350f; }
 .ac-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .ac-search { display: flex; align-items: center; gap: 8px; flex: 1; background: #fff; border: 1px solid #dfe3f0; border-radius: 10px; padding: 0 12px; }
 .ac-search input { flex: 1; border: none; outline: none; height: 40px; font-size: 13px; background: none; }
