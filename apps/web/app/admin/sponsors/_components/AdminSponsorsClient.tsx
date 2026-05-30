@@ -173,10 +173,11 @@ export default function AdminSponsorsClient() {
             Homepage Preview — {visible.length} logo{visible.length !== 1 ? 's' : ''} showing
           </div>
           <div style={{ display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* eslint-disable @next/next/no-img-element */}
             {visible.map(s => (
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img key={s.id} src={s.logo_url!} alt={s.name} style={{ height: 32, maxWidth: 120, objectFit: 'contain', filter: 'grayscale(1)', opacity: .7 }} />
             ))}
+            {/* eslint-enable @next/next/no-img-element */}
           </div>
         </div>
       )}
