@@ -120,22 +120,29 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
     <div className="kf-app">
       <aside className="kf-sidebar">
         <Logo />
-        {mode === 'dashboard' && <Link href="/create" className="kf-create"><KFIcon name="plus" /> Create New Campaign</Link>}
-        {mode === 'admin' && <div className="kf-section-label">Admin</div>}
-        <nav className="kf-nav">
-          {nav.map(([label, href, icon, badge]) => {
-            const isActive = active === label || (active === 'Campaigns' && label === 'My Campaigns');
-            return (
-              <Link key={href} href={href} className={isActive ? 'active' : ''}>
-                <KFIcon name={icon} />
-                <span>{label}</span>
-                {badge && <em>{badge}</em>}
-              </Link>
-            );
-          })}
-        </nav>
+
+        {/* ── ADMIN mode: single admin nav ── */}
+        {mode === 'admin' && (
+          <>
+            <div className="kf-section-label">Admin</div>
+            <nav className="kf-nav">
+              {adminNav.map(([label, href, icon, badge]) => {
+                const isActive = active === label;
+                return (
+                  <Link key={href} href={href} className={isActive ? 'active' : ''}>
+                    <KFIcon name={icon} />
+                    <span>{label}</span>
+                    {badge && <em>{badge}</em>}
+                  </Link>
+                );
+              })}
+            </nav>
+          </>
+        )}
+
+        {/* ── DASHBOARD mode with admin access: Admin section FIRST, then user nav ── */}
         {mode === 'dashboard' && hasAdminAccess && (
-          <div className="kf-admin-nav">
+          <div className="kf-admin-nav kf-admin-nav--top">
             <div className="kf-section-label">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} width={13} height={13} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
@@ -152,6 +159,26 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
             </nav>
           </div>
         )}
+
+        {/* ── DASHBOARD mode: user nav (below admin for admins) ── */}
+        {mode === 'dashboard' && (
+          <>
+            <Link href="/create" className="kf-create"><KFIcon name="plus" /> Create New Campaign</Link>
+            <nav className="kf-nav">
+              {dashboardNav.map(([label, href, icon, badge]) => {
+                const isActive = active === label || (active === 'Campaigns' && label === 'My Campaigns');
+                return (
+                  <Link key={href} href={href} className={isActive ? 'active' : ''}>
+                    <KFIcon name={icon} />
+                    <span>{label}</span>
+                    {badge && <em>{badge}</em>}
+                  </Link>
+                );
+              })}
+            </nav>
+          </>
+        )}
+
         <div className="kf-pro">
           <div><KFIcon name="crown" /> CharitMe Pro</div>
           <p>Unlock advanced tools, insights, automation, and priority support.</p>

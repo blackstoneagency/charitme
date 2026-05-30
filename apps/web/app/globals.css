@@ -682,7 +682,8 @@ img, svg { display: block; }
   .kind-floating-2 { top: 122px; }
   .kind-floating-3 { top: 216px; }
   .kind-floating-4 { top: 310px; }
-  .kind-campaign-card { left: 0; right: 0; top: 360px; width: 100%; }
+  .kind-campaign-card { left: 0; right: 0; top: 360px; width: 100%; border-radius: 22px 22px 0 0; }
+  .kind-status-bar { left: 0 !important; width: 100% !important; border-radius: 0 0 18px 18px !important; }
   .kind-feature-grid, .kind-stats, .kind-orbits, .kind-footer-grid, .kind-footer-links { grid-template-columns: 1fr; }
   .kind-stats { gap: 20px; }
   .kind-stats div { border-left: 0; }
@@ -749,6 +750,13 @@ img, svg { display: block; }
   border-top: 2px solid #7c3aed;
   padding: 16px 0 8px;
   margin: 0 -20px;
+}
+/* When admin nav is at the TOP (admin user in dashboard mode) */
+.kf-admin-nav--top {
+  border-top: none;
+  border-bottom: 2px solid #7c3aed;
+  margin-top: 4px;
+  margin-bottom: 8px;
 }
 .kf-admin-nav .kf-section-label {
   margin: 0 20px 8px;

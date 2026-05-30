@@ -65,6 +65,21 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
   const [countdown, setCountdown] = useState(ROTATION_INTERVAL);
   const [now, setNow]             = useState(() => Date.now());
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cardRef      = useRef<HTMLDivElement>(null);
+  const [cardBottom, setCardBottom] = useState(598);
+
+  // Measure card height so status bar sits flush below it on any screen size
+  useEffect(() => {
+    function measure() {
+      if (!cardRef.current) return;
+      const rect = cardRef.current.getBoundingClientRect();
+      const parentRect = cardRef.current.offsetParent?.getBoundingClientRect();
+      if (parentRect) setCardBottom(rect.bottom - parentRect.top);
+    }
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [campaigns]);
 
   // Keep `now` current so daysLeft is never stale and avoids impure Date.now() in render
   useEffect(() => {
@@ -239,8 +254,15 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
 
       {/* ── Campaign card ── */}
       <div
+        ref={cardRef}
         className="kind-campaign-card"
-        style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}
+        style={{
+          transition: 'opacity 0.3s',
+          opacity: fading ? 0 : 1,
+          borderBottomLeftRadius: count > 1 ? 0 : undefined,
+          borderBottomRightRadius: count > 1 ? 0 : undefined,
+          borderBottom: count > 1 ? '1px solid rgba(108,53,255,.16)' : undefined,
+        }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <div className="kind-verified">
@@ -278,19 +300,21 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
         </Link>
       </div>
 
-      {/* ── Status bar: sits BELOW the card, never overlaps Donate Now ── */}
+      {/* ── Status bar: flush below campaign card, measures actual card height ── */}
       {count > 1 && (
-        <div style={{
+        <div className="kind-status-bar" style={{
           position: 'absolute',
           left: 24,
           width: 392,
-          top: 598,
-          background: 'rgba(255,255,255,.88)',
-          border: '1px solid rgba(108,53,255,.14)',
-          borderRadius: 12,
+          top: cardBottom,          // dynamic — measured from card ref
+          background: 'rgba(255,255,255,.92)',
+          border: '1px solid rgba(108,53,255,.16)',
+          borderTop: 'none',        // seamless join with card bottom border
+          borderRadius: '0 0 18px 18px',
           backdropFilter: 'blur(8px)',
           overflow: 'hidden',
-          boxShadow: '0 2px 8px rgba(108,53,255,.08)',
+          boxShadow: '0 6px 16px rgba(108,53,255,.10)',
+          zIndex: 11,
         }}>
           {/* Progress fill */}
           <div style={{ height: 3, background: 'rgba(108,53,255,.08)' }}>
