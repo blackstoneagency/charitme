@@ -9,15 +9,17 @@ import { createClient } from '../../lib/supabase-browser';
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
-type WizardStep = 'type' | 'details' | 'story' | 'media' | 'preview' | 'payout' | 'live';
+type WizardStep = 'type' | 'details' | 'story' | 'media' | 'preview' | 'payout' | 'summary' | 'live';
 
-type PayoutMethod = 'stripe' | 'paypal' | 'plaid' | 'skip';
+type PayoutMethod = 'stripe' | 'paypal' | 'plaid';
 type PayoutAccount = {
   id: string;
   stripe_account_id: string;
   payouts_enabled: boolean;
   details_submitted: boolean;
   verification_status: string;
+  payout_type?: string;   // 'stripe' | 'paypal'
+  paypal_email?: string;
 } | null;
 
 interface FormState {
@@ -52,6 +54,7 @@ const WIZARD_STEPS: { key: WizardStep; label: string; num: number }[] = [
   { key: 'media',   label: 'Media & Trust', num: 4 },
   { key: 'preview', label: 'Preview',       num: 5 },
   { key: 'payout',  label: 'Get Paid',      num: 6 },
+  { key: 'summary', label: 'Review',        num: 7 },
 ];
 
 const JOURNEY_STEPS = ['Plan', 'Create', 'Launch', 'Manage', 'Celebrate', 'Impact'];
@@ -145,22 +148,35 @@ export default function CreatePage() {
     setForm(prev => ({ ...prev, coverImageUrl: first?.url ?? '' }));
   }, [uploadedImages]);
 
-  // Fetch payout account when entering payout step
+  // Fetch payout account when entering payout or summary step
   useEffect(() => {
-    if (step !== 'payout') return;
+    if (step !== 'payout' && step !== 'summary') return;
     setPayoutLoading(true);
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { setPayoutLoading(false); return; }
-      supabase
-        .from('connected_accounts')
-        .select('id, stripe_account_id, payouts_enabled, details_submitted, verification_status')
-        .eq('user_id', user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          setPayoutAccount(data as PayoutAccount);
-          setPayoutLoading(false);
-        });
+      Promise.all([
+        supabase
+          .from('connected_accounts')
+          .select('id, stripe_account_id, payouts_enabled, details_submitted, verification_status')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('profiles')
+          .select('org_website')
+          .eq('id', user.id)
+          .single(),
+      ]).then(([{ data: acct }, { data: profile }]) => {
+        // Check for PayPal stored in org_website as 'paypal:email'
+        const orgSite = (profile as { org_website?: string | null } | null)?.org_website ?? '';
+        if (!acct && orgSite.startsWith('paypal:')) {
+          const email = orgSite.replace('paypal:', '');
+          setPayoutAccount({ id: 'paypal', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'paypal', paypal_email: email });
+        } else {
+          setPayoutAccount(acct as PayoutAccount);
+        }
+        setPayoutLoading(false);
+      });
     });
   }, [step]);
 
@@ -372,14 +388,23 @@ export default function CreatePage() {
   const publish = () => submitCampaign('active');
   const saveDraft = () => submitCampaign('draft');
 
+  // Derived: is a payout method linked?
+  const payoutLinked = Boolean(
+    payoutAccount && (
+      (payoutAccount.payout_type === 'paypal' && payoutAccount.paypal_email) ||
+      (payoutAccount.payouts_enabled && payoutAccount.details_submitted)
+    )
+  );
+
   // ── Payout handlers ──────────────────────────────────
   const connectStripe = async () => {
     setConnectingStripe(true);
     setError('');
     try {
       const res = await fetch('/api/stripe/connect', { method: 'POST' });
-      const data = await res.json() as { url?: string; error?: string };
-      if (!res.ok || !data.url) throw new Error(data.error ?? 'Could not start Stripe onboarding');
+      const text = await res.text();
+      const data = (text ? JSON.parse(text) : {}) as { url?: string; error?: string };
+      if (!res.ok || !data.url) throw new Error(data.error ?? 'Could not start Stripe onboarding. Ensure STRIPE_SECRET_KEY is set in Vercel.');
       window.location.href = data.url;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to connect Stripe. Please try again.');
@@ -398,9 +423,22 @@ export default function CreatePage() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
-      await supabase.from('profiles').update({ paypal_email: paypalEmail.trim() } as Record<string, string>).eq('id', user.id);
+      // Save to profiles table as paypal_email
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({ org_website: `paypal:${paypalEmail.trim()}` } as Record<string, string>)
+        .eq('id', user.id);
+      if (profileErr) throw new Error('Failed to save PayPal email. Please try again.');
       setPayoutMethod(null);
-      setPayoutAccount({ id: 'paypal', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified' });
+      setPayoutAccount({
+        id: 'paypal',
+        stripe_account_id: '',
+        payouts_enabled: true,
+        details_submitted: true,
+        verification_status: 'verified',
+        payout_type: 'paypal',
+        paypal_email: paypalEmail.trim(),
+      });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to save PayPal email.');
     } finally {
@@ -489,7 +527,8 @@ export default function CreatePage() {
                     {step === 'story'   && 'Your Story & Content'}
                     {step === 'media'   && 'Media & Trust Signals'}
                     {step === 'preview' && 'Preview Your Campaign'}
-                    {step === 'payout'  && 'Set Up Payouts'}
+                    {step === 'payout'  && 'Get Paid'}
+                    {step === 'summary' && 'Review & Launch'}
                   </h2>
                   <p style={{ fontSize: 13, color: 'var(--t3)', margin: '4px 0 0' }}>
                     {step === 'type'    && 'Select the category that best describes your fundraiser.'}
@@ -497,7 +536,8 @@ export default function CreatePage() {
                     {step === 'story'   && 'Write a compelling story — this is what donors read before giving.'}
                     {step === 'media'   && 'Upload photos to make your campaign 3× more effective.'}
                     {step === 'preview' && 'Review how your campaign will appear to donors before going live.'}
-                    {step === 'payout'  && 'Connect your payout account so donations reach you. 0% platform fees.'}
+                    {step === 'payout'  && 'Connect your payout account so donations reach you directly. 0% platform fees.'}
+                    {step === 'summary' && 'Everything looks good? Launch your campaign and start raising.'}
                   </p>
                 </div>
               </div>
@@ -827,32 +867,55 @@ export default function CreatePage() {
 
               {/* ── Step: Payout Setup ── */}
               {step === 'payout' && (
-                <div style={{ padding: '4px 0 8px' }}>
+                <div style={{ padding: '8px 0 12px' }}>
+
+                  {/* Status badge */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>Payout Status</span>
+                    {payoutLoading ? (
+                      <span style={{ fontSize: 12, color: 'var(--t3)' }}>Checking…</span>
+                    ) : payoutLinked ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 999, fontSize: 12, fontWeight: 800, color: '#15803d' }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+                        Linked
+                      </span>
+                    ) : (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 999, fontSize: 12, fontWeight: 800, color: '#dc2626' }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+                        Not Linked
+                      </span>
+                    )}
+                  </div>
+
                   {payoutLoading ? (
                     <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--t3)', fontSize: 14 }}>
                       Checking your payout account…
                     </div>
-                  ) : payoutAccount?.payouts_enabled && payoutAccount?.details_submitted ? (
-                    /* ── Already verified ── */
+                  ) : payoutLinked && payoutAccount ? (
+                    /* ── Linked ── */
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 14, marginBottom: 20 }}>
-                        <span style={{ fontSize: 28 }}>✅</span>
-                        <div>
-                          <div style={{ fontWeight: 900, fontSize: 15, color: '#15803d' }}>Payout Account Verified</div>
-                          <div style={{ fontSize: 13, color: '#166534', marginTop: 2 }}>
-                            Your Stripe account is connected and ready to receive funds.
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 20px', background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 14, marginBottom: 16 }}>
+                        <span style={{ fontSize: 32, flexShrink: 0 }}>{payoutAccount.payout_type === 'paypal' ? '💙' : '🏦'}</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 900, fontSize: 15, color: '#15803d', marginBottom: 3 }}>
+                            {payoutAccount.payout_type === 'paypal' ? 'PayPal Account Linked' : 'Stripe Bank Account Linked'}
+                          </div>
+                          <div style={{ fontSize: 13, color: '#166534' }}>
+                            {payoutAccount.payout_type === 'paypal'
+                              ? `Donations will be sent to ${payoutAccount.paypal_email}`
+                              : 'Direct bank deposits enabled. Funds arrive within 2 business days.'}
                           </div>
                         </div>
+                        <span style={{ fontSize: 20 }}>✓</span>
                       </div>
-                      <div style={{ padding: '14px 18px', background: '#f8f9fc', borderRadius: 12, border: '1px solid #eef0f7', fontSize: 13, color: 'var(--t2)' }}>
-                        <strong>Account ID:</strong> {payoutAccount.stripe_account_id.slice(0, 12)}…
-                        <span style={{ marginLeft: 16, color: '#16a34a', fontWeight: 700 }}>● Payouts enabled</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setPayoutAccount(null)}
-                        style={{ marginTop: 14, fontSize: 12, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
-                      >
+                      {payoutAccount.stripe_account_id && (
+                        <div style={{ padding: '12px 16px', background: '#f8f9fc', borderRadius: 10, border: '1px solid #eef0f7', fontSize: 12, color: 'var(--t3)', marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+                          <span>Account: {payoutAccount.stripe_account_id.slice(0, 14)}…</span>
+                          <span style={{ color: '#16a34a', fontWeight: 700 }}>● Payouts active</span>
+                        </div>
+                      )}
+                      <button type="button" onClick={() => { setPayoutAccount(null); setPayoutMethod(null); }}
+                        style={{ fontSize: 12, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
                         Connect a different account instead
                       </button>
                     </div>
@@ -878,8 +941,7 @@ export default function CreatePage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => void publish()}
-                        disabled={loading}
+                        onClick={goNext}
                         style={{ width: '100%', height: 40, background: 'none', color: 'var(--t3)', border: '1px solid var(--b2)', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
                       >
                         Skip for now — set up payouts later
@@ -1000,12 +1062,8 @@ export default function CreatePage() {
                       </button>
 
                       <div style={{ textAlign: 'center', borderTop: '1px solid var(--b2)', paddingTop: 16 }}>
-                        <button
-                          type="button"
-                          onClick={() => void publish()}
-                          disabled={loading}
-                          style={{ fontSize: 13, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer' }}
-                        >
+                        <button type="button" onClick={goNext}
+                          style={{ fontSize: 13, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer' }}>
                           Skip for now — I&apos;ll set up payouts after launch
                         </button>
                         <div style={{ fontSize: 11, color: 'var(--t4)', marginTop: 4 }}>
@@ -1017,11 +1075,86 @@ export default function CreatePage() {
                 </div>
               )}
 
+              {/* ── Step: Summary / Review & Launch ── */}
+              {step === 'summary' && (
+                <div style={{ padding: '8px 0 12px' }}>
+                  {/* Campaign summary card */}
+                  <div style={{ background: '#f8f9fc', border: '1px solid #eef0f7', borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>
+                    <div style={{ padding: '14px 20px', borderBottom: '1px solid #eef0f7', background: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 18 }}>📋</span>
+                      <strong style={{ fontSize: 14, color: 'var(--t1)' }}>Campaign Summary</strong>
+                    </div>
+                    {[
+                      { label: 'Title', value: form.title || '—', ok: form.title.length >= 3 },
+                      { label: 'Category', value: form.category, ok: true },
+                      { label: 'Goal', value: goalCents >= 100 ? `$${(goalCents / 100).toLocaleString()}` : '—', ok: goalCents >= 100 },
+                      { label: 'Deadline', value: form.deadline || 'No deadline', ok: true },
+                      { label: 'Beneficiary', value: form.beneficiaryName || 'Self', ok: true },
+                      { label: 'Story', value: form.description.length >= 20 ? `${form.description.slice(0, 60)}…` : '—', ok: form.description.length >= 20 },
+                      { label: 'Cover Photo', value: hasCover ? '✓ Uploaded' : 'None (optional)', ok: hasCover },
+                    ].map(row => (
+                      <div key={row.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 20px', borderBottom: '1px solid #f0f2f7' }}>
+                        <span style={{ fontSize: 13, color: 'var(--t3)', fontWeight: 700, minWidth: 110 }}>{row.label}</span>
+                        <span style={{ fontSize: 13, color: 'var(--t1)', fontWeight: row.ok ? 700 : 600, textAlign: 'right', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: row.ok ? 'var(--t1)' : '#ef4444' }}>
+                          {row.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Payout summary */}
+                  <div style={{ background: '#f8f9fc', border: '1px solid #eef0f7', borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>
+                    <div style={{ padding: '14px 20px', borderBottom: '1px solid #eef0f7', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 18 }}>💳</span>
+                        <strong style={{ fontSize: 14, color: 'var(--t1)' }}>Payout Account</strong>
+                      </div>
+                      {payoutLinked ? (
+                        <span style={{ fontSize: 11, fontWeight: 800, color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '3px 10px', borderRadius: 999 }}>● Linked</span>
+                      ) : (
+                        <span style={{ fontSize: 11, fontWeight: 800, color: '#dc2626', background: '#fef2f2', border: '1px solid #fca5a5', padding: '3px 10px', borderRadius: 999 }}>● Not Linked</span>
+                      )}
+                    </div>
+                    <div style={{ padding: '14px 20px', fontSize: 13, color: 'var(--t2)' }}>
+                      {payoutLinked && payoutAccount ? (
+                        payoutAccount.payout_type === 'paypal'
+                          ? `PayPal · ${payoutAccount.paypal_email}`
+                          : `Stripe Connect · ${payoutAccount.stripe_account_id.slice(0, 14)}…`
+                      ) : (
+                        <span style={{ color: '#92400e' }}>
+                          ⚠ No payout account linked. You can still launch — connect payouts from your dashboard before your first withdrawal.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Platform fee reminder */}
+                  <div style={{ display: 'flex', gap: 12, padding: '14px 18px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, marginBottom: 20 }}>
+                    <span style={{ fontSize: 20, flexShrink: 0 }}>🎉</span>
+                    <div style={{ fontSize: 13, color: '#15803d', fontWeight: 700, lineHeight: 1.6 }}>
+                      CharitMe charges <strong>0% platform fees</strong>. 100% of donations go to your campaign. Stripe processing fees (2.9% + $0.30) are covered by donors optionally.
+                    </div>
+                  </div>
+
+                  {/* Checklist */}
+                  {(form.title.length < 3 || goalCents < 100 || form.description.length < 20) && (
+                    <div style={{ padding: '14px 18px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 12, marginBottom: 16, fontSize: 13, color: '#92400e' }}>
+                      <strong>Fix before launching:</strong>
+                      <ul style={{ margin: '8px 0 0', paddingLeft: 18, lineHeight: 2 }}>
+                        {form.title.length < 3 && <li>Campaign title too short (min 3 characters)</li>}
+                        {goalCents < 100 && <li>Set a fundraising goal (min $1.00)</li>}
+                        {form.description.length < 20 && <li>Write your campaign story (min 20 characters)</li>}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Error message */}
               {error && (
                 <div style={{
-                  margin: '0 20px 16px', padding: '12px 14px', borderRadius: 9,
-                  background: '#fff0f3', color: '#ef4444', fontSize: 13, fontWeight: 700,
+                  margin: '0 0 16px', padding: '12px 16px', borderRadius: 10,
+                  background: '#fff0f3', border: '1px solid #fecdd3', color: '#be123c', fontSize: 13, fontWeight: 700,
                 }}>
                   {error}
                 </div>
@@ -1040,7 +1173,7 @@ export default function CreatePage() {
 
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                   {/* Save draft always visible from step 2 onwards */}
-                  {stepIdx >= 1 && step !== 'preview' && step !== 'payout' && (
+                  {stepIdx >= 1 && step !== 'preview' && step !== 'payout' && step !== 'summary' && (
                     <button
                       type="button"
                       onClick={() => void saveDraft()}
@@ -1056,13 +1189,9 @@ export default function CreatePage() {
                     </button>
                   )}
 
-                  {step === 'payout' ? (
+                  {step === 'summary' ? (
                     <button type="button" className="kf-nav-launch" onClick={() => void publish()} disabled={loading}>
                       {loading ? 'Launching…' : '🚀 Launch Campaign'}
-                    </button>
-                  ) : step === 'preview' ? (
-                    <button type="button" className="kf-nav-next" onClick={goNext}>
-                      Continue →
                     </button>
                   ) : (
                     <button type="button" className="kf-nav-next" onClick={goNext}>
