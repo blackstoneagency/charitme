@@ -126,7 +126,8 @@ async function getHomeData(filters: StoryFilters): Promise<{
     { data: rotatorRaw },
     { count: campaignCount },
     { count: donationCount },
-    { data: trustScores },
+    { data: raisedRows },
+    { data: trustRows },
   ] = await Promise.all([
     supabaseAdmin
       .from('campaigns')
@@ -136,7 +137,6 @@ async function getHomeData(filters: StoryFilters): Promise<{
       .limit(3),
     carouselQuery.limit(8),
     // Hero rotator: all active campaigns with a real cover photo.
-    // featured=true and Verified sort first, then by raised amount.
     supabaseAdmin
       .from('campaigns')
       .select('slug,title,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,video_url,featured,profiles:user_id(full_name)')
@@ -146,9 +146,19 @@ async function getHomeData(filters: StoryFilters): Promise<{
       .order('featured',      { ascending: false })
       .order('raised_amount', { ascending: false })
       .limit(20),
+    // Total active campaign count
     supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+    // Total completed donation count
     supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
-    supabaseAdmin.from('trust_scores').select('score').limit(1000),
+    // Sum of raised_amount across ALL campaigns (not just active top-3)
+    supabaseAdmin.from('campaigns').select('raised_amount').gt('raised_amount', 0),
+    // Campaign health scores for trust average
+    supabaseAdmin
+      .from('campaigns')
+      .select('campaign_health_score')
+      .eq('status', 'active')
+      .not('campaign_health_score', 'is', null)
+      .gt('campaign_health_score', 0),
   ]);
 
   const featuredCampaigns = (campaigns ?? []) as HeroCampaign[];
@@ -183,12 +193,22 @@ async function getHomeData(filters: StoryFilters): Promise<{
         ? (c.profiles[0]?.full_name ?? null)
         : ((c.profiles as { full_name: string | null } | null)?.full_name ?? null),
     }));
-  const raisedTotal = heroCampaign?.raised_amount ?? 0;
-  const goalTotal = heroCampaign?.goal_amount ?? 1;
-  const trustAverage = (trustScores ?? []).length > 0
-    ? Math.round((trustScores ?? []).reduce((sum, row) => sum + ((row as { score: number }).score ?? 0), 0) / (trustScores ?? []).length)
+  // Platform total raised — sum across ALL campaigns with any donations
+  const platformRaised = ((raisedRows ?? []) as { raised_amount: number }[])
+    .reduce((sum, r) => sum + (r.raised_amount ?? 0), 0);
+
+  // Trust score average from active campaigns' health scores
+  const trustArr = ((trustRows ?? []) as { campaign_health_score: number }[])
+    .map(r => r.campaign_health_score ?? 0)
+    .filter(s => s > 0);
+  const trustAverage = trustArr.length > 0
+    ? Math.round(trustArr.reduce((a, b) => a + b, 0) / trustArr.length)
     : 0;
-  const daysLeft = heroCampaign?.deadline
+
+  const heroCampaign = featuredCampaigns[0] ?? null;
+  const raisedTotal  = heroCampaign?.raised_amount ?? 0;
+  const goalTotal    = heroCampaign?.goal_amount ?? 1;
+  const daysLeft     = heroCampaign?.deadline
     ? Math.max(0, Math.ceil((new Date(heroCampaign.deadline).getTime() - Date.now()) / 86_400_000))
     : 0;
 
@@ -200,11 +220,10 @@ async function getHomeData(filters: StoryFilters): Promise<{
     heroPercent: Math.min(100, Math.round((raisedTotal / goalTotal) * 100)),
     daysLeft,
     stats: [
-      [formatCents(raisedTotal), 'Raised on CharitMe'],
+      [formatCents(platformRaised),          'Raised on CharitMe'],
       [(campaignCount ?? 0).toLocaleString(), 'Active Campaigns'],
-      [shortCount(donationCount ?? 0), 'Donations Recorded'],
-      [`${trustAverage}%`, 'Trust Score Average'],
-      ['Live', 'Supabase Powered'],
+      [shortCount(donationCount ?? 0),        'Donations Recorded'],
+      [`${trustAverage}%`,                    'Trust Score Average'],
     ],
   };
 }
