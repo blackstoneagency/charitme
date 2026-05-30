@@ -5,20 +5,30 @@ import { supabaseAdmin } from '../../../../lib/supabase';
 export const revalidate = 60; // ISR: refresh every 60s
 
 export async function GET() {
-  const { data, error } = await supabaseAdmin
-    .from('campaigns')
-    .select(
-      'slug,title,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,featured,profiles:user_id(full_name)',
-    )
-    .eq('status', 'active')
-    .not('cover_image_url', 'is', null)
-    .neq('cover_image_url', '')
-    .order('featured', { ascending: false })
-    .order('raised_amount', { ascending: false })
-    .limit(20);
+  const [campaignsResult, statsResult] = await Promise.all([
+    supabaseAdmin
+      .from('campaigns')
+      .select(
+        'slug,title,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,featured,profiles:user_id(full_name)',
+      )
+      .eq('status', 'active')
+      .not('cover_image_url', 'is', null)
+      .neq('cover_image_url', '')
+      .order('featured', { ascending: false })
+      .order('raised_amount', { ascending: false })
+      .limit(20),
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // Platform-level stats for the "Live" badge
+    supabaseAdmin
+      .from('donations')
+      .select('created_at', { count: 'exact' })
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(1),
+  ]);
+
+  if (campaignsResult.error) {
+    return NextResponse.json({ error: campaignsResult.error.message }, { status: 500 });
   }
 
   type Raw = {
@@ -30,7 +40,7 @@ export async function GET() {
     profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
   };
 
-  const campaigns = ((data ?? []) as Raw[])
+  const campaigns = ((campaignsResult.data ?? []) as Raw[])
     .filter(c => c.cover_image_url?.startsWith('http'))
     .map(c => ({
       slug:                  c.slug,
@@ -49,5 +59,10 @@ export async function GET() {
         : ((c.profiles as { full_name: string | null } | null)?.full_name ?? null),
     }));
 
-  return NextResponse.json({ campaigns });
+  // Last donation timestamp for the live badge
+  type DonationRow = { created_at: string };
+  const lastDonationAt = ((statsResult.data ?? []) as DonationRow[])[0]?.created_at ?? null;
+  const totalDonations = statsResult.count ?? 0;
+
+  return NextResponse.json({ campaigns, lastDonationAt, totalDonations });
 }

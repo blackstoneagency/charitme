@@ -18,6 +18,26 @@ export type RotatorCampaign = {
   featured: boolean | null;
 };
 
+function relativeTime(iso: string | null): string {
+  if (!iso) return 'Recently';
+  const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (secs < 60)   return `${secs}s ago`;
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
+  return `${Math.floor(secs / 86400)}d ago`;
+}
+
+function trustLabel(status: string | null): string {
+  const map: Record<string, string> = {
+    'Verified':       'Verified',
+    'Trusted':        'Trusted',
+    'Under Review':   'Reviewing',
+    'Needs More Info': 'Pending',
+    'Flagged':        'Flagged',
+  };
+  return map[status ?? ''] ?? 'Live';
+}
+
 function formatCents(cents: number): string {
   const dollars = cents / 100;
   if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1)}M`;
@@ -33,8 +53,10 @@ interface Props {
 }
 
 export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero-child-crop.png' }: Props) {
-  const [campaigns, setCampaigns] = useState<RotatorCampaign[]>(seed);
-  const [loading, setLoading]     = useState(seed.length === 0);
+  const [campaigns, setCampaigns]         = useState<RotatorCampaign[]>(seed);
+  const [loading, setLoading]             = useState(seed.length === 0);
+  const [lastDonationAt, setLastDonation] = useState<string | null>(null);
+  const [totalDonations, setTotalDonations] = useState(0);
   const [active, setActive]       = useState(0);
   const [fading, setFading]       = useState(false);
   const [paused, setPaused]       = useState(false);
@@ -55,11 +77,13 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
     try {
       const res = await fetch('/api/campaigns/rotator', { cache: 'no-store' });
       if (!res.ok) return;
-      const json = await res.json() as { campaigns?: RotatorCampaign[] };
+      const json = await res.json() as { campaigns?: RotatorCampaign[]; lastDonationAt?: string | null; totalDonations?: number };
       if (Array.isArray(json.campaigns) && json.campaigns.length > 0) {
         setCampaigns(json.campaigns);
         setActive(0);
       }
+      if (json.lastDonationAt !== undefined) setLastDonation(json.lastDonationAt);
+      if (json.totalDonations  !== undefined) setTotalDonations(json.totalDonations);
     } finally {
       setLoading(false);
     }
@@ -167,7 +191,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
         </div>
       )}
 
-      {/* ── Floating stat badges ── */}
+      {/* ── Floating stat badges — all values from Supabase DB ── */}
       <div className="kind-floating kind-floating-1">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /></svg>
         <div>
@@ -176,7 +200,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
             {healthScore}
           </strong>
           <small style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>
-            {campaign?.trust_status ?? 'Live'}
+            {trustLabel(campaign?.trust_status ?? null)}
           </small>
         </div>
       </div>
@@ -199,11 +223,17 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
         </div>
       </div>
 
+      {/* Badge 4: last donation time across the whole platform — from DB */}
       <div className="kind-floating kind-floating-4">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
         <div>
-          <strong style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>Real-time</strong>
-          <span>Impact Updates</span>
+          <strong style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>
+            {totalDonations > 0 ? totalDonations.toLocaleString() : '—'}
+          </strong>
+          <span>Donations</span>
+          <small style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>
+            Last {relativeTime(lastDonationAt)}
+          </small>
         </div>
       </div>
 
