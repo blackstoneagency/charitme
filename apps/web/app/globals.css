@@ -168,6 +168,7 @@ img, svg { display: block; }
 
 /* Hero rotator progress animation */
 @keyframes heroProgress { from { width: 0 } to { width: 100% } }
+@keyframes spin { to { transform: rotate(360deg) } }
 
 .kind-hero-art { min-height: 545px; position: relative; }
 .kind-photo {
