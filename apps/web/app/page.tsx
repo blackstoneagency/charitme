@@ -135,15 +135,17 @@ async function getHomeData(filters: StoryFilters): Promise<{
       .order('raised_amount', { ascending: false })
       .limit(3),
     carouselQuery.limit(8),
-    // Hero rotator: active campaigns WITH a photo.
-    // featured=true campaigns sort first so admin-curated picks lead the rotation.
+    // Hero rotator: active + Verified campaigns WITH a cover photo.
+    // featured=true sorts first, then by raised amount.
     supabaseAdmin
       .from('campaigns')
       .select('slug,title,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,video_url,featured,profiles:user_id(full_name)')
       .eq('status', 'active')
+      .eq('trust_status', 'Verified')
       .not('cover_image_url', 'is', null)
-      .order('featured',      { ascending: false })  // featured=true first
-      .order('raised_amount', { ascending: false })   // then by raised amount
+      .neq('cover_image_url', '')
+      .order('featured',      { ascending: false })
+      .order('raised_amount', { ascending: false })
       .limit(20),
     supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
     supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
@@ -164,8 +166,12 @@ async function getHomeData(filters: StoryFilters): Promise<{
     profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
   };
   const rotatorCampaigns: RotatorCampaign[] = ((rotatorRaw ?? []) as RawRotator[])
-    // exclude campaigns where only a video is set and cover_image_url is missing/placeholder
-    .filter(c => c.cover_image_url && c.cover_image_url.length > 0)
+    // Must have a real cover URL (http/https) and be Verified
+    .filter(c =>
+      c.cover_image_url &&
+      c.cover_image_url.startsWith('http') &&
+      c.trust_status === 'Verified'
+    )
     .map(c => ({
       slug:                  c.slug,
       title:                 c.title,
