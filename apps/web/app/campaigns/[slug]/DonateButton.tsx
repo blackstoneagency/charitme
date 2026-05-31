@@ -22,7 +22,34 @@ const GREEN = '#059669';
 const money = (cents: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
 
+// Format like "$50" (no decimals for whole dollars)
+const moneyShort = (cents: number) => {
+  const dollars = cents / 100;
+  return dollars % 1 === 0
+    ? `$${dollars.toLocaleString('en-US')}`
+    : money(cents);
+};
+
 type FrequencyMode = 'once' | 'monthly';
+
+type PaymentMethod = 'card' | 'paypal' | 'venmo' | 'gpay' | 'direct_debit' | 'bank';
+
+interface PayOption {
+  id: PaymentMethod;
+  label: string;
+  icon: string;
+  iconBg: string;
+  iconColor: string;
+}
+
+const PAY_OPTIONS: PayOption[] = [
+  { id: 'paypal',       label: 'PayPal',         icon: 'P',    iconBg: '#e8eef7', iconColor: '#003087' },
+  { id: 'venmo',        label: 'Venmo',           icon: 'V',    iconBg: '#e0f4fb', iconColor: '#3D95CE' },
+  { id: 'gpay',         label: 'Google Pay',      icon: 'G',    iconBg: '#f0f0f0', iconColor: '#4285F4' },
+  { id: 'direct_debit', label: 'Direct Debit',    icon: '🏦',   iconBg: '#f5f5f5', iconColor: '#333' },
+  { id: 'bank',         label: 'Bank transfer',   icon: '🏛',   iconBg: '#f5f5f5', iconColor: '#333' },
+  { id: 'card',         label: 'Credit / Debit',  icon: '💳',   iconBg: '#f0f0f0', iconColor: '#333' },
+];
 
 export default function DonateButton({
   campaignId,
@@ -41,6 +68,7 @@ export default function DonateButton({
   const [error, setError] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
   const [isGuest, setIsGuest] = useState<boolean | null>(null);
+  const [preferredMethod, setPreferredMethod] = useState<PaymentMethod>('card');
 
   const amountCents = Math.round((Number.parseFloat(amount) || 0) * 100);
   const isMonthly = frequency === 'monthly';
@@ -100,6 +128,7 @@ export default function DonateButton({
           anonymous,
           coverProcessingFee: isMonthly ? false : coverProcessingFee,
           tipPercent,
+          preferredMethod,
           donorEmail: !user && guestEmail.trim() ? guestEmail.trim() : undefined,
         }),
       });
@@ -305,6 +334,46 @@ export default function DonateButton({
         Donate anonymously
       </label>
 
+      {/* ── Payment method selector ── */}
+      <div>
+        <p style={{
+          margin: '0 0 8px', fontSize: 11, fontWeight: 900,
+          color: MUTED, textTransform: 'uppercase', letterSpacing: '.05em',
+        }}>
+          Payment method
+        </p>
+        <div className="pc-payment-methods">
+          {PAY_OPTIONS.map((opt) => {
+            const active = preferredMethod === opt.id;
+            return (
+              <label
+                key={opt.id}
+                className={`pc-pay-tile${active ? ' active' : ''}`}
+                style={active ? { borderColor: VIOLET, background: VIOLET_LIGHT, color: VIOLET } : {}}
+              >
+                <input
+                  type="radio"
+                  name="preferredMethod"
+                  value={opt.id}
+                  checked={active}
+                  onChange={() => setPreferredMethod(opt.id)}
+                />
+                <span
+                  className="pc-pay-icon"
+                  style={{ background: opt.iconBg, color: opt.iconColor }}
+                >
+                  {opt.icon}
+                </span>
+                {opt.label}
+              </label>
+            );
+          })}
+        </div>
+        <p style={{ margin: '4px 0 0', fontSize: 11, color: MUTED, lineHeight: 1.4 }}>
+          All methods process securely via Stripe.
+        </p>
+      </div>
+
       {/* ── Guest email ── */}
       {isGuest && (
         <div style={{
@@ -403,7 +472,9 @@ export default function DonateButton({
           ? 'Opening secure checkout…'
           : isMonthly
           ? `Give ${money(breakdown.total)}/month →`
-          : `Donate ${money(breakdown.total)} →`}
+          : amountCents >= 100
+          ? `Give ${moneyShort(breakdown.total)} →`
+          : 'Give →'}
       </button>
 
       <div style={{ textAlign: 'center', fontSize: 11, color: MUTED, fontWeight: 700 }}>
