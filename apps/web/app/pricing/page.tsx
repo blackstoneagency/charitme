@@ -255,7 +255,7 @@ export default function PricingPage() {
     setError('');
 
     if (plan.monthlyPrice === 0) {
-      router.push('/login?mode=signup');
+      router.push('/create');
       return;
     }
     if (plan.monthlyPrice === null) {
@@ -268,7 +268,7 @@ export default function PricingPage() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        router.push(`/login?next=/pricing&mode=signup`);
+        router.push(`/create`);
         return;
       }
 

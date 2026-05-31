@@ -15,7 +15,7 @@ export default function AboutUsPage() {
         <h1>Fundraising that thinks for you. Built by people who care.</h1>
         <p>CharitMe combines compassionate design, transparent giving tools, and AI-powered guidance so more organizers can turn real stories into real impact.</p>
         <div className="pub-actions">
-          <Link href="/login?mode=signup" className="pub-btn primary">Get Started</Link>
+          <Link href="/create" className="pub-btn primary">Get Started</Link>
           <Link href="/success-stories" className="pub-btn secondary">See Success Stories <PublicIcon name="arrow" /></Link>
         </div>
       </section>

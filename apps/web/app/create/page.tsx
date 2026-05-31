@@ -66,16 +66,24 @@ const MAX_IMG_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_IMAGES   = 10;
 
 const CATEGORY_META: Record<string, { icon: string; tone: string; desc: string }> = {
-  Medical:            { icon: 'heart',  tone: 'violet', desc: 'Surgery, treatment, recovery' },
-  'Memorial/Funeral': { icon: 'gift',   tone: 'violet', desc: 'Final expenses, tribute' },
-  Emergency:          { icon: 'shield', tone: 'orange', desc: 'Crisis, urgent need' },
-  'Disaster Relief':  { icon: 'send',   tone: 'orange', desc: 'Natural disasters, rebuilding' },
-  Education:          { icon: 'doc',    tone: 'blue',   desc: 'School, tuition, scholarships' },
-  'Animal/Pet':       { icon: 'heart',  tone: 'green',  desc: 'Vet care, rescue, shelter' },
-  Community:          { icon: 'users',  tone: 'green',  desc: 'Events, local projects' },
-  Nonprofit:          { icon: 'users',  tone: 'blue',   desc: 'Organizations, causes' },
-  'Sports/Teams':     { icon: 'team',   tone: 'orange', desc: 'Athletics, travel, gear' },
-  Other:              { icon: 'stack',  tone: 'violet', desc: 'Any other need' },
+  Medical:     { icon: 'heart',  tone: 'violet', desc: 'Surgery, treatment, recovery' },
+  Memorial:    { icon: 'gift',   tone: 'violet', desc: 'Final expenses, tribute' },
+  Emergency:   { icon: 'shield', tone: 'orange', desc: 'Crisis, urgent need' },
+  Nonprofit:   { icon: 'users',  tone: 'blue',   desc: 'Organizations & causes' },
+  Education:   { icon: 'doc',    tone: 'blue',   desc: 'School, tuition, scholarships' },
+  Animal:      { icon: 'heart',  tone: 'green',  desc: 'Vet care, rescue, shelter' },
+  Environment: { icon: 'send',   tone: 'green',  desc: 'Conservation & sustainability' },
+  Business:    { icon: 'stack',  tone: 'orange', desc: 'Startups & small business' },
+  Community:   { icon: 'users',  tone: 'green',  desc: 'Events, local projects' },
+  Competition: { icon: 'crown',  tone: 'orange', desc: 'Sports, athletics, contests' },
+  Creative:    { icon: 'doc',    tone: 'violet', desc: 'Art, film, music, design' },
+  Event:       { icon: 'bell',   tone: 'blue',   desc: 'Concerts, galas, gatherings' },
+  Faith:       { icon: 'heart',  tone: 'violet', desc: 'Church, mission, spiritual' },
+  Family:      { icon: 'users',  tone: 'green',  desc: 'Family needs & milestones' },
+  Sports:      { icon: 'team',   tone: 'orange', desc: 'Teams, travel, gear' },
+  Travel:      { icon: 'send',   tone: 'blue',   desc: 'Trips, missions, adventures' },
+  Volunteer:   { icon: 'check',  tone: 'green',  desc: 'Service & community impact' },
+  Wishes:      { icon: 'gift',   tone: 'violet', desc: 'Dreams, gifts, celebrations' },
 };
 
 // ─────────────────────────────────────────────
@@ -95,18 +103,40 @@ export default function CreatePage() {
   const [payoutMethod, setPayoutMethod]   = useState<PayoutMethod | null>(null);
   const [paypalEmail, setPaypalEmail]     = useState('');
   const [connectingStripe, setConnectingStripe] = useState(false);
-  // Guest mode: true until we confirm the user is logged in
-  const [isGuest, setIsGuest]         = useState(true);
+  // null = auth check in progress; true = guest; false = logged in
+  const [isGuest, setIsGuest]         = useState<boolean | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // Fetch the logged-in user once so the shell shows their real name
+  // Fetch the logged-in user + restore any sessionStorage wizard state
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { setIsGuest(true); return; }
+      if (!user) {
+        setIsGuest(true);
+        // Restore saved wizard state if user just returned from OAuth
+        const saved = sessionStorage.getItem('cm_wizard');
+        if (saved) {
+          try {
+            const { savedForm, savedStep } = JSON.parse(saved) as { savedForm: FormState; savedStep: WizardStep };
+            setForm(savedForm);
+            setStep(savedStep);
+          } catch { /* ignore corrupt data */ }
+          sessionStorage.removeItem('cm_wizard');
+        }
+        return;
+      }
       setIsGuest(false);
       setUserEmail(user.email ?? undefined);
-      // Try to pull display name + avatar from the profiles table
+      // Restore saved wizard state if user just returned from OAuth and is now logged in
+      const saved = sessionStorage.getItem('cm_wizard');
+      if (saved) {
+        try {
+          const { savedForm, savedStep } = JSON.parse(saved) as { savedForm: FormState; savedStep: WizardStep };
+          setForm(savedForm);
+          setStep(savedStep);
+        } catch { /* ignore corrupt data */ }
+        sessionStorage.removeItem('cm_wizard');
+      }
       void supabase
         .from('profiles')
         .select('full_name, avatar_url')
@@ -467,7 +497,7 @@ export default function CreatePage() {
   });
 
   return (
-    <CharitMeShell active="My Campaigns" userName={userName} userEmail={userEmail} userAvatarUrl={userAvatarUrl} guestMode={isGuest}>
+    <CharitMeShell active="My Campaigns" userName={userName} userEmail={userEmail} userAvatarUrl={userAvatarUrl} guestMode={isGuest !== false}>
       <TopBar
         title="Create Campaign"
         subtitle="Launch a trusted fundraiser in minutes with AI Copilot."
@@ -1200,7 +1230,7 @@ export default function CreatePage() {
                     <button
                       type="button"
                       className="kf-nav-launch"
-                      onClick={() => { if (isGuest) { setShowLoginModal(true); } else { void publish(); } }}
+                      onClick={() => { if (isGuest !== false) { setShowLoginModal(true); } else { void publish(); } }}
                       disabled={loading}
                     >
                       {loading ? 'Launching…' : '🚀 Launch Campaign'}
@@ -1328,6 +1358,8 @@ export default function CreatePage() {
       {/* ── Guest login modal ── */}
       {showLoginModal && (
         <GuestLoginModal
+          savedForm={form}
+          savedStep={step}
           onClose={() => setShowLoginModal(false)}
           onSuccess={() => {
             setIsGuest(false);
@@ -1362,7 +1394,12 @@ function AppleMark() {
   );
 }
 
-function GuestLoginModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
+  onClose: () => void;
+  onSuccess: () => void;
+  savedForm: FormState;
+  savedStep: WizardStep;
+}) {
   const supabase = React.useMemo(() => createClient(), []);
   const [modalMode, setModalMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail]   = useState('');
@@ -1372,7 +1409,9 @@ function GuestLoginModal({ onClose, onSuccess }: { onClose: () => void; onSucces
   const [err, setErr]       = useState('');
   const [ok, setOk]         = useState('');
 
-  const handleOAuth = (provider: 'google' | 'apple') => {
+  // Save wizard state to sessionStorage so it survives the OAuth redirect
+  const handleOAuth = (provider: 'google') => {
+    sessionStorage.setItem('cm_wizard', JSON.stringify({ savedForm, savedStep }));
     window.location.href = `/api/auth/signin?provider=${provider}&next=/create`;
   };
 
@@ -1405,34 +1444,31 @@ function GuestLoginModal({ onClose, onSuccess }: { onClose: () => void; onSucces
       <div className="guest-modal-card">
         <button className="guest-modal-close" onClick={onClose} aria-label="Close">✕</button>
 
-        <h2>{modalMode === 'login' ? 'Log in' : 'Create account'}</h2>
-        <p style={{ color: 'var(--t3)', fontSize: 14, margin: '4px 0 20px' }}>
-          {modalMode === 'login' ? 'Continue to your dashboard.' : 'Create a verified workspace in minutes.'}
+        <h2>{modalMode === 'login' ? 'Log in' : 'Sign up'}</h2>
+        <p className="guest-modal-sub">
+          {modalMode === 'login' ? 'Continue to your dashboard.' : 'Create your free account to launch.'}
         </p>
 
-        <button className="guest-oauth-btn" onClick={() => handleOAuth('google')} disabled={busy}>
+        <button className="guest-oauth-btn" onClick={() => handleOAuth('google')} disabled={busy} type="button">
           <GoogleMark /> Continue with Google
-        </button>
-        <button className="guest-oauth-btn guest-oauth-apple" onClick={() => handleOAuth('apple')} disabled={busy}>
-          <AppleMark /> Continue with Apple
         </button>
 
         <div className="guest-modal-sep"><span>OR</span></div>
 
-        <form onSubmit={(e) => void handleSubmit(e)} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <form onSubmit={(e) => void handleSubmit(e)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {modalMode === 'signup' && (
             <label className="guest-modal-label">
               Full name
-              <input value={name} onChange={e => setName(e.target.value)} placeholder="Sarah Thompson" required />
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="Sarah Thompson" required autoComplete="name" />
             </label>
           )}
           <label className="guest-modal-label">
             Email
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email" />
           </label>
           <label className="guest-modal-label">
             Password
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required minLength={6} />
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required minLength={6} autoComplete={modalMode === 'login' ? 'current-password' : 'new-password'} />
           </label>
 
           {err && <p style={{ margin: 0, color: '#be123c', fontSize: 13, fontWeight: 700 }}>{err}</p>}
@@ -1443,13 +1479,12 @@ function GuestLoginModal({ onClose, onSuccess }: { onClose: () => void; onSucces
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--t3)', marginTop: 16 }}>
+        <p className="guest-modal-switch">
           {modalMode === 'login' ? 'Need an account?' : 'Already have an account?'}
           {' '}
           <button
             type="button"
             onClick={() => { setModalMode(m => m === 'login' ? 'signup' : 'login'); setErr(''); setOk(''); }}
-            style={{ background: 'none', border: 'none', color: 'var(--green)', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}
           >
             {modalMode === 'login' ? 'Sign up' : 'Log in'}
           </button>
