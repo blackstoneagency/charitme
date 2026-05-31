@@ -489,6 +489,9 @@ export default function CreatePage() {
                 <div
                   key={s.key}
                   className={`kf-step-track-item${isActive ? ' active' : isDone ? ' done' : ''}`}
+                  onClick={() => isDone && setStep(s.key)}
+                  style={isDone ? { cursor: 'pointer' } : undefined}
+                  title={isDone ? `Go back to ${s.label}` : undefined}
                 >
                   <span className="kf-step-num">{isDone ? '✓' : s.num}</span>
                   {s.label}

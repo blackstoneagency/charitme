@@ -1755,6 +1755,7 @@ img, svg { display: block; }
 .kf-step-track-item.active .kf-step-num { background: #551cf2; color: #fff; }
 .kf-step-track-item.done { color: #0fa456; }
 .kf-step-track-item.done .kf-step-num { background: #e7f8ed; color: #0fa456; }
+.kf-step-track-item.done:hover { background: #f0fdf5; color: #0a8044; }
 .kf-create-layout { display: grid; grid-template-columns: 1fr 310px; gap: 22px; }
 .kf-create-side { display: flex; flex-direction: column; gap: 18px; }
 .kf-type-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; padding: 0 20px 20px; }
