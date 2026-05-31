@@ -105,7 +105,12 @@ create table public.campaigns (
   title                    text not null,
   tagline                  text,
   description              text not null,
-  category                 text not null,
+  category                 text not null
+                             check (category in (
+                               'Medical','Memorial','Emergency','Nonprofit','Education','Animal',
+                               'Environment','Business','Community','Competition','Creative','Event',
+                               'Faith','Family','Sports','Travel','Volunteer','Wishes'
+                             )),
   goal_amount              bigint not null check (goal_amount > 0),
   raised_amount            bigint not null default 0 check (raised_amount >= 0),
   backer_count             int    not null default 0 check (backer_count >= 0),
@@ -834,8 +839,9 @@ declare
     'Young','Allen','Sanchez','Wright','King','Scott','Green','Baker','Adams','Nelson','Hill',
     'Ramirez','Campbell','Mitchell','Roberts','Carter','Phillips','Evans','Turner','Torres','Parker'];
 
-  categories   text[] := array['Medical','Memorial/Funeral','Emergency','Disaster Relief','Education',
-    'Animal/Pet','Community','Nonprofit','Sports/Teams','Other'];
+  categories   text[] := array['Medical','Memorial','Emergency','Nonprofit','Education','Animal',
+    'Environment','Business','Community','Competition','Creative','Event',
+    'Faith','Family','Sports','Travel','Volunteer','Wishes'];
 
   cam_statuses text[] := array['active','active','active','active','active','draft','paused','completed',
     'active','active'];
@@ -953,7 +959,7 @@ begin
   -- ── 3. CAMPAIGNS (500) ────────────────────────────────────────────────────
   for i in 1..500 loop
     new_id := uuid_generate_v4();
-    cat := categories[1 + ((i - 1) % 10)];
+    cat := categories[1 + ((i - 1) % 18)];
     goal_amt := ((i % 50) + 1) * 100000;  -- $1,000 – $50,000 in cents
     raised_pct := case when cam_statuses[1 + ((i-1)%10)] = 'completed' then 1.0
                        when cam_statuses[1 + ((i-1)%10)] = 'active'    then (i % 100) / 100.0
@@ -973,16 +979,24 @@ begin
       organizer_id,
       'campaign-' || i || '-' || substr(md5(new_id::text), 1, 8),
       case cat
-        when 'Medical'           then 'Help ' || first_names[1 + ((i-1)%50)] || ' cover urgent medical costs'
-        when 'Memorial/Funeral'  then 'Celebrating the life of ' || first_names[1 + ((i-1)%50)] || ' ' || last_names[1 + ((i-1)%50)]
-        when 'Emergency'         then 'Emergency fund for ' || first_names[1 + ((i-1)%50)] || '''s family'
-        when 'Disaster Relief'   then 'Disaster relief for affected families in need'
-        when 'Education'         then first_names[1 + ((i-1)%50)] || '''s education scholarship fund'
-        when 'Animal/Pet'        then 'Emergency vet care for ' || first_names[1 + ((i-1)%50)] || '''s rescue'
-        when 'Community'         then 'Community project: rebuilding our neighborhood center'
-        when 'Nonprofit'         then 'Support ' || first_names[1 + ((i-1)%50)] || '''s nonprofit mission'
-        when 'Sports/Teams'      then 'Help our team make it to nationals this season'
-        else                          'Help us reach our goal and make a real impact'
+        when 'Medical'      then 'Help ' || first_names[1 + ((i-1)%50)] || ' cover urgent medical costs'
+        when 'Memorial'     then 'Celebrating the life of ' || first_names[1 + ((i-1)%50)] || ' ' || last_names[1 + ((i-1)%50)]
+        when 'Emergency'    then 'Emergency fund for ' || first_names[1 + ((i-1)%50)] || '''s family'
+        when 'Nonprofit'    then 'Support ' || first_names[1 + ((i-1)%50)] || '''s nonprofit mission'
+        when 'Education'    then first_names[1 + ((i-1)%50)] || '''s education scholarship fund'
+        when 'Animal'       then 'Emergency vet care for ' || first_names[1 + ((i-1)%50)] || '''s rescue'
+        when 'Environment'  then 'Help us restore and protect our local environment'
+        when 'Business'     then 'Support ' || first_names[1 + ((i-1)%50)] || '''s small business dream'
+        when 'Community'    then 'Community project: rebuilding our neighborhood center'
+        when 'Competition'  then 'Help our team compete at the national championship'
+        when 'Creative'     then first_names[1 + ((i-1)%50)] || '''s creative project needs your support'
+        when 'Event'        then 'Help us bring this community event to life'
+        when 'Faith'        then 'Support our faith community and mission'
+        when 'Family'       then 'Help ' || first_names[1 + ((i-1)%50)] || '''s family through a difficult time'
+        when 'Sports'       then 'Help our team make it to nationals this season'
+        when 'Travel'       then first_names[1 + ((i-1)%50)] || '''s life-changing travel fund'
+        when 'Volunteer'    then 'Fund our volunteer team''s community impact work'
+        else                     first_names[1 + ((i-1)%50)] || '''s wishes — help make it happen'
       end,
       'Every dollar gets us closer to changing a life. Please share this campaign.',
       'This fundraiser was created to address a real and urgent need. Our community has rallied together in support, and every contribution—large or small—brings us closer to our goal. Funds will be used transparently, with regular updates posted for all donors to see.',
@@ -1347,7 +1361,7 @@ begin
       profile_ids[1  + ((i - 1) % 500)],
       campaign_ids[1 + ((i - 1) % 500)],
       ai_gen_types[1 + ((i - 1) % 9)],
-      ('{"category":"' || categories[1+((i-1)%10)] || '","beneficiary":"User ' || i || '"}')::jsonb,
+      ('{"category":"' || categories[1+((i-1)%18)] || '","beneficiary":"User ' || i || '"}')::jsonb,
       ('{"title":"AI Generated Campaign ' || i || '","story":"Compelling story text...","qualityScore":' || (60 + (i % 40)) || '}')::jsonb,
       300 + (i % 700),
       case when i % 3 = 0 then 'gpt-4o' else 'gpt-4.1-mini' end,

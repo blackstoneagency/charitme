@@ -7,15 +7,23 @@ export const MAX_DONATION_CENTS = 1_000_000_00;
 
 export const CAMPAIGN_CATEGORIES = [
   'Medical',
-  'Memorial/Funeral',
+  'Memorial',
   'Emergency',
-  'Disaster Relief',
-  'Education',
-  'Animal/Pet',
-  'Community',
   'Nonprofit',
-  'Sports/Teams',
-  'Other',
+  'Education',
+  'Animal',
+  'Environment',
+  'Business',
+  'Community',
+  'Competition',
+  'Creative',
+  'Event',
+  'Faith',
+  'Family',
+  'Sports',
+  'Travel',
+  'Volunteer',
+  'Wishes',
 ] as const;
 
 export type CampaignCategory = (typeof CAMPAIGN_CATEGORIES)[number];

@@ -81,7 +81,7 @@ type DetailTab = 'overview' | 'updates' | 'donations' | 'payouts' | 'more';
 // Constants
 // ─────────────────────────────────────────────────────────
 const PAGE_SIZE = 10;
-const CAMPAIGN_CATEGORIES = ['Medical','Memorial/Funeral','Emergency','Disaster Relief','Education','Animal/Pet','Community','Nonprofit','Sports/Teams','Other'];
+const CAMPAIGN_CATEGORIES = ['Medical','Memorial','Emergency','Nonprofit','Education','Animal','Environment','Business','Community','Competition','Creative','Event','Faith','Family','Sports','Travel','Volunteer','Wishes'];
 const CAMPAIGN_TYPES = ['Individual','Nonprofit','Business'];
 
 const STATUS_LABEL: Record<string, string> = {
