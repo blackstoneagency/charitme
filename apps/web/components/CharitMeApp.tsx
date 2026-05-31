@@ -30,6 +30,7 @@ export type ShellProps = {
   userEmail?: string;
   userRole?: string | null;
   userAvatarUrl?: string | null;
+  guestMode?: boolean;
 };
 
 export type ShellVariant = 'dashboard' | 'admin';
@@ -113,7 +114,7 @@ export function Logo() {
   );
 }
 
-export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAccess = false, userName, userEmail, userRole, userAvatarUrl }: ShellProps) {
+export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAccess = false, userName, userEmail, userRole, userAvatarUrl, guestMode = false }: ShellProps) {
   const _nav = mode === 'admin' ? adminNav : dashboardNav; void _nav;
   const displayName = userName || userEmail?.split('@')[0] || (mode === 'admin' ? 'Admin User' : 'My Account');
   const displayRole = userRole || (mode === 'admin' ? 'Super Admin' : 'Organizer');
@@ -142,7 +143,7 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
         )}
 
         {/* ── DASHBOARD mode with admin access: Admin section FIRST, then user nav ── */}
-        {mode === 'dashboard' && hasAdminAccess && (
+        {mode === 'dashboard' && hasAdminAccess && !guestMode && (
           <div className="kf-admin-nav kf-admin-nav--top">
             <div className="kf-section-label">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} width={13} height={13} strokeLinecap="round" strokeLinejoin="round">
@@ -168,7 +169,14 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
             <nav className="kf-nav">
               {dashboardNav.map(([label, href, icon, badge]) => {
                 const isActive = active === label || (active === 'Campaigns' && label === 'My Campaigns');
-                return (
+                const isGuestDisabled = guestMode && label !== 'My Campaigns';
+                return isGuestDisabled ? (
+                  <span key={href} className="kf-nav-guest-item" title="Sign in to access">
+                    <KFIcon name={icon} />
+                    <span>{label}</span>
+                    {badge && <em>{badge}</em>}
+                  </span>
+                ) : (
                   <Link key={href} href={href} className={isActive ? 'active' : ''}>
                     <KFIcon name={icon} />
                     <span>{label}</span>
@@ -181,10 +189,10 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
         )}
 
         {mode !== 'admin' && (
-          <div className="kf-pro">
+          <div className={`kf-pro${guestMode ? ' kf-guest-disabled' : ''}`}>
             <div><KFIcon name="crown" /> CharitMe Pro</div>
             <p>Unlock advanced tools, insights, automation, and priority support.</p>
-            <Link href="/pricing">Upgrade Now</Link>
+            {guestMode ? <span>Upgrade Now</span> : <Link href="/pricing">Upgrade Now</Link>}
           </div>
         )}
 

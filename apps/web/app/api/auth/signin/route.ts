@@ -58,8 +58,11 @@ export async function GET(request: NextRequest) {
 
   const callbackUrl = `${origin}/api/auth/callback?next=${encodeURIComponent(next)}`;
 
+  const rawProvider = searchParams.get('provider') ?? 'google';
+  const provider = rawProvider === 'apple' ? 'apple' : 'google';
+
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
+    provider,
     options: {
       redirectTo: callbackUrl,
       // CRITICAL: don't auto-redirect — we need to capture the cookies first
@@ -69,7 +72,7 @@ export async function GET(request: NextRequest) {
 
   if (error ?? !data.url) {
     const loginUrl = new URL('/login', origin);
-    loginUrl.searchParams.set('error', error?.message ?? 'Could not initiate Google sign-in');
+    loginUrl.searchParams.set('error', error?.message ?? `Could not initiate ${provider} sign-in`);
     return NextResponse.redirect(loginUrl);
   }
 

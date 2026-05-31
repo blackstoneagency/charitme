@@ -10,6 +10,14 @@ import { getAuthCallbackUrl, safeNextPath } from '../../lib/auth-config';
 // This prevents the "PKCE code verifier not found" error caused by
 // browser-client cookie storage being unavailable at callback time.
 
+function AppleMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.4c1.3.06 2.21.73 2.98.75.9-.19 1.76-.87 3.02-.94 1.29.08 2.34.68 3 1.76-2.74 1.64-2.28 5.43.5 6.55-.55 1.4-1.27 2.76-2.5 4.76ZM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25Z" />
+    </svg>
+  );
+}
+
 function GoogleMark() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -82,10 +90,11 @@ function LoginForm() {
   };
 
   const handleGoogle = () => {
-    // Navigate to the server-side OAuth initiation route.
-    // The server generates the code-verifier and writes it as a Set-Cookie
-    // header before redirecting to Google — no document.cookie needed.
-    window.location.href = `/api/auth/signin?next=${encodeURIComponent(next)}`;
+    window.location.href = `/api/auth/signin?provider=google&next=${encodeURIComponent(next)}`;
+  };
+
+  const handleApple = () => {
+    window.location.href = `/api/auth/signin?provider=apple&next=${encodeURIComponent(next)}`;
   };
 
   const toggleMode = () => {
@@ -118,6 +127,10 @@ function LoginForm() {
           <button className="auth-google" type="button" onClick={handleGoogle} disabled={loading}>
             <GoogleMark />
             Continue with Google
+          </button>
+          <button className="auth-apple" type="button" onClick={handleApple} disabled={loading}>
+            <AppleMark />
+            Continue with Apple
           </button>
 
           <div className="auth-separator"><span>or</span></div>
