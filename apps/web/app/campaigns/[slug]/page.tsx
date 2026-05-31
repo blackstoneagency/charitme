@@ -9,6 +9,7 @@ import DonateButton from './DonateButton';
 import ReportButton from './ReportButton';
 import DonationSuccess from './DonationSuccess';
 import MobileDonateCTA from './MobileDonateCTA';
+import CampaignCarousel from './CampaignCarousel';
 
 export const dynamic = 'force-dynamic';
 
@@ -164,110 +165,91 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         campaignId={campaign.id}
       />
 
-      {/* ── TOP GRID: left content + sticky donate sidebar ── */}
-      <section className="pc-grid">
-        {/* LEFT column */}
-        <div className="pc-left">
-          {/* Breadcrumb */}
-          <nav className="pc-breadcrumb" aria-label="Breadcrumb">
-            <Link href="/">Home</Link>
-            <span aria-hidden="true"> / </span>
-            <Link href={`/campaigns?category=${encodeURIComponent(campaign.category ?? '')}`}>
-              {campaign.category ?? 'Campaign'}
-            </Link>
-            <span aria-hidden="true"> / </span>
-            <span aria-current="page" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', verticalAlign: 'bottom' }}>
-              {campaign.title}
-            </span>
-          </nav>
-
-          {/* Verified badge */}
-          <span className="pc-verified">✓ Verified Campaign</span>
-
-          {/* Title */}
-          <h1 className="pc-title-h1">{campaign.title}</h1>
-
-          {/* Organizer line */}
-          <p className="pc-organizer">
-            Organized by {organizer.full_name ?? 'CharitMe Organizer'}{' '}
-            <b>Verified</b> · {campaign.location ?? 'New York, USA'}
-          </p>
-
-          {/* Trust score bar */}
-          <div className="pc-trust">
-            <div>
-              <strong>{trustScore}</strong><span>/100</span>
-              <small>CharitMe Score</small>
-            </div>
-            {trustSignals.map((signal) => (
-              <article key={signal.label}>
-                <span>✓</span>
-                <b>{signal.label}</b>
-                <small>{signal.state}</small>
-              </article>
-            ))}
+      {/* ── TOP: title info row ── */}
+      <section className="pc-header">
+        <nav className="pc-breadcrumb" aria-label="Breadcrumb">
+          <Link href="/">Home</Link>
+          <span aria-hidden="true"> / </span>
+          <Link href={`/campaigns?category=${encodeURIComponent(campaign.category ?? '')}`}>
+            {campaign.category ?? 'Campaign'}
+          </Link>
+          <span aria-hidden="true"> / </span>
+          <span aria-current="page" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', verticalAlign: 'bottom' }}>
+            {campaign.title}
+          </span>
+        </nav>
+        <span className="pc-verified">✓ Verified Campaign</span>
+        <h1 className="pc-title-h1">{campaign.title}</h1>
+        <p className="pc-organizer">
+          Organized by {organizer.full_name ?? 'CharitMe Organizer'}{' '}
+          <b>Verified</b> · {campaign.location ?? 'New York, USA'}
+        </p>
+        <div className="pc-trust">
+          <div>
+            <strong>{trustScore}</strong><span>/100</span>
+            <small>CharitMe Score</small>
           </div>
-
-          {/* Cover image */}
-          <div className="pc-media">
-            <img src={cover} alt={campaign.title} />
-            {galleryImages.length > 1 && (
-              <div>
-                {galleryImages.map((src, index) => (
-                  <img key={`${src}-${index}`} src={src} alt="" />
-                ))}
-              </div>
-            )}
-          </div>
+          {trustSignals.map((signal) => (
+            <article key={signal.label}>
+              <span>✓</span>
+              <b>{signal.label}</b>
+              <small>{signal.state}</small>
+            </article>
+          ))}
         </div>
-
-        {/* RIGHT: sticky donate sidebar */}
-        <aside className="pc-donate">
-          <strong className="pc-raised">{formatCents(raised)}</strong>
-          <span className="pc-raised-label">raised of {formatCents(goal)} goal</span>
-          <div className="pc-progress"><span style={{ width: `${pct}%` }} /></div>
-          <div className="pc-statline">
-            <span>{campaign.backer_count ?? donations.length} donations</span>
-            <span>{daysLeft !== null ? `${daysLeft} days left` : 'No deadline'}</span>
-          </div>
-          {isActive ? (
-            <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
-          ) : (
-            <div className="pc-ended">This campaign has ended.</div>
-          )}
-          <ReportButton campaignId={campaign.id} />
-          <div className="pc-guarantee">
-            <b>CharitMe Giving Guarantee</b>
-            <span>Your donation is protected and funds go where they are needed most.</span>
-          </div>
-        </aside>
       </section>
 
-      {/* ── VIDEO embed ── */}
-      {videoUrl && (() => {
-        let embedUrl = videoUrl;
-        const ytMatch = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-        if (ytMatch) embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}`;
-        const vimeoMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
-        if (vimeoMatch) embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
-        return (
-          <section style={{ maxWidth: 900, margin: '0 auto', padding: '0 0 24px' }}>
-            <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: 16, background: '#000' }}>
-              <iframe
-                src={embedUrl}
-                title="Campaign video"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
-              />
-            </div>
-          </section>
-        );
-      })()}
+      {/* ── MAIN GRID: carousel+donate (left) | story+impact (right) ── */}
+      <section className="pc-grid">
+        {/* LEFT column: carousel → donate form */}
+        <div className="pc-left">
+          {/* Image carousel */}
+          <CampaignCarousel images={galleryImages.length > 0 ? galleryImages : [cover]} title={campaign.title} />
 
-      {/* ── BODY: story + impact tracker ── */}
-      <section className="pc-body" id="story">
-        {/* LEFT: story */}
+          {/* Video embed (if present) */}
+          {videoUrl && (() => {
+            let embedUrl = videoUrl;
+            const ytMatch = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+            if (ytMatch) embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}`;
+            const vimeoMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
+            if (vimeoMatch) embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+            return (
+              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: 14, background: '#000', marginTop: 8 }}>
+                <iframe
+                  src={embedUrl}
+                  title="Campaign video"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+                />
+              </div>
+            );
+          })()}
+
+          {/* Donate form — right below carousel */}
+          <div className="pc-donate">
+            <strong className="pc-raised">{formatCents(raised)}</strong>
+            <span className="pc-raised-label">raised of {formatCents(goal)} goal</span>
+            <div className="pc-progress"><span style={{ width: `${pct}%` }} /></div>
+            <div className="pc-statline">
+              <span>{campaign.backer_count ?? donations.length} donations</span>
+              <span>{daysLeft !== null ? `${daysLeft} days left` : 'No deadline'}</span>
+            </div>
+            {isActive ? (
+              <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
+            ) : (
+              <div className="pc-ended">This campaign has ended.</div>
+            )}
+            <ReportButton campaignId={campaign.id} />
+            <div className="pc-guarantee">
+              <b>CharitMe Giving Guarantee</b>
+              <span>Your donation is protected and funds go where they are needed most.</span>
+            </div>
+          </div>
+        </div>{/* end pc-left */}
+
+        {/* RIGHT column: story + impact tracker */}
+        <div className="pc-right" id="story">
         <article className="pc-story">
           <nav>
             <a href="#story" className="active">Story</a>
@@ -442,7 +424,8 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             )}
           </div>
         </aside>
-      </section>
+        </div>{/* end pc-right */}
+      </section>{/* end pc-grid */}
 
       {/* ── BOTTOM CARDS: AI | Donations | Ledger ── */}
       <section className="pc-cards" id="updates">

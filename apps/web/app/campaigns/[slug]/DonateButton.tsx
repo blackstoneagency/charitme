@@ -62,7 +62,7 @@ export default function DonateButton({
   const [amount, setAmount] = useState('50');
   const [message, setMessage] = useState('');
   const [anonymous, setAnonymous] = useState(false);
-  const [coverProcessingFee, setCoverProcessingFee] = useState(true);
+  const coverProcessingFee = true; // always cover — not optional
   const [tipPercent, setTipPercent] = useState<number>(DEFAULT_DONOR_TIP_PERCENT);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -289,22 +289,11 @@ export default function DonateButton({
         )}
       </div>
 
-      {/* ── Cover processing fee (one-time only) ── */}
+      {/* Processing fee is always covered — shown as informational only */}
       {!isMonthly && (
-        <label style={{
-          display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
-          fontSize: 13, color: '#4c5679', fontWeight: 700,
-          padding: '10px 12px', border: `1px solid ${BORDER}`,
-          borderRadius: 10, background: '#fafbff',
-        }}>
-          <input
-            type="checkbox"
-            checked={coverProcessingFee}
-            onChange={(e) => setCoverProcessingFee(e.target.checked)}
-            style={{ width: 16, height: 16, accentColor: VIOLET, flexShrink: 0 }}
-          />
-          Cover card processing fee (2.9% + $0.30)
-        </label>
+        <p style={{ margin: 0, fontSize: 12, color: MUTED, lineHeight: 1.5 }}>
+          Card processing fee (2.9% + $0.30) is included in the total.
+        </p>
       )}
 
       {/* ── Message ── */}
