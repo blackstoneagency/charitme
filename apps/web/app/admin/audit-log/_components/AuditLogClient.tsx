@@ -13,6 +13,8 @@ export type AuditEvent = {
   eventType: string;
   stripeEventId: string | null;
   processingError: string | null;
+  targetType?: string;
+  ipAddress?: string;
 };
 
 export type DayPoint = { label: string; count: number };

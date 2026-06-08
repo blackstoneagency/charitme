@@ -14,8 +14,11 @@ export default async function AdminPayoutsPage() {
     campaign_id: string;
     user_id: string;
     amount_cents: number;
+    fee_cents: number;
     payout_speed: string | null;
     status: string;
+    note: string | null;
+    paid_at: string | null;
     created_at: string;
   };
 
@@ -33,7 +36,7 @@ export default async function AdminPayoutsPage() {
   ] = await Promise.all([
     supabaseAdmin
       .from('payouts')
-      .select('id,campaign_id,user_id,amount_cents,payout_speed,status,created_at')
+      .select('id,campaign_id,user_id,amount_cents,fee_cents,payout_speed,status,note,paid_at,created_at')
       .order('created_at', { ascending: false })
       .limit(100),
     supabaseAdmin.from('payouts').select('amount_cents').eq('status', 'paid'),
@@ -117,10 +120,10 @@ export default async function AdminPayoutsPage() {
     campaign_title: campaignMap.get(p.campaign_id) ?? 'Unknown Campaign',
     amount_cents: p.amount_cents,
     status: p.status,
-    payout_method: p.payout_speed ? p.payout_speed.replace(/_/g, ' ') : 'Bank Transfer',
-    note: null,
+    payout_method: p.payout_speed ? p.payout_speed.replace(/_/g, ' ') : 'standard',
+    note: p.note ?? null,
     created_at: p.created_at,
-    paid_at: p.status === 'paid' ? p.created_at : null,
+    paid_at: p.paid_at ?? (p.status === 'paid' ? p.created_at : null),
   }));
 
   return (

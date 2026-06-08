@@ -6,14 +6,14 @@ import AuditLogClient, { type AuditEvent, type DayPoint, type CategoryCount } fr
 
 export const dynamic = 'force-dynamic';
 
-function eventCategory(eventType: string): string {
-  if (eventType.startsWith('payment_intent')) return 'Payments';
-  if (eventType.startsWith('charge')) return 'Charges';
-  if (eventType.startsWith('customer')) return 'Customers';
-  if (eventType.startsWith('checkout')) return 'Checkout';
-  if (eventType.startsWith('payout')) return 'Payouts';
-  if (eventType.startsWith('invoice')) return 'Invoices';
-  if (eventType.startsWith('subscription')) return 'Subscriptions';
+function actionCategory(action: string): string {
+  if (action.startsWith('payment_intent') || action.startsWith('charge') || action.startsWith('checkout')) return 'Payments';
+  if (action.startsWith('payout')) return 'Payouts';
+  if (action.startsWith('campaign')) return 'Campaigns';
+  if (action.startsWith('user') || action.startsWith('profile') || action.startsWith('auth')) return 'Users';
+  if (action.startsWith('donation')) return 'Donations';
+  if (action.startsWith('customer') || action.startsWith('subscription') || action.startsWith('invoice')) return 'Billing';
+  if (action.startsWith('admin')) return 'Admin';
   return 'System';
 }
 
@@ -33,30 +33,51 @@ export default async function AuditLogPage() {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+  // Fetch from audit_logs (real admin activity) + webhook_events (Stripe events) in parallel
   const [
-    { data: events, count: totalCount },
-    { count: failedCount },
-    { data: thirtyDayEvents },
-    donorCountResult,
+    { data: auditData, count: auditTotal },
+    { data: webhookData, count: webhookTotal },
+    { count: failedWebhooks },
+    { data: thirtyDayAudit },
+    { data: thirtyDayWebhook },
   ] = await Promise.all([
+    supabaseAdmin
+      .from('audit_logs')
+      .select('id, actor_id, action, target_type, target_id, metadata, ip_address, created_at', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .limit(150),
     supabaseAdmin
       .from('webhook_events')
       .select('id, event_type, stripe_event_id, processed_at, processing_error, created_at', { count: 'exact' })
       .order('created_at', { ascending: false })
-      .limit(200),
+      .limit(50),
     supabaseAdmin
       .from('webhook_events')
       .select('id', { count: 'exact', head: true })
       .not('processing_error', 'is', null),
     supabaseAdmin
-      .from('webhook_events')
+      .from('audit_logs')
       .select('created_at')
       .gte('created_at', thirtyDaysAgo.toISOString())
       .order('created_at', { ascending: true }),
-    supabaseAdmin.from('donations').select('donor_id'),
+    supabaseAdmin
+      .from('webhook_events')
+      .select('created_at')
+      .gte('created_at', thirtyDaysAgo.toISOString()),
   ]);
 
-  type WebhookEvent = {
+  type AuditRow = {
+    id: string;
+    actor_id: string | null;
+    action: string;
+    target_type: string | null;
+    target_id: string | null;
+    metadata: Record<string, unknown>;
+    ip_address: string | null;
+    created_at: string;
+  };
+
+  type WebhookRow = {
     id: string;
     event_type: string;
     stripe_event_id: string | null;
@@ -65,42 +86,68 @@ export default async function AuditLogPage() {
     created_at: string;
   };
 
-  const eventList = (events ?? []) as WebhookEvent[];
-  const totalEvents = totalCount ?? 0;
-  const failedEvents = failedCount ?? 0;
+  const auditList = (auditData ?? []) as AuditRow[];
+  const webhookList = (webhookData ?? []) as WebhookRow[];
 
-  // Unique donors
-  const donorRows = (donorCountResult.data ?? []) as { donor_id: string }[];
-  const uniqueUsers = new Set(donorRows.map(d => d.donor_id)).size;
+  // Resolve actor names from profiles
+  const actorIds = [...new Set(auditList.map(e => e.actor_id).filter(Boolean) as string[])];
+  const actorMap = new Map<string, string>();
+  if (actorIds.length > 0) {
+    const { data: profiles } = await supabaseAdmin
+      .from('profiles').select('id, full_name').in('id', actorIds);
+    for (const p of (profiles ?? []) as { id: string; full_name: string | null }[]) {
+      if (p.full_name) actorMap.set(p.id, p.full_name);
+    }
+  }
 
-  // Build audit events
-  const auditEvents: AuditEvent[] = eventList.map(e => ({
-    id: e.id,
-    dateTime: fmtDateTime(e.created_at),
-    user: 'System',
-    action: e.event_type,
-    category: eventCategory(e.event_type),
-    status: e.processing_error ? 'Failed' : (e.processed_at ? 'Processed' : 'Pending'),
-    eventType: e.event_type,
-    stripeEventId: e.stripe_event_id,
-    processingError: e.processing_error,
-  }));
+  const totalEvents = (auditTotal ?? 0) + (webhookTotal ?? 0);
+  const failedEvents = failedWebhooks ?? 0;
 
-  // Build category counts
+  // Unique users = distinct actor_ids from audit_logs
+  const uniqueUsers = new Set(auditList.map(e => e.actor_id).filter(Boolean)).size;
+
+  // Build audit events — audit_logs first, then webhook events
+  const auditEvents: AuditEvent[] = [
+    ...auditList.map(e => ({
+      id: e.id,
+      dateTime: fmtDateTime(e.created_at),
+      user: e.actor_id ? (actorMap.get(e.actor_id) ?? e.actor_id.slice(0, 8)) : 'System',
+      action: e.action,
+      category: actionCategory(e.action),
+      status: 'Processed' as const,
+      eventType: e.action,
+      stripeEventId: null,
+      processingError: null,
+      targetType: e.target_type ?? undefined,
+      ipAddress: e.ip_address ?? undefined,
+    })),
+    ...webhookList.map(e => ({
+      id: e.id,
+      dateTime: fmtDateTime(e.created_at),
+      user: 'Stripe',
+      action: e.event_type,
+      category: actionCategory(e.event_type),
+      status: (e.processing_error ? 'Failed' : e.processed_at ? 'Processed' : 'Pending') as 'Failed' | 'Processed' | 'Pending',
+      eventType: e.event_type,
+      stripeEventId: e.stripe_event_id,
+      processingError: e.processing_error,
+    })),
+  ].sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
+
+  // Build category counts from combined events
   const catMap: Record<string, number> = {};
-  for (const e of eventList) {
-    const cat = eventCategory(e.event_type);
-    catMap[cat] = (catMap[cat] ?? 0) + 1;
+  for (const e of auditEvents) {
+    catMap[e.category] = (catMap[e.category] ?? 0) + 1;
   }
 
   const COLORS: Record<string, string> = {
     Payments: '#6c35ff',
-    Charges: '#ec3fb4',
-    Customers: '#2f80ed',
-    Checkout: '#19b86a',
     Payouts: '#f59e0b',
-    Invoices: '#ff3b5f',
-    Subscriptions: '#8b5cf6',
+    Campaigns: '#19b86a',
+    Users: '#2f80ed',
+    Donations: '#ec3fb4',
+    Billing: '#8b5cf6',
+    Admin: '#ef4444',
     System: '#67718e',
   };
 
@@ -108,7 +155,7 @@ export default async function AuditLogPage() {
     .sort((a, b) => b[1] - a[1])
     .map(([label, count]) => ({ label, count, color: COLORS[label] ?? '#8c95b2' }));
 
-  // Build day points for last 30 days
+  // Build day points for last 30 days — combined from both sources
   const dayBuckets: Map<string, number> = new Map();
   for (let i = 29; i >= 0; i--) {
     const d = new Date();
@@ -116,11 +163,9 @@ export default async function AuditLogPage() {
     dayBuckets.set(dayKey(d.toISOString()), 0);
   }
 
-  for (const e of (thirtyDayEvents ?? []) as { created_at: string }[]) {
+  for (const e of [...(thirtyDayAudit ?? []), ...(thirtyDayWebhook ?? [])] as { created_at: string }[]) {
     const k = dayKey(e.created_at);
-    if (dayBuckets.has(k)) {
-      dayBuckets.set(k, (dayBuckets.get(k) ?? 0) + 1);
-    }
+    if (dayBuckets.has(k)) dayBuckets.set(k, (dayBuckets.get(k) ?? 0) + 1);
   }
 
   const dayPoints: DayPoint[] = [...dayBuckets.entries()].map(([label, count]) => ({ label, count }));
@@ -129,7 +174,7 @@ export default async function AuditLogPage() {
     <CharitMeShell active="Audit Log" mode="admin">
       <TopBar
         title="Audit Log"
-        subtitle="Track, review and monitor Stripe webhook events and platform activity."
+        subtitle="Admin actions from audit_logs + Stripe webhook events — all live from Supabase."
         actions={<></>}
       />
       <AuditLogClient

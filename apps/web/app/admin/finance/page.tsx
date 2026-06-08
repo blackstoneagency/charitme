@@ -111,7 +111,8 @@ export default async function FinancePage() {
               </thead>
               <tbody>
                 {recentDons.map((d, i) => {
-                  const net = d.amount_cents - 0; // platform fee = 0
+                  // net = gross donation minus any donor-covered processing fee
+                  const net = d.amount_cents - (d.processing_fee_cents ?? 0);
                   return (
                     <tr key={d.id} style={{ borderTop: i > 0 ? '1px solid #f0f4f8' : undefined }}>
                       <td style={{ padding: '10px 14px', color: '#64748b', whiteSpace: 'nowrap' }}>

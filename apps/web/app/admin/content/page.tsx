@@ -15,41 +15,58 @@ export default async function AdminContentPage() {
     body: string;
     ai_generated: boolean;
     campaign_id: string;
+    user_id: string | null;
     created_at: string;
     updated_at: string | null;
   };
 
   const { data: updates, count: totalCount } = await supabaseAdmin
     .from('campaign_updates')
-    .select('id,title,body,ai_generated,campaign_id,created_at,updated_at', { count: 'exact' })
+    .select('id,title,body,ai_generated,campaign_id,user_id,created_at,updated_at', { count: 'exact' })
     .order('created_at', { ascending: false })
     .limit(100);
 
   const updateList = (updates ?? []) as UpdateRow[];
 
-  // Resolve campaign titles
+  // Resolve campaign titles + organizer user_ids
   const campaignIds = [...new Set(updateList.map(u => u.campaign_id).filter(Boolean))];
-  const campaignMap = new Map<string, string>();
+  const campaignMap = new Map<string, { title: string; user_id: string }>();
   if (campaignIds.length > 0) {
     const { data: campaigns } = await supabaseAdmin
       .from('campaigns').select('id,title,user_id').in('id', campaignIds);
     for (const c of (campaigns ?? []) as { id: string; title: string; user_id: string }[]) {
-      campaignMap.set(c.id, c.title);
+      campaignMap.set(c.id, { title: c.title, user_id: c.user_id });
+    }
+  }
+
+  // Resolve author names from profiles
+  const authorIds = [...new Set(
+    updateList.map(u => u.user_id ?? campaignMap.get(u.campaign_id)?.user_id).filter(Boolean) as string[]
+  )];
+  const authorMap = new Map<string, string>();
+  if (authorIds.length > 0) {
+    const { data: profiles } = await supabaseAdmin
+      .from('profiles').select('id,full_name').in('id', authorIds);
+    for (const p of (profiles ?? []) as { id: string; full_name: string | null }[]) {
+      if (p.full_name) authorMap.set(p.id, p.full_name);
     }
   }
 
   // Build content records
-  const content: ContentRecord[] = updateList.map(u => ({
-    id: u.id,
-    title: u.title ?? u.body.slice(0, 60),
-    body: u.body,
-    type: u.ai_generated ? 'AI Generated' : 'Campaign Update',
-    status: 'Published',
-    author: 'Organizer',
-    campaign_title: campaignMap.get(u.campaign_id) ?? 'Unknown Campaign',
-    created_at: u.created_at,
-    updated_at: u.updated_at ?? u.created_at,
-  }));
+  const content: ContentRecord[] = updateList.map(u => {
+    const authorId = u.user_id ?? campaignMap.get(u.campaign_id)?.user_id;
+    return {
+      id: u.id,
+      title: u.title ?? u.body.slice(0, 60),
+      body: u.body,
+      type: u.ai_generated ? 'AI Generated' : 'Campaign Update',
+      status: 'Published',
+      author: authorId ? (authorMap.get(authorId) ?? 'Organizer') : 'Organizer',
+      campaign_title: campaignMap.get(u.campaign_id)?.title ?? 'Unknown Campaign',
+      created_at: u.created_at,
+      updated_at: u.updated_at ?? u.created_at,
+    };
+  });
 
   // Content by type
   const typeMap = new Map<string, number>();
