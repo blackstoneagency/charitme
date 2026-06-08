@@ -2,7 +2,8 @@ import 'server-only';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { supabaseAdmin } from './supabase';
 import type { RotatorCampaign } from '../app/HeroRotator';
-import type { HomeCampaign, StoryFilters, StoryFilterValue, StorySortValue } from './home-types';
+import type { HomeCampaign, StoryFilters, StoryFilterValue } from './home-types';
+import { formatHomeCents, normalizeStoryFilters, shortHomeCount } from './home-utils';
 
 const INDIVIDUAL_CATEGORIES: string[] = CAMPAIGN_CATEGORIES.filter(category =>
   !['Nonprofit', 'Community', 'Environment', 'Volunteer', 'Event'].includes(category),
@@ -11,46 +12,12 @@ const NONPROFIT_CATEGORIES = ['Nonprofit', 'Environment', 'Volunteer'];
 const COMMUNITY_CATEGORIES = ['Community', 'Event'];
 const EMERGENCY_CATEGORIES = ['Emergency', 'Medical'];
 
-function normalizeStoryCategory(value: string | undefined): StoryFilterValue {
-  if (value === 'individuals' || value === 'nonprofits' || value === 'community' || value === 'emergency') return value;
-  return '';
-}
-
-function normalizeStorySort(value: string | undefined): StorySortValue {
-  if (value === 'raised' || value === 'donors') return value;
-  return 'latest';
-}
-
-function cleanStorySearch(value: string | undefined): string {
-  return (value ?? '').replace(/[,%()]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
-}
-
 function categoryGroup(value: StoryFilterValue): string[] {
   if (value === 'individuals') return INDIVIDUAL_CATEGORIES;
   if (value === 'nonprofits') return NONPROFIT_CATEGORIES;
   if (value === 'community') return COMMUNITY_CATEGORIES;
   if (value === 'emergency') return EMERGENCY_CATEGORIES;
   return [];
-}
-
-export function normalizeStoryFilters(filters: StoryFilters): Required<Pick<StoryFilters, 'storyCategory' | 'storyQ' | 'storySort'>> {
-  return {
-    storyCategory: normalizeStoryCategory(typeof filters.storyCategory === 'string' ? filters.storyCategory : undefined),
-    storyQ: cleanStorySearch(typeof filters.storyQ === 'string' ? filters.storyQ : undefined),
-    storySort: normalizeStorySort(typeof filters.storySort === 'string' ? filters.storySort : undefined),
-  };
-}
-
-export function formatHomeCents(cents: number): string {
-  const dollars = cents / 100;
-  if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1)}M`;
-  return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-}
-
-export function shortHomeCount(value: number): string {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
-  return value.toLocaleString();
 }
 
 export function profileName(value: HomeCampaign['profiles']): string {

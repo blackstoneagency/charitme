@@ -349,6 +349,7 @@ img, svg { display: block; }
 .kind-story-filters::-webkit-scrollbar,
 .kind-story-track::-webkit-scrollbar { display: none; }
 .kind-story-filters a,
+.kind-story-filters button,
 .kind-story-search,
 .kind-story-sort {
   height: 42px;
@@ -358,7 +359,8 @@ img, svg { display: block; }
   color: #08104a;
   box-shadow: 0 10px 26px rgba(35,28,95,.04);
 }
-.kind-story-filters a {
+.kind-story-filters a,
+.kind-story-filters button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -366,9 +368,12 @@ img, svg { display: block; }
   padding: 0 20px;
   font-size: 12px;
   font-weight: 950;
+  cursor: pointer;
 }
-.kind-story-filters a svg { color: #4d1ee0; }
-.kind-story-filters a.active {
+.kind-story-filters a svg,
+.kind-story-filters button svg { color: #4d1ee0; }
+.kind-story-filters a.active,
+.kind-story-filters button.active {
   border-color: #7b35ff;
   color: #3612d7;
   background: #fbf9ff;
@@ -444,7 +449,9 @@ img, svg { display: block; }
   scroll-snap-type: x proximity;
   padding-bottom: 4px;
   scrollbar-width: none;
+  transition: opacity .16s;
 }
+.kind-story-track.loading { opacity: .62; }
 .kind-story-card {
   overflow: hidden;
   min-height: 303px;
@@ -584,6 +591,7 @@ img, svg { display: block; }
   font-weight: 750;
 }
 .kind-story-card.empty .kind-story-body { padding-top: 28px; }
+.kind-story-error { margin: 12px 0 0; color: #be123c; font-size: 12px; font-weight: 850; }
 
 .kind-trust { padding-top: 0; }
 .kind-trust-grid { display: grid; grid-template-columns: 420px 1fr; gap: 70px; align-items: start; }
