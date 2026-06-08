@@ -68,7 +68,9 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
   const cardRef      = useRef<HTMLDivElement>(null);
   const [cardBottom, setCardBottom] = useState(598);
 
-  // Measure card height so status bar sits flush below it on any screen size
+  // Measure card height so status bar sits flush below it on any screen size.
+  // Re-measures on every rotation too — card height varies with title length
+  // (h2 wraps to 2 vs 3 lines), so a stale measurement misaligns the status bar.
   useEffect(() => {
     function measure() {
       if (!cardRef.current) return;
@@ -77,9 +79,14 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
       if (parentRect) setCardBottom(rect.bottom - parentRect.top);
     }
     measure();
+    // Re-measure once the post-fade content swap has settled.
+    const t = setTimeout(measure, 320);
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, [campaigns]);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener('resize', measure);
+    };
+  }, [campaigns, active]);
 
   // Keep `now` current so daysLeft is never stale and avoids impure Date.now() in render
   useEffect(() => {
