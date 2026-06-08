@@ -18,7 +18,7 @@ const MU  = '#64748b';
 const INK = '#1a1a2e';
 
 /* Preset amounts shown in the 3×2 grid */
-const PRESETS = [300, 500, 750, 1000, 2000, 5000] as const;
+const PRESETS = [50, 100, 250, 500, 1000, 2000] as const;
 
 /* Tip range: 0–20% */
 const TIP_MIN = 0;
@@ -81,7 +81,7 @@ export default function DonateButton({
   campaignTitle: string;
 }) {
   const [frequency, setFrequency]         = useState<FrequencyMode>('once');
-  const [amount, setAmount]               = useState('50');
+  const [amount, setAmount]               = useState('100');
   const [subscribeEmail, setSubscribeEmail] = useState(false);
   const [anonymous, setAnonymous]         = useState(false);
   const [tipPercent, setTipPercent]       = useState<number>(DEFAULT_DONOR_TIP_PERCENT);
