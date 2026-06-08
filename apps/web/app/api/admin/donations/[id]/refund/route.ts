@@ -1,6 +1,7 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../../../lib/supabase';
+import { stripe } from '../../../../../../lib/stripe';
 import { verifyAdmin } from '../../../users/_auth';
 
 export async function POST(
@@ -24,7 +25,7 @@ export async function POST(
   // Fetch current donation
   const { data: existing, error: fetchErr } = await supabaseAdmin
     .from('donations')
-    .select('id, amount_cents, status, stripe_payment_intent_id')
+    .select('id, amount_cents, status, stripe_payment_intent_id, campaign_id')
     .eq('id', id)
     .single();
 
@@ -37,26 +38,43 @@ export async function POST(
     amount_cents: number;
     status: string;
     stripe_payment_intent_id: string | null;
+    campaign_id: string;
   };
 
   if (don.status === 'refunded') {
     return NextResponse.json({ error: 'Donation already refunded' }, { status: 400 });
   }
 
-  // Validate amount
   const rawAmount = body.amount_cents;
   const refundCents =
     typeof rawAmount === 'number'
       ? Math.min(Math.max(1, Math.round(rawAmount)), don.amount_cents)
       : don.amount_cents;
 
-  const reason =
-    typeof body.reason === 'string' && body.reason.trim()
-      ? body.reason.trim()
-      : 'Admin refund';
+  const reason = typeof body.reason === 'string' && body.reason.trim()
+    ? body.reason.trim()
+    : 'Admin refund';
 
   const now = new Date().toISOString();
+  let stripeRefundId: string | null = null;
 
+  // Issue Stripe refund if we have a payment intent
+  if (don.stripe_payment_intent_id) {
+    try {
+      const refund = await stripe.refunds.create({
+        payment_intent: don.stripe_payment_intent_id,
+        amount: refundCents,
+        reason: 'requested_by_customer',
+        metadata: { admin_id: admin.id, donation_id: id, reason },
+      });
+      stripeRefundId = refund.id;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Stripe refund failed';
+      return NextResponse.json({ error: msg }, { status: 502 });
+    }
+  }
+
+  // Update donation status
   const { data: updated, error } = await supabaseAdmin
     .from('donations')
     .update({
@@ -71,17 +89,35 @@ export async function POST(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  await supabaseAdmin
-    .from('audit_logs')
-    .insert({
-      actor_id: admin.id,
-      action: 'donation.refunded',
-      target_type: 'donation',
-      target_id: id,
-      metadata: { amount_cents: refundCents, reason },
-      created_at: now,
-    })
-    .then(() => undefined);
+  // Insert refund record
+  await supabaseAdmin.from('refunds').insert({
+    donation_id: id,
+    amount_cents: refundCents,
+    reason,
+    notes: `Admin refund by ${admin.email}`,
+    status: 'processed',
+    requested_by: admin.id,
+    stripe_refund_id: stripeRefundId,
+    processed_at: now,
+  });
 
-  return NextResponse.json({ ok: true, donation: updated });
+  // Reverse campaign stats (best-effort)
+  try {
+    await supabaseAdmin.rpc('decrement_campaign_stats', {
+      p_campaign_id: don.campaign_id,
+      p_amount_cents: don.amount_cents,
+    });
+  } catch { /* non-fatal */ }
+
+  // Audit log
+  await supabaseAdmin.from('audit_logs').insert({
+    actor_id: admin.id,
+    action: 'donation.refunded',
+    target_type: 'donation',
+    target_id: id,
+    metadata: { amount_cents: refundCents, reason, stripe_refund_id: stripeRefundId },
+    created_at: now,
+  });
+
+  return NextResponse.json({ ok: true, donation: updated, stripe_refund_id: stripeRefundId });
 }

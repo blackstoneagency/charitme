@@ -1,28 +1,101 @@
 'use client';
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { createClient } from '../../../lib/supabase-browser';
 
-// Inner component — allowed to call useSearchParams() inside <Suspense>
+type InviteInfo = {
+  email: string;
+  campaigns: { title: string; slug: string };
+};
+
 function AcceptForm() {
-  const params     = useSearchParams();
-  const router     = useRouter();
-  const token      = params.get('token')    ?? '';
-  const campaignId = params.get('campaign') ?? '';
+  const params = useSearchParams();
+  const router = useRouter();
+  const token = params.get('token') ?? '';
 
-  const [state,   setState]   = useState<'idle' | 'loading' | 'error'>('idle');
-  const [message, setMessage] = useState('');
+  const [invite, setInvite] = useState<InviteInfo | null>(null);
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error' | 'expired'>('loading');
+  const [errMsg, setErrMsg] = useState('');
+  const [accepting, setAccepting] = useState(false);
+  const [done, setDone] = useState(false);
 
-  const isValid    = Boolean(token && campaignId);
-  const errorText  = !isValid ? 'Invalid invitation link. Please check the email and try again.' : message;
+  useEffect(() => {
+    if (!token) {
+      // Use a microtask to avoid setting state synchronously inside effect
+      Promise.resolve().then(() => {
+        setLoadState('error');
+        setErrMsg('No invite token found.');
+      });
+      return;
+    }
+    fetch(`/api/beneficiaries/invites?token=${encodeURIComponent(token)}`)
+      .then(r => r.json())
+      .then((d: { invite?: InviteInfo; error?: string }) => {
+        if (d.invite) { setInvite(d.invite); setLoadState('ready'); }
+        else if (d.error?.toLowerCase().includes('expir')) { setLoadState('expired'); }
+        else { setLoadState('error'); setErrMsg(d.error ?? 'Invalid invite.'); }
+      })
+      .catch(() => { setLoadState('error'); setErrMsg('Network error. Please try again.'); });
+  }, [token]);
 
-  if (!isValid || state === 'error') {
+  async function handleAccept() {
+    setAccepting(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      const next = encodeURIComponent(`/beneficiary/accept?token=${token}`);
+      router.push(`/login?next=${next}&mode=signup`);
+      return;
+    }
+
+    const res = await fetch('/api/beneficiaries/invites/accept', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+
+    if (res.ok) {
+      setDone(true);
+    } else {
+      const d = await res.json().catch(() => ({})) as { error?: string };
+      setErrMsg(d.error ?? 'Failed to accept invite.');
+      setAccepting(false);
+    }
+  }
+
+  if (done) {
     return (
       <div style={{ maxWidth: 480, margin: '80px auto', padding: '0 24px', textAlign: 'center' }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>❌</div>
-        <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 8px' }}>Invalid or expired invitation</h1>
-        <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 20px' }}>{errorText || 'This invitation link is no longer valid.'}</p>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
+        <h1 style={{ fontSize: 22, fontWeight: 900, margin: '0 0 10px', color: '#1a1a2e' }}>You&apos;re set as a beneficiary!</h1>
+        <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 24px', lineHeight: 1.7 }}>
+          Next, connect your bank account to receive payouts.
+        </p>
+        <Link href="/dashboard/payouts" style={{ padding: '14px 28px', background: '#6c35ff', color: '#fff', borderRadius: 12, fontSize: 15, fontWeight: 700, textDecoration: 'none' }}>
+          Set Up Payouts →
+        </Link>
+      </div>
+    );
+  }
+
+  if (loadState === 'loading') {
+    return (
+      <div style={{ maxWidth: 480, margin: '80px auto', padding: '0 24px', textAlign: 'center' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>💚</div>
+        <p style={{ color: '#64748b' }}>Loading invitation…</p>
+      </div>
+    );
+  }
+
+  if (loadState === 'expired') {
+    return (
+      <div style={{ maxWidth: 480, margin: '80px auto', padding: '0 24px', textAlign: 'center' }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>⏰</div>
+        <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 8px' }}>Invitation Expired</h1>
+        <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 20px' }}>This invite link has expired. Please ask the organizer to resend it.</p>
         <Link href="/" style={{ padding: '10px 24px', background: '#6c35ff', color: '#fff', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
           Go to CharitMe
         </Link>
@@ -30,15 +103,17 @@ function AcceptForm() {
     );
   }
 
-  function handleAccept() {
-    setState('loading');
-    try {
-      const next = encodeURIComponent(`/dashboard/settings?beneficiary_token=${token}&campaign=${campaignId}`);
-      router.push(`/login?next=${next}&mode=signup`);
-    } catch {
-      setMessage('Something went wrong. Please try again or contact support.');
-      setState('error');
-    }
+  if (loadState === 'error') {
+    return (
+      <div style={{ maxWidth: 480, margin: '80px auto', padding: '0 24px', textAlign: 'center' }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>❌</div>
+        <h1 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 8px' }}>Invalid Invitation</h1>
+        <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 20px' }}>{errMsg || 'This invitation link is no longer valid.'}</p>
+        <Link href="/" style={{ padding: '10px 24px', background: '#6c35ff', color: '#fff', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
+          Go to CharitMe
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -48,17 +123,20 @@ function AcceptForm() {
         <h1 style={{ fontSize: 22, fontWeight: 900, margin: '0 0 10px', color: '#1a1a2e' }}>
           You&apos;ve been invited to receive funds
         </h1>
+        {invite && (
+          <p style={{ color: '#6c35ff', fontSize: 15, fontWeight: 700, margin: '0 0 8px' }}>
+            {invite.campaigns?.title}
+          </p>
+        )}
         <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 24px', lineHeight: 1.7 }}>
-          Someone has started a fundraiser for you on CharitMe. By accepting, you&apos;ll be able
-          to connect your bank account and receive payouts from donations.
+          Someone has started a fundraiser for you on CharitMe. Accept below to connect your bank account and receive payouts.
         </p>
 
         <div style={{ background: '#f7f2ff', borderRadius: 12, padding: '16px 20px', marginBottom: 24, textAlign: 'left' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#6c35ff', textTransform: 'uppercase', marginBottom: 8 }}>How it works</div>
           {[
-            'Click "Accept & Set Up Account" below',
-            'Create a free CharitMe account (or sign in)',
-            'Connect your bank account via Stripe (2–3 minutes)',
+            'Click "Accept" below (sign in or create a free account)',
+            'Connect your bank via Stripe (2–3 minutes)',
             'Receive payouts as donations come in',
           ].map((step, i) => (
             <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 8, fontSize: 13, color: '#334064' }}>
@@ -70,30 +148,33 @@ function AcceptForm() {
           ))}
         </div>
 
+        {errMsg && (
+          <p style={{ color: '#ef4444', fontSize: 13, marginBottom: 16 }}>{errMsg}</p>
+        )}
+
         <button
           type="button"
           onClick={handleAccept}
-          disabled={state === 'loading'}
+          disabled={accepting}
           style={{
             width: '100%', padding: '16px', border: 0, borderRadius: 12,
             background: 'linear-gradient(135deg,#6c35ff,#4d1ee0)',
             color: '#fff', fontSize: 16, fontWeight: 900, cursor: 'pointer',
             boxShadow: '0 4px 18px rgba(108,53,255,.35)',
-            opacity: state === 'loading' ? 0.7 : 1,
+            opacity: accepting ? 0.7 : 1,
           }}
         >
-          {state === 'loading' ? 'Redirecting…' : 'Accept & Set Up Account →'}
+          {accepting ? 'Processing…' : 'Accept & Set Up Account →'}
         </button>
 
         <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 16 }}>
-          Free to use · CharitMe charges 0% platform fee · Powered by Stripe
+          Free · 0% platform fee · Powered by Stripe
         </p>
       </div>
     </div>
   );
 }
 
-// Export the page with the required Suspense boundary
 export default function BeneficiaryAcceptPage() {
   return (
     <Suspense fallback={
