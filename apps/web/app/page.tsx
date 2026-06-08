@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import type React from 'react';
-import { supabaseAdmin } from '../lib/supabase';
-import HeroRotator, { type RotatorCampaign } from './HeroRotator';
+import HeroRotator from './HeroRotator';
 import SponsorsBar from './SponsorsBar';
+import HomeStoriesClient from './HomeStoriesClient';
+import { formatHomeCents, getHomeData, profileName } from '../lib/home-data';
+import type { StoryFilters } from '../lib/home-types';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,80 +15,6 @@ const FEATURES = [
   { icon: 'chart', title: 'AI Optimization', body: 'Real-time AI insights, next-best-action suggestions, and campaign health monitoring 24/7.', tone: 'orange' },
   { icon: 'heart', title: 'AI Donor Relationships', body: 'CharitMe AI writes thank-you notes, updates, and donor messages that feel personal and real.', tone: 'pink' },
 ];
-
-const STORY_FILTERS = [
-  { label: 'All Stories', value: '', icon: 'grid' },
-  { label: 'Individuals', value: 'individuals', icon: 'user' },
-  { label: 'Nonprofits', value: 'nonprofits', icon: 'building' },
-  { label: 'Communities', value: 'community', icon: 'users' },
-  { label: 'Emergencies', value: 'emergency', icon: 'bell' },
-];
-const STORY_SORTS = [
-  { label: 'Latest', value: 'latest' },
-  { label: 'Most Raised', value: 'raised' },
-  { label: 'Most Donors', value: 'donors' },
-];
-
-type HeroCampaign = {
-  slug: string;
-  title: string;
-  tagline?: string | null;
-  description?: string | null;
-  category: string | null;
-  cover_image_url: string | null;
-  goal_amount: number;
-  raised_amount: number;
-  backer_count: number;
-  trust_status?: string;
-  campaign_health_score?: number;
-  deadline: string | null;
-  profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
-};
-
-type StoryFilters = {
-  storyCategory?: string;
-  storyQ?: string;
-  storySort?: string;
-};
-
-function formatCents(cents: number): string {
-  const dollars = cents / 100;
-  if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1)}M`;
-  return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-}
-
-function shortCount(value: number): string {
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
-  return value.toLocaleString();
-}
-
-function profileName(value: HeroCampaign['profiles']): string {
-  const profile = Array.isArray(value) ? value[0] : value;
-  return profile?.full_name ?? 'CharitMe Organizer';
-}
-
-function storyHref(filters: StoryFilters, updates: StoryFilters): string {
-  const params = new URLSearchParams();
-  const next = { ...filters, ...updates };
-  if (next.storyCategory) params.set('storyCategory', next.storyCategory);
-  if (next.storyQ) params.set('storyQ', next.storyQ);
-  if (next.storySort && next.storySort !== 'latest') params.set('storySort', next.storySort);
-  const query = params.toString();
-  return query ? `/?${query}#stories` : '/#stories';
-}
-
-function storyImage(campaign: HeroCampaign): string | null {
-  return campaign.cover_image_url || null;
-}
-
-function storyTone(category: string | null): string {
-  const value = (category ?? '').toLowerCase();
-  if (value.includes('medical') || value.includes('health') || value.includes('emergency')) return 'medical';
-  if (value.includes('education') || value.includes('school')) return 'education';
-  if (value.includes('animal') || value.includes('pet')) return 'animal';
-  return 'community';
-}
 
 async function getHomeData(filters: StoryFilters): Promise<{
   stats: string[][];
