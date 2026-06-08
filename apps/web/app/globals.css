@@ -770,6 +770,7 @@ img, svg { display: block; }
   background: #fff;
   color: #080d35;
 }
+.kf-app--no-sidebar { grid-template-columns: 1fr; }
 .kf-sidebar {
   position: sticky;
   top: 0;

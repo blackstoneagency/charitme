@@ -31,6 +31,7 @@ export type ShellProps = {
   userRole?: string | null;
   userAvatarUrl?: string | null;
   guestMode?: boolean;
+  hideSidebar?: boolean;
 };
 
 export type ShellVariant = 'dashboard' | 'admin';
@@ -58,6 +59,7 @@ const adminNav = [
   ['Campaigns', '/admin/campaigns', 'stack'],
   ['Donations', '/admin/donations', 'gift'],
   ['Payouts', '/admin/payouts', 'wallet'],
+  ['Payment Flows', '/admin/payments/campaign-flows', 'wallet'],
   ['Finance', '/admin/finance', 'chart'],
   ['Trust & Safety', '/admin/trust-safety', 'audit'],
   ['Support', '/admin/support', 'chat'],
@@ -117,10 +119,19 @@ export function Logo() {
   );
 }
 
-export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAccess = false, userName, userEmail, userRole, userAvatarUrl, guestMode = false }: ShellProps) {
+export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAccess: _hasAdminAccess = false, userName, userEmail, userRole, userAvatarUrl, guestMode = false, hideSidebar = false }: ShellProps) {
   const _nav = mode === 'admin' ? adminNav : dashboardNav; void _nav;
   const displayName = userName || userEmail?.split('@')[0] || (mode === 'admin' ? 'Admin User' : 'My Account');
   const displayRole = userRole || (mode === 'admin' ? 'Super Admin' : 'Organizer');
+
+  if (hideSidebar) {
+    return (
+      <div className="kf-app kf-app--no-sidebar">
+        <main className="kf-main">{children}</main>
+      </div>
+    );
+  }
+
   return (
     <div className="kf-app">
       <aside className="kf-sidebar">
