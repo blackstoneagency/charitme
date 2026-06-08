@@ -10,6 +10,7 @@ import ReportButton from './ReportButton';
 import DonationSuccess from './DonationSuccess';
 import MobileDonateCTA from './MobileDonateCTA';
 import CampaignCarousel from './CampaignCarousel';
+import { getPhotosForCategory, getCoverForCategory } from '../../../lib/photo-catalog';
 
 export const dynamic = 'force-dynamic';
 
@@ -133,7 +134,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - RENDER_TIME) / 86_400_000))
     : null;
   const isActive = campaign.status === 'active' && (daysLeft === null || daysLeft > 0);
-  const cover = campaign.cover_image_url || '/hero-child-crop.png';
+  const cover = campaign.cover_image_url || getCoverForCategory(campaign.category);
   const videoUrl: string | null = (campaign as { video_url?: string | null }).video_url ?? null;
   const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
   const campaignUrl = `${ORIGIN}/campaigns/${campaign.slug}`;
@@ -141,11 +142,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
   const rawImageUrls = (campaign as CampaignWithImages).image_urls ?? [];
   const galleryImages: string[] =
-    rawImageUrls.length > 0
+    rawImageUrls.length >= 4
       ? rawImageUrls
-      : campaign.cover_image_url
-      ? [campaign.cover_image_url]
-      : [];
+      : getPhotosForCategory(campaign.category, 4);
 
   // Arc SVG for Impact Tracker donut
   const arcPct = Math.max(5, pct);
