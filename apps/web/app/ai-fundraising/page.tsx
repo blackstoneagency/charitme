@@ -95,16 +95,23 @@ export default async function AiFundraisingPage() {
 
             {/* Live stats strip */}
             <div className="aif-live-stats">
+              <div className="aif-stat-icon" style={{ background: '#f0eaff', color: '#6c35ff' }}>
+                <PublicIcon name="chart" />
+              </div>
               <div>
                 <strong>{activeCampaigns.toLocaleString()}</strong>
                 <span>Active Campaigns</span>
               </div>
-              <div className="aif-stat-divider" />
+              <div className="aif-stat-icon" style={{ background: '#e0faf0', color: '#10b981' }}>
+                <PublicIcon name="dollar" />
+              </div>
               <div>
                 <strong>{formatHomeCents(totalRaised)}</strong>
                 <span>Total Raised</span>
               </div>
-              <div className="aif-stat-divider" />
+              <div className="aif-stat-icon" style={{ background: '#ffe4e8', color: '#f43f5e' }}>
+                <PublicIcon name="heart" />
+              </div>
               <div>
                 <strong>{donationCount.toLocaleString()}</strong>
                 <span>Donations Recorded</span>
