@@ -1379,14 +1379,34 @@ img, svg { display: block; }
 .pc-organizer { margin: 0; color: #4d567a; font-size: 15px; }
 .pc-organizer b { color: var(--violet); }
 
-/* Trust score bar */
-.pc-trust { border: 1px solid var(--line); border-radius: 16px; background: #fff; padding: 18px; display: grid; grid-template-columns: 1.3fr repeat(5, 1fr); gap: 14px; box-shadow: var(--shadow-sm); }
-.pc-trust strong { color: #0fa456; font-size: 38px; }
-.pc-trust div span { color: #394066; font-size: 24px; font-weight: 800; }
-.pc-trust small { display: block; color: var(--muted); font-size: 12px; }
-.pc-trust article { display: grid; place-items: center; gap: 6px; text-align: center; }
-.pc-trust article span { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: var(--green-light); color: var(--green); font-weight: 950; }
-.pc-trust article b { font-size: 12px; }
+/* ── Trust score bar — redesigned ── */
+.pc-trust-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+}
+.pc-charit-score {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.pc-charit-score-ring {
+  flex-shrink: 0;
+}
+.pc-trust-signal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  cursor: default;
+}
 
 /* Cover image / gallery */
 .pc-media { display: grid; gap: 12px; }
@@ -2542,7 +2562,8 @@ img, svg { display: block; }
   .kf-settings-v2 { grid-template-columns: 200px 1fr; }
   .kf-setright { display: none; }
   .pc-donate { position: static; }
-  .pc-trust { grid-template-columns: repeat(2, 1fr); }
+  .pc-trust-bar { gap: 12px; }
+  .pc-trust-signal { flex-basis: calc(50% - 6px); }
   .kf-metrics, .kf-two-col, .kf-integration-grid, .kf-integration-grid.compact, .kf-flow-grid, .kf-flow-steps { grid-template-columns: repeat(2, 1fr); }
 }
 
@@ -2582,7 +2603,8 @@ img, svg { display: block; }
   .kf-row b, .kf-row-action { grid-column: 2; justify-self: start; }
   .public-campaign { padding: 22px 16px 32px; }
   .pc-media > img { height: 300px; }
-  .pc-safe, .pc-trust { grid-template-columns: 1fr; }
+  .pc-safe { grid-template-columns: 1fr; }
+  .pc-trust-bar { flex-direction: column; align-items: flex-start; }
   .pc-story nav { overflow-x: auto; gap: 22px; }
   .pc-quick-share-qr { flex-direction: column; }
   .pc-payment-methods { grid-template-columns: 1fr; }

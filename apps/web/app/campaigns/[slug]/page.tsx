@@ -177,6 +177,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
       {/* ── TOP HEADER ── */}
       <section className="pc-header">
+        {/* Breadcrumb */}
         <nav className="pc-breadcrumb" aria-label="Breadcrumb">
           <Link href="/">Home</Link>
           <span aria-hidden="true"> / </span>
@@ -184,28 +185,93 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             {campaign.category ?? 'Campaign'}
           </Link>
           <span aria-hidden="true"> / </span>
-          <span aria-current="page" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', verticalAlign: 'bottom' }}>
+          <span aria-current="page" style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', verticalAlign: 'bottom' }}>
             {campaign.title}
           </span>
         </nav>
-        <span className="pc-verified">✓ Verified Campaign</span>
+
+        {/* Verified + category pills */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span className="pc-verified">✓ Verified Campaign</span>
+          {campaign.category && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: '#f0eaff', color: 'var(--violet)', fontSize: 12, fontWeight: 800, letterSpacing: '.04em' }}>
+              {campaign.category}
+            </span>
+          )}
+          {(campaign as { nonprofit_verified?: boolean }).nonprofit_verified && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: '#dcfce7', color: '#15803d', fontSize: 12, fontWeight: 800 }}>
+              Tax Deductible
+            </span>
+          )}
+        </div>
+
+        {/* Title */}
         <h1 className="pc-title-h1">{campaign.title}</h1>
-        <p className="pc-organizer">
-          Organized by {organizer.full_name ?? 'CharitMe Organizer'}{' '}
-          <b>Verified</b> · {campaign.location ?? 'New York, USA'}
-        </p>
-        <div className="pc-trust">
-          <div>
-            <strong>{trustScore}</strong><span>/100</span>
-            <small>CharitMe Score</small>
+
+        {/* Organizer row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,var(--violet),var(--violet-2))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 15, flexShrink: 0 }}>
+            {(organizer.full_name ?? 'C')[0]}
           </div>
-          {trustSignals.map((signal) => (
-            <article key={signal.label}>
-              <span>✓</span>
-              <b>{signal.label}</b>
-              <small>{signal.state}</small>
-            </article>
-          ))}
+          <p className="pc-organizer" style={{ margin: 0 }}>
+            Organized by <b style={{ color: 'var(--ink)', fontWeight: 800 }}>{organizer.full_name ?? 'CharitMe Organizer'}</b>
+            {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: '#dcfce7', color: '#15803d', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 800 }}>✓ Verified</span>
+            {' '}· {campaign.location ?? 'New York, USA'}
+          </p>
+        </div>
+
+        {/* Trust score bar — dynamic color-coded chips */}
+        <div className="pc-trust-bar">
+          {/* CharitScore badge */}
+          <div className="pc-charit-score" style={{
+            '--score-color': trustScore >= 70 ? '#059669' : trustScore >= 45 ? '#d97706' : '#dc2626',
+          } as React.CSSProperties}>
+            <div className="pc-charit-score-ring">
+              <svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true">
+                <circle cx="28" cy="28" r="23" fill="none" stroke="#e8e4fb" strokeWidth="5" />
+                <circle
+                  cx="28" cy="28" r="23"
+                  fill="none"
+                  stroke={trustScore >= 70 ? '#059669' : trustScore >= 45 ? '#d97706' : '#dc2626'}
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  strokeDasharray={`${(trustScore / 100) * 144.5} 144.5`}
+                  strokeDashoffset="36"
+                  style={{ transition: 'stroke-dasharray .6s ease' }}
+                />
+                <text x="28" y="32" textAnchor="middle" fontSize="13" fontWeight="900" fill={trustScore >= 70 ? '#059669' : trustScore >= 45 ? '#d97706' : '#dc2626'}>{trustScore}</text>
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--t1)' }}>CharitMe Score</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: trustScore >= 70 ? '#059669' : trustScore >= 45 ? '#d97706' : '#dc2626' }}>
+                {trustScore >= 70 ? 'Strong Trust' : trustScore >= 45 ? 'Needs Attention' : 'Needs Review'}
+              </div>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div style={{ width: 1, alignSelf: 'stretch', background: 'var(--line)', flexShrink: 0 }} />
+
+          {/* Individual trust signals */}
+          {trustSignals.map((signal) => {
+            const isVerified = signal.state === 'verified';
+            const isWatch    = signal.state === 'watch';
+            const color  = isVerified ? '#059669' : isWatch ? '#d97706' : '#94a3b8';
+            const bg     = isVerified ? '#dcfce7'  : isWatch ? '#fef3c7' : '#f1f5f9';
+            const icon   = isVerified ? '✓' : isWatch ? '⚠' : '○';
+            return (
+              <div key={signal.label} className="pc-trust-signal" title={signal.detail}>
+                <span style={{ width: 28, height: 28, borderRadius: '50%', background: bg, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, flexShrink: 0 }}>
+                  {icon}
+                </span>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t1)', whiteSpace: 'nowrap' }}>{signal.label}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{signal.state}</div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
