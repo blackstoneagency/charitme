@@ -59,10 +59,11 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             <div className="kind-scribble" aria-hidden="true" />
             <p>CharitMe is the world&apos;s first AI-powered fundraising platform that helps people, teams, creators, and nonprofits create trusted campaigns and grow donations.</p>
             <div className="kind-actions">
-              <Link href="/create" className="kind-btn kind-btn-primary">Create My Fundraiser With AI</Link>
+              <Link href="/ai-campaign" className="kind-btn kind-btn-primary">Create My Fundraiser With AI</Link>
               <Link href="/campaigns" className="kind-btn kind-btn-secondary">Donate Now <span><Icon name="arrow" className="h-3.5 w-3.5" /></span></Link>
             </div>
             <div className="kind-actions" style={{ marginTop: 14 }}>
+              <Link href="/create" className="kind-btn kind-btn-secondary">Create My Fundraiser <span><Icon name="arrow" className="h-3.5 w-3.5" /></span></Link>
               <Link href="/features" className="kind-btn kind-btn-secondary">Why We Beat GoFundMe <span><Icon name="arrow" className="h-3.5 w-3.5" /></span></Link>
             </div>
             <div className="kind-pills">
