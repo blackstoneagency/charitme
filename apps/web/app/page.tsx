@@ -273,6 +273,9 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
               <Link href="/create" className="kind-btn kind-btn-primary">Create My Fundraiser With AI</Link>
               <Link href="/campaigns" className="kind-btn kind-btn-secondary">Donate Now <span><Icon name="arrow" className="h-3.5 w-3.5" /></span></Link>
             </div>
+            <div className="kind-actions" style={{ marginTop: 14 }}>
+              <Link href="/features" className="kind-btn kind-btn-secondary">Why We Beat GoFundMe <span><Icon name="arrow" className="h-3.5 w-3.5" /></span></Link>
+            </div>
             <div className="kind-pills">
               {['CharitMe AI Builder', 'AI Growth Engine', 'CharitScore Trust', '0% Platform Fees'].map((item, index) => (
                 <div key={item}><Icon name={index === 0 ? 'sparkle' : index === 1 ? 'rocket' : index === 2 ? 'shield' : 'gift'} className="h-3.5 w-3.5" />{item}</div>
