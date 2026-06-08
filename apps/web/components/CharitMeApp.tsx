@@ -180,9 +180,9 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
         )}
 
         {mode === 'admin' && (
-          <Link href="/dashboard" className="kf-back-to-dashboard">
+          <Link href="/" className="kf-back-to-dashboard">
             <KFIcon name="home" />
-            Back to Dashboard
+            View Public Site
           </Link>
         )}
 
