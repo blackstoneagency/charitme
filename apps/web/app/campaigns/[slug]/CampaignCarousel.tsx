@@ -22,8 +22,8 @@ export default function CampaignCarousel({
   return (
     <div className="pc-carousel">
       {/* Main image */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <div className="pc-carousel-main">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={src} alt={`${title} — photo ${idx + 1}`} />
         {total > 1 && (
           <>

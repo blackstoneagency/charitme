@@ -50,7 +50,7 @@ export async function getStoryCampaigns(filters: StoryFilters): Promise<HomeCamp
   }
 
   const { data, error } = await query.limit(12);
-  if (error) throw new Error(error.message);
+  if (error) return [];
   return (data ?? []) as HomeCampaign[];
 }
 

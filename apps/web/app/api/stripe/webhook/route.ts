@@ -4,6 +4,7 @@ import type Stripe from 'stripe';
 import { stripe, formatCents } from '../../../../lib/stripe';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { sendReceiptEmail } from '../../../../lib/email';
+import { recordCampaignPayment, recordPaymentEvent } from '../../../../lib/payment-flow';
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
     { stripe_event_id: event.id, event_type: event.type, payload: event as unknown as Record<string, unknown> },
     { onConflict: 'stripe_event_id', ignoreDuplicates: false },
   );
+  await recordCampaignPaymentWebhookEvent(event, existing?.processed_at ? 'duplicate' : 'received');
 
   try {
     await handleEvent(event);
@@ -41,12 +43,20 @@ export async function POST(request: NextRequest) {
       .from('webhook_events')
       .update({ processed_at: new Date().toISOString() })
       .eq('stripe_event_id', event.id);
+    await supabaseAdmin
+      .from('campaign_payment_webhook_events')
+      .update({ status: 'processed', updated_at: new Date().toISOString() })
+      .eq('processor_event_id', event.id);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     await supabaseAdmin
       .from('webhook_events')
       .update({ processing_error: msg })
       .eq('stripe_event_id', event.id);
+    await supabaseAdmin
+      .from('campaign_payment_webhook_events')
+      .update({ status: 'failed', updated_at: new Date().toISOString() })
+      .eq('processor_event_id', event.id);
     console.error('[webhook] unhandled error', event.type, msg);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -58,6 +68,11 @@ export async function POST(request: NextRequest) {
 // Main event dispatcher
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleEvent(event: Stripe.Event) {
+  if ((event.type as string) === 'transfer.failed') {
+    await handleTransferFailed(event.data.object as Stripe.Transfer);
+    return;
+  }
+
   switch (event.type) {
     // ── Checkout ─────────────────────────────────────────────────────────────
     case 'checkout.session.completed':
@@ -82,7 +97,8 @@ async function handleEvent(event: Stripe.Event) {
 
     // ── Charges ───────────────────────────────────────────────────────────────
     case 'charge.succeeded':
-      // No-op — payment_intent.succeeded is the canonical event
+    case 'charge.updated':
+      await handleChargeObserved(event.data.object as Stripe.Charge);
       break;
     case 'charge.refunded':
       await handleChargeRefunded(event.data.object as Stripe.Charge);
@@ -110,10 +126,11 @@ async function handleEvent(event: Stripe.Event) {
       break;
 
     // ── Transfers ─────────────────────────────────────────────────────────────
-    // Note: transfer.paid and transfer.failed are not in the Stripe SDK type union
-    // but are valid Stripe events — handled via the default path with raw object
     case 'transfer.created':
       await handleTransferPaid(event.data.object as Stripe.Transfer);
+      break;
+    case 'application_fee.created':
+      await handleApplicationFeeCreated(event.data.object as Stripe.ApplicationFee);
       break;
 
     // ── Payouts (on connected accounts) ──────────────────────────────────────
@@ -176,6 +193,7 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
     const connectedAccountId = meta.connectedAccountId ?? '';
     const organizerUserId    = meta.organizerUserId ?? '';
     const paymentIntentId    = typeof session.payment_intent === 'string' ? session.payment_intent : null;
+    const currency           = (session.currency ?? 'usd').toLowerCase();
 
     const { data, error } = await supabaseAdmin.rpc('record_donation', {
       p_stripe_event_id:           eventId,
@@ -193,21 +211,40 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
     if (error) throw new Error(`record_donation failed: ${error.message}`);
 
     const alreadyDone = (data as { status: string } | null)?.status === 'already_processed';
+    const donationId = await findDonationId({ paymentIntentId, checkoutSessionId: session.id });
+    const campaignPaymentId = await recordCampaignPayment({
+      donationId,
+      campaignId: meta.campaignId,
+      campaignOwnerId: organizerUserId || null,
+      donorId: meta.donorId || null,
+      processor: 'stripe',
+      processorAccountId: connectedAccountId || null,
+      processorPaymentIntentId: paymentIntentId,
+      processorCheckoutSessionId: session.id,
+      grossAmount: amountCents,
+      tipAmount: tipCents,
+      platformFeeAmount: platformFeeCents,
+      processorFeeAmount: 0,
+      ownerNetAmount: amountCents,
+      currency,
+      paymentStatus: 'succeeded',
+      transferStatus: hasConnected ? 'created' : 'pending',
+      payoutStatus: hasConnected ? 'requested' : 'not_applicable',
+      paidAt: new Date().toISOString(),
+      webhookEventId: eventId,
+      metadata: {
+        payment_method: paymentMethod,
+        connected_account_id: connectedAccountId || null,
+        donor_covered_processing_fee_cents: processingFeeCents,
+        stripe_amount_total: session.amount_total ?? null,
+      },
+    });
 
     if (!alreadyDone && amountCents > 0 && organizerUserId) {
-      // ── Auto-create payout record ───────────────────────────────────────
-      // The Stripe Connect transfer already happened automatically at charge time.
-      // We record it in our payouts table for admin visibility, organizer dashboards,
-      // and reconciliation.
-      //
-      //  hasConnected = true  → status 'paid'    (Stripe already transferred amountCents
-      //                                           to the organizer's connected account)
-      //  hasConnected = false → status 'requested' (admin must manually pay out)
-      const payoutStatus   = hasConnected ? 'paid' : 'requested';
-      const payoutPaidAt   = hasConnected ? new Date().toISOString() : null;
-      const feeTotal       = tipCents + processingFeeCents;
+      const payoutStatus = hasConnected ? 'requested' : 'requested';
+      const feeTotal = tipCents + processingFeeCents;
 
-      await supabaseAdmin.from('payouts').insert({
+      const { data: payoutRow } = await supabaseAdmin.from('payouts').insert({
         campaign_id:     meta.campaignId,
         user_id:         organizerUserId,
         amount_cents:    amountCents,
@@ -218,10 +255,57 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
           ? `auto_${paymentIntentId ?? session.id}`
           : null,
         note: hasConnected
-          ? `Auto-paid via Stripe Connect (${paymentMethod}). CharitMe tip: ${formatCents(platformFeeCents)}, processing: ${formatCents(processingFeeCents)}.`
+          ? `Stripe Connect transfer requested (${paymentMethod}). Final bank payout remains pending processor confirmation. CharitMe tip: ${formatCents(platformFeeCents)}, donor-covered processing: ${formatCents(processingFeeCents)}.`
           : `Pending manual payout — organizer has no connected Stripe account. Donation via ${paymentMethod}.`,
-        ...(payoutPaidAt ? { paid_at: payoutPaidAt } : {}),
-      });
+      }).select('id').maybeSingle();
+
+      if (campaignPaymentId) {
+        await Promise.all([
+          hasConnected
+            ? supabaseAdmin.from('campaign_owner_transfers').insert({
+                campaign_payment_id: campaignPaymentId,
+                campaign_id: meta.campaignId,
+                campaign_owner_id: organizerUserId,
+                donor_id: meta.donorId || null,
+                processor: 'stripe',
+                processor_account_id: connectedAccountId || null,
+                gross_amount: amountCents,
+                transfer_amount: amountCents,
+                currency,
+                status: 'created',
+                metadata: { checkout_session_id: session.id, payment_intent_id: paymentIntentId },
+              })
+            : Promise.resolve(),
+          supabaseAdmin.from('campaign_owner_payouts').insert({
+            campaign_payment_id: campaignPaymentId,
+            campaign_id: meta.campaignId,
+            campaign_owner_id: organizerUserId,
+            donor_id: meta.donorId || null,
+            legacy_payout_id: payoutRow?.id ?? null,
+            processor: 'stripe',
+            processor_account_id: connectedAccountId || null,
+            gross_amount: amountCents,
+            payout_amount: amountCents,
+            currency,
+            status: hasConnected ? 'requested' : 'pending',
+            metadata: { checkout_session_id: session.id, payment_intent_id: paymentIntentId },
+          }),
+          recordPaymentEvent({
+            campaignPaymentId,
+            campaignId: meta.campaignId,
+            campaignOwnerId: organizerUserId,
+            donorId: meta.donorId || null,
+            processor: 'stripe',
+            processorAccountId: connectedAccountId || null,
+            processorObjectId: session.id,
+            eventType: 'checkout.session.completed',
+            eventStatus: 'processed',
+            amount: amountCents,
+            currency,
+            metadata: { payment_intent_id: paymentIntentId, donor_covered_processing_fee_cents: processingFeeCents },
+          }),
+        ]);
+      }
 
       // ── Audit log — split payment event ────────────────────────────────
       await supabaseAdmin.from('audit_logs').insert({
@@ -314,6 +398,31 @@ async function handlePaymentIntentSucceeded(pi: Stripe.PaymentIntent) {
     .update({ status: 'completed', updated_at: new Date().toISOString() })
     .eq('stripe_payment_intent_id', pi.id)
     .eq('status', 'pending');
+
+  const payment = await findCampaignPayment({ paymentIntentId: pi.id });
+  if (!payment) return;
+
+  await Promise.all([
+    supabaseAdmin.from('campaign_payments').update({
+      payment_status: 'succeeded',
+      paid_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('id', payment.id),
+    recordPaymentEvent({
+      campaignPaymentId: payment.id,
+      campaignId: payment.campaign_id,
+      campaignOwnerId: payment.campaign_owner_id,
+      donorId: payment.donor_id,
+      processor: 'stripe',
+      processorAccountId: payment.processor_account_id,
+      processorObjectId: pi.id,
+      eventType: 'payment_intent.succeeded',
+      eventStatus: pi.status,
+      amount: pi.amount_received,
+      currency: pi.currency,
+      metadata: { latest_charge: typeof pi.latest_charge === 'string' ? pi.latest_charge : pi.latest_charge?.id ?? null },
+    }),
+  ]);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -323,6 +432,88 @@ async function handlePaymentIntentFailed(pi: Stripe.PaymentIntent) {
   await supabaseAdmin.from('donations')
     .update({ status: 'failed', updated_at: new Date().toISOString() })
     .eq('stripe_payment_intent_id', pi.id);
+
+  const payment = await findCampaignPayment({ paymentIntentId: pi.id });
+  if (!payment) return;
+
+  await Promise.all([
+    supabaseAdmin.from('campaign_payments').update({
+      payment_status: 'failed',
+      settlement_status: 'failed',
+      reconciliation_status: 'failed',
+      reconciliation_reason: 'payment_intent_failed',
+      updated_at: new Date().toISOString(),
+    }).eq('id', payment.id),
+    recordPaymentEvent({
+      campaignPaymentId: payment.id,
+      campaignId: payment.campaign_id,
+      campaignOwnerId: payment.campaign_owner_id,
+      donorId: payment.donor_id,
+      processor: 'stripe',
+      processorAccountId: payment.processor_account_id,
+      processorObjectId: pi.id,
+      eventType: 'payment_intent.payment_failed',
+      eventStatus: pi.status,
+      amount: pi.amount,
+      currency: pi.currency,
+      metadata: { last_payment_error: pi.last_payment_error?.code ?? null },
+    }),
+  ]);
+}
+
+async function handleChargeObserved(charge: Stripe.Charge) {
+  const piId = typeof charge.payment_intent === 'string' ? charge.payment_intent : null;
+  const payment = await findCampaignPayment({ paymentIntentId: piId, chargeId: charge.id });
+  if (!payment) return;
+
+  const balanceTransactionId = typeof charge.balance_transaction === 'string' ? charge.balance_transaction : null;
+  const balanceTransaction = balanceTransactionId
+    ? await stripe.balanceTransactions.retrieve(balanceTransactionId).catch(() => null)
+    : null;
+  const processorFeeAmount = balanceTransaction?.fee ?? payment.processor_fee_amount;
+  const availableOn = balanceTransaction?.available_on
+    ? new Date(balanceTransaction.available_on * 1000).toISOString()
+    : payment.available_on;
+
+  await Promise.all([
+    supabaseAdmin.from('campaign_payments').update({
+      processor_charge_id: charge.id,
+      processor_fee_amount: processorFeeAmount,
+      available_on: availableOn,
+      settlement_status: availableOn ? 'available' : payment.settlement_status,
+      updated_at: new Date().toISOString(),
+    }).eq('id', payment.id),
+    balanceTransaction
+      ? supabaseAdmin.from('campaign_processor_fees').upsert({
+          campaign_payment_id: payment.id,
+          campaign_id: payment.campaign_id,
+          campaign_owner_id: payment.campaign_owner_id,
+          donor_id: payment.donor_id,
+          processor: 'stripe',
+          processor_account_id: payment.processor_account_id,
+          processor_object_id: balanceTransaction.id,
+          gross_amount: charge.amount,
+          processor_fee_amount: processorFeeAmount,
+          currency: balanceTransaction.currency,
+          status: 'recorded',
+          metadata: { charge_id: charge.id, net: balanceTransaction.net },
+        }, { onConflict: 'processor,processor_object_id', ignoreDuplicates: false })
+      : Promise.resolve(),
+    recordPaymentEvent({
+      campaignPaymentId: payment.id,
+      campaignId: payment.campaign_id,
+      campaignOwnerId: payment.campaign_owner_id,
+      donorId: payment.donor_id,
+      processor: 'stripe',
+      processorAccountId: payment.processor_account_id,
+      processorObjectId: charge.id,
+      eventType: `charge.${charge.status}`,
+      eventStatus: charge.status,
+      amount: charge.amount,
+      currency: charge.currency,
+      metadata: { balance_transaction_id: balanceTransactionId, processor_fee_amount: processorFeeAmount },
+    }),
+  ]);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -363,6 +554,47 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     .update({ status: 'processed', processed_at: new Date().toISOString() })
     .eq('donation_id', donation.id)
     .in('status', ['requested', 'approved']);
+
+  const payment = await findCampaignPayment({ paymentIntentId: piId, chargeId: charge.id });
+  if (!payment) return;
+
+  const refundedAmount = charge.amount_refunded ?? 0;
+  await Promise.all([
+    supabaseAdmin.from('campaign_payments').update({
+      payment_status: isFullRefund ? 'refunded' : 'partially_refunded',
+      refund_status: isFullRefund ? 'full' : 'partial',
+      refunded_amount: refundedAmount,
+      updated_at: new Date().toISOString(),
+    }).eq('id', payment.id),
+    supabaseAdmin.from('campaign_payment_refunds').upsert({
+      campaign_payment_id: payment.id,
+      campaign_id: payment.campaign_id,
+      campaign_owner_id: payment.campaign_owner_id,
+      donor_id: payment.donor_id,
+      processor: 'stripe',
+      processor_account_id: payment.processor_account_id,
+      processor_object_id: charge.id,
+      gross_amount: payment.gross_amount,
+      refund_amount: refundedAmount,
+      currency: charge.currency,
+      status: isFullRefund ? 'full' : 'partial',
+      metadata: { payment_intent_id: piId },
+    }, { onConflict: 'processor,processor_object_id', ignoreDuplicates: false }),
+    recordPaymentEvent({
+      campaignPaymentId: payment.id,
+      campaignId: payment.campaign_id,
+      campaignOwnerId: payment.campaign_owner_id,
+      donorId: payment.donor_id,
+      processor: 'stripe',
+      processorAccountId: payment.processor_account_id,
+      processorObjectId: charge.id,
+      eventType: 'charge.refunded',
+      eventStatus: isFullRefund ? 'full' : 'partial',
+      amount: refundedAmount,
+      currency: charge.currency,
+      metadata: { payment_intent_id: piId },
+    }),
+  ]);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -400,6 +632,50 @@ async function handleDisputeCreated(dispute: Stripe.Dispute) {
     target_id: donation?.id ?? null,
     metadata: { dispute_id: dispute.id, reason: dispute.reason, amount: dispute.amount },
   });
+
+  const payment = await findCampaignPayment({ paymentIntentId: piId });
+  if (!payment) return;
+
+  await Promise.all([
+    supabaseAdmin.from('campaign_payments').update({
+      payment_status: 'disputed',
+      dispute_status: 'opened',
+      disputed_amount: dispute.amount,
+      reconciliation_status: 'needs_review',
+      reconciliation_reason: 'dispute_opened',
+      updated_at: new Date().toISOString(),
+    }).eq('id', payment.id),
+    supabaseAdmin.from('campaign_payment_disputes').upsert({
+      campaign_payment_id: payment.id,
+      campaign_id: payment.campaign_id,
+      campaign_owner_id: payment.campaign_owner_id,
+      donor_id: payment.donor_id,
+      processor: 'stripe',
+      processor_account_id: payment.processor_account_id,
+      processor_object_id: dispute.id,
+      gross_amount: payment.gross_amount,
+      dispute_amount: dispute.amount,
+      currency: dispute.currency,
+      status: 'opened',
+      reason: dispute.reason,
+      opened_at: new Date().toISOString(),
+      metadata: { payment_intent_id: piId, charge_id: typeof dispute.charge === 'string' ? dispute.charge : dispute.charge?.id ?? null },
+    }, { onConflict: 'processor,processor_object_id', ignoreDuplicates: false }),
+    recordPaymentEvent({
+      campaignPaymentId: payment.id,
+      campaignId: payment.campaign_id,
+      campaignOwnerId: payment.campaign_owner_id,
+      donorId: payment.donor_id,
+      processor: 'stripe',
+      processorAccountId: payment.processor_account_id,
+      processorObjectId: dispute.id,
+      eventType: 'charge.dispute.created',
+      eventStatus: dispute.status,
+      amount: dispute.amount,
+      currency: dispute.currency,
+      metadata: { reason: dispute.reason },
+    }),
+  ]);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -422,6 +698,37 @@ async function handleDisputeClosed(dispute: Stripe.Dispute) {
   await supabaseAdmin.from('refunds')
     .update({ status: won ? 'declined' : 'processed', processed_at: new Date().toISOString() })
     .eq('stripe_refund_id', dispute.id);
+
+  const payment = await findCampaignPayment({ paymentIntentId: piId });
+  if (!payment) return;
+
+  await Promise.all([
+    supabaseAdmin.from('campaign_payments').update({
+      dispute_status: won ? 'won' : 'lost',
+      reconciliation_status: won ? 'pending_data' : 'needs_review',
+      reconciliation_reason: won ? 'dispute_won' : 'dispute_lost',
+      updated_at: new Date().toISOString(),
+    }).eq('id', payment.id),
+    supabaseAdmin.from('campaign_payment_disputes').update({
+      status: won ? 'won' : 'lost',
+      closed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('processor_object_id', dispute.id),
+    recordPaymentEvent({
+      campaignPaymentId: payment.id,
+      campaignId: payment.campaign_id,
+      campaignOwnerId: payment.campaign_owner_id,
+      donorId: payment.donor_id,
+      processor: 'stripe',
+      processorAccountId: payment.processor_account_id,
+      processorObjectId: dispute.id,
+      eventType: 'charge.dispute.closed',
+      eventStatus: dispute.status,
+      amount: dispute.amount,
+      currency: dispute.currency,
+      metadata: { outcome: dispute.status },
+    }),
+  ]);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -480,28 +787,168 @@ async function handleAccountUpdated(account: Stripe.Account) {
 // transfer.created / transfer.paid
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleTransferPaid(transfer: Stripe.Transfer) {
-  // Update any payout record that references this transfer
-  await supabaseAdmin.from('payouts')
-    .update({ status: 'paid', paid_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .eq('stripe_payout_id', transfer.id);
+  const sourceChargeId = typeof transfer.source_transaction === 'string' ? transfer.source_transaction : null;
+  const payment = await findCampaignPayment({ transferId: transfer.id, chargeId: sourceChargeId });
+  if (!payment) return;
+
+  await Promise.all([
+    supabaseAdmin.from('campaign_payments').update({
+      processor_transfer_id: transfer.id,
+      transfer_status: 'created',
+      updated_at: new Date().toISOString(),
+    }).eq('id', payment.id),
+    supabaseAdmin.from('campaign_owner_transfers').upsert({
+      campaign_payment_id: payment.id,
+      campaign_id: payment.campaign_id,
+      campaign_owner_id: payment.campaign_owner_id,
+      donor_id: payment.donor_id,
+      processor: 'stripe',
+      processor_account_id: payment.processor_account_id,
+      processor_object_id: transfer.id,
+      gross_amount: payment.gross_amount,
+      transfer_amount: transfer.amount,
+      currency: transfer.currency,
+      status: 'created',
+      metadata: { destination: typeof transfer.destination === 'string' ? transfer.destination : transfer.destination?.id ?? null, source_charge_id: sourceChargeId },
+    }, { onConflict: 'processor,processor_object_id', ignoreDuplicates: false }),
+    recordPaymentEvent({
+      campaignPaymentId: payment.id,
+      campaignId: payment.campaign_id,
+      campaignOwnerId: payment.campaign_owner_id,
+      donorId: payment.donor_id,
+      processor: 'stripe',
+      processorAccountId: payment.processor_account_id,
+      processorObjectId: transfer.id,
+      eventType: 'transfer.created',
+      eventStatus: 'created',
+      amount: transfer.amount,
+      currency: transfer.currency,
+      metadata: { destination: typeof transfer.destination === 'string' ? transfer.destination : transfer.destination?.id ?? null, source_charge_id: sourceChargeId },
+    }),
+  ]);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // transfer.failed
 // ─────────────────────────────────────────────────────────────────────────────
-async function _handleTransferFailed(transfer: Stripe.Transfer) {
+async function handleTransferFailed(transfer: Stripe.Transfer) {
   await supabaseAdmin.from('payouts')
     .update({ status: 'failed', updated_at: new Date().toISOString() })
     .eq('stripe_payout_id', transfer.id);
+
+  const sourceChargeId = typeof transfer.source_transaction === 'string' ? transfer.source_transaction : null;
+  const payment = await findCampaignPayment({ transferId: transfer.id, chargeId: sourceChargeId });
+  if (!payment) return;
+
+  await Promise.all([
+    supabaseAdmin.from('campaign_payments').update({
+      transfer_status: 'failed',
+      settlement_status: 'failed',
+      reconciliation_status: 'failed',
+      reconciliation_reason: 'transfer_failed',
+      updated_at: new Date().toISOString(),
+    }).eq('id', payment.id),
+    supabaseAdmin.from('campaign_owner_transfers').update({
+      status: 'failed',
+      updated_at: new Date().toISOString(),
+    }).eq('processor_object_id', transfer.id),
+    recordPaymentEvent({
+      campaignPaymentId: payment.id,
+      campaignId: payment.campaign_id,
+      campaignOwnerId: payment.campaign_owner_id,
+      donorId: payment.donor_id,
+      processor: 'stripe',
+      processorAccountId: payment.processor_account_id,
+      processorObjectId: transfer.id,
+      eventType: 'transfer.failed',
+      eventStatus: 'failed',
+      amount: transfer.amount,
+      currency: transfer.currency,
+      metadata: { destination: typeof transfer.destination === 'string' ? transfer.destination : transfer.destination?.id ?? null, source_charge_id: sourceChargeId },
+    }),
+  ]);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // payout.created / payout.paid (on connected accounts)
 // ─────────────────────────────────────────────────────────────────────────────
+async function handleApplicationFeeCreated(fee: Stripe.ApplicationFee) {
+  const chargeId = typeof fee.charge === 'string' ? fee.charge : null;
+  const payment = await findCampaignPayment({ chargeId });
+  if (!payment) return;
+
+  await Promise.all([
+    supabaseAdmin.from('campaign_payments').update({
+      platform_fee_amount: fee.amount,
+      updated_at: new Date().toISOString(),
+    }).eq('id', payment.id),
+    supabaseAdmin.from('campaign_platform_fees').insert({
+      campaign_payment_id: payment.id,
+      campaign_id: payment.campaign_id,
+      campaign_owner_id: payment.campaign_owner_id,
+      donor_id: payment.donor_id,
+      processor: 'stripe',
+      processor_account_id: payment.processor_account_id,
+      processor_object_id: fee.id,
+      gross_amount: payment.gross_amount,
+      platform_fee_amount: fee.amount,
+      currency: fee.currency,
+      status: 'recorded',
+      metadata: { charge_id: chargeId, balance_transaction_id: typeof fee.balance_transaction === 'string' ? fee.balance_transaction : null },
+    }),
+    recordPaymentEvent({
+      campaignPaymentId: payment.id,
+      campaignId: payment.campaign_id,
+      campaignOwnerId: payment.campaign_owner_id,
+      donorId: payment.donor_id,
+      processor: 'stripe',
+      processorAccountId: payment.processor_account_id,
+      processorObjectId: fee.id,
+      eventType: 'application_fee.created',
+      eventStatus: 'recorded',
+      amount: fee.amount,
+      currency: fee.currency,
+      metadata: { charge_id: chargeId },
+    }),
+  ]);
+}
+
 async function handlePayoutPaid(payout: Stripe.Payout) {
   await supabaseAdmin.from('payouts')
     .update({ status: 'paid', paid_at: new Date().toISOString(), stripe_payout_id: payout.id, updated_at: new Date().toISOString() })
     .eq('stripe_payout_id', payout.id);
+
+  const payment = await findCampaignPayment({ payoutId: payout.id });
+  if (payment) {
+    await Promise.all([
+      supabaseAdmin.from('campaign_payments').update({
+        processor_payout_id: payout.id,
+        payout_status: payout.status === 'paid' ? 'paid' : 'pending',
+        settlement_status: payout.status === 'paid' ? 'paid_out' : 'pending',
+        payout_at: payout.arrival_date ? new Date(payout.arrival_date * 1000).toISOString() : new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).eq('id', payment.id),
+      supabaseAdmin.from('campaign_owner_payouts').update({
+        processor_object_id: payout.id,
+        status: payout.status === 'paid' ? 'paid' : 'pending',
+        updated_at: new Date().toISOString(),
+      }).eq('campaign_payment_id', payment.id),
+      recordPaymentEvent({
+        campaignPaymentId: payment.id,
+        campaignId: payment.campaign_id,
+        campaignOwnerId: payment.campaign_owner_id,
+        donorId: payment.donor_id,
+        processor: 'stripe',
+        processorAccountId: payment.processor_account_id,
+        processorObjectId: payout.id,
+        eventType: `payout.${payout.status}`,
+        eventStatus: payout.status,
+        amount: payout.amount,
+        currency: payout.currency,
+        metadata: { arrival_date: payout.arrival_date ?? null },
+      }),
+    ]);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -511,11 +958,139 @@ async function handlePayoutFailed(payout: Stripe.Payout) {
   await supabaseAdmin.from('payouts')
     .update({ status: 'failed', updated_at: new Date().toISOString() })
     .eq('stripe_payout_id', payout.id);
+
+  const payment = await findCampaignPayment({ payoutId: payout.id });
+  if (payment) {
+    await Promise.all([
+      supabaseAdmin.from('campaign_payments').update({
+        payout_status: 'failed',
+        settlement_status: 'failed',
+        reconciliation_status: 'failed',
+        reconciliation_reason: 'payout_failed',
+        updated_at: new Date().toISOString(),
+      }).eq('id', payment.id),
+      supabaseAdmin.from('campaign_owner_payouts').update({
+        status: 'failed',
+        updated_at: new Date().toISOString(),
+      }).eq('campaign_payment_id', payment.id),
+      recordPaymentEvent({
+        campaignPaymentId: payment.id,
+        campaignId: payment.campaign_id,
+        campaignOwnerId: payment.campaign_owner_id,
+        donorId: payment.donor_id,
+        processor: 'stripe',
+        processorAccountId: payment.processor_account_id,
+        processorObjectId: payout.id,
+        eventType: 'payout.failed',
+        eventStatus: 'failed',
+        amount: payout.amount,
+        currency: payout.currency,
+        metadata: { failure_code: payout.failure_code ?? null, failure_message: payout.failure_message ?? null },
+      }),
+    ]);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+type CampaignPaymentLookup = {
+  id: string;
+  campaign_id: string | null;
+  campaign_owner_id: string | null;
+  donor_id: string | null;
+  processor_account_id: string | null;
+  processor_fee_amount: number;
+  gross_amount: number;
+  available_on: string | null;
+  settlement_status: string;
+};
+
+async function recordCampaignPaymentWebhookEvent(event: Stripe.Event, status: 'received' | 'duplicate' | 'processed' | 'failed' | 'ignored'): Promise<void> {
+  const object = event.data.object as { id?: string; amount?: number; currency?: string; metadata?: Record<string, string> };
+  const metadata = object.metadata ?? {};
+  const campaignPayment = await findCampaignPayment({
+    paymentIntentId: metadata.payment_intent_id ?? (event.type.startsWith('payment_intent.') ? object.id ?? null : null),
+    checkoutSessionId: event.type.startsWith('checkout.session.') ? object.id ?? null : null,
+    chargeId: event.type.startsWith('charge.') ? object.id ?? null : null,
+    transferId: event.type.startsWith('transfer.') ? object.id ?? null : null,
+    payoutId: event.type.startsWith('payout.') ? object.id ?? null : null,
+  });
+
+  await supabaseAdmin.from('campaign_payment_webhook_events').upsert({
+    campaign_payment_id: campaignPayment?.id ?? null,
+    campaign_id: metadata.campaignId || campaignPayment?.campaign_id || null,
+    campaign_owner_id: metadata.organizerUserId || campaignPayment?.campaign_owner_id || null,
+    donor_id: metadata.donorId || campaignPayment?.donor_id || null,
+    processor: 'stripe',
+    processor_account_id: metadata.connectedAccountId || campaignPayment?.processor_account_id || null,
+    processor_object_id: object.id ?? null,
+    processor_event_id: event.id,
+    event_type: event.type,
+    gross_amount: object.amount ?? 0,
+    currency: (object.currency ?? 'usd').toLowerCase(),
+    status,
+    payload: event as unknown as Record<string, unknown>,
+  }, { onConflict: 'processor,processor_event_id', ignoreDuplicates: false });
+}
+
+async function findCampaignPayment({
+  paymentIntentId,
+  checkoutSessionId,
+  chargeId,
+  transferId,
+  payoutId,
+}: {
+  paymentIntentId?: string | null;
+  checkoutSessionId?: string | null;
+  chargeId?: string | null;
+  transferId?: string | null;
+  payoutId?: string | null;
+}): Promise<CampaignPaymentLookup | null> {
+  const select = 'id,campaign_id,campaign_owner_id,donor_id,processor_account_id,processor_fee_amount,gross_amount,available_on,settlement_status';
+  let query = supabaseAdmin.from('campaign_payments').select(select).limit(1);
+
+  const clauses = [
+    paymentIntentId ? `processor_payment_intent_id.eq.${paymentIntentId}` : null,
+    checkoutSessionId ? `processor_checkout_session_id.eq.${checkoutSessionId}` : null,
+    chargeId ? `processor_charge_id.eq.${chargeId}` : null,
+    transferId ? `processor_transfer_id.eq.${transferId}` : null,
+    payoutId ? `processor_payout_id.eq.${payoutId}` : null,
+  ].filter((clause): clause is string => clause !== null);
+
+  if (clauses.length === 0) {
+    return null;
+  }
+
+  query = query.or(clauses.join(','));
+  const { data } = await query.maybeSingle();
+  return (data ?? null) as CampaignPaymentLookup | null;
+}
+
+async function findDonationId({
+  paymentIntentId,
+  checkoutSessionId,
+}: {
+  paymentIntentId: string | null;
+  checkoutSessionId: string | null;
+}): Promise<string | null> {
+  let query = supabaseAdmin
+    .from('donations')
+    .select('id')
+    .limit(1);
+
+  if (paymentIntentId) {
+    query = query.eq('stripe_payment_intent_id', paymentIntentId);
+  } else if (checkoutSessionId) {
+    query = query.eq('stripe_checkout_session_id', checkoutSessionId);
+  } else {
+    return null;
+  }
+
+  const { data } = await query.maybeSingle();
+  return data?.id ?? null;
+}
+
 async function sendDonorReceipt(
   donorId: string | null | undefined,
   campaignId: string,
