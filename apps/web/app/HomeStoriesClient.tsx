@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type React from 'react';
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState } from 'react';
 import { STORY_FILTERS, STORY_SORTS } from '../lib/home-story-options';
 import type { HomeCampaign, StoryFilterValue, StoryFilters, StorySortValue } from '../lib/home-types';
 
@@ -66,7 +66,7 @@ export default function HomeStoriesClient({ initialCampaigns, initialFilters }: 
   const [storyQ, setStoryQ] = useState(normalized.storyQ);
   const [storySort, setStorySort] = useState<StorySortValue>(normalized.storySort);
   const [error, setError] = useState('');
-  const [isPending, startTransition] = useTransition();
+  const [isLoading, setIsLoading] = useState(false);
 
   function loadStories(next: { storyCategory?: StoryFilterValue; storyQ?: string; storySort?: StorySortValue }) {
     const filters = {
@@ -75,21 +75,21 @@ export default function HomeStoriesClient({ initialCampaigns, initialFilters }: 
       storySort: next.storySort ?? storySort,
     };
 
-    startTransition(() => {
-      setError('');
-      void fetch(`/api/campaigns/stories?${new URLSearchParams(filters).toString()}`, {
-        method: 'GET',
-        cache: 'no-store',
+    setError('');
+    setIsLoading(true);
+    void fetch(`/api/campaigns/stories?${new URLSearchParams(filters).toString()}`, {
+      method: 'GET',
+      cache: 'no-store',
+    })
+      .then(async response => {
+        const payload = await response.json() as { campaigns?: HomeCampaign[]; error?: string };
+        if (!response.ok) throw new Error(payload.error ?? 'Campaign stories could not be loaded.');
+        setCampaigns(payload.campaigns ?? []);
       })
-        .then(async response => {
-          const payload = await response.json() as { campaigns?: HomeCampaign[]; error?: string };
-          if (!response.ok) throw new Error(payload.error ?? 'Campaign stories could not be loaded.');
-          setCampaigns(payload.campaigns ?? []);
-        })
-        .catch(err => {
-          setError(err instanceof Error ? err.message : 'Campaign stories could not be loaded.');
-        });
-    });
+      .catch(err => {
+        setError(err instanceof Error ? err.message : 'Campaign stories could not be loaded.');
+      })
+      .finally(() => setIsLoading(false));
   }
 
   function chooseCategory(value: StoryFilterValue) {
@@ -108,7 +108,7 @@ export default function HomeStoriesClient({ initialCampaigns, initialFilters }: 
   }
 
   return (
-    <section id="stories" className="container kind-story-carousel" aria-busy={isPending}>
+    <section id="stories" className="container kind-story-carousel" aria-busy={isLoading}>
       <div className="kind-story-toolbar">
         <span>Filter by</span>
         <div className="kind-story-filters">
@@ -139,7 +139,7 @@ export default function HomeStoriesClient({ initialCampaigns, initialFilters }: 
           </select>
         </div>
       </div>
-      <div className={`kind-story-track${isPending ? ' loading' : ''}`} aria-label="Live campaign stories" aria-live="polite">
+      <div className={`kind-story-track${isLoading ? ' loading' : ''}`} aria-label="Live campaign stories" aria-live="polite">
         {campaigns.map((campaign) => {
           const image = campaign.cover_image_url || null;
           return (

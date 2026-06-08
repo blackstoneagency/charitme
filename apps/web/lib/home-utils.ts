@@ -11,7 +11,7 @@ function normalizeStorySort(value: string | undefined): StorySortValue {
 }
 
 function cleanStorySearch(value: string | undefined): string {
-  return (value ?? '').replace(/[,%()]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+  return (value ?? '').replace(/[^a-zA-Z0-9\s-]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
 }
 
 export function normalizeStoryFilters(filters: StoryFilters): Required<Pick<StoryFilters, 'storyCategory' | 'storyQ' | 'storySort'>> {
