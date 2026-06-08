@@ -3,7 +3,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   MAX_DONATION_CENTS,
-  TIP_OPTIONS,
   DEFAULT_DONOR_TIP_PERCENT,
   donationTotal,
   donorTip,
@@ -11,44 +10,41 @@ import {
 } from '@shared/fees';
 import { createClient } from '../../../lib/supabase-browser';
 
-const VIOLET = '#7b35ff';
-const VIOLET_LIGHT = '#f5f0ff';
-const VIOLET_DARK = '#4d1ee0';
-const BORDER = '#e2d9ff';
-const MUTED = '#64748b';
-const INK = '#1a1a2e';
-const GREEN = '#059669';
+/* ── Design tokens ─────────────────────────────────────── */
+const V   = '#6c35ff';          // violet
+const VL  = '#f5f0ff';          // violet-light
+const VD  = '#4d1ee0';          // violet-dark
+const GR  = '#059669';          // green
+const BD  = '#e2d9ff';          // border
+const MU  = '#64748b';          // muted
+const INK = '#1a1a2e';          // ink
+
+/* Preset amounts shown in the 3×2 grid */
+const PRESETS = [300, 500, 750, 1000, 2000, 5000] as const;
+/* Tip range: 0–20% */
+const TIP_MIN = 0;
+const TIP_MAX = 20;
 
 const money = (cents: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
 
-// Format like "$50" (no decimals for whole dollars)
 const moneyShort = (cents: number) => {
-  const dollars = cents / 100;
-  return dollars % 1 === 0
-    ? `$${dollars.toLocaleString('en-US')}`
-    : money(cents);
+  const d = cents / 100;
+  return d % 1 === 0 ? `$${d.toLocaleString('en-US')}` : money(cents);
 };
 
 type FrequencyMode = 'once' | 'monthly';
+type PaymentMethod = 'stripe' | 'paypal' | 'venmo' | 'gpay' | 'bank' | 'card';
 
-type PaymentMethod = 'card' | 'paypal' | 'venmo' | 'gpay' | 'direct_debit' | 'bank';
-
-interface PayOption {
-  id: PaymentMethod;
-  label: string;
-  icon: string;
-  iconBg: string;
-  iconColor: string;
-}
+interface PayOption { id: PaymentMethod; label: string; icon: React.ReactNode }
 
 const PAY_OPTIONS: PayOption[] = [
-  { id: 'paypal',       label: 'PayPal',         icon: 'P',    iconBg: '#e8eef7', iconColor: '#003087' },
-  { id: 'venmo',        label: 'Venmo',           icon: 'V',    iconBg: '#e0f4fb', iconColor: '#3D95CE' },
-  { id: 'gpay',         label: 'Google Pay',      icon: 'G',    iconBg: '#f0f0f0', iconColor: '#4285F4' },
-  { id: 'direct_debit', label: 'Direct Debit',    icon: '🏦',   iconBg: '#f5f5f5', iconColor: '#333' },
-  { id: 'bank',         label: 'Bank transfer',   icon: '🏛',   iconBg: '#f5f5f5', iconColor: '#333' },
-  { id: 'card',         label: 'Credit / Debit',  icon: '💳',   iconBg: '#f0f0f0', iconColor: '#333' },
+  { id: 'stripe',  label: 'Stripe',         icon: <span style={{ fontWeight: 900, fontSize: 13, color: '#635bff' }}>S</span> },
+  { id: 'paypal',  label: 'PayPal',         icon: <span style={{ fontWeight: 900, fontSize: 13, color: '#003087' }}>P</span> },
+  { id: 'venmo',   label: 'Venmo',          icon: <span style={{ fontWeight: 900, fontSize: 13, color: '#3D95CE' }}>V</span> },
+  { id: 'gpay',    label: 'Google Pay',     icon: <span style={{ fontWeight: 900, fontSize: 13, color: '#4285F4' }}>G</span> },
+  { id: 'bank',    label: 'Bank transfer',  icon: <span style={{ fontSize: 14 }}>🏛</span> },
+  { id: 'card',    label: 'Credit or debit',icon: <span style={{ fontSize: 14 }}>💳</span> },
 ];
 
 export default function DonateButton({
@@ -58,56 +54,37 @@ export default function DonateButton({
   campaignId: string;
   campaignTitle: string;
 }) {
-  const [frequency, setFrequency] = useState<FrequencyMode>('once');
-  const [amount, setAmount] = useState('50');
-  const [message, setMessage] = useState('');
-  const [anonymous, setAnonymous] = useState(false);
-  const coverProcessingFee = true; // always cover — not optional
-  const [tipPercent, setTipPercent] = useState<number>(DEFAULT_DONOR_TIP_PERCENT);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [guestEmail, setGuestEmail] = useState('');
-  const [isGuest, setIsGuest] = useState<boolean | null>(null);
-  const [preferredMethod, setPreferredMethod] = useState<PaymentMethod>('card');
+  const [frequency, setFrequency]         = useState<FrequencyMode>('once');
+  const [amount, setAmount]               = useState('50');
+  const [subscribeEmail, setSubscribeEmail] = useState(false);
+  const [anonymous, setAnonymous]         = useState(false);
+  const [tipPercent, setTipPercent]       = useState<number>(DEFAULT_DONOR_TIP_PERCENT);
+  const [loading, setLoading]             = useState(false);
+  const [error, setError]                 = useState('');
+  const [guestEmail, setGuestEmail]       = useState('');
+  const [isGuest, setIsGuest]             = useState<boolean | null>(null);
+  const [preferredMethod, setPreferredMethod] = useState<PaymentMethod>('stripe');
 
   const amountCents = Math.round((Number.parseFloat(amount) || 0) * 100);
-  const isMonthly = frequency === 'monthly';
+  const isMonthly   = frequency === 'monthly';
 
-  const breakdown = useMemo(
-    () => ({
-      tip: donorTip(amountCents, tipPercent),
-      processing: coverProcessingFee && !isMonthly
-        ? processingFee(amountCents + donorTip(amountCents, tipPercent))
-        : 0,
-      total: isMonthly
-        ? amountCents + donorTip(amountCents, tipPercent)
-        : donationTotal(amountCents, coverProcessingFee, tipPercent),
-    }),
-    [amountCents, coverProcessingFee, tipPercent, isMonthly],
-  );
+  const breakdown = useMemo(() => ({
+    tip:        donorTip(amountCents, tipPercent),
+    processing: !isMonthly ? processingFee(amountCents + donorTip(amountCents, tipPercent)) : 0,
+    total:      isMonthly
+      ? amountCents + donorTip(amountCents, tipPercent)
+      : donationTotal(amountCents, true, tipPercent),
+  }), [amountCents, tipPercent, isMonthly]);
 
   const handleDonate = async () => {
-    if (Number.isNaN(amountCents) || amountCents < 100) {
-      setError('Minimum donation is $1.00');
-      return;
-    }
-    if (amountCents > MAX_DONATION_CENTS) {
-      setError('Maximum donation is $1,000,000');
-      return;
-    }
+    if (Number.isNaN(amountCents) || amountCents < 100) { setError('Minimum donation is $1.00'); return; }
+    if (amountCents > MAX_DONATION_CENTS)               { setError('Maximum donation is $1,000,000'); return; }
 
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user && isGuest === null) {
-      setIsGuest(true);
-      return;
-    }
-
-    if (!user && !guestEmail.trim()) {
-      setError('Please enter your email to receive a receipt.');
-      return;
-    }
+    if (!user && isGuest === null) { setIsGuest(true); return; }
+    if (!user && !guestEmail.trim()) { setError('Please enter your email to receive a receipt.'); return; }
 
     setError('');
     setLoading(true);
@@ -124,15 +101,14 @@ export default function DonateButton({
           campaignId,
           amountCents,
           cadence: 'monthly',
-          message: message || undefined,
+          message: undefined,
           anonymous,
-          coverProcessingFee: isMonthly ? false : coverProcessingFee,
+          coverProcessingFee: !isMonthly,
           tipPercent,
           preferredMethod,
           donorEmail: !user && guestEmail.trim() ? guestEmail.trim() : undefined,
         }),
       });
-
       const text = await res.text();
       const data = (text ? JSON.parse(text) : {}) as { url?: string; error?: string };
       if (!res.ok) throw new Error(data.error ?? `Server error (${res.status})`);
@@ -145,67 +121,60 @@ export default function DonateButton({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* ── Frequency toggle ── */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4,
-        background: '#f0eaff', borderRadius: 14, padding: 4,
-      }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0, background: '#f0eaff', borderRadius: 14, padding: 4 }}>
         {(['once', 'monthly'] as const).map((f) => (
           <button
             key={f}
             type="button"
             onClick={() => { setFrequency(f); setError(''); }}
             style={{
-              padding: '10px 4px',
+              padding: '11px 4px',
               border: 0,
               borderRadius: 10,
-              background: frequency === f ? '#fff' : 'transparent',
-              color: frequency === f ? VIOLET : MUTED,
-              fontWeight: frequency === f ? 900 : 700,
+              background: frequency === f ? (f === 'monthly' ? GR : '#fff') : 'transparent',
+              color: frequency === f ? (f === 'monthly' ? '#fff' : V) : MU,
+              fontWeight: 900,
               fontSize: 14,
               cursor: 'pointer',
-              boxShadow: frequency === f ? '0 2px 8px rgba(123,53,255,.12)' : 'none',
+              boxShadow: frequency === f ? '0 2px 10px rgba(0,0,0,.12)' : 'none',
               transition: 'all .15s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
             }}
           >
-            {f === 'once' ? 'Give Once' : 'Give Monthly'}
+            {f === 'once' ? 'Give Once' : <>Give Monthly <span style={{ fontSize: 16 }}>🌱</span></>}
           </button>
         ))}
       </div>
 
-      {/* ── Monthly 0% fee badge ── */}
+      {/* ── Monthly boost nudge ── */}
       {isMonthly && (
-        <div style={{
-          background: `${GREEN}12`, borderRadius: 10, padding: '10px 14px',
-          border: `1px solid ${GREEN}30`,
-        }}>
-          <div style={{ fontWeight: 900, fontSize: 13, color: GREEN }}>
-            💚 0% CharitMe fee on recurring donations
+        <div style={{ background: `${GR}12`, borderRadius: 10, padding: '10px 14px', border: `1px solid ${GR}30` }}>
+          <div style={{ fontWeight: 900, fontSize: 13, color: GR }}>
+            💚 0% platform fee · 100% reaches the campaign
           </div>
-          <div style={{ fontSize: 12, color: GREEN, marginTop: 3, lineHeight: 1.45, opacity: 0.85 }}>
+          <div style={{ fontSize: 12, color: GR, marginTop: 3, opacity: .85 }}>
             GoFundMe charges 5% on monthly donations. We charge $0. Cancel any time.
           </div>
         </div>
       )}
-
-      {/* ── 0% fee notice (one-time) ── */}
       {!isMonthly && (
-        <div style={{
-          background: '#f0fff8', borderRadius: 12, padding: '10px 14px',
-          border: '1px solid #bbf7d0',
-        }}>
+        <div style={{ background: '#f0fff8', borderRadius: 10, padding: '10px 14px', border: '1px solid #bbf7d0' }}>
           <div style={{ fontWeight: 900, fontSize: 13, color: '#065f46' }}>0% mandatory platform fee</div>
-          <div style={{ fontSize: 12, color: '#065f46', marginTop: 3, lineHeight: 1.45 }}>
+          <div style={{ fontSize: 12, color: '#065f46', marginTop: 3 }}>
             CharitMe is supported by optional donor tips. Every fee is shown before checkout.
           </div>
         </div>
       )}
 
-      {/* ── Preset amounts ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-        {([25, 50, 100, 250] as const).map((preset) => {
+      {/* ── Preset amounts — 3×2 grid ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+        {PRESETS.map((preset) => {
           const active = amount === String(preset);
           return (
             <button
@@ -213,132 +182,101 @@ export default function DonateButton({
               type="button"
               onClick={() => setAmount(String(preset))}
               style={{
-                padding: '10px 4px',
-                border: `2px solid ${active ? VIOLET : BORDER}`,
+                padding: '11px 4px',
+                border: `2px solid ${active ? V : BD}`,
                 borderRadius: 12,
-                background: active ? VIOLET_LIGHT : '#fff',
-                color: active ? VIOLET : INK,
-                fontWeight: 900, fontSize: 15,
+                background: active ? V : '#fff',
+                color: active ? '#fff' : INK,
+                fontWeight: 900,
+                fontSize: 15,
                 cursor: 'pointer',
-                transition: 'border-color .15s, background .15s',
+                transition: 'border-color .15s, background .15s, color .15s',
               }}
             >
-              ${preset}
+              ${preset.toLocaleString()}
             </button>
           );
         })}
       </div>
 
-      {/* ── Custom amount ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center',
-        border: `1.5px solid ${BORDER}`, borderRadius: 12,
-        background: '#fff', overflow: 'hidden',
-      }}>
-        <span style={{ padding: '0 12px', fontSize: 20, fontWeight: 950, color: MUTED }}>$</span>
-        <input
-          type="number" min="1" step="1"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          aria-label="Donation amount in dollars"
-          style={{
-            flex: 1, border: 0, padding: '13px 12px 13px 0',
-            fontSize: 18, fontWeight: 800, outline: 'none',
-            background: 'transparent', color: INK, fontFamily: 'inherit',
-          }}
-        />
-        {isMonthly && (
-          <span style={{ padding: '0 12px', fontSize: 13, color: MUTED, fontWeight: 700 }}>/mo</span>
-        )}
-      </div>
-
-      {/* ── Optional tip ── */}
-      <div>
-        <p style={{
-          margin: '0 0 8px', fontSize: 11, fontWeight: 900,
-          color: MUTED, textTransform: 'uppercase', letterSpacing: '.05em',
-        }}>
-          Optional CharitMe tip
-        </p>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {TIP_OPTIONS.map((opt) => {
-            const active = tipPercent === opt;
-            return (
-              <button
-                key={opt} type="button"
-                onClick={() => setTipPercent(opt)}
-                style={{
-                  flex: 1, padding: '7px 4px',
-                  border: `1.5px solid ${active ? VIOLET : BORDER}`,
-                  borderRadius: 9,
-                  background: active ? VIOLET_LIGHT : '#fff',
-                  color: active ? VIOLET : MUTED,
-                  fontWeight: 800, fontSize: 13, cursor: 'pointer',
-                  transition: 'border-color .15s, background .15s',
-                }}
-              >
-                {opt === 0 ? '$0' : `${opt}%`}
-              </button>
-            );
-          })}
+      {/* ── Custom amount input ── */}
+      <div style={{ border: `1.5px solid ${BD}`, borderRadius: 12, background: '#fff', overflow: 'hidden', padding: '12px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 22, fontWeight: 900, color: MU }}>$</span>
+          <input
+            type="number"
+            min="1"
+            step="1"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0"
+            aria-label="Donation amount in dollars"
+            style={{
+              flex: 1,
+              border: 0,
+              fontSize: 28,
+              fontWeight: 900,
+              outline: 'none',
+              background: 'transparent',
+              color: INK,
+              fontFamily: 'inherit',
+              padding: 0,
+            }}
+          />
+          {isMonthly && <span style={{ fontSize: 13, color: MU, fontWeight: 700 }}>/mo</span>}
         </div>
-        {tipPercent === 0 && (
-          <p style={{ margin: '6px 0 0', fontSize: 11, color: MUTED }}>
-            No tip is okay — 100% of your donation reaches the campaign.
-          </p>
-        )}
+        <div style={{ fontSize: 11, color: MU, fontWeight: 700, marginTop: 4, letterSpacing: '.05em' }}>USD</div>
       </div>
 
-      {/* Processing fee is always covered — shown as informational only */}
-      {!isMonthly && (
-        <p style={{ margin: 0, fontSize: 12, color: MUTED, lineHeight: 1.5 }}>
-          Card processing fee (2.9% + $0.30) is included in the total.
-        </p>
-      )}
-
-      {/* ── Message ── */}
-      <textarea
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Leave a message of support (optional)"
-        rows={2} maxLength={500}
-        style={{
-          width: '100%', boxSizing: 'border-box',
-          border: `1.5px solid ${BORDER}`, borderRadius: 12,
-          padding: '10px 12px', fontSize: 13, fontFamily: 'inherit',
-          resize: 'vertical', outline: 'none', color: INK, background: '#fff',
-        }}
-      />
-
-      {/* ── Anonymous ── */}
-      <label style={{
-        display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
-        fontSize: 13, color: '#4c5679', fontWeight: 700,
-      }}>
-        <input
-          type="checkbox" checked={anonymous}
-          onChange={(e) => setAnonymous(e.target.checked)}
-          style={{ width: 16, height: 16, accentColor: VIOLET }}
-        />
-        Donate anonymously
-      </label>
-
-      {/* ── Payment method selector ── */}
+      {/* ── Tip CharitMe services — slider ── */}
       <div>
-        <p style={{
-          margin: '0 0 8px', fontSize: 11, fontWeight: 900,
-          color: MUTED, textTransform: 'uppercase', letterSpacing: '.05em',
-        }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: INK }}>Tip CharitMe services</span>
+          <span style={{ fontSize: 13, fontWeight: 900, color: V }}>{tipPercent}%</span>
+        </div>
+        <p style={{ margin: '0 0 10px', fontSize: 12, color: MU, lineHeight: 1.5 }}>
+          CharitMe has a 0% platform fee for organizers and relies primarily on the generosity of donors like you to operate our service.
+        </p>
+        <input
+          type="range"
+          min={TIP_MIN}
+          max={TIP_MAX}
+          step="0.5"
+          value={tipPercent}
+          onChange={(e) => setTipPercent(Number(e.target.value))}
+          aria-label="Tip percentage"
+          style={{ width: '100%', accentColor: V, cursor: 'pointer' }}
+        />
+        <button
+          type="button"
+          onClick={() => setTipPercent(0)}
+          style={{ background: 'none', border: 'none', color: V, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: '6px 0 0', display: 'block' }}
+        >
+          Enter custom tip
+        </button>
+      </div>
+
+      {/* ── Payment method — radio list ── */}
+      <div>
+        <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 900, color: MU, textTransform: 'uppercase', letterSpacing: '.06em' }}>
           Payment method
         </p>
-        <div className="pc-payment-methods">
-          {PAY_OPTIONS.map((opt) => {
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: `1.5px solid ${BD}`, borderRadius: 14, overflow: 'hidden' }}>
+          {PAY_OPTIONS.map((opt, idx) => {
             const active = preferredMethod === opt.id;
             return (
               <label
                 key={opt.id}
-                className={`pc-pay-tile${active ? ' active' : ''}`}
-                style={active ? { borderColor: VIOLET, background: VIOLET_LIGHT, color: VIOLET } : {}}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '13px 16px',
+                  background: active ? VL : '#fff',
+                  borderTop: idx > 0 ? `1px solid ${BD}` : 'none',
+                  cursor: 'pointer',
+                  transition: 'background .15s',
+                }}
               >
                 <input
                   type="radio"
@@ -346,113 +284,106 @@ export default function DonateButton({
                   value={opt.id}
                   checked={active}
                   onChange={() => setPreferredMethod(opt.id)}
+                  style={{ accentColor: V, width: 16, height: 16, flexShrink: 0 }}
                 />
-                <span
-                  className="pc-pay-icon"
-                  style={{ background: opt.iconBg, color: opt.iconColor }}
-                >
+                <span style={{ width: 28, height: 28, borderRadius: 6, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {opt.icon}
                 </span>
-                {opt.label}
+                <span style={{ fontSize: 14, fontWeight: active ? 800 : 600, color: active ? V : INK }}>
+                  {opt.label}
+                </span>
               </label>
             );
           })}
         </div>
-        <p style={{ margin: '4px 0 0', fontSize: 11, color: MUTED, lineHeight: 1.4 }}>
-          All methods process securely via Stripe.
-        </p>
+      </div>
+
+      {/* ── Checkboxes ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, color: '#4c5679', fontWeight: 600, lineHeight: 1.5 }}>
+          <input
+            type="checkbox"
+            checked={anonymous}
+            onChange={(e) => setAnonymous(e.target.checked)}
+            style={{ width: 16, height: 16, accentColor: V, marginTop: 2, flexShrink: 0 }}
+          />
+          Don&apos;t display my name or profile publicly on the fundraiser
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', border: `1px solid ${BD}`, fontSize: 10, color: MU, flexShrink: 0, cursor: 'help' }} title="Your name will not appear on the donor list">ⓘ</span>
+        </label>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, color: '#4c5679', fontWeight: 600, lineHeight: 1.5 }}>
+          <input
+            type="checkbox"
+            checked={subscribeEmail}
+            onChange={(e) => setSubscribeEmail(e.target.checked)}
+            style={{ width: 16, height: 16, accentColor: V, marginTop: 2, flexShrink: 0 }}
+          />
+          Subscribe to receive emails
+        </label>
       </div>
 
       {/* ── Guest email ── */}
       {isGuest && (
-        <div style={{
-          background: '#fffbeb', borderRadius: 12, padding: '14px 16px',
-          border: '1px solid #fde68a',
-        }}>
+        <div style={{ background: '#fffbeb', borderRadius: 12, padding: '14px 16px', border: '1px solid #fde68a' }}>
           <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#92400e' }}>
             Enter your email to receive a receipt:
           </p>
           <input
-            type="email" value={guestEmail}
-            onChange={e => setGuestEmail(e.target.value)}
+            type="email"
+            value={guestEmail}
+            onChange={(e) => setGuestEmail(e.target.value)}
             placeholder="your@email.com"
             aria-label="Email for receipt"
-            style={{
-              width: '100%', boxSizing: 'border-box',
-              border: '1.5px solid #fcd34d', borderRadius: 9,
-              padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', outline: 'none', background: '#fff',
-            }}
+            style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #fcd34d', borderRadius: 9, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', outline: 'none', background: '#fff' }}
           />
-          <p style={{ margin: '8px 0 0', fontSize: 11, color: '#a16207' }}>
-            Or{' '}
-            <a href={`/login?next=${typeof window !== 'undefined' ? encodeURIComponent(window.location.pathname) : ''}`}
-              style={{ color: VIOLET, fontWeight: 700 }}>
-              sign in
-            </a>{' '}to skip this step.
-          </p>
         </div>
       )}
 
       {/* ── Transparent breakdown ── */}
-      <div style={{
-        background: '#f9f7ff', borderRadius: 12, padding: '14px 16px',
-        border: `1px solid ${BORDER}`,
-      }}>
-        <div style={{
-          fontSize: 11, fontWeight: 900, color: MUTED,
-          textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 10,
-        }}>
-          {isMonthly ? 'Monthly breakdown' : 'Transparent breakdown'}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <Row label={isMonthly ? 'Monthly donation' : 'Donation'} value={money(amountCents)} />
-          {breakdown.tip > 0 && <Row label={`CharitMe tip (${tipPercent}%)`} value={money(breakdown.tip)} />}
-          {breakdown.processing > 0 && <Row label="Processing fee" value={money(breakdown.processing)} />}
-          <div style={{
-            borderTop: `1px solid ${BORDER}`, marginTop: 6, paddingTop: 8,
-            display: 'flex', justifyContent: 'space-between',
-            fontSize: 16, fontWeight: 950, color: INK,
-          }}>
+      <div style={{ background: '#f9f7ff', borderRadius: 14, padding: '16px 18px', border: `1px solid ${BD}` }}>
+        <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 900, color: MU, textTransform: 'uppercase', letterSpacing: '.07em' }}>
+          Transparent breakdown
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <BRow label={isMonthly ? 'Monthly donation' : 'Donation'} value={money(amountCents)} />
+          {breakdown.tip > 0 && <BRow label={`CharitMe tip (${tipPercent}%)`} value={money(breakdown.tip)} />}
+          {breakdown.processing > 0 && <BRow label="Processing fee" value={money(breakdown.processing)} />}
+          <div style={{ borderTop: `1px solid ${BD}`, marginTop: 4, paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 18, fontWeight: 950, color: INK }}>
             <span>Total{isMonthly ? '/month' : ''}</span>
             <span>{money(breakdown.total)}</span>
           </div>
         </div>
-        {isMonthly && (
-          <p style={{ margin: '8px 0 0', fontSize: 11, color: MUTED, lineHeight: 1.4 }}>
-            Billed monthly. Cancel any time from your donor dashboard.
-          </p>
-        )}
       </div>
 
       {error && (
-        <p style={{
-          margin: 0, padding: '10px 14px', borderRadius: 10,
-          background: '#fff0f3', color: '#ef4444', fontSize: 13, fontWeight: 700,
-          border: '1px solid #fecdd3',
-        }}>
+        <p style={{ margin: 0, padding: '10px 14px', borderRadius: 10, background: '#fff0f3', color: '#ef4444', fontSize: 13, fontWeight: 700, border: '1px solid #fecdd3' }}>
           ⚠ {error}
         </p>
       )}
 
-      {/* ── CTA button ── */}
+      {/* ── CTA ── */}
       <button
         type="button"
         aria-label={`Donate to ${campaignTitle}`}
         disabled={loading}
         onClick={handleDonate}
         style={{
-          width: '100%', padding: '16px', borderRadius: 14, border: 0,
+          width: '100%',
+          padding: '17px',
+          borderRadius: 14,
+          border: 0,
           background: loading
             ? '#9f77e8'
             : isMonthly
-            ? `linear-gradient(135deg, ${GREEN}, #047857)`
-            : `linear-gradient(135deg, ${VIOLET}, ${VIOLET_DARK})`,
-          color: '#fff', fontSize: 16, fontWeight: 950,
+            ? `linear-gradient(135deg, ${GR}, #047857)`
+            : `linear-gradient(135deg, ${V}, ${VD})`,
+          color: '#fff',
+          fontSize: 17,
+          fontWeight: 950,
           cursor: loading ? 'not-allowed' : 'pointer',
           letterSpacing: '-.01em',
           boxShadow: isMonthly
-            ? '0 4px 18px rgba(5,150,105,.35)'
-            : '0 4px 18px rgba(123,53,255,.35)',
+            ? '0 6px 22px rgba(5,150,105,.35)'
+            : '0 6px 22px rgba(108,53,255,.38)',
           transition: 'opacity .15s',
           fontFamily: 'inherit',
         }}
@@ -466,16 +397,17 @@ export default function DonateButton({
           : 'Give →'}
       </button>
 
-      <div style={{ textAlign: 'center', fontSize: 11, color: MUTED, fontWeight: 700 }}>
+      <div style={{ textAlign: 'center', fontSize: 11, color: MU, fontWeight: 700 }}>
         🔒 SSL encrypted · Powered by Stripe
       </div>
+
     </div>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function BRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: MUTED }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: MU }}>
       <span>{label}</span>
       <span style={{ fontWeight: 800, color: INK }}>{value}</span>
     </div>
