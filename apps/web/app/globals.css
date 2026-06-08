@@ -1525,7 +1525,20 @@ img, svg { display: block; }
 .dash-search kbd { min-width: 31px; height: 24px; display: grid; place-items: center; border: 1px solid #e1e4ef; border-radius: 7px; color: #66708f; background: #fbfbff; font-size: 12px; font-weight: 900; }
 .dash-bell { position: relative; width: 52px; height: 52px; display: grid; place-items: center; border: 1px solid #e2e6f0; border-radius: 50%; background: #fff; }
 .dash-bell span { position: absolute; top: -5px; right: 5px; min-width: 20px; height: 20px; display: grid; place-items: center; border-radius: 999px; background: #551cf2; color: #fff; font-size: 11px; font-weight: 950; }
-.dash-photo { width: 54px; height: 54px; border-radius: 50%; background: radial-gradient(circle at 40% 22%, #ffe2c4 0 14%, transparent 15%), linear-gradient(135deg, #8b451b, #f6c187 42%, #7a3515 43%, #2c1430); box-shadow: inset 0 0 0 3px #fff, 0 7px 22px rgba(25,25,70,.12); }
+.dash-photo { width: 54px; height: 54px; border: 0; padding: 0; border-radius: 50%; background: radial-gradient(circle at 40% 22%, #ffe2c4 0 14%, transparent 15%), linear-gradient(135deg, #8b451b, #f6c187 42%, #7a3515 43%, #2c1430); box-shadow: inset 0 0 0 3px #fff, 0 7px 22px rgba(25,25,70,.12); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+.dash-photo:hover, .dash-photo:focus-visible { transform: translateY(-1px); box-shadow: inset 0 0 0 3px #fff, 0 12px 28px rgba(25,25,70,.2); }
+.dash-account { position: relative; }
+.dash-account-menu { position: absolute; right: 0; top: calc(100% + 14px); width: 254px; z-index: 60; padding: 8px; border: 1px solid #e6e9f2; border-radius: 16px; background: #fff; box-shadow: 0 26px 56px rgba(17,24,64,.18); animation: dashMenuIn .16s ease; }
+@keyframes dashMenuIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+.dash-account-head { display: flex; align-items: center; gap: 12px; padding: 10px 12px 14px; margin-bottom: 6px; border-bottom: 1px solid #edf0f6; }
+.dash-account-avatar { width: 40px; height: 40px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; color: #fff; background: linear-gradient(135deg, #6c35ff, #b43bef); font-size: 14px; font-weight: 950; }
+.dash-account-head strong { display: block; overflow: hidden; color: #10163f; font-size: 14px; font-weight: 950; text-overflow: ellipsis; white-space: nowrap; }
+.dash-account-head small { display: block; overflow: hidden; margin-top: 2px; color: #6b7591; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.dash-account-menu a, .dash-account-menu button { width: 100%; display: flex; align-items: center; height: 42px; padding: 0 12px; border: 0; border-radius: 10px; background: transparent; color: #27305d; font-size: 13px; font-weight: 800; text-align: left; cursor: pointer; transition: background .15s ease, color .15s ease; }
+.dash-account-menu a:hover, .dash-account-menu button:not(.dash-account-signout):hover { background: rgba(108,53,255,.08); color: #551cf2; }
+.dash-account-signout { color: #ff3158; }
+.dash-account-signout:hover { background: rgba(255,49,88,.08); color: #ff3158; }
+.dash-account-signout:disabled { opacity: .6; cursor: default; }
 .dash-grid { display: grid; grid-template-columns: minmax(0, 1fr) 368px; gap: 30px; }
 .dash-main { min-width: 0; display: grid; gap: 22px; }
 .dash-side { display: grid; align-content: start; gap: 18px; }
