@@ -263,8 +263,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                 Donate
               </a>
               <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(campaignUrl)}`}
-                target="_blank" rel="noopener noreferrer"
+                href="#quick-share"
                 style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, border: '1.5px solid var(--b2)', color: 'var(--t1)', fontWeight: 800, fontSize: 15, textDecoration: 'none', background: '#fff', gap: 6 }}
               >
                 Share
@@ -327,7 +326,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           </div>
 
           {/* Quick Share */}
-          <div className="pc-quick-share">
+          <div id="quick-share" className="pc-quick-share">
             <div className="pc-quick-share-header">
               <strong style={{ fontSize: 16, fontWeight: 900, color: 'var(--t1)' }}>Quick share</strong>
               <span style={{ fontSize: 12, color: 'var(--t3)' }}>📱 Share this campaign</span>

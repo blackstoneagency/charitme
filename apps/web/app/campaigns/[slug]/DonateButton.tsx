@@ -4,26 +4,53 @@ import React, { useMemo, useState } from 'react';
 import {
   MAX_DONATION_CENTS,
   DEFAULT_DONOR_TIP_PERCENT,
-  donationTotal,
   donorTip,
-  processingFee,
 } from '@shared/fees';
 import { createClient } from '../../../lib/supabase-browser';
 
 /* ── Design tokens ─────────────────────────────────────── */
-const V   = '#6c35ff';          // violet
-const VL  = '#f5f0ff';          // violet-light
-const VD  = '#4d1ee0';          // violet-dark
-const GR  = '#059669';          // green
-const BD  = '#e2d9ff';          // border
-const MU  = '#64748b';          // muted
-const INK = '#1a1a2e';          // ink
+const V   = '#6c35ff';
+const VL  = '#f5f0ff';
+const VD  = '#4d1ee0';
+const GR  = '#059669';
+const BD  = '#e2d9ff';
+const MU  = '#64748b';
+const INK = '#1a1a2e';
 
 /* Preset amounts shown in the 3×2 grid */
 const PRESETS = [300, 500, 750, 1000, 2000, 5000] as const;
+
 /* Tip range: 0–20% */
 const TIP_MIN = 0;
 const TIP_MAX = 20;
+
+/**
+ * Per-method processing fee.
+ * All routes ultimately go through Stripe; these reflect Stripe's published
+ * rates for each payment rail as of 2024.
+ *  - Card / Stripe / Google Pay / Apple Pay: 2.9% + $0.30
+ *  - PayPal (via Stripe): 3.49% + $0.49
+ *  - Venmo (via Stripe):  1.9%  + $0.10
+ *  - ACH / Bank transfer: 0.8%  capped at $5.00
+ */
+type PaymentMethod = 'stripe' | 'paypal' | 'venmo' | 'gpay' | 'bank' | 'card';
+
+interface FeeConfig { pct: number; fixed: number; cap?: number; label: string }
+
+const METHOD_FEES: Record<PaymentMethod, FeeConfig> = {
+  stripe: { pct: 2.9,  fixed: 30,  label: '2.9% + $0.30' },
+  card:   { pct: 2.9,  fixed: 30,  label: '2.9% + $0.30' },
+  gpay:   { pct: 2.9,  fixed: 30,  label: '2.9% + $0.30' },
+  paypal: { pct: 3.49, fixed: 49,  label: '3.49% + $0.49' },
+  venmo:  { pct: 1.9,  fixed: 10,  label: '1.9% + $0.10' },
+  bank:   { pct: 0.8,  fixed: 0, cap: 500, label: '0.8% (max $5)' },
+};
+
+function methodProcessingFee(amountCents: number, method: PaymentMethod): number {
+  const cfg = METHOD_FEES[method];
+  const fee = Math.round(amountCents * (cfg.pct / 100)) + cfg.fixed;
+  return cfg.cap !== undefined ? Math.min(fee, cfg.cap) : fee;
+}
 
 const money = (cents: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
@@ -34,7 +61,6 @@ const moneyShort = (cents: number) => {
 };
 
 type FrequencyMode = 'once' | 'monthly';
-type PaymentMethod = 'stripe' | 'paypal' | 'venmo' | 'gpay' | 'bank' | 'card';
 
 interface PayOption { id: PaymentMethod; label: string; icon: React.ReactNode }
 
@@ -68,13 +94,13 @@ export default function DonateButton({
   const amountCents = Math.round((Number.parseFloat(amount) || 0) * 100);
   const isMonthly   = frequency === 'monthly';
 
-  const breakdown = useMemo(() => ({
-    tip:        donorTip(amountCents, tipPercent),
-    processing: !isMonthly ? processingFee(amountCents + donorTip(amountCents, tipPercent)) : 0,
-    total:      isMonthly
-      ? amountCents + donorTip(amountCents, tipPercent)
-      : donationTotal(amountCents, true, tipPercent),
-  }), [amountCents, tipPercent, isMonthly]);
+  const breakdown = useMemo(() => {
+    const tip        = donorTip(amountCents, tipPercent);
+    const subTotal   = amountCents + tip;
+    const processing = !isMonthly ? methodProcessingFee(subTotal, preferredMethod) : 0;
+    const total      = subTotal + processing;
+    return { tip, processing, total };
+  }, [amountCents, tipPercent, isMonthly, preferredMethod]);
 
   const handleDonate = async () => {
     if (Number.isNaN(amountCents) || amountCents < 100) { setError('Minimum donation is $1.00'); return; }
@@ -159,7 +185,7 @@ export default function DonateButton({
             💚 0% platform fee · 100% reaches the campaign
           </div>
           <div style={{ fontSize: 12, color: GR, marginTop: 3, opacity: .85 }}>
-            GoFundMe charges 5% on monthly donations. We charge $0. Cancel any time.
+            Cancel any time.
           </div>
         </div>
       )}
@@ -264,6 +290,7 @@ export default function DonateButton({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: `1.5px solid ${BD}`, borderRadius: 14, overflow: 'hidden' }}>
           {PAY_OPTIONS.map((opt, idx) => {
             const active = preferredMethod === opt.id;
+            const feeCfg = METHOD_FEES[opt.id];
             return (
               <label
                 key={opt.id}
@@ -289,8 +316,11 @@ export default function DonateButton({
                 <span style={{ width: 28, height: 28, borderRadius: 6, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {opt.icon}
                 </span>
-                <span style={{ fontSize: 14, fontWeight: active ? 800 : 600, color: active ? V : INK }}>
+                <span style={{ flex: 1, fontSize: 14, fontWeight: active ? 800 : 600, color: active ? V : INK }}>
                   {opt.label}
+                </span>
+                <span style={{ fontSize: 11, color: MU, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  {feeCfg.label}
                 </span>
               </label>
             );
@@ -346,7 +376,12 @@ export default function DonateButton({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           <BRow label={isMonthly ? 'Monthly donation' : 'Donation'} value={money(amountCents)} />
           {breakdown.tip > 0 && <BRow label={`CharitMe tip (${tipPercent}%)`} value={money(breakdown.tip)} />}
-          {breakdown.processing > 0 && <BRow label="Processing fee" value={money(breakdown.processing)} />}
+          {breakdown.processing > 0 && (
+            <BRow
+              label={`Processing fee (${METHOD_FEES[preferredMethod].label})`}
+              value={money(breakdown.processing)}
+            />
+          )}
           <div style={{ borderTop: `1px solid ${BD}`, marginTop: 4, paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 18, fontWeight: 950, color: INK }}>
             <span>Total{isMonthly ? '/month' : ''}</span>
             <span>{money(breakdown.total)}</span>
