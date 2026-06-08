@@ -8,11 +8,11 @@ import { createClient } from '../lib/supabase-browser';
 
 const NAV = [
   ['Home', '/'],
-  ['About Us', '/about-us'],
-  ['How It Works', '/how-it-works'],
   ['AI Fundraising', '/ai-fundraising'],
-  ['Success Stories', '/success-stories'],
+  ['How It Works', '/how-it-works'],
   ['Pricing', '/pricing'],
+  ['Success Stories', '/success-stories'],
+  ['About Us', '/about-us'],
   ['Blog', '/blog'],
   ['Contact Us', '/contact'],
 ] as const;

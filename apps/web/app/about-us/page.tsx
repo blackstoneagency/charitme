@@ -156,7 +156,7 @@ export default async function AboutUsPage() {
         <div className="about-manifesto-inner">
           <div className="about-manifesto-label">Why we exist</div>
           <blockquote className="about-manifesto-quote">
-            "Giving should feel good — not complicated. We believe every family, every nonprofit, every dreamer deserves the same powerful tools that used to be reserved for the privileged few."
+            &ldquo;Giving should feel good — not complicated. We believe every family, every nonprofit, every dreamer deserves the same powerful tools that used to be reserved for the privileged few.&rdquo;
           </blockquote>
           <div className="about-manifesto-attr">
             <div className="about-manifesto-avatar">C</div>
@@ -292,7 +292,7 @@ export default async function AboutUsPage() {
         <div className="about-testimonial-inner">
           <div className="about-testimonial-stars">★★★★★</div>
           <blockquote className="about-testimonial-quote">
-            "CharitMe helped us raise more in 30 days than we had in the entire previous year — and every donor could see exactly where their money was going. The trust score alone doubled our conversion rate."
+            &ldquo;CharitMe helped us raise more in 30 days than we had in the entire previous year — and every donor could see exactly where their money was going. The trust score alone doubled our conversion rate.&rdquo;
           </blockquote>
           <div className="about-testimonial-attr">
             <div className="about-testimonial-avatar">M</div>
