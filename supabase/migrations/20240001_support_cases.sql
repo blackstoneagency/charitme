@@ -24,15 +24,17 @@ create index if not exists idx_support_cases_created    on support_cases(created
 alter table support_cases enable row level security;
 
 -- Admins can read/write all cases
-create policy support_admin_all on support_cases
-  for all using (is_admin());
-
--- Users can read and create their own cases
-create policy support_own_read on support_cases
-  for select using (auth.uid() = submitter_id);
-
-create policy support_own_insert on support_cases
-  for insert with check (auth.uid() = submitter_id);
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='support_cases' and policyname='support_admin_all') then
+    create policy support_admin_all on support_cases for all using (is_admin());
+  end if;
+  if not exists (select 1 from pg_policies where tablename='support_cases' and policyname='support_own_read') then
+    create policy support_own_read on support_cases for select using (auth.uid() = submitter_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='support_cases' and policyname='support_own_insert') then
+    create policy support_own_insert on support_cases for insert with check (auth.uid() = submitter_id);
+  end if;
+end $$;
 
 create trigger set_updated_at_support
   before update on support_cases
