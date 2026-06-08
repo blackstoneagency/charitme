@@ -4,55 +4,105 @@ import { z } from 'zod';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 import { stripe } from '../../../lib/stripe';
-import { donorTip, processingFee, MIN_DONATION_CENTS, MAX_DONATION_CENTS, DEFAULT_DONOR_TIP_PERCENT } from '@shared/fees';
+import {
+  donorTip,
+  methodProcessingFee,
+  MIN_DONATION_CENTS,
+  MAX_DONATION_CENTS,
+  DEFAULT_DONOR_TIP_PERCENT,
+  type PaymentMethod,
+} from '@shared/fees';
 import { getAppOrigin } from '../../../lib/auth-config';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Schema
+// ─────────────────────────────────────────────────────────────────────────────
 const DonateSchema = z.object({
-  campaignId: z.string().uuid(),
-  amountCents: z.number().int().min(MIN_DONATION_CENTS).max(MAX_DONATION_CENTS),
-  message: z.string().max(500).optional(),
-  anonymous: z.boolean().optional(),
+  campaignId:         z.string().uuid(),
+  amountCents:        z.number().int().min(MIN_DONATION_CENTS).max(MAX_DONATION_CENTS),
+  message:            z.string().max(500).optional(),
+  anonymous:          z.boolean().optional(),
   coverProcessingFee: z.boolean().optional(),
-  tipPercent: z.number().min(0).max(100).optional(),
-  donorEmail: z.string().email().optional(), // used for guest donations
+  tipPercent:         z.number().min(0).max(100).optional(),
+  paymentMethod:      z.enum(['stripe','paypal','venmo','gpay','bank','card']).optional(),
+  donorEmail:         z.string().email().optional(),
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/donations
+//
+// Split-payment flow (Stripe Connect Destination Charges):
+//
+//   Donor pays:  $100 (donation) + $8 (8% tip) + $3.43 (processing) = $111.43
+//   ┌─────────────────────────────────────────────────────────────────┐
+//   │  application_fee_amount = tipCents + processingFeeCents         │
+//   │  → CharitMe keeps: tipCents ($8) net of Stripe's processing fee │
+//   │  transfer_data.destination = organizer's Stripe account         │
+//   │  → Organizer receives: amountCents ($100) automatically         │
+//   └─────────────────────────────────────────────────────────────────┘
+//
+// ─────────────────────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const parsed = DonateSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: 'Invalid donation request', code: 'INVALID_INPUT', details: parsed.error.flatten() },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  const { campaignId, amountCents, message, anonymous, coverProcessingFee, donorEmail } = parsed.data;
-  const tipPercent = parsed.data.tipPercent ?? Number(process.env.DEFAULT_DONOR_TIP_PERCENT ?? DEFAULT_DONOR_TIP_PERCENT);
-  const tipCents = donorTip(amountCents, tipPercent);
-  const processingFeeCents = coverProcessingFee ? processingFee(amountCents + tipCents) : 0;
+  const {
+    campaignId,
+    amountCents,
+    message,
+    anonymous,
+    coverProcessingFee,
+    donorEmail,
+  } = parsed.data;
 
+  const paymentMethod: PaymentMethod = parsed.data.paymentMethod ?? 'stripe';
+  const tipPercent    = parsed.data.tipPercent ?? Number(process.env.DEFAULT_DONOR_TIP_PERCENT ?? DEFAULT_DONOR_TIP_PERCENT);
+  const tipCents      = donorTip(amountCents, tipPercent);
+
+  // Use per-method fee on (donation + tip) sub-total
+  const subTotalCents      = amountCents + tipCents;
+  const processingFeeCents = coverProcessingFee ? methodProcessingFee(subTotalCents, paymentMethod) : 0;
+
+  // ── Fetch campaign ──────────────────────────────────────────────────────────
   const { data: campaign } = await supabaseAdmin
     .from('campaigns')
     .select('id, title, slug, status, user_id')
     .eq('id', campaignId)
     .single();
 
-  if (!campaign) return NextResponse.json({ error: 'Campaign not found', code: 'NOT_FOUND' }, { status: 404 });
-  if (campaign.status !== 'active') {
+  if (!campaign)
+    return NextResponse.json({ error: 'Campaign not found', code: 'NOT_FOUND' }, { status: 404 });
+  if (campaign.status !== 'active')
     return NextResponse.json({ error: 'Campaign is not active', code: 'CAMPAIGN_INACTIVE' }, { status: 400 });
-  }
 
+  // ── Auth ────────────────────────────────────────────────────────────────────
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const stripeEmail = user?.email ?? donorEmail ?? undefined;
 
   const origin = getAppOrigin();
+
+  // ── Look up organizer's connected Stripe account ────────────────────────────
   const { data: connectedAccount } = await supabaseAdmin
     .from('connected_accounts')
-    .select('stripe_account_id, payouts_enabled, details_submitted')
+    .select('stripe_account_id, payouts_enabled, details_submitted, charges_enabled')
     .eq('user_id', campaign.user_id)
     .eq('verification_status', 'verified')
     .maybeSingle();
+
+  const hasConnectedAccount =
+    !!connectedAccount?.details_submitted &&
+    !!connectedAccount.payouts_enabled &&
+    !!connectedAccount.charges_enabled &&
+    !!connectedAccount.stripe_account_id;
+
+  // ── Build Stripe Checkout line items ────────────────────────────────────────
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
     {
       price_data: {
@@ -71,7 +121,7 @@ export async function POST(request: NextRequest) {
     lineItems.push({
       price_data: {
         currency: 'usd',
-        product_data: { name: 'Optional CharitMe support tip' },
+        product_data: { name: 'CharitMe platform tip', description: `${tipPercent}% optional tip to support CharitMe` },
         unit_amount: tipCents,
       },
       quantity: 1,
@@ -82,43 +132,60 @@ export async function POST(request: NextRequest) {
     lineItems.push({
       price_data: {
         currency: 'usd',
-        product_data: { name: 'Optional processing fee coverage' },
+        product_data: { name: 'Payment processing fee', description: `Covers ${paymentMethod} processing costs` },
         unit_amount: processingFeeCents,
       },
       quantity: 1,
     });
   }
 
-  // Determine email for Stripe — authenticated user > provided guest email
-  const stripeEmail = user?.email ?? donorEmail ?? undefined;
-
+  // ── Stripe session params ───────────────────────────────────────────────────
+  //
+  // application_fee_amount = tipCents + processingFeeCents
+  //   • tipCents      → CharitMe's revenue (8% donor tip)
+  //   • processingFee → offsets Stripe's deduction from CharitMe's balance
+  //                     so the organizer always receives exactly amountCents
+  //
+  // transfer_data.destination → Stripe automatically transfers amountCents
+  //   to the organizer's connected account when the charge is captured.
+  //
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'payment',
     line_items: lineItems,
     ...(stripeEmail ? { customer_email: stripeEmail } : {}),
     success_url: `${origin}/campaigns/${campaign.slug}?donated=1`,
-    cancel_url: `${origin}/campaigns/${campaign.slug}`,
+    cancel_url:  `${origin}/campaigns/${campaign.slug}`,
     metadata: {
+      // Core fields
       campaignId,
-      donorId: user?.id ?? '',
-      message: message ?? '',
-      anonymous: anonymous ? '1' : '0',
-      donationAmountCents: String(amountCents),
-      tipCents: String(tipCents),
-      processingFeeCents: String(processingFeeCents),
+      donorId:              user?.id ?? '',
+      message:              message ?? '',
+      anonymous:            anonymous ? '1' : '0',
+      // Split breakdown — stored for webhook + audit log
+      donationAmountCents:  String(amountCents),
+      tipCents:             String(tipCents),
+      tipPercent:           String(tipPercent),
+      processingFeeCents:   String(processingFeeCents),
+      platformFeeCents:     String(tipCents),            // CharitMe's actual revenue
+      paymentMethod,
+      // Connected account info (so webhook knows routing without extra DB lookup)
+      connectedAccountId:   connectedAccount?.stripe_account_id ?? '',
+      hasConnectedAccount:  hasConnectedAccount ? '1' : '0',
+      organizerUserId:      campaign.user_id,
     },
-    payment_intent_data: {
-      ...(connectedAccount?.details_submitted && connectedAccount.payouts_enabled && connectedAccount.stripe_account_id
-        ? {
-            application_fee_amount: tipCents + processingFeeCents,
-            transfer_data: { destination: connectedAccount.stripe_account_id },
-          }
-        : {}),
-    },
+    payment_intent_data: hasConnectedAccount
+      ? {
+          // CharitMe keeps tip + processing coverage; organizer gets amountCents
+          application_fee_amount: tipCents + processingFeeCents,
+          transfer_data: { destination: connectedAccount!.stripe_account_id },
+        }
+      : {
+          // No connected account — full amount stays in CharitMe's platform account
+          // Admin will need to manually pay out to the organizer
+        },
   };
 
-  const requestKey = request.headers.get('idempotency-key') ?? crypto.randomUUID();
-
+  const requestKey  = request.headers.get('idempotency-key') ?? crypto.randomUUID();
   const idempotencyKey = `donation_${campaignId}_${amountCents}_${user?.id ?? 'guest'}_${requestKey}`;
 
   let session: Stripe.Checkout.Session;
@@ -129,16 +196,29 @@ export async function POST(request: NextRequest) {
     console.error('[donations] Stripe error:', msg);
 
     if (msg.includes('STRIPE_SECRET_KEY')) {
-      return NextResponse.json({ error: 'Payment processing is not configured. Please contact support.' }, { status: 503 });
+      return NextResponse.json(
+        { error: 'Payment processing is not configured. Please contact support.' },
+        { status: 503 },
+      );
     }
 
-    // Connected account is invalid/not in this Stripe account — retry without transfer
-    if (msg.includes('No such destination') || msg.includes('account') || msg.includes('transfer')) {
+    // Connected account invalid — fall back to direct charge (no split)
+    if (
+      msg.includes('No such destination') ||
+      msg.includes('account') ||
+      msg.includes('transfer')
+    ) {
       console.warn('[donations] Falling back to direct charge — connected account invalid:', msg);
-      const fallbackParams = { ...sessionParams };
-      if (fallbackParams.payment_intent_data) {
-        fallbackParams.payment_intent_data = {};
-      }
+      const fallbackParams: Stripe.Checkout.SessionCreateParams = {
+        ...sessionParams,
+        payment_intent_data: {},
+        metadata: {
+          ...sessionParams.metadata,
+          hasConnectedAccount: '0',
+          connectedAccountId: '',
+          fallback: '1',
+        },
+      };
       try {
         session = await stripe.checkout.sessions.create(fallbackParams, {
           idempotencyKey: `${idempotencyKey}_fallback`,

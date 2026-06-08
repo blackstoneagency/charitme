@@ -167,27 +167,81 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
     }
   } else if (meta.campaignId) {
     // ── One-time donation ─────────────────────────────────────────────────
-    const amountCents = Number(meta.donationAmountCents ?? session.amount_total ?? 0);
-    const tipCents = Number(meta.tipCents ?? 0);
+    const amountCents        = Number(meta.donationAmountCents ?? session.amount_total ?? 0);
+    const tipCents           = Number(meta.tipCents ?? 0);
     const processingFeeCents = Number(meta.processingFeeCents ?? 0);
-    const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : null;
+    const platformFeeCents   = Number(meta.platformFeeCents ?? tipCents);
+    const paymentMethod      = meta.paymentMethod ?? 'stripe';
+    const hasConnected       = meta.hasConnectedAccount === '1';
+    const connectedAccountId = meta.connectedAccountId ?? '';
+    const organizerUserId    = meta.organizerUserId ?? '';
+    const paymentIntentId    = typeof session.payment_intent === 'string' ? session.payment_intent : null;
 
     const { data, error } = await supabaseAdmin.rpc('record_donation', {
-      p_stripe_event_id: eventId,
-      p_campaign_id: meta.campaignId,
-      p_donor_id: meta.donorId || null,
-      p_amount_cents: amountCents,
-      p_tip_cents: tipCents,
-      p_processing_fee_cents: processingFeeCents,
-      p_message: meta.message || null,
-      p_anonymous: meta.anonymous === '1',
-      p_stripe_payment_intent_id: paymentIntentId,
+      p_stripe_event_id:           eventId,
+      p_campaign_id:               meta.campaignId,
+      p_donor_id:                  meta.donorId || null,
+      p_amount_cents:              amountCents,
+      p_tip_cents:                 tipCents,
+      p_processing_fee_cents:      processingFeeCents,
+      p_message:                   meta.message || null,
+      p_anonymous:                 meta.anonymous === '1',
+      p_stripe_payment_intent_id:  paymentIntentId,
       p_stripe_checkout_session_id: session.id,
     });
 
     if (error) throw new Error(`record_donation failed: ${error.message}`);
 
     const alreadyDone = (data as { status: string } | null)?.status === 'already_processed';
+
+    if (!alreadyDone && amountCents > 0 && organizerUserId) {
+      // ── Auto-create payout record ───────────────────────────────────────
+      // The Stripe Connect transfer already happened automatically at charge time.
+      // We record it in our payouts table for admin visibility, organizer dashboards,
+      // and reconciliation.
+      //
+      //  hasConnected = true  → status 'paid'    (Stripe already transferred amountCents
+      //                                           to the organizer's connected account)
+      //  hasConnected = false → status 'requested' (admin must manually pay out)
+      const payoutStatus   = hasConnected ? 'paid' : 'requested';
+      const payoutPaidAt   = hasConnected ? new Date().toISOString() : null;
+      const feeTotal       = tipCents + processingFeeCents;
+
+      await supabaseAdmin.from('payouts').insert({
+        campaign_id:     meta.campaignId,
+        user_id:         organizerUserId,
+        amount_cents:    amountCents,
+        fee_cents:       feeTotal,
+        payout_speed:    'standard',
+        status:          payoutStatus,
+        stripe_payout_id: connectedAccountId
+          ? `auto_${paymentIntentId ?? session.id}`
+          : null,
+        note: hasConnected
+          ? `Auto-paid via Stripe Connect (${paymentMethod}). CharitMe tip: ${formatCents(platformFeeCents)}, processing: ${formatCents(processingFeeCents)}.`
+          : `Pending manual payout — organizer has no connected Stripe account. Donation via ${paymentMethod}.`,
+        ...(payoutPaidAt ? { paid_at: payoutPaidAt } : {}),
+      });
+
+      // ── Audit log — split payment event ────────────────────────────────
+      await supabaseAdmin.from('audit_logs').insert({
+        action:      'donation.split_payment',
+        target_type: 'campaign',
+        target_id:   meta.campaignId,
+        metadata: {
+          donation_amount_cents:  amountCents,
+          charitme_tip_cents:     platformFeeCents,
+          processing_fee_cents:   processingFeeCents,
+          organizer_receives:     amountCents,
+          payment_method:         paymentMethod,
+          connected_account_id:   connectedAccountId || null,
+          has_connected_account:  hasConnected,
+          stripe_session_id:      session.id,
+          stripe_payment_intent:  paymentIntentId,
+        },
+      });
+    }
+
     if (!alreadyDone && meta.donorId && amountCents > 0) {
       await sendDonorReceipt(meta.donorId, meta.campaignId, formatCents(amountCents), eventId);
     }

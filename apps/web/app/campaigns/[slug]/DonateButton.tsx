@@ -131,7 +131,7 @@ export default function DonateButton({
           anonymous,
           coverProcessingFee: !isMonthly,
           tipPercent,
-          preferredMethod,
+          paymentMethod: preferredMethod,   // matches /api/donations schema
           donorEmail: !user && guestEmail.trim() ? guestEmail.trim() : undefined,
         }),
       });
