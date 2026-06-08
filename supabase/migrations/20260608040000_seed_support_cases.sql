@@ -98,14 +98,13 @@ begin
       sub_id := null;
     end if;
 
-    insert into public.support_cases (submitter_id, subject, body, priority, status, source, created_at, updated_at)
+    insert into public.support_cases (submitter_id, subject, body, priority, status, created_at, updated_at)
     values (
       sub_id,
       subjects[1 + ((i-1) % array_length(subjects,1))],
       bodies[1   + ((i-1) % array_length(bodies,1))],
       priorities[1 + ((i-1) % array_length(priorities,1))],
       statuses[1   + ((i-1) % array_length(statuses,1))],
-      sources[1    + ((i-1) % array_length(sources,1))],
       now() - (random() * interval '730 days'),
       now() - (random() * interval '730 days')
     );

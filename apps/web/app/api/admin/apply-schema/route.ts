@@ -643,8 +643,8 @@ const SCHEMA_CHUNKS: { name: string; sql: string }[] = [
         if profile_ids is not null and array_length(profile_ids,1) > 0 and (i % 4 != 0) then
           sub_id := profile_ids[1 + ((i-1) % array_length(profile_ids,1))];
         else sub_id := null; end if;
-        insert into public.support_cases (submitter_id, subject, body, priority, status, source, created_at, updated_at)
-        values (sub_id, subjects[1+((i-1)%50)], bodies[1+((i-1)%20)], priorities[1+((i-1)%7)], statuses[1+((i-1)%8)], sources[1+((i-1)%5)], now()-(random()*interval '730 days'), now()-(random()*interval '730 days'));
+        insert into public.support_cases (submitter_id, subject, body, priority, status, created_at, updated_at)
+        values (sub_id, subjects[1+((i-1)%50)], bodies[1+((i-1)%20)], priorities[1+((i-1)%7)], statuses[1+((i-1)%8)], now()-(random()*interval '730 days'), now()-(random()*interval '730 days'));
       end loop;
     end $$;
   ` },

@@ -143,7 +143,6 @@ async function maybeSeed() {
   ];
   const PRIORITIES = ['low','normal','normal','normal','high','high','urgent'] as const;
   const STATUSES   = ['open','open','open','in_progress','in_progress','resolved','resolved','closed'] as const;
-  const SOURCES    = ['web','web','web','email','api'] as const;
   const now = Date.now();
   const TWO_YEARS  = 2 * 365 * 24 * 60 * 60 * 1000;
 
@@ -153,7 +152,6 @@ async function maybeSeed() {
     body:       BODIES[i % BODIES.length],
     priority:   PRIORITIES[i % PRIORITIES.length],
     status:     STATUSES[i % STATUSES.length],
-    source:     SOURCES[i % SOURCES.length],
     created_at: new Date(now - Math.floor(Math.random() * TWO_YEARS)).toISOString(),
   }));
 
