@@ -7,6 +7,8 @@ import { DEFAULTS } from '../../../lib/settings-defaults';
 
 export const dynamic = 'force-dynamic';
 
+const HEALTH_LOOKBACK_HOURS = 24;
+
 function eventCategory(eventType: string): string {
   if (eventType.startsWith('payment_intent')) return 'Payments';
   if (eventType.startsWith('charge')) return 'Charges';
@@ -29,6 +31,10 @@ function relativeTime(iso: string): string {
   return `${days}d ago`;
 }
 
+function currentTimestamp(): number {
+  return Date.now();
+}
+
 function mergeCategory(raw: unknown, defaults: Record<string, unknown>): Record<string, unknown> {
   const stored = (raw && typeof raw === 'object' && !Array.isArray(raw))
     ? (raw as Record<string, unknown>)
@@ -36,12 +42,17 @@ function mergeCategory(raw: unknown, defaults: Record<string, unknown>): Record<
   return { ...defaults, ...stored };
 }
 
+function isWithinHealthWindow(iso: string, now: number): boolean {
+  const eventTime = new Date(iso).getTime();
+  if (!Number.isFinite(eventTime)) return false;
+  return eventTime >= now - (HEALTH_LOOKBACK_HOURS * 60 * 60 * 1000);
+}
+
 export default async function SystemSettingsPage() {
   await requireAdmin();
 
   const [
     webhookEventsResult,
-    webhookErrorsResult,
     integrationCountResult,
     settingsResult,
   ] = await Promise.all([
@@ -50,10 +61,6 @@ export default async function SystemSettingsPage() {
       .select('id, event_type, processing_error, created_at, processed_at')
       .order('created_at', { ascending: false })
       .limit(100),
-    supabaseAdmin
-      .from('webhook_events')
-      .select('id', { count: 'exact', head: true })
-      .not('processing_error', 'is', null),
     supabaseAdmin
       .from('integration_connections')
       .select('id', { count: 'exact', head: true })
@@ -74,11 +81,13 @@ export default async function SystemSettingsPage() {
   };
 
   const events = (webhookEventsResult.data ?? []) as WebhookEvent[];
-  const totalEvents = events.length;
-  const webhookErrors = webhookErrorsResult.count ?? 0;
+  const now = currentTimestamp();
+  const healthEvents = events.filter(e => isWithinHealthWindow(e.created_at, now));
+  const totalHealthEvents = healthEvents.length;
+  const webhookErrors = healthEvents.filter(e => e.processing_error).length;
   const integrationsActive = integrationCountResult.count ?? 0;
   const scheduledJobs = events.filter(e => !e.processing_error && e.processed_at).length;
-  const errorRate = totalEvents > 0 ? `${((webhookErrors / totalEvents) * 100).toFixed(1)}%` : '0%';
+  const errorRate = totalHealthEvents > 0 ? `${((webhookErrors / totalHealthEvents) * 100).toFixed(1)}%` : '0%';
 
   const recentActivity: RecentActivity[] = events.slice(0, 20).map(e => ({
     id: e.id,
