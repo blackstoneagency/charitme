@@ -1,0 +1,338 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+
+type Country = {
+  id: string;
+  name: string;
+  flag_emoji: string;
+  iso_code: string;
+  can_fundraise: boolean;
+  can_donate: boolean;
+  currency_code: string;
+  notes: string | null;
+  active: boolean;
+  sort_order: number;
+};
+
+const EMPTY: Omit<Country, 'id'> = {
+  name: '', flag_emoji: '', iso_code: '', can_fundraise: false,
+  can_donate: true, currency_code: 'USD', notes: '', active: true, sort_order: 999,
+};
+
+// ── Shared style constants (declared before components that use them) ──
+const iStyle: React.CSSProperties = {
+  padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 9,
+  fontSize: 13, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box',
+};
+const lStyle: React.CSSProperties = {
+  fontSize: 11, fontWeight: 800, color: '#64748b',
+  textTransform: 'uppercase', letterSpacing: '.04em',
+};
+const btnSave:   React.CSSProperties = { padding: '5px 14px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 800, cursor: 'pointer' };
+const btnCancel: React.CSSProperties = { padding: '5px 12px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: 7, fontSize: 12, cursor: 'pointer' };
+const btnEdit:   React.CSSProperties = { padding: '5px 12px', background: '#f0eaff', color: '#6c35ff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
+const btnDel:    React.CSSProperties = { padding: '5px 12px', background: '#fff0f3', color: '#be123c', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
+const pill = (bg: string, color: string): React.CSSProperties => ({
+  display: 'inline-block', background: bg, color, padding: '3px 10px',
+  borderRadius: 999, fontSize: 11, fontWeight: 700,
+});
+
+// ── Row component ──
+function CountryRow({
+  country, onUpdate, onDelete,
+}: {
+  country: Country;
+  onUpdate: (id: string, patch: Partial<Country>) => Promise<void>;
+  onDelete: (id: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState<Omit<Country,'id'>>(country);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    await onUpdate(country.id, form);
+    setSaving(false);
+    setEditing(false);
+  }
+
+  const upd = <K extends keyof typeof form>(k: K, v: typeof form[K]) =>
+    setForm(prev => ({ ...prev, [k]: v }));
+
+  if (editing) {
+    return (
+      <tr style={{ background: '#faf8ff' }}>
+        <td style={{ padding: '10px 14px' }}>
+          <input value={form.flag_emoji} onChange={e => upd('flag_emoji', e.target.value)}
+            style={{ ...iStyle, width: 52 }} placeholder="🇺🇸" maxLength={4} />
+        </td>
+        <td style={{ padding: '10px 14px' }}>
+          <input value={form.name} onChange={e => upd('name', e.target.value)}
+            style={{ ...iStyle, width: 160 }} placeholder="Country name" />
+        </td>
+        <td style={{ padding: '10px 14px' }}>
+          <input value={form.iso_code} onChange={e => upd('iso_code', e.target.value.toUpperCase())}
+            style={{ ...iStyle, width: 52 }} placeholder="US" maxLength={2} />
+        </td>
+        <td style={{ padding: '10px 14px' }}>
+          <input value={form.currency_code} onChange={e => upd('currency_code', e.target.value.toUpperCase())}
+            style={{ ...iStyle, width: 60 }} placeholder="USD" maxLength={3} />
+        </td>
+        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+          <input type="checkbox" checked={form.can_fundraise} onChange={e => upd('can_fundraise', e.target.checked)}
+            style={{ accentColor: '#6c35ff', width: 16, height: 16 }} />
+        </td>
+        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+          <input type="checkbox" checked={form.can_donate} onChange={e => upd('can_donate', e.target.checked)}
+            style={{ accentColor: '#6c35ff', width: 16, height: 16 }} />
+        </td>
+        <td style={{ padding: '10px 14px', textAlign: 'center' }}>
+          <input type="checkbox" checked={form.active} onChange={e => upd('active', e.target.checked)}
+            style={{ accentColor: '#19b86a', width: 16, height: 16 }} />
+        </td>
+        <td style={{ padding: '10px 14px' }}>
+          <input value={form.notes ?? ''} onChange={e => upd('notes', e.target.value)}
+            style={{ ...iStyle, width: 200 }} placeholder="Optional notes" />
+        </td>
+        <td style={{ padding: '10px 14px' }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => void save()} disabled={saving} style={btnSave}>{saving ? '…' : 'Save'}</button>
+            <button onClick={() => { setEditing(false); setForm(country); }} style={btnCancel}>Cancel</button>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <tr style={{ borderTop: '1px solid #f0f4f8' }}>
+      <td style={{ padding: '11px 14px', fontSize: 24 }}>{country.flag_emoji}</td>
+      <td style={{ padding: '11px 14px', fontWeight: 700, color: '#1a1a2e', fontSize: 13 }}>{country.name}</td>
+      <td style={{ padding: '11px 14px', fontSize: 12, color: '#64748b', fontFamily: 'monospace', fontWeight: 700 }}>{country.iso_code}</td>
+      <td style={{ padding: '11px 14px', fontSize: 12, color: '#64748b', fontFamily: 'monospace', fontWeight: 700 }}>{country.currency_code}</td>
+      <td style={{ padding: '11px 14px', textAlign: 'center' }}>
+        {country.can_fundraise
+          ? <span style={pill('#f0fdf4','#15803d')}>✓ Yes</span>
+          : <span style={pill('#f8f9fc','#94a3b8')}>—</span>}
+      </td>
+      <td style={{ padding: '11px 14px', textAlign: 'center' }}>
+        {country.can_donate
+          ? <span style={pill('#eff6ff','#1d4ed8')}>✓ Yes</span>
+          : <span style={pill('#f8f9fc','#94a3b8')}>—</span>}
+      </td>
+      <td style={{ padding: '11px 14px', textAlign: 'center' }}>
+        <button
+          onClick={() => void onUpdate(country.id, { active: !country.active })}
+          style={{ ...pill(country.active ? '#f0fdf4' : '#fef2f2', country.active ? '#15803d' : '#dc2626'), border: 'none', cursor: 'pointer', fontWeight: 800 }}
+        >
+          {country.active ? '● Active' : '○ Hidden'}
+        </button>
+      </td>
+      <td style={{ padding: '11px 14px', fontSize: 12, color: '#64748b', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {country.notes || '—'}
+      </td>
+      <td style={{ padding: '11px 14px' }}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={() => setEditing(true)} style={btnEdit}>Edit</button>
+          <button onClick={() => { if (confirm(`Delete ${country.name}?`)) onDelete(country.id); }} style={btnDel}>Delete</button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+// ── Main component ──
+export default function AdminCountriesClient() {
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [notice, setNotice]       = useState('');
+  const [adding, setAdding]       = useState(false);
+  const [newForm, setNewForm]     = useState<Omit<Country,'id'>>(EMPTY);
+  const [filter, setFilter]       = useState<'all'|'fundraise'|'donate'>('all');
+  const [search, setSearch]       = useState('');
+
+  function flash(msg: string) { setNotice(msg); setTimeout(() => setNotice(''), 4000); }
+
+  useEffect(() => {
+    fetch('/api/admin/countries')
+      .then(r => r.json())
+      .then((d: { countries: Country[] }) => { setCountries(d.countries); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  async function addCountry() {
+    if (!newForm.name.trim()) return;
+    setAdding(true);
+    const res = await fetch('/api/admin/countries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newForm),
+    });
+    const d = await res.json() as { country?: Country; error?: string };
+    if (!res.ok) { flash(`❌ ${d.error ?? 'Failed'}`); }
+    else { setCountries(prev => [...prev, d.country!]); setNewForm(EMPTY); flash('✓ Country added'); }
+    setAdding(false);
+  }
+
+  async function updateCountry(id: string, patch: Partial<Country>) {
+    setCountries(prev => prev.map(c => c.id === id ? { ...c, ...patch } : c));
+    const res = await fetch(`/api/admin/countries/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) flash('❌ Update failed');
+    else flash('✓ Saved');
+  }
+
+  function deleteCountry(id: string) {
+    setCountries(prev => prev.filter(c => c.id !== id));
+    fetch(`/api/admin/countries/${id}`, { method: 'DELETE' }).catch(() => undefined);
+    flash('Country deleted');
+  }
+
+  const updNew = <K extends keyof typeof newForm>(k: K, v: typeof newForm[K]) =>
+    setNewForm(prev => ({ ...prev, [k]: v }));
+
+  const filtered = countries.filter(c => {
+    if (filter === 'fundraise' && !c.can_fundraise) return false;
+    if (filter === 'donate' && c.can_fundraise) return false;
+    if (search && !c.name.toLowerCase().includes(search.toLowerCase()) && !c.iso_code.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const fundraiseCount = countries.filter(c => c.can_fundraise).length;
+  const donateCount    = countries.filter(c => c.can_donate && !c.can_fundraise).length;
+  const activeCount    = countries.filter(c => c.active).length;
+
+  return (
+    <div style={{ padding: '0 32px 48px', maxWidth: 1200 }}>
+
+      {/* Notice */}
+      {notice && (
+        <div style={{ margin: '0 0 16px', padding: '10px 16px', borderRadius: 10, background: notice.includes('❌') ? '#fff0f3' : '#f0fdf4', border: `1px solid ${notice.includes('❌') ? '#fecdd3' : '#bbf7d0'}`, color: notice.includes('❌') ? '#be123c' : '#15803d', fontWeight: 700, fontSize: 13 }}>
+          {notice}
+        </div>
+      )}
+
+      {/* Stats row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+        {[
+          { label: 'Total Countries',  value: countries.length, color: '#6c35ff' },
+          { label: 'Can Fundraise',    value: fundraiseCount,   color: '#19b86a' },
+          { label: 'Donate Only',      value: donateCount,      color: '#0ea5e9' },
+          { label: 'Active / Visible', value: activeCount,      color: '#f59e0b' },
+        ].map(m => (
+          <div key={m.label} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '18px 22px' }}>
+            <div style={{ fontSize: 26, fontWeight: 900, color: m.color }}>{m.value}</div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>{m.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Public page link */}
+      <div style={{ marginBottom: 20, padding: '12px 18px', background: '#f0eaff', borderRadius: 12, border: '1px solid #c4b5fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#4c1d95' }}>
+          🌍 Public page:{' '}
+          <code style={{ background: 'rgba(0,0,0,.06)', padding: '2px 6px', borderRadius: 4 }}>/supported-countries</code>
+        </span>
+        <Link href="/supported-countries" target="_blank" style={{ fontSize: 12, fontWeight: 800, color: '#6c35ff', textDecoration: 'none' }}>
+          View Page →
+        </Link>
+      </div>
+
+      {/* Add form */}
+      <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
+        <div style={{ fontWeight: 800, fontSize: 14, color: '#1a1a2e', marginBottom: 14 }}>+ Add Country</div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={lStyle}>Flag</label>
+            <input value={newForm.flag_emoji} onChange={e => updNew('flag_emoji', e.target.value)} style={{ ...iStyle, width: 64 }} placeholder="🇺🇸" maxLength={4} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: '2 1 160px' }}>
+            <label style={lStyle}>Country Name *</label>
+            <input value={newForm.name} onChange={e => updNew('name', e.target.value)} style={iStyle} placeholder="United States" onKeyDown={e => e.key === 'Enter' && void addCountry()} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={lStyle}>ISO Code</label>
+            <input value={newForm.iso_code} onChange={e => updNew('iso_code', e.target.value.toUpperCase())} style={{ ...iStyle, width: 64 }} placeholder="US" maxLength={2} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={lStyle}>Currency</label>
+            <input value={newForm.currency_code} onChange={e => updNew('currency_code', e.target.value.toUpperCase())} style={{ ...iStyle, width: 72 }} placeholder="USD" maxLength={3} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={lStyle}>Fundraise?</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_fundraise ? '#15803d' : '#94a3b8' }}>
+              <input type="checkbox" checked={newForm.can_fundraise} onChange={e => updNew('can_fundraise', e.target.checked)} style={{ accentColor: '#6c35ff', width: 16, height: 16 }} />
+              {newForm.can_fundraise ? 'Yes' : 'No'}
+            </label>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={lStyle}>Donate?</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_donate ? '#1d4ed8' : '#94a3b8' }}>
+              <input type="checkbox" checked={newForm.can_donate} onChange={e => updNew('can_donate', e.target.checked)} style={{ accentColor: '#6c35ff', width: 16, height: 16 }} />
+              {newForm.can_donate ? 'Yes' : 'No'}
+            </label>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: '3 1 200px' }}>
+            <label style={lStyle}>Notes (optional)</label>
+            <input value={newForm.notes ?? ''} onChange={e => updNew('notes', e.target.value)} style={iStyle} placeholder="e.g. Payout via Stripe Connect" />
+          </div>
+          <button
+            onClick={() => void addCountry()}
+            disabled={adding || !newForm.name.trim()}
+            style={{ height: 40, padding: '0 22px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 9, fontWeight: 800, fontSize: 13, cursor: 'pointer', flexShrink: 0, opacity: adding || !newForm.name.trim() ? .5 : 1 }}
+          >
+            {adding ? 'Adding…' : '+ Add'}
+          </button>
+        </div>
+      </div>
+
+      {/* Filter + search */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        {(['all','fundraise','donate'] as const).map(f => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            style={{ padding: '7px 16px', borderRadius: 999, border: '1.5px solid', borderColor: filter === f ? '#6c35ff' : '#e2e8f0', background: filter === f ? '#f0eaff' : '#fff', color: filter === f ? '#6c35ff' : '#64748b', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+          >
+            {f === 'all' ? `All (${countries.length})` : f === 'fundraise' ? `Fundraise (${fundraiseCount})` : `Donate Only (${donateCount})`}
+          </button>
+        ))}
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search by name or ISO…"
+          style={{ marginLeft: 'auto', padding: '8px 14px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 13, width: 220, boxSizing: 'border-box' }}
+        />
+      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div style={{ color: '#94a3b8', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Loading…</div>
+      ) : (
+        <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 860 }}>
+            <thead>
+              <tr style={{ background: '#f8fafc' }}>
+                {['Flag','Country','ISO','Currency','Fundraise','Donate','Status','Notes','Actions'].map(h => (
+                  <th key={h} style={{ padding: '10px 14px', textAlign: h === 'Fundraise' || h === 'Donate' || h === 'Status' ? 'center' : 'left', fontWeight: 700, color: '#64748b', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={9} style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>No countries found.</td></tr>
+              ) : filtered.map(c => (
+                <CountryRow key={c.id} country={c} onUpdate={updateCountry} onDelete={deleteCountry} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}

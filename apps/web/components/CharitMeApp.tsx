@@ -69,6 +69,7 @@ const adminNav = [
   ['Settings', '/admin/settings', 'gear'],
   ['Audit Log', '/admin/audit-log', 'audit'],
   ['System Settings', '/admin/system', 'sliders'],
+  ['Supported Countries', '/admin/countries', 'globe'],
   ['⚙ Setup Diagnostic', '/admin/setup', 'check'],
 ] as const;
 
@@ -103,6 +104,7 @@ export function KFIcon({ name, className = '' }: { name: string; className?: str
     plus: <path d="M12 5v14M5 12h14" />,
     check: <path d="M20 6L9 17l-5-5" />,
     crown: <path d="M3 8l4 3 5-7 5 7 4-3-2 10H5L3 8Z" />,
+    globe: <><circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z" /></>,
     filter: <path d="M22 3H2l8 9v7l4 2v-9l8-9Z" />,
     upload: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M17 8l-5-5-5 5M12 3v12" /></>,
     logout: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></>,
