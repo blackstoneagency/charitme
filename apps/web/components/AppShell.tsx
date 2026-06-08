@@ -89,9 +89,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ))}
           </nav>
           <div className="kind-auth">
-            {user && <Link href="/dashboard" className="kind-login">Dashboard</Link>}
-            {!user && <Link href="/login" className="kind-login">Log in</Link>}
-            <Link href={user ? '/create' : '/login?mode=signup'} className="kind-start">Get Started</Link>
+            {user ? (
+              <>
+                <Link href="/dashboard" className="kind-start">Dashboard</Link>
+                <button
+                  className="kind-login kind-signout-btn"
+                  onClick={async () => {
+                    await fetch('/api/auth/signout', { method: 'POST' });
+                    window.location.href = '/login';
+                  }}
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="kind-login">Log in</Link>
+                <Link href="/login?mode=signup" className="kind-start">Get Started</Link>
+              </>
+            )}
           </div>
           <button className="kind-menu" onClick={() => setMenuOpen((open) => !open)} aria-label="Toggle navigation">
             <span />
@@ -102,8 +118,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {menuOpen && (
           <div className="kind-mobile">
             {NAV.map(([label, href]) => <Link key={href} href={href} onClick={() => setMenuOpen(false)}>{label}</Link>)}
-            <Link href="/login" onClick={() => setMenuOpen(false)}>Log in</Link>
-            <Link href="/login?mode=signup" onClick={() => setMenuOpen(false)}>Get Started</Link>
+            {user ? (
+              <>
+                <Link href="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</Link>
+                <button
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, font: 'inherit', color: 'inherit' }}
+                  onClick={async () => {
+                    setMenuOpen(false);
+                    await fetch('/api/auth/signout', { method: 'POST' });
+                    window.location.href = '/login';
+                  }}
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" onClick={() => setMenuOpen(false)}>Log in</Link>
+                <Link href="/login?mode=signup" onClick={() => setMenuOpen(false)}>Get Started</Link>
+              </>
+            )}
           </div>
         )}
       </header>
