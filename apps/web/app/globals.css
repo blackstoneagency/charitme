@@ -1347,10 +1347,10 @@ img, svg { display: block; }
 /* Header row above grid */
 .pc-header { margin-bottom: 28px; display: flex; flex-direction: column; gap: 12px; }
 
-/* 2-col grid: carousel+donate (left) | story+impact (right) */
-.pc-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 40px; align-items: start; }
+/* 2-col grid: story+content (left) | sticky donate (right) */
+.pc-grid { display: grid; grid-template-columns: minmax(0,1fr) 400px; gap: 40px; align-items: start; }
 .pc-left { display: flex; flex-direction: column; gap: 20px; }
-.pc-right { display: flex; flex-direction: column; gap: 24px; }
+.pc-right { display: flex; flex-direction: column; gap: 0; position: sticky; top: 20px; }
 
 /* Image carousel */
 .pc-carousel { display: flex; flex-direction: column; gap: 10px; }
@@ -1437,8 +1437,33 @@ img, svg { display: block; }
 .pc-impact-card { border: 1px solid var(--b2); border-radius: 18px; background: #fff; padding: 24px; box-shadow: var(--shadow-sm); }
 .pc-impact-donut { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 20px 0; }
 
-/* Bottom 3-col cards */
-.pc-cards { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 22px; margin-top: 24px; }
+/* Section heading used by co-organizers + comments */
+.pc-section-h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 16px; font-size: 18px; font-weight: 900; color: var(--t1); }
+.pc-section-count { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 22px; padding: 0 7px; background: var(--s3); border-radius: 999px; font-size: 12px; font-weight: 800; color: var(--violet); }
+
+/* Co-organizers card */
+.pc-organizers { padding: 22px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.92); box-shadow: var(--shadow-sm); }
+.pc-org-card { display: flex; align-items: center; gap: 14px; }
+.pc-org-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--violet), var(--violet-2)); background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; color: #fff; flex-shrink: 0; }
+.pc-org-info { flex: 1; }
+.pc-org-info b { display: block; font-size: 15px; font-weight: 900; color: var(--t1); }
+.pc-org-info small { font-size: 12px; color: var(--t3); }
+.pc-org-message { display: inline-flex; align-items: center; height: 36px; padding: 0 18px; border-radius: 10px; border: 1.5px solid var(--b2); background: #fff; color: var(--t1); font-size: 13px; font-weight: 800; text-decoration: none; transition: border-color .15s, background .15s; flex-shrink: 0; }
+.pc-org-message:hover { border-color: var(--violet); background: var(--s2); color: var(--violet); }
+
+/* Comments card */
+.pc-comments { padding: 22px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.92); box-shadow: var(--shadow-sm); }
+.pc-comment-list { display: flex; flex-direction: column; gap: 0; }
+.pc-comment { display: flex; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
+.pc-comment:first-child { border-top: none; padding-top: 0; }
+.pc-comment-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #a78bfa, #ec4899); background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; color: #fff; flex-shrink: 0; }
+.pc-comment-body { flex: 1; }
+.pc-comment-name { font-size: 14px; font-weight: 800; color: var(--t1); display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.pc-comment-date { font-size: 12px; font-weight: 600; color: var(--t3); }
+.pc-comment-text { font-size: 13px; color: var(--t2); line-height: 1.6; }
+
+/* Bottom 4-col cards */
+.pc-cards { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 22px; margin-top: 24px; }
 .pc-ai { padding: 26px; border: 1px solid var(--line); border-radius: 18px; background: radial-gradient(circle at 78% 35%, rgba(109,53,255,.14), transparent 30%), #fff; box-shadow: var(--shadow-sm); }
 .pc-ai h2 { margin: 0 0 18px; font-size: 22px; letter-spacing: -.02em; }
 .pc-ai p { color: var(--muted); line-height: 1.6; }

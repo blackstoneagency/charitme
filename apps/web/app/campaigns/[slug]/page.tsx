@@ -54,6 +54,16 @@ async function getUpdates(campaignId: string) {
   return data ?? [];
 }
 
+async function getDonorMessages(campaignId: string) {
+  const { data } = await supabaseAdmin
+    .from('donor_messages')
+    .select('id, message, anonymous, created_at, profiles:donor_id(full_name, avatar_url)')
+    .eq('campaign_id', campaignId)
+    .order('created_at', { ascending: false })
+    .limit(8);
+  return data ?? [];
+}
+
 async function getLedger(campaignId: string) {
   const { data } = await supabaseAdmin
     .from('transparency_ledger_items')
@@ -117,11 +127,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const campaign = await getCampaign(slug);
   if (!campaign) notFound();
 
-  const [donations, updates, ledger, faqs] = await Promise.all([
+  const [donations, updates, ledger, faqs, donorMessages] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
     getLedger(campaign.id),
     getFAQs(campaign.id),
+    getDonorMessages(campaign.id),
   ]);
 
   const raised = campaign.raised_amount ?? 0;
@@ -164,7 +175,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         campaignId={campaign.id}
       />
 
-      {/* ── TOP: title info row ── */}
+      {/* ── TOP HEADER ── */}
       <section className="pc-header">
         <nav className="pc-breadcrumb" aria-label="Breadcrumb">
           <Link href="/">Home</Link>
@@ -173,7 +184,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             {campaign.category ?? 'Campaign'}
           </Link>
           <span aria-hidden="true"> / </span>
-          <span aria-current="page" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', verticalAlign: 'bottom' }}>
+          <span aria-current="page" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block', verticalAlign: 'bottom' }}>
             {campaign.title}
           </span>
         </nav>
@@ -198,10 +209,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         </div>
       </section>
 
-      {/* ── MAIN GRID: carousel+donate (left) | story+impact (right) ── */}
+      {/* ── MAIN GRID: story content (left) | sticky donate sidebar (right) ── */}
       <section className="pc-grid">
-        {/* LEFT column: carousel → donate form */}
-        <div className="pc-left">
+
+        {/* LEFT column: carousel → story → co-organizers → comments → share */}
+        <div className="pc-left" id="story">
+
           {/* Image carousel */}
           <CampaignCarousel images={galleryImages.length > 0 ? galleryImages : [cover]} title={campaign.title} />
 
@@ -213,7 +226,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             const vimeoMatch = videoUrl.match(/vimeo\.com\/(\d+)/);
             if (vimeoMatch) embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
             return (
-              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: 14, background: '#000', marginTop: 8 }}>
+              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', borderRadius: 14, background: '#000' }}>
                 <iframe
                   src={embedUrl}
                   title="Campaign video"
@@ -225,42 +238,95 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             );
           })()}
 
-          {/* Donate form — right below carousel */}
-          <div className="pc-donate">
-            <strong className="pc-raised">{formatCents(raised)}</strong>
-            <span className="pc-raised-label">raised of {formatCents(goal)} goal</span>
-            <div className="pc-progress"><span style={{ width: `${pct}%` }} /></div>
-            <div className="pc-statline">
-              <span>{campaign.backer_count ?? donations.length} donations</span>
-              <span>{daysLeft !== null ? `${daysLeft} days left` : 'No deadline'}</span>
+          {/* Story card with tabs */}
+          <article className="pc-story">
+            <nav>
+              <a href="#story" className="active">Story</a>
+              <a href="#updates">Updates ({updates.length})</a>
+              <a href="#donations">Donors ({campaign.backer_count ?? donations.length})</a>
+              <a href="#impact">Impact</a>
+            </nav>
+
+            <h2>{organizer.full_name ? `${organizer.full_name.split(' ')[0]}’s Story` : 'Campaign Story'}</h2>
+            <div className="pc-text">{campaign.description}</div>
+
+            {/* Tags */}
+            <div className="pc-tags" style={{ marginTop: 22 }}>
+              <span>{campaign.category ?? 'Campaign'}</span>
+              {campaign.trust_status === 'Verified' && <span>Verified</span>}
+              {(campaign as { nonprofit_verified?: boolean }).nonprofit_verified && <span>Tax Deductible</span>}
             </div>
-            {isActive ? (
-              <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
-            ) : (
-              <div className="pc-ended">This campaign has ended.</div>
-            )}
-            <ReportButton campaignId={campaign.id} />
-            <div className="pc-guarantee">
-              <b>CharitMe Giving Guarantee</b>
-              <span>Your donation is protected and funds go where they are needed most.</span>
+
+            {/* Donate + Share buttons inline */}
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              <a href="#donate-section" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, background: 'linear-gradient(135deg,var(--violet),var(--violet-2))', color: '#fff', fontWeight: 900, fontSize: 15, textDecoration: 'none' }}>
+                Donate
+              </a>
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(campaignUrl)}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, border: '1.5px solid var(--b2)', color: 'var(--t1)', fontWeight: 800, fontSize: 15, textDecoration: 'none', background: '#fff', gap: 6 }}
+              >
+                Share
+              </a>
+            </div>
+          </article>
+
+          {/* Co-organizers */}
+          <div className="pc-organizers" id="updates">
+            <h3 className="pc-section-h3">
+              Co-organizers
+              <span className="pc-section-count">{1}</span>
+            </h3>
+            <div className="pc-org-card">
+              <div className="pc-org-avatar" style={{ backgroundImage: organizer.avatar_url ? `url(${organizer.avatar_url})` : undefined }}>
+                {!organizer.avatar_url && (organizer.full_name?.[0] ?? 'C')}
+              </div>
+              <div className="pc-org-info">
+                <b>{organizer.full_name ?? 'CharitMe Organizer'}</b>
+                <small>Organizer · {campaign.location ?? 'New York, USA'}</small>
+              </div>
+              <Link href="/login" className="pc-org-message">Message</Link>
             </div>
           </div>
-        </div>{/* end pc-left */}
 
-        {/* RIGHT column: story + impact tracker */}
-        <div className="pc-right" id="story">
-        <article className="pc-story">
-          <nav>
-            <a href="#story" className="active">Story</a>
-            <a href="#updates">Updates ({updates.length})</a>
-            <a href="#donations">Donors ({campaign.backer_count ?? donations.length})</a>
-            <a href="#impact">Impact</a>
-          </nav>
+          {/* Comments / donor messages */}
+          <div className="pc-comments" id="donations">
+            <h3 className="pc-section-h3">
+              Comments
+              <span className="pc-section-count">{donorMessages.length}</span>
+            </h3>
+            {donorMessages.length > 0 ? (
+              <div className="pc-comment-list">
+                {donorMessages.map((msg) => {
+                  const msgProfile = asProfile(msg.profiles);
+                  const initials = (msg.anonymous ? 'A' : (msgProfile.full_name?.[0] ?? 'D'));
+                  return (
+                    <div key={msg.id} className="pc-comment">
+                      <div className="pc-comment-avatar" style={{ backgroundImage: (!msg.anonymous && msgProfile.avatar_url) ? `url(${msgProfile.avatar_url})` : undefined }}>
+                        {(msg.anonymous || !msgProfile.avatar_url) && initials}
+                      </div>
+                      <div className="pc-comment-body">
+                        <div className="pc-comment-name">
+                          {msg.anonymous ? 'Anonymous' : (msgProfile.full_name ?? 'Kind supporter')}
+                          <span className="pc-comment-date">
+                            {new Date(msg.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                        <div className="pc-comment-text">&#x2665;&nbsp;1 &nbsp;&middot;&nbsp; {msg.message}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p style={{ fontSize: 14, color: 'var(--t3)', margin: 0 }}>
+                Please sign in and donate to comment.
+              </p>
+            )}
+          </div>
 
-          <h2>{organizer.full_name ? `${organizer.full_name.split(' ')[0]}'s Story` : 'Campaign Story'}</h2>
-          <div className="pc-text">{campaign.description}</div>
-
-          {/* Quick Share card */}
+          {/* Quick Share */}
           <div className="pc-quick-share">
             <div className="pc-quick-share-header">
               <strong style={{ fontSize: 16, fontWeight: 900, color: 'var(--t1)' }}>Quick share</strong>
@@ -270,66 +336,30 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               <div className="pc-quick-share-platforms">
                 <div className="pc-share-copy">
                   <input type="text" readOnly value={campaignUrl} aria-label="Campaign URL" />
-                  <button
-                    type="button"
-                    onClick={undefined}
-                    style={{}}
-                  >
-                    Copy
-                  </button>
+                  <button type="button">Copy</button>
                 </div>
                 <div className="pc-share-grid">
-                  <a
-                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(campaignUrl)}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="pc-share-tile"
-                  >
-                    <span className="pc-share-tile-icon" style={{ background: '#e7f0ff', color: '#1877f2' }}>f</span>
-                    Facebook
+                  <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(campaignUrl)}`} target="_blank" rel="noopener noreferrer" className="pc-share-tile">
+                    <span className="pc-share-tile-icon" style={{ background: '#e7f0ff', color: '#1877f2' }}>f</span>Facebook
                   </a>
-                  <a
-                    href={`https://www.facebook.com/dialog/send?link=${encodeURIComponent(campaignUrl)}&app_id=181477038500745`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="pc-share-tile"
-                  >
-                    <span className="pc-share-tile-icon" style={{ background: '#e6f3ff', color: '#0084ff' }}>m</span>
-                    Messenger
+                  <a href={`https://www.facebook.com/dialog/send?link=${encodeURIComponent(campaignUrl)}&app_id=181477038500745`} target="_blank" rel="noopener noreferrer" className="pc-share-tile">
+                    <span className="pc-share-tile-icon" style={{ background: '#e6f3ff', color: '#0084ff' }}>m</span>Messenger
                   </a>
-                  <a
-                    href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(campaignUrl)}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="pc-share-tile"
-                  >
-                    <span className="pc-share-tile-icon" style={{ background: '#e8f3fb', color: '#0a66c2' }}>in</span>
-                    LinkedIn
+                  <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(campaignUrl)}`} target="_blank" rel="noopener noreferrer" className="pc-share-tile">
+                    <span className="pc-share-tile-icon" style={{ background: '#e8f3fb', color: '#0a66c2' }}>in</span>LinkedIn
                   </a>
-                  <a
-                    href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(campaignUrl)}&text=${encodeURIComponent(campaign.title)}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="pc-share-tile"
-                  >
-                    <span className="pc-share-tile-icon" style={{ background: '#f0f0f0', color: '#000' }}>𝕏</span>
-                    X / Twitter
+                  <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(campaignUrl)}&text=${encodeURIComponent(campaign.title)}`} target="_blank" rel="noopener noreferrer" className="pc-share-tile">
+                    <span className="pc-share-tile-icon" style={{ background: '#f0f0f0', color: '#000' }}>&#120143;</span>X / Twitter
                   </a>
-                  <a
-                    href={`https://wa.me/?text=${encodeURIComponent(`${campaign.title} ${campaignUrl}`)}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="pc-share-tile"
-                  >
-                    <span className="pc-share-tile-icon" style={{ background: '#e9fbe9', color: '#25d366' }}>✉</span>
-                    WhatsApp
+                  <a href={`https://wa.me/?text=${encodeURIComponent(`${campaign.title} ${campaignUrl}`)}`} target="_blank" rel="noopener noreferrer" className="pc-share-tile">
+                    <span className="pc-share-tile-icon" style={{ background: '#e9fbe9', color: '#25d366' }}>&#10003;</span>WhatsApp
                   </a>
-                  <a
-                    href={`mailto:?subject=${encodeURIComponent(campaign.title)}&body=${encodeURIComponent(`Please support: ${campaignUrl}`)}`}
-                    className="pc-share-tile"
-                  >
-                    <span className="pc-share-tile-icon" style={{ background: 'var(--s2)', color: 'var(--violet)' }}>@</span>
-                    Email
+                  <a href={`mailto:?subject=${encodeURIComponent(campaign.title)}&body=${encodeURIComponent(`Please support: ${campaignUrl}`)}`} className="pc-share-tile">
+                    <span className="pc-share-tile-icon" style={{ background: 'var(--s2)', color: 'var(--violet)' }}>@</span>Email
                   </a>
                 </div>
                 <div style={{ marginTop: 14 }}>
-                  <a href={`/api/campaigns/${campaign.id}/qr-poster`} target="_blank"
-                    style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)', textDecoration: 'none' }}>
+                  <a href={`/api/campaigns/${campaign.id}/qr-poster`} target="_blank" style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)', textDecoration: 'none' }}>
                     🖨 Download printable poster →
                   </a>
                 </div>
@@ -341,104 +371,99 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             </div>
           </div>
 
-          {/* Tags */}
-          <div className="pc-tags">
-            <span>{campaign.category ?? 'Campaign'}</span>
-            {campaign.trust_status === 'Verified' && <span>Verified</span>}
-            {(campaign as { nonprofit_verified?: boolean }).nonprofit_verified && <span>Tax Deductible</span>}
-          </div>
+        </div>{/* end pc-left */}
 
-          {/* Share bar */}
-          <div className="pc-share" style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginRight: 4 }}>Share:</span>
-            <a
-              href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(campaignUrl)}`}
-              target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, background: '#1877f2', color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
-            >Facebook</a>
-            <a
-              href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(campaignUrl)}&text=${encodeURIComponent(campaign.title)}`}
-              target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, background: '#000', color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
-            >X / Twitter</a>
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(`${campaign.title} ${campaignUrl}`)}`}
-              target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, background: '#25d366', color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
-            >WhatsApp</a>
-            <a
-              href={`mailto:?subject=${encodeURIComponent(campaign.title)}&body=${encodeURIComponent(`Please support: ${campaignUrl}`)}`}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, background: 'var(--s3)', color: 'var(--t1)', fontSize: 12, fontWeight: 700, textDecoration: 'none', border: '1px solid var(--b2)' }}
-            >Email</a>
-          </div>
-        </article>
+        {/* RIGHT column: sticky donation form */}
+        <div className="pc-right">
+          <div className="pc-donate" id="donate-section">
 
-        {/* RIGHT: Impact Tracker */}
-        <aside className="pc-sidebar-right" id="impact">
-          <div className="pc-impact-card">
-            <h2 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 900, letterSpacing: '-.02em' }}>Impact Tracker</h2>
-            <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--t3)', lineHeight: 1.5 }}>Your generosity is making a difference</p>
-
-            {/* Donut arc SVG */}
-            <div className="pc-impact-donut">
-              <svg width="130" height="130" viewBox="0 0 130 130" aria-hidden="true">
-                <circle cx="65" cy="65" r={r} fill="none" stroke="#ede8ff" strokeWidth="14" />
-                <circle
-                  cx="65" cy="65" r={r}
-                  fill="none"
-                  stroke="var(--violet)"
-                  strokeWidth="14"
-                  strokeLinecap="round"
-                  strokeDasharray={`${dash} ${circ}`}
-                  strokeDashoffset={circ * 0.25}
-                  style={{ transition: 'stroke-dasharray .6s ease' }}
-                />
-                <text x="65" y="60" textAnchor="middle" fontSize="20" fontWeight="900" fill="var(--t1)">{pct}%</text>
-                <text x="65" y="76" textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--t3)">funded</text>
-              </svg>
-              <p style={{ margin: 0, fontSize: 13, textAlign: 'center', color: 'var(--t2)', fontWeight: 700 }}>
-                {formatCents(raised)} raised of {formatCents(goal)}
-              </p>
+            {/* "Boost by giving monthly" nudge */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--t2)' }}>Boost your impact by giving monthly 🌱</span>
             </div>
 
-            {/* Updates timeline */}
-            {updates.length > 0 ? (
-              <div style={{ display: 'grid', gap: 14, marginTop: 8 }}>
-                {updates.map((update) => (
-                  <article key={update.id} style={{ display: 'grid', gridTemplateColumns: '18px 1fr', gap: 12, alignItems: 'start' }}>
-                    <span style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--violet)', boxShadow: '0 0 0 5px #eee8ff', display: 'block', marginTop: 3 }} />
-                    <div>
-                      <b style={{ fontSize: 14, display: 'block' }}>{update.title}</b>
-                      <small style={{ color: 'var(--t3)', fontSize: 12 }}>
-                        {new Date(update.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </small>
-                    </div>
-                  </article>
-                ))}
-              </div>
+            <strong className="pc-raised">{formatCents(raised)}</strong>
+            <span className="pc-raised-label">raised of {formatCents(goal)} goal</span>
+            <div className="pc-progress"><span style={{ width: `${pct}%` }} /></div>
+            <div className="pc-statline">
+              <span><b style={{ color: 'var(--t1)' }}>{campaign.backer_count ?? donations.length}</b> donations</span>
+              <span>{daysLeft !== null ? `${daysLeft} days left` : 'No deadline'}</span>
+            </div>
+
+            {isActive ? (
+              <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
             ) : (
-              <p style={{ fontSize: 13, color: 'var(--t3)', padding: '12px 0 0', margin: 0 }}>
-                Supporters will receive transparent updates as milestones happen.
-              </p>
+              <div className="pc-ended">This campaign has ended.</div>
             )}
+
+            <ReportButton campaignId={campaign.id} />
+
+            {/* Protection guarantee */}
+            <div className="pc-guarantee">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 24 }}>🛡️</span>
+                <div>
+                  <b>CharitMe protects your donation</b>
+                  <span>We guarantee a full refund for up to a year in the rare case that fraud occurs. See the CharitMe Giving Guarantee.</span>
+                </div>
+              </div>
+            </div>
+
           </div>
-        </aside>
         </div>{/* end pc-right */}
+
       </section>{/* end pc-grid */}
 
-      {/* ── BOTTOM CARDS: AI | Donations | Ledger ── */}
-      <section className="pc-cards" id="updates">
+      {/* ── BOTTOM: AI card + Impact Tracker + Donations + Ledger ── */}
+      <section className="pc-cards" id="impact">
+
         <article className="pc-ai">
           <h2>Campaign created with AI</h2>
           <p>CharitMe helps organizers tell their story, reach more people, and maximize impact while keeping trust and transparency visible.</p>
           <ul>
-            <li>AI story assistant</li>
-            <li>AI outreach plan</li>
-            <li>AI growth strategy</li>
+            <li><a href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 850 }}>AI story assistant</a></li>
+            <li><a href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 850 }}>AI outreach plan</a></li>
+            <li><a href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 850 }}>AI growth strategy</a></li>
           </ul>
         </article>
 
-        <article className="pc-card" id="donations">
+        {/* Impact Tracker */}
+        <div className="pc-impact-card">
+          <h2 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 900, letterSpacing: '-.02em' }}>Impact Tracker</h2>
+          <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--t3)', lineHeight: 1.5 }}>Your generosity is making a difference</p>
+          <div className="pc-impact-donut">
+            <svg width="130" height="130" viewBox="0 0 130 130" aria-hidden="true">
+              <circle cx="65" cy="65" r={r} fill="none" stroke="#ede8ff" strokeWidth="14" />
+              <circle cx="65" cy="65" r={r} fill="none" stroke="var(--violet)" strokeWidth="14" strokeLinecap="round" strokeDasharray={`${dash} ${circ}`} strokeDashoffset={circ * 0.25} style={{ transition: 'stroke-dasharray .6s ease' }} />
+              <text x="65" y="60" textAnchor="middle" fontSize="20" fontWeight="900" fill="var(--t1)">{pct}%</text>
+              <text x="65" y="76" textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--t3)">funded</text>
+            </svg>
+            <p style={{ margin: 0, fontSize: 13, textAlign: 'center', color: 'var(--t2)', fontWeight: 700 }}>
+              {formatCents(raised)} raised of {formatCents(goal)}
+            </p>
+          </div>
+          {updates.length > 0 ? (
+            <div style={{ display: 'grid', gap: 14, marginTop: 8 }}>
+              {updates.slice(0, 3).map((update) => (
+                <article key={update.id} style={{ display: 'grid', gridTemplateColumns: '18px 1fr', gap: 12, alignItems: 'start' }}>
+                  <span style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--violet)', boxShadow: '0 0 0 5px #eee8ff', display: 'block', marginTop: 3 }} />
+                  <div>
+                    <b style={{ fontSize: 14, display: 'block' }}>{update.title}</b>
+                    <small style={{ color: 'var(--t3)', fontSize: 12 }}>
+                      {new Date(update.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </small>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p style={{ fontSize: 13, color: 'var(--t3)', padding: '12px 0 0', margin: 0 }}>
+              We are almost there! Keep sharing.
+            </p>
+          )}
+        </div>
+
+        <article className="pc-card">
           <h2>Recent Donations</h2>
           {donations.map((donation) => {
             const profile = asProfile(donation.profiles);
@@ -462,6 +487,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           ))}
           {ledger.length === 0 ? <p><span>Receipts and milestones will appear here.</span><b>Live</b></p> : null}
         </article>
+
       </section>
 
       {/* ── FAQ ── */}
