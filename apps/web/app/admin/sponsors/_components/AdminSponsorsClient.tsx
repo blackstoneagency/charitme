@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 // Extract bare domain from a URL or domain string
 function extractDomain(urlOrDomain: string): string {
@@ -17,15 +17,17 @@ function googleLogoUrl(domain: string, size = 128) {
   return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
 }
 
-// Smart logo image — tries stored URL, falls back to Google favicon derived from website
+// Smart logo image — tries stored URL, falls back to Google favicon derived from website.
+// Uses errorCount to walk through candidates so no setState-in-effect is needed.
+// Parent should pass key={src ?? 'none'} to remount when the logo URL changes.
 function LogoImg({ src, website, name, style }: { src: string | null; website: string | null; name: string; style?: React.CSSProperties }) {
   const domain = website ? extractDomain(website) : null;
   const fallback = domain ? googleLogoUrl(domain, 128) : null;
-  const [imgSrc, setImgSrc] = useState<string | null>(src ?? fallback);
-  const [tried, setTried] = useState(0); // 0=original, 1=fallback, 2=give up
+  const [errorCount, setErrorCount] = useState(0);
 
-  // Reset when src prop changes (e.g. after upload)
-  useEffect(() => { setImgSrc(src ?? fallback); setTried(0); }, [src, fallback]);
+  // Build candidate list: stored URL first, then Google favicon fallback
+  const candidates = [src, fallback].filter((u): u is string => Boolean(u));
+  const imgSrc = errorCount < candidates.length ? candidates[errorCount] : null;
 
   if (!imgSrc) {
     return <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>{name.slice(0, 2).toUpperCase()}</span>;
@@ -33,20 +35,7 @@ function LogoImg({ src, website, name, style }: { src: string | null; website: s
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={imgSrc}
-      alt={name}
-      style={style}
-      onError={() => {
-        if (tried === 0 && fallback && imgSrc !== fallback) {
-          setImgSrc(fallback);
-          setTried(1);
-        } else {
-          setImgSrc(null); // show initials
-          setTried(2);
-        }
-      }}
-    />
+    <img src={imgSrc} alt={name} style={style} onError={() => setErrorCount(c => c + 1)} />
   );
 }
 
@@ -78,7 +67,7 @@ function SponsorRow({
     <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 20px', background: '#fff', borderRadius: 12, border: '1px solid #eef0f7', marginBottom: 10 }}>
       {/* Logo preview */}
       <div style={{ width: 80, height: 44, borderRadius: 8, border: '1px solid #eef0f7', background: '#f8f9fc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-        <LogoImg src={sponsor.logo_url} website={sponsor.website} name={sponsor.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+        <LogoImg key={sponsor.logo_url ?? 'none'} src={sponsor.logo_url} website={sponsor.website} name={sponsor.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
       </div>
 
       {/* Name / website */}
@@ -219,7 +208,7 @@ export default function AdminSponsorsClient() {
           </div>
           <div style={{ display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap' }}>
             {visible.map(s => (
-              <LogoImg key={s.id} src={s.logo_url} website={s.website} name={s.name} style={{ height: 32, maxWidth: 120, objectFit: 'contain', filter: 'grayscale(1)', opacity: .7 }} />
+              <LogoImg key={s.logo_url ?? s.id} src={s.logo_url} website={s.website} name={s.name} style={{ height: 32, maxWidth: 120, objectFit: 'contain', filter: 'grayscale(1)', opacity: .7 }} />
             ))}
           </div>
         </div>
