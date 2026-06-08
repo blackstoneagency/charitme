@@ -26,6 +26,12 @@ export type SystemOverview = {
   errorRate: string;
 };
 
+export type ResourceUsage = {
+  label: string;
+  value: number;
+  color: string;
+};
+
 export type AllSettings = {
   general: Record<string, unknown>;
   security: Record<string, unknown>;
@@ -43,6 +49,7 @@ type Props = {
   categories: SystemCategory[];
   overview: SystemOverview;
   recentActivity: RecentActivity[];
+  resourceUsage: ResourceUsage[];
   initialSettings: AllSettings;
 };
 
@@ -168,7 +175,7 @@ function formatValue(v: unknown): string {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function SystemClient({ categories, overview, recentActivity, initialSettings }: Props) {
+export default function SystemClient({ categories, overview, recentActivity, resourceUsage, initialSettings }: Props) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [savedSettings, setSavedSettings] = useState<AllSettings>(initialSettings);
   const [draft, setDraft] = useState<AllSettings>(initialSettings);
@@ -238,12 +245,6 @@ export default function SystemClient({ categories, overview, recentActivity, ini
       setSaveError(err instanceof Error ? err.message : 'Network error');
     }
   }
-
-  const resourceUsage = [
-    { label: 'CPU Usage', value: 32, color: '#6c35ff' },
-    { label: 'Memory', value: 48, color: '#19b86a' },
-    { label: 'Disk Space', value: 26, color: '#2f80ed' },
-  ];
 
   // ─── Category icon map ──────────────────────────────────────────────────────
 
