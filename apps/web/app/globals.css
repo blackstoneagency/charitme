@@ -58,8 +58,8 @@ img, svg { display: block; }
   background: rgba(255, 255, 255, .86);
   backdrop-filter: blur(18px);
 }
-.kind-header > .container { height: 72px; display: flex; align-items: center; gap: 48px; }
-.kind-logo { display: inline-flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.kind-header > .container { height: 68px; display: flex; align-items: center; gap: 0; }
+.kind-logo { display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto; margin-right: 28px; }
 .kind-logo > span { position: relative; width: 31px; height: 27px; display: block; }
 .kind-logo i, .kind-logo b {
   position: absolute;
@@ -71,18 +71,18 @@ img, svg { display: block; }
 }
 .kind-logo i { left: 2px; background: linear-gradient(135deg, #7c55ff, #be6bff); }
 .kind-logo b { right: 2px; background: linear-gradient(135deg, #b84aff, #6d35ff); opacity: .9; }
-.kind-logo strong { font-size: 24px; letter-spacing: -.02em; color: #111331; line-height: 1; }
-.kind-header nav { display: flex; align-items: center; gap: 33px; flex: 1; }
-.kind-header nav a { display: inline-flex; align-items: center; gap: 7px; color: #121838; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.kind-logo strong { font-size: 22px; letter-spacing: -.02em; color: #111331; line-height: 1; }
+.kind-header nav { display: flex; align-items: center; gap: 20px; flex: 1; min-width: 0; }
+.kind-header nav a { display: inline-flex; align-items: center; gap: 5px; color: #121838; font-size: 13px; font-weight: 700; white-space: nowrap; }
 .kind-header nav a.active { position: relative; color: #4015e8; }
-.kind-header nav a.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -26px; height: 2px; background: #5521f1; }
-.kind-new { display: inline-grid; place-items: center; height: 20px; padding: 0 8px; border-radius: 7px; color: #9a5a00; background: #fff0c8; font-size: 11px; font-weight: 900; }
-.kind-auth { margin-left: auto; display: flex; align-items: center; gap: 14px; }
-.kind-login, .kind-start { height: 42px; display: inline-flex; align-items: center; justify-content: center; border-radius: 18px; font-size: 14px; font-weight: 800; white-space: nowrap; }
-.kind-login { border: 1px solid #ddd5ff; padding: 0 22px; background: #fff; cursor: pointer; text-decoration: none; color: inherit; }
-.kind-signout-btn { border: 1px solid #ddd5ff; padding: 0 22px; background: #fff; cursor: pointer; color: inherit; font-family: inherit; white-space: nowrap; }
-.kind-start { padding: 0 28px; color: #fff; background: linear-gradient(135deg, #7035ff, #ec39c3); box-shadow: 0 12px 28px rgba(127, 55, 235, .22); }
-.kind-search-btn { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; color: var(--ink, #0f1238); background: transparent; transition: background .15s, color .15s; text-decoration: none; }
+.kind-header nav a.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -24px; height: 2px; background: #5521f1; }
+.kind-new { display: inline-grid; place-items: center; height: 19px; padding: 0 7px; border-radius: 7px; color: #9a5a00; background: #fff0c8; font-size: 10px; font-weight: 900; }
+.kind-auth { margin-left: 16px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; }
+.kind-login, .kind-start { height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 18px; font-size: 13px; font-weight: 800; white-space: nowrap; }
+.kind-login { border: 1px solid #ddd5ff; padding: 0 18px; background: #fff; cursor: pointer; text-decoration: none; color: inherit; }
+.kind-signout-btn { height: 38px; border: 1px solid #ddd5ff; padding: 0 18px; border-radius: 18px; background: #fff; cursor: pointer; color: inherit; font-family: inherit; font-size: 13px; font-weight: 800; white-space: nowrap; display: inline-flex; align-items: center; }
+.kind-start { padding: 0 22px; color: #fff; background: linear-gradient(135deg, #7035ff, #ec39c3); box-shadow: 0 8px 20px rgba(127, 55, 235, .22); }
+.kind-search-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; color: var(--ink, #0f1238); background: transparent; transition: background .15s, color .15s; text-decoration: none; flex-shrink: 0; }
 .kind-search-btn:hover { background: #f3eeff; color: #7035ff; }
 .kind-menu { display: none; width: 42px; height: 42px; border: 1px solid #ddd5ff; border-radius: 14px; background: #fff; }
 .kind-menu span { display: block; width: 18px; height: 2px; margin: 4px auto; background: var(--ink); }
