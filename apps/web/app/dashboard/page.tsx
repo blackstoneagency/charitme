@@ -1,7 +1,9 @@
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { CharitMeShell, KFIcon } from '../../components/CharitMeShellServer';
 import { requireUser } from '../../lib/auth';
 import { supabaseAdmin } from '../../lib/supabase';
+import { isAdmin } from '../../lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -329,6 +331,12 @@ async function getDashboardData(userId: string): Promise<DashData> {
 // ─────────────────────────────────────────────
 export default async function DashboardPage() {
   const user = await requireUser();
+
+  // Admins go directly to the admin panel
+  if (await isAdmin(user.id, user.email)) {
+    redirect('/admin');
+  }
+
   const data = await getDashboardData(user.id);
 
   const hasRealCampaigns = data.campaigns.length > 0;
