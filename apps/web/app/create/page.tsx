@@ -513,6 +513,18 @@ export default function CreatePage() {
 
       <div className="kf-create-wizard">
 
+        {/* ── Entry CTAs ── */}
+        {step !== 'live' && (
+          <div className="kf-create-hero">
+            <Link href="/ai-fundraising" className="kf-create-cta kf-create-cta-ai">
+              <KFIcon name="plus" /> Create My Fundraiser With AI
+            </Link>
+            <button type="button" className="kf-create-cta kf-create-cta-new" onClick={() => setStep('type')}>
+              <KFIcon name="plus" /> Create New Campaign
+            </button>
+          </div>
+        )}
+
         {/* ── Step progress track ── */}
         {step !== 'live' && (
           <div className="kf-step-track">

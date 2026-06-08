@@ -2052,6 +2052,13 @@ img, svg { display: block; }
 
 /* ── Campaign Create Wizard ─────────────────────────────────────── */
 .kf-create-wizard { padding: 0 32px 32px; display: flex; flex-direction: column; gap: 22px; }
+.kf-create-hero { display: flex; gap: 16px; flex-wrap: wrap; }
+.kf-create-cta { display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 58px; padding: 0 28px; border: 0; border-radius: 14px; color: #fff; font-size: 15px; font-weight: 900; text-decoration: none; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+.kf-create-cta:hover { transform: translateY(-1px); }
+.kf-create-cta-ai { background: linear-gradient(135deg, #ec3fb4, #7a3ef0); box-shadow: 0 16px 34px rgba(236,63,180,.28); }
+.kf-create-cta-ai:hover { box-shadow: 0 20px 42px rgba(236,63,180,.34); }
+.kf-create-cta-new { background: linear-gradient(135deg, #6c35ff, #9d31e8); box-shadow: 0 16px 34px rgba(108,53,255,.28); }
+.kf-create-cta-new:hover { box-shadow: 0 20px 42px rgba(108,53,255,.34); }
 .kf-step-track { display: flex; border: 1px solid #e6e9f2; border-radius: 13px; background: #fff; overflow: hidden; }
 .kf-step-track-item { flex: 1; display: flex; align-items: center; justify-content: center; gap: 9px; height: 58px; padding: 0 10px; font-size: 13px; font-weight: 850; color: #66708d; border-right: 1px solid #e6e9f2; }
 .kf-step-track-item:last-child { border-right: 0; }
