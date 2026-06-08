@@ -384,7 +384,7 @@ export default function CreatePage() {
             <div className="cr2-hero-top">
               <Link href="/dashboard/campaigns" className="cr2-back-link">← My Campaigns</Link>
               <div className="cr2-step-badge">Step {stepIdx + 1} / {WIZARD_STEPS.length}</div>
-              <Link href="/ai-fundraising" className="cr2-ai-hero-cta">
+              <Link href="/ai-campaign" className="cr2-ai-hero-cta">
                 <KFIcon name="send" /> Use AI Instead
               </Link>
             </div>
