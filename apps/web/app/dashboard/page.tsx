@@ -42,6 +42,12 @@ type DashData = {
   avgDonation: number;
   activity: ActivityItem[];
   chartDays: ChartDay[];
+  donorBreakdown: {
+    total: number;
+    newCount: number;
+    returningCount: number;
+    anonymousCount: number;
+  };
   growthCounts: {
     contentCreated: number;
     peopleReached: number;
@@ -145,6 +151,7 @@ async function getDashboardData(userId: string): Promise<DashData> {
     avgDonation: 0,
     activity: [],
     chartDays: [],
+    donorBreakdown: { total: 0, newCount: 0, returningCount: 0, anonymousCount: 0 },
     growthCounts: { contentCreated: 0, peopleReached: 0, engagement: 0, newDonors: 0 },
   };
 
@@ -175,6 +182,7 @@ async function getDashboardData(userId: string): Promise<DashData> {
     // ── Phase 2: activity + growth data (if user has campaigns) ──
     let activity: ActivityItem[] = [];
     let chartDays: ChartDay[] = [];
+    let donorBreakdown = { total: 0, newCount: 0, returningCount: 0, anonymousCount: 0 };
     let growthCounts = { contentCreated: 0, peopleReached: 0, engagement: 0, newDonors: 0 };
 
     // Build 7-day date range
@@ -201,6 +209,7 @@ async function getDashboardData(userId: string): Promise<DashData> {
       const [
         { data: activityDons },
         { data: chartDons },
+        { data: breakdownDons },
         { count: updatesCount },
         { count: messagesCount },
         { data: newDonorData },
@@ -218,6 +227,11 @@ async function getDashboardData(userId: string): Promise<DashData> {
           .in('campaign_id', campaignIds)
           .eq('status', 'completed')
           .gte('created_at', sevenDaysAgoStr),
+        supabaseAdmin
+          .from('donations')
+          .select('donor_id, anonymous')
+          .in('campaign_id', campaignIds)
+          .eq('status', 'completed'),
         supabaseAdmin
           .from('campaign_updates')
           .select('*', { count: 'exact', head: true })
@@ -284,6 +298,23 @@ async function getDashboardData(userId: string): Promise<DashData> {
         };
       });
 
+      // Donor breakdown — new vs. returning vs. anonymous, computed from
+      // every completed donation across the user's campaigns
+      const breakdownRows = (breakdownDons ?? []) as { donor_id: string | null; anonymous: boolean }[];
+      const donorCounts = new Map<string, number>();
+      let anonymousCount = 0;
+      for (const row of breakdownRows) {
+        if (row.anonymous || !row.donor_id) { anonymousCount += 1; continue; }
+        donorCounts.set(row.donor_id, (donorCounts.get(row.donor_id) ?? 0) + 1);
+      }
+      let newCount = 0;
+      let returningCount = 0;
+      for (const c of donorCounts.values()) {
+        if (c === 1) newCount += 1;
+        else returningCount += c;
+      }
+      donorBreakdown = { total: breakdownRows.length, newCount, returningCount, anonymousCount };
+
       // Build chart data
       for (const d of (chartDons ?? []) as { amount_cents: number; created_at: string }[]) {
         const key = d.created_at.split('T')[0]!;
@@ -316,6 +347,7 @@ async function getDashboardData(userId: string): Promise<DashData> {
       avgDonation,
       activity,
       chartDays,
+      donorBreakdown,
       growthCounts,
     };
   } catch {
@@ -399,6 +431,24 @@ export default async function DashboardPage() {
 
   // 7-day raised total from chart data
   const weekRaised = data.chartDays.reduce((s, d) => s + d.amount, 0);
+
+  // Donor breakdown — real percentages from completed donations
+  const db = data.donorBreakdown;
+  const pct = (n: number) => (db.total > 0 ? Math.round((n / db.total) * 100) : 0);
+  const donorSegments = [
+    { name: 'Returning Donors', count: db.returningCount, percent: pct(db.returningCount), color: '#6c35ff' },
+    { name: 'New Donors',       count: db.newCount,       percent: pct(db.newCount),       color: '#ec3fb4' },
+    { name: 'Anonymous',        count: db.anonymousCount, percent: pct(db.anonymousCount), color: '#a9afc2' },
+  ];
+  let cursor = 0;
+  const donutStops = donorSegments
+    .map((seg) => {
+      const start = cursor;
+      cursor += seg.percent;
+      return `${seg.color} ${start}% ${cursor}%`;
+    })
+    .join(', ');
+  const donutBackground = db.total > 0 ? `conic-gradient(${donutStops})` : '#eee9ff';
 
   // Growth strip values
   const g = data.growthCounts;
@@ -612,32 +662,28 @@ export default async function DashboardPage() {
                 </div>
               </section>
 
-              {/* Source donut */}
+              {/* Donor breakdown donut */}
               <section className="dash-card source-card">
-                <h2>Donations by Source</h2>
+                <h2>Donor Breakdown</h2>
                 <div className="source-body">
-                  <div className="source-donut">
+                  <div className="source-donut" style={{ background: donutBackground }}>
                     <span>
-                      <b>{data.totalDonations || '—'}</b>
-                      <small>Total</small>
+                      <b>{db.total || '—'}</b>
+                      <small>Donations</small>
                     </span>
                   </div>
                   <div className="source-list">
-                    {[
-                      ['Direct / Link', '—', '#6c35ff'],
-                      ['Social Media',  '—', '#ec3fb4'],
-                      ['Email',         '—', '#2f80ed'],
-                      ['Search',        '—', '#19b86a'],
-                      ['Other',         '—', '#a9afc2'],
-                    ].map(([name, percent, color]) => (
-                      <p key={name}>
-                        <i style={{ background: color }} />
-                        {name}
-                        <b>{percent}</b>
+                    {donorSegments.map((seg) => (
+                      <p key={seg.name}>
+                        <i style={{ background: seg.color }} />
+                        {seg.name}
+                        <b>{db.total > 0 ? `${seg.percent}%` : '—'}</b>
                       </p>
                     ))}
                     <p style={{ fontSize: 11, color: 'var(--t4)', marginTop: 6 }}>
-                      Source attribution appears when campaign UTM records are available.
+                      {db.total > 0
+                        ? 'Based on every completed donation across your campaigns.'
+                        : 'Breakdown appears once your campaigns receive donations.'}
                     </p>
                   </div>
                 </div>
@@ -658,13 +704,13 @@ export default async function DashboardPage() {
               <p>I&apos;ve analyzed your campaigns and found opportunities to grow.</p>
               <AssistantAction
                 icon="doc"
-                tone="violet"
+                tone="grad-1"
                 title="Post a video update"
                 text="Review current campaign media and publish an update from live records."
               />
               <AssistantAction
                 icon="users"
-                tone="green"
+                tone="grad-2"
                 title="Re-engage past donors"
                 text={
                   data.totalSupporters > 0
@@ -674,7 +720,7 @@ export default async function DashboardPage() {
               />
               <AssistantAction
                 icon="send"
-                tone="orange"
+                tone="grad-3"
                 title="Boost on social media"
                 text="Build the next growth plan from your live campaign analytics."
               />
@@ -810,7 +856,7 @@ function AssistantAction({
 }) {
   return (
     <article>
-      <span className={`dash-icon ${tone}`}>
+      <span className={`assistant-icon ${tone}`}>
         <KFIcon name={icon} />
       </span>
       <div>
