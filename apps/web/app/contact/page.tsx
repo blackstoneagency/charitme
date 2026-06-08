@@ -1,25 +1,22 @@
-'use client';
-
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import type React from 'react';
-import { useState } from 'react';
+import { supabaseAdmin } from '../../lib/supabase';
+import ContactForm from './ContactForm';
 
-const SUBJECTS = [
-  'Campaign support',
-  'Donor question',
-  'AI fundraising',
-  'Billing or pricing',
-  'Press inquiries',
-  'Partnerships',
-  'Other',
-] as const;
+export const metadata: Metadata = {
+  title: 'Contact Us — CharitMe',
+  description: "Reach the CharitMe team — we're here to help with campaigns, donations, AI fundraising, billing, and more.",
+};
+
+export const dynamic = 'force-dynamic';
 
 const FAQS = [
-  'How does CharitMe work?',
-  'Is there a platform fee?',
-  'How long does it take to receive donations?',
-  'Can I track my campaign performance?',
-  'Is my data secure?',
+  { q: 'How does CharitMe work?', a: 'Create a campaign in minutes, share it with your network, and our AI Growth Engine helps you reach the right donors — all with zero mandatory platform fees.' },
+  { q: 'Is there a platform fee?', a: 'No. CharitMe charges $0 mandatory platform fees. We’re sustained by donors who choose to leave an optional tip at checkout.' },
+  { q: 'How long does it take to receive donations?', a: 'Funds typically reach your connected Stripe account within 2–7 business days of a completed donation, depending on your bank.' },
+  { q: 'Can I track my campaign performance?', a: 'Yes — your dashboard shows live donations, donor messages, trust score, and AI-powered insights to help you grow.' },
+  { q: 'Is my data secure?', a: 'Absolutely. We use bank-level encryption, never sell your data, and run every campaign through our AI fraud and trust verification.' },
 ] as const;
 
 const CONTACT_METHODS = [
@@ -28,7 +25,7 @@ const CONTACT_METHODS = [
     title: 'Live Chat',
     body: 'Chat with our support team in real-time.',
     action: 'Start Chat',
-    href: 'mailto:hello@CharitMe.com?subject=Live%20chat%20request',
+    href: 'mailto:hello@charitme.com?subject=Live%20chat%20request',
   },
   {
     icon: 'book',
@@ -49,7 +46,7 @@ const CONTACT_METHODS = [
     title: 'Press Inquiries',
     body: 'For media and partnership opportunities.',
     action: 'Contact Press Team',
-    href: 'mailto:press@CharitMe.com?subject=Press%20inquiry',
+    href: 'mailto:press@charitme.com?subject=Press%20inquiry',
   },
 ] as const;
 
@@ -67,8 +64,7 @@ function Icon({ name, className = '' }: { name: string; className?: string }) {
     mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></>,
     phone: <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.4 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z" />,
     pin: <><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="3" /></>,
-    send: <><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></>,
-    lock: <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></>,
+    clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
     chat: <><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z" /><path d="M8 9h8M8 13h5" /></>,
     book: <><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5Z" /></>,
     community: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.9" /><path d="M16 3.1a4 4 0 0 1 0 7.8" /></>,
@@ -81,180 +77,216 @@ function Icon({ name, className = '' }: { name: string; className?: string }) {
   return <svg {...common}>{paths[name]}</svg>;
 }
 
-function ContactInfo({ icon, title, lines }: { icon: string; title: string; lines: string[] }) {
-  return (
-    <div className="contact-info-row">
-      <div className="contact-info-icon"><Icon name={icon} /></div>
-      <div>
-        <h2>{title}</h2>
-        {lines.map((line) => <p key={line}>{line}</p>)}
-      </div>
-    </div>
-  );
+async function getContactStats() {
+  try {
+    const [casesCountRes, resolvedRes, activeCampRes, donationsRes] = await Promise.all([
+      supabaseAdmin.from('support_cases').select('id', { count: 'exact', head: true }),
+      supabaseAdmin.from('support_cases').select('created_at,updated_at').in('status', ['resolved', 'closed']),
+      supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+      supabaseAdmin.from('donations').select('donor_id').eq('status', 'completed'),
+    ]);
+
+    const resolvedRows = (resolvedRes.data ?? []) as { created_at: string; updated_at: string }[];
+    const avgResponseHours = resolvedRows.length > 0
+      ? resolvedRows.reduce((sum, row) => sum + (new Date(row.updated_at).getTime() - new Date(row.created_at).getTime()), 0)
+        / resolvedRows.length / 3_600_000
+      : 0;
+    const donorsHelped = new Set(((donationsRes.data ?? []) as { donor_id: string | null }[]).map((d) => d.donor_id).filter(Boolean)).size;
+
+    return {
+      totalCases: casesCountRes.count ?? 0,
+      resolvedCases: resolvedRows.length,
+      avgResponseHours,
+      activeCampaigns: activeCampRes.count ?? 0,
+      donorsHelped,
+    };
+  } catch {
+    return { totalCases: 0, resolvedCases: 0, avgResponseHours: 0, activeCampaigns: 0, donorsHelped: 0 };
+  }
 }
 
-export default function ContactPage() {
-  const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const [notice, setNotice] = useState('');
+function fmtResponseTime(hours: number): string {
+  if (hours <= 0) return '< 24 hrs';
+  if (hours < 1) return '< 1 hr';
+  if (hours < 24) return `${Math.round(hours)} hrs`;
+  return `${Math.round(hours / 24)} days`;
+}
 
-  const updateField = (field: keyof typeof form) => (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    setForm((current) => ({ ...current, [field]: event.target.value }));
-  };
+function fmtCount(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M+`;
+  if (value >= 1_000) return `${Math.round(value / 1_000)}K+`;
+  if (value > 0) return `${value.toLocaleString()}+`;
+  return '24/7';
+}
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setStatus('sending');
-    setNotice('');
-
-    // Post to support-tickets (stores in DB + sends email) with fallback to /api/contact
-    const response = await fetch('/api/support-tickets', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: form.name,
-        email: form.email,
-        subject: form.subject,
-        message: form.message,
-        category: 'general',
-        priority: 'normal',
-      }),
-    }).catch(() => null);
-
-    if (response?.ok) {
-      setStatus('sent');
-      setNotice("Thanks, your message is on its way. We'll get back to you soon.");
-      setForm({ name: '', email: '', subject: '', message: '' });
-      return;
-    }
-
-    const payload = await response?.json().catch(() => null) as { error?: string } | null;
-    setStatus('error');
-    setNotice(payload?.error ?? 'Something went wrong. Please try again.');
-  };
+export default async function ContactPage() {
+  const stats = await getContactStats();
 
   return (
-    <div className="contact-page">
-      <section className="contact-hero">
-        <div className="container contact-hero-grid">
-          <div className="contact-copy">
-            <nav className="contact-breadcrumb" aria-label="Breadcrumb">
-              <Link href="/">Home</Link>
-              <span>&gt;</span>
-              <strong>Contact Us</strong>
-            </nav>
+    <div className="contact-page-v2">
 
-            <h1>
-              We&apos;re here to help.<br />
-              Let&apos;s make an <span>impact</span> together.
-            </h1>
-            <p className="contact-intro">Have a question, need support, or just want to say hello? Our team is ready to help you succeed.</p>
-
-            <div className="contact-details">
-              <ContactInfo icon="mail" title="Email Us" lines={['hello@CharitMe.com', 'We typically reply within 24 hours.']} />
-              <ContactInfo icon="phone" title="Call Us" lines={['+1 (888) 123-4567', 'Mon - Fri, 9:00 AM - 6:00 PM (EST)']} />
-              <ContactInfo icon="pin" title="Our Office" lines={['123 Impact Way, Suite 400', 'San Francisco, CA 94107, USA']} />
-            </div>
-
-            <div className="contact-illustration" aria-hidden="true">
-              <div className="contact-mug"><span /></div>
-              <div className="contact-plant">
-                <i /><i /><i /><i /><i />
-              </div>
-              <div className="contact-envelope" />
-              <div className="contact-confetti one" />
-              <div className="contact-confetti two" />
-              <div className="contact-confetti three" />
-            </div>
+      {/* ── HERO ─────────────────────────────────────────────────────── */}
+      <section className="about-hero contact-hero-v2">
+        <div className="about-hero-bg" aria-hidden="true">
+          <div className="about-orb about-orb-1" />
+          <div className="about-orb about-orb-2" />
+          <div className="about-orb about-orb-3" />
+          <div className="about-grid-overlay" />
+        </div>
+        <div className="about-hero-inner">
+          <div className="about-hero-badge"><span>✦</span> We&apos;re here to help</div>
+          <h1 className="about-hero-h1">
+            Let&apos;s start a<br /><em>conversation.</em>
+          </h1>
+          <p className="about-hero-sub">
+            Whether you&apos;re launching a campaign, supporting one, or just have a question — our real, human support
+            team (backed by live data) is ready to help you make an impact.
+          </p>
+          <div className="about-hero-actions">
+            <a href="#contact-form" className="about-cta-primary">Send Us a Message ↓</a>
+            <Link href="/faq" className="about-cta-ghost">Browse Help Center</Link>
           </div>
 
-          <div className="contact-form-wrap">
-            <div className="contact-plane" aria-hidden="true">
-              <Icon name="send" />
-              <span />
+          {/* Live stat pills — pulled straight from Supabase */}
+          <div className="about-hero-stats">
+            <div className="about-stat-pill">
+              <span className="about-stat-num">{fmtResponseTime(stats.avgResponseHours)}</span>
+              <span className="about-stat-label">Avg. Response Time</span>
             </div>
-            <form className="contact-form-card" onSubmit={handleSubmit}>
-              <h2>Send us a message</h2>
-              <p>Fill out the form below and we&apos;ll get back to you soon.</p>
-
-              <div className="contact-form-grid">
-                <label>
-                  <span>Full Name</span>
-                  <input required value={form.name} onChange={updateField('name')} placeholder="Enter your full name" autoComplete="name" />
-                </label>
-                <label>
-                  <span>Email Address</span>
-                  <input required type="email" value={form.email} onChange={updateField('email')} placeholder="Enter your email" autoComplete="email" />
-                </label>
-              </div>
-
-              <label>
-                <span>Subject</span>
-                <select required value={form.subject} onChange={updateField('subject')}>
-                  <option value="">Select a subject</option>
-                  {SUBJECTS.map((subject) => <option key={subject} value={subject}>{subject}</option>)}
-                </select>
-              </label>
-
-              <label>
-                <span>Message</span>
-                <textarea required value={form.message} onChange={updateField('message')} placeholder="How can we help you?" rows={5} />
-              </label>
-
-              {notice && <div className={`contact-notice ${status === 'sent' ? 'success' : 'error'}`}>{notice}</div>}
-
-              <button type="submit" disabled={status === 'sending'}>
-                {status === 'sending' ? 'Sending...' : 'Send Message'}
-                <Icon name="send" />
-              </button>
-
-              <div className="contact-privacy"><Icon name="lock" /> We respect your privacy. Your information is safe with us.</div>
-            </form>
+            <div className="about-stat-divider" />
+            <div className="about-stat-pill">
+              <span className="about-stat-num">{fmtCount(stats.resolvedCases)}</span>
+              <span className="about-stat-label">Cases Resolved</span>
+            </div>
+            <div className="about-stat-divider" />
+            <div className="about-stat-pill">
+              <span className="about-stat-num">{fmtCount(stats.activeCampaigns)}</span>
+              <span className="about-stat-label">Active Campaigns</span>
+            </div>
+            <div className="about-stat-divider" />
+            <div className="about-stat-pill">
+              <span className="about-stat-num">{fmtCount(stats.donorsHelped)}</span>
+              <span className="about-stat-label">Donors Supported</span>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="contact-lower">
-        <div className="container contact-lower-grid">
-          <div className="contact-faq-card">
-            <h2>Frequently Asked Questions</h2>
-            <div className="contact-faq-list">
-              {FAQS.map((question) => (
-                <details key={question}>
-                  <summary>{question}<Icon name="chevron" /></summary>
-                  <p>Our support team can walk you through this in detail and point you to the right next step.</p>
-                </details>
-              ))}
-            </div>
-            <Link href="/faq" className="contact-text-link">View All FAQs <Icon name="arrow" /></Link>
-          </div>
+      {/* ── CONTACT GRID: info + form ────────────────────────────────── */}
+      <section className="contact-main-section" id="contact-form">
+        <div className="container contact-main-grid">
+          <div className="contact-info-col">
+            <div className="about-section-label">Get in touch</div>
+            <h2 className="about-section-h2" style={{ marginBottom: 28 }}>Real humans. Real answers. <em className="contact-grad-text">Real fast.</em></h2>
 
-          <div className="contact-reach-card">
-            <h2>Other ways to reach us</h2>
-            <div className="contact-method-grid">
-              {CONTACT_METHODS.map((method) => (
-                <Link href={method.href} className="contact-method" key={method.title}>
-                  <span><Icon name={method.icon} /></span>
-                  <strong>{method.title}</strong>
-                  <p>{method.body}</p>
-                  <em>{method.action} <Icon name="arrow" /></em>
-                </Link>
-              ))}
-            </div>
-
-            <div className="contact-help-band">
-              <div className="kind-logo" aria-hidden="true"><span><i /><b /></span></div>
+            <div className="contact-info-card-v2">
+              <div className="contact-info-icon-v2"><Icon name="mail" /></div>
               <div>
-                <strong>Still need help?</strong>
-                <p>Our team is here for you. We&apos;re committed to helping you create successful campaigns and make a bigger impact.</p>
+                <h3>Email Us</h3>
+                <p>hello@charitme.com</p>
+                <span>We typically reply within {fmtResponseTime(stats.avgResponseHours)}</span>
               </div>
-              <Link href="mailto:hello@CharitMe.com?subject=Schedule%20a%20call" className="contact-schedule"><Icon name="calendar" /> Schedule a Call</Link>
             </div>
+            <div className="contact-info-card-v2">
+              <div className="contact-info-icon-v2"><Icon name="phone" /></div>
+              <div>
+                <h3>Call Us</h3>
+                <p>+1 (888) 123-4567</p>
+                <span>Mon – Fri, 9:00 AM – 6:00 PM (EST)</span>
+              </div>
+            </div>
+            <div className="contact-info-card-v2">
+              <div className="contact-info-icon-v2"><Icon name="pin" /></div>
+              <div>
+                <h3>Our Office</h3>
+                <p>123 Impact Way, Suite 400</p>
+                <span>San Francisco, CA 94107, USA</span>
+              </div>
+            </div>
+            <div className="contact-info-card-v2">
+              <div className="contact-info-icon-v2"><Icon name="clock" /></div>
+              <div>
+                <h3>Live Support Queue</h3>
+                <p>{stats.totalCases > 0 ? `${stats.totalCases.toLocaleString()} conversations handled` : 'Always-on support team'}</p>
+                <span>Every message becomes a tracked ticket — nothing falls through the cracks.</span>
+              </div>
+            </div>
+          </div>
+
+          <ContactForm />
+        </div>
+      </section>
+
+      {/* ── OTHER WAYS TO REACH US ───────────────────────────────────── */}
+      <section className="about-section">
+        <div className="about-section-inner">
+          <div className="about-section-label">More ways to connect</div>
+          <h2 className="about-section-h2">However you like to reach out, we&apos;re there.</h2>
+          <div className="contact-method-grid-v2">
+            {CONTACT_METHODS.map((method) => (
+              <Link href={method.href} className="contact-method-v2" key={method.title}>
+                <span className="contact-method-icon-v2"><Icon name={method.icon} /></span>
+                <strong>{method.title}</strong>
+                <p>{method.body}</p>
+                <em>{method.action} <Icon name="arrow" /></em>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
+
+      {/* ── LIVE IMPACT STRIP ────────────────────────────────────────── */}
+      <section className="about-impact-strip">
+        <div className="about-impact-inner">
+          {[
+            { num: fmtResponseTime(stats.avgResponseHours), label: 'Average first response',  icon: '⚡' },
+            { num: fmtCount(stats.resolvedCases),           label: 'Support cases resolved',  icon: '✅' },
+            { num: fmtCount(stats.activeCampaigns),         label: 'Campaigns we support',    icon: '📣' },
+            { num: '0%',                                    label: 'Mandatory platform fee',  icon: '💚' },
+          ].map((item) => (
+            <div key={item.label} className="about-impact-item">
+              <div className="about-impact-icon">{item.icon}</div>
+              <div className="about-impact-num">{item.num}</div>
+              <div className="about-impact-label">{item.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── FAQ ──────────────────────────────────────────────────────── */}
+      <section className="about-section about-values-section">
+        <div className="about-section-inner">
+          <div className="about-section-label">Frequently asked</div>
+          <h2 className="about-section-h2">Quick answers before you reach out</h2>
+          <div className="contact-faq-grid-v2">
+            {FAQS.map(({ q, a }) => (
+              <details key={q} className="contact-faq-item-v2">
+                <summary>{q}<Icon name="chevron" /></summary>
+                <p>{a}</p>
+              </details>
+            ))}
+          </div>
+          <Link href="/faq" className="about-cta-primary about-cta-sm" style={{ marginTop: 32 }}>View All FAQs <Icon name="arrow" /></Link>
+        </div>
+      </section>
+
+      {/* ── BOTTOM CTA ───────────────────────────────────────────────── */}
+      <section className="about-cta-section">
+        <div className="about-cta-bg" aria-hidden="true">
+          <div className="about-orb about-orb-cta-1" />
+          <div className="about-orb about-orb-cta-2" />
+        </div>
+        <div className="about-cta-inner">
+          <div className="about-hero-badge" style={{ marginBottom: 24 }}><span>✦</span> Still have questions?</div>
+          <h2 className="about-cta-h2">We&apos;d love to<br />hear from you.</h2>
+          <p className="about-cta-p">No bots, no runaround — just a real team that cares about your cause as much as you do.</p>
+          <div className="about-hero-actions" style={{ justifyContent: 'center' }}>
+            <a href="#contact-form" className="about-cta-primary about-cta-large">Message Our Team ↓</a>
+            <Link href="/help" className="about-cta-ghost about-cta-large">Visit Help Center</Link>
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }
