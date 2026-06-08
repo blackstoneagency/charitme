@@ -2,6 +2,54 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 
+// Extract bare domain from a URL or domain string
+function extractDomain(urlOrDomain: string): string {
+  try {
+    const u = urlOrDomain.startsWith('http') ? new URL(urlOrDomain) : new URL('https://' + urlOrDomain);
+    return u.hostname.replace(/^www\./, '');
+  } catch {
+    return urlOrDomain.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+  }
+}
+
+// Google's S2 favicon service returns high-quality logos for all major brands
+function googleLogoUrl(domain: string, size = 128) {
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=${size}`;
+}
+
+// Smart logo image — tries stored URL, falls back to Google favicon derived from website
+function LogoImg({ src, website, name, style }: { src: string | null; website: string | null; name: string; style?: React.CSSProperties }) {
+  const domain = website ? extractDomain(website) : null;
+  const fallback = domain ? googleLogoUrl(domain, 128) : null;
+  const [imgSrc, setImgSrc] = useState<string | null>(src ?? fallback);
+  const [tried, setTried] = useState(0); // 0=original, 1=fallback, 2=give up
+
+  // Reset when src prop changes (e.g. after upload)
+  useEffect(() => { setImgSrc(src ?? fallback); setTried(0); }, [src, fallback]);
+
+  if (!imgSrc) {
+    return <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>{name.slice(0, 2).toUpperCase()}</span>;
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={imgSrc}
+      alt={name}
+      style={style}
+      onError={() => {
+        if (tried === 0 && fallback && imgSrc !== fallback) {
+          setImgSrc(fallback);
+          setTried(1);
+        } else {
+          setImgSrc(null); // show initials
+          setTried(2);
+        }
+      }}
+    />
+  );
+}
+
 type Sponsor = {
   id: string;
   name: string;
@@ -30,10 +78,7 @@ function SponsorRow({
     <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 20px', background: '#fff', borderRadius: 12, border: '1px solid #eef0f7', marginBottom: 10 }}>
       {/* Logo preview */}
       <div style={{ width: 80, height: 44, borderRadius: 8, border: '1px solid #eef0f7', background: '#f8f9fc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-        {sponsor.logo_url
-          // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={sponsor.logo_url} alt={sponsor.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-          : <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>No logo</span>}
+        <LogoImg src={sponsor.logo_url} website={sponsor.website} name={sponsor.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
       </div>
 
       {/* Name / website */}
@@ -156,7 +201,7 @@ export default function AdminSponsorsClient() {
     setUploading(null);
   }
 
-  const visible = sponsors.filter(s => s.active && s.logo_url);
+  const visible = sponsors.filter(s => s.active && (s.logo_url || s.website));
 
   return (
     <div style={{ padding: '0 32px 40px', maxWidth: 900 }}>
@@ -173,11 +218,9 @@ export default function AdminSponsorsClient() {
             Homepage Preview — {visible.length} logo{visible.length !== 1 ? 's' : ''} showing
           </div>
           <div style={{ display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* eslint-disable @next/next/no-img-element */}
             {visible.map(s => (
-              <img key={s.id} src={s.logo_url!} alt={s.name} style={{ height: 32, maxWidth: 120, objectFit: 'contain', filter: 'grayscale(1)', opacity: .7 }} />
+              <LogoImg key={s.id} src={s.logo_url} website={s.website} name={s.name} style={{ height: 32, maxWidth: 120, objectFit: 'contain', filter: 'grayscale(1)', opacity: .7 }} />
             ))}
-            {/* eslint-enable @next/next/no-img-element */}
           </div>
         </div>
       )}
