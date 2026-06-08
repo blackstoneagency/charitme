@@ -421,9 +421,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           <h2>Campaign created with AI</h2>
           <p>CharitMe helps organizers tell their story, reach more people, and maximize impact while keeping trust and transparency visible.</p>
           <ul>
-            <li><a href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 850 }}>AI story assistant</a></li>
-            <li><a href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 850 }}>AI outreach plan</a></li>
-            <li><a href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 850 }}>AI growth strategy</a></li>
+            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 850 }}>AI story assistant</Link></li>
+            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 850 }}>AI outreach plan</Link></li>
+            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 850 }}>AI growth strategy</Link></li>
           </ul>
         </article>
 
