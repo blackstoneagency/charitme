@@ -46,7 +46,8 @@ const FOOTER_LINKS = {
 
 // Bypass the public marketing shell for routes that have their own shell (dashboard/admin)
 // NOTE: /campaigns is intentionally NOT bypassed — public campaign pages need the header
-const SHELL_BYPASS = ['/dashboard', '/admin', '/profile', '/create'];
+// NOTE: /create is intentionally NOT bypassed — it now shows the global nav above its wizard
+const SHELL_BYPASS = ['/dashboard', '/admin', '/profile'];
 
 function Logo() {
   return (
