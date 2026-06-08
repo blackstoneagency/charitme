@@ -2989,3 +2989,22 @@ img, svg { display: block; }
   /* Add bottom padding so content isn't hidden behind sticky bar */
   .public-campaign { padding-bottom: 80px; }
 }
+
+/* Features page module cards */
+.feat-card {
+  background: #fff;
+  border: 1.5px solid #ede9fe;
+  border-radius: 20px;
+  padding: 28px 28px 24px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: transform .2s, box-shadow .2s, border-color .2s;
+  box-shadow: 0 2px 12px rgba(108,53,255,.06);
+  cursor: pointer;
+}
+.feat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(108,53,255,.14);
+  border-color: #c4b5fd;
+}
