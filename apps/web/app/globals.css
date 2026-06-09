@@ -208,7 +208,7 @@ img, svg { display: block; }
   display: flex;
   align-items: center;
   gap: 48px;
-  animation: sponsorScroll 24s linear infinite;
+  animation: sponsorScroll 60s linear infinite;
   width: max-content;
 }
 .kind-sponsors-track:hover { animation-play-state: paused; }
