@@ -4946,6 +4946,35 @@ img, svg { display: block; }
 
 /* ── Contact page ── */
 [data-theme="dark"] .contact-page { background: transparent; color: var(--t1); }
+[data-theme="dark"] .contact-page-v2 { color: var(--t1); }
+
+/* Contact main section (white bg in light mode) */
+[data-theme="dark"] .contact-main-section { background: var(--s1); }
+
+/* Info cards */
+[data-theme="dark"] .contact-info-card-v2 { border-bottom-color: var(--line); }
+[data-theme="dark"] .contact-info-card-v2 h3 { color: var(--t1); }
+[data-theme="dark"] .contact-info-card-v2 p { color: var(--t2); }
+[data-theme="dark"] .contact-info-card-v2 span { color: var(--t3); }
+[data-theme="dark"] .contact-info-icon-v2 { background: rgba(108,53,255,.15); box-shadow: inset 0 0 0 1.5px rgba(108,53,255,.3); color: #a78bfa; }
+
+/* Contact methods grid */
+[data-theme="dark"] .contact-method-v2 { background: rgba(18,21,52,.96); border-color: var(--line); }
+[data-theme="dark"] .contact-method-v2:hover { border-color: #6c35ff; box-shadow: 0 20px 60px rgba(108,53,255,.18); }
+[data-theme="dark"] .contact-method-icon-v2 { background: rgba(108,53,255,.15); color: #a78bfa; }
+[data-theme="dark"] .contact-method-v2 strong { color: var(--t1); }
+[data-theme="dark"] .contact-method-v2 p { color: var(--t3); }
+[data-theme="dark"] .contact-method-v2 em { color: #a78bfa; }
+
+/* FAQ accordion */
+[data-theme="dark"] .contact-faq-item-v2 { background: rgba(18,21,52,.96); border-color: var(--line); }
+[data-theme="dark"] .contact-faq-item-v2[open] { border-color: #6c35ff; }
+[data-theme="dark"] .contact-faq-item-v2 summary { color: var(--t1); }
+[data-theme="dark"] .contact-faq-item-v2 summary svg { color: #a78bfa; }
+[data-theme="dark"] .contact-faq-item-v2 p { color: var(--t3); }
+
+/* section heading text within contact info col */
+[data-theme="dark"] .contact-info-col .about-section-h2 { color: var(--t1); }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DEVICE-ADAPTIVE RESPONSIVE — DASHBOARD SHELL
