@@ -39,12 +39,12 @@ export default function AiCampaignPage() {
         </div>
 
         <h2 className="ai-builder-greeting">Hi! I&apos;m your <em>AI Concierge.</em></h2>
-        <p className="ai-builder-sub">I&apos;ll help you build the perfect fundraising campaign for your cause.</p>
+        <p className="ai-builder-sub">
+          I&apos;ll help you build the perfect fundraising campaign for your cause.<br />
+          Tell me about your cause and I&apos;ll recommend the best campaign setup for you.
+        </p>
 
         <div className="ai-builder-divider"><span><PublicIcon name="ai" /></span></div>
-
-        <h1>What are you looking for today?</h1>
-        <p className="ai-builder-lede">Tell me about your cause and I&apos;ll recommend the best campaign setup for you.</p>
 
         <div className="ai-builder-input">
           <textarea
