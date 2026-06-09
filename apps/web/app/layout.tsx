@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AppShell } from '../components/AppShell';
 import SessionWatcher from '../components/SessionWatcher';
+import { ThemeProvider } from '../components/ThemeProvider';
 
 export const metadata: Metadata = {
   title: { default: 'CharitMe | Raise More Faster With AI', template: '%s | CharitMe' },
@@ -15,13 +16,19 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://www.charitme.com'),
 };
 
+// Inline script runs before React hydration to apply the saved theme with no flash.
+const themeScript = `try{var t=localStorage.getItem('charitme-theme'),d=window.matchMedia('(prefers-color-scheme:dark)').matches;document.documentElement.setAttribute('data-theme',t==='dark'?'dark':t==='light'?'light':d?'dark':'light')}catch(e){}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
       <body>
-        {/* Watches for session expiry and signs out when the browser closes */}
-        <SessionWatcher />
-        <AppShell>{children}</AppShell>
+        <ThemeProvider>
+          {/* Watches for session expiry and signs out when the browser closes */}
+          <SessionWatcher />
+          <AppShell>{children}</AppShell>
+        </ThemeProvider>
       </body>
     </html>
   );

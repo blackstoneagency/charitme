@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '../lib/supabase-browser';
+import { ThemeToggle } from './ThemeProvider';
 
 const NAV = [
   ['Home', '/'],
@@ -104,6 +105,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ))}
           </nav>
           <div className="kind-auth">
+            <ThemeToggle />
             <Link href="/campaigns" className="kind-search-btn" aria-label="Search campaigns">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" />

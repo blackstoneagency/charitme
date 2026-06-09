@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import LogoutButton from './LogoutButton';
 import NotificationBell from './NotificationBell';
+import { ThemeToggle } from './ThemeProvider';
 
 export type Metric = {
   label: string;
@@ -198,6 +199,10 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
             View Public Site
           </Link>
         )}
+
+        <div className="kf-theme-toggle-row">
+          <ThemeToggle className="kf-sidebar-theme-btn" />
+        </div>
 
         <div className="kf-profile">
           <Avatar name={displayName} imageUrl={userAvatarUrl} />
