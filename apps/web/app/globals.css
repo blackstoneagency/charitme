@@ -1891,6 +1891,7 @@ img, svg { display: block; }
 .ai-builder-greeting { margin: 6px 0 0; font-size: 28px; letter-spacing: -.02em; }
 .ai-builder-greeting em { font-style: normal; background: linear-gradient(120deg, #6c35ff, #b43bef); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .ai-builder-sub { margin: 8px 0 0; color: #5b6584; font-size: 15px; line-height: 1.75; }
+.ai-builder-lede { margin: 4px 0 0; color: #5b6584; font-size: 15px; line-height: 1.6; }
 .ai-builder-divider { width: 100%; max-width: 640px; margin: 14px 0; display: flex; align-items: center; }
 .ai-builder-divider::before, .ai-builder-divider::after { content: ''; flex: 1; height: 1px; background: #ebeaf6; }
 .ai-builder-divider span { display: grid; place-items: center; width: 30px; height: 30px; margin: 0 14px; color: #6c35ff; }
@@ -4574,6 +4575,68 @@ img, svg { display: block; }
 [data-theme="dark"] .pub-section { color: var(--t1); }
 [data-theme="dark"] .pub-section > h2 { color: var(--t1); }
 
+/* ── AI Fundraising page (aif-*) ── */
+[data-theme="dark"] .aif-hero {
+  background: linear-gradient(160deg, #0e1030 0%, #140d38 60%, #0e1030 100%);
+}
+[data-theme="dark"] .aif-hero .pub-hero-copy h1 { color: var(--t1); }
+[data-theme="dark"] .aif-hero .pub-hero-copy h1 em { color: #c4b5fd; }
+[data-theme="dark"] .aif-hero .pub-hero-copy > p { color: var(--t2); }
+[data-theme="dark"] .aif-live-stats {
+  background: rgba(18,21,52,.9);
+  border-color: var(--line);
+  box-shadow: none;
+}
+[data-theme="dark"] .aif-live-stats span { color: var(--t3); }
+[data-theme="dark"] .aif-concierge-card {
+  background: rgba(18,21,52,.96);
+  border-color: var(--line);
+  box-shadow: 0 28px 70px rgba(0,0,0,.4);
+}
+[data-theme="dark"] .aif-prompt-link {
+  background: var(--s2);
+  border-color: #6c35ff;
+  box-shadow: none;
+}
+[data-theme="dark"] .aif-prompt-link > span:first-child { color: var(--t4); }
+[data-theme="dark"] .aif-prompt-hint { color: var(--t4); }
+[data-theme="dark"] .aif-chip {
+  background: var(--s2);
+  border-color: var(--b1);
+  color: var(--t1);
+}
+[data-theme="dark"] .aif-chip:hover { border-color: #6c35ff; }
+[data-theme="dark"] .aif-section-label { background: var(--s3); color: #a78bfa; }
+[data-theme="dark"] .aif-section-sub { color: var(--t3); }
+[data-theme="dark"] .aif-showcase-section > h2 { color: var(--t1); }
+[data-theme="dark"] .aif-showcase-card {
+  background: rgba(18,21,52,.96);
+  border-color: var(--line);
+  box-shadow: none;
+}
+[data-theme="dark"] .aif-showcase-body h3 { color: var(--t1); }
+[data-theme="dark"] .aif-showcase-body p { color: var(--t3); }
+[data-theme="dark"] .aif-showcase-bar { background: var(--s3); }
+[data-theme="dark"] .aif-showcase-meta strong { color: var(--t1); }
+[data-theme="dark"] .aif-showcase-meta span { color: var(--t3); }
+[data-theme="dark"] .aif-tools-section {
+  background: linear-gradient(180deg, var(--s1) 0%, rgba(18,21,52,.7) 100%);
+}
+[data-theme="dark"] .aif-tools-section > h2 { color: var(--t1); }
+[data-theme="dark"] .aif-tool-card {
+  background: rgba(18,21,52,.9);
+  border-color: var(--line);
+}
+[data-theme="dark"] .aif-tool-card h3 { color: var(--t1); }
+[data-theme="dark"] .aif-tool-card p { color: var(--t3); }
+[data-theme="dark"] .aif-steps-section {
+  background: linear-gradient(135deg, var(--s2) 0%, var(--s1) 50%, rgba(18,21,52,.9) 100%);
+  border-color: var(--line);
+}
+[data-theme="dark"] .aif-steps-section > h2 { color: var(--t1); }
+[data-theme="dark"] .aif-step h3 { color: var(--t1); }
+[data-theme="dark"] .aif-step p { color: var(--t3); }
+
 /* ── AI Fundraising page ── */
 [data-theme="dark"] .ai-console {
   background: rgba(18,21,52,.9);
@@ -4625,6 +4688,7 @@ img, svg { display: block; }
 }
 [data-theme="dark"] .ai-builder-greeting { color: var(--t1); }
 [data-theme="dark"] .ai-builder-sub { color: var(--t3); }
+[data-theme="dark"] .ai-builder-lede { color: var(--t3); }
 [data-theme="dark"] .ai-builder-divider::before,
 [data-theme="dark"] .ai-builder-divider::after { background: var(--line); }
 [data-theme="dark"] .ai-builder-input {
