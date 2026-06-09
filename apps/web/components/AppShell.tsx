@@ -118,7 +118,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   {unreadCount > 0 && (
                     <span style={{
                       position: 'absolute', top: -6, right: -10,
-                      background: '#ef4444', color: '#fff',
+                      background: 'var(--red, #ef4444)', color: 'var(--s1, #fff)',
                       fontSize: 10, fontWeight: 900, lineHeight: 1,
                       padding: '2px 5px', borderRadius: 10,
                       minWidth: 16, textAlign: 'center',
