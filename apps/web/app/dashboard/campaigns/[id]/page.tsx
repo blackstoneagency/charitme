@@ -400,6 +400,7 @@ export default async function CampaignDetailPage({
           <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800 }}>Campaign Tools</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
             {[
+              { href: `/dashboard/campaigns/${campaign.id}/supporters`, icon: 'users', label: 'My Supporters', desc: 'Donor CRM + re-engagement' },
               { href: `/dashboard/campaigns/${campaign.id}/share`, icon: 'send', label: 'Share & AI Content', desc: 'UTM links + AI posts' },
               { href: `/dashboard/campaigns/${campaign.id}/thank-donors`, icon: 'chat', label: 'Thank Donors', desc: 'Email your supporters' },
               { href: `/dashboard/campaigns/${campaign.id}/ledger`, icon: 'doc', label: 'Fund Ledger', desc: 'Track how funds are used' },
