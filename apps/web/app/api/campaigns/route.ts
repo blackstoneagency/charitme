@@ -62,6 +62,8 @@ export async function POST(request: NextRequest) {
     location: location ?? null,
     video_url: videoUrl ?? null,
     status: status ?? 'active',
+    accept_donations: true,
+    visibility: 'public',
   };
 
   // Try inserting with image_urls; fall back gracefully if column doesn't exist yet
