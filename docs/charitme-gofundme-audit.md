@@ -10,7 +10,7 @@
 CharitMe is a production-grade fundraising platform built on Next.js 15, Supabase, and Stripe. The audit found the core payment infrastructure, donor checkout, admin dashboard, and security layer to be well-built. The primary gaps are in: (1) campaign status granularity (missing `donations_off` toggle), (2) organizer/beneficiary notifications, (3) missing email flows for key events, (4) share-event attribution tracking, (5) tax-receipt generation API, and (6) test coverage breadth. This document tracks every GoFundMe-equivalent requirement, its current status, and the implementation work performed.
 
 **Final Production Readiness Score: 96 / 100**  
-(Up from estimated 64/100 before this audit pass — 96 tests passing, production build clean)
+(Up from estimated 64/100 before this audit pass — 131 tests passing, production build clean)
 
 ---
 
@@ -260,7 +260,7 @@ CharitMe is a production-grade fundraising platform built on Next.js 15, Supabas
 | G26-05 | Prod | Empty states exist | ✅ Pass | `EmptyState` component used | — | — |
 | G26-06 | Prod | Env vars documented | ✅ Pass | `.env.example` fully documented | — | — |
 | G26-07 | Prod | Build passes | ✅ Pass | `next build` clean; ISR routes converted to `force-dynamic` | ISR routes failed without env vars | ✅ |
-| G26-08 | Prod | Tests pass | ✅ Pass | 96/96 unit tests pass (9 files) | — | — |
+| G26-08 | Prod | Tests pass | ✅ Pass | 131/131 unit tests pass (10 files) | — | — |
 | G26-09 | Prod | RLS secure | ✅ Pass | All tables have RLS; admin fallback consistent | — | — |
 | G26-10 | Prod | Audit logging | ✅ Pass | `audit_logs` written in webhook + admin actions | — | — |
 
@@ -307,6 +307,13 @@ See implementation details below and git diff for exact changes.
 - `apps/web/__tests__/campaign-flows.test.ts` — New comprehensive tests
 - `apps/web/__tests__/notifications.test.ts` — Notification tests
 - `apps/web/__tests__/rls.test.ts` — RLS policy tests
+- `apps/web/__tests__/donation-attribution.test.ts` — UTM attribution, year-end export, notification count (35 tests)
+- `apps/web/app/api/admin/refunds/route.ts` — Admin refund management (GET+PATCH) with bulk status updates + audit log
+- `apps/web/app/dashboard/notifications/page.tsx` — Dedicated notification inbox with all/unread tabs, dismiss, mark-all-read
+- `apps/web/app/dashboard/NotificationBell.tsx` — Real-time bell with dropdown, unread badge, per-item mark-read
+- `apps/web/app/api/notifications/[id]/route.ts` — PATCH (mark read/unread) + DELETE per notification
+- `apps/web/app/api/notifications/count/route.ts` — Combined unread count (notifications + messages)
+- `apps/web/app/api/exports/donations/route.ts` — Year param filter for tax-year CSV exports
 
 ---
 
