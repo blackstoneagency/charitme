@@ -153,16 +153,16 @@ function initials(name: string): string {
 
 function rolePillColor(role: string): React.CSSProperties {
   const map: Record<string, { bg: string; color: string }> = {
-    Admin:       { bg: '#f0eaff', color: '#6c35ff' },
-    Organizer:   { bg: '#e0f2fe', color: '#0369a1' },
-    Nonprofit:   { bg: '#dcfce7', color: '#166534' },
-    Donor:       { bg: '#fef9c3', color: '#854d0e' },
-    Beneficiary: { bg: '#fce7f3', color: '#9d174d' },
-    User:        { bg: '#f1f5f9', color: '#475569' },
+    Admin:       { bg: 'rgba(108,53,255,.10)', color: 'var(--violet, #6c35ff)' },
+    Organizer:   { bg: 'rgba(37,99,235,.08)', color: 'var(--blue, #0369a1)' },
+    Nonprofit:   { bg: 'rgba(22,163,74,.10)', color: 'var(--green-dark, #166534)' },
+    Donor:       { bg: 'rgba(217,119,6,.08)', color: 'var(--amber, #854d0e)' },
+    Beneficiary: { bg: 'rgba(236,72,153,.08)', color: 'var(--pink, #9d174d)' },
+    User:        { bg: 'var(--s2, #f1f5f9)', color: 'var(--t3, #475569)' },
   };
   // Normalize — 'admin' → 'Admin', etc.
   const key = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
-  const c = map[key] ?? { bg: '#f1f5f9', color: '#334155' };
+  const c = map[key] ?? { bg: 'var(--s2, #f1f5f9)', color: 'var(--t2, #334155)' };
   return { background: c.bg, color: c.color, padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 850 };
 }
 
@@ -200,13 +200,13 @@ function WeeklyLineChart({ data }: { data: GrowthPoint[] }) {
       {[0.25, 0.5, 0.75, 1].map((frac) => {
         const y = pad.top + chartH - frac * chartH;
         return (
-          <line key={frac} x1={pad.left} y1={y} x2={pad.left + chartW} y2={y} stroke="#eef0f7" strokeWidth={1} />
+          <line key={frac} x1={pad.left} y1={y} x2={pad.left + chartW} y2={y} stroke="var(--b1, #eef0f7)" strokeWidth={1} />
         );
       })}
       <path d={areaD} fill="url(#chartGrad)" />
       <path d={pathD} fill="none" stroke="#7c3aed" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
       {pts.map((p) => (
-        <circle key={p.label} cx={p.x} cy={p.y} r={4} fill="#6c35ff" stroke="#fff" strokeWidth={2} />
+        <circle key={p.label} cx={p.x} cy={p.y} r={4} fill="var(--violet, #6c35ff)" stroke="var(--s1, #fff)" strokeWidth={2} />
       ))}
       {pts.map((p) => (
         <text
@@ -215,7 +215,7 @@ function WeeklyLineChart({ data }: { data: GrowthPoint[] }) {
           y={pad.top + chartH + 16}
           textAnchor="middle"
           fontSize={9}
-          fill="#94a3b8"
+          fill="var(--t3, #94a3b8)"
           fontWeight={700}
         >
           {p.label}
@@ -367,7 +367,7 @@ export default function AdminUsersClient({
             <div className="users-kpi-card" key={label}>
               <span>{label}</span>
               <strong>{value}</strong>
-              <small style={{ color: '#64748b' }}>{sub}</small>
+              <small style={{ color: 'var(--t3, #64748b)' }}>{sub}</small>
             </div>
           ))}
         </div>
@@ -385,7 +385,7 @@ export default function AdminUsersClient({
             <button onClick={() => setView('list')}>View all users →</button>
           </div>
           <div style={{ display: 'grid' }}>
-            <div className="users-recent-row" style={{ fontWeight: 950, fontSize: 11, color: '#66708d', textTransform: 'uppercase' }}>
+            <div className="users-recent-row" style={{ fontWeight: 950, fontSize: 11, color: 'var(--t3, #66708d)', textTransform: 'uppercase' }}>
               <span>User</span><span>Role</span><span>Joined</span>
             </div>
             {recentUsers.map((u) => (
@@ -393,12 +393,12 @@ export default function AdminUsersClient({
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Avatar name={u.name} imageUrl={u.avatarUrl} />
                   <span>
-                    <b style={{ display: 'block', fontSize: 13, color: '#0f1238', fontWeight: 850 }}>{u.name}</b>
-                    <span style={{ fontSize: 11, color: '#66708d' }}>{u.email}</span>
+                    <b style={{ display: 'block', fontSize: 13, color: 'var(--t1, #0f1238)', fontWeight: 850 }}>{u.name}</b>
+                    <span style={{ fontSize: 11, color: 'var(--t3, #66708d)' }}>{u.email}</span>
                   </span>
                 </span>
                 <span style={rolePillColor(u.role)}>{u.role}</span>
-                <span style={{ color: '#66708d', fontSize: 12 }}>{fmtDate(u.joinedAt)}</span>
+                <span style={{ color: 'var(--t3, #66708d)', fontSize: 12 }}>{fmtDate(u.joinedAt)}</span>
               </div>
             ))}
           </div>
@@ -541,7 +541,7 @@ export default function AdminUsersClient({
             </div>
           ))}
           {paginated.length === 0 && (
-            <div style={{ padding: '32px', textAlign: 'center', color: '#66708d', fontSize: 14 }}>
+            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--t3, #66708d)', fontSize: 14 }}>
               No users match the current filters.
             </div>
           )}
@@ -580,7 +580,7 @@ export default function AdminUsersClient({
     return (
       <div>
         {notice && (
-          <div className="admin-user-notice" style={{ margin: '0 32px 16px', color: notice.toLowerCase().includes('success') ? '#166534' : '#b91c1c', background: notice.toLowerCase().includes('success') ? '#dcfce7' : '#fee2e2', borderColor: notice.toLowerCase().includes('success') ? '#bbf7d0' : '#fecaca' }}>
+          <div className="admin-user-notice" style={{ margin: '0 32px 16px', color: notice.toLowerCase().includes('success') ? 'var(--green-dark, #166534)' : 'var(--red, #b91c1c)', background: notice.toLowerCase().includes('success') ? 'rgba(22,163,74,.10)' : 'rgba(190,18,60,.08)', borderColor: notice.toLowerCase().includes('success') ? 'rgba(22,163,74,.25)' : 'rgba(190,18,60,.25)' }}>
             {notice}
           </div>
         )}
@@ -605,8 +605,8 @@ export default function AdminUsersClient({
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
-        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 950, color: '#0f1238' }}>Success!</h2>
-        <p style={{ margin: 0, color: '#66708d', fontSize: 14 }}>
+        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 950, color: 'var(--t1, #0f1238)' }}>Success!</h2>
+        <p style={{ margin: 0, color: 'var(--t3, #66708d)', fontSize: 14 }}>
           {notice || 'The user has been updated successfully.'}
         </p>
         <button
@@ -668,7 +668,7 @@ export default function AdminUsersClient({
           <div className="users-detail-layout">
             {/* Left: User Information */}
             <div>
-              <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 950, color: '#0f1238' }}>User Information</h3>
+              <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 950, color: 'var(--t1, #0f1238)' }}>User Information</h3>
               <div className="users-detail-info">
                 {[
                   ['Full Name', selected.name],
@@ -696,7 +696,7 @@ export default function AdminUsersClient({
 
             {/* Right: More Actions panel */}
             <div>
-              <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 950, color: '#0f1238' }}>More Actions</h3>
+              <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 950, color: 'var(--t1, #0f1238)' }}>More Actions</h3>
               <div className="users-actions-panel">
                 <ActionBtn
                   icon="✏️"
@@ -760,7 +760,7 @@ export default function AdminUsersClient({
             </div>
             <div className="users-tab-content">
               {selectedActivities.length === 0 && (
-                <p style={{ color: '#66708d', fontSize: 13 }}>No activity recorded yet.</p>
+                <p style={{ color: 'var(--t3, #66708d)', fontSize: 13 }}>No activity recorded yet.</p>
               )}
               {selectedActivities.map((a) => (
                 <div className="users-activity-item" key={a.id}>
@@ -768,20 +768,20 @@ export default function AdminUsersClient({
                     <KFIcon name={a.type === 'Donation' ? 'gift' : 'stack'} />
                   </div>
                   <div>
-                    <b style={{ display: 'block', fontWeight: 850, color: '#0f1238', fontSize: 13 }}>{a.title}</b>
-                    <span style={{ fontSize: 12, color: '#66708d' }}>
+                    <b style={{ display: 'block', fontWeight: 850, color: 'var(--t1, #0f1238)', fontSize: 13 }}>{a.title}</b>
+                    <span style={{ fontSize: 12, color: 'var(--t3, #66708d)' }}>
                       {a.detail}
                       {a.amount ? ` • ${a.amount}` : ''}
                     </span>
                   </div>
-                  <span style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', whiteSpace: 'nowrap' }}>
                     {fmtDateTime(a.createdAt)}
                   </span>
                 </div>
               ))}
               {selectedActivities.length > 0 && (
                 <button
-                  style={{ marginTop: 12, border: 0, background: 'transparent', color: '#6c35ff', fontSize: 12, fontWeight: 850, cursor: 'pointer' }}
+                  style={{ marginTop: 12, border: 0, background: 'transparent', color: 'var(--violet, #6c35ff)', fontSize: 12, fontWeight: 850, cursor: 'pointer' }}
                 >
                   View all activity →
                 </button>
@@ -818,8 +818,8 @@ export default function AdminUsersClient({
                 bottom: '110%',
                 left: 0,
                 minWidth: 200,
-                background: '#fff',
-                border: '1px solid #eef0f7',
+                background: 'var(--s1, #fff)',
+                border: '1px solid var(--b1, #eef0f7)',
                 borderRadius: 10,
                 boxShadow: '0 8px 32px rgba(20,20,80,.14)',
                 zIndex: 100,
@@ -844,10 +844,10 @@ export default function AdminUsersClient({
                       textAlign: 'left',
                       fontSize: 13,
                       fontWeight: 850,
-                      color: danger ? '#e11d48' : '#101842',
+                      color: danger ? 'var(--red, #e11d48)' : 'var(--t1, #101842)',
                       cursor: 'pointer',
                     }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = danger ? '#fff5f7' : '#f8f7ff'; }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = danger ? 'rgba(190,18,60,.08)' : 'rgba(108,53,255,.08)'; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
                   >
                     {label}
@@ -923,9 +923,9 @@ function DonationsTab({
 
   return (
     <div className="users-tab-content">
-      {loading && <p style={{ color: '#66708d', fontSize: 13 }}>Loading donations...</p>}
+      {loading && <p style={{ color: 'var(--t3, #66708d)', fontSize: 13 }}>Loading donations...</p>}
       {!loading && donations.length === 0 && (
-        <p style={{ color: '#66708d', fontSize: 13 }}>No donations yet.</p>
+        <p style={{ color: 'var(--t3, #66708d)', fontSize: 13 }}>No donations yet.</p>
       )}
       {!loading && donations.length > 0 && (
         <div className="users-donations-table">
@@ -937,14 +937,14 @@ function DonationsTab({
           </div>
           {donations.map((d) => (
             <div className="users-donations-row" key={d.id}>
-              <span style={{ color: '#0f1238', fontWeight: 950 }}>{money(d.amountCents)}</span>
+              <span style={{ color: 'var(--t1, #0f1238)', fontWeight: 950 }}>{money(d.amountCents)}</span>
               <span>{d.campaignTitle}</span>
               <span>
-                <span style={{ background: d.status === 'completed' ? '#dcfce7' : '#fef9c3', color: d.status === 'completed' ? '#166534' : '#854d0e', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 850 }}>
+                <span style={{ background: d.status === 'completed' ? 'rgba(22,163,74,.10)' : 'rgba(217,119,6,.08)', color: d.status === 'completed' ? 'var(--green-dark, #166534)' : 'var(--amber, #854d0e)', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 850 }}>
                   {d.status}
                 </span>
               </span>
-              <span style={{ color: '#66708d' }}>{fmtDate(d.createdAt)}</span>
+              <span style={{ color: 'var(--t3, #66708d)' }}>{fmtDate(d.createdAt)}</span>
             </div>
           ))}
         </div>
@@ -980,9 +980,9 @@ function CampaignsTab({
 
   return (
     <div className="users-tab-content">
-      {loading && <p style={{ color: '#66708d', fontSize: 13 }}>Loading campaigns...</p>}
+      {loading && <p style={{ color: 'var(--t3, #66708d)', fontSize: 13 }}>Loading campaigns...</p>}
       {!loading && campaigns.length === 0 && (
-        <p style={{ color: '#66708d', fontSize: 13 }}>No campaigns yet.</p>
+        <p style={{ color: 'var(--t3, #66708d)', fontSize: 13 }}>No campaigns yet.</p>
       )}
       {!loading && campaigns.length > 0 && (
         <div className="users-campaigns-table">
@@ -996,16 +996,16 @@ function CampaignsTab({
           </div>
           {campaigns.map((c) => (
             <div className="users-campaigns-row" key={c.id}>
-              <span style={{ fontWeight: 850, color: '#0f1238' }}>{c.title}</span>
+              <span style={{ fontWeight: 850, color: 'var(--t1, #0f1238)' }}>{c.title}</span>
               <span>
-                <span style={{ background: c.status === 'active' ? '#dcfce7' : '#f1f5f9', color: c.status === 'active' ? '#166534' : '#475569', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 850 }}>
+                <span style={{ background: c.status === 'active' ? 'rgba(22,163,74,.10)' : 'var(--s2, #f1f5f9)', color: c.status === 'active' ? 'var(--green-dark, #166534)' : 'var(--t3, #475569)', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 850 }}>
                   {c.status}
                 </span>
               </span>
               <span>{money(c.raisedAmount)}</span>
               <span>{money(c.goalAmount)}</span>
               <span>{c.backerCount.toLocaleString()}</span>
-              <span style={{ color: '#66708d' }}>{fmtDate(c.createdAt)}</span>
+              <span style={{ color: 'var(--t3, #66708d)' }}>{fmtDate(c.createdAt)}</span>
             </div>
           ))}
         </div>
@@ -1075,7 +1075,7 @@ function SettingsTab({
         <div className="users-add-field">
           <label>
             New Password
-            <span style={{ fontWeight: 600, color: '#8c9ab5', marginLeft: 6, fontSize: 11 }}>(leave blank to keep current)</span>
+            <span style={{ fontWeight: 600, color: 'var(--t3, #8c9ab5)', marginLeft: 6, fontSize: 11 }}>(leave blank to keep current)</span>
           </label>
           <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
             <input
@@ -1088,16 +1088,16 @@ function SettingsTab({
               autoComplete="new-password"
             />
             <button type="button" onClick={() => setShowPw((v) => !v)}
-              style={{ position: 'absolute', right: 90, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#8c9ab5', fontSize: 13, padding: '0 6px' }}>
+              style={{ position: 'absolute', right: 90, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3, #8c9ab5)', fontSize: 13, padding: '0 6px' }}>
               {showPw ? '🙈' : '👁'}
             </button>
             <button type="button" onClick={genPassword}
-              style={{ height: 42, padding: '0 12px', border: '1.5px solid #dfe3f0', borderRadius: 10, background: '#f8f7ff', color: '#551cf2', fontSize: 12, fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              style={{ height: 42, padding: '0 12px', border: '1.5px solid var(--b2, #dfe3f0)', borderRadius: 10, background: 'rgba(108,53,255,.08)', color: 'var(--violet, #551cf2)', fontSize: 12, fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
               Generate
             </button>
           </div>
           {newPassword && (
-            <small style={{ color: newPassword.length >= 8 ? '#166534' : '#b91c1c', fontSize: 11, marginTop: 3 }}>
+            <small style={{ color: newPassword.length >= 8 ? 'var(--green-dark, #166534)' : 'var(--red, #b91c1c)', fontSize: 11, marginTop: 3 }}>
               {newPassword.length >= 8 ? `✓ ${newPassword.length} characters` : `⚠ Need at least 8 (${newPassword.length} entered)`}
             </small>
           )}
@@ -1157,7 +1157,7 @@ function SettingsTab({
           </label>
         </div>
 
-        <div style={{ display: 'flex', gap: 12, paddingTop: 8, borderTop: '1px solid #f0f2f8' }}>
+        <div style={{ display: 'flex', gap: 12, paddingTop: 8, borderTop: '1px solid var(--b1, #f0f2f8)' }}>
           <button className="kf-primary" disabled={pending || !pwValid} onClick={handleSave}>
             {pending ? 'Saving…' : 'Save Changes'}
           </button>
@@ -1244,7 +1244,7 @@ function AddUserView({
       <div className="users-add-field">
         <label htmlFor="addPassword">
           Password
-          <span style={{ fontWeight: 600, color: '#8c9ab5', marginLeft: 6, fontSize: 11 }}>(leave blank to auto-generate)</span>
+          <span style={{ fontWeight: 600, color: 'var(--t3, #8c9ab5)', marginLeft: 6, fontSize: 11 }}>(leave blank to auto-generate)</span>
         </label>
         <div style={{ position: 'relative', display: 'flex', gap: 8 }}>
           <input
@@ -1260,20 +1260,20 @@ function AddUserView({
           <button
             type="button"
             onClick={() => setShowPw((v) => !v)}
-            style={{ position: 'absolute', right: 90, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#8c9ab5', fontSize: 13, padding: '0 6px' }}
+            style={{ position: 'absolute', right: 90, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3, #8c9ab5)', fontSize: 13, padding: '0 6px' }}
           >
             {showPw ? '🙈' : '👁'}
           </button>
           <button
             type="button"
             onClick={genPassword}
-            style={{ height: 42, padding: '0 12px', border: '1.5px solid #dfe3f0', borderRadius: 10, background: '#f8f7ff', color: '#551cf2', fontSize: 12, fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+            style={{ height: 42, padding: '0 12px', border: '1.5px solid var(--b2, #dfe3f0)', borderRadius: 10, background: 'rgba(108,53,255,.08)', color: 'var(--violet, #551cf2)', fontSize: 12, fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
           >
             Generate
           </button>
         </div>
         {password && (
-          <small style={{ color: password.length >= 8 ? '#166534' : '#b91c1c', fontSize: 11, marginTop: 3 }}>
+          <small style={{ color: password.length >= 8 ? 'var(--green-dark, #166534)' : 'var(--red, #b91c1c)', fontSize: 11, marginTop: 3 }}>
             {password.length >= 8 ? `✓ ${password.length} characters` : `⚠ Need at least 8 characters (${password.length} entered)`}
           </small>
         )}
@@ -1327,9 +1327,9 @@ function ExportOverlay({
     <div className="users-export-overlay" onClick={onClose}>
       <div className="users-export-panel" onClick={(e) => e.stopPropagation()}>
         <div className="users-export-header">
-          <span style={{ fontSize: 16, fontWeight: 950, color: '#0f1238' }}>Export Users</span>
+          <span style={{ fontSize: 16, fontWeight: 950, color: 'var(--t1, #0f1238)' }}>Export Users</span>
           <button
-            style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#66708d' }}
+            style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: 'var(--t3, #66708d)' }}
             onClick={onClose}
           >
             ✕
@@ -1357,7 +1357,7 @@ function ExportOverlay({
               <option>All Status</option>
             </select>
           </div>
-          <p style={{ fontSize: 13, color: '#66708d', margin: 0 }}>
+          <p style={{ fontSize: 13, color: 'var(--t3, #66708d)', margin: 0 }}>
             {filtered.length} users will be exported.
           </p>
         </div>
