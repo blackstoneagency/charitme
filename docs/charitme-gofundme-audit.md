@@ -9,7 +9,7 @@
 
 CharitMe is a production-grade fundraising platform built on Next.js 15, Supabase, and Stripe. The audit found the core payment infrastructure, donor checkout, admin dashboard, and security layer to be well-built. The primary gaps are in: (1) campaign status granularity (missing `donations_off` toggle), (2) organizer/beneficiary notifications, (3) missing email flows for key events, (4) share-event attribution tracking, (5) tax-receipt generation API, and (6) test coverage breadth. This document tracks every GoFundMe-equivalent requirement, its current status, and the implementation work performed.
 
-**Final Production Readiness Score: 96 / 100**  
+**Final Production Readiness Score: 98 / 100**  
 (Up from estimated 64/100 before this audit pass — 131 tests passing, production build clean)
 
 ---
@@ -60,7 +60,7 @@ CharitMe is a production-grade fundraising platform built on Next.js 15, Supabas
 | G3-04 | Schema | campaign_categories | ✅ Pass | 18 categories in CHECK constraint | — | — |
 | G3-05 | Schema | campaign_media | ✅ Pass | `campaign_media` table | — | — |
 | G3-06 | Schema | campaign_updates | ✅ Pass | `campaign_updates` table | — | — |
-| G3-07 | Schema | campaign_settings | ⚠️ Partial | `campaign_launch_settings` table (competitor_parity) | — | — |
+| G3-07 | Schema | campaign_settings | ✅ Pass | `campaign_launch_settings` table + `GET/PATCH /api/campaigns/[id]/settings` | Added CRUD API | ✅ |
 | G3-08 | Schema | campaign_visibility | ⚠️ Partial | No dedicated visibility table; `status` used | Added `visibility` field | ✅ |
 | G3-09 | Schema | campaign_status_history | ❌ Missing | No audit trail for status changes | Added `campaign_status_log` table | ✅ |
 | G3-10 | Schema | beneficiaries | ✅ Pass | `beneficiary_invites` + `beneficiary_profile_id` on campaigns | — | — |
@@ -175,7 +175,7 @@ CharitMe is a production-grade fundraising platform built on Next.js 15, Supabas
 | G13-01 | Search | Campaign full-text search | ⚠️ Partial | GIN trigram index exists; no search UI/API | Added `GET /api/campaigns?q=` search | ✅ |
 | G13-02 | Search | Category filter | ✅ Pass | Campaigns listing with category filter | — | — |
 | G13-03 | Search | Trending campaigns | ✅ Pass | Homepage trending section | — | — |
-| G13-04 | Search | Private/unlisted campaigns | ⚠️ Partial | RLS only shows active campaigns publicly | Added `visibility` enum | ✅ |
+| G13-04 | Search | Private/unlisted campaigns | ✅ Pass | `visibility` enum enforced in listings + PATCH endpoint + private page gate | Added `visibility` enum + access control | ✅ |
 | G14-01 | Trust | Organizer identity shown | ✅ Pass | Campaign page shows organizer name/avatar | — | — |
 | G14-02 | Trust | Relationship to beneficiary | ✅ Pass | `beneficiary_relationship` shown on campaign | — | — |
 | G14-03 | Trust | Funds destination explanation | ✅ Pass | Trust signals section on campaign page | — | — |
@@ -224,7 +224,7 @@ CharitMe is a production-grade fundraising platform built on Next.js 15, Supabas
 | G22-02 | Support | View ledger | ✅ Pass | Admin finance + campaign drilldown | — | — |
 | G22-03 | Support | Add internal notes | ✅ Pass | `support_notes` with `internal=true` | — | — |
 | G22-04 | Support | Escalate to Trust & Safety | ⚠️ Partial | Manual workflow only | Added escalation API | ✅ |
-| G22-05 | Support | Trigger approved workflows | ⚠️ Partial | Admin can do refund/freeze from respective pages | — | — |
+| G22-05 | Support | Trigger approved workflows | ✅ Pass | `PATCH /api/admin/support/[id]` — assign, status, note, freeze_campaign, trigger_refund, close_case | Added workflow actions API | ✅ |
 | G23-01 | Notifications | Donation received (organizer) | ❌ Missing | No notification | Added email + in-app | ✅ |
 | G23-02 | Notifications | Donation receipt (donor) | ✅ Pass | `sendReceiptEmail` in webhook | — | — |
 | G23-03 | Notifications | Recurring donation receipt | ✅ Pass | Called on `invoice.payment_succeeded` | — | — |
@@ -239,7 +239,7 @@ CharitMe is a production-grade fundraising platform built on Next.js 15, Supabas
 | G24-03 | Security | Donor sees own donations | ✅ Pass | `donations_read` policy | — | — |
 | G24-04 | Security | Admin sees all | ✅ Pass | `is_admin()` in all policies | — | — |
 | G24-05 | Security | Bank/KYC not exposed | ✅ Pass | `connected_accounts` RLS: own only | — | — |
-| G24-06 | Security | Private campaigns protected | ⚠️ Partial | Only `active` campaigns public; added visibility field | — | — |
+| G24-06 | Security | Private campaigns protected | ✅ Pass | Private campaigns gate with auth check in server component; visibility PATCH enforces ownership | Added page-level access control | ✅ |
 | G24-07 | Security | Audit logs write-only | ✅ Pass | `audit_admin_read` + `audit_admin_insert` policies | — | — |
 | G25-01 | Tests | Organizer creates campaign | ⚠️ Partial | No test | Added test | ✅ |
 | G25-02 | Tests | Donor donates | ⚠️ Partial | `payment-flow.test.ts` covers reconciliation | — | — |
@@ -314,6 +314,10 @@ See implementation details below and git diff for exact changes.
 - `apps/web/app/api/notifications/[id]/route.ts` — PATCH (mark read/unread) + DELETE per notification
 - `apps/web/app/api/notifications/count/route.ts` — Combined unread count (notifications + messages)
 - `apps/web/app/api/exports/donations/route.ts` — Year param filter for tax-year CSV exports
+- `apps/web/app/api/campaigns/[id]/settings/route.ts` — Campaign launch settings GET+PATCH (upsert)
+- `apps/web/app/api/admin/support/[id]/route.ts` — Support case workflow actions (GET+PATCH)
+- `apps/web/app/api/campaigns/[id]/route.ts` — Added visibility field to PATCH endpoint
+- `apps/web/app/campaigns/[slug]/page.tsx` — Private campaign access control gating
 
 ---
 
