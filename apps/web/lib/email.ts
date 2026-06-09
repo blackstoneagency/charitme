@@ -2,6 +2,9 @@ import 'server-only';
 import { Resend } from 'resend';
 
 const apiKey = process.env.RESEND_API_KEY;
+if (!apiKey && process.env.NODE_ENV === 'production') {
+  console.error('[email] RESEND_API_KEY is not set — all emails will be silently dropped');
+}
 export const resend = apiKey ? new Resend(apiKey) : null;
 
 const FROM = process.env.EMAIL_FROM ?? 'CharitMe <hello@charitme.com>';
