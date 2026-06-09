@@ -8,6 +8,7 @@ import { formatCents } from '../../../lib/stripe';
 import { calculateTrustScore, getTrustSignals } from '../../../lib/ai-platform';
 import DonateButton from './DonateButton';
 import ReportButton from './ReportButton';
+import ShareButtons from './ShareButtons';
 import DonationSuccess from './DonationSuccess';
 import MobileDonateCTA from './MobileDonateCTA';
 import CampaignCarousel from './CampaignCarousel';
@@ -416,50 +417,14 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             )}
           </div>
 
-          {/* Quick Share */}
-          <div id="quick-share" className="pc-quick-share">
-            <div className="pc-quick-share-header">
-              <strong style={{ fontSize: 16, fontWeight: 900, color: 'var(--t1)' }}>Quick share</strong>
-              <span style={{ fontSize: 12, color: 'var(--t3)' }}>📱 Share this campaign</span>
-            </div>
-            <div className="pc-quick-share-qr">
-              <div className="pc-quick-share-platforms">
-                <div className="pc-share-copy">
-                  <input type="text" readOnly value={campaignUrl} aria-label="Campaign URL" />
-                  <button type="button">Copy</button>
-                </div>
-                <div className="pc-share-grid">
-                  <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(campaignUrl)}`} target="_blank" rel="noopener noreferrer" className="pc-share-tile">
-                    <span className="pc-share-tile-icon" style={{ background: '#e7f0ff', color: '#1877f2' }}>f</span>Facebook
-                  </a>
-                  <a href={`https://www.facebook.com/dialog/send?link=${encodeURIComponent(campaignUrl)}&app_id=181477038500745`} target="_blank" rel="noopener noreferrer" className="pc-share-tile">
-                    <span className="pc-share-tile-icon" style={{ background: '#e6f3ff', color: '#0084ff' }}>m</span>Messenger
-                  </a>
-                  <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(campaignUrl)}`} target="_blank" rel="noopener noreferrer" className="pc-share-tile">
-                    <span className="pc-share-tile-icon" style={{ background: '#e8f3fb', color: '#0a66c2' }}>in</span>LinkedIn
-                  </a>
-                  <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(campaignUrl)}&text=${encodeURIComponent(campaign.title)}`} target="_blank" rel="noopener noreferrer" className="pc-share-tile">
-                    <span className="pc-share-tile-icon" style={{ background: '#f0f0f0', color: '#000' }}>&#120143;</span>X / Twitter
-                  </a>
-                  <a href={`https://wa.me/?text=${encodeURIComponent(`${campaign.title} ${campaignUrl}`)}`} target="_blank" rel="noopener noreferrer" className="pc-share-tile">
-                    <span className="pc-share-tile-icon" style={{ background: '#e9fbe9', color: '#25d366' }}>&#10003;</span>WhatsApp
-                  </a>
-                  <a href={`mailto:?subject=${encodeURIComponent(campaign.title)}&body=${encodeURIComponent(`Please support: ${campaignUrl}`)}`} className="pc-share-tile">
-                    <span className="pc-share-tile-icon" style={{ background: 'var(--s2)', color: 'var(--violet)' }}>@</span>Email
-                  </a>
-                </div>
-                <div style={{ marginTop: 14 }}>
-                  <a href={`/api/campaigns/${campaign.id}/qr-poster`} target="_blank" style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)', textDecoration: 'none' }}>
-                    🖨 Download printable poster →
-                  </a>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                <img src={qrUrl} alt={`QR code for ${campaign.title}`} width={120} height={120} style={{ borderRadius: 10, border: '1px solid var(--b2)' }} />
-                <span style={{ fontSize: 11, color: 'var(--t3)', textAlign: 'center' }}>Scan to donate</span>
-              </div>
-            </div>
-          </div>
+          {/* Quick Share — client component records share events */}
+          <ShareButtons
+            campaignId={campaign.id}
+            campaignUrl={campaignUrl}
+            campaignTitle={campaign.title}
+            qrUrl={qrUrl}
+            qrPosterId={campaign.id}
+          />
 
         </div>{/* end pc-left */}
 
