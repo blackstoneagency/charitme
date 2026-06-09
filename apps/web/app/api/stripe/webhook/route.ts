@@ -181,6 +181,26 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
       }, { onConflict: 'stripe_subscription_id', ignoreDuplicates: false });
 
       await sendDonorReceipt(meta.donorId, meta.campaignId, `${formatCents(amountCents)}/month`);
+
+      // Store UTM attribution on recurring donation (same logic as one-time)
+      if (meta.utmSource || meta.utmMedium || meta.utmCampaign || meta.utmContent || meta.shareEventId) {
+        const donId = await findDonationId({ paymentIntentId: null, checkoutSessionId: session.id });
+        if (donId) {
+          const sourceUtm = {
+            ...(meta.utmSource    ? { utm_source:     meta.utmSource }    : {}),
+            ...(meta.utmMedium    ? { utm_medium:     meta.utmMedium }    : {}),
+            ...(meta.utmCampaign  ? { utm_campaign:   meta.utmCampaign }  : {}),
+            ...(meta.utmContent   ? { utm_content:    meta.utmContent }   : {}),
+            ...(meta.shareEventId ? { share_event_id: meta.shareEventId } : {}),
+          };
+          void supabaseAdmin.from('donations').update({ source_utm: sourceUtm }).eq('id', donId);
+          if (meta.shareEventId) {
+            void supabaseAdmin.from('share_events')
+              .update({ converted: true, donation_id: donId })
+              .eq('id', meta.shareEventId);
+          }
+        }
+      }
     }
   } else if (meta.campaignId) {
     // ── One-time donation ─────────────────────────────────────────────────

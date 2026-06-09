@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { CharitMeShell, KFIcon } from '../../components/CharitMeShellServer';
 import AccountMenu from './AccountMenu';
+import NotificationBell from './NotificationBell';
 import { requireUser } from '../../lib/auth';
 import { supabaseAdmin } from '../../lib/supabase';
 import { isAdmin } from '../../lib/roles';
@@ -471,9 +472,7 @@ export default async function DashboardPage() {
               <input placeholder="Search anything..." />
               <kbd>&#8984;K</kbd>
             </label>
-            <button className="dash-bell" aria-label="Notifications">
-              <KFIcon name="bell" />
-            </button>
+            <NotificationBell />
             <AccountMenu name={data.userName ?? data.firstName} email={user.email ?? null} />
           </div>
         </header>
