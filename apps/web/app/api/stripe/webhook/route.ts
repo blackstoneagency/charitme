@@ -212,6 +212,29 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
 
     const alreadyDone = (data as { status: string } | null)?.status === 'already_processed';
     const donationId = await findDonationId({ paymentIntentId, checkoutSessionId: session.id });
+
+    // Store UTM attribution on the donation record (non-fatal)
+    if (!alreadyDone && donationId) {
+      const hasUtm = meta.utmSource || meta.utmMedium || meta.utmCampaign || meta.utmContent || meta.shareEventId;
+      if (hasUtm) {
+        const sourceUtm = {
+          ...(meta.utmSource   ? { utm_source:   meta.utmSource }   : {}),
+          ...(meta.utmMedium   ? { utm_medium:   meta.utmMedium }   : {}),
+          ...(meta.utmCampaign ? { utm_campaign: meta.utmCampaign } : {}),
+          ...(meta.utmContent  ? { utm_content:  meta.utmContent }  : {}),
+          ...(meta.shareEventId ? { share_event_id: meta.shareEventId } : {}),
+        };
+        void Promise.resolve(
+          supabaseAdmin.from('donations').update({ source_utm: sourceUtm }).eq('id', donationId),
+        ).then(() => {
+          if (meta.shareEventId) {
+            void supabaseAdmin.from('share_events')
+              .update({ converted: true, donation_id: donationId })
+              .eq('id', meta.shareEventId);
+          }
+        });
+      }
+    }
     const campaignPaymentId = await recordCampaignPayment({
       donationId,
       campaignId: meta.campaignId,

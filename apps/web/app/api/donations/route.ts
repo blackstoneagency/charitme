@@ -26,6 +26,12 @@ const DonateSchema = z.object({
   tipPercent:         z.number().min(0).max(100).optional(),
   paymentMethod:      z.enum(['stripe','paypal','venmo','gpay','bank','card']).optional(),
   donorEmail:         z.string().email().optional(),
+  // Share attribution — UTM params forwarded from the landing URL
+  utmSource:          z.string().max(100).optional(),
+  utmMedium:          z.string().max(100).optional(),
+  utmCampaign:        z.string().max(100).optional(),
+  utmContent:         z.string().max(100).optional(),
+  shareEventId:       z.string().uuid().optional(),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -59,6 +65,11 @@ export async function POST(request: NextRequest) {
     anonymous,
     coverProcessingFee,
     donorEmail,
+    utmSource,
+    utmMedium,
+    utmCampaign,
+    utmContent,
+    shareEventId,
   } = parsed.data;
 
   const paymentMethod: PaymentMethod = parsed.data.paymentMethod ?? 'stripe';
@@ -172,6 +183,12 @@ export async function POST(request: NextRequest) {
       connectedAccountId:   connectedAccount?.stripe_account_id ?? '',
       hasConnectedAccount:  hasConnectedAccount ? '1' : '0',
       organizerUserId:      campaign.user_id,
+      // Share attribution
+      utmSource:            utmSource ?? '',
+      utmMedium:            utmMedium ?? '',
+      utmCampaign:          utmCampaign ?? '',
+      utmContent:           utmContent ?? '',
+      shareEventId:         shareEventId ?? '',
     },
     payment_intent_data: hasConnectedAccount
       ? {
