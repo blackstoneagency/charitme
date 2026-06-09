@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
+import { checkRateLimit } from '../../../lib/rate-limit';
 
 function slugify(text: string): string {
   return text
@@ -32,6 +33,12 @@ const CreateSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // 5 campaign creations per user per hour — prevents abuse
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (!checkRateLimit(`campaign:${ip}`, 5, 60 * 60 * 1000)) {
+    return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

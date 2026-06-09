@@ -13,6 +13,7 @@ import {
   type PaymentMethod,
 } from '@shared/fees';
 import { getAppOrigin } from '../../../lib/auth-config';
+import { checkRateLimit } from '../../../lib/rate-limit';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema
@@ -49,6 +50,12 @@ const DonateSchema = z.object({
 //
 // ─────────────────────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
+  // 20 donations per IP per 10 minutes — prevents spam / card testing
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (!checkRateLimit(`donate:${ip}`, 20, 10 * 60 * 1000)) {
+    return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
+  }
+
   const body = await request.json().catch(() => null);
   const parsed = DonateSchema.safeParse(body);
   if (!parsed.success) {

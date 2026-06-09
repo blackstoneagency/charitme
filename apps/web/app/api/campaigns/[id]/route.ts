@@ -162,3 +162,23 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
 
 // ── PUT /api/campaigns/[id] ───────────────────────────────────────────────────
 export { PATCH as PUT };
+
+// ── GET /api/campaigns/[id] ───────────────────────────────────────────────────
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { data, error } = await supabaseAdmin
+    .from('campaigns')
+    .select('id, slug, title, tagline, description, status, visibility, accept_donations, goal_amount, raised_amount, backer_count, cover_image_url, category, deadline, location, video_url, beneficiary_name, beneficiary_relationship, created_at, updated_at')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .is('deleted_at', null)
+    .single();
+
+  if (error || !data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  return NextResponse.json(data);
+}
