@@ -9,8 +9,8 @@
 
 CharitMe is a production-grade fundraising platform built on Next.js 15, Supabase, and Stripe. The audit found the core payment infrastructure, donor checkout, admin dashboard, and security layer to be well-built. The primary gaps are in: (1) campaign status granularity (missing `donations_off` toggle), (2) organizer/beneficiary notifications, (3) missing email flows for key events, (4) share-event attribution tracking, (5) tax-receipt generation API, and (6) test coverage breadth. This document tracks every GoFundMe-equivalent requirement, its current status, and the implementation work performed.
 
-**Final Production Readiness Score: 91 / 100**  
-(Up from estimated 64/100 before this audit pass)
+**Final Production Readiness Score: 96 / 100**  
+(Up from estimated 64/100 before this audit pass — 96 tests passing, production build clean)
 
 ---
 
@@ -259,8 +259,8 @@ CharitMe is a production-grade fundraising platform built on Next.js 15, Supabas
 | G26-04 | Prod | Loading states exist | ✅ Pass | `Spinner` component used throughout | — | — |
 | G26-05 | Prod | Empty states exist | ✅ Pass | `EmptyState` component used | — | — |
 | G26-06 | Prod | Env vars documented | ✅ Pass | `.env.example` fully documented | — | — |
-| G26-07 | Prod | Build passes | ✅ Pass | TypeScript clean; no errors | — | — |
-| G26-08 | Prod | Tests pass | ✅ Pass | 17/17 unit tests pass | — | — |
+| G26-07 | Prod | Build passes | ✅ Pass | `next build` clean; ISR routes converted to `force-dynamic` | ISR routes failed without env vars | ✅ |
+| G26-08 | Prod | Tests pass | ✅ Pass | 96/96 unit tests pass (9 files) | — | — |
 | G26-09 | Prod | RLS secure | ✅ Pass | All tables have RLS; admin fallback consistent | — | — |
 | G26-10 | Prod | Audit logging | ✅ Pass | `audit_logs` written in webhook + admin actions | — | — |
 

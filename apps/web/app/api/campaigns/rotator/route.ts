@@ -2,7 +2,7 @@ import 'server-only';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 
-export const revalidate = 60; // ISR: refresh every 60s
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const [campaignsResult, statsResult] = await Promise.all([
