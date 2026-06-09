@@ -18,7 +18,14 @@ const RENDER_TIME = Date.now();
 
 interface Props {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ donated?: string }>;
+  searchParams?: Promise<{
+    donated?: string;
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    utm_content?: string;
+    share_event_id?: string;
+  }>;
 }
 
 type Profile = { full_name?: string | null; avatar_url?: string | null };
@@ -122,7 +129,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CampaignPage({ params, searchParams }: Props) {
-  const [{ slug }, sp] = await Promise.all([params, searchParams ?? Promise.resolve({} as { donated?: string })]);
+  type SP = NonNullable<Awaited<Props['searchParams']>>;
+  const [{ slug }, sp] = await Promise.all([params, searchParams ?? Promise.resolve({} as SP)]);
+  const utm = {
+    utmSource:    sp.utm_source,
+    utmMedium:    sp.utm_medium,
+    utmCampaign:  sp.utm_campaign,
+    utmContent:   sp.utm_content,
+    shareEventId: sp.share_event_id,
+  };
   const justDonated = sp.donated === '1';
   const campaign = await getCampaign(slug);
   if (!campaign) notFound();
@@ -457,7 +472,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             </div>
 
             {isActive ? (
-              <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
+              <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} utm={utm} />
             ) : !acceptDonations && campaign.status === 'active' ? (
               <div className="pc-ended">Donations are temporarily paused for this campaign.</div>
             ) : (

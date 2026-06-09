@@ -9,13 +9,18 @@ import { donorTip, MIN_DONATION_CENTS, MAX_DONATION_CENTS, DEFAULT_DONOR_TIP_PER
 import { getAppOrigin } from '../../../../lib/auth-config';
 
 const Schema = z.object({
-  campaignId: z.string().uuid(),
-  amountCents: z.number().int().min(MIN_DONATION_CENTS).max(MAX_DONATION_CENTS),
-  cadence: z.enum(['monthly', 'weekly', 'quarterly', 'annual']).default('monthly'),
-  message: z.string().max(500).optional(),
-  anonymous: z.boolean().optional(),
-  tipPercent: z.number().min(0).max(100).optional(),
-  donorEmail: z.string().email().optional(),
+  campaignId:   z.string().uuid(),
+  amountCents:  z.number().int().min(MIN_DONATION_CENTS).max(MAX_DONATION_CENTS),
+  cadence:      z.enum(['monthly', 'weekly', 'quarterly', 'annual']).default('monthly'),
+  message:      z.string().max(500).optional(),
+  anonymous:    z.boolean().optional(),
+  tipPercent:   z.number().min(0).max(100).optional(),
+  donorEmail:   z.string().email().optional(),
+  utmSource:    z.string().max(100).optional(),
+  utmMedium:    z.string().max(100).optional(),
+  utmCampaign:  z.string().max(100).optional(),
+  utmContent:   z.string().max(100).optional(),
+  shareEventId: z.string().uuid().optional(),
 });
 
 // POST /api/donations/recurring
@@ -36,7 +41,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
   }
 
-  const { campaignId, amountCents, cadence, message, anonymous, donorEmail } = parsed.data;
+  const { campaignId, amountCents, cadence, message, anonymous, donorEmail,
+          utmSource, utmMedium, utmCampaign, utmContent, shareEventId } = parsed.data;
   const tipPercent = parsed.data.tipPercent ?? DEFAULT_DONOR_TIP_PERCENT;
   const tipCents = donorTip(amountCents, tipPercent);
 
@@ -98,13 +104,18 @@ export async function POST(request: NextRequest) {
     cancel_url: `${origin}/campaigns/${campaign.slug}`,
     metadata: {
       campaignId,
-      donorId: user?.id ?? '',
-      message: message ?? '',
-      anonymous: anonymous ? '1' : '0',
-      donationAmountCents: String(amountCents),
-      tipCents: String(tipCents),
+      donorId:              user?.id ?? '',
+      message:              message ?? '',
+      anonymous:            anonymous ? '1' : '0',
+      donationAmountCents:  String(amountCents),
+      tipCents:             String(tipCents),
       cadence,
-      isRecurring: '1',
+      isRecurring:          '1',
+      utmSource:            utmSource ?? '',
+      utmMedium:            utmMedium ?? '',
+      utmCampaign:          utmCampaign ?? '',
+      utmContent:           utmContent ?? '',
+      shareEventId:         shareEventId ?? '',
     },
     subscription_data: {
       metadata: {
