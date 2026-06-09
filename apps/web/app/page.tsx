@@ -52,32 +52,22 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
       <section className="kind-hero">
         <div className="container kind-hero-grid">
           <div className="kind-hero-copy">
-            <div className="kind-badge"><Icon name="sparkle" className="h-4 w-4" /> The AI Fundraising Platform</div>
+            <div className="kind-badge"><Icon name="sparkle" className="h-4 w-4" /> The AI Crowdfunding Platform</div>
             <h1>
               Raise More. Faster. <span>With AI.</span>
             </h1>
             <div className="kind-scribble" aria-hidden="true" />
             <p>CharitMe is the world&apos;s first AI-powered fundraising platform that helps people, teams, creators, and nonprofits create trusted campaigns and grow donations.</p>
-            <div className="kind-actions">
+            <div className="kind-hero-cta-grid">
               <Link href="/ai-campaign" className="kind-btn kind-btn-primary">Create My Fundraiser With AI</Link>
               <Link href="/campaigns" className="kind-btn kind-btn-secondary">Donate Now <span><Icon name="arrow" className="h-3.5 w-3.5" /></span></Link>
-            </div>
-            <div className="kind-actions" style={{ marginTop: 14 }}>
-              <Link href="/create" className="kind-btn kind-btn-secondary">Create My Fundraiser <span><Icon name="arrow" className="h-3.5 w-3.5" /></span></Link>
+              <Link href="/create" className="kind-btn kind-btn-gradient">Create My Fundraiser <span><Icon name="arrow" className="h-3.5 w-3.5" /></span></Link>
               <Link href="/features" className="kind-btn kind-btn-secondary">Why We Beat GoFundMe <span><Icon name="arrow" className="h-3.5 w-3.5" /></span></Link>
             </div>
             <div className="kind-pills">
               {['CharitMe AI Builder', 'AI Growth Engine', 'CharitScore Trust', '0% Platform Fees'].map((item, index) => (
                 <div key={item}><Icon name={index === 0 ? 'sparkle' : index === 1 ? 'rocket' : index === 2 ? 'shield' : 'gift'} className="h-3.5 w-3.5" />{item}</div>
               ))}
-            </div>
-            <div className="kind-proof">
-              <span>{stats[1][0]} active campaigns</span>
-              <div className="kind-avatar-stack">
-                {[0, 1, 2, 3, 4].map((i) => <i key={i} />)}
-              </div>
-              <strong>{stats[2][0]}</strong>
-              <span>completed donations tracked</span>
             </div>
           </div>
 
