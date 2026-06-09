@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { createClient } from '../../../lib/supabase-server';
 import { formatCents } from '../../../lib/stripe';
 import { calculateTrustScore, getTrustSignals } from '../../../lib/ai-platform';
 import DonateButton from './DonateButton';
@@ -141,6 +142,14 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const justDonated = sp.donated === '1';
   const campaign = await getCampaign(slug);
   if (!campaign) notFound();
+
+  // Private campaigns are only visible to the owner and admins
+  const visibility = (campaign as { visibility?: string }).visibility ?? 'public';
+  if (visibility === 'private') {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.id !== campaign.user_id) notFound();
+  }
 
   const [donations, updates, ledger, faqs, donorMessages] = await Promise.all([
     getRecentDonations(campaign.id),

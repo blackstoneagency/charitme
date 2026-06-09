@@ -5,6 +5,8 @@ import { createClient } from '../../../../lib/supabase-server';
 
 const VALID_STATUSES = ['draft', 'active', 'paused', 'completed', 'frozen', 'archived'] as const;
 
+const VALID_VISIBILITY = ['public', 'unlisted', 'private'] as const;
+
 const UpdateSchema = z.object({
   title:                   z.string().min(3).max(100).optional(),
   tagline:                 z.string().max(160).nullable().optional(),
@@ -18,8 +20,9 @@ const UpdateSchema = z.object({
   beneficiaryRelationship: z.string().max(120).nullable().optional(),
   videoUrl:                z.string().url().nullable().optional(),
   location:                z.string().max(120).nullable().optional(),
-  donationsEnabled:        z.boolean().optional(), // pause/resume accepting donations
-  goalHistory:             z.any().optional(),     // audit trail for goal changes
+  visibility:              z.enum(VALID_VISIBILITY).optional(),
+  donationsEnabled:        z.boolean().optional(),
+  goalHistory:             z.any().optional(),
 });
 
 async function verifyOwnership(campaignId: string, userId: string) {
@@ -61,6 +64,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (d.beneficiaryRelationship !== undefined)   updates.beneficiary_relationship = d.beneficiaryRelationship;
   if (d.videoUrl !== undefined)                  updates.video_url = d.videoUrl;
   if (d.location !== undefined)                  updates.location = d.location;
+  if (d.visibility !== undefined)                updates.visibility = d.visibility;
 
   // Goal change: record history, freeze donations during review if big change
   if (d.goalAmount !== undefined) {
