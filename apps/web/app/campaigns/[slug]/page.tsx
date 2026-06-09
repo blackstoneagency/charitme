@@ -13,6 +13,7 @@ import DonationSuccess from './DonationSuccess';
 import MobileDonateCTA from './MobileDonateCTA';
 import CampaignCarousel from './CampaignCarousel';
 import { getPhotosForCategory, getCoverForCategory } from '../../../lib/photo-catalog';
+import { optimizeAsks, computeImpact } from '../../../lib/donation-optimizer';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,6 +41,28 @@ async function getCampaign(slug: string) {
     .eq('slug', slug)
     .single();
   return data;
+}
+
+async function getRelatedCampaigns(category: string, excludeId: string) {
+  const { data } = await supabaseAdmin
+    .from('campaigns')
+    .select('id, slug, title, category, goal_amount, raised_amount, backer_count, cover_image_url')
+    .eq('status', 'active')
+    .eq('category', category)
+    .neq('id', excludeId)
+    .order('raised_amount', { ascending: false })
+    .limit(3);
+  if (data && data.length >= 3) return data;
+  // Backfill with top active campaigns from any category
+  const { data: fallback } = await supabaseAdmin
+    .from('campaigns')
+    .select('id, slug, title, category, goal_amount, raised_amount, backer_count, cover_image_url')
+    .eq('status', 'active')
+    .neq('id', excludeId)
+    .order('raised_amount', { ascending: false })
+    .limit(6);
+  const seen = new Set((data ?? []).map(c => c.id));
+  return [...(data ?? []), ...(fallback ?? []).filter(c => !seen.has(c.id))].slice(0, 3);
 }
 
 async function getRecentDonations(campaignId: string) {
@@ -152,12 +175,13 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     if (!user || user.id !== campaign.user_id) notFound();
   }
 
-  const [donations, updates, ledger, faqs, donorMessages] = await Promise.all([
+  const [donations, updates, ledger, faqs, donorMessages, relatedCampaigns] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
     getLedger(campaign.id),
     getFAQs(campaign.id),
     getDonorMessages(campaign.id),
+    getRelatedCampaigns(campaign.category, campaign.id),
   ]);
 
   const raised = campaign.raised_amount ?? 0;
@@ -182,6 +206,16 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     rawImageUrls.length >= 4
       ? rawImageUrls
       : getPhotosForCategory(campaign.category, 4);
+
+  // AI Donation Optimizer — campaign-tuned ask amounts + impact projection
+  const campaignStats = {
+    goalCents: goal,
+    raisedCents: raised,
+    backerCount: campaign.backer_count ?? donations.length,
+    createdAt: campaign.created_at as string,
+  };
+  const asks = optimizeAsks(campaignStats);
+  const impact = computeImpact(campaignStats);
 
   // Arc SVG for Impact Tracker donut
   const arcPct = Math.max(5, pct);
@@ -446,7 +480,13 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             </div>
 
             {isActive ? (
-              <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} utm={utm} />
+              <DonateButton
+                campaignId={campaign.id}
+                campaignTitle={campaign.title}
+                utm={utm}
+                smartPresets={asks.presets}
+                recommendedAmount={asks.recommended}
+              />
             ) : !acceptDonations && campaign.status === 'active' ? (
               <div className="pc-ended">Donations are temporarily paused for this campaign.</div>
             ) : (
@@ -498,6 +538,31 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             <p style={{ margin: 0, fontSize: 13, textAlign: 'center', color: 'var(--t2)', fontWeight: 700 }}>
               {formatCents(raised)} raised of {formatCents(goal)}
             </p>
+          </div>
+
+          {/* AI Impact Engine — momentum + projection */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '12px 0 0', padding: '12px 14px', background: 'rgba(108,53,255,.05)', border: '1px solid rgba(108,53,255,.12)', borderRadius: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
+              <span style={{ fontWeight: 700 }}>Momentum</span>
+              <span style={{ fontWeight: 900, color: impact.momentum === 'surging' ? '#059669' : impact.momentum === 'steady' ? '#6c35ff' : 'var(--t3)' }}>
+                {impact.momentum === 'surging' ? '🔥 Surging' : impact.momentum === 'steady' ? '📈 Steady' : '🌱 Just started'}
+              </span>
+            </div>
+            {impact.dailyVelocityCents >= 100 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
+                <span style={{ fontWeight: 700 }}>Raising per day</span>
+                <span style={{ fontWeight: 900, color: 'var(--t1)' }}>~{formatCents(impact.dailyVelocityCents)}</span>
+              </div>
+            )}
+            {impact.projectedDaysToGoal !== null && impact.projectedDaysToGoal > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
+                <span style={{ fontWeight: 700 }}>On pace to hit goal in</span>
+                <span style={{ fontWeight: 900, color: '#059669' }}>~{impact.projectedDaysToGoal} day{impact.projectedDaysToGoal === 1 ? '' : 's'}</span>
+              </div>
+            )}
+            {impact.projectedDaysToGoal === 0 && (
+              <div style={{ fontSize: 12.5, fontWeight: 900, color: '#059669', textAlign: 'center' }}>🎉 Goal reached!</div>
+            )}
           </div>
           {updates.length > 0 ? (
             <div style={{ display: 'grid', gap: 14, marginTop: 8 }}>
@@ -565,6 +630,45 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                 </div>
               </details>
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Donor matching — related campaigns ── */}
+      {relatedCampaigns.length > 0 && (
+        <section style={{ maxWidth: 1080, margin: '0 auto 48px', padding: '0 24px' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 4, color: 'var(--t1)' }}>
+            Donors also supported
+          </h2>
+          <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--t3)' }}>
+            Causes similar to this one that need help right now
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+            {relatedCampaigns.map((rc) => {
+              const rcPct = Math.min(100, Math.round(((rc.raised_amount ?? 0) / (rc.goal_amount || 1)) * 100));
+              return (
+                <Link key={rc.id} href={`/campaigns/${rc.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 16, overflow: 'hidden' }}>
+                  <div style={{ height: 140, background: '#ede8ff', overflow: 'hidden' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={rc.cover_image_url || getCoverForCategory(rc.category)}
+                      alt={rc.title}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </div>
+                  <div style={{ padding: '14px 16px 16px' }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>{rc.category}</div>
+                    <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--t1)', marginBottom: 10, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{rc.title}</div>
+                    <div style={{ height: 6, background: '#eef0f7', borderRadius: 999, overflow: 'hidden', marginBottom: 8 }}>
+                      <span style={{ display: 'block', height: '100%', width: `${rcPct}%`, background: 'linear-gradient(90deg, #6c35ff, #a78bfa)', borderRadius: 999 }} />
+                    </div>
+                    <div style={{ fontSize: 12.5, color: 'var(--t3)' }}>
+                      <b style={{ color: 'var(--t1)' }}>{formatCents(rc.raised_amount ?? 0)}</b> raised · {rcPct}% of {formatCents(rc.goal_amount || 0)}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}

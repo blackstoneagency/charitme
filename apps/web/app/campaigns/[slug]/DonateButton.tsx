@@ -17,8 +17,8 @@ const BD  = '#e2d9ff';
 const MU  = '#64748b';
 const INK = '#1a1a2e';
 
-/* Preset amounts shown in the 3×2 grid */
-const PRESETS = [50, 100, 250, 500, 1000, 2000] as const;
+/* Fallback preset amounts when no campaign-tuned asks are provided */
+const DEFAULT_PRESETS = [50, 100, 250, 500, 1000, 2000];
 
 /* Tip range: 0–20% */
 const TIP_MIN = 0;
@@ -85,13 +85,20 @@ export default function DonateButton({
   campaignId,
   campaignTitle,
   utm,
+  smartPresets,
+  recommendedAmount,
 }: {
   campaignId: string;
   campaignTitle: string;
   utm?: UtmProps;
+  /** Campaign-tuned ask amounts from the donation optimizer (dollars, ascending). */
+  smartPresets?: number[];
+  /** Which preset to pre-select and badge as "popular". */
+  recommendedAmount?: number;
 }) {
+  const presets = smartPresets && smartPresets.length === 6 ? smartPresets : DEFAULT_PRESETS;
   const [frequency, setFrequency]         = useState<FrequencyMode>('once');
-  const [amount, setAmount]               = useState('100');
+  const [amount, setAmount]               = useState(String(recommendedAmount ?? 100));
   const [subscribeEmail, setSubscribeEmail] = useState(false);
   const [anonymous, setAnonymous]         = useState(false);
   const [tipPercent, setTipPercent]       = useState<number>(DEFAULT_DONOR_TIP_PERCENT);
@@ -214,18 +221,20 @@ export default function DonateButton({
         </div>
       )}
 
-      {/* ── Preset amounts — 3×2 grid ── */}
+      {/* ── Preset amounts — 3×2 grid (campaign-tuned by the donation optimizer) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-        {PRESETS.map((preset) => {
+        {presets.map((preset) => {
           const active = amount === String(preset);
+          const popular = preset === recommendedAmount;
           return (
             <button
               key={preset}
               type="button"
               onClick={() => setAmount(String(preset))}
               style={{
+                position: 'relative',
                 padding: '11px 4px',
-                border: `2px solid ${active ? V : BD}`,
+                border: `2px solid ${active ? V : popular ? '#c4b0ff' : BD}`,
                 borderRadius: 12,
                 background: active ? V : '#fff',
                 color: active ? '#fff' : INK,
@@ -236,6 +245,14 @@ export default function DonateButton({
               }}
             >
               ${preset.toLocaleString()}
+              {popular && (
+                <span style={{
+                  position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)',
+                  fontSize: 8.5, fontWeight: 900, letterSpacing: '.05em', whiteSpace: 'nowrap',
+                  background: active ? '#fff' : V, color: active ? V : '#fff',
+                  padding: '1px 7px', borderRadius: 999,
+                }}>POPULAR</span>
+              )}
             </button>
           );
         })}
