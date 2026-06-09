@@ -566,7 +566,7 @@ export default function CreatePage() {
                       <strong>{dragging ? 'Release to upload' : 'Drop images here or click to browse'}</strong>
                       <span>JPG, PNG, GIF, WebP, AVIF · up to {MAX_IMAGES} images · 10 MB each</span>
                     </div>
-                    {uploadError && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#ef4444', fontWeight: 700 }}>{uploadError}</p>}
+                    {uploadError && <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--red, #ef4444)', fontWeight: 700 }}>{uploadError}</p>}
                   </div>
 
                   {uploadedImages.length > 0 && (
@@ -637,12 +637,12 @@ export default function CreatePage() {
                     {payoutLoading ? (
                       <span style={{ fontSize: 12, color: 'var(--t3)' }}>Checking…</span>
                     ) : payoutLinked ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 999, fontSize: 12, fontWeight: 800, color: '#15803d' }}>
-                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} /> Linked
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: 'rgba(22,163,74,.10)', border: '1px solid rgba(22,163,74,.25)', borderRadius: 999, fontSize: 12, fontWeight: 800, color: 'var(--green-dark, #15803d)' }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green, #22c55e)', display: 'inline-block' }} /> Linked
                       </span>
                     ) : (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 999, fontSize: 12, fontWeight: 800, color: '#dc2626' }}>
-                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} /> Not Linked
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: 'rgba(190,18,60,.08)', border: '1px solid rgba(190,18,60,.25)', borderRadius: 999, fontSize: 12, fontWeight: 800, color: 'var(--red, #dc2626)' }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--red, #ef4444)', display: 'inline-block' }} /> Not Linked
                       </span>
                     )}
                   </div>
@@ -651,32 +651,32 @@ export default function CreatePage() {
                     <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--t3)', fontSize: 14 }}>Checking your payout account…</div>
                   ) : payoutLinked && payoutAccount ? (
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 20px', background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 14, marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 20px', background: 'rgba(22,163,74,.08)', border: '1.5px solid rgba(22,163,74,.25)', borderRadius: 14, marginBottom: 16 }}>
                         <span style={{ fontSize: 32, flexShrink: 0 }}>{payoutAccount.payout_type === 'paypal' ? '💙' : '🏦'}</span>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 900, fontSize: 15, color: '#15803d', marginBottom: 3 }}>{payoutAccount.payout_type === 'paypal' ? 'PayPal Account Linked' : 'Stripe Bank Account Linked'}</div>
-                          <div style={{ fontSize: 13, color: '#166534' }}>{payoutAccount.payout_type === 'paypal' ? `Donations will be sent to ${payoutAccount.paypal_email}` : 'Direct bank deposits enabled. Funds arrive within 2 business days.'}</div>
+                          <div style={{ fontWeight: 900, fontSize: 15, color: 'var(--green-dark, #15803d)', marginBottom: 3 }}>{payoutAccount.payout_type === 'paypal' ? 'PayPal Account Linked' : 'Stripe Bank Account Linked'}</div>
+                          <div style={{ fontSize: 13, color: 'var(--green-dark, #166534)' }}>{payoutAccount.payout_type === 'paypal' ? `Donations will be sent to ${payoutAccount.paypal_email}` : 'Direct bank deposits enabled. Funds arrive within 2 business days.'}</div>
                         </div>
                         <span style={{ fontSize: 20 }}>✓</span>
                       </div>
                       {payoutAccount.stripe_account_id && (
-                        <div style={{ padding: '12px 16px', background: '#f8f9fc', borderRadius: 10, border: '1px solid #eef0f7', fontSize: 12, color: 'var(--t3)', marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+                        <div style={{ padding: '12px 16px', background: 'var(--s2, #f8f9fc)', borderRadius: 10, border: '1px solid var(--b1, #eef0f7)', fontSize: 12, color: 'var(--t3)', marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
                           <span>Account: {payoutAccount.stripe_account_id.slice(0, 14)}…</span>
-                          <span style={{ color: '#16a34a', fontWeight: 700 }}>● Payouts active</span>
+                          <span style={{ color: 'var(--green-dark, #16a34a)', fontWeight: 700 }}>● Payouts active</span>
                         </div>
                       )}
                       <button type="button" onClick={() => { setPayoutAccount(null); setPayoutMethod(null); }} style={{ fontSize: 12, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Connect a different account instead</button>
                     </div>
                   ) : payoutAccount && !payoutAccount.payouts_enabled ? (
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', background: '#fffbeb', border: '1.5px solid #fcd34d', borderRadius: 14, marginBottom: 20 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', background: 'rgba(217,119,6,.08)', border: '1.5px solid rgba(217,119,6,.25)', borderRadius: 14, marginBottom: 20 }}>
                         <span style={{ fontSize: 28 }}>⚠️</span>
                         <div>
                           <div style={{ fontWeight: 900, fontSize: 15, color: '#92400e' }}>Stripe Onboarding Incomplete</div>
                           <div style={{ fontSize: 13, color: '#78350f', marginTop: 2 }}>You started connecting Stripe but didn&apos;t finish. Complete setup to receive payouts.</div>
                         </div>
                       </div>
-                      <button type="button" onClick={() => void connectStripe()} disabled={connectingStripe} style={{ width: '100%', height: 46, background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 10 }}>
+                      <button type="button" onClick={() => void connectStripe()} disabled={connectingStripe} style={{ width: '100%', height: 46, background: 'var(--violet, #6c35ff)', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 10 }}>
                         {connectingStripe ? 'Redirecting to Stripe…' : 'Complete Stripe Setup →'}
                       </button>
                       <button type="button" onClick={goNext} style={{ width: '100%', height: 40, background: 'none', color: 'var(--t3)', border: '1px solid var(--b2)', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Skip for now — set up payouts later</button>
@@ -685,11 +685,11 @@ export default function CreatePage() {
                     <div>
                       <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8 }}>Connect with Stripe</div>
                       <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 20, lineHeight: 1.6 }}>Stripe is the most trusted way to receive donations. You&apos;ll be redirected to Stripe to verify your identity and connect your bank account. Takes 5 minutes.</p>
-                      <div style={{ display: 'flex', gap: 10, padding: '14px 18px', background: '#f0eaff', borderRadius: 12, marginBottom: 20, fontSize: 13 }}>
+                      <div style={{ display: 'flex', gap: 10, padding: '14px 18px', background: 'var(--s2, #f0eaff)', borderRadius: 12, marginBottom: 20, fontSize: 13 }}>
                         <span>🔒</span>
-                        <span style={{ color: '#4c1d95', fontWeight: 700 }}>Bank-level encryption · No card fees charged by CharitMe · Funds deposited directly to your bank</span>
+                        <span style={{ color: 'var(--violet, #4c1d95)', fontWeight: 700 }}>Bank-level encryption · No card fees charged by CharitMe · Funds deposited directly to your bank</span>
                       </div>
-                      <button type="button" onClick={() => void connectStripe()} disabled={connectingStripe} style={{ width: '100%', height: 48, background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', marginBottom: 10 }}>
+                      <button type="button" onClick={() => void connectStripe()} disabled={connectingStripe} style={{ width: '100%', height: 48, background: 'var(--violet, #6c35ff)', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', marginBottom: 10 }}>
                         {connectingStripe ? 'Redirecting to Stripe…' : '🏦 Connect Bank via Stripe →'}
                       </button>
                       <button type="button" onClick={() => setPayoutMethod(null)} style={{ fontSize: 12, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>← Back to options</button>
@@ -709,27 +709,27 @@ export default function CreatePage() {
                     <div>
                       <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8 }}>Connect Bank via Plaid</div>
                       <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 20, lineHeight: 1.6 }}>Plaid lets you instantly link your bank account. Secure and instant.</p>
-                      <div style={{ padding: '14px 18px', background: '#eff6ff', borderRadius: 12, marginBottom: 20, fontSize: 13, color: '#1e40af', fontWeight: 700 }}>🔗 Plaid integration coming soon. Use Stripe Connect for immediate bank deposits.</div>
-                      <button type="button" onClick={() => setPayoutMethod('stripe')} style={{ width: '100%', height: 46, background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 10 }}>Switch to Stripe Connect Instead →</button>
+                      <div style={{ padding: '14px 18px', background: 'rgba(37,99,235,.08)', borderRadius: 12, marginBottom: 20, fontSize: 13, color: 'var(--violet, #1e40af)', fontWeight: 700 }}>🔗 Plaid integration coming soon. Use Stripe Connect for immediate bank deposits.</div>
+                      <button type="button" onClick={() => setPayoutMethod('stripe')} style={{ width: '100%', height: 46, background: 'var(--violet, #6c35ff)', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 10 }}>Switch to Stripe Connect Instead →</button>
                       <button type="button" onClick={() => setPayoutMethod(null)} style={{ fontSize: 12, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>← Back to options</button>
                     </div>
                   ) : (
                     <div>
                       <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 6, color: 'var(--t1)' }}>How do you want to receive donations?</div>
                       <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 22, lineHeight: 1.6 }}>CharitMe charges 0% platform fees. Connect once — donations go directly to you.</p>
-                      <button type="button" onClick={() => setPayoutMethod('stripe')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', marginBottom: 12, background: '#fff', border: '2px solid #6c35ff', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
+                      <button type="button" onClick={() => setPayoutMethod('stripe')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', marginBottom: 12, background: 'var(--s1, #fff)', border: '2px solid var(--violet, #6c35ff)', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
                         <span style={{ fontSize: 28, flexShrink: 0 }}>🏦</span>
-                        <div style={{ flex: 1 }}><div style={{ fontWeight: 900, fontSize: 14, color: '#1a1a2e' }}>Stripe Connect <span style={{ fontSize: 11, background: '#6c35ff', color: '#fff', padding: '2px 8px', borderRadius: 6, marginLeft: 6, fontWeight: 800 }}>RECOMMENDED</span></div><div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 3 }}>Direct bank deposit · Identity verified · Most trusted</div></div>
-                        <span style={{ color: '#6c35ff', fontWeight: 900, fontSize: 18 }}>›</span>
+                        <div style={{ flex: 1 }}><div style={{ fontWeight: 900, fontSize: 14, color: 'var(--t1, #1a1a2e)' }}>Stripe Connect <span style={{ fontSize: 11, background: 'var(--violet, #6c35ff)', color: '#fff', padding: '2px 8px', borderRadius: 6, marginLeft: 6, fontWeight: 800 }}>RECOMMENDED</span></div><div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 3 }}>Direct bank deposit · Identity verified · Most trusted</div></div>
+                        <span style={{ color: 'var(--violet, #6c35ff)', fontWeight: 900, fontSize: 18 }}>›</span>
                       </button>
-                      <button type="button" onClick={() => setPayoutMethod('paypal')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', marginBottom: 12, background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
+                      <button type="button" onClick={() => setPayoutMethod('paypal')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', marginBottom: 12, background: 'var(--s1, #fff)', border: '1.5px solid var(--b2, #e2e8f0)', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
                         <span style={{ fontSize: 28, flexShrink: 0 }}>💙</span>
-                        <div style={{ flex: 1 }}><div style={{ fontWeight: 900, fontSize: 14, color: '#1a1a2e' }}>PayPal</div><div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 3 }}>Send to your PayPal account · PayPal fees apply</div></div>
+                        <div style={{ flex: 1 }}><div style={{ fontWeight: 900, fontSize: 14, color: 'var(--t1, #1a1a2e)' }}>PayPal</div><div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 3 }}>Send to your PayPal account · PayPal fees apply</div></div>
                         <span style={{ color: 'var(--t3)', fontWeight: 900, fontSize: 18 }}>›</span>
                       </button>
-                      <button type="button" onClick={() => setPayoutMethod('plaid')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', marginBottom: 20, background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
+                      <button type="button" onClick={() => setPayoutMethod('plaid')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', marginBottom: 20, background: 'var(--s1, #fff)', border: '1.5px solid var(--b2, #e2e8f0)', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
                         <span style={{ fontSize: 28, flexShrink: 0 }}>🔗</span>
-                        <div style={{ flex: 1 }}><div style={{ fontWeight: 900, fontSize: 14, color: '#1a1a2e' }}>Plaid Bank Link <span style={{ fontSize: 11, background: '#f1f5f9', color: '#64748b', padding: '2px 8px', borderRadius: 6, marginLeft: 6, fontWeight: 800 }}>COMING SOON</span></div><div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 3 }}>Instant bank connection · No manual routing numbers</div></div>
+                        <div style={{ flex: 1 }}><div style={{ fontWeight: 900, fontSize: 14, color: 'var(--t1, #1a1a2e)' }}>Plaid Bank Link <span style={{ fontSize: 11, background: 'var(--s2, #f1f5f9)', color: 'var(--t3, #64748b)', padding: '2px 8px', borderRadius: 6, marginLeft: 6, fontWeight: 800 }}>COMING SOON</span></div><div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 3 }}>Instant bank connection · No manual routing numbers</div></div>
                         <span style={{ color: 'var(--t3)', fontWeight: 900, fontSize: 18 }}>›</span>
                       </button>
                       <div style={{ textAlign: 'center', borderTop: '1px solid var(--b2)', paddingTop: 16 }}>
@@ -744,8 +744,8 @@ export default function CreatePage() {
               {/* ── Step: Summary / Review & Launch ── */}
               {step === 'summary' && (
                 <div className="cr2-form-panel">
-                  <div style={{ background: '#f8f9fc', border: '1px solid #eef0f7', borderRadius: 14, overflow: 'hidden' }}>
-                    <div style={{ padding: '14px 20px', borderBottom: '1px solid #eef0f7', background: '#fff', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ background: 'var(--s2, #f8f9fc)', border: '1px solid var(--b1, #eef0f7)', borderRadius: 14, overflow: 'hidden' }}>
+                    <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--b1, #eef0f7)', background: 'var(--s1, #fff)', display: 'flex', alignItems: 'center', gap: 10 }}>
                       <span style={{ fontSize: 18 }}>📋</span>
                       <strong style={{ fontSize: 14, color: 'var(--t1)' }}>Campaign Summary</strong>
                     </div>
@@ -758,22 +758,22 @@ export default function CreatePage() {
                       { label: 'Story',       value: form.description.length >= 20 ? `${form.description.slice(0, 60)}…` : '—', ok: form.description.length >= 20 },
                       { label: 'Cover Photo', value: hasCover ? '✓ Uploaded' : 'None (optional)',                                ok: hasCover },
                     ].map(row => (
-                      <div key={row.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 20px', borderBottom: '1px solid #f0f2f7' }}>
+                      <div key={row.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 20px', borderBottom: '1px solid var(--b1, #f0f2f7)' }}>
                         <span style={{ fontSize: 13, color: 'var(--t3)', fontWeight: 700, minWidth: 110 }}>{row.label}</span>
-                        <span style={{ fontSize: 13, fontWeight: row.ok ? 700 : 600, textAlign: 'right', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: row.ok ? 'var(--t1)' : '#ef4444' }}>{row.value}</span>
+                        <span style={{ fontSize: 13, fontWeight: row.ok ? 700 : 600, textAlign: 'right', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: row.ok ? 'var(--t1)' : 'var(--red, #ef4444)' }}>{row.value}</span>
                       </div>
                     ))}
                   </div>
 
-                  <div style={{ background: '#f8f9fc', border: '1px solid #eef0f7', borderRadius: 14, overflow: 'hidden' }}>
-                    <div style={{ padding: '14px 20px', borderBottom: '1px solid #eef0f7', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ background: 'var(--s2, #f8f9fc)', border: '1px solid var(--b1, #eef0f7)', borderRadius: 14, overflow: 'hidden' }}>
+                    <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--b1, #eef0f7)', background: 'var(--s1, #fff)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span style={{ fontSize: 18 }}>💳</span>
                         <strong style={{ fontSize: 14, color: 'var(--t1)' }}>Payout Account</strong>
                       </div>
                       {payoutLinked
-                        ? <span style={{ fontSize: 11, fontWeight: 800, color: '#15803d', background: '#f0fdf4', border: '1px solid #86efac', padding: '3px 10px', borderRadius: 999 }}>● Linked</span>
-                        : <span style={{ fontSize: 11, fontWeight: 800, color: '#dc2626', background: '#fef2f2', border: '1px solid #fca5a5', padding: '3px 10px', borderRadius: 999 }}>● Not Linked</span>
+                        ? <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--green-dark, #15803d)', background: 'rgba(22,163,74,.10)', border: '1px solid rgba(22,163,74,.25)', padding: '3px 10px', borderRadius: 999 }}>● Linked</span>
+                        : <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--red, #dc2626)', background: 'rgba(190,18,60,.08)', border: '1px solid rgba(190,18,60,.25)', padding: '3px 10px', borderRadius: 999 }}>● Not Linked</span>
                       }
                     </div>
                     <div style={{ padding: '14px 20px', fontSize: 13, color: 'var(--t2)' }}>
@@ -784,15 +784,15 @@ export default function CreatePage() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 12, padding: '14px 18px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12 }}>
+                  <div style={{ display: 'flex', gap: 12, padding: '14px 18px', background: 'rgba(22,163,74,.08)', border: '1px solid rgba(22,163,74,.20)', borderRadius: 12 }}>
                     <span style={{ fontSize: 20, flexShrink: 0 }}>🎉</span>
-                    <div style={{ fontSize: 13, color: '#15803d', fontWeight: 700, lineHeight: 1.6 }}>
+                    <div style={{ fontSize: 13, color: 'var(--green-dark, #15803d)', fontWeight: 700, lineHeight: 1.6 }}>
                       CharitMe charges <strong>0% platform fees</strong>. 100% of donations go to your campaign. Stripe processing fees (2.9% + $0.30) are covered by donors optionally.
                     </div>
                   </div>
 
                   {(form.title.length < 3 || goalCents < 100 || form.description.length < 20) && (
-                    <div style={{ padding: '14px 18px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 12, fontSize: 13, color: '#92400e' }}>
+                    <div style={{ padding: '14px 18px', background: 'rgba(217,119,6,.08)', border: '1px solid rgba(217,119,6,.25)', borderRadius: 12, fontSize: 13, color: '#92400e' }}>
                       <strong>Fix before launching:</strong>
                       <ul style={{ margin: '8px 0 0', paddingLeft: 18, lineHeight: 2 }}>
                         {form.title.length < 3 && <li>Campaign title too short (min 3 characters)</li>}
@@ -990,8 +990,8 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
           )}
           <label className="guest-modal-label">Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email" /></label>
           <label className="guest-modal-label">Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required minLength={6} autoComplete={modalMode === 'login' ? 'current-password' : 'new-password'} /></label>
-          {err && <p style={{ margin: 0, color: '#be123c', fontSize: 13, fontWeight: 700 }}>{err}</p>}
-          {ok  && <p style={{ margin: 0, color: '#15803d', fontSize: 13, fontWeight: 700 }}>{ok}</p>}
+          {err && <p style={{ margin: 0, color: 'var(--red, #be123c)', fontSize: 13, fontWeight: 700 }}>{err}</p>}
+          {ok  && <p style={{ margin: 0, color: 'var(--green-dark, #15803d)', fontSize: 13, fontWeight: 700 }}>{ok}</p>}
           <button className="guest-modal-submit" type="submit" disabled={busy}>
             {busy ? 'Working…' : modalMode === 'login' ? 'Log in' : 'Create account'}
           </button>

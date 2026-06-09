@@ -127,7 +127,7 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
                   <div className="text-xs text-slate-500">Change your account password via email</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                  {pwResetMsg && <span style={{ fontSize: 11, color: '#15803d', fontWeight: 600 }}>{pwResetMsg}</span>}
+                  {pwResetMsg && <span style={{ fontSize: 11, color: 'var(--green-dark, #15803d)', fontWeight: 600 }}>{pwResetMsg}</span>}
                   <button
                     onClick={async () => {
                       const res = await fetch('/api/auth/reset-password', { method: 'POST' });
