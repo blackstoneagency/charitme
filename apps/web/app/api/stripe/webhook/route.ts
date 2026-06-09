@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type Stripe from 'stripe';
 import { stripe, formatCents } from '../../../../lib/stripe';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import { sendReceiptEmail } from '../../../../lib/email';
+import { sendReceiptEmail, sendOrganizerDonationAlert, sendPayoutEmail, sendRefundEmail } from '../../../../lib/email';
 import { recordCampaignPayment, recordPaymentEvent } from '../../../../lib/payment-flow';
 
 export async function POST(request: NextRequest) {
@@ -181,6 +181,26 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
       }, { onConflict: 'stripe_subscription_id', ignoreDuplicates: false });
 
       await sendDonorReceipt(meta.donorId, meta.campaignId, `${formatCents(amountCents)}/month`);
+
+      // Store UTM attribution on recurring donation (same logic as one-time)
+      if (meta.utmSource || meta.utmMedium || meta.utmCampaign || meta.utmContent || meta.shareEventId) {
+        const donId = await findDonationId({ paymentIntentId: null, checkoutSessionId: session.id });
+        if (donId) {
+          const sourceUtm = {
+            ...(meta.utmSource    ? { utm_source:     meta.utmSource }    : {}),
+            ...(meta.utmMedium    ? { utm_medium:     meta.utmMedium }    : {}),
+            ...(meta.utmCampaign  ? { utm_campaign:   meta.utmCampaign }  : {}),
+            ...(meta.utmContent   ? { utm_content:    meta.utmContent }   : {}),
+            ...(meta.shareEventId ? { share_event_id: meta.shareEventId } : {}),
+          };
+          void supabaseAdmin.from('donations').update({ source_utm: sourceUtm }).eq('id', donId);
+          if (meta.shareEventId) {
+            void supabaseAdmin.from('share_events')
+              .update({ converted: true, donation_id: donId })
+              .eq('id', meta.shareEventId);
+          }
+        }
+      }
     }
   } else if (meta.campaignId) {
     // ── One-time donation ─────────────────────────────────────────────────
@@ -212,6 +232,29 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
 
     const alreadyDone = (data as { status: string } | null)?.status === 'already_processed';
     const donationId = await findDonationId({ paymentIntentId, checkoutSessionId: session.id });
+
+    // Store UTM attribution on the donation record (non-fatal)
+    if (!alreadyDone && donationId) {
+      const hasUtm = meta.utmSource || meta.utmMedium || meta.utmCampaign || meta.utmContent || meta.shareEventId;
+      if (hasUtm) {
+        const sourceUtm = {
+          ...(meta.utmSource   ? { utm_source:   meta.utmSource }   : {}),
+          ...(meta.utmMedium   ? { utm_medium:   meta.utmMedium }   : {}),
+          ...(meta.utmCampaign ? { utm_campaign: meta.utmCampaign } : {}),
+          ...(meta.utmContent  ? { utm_content:  meta.utmContent }  : {}),
+          ...(meta.shareEventId ? { share_event_id: meta.shareEventId } : {}),
+        };
+        void Promise.resolve(
+          supabaseAdmin.from('donations').update({ source_utm: sourceUtm }).eq('id', donationId),
+        ).then(() => {
+          if (meta.shareEventId) {
+            void supabaseAdmin.from('share_events')
+              .update({ converted: true, donation_id: donationId })
+              .eq('id', meta.shareEventId);
+          }
+        });
+      }
+    }
     const campaignPaymentId = await recordCampaignPayment({
       donationId,
       campaignId: meta.campaignId,
@@ -328,6 +371,11 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
 
     if (!alreadyDone && meta.donorId && amountCents > 0) {
       await sendDonorReceipt(meta.donorId, meta.campaignId, formatCents(amountCents), eventId);
+    }
+
+    // ── Notify organizer of new donation (non-blocking) ────────────────────
+    if (!alreadyDone && organizerUserId && amountCents > 0) {
+      sendOrganizerDonationNotification(organizerUserId, meta.campaignId, amountCents, meta.donorId || null).catch(() => {});
     }
   } else if (meta.plan && meta.userId) {
     // ── Platform SaaS subscription ────────────────────────────────────────
@@ -528,23 +576,26 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
 
   // Update donation status
   const { data: donation } = await supabaseAdmin.from('donations')
-    .select('id, amount_cents, campaign_id')
+    .select('id, amount_cents, campaign_id, donor_id, campaigns:campaign_id(title, slug)')
     .eq('stripe_payment_intent_id', piId)
     .maybeSingle();
 
   if (!donation) return;
 
+  type DonationWithCampaign = { id: string; amount_cents: number; campaign_id: string; donor_id: string | null; campaigns: { title: string; slug: string } | null };
+  const don = donation as unknown as DonationWithCampaign;
+
   await supabaseAdmin.from('donations').update({
     status: newStatus,
     refunded_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-  }).eq('id', donation.id);
+  }).eq('id', don.id);
 
   if (isFullRefund) {
     try {
       await supabaseAdmin.rpc('decrement_campaign_stats', {
-        p_campaign_id: donation.campaign_id,
-        p_amount_cents: donation.amount_cents,
+        p_campaign_id: don.campaign_id,
+        p_amount_cents: don.amount_cents,
       });
     } catch { /* non-fatal */ }
   }
@@ -552,8 +603,13 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
   // Update any matching refund record
   await supabaseAdmin.from('refunds')
     .update({ status: 'processed', processed_at: new Date().toISOString() })
-    .eq('donation_id', donation.id)
+    .eq('donation_id', don.id)
     .in('status', ['requested', 'approved']);
+
+  // Notify donor of refund (non-blocking)
+  if (don.donor_id && isFullRefund && don.campaigns) {
+    sendDonorRefundNotification(don.donor_id, don.campaigns.title, don.amount_cents).catch(() => {});
+  }
 
   const payment = await findCampaignPayment({ paymentIntentId: piId, chargeId: charge.id });
   if (!payment) return;
@@ -946,6 +1002,9 @@ async function handlePayoutPaid(payout: Stripe.Payout) {
         metadata: { arrival_date: payout.arrival_date ?? null },
       }),
     ]);
+    if (payout.status === 'paid') {
+      notifyOrganizerPayout(payment.campaign_owner_id, payment.campaign_id, payout.amount, 'paid').catch(() => {});
+    }
   }
 }
 
@@ -986,6 +1045,7 @@ async function handlePayoutFailed(payout: Stripe.Payout) {
         metadata: { failure_code: payout.failure_code ?? null, failure_message: payout.failure_message ?? null },
       }),
     ]);
+    notifyOrganizerPayout(payment.campaign_owner_id, payment.campaign_id, payout.amount, 'failed', payout.failure_code).catch(() => {});
   }
 }
 
@@ -1113,5 +1173,126 @@ async function sendDonorReceipt(
     }
   } catch {
     // Non-fatal — receipt failure must not fail webhook
+  }
+}
+
+async function sendOrganizerDonationNotification(
+  organizerUserId: string,
+  campaignId: string,
+  amountCents: number,
+  donorId: string | null,
+) {
+  try {
+    const [{ data: organizer }, { data: camp }, { data: donor }] = await Promise.all([
+      supabaseAdmin.from('profiles').select('full_name, email').eq('id', organizerUserId).single(),
+      supabaseAdmin.from('campaigns').select('title, slug, raised_amount, goal_amount').eq('id', campaignId).single(),
+      donorId ? supabaseAdmin.from('profiles').select('full_name').eq('id', donorId).single() : Promise.resolve({ data: null }),
+    ]);
+
+    if (!organizer?.email || !camp) return;
+
+    const donorDisplayName = donor?.full_name || 'An anonymous donor';
+    const { formatCents: fmt } = await import('../../../../lib/stripe');
+
+    // Insert in-app notification
+    await supabaseAdmin.from('notifications').insert({
+      user_id: organizerUserId,
+      kind: 'donation_received',
+      title: `New donation: ${fmt(amountCents)}`,
+      body: `${donorDisplayName} donated ${fmt(amountCents)} to "${camp.title}".`,
+      link: `/dashboard/campaigns`,
+      meta: { campaign_id: campaignId, amount_cents: amountCents, donor_id: donorId },
+    });
+
+    await sendOrganizerDonationAlert({
+      to: organizer.email,
+      organizerName: organizer.full_name,
+      campaignTitle: camp.title,
+      campaignSlug: camp.slug,
+      amountFormatted: fmt(amountCents),
+      donorDisplayName,
+      totalRaisedFormatted: fmt(camp.raised_amount ?? 0),
+      goalFormatted: fmt(camp.goal_amount ?? 0),
+    });
+  } catch {
+    // Non-fatal
+  }
+}
+
+// Wire payout notifications into existing handlers
+async function notifyOrganizerPayout(
+  organizerUserId: string | null | undefined,
+  campaignId: string | null | undefined,
+  amountCents: number,
+  status: 'paid' | 'failed' | 'scheduled',
+  failureCode?: string | null,
+) {
+  if (!organizerUserId) return;
+  try {
+    const [{ data: organizer }, { data: camp }] = await Promise.all([
+      supabaseAdmin.from('profiles').select('full_name, email').eq('id', organizerUserId).single(),
+      campaignId
+        ? supabaseAdmin.from('campaigns').select('title').eq('id', campaignId).single()
+        : Promise.resolve({ data: null }),
+    ]);
+    if (!organizer?.email) return;
+
+    const { formatCents: fmt } = await import('../../../../lib/stripe');
+
+    await supabaseAdmin.from('notifications').insert({
+      user_id: organizerUserId,
+      kind: `payout_${status}`,
+      title: `Payout ${status}: ${fmt(amountCents)}`,
+      body: camp ? `Payout for "${camp.title}"` : undefined,
+      link: '/dashboard/payouts',
+      meta: { campaign_id: campaignId, amount_cents: amountCents, status },
+    });
+
+    await sendPayoutEmail({
+      to: organizer.email,
+      organizerName: organizer.full_name,
+      campaignTitle: camp?.title ?? 'your campaign',
+      amountFormatted: fmt(amountCents),
+      status,
+      failureReason: failureCode ? `Failure code: ${failureCode}` : undefined,
+    });
+  } catch {
+    // Non-fatal
+  }
+}
+
+async function sendDonorRefundNotification(
+  donorId: string,
+  campaignTitle: string,
+  amountCents: number,
+) {
+  try {
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', donorId)
+      .single();
+    if (!profile?.email) return;
+
+    const { formatCents: fmt } = await import('../../../../lib/stripe');
+    const amountFormatted = fmt(amountCents);
+
+    await supabaseAdmin.from('notifications').insert({
+      user_id: donorId,
+      kind: 'refund_processed',
+      title: `Refund processed: ${amountFormatted}`,
+      body: `Your donation to "${campaignTitle}" has been refunded.`,
+      link: '/dashboard/donations',
+      meta: { campaign_title: campaignTitle, amount_cents: amountCents },
+    });
+
+    await sendRefundEmail({
+      to: profile.email,
+      donorName: profile.full_name,
+      campaignTitle,
+      amountFormatted,
+    });
+  } catch {
+    // Non-fatal
   }
 }

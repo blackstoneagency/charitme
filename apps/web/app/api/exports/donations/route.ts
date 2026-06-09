@@ -1,5 +1,5 @@
 import 'server-only';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
 
@@ -17,12 +17,19 @@ function toCsv(rows: Record<string, unknown>[], headers: string[]): string {
   ].join('\n');
 }
 
-// GET /api/exports/donations
+export const dynamic = 'force-dynamic';
+
+// GET /api/exports/donations?year=2026
 // Returns a CSV of all completed donations across the user's campaigns.
-export async function GET() {
+// Optional `year` query param filters to a specific tax year (Jan 1 – Dec 31).
+export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const url = new URL(req.url);
+  const yearParam = url.searchParams.get('year');
+  const year = yearParam ? parseInt(yearParam, 10) : null;
 
   // Fetch user's campaign IDs
   const { data: campaigns } = await supabaseAdmin
@@ -32,22 +39,30 @@ export async function GET() {
 
   const cids = (campaigns ?? []).map((c: { id: string }) => c.id);
   if (cids.length === 0) {
-    return new NextResponse('id,campaign,donor_name,donor_email,amount_usd,status,date\n', {
+    return new NextResponse('id,campaign,donor_name,amount_usd,status,date\n', {
       status: 200,
       headers: {
         'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="donations-export-${Date.now()}.csv"`,
+        'Content-Disposition': `attachment; filename="donations-${year ?? 'all'}-export.csv"`,
       },
     });
   }
 
   const campaignMap = new Map((campaigns ?? []).map((c: { id: string; title: string }) => [c.id, c.title]));
 
-  const { data: donations } = await supabaseAdmin
+  let donationsQuery = supabaseAdmin
     .from('donations')
     .select('id,campaign_id,donor_name,donor_email,amount_cents,status,created_at')
     .in('campaign_id', cids)
     .order('created_at', { ascending: false });
+
+  if (year) {
+    donationsQuery = donationsQuery
+      .gte('created_at', `${year}-01-01T00:00:00.000Z`)
+      .lt('created_at',  `${year + 1}-01-01T00:00:00.000Z`);
+  }
+
+  const { data: donations } = await donationsQuery;
 
   type Donation = {
     id: string;
@@ -76,7 +91,7 @@ export async function GET() {
     status: 200,
     headers: {
       'Content-Type': 'text/csv',
-      'Content-Disposition': `attachment; filename="donations-export-${Date.now()}.csv"`,
+      'Content-Disposition': `attachment; filename="donations-${year ?? 'all'}-export.csv"`,
     },
   });
 }

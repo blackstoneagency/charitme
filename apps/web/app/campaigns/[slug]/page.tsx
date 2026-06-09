@@ -3,10 +3,12 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { createClient } from '../../../lib/supabase-server';
 import { formatCents } from '../../../lib/stripe';
 import { calculateTrustScore, getTrustSignals } from '../../../lib/ai-platform';
 import DonateButton from './DonateButton';
 import ReportButton from './ReportButton';
+import ShareButtons from './ShareButtons';
 import DonationSuccess from './DonationSuccess';
 import MobileDonateCTA from './MobileDonateCTA';
 import CampaignCarousel from './CampaignCarousel';
@@ -18,7 +20,14 @@ const RENDER_TIME = Date.now();
 
 interface Props {
   params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ donated?: string }>;
+  searchParams?: Promise<{
+    donated?: string;
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    utm_content?: string;
+    share_event_id?: string;
+  }>;
 }
 
 type Profile = { full_name?: string | null; avatar_url?: string | null };
@@ -122,10 +131,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CampaignPage({ params, searchParams }: Props) {
-  const [{ slug }, sp] = await Promise.all([params, searchParams ?? Promise.resolve({} as { donated?: string })]);
+  type SP = NonNullable<Awaited<Props['searchParams']>>;
+  const [{ slug }, sp] = await Promise.all([params, searchParams ?? Promise.resolve({} as SP)]);
+  const utm = {
+    utmSource:    sp.utm_source,
+    utmMedium:    sp.utm_medium,
+    utmCampaign:  sp.utm_campaign,
+    utmContent:   sp.utm_content,
+    shareEventId: sp.share_event_id,
+  };
   const justDonated = sp.donated === '1';
   const campaign = await getCampaign(slug);
   if (!campaign) notFound();
+
+  // Private campaigns are only visible to the owner and admins
+  const visibility = (campaign as { visibility?: string }).visibility ?? 'public';
+  if (visibility === 'private') {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.id !== campaign.user_id) notFound();
+  }
 
   const [donations, updates, ledger, faqs, donorMessages] = await Promise.all([
     getRecentDonations(campaign.id),
@@ -144,7 +169,8 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const daysLeft: number | null = campaign.deadline
     ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - RENDER_TIME) / 86_400_000))
     : null;
-  const isActive = campaign.status === 'active' && (daysLeft === null || daysLeft > 0);
+  const acceptDonations = (campaign as { accept_donations?: boolean }).accept_donations !== false;
+  const isActive = campaign.status === 'active' && (daysLeft === null || daysLeft > 0) && acceptDonations;
   const cover = campaign.cover_image_url || getCoverForCategory(campaign.category);
   const videoUrl: string | null = (campaign as { video_url?: string | null }).video_url ?? null;
   const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
@@ -391,50 +417,14 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             )}
           </div>
 
-          {/* Quick Share */}
-          <div id="quick-share" className="pc-quick-share">
-            <div className="pc-quick-share-header">
-              <strong style={{ fontSize: 16, fontWeight: 900, color: 'var(--t1)' }}>Quick share</strong>
-              <span style={{ fontSize: 12, color: 'var(--t3)' }}>📱 Share this campaign</span>
-            </div>
-            <div className="pc-quick-share-qr">
-              <div className="pc-quick-share-platforms">
-                <div className="pc-share-copy">
-                  <input type="text" readOnly value={campaignUrl} aria-label="Campaign URL" />
-                  <button type="button">Copy</button>
-                </div>
-                <div className="pc-share-grid">
-                  <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(campaignUrl)}`} target="_blank" rel="noopener noreferrer" className="pc-share-tile">
-                    <span className="pc-share-tile-icon" style={{ background: '#e7f0ff', color: '#1877f2' }}>f</span>Facebook
-                  </a>
-                  <a href={`https://www.facebook.com/dialog/send?link=${encodeURIComponent(campaignUrl)}&app_id=181477038500745`} target="_blank" rel="noopener noreferrer" className="pc-share-tile">
-                    <span className="pc-share-tile-icon" style={{ background: '#e6f3ff', color: '#0084ff' }}>m</span>Messenger
-                  </a>
-                  <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(campaignUrl)}`} target="_blank" rel="noopener noreferrer" className="pc-share-tile">
-                    <span className="pc-share-tile-icon" style={{ background: '#e8f3fb', color: '#0a66c2' }}>in</span>LinkedIn
-                  </a>
-                  <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(campaignUrl)}&text=${encodeURIComponent(campaign.title)}`} target="_blank" rel="noopener noreferrer" className="pc-share-tile">
-                    <span className="pc-share-tile-icon" style={{ background: '#f0f0f0', color: '#000' }}>&#120143;</span>X / Twitter
-                  </a>
-                  <a href={`https://wa.me/?text=${encodeURIComponent(`${campaign.title} ${campaignUrl}`)}`} target="_blank" rel="noopener noreferrer" className="pc-share-tile">
-                    <span className="pc-share-tile-icon" style={{ background: '#e9fbe9', color: '#25d366' }}>&#10003;</span>WhatsApp
-                  </a>
-                  <a href={`mailto:?subject=${encodeURIComponent(campaign.title)}&body=${encodeURIComponent(`Please support: ${campaignUrl}`)}`} className="pc-share-tile">
-                    <span className="pc-share-tile-icon" style={{ background: 'var(--s2)', color: 'var(--violet)' }}>@</span>Email
-                  </a>
-                </div>
-                <div style={{ marginTop: 14 }}>
-                  <a href={`/api/campaigns/${campaign.id}/qr-poster`} target="_blank" style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)', textDecoration: 'none' }}>
-                    🖨 Download printable poster →
-                  </a>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                <img src={qrUrl} alt={`QR code for ${campaign.title}`} width={120} height={120} style={{ borderRadius: 10, border: '1px solid var(--b2)' }} />
-                <span style={{ fontSize: 11, color: 'var(--t3)', textAlign: 'center' }}>Scan to donate</span>
-              </div>
-            </div>
-          </div>
+          {/* Quick Share — client component records share events */}
+          <ShareButtons
+            campaignId={campaign.id}
+            campaignUrl={campaignUrl}
+            campaignTitle={campaign.title}
+            qrUrl={qrUrl}
+            qrPosterId={campaign.id}
+          />
 
         </div>{/* end pc-left */}
 
@@ -456,7 +446,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             </div>
 
             {isActive ? (
-              <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
+              <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} utm={utm} />
+            ) : !acceptDonations && campaign.status === 'active' ? (
+              <div className="pc-ended">Donations are temporarily paused for this campaign.</div>
             ) : (
               <div className="pc-ended">This campaign has ended.</div>
             )}

@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/exports/full
 // Returns a full JSON export of the authenticated user's data.
 export async function GET() {

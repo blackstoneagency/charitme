@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import RequestPayoutButton from './RequestPayoutButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +84,16 @@ export default async function PayoutsPage({
   const userId = user.id;
   const activeTab = (typeof params.tab === 'string' ? params.tab : 'all').toLowerCase();
 
+  // Fetch active campaigns with available balance for the request payout widget
+  const { data: activeCampaigns } = await supabaseAdmin
+    .from('campaigns')
+    .select('id, title, raised_amount')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .is('deleted_at', null)
+    .order('raised_amount', { ascending: false })
+    .limit(20);
+
   // Step 1: fetch payouts for this user
   const { data: payoutData } = await supabaseAdmin
     .from('payouts')
@@ -151,6 +162,7 @@ export default async function PayoutsPage({
       <TopBar
         title="Payouts"
         subtitle="Review and manage payouts to your beneficiaries."
+        actions={<RequestPayoutButton campaigns={(activeCampaigns ?? []) as { id: string; title: string; raised_amount: number }[]} />}
       />
 
       <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>

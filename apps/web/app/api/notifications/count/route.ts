@@ -3,43 +3,57 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/notifications/count
-// Returns unread message count for the authenticated user's campaigns.
-// "Unread" = donor_messages posted to your campaigns that you haven't replied to yet.
+// Returns the combined unread count: unread in-app notifications + unreplied donor messages.
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ count: 0 });
+  if (!user) return NextResponse.json({ count: 0, notifications: 0, messages: 0 });
 
   try {
-    // Get user's active campaign IDs
-    const { data: campaigns } = await supabaseAdmin
-      .from('campaigns')
-      .select('id')
-      .eq('user_id', user.id)
-      .in('status', ['active', 'paused', 'completed']);
+    const [notifResult, campaignsResult] = await Promise.all([
+      // Unread in-app notifications
+      supabaseAdmin
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .is('read_at', null),
 
-    const campaignIds = (campaigns ?? []).map((c: { id: string }) => c.id);
-    if (campaignIds.length === 0) return NextResponse.json({ count: 0 });
+      // Get user's active campaign IDs for message counts
+      supabaseAdmin
+        .from('campaigns')
+        .select('id')
+        .eq('user_id', user.id)
+        .in('status', ['active', 'paused', 'completed']),
+    ]);
 
-    // Count donor_messages that have NO corresponding owner reply
-    // (i.e., messages the organizer hasn't responded to yet)
-    const { count: totalMessages } = await supabaseAdmin
-      .from('donor_messages')
-      .select('id', { count: 'exact', head: true })
-      .in('campaign_id', campaignIds);
+    const unreadNotifications = notifResult.count ?? 0;
+    const campaignIds = (campaignsResult.data ?? []).map((c: { id: string }) => c.id);
 
-    const { count: repliedMessages } = await supabaseAdmin
-      .from('campaign_owner_replies')
-      .select('id', { count: 'exact', head: true })
-      .in('campaign_id', campaignIds);
+    let unrepliedMessages = 0;
+    if (campaignIds.length > 0) {
+      const [totalResult, repliedResult] = await Promise.all([
+        supabaseAdmin
+          .from('donor_messages')
+          .select('id', { count: 'exact', head: true })
+          .in('campaign_id', campaignIds),
+        supabaseAdmin
+          .from('campaign_owner_replies')
+          .select('id', { count: 'exact', head: true })
+          .in('campaign_id', campaignIds),
+      ]);
+      unrepliedMessages = Math.max(0, (totalResult.count ?? 0) - (repliedResult.count ?? 0));
+    }
 
-    const unreplied = Math.max(0, (totalMessages ?? 0) - (repliedMessages ?? 0));
+    const total = unreadNotifications + unrepliedMessages;
 
-    return NextResponse.json({ count: unreplied }, {
-      headers: { 'Cache-Control': 'private, max-age=30' }, // 30-second client cache
-    });
+    return NextResponse.json(
+      { count: total, notifications: unreadNotifications, messages: unrepliedMessages },
+      { headers: { 'Cache-Control': 'private, max-age=30' } },
+    );
   } catch {
-    return NextResponse.json({ count: 0 });
+    return NextResponse.json({ count: 0, notifications: 0, messages: 0 });
   }
 }

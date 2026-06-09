@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '../lib/supabase-browser';
+import { ThemeToggle } from './ThemeProvider';
 
 const NAV = [
   ['Home', '/'],
@@ -65,6 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const supabase = useMemo(() => createClient(), []);
   const bypass = SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/'));
 
@@ -73,6 +75,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => setUser(session?.user ?? null));
     return () => subscription.unsubscribe();
   }, [supabase]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (user) {
+      fetch('/api/notifications/count')
+        .then(r => r.ok ? r.json() : { count: 0 })
+        .then((d: { count?: number }) => { if (!cancelled) setUnreadCount(d.count ?? 0); })
+        .catch(() => { if (!cancelled) setUnreadCount(0); });
+    } else {
+      Promise.resolve().then(() => { if (!cancelled) setUnreadCount(0); });
+    }
+    return () => { cancelled = true; };
+  }, [user, path]);
 
   if (bypass) return <>{children}</>;
 
@@ -90,6 +105,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ))}
           </nav>
           <div className="kind-auth">
+            <ThemeToggle />
             <Link href="/campaigns" className="kind-search-btn" aria-label="Search campaigns">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" />
@@ -97,7 +113,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
             {user ? (
               <>
-                <Link href="/dashboard" className="kind-start">Dashboard</Link>
+                <Link href="/dashboard" className="kind-start" style={{ position: 'relative' }}>
+                  Dashboard
+                  {unreadCount > 0 && (
+                    <span style={{
+                      position: 'absolute', top: -6, right: -10,
+                      background: '#ef4444', color: '#fff',
+                      fontSize: 10, fontWeight: 900, lineHeight: 1,
+                      padding: '2px 5px', borderRadius: 10,
+                      minWidth: 16, textAlign: 'center',
+                    }}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
                 <button
                   className="kind-login kind-signout-btn"
                   onClick={async () => {
@@ -126,7 +155,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {NAV.map(([label, href]) => <Link key={href} href={href} onClick={() => setMenuOpen(false)}>{label}</Link>)}
             {user ? (
               <>
-                <Link href="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</Link>
+                <Link href="/dashboard" onClick={() => setMenuOpen(false)}>
+                  Dashboard{unreadCount > 0 ? ` (${unreadCount > 99 ? '99+' : unreadCount})` : ''}
+                </Link>
                 <button
                   style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, font: 'inherit', color: 'inherit' }}
                   onClick={async () => {

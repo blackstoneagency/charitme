@@ -13,6 +13,7 @@ import {
   type PaymentMethod,
 } from '@shared/fees';
 import { getAppOrigin } from '../../../lib/auth-config';
+import { checkRateLimit } from '../../../lib/rate-limit';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema
@@ -26,6 +27,12 @@ const DonateSchema = z.object({
   tipPercent:         z.number().min(0).max(100).optional(),
   paymentMethod:      z.enum(['stripe','paypal','venmo','gpay','bank','card']).optional(),
   donorEmail:         z.string().email().optional(),
+  // Share attribution — UTM params forwarded from the landing URL
+  utmSource:          z.string().max(100).optional(),
+  utmMedium:          z.string().max(100).optional(),
+  utmCampaign:        z.string().max(100).optional(),
+  utmContent:         z.string().max(100).optional(),
+  shareEventId:       z.string().uuid().optional(),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -43,6 +50,12 @@ const DonateSchema = z.object({
 //
 // ─────────────────────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
+  // 20 donations per IP per 10 minutes — prevents spam / card testing
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (!checkRateLimit(`donate:${ip}`, 20, 10 * 60 * 1000)) {
+    return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
+  }
+
   const body = await request.json().catch(() => null);
   const parsed = DonateSchema.safeParse(body);
   if (!parsed.success) {
@@ -59,6 +72,11 @@ export async function POST(request: NextRequest) {
     anonymous,
     coverProcessingFee,
     donorEmail,
+    utmSource,
+    utmMedium,
+    utmCampaign,
+    utmContent,
+    shareEventId,
   } = parsed.data;
 
   const paymentMethod: PaymentMethod = parsed.data.paymentMethod ?? 'stripe';
@@ -172,6 +190,12 @@ export async function POST(request: NextRequest) {
       connectedAccountId:   connectedAccount?.stripe_account_id ?? '',
       hasConnectedAccount:  hasConnectedAccount ? '1' : '0',
       organizerUserId:      campaign.user_id,
+      // Share attribution
+      utmSource:            utmSource ?? '',
+      utmMedium:            utmMedium ?? '',
+      utmCampaign:          utmCampaign ?? '',
+      utmContent:           utmContent ?? '',
+      shareEventId:         shareEventId ?? '',
     },
     payment_intent_data: hasConnectedAccount
       ? {

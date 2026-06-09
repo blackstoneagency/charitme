@@ -3,10 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
-import { resend } from '../../../../lib/email';
-
-const FROM = process.env.EMAIL_FROM ?? 'CharitMe <hello@charitme.com>';
-const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
+import { sendBeneficiaryInviteEmail } from '../../../../lib/email';
 
 const InviteSchema = z.object({
   campaignId: z.string().uuid(),
@@ -45,20 +42,18 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const inviteRow = invite as { id: string; token: string };
-  const acceptUrl = `${ORIGIN}/beneficiary/accept?token=${inviteRow.token}`;
 
-  // Send invite email
-  if (resend) {
-    await resend.emails.send({
-      from: FROM,
-      to: email,
-      subject: `You've been invited as a beneficiary — ${campaign.title}`,
-      html: `<p>You've been invited to be the beneficiary of a CharitMe fundraiser: <strong>${campaign.title}</strong>.</p>
-<p><a href="${acceptUrl}" style="background:#6c35ff;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:700">Accept Invitation</a></p>
-<p>This link expires in 7 days.</p>`,
-      text: `You've been invited as the beneficiary of "${campaign.title}".\n\nAccept here: ${acceptUrl}\n\nThis link expires in 7 days.`,
-    }).catch(() => undefined);
-  }
+  // Get organizer name
+  const { data: organizer } = await supabaseAdmin.from('profiles').select('full_name').eq('id', user.id).single();
+
+  // Send invite email using the proper template
+  await sendBeneficiaryInviteEmail({
+    to: email,
+    organizerName: organizer?.full_name ?? 'Your fundraiser organizer',
+    campaignTitle: campaign.title,
+    campaignSlug: campaign.slug,
+    inviteToken: inviteRow.token,
+  }).catch(() => {});
 
   return NextResponse.json({ ok: true, inviteId: inviteRow.id });
 }

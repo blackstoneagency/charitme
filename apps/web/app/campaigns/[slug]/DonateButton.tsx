@@ -73,12 +73,22 @@ const PAY_OPTIONS: PayOption[] = [
   { id: 'card',    label: 'Credit or debit',icon: <span style={{ fontSize: 14 }}>💳</span> },
 ];
 
+interface UtmProps {
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
+  shareEventId?: string;
+}
+
 export default function DonateButton({
   campaignId,
   campaignTitle,
+  utm,
 }: {
   campaignId: string;
   campaignTitle: string;
+  utm?: UtmProps;
 }) {
   const [frequency, setFrequency]         = useState<FrequencyMode>('once');
   const [amount, setAmount]               = useState('100');
@@ -131,8 +141,14 @@ export default function DonateButton({
           anonymous,
           coverProcessingFee: !isMonthly,
           tipPercent,
-          paymentMethod: preferredMethod,   // matches /api/donations schema
+          paymentMethod: preferredMethod,
           donorEmail: !user && guestEmail.trim() ? guestEmail.trim() : undefined,
+          // Share attribution — forwarded from landing URL
+          ...(utm?.utmSource    ? { utmSource:    utm.utmSource }    : {}),
+          ...(utm?.utmMedium    ? { utmMedium:    utm.utmMedium }    : {}),
+          ...(utm?.utmCampaign  ? { utmCampaign:  utm.utmCampaign }  : {}),
+          ...(utm?.utmContent   ? { utmContent:   utm.utmContent }   : {}),
+          ...(utm?.shareEventId ? { shareEventId: utm.shareEventId } : {}),
         }),
       });
       const text = await res.text();

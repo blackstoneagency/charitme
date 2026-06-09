@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
+import { checkRateLimit } from '../../../lib/rate-limit';
 
 function slugify(text: string): string {
   return text
@@ -32,6 +33,12 @@ const CreateSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // 5 campaign creations per user per hour — prevents abuse
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (!checkRateLimit(`campaign:${ip}`, 5, 60 * 60 * 1000)) {
+    return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -62,6 +69,8 @@ export async function POST(request: NextRequest) {
     location: location ?? null,
     video_url: videoUrl ?? null,
     status: status ?? 'active',
+    accept_donations: true,
+    visibility: 'public',
   };
 
   // Try inserting with image_urls; fall back gracefully if column doesn't exist yet
@@ -122,14 +131,26 @@ export async function GET(request: NextRequest) {
   const category = searchParams.get('category');
   const q = searchParams.get('q');
 
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '24', 10)));
+  const offset = (page - 1) * limit;
+  const location = searchParams.get('location');
+  const visibility = searchParams.get('visibility') ?? 'public';
+  const sort = searchParams.get('sort') ?? 'raised';
+  const sortCol = sort === 'newest' ? 'created_at' : sort === 'backers' ? 'backer_count' : 'raised_amount';
+
   let query = supabaseAdmin
     .from('campaigns')
-    .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status')
+    .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, location, accept_donations', { count: 'exact' })
     .eq('status', 'active')
-    .order('raised_amount', { ascending: false })
-    .limit(50);
+    .eq('visibility', visibility)
+    .is('deleted_at', null)
+    .order(sortCol, { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (category) query = query.eq('category', category);
+  if (location) query = query.ilike('location', `%${location}%`);
+  // Full-text search on title using trigram index — ilike takes advantage of gin_trgm_ops
   if (q) query = query.ilike('title', `%${q}%`);
 
   const { data, error } = await query;
@@ -138,5 +159,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' }, { status: 500 });
   }
 
-  return NextResponse.json(data);
+  const { data: countResult } = await supabaseAdmin
+    .from('campaigns')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'active')
+    .eq('visibility', visibility)
+    .is('deleted_at', null);
+  void countResult;
+
+  return NextResponse.json({ campaigns: data ?? [], page, limit });
 }

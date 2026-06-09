@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../lib/supabase';
 
-export const revalidate = 300; // cache 5 min
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const { data, error } = await supabaseAdmin

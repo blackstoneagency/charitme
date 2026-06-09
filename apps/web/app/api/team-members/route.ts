@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
+import { sendCoOrganizerInviteEmail } from '../../../lib/email';
 
 const InviteSchema = z.object({
   campaignId: z.string().uuid('Invalid campaign ID'),
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   // Verify the current user owns this campaign
   const { data: campaign, error: campErr } = await supabaseAdmin
     .from('campaigns')
-    .select('id, title, user_id')
+    .select('id, title, slug, user_id')
     .eq('id', campaignId)
     .single();
 
@@ -77,6 +78,15 @@ export async function POST(req: NextRequest) {
   if (insertError) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
+
+  // Send co-organizer invite email (non-fatal)
+  sendCoOrganizerInviteEmail({
+    to: email,
+    organizerName: user.email ?? 'The organizer',
+    campaignTitle: (campaign as { title: string }).title,
+    campaignSlug: (campaign as { slug?: string }).slug ?? campaignId,
+    role,
+  }).catch(() => {});
 
   return NextResponse.json({ ok: true, member: data }, { status: 201 });
 }
