@@ -4724,8 +4724,8 @@ img, svg { display: block; }
   border-color: var(--b2);
 }
 [data-theme="dark"] .ai-builder-greeting { color: var(--t1); }
-[data-theme="dark"] .ai-builder-sub { color: var(--t3); }
-[data-theme="dark"] .ai-builder-lede { color: var(--t3); }
+[data-theme="dark"] .ai-builder-sub { color: var(--t2); }
+[data-theme="dark"] .ai-builder-lede { color: var(--t2); }
 [data-theme="dark"] .ai-builder-divider::before,
 [data-theme="dark"] .ai-builder-divider::after { background: var(--line); }
 [data-theme="dark"] .ai-builder-input {
@@ -4734,8 +4734,8 @@ img, svg { display: block; }
   box-shadow: 0 18px 50px rgba(108,53,255,.15);
 }
 [data-theme="dark"] .ai-builder-input textarea { color: var(--t1); }
-[data-theme="dark"] .ai-builder-input textarea::placeholder { color: var(--t4); }
-[data-theme="dark"] .ai-builder-examples { color: var(--t4); }
+[data-theme="dark"] .ai-builder-input textarea::placeholder { color: var(--t3); }
+[data-theme="dark"] .ai-builder-examples { color: var(--t3); }
 [data-theme="dark"] .ai-builder-popular { color: var(--t1); }
 [data-theme="dark"] .ai-builder-chips button {
   background: var(--s2);
@@ -4746,7 +4746,7 @@ img, svg { display: block; }
   border-color: #6c35ff;
   box-shadow: 0 8px 24px rgba(108,53,255,.2);
 }
-[data-theme="dark"] .ai-builder-secure { color: var(--t3); }
+[data-theme="dark"] .ai-builder-secure { color: var(--t2); }
 
 /* ── Pricing page ── */
 [data-theme="dark"] .pricing-promises {
