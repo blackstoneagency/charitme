@@ -205,6 +205,10 @@ export default async function CampaignDetailPage({
               style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
               <KFIcon name="doc" /> Edit Campaign
             </Link>
+            <Link href={`/dashboard/campaigns/${campaign.id}/settings`} className="kf-outline"
+              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <KFIcon name="settings" /> Settings
+            </Link>
             <a
               href={`/campaigns/${campaign.slug}`}
               target="_blank"

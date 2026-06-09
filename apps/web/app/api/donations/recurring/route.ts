@@ -7,6 +7,7 @@ import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
 import { donorTip, MIN_DONATION_CENTS, MAX_DONATION_CENTS, DEFAULT_DONOR_TIP_PERCENT } from '@shared/fees';
 import { getAppOrigin } from '../../../../lib/auth-config';
+import { checkRateLimit } from '../../../../lib/rate-limit';
 
 const Schema = z.object({
   campaignId:   z.string().uuid(),
@@ -28,6 +29,12 @@ const Schema = z.object({
 // billed on the chosen cadence. We use a per-campaign Stripe Price created
 // on-demand so no manual Stripe dashboard setup is needed.
 export async function POST(request: NextRequest) {
+  // 10 recurring subscriptions per IP per 10 minutes
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (!checkRateLimit(`recurring:${ip}`, 10, 10 * 60 * 1000)) {
+    return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
