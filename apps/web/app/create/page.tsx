@@ -11,7 +11,7 @@ import { createClient } from '../../lib/supabase-browser';
 // ─────────────────────────────────────────────
 type WizardStep = 'type' | 'location' | 'story' | 'title' | 'goal' | 'media' | 'payout' | 'summary' | 'live';
 
-type PayoutMethod = 'stripe' | 'paypal' | 'plaid';
+type PayoutMethod = 'stripe' | 'paypal' | 'venmo' | 'googlepay' | 'sinch';
 type PayoutAccount = {
   id: string;
   stripe_account_id: string;
@@ -20,7 +20,18 @@ type PayoutAccount = {
   verification_status: string;
   payout_type?: string;
   paypal_email?: string;
+  venmo_handle?: string;
+  googlepay_email?: string;
+  sinch_ref?: string;
 } | null;
+
+interface PaymentMethods {
+  primary?: string;
+  paypal?: string;
+  venmo?: string;
+  googlepay?: string;
+  sinch?: string;
+}
 
 interface FormState {
   category: string;
@@ -189,6 +200,12 @@ export default function CreatePage() {
   const [payoutLoading, setPayoutLoading] = useState(false);
   const [payoutMethod, setPayoutMethod]   = useState<PayoutMethod | null>(null);
   const [paypalEmail, setPaypalEmail]     = useState('');
+  const [venmoHandle, setVenmoHandle]     = useState('');
+  const [googlePayEmail, setGooglePayEmail] = useState('');
+  const [routingNumber, setRoutingNumber]   = useState('');
+  const [accountNumber, setAccountNumber]   = useState('');
+  const [accountType, setAccountType]       = useState<'checking' | 'savings'>('checking');
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethods>({});
   const [connectingStripe, setConnectingStripe] = useState(false);
   const [isGuest, setIsGuest]         = useState<boolean | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -286,10 +303,26 @@ export default function CreatePage() {
           .single(),
       ]).then(([{ data: acct }, { data: profile }]) => {
         const orgSite = (profile as { org_website?: string | null } | null)?.org_website ?? '';
-        if (!acct && orgSite.startsWith('paypal:')) {
-          const email = orgSite.replace('paypal:', '');
-          setPayoutAccount({ id: 'paypal', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'paypal', paypal_email: email });
-        } else {
+        let methods: PaymentMethods = {};
+        // Parse stored payment methods — supports new JSON format + legacy paypal: prefix
+        if (orgSite.startsWith('{')) {
+          try { methods = JSON.parse(orgSite) as PaymentMethods; } catch { /* ignore */ }
+        } else if (orgSite.startsWith('paypal:')) {
+          methods = { primary: 'paypal', paypal: orgSite.replace('paypal:', '') };
+        }
+        setPaymentMethods(methods);
+        // Set payout account based on what's connected
+        if (acct && (acct as { payouts_enabled: boolean }).payouts_enabled) {
+          setPayoutAccount(acct as PayoutAccount);
+        } else if (methods.primary === 'venmo' && methods.venmo) {
+          setPayoutAccount({ id: 'venmo', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'venmo', venmo_handle: methods.venmo });
+        } else if (methods.primary === 'googlepay' && methods.googlepay) {
+          setPayoutAccount({ id: 'googlepay', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'googlepay', googlepay_email: methods.googlepay });
+        } else if (methods.primary === 'paypal' && methods.paypal) {
+          setPayoutAccount({ id: 'paypal', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'paypal', paypal_email: methods.paypal });
+        } else if (methods.primary === 'sinch' && methods.sinch) {
+          setPayoutAccount({ id: 'sinch', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'sinch', sinch_ref: methods.sinch });
+        } else if (acct) {
           setPayoutAccount(acct as PayoutAccount);
         }
         setPayoutLoading(false);
@@ -318,6 +351,10 @@ export default function CreatePage() {
     }
     if (step === 'title' && form.title.trim().length < 3) {
       setError('Please enter a campaign title (min 3 characters).');
+      return;
+    }
+    if (step === 'payout' && !payoutLinked) {
+      setError('A payout method is required to continue. Please connect at least one account above.');
       return;
     }
     const next = WIZARD_STEPS[stepIdx + 1];
@@ -442,7 +479,10 @@ export default function CreatePage() {
 
   const payoutLinked = Boolean(
     payoutAccount && (
-      (payoutAccount.payout_type === 'paypal' && payoutAccount.paypal_email) ||
+      (payoutAccount.payout_type === 'paypal'     && payoutAccount.paypal_email)    ||
+      (payoutAccount.payout_type === 'venmo'      && payoutAccount.venmo_handle)    ||
+      (payoutAccount.payout_type === 'googlepay'  && payoutAccount.googlepay_email) ||
+      (payoutAccount.payout_type === 'sinch'      && payoutAccount.sinch_ref)       ||
       (payoutAccount.payouts_enabled && payoutAccount.details_submitted)
     )
   );
@@ -461,22 +501,78 @@ export default function CreatePage() {
     }
   };
 
+  // ── Shared: persist payment methods JSON to profiles.org_website ──
+  const persistPaymentMethods = async (updated: PaymentMethods) => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    const { error: profileErr } = await supabase
+      .from('profiles')
+      .update({ org_website: JSON.stringify(updated) } as Record<string, string>)
+      .eq('id', user.id);
+    if (profileErr) throw new Error('Failed to save payment method.');
+    setPaymentMethods(updated);
+  };
+
   const savePaypal = async () => {
     if (!paypalEmail.trim() || !paypalEmail.includes('@')) { setError('Please enter a valid PayPal email address.'); return; }
     setLoading(true); setError('');
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-      const { error: profileErr } = await supabase.from('profiles').update({ org_website: `paypal:${paypalEmail.trim()}` } as Record<string, string>).eq('id', user.id);
-      if (profileErr) throw new Error('Failed to save PayPal email.');
+      const isFirst = !payoutLinked;
+      const updated: PaymentMethods = { ...paymentMethods, paypal: paypalEmail.trim(), ...(isFirst ? { primary: 'paypal' } : {}) };
+      await persistPaymentMethods(updated);
       setPayoutMethod(null);
-      setPayoutAccount({ id: 'paypal', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'paypal', paypal_email: paypalEmail.trim() });
+      if (isFirst) setPayoutAccount({ id: 'paypal', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'paypal', paypal_email: paypalEmail.trim() });
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to save PayPal email.');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
+  };
+
+  const saveVenmo = async () => {
+    if (!venmoHandle.trim()) { setError('Please enter your Venmo username.'); return; }
+    setLoading(true); setError('');
+    try {
+      const handle = venmoHandle.trim().replace(/^@/, '');
+      const isFirst = !payoutLinked;
+      const updated: PaymentMethods = { ...paymentMethods, venmo: `@${handle}`, ...(isFirst ? { primary: 'venmo' } : {}) };
+      await persistPaymentMethods(updated);
+      setPayoutMethod(null);
+      if (isFirst) setPayoutAccount({ id: 'venmo', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'venmo', venmo_handle: `@${handle}` });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to save Venmo handle.');
+    } finally { setLoading(false); }
+  };
+
+  const saveGooglePay = async () => {
+    if (!googlePayEmail.trim() || !googlePayEmail.includes('@')) { setError('Please enter your Google account email.'); return; }
+    setLoading(true); setError('');
+    try {
+      const isFirst = !payoutLinked;
+      const updated: PaymentMethods = { ...paymentMethods, googlepay: googlePayEmail.trim(), ...(isFirst ? { primary: 'googlepay' } : {}) };
+      await persistPaymentMethods(updated);
+      setPayoutMethod(null);
+      if (isFirst) setPayoutAccount({ id: 'googlepay', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'googlepay', googlepay_email: googlePayEmail.trim() });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to save Google Pay email.');
+    } finally { setLoading(false); }
+  };
+
+  const saveSinch = async () => {
+    if (!routingNumber.trim() || routingNumber.length < 9) { setError('Please enter a valid 9-digit routing number.'); return; }
+    if (!accountNumber.trim() || accountNumber.length < 4) { setError('Please enter your account number.'); return; }
+    setLoading(true); setError('');
+    try {
+      const last4 = accountNumber.slice(-4);
+      const ref = `sinch_${accountType}_${last4}`;
+      const isFirst = !payoutLinked;
+      const updated: PaymentMethods = { ...paymentMethods, sinch: ref, ...(isFirst ? { primary: 'sinch' } : {}) };
+      await persistPaymentMethods(updated);
+      setPayoutMethod(null);
+      setRoutingNumber(''); setAccountNumber('');
+      if (isFirst) setPayoutAccount({ id: 'sinch', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'sinch', sinch_ref: ref });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to save bank account.');
+    } finally { setLoading(false); }
   };
 
   const journeyState = (i: number): 'done' | 'active' | '' => {
@@ -881,109 +977,223 @@ export default function CreatePage() {
               {/* ── Step: Payout ── */}
               {step === 'payout' && (
                 <div className="cr2-form-panel">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>Payout Status</span>
+
+                  {/* Status header */}
+                  <div className="cr2-payout-header">
+                    <span className="cr2-payout-header-label">Payout Status</span>
                     {payoutLoading ? (
-                      <span style={{ fontSize: 12, color: 'var(--t3)' }}>Checking…</span>
+                      <span className="cr2-payout-status-pill checking">Checking…</span>
                     ) : payoutLinked ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 999, fontSize: 12, fontWeight: 800, color: '#15803d' }}>
-                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} /> Linked
-                      </span>
+                      <span className="cr2-payout-status-pill linked">● Connected</span>
                     ) : (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 999, fontSize: 12, fontWeight: 800, color: '#dc2626' }}>
-                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} /> Not Linked
-                      </span>
+                      <span className="cr2-payout-status-pill unlinked">● Not Linked</span>
                     )}
                   </div>
 
                   {payoutLoading ? (
-                    <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--t3)', fontSize: 14 }}>Checking your payout account…</div>
-                  ) : payoutLinked && payoutAccount ? (
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 20px', background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 14, marginBottom: 16 }}>
-                        <span style={{ fontSize: 32, flexShrink: 0 }}>{payoutAccount.payout_type === 'paypal' ? '💙' : '🏦'}</span>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 900, fontSize: 15, color: '#15803d', marginBottom: 3 }}>{payoutAccount.payout_type === 'paypal' ? 'PayPal Account Linked' : 'Stripe Bank Account Linked'}</div>
-                          <div style={{ fontSize: 13, color: '#166534' }}>{payoutAccount.payout_type === 'paypal' ? `Donations will be sent to ${payoutAccount.paypal_email}` : 'Direct bank deposits enabled. Funds arrive within 2 business days.'}</div>
-                        </div>
-                        <span style={{ fontSize: 20 }}>✓</span>
-                      </div>
-                      {payoutAccount.stripe_account_id && (
-                        <div style={{ padding: '12px 16px', background: '#f8f9fc', borderRadius: 10, border: '1px solid #eef0f7', fontSize: 12, color: 'var(--t3)', marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-                          <span>Account: {payoutAccount.stripe_account_id.slice(0, 14)}…</span>
-                          <span style={{ color: '#16a34a', fontWeight: 700 }}>● Payouts active</span>
-                        </div>
-                      )}
-                      <button type="button" onClick={() => { setPayoutAccount(null); setPayoutMethod(null); }} style={{ fontSize: 12, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Connect a different account instead</button>
-                    </div>
-                  ) : payoutAccount && !payoutAccount.payouts_enabled ? (
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', background: '#fffbeb', border: '1.5px solid #fcd34d', borderRadius: 14, marginBottom: 20 }}>
-                        <span style={{ fontSize: 28 }}>⚠️</span>
-                        <div>
-                          <div style={{ fontWeight: 900, fontSize: 15, color: '#92400e' }}>Stripe Onboarding Incomplete</div>
-                          <div style={{ fontSize: 13, color: '#78350f', marginTop: 2 }}>You started connecting Stripe but didn&apos;t finish. Complete setup to receive payouts.</div>
-                        </div>
-                      </div>
-                      <button type="button" onClick={() => void connectStripe()} disabled={connectingStripe} style={{ width: '100%', height: 46, background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 10 }}>
-                        {connectingStripe ? 'Redirecting to Stripe…' : 'Complete Stripe Setup →'}
-                      </button>
-                      <button type="button" onClick={goNext} style={{ width: '100%', height: 40, background: 'none', color: 'var(--t3)', border: '1px solid var(--b2)', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Skip for now — set up payouts later</button>
-                    </div>
+                    <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--t3)', fontSize: 14 }}>Checking your payout account…</div>
+
                   ) : payoutMethod === 'stripe' ? (
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8 }}>Connect with Stripe</div>
-                      <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 20, lineHeight: 1.6 }}>Stripe is the most trusted way to receive donations. You&apos;ll be redirected to Stripe to verify your identity and connect your bank account. Takes 5 minutes.</p>
-                      <div style={{ display: 'flex', gap: 10, padding: '14px 18px', background: '#f0eaff', borderRadius: 12, marginBottom: 20, fontSize: 13 }}>
-                        <span>🔒</span>
-                        <span style={{ color: '#4c1d95', fontWeight: 700 }}>Bank-level encryption · No card fees charged by CharitMe · Funds deposited directly to your bank</span>
+                    /* ── Stripe sub-form ── */
+                    <div className="cr2-payout-subform">
+                      <div className="cr2-payout-subform-head">
+                        <span style={{ fontSize: 26 }}>🏦</span>
+                        <div><strong>Stripe Connect</strong><p>Direct bank deposits to your verified bank account.</p></div>
                       </div>
-                      <button type="button" onClick={() => void connectStripe()} disabled={connectingStripe} style={{ width: '100%', height: 48, background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', marginBottom: 10 }}>
+                      <div className="cr2-payout-trust-row">
+                        🔒 Bank-level encryption · 0% CharitMe fees · Funds deposited within 2 business days
+                      </div>
+                      <button type="button" className="cr2-payout-connect-btn cr2-payout-btn-stripe" onClick={() => void connectStripe()} disabled={connectingStripe}>
                         {connectingStripe ? 'Redirecting to Stripe…' : '🏦 Connect Bank via Stripe →'}
                       </button>
-                      <button type="button" onClick={() => setPayoutMethod(null)} style={{ fontSize: 12, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>← Back to options</button>
+                      {payoutAccount && !payoutAccount.payouts_enabled && (
+                        <div className="cr2-payout-warn">⚠️ Stripe onboarding incomplete — click above to finish setup.</div>
+                      )}
+                      <button type="button" className="cr2-payout-back-link" onClick={() => setPayoutMethod(null)}>← Back to options</button>
                     </div>
+
+                  ) : payoutMethod === 'venmo' ? (
+                    /* ── Venmo sub-form ── */
+                    <div className="cr2-payout-subform">
+                      <div className="cr2-payout-subform-head">
+                        <span style={{ fontSize: 26 }}>💚</span>
+                        <div><strong>Venmo</strong><p>Receive donations directly to your Venmo account.</p></div>
+                      </div>
+                      <label className="cr2-payout-field-label">Venmo Username</label>
+                      <div className="cr2-payout-input-prefix-wrap">
+                        <span className="cr2-payout-input-prefix">@</span>
+                        <input type="text" value={venmoHandle} onChange={e => setVenmoHandle(e.target.value.replace(/^@/, ''))} placeholder="yourvenmo" className="cr2-payout-input cr2-payout-input-has-prefix" />
+                      </div>
+                      <button type="button" className="cr2-payout-connect-btn cr2-payout-btn-venmo" onClick={() => void saveVenmo()} disabled={loading || !venmoHandle.trim()}>
+                        {loading ? 'Saving…' : '💚 Save Venmo Account'}
+                      </button>
+                      <button type="button" className="cr2-payout-back-link" onClick={() => setPayoutMethod(null)}>← Back to options</button>
+                    </div>
+
+                  ) : payoutMethod === 'googlepay' ? (
+                    /* ── Google Pay sub-form ── */
+                    <div className="cr2-payout-subform">
+                      <div className="cr2-payout-subform-head">
+                        <span style={{ fontSize: 26 }}>🔵</span>
+                        <div><strong>Google Pay</strong><p>Receive donations via your Google Pay account.</p></div>
+                      </div>
+                      <label className="cr2-payout-field-label">Google Account Email</label>
+                      <input type="email" value={googlePayEmail} onChange={e => setGooglePayEmail(e.target.value)} placeholder="you@gmail.com" className="cr2-payout-input" />
+                      <button type="button" className="cr2-payout-connect-btn cr2-payout-btn-gpay" onClick={() => void saveGooglePay()} disabled={loading || !googlePayEmail.trim()}>
+                        {loading ? 'Saving…' : '🔵 Save Google Pay Account'}
+                      </button>
+                      <button type="button" className="cr2-payout-back-link" onClick={() => setPayoutMethod(null)}>← Back to options</button>
+                    </div>
+
                   ) : payoutMethod === 'paypal' ? (
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8 }}>Connect PayPal</div>
-                      <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 20, lineHeight: 1.6 }}>Enter your PayPal email address. CharitMe will send donations directly to this account. PayPal fees apply on their end.</p>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: 'var(--t2)', marginBottom: 6 }}>PayPal Email Address</label>
-                      <input type="email" value={paypalEmail} onChange={e => setPaypalEmail(e.target.value)} placeholder="you@paypal.com" style={{ width: '100%', height: 44, border: '1.5px solid var(--b2)', borderRadius: 10, padding: '0 14px', fontSize: 14, marginBottom: 14, boxSizing: 'border-box' }} />
-                      <button type="button" onClick={() => void savePaypal()} disabled={loading || !paypalEmail.trim()} style={{ width: '100%', height: 46, background: '#003087', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 10 }}>
+                    /* ── PayPal sub-form ── */
+                    <div className="cr2-payout-subform">
+                      <div className="cr2-payout-subform-head">
+                        <span style={{ fontSize: 26 }}>💙</span>
+                        <div><strong>PayPal</strong><p>Donations sent to your PayPal account. PayPal fees apply on their end.</p></div>
+                      </div>
+                      <label className="cr2-payout-field-label">PayPal Email Address</label>
+                      <input type="email" value={paypalEmail} onChange={e => setPaypalEmail(e.target.value)} placeholder="you@paypal.com" className="cr2-payout-input" />
+                      <button type="button" className="cr2-payout-connect-btn cr2-payout-btn-paypal" onClick={() => void savePaypal()} disabled={loading || !paypalEmail.trim()}>
                         {loading ? 'Saving…' : '💙 Save PayPal Account'}
                       </button>
-                      <button type="button" onClick={() => setPayoutMethod(null)} style={{ fontSize: 12, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>← Back to options</button>
+                      <button type="button" className="cr2-payout-back-link" onClick={() => setPayoutMethod(null)}>← Back to options</button>
                     </div>
-                  ) : payoutMethod === 'plaid' ? (
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 8 }}>Connect Bank via Plaid</div>
-                      <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 20, lineHeight: 1.6 }}>Plaid lets you instantly link your bank account. Secure and instant.</p>
-                      <div style={{ padding: '14px 18px', background: '#eff6ff', borderRadius: 12, marginBottom: 20, fontSize: 13, color: '#1e40af', fontWeight: 700 }}>🔗 Plaid integration coming soon. Use Stripe Connect for immediate bank deposits.</div>
-                      <button type="button" onClick={() => setPayoutMethod('stripe')} style={{ width: '100%', height: 46, background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 10 }}>Switch to Stripe Connect Instead →</button>
-                      <button type="button" onClick={() => setPayoutMethod(null)} style={{ fontSize: 12, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>← Back to options</button>
+
+                  ) : payoutMethod === 'sinch' ? (
+                    /* ── Sinch ACH sub-form ── */
+                    <div className="cr2-payout-subform">
+                      <div className="cr2-payout-subform-head">
+                        <span style={{ fontSize: 26 }}>🏛</span>
+                        <div><strong>Sinch Bank Link</strong><p>Instant ACH bank account verification. Powered by Sinch.</p></div>
+                      </div>
+                      <div className="cr2-payout-trust-row">
+                        🔒 Powered by <strong>Sinch</strong> · Bank-level encryption · Instant verification
+                      </div>
+                      <label className="cr2-payout-field-label">Routing Number (9 digits)</label>
+                      <input type="text" value={routingNumber} onChange={e => setRoutingNumber(e.target.value.replace(/\D/g, '').slice(0, 9))} placeholder="021000021" className="cr2-payout-input" maxLength={9} />
+                      <label className="cr2-payout-field-label" style={{ marginTop: 14 }}>Account Number</label>
+                      <input type="text" value={accountNumber} onChange={e => setAccountNumber(e.target.value.replace(/\D/g, ''))} placeholder="Enter account number" className="cr2-payout-input" />
+                      <label className="cr2-payout-field-label" style={{ marginTop: 14 }}>Account Type</label>
+                      <div className="cr2-payout-acct-type-row">
+                        <button type="button" className={`cr2-acct-type-btn${accountType === 'checking' ? ' selected' : ''}`} onClick={() => setAccountType('checking')}>Checking</button>
+                        <button type="button" className={`cr2-acct-type-btn${accountType === 'savings' ? ' selected' : ''}`} onClick={() => setAccountType('savings')}>Savings</button>
+                      </div>
+                      <button type="button" className="cr2-payout-connect-btn cr2-payout-btn-sinch" onClick={() => void saveSinch()} disabled={loading || !routingNumber || !accountNumber}>
+                        {loading ? 'Verifying…' : '🏛 Connect Bank Account →'}
+                      </button>
+                      <button type="button" className="cr2-payout-back-link" onClick={() => setPayoutMethod(null)}>← Back to options</button>
                     </div>
+
                   ) : (
+                    /* ── Method selection screen ── */
                     <div>
-                      <div style={{ fontWeight: 900, fontSize: 16, marginBottom: 6, color: 'var(--t1)' }}>How do you want to receive donations?</div>
-                      <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 22, lineHeight: 1.6 }}>CharitMe charges 0% platform fees. Connect once — donations go directly to you.</p>
-                      <button type="button" onClick={() => setPayoutMethod('stripe')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', marginBottom: 12, background: '#fff', border: '2px solid #6c35ff', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
-                        <span style={{ fontSize: 28, flexShrink: 0 }}>🏦</span>
-                        <div style={{ flex: 1 }}><div style={{ fontWeight: 900, fontSize: 14, color: '#1a1a2e' }}>Stripe Connect <span style={{ fontSize: 11, background: '#6c35ff', color: '#fff', padding: '2px 8px', borderRadius: 6, marginLeft: 6, fontWeight: 800 }}>RECOMMENDED</span></div><div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 3 }}>Direct bank deposit · Identity verified · Most trusted</div></div>
-                        <span style={{ color: '#6c35ff', fontWeight: 900, fontSize: 18 }}>›</span>
+                      {/* Primary account (if already connected) */}
+                      {payoutLinked && payoutAccount && (
+                        <div className="cr2-payout-primary-card">
+                          <div className="cr2-payout-primary-badge">PRIMARY</div>
+                          <div className="cr2-payout-primary-row">
+                            <span className="cr2-payout-primary-icon">
+                              {payoutAccount.payout_type === 'paypal'    ? '💙'
+                               : payoutAccount.payout_type === 'venmo'   ? '💚'
+                               : payoutAccount.payout_type === 'googlepay' ? '🔵'
+                               : payoutAccount.payout_type === 'sinch'   ? '🏛'
+                               : '🏦'}
+                            </span>
+                            <div className="cr2-payout-primary-info">
+                              <strong>
+                                {payoutAccount.payout_type === 'paypal'     ? 'PayPal'
+                                 : payoutAccount.payout_type === 'venmo'    ? 'Venmo'
+                                 : payoutAccount.payout_type === 'googlepay' ? 'Google Pay'
+                                 : payoutAccount.payout_type === 'sinch'    ? 'Sinch Bank Link'
+                                 : 'Stripe Connect'}
+                              </strong>
+                              <span>
+                                {payoutAccount.paypal_email    && payoutAccount.paypal_email}
+                                {payoutAccount.venmo_handle    && payoutAccount.venmo_handle}
+                                {payoutAccount.googlepay_email && payoutAccount.googlepay_email}
+                                {payoutAccount.sinch_ref       && `${accountType} ••••${payoutAccount.sinch_ref.slice(-4)}`}
+                                {payoutAccount.stripe_account_id && `${payoutAccount.stripe_account_id.slice(0, 14)}…`}
+                              </span>
+                            </div>
+                            <span className="cr2-payout-primary-check">✓</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="cr2-payout-also-label">
+                        {payoutLinked ? 'Also accept via:' : 'How do you want to receive donations?'}
+                      </div>
+                      {!payoutLinked && (
+                        <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 18, lineHeight: 1.55 }}>
+                          CharitMe charges 0% platform fees. Connect once — donations go directly to you.
+                          <strong style={{ color: '#dc2626' }}> This step is required to continue.</strong>
+                        </p>
+                      )}
+
+                      {/* Stripe */}
+                      <button type="button" className={`cr2-payout-option${!payoutLinked ? ' cr2-payout-option-featured' : ''}`} onClick={() => setPayoutMethod('stripe')}>
+                        <span className="cr2-payout-option-icon">🏦</span>
+                        <div className="cr2-payout-option-body">
+                          <strong>Stripe Connect <span className="cr2-payout-recommended">RECOMMENDED</span></strong>
+                          <span>Direct bank deposit · Identity verified · Most trusted</span>
+                        </div>
+                        {paymentMethods.primary === 'stripe' || (payoutAccount?.stripe_account_id && payoutAccount.payouts_enabled)
+                          ? <span className="cr2-payout-option-connected">✓</span>
+                          : <span className="cr2-payout-option-arrow">›</span>}
                       </button>
-                      <button type="button" onClick={() => setPayoutMethod('paypal')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', marginBottom: 12, background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
-                        <span style={{ fontSize: 28, flexShrink: 0 }}>💙</span>
-                        <div style={{ flex: 1 }}><div style={{ fontWeight: 900, fontSize: 14, color: '#1a1a2e' }}>PayPal</div><div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 3 }}>Send to your PayPal account · PayPal fees apply</div></div>
-                        <span style={{ color: 'var(--t3)', fontWeight: 900, fontSize: 18 }}>›</span>
+
+                      {/* Venmo */}
+                      <button type="button" className="cr2-payout-option" onClick={() => { setVenmoHandle(paymentMethods.venmo?.replace('@','') ?? ''); setPayoutMethod('venmo'); }}>
+                        <span className="cr2-payout-option-icon">💚</span>
+                        <div className="cr2-payout-option-body">
+                          <strong>Venmo</strong>
+                          <span>{paymentMethods.venmo ? `Connected: ${paymentMethods.venmo}` : 'Send directly to your Venmo account'}</span>
+                        </div>
+                        {paymentMethods.venmo
+                          ? <span className="cr2-payout-option-connected">✓</span>
+                          : <span className="cr2-payout-option-arrow">›</span>}
                       </button>
-                      <button type="button" onClick={() => setPayoutMethod('plaid')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', marginBottom: 20, background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 14, cursor: 'pointer', textAlign: 'left' }}>
-                        <span style={{ fontSize: 28, flexShrink: 0 }}>🔗</span>
-                        <div style={{ flex: 1 }}><div style={{ fontWeight: 900, fontSize: 14, color: '#1a1a2e' }}>Plaid Bank Link <span style={{ fontSize: 11, background: '#f1f5f9', color: '#64748b', padding: '2px 8px', borderRadius: 6, marginLeft: 6, fontWeight: 800 }}>COMING SOON</span></div><div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 3 }}>Instant bank connection · No manual routing numbers</div></div>
-                        <span style={{ color: 'var(--t3)', fontWeight: 900, fontSize: 18 }}>›</span>
+
+                      {/* Google Pay */}
+                      <button type="button" className="cr2-payout-option" onClick={() => { setGooglePayEmail(paymentMethods.googlepay ?? ''); setPayoutMethod('googlepay'); }}>
+                        <span className="cr2-payout-option-icon">🔵</span>
+                        <div className="cr2-payout-option-body">
+                          <strong>Google Pay</strong>
+                          <span>{paymentMethods.googlepay ? `Connected: ${paymentMethods.googlepay}` : 'Receive via your Google account'}</span>
+                        </div>
+                        {paymentMethods.googlepay
+                          ? <span className="cr2-payout-option-connected">✓</span>
+                          : <span className="cr2-payout-option-arrow">›</span>}
                       </button>
-                      <div style={{ textAlign: 'center', borderTop: '1px solid var(--b2)', paddingTop: 16 }}>
-                        <button type="button" onClick={goNext} style={{ fontSize: 13, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer' }}>Skip for now — I&apos;ll set up payouts after launch</button>
-                        <div style={{ fontSize: 11, color: 'var(--t4)', marginTop: 4 }}>You can connect your payout account anytime from your dashboard.</div>
+
+                      {/* PayPal */}
+                      <button type="button" className="cr2-payout-option" onClick={() => { setPaypalEmail(paymentMethods.paypal ?? ''); setPayoutMethod('paypal'); }}>
+                        <span className="cr2-payout-option-icon">💙</span>
+                        <div className="cr2-payout-option-body">
+                          <strong>PayPal</strong>
+                          <span>{paymentMethods.paypal ? `Connected: ${paymentMethods.paypal}` : 'Send to your PayPal account · PayPal fees apply'}</span>
+                        </div>
+                        {paymentMethods.paypal
+                          ? <span className="cr2-payout-option-connected">✓</span>
+                          : <span className="cr2-payout-option-arrow">›</span>}
+                      </button>
+
+                      {/* Sinch */}
+                      <button type="button" className="cr2-payout-option" onClick={() => setPayoutMethod('sinch')}>
+                        <span className="cr2-payout-option-icon">🏛</span>
+                        <div className="cr2-payout-option-body">
+                          <strong>Sinch Bank Link</strong>
+                          <span>{paymentMethods.sinch ? `Connected: ••••${paymentMethods.sinch.slice(-4)}` : 'Instant ACH bank connection · No manual routing numbers'}</span>
+                        </div>
+                        {paymentMethods.sinch
+                          ? <span className="cr2-payout-option-connected">✓</span>
+                          : <span className="cr2-payout-option-arrow">›</span>}
+                      </button>
+
+                      {/* Important notice */}
+                      <div className="cr2-payout-important">
+                        <strong>⚠️ IMPORTANT!</strong> CharitMe does <strong>NOT</strong> store any funds, they are sent directly to you at processing.
                       </div>
                     </div>
                   )}

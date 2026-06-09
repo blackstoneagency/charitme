@@ -3995,6 +3995,82 @@ img, svg { display: block; }
 [data-theme="dark"] .cr2-donate-box { background: var(--s2); border-color: var(--b1); }
 [data-theme="dark"] .cr2-donate-raised { color: var(--t1); }
 
+/* ─── Payout step ─── */
+.cr2-payout-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.cr2-payout-header-label { font-size: 13px; font-weight: 700; color: var(--t2); }
+.cr2-payout-status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 13px; border-radius: 999px; font-size: 12px; font-weight: 800; }
+.cr2-payout-status-pill.checking { background: #f8f9fc; border: 1px solid var(--b2); color: var(--t3); }
+.cr2-payout-status-pill.linked { background: #f0fdf4; border: 1px solid #86efac; color: #15803d; }
+.cr2-payout-status-pill.unlinked { background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; }
+
+/* Primary account card */
+.cr2-payout-primary-card { position: relative; padding: 16px 18px; background: linear-gradient(135deg, #f0fdf4, #dcfce7); border: 1.5px solid #86efac; border-radius: 16px; margin-bottom: 20px; }
+.cr2-payout-primary-badge { position: absolute; top: -10px; left: 16px; font-size: 10px; font-weight: 900; letter-spacing: .08em; color: #15803d; background: #dcfce7; border: 1px solid #86efac; padding: 2px 10px; border-radius: 999px; }
+.cr2-payout-primary-row { display: flex; align-items: center; gap: 14px; }
+.cr2-payout-primary-icon { font-size: 28px; flex-shrink: 0; }
+.cr2-payout-primary-info { flex: 1; }
+.cr2-payout-primary-info strong { display: block; font-size: 14px; font-weight: 900; color: #15803d; margin-bottom: 2px; }
+.cr2-payout-primary-info span { font-size: 12px; color: #166534; }
+.cr2-payout-primary-check { font-size: 20px; color: #16a34a; font-weight: 900; }
+
+/* Method selection */
+.cr2-payout-also-label { font-size: 12px; font-weight: 800; color: var(--t3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+.cr2-payout-option { width: 100%; display: flex; align-items: center; gap: 14px; padding: 15px 18px; background: var(--bg); border: 1.5px solid var(--b2); border-radius: 14px; margin-bottom: 10px; cursor: pointer; text-align: left; transition: border-color .15s, background .15s; }
+.cr2-payout-option:hover { border-color: #6c35ff; background: rgba(108,53,255,.04); }
+.cr2-payout-option-featured { border-color: #6c35ff; background: rgba(108,53,255,.04); }
+.cr2-payout-option-icon { font-size: 24px; flex-shrink: 0; }
+.cr2-payout-option-body { flex: 1; }
+.cr2-payout-option-body strong { display: block; font-size: 14px; font-weight: 900; color: var(--t1); margin-bottom: 2px; }
+.cr2-payout-option-body span { font-size: 12px; color: var(--t3); }
+.cr2-payout-recommended { font-size: 10px; background: #6c35ff; color: #fff; padding: 2px 8px; border-radius: 6px; margin-left: 6px; font-weight: 800; vertical-align: middle; }
+.cr2-payout-option-arrow { color: var(--t3); font-weight: 900; font-size: 18px; flex-shrink: 0; }
+.cr2-payout-option-connected { color: #16a34a; font-weight: 900; font-size: 18px; flex-shrink: 0; }
+
+/* Sub-forms */
+.cr2-payout-subform { }
+.cr2-payout-subform-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+.cr2-payout-subform-head strong { display: block; font-size: 16px; font-weight: 900; color: var(--t1); margin-bottom: 3px; }
+.cr2-payout-subform-head p { margin: 0; font-size: 13px; color: var(--t3); line-height: 1.5; }
+.cr2-payout-trust-row { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: rgba(108,53,255,.06); border: 1px solid rgba(108,53,255,.15); border-radius: 10px; font-size: 12px; color: #4c1d95; font-weight: 700; margin-bottom: 18px; }
+.cr2-payout-field-label { display: block; font-size: 12px; font-weight: 800; color: var(--t2); margin-bottom: 6px; }
+.cr2-payout-input { width: 100%; height: 44px; border: 1.5px solid var(--b2); border-radius: 10px; padding: 0 14px; font-size: 14px; background: var(--bg); color: var(--t1); box-sizing: border-box; margin-bottom: 14px; }
+.cr2-payout-input:focus { outline: none; border-color: #6c35ff; }
+.cr2-payout-input-prefix-wrap { position: relative; margin-bottom: 14px; }
+.cr2-payout-input-prefix { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 15px; font-weight: 700; color: var(--t3); pointer-events: none; }
+.cr2-payout-input-has-prefix { padding-left: 28px; margin-bottom: 0; }
+.cr2-payout-acct-type-row { display: flex; gap: 10px; margin-bottom: 18px; }
+.cr2-acct-type-btn { flex: 1; height: 40px; border: 1.5px solid var(--b2); border-radius: 10px; background: var(--bg); color: var(--t2); font-size: 13px; font-weight: 700; cursor: pointer; transition: all .12s; }
+.cr2-acct-type-btn.selected { border-color: #6c35ff; background: rgba(108,53,255,.08); color: #6c35ff; }
+.cr2-payout-connect-btn { width: 100%; height: 48px; border: none; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; margin-bottom: 10px; color: #fff; transition: opacity .15s; }
+.cr2-payout-connect-btn:disabled { opacity: .6; cursor: not-allowed; }
+.cr2-payout-btn-stripe  { background: linear-gradient(135deg, #6c35ff, #a855f7); box-shadow: 0 4px 16px rgba(108,53,255,.3); }
+.cr2-payout-btn-venmo   { background: linear-gradient(135deg, #008c46, #00b25c); box-shadow: 0 4px 16px rgba(0,140,70,.3); }
+.cr2-payout-btn-gpay    { background: linear-gradient(135deg, #4285f4, #1a73e8); box-shadow: 0 4px 16px rgba(66,133,244,.3); }
+.cr2-payout-btn-paypal  { background: linear-gradient(135deg, #003087, #009cde); box-shadow: 0 4px 16px rgba(0,48,135,.3); }
+.cr2-payout-btn-sinch   { background: linear-gradient(135deg, #1a1a2e, #2e2e4e); box-shadow: 0 4px 16px rgba(0,0,0,.25); }
+.cr2-payout-back-link { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--t3); text-decoration: underline; padding: 0; }
+.cr2-payout-warn { padding: 12px 16px; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 10px; font-size: 13px; color: #92400e; font-weight: 700; margin-bottom: 14px; }
+.cr2-payout-important { margin-top: 18px; padding: 14px 16px; background: #fff7ed; border: 1.5px solid #fed7aa; border-radius: 12px; font-size: 13px; color: #7c2d12; line-height: 1.55; }
+
+/* Payout dark mode */
+[data-theme="dark"] .cr2-payout-primary-card { background: rgba(21,128,61,.12); border-color: rgba(134,239,172,.25); }
+[data-theme="dark"] .cr2-payout-primary-badge { background: rgba(21,128,61,.2); border-color: rgba(134,239,172,.3); color: #6ee7b7; }
+[data-theme="dark"] .cr2-payout-primary-info strong { color: #6ee7b7; }
+[data-theme="dark"] .cr2-payout-primary-info span { color: #a7f3d0; }
+[data-theme="dark"] .cr2-payout-primary-check { color: #4ade80; }
+[data-theme="dark"] .cr2-payout-option { background: var(--s2); border-color: var(--b1); }
+[data-theme="dark"] .cr2-payout-option:hover { background: var(--s3); border-color: #6c35ff; }
+[data-theme="dark"] .cr2-payout-option-featured { background: rgba(108,53,255,.12); border-color: #6c35ff; }
+[data-theme="dark"] .cr2-payout-trust-row { background: rgba(108,53,255,.12); border-color: rgba(108,53,255,.25); color: #c4b5fd; }
+[data-theme="dark"] .cr2-payout-input { background: var(--s2); border-color: var(--b1); color: var(--t1); }
+[data-theme="dark"] .cr2-payout-input:focus { border-color: #6c35ff; }
+[data-theme="dark"] .cr2-acct-type-btn { background: var(--s2); border-color: var(--b1); color: var(--t2); }
+[data-theme="dark"] .cr2-acct-type-btn.selected { background: rgba(108,53,255,.18); border-color: #6c35ff; color: #a78bfa; }
+[data-theme="dark"] .cr2-payout-warn { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.3); color: #fcd34d; }
+[data-theme="dark"] .cr2-payout-important { background: rgba(124,45,18,.15); border-color: rgba(254,215,170,.2); color: #fdba74; }
+[data-theme="dark"] .cr2-payout-status-pill.linked { background: rgba(21,128,61,.15); border-color: rgba(134,239,172,.3); color: #6ee7b7; }
+[data-theme="dark"] .cr2-payout-status-pill.unlinked { background: rgba(220,38,38,.1); border-color: rgba(252,165,165,.3); color: #fca5a5; }
+
 /* ═══════════════════════════════════════════════════════
    sc-* — Supported Countries public page
    ═══════════════════════════════════════════════════════ */
