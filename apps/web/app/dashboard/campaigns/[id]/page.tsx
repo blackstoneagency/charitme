@@ -406,7 +406,9 @@ export default async function CampaignDetailPage({
               { href: `/dashboard/campaigns/${campaign.id}/faqs`, icon: 'doc', label: 'Manage FAQs', desc: 'AI-generated Q&A' },
               { href: `/dashboard/campaigns/${campaign.id}/edit`, icon: 'doc', label: 'Edit Campaign', desc: 'Update title, story, media' },
               { href: `/api/campaigns/${campaign.id}/qr-poster`, icon: 'send', label: 'Print QR Poster', desc: 'Download & print' },
-              { href: `/dashboard/updates/new`, icon: 'doc', label: 'Post Update', desc: 'Keep donors informed' },
+              { href: `/dashboard/campaigns/${campaign.id}/updates`, icon: 'doc', label: 'Post Update', desc: 'Keep donors informed' },
+              { href: `/dashboard/campaigns/${campaign.id}/analytics`, icon: 'chart', label: 'Analytics', desc: 'Trends & attribution' },
+              { href: `/dashboard/campaigns/${campaign.id}/settings`, icon: 'settings', label: 'Settings', desc: 'Visibility & donations' },
             ].map(action => (
               <Link key={action.href} href={action.href} target={action.href.startsWith('/api') ? '_blank' : undefined}
                 style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 16px', border: '1px solid var(--b2)', borderRadius: 12, textDecoration: 'none', background: 'var(--s1)', transition: 'border-color .15s' }}>
