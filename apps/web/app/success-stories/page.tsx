@@ -75,7 +75,7 @@ export default async function SuccessStoriesPage() {
   const gridStories = stories.slice(featured ? 1 : 0);
 
   return (
-    <div style={{ background: '#f8f7ff', minHeight: '100vh' }}>
+    <div style={{ background: 'var(--bg, #f8f7ff)', minHeight: '100vh' }}>
 
       {/* ── Dark Hero ── */}
       <section style={{
@@ -138,23 +138,23 @@ export default async function SuccessStoriesPage() {
 
       {/* ── Featured Story ── */}
       {featured && (
-        <section style={{ background: '#fff', borderBottom: '1px solid #ede9fe', padding: '64px 0' }}>
+        <section style={{ background: 'var(--s1, #fff)', borderBottom: '1px solid var(--b1, #ede9fe)', padding: '64px 0' }}>
           <div className="container">
             <div style={{ textAlign: 'center', marginBottom: 40 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: '.12em' }}>Featured Story</span>
-              <h2 style={{ fontSize: 'clamp(22px,3vw,36px)', fontWeight: 950, color: '#0e0520', margin: '10px 0 0' }}>Community spotlight</h2>
+              <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet, #6c35ff)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Featured Story</span>
+              <h2 style={{ fontSize: 'clamp(22px,3vw,36px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 0' }}>Community spotlight</h2>
             </div>
             <Link href={`/campaigns/${featured.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'center', background: 'linear-gradient(145deg,#faf8ff,#f3f0ff)', border: '1.5px solid #ede9fe', borderRadius: 24, padding: '40px', overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'center', background: 'linear-gradient(145deg, var(--s1, #faf8ff), var(--s2, #f3f0ff))', border: '1.5px solid var(--b1, #ede9fe)', borderRadius: 24, padding: '40px', overflow: 'hidden' }}>
                 <div style={{ borderRadius: 18, overflow: 'hidden', height: 340, backgroundImage: `url(${featured.cover_image_url || getCoverForCategory(featured.category)})`, backgroundSize: 'cover', backgroundPosition: 'center', boxShadow: '0 16px 48px rgba(108,53,255,.18)' }} />
                 <div>
                   {featured.category && (
-                    <span style={{ display: 'inline-block', background: 'rgba(108,53,255,.1)', color: '#6c35ff', borderRadius: 999, padding: '4px 14px', fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 16 }}>
+                    <span style={{ display: 'inline-block', background: 'rgba(108,53,255,.1)', color: 'var(--violet, #6c35ff)', borderRadius: 999, padding: '4px 14px', fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 16 }}>
                       {featured.category}
                     </span>
                   )}
-                  <h3 style={{ fontSize: 'clamp(20px,2.5vw,30px)', fontWeight: 950, color: '#0e0520', lineHeight: 1.25, margin: '0 0 16px' }}>{featured.title}</h3>
-                  <p style={{ fontSize: 15, color: '#475569', lineHeight: 1.75, margin: '0 0 28px' }}>
+                  <h3 style={{ fontSize: 'clamp(20px,2.5vw,30px)', fontWeight: 950, color: 'var(--t1, #0e0520)', lineHeight: 1.25, margin: '0 0 16px' }}>{featured.title}</h3>
+                  <p style={{ fontSize: 15, color: 'var(--t2, #475569)', lineHeight: 1.75, margin: '0 0 28px' }}>
                     {featured.description ?? 'This campaign is building momentum and creating real community impact through CharitMe.'}
                   </p>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 28 }}>
@@ -163,13 +163,13 @@ export default async function SuccessStoriesPage() {
                       { val: featured.backer_count.toLocaleString(), lbl: 'Donors' },
                       { val: `${pct(featured.raised_amount, featured.goal_amount)}%`, lbl: 'Funded' },
                     ].map(s => (
-                      <div key={s.lbl} style={{ textAlign: 'center', background: '#fff', borderRadius: 14, padding: '14px 10px', border: '1px solid #ede9fe' }}>
-                        <div style={{ fontSize: 22, fontWeight: 950, color: '#6c35ff' }}>{s.val}</div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: 4 }}>{s.lbl}</div>
+                      <div key={s.lbl} style={{ textAlign: 'center', background: 'var(--s1, #fff)', borderRadius: 14, padding: '14px 10px', border: '1px solid var(--b1, #ede9fe)' }}>
+                        <div style={{ fontSize: 22, fontWeight: 950, color: 'var(--violet, #6c35ff)' }}>{s.val}</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3, #94a3b8)', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: 4 }}>{s.lbl}</div>
                       </div>
                     ))}
                   </div>
-                  <div style={{ background: '#ede9fe', borderRadius: 999, height: 8, overflow: 'hidden', marginBottom: 24 }}>
+                  <div style={{ background: 'var(--b1, #ede9fe)', borderRadius: 999, height: 8, overflow: 'hidden', marginBottom: 24 }}>
                     <div style={{ width: `${pct(featured.raised_amount, featured.goal_amount)}%`, height: '100%', background: 'linear-gradient(90deg, #6736ff, #d63ae7)', borderRadius: 999 }} />
                   </div>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 46, padding: '0 24px', borderRadius: 12, background: 'linear-gradient(135deg,#6736ff,#d63ae7)', color: '#fff', fontWeight: 900, fontSize: 14 }}>
@@ -186,9 +186,9 @@ export default async function SuccessStoriesPage() {
       <section id="stories" style={{ padding: '72px 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
-            <span style={{ fontSize: 12, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: '.12em' }}>All Stories</span>
-            <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: '#0e0520', margin: '10px 0 14px' }}>Every campaign tells a story</h2>
-            <p style={{ color: '#64748b', fontSize: 16, maxWidth: 500, margin: '0 auto' }}>Browse verified fundraisers from real people and nonprofits making a difference.</p>
+            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet, #6c35ff)', textTransform: 'uppercase', letterSpacing: '.12em' }}>All Stories</span>
+            <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 14px' }}>Every campaign tells a story</h2>
+            <p style={{ color: 'var(--t3, #64748b)', fontSize: 16, maxWidth: 500, margin: '0 auto' }}>Browse verified fundraisers from real people and nonprofits making a difference.</p>
           </div>
 
           {gridStories.length > 0 ? (
@@ -210,19 +210,19 @@ export default async function SuccessStoriesPage() {
                         </span>
                       </div>
                       <div style={{ padding: '20px 22px 22px' }}>
-                        <h3 style={{ fontSize: 16, fontWeight: 900, color: '#0e0520', margin: '0 0 8px', lineHeight: 1.35 }}>{story.title}</h3>
-                        <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6, margin: '0 0 18px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        <h3 style={{ fontSize: 16, fontWeight: 900, color: 'var(--t1, #0e0520)', margin: '0 0 8px', lineHeight: 1.35 }}>{story.title}</h3>
+                        <p style={{ fontSize: 13, color: 'var(--t3, #64748b)', lineHeight: 1.6, margin: '0 0 18px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                           {story.description ?? 'Building momentum with live campaign data from the CharitMe community.'}
                         </p>
-                        <div style={{ background: '#f1eefe', borderRadius: 999, height: 6, overflow: 'hidden', marginBottom: 14 }}>
+                        <div style={{ background: 'var(--s2, #f1eefe)', borderRadius: 999, height: 6, overflow: 'hidden', marginBottom: 14 }}>
                           <div style={{ width: `${progress}%`, height: '100%', background: 'linear-gradient(90deg, #6736ff, #d63ae7)', borderRadius: 999 }} />
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
-                            <div style={{ fontSize: 18, fontWeight: 950, color: '#6c35ff' }}>{formatCents(story.raised_amount)}</div>
-                            <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>of {formatCents(story.goal_amount)} goal</div>
+                            <div style={{ fontSize: 18, fontWeight: 950, color: 'var(--violet, #6c35ff)' }}>{formatCents(story.raised_amount)}</div>
+                            <div style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', fontWeight: 600 }}>of {formatCents(story.goal_amount)} goal</div>
                           </div>
-                          <span style={{ fontSize: 13, fontWeight: 800, color: '#6c35ff' }}>{progress}% funded &#8594;</span>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--violet, #6c35ff)' }}>{progress}% funded &#8594;</span>
                         </div>
                       </div>
                     </div>
@@ -233,8 +233,8 @@ export default async function SuccessStoriesPage() {
           ) : (
             <div style={{ textAlign: 'center', padding: '80px 20px' }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>&#128156;</div>
-              <h3 style={{ fontSize: 24, fontWeight: 900, color: '#0e0520', marginBottom: 12 }}>Stories coming soon</h3>
-              <p style={{ color: '#64748b', marginBottom: 28 }}>Be the first to create a campaign and share your story.</p>
+              <h3 style={{ fontSize: 24, fontWeight: 900, color: 'var(--t1, #0e0520)', marginBottom: 12 }}>Stories coming soon</h3>
+              <p style={{ color: 'var(--t3, #64748b)', marginBottom: 28 }}>Be the first to create a campaign and share your story.</p>
               <Link href="/create" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 48, padding: '0 28px', borderRadius: 12, background: 'linear-gradient(135deg,#6736ff,#d63ae7)', color: '#fff', fontWeight: 900, fontSize: 15, textDecoration: 'none' }}>
                 Start Your Fundraiser &#8594;
               </Link>
@@ -243,7 +243,7 @@ export default async function SuccessStoriesPage() {
 
           {stories.length > 0 && (
             <div style={{ textAlign: 'center', marginTop: 48 }}>
-              <Link href="/campaigns" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 50, padding: '0 32px', borderRadius: 14, border: '2px solid #6c35ff', color: '#6c35ff', fontWeight: 900, fontSize: 15, textDecoration: 'none', background: '#fff' }}>
+              <Link href="/campaigns" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 50, padding: '0 32px', borderRadius: 14, border: '2px solid var(--violet, #6c35ff)', color: 'var(--violet, #6c35ff)', fontWeight: 900, fontSize: 15, textDecoration: 'none', background: 'var(--s1, #fff)' }}>
                 View All Campaigns &#8594;
               </Link>
             </div>
@@ -253,24 +253,24 @@ export default async function SuccessStoriesPage() {
 
       {/* ── Testimonials ── */}
       {stories.length > 0 && (
-        <section style={{ background: '#fff', borderTop: '1px solid #ede9fe', borderBottom: '1px solid #ede9fe', padding: '72px 0' }}>
+        <section style={{ background: 'var(--s1, #fff)', borderTop: '1px solid var(--b1, #ede9fe)', borderBottom: '1px solid var(--b1, #ede9fe)', padding: '72px 0' }}>
           <div className="container">
             <div style={{ textAlign: 'center', marginBottom: 52 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: '.12em' }}>Community Voices</span>
-              <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: '#0e0520', margin: '10px 0 14px' }}>What our fundraisers say</h2>
+              <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet, #6c35ff)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Community Voices</span>
+              <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 14px' }}>What our fundraisers say</h2>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
               {stories.slice(0, 3).map((story, i) => (
-                <div key={story.slug} style={{ background: 'linear-gradient(145deg,#faf8ff,#f3f0ff)', border: '1.5px solid #ede9fe', borderRadius: 20, padding: '28px', position: 'relative' }}>
-                  <div style={{ fontSize: 48, fontWeight: 950, color: '#ede9fe', lineHeight: 1, position: 'absolute', top: 16, right: 24, userSelect: 'none' }}>&ldquo;</div>
-                  <p style={{ fontSize: 15, color: '#475569', lineHeight: 1.7, margin: '0 0 24px', fontStyle: 'italic', position: 'relative', zIndex: 1 }}>
+                <div key={story.slug} style={{ background: 'linear-gradient(145deg, var(--s1, #faf8ff), var(--s2, #f3f0ff))', border: '1.5px solid var(--b1, #ede9fe)', borderRadius: 20, padding: '28px', position: 'relative' }}>
+                  <div style={{ fontSize: 48, fontWeight: 950, color: 'var(--b1, #ede9fe)', lineHeight: 1, position: 'absolute', top: 16, right: 24, userSelect: 'none' }}>&ldquo;</div>
+                  <p style={{ fontSize: 15, color: 'var(--t2, #475569)', lineHeight: 1.7, margin: '0 0 24px', fontStyle: 'italic', position: 'relative', zIndex: 1 }}>
                     &ldquo;{story.description ?? `${story.title} has brought our community together in ways we never imagined possible.`}&rdquo;
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{ width: 44, height: 44, borderRadius: '50%', backgroundImage: `url(${COMMUNITY_PHOTOS[i % COMMUNITY_PHOTOS.length]})`, backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0, border: '2px solid #ede9fe' }} />
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', backgroundImage: `url(${COMMUNITY_PHOTOS[i % COMMUNITY_PHOTOS.length]})`, backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0, border: '2px solid var(--b1, #ede9fe)' }} />
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: '#0e0520' }}>{story.title.split(' ').slice(0, 3).join(' ')}</div>
-                      <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>{story.category ?? 'Campaign'} &middot; {formatCents(story.raised_amount)} raised</div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--t1, #0e0520)' }}>{story.title.split(' ').slice(0, 3).join(' ')}</div>
+                      <div style={{ fontSize: 12, color: 'var(--t3, #94a3b8)', fontWeight: 600 }}>{story.category ?? 'Campaign'} &middot; {formatCents(story.raised_amount)} raised</div>
                     </div>
                   </div>
                 </div>
@@ -284,8 +284,8 @@ export default async function SuccessStoriesPage() {
       <section style={{ padding: '72px 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <span style={{ fontSize: 12, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: '.12em' }}>By the Numbers</span>
-            <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: '#0e0520', margin: '10px 0 14px' }}>Community impact</h2>
+            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet, #6c35ff)', textTransform: 'uppercase', letterSpacing: '.12em' }}>By the Numbers</span>
+            <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 14px' }}>Community impact</h2>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 20, maxWidth: 800, margin: '0 auto' }}>
             {[
@@ -294,10 +294,10 @@ export default async function SuccessStoriesPage() {
               { icon: '&#128176;', value: formatCents(totalRaised), label: 'Raised Together' },
               { icon: '&#127873;', value: shortCount(donationCount), label: 'Donations Made' },
             ].map(s => (
-              <div key={s.label} style={{ textAlign: 'center', background: '#fff', border: '1.5px solid #ede9fe', borderRadius: 20, padding: '32px 20px', boxShadow: '0 4px 20px rgba(108,53,255,.06)' }}>
+              <div key={s.label} style={{ textAlign: 'center', background: 'var(--s1, #fff)', border: '1.5px solid var(--b1, #ede9fe)', borderRadius: 20, padding: '32px 20px', boxShadow: '0 4px 20px rgba(108,53,255,.06)' }}>
                 <div style={{ fontSize: 36, marginBottom: 12 }} dangerouslySetInnerHTML={{ __html: s.icon }} />
-                <div style={{ fontSize: 32, fontWeight: 950, color: '#6c35ff', lineHeight: 1, marginBottom: 8 }}>{s.value}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.06em' }}>{s.label}</div>
+                <div style={{ fontSize: 32, fontWeight: 950, color: 'var(--violet, #6c35ff)', lineHeight: 1, marginBottom: 8 }}>{s.value}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3, #94a3b8)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{s.label}</div>
               </div>
             ))}
           </div>
