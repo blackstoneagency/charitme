@@ -144,7 +144,8 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const daysLeft: number | null = campaign.deadline
     ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - RENDER_TIME) / 86_400_000))
     : null;
-  const isActive = campaign.status === 'active' && (daysLeft === null || daysLeft > 0);
+  const acceptDonations = (campaign as { accept_donations?: boolean }).accept_donations !== false;
+  const isActive = campaign.status === 'active' && (daysLeft === null || daysLeft > 0) && acceptDonations;
   const cover = campaign.cover_image_url || getCoverForCategory(campaign.category);
   const videoUrl: string | null = (campaign as { video_url?: string | null }).video_url ?? null;
   const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
@@ -457,6 +458,8 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
             {isActive ? (
               <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
+            ) : !acceptDonations && campaign.status === 'active' ? (
+              <div className="pc-ended">Donations are temporarily paused for this campaign.</div>
             ) : (
               <div className="pc-ended">This campaign has ended.</div>
             )}

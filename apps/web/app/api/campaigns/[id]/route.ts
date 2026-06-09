@@ -126,17 +126,27 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     }, { status: 400 });
   }
 
+  // Soft-delete: set deleted_at for compliance audit trail
   const { error } = await supabaseAdmin
     .from('campaigns')
-    .delete()
+    .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq('id', id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Write campaign_status_log
+  void supabaseAdmin.from('campaign_status_log').insert({
+    campaign_id: id,
+    changed_by: user.id,
+    from_status: campaign.status,
+    to_status: 'deleted',
+    reason: 'User deleted campaign',
+  });
+
   try {
     await supabaseAdmin.from('audit_logs').insert({
       actor_id: user.id,
-      action: 'campaign.deleted',
+      action: 'campaign.soft_deleted',
       target_type: 'campaign',
       target_id: id,
       metadata: { status_at_deletion: campaign.status },
@@ -145,3 +155,6 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
 
   return NextResponse.json({ ok: true });
 }
+
+// ── PUT /api/campaigns/[id] ───────────────────────────────────────────────────
+export { PATCH as PUT };
