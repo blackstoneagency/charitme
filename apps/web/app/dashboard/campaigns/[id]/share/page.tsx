@@ -134,7 +134,7 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
             {CHANNELS.map(ch => (
               <button key={ch.type} type="button" onClick={() => { setActiveChannel(ch.type); setContent(''); }}
-                style={{ padding: '7px 16px', borderRadius: 20, border: '1.5px solid', borderColor: activeChannel === ch.type ? ch.color : 'var(--b2)', background: activeChannel === ch.type ? `${ch.color}15` : '#fff', color: activeChannel === ch.type ? ch.color : 'var(--t2)', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all .1s' }}>
+                style={{ padding: '7px 16px', borderRadius: 20, border: '1.5px solid', borderColor: activeChannel === ch.type ? ch.color : 'var(--b2)', background: activeChannel === ch.type ? `${ch.color}15` : 'var(--s1, #fff)', color: activeChannel === ch.type ? ch.color : 'var(--t2)', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all .1s' }}>
                 {ch.label}
               </button>
             ))}
@@ -152,14 +152,14 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
             {generating ? 'Generating…' : `Generate ${CHANNELS.find(c => c.type === activeChannel)?.label} Content`}
           </button>
 
-          {error && <div style={{ padding: '10px 14px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 9, color: '#be123c', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>⚠ {error}</div>}
+          {error && <div style={{ padding: '10px 14px', background: 'rgba(190,18,60,.08)', border: '1px solid rgba(190,18,60,.25)', borderRadius: 9, color: 'var(--red, #be123c)', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>⚠ {error}</div>}
 
           {content && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', margin: 0 }}>Generated content:</p>
                 <button type="button" onClick={() => void copy()}
-                  style={{ padding: '6px 16px', border: '1px solid var(--b2)', borderRadius: 8, background: copied ? '#19b86a' : '#fff', color: copied ? '#fff' : 'var(--t1)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  style={{ padding: '6px 16px', border: '1px solid var(--b2)', borderRadius: 8, background: copied ? 'var(--green, #19b86a)' : 'var(--s1, #fff)', color: copied ? '#fff' : 'var(--t1)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                   {copied ? '✓ Copied!' : 'Copy'}
                 </button>
               </div>

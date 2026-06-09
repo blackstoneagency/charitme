@@ -128,7 +128,7 @@ export default function AiCoachPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '12px 0', borderBottom: '1px solid var(--b1)' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)', whiteSpace: 'nowrap' }}>Campaign context:</span>
             <select value={selectedCampaign} onChange={e => setSelectedCampaign(e.target.value)}
-              style={{ height: 36, border: '1px solid var(--b2)', borderRadius: 8, padding: '0 12px', fontSize: 13, maxWidth: 280, background: '#fff' }}>
+              style={{ height: 36, border: '1px solid var(--b2)', borderRadius: 8, padding: '0 12px', fontSize: 13, maxWidth: 280, background: 'var(--s1, #fff)', color: 'var(--t1)' }}>
               <option value="">No campaign selected</option>
               {campaigns.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
@@ -157,7 +157,7 @@ export default function AiCoachPage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {STARTERS.map(s => (
                   <button key={s} type="button" onClick={() => void send(s)}
-                    style={{ padding: '8px 16px', borderRadius: 20, border: '1px solid var(--b2)', background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: 'var(--t1)', transition: 'border-color .15s' }}>
+                    style={{ padding: '8px 16px', borderRadius: 20, border: '1px solid var(--b2)', background: 'var(--s1, #fff)', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: 'var(--t1)', transition: 'border-color .15s' }}>
                     {s}
                   </button>
                 ))}
@@ -176,8 +176,8 @@ export default function AiCoachPage() {
                 {msg.role === 'user' ? 'U' : '🤖'}
               </div>
               <div style={{
-                background: msg.role === 'user' ? '#f0eaff' : 'var(--s2)',
-                border: `1px solid ${msg.role === 'user' ? '#e0d5ff' : 'var(--b2)'}`,
+                background: msg.role === 'user' ? 'var(--s2, #f0eaff)' : 'var(--s2)',
+                border: '1px solid var(--b2)',
                 borderRadius: msg.role === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
                 padding: '12px 16px', maxWidth: '72%', fontSize: 14, lineHeight: 1.65, color: 'var(--t1)',
                 whiteSpace: 'pre-wrap',
@@ -193,7 +193,7 @@ export default function AiCoachPage() {
         </div>
 
         {/* Input */}
-        <div style={{ borderTop: '1px solid var(--b1)', paddingTop: 16, paddingBottom: 24, background: '#fff' }}>
+        <div style={{ borderTop: '1px solid var(--b1)', paddingTop: 16, paddingBottom: 24, background: 'var(--s1, #fff)' }}>
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
             <textarea
               ref={inputRef}
@@ -207,7 +207,7 @@ export default function AiCoachPage() {
                 flex: 1, border: '1.5px solid var(--b2)', borderRadius: 12,
                 padding: '12px 14px', fontSize: 14, fontFamily: 'inherit',
                 resize: 'none', outline: 'none', lineHeight: 1.5,
-                background: loading ? 'var(--s1)' : '#fff',
+                background: 'var(--s1, #fff)',
               }}
             />
             <button type="button" onClick={() => void send(input)} disabled={loading || !input.trim()}
@@ -221,7 +221,7 @@ export default function AiCoachPage() {
             </button>
             {loading && (
               <button type="button" onClick={() => abortRef.current?.abort()}
-                style={{ height: 48, padding: '0 16px', border: '1px solid var(--b2)', borderRadius: 12, background: '#fff', fontSize: 13, cursor: 'pointer', color: 'var(--t2)', fontWeight: 700 }}>
+                style={{ height: 48, padding: '0 16px', border: '1px solid var(--b2)', borderRadius: 12, background: 'var(--s1, #fff)', fontSize: 13, cursor: 'pointer', color: 'var(--t2)', fontWeight: 700 }}>
                 Stop
               </button>
             )}

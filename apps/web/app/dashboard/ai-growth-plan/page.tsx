@@ -303,12 +303,12 @@ function StepCircle({ index, status }: { index: number; status: RoadmapStep['sta
           width: '36px',
           height: '36px',
           borderRadius: '50%',
-          border: '2.5px solid #6c35ff',
+          border: '2.5px solid var(--violet, #6c35ff)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          color: '#6c35ff',
+          color: 'var(--violet, #6c35ff)',
           fontWeight: 700,
           fontSize: '14px',
         }}
@@ -341,10 +341,10 @@ function StepCircle({ index, status }: { index: number; status: RoadmapStep['sta
 function ImpactBadge({ impact }: { impact: RoadmapStep['impact'] }) {
   const color =
     impact === 'High'
-      ? { bg: 'rgba(25,184,106,0.10)', text: '#16a34a' }
+      ? { bg: 'rgba(25,184,106,0.10)', text: 'var(--green-dark, #16a34a)' }
       : impact === 'Medium'
-      ? { bg: 'rgba(108,53,255,0.10)', text: '#6c35ff' }
-      : { bg: 'rgba(156,163,175,0.12)', text: '#6b7280' };
+      ? { bg: 'rgba(108,53,255,0.10)', text: 'var(--violet, #6c35ff)' }
+      : { bg: 'rgba(156,163,175,0.12)', text: 'var(--t3, #6b7280)' };
   return (
     <span
       style={{
@@ -386,9 +386,9 @@ function StepActionBtn({ status, href }: { status: RoadmapStep['status']; href?:
     const style: React.CSSProperties = {
       padding: '6px 16px',
       borderRadius: '8px',
-      border: '1.5px solid #6c35ff',
+      border: '1.5px solid var(--violet, #6c35ff)',
       background: 'rgba(108,53,255,0.07)',
-      color: '#6c35ff',
+      color: 'var(--violet, #6c35ff)',
       fontSize: '13px',
       fontWeight: 600,
       cursor: 'pointer',
@@ -436,7 +436,7 @@ function CampaignThumb({ url }: { url: string | null }) {
         width: '80px',
         height: '80px',
         borderRadius: '12px',
-        background: 'linear-gradient(135deg, #e0f2fe, #7c3aed)',
+        background: 'linear-gradient(135deg, var(--s3, #e0f2fe), var(--violet, #7c3aed))',
         flexShrink: 0,
       }}
     />
@@ -614,7 +614,7 @@ export default async function AiGrowthPlanPage({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#6c35ff',
+                color: 'var(--violet, #6c35ff)',
               }}
             >
               <KFIcon name="send" />
@@ -733,7 +733,7 @@ export default async function AiGrowthPlanPage({
                 padding: '10px 20px',
                 borderRadius: '10px',
                 background: 'rgba(108,53,255,0.08)',
-                color: '#6c35ff',
+                color: 'var(--violet, #6c35ff)',
                 fontWeight: 600,
                 fontSize: '14px',
                 textDecoration: 'none',
@@ -868,7 +868,7 @@ export default async function AiGrowthPlanPage({
                       justifyContent: 'center',
                       flexShrink: 0,
                       marginTop: '2px',
-                      color: '#16a34a',
+                      color: 'var(--green-dark, #16a34a)',
                       fontSize: '11px',
                       fontWeight: 700,
                     }}
@@ -910,7 +910,7 @@ export default async function AiGrowthPlanPage({
                       width: '28px',
                       height: '28px',
                       borderRadius: '8px',
-                      background: i === 0 ? '#6c35ff' : i === 1 ? '#19b86a' : '#f59e0b',
+                      background: i === 0 ? 'var(--violet, #6c35ff)' : i === 1 ? 'var(--green, #19b86a)' : '#f59e0b',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',

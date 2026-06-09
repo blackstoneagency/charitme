@@ -109,7 +109,7 @@ export default function NotificationBell() {
         {unread > 0 && (
           <span style={{
             position: 'absolute', top: -4, right: -4,
-            background: '#ef4444', color: '#fff',
+            background: 'var(--red, #ef4444)', color: '#fff',
             fontSize: 9, fontWeight: 900, lineHeight: 1,
             padding: '2px 4px', borderRadius: 8,
             minWidth: 14, textAlign: 'center',
@@ -122,20 +122,20 @@ export default function NotificationBell() {
       {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-          width: 340, background: '#fff', borderRadius: 16,
+          width: 340, background: 'var(--s1, #fff)', borderRadius: 16,
           boxShadow: '0 8px 40px rgba(0,0,0,.18)', zIndex: 9999,
-          border: '1px solid #e8e8f0', overflow: 'hidden',
+          border: '1px solid var(--b1, #e8e8f0)', overflow: 'hidden',
         }}>
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid #f0f0f8' }}>
-            <span style={{ fontWeight: 900, fontSize: 14, color: '#1a1a2e' }}>Notifications</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--b1, #f0f0f8)' }}>
+            <span style={{ fontWeight: 900, fontSize: 14, color: 'var(--t1, #1a1a2e)' }}>Notifications</span>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               {unread > 0 && (
-                <button onClick={markAllRead} style={{ background: 'none', border: 'none', fontSize: 11, color: '#6c35ff', fontWeight: 700, cursor: 'pointer', padding: 0 }}>
+                <button onClick={markAllRead} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--violet, #6c35ff)', fontWeight: 700, cursor: 'pointer', padding: 0 }}>
                   Mark all read
                 </button>
               )}
-              <Link href="/dashboard/notifications" style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textDecoration: 'none' }} onClick={() => setOpen(false)}>
+              <Link href="/dashboard/notifications" style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', fontWeight: 600, textDecoration: 'none' }} onClick={() => setOpen(false)}>
                 See all
               </Link>
             </div>
@@ -144,12 +144,12 @@ export default function NotificationBell() {
           {/* List */}
           <div style={{ maxHeight: 360, overflowY: 'auto' }}>
             {loading && (
-              <div style={{ padding: '24px 16px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Loading…</div>
+              <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--t3, #94a3b8)', fontSize: 13 }}>Loading…</div>
             )}
             {!loading && notifications.length === 0 && (
               <div style={{ padding: '32px 16px', textAlign: 'center' }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>🔔</div>
-                <div style={{ fontSize: 13, color: '#94a3b8' }}>No notifications yet</div>
+                <div style={{ fontSize: 13, color: 'var(--t3, #94a3b8)' }}>No notifications yet</div>
               </div>
             )}
             {!loading && notifications.map(n => (
@@ -159,19 +159,19 @@ export default function NotificationBell() {
                 style={{
                   display: 'flex', gap: 12, alignItems: 'flex-start',
                   padding: '12px 16px', cursor: 'pointer',
-                  background: n.read_at ? '#fff' : '#f5f0ff',
-                  borderBottom: '1px solid #f5f5fa',
+                  background: n.read_at ? 'var(--s1, #fff)' : 'var(--s2, #f5f0ff)',
+                  borderBottom: '1px solid var(--b1, #f5f5fa)',
                   transition: 'background .1s',
                 }}
               >
                 <span style={{ fontSize: 18, flexShrink: 0, marginTop: 2 }}>{KIND_ICON[n.kind] ?? '🔔'}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: n.read_at ? 600 : 900, color: '#1a1a2e', lineHeight: 1.4 }}>{n.title}</div>
-                  {n.body && <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.body}</div>}
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{timeAgo(n.created_at)}</div>
+                  <div style={{ fontSize: 13, fontWeight: n.read_at ? 600 : 900, color: 'var(--t1, #1a1a2e)', lineHeight: 1.4 }}>{n.title}</div>
+                  {n.body && <div style={{ fontSize: 12, color: 'var(--t3, #64748b)', marginTop: 2, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.body}</div>}
+                  <div style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', marginTop: 4 }}>{timeAgo(n.created_at)}</div>
                 </div>
                 {!n.read_at && (
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#6c35ff', flexShrink: 0, marginTop: 6 }} />
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--violet, #6c35ff)', flexShrink: 0, marginTop: 6 }} />
                 )}
               </div>
             ))}

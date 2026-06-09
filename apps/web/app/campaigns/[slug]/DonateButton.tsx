@@ -8,14 +8,14 @@ import {
 } from '@shared/fees';
 import { createClient } from '../../../lib/supabase-browser';
 
-/* ── Design tokens ─────────────────────────────────────── */
-const V   = '#6c35ff';
-const VL  = '#f5f0ff';
-const VD  = '#4d1ee0';
-const GR  = '#059669';
-const BD  = '#e2d9ff';
-const MU  = '#64748b';
-const INK = '#1a1a2e';
+/* ── Design tokens (CSS-variable-aware for dark mode) ──── */
+const V   = 'var(--violet, #6c35ff)';
+const VL  = 'var(--s2, #f5f0ff)';
+const VD  = '#4d1ee0';          // only used inside gradient on coloured bg — stays hex
+const GR  = 'var(--green, #059669)';
+const BD  = 'var(--b2, #e2d9ff)';
+const MU  = 'var(--t3, #64748b)';
+const INK = 'var(--t1, #1a1a2e)';
 
 /* Preset amounts shown in the 3×2 grid */
 const PRESETS = [50, 100, 250, 500, 1000, 2000] as const;
@@ -166,7 +166,7 @@ export default function DonateButton({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* ── Frequency toggle ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0, background: '#f0eaff', borderRadius: 14, padding: 4 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0, background: 'var(--s3, #f0eaff)', borderRadius: 14, padding: 4 }}>
         {(['once', 'monthly'] as const).map((f) => (
           <button
             key={f}
@@ -176,7 +176,7 @@ export default function DonateButton({
               padding: '11px 4px',
               border: 0,
               borderRadius: 10,
-              background: frequency === f ? (f === 'monthly' ? GR : '#fff') : 'transparent',
+              background: frequency === f ? (f === 'monthly' ? GR : 'var(--s1, #fff)') : 'transparent',
               color: frequency === f ? (f === 'monthly' ? '#fff' : V) : MU,
               fontWeight: 900,
               fontSize: 14,
@@ -196,7 +196,7 @@ export default function DonateButton({
 
       {/* ── Monthly boost nudge ── */}
       {isMonthly && (
-        <div style={{ background: `${GR}12`, borderRadius: 10, padding: '10px 14px', border: `1px solid ${GR}30` }}>
+        <div style={{ background: 'var(--green-light, #e8f8ee)', borderRadius: 10, padding: '10px 14px', border: '1px solid var(--b1, #e8e4fb)' }}>
           <div style={{ fontWeight: 900, fontSize: 13, color: GR }}>
             💚 0% platform fee · 100% reaches the campaign
           </div>
@@ -206,9 +206,9 @@ export default function DonateButton({
         </div>
       )}
       {!isMonthly && (
-        <div style={{ background: '#f0fff8', borderRadius: 10, padding: '10px 14px', border: '1px solid #bbf7d0' }}>
-          <div style={{ fontWeight: 900, fontSize: 13, color: '#065f46' }}>0% mandatory platform fee</div>
-          <div style={{ fontSize: 12, color: '#065f46', marginTop: 3 }}>
+        <div style={{ background: 'var(--green-light, #f0fff8)', borderRadius: 10, padding: '10px 14px', border: '1px solid var(--b1, #e8e4fb)' }}>
+          <div style={{ fontWeight: 900, fontSize: 13, color: 'var(--green-dark, #065f46)' }}>0% mandatory platform fee</div>
+          <div style={{ fontSize: 12, color: 'var(--green-dark, #065f46)', marginTop: 3 }}>
             CharitMe is supported by optional donor tips. Every fee is shown before checkout.
           </div>
         </div>
@@ -227,7 +227,7 @@ export default function DonateButton({
                 padding: '11px 4px',
                 border: `2px solid ${active ? V : BD}`,
                 borderRadius: 12,
-                background: active ? V : '#fff',
+                background: active ? V : 'var(--s1, #fff)',
                 color: active ? '#fff' : INK,
                 fontWeight: 900,
                 fontSize: 15,
@@ -242,7 +242,7 @@ export default function DonateButton({
       </div>
 
       {/* ── Custom amount input ── */}
-      <div style={{ border: `1.5px solid ${BD}`, borderRadius: 12, background: '#fff', overflow: 'hidden', padding: '12px 16px' }}>
+      <div style={{ border: `1.5px solid ${BD}`, borderRadius: 12, background: 'var(--s1, #fff)', overflow: 'hidden', padding: '12px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 22, fontWeight: 900, color: MU }}>$</span>
           <input
@@ -315,7 +315,7 @@ export default function DonateButton({
                   alignItems: 'center',
                   gap: 12,
                   padding: '13px 16px',
-                  background: active ? VL : '#fff',
+                  background: active ? VL : 'var(--s1, #fff)',
                   borderTop: idx > 0 ? `1px solid ${BD}` : 'none',
                   cursor: 'pointer',
                   transition: 'background .15s',
@@ -329,7 +329,7 @@ export default function DonateButton({
                   onChange={() => setPreferredMethod(opt.id)}
                   style={{ accentColor: V, width: 16, height: 16, flexShrink: 0 }}
                 />
-                <span style={{ width: 28, height: 28, borderRadius: 6, background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   {opt.icon}
                 </span>
                 <span style={{ flex: 1, fontSize: 14, fontWeight: active ? 800 : 600, color: active ? V : INK }}>
@@ -346,7 +346,7 @@ export default function DonateButton({
 
       {/* ── Checkboxes ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, color: '#4c5679', fontWeight: 600, lineHeight: 1.5 }}>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, color: 'var(--t2, #4c5679)', fontWeight: 600, lineHeight: 1.5 }}>
           <input
             type="checkbox"
             checked={anonymous}
@@ -356,7 +356,7 @@ export default function DonateButton({
           Don&apos;t display my name or profile publicly on the fundraiser
           <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', border: `1px solid ${BD}`, fontSize: 10, color: MU, flexShrink: 0, cursor: 'help' }} title="Your name will not appear on the donor list">ⓘ</span>
         </label>
-        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, color: '#4c5679', fontWeight: 600, lineHeight: 1.5 }}>
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', fontSize: 13, color: 'var(--t2, #4c5679)', fontWeight: 600, lineHeight: 1.5 }}>
           <input
             type="checkbox"
             checked={subscribeEmail}
@@ -369,8 +369,8 @@ export default function DonateButton({
 
       {/* ── Guest email ── */}
       {isGuest && (
-        <div style={{ background: '#fffbeb', borderRadius: 12, padding: '14px 16px', border: '1px solid #fde68a' }}>
-          <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#92400e' }}>
+        <div style={{ background: 'var(--s2, #fffbeb)', borderRadius: 12, padding: '14px 16px', border: '1px solid var(--b1, #fde68a)' }}>
+          <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: 'var(--t2, #92400e)' }}>
             Enter your email to receive a receipt:
           </p>
           <input
@@ -379,13 +379,13 @@ export default function DonateButton({
             onChange={(e) => setGuestEmail(e.target.value)}
             placeholder="your@email.com"
             aria-label="Email for receipt"
-            style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #fcd34d', borderRadius: 9, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', outline: 'none', background: '#fff' }}
+            style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--b2, #fcd34d)', borderRadius: 9, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', outline: 'none', background: 'var(--s1, #fff)', color: INK }}
           />
         </div>
       )}
 
       {/* ── Transparent breakdown ── */}
-      <div style={{ background: '#f9f7ff', borderRadius: 14, padding: '16px 18px', border: `1px solid ${BD}` }}>
+      <div style={{ background: 'var(--s2, #f9f7ff)', borderRadius: 14, padding: '16px 18px', border: `1px solid ${BD}` }}>
         <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 900, color: MU, textTransform: 'uppercase', letterSpacing: '.07em' }}>
           Transparent breakdown
         </p>

@@ -77,22 +77,22 @@ export default function RequestPayoutButton({ campaigns }: Props) {
           zIndex: 9999, padding: 16,
         }} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}>
           <div style={{
-            background: '#fff', borderRadius: 20, padding: 32,
+            background: 'var(--s1, #fff)', borderRadius: 20, padding: 32,
             width: '100%', maxWidth: 480,
             boxShadow: '0 24px 60px rgba(0,0,0,.2)',
           }}>
-            <h2 style={{ margin: '0 0 20px', fontSize: 20, fontWeight: 900, color: '#1a1a2e' }}>
+            <h2 style={{ margin: '0 0 20px', fontSize: 20, fontWeight: 900, color: 'var(--t1, #1a1a2e)' }}>
               Request Payout
             </h2>
 
             <form onSubmit={handleSubmit}>
               {/* Campaign selector */}
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#334064', marginBottom: 6 }}>Campaign</label>
+                <label style={{ display: 'block', fontWeight: 700, fontSize: 13, color: 'var(--t2, #334064)', marginBottom: 6 }}>Campaign</label>
                 <select
                   value={campaignId}
                   onChange={e => setCampaignId(e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e8ecf4', fontSize: 14 }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--b1, #e8ecf4)', fontSize: 14, background: 'var(--s1, #fff)', color: 'var(--t1, #1a1a2e)' }}
                 >
                   {campaigns.map(c => (
                     <option key={c.id} value={c.id}>{c.title} — {fmt(c.raised_amount)}</option>
@@ -102,24 +102,24 @@ export default function RequestPayoutButton({ campaigns }: Props) {
 
               {/* Speed selector */}
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#334064', marginBottom: 8 }}>Payout speed</label>
+                <label style={{ display: 'block', fontWeight: 700, fontSize: 13, color: 'var(--t2, #334064)', marginBottom: 8 }}>Payout speed</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {SPEED_OPTS.map(opt => (
                     <label key={opt.value} style={{
                       display: 'flex', gap: 12, alignItems: 'center', padding: '10px 14px',
                       borderRadius: 10, cursor: 'pointer', border: '1.5px solid',
-                      borderColor: speed === opt.value ? '#6c35ff' : '#e8ecf4',
-                      background: speed === opt.value ? '#f5f0ff' : '#fff',
+                      borderColor: speed === opt.value ? 'var(--violet, #6c35ff)' : 'var(--b1, #e8ecf4)',
+                      background: speed === opt.value ? 'var(--s2, #f5f0ff)' : 'var(--s1, #fff)',
                     }}>
                       <input
                         type="radio" name="speed" value={opt.value}
                         checked={speed === opt.value}
                         onChange={() => setSpeed(opt.value)}
-                        style={{ accentColor: '#6c35ff' }}
+                        style={{ accentColor: 'var(--violet, #6c35ff)' }}
                       />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700, fontSize: 13, color: '#1a1a2e' }}>{opt.label}</div>
-                        <div style={{ fontSize: 12, color: '#64748b' }}>{opt.desc}</div>
+                        <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--t1, #1a1a2e)' }}>{opt.label}</div>
+                        <div style={{ fontSize: 12, color: 'var(--t3, #64748b)' }}>{opt.desc}</div>
                       </div>
                       <span style={{ fontSize: 12, fontWeight: 700, color: opt.fee === 'Free' ? '#19b86a' : '#f59e0b' }}>
                         {opt.fee}
@@ -131,19 +131,19 @@ export default function RequestPayoutButton({ campaigns }: Props) {
 
               {/* Summary */}
               {selected && (
-                <div style={{ background: '#f8fafc', borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13 }}>
+                <div style={{ background: 'var(--s2, #f8fafc)', borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ color: '#64748b' }}>Available balance</span>
-                    <span style={{ fontWeight: 700 }}>{fmt(selected.raised_amount)}</span>
+                    <span style={{ color: 'var(--t3, #64748b)' }}>Available balance</span>
+                    <span style={{ fontWeight: 700, color: 'var(--t1)' }}>{fmt(selected.raised_amount)}</span>
                   </div>
                   {estFee > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ color: '#64748b' }}>Speed fee</span>
+                      <span style={{ color: 'var(--t3, #64748b)' }}>Speed fee</span>
                       <span style={{ fontWeight: 700, color: '#f59e0b' }}>−{fmt(estFee)}</span>
                     </div>
                   )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e8ecf4', paddingTop: 6, marginTop: 4 }}>
-                    <span style={{ fontWeight: 800, color: '#1a1a2e' }}>You receive</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--b1, #e8ecf4)', paddingTop: 6, marginTop: 4 }}>
+                    <span style={{ fontWeight: 800, color: 'var(--t1, #1a1a2e)' }}>You receive</span>
                     <span style={{ fontWeight: 900, color: '#19b86a', fontSize: 15 }}>{fmt(estNet)}</span>
                   </div>
                 </div>
@@ -151,8 +151,8 @@ export default function RequestPayoutButton({ campaigns }: Props) {
 
               {/* Note */}
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#334064', marginBottom: 6 }}>
-                  Note <span style={{ fontWeight: 400, color: '#94a3b8' }}>(optional)</span>
+                <label style={{ display: 'block', fontWeight: 700, fontSize: 13, color: 'var(--t2, #334064)', marginBottom: 6 }}>
+                  Note <span style={{ fontWeight: 400, color: 'var(--t3, #94a3b8)' }}>(optional)</span>
                 </label>
                 <input
                   type="text"
@@ -160,7 +160,7 @@ export default function RequestPayoutButton({ campaigns }: Props) {
                   onChange={e => setNote(e.target.value)}
                   placeholder="e.g. Medical expenses, Month 2"
                   maxLength={500}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e8ecf4', fontSize: 14, boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--b1, #e8ecf4)', fontSize: 14, boxSizing: 'border-box', background: 'var(--s1, #fff)', color: 'var(--t1)' }}
                 />
               </div>
 
@@ -179,7 +179,7 @@ export default function RequestPayoutButton({ campaigns }: Props) {
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  style={{ flex: 1, padding: '11px 0', borderRadius: 10, border: '1.5px solid #e8ecf4', background: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', color: '#64748b' }}
+                  style={{ flex: 1, padding: '11px 0', borderRadius: 10, border: '1.5px solid var(--b1, #e8ecf4)', background: 'var(--s1, #fff)', fontWeight: 700, fontSize: 14, cursor: 'pointer', color: 'var(--t3, #64748b)' }}
                 >
                   Cancel
                 </button>

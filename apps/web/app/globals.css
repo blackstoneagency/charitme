@@ -1192,10 +1192,12 @@ img, svg { display: block; }
 }
 .kf-table-footer { height: 54px; display: grid; place-items: center; color: #551cf2; font-weight: 950; }
 .kf-pill { display: inline-flex; align-items: center; width: max-content; min-height: 24px; padding: 0 10px; border-radius: 7px; font-size: 11px; font-weight: 950; }
-.kf-pill.green { color: #079447; background: #def7e7; }
+.kf-pill.green  { color: #079447; background: #def7e7; }
 .kf-pill.orange { color: #f97316; background: #fff0dc; }
-.kf-pill.red { color: #ef4444; background: #fee2e2; }
+.kf-pill.red    { color: #ef4444; background: #fee2e2; }
 .kf-pill.violet { color: #551cf2; background: #efe8ff; }
+.kf-pill.blue   { color: #0369a1; background: #e0f2fe; }
+.kf-pill.gray   { color: #475569; background: #f1f5f9; }
 .kf-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .kf-chart { padding-bottom: 20px; }
 .kf-chart svg { width: 100%; height: 260px; padding: 0 18px 8px; }
@@ -4099,10 +4101,12 @@ img, svg { display: block; }
 [data-theme="dark"] .kf-metric span { color: var(--t2); }
 [data-theme="dark"] .kf-metric strong { color: var(--t1); }
 [data-theme="dark"] .kf-metric small { color: #4cce86; }
-[data-theme="dark"] .kf-pill.green { background: #0a2018; color: #4cce86; }
+[data-theme="dark"] .kf-pill.green  { background: #0a2018; color: #4cce86; }
 [data-theme="dark"] .kf-pill.orange { background: #1e1200; color: #fb923c; }
-[data-theme="dark"] .kf-pill.red { background: #1e0808; color: #f87171; }
+[data-theme="dark"] .kf-pill.red    { background: #1e0808; color: #f87171; }
 [data-theme="dark"] .kf-pill.violet { background: var(--s3); color: #a78bfa; }
+[data-theme="dark"] .kf-pill.blue   { background: #0a1e2e; color: #60c9f5; }
+[data-theme="dark"] .kf-pill.gray   { background: var(--s2); color: var(--t3); }
 
 /* ── Dashboard profile + logout ── */
 [data-theme="dark"] .kf-profile {

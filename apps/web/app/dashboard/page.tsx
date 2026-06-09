@@ -517,7 +517,7 @@ export default async function DashboardPage() {
                       border: '1px solid rgba(108,53,255,0.15)',
                       fontSize: '13px',
                       fontWeight: 700,
-                      color: '#4e16f5',
+                      color: 'var(--violet, #4e16f5)',
                     }}
                   >
                     <KFIcon name="send" />

@@ -220,12 +220,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span className="pc-verified">✓ Verified Campaign</span>
           {campaign.category && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: '#f0eaff', color: 'var(--violet)', fontSize: 12, fontWeight: 800, letterSpacing: '.04em' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: 'var(--s2, #f0eaff)', color: 'var(--violet)', fontSize: 12, fontWeight: 800, letterSpacing: '.04em' }}>
               {campaign.category}
             </span>
           )}
           {(campaign as { nonprofit_verified?: boolean }).nonprofit_verified && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: '#dcfce7', color: '#15803d', fontSize: 12, fontWeight: 800 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: 'rgba(22,163,74,.12)', color: 'var(--green-dark, #15803d)', fontSize: 12, fontWeight: 800 }}>
               Tax Deductible
             </span>
           )}
@@ -241,7 +241,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           </div>
           <p className="pc-organizer" style={{ margin: 0 }}>
             Organized by <b style={{ color: 'var(--ink)', fontWeight: 800 }}>{organizer.full_name ?? 'CharitMe Organizer'}</b>
-            {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: '#dcfce7', color: '#15803d', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 800 }}>✓ Verified</span>
+            {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(22,163,74,.12)', color: 'var(--green-dark, #15803d)', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 800 }}>✓ Verified</span>
             {' '}· {campaign.location ?? 'New York, USA'}
           </p>
         </div>
@@ -283,8 +283,8 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           {trustSignals.map((signal) => {
             const isVerified = signal.state === 'verified';
             const isWatch    = signal.state === 'watch';
-            const color  = isVerified ? '#059669' : isWatch ? '#d97706' : '#94a3b8';
-            const bg     = isVerified ? '#dcfce7'  : isWatch ? '#fef3c7' : '#f1f5f9';
+            const color  = isVerified ? 'var(--green-dark, #059669)' : isWatch ? '#d97706' : 'var(--t3, #94a3b8)';
+            const bg     = isVerified ? 'rgba(22,163,74,.12)'  : isWatch ? 'rgba(217,119,6,.10)' : 'var(--s2, #f1f5f9)';
             const icon   = isVerified ? '✓' : isWatch ? '⚠' : '○';
             return (
               <div key={signal.label} className="pc-trust-signal" title={signal.detail}>
@@ -356,7 +356,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               </a>
               <a
                 href="#quick-share"
-                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, border: '1.5px solid var(--b2)', color: 'var(--t1)', fontWeight: 800, fontSize: 15, textDecoration: 'none', background: '#fff', gap: 6 }}
+                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, border: '1.5px solid var(--b2)', color: 'var(--t1)', fontWeight: 800, fontSize: 15, textDecoration: 'none', background: 'var(--s1, #fff)', gap: 6 }}
               >
                 Share
               </a>
@@ -478,9 +478,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           <h2>Campaign created with AI</h2>
           <p>CharitMe helps organizers tell their story, reach more people, and maximize impact while keeping trust and transparency visible.</p>
           <ul>
-            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 850 }}>AI story assistant</Link></li>
-            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 850 }}>AI outreach plan</Link></li>
-            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 850 }}>AI growth strategy</Link></li>
+            <li><Link href="/features" style={{ color: 'var(--violet, #4d31c9)', textDecoration: 'none', fontWeight: 850 }}>AI story assistant</Link></li>
+            <li><Link href="/features" style={{ color: 'var(--violet, #4d31c9)', textDecoration: 'none', fontWeight: 850 }}>AI outreach plan</Link></li>
+            <li><Link href="/features" style={{ color: 'var(--violet, #4d31c9)', textDecoration: 'none', fontWeight: 850 }}>AI growth strategy</Link></li>
           </ul>
         </article>
 
@@ -503,7 +503,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             <div style={{ display: 'grid', gap: 14, marginTop: 8 }}>
               {updates.slice(0, 3).map((update) => (
                 <article key={update.id} style={{ display: 'grid', gridTemplateColumns: '18px 1fr', gap: 12, alignItems: 'start' }}>
-                  <span style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--violet)', boxShadow: '0 0 0 5px #eee8ff', display: 'block', marginTop: 3 }} />
+                  <span style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--violet)', boxShadow: '0 0 0 5px var(--s2, #eee8ff)', display: 'block', marginTop: 3 }} />
                   <div>
                     <b style={{ fontSize: 14, display: 'block' }}>{update.title}</b>
                     <small style={{ color: 'var(--t3)', fontSize: 12 }}>
@@ -550,17 +550,17 @@ export default async function CampaignPage({ params, searchParams }: Props) {
       {/* ── FAQ ── */}
       {faqs.length > 0 && (
         <section style={{ maxWidth: 800, margin: '0 auto 40px', padding: '0 24px' }}>
-          <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 16, color: '#1a1a2e' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 16, color: 'var(--t1, #1a1a2e)' }}>
             Frequently Asked Questions
           </h2>
           <div style={{ display: 'grid', gap: 8 }}>
             {faqs.map(faq => (
-              <details key={faq.id} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 12, overflow: 'hidden' }}>
-                <summary style={{ padding: '16px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer', color: '#1a1a2e', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <details key={faq.id} style={{ background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 12, overflow: 'hidden' }}>
+                <summary style={{ padding: '16px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer', color: 'var(--t1, #1a1a2e)', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   {faq.question}
-                  <span style={{ fontSize: 20, color: '#6c35ff', flexShrink: 0, marginLeft: 12 }}>+</span>
+                  <span style={{ fontSize: 20, color: 'var(--violet, #6c35ff)', flexShrink: 0, marginLeft: 12 }}>+</span>
                 </summary>
-                <div style={{ padding: '4px 20px 18px', fontSize: 14, color: '#64748b', lineHeight: 1.7 }}>
+                <div style={{ padding: '4px 20px 18px', fontSize: 14, color: 'var(--t3, #64748b)', lineHeight: 1.7 }}>
                   {faq.answer}
                 </div>
               </details>
