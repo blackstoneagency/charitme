@@ -1891,7 +1891,7 @@ img, svg { display: block; }
 .ai-builder-greeting { margin: 6px 0 0; font-size: 28px; letter-spacing: -.02em; }
 .ai-builder-greeting em { font-style: normal; background: linear-gradient(120deg, #6c35ff, #b43bef); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .ai-builder-sub { margin: 8px 0 0; color: #5b6584; font-size: 15px; line-height: 1.75; }
-.ai-builder-divider { width: 100%; max-width: 640px; margin: 26px 0; display: flex; align-items: center; }
+.ai-builder-divider { width: 100%; max-width: 640px; margin: 14px 0; display: flex; align-items: center; }
 .ai-builder-divider::before, .ai-builder-divider::after { content: ''; flex: 1; height: 1px; background: #ebeaf6; }
 .ai-builder-divider span { display: grid; place-items: center; width: 30px; height: 30px; margin: 0 14px; color: #6c35ff; }
 .ai-builder-input { position: relative; width: 100%; max-width: 760px; margin: 28px 0 0; padding: 22px 76px 22px 22px; text-align: left; border: 1.5px solid #6c35ff; border-radius: 18px; background: #fff; box-shadow: 0 18px 50px rgba(108,53,255,.1); }
