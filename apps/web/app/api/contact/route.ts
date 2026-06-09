@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { resend } from '../../../lib/email';
 import { checkRateLimit } from '../../../lib/rate-limit';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { resolveContact, trackEvent } from '../../../lib/marketing-engine';
 
 const ContactSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -45,6 +46,16 @@ export async function POST(request: NextRequest) {
   if (error) {
     return NextResponse.json({ error: 'Unable to save your message right now.', code: 'CONTACT_SAVE_FAILED' }, { status: 500 });
   }
+
+  // Marketing capture: contact-form senders become marketing contacts (non-blocking)
+  try {
+    const [firstName, ...rest] = name.split(' ');
+    const contactId = await resolveContact({
+      email, firstName, lastName: rest.join(' ') || undefined,
+      clientType: 'support', consentEmail: false, consentSource: 'contact_form',
+    });
+    if (contactId) await trackEvent({ contactId, eventType: 'support_contacted', metadata: { subject } });
+  } catch { /* capture must never break the contact form */ }
 
   if (resend) {
     await resend.emails.send({

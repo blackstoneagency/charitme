@@ -5,6 +5,7 @@ import { stripe, formatCents } from '../../../../lib/stripe';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { sendReceiptEmail, sendOrganizerDonationAlert, sendPayoutEmail, sendRefundEmail } from '../../../../lib/email';
 import { recordCampaignPayment, recordPaymentEvent } from '../../../../lib/payment-flow';
+import { resolveContact, trackEvent, refreshContactScores } from '../../../../lib/marketing-engine';
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -231,6 +232,37 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
     if (error) throw new Error(`record_donation failed: ${error.message}`);
 
     const alreadyDone = (data as { status: string } | null)?.status === 'already_processed';
+
+    // Marketing capture: donation_completed event + score refresh (non-blocking)
+    if (!alreadyDone) {
+      try {
+        const donorEmail = session.customer_details?.email ?? session.customer_email ?? null;
+        if (donorEmail) {
+          const contactId = await resolveContact({
+            email: donorEmail,
+            userId: meta.donorId || undefined,
+            clientType: 'donor',
+            utmSource: meta.utmSource || undefined,
+            utmMedium: meta.utmMedium || undefined,
+            utmCampaign: meta.utmCampaign || undefined,
+          });
+          if (contactId) {
+            await trackEvent({
+              contactId,
+              eventType: 'donation_completed',
+              campaignId: meta.campaignId,
+              amountCents,
+              utmSource: meta.utmSource || undefined,
+              utmMedium: meta.utmMedium || undefined,
+              utmCampaign: meta.utmCampaign || undefined,
+            });
+            await refreshContactScores(contactId);
+          }
+        }
+      } catch (e) {
+        console.error('[webhook] marketing capture failed (non-fatal):', e);
+      }
+    }
     const donationId = await findDonationId({ paymentIntentId, checkoutSessionId: session.id });
 
     // Store UTM attribution on the donation record (non-fatal)
