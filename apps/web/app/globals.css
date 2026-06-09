@@ -4071,6 +4071,57 @@ img, svg { display: block; }
 [data-theme="dark"] .cr2-payout-status-pill.linked { background: rgba(21,128,61,.15); border-color: rgba(134,239,172,.3); color: #6ee7b7; }
 [data-theme="dark"] .cr2-payout-status-pill.unlinked { background: rgba(220,38,38,.1); border-color: rgba(252,165,165,.3); color: #fca5a5; }
 
+/* ─── CharitMe Score card ─── */
+.cr2-score-card { background: var(--bg); border: 1.5px solid var(--b2); border-radius: 16px; padding: 18px 16px 14px; margin-bottom: 16px; }
+.cr2-score-top { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.cr2-score-gauge { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
+.cr2-score-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; line-height: 1; }
+.cr2-score-right { flex: 1; }
+.cr2-score-title { font-size: 13px; font-weight: 900; color: var(--t1); margin-bottom: 3px; }
+.cr2-score-status { font-size: 12px; font-weight: 700; }
+.cr2-score-pills { display: flex; flex-direction: column; gap: 7px; }
+.cr2-score-pill { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; background: var(--s2); border: 1px solid var(--b1); }
+.cr2-score-pill-pending { opacity: .7; }
+.cr2-score-pill-icon { font-size: 13px; font-weight: 900; width: 16px; text-align: center; flex-shrink: 0; }
+.cr2-score-pill-label { font-size: 12px; font-weight: 700; color: var(--t1); line-height: 1; margin-bottom: 1px; }
+.cr2-score-pill-status { font-size: 10px; font-weight: 800; letter-spacing: .03em; }
+
+/* Score card inside launch panel (summary step) */
+.cr2-launch-panel .cr2-score-card { border-color: var(--b2); margin-bottom: 20px; }
+.cr2-launch-panel .cr2-score-pills { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+.cr2-launch-panel .cr2-score-pill { flex: 1 1 calc(33% - 6px); min-width: 0; }
+
+/* ─── Quick Share panel ─── */
+.cr2-quick-share { background: var(--bg); border: 1.5px solid var(--b2); border-radius: 16px; padding: 20px 22px; }
+.cr2-qs-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.cr2-qs-title { font-size: 15px; font-weight: 900; color: var(--t1); }
+.cr2-qs-view-link { font-size: 12px; font-weight: 700; color: #6c35ff; text-decoration: none; }
+.cr2-qs-view-link:hover { text-decoration: underline; }
+.cr2-qs-body { display: flex; gap: 20px; align-items: flex-start; }
+.cr2-qs-left { flex: 1; min-width: 0; }
+.cr2-qs-url-row { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--s2); border: 1px solid var(--b2); border-radius: 10px; margin-bottom: 14px; }
+.cr2-qs-url-text { flex: 1; font-size: 12px; color: var(--t3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--mono); }
+.cr2-qs-copy-btn { height: 32px; padding: 0 16px; background: #6c35ff; color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; flex-shrink: 0; transition: background .15s; }
+.cr2-qs-copy-btn.copied { background: #16a34a; }
+.cr2-qs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.cr2-qs-btn { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--s2); border: 1px solid var(--b2); border-radius: 10px; text-decoration: none; color: var(--t1); font-size: 13px; font-weight: 700; transition: border-color .12s, background .12s; }
+.cr2-qs-btn:hover { border-color: #6c35ff; background: rgba(108,53,255,.05); }
+.cr2-qs-btn-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; color: #fff; flex-shrink: 0; }
+.cr2-qs-poster-link { font-size: 12px; font-weight: 700; color: #16a34a; text-decoration: none; }
+.cr2-qs-poster-link:hover { text-decoration: underline; }
+.cr2-qs-qr { display: flex; flex-direction: column; align-items: center; gap: 8px; flex-shrink: 0; }
+.cr2-qs-qr img { border-radius: 10px; border: 1px solid var(--b2); padding: 6px; background: #fff; }
+.cr2-qs-qr span { font-size: 11px; color: var(--t3); font-weight: 700; text-align: center; }
+
+/* Dark mode for score + quick share */
+[data-theme="dark"] .cr2-score-card { background: var(--s2); border-color: var(--b1); }
+[data-theme="dark"] .cr2-score-pill { background: var(--s3); border-color: var(--b1); }
+[data-theme="dark"] .cr2-quick-share { background: var(--s2); border-color: var(--b1); }
+[data-theme="dark"] .cr2-qs-url-row { background: var(--s3); border-color: var(--b1); }
+[data-theme="dark"] .cr2-qs-btn { background: var(--s3); border-color: var(--b1); color: var(--t1); }
+[data-theme="dark"] .cr2-qs-btn:hover { border-color: #6c35ff; background: rgba(108,53,255,.12); }
+[data-theme="dark"] .cr2-qs-qr img { background: var(--s3); border-color: var(--b1); }
+
 /* ═══════════════════════════════════════════════════════
    sc-* — Supported Countries public page
    ═══════════════════════════════════════════════════════ */

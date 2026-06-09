@@ -1208,6 +1208,9 @@ export default function CreatePage() {
                     <p>Review everything below before going live</p>
                   </div>
 
+                  {/* Score bar */}
+                  <ScoreBar score={computeScore(form, step, payoutLinked, isGuest)} />
+
                   <div className="cr2-launch-btns">
                     <button
                       type="button"
@@ -1310,16 +1313,7 @@ export default function CreatePage() {
 
             {/* ─── Right: sidebar ─── */}
             <aside className="cr2-side">
-              <div className="cr2-side-card">
-                <div className="cr2-side-head">Your Progress</div>
-                <div className="cr2-progress-list">
-                  <TrustRow label="Category selected"  done />
-                  <TrustRow label="Title set"          done={form.title.length >= 3} />
-                  <TrustRow label="Goal set"           done={goalCents >= 100} />
-                  <TrustRow label="Story written"      done={form.description.length > 80} />
-                  <TrustRow label="Cover photo added"  done={hasCover} />
-                </div>
-              </div>
+              <ScoreBar score={computeScore(form, step, payoutLinked, isGuest)} />
 
               <div className="cr2-side-card">
                 <div className="cr2-side-head">Tips to Raise More</div>
@@ -1360,10 +1354,11 @@ export default function CreatePage() {
                 Manage Campaigns
               </Link>
             </div>
-            <div style={{ borderTop: '1px solid var(--b1)', marginTop: 28, paddingTop: 24 }}>
-              <p style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 800, color: 'var(--t3)' }}>Share your campaign</p>
-              <ShareButtons slug={publishedSlug} />
-            </div>
+            {publishedSlug && (
+              <div style={{ marginTop: 28 }}>
+                <QuickSharePanel slug={publishedSlug} />
+              </div>
+            )}
           </div>
         )}
 
@@ -1498,6 +1493,179 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
             {modalMode === 'login' ? 'Sign up' : 'Log in'}
           </button>
         </p>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// CharitMe Score
+// ─────────────────────────────────────────────
+type ScoreState = 'pending' | 'watch' | 'verified';
+
+interface ScoreResult {
+  total: number;
+  identity: ScoreState;
+  beneficiary: ScoreState;
+  payout: ScoreState;
+  storyQuality: ScoreState;
+  evidence: ScoreState;
+}
+
+function computeScore(form: FormState, step: WizardStep, payoutLinked: boolean, isGuest: boolean | null): ScoreResult {
+  const stepOrder: WizardStep[] = ['type','location','story','title','goal','media','payout','summary','live'];
+  const si = stepOrder.indexOf(step);
+
+  const identity: ScoreState   = isGuest === false ? 'verified' : (si >= 2 ? 'watch' : 'pending');
+  const beneficiary: ScoreState = form.description.length > 200 ? 'verified'
+    : form.description.length > 50 ? 'watch' : 'pending';
+  const payout: ScoreState     = payoutLinked ? 'verified' : (si >= 6 ? 'watch' : 'pending');
+  const storyQuality: ScoreState = form.description.length > 400 ? 'verified'
+    : form.description.length > 100 ? 'watch' : 'pending';
+  const evidence: ScoreState   = form.coverImageUrl ? 'verified' : (si >= 5 ? 'watch' : 'pending');
+
+  const pts = { pending: 0, watch: 10, verified: 20 };
+  const total = pts[identity] + pts[beneficiary] + pts[payout] + pts[storyQuality] + pts[evidence];
+  return { total, identity, beneficiary, payout, storyQuality, evidence };
+}
+
+function scoreLabel(total: number) {
+  if (total >= 90) return 'Excellent';
+  if (total >= 70) return 'Strong';
+  if (total >= 50) return 'Looking Good';
+  if (total >= 30) return 'Building Up';
+  return 'Needs Attention';
+}
+
+function scoreColor(total: number) {
+  if (total >= 70) return '#16a34a';
+  if (total >= 50) return '#ca8a04';
+  return '#dc2626';
+}
+
+function ScorePill({ state, label }: { state: ScoreState; label: string }) {
+  const icon  = state === 'verified' ? '✓' : state === 'watch' ? '⚠' : '○';
+  const cls   = `cr2-score-pill cr2-score-pill-${state}`;
+  const color = state === 'verified' ? '#16a34a' : state === 'watch' ? '#ca8a04' : '#94a3b8';
+  return (
+    <div className={cls}>
+      <span className="cr2-score-pill-icon" style={{ color }}>{icon}</span>
+      <div>
+        <div className="cr2-score-pill-label">{label}</div>
+        <div className="cr2-score-pill-status" style={{ color }}>
+          {state === 'verified' ? 'Verified' : state === 'watch' ? 'Watch' : 'Pending'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScoreBar({ score }: { score: ScoreResult }) {
+  const c = scoreColor(score.total);
+  const circumference = 2 * Math.PI * 22;
+  const dashOffset = circumference * (1 - score.total / 100);
+  return (
+    <div className="cr2-score-card">
+      <div className="cr2-score-top">
+        <div className="cr2-score-gauge">
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="22" fill="none" stroke="var(--b2)" strokeWidth="6" />
+            <circle
+              cx="32" cy="32" r="22" fill="none"
+              stroke={c} strokeWidth="6"
+              strokeDasharray={circumference}
+              strokeDashoffset={dashOffset}
+              strokeLinecap="round"
+              transform="rotate(-90 32 32)"
+              style={{ transition: 'stroke-dashoffset .6s ease' }}
+            />
+          </svg>
+          <div className="cr2-score-num" style={{ color: c }}>{score.total}</div>
+        </div>
+        <div className="cr2-score-right">
+          <div className="cr2-score-title">CharitMe Score</div>
+          <div className="cr2-score-status" style={{ color: c }}>{scoreLabel(score.total)}</div>
+        </div>
+      </div>
+      <div className="cr2-score-pills">
+        <ScorePill state={score.identity}     label="Identity" />
+        <ScorePill state={score.beneficiary}  label="Beneficiary" />
+        <ScorePill state={score.payout}       label="Payout Destination" />
+        <ScorePill state={score.storyQuality} label="Story Quality" />
+        <ScorePill state={score.evidence}     label="Evidence" />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Quick Share Panel
+// ─────────────────────────────────────────────
+function QuickSharePanel({ slug }: { slug: string }) {
+  const appUrl = (typeof window !== 'undefined' ? window.location.origin : 'https://www.charitme.com');
+  const url = `${appUrl}/campaigns/${slug}`;
+  const [copied, setCopied] = React.useState(false);
+
+  const copyLink = async () => {
+    try { await navigator.clipboard.writeText(url); }
+    catch { const i = document.createElement('input'); i.value = url; document.body.appendChild(i); i.select(); document.execCommand('copy'); document.body.removeChild(i); }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&color=6c35ff&data=${encodeURIComponent(url)}`;
+
+  const shareLinks = [
+    { label: 'Facebook',  href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, icon: '𝗳', bg: '#1877f2' },
+    { label: 'Messenger', href: `https://www.facebook.com/dialog/send?link=${encodeURIComponent(url)}&redirect_uri=${encodeURIComponent(url)}`, icon: 'm', bg: '#0084ff' },
+    { label: 'LinkedIn',  href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, icon: 'in', bg: '#0a66c2' },
+    { label: 'X / Twitter', href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent('Support my campaign on CharitMe!')}`, icon: '𝕏', bg: '#000' },
+    { label: 'WhatsApp', href: `https://wa.me/?text=${encodeURIComponent('Support my campaign: ' + url)}`, icon: '✓', bg: '#25d366' },
+    { label: 'Email',     href: `mailto:?subject=${encodeURIComponent('Support my fundraiser')}&body=${encodeURIComponent('Please support my campaign on CharitMe:\n\n' + url)}`, icon: '@', bg: '#6c35ff' },
+  ];
+
+  return (
+    <div className="cr2-quick-share">
+      <div className="cr2-qs-header">
+        <span className="cr2-qs-title">Quick share</span>
+        <a href={url} target="_blank" rel="noopener noreferrer" className="cr2-qs-view-link">🔗 Share this campaign</a>
+      </div>
+
+      <div className="cr2-qs-body">
+        <div className="cr2-qs-left">
+          {/* URL bar */}
+          <div className="cr2-qs-url-row">
+            <span className="cr2-qs-url-text">{url}</span>
+            <button type="button" className={`cr2-qs-copy-btn${copied ? ' copied' : ''}`} onClick={() => void copyLink()}>
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+
+          {/* Social grid */}
+          <div className="cr2-qs-grid">
+            {shareLinks.map(({ label, href, icon, bg }) => (
+              <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="cr2-qs-btn">
+                <span className="cr2-qs-btn-icon" style={{ background: bg }}>{icon}</span>
+                <span>{label}</span>
+              </a>
+            ))}
+          </div>
+
+          <a
+            href={`/api/campaigns/${slug}/poster`}
+            className="cr2-qs-poster-link"
+            onClick={e => { e.preventDefault(); window.print(); }}
+          >
+            🖨 Download printable poster →
+          </a>
+        </div>
+
+        {/* QR code */}
+        <div className="cr2-qs-qr">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={qrUrl} alt="QR code for campaign" width={120} height={120} />
+          <span>Scan to donate</span>
+        </div>
       </div>
     </div>
   );
