@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { KFIcon } from '../../../../../components/CharitMeApp';
-import { createClient } from '../../../../../lib/supabase-browser';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 
 type Campaign = {
@@ -51,38 +50,34 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
   });
   const [originalSlug, setOriginalSlug] = useState('');
 
-  // Load campaign data
+  // Load campaign data (owner or platform admin)
   useEffect(() => {
     if (!campaignId) return;
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { router.push('/login'); return; }
-      supabase
-        .from('campaigns')
-        .select('id,title,slug,tagline,description,goal_amount,deadline,category,cover_image_url,beneficiary_name,beneficiary_relationship,status,video_url,location')
-        .eq('id', campaignId)
-        .eq('user_id', user.id)
-        .single()
-        .then(({ data, error: err }) => {
-          if (err || !data) { router.push('/dashboard/campaigns'); return; }
-          const c = data as Campaign;
-          setOriginalSlug(c.slug);
-          setForm({
-            title: c.title,
-            tagline: c.tagline ?? '',
-            description: c.description,
-            goal: String((c.goal_amount / 100).toFixed(0)),
-            deadline: c.deadline ? c.deadline.slice(0, 10) : '',
-            category: c.category,
-            beneficiaryName: c.beneficiary_name ?? '',
-            beneficiaryRelationship: c.beneficiary_relationship ?? '',
-            coverImageUrl: c.cover_image_url ?? '',
-            videoUrl: (c.video_url as string | null) ?? '',
-            location: (c.location as string | null) ?? '',
-          });
-          setLoading(false);
-        });
-    });
+    let active = true;
+    void (async () => {
+      const res = await fetch(`/api/campaigns/${campaignId}`).catch(() => null);
+      if (!active) return;
+      if (!res || res.status === 401) { router.push('/login'); return; }
+      if (!res.ok) { setError('Could not load campaign.'); setLoading(false); return; }
+      const c = await res.json() as Campaign;
+      if (!active) return;
+      setOriginalSlug(c.slug);
+      setForm({
+        title: c.title,
+        tagline: c.tagline ?? '',
+        description: c.description,
+        goal: String((c.goal_amount / 100).toFixed(0)),
+        deadline: c.deadline ? c.deadline.slice(0, 10) : '',
+        category: c.category,
+        beneficiaryName: c.beneficiary_name ?? '',
+        beneficiaryRelationship: c.beneficiary_relationship ?? '',
+        coverImageUrl: c.cover_image_url ?? '',
+        videoUrl: (c.video_url as string | null) ?? '',
+        location: (c.location as string | null) ?? '',
+      });
+      setLoading(false);
+    })();
+    return () => { active = false; };
   }, [campaignId, router]);
 
   const upd = (k: keyof typeof form, v: string) =>

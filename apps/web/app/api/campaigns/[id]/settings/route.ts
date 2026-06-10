@@ -1,8 +1,9 @@
-import 'server-only';
+﻿import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { createClient } from '../../../../../lib/supabase-server';
+import { canManageCampaign } from '../../../../../lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,14 +16,14 @@ const SettingsSchema = z.object({
   productStage:  z.string().max(100).nullable().optional(),
 });
 
-async function verifyOwner(campaignId: string, userId: string) {
+async function verifyOwner(campaignId: string, user: { id: string; email?: string | null }) {
   const { data } = await supabaseAdmin
     .from('campaigns')
     .select('id, user_id')
     .eq('id', campaignId)
     .single();
   if (!data) return { ok: false as const, status: 404, error: 'Campaign not found' };
-  if (data.user_id !== userId) return { ok: false as const, status: 403, error: 'Forbidden' };
+  if (!(await canManageCampaign(user, data.user_id))) return { ok: false as const, status: 403, error: 'Forbidden' };
   return { ok: true as const };
 }
 
@@ -33,7 +34,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const check = await verifyOwner(id, user.id);
+  const check = await verifyOwner(id, user);
   if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
 
   const { data, error } = await supabaseAdmin
@@ -67,7 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const check = await verifyOwner(id, user.id);
+  const check = await verifyOwner(id, user);
   if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
 
   const body = await req.json().catch(() => null);

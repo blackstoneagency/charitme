@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '../../../../../lib/supabase-browser';
 
 type Donation = {
   id: string;
@@ -43,41 +42,21 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
 
   useEffect(() => {
     if (!campaignId) return;
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { router.push('/login'); return; }
-
-      Promise.all([
-        supabase.from('campaigns').select('id, title, slug').eq('id', campaignId).eq('user_id', user.id).single(),
-        supabase.from('donations').select('id, amount_cents, created_at, anonymous, donor_id').eq('campaign_id', campaignId).eq('status', 'completed').eq('anonymous', false).order('created_at', { ascending: false }).limit(200),
-      ]).then(([{ data: camp }, { data: dons }]) => {
-        if (!camp) { router.push('/dashboard/campaigns'); return; }
-        setCampaign(camp as Campaign);
-
-        const donList = (dons ?? []) as { id: string; amount_cents: number; created_at: string; anonymous: boolean; donor_id: string | null }[];
-        const uniqueDonorIds = [...new Set(donList.map(d => d.donor_id).filter(Boolean))] as string[];
-
-        if (uniqueDonorIds.length === 0) {
-          setDonations([]);
-          setLoading(false);
-          return;
-        }
-
-        supabase.from('profiles').select('id, full_name').in('id', uniqueDonorIds).then(({ data: profiles }) => {
-          const profileMap = new Map<string, string>(
-            ((profiles ?? []) as { id: string; full_name: string | null }[]).map(p => [p.id, p.full_name ?? 'Donor'])
-          );
-          const enriched: Donation[] = donList.map(d => ({
-            ...d,
-            donor_name: d.donor_id ? (profileMap.get(d.donor_id) ?? 'Donor') : 'Donor',
-          }));
-          setDonations(enriched);
-          // Select all by default
-          setSelected(new Set(enriched.map(d => d.id)));
-          setLoading(false);
-        });
-      });
-    });
+    let active = true;
+    void (async () => {
+      const res = await fetch(`/api/campaigns/${campaignId}/thank`).catch(() => null);
+      if (!active) return;
+      if (!res || res.status === 401) { router.push('/login'); return; }
+      if (!res.ok) { setError('Could not load donors.'); setLoading(false); return; }
+      const d = await res.json() as { campaign: Campaign; donations: Donation[] };
+      if (!active) return;
+      setCampaign(d.campaign);
+      setDonations(d.donations);
+      // Select all by default
+      setSelected(new Set(d.donations.map(x => x.id)));
+      setLoading(false);
+    })();
+    return () => { active = false; };
   }, [campaignId, router]);
 
   async function handleSend() {

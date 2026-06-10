@@ -26,3 +26,15 @@ export async function requireAdmin() {
   if (!allowed) redirect('/dashboard');
   return user;
 }
+
+/**
+ * True when the user owns the campaign or is a platform admin.
+ * Used by campaign tool APIs so admins can operate on any campaign.
+ */
+export async function canManageCampaign(
+  user: { id: string; email?: string | null },
+  campaignUserId: string,
+): Promise<boolean> {
+  if (campaignUserId === user.id) return true;
+  return isAdmin(user.id, user.email);
+}

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { createClient } from '../../../../../lib/supabase-server';
+import { canManageCampaign } from '../../../../../lib/auth';
 import { openai, OPENAI_MODEL } from '../../../../../lib/openai';
 
 const Schema = z.object({
@@ -12,15 +13,33 @@ const Schema = z.object({
   isPublic:  z.boolean().default(true),
 });
 
-// GET /api/campaigns/[id]/faqs — public read
+// GET /api/campaigns/[id]/faqs — public read; owners/admins also see private FAQs
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { data, error } = await supabaseAdmin
+
+  // Owners and admins see private FAQs too
+  let includePrivate = false;
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: campaign } = await supabaseAdmin
+        .from('campaigns')
+        .select('id, user_id')
+        .eq('id', id)
+        .single();
+      if (campaign && (await canManageCampaign(user, campaign.user_id))) includePrivate = true;
+    }
+  } catch { /* fall back to public-only */ }
+
+  let query = supabaseAdmin
     .from('campaign_faqs')
     .select('id, question, answer, sort_order, is_public, created_at')
     .eq('campaign_id', id)
-    .eq('is_public', true)
     .order('sort_order', { ascending: true });
+  if (!includePrivate) query = query.eq('is_public', true);
+
+  const { data, error } = await query;
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ faqs: data ?? [] });
@@ -38,9 +57,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     .from('campaigns')
     .select('id, title, description, category, user_id')
     .eq('id', campaignId)
-    .eq('user_id', user.id)
     .single();
-  if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+  if (!campaign || !(await canManageCampaign(user, campaign.user_id))) {
+    return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+  }
 
   let body: unknown;
   try { body = await req.json(); } catch {

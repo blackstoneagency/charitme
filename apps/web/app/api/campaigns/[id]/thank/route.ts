@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { createClient } from '../../../../../lib/supabase-server';
+import { canManageCampaign } from '../../../../../lib/auth';
 import { resend } from '../../../../../lib/email';
 
 const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
@@ -28,15 +29,14 @@ export async function POST(
 
   const { id: campaignId } = await params;
 
-  // ── Verify campaign ownership ─────────────────────────────────────────────
+  // ── Verify campaign ownership (owner or platform admin) ──────────────────
   const { data: campaign } = await supabaseAdmin
     .from('campaigns')
     .select('id, title, slug, user_id')
     .eq('id', campaignId)
-    .eq('user_id', user.id)
     .single();
 
-  if (!campaign) {
+  if (!campaign || !(await canManageCampaign(user, campaign.user_id))) {
     return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
   }
 
@@ -159,4 +159,59 @@ export async function POST(
   }
 
   return NextResponse.json({ ok: true, sent, failed: failed.length });
+}
+
+// GET /api/campaigns/[id]/thank
+// Lists thankable (completed, non-anonymous) donations with donor names —
+// powers the Thank Donors panel for both organizers and admins.
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { id: campaignId } = await params;
+
+  const { data: campaign } = await supabaseAdmin
+    .from('campaigns')
+    .select('id, title, slug, user_id')
+    .eq('id', campaignId)
+    .single();
+
+  if (!campaign || !(await canManageCampaign(user, campaign.user_id))) {
+    return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+  }
+
+  const { data: donations } = await supabaseAdmin
+    .from('donations')
+    .select('id, amount_cents, created_at, anonymous, donor_id')
+    .eq('campaign_id', campaignId)
+    .eq('status', 'completed')
+    .eq('anonymous', false)
+    .order('created_at', { ascending: false })
+    .limit(200);
+
+  const donList = (donations ?? []) as { id: string; amount_cents: number; created_at: string; anonymous: boolean; donor_id: string | null }[];
+  const donorIds = [...new Set(donList.map(d => d.donor_id).filter((x): x is string => !!x))];
+
+  const profileMap = new Map<string, string>();
+  if (donorIds.length > 0) {
+    const { data: profiles } = await supabaseAdmin
+      .from('profiles')
+      .select('id, full_name')
+      .in('id', donorIds);
+    for (const p of (profiles ?? []) as { id: string; full_name: string | null }[]) {
+      profileMap.set(p.id, p.full_name ?? 'Donor');
+    }
+  }
+
+  return NextResponse.json({
+    campaign: { id: campaign.id, title: campaign.title, slug: campaign.slug },
+    donations: donList.map(d => ({
+      ...d,
+      donor_name: d.donor_id ? (profileMap.get(d.donor_id) ?? 'Donor') : 'Donor',
+    })),
+  });
 }

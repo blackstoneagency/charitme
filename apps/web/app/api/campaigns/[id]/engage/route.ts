@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '../../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../../lib/supabase';
+import { canManageCampaign } from '../../../../../lib/auth';
 import { sendMarketingEmail } from '../../../../../lib/email';
 import { isSuppressed, resolveContact, trackEvent } from '../../../../../lib/marketing-engine';
 import {
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     .select('id, title, slug, user_id')
     .eq('id', id)
     .single();
-  if (!campaign || campaign.user_id !== user.id) {
+  if (!campaign || !(await canManageCampaign(user, campaign.user_id))) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 

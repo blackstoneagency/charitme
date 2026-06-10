@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '../../../../../lib/supabase-browser';
 
 type LedgerItem = {
   id: string;
@@ -49,41 +48,40 @@ export default function LedgerPanel({ campaignId }: { campaignId: string }) {
 
   useEffect(() => {
     if (!campaignId) return;
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { router.push('/login'); return; }
-      Promise.all([
-        supabase.from('campaigns').select('id, title').eq('id', campaignId).eq('user_id', user.id).single(),
-        supabase.from('transparency_ledger_items').select('id, item_type, title, amount_cents, category, status, created_at').eq('campaign_id', campaignId).order('created_at', { ascending: false }),
-      ]).then(([{ data: camp }, { data: ledger }]) => {
-        if (!camp) { router.push('/dashboard/campaigns'); return; }
-        setCampaign(camp as Campaign);
-        setItems((ledger ?? []) as LedgerItem[]);
-        setLoading(false);
-      });
-    });
+    let active = true;
+    void (async () => {
+      const res = await fetch(`/api/campaigns/${campaignId}/ledger`).catch(() => null);
+      if (!active) return;
+      if (!res || res.status === 401) { router.push('/login'); return; }
+      if (!res.ok) { setError('Could not load the ledger.'); setLoading(false); return; }
+      const d = await res.json() as { campaign: Campaign; items: LedgerItem[] };
+      if (!active) return;
+      setCampaign(d.campaign);
+      setItems(d.items);
+      setLoading(false);
+    })();
+    return () => { active = false; };
   }, [campaignId, router]);
 
   async function handleAdd() {
     if (!form.title.trim()) { setError('Title is required.'); return; }
     setSaving(true); setError('');
     try {
-      const supabase = createClient();
       const amountCents = form.amount ? Math.round(parseFloat(form.amount) * 100) : null;
-      const { data, error: err } = await supabase
-        .from('transparency_ledger_items')
-        .insert({
-          campaign_id: campaignId,
-          item_type: form.item_type,
+      const res = await fetch(`/api/campaigns/${campaignId}/ledger`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          itemType: form.item_type,
           title: form.title.trim(),
-          amount_cents: amountCents,
+          amountCents,
           category: form.category.trim() || null,
           status: form.status,
-        })
-        .select('id, item_type, title, amount_cents, category, status, created_at')
-        .single();
-      if (err) { setError(err.message); return; }
-      setItems(prev => [data as LedgerItem, ...prev]);
+        }),
+      });
+      const d = await res.json() as { item?: LedgerItem; error?: string };
+      if (!res.ok || !d.item) { setError(d.error ?? 'Failed to add entry.'); return; }
+      setItems(prev => [d.item!, ...prev]);
       setForm({ item_type: 'expense', title: '', amount: '', category: '', status: 'pending' });
       setShowForm(false);
     } catch { setError('Something went wrong. Please try again.'); }
@@ -91,8 +89,7 @@ export default function LedgerPanel({ campaignId }: { campaignId: string }) {
   }
 
   async function handleDelete(id: string) {
-    const supabase = createClient();
-    await supabase.from('transparency_ledger_items').delete().eq('id', id);
+    await fetch(`/api/campaigns/${campaignId}/ledger?itemId=${id}`, { method: 'DELETE' }).catch(() => undefined);
     setItems(prev => prev.filter(i => i.id !== id));
   }
 

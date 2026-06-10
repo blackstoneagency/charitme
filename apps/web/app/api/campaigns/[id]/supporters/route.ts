@@ -2,6 +2,7 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../../lib/supabase';
+import { canManageCampaign } from '../../../../../lib/auth';
 import {
   aggregateSupporters,
   filterTargets,
@@ -26,7 +27,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .select('id, title, slug, user_id')
     .eq('id', id)
     .single();
-  if (!campaign || campaign.user_id !== user.id) {
+  if (!campaign || !(await canManageCampaign(user, campaign.user_id))) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 

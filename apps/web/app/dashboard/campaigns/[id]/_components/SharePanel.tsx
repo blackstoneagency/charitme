@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '../../../../../lib/supabase-browser';
 
 const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
 
@@ -33,15 +32,16 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
 
   useEffect(() => {
     if (!campaignId) return;
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { router.push('/login'); return; }
-      supabase.from('campaigns').select('id, title, slug').eq('id', campaignId).eq('user_id', user.id).single()
-        .then(({ data }) => {
-          if (!data) { router.push('/dashboard/campaigns'); return; }
-          setCampaign(data as Campaign);
-        });
-    });
+    let active = true;
+    void (async () => {
+      const res = await fetch(`/api/campaigns/${campaignId}`).catch(() => null);
+      if (!active) return;
+      if (!res || res.status === 401) { router.push('/login'); return; }
+      if (!res.ok) { setError('Could not load campaign.'); return; }
+      const data = await res.json() as Campaign;
+      if (active) setCampaign({ id: data.id, title: data.title, slug: data.slug });
+    })();
+    return () => { active = false; };
   }, [campaignId, router]);
 
   async function generate() {

@@ -1,13 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '../../../../../lib/supabase-browser';
 
 type FAQ = { id: string; question: string; answer: string; sort_order: number; is_public?: boolean };
 
 export default function FaqsPanel({ campaignId }: { campaignId: string }) {
-  const router = useRouter();
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -18,21 +15,19 @@ export default function FaqsPanel({ campaignId }: { campaignId: string }) {
 
   useEffect(() => {
     if (!campaignId) return;
-    // Auth check
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { router.push('/login'); return; }
-      // Load FAQs (including private for organizer)
-      supabase.from('campaign_faqs')
-        .select('id, question, answer, sort_order, is_public')
-        .eq('campaign_id', campaignId)
-        .order('sort_order', { ascending: true })
-        .then(({ data }) => {
-          setFaqs((data ?? []) as FAQ[]);
-          setLoading(false);
-        });
-    });
-  }, [campaignId, router]);
+    let active = true;
+    void (async () => {
+      // Load FAQs (owners/admins also receive private ones)
+      const res = await fetch(`/api/campaigns/${campaignId}/faqs`).catch(() => null);
+      if (!active) return;
+      if (res?.ok) {
+        const d = await res.json() as { faqs?: FAQ[] };
+        if (active) setFaqs(d.faqs ?? []);
+      }
+      if (active) setLoading(false);
+    })();
+    return () => { active = false; };
+  }, [campaignId]);
 
   async function generateWithAI() {
     setGenerating(true); setError('');

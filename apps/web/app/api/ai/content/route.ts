@@ -5,6 +5,7 @@ import { openai, OPENAI_MODEL } from '../../../../lib/openai';
 import { checkRateLimit } from '../../../../lib/rate-limit';
 import { createClient } from '../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import { canManageCampaign } from '../../../../lib/auth';
 
 const Schema = z.object({
   type: z.enum(['facebook', 'twitter', 'instagram', 'linkedin', 'whatsapp', 'sms', 'email', 'update']),
@@ -37,15 +38,16 @@ export async function POST(request: NextRequest) {
 
   const { type, campaignId, context } = parsed.data;
 
-  // Verify ownership
+  // Verify ownership (campaign owner or platform admin)
   const { data: campaign } = await supabaseAdmin
     .from('campaigns')
-    .select('id, title, tagline, description, category, goal_amount, raised_amount, backer_count, slug')
+    .select('id, user_id, title, tagline, description, category, goal_amount, raised_amount, backer_count, slug')
     .eq('id', campaignId)
-    .eq('user_id', user.id)
     .single();
 
-  if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+  if (!campaign || !(await canManageCampaign(user, campaign.user_id))) {
+    return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+  }
 
   const campaignUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com'}/campaigns/${campaign.slug}`;
   const pct = campaign.goal_amount > 0

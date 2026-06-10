@@ -2,6 +2,7 @@ import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { createClient } from '../../../../../lib/supabase-server';
+import { isAdmin } from '../../../../../lib/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (campaign.user_id !== user.id) {
     const { data: tm } = await supabaseAdmin
       .from('team_members').select('id').eq('campaign_id', id).eq('user_id', user.id).maybeSingle();
-    if (!tm) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!tm && !(await isAdmin(user.id, user.email))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
   }
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();

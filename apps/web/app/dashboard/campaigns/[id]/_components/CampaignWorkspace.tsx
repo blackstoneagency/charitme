@@ -30,7 +30,7 @@ const TOOLS: { key: ToolKey; icon: string; label: string; desc: string }[] = [
   { key: 'settings', icon: 'settings', label: 'Settings', desc: 'Visibility & donations' },
 ];
 
-function QrPosterPanel({ campaignId }: { campaignId: string }) {
+export function QrPosterPanel({ campaignId }: { campaignId: string }) {
   const posterUrl = `/api/campaigns/${campaignId}/qr-poster`;
   return (
     <div style={{ display: 'grid', gap: 16, maxWidth: 900 }}>
