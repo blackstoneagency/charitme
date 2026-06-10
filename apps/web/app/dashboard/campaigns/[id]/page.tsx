@@ -200,29 +200,21 @@ export default async function CampaignDetailPage({
         title={campaign.title}
         subtitle={campaign.tagline ?? campaign.category ?? 'Campaign details'}
         actions={
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Link href={`/dashboard/campaigns/${campaign.id}/edit`} className="kf-primary"
-              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <KFIcon name="doc" /> Edit Campaign
-            </Link>
-            <Link href={`/dashboard/campaigns/${campaign.id}/analytics`} className="kf-outline"
-              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <KFIcon name="chart" /> Analytics
-            </Link>
-            <Link href={`/dashboard/campaigns/${campaign.id}/settings`} className="kf-outline"
-              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <KFIcon name="settings" /> Settings
-            </Link>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 200 }}>
             <a
               href={`/campaigns/${campaign.slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="kf-outline"
-              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}
+              className="kf-blue"
+              style={{ textDecoration: 'none', justifyContent: 'center' }}
             >
-              <KFIcon name="send" /> View Public Page
+              <KFIcon name="send" /> View Campaign
             </a>
-            <Link href="/dashboard/campaigns" className="kf-outline">
+            <Link href={`/dashboard/campaigns/${campaign.id}/edit`} className="kf-primary"
+              style={{ textDecoration: 'none', justifyContent: 'center' }}>
+              <KFIcon name="doc" /> Edit Campaign
+            </Link>
+            <Link href="/dashboard/campaigns" className="kf-outline" style={{ textDecoration: 'none', justifyContent: 'center' }}>
               ← Back
             </Link>
           </div>

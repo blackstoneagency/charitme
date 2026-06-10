@@ -1108,7 +1108,7 @@ img, svg { display: block; }
   box-shadow: 0 9px 24px rgba(25, 25, 70, .04);
 }
 .kf-search input { width: 100%; border: 0; outline: 0; color: #101944; background: transparent; font-weight: 650; }
-.kf-outline, .kf-primary {
+.kf-outline, .kf-primary, .kf-blue {
   height: 52px;
   display: inline-flex;
   align-items: center;
@@ -1119,6 +1119,7 @@ img, svg { display: block; }
 }
 .kf-outline { border: 1px solid #e0e4ef; background: #fff; color: #0f173f; }
 .kf-primary { border: 0; color: #fff; background: linear-gradient(135deg, #6c35ff, #5016e8); }
+.kf-blue { border: 0; color: #fff; background: linear-gradient(135deg, #2878ff, #1c5fd6); }
 .kf-icon-btn {
   position: relative;
   width: 52px;
