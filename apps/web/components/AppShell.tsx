@@ -27,6 +27,7 @@ const FOOTER_LINKS = {
   ],
   Resources: [
     ['Blog', '/blog'],
+    ['Leaderboard', '/leaderboard'],
     ['Help Center', '/help'],
     ['FAQ', '/faq'],
     ['Fundraising Guides', '/how-it-works'],

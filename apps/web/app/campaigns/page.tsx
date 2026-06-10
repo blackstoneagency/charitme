@@ -92,11 +92,23 @@ export default async function CampaignsPage({ searchParams }: Props) {
 
   return (
     <div className="container" style={{ padding: '40px 24px' }}>
-      <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px' }}>Browse trusted campaigns</h1>
-        <p style={{ color: 'var(--t3)', fontSize: '15px' }}>
-          Support causes with AI trust scores, transparent goals, and real-time verification.
-        </p>
+      <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px' }}>Browse trusted campaigns</h1>
+          <p style={{ color: 'var(--t3)', fontSize: '15px' }}>
+            Support causes with AI trust scores, transparent goals, and real-time verification.
+          </p>
+        </div>
+        <Link
+          href="/leaderboard"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '10px 18px',
+            borderRadius: '999px', border: '1px solid var(--b2)', background: 'var(--s1)',
+            color: 'var(--t1)', fontSize: '13px', fontWeight: 800, textDecoration: 'none', flexShrink: 0,
+          }}
+        >
+          🏆 Leaderboard
+        </Link>
       </div>
 
       {/* ── Search + filter bar ── */}

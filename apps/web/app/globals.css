@@ -1554,6 +1554,28 @@ img, svg { display: block; }
 .pc-donor-loadmore:hover:not(:disabled) { background: var(--s2); }
 .pc-donor-loadmore:disabled { opacity: .6; cursor: not-allowed; }
 
+/* Leaderboard */
+.lb-tabs { display: flex; gap: 6px; background: var(--s2, #f1f5f9); border-radius: 999px; padding: 3px; width: fit-content; margin-bottom: 20px; }
+.lb-tabs button { border: 0; background: transparent; padding: 9px 20px; border-radius: 999px; font-size: 13px; font-weight: 800; color: var(--t3); cursor: pointer; transition: background .15s, color .15s; }
+.lb-tabs button.active { background: var(--s1, #fff); color: var(--violet); box-shadow: var(--shadow-sm); }
+.lb-period { display: flex; gap: 6px; }
+.lb-period button { border: 1px solid var(--b2); background: var(--s1, #fff); padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--t3); cursor: pointer; transition: all .15s; }
+.lb-period button.active { border-color: var(--violet); color: var(--violet); background: rgba(124,85,255,.08); }
+.lb-rank { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; font-size: 15px; font-weight: 900; flex-shrink: 0; background: var(--s2); color: var(--t3); }
+.lb-rank.gold { background: linear-gradient(135deg, #ffd75e, #ffb238); }
+.lb-rank.silver { background: linear-gradient(135deg, #e6e9f0, #c4cad6); }
+.lb-rank.bronze { background: linear-gradient(135deg, #f0b78a, #d98c52); }
+.lb-campaign-row { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-top: 1px solid var(--line); }
+.lb-campaign-row:first-child { border-top: none; padding-top: 0; }
+.lb-campaign-cover { width: 64px; height: 64px; border-radius: 12px; background-size: cover; background-position: center; background-color: var(--s2); flex-shrink: 0; }
+.lb-campaign-info { flex: 1; min-width: 0; }
+.lb-campaign-title { display: block; font-size: 14px; font-weight: 800; color: var(--t1); text-decoration: none; margin-bottom: 2px; }
+.lb-campaign-title:hover { color: var(--violet); }
+.lb-campaign-meta { font-size: 12px; color: var(--t3); margin-bottom: 6px; }
+.lb-campaign-amount { text-align: right; flex-shrink: 0; }
+.lb-campaign-amount b { display: block; color: var(--green); font-size: 15px; }
+.lb-campaign-amount span { font-size: 11px; color: var(--t3); white-space: nowrap; }
+
 /* Trust bar */
 .pc-safe { margin-top: 28px; padding: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(90deg, #f5f0ff, #fff); box-shadow: var(--shadow-sm); }
 .pc-safe b, .pc-safe span { display: block; }
@@ -4317,6 +4339,13 @@ img, svg { display: block; }
 [data-theme="dark"] .pc-donor-wall-tabs { background: var(--s2); }
 [data-theme="dark"] .pc-donor-wall-tabs button.active { background: var(--s1); }
 [data-theme="dark"] .pc-donor-loadmore { background: var(--s2); border-color: var(--b1); }
+[data-theme="dark"] .lb-tabs { background: var(--s2); }
+[data-theme="dark"] .lb-tabs button.active { background: var(--s1); }
+[data-theme="dark"] .lb-period button { background: var(--s2); border-color: var(--b1); }
+[data-theme="dark"] .lb-period button.active { background: rgba(124,85,255,.16); }
+[data-theme="dark"] .lb-rank { background: var(--s2); }
+[data-theme="dark"] .lb-campaign-row { border-top-color: var(--line); }
+[data-theme="dark"] .lb-campaign-cover { background-color: var(--s2); }
 [data-theme="dark"] .pc-safe {
   background: linear-gradient(90deg, var(--s2), var(--s1));
   border-color: var(--line);

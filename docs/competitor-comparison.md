@@ -73,7 +73,7 @@ Legend:
 | Capability | OneCause | Classy | GoFundMe | **CharitMe** |
 |---|---|---|---|---|
 | Donor wall / "Wall of Fame" | ✅ | ✅ | ⚠️ | ✅ **Shipped** — Recent + Top Donors tabs, tier badges, load more |
-| Top-fundraiser leaderboard | ✅ | ✅ | ❌ | ⚠️ admin-only → 🚀 **public** |
+| Top-fundraiser leaderboard | ✅ | ✅ | ❌ | ✅ **Shipped** — site-wide `/leaderboard` with Top Campaigns + Top Donors (all-time/month/week) |
 | Donor badges / impact points / streaks | ✅ | ⚠️ | ❌ | ❌ → 🚀 **building, gamified levels** |
 | Referral program / share-to-earn | ⚠️ | ⚠️ | ❌ | ❌ → 🚀 **building w/ tracked links** |
 | Employer donation matching lookup | Double the Donation add-on | Double the Donation add-on | ❌ | ❌ → 🚀 **built-in, free** |
@@ -127,7 +127,7 @@ Each item below ships as its own commit + push to `claude/charitme-gofundme-audi
 2. ✅ **Expand Stripe Checkout payment methods** — Apple Pay, Google Pay, Link, US bank transfer (ACH), Cash App, Amazon Pay enabled on one-time + recurring donation checkout, with automatic card-only fallback
 3. ✅ **PWA**: manifest, service worker, offline fallback, install prompt
 4. ✅ **Public Donor Wall + Live Donation Ticker** on campaign pages
-5. 🚀 **Public Top-Fundraiser / Top-Donor Leaderboards** (site-wide + per-campaign)
+5. ✅ **Public Top-Fundraiser / Top-Donor Leaderboards** (site-wide `/leaderboard`, with per-campaign Top Donors already shipped via Donor Wall)
 6. 🚀 **Donor Gamification**: badges, giving levels, streaks shown on donor profile
 7. 🚀 **Employer Donation Matching** lookup widget on donate flow
 8. 🚀 **Referral program**: trackable referral links + rewards dashboard
