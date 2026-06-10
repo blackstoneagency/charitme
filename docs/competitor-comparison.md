@@ -72,12 +72,12 @@ Legend:
 
 | Capability | OneCause | Classy | GoFundMe | **CharitMe** |
 |---|---|---|---|---|
-| Donor wall / "Wall of Fame" | ✅ | ✅ | ⚠️ | ❌ → 🚀 **building, better: live + animated** |
+| Donor wall / "Wall of Fame" | ✅ | ✅ | ⚠️ | ✅ **Shipped** — Recent + Top Donors tabs, tier badges, load more |
 | Top-fundraiser leaderboard | ✅ | ✅ | ❌ | ⚠️ admin-only → 🚀 **public** |
 | Donor badges / impact points / streaks | ✅ | ⚠️ | ❌ | ❌ → 🚀 **building, gamified levels** |
 | Referral program / share-to-earn | ⚠️ | ⚠️ | ❌ | ❌ → 🚀 **building w/ tracked links** |
 | Employer donation matching lookup | Double the Donation add-on | Double the Donation add-on | ❌ | ❌ → 🚀 **built-in, free** |
-| Recent donation live ticker | ✅ | ✅ | ✅ | ⚠️ → 🚀 |
+| Recent donation live ticker | ✅ | ✅ | ✅ | ✅ **Shipped** — auto-polling live ticker on campaign pages |
 | Goal meter / donor map | ✅ | ✅ | ✅ | ✅ |
 
 **Verdict:** This is the single biggest category of gaps and the highest-leverage area — these features directly drive viral growth and repeat donations, and most competitors only offer them as paid add-ons (Double the Donation, OneCause). CharitMe can ship all of these **natively and free**.
@@ -126,7 +126,7 @@ Each item below ships as its own commit + push to `claude/charitme-gofundme-audi
 1. ✅ **This document** (competitive matrix)
 2. ✅ **Expand Stripe Checkout payment methods** — Apple Pay, Google Pay, Link, US bank transfer (ACH), Cash App, Amazon Pay enabled on one-time + recurring donation checkout, with automatic card-only fallback
 3. ✅ **PWA**: manifest, service worker, offline fallback, install prompt
-4. 🚀 **Public Donor Wall + Live Donation Ticker** on campaign pages
+4. ✅ **Public Donor Wall + Live Donation Ticker** on campaign pages
 5. 🚀 **Public Top-Fundraiser / Top-Donor Leaderboards** (site-wide + per-campaign)
 6. 🚀 **Donor Gamification**: badges, giving levels, streaks shown on donor profile
 7. 🚀 **Employer Donation Matching** lookup widget on donate flow

@@ -12,6 +12,8 @@ import ShareButtons from './ShareButtons';
 import DonationSuccess from './DonationSuccess';
 import MobileDonateCTA from './MobileDonateCTA';
 import CampaignCarousel from './CampaignCarousel';
+import DonorWall, { type WallDonation } from './DonorWall';
+import DonationTicker from './DonationTicker';
 import { getPhotosForCategory, getCoverForCategory } from '../../../lib/photo-catalog';
 
 export const dynamic = 'force-dynamic';
@@ -45,7 +47,7 @@ async function getCampaign(slug: string) {
 async function getRecentDonations(campaignId: string) {
   const { data } = await supabaseAdmin
     .from('donations')
-    .select('id, amount_cents, message, anonymous, created_at, profiles:donor_id(full_name, avatar_url)')
+    .select('id, amount_cents, message, anonymous, created_at, offline_donor_name, profiles:donor_id(full_name, avatar_url)')
     .eq('campaign_id', campaignId)
     .eq('status', 'completed')
     .order('created_at', { ascending: false })
@@ -97,6 +99,29 @@ async function getFAQs(campaignId: string) {
 function asProfile(value: unknown): Profile {
   if (Array.isArray(value)) return (value[0] ?? {}) as Profile;
   return (value ?? {}) as Profile;
+}
+
+type DonationRow = {
+  id: string;
+  amount_cents: number;
+  message: string | null;
+  anonymous: boolean;
+  created_at: string;
+  offline_donor_name?: string | null;
+  profiles?: unknown;
+};
+
+function toWallDonation(d: DonationRow): WallDonation {
+  const profile = asProfile(d.profiles);
+  return {
+    id: d.id,
+    name: d.anonymous ? 'Anonymous' : (profile.full_name || d.offline_donor_name || 'Kind supporter'),
+    avatarUrl: d.anonymous ? null : (profile.avatar_url ?? null),
+    amountCents: d.amount_cents,
+    message: d.message,
+    createdAt: d.created_at,
+    anonymous: d.anonymous,
+  };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -176,6 +201,8 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
   const campaignUrl = `${ORIGIN}/campaigns/${campaign.slug}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(campaignUrl)}&color=6c35ff&bgcolor=ffffff&margin=10`;
+
+  const wallDonations = donations.map(toWallDonation);
 
   const rawImageUrls = (campaign as CampaignWithImages).image_urls ?? [];
   const galleryImages: string[] =
@@ -299,6 +326,11 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             );
           })}
         </div>
+
+        {/* Live donation ticker */}
+        {wallDonations.length > 0 && (
+          <DonationTicker campaignId={campaign.id} initialDonations={wallDonations.slice(0, 10)} />
+        )}
       </section>
 
       {/* ── MAIN GRID: story content (left) | sticky donate sidebar (right) ── */}
@@ -520,19 +552,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           )}
         </div>
 
-        <article className="pc-card">
-          <h2>Recent Donations</h2>
-          {donations.map((donation) => {
-            const profile = asProfile(donation.profiles);
-            return (
-              <p key={donation.id}>
-                <span>{donation.anonymous ? 'Anonymous' : profile.full_name ?? 'Kind supporter'}</span>
-                <b>{formatCents(donation.amount_cents)}</b>
-              </p>
-            );
-          })}
-          {donations.length === 0 ? <p><span>Be the first supporter</span><b>{formatCents(0)}</b></p> : null}
-        </article>
+        <DonorWall campaignId={campaign.id} initialDonations={wallDonations} totalCount={campaign.backer_count ?? donations.length} />
 
         <article className="pc-card">
           <h2>Transparency Ledger</h2>
