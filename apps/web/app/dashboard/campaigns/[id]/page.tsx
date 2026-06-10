@@ -199,34 +199,6 @@ export default async function CampaignDetailPage({
       <TopBar
         title={campaign.title}
         subtitle={campaign.tagline ?? campaign.category ?? 'Campaign details'}
-        actions={
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Link href={`/dashboard/campaigns/${campaign.id}/edit`} className="kf-primary"
-              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <KFIcon name="doc" /> Edit Campaign
-            </Link>
-            <Link href={`/dashboard/campaigns/${campaign.id}/analytics`} className="kf-outline"
-              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <KFIcon name="chart" /> Analytics
-            </Link>
-            <Link href={`/dashboard/campaigns/${campaign.id}/settings`} className="kf-outline"
-              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <KFIcon name="settings" /> Settings
-            </Link>
-            <a
-              href={`/campaigns/${campaign.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="kf-outline"
-              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}
-            >
-              <KFIcon name="send" /> View Public Page
-            </a>
-            <Link href="/dashboard/campaigns" className="kf-outline">
-              ← Back
-            </Link>
-          </div>
-        }
       />
 
       <div style={{ padding: '0 32px 40px', display: 'grid', gap: 24 }}>
@@ -288,11 +260,50 @@ export default async function CampaignDetailPage({
           </div>
         </div>
 
-        {/* ── Two-col: Donations + Updates ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
+        {/* ── Actions + Campaign Status ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 24, alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Link href={`/dashboard/campaigns/${campaign.id}/edit`} className="kf-primary"
+              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+              <KFIcon name="doc" /> Edit Campaign
+            </Link>
+            <Link href="/dashboard/campaigns" className="kf-outline"
+              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}>
+              ← Back
+            </Link>
+          </div>
+          <CampaignControls campaignId={campaign.id} currentStatus={campaign.status} />
+        </div>
 
-          {/* Recent Donations */}
-          <section className="kf-card" style={{ overflow: 'hidden' }}>
+        {/* ── Campaign Tools ── */}
+        <section>
+          <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 800 }}>Campaign Tools</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+            {[
+              { href: `/dashboard/campaigns/${campaign.id}/supporters`, icon: 'users', label: 'My Supporters', desc: 'Donor CRM + re-engagement' },
+              { href: `/dashboard/campaigns/${campaign.id}/share`, icon: 'send', label: 'Share & AI Content', desc: 'UTM links + AI posts' },
+              { href: `/dashboard/campaigns/${campaign.id}/thank-donors`, icon: 'chat', label: 'Thank Donors', desc: 'Email your supporters' },
+              { href: `/dashboard/campaigns/${campaign.id}/ledger`, icon: 'doc', label: 'Fund Ledger', desc: 'Track how funds are used' },
+              { href: `/dashboard/campaigns/${campaign.id}/faqs`, icon: 'doc', label: 'Manage FAQs', desc: 'AI-generated Q&A' },
+              { href: `/dashboard/campaigns/${campaign.id}/edit`, icon: 'doc', label: 'Edit Campaign', desc: 'Update title, story, media' },
+              { href: `/api/campaigns/${campaign.id}/qr-poster`, icon: 'send', label: 'Print QR Poster', desc: 'Download & print' },
+              { href: `/dashboard/campaigns/${campaign.id}/updates`, icon: 'doc', label: 'Post Update', desc: 'Keep donors informed' },
+              { href: `/dashboard/campaigns/${campaign.id}/analytics`, icon: 'chart', label: 'Analytics', desc: 'Trends & attribution' },
+              { href: `/dashboard/campaigns/${campaign.id}/settings`, icon: 'settings', label: 'Settings', desc: 'Visibility & donations' },
+            ].map(action => (
+              <Link key={action.label} href={action.href} target={action.href.startsWith('/api') ? '_blank' : undefined}
+                className="kf-card"
+                style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 14px', textDecoration: 'none', transition: 'border-color .15s' }}>
+                <KFIcon name={action.icon} />
+                <strong style={{ fontSize: 13, color: 'var(--t1)', marginTop: 6 }}>{action.label}</strong>
+                <span style={{ fontSize: 11, color: 'var(--t3)' }}>{action.desc}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Recent Donations (full width) ── */}
+        <section className="kf-card" style={{ overflow: 'hidden' }}>
             <div className="kf-card-head">
               <h2>Recent Donations</h2>
               <Link href="/dashboard/donations" style={{ fontSize: 13, color: 'var(--green)', textDecoration: 'none' }}>
@@ -383,7 +394,6 @@ export default async function CampaignDetailPage({
               </div>
             )}
           </section>
-        </div>
 
         {/* ── Description ── */}
         {campaign.description && (
@@ -394,35 +404,6 @@ export default async function CampaignDetailPage({
             </p>
           </section>
         )}
-
-        {/* ── Quick actions ── */}
-        <section className="kf-card" style={{ padding: 24 }}>
-          <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800 }}>Campaign Tools</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
-            {[
-              { href: `/dashboard/campaigns/${campaign.id}/supporters`, icon: 'users', label: 'My Supporters', desc: 'Donor CRM + re-engagement' },
-              { href: `/dashboard/campaigns/${campaign.id}/share`, icon: 'send', label: 'Share & AI Content', desc: 'UTM links + AI posts' },
-              { href: `/dashboard/campaigns/${campaign.id}/thank-donors`, icon: 'chat', label: 'Thank Donors', desc: 'Email your supporters' },
-              { href: `/dashboard/campaigns/${campaign.id}/ledger`, icon: 'doc', label: 'Fund Ledger', desc: 'Track how funds are used' },
-              { href: `/dashboard/campaigns/${campaign.id}/faqs`, icon: 'doc', label: 'Manage FAQs', desc: 'AI-generated Q&A' },
-              { href: `/dashboard/campaigns/${campaign.id}/edit`, icon: 'doc', label: 'Edit Campaign', desc: 'Update title, story, media' },
-              { href: `/api/campaigns/${campaign.id}/qr-poster`, icon: 'send', label: 'Print QR Poster', desc: 'Download & print' },
-              { href: `/dashboard/campaigns/${campaign.id}/updates`, icon: 'doc', label: 'Post Update', desc: 'Keep donors informed' },
-              { href: `/dashboard/campaigns/${campaign.id}/analytics`, icon: 'chart', label: 'Analytics', desc: 'Trends & attribution' },
-              { href: `/dashboard/campaigns/${campaign.id}/settings`, icon: 'settings', label: 'Settings', desc: 'Visibility & donations' },
-            ].map(action => (
-              <Link key={action.href} href={action.href} target={action.href.startsWith('/api') ? '_blank' : undefined}
-                style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 16px', border: '1px solid var(--b2)', borderRadius: 12, textDecoration: 'none', background: 'var(--s1)', transition: 'border-color .15s' }}>
-                <KFIcon name={action.icon} />
-                <strong style={{ fontSize: 13, color: 'var(--t1)', marginTop: 6 }}>{action.label}</strong>
-                <span style={{ fontSize: 11, color: 'var(--t3)' }}>{action.desc}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Campaign Controls ── */}
-        <CampaignControls campaignId={campaign.id} currentStatus={campaign.status} />
 
       </div>
     </CharitMeShell>
