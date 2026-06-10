@@ -104,7 +104,7 @@ Legend:
 |---|---|---|
 | Audience landing pages | ✅ | ✅ (individuals/nonprofits/donors) |
 | Success stories | ✅ | ✅ |
-| Blog / content marketing | ✅ extensive | ⚠️ stub (6 static links) → planned |
+| Blog / content marketing | ✅ extensive | ✅ **Shipped** — 8 full long-form articles at `/blog/[slug]` (statically generated, per-post SEO metadata, OpenGraph/Twitter cards, JSON-LD Article schema, sitemap entries, related-posts + CTA per article) |
 | Multi-language i18n | JustGiving ✅ | ❌ → planned (longer-term) |
 
 ---
@@ -133,7 +133,7 @@ Each item below ships as its own commit + push to `claude/charitme-gofundme-audi
 8. ✅ **Referral program**: personal `?ref=<userId>` referral links on every campaign page, end-to-end conversion tracking via `share_events` (reuses existing webhook logic), and a `/dashboard/referrals` rewards dashboard with 5 tiers (Connector → Champion)
 9. ✅ **Public campaign milestones / stretch goals** display — campaign pages now show a "🎯 Milestones & stretch goals" panel with progress bars based on funds raised, and organizers get a new `/dashboard/campaigns/[id]/milestones` page to add, delete, and mark milestones reached
 10. ✅ **Reward/perk tiers** for campaigns (Kickstarter-style) — new `campaign_rewards` table, organizer "Reward Tiers" management page, and an in-checkout reward picker on the donate flow that pre-fills the pledge amount, enforces minimums/sold-out limits, and tracks claims via `donations.reward_id`
-11. Blog CMS expansion
+11. ✅ **Blog expansion** — replaced the 6-link stub with a real content library (`lib/blog-posts.ts`): 8 long-form fundraising guides rendered at `/blog/[slug]` with static generation, per-post SEO metadata + JSON-LD Article schema, related-articles sections, contextual CTAs, and sitemap coverage
 12. Multi-currency expansion + i18n groundwork
 
 Progress on items 2+ is tracked via commit history on this branch.

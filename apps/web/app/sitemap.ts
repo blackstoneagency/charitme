@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next';
+import { BLOG_POSTS } from '../lib/blog-posts';
 
 const BASE = 'https://www.charitme.com';
 
@@ -25,5 +26,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/trust-safety`,      priority: 0.5,  changeFrequency: 'monthly' as const },
   ].map(r => ({ ...r, lastModified: new Date() }));
 
-  return staticRoutes;
+  const blogRoutes = BLOG_POSTS.map(p => ({
+    url: `${BASE}/blog/${p.slug}`,
+    priority: 0.6,
+    changeFrequency: 'monthly' as const,
+    lastModified: new Date(`${p.publishedAt}T00:00:00`),
+  }));
+
+  return [...staticRoutes, ...blogRoutes];
 }
