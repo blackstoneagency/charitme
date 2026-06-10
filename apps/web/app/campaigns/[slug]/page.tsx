@@ -14,6 +14,7 @@ import MobileDonateCTA from './MobileDonateCTA';
 import CampaignCarousel from './CampaignCarousel';
 import DonorWall, { type WallDonation } from './DonorWall';
 import DonationTicker from './DonationTicker';
+import EmployerMatchWidget from './EmployerMatchWidget';
 import { getPhotosForCategory, getCoverForCategory } from '../../../lib/photo-catalog';
 
 export const dynamic = 'force-dynamic';
@@ -497,6 +498,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                 </div>
               </div>
             </div>
+
+            {/* Employer donation matching lookup */}
+            <EmployerMatchWidget />
 
           </div>
         </div>{/* end pc-right */}
