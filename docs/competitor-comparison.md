@@ -89,12 +89,12 @@ Legend:
 | Capability | GoFundMe | **CharitMe** |
 |---|---|---|
 | Native iOS/Android app | ✅ | ❌ (out of scope — no app store presence) |
-| Installable PWA (Add to Home Screen) | ❌ | ❌ → 🚀 **building** |
-| Offline support / fast loads | ⚠️ | ❌ → 🚀 |
+| Installable PWA (Add to Home Screen) | ❌ | ✅ **Shipped** — manifest + service worker + install prompt |
+| Offline support / fast loads | ⚠️ | ✅ **Shipped** — offline fallback page + asset caching |
 | Dark mode | ❌ | ✅ **Already shipped, better than GoFundMe** |
 | Responsive device-aware layout | ✅ | ✅ (recently completed) |
 
-**Verdict:** A full PWA (manifest + service worker + install prompt) gives CharitMe an installable, app-like experience on every OS — something GoFundMe itself doesn't offer on web — for a fraction of the cost of a native app.
+**Verdict:** ✅ A full PWA (manifest + service worker + install prompt) gives CharitMe an installable, app-like experience on every OS — something GoFundMe itself doesn't offer on web — for a fraction of the cost of a native app.
 
 ---
 
@@ -125,7 +125,7 @@ Each item below ships as its own commit + push to `claude/charitme-gofundme-audi
 
 1. ✅ **This document** (competitive matrix)
 2. ✅ **Expand Stripe Checkout payment methods** — Apple Pay, Google Pay, Link, US bank transfer (ACH), Cash App, Amazon Pay enabled on one-time + recurring donation checkout, with automatic card-only fallback
-3. 🚀 **PWA**: manifest.json, service worker, offline fallback, install prompt
+3. ✅ **PWA**: manifest, service worker, offline fallback, install prompt
 4. 🚀 **Public Donor Wall + Live Donation Ticker** on campaign pages
 5. 🚀 **Public Top-Fundraiser / Top-Donor Leaderboards** (site-wide + per-campaign)
 6. 🚀 **Donor Gamification**: badges, giving levels, streaks shown on donor profile

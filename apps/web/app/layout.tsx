@@ -1,8 +1,10 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppShell } from '../components/AppShell';
 import SessionWatcher from '../components/SessionWatcher';
 import { ThemeProvider } from '../components/ThemeProvider';
+import PWARegister from '../components/PWARegister';
+import InstallPrompt from '../components/InstallPrompt';
 
 export const metadata: Metadata = {
   title: { default: 'CharitMe | Raise More Faster With AI', template: '%s | CharitMe' },
@@ -14,6 +16,17 @@ export const metadata: Metadata = {
     type: 'website',
   },
   metadataBase: new URL('https://www.charitme.com'),
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'CharitMe',
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#6d35ff',
+  width: 'device-width',
+  initialScale: 1,
 };
 
 // Inline script runs before React hydration to apply the saved theme with no flash.
@@ -27,6 +40,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           {/* Watches for session expiry and signs out when the browser closes */}
           <SessionWatcher />
+          <PWARegister />
+          <InstallPrompt />
           <AppShell>{children}</AppShell>
         </ThemeProvider>
       </body>
