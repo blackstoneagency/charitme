@@ -23,8 +23,8 @@ Legend:
 | One-time donation | ✅ | ✅ | ✅ | ✅ | ✅ (pledge) | ✅ | ✅ |
 | Recurring donation | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
 | Card / Apple Pay / Google Pay | ✅ | ✅ | ✅ (22+ methods) | ✅ | ✅ | ✅ | ✅ **Shipped** — Apple Pay, Google Pay, Link, Cash App, US bank (ACH), Amazon Pay |
-| PayPal / Venmo at checkout | ✅ | ✅ | ✅ | ✅ | n/a | ✅ | ❌ → planned (PayPal/Venmo require separate Stripe activation) |
-| "Pay over time" / installment pledges | ✅ (BNPL) | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ → planned |
+| PayPal / Venmo at checkout | ✅ | ✅ | ✅ | ✅ | n/a | ✅ | ✅ **Shipped** — PayPal at checkout for one-time + recurring (auto-hidden until activated on the Stripe account; Venmo is not offered through Stripe) |
+| "Pay over time" / installment pledges | ✅ (BNPL) | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ **Shipped** — Klarna, Afterpay/Clearpay, and Affirm BNPL at checkout, auto-hidden where unsupported |
 | Donor tip / "cover fees" | ✅ | ✅ (tip-or-fee) | ✅ | ✅ | n/a | ✅ | ✅ |
 | Transparent fee breakdown | ⚠️ | ✅ | ✅ | ⚠️ | ✅ | ⚠️ | ✅ **Better** — itemized at checkout |
 | Anonymous donations | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
