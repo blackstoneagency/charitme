@@ -46,8 +46,8 @@ export default function MobileDonateCTA({ campaignTitle, raised, pct, isActive, 
         left: 0,
         right: 0,
         zIndex: 500,
-        background: '#fff',
-        borderTop: '1px solid #e2e8f0',
+        background: 'var(--s1, #fff)',
+        borderTop: '1px solid var(--b1, #e2e8f0)',
         padding: '12px 16px 16px',
         boxShadow: '0 -4px 20px rgba(0,0,0,.10)',
         display: 'flex',
@@ -60,14 +60,14 @@ export default function MobileDonateCTA({ campaignTitle, raised, pct, isActive, 
       className="mobile-donate-bar"
     >
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 12, color: 'var(--t3, #64748b)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {campaignTitle}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ flex: 1, height: 5, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ flex: 1, height: 5, background: 'var(--b1, #e2e8f0)', borderRadius: 3, overflow: 'hidden' }}>
             <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg,#6c35ff,#ec3fb4)', borderRadius: 3 }} />
           </div>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#6c35ff', flexShrink: 0 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--violet, #6c35ff)', flexShrink: 0 }}>
             {fmtCents(raised, symbol)} raised
           </span>
         </div>
