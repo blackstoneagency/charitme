@@ -29,9 +29,9 @@ Legend:
 | Transparent fee breakdown | ⚠️ | ✅ | ✅ | ⚠️ | ✅ | ⚠️ | ✅ **Better** — itemized at checkout |
 | Anonymous donations | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
 | Offline donation recording | ⚠️ | ✅ | ✅ | ✅ | ❌ | ⚠️ | ✅ |
-| Crypto donations | ❌ | ⚠️ | ⚠️ | ❌ | ❌ | ❌ | ❌ → planned |
+| Crypto donations | ❌ | ⚠️ | ⚠️ | ❌ | ❌ | ❌ | ❌ → planned (Stripe's USDC `crypto` payment method requires a newer Stripe SDK than the pinned v17 — add when the SDK is upgraded) |
 
-**Verdict:** CharitMe's fee transparency is best-in-class. ✅ Stripe Checkout now offers Apple Pay, Google Pay, Link, Cash App, US bank transfer (ACH), and Amazon Pay alongside cards — for both one-time and recurring donations — closing in on Donorbox's 22-payment-method claim at near-zero engineering cost. Accounts where a method isn't yet activated automatically fall back to card-only so checkout never breaks.
+**Verdict:** CharitMe's fee transparency is best-in-class. ✅ Stripe Checkout now offers Apple Pay, Google Pay, Link, Cash App, US bank transfer (ACH), Amazon Pay, PayPal, and BNPL (Klarna, Afterpay/Clearpay, Affirm) alongside cards — beating GoFundMe's lineup and matching Donorbox's breadth at near-zero engineering cost. Methods an account hasn't activated are stripped one-by-one automatically so checkout never breaks.
 
 ---
 
@@ -135,5 +135,14 @@ Each item below ships as its own commit + push to `claude/charitme-gofundme-audi
 10. ✅ **Reward/perk tiers** for campaigns (Kickstarter-style) — new `campaign_rewards` table, organizer "Reward Tiers" management page, and an in-checkout reward picker on the donate flow that pre-fills the pledge amount, enforces minimums/sold-out limits, and tracks claims via `donations.reward_id`
 11. ✅ **Blog expansion** — replaced the 6-link stub with a real content library (`lib/blog-posts.ts`): 8 long-form fundraising guides rendered at `/blog/[slug]` with static generation, per-post SEO metadata + JSON-LD Article schema, related-articles sections, contextual CTAs, and sitemap coverage
 12. ✅ **Multi-currency expansion + i18n groundwork** — new `@shared/currencies` module (24 Stripe-supported two-decimal currencies with symbols/formatting helpers); campaign currency now drives Stripe Checkout for one-time and recurring donations, is recorded on each donation (`donations.currency`), and renders correctly across the public campaign page, donate widget, reward tiers, milestones, and mobile CTA; campaign + profile settings expose the full currency list; `lib/i18n.ts` lands locale negotiation and the translation-dictionary scaffold (7 locales) wired into the profile language picker
+13. ✅ **PayPal + BNPL at checkout** — PayPal (one-time + recurring) and Klarna / Afterpay-Clearpay / Affirm "pay over time" added to Stripe Checkout, with smarter per-method fallback that strips only rejected methods instead of dropping to card-only
+14. ✅ **Embeddable donation widget graduated to 100%** — `embedded_forms` feature flag flipped from 25% rollout to fully enabled
 
 Progress on items 2+ is tracked via commit history on this branch.
+
+## Status: execution plan complete ✅
+
+All planned items are shipped. Remaining known gaps, with reasons:
+- **Crypto donations** — blocked on a Stripe SDK upgrade (pinned v17 lacks the `crypto`/USDC payment method type)
+- **Native iOS/Android app** — out of scope (PWA install covers the app-like experience)
+- **Full multi-language UI** — groundwork (locale negotiation, dictionaries, language picker) shipped; translating all UI strings is the long-tail follow-up
