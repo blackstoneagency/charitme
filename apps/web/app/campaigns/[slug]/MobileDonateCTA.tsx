@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { currencySymbol, DEFAULT_CURRENCY } from '@shared/currencies';
 
 interface Props {
   campaignTitle: string;
@@ -9,17 +10,19 @@ interface Props {
   pct: number;
   isActive: boolean;
   campaignId: string;
+  currency?: string;
 }
 
-function fmtCents(c: number) {
+function fmtCents(c: number, symbol: string) {
   const d = c / 100;
-  if (d >= 1_000_000) return `$${(d / 1_000_000).toFixed(1)}M`;
-  if (d >= 1_000) return `$${Math.round(d).toLocaleString()}`;
-  return `$${d.toFixed(2)}`;
+  if (d >= 1_000_000) return `${symbol}${(d / 1_000_000).toFixed(1)}M`;
+  if (d >= 1_000) return `${symbol}${Math.round(d).toLocaleString()}`;
+  return `${symbol}${d.toFixed(2)}`;
 }
 
 // Shown only on mobile (≤ 768px) and only after scrolling past the main donate section
-export default function MobileDonateCTA({ campaignTitle, raised, pct, isActive }: Props) {
+export default function MobileDonateCTA({ campaignTitle, raised, pct, isActive, currency = DEFAULT_CURRENCY }: Props) {
+  const symbol = currencySymbol(currency);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -65,7 +68,7 @@ export default function MobileDonateCTA({ campaignTitle, raised, pct, isActive }
             <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg,#6c35ff,#ec3fb4)', borderRadius: 3 }} />
           </div>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#6c35ff', flexShrink: 0 }}>
-            {fmtCents(raised)} raised
+            {fmtCents(raised, symbol)} raised
           </span>
         </div>
       </div>

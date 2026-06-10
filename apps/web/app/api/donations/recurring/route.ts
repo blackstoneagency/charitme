@@ -6,6 +6,7 @@ import { createCheckoutSession, RECURRING_PAYMENT_METHOD_TYPES } from '../../../
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
 import { donorTip, MIN_DONATION_CENTS, MAX_DONATION_CENTS, DEFAULT_DONOR_TIP_PERCENT } from '@shared/fees';
+import { normalizeCurrency } from '@shared/currencies';
 import { getAppOrigin } from '../../../../lib/auth-config';
 import { checkRateLimit } from '../../../../lib/rate-limit';
 
@@ -66,6 +67,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: campaign ? 'Campaign is not active' : 'Campaign not found' }, { status: 400 });
   }
 
+  // Campaign currency (defaults to USD)
+  const { data: launchSettings } = await supabaseAdmin
+    .from('campaign_launch_settings')
+    .select('currency')
+    .eq('campaign_id', campaignId)
+    .maybeSingle();
+  const currency = normalizeCurrency(launchSettings?.currency).toLowerCase();
+
   const origin = getAppOrigin();
   const stripeEmail = user?.email ?? donorEmail ?? undefined;
 
@@ -125,7 +134,7 @@ export async function POST(request: NextRequest) {
     line_items: [
       {
         price_data: {
-          currency: 'usd',
+          currency,
           product_data: {
             name: `Monthly support for: ${campaign.title}`,
             description: message ?? `Recurring ${cadence} donation`,
@@ -152,6 +161,7 @@ export async function POST(request: NextRequest) {
       utmCampaign:          utmCampaign ?? '',
       utmContent:           utmContent ?? '',
       shareEventId:         referralShareEventId ?? shareEventId ?? '',
+      currency,
     },
     subscription_data: {
       metadata: {

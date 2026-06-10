@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
-import { formatCents } from '../../../lib/stripe';
+import { formatMoneyShort, normalizeCurrency } from '@shared/currencies';
 import { calculateTrustScore, getTrustSignals } from '../../../lib/ai-platform';
 import DonateButton from './DonateButton';
 import ReportButton from './ReportButton';
@@ -121,6 +121,15 @@ async function getRewards(campaignId: string) {
   return (data ?? []) as { id: string; title: string; description: string | null; amount_cents: number; estimated_delivery: string | null; item_limit: number | null; claimed_count: number; sort_order: number }[];
 }
 
+async function getCampaignCurrency(campaignId: string) {
+  const { data } = await supabaseAdmin
+    .from('campaign_launch_settings')
+    .select('currency')
+    .eq('campaign_id', campaignId)
+    .maybeSingle();
+  return normalizeCurrency(data?.currency);
+}
+
 function asProfile(value: unknown): Profile {
   if (Array.isArray(value)) return (value[0] ?? {}) as Profile;
   return (value ?? {}) as Profile;
@@ -209,7 +218,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     referrerId,
   };
 
-  const [donations, updates, ledger, faqs, donorMessages, milestones, rewards] = await Promise.all([
+  const [donations, updates, ledger, faqs, donorMessages, milestones, rewards, currency] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
     getLedger(campaign.id),
@@ -217,6 +226,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     getDonorMessages(campaign.id),
     getMilestones(campaign.id),
     getRewards(campaign.id),
+    getCampaignCurrency(campaign.id),
   ]);
 
   const raised = campaign.raised_amount ?? 0;
@@ -260,6 +270,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         pct={pct}
         isActive={isActive}
         campaignId={campaign.id}
+        currency={currency}
       />
 
       {/* ── TOP HEADER ── */}
@@ -506,18 +517,18 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--t2)' }}>Boost your impact by giving monthly 🌱</span>
             </div>
 
-            <strong className="pc-raised">{formatCents(raised)}</strong>
-            <span className="pc-raised-label">raised of {formatCents(goal)} goal</span>
+            <strong className="pc-raised">{formatMoneyShort(raised, currency)}</strong>
+            <span className="pc-raised-label">raised of {formatMoneyShort(goal, currency)} goal</span>
             <div className="pc-progress"><span style={{ width: `${pct}%` }} /></div>
             <div className="pc-statline">
               <span><b style={{ color: 'var(--t1)' }}>{campaign.backer_count ?? donations.length}</b> donations</span>
               <span>{daysLeft !== null ? `${daysLeft} days left` : 'No deadline'}</span>
             </div>
 
-            <Milestones milestones={milestones} raisedCents={raised} />
+            <Milestones milestones={milestones} raisedCents={raised} currency={currency} />
 
             {isActive ? (
-              <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} utm={utm} rewards={rewards} />
+              <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} utm={utm} rewards={rewards} currency={currency} />
             ) : !acceptDonations && campaign.status === 'active' ? (
               <div className="pc-ended">Donations are temporarily paused for this campaign.</div>
             ) : (
@@ -570,7 +581,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               <text x="65" y="76" textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--t3)">funded</text>
             </svg>
             <p style={{ margin: 0, fontSize: 13, textAlign: 'center', color: 'var(--t2)', fontWeight: 700 }}>
-              {formatCents(raised)} raised of {formatCents(goal)}
+              {formatMoneyShort(raised, currency)} raised of {formatMoneyShort(goal, currency)}
             </p>
           </div>
           {updates.length > 0 ? (
@@ -601,7 +612,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           {ledger.map((item) => (
             <p key={item.id}>
               <span>{item.title}</span>
-              <b>{item.amount_cents ? formatCents(item.amount_cents) : item.status}</b>
+              <b>{item.amount_cents ? formatMoneyShort(item.amount_cents, currency) : item.status}</b>
             </p>
           ))}
           {ledger.length === 0 ? <p><span>Receipts and milestones will appear here.</span><b>Live</b></p> : null}

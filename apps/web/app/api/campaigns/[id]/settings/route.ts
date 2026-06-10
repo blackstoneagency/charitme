@@ -3,13 +3,16 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { createClient } from '../../../../../lib/supabase-server';
+import { isSupportedCurrency } from '@shared/currencies';
 
 export const dynamic = 'force-dynamic';
 
 const SettingsSchema = z.object({
   fundingModel:  z.enum(['flexible', 'fixed']).optional(),
   launchType:    z.enum(['fundraiser', 'project', 'product', 'indemand']).optional(),
-  currency:      z.string().length(3).toUpperCase().optional(),
+  currency:      z.string().length(3).toUpperCase()
+                   .refine(isSupportedCurrency, 'Unsupported currency')
+                   .optional(),
   country:       z.string().length(2).toUpperCase().optional(),
   isIndemand:    z.boolean().optional(),
   productStage:  z.string().max(100).nullable().optional(),

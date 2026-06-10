@@ -114,8 +114,8 @@ Legend:
 | Capability | Competitors | **CharitMe** |
 |---|---|---|
 | Multi-country fundraise/donate | JustGiving ✅✅ | ✅ 20+/70+ countries |
-| Multi-currency | ✅ | ⚠️ 4 currencies → expand |
-| Multi-language UI | JustGiving ✅ | ❌ |
+| Multi-currency | ✅ | ✅ **Shipped** — 24 currencies (shared `@shared/currencies` module); campaign-level currency flows end-to-end: settings picker → Stripe Checkout (one-time + recurring) → recorded on `donations.currency` → currency-correct display on campaign page, donate flow, milestones, mobile CTA |
+| Multi-language UI | JustGiving ✅ | ⚠️ Groundwork shipped — `lib/i18n.ts` with 7 supported locales, Accept-Language negotiation, dictionary/`t()` scaffold; profile language picker wired to it. Full UI translation is the remaining step |
 
 ---
 
@@ -134,6 +134,6 @@ Each item below ships as its own commit + push to `claude/charitme-gofundme-audi
 9. ✅ **Public campaign milestones / stretch goals** display — campaign pages now show a "🎯 Milestones & stretch goals" panel with progress bars based on funds raised, and organizers get a new `/dashboard/campaigns/[id]/milestones` page to add, delete, and mark milestones reached
 10. ✅ **Reward/perk tiers** for campaigns (Kickstarter-style) — new `campaign_rewards` table, organizer "Reward Tiers" management page, and an in-checkout reward picker on the donate flow that pre-fills the pledge amount, enforces minimums/sold-out limits, and tracks claims via `donations.reward_id`
 11. ✅ **Blog expansion** — replaced the 6-link stub with a real content library (`lib/blog-posts.ts`): 8 long-form fundraising guides rendered at `/blog/[slug]` with static generation, per-post SEO metadata + JSON-LD Article schema, related-articles sections, contextual CTAs, and sitemap coverage
-12. Multi-currency expansion + i18n groundwork
+12. ✅ **Multi-currency expansion + i18n groundwork** — new `@shared/currencies` module (24 Stripe-supported two-decimal currencies with symbols/formatting helpers); campaign currency now drives Stripe Checkout for one-time and recurring donations, is recorded on each donation (`donations.currency`), and renders correctly across the public campaign page, donate widget, reward tiers, milestones, and mobile CTA; campaign + profile settings expose the full currency list; `lib/i18n.ts` lands locale negotiation and the translation-dictionary scaffold (7 locales) wired into the profile language picker
 
 Progress on items 2+ is tracked via commit history on this branch.

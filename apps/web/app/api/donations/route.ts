@@ -12,6 +12,7 @@ import {
   DEFAULT_DONOR_TIP_PERCENT,
   type PaymentMethod,
 } from '@shared/fees';
+import { normalizeCurrency } from '@shared/currencies';
 import { getAppOrigin } from '../../../lib/auth-config';
 import { checkRateLimit } from '../../../lib/rate-limit';
 
@@ -105,6 +106,14 @@ export async function POST(request: NextRequest) {
   if (campaign.status !== 'active')
     return NextResponse.json({ error: 'Campaign is not active', code: 'CAMPAIGN_INACTIVE' }, { status: 400 });
 
+  // ── Campaign currency (defaults to USD) ─────────────────────────────────────
+  const { data: launchSettings } = await supabaseAdmin
+    .from('campaign_launch_settings')
+    .select('currency')
+    .eq('campaign_id', campaignId)
+    .maybeSingle();
+  const currency = normalizeCurrency(launchSettings?.currency).toLowerCase();
+
   // ── Reward / perk tier validation ───────────────────────────────────────────
   if (rewardId) {
     const { data: reward } = await supabaseAdmin
@@ -171,7 +180,7 @@ export async function POST(request: NextRequest) {
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
     {
       price_data: {
-        currency: 'usd',
+        currency,
         product_data: {
           name: `Donation to: ${campaign.title}`,
           description: message ?? undefined,
@@ -185,7 +194,7 @@ export async function POST(request: NextRequest) {
   if (tipCents > 0) {
     lineItems.push({
       price_data: {
-        currency: 'usd',
+        currency,
         product_data: { name: 'CharitMe platform tip', description: `${tipPercent}% optional tip to support CharitMe` },
         unit_amount: tipCents,
       },
@@ -196,7 +205,7 @@ export async function POST(request: NextRequest) {
   if (processingFeeCents > 0) {
     lineItems.push({
       price_data: {
-        currency: 'usd',
+        currency,
         product_data: { name: 'Payment processing fee', description: `Covers ${paymentMethod} processing costs` },
         unit_amount: processingFeeCents,
       },
@@ -246,6 +255,7 @@ export async function POST(request: NextRequest) {
       utmContent:           utmContent ?? '',
       shareEventId:         referralShareEventId ?? shareEventId ?? '',
       rewardId:             rewardId ?? '',
+      currency,
     },
     payment_intent_data: hasConnectedAccount
       ? {

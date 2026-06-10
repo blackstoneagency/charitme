@@ -211,6 +211,7 @@ create table public.donations (
   offline_donor_name         text,
   offline_donor_email        text,
   reward_id                  uuid references campaign_rewards(id) on delete set null,
+  currency                   text    not null default 'usd',
   created_at                 timestamptz not null default now(),
   updated_at                 timestamptz not null default now()
 );
@@ -851,7 +852,8 @@ insert into feature_flags (key, enabled, description, rollout_pct) values
   ('team_fundraising',     true,  'Peer-to-peer team fundraising',      100),
   ('embedded_forms',       false, 'Embeddable donation widget',          25),
   ('nonprofit_receipts',   true,  'Automated nonprofit tax receipts',   100),
-  ('reward_tiers',         true,  'Kickstarter-style reward/perk tiers on campaigns', 100)
+  ('reward_tiers',         true,  'Kickstarter-style reward/perk tiers on campaigns', 100),
+  ('multi_currency',       true,  'Campaign-level currency selection across 24 currencies', 100)
 on conflict (key) do nothing;
 
 -- ── Platform settings (singleton, already inserted above) ─────────────────────

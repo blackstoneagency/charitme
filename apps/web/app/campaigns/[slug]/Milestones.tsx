@@ -1,4 +1,4 @@
-import { formatCents } from '../../../lib/stripe';
+import { formatMoneyShort, DEFAULT_CURRENCY } from '@shared/currencies';
 
 export interface Milestone {
   id: string;
@@ -8,7 +8,7 @@ export interface Milestone {
   reached_at: string | null;
 }
 
-export default function Milestones({ milestones, raisedCents }: { milestones: Milestone[]; raisedCents: number }) {
+export default function Milestones({ milestones, raisedCents, currency = DEFAULT_CURRENCY }: { milestones: Milestone[]; raisedCents: number; currency?: string }) {
   if (milestones.length === 0) return null;
 
   return (
@@ -27,7 +27,7 @@ export default function Milestones({ milestones, raisedCents }: { milestones: Mi
                 {m.target_amount != null && (
                   <>
                     <div className="pc-milestone-meta">
-                      {reached ? `Reached — ${formatCents(m.target_amount)}` : `${pct}% to ${formatCents(m.target_amount)}`}
+                      {reached ? `Reached — ${formatMoneyShort(m.target_amount, currency)}` : `${pct}% to ${formatMoneyShort(m.target_amount, currency)}`}
                     </div>
                     {!reached && pct !== null && (
                       <div className="pc-milestone-bar"><span style={{ width: `${pct}%` }} /></div>

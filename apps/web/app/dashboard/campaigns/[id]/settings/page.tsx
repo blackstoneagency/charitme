@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { SUPPORTED_CURRENCIES } from '@shared/currencies';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -227,14 +228,14 @@ export default function CampaignSettingsPage({ params }: { params: Promise<{ id:
           ]),
         )}
 
-        {field('Currency', 'Currency donations are collected in.',
+        {field('Currency', 'Currency donations are collected in — 24 currencies supported.',
           <select
             value={currency}
             onChange={e => setCurrency(e.target.value)}
             style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--b1, #e8ecf4)', fontSize: 14, color: 'var(--t1, #334064)', background: 'var(--s1, #fff)' }}
           >
-            {['USD', 'EUR', 'GBP', 'CAD', 'AUD'].map(c => (
-              <option key={c} value={c}>{c}</option>
+            {SUPPORTED_CURRENCIES.map(c => (
+              <option key={c.code} value={c.code}>{c.code} — {c.name} ({c.symbol})</option>
             ))}
           </select>,
         )}

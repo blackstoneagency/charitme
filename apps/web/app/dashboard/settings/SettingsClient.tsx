@@ -3,6 +3,8 @@
 import React, { useState, useId, useRef } from 'react';
 import Link from 'next/link';
 import BillingPortalButton from './BillingPortalButton';
+import { SUPPORTED_CURRENCIES } from '@shared/currencies';
+import { SUPPORTED_LOCALES } from '../../../lib/i18n';
 
 // ─────────────────────────────────────────────
 // Types
@@ -343,10 +345,9 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 <div className="kf-setrow triple">
                   <SetField label="Language">
                     <select value={language} onChange={e => setLanguage(e.target.value)}>
-                      <option value="en">English</option>
-                      <option value="es">Spanish</option>
-                      <option value="fr">French</option>
-                      <option value="de">German</option>
+                      {SUPPORTED_LOCALES.map(l => (
+                        <option key={l.code} value={l.code}>{l.name} ({l.nativeName})</option>
+                      ))}
                     </select>
                   </SetField>
                   <SetField label="Timezone">
@@ -359,9 +360,9 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                   </SetField>
                   <SetField label="Currency">
                     <select value={currency} onChange={e => setCurrency(e.target.value)}>
-                      <option value="usd">USD</option>
-                      <option value="eur">EUR</option>
-                      <option value="gbp">GBP</option>
+                      {SUPPORTED_CURRENCIES.map(c => (
+                        <option key={c.code} value={c.code.toLowerCase()}>{c.code} — {c.name}</option>
+                      ))}
                     </select>
                   </SetField>
                 </div>

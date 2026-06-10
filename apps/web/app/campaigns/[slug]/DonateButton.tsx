@@ -7,6 +7,7 @@ import {
   donorTip,
 } from '@shared/fees';
 import { createClient } from '../../../lib/supabase-browser';
+import { formatMoney, formatMoneyShort, currencySymbol, DEFAULT_CURRENCY } from '@shared/currencies';
 
 /* ── Design tokens (CSS-variable-aware for dark mode) ──── */
 const V   = 'var(--violet, #6c35ff)';
@@ -52,13 +53,6 @@ function methodProcessingFee(amountCents: number, method: PaymentMethod): number
   return cfg.cap !== undefined ? Math.min(fee, cfg.cap) : fee;
 }
 
-const money = (cents: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
-
-const moneyShort = (cents: number) => {
-  const d = cents / 100;
-  return d % 1 === 0 ? `$${d.toLocaleString('en-US')}` : money(cents);
-};
 
 type FrequencyMode = 'once' | 'monthly';
 
@@ -97,12 +91,18 @@ export default function DonateButton({
   campaignTitle,
   utm,
   rewards,
+  currency = DEFAULT_CURRENCY,
 }: {
   campaignId: string;
   campaignTitle: string;
   utm?: UtmProps;
   rewards?: RewardTier[];
+  currency?: string;
 }) {
+  const money      = (cents: number) => formatMoney(cents, currency);
+  const moneyShort = (cents: number) => formatMoneyShort(cents, currency);
+  const symbol     = currencySymbol(currency);
+
   const [frequency, setFrequency]         = useState<FrequencyMode>('once');
   const [amount, setAmount]               = useState('100');
   const [subscribeEmail, setSubscribeEmail] = useState(false);
@@ -322,7 +322,7 @@ export default function DonateButton({
                 transition: 'border-color .15s, background .15s, color .15s',
               }}
             >
-              ${preset.toLocaleString()}
+              {symbol}{preset.toLocaleString()}
             </button>
           );
         })}
@@ -331,7 +331,7 @@ export default function DonateButton({
       {/* ── Custom amount input ── */}
       <div style={{ border: `1.5px solid ${BD}`, borderRadius: 12, background: 'var(--s1, #fff)', overflow: 'hidden', padding: '12px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 22, fontWeight: 900, color: MU }}>$</span>
+          <span style={{ fontSize: 22, fontWeight: 900, color: MU }}>{symbol}</span>
           <input
             type="number"
             min="1"

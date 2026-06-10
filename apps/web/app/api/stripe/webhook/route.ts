@@ -182,6 +182,13 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
 
       await sendDonorReceipt(meta.donorId, meta.campaignId, `${formatCents(amountCents)}/month`);
 
+      // Record charge currency (non-fatal; column defaults to 'usd')
+      const recurringCurrency = (session.currency ?? 'usd').toLowerCase();
+      if (recurringCurrency !== 'usd') {
+        const currencyDonId = await findDonationId({ paymentIntentId: null, checkoutSessionId: session.id });
+        if (currencyDonId) void supabaseAdmin.from('donations').update({ currency: recurringCurrency }).eq('id', currencyDonId);
+      }
+
       // Store UTM attribution on recurring donation (same logic as one-time)
       if (meta.utmSource || meta.utmMedium || meta.utmCampaign || meta.utmContent || meta.shareEventId) {
         const donId = await findDonationId({ paymentIntentId: null, checkoutSessionId: session.id });
@@ -260,6 +267,11 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
     if (!alreadyDone && donationId && meta.rewardId) {
       void supabaseAdmin.from('donations').update({ reward_id: meta.rewardId }).eq('id', donationId);
       void supabaseAdmin.rpc('claim_campaign_reward', { p_reward_id: meta.rewardId });
+    }
+
+    // Record charge currency (non-fatal; column defaults to 'usd')
+    if (!alreadyDone && donationId && currency !== 'usd') {
+      void supabaseAdmin.from('donations').update({ currency }).eq('id', donationId);
     }
     const campaignPaymentId = await recordCampaignPayment({
       donationId,

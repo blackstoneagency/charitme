@@ -27,6 +27,9 @@
       ],
       "@shared/fees": [
         "../../packages/shared/fees.ts"
+      ],
+      "@shared/currencies": [
+        "../../packages/shared/currencies.ts"
       ]
     },
     "target": "ES2017"
