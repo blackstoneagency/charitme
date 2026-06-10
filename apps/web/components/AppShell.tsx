@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
@@ -16,6 +16,15 @@ const NAV = [
   ['About Us', '/about-us'],
   ['Blog', '/blog'],
   ['Contact Us', '/contact'],
+] as const;
+
+const ACCOUNT_MENU = [
+  ['Dashboard', '/dashboard'],
+  ['Profile', '/profile'],
+  ['Your fundraisers', '/dashboard/campaigns'],
+  ['Your impact', '/donor'],
+  ['Messages', '/dashboard/messages'],
+  ['Account settings', '/dashboard/settings'],
 ] as const;
 
 const FOOTER_LINKS = {
@@ -66,9 +75,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const accountRef = useRef<HTMLDivElement | null>(null);
   const supabase = useMemo(() => createClient(), []);
   const bypass = SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/'));
+
+  const displayName = ((user?.user_metadata?.full_name as string | undefined) ?? user?.email?.split('@')[0] ?? 'Account').split(' ')[0];
+  const avatarInitial = (displayName[0] ?? 'A').toUpperCase();
+
+  const signOut = async () => {
+    await fetch('/api/auth/signout', { method: 'POST' });
+    window.location.href = '/login';
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -88,6 +107,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
     return () => { cancelled = true; };
   }, [user, path]);
+
+  // Close the account dropdown on outside click
+  useEffect(() => {
+    if (!accountOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) setAccountOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [accountOpen]);
 
   if (bypass) return <>{children}</>;
 
@@ -111,36 +140,51 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.3-4.3" />
               </svg>
             </Link>
+            <Link
+              href={user ? '/dashboard/notifications' : '/login'}
+              className="kind-bell"
+              aria-label={unreadCount > 0 ? `${unreadCount} notifications` : 'Notifications'}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              {unreadCount > 0 && (
+                <span className="kind-bell-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
+            </Link>
             {user ? (
-              <>
-                <Link href="/dashboard" className="kind-start" style={{ position: 'relative' }}>
-                  Dashboard
-                  {unreadCount > 0 && (
-                    <span style={{
-                      position: 'absolute', top: -6, right: -10,
-                      background: '#ef4444', color: '#fff',
-                      fontSize: 10, fontWeight: 900, lineHeight: 1,
-                      padding: '2px 5px', borderRadius: 10,
-                      minWidth: 16, textAlign: 'center',
-                    }}>
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </span>
-                  )}
-                </Link>
+              <div className="kind-user-wrap" ref={accountRef}>
                 <button
-                  className="kind-login kind-signout-btn"
-                  onClick={async () => {
-                    await fetch('/api/auth/signout', { method: 'POST' });
-                    window.location.href = '/login';
-                  }}
+                  type="button"
+                  className="kind-user-btn"
+                  aria-expanded={accountOpen}
+                  aria-haspopup="menu"
+                  onClick={() => setAccountOpen((open) => !open)}
                 >
-                  Sign Out
+                  <span className="kind-avatar-sm">{avatarInitial}</span>
+                  <span className="kind-user-name">{displayName}</span>
+                  <svg className={`kind-user-caret${accountOpen ? ' open' : ''}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
                 </button>
-              </>
+                {accountOpen && (
+                  <div className="kind-user-menu" role="menu">
+                    {ACCOUNT_MENU.map(([label, href]) => (
+                      <Link key={href} href={href} role="menuitem" onClick={() => setAccountOpen(false)}>
+                        {label}
+                      </Link>
+                    ))}
+                    <button type="button" role="menuitem" onClick={() => void signOut()}>
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <>
-                <Link href="/login" className="kind-login">Log in</Link>
-                <Link href="/login?mode=signup" className="kind-start">Get Started</Link>
+                <Link href="/login" className="kind-signin">Sign in</Link>
+                <Link href="/login?mode=signup" className="kind-start-pill">Start a CharitMe</Link>
               </>
             )}
           </div>
@@ -155,24 +199,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {NAV.map(([label, href]) => <Link key={href} href={href} onClick={() => setMenuOpen(false)}>{label}</Link>)}
             {user ? (
               <>
-                <Link href="/dashboard" onClick={() => setMenuOpen(false)}>
-                  Dashboard{unreadCount > 0 ? ` (${unreadCount > 99 ? '99+' : unreadCount})` : ''}
-                </Link>
+                {ACCOUNT_MENU.map(([label, href]) => (
+                  <Link key={href} href={href} onClick={() => setMenuOpen(false)}>
+                    {label}{label === 'Dashboard' && unreadCount > 0 ? ` (${unreadCount > 99 ? '99+' : unreadCount})` : ''}
+                  </Link>
+                ))}
                 <button
                   style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, font: 'inherit', color: 'inherit' }}
-                  onClick={async () => {
+                  onClick={() => {
                     setMenuOpen(false);
-                    await fetch('/api/auth/signout', { method: 'POST' });
-                    window.location.href = '/login';
+                    void signOut();
                   }}
                 >
-                  Sign Out
+                  Sign out
                 </button>
               </>
             ) : (
               <>
-                <Link href="/login" onClick={() => setMenuOpen(false)}>Log in</Link>
-                <Link href="/login?mode=signup" onClick={() => setMenuOpen(false)}>Get Started</Link>
+                <Link href="/login" onClick={() => setMenuOpen(false)}>Sign in</Link>
+                <Link href="/login?mode=signup" onClick={() => setMenuOpen(false)}>Start a CharitMe</Link>
               </>
             )}
           </div>

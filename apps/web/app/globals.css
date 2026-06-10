@@ -84,6 +84,22 @@ img, svg { display: block; }
 .kind-start { padding: 0 22px; color: #fff; background: linear-gradient(135deg, #7035ff, #ec39c3); box-shadow: 0 8px 20px rgba(127, 55, 235, .22); }
 .kind-search-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; color: var(--ink, #0f1238); background: transparent; transition: background .15s, color .15s; text-decoration: none; flex-shrink: 0; }
 .kind-search-btn:hover { background: #f3eeff; color: #7035ff; }
+.kind-bell { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; color: var(--ink, #0f1238); background: transparent; transition: background .15s, color .15s; text-decoration: none; flex-shrink: 0; }
+.kind-bell:hover { background: #f3eeff; color: #7035ff; }
+.kind-bell-badge { position: absolute; top: -2px; right: -4px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 900; line-height: 1; padding: 2px 5px; border-radius: 10px; min-width: 16px; text-align: center; }
+.kind-signin { font-size: 14px; font-weight: 700; color: var(--ink, #0f1238); text-decoration: none; padding: 0 6px; white-space: nowrap; }
+.kind-signin:hover { color: #7035ff; }
+.kind-start-pill { height: 40px; display: inline-flex; align-items: center; padding: 0 20px; border: 1px solid #d9d9e3; border-radius: 20px; background: #fff; color: #0f1238; font-size: 14px; font-weight: 800; white-space: nowrap; text-decoration: none; transition: box-shadow .15s; }
+.kind-start-pill:hover { box-shadow: 0 4px 14px rgba(43, 39, 89, .12); }
+.kind-user-wrap { position: relative; flex-shrink: 0; }
+.kind-user-btn { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 4px; border: none; background: transparent; cursor: pointer; font: inherit; color: var(--ink, #0f1238); }
+.kind-avatar-sm { width: 30px; height: 30px; border-radius: 50%; background: #e8590c; color: #fff; display: inline-grid; place-items: center; font-size: 14px; font-weight: 800; }
+.kind-user-name { font-size: 14px; font-weight: 700; white-space: nowrap; }
+.kind-user-caret { transition: transform .15s; }
+.kind-user-caret.open { transform: rotate(180deg); }
+.kind-user-menu { position: absolute; top: calc(100% + 12px); right: 0; min-width: 280px; background: #fff; border-radius: 16px; box-shadow: 0 12px 40px rgba(33, 30, 70, .16); padding: 10px; z-index: 60; }
+.kind-user-menu a, .kind-user-menu button { display: block; width: 100%; text-align: left; padding: 14px 16px; border: none; background: transparent; border-radius: 10px; font-size: 15px; font-weight: 500; color: var(--ink, #0f1238); cursor: pointer; text-decoration: none; font-family: inherit; }
+.kind-user-menu a:hover, .kind-user-menu button:hover { background: #f4f4f7; }
 .kind-menu { display: none; width: 42px; height: 42px; border: 1px solid #ddd5ff; border-radius: 14px; background: #fff; }
 .kind-menu span { display: block; width: 18px; height: 2px; margin: 4px auto; background: var(--ink); }
 .kind-mobile { display: none; }
@@ -4293,6 +4309,17 @@ img, svg { display: block; }
 }
 [data-theme="dark"] .kind-mobile a,
 [data-theme="dark"] .kind-mobile button { color: var(--t1); }
+[data-theme="dark"] .kind-bell { color: #c0c8e8; }
+[data-theme="dark"] .kind-bell:hover { background: var(--s2); color: #a78bfa; }
+[data-theme="dark"] .kind-signin { color: #c0c8e8; }
+[data-theme="dark"] .kind-signin:hover { color: #a78bfa; }
+[data-theme="dark"] .kind-start-pill { border-color: var(--b1); background: var(--s2); color: var(--t1); }
+[data-theme="dark"] .kind-user-btn { color: var(--t1); }
+[data-theme="dark"] .kind-user-menu { background: #141736; box-shadow: 0 12px 40px rgba(0, 0, 0, .5); }
+[data-theme="dark"] .kind-user-menu a,
+[data-theme="dark"] .kind-user-menu button { color: var(--t1); }
+[data-theme="dark"] .kind-user-menu a:hover,
+[data-theme="dark"] .kind-user-menu button:hover { background: var(--s2); }
 
 /* ── Marketing main page ── */
 [data-theme="dark"] .kind-page {
