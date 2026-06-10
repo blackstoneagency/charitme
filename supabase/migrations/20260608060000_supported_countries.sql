@@ -16,8 +16,18 @@ CREATE TABLE IF NOT EXISTS public.supported_countries (
 ALTER TABLE public.supported_countries ENABLE ROW LEVEL SECURITY;
 
 -- Public read (anyone can see the list)
-CREATE POLICY IF NOT EXISTS "public_read_countries"
-  ON public.supported_countries FOR SELECT USING (true);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'supported_countries'
+      AND policyname = 'public_read_countries'
+  ) THEN
+    CREATE POLICY "public_read_countries"
+      ON public.supported_countries FOR SELECT USING (true);
+  END IF;
+END $$;
 
 -- Only service role can write (admin API uses supabaseAdmin which bypasses RLS)
 GRANT SELECT ON public.supported_countries TO anon, authenticated;
