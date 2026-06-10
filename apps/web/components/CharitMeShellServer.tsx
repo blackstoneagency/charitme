@@ -8,6 +8,7 @@ import {
   type ShellProps,
   type Metric,
   type TableRow,
+  type SidebarCampaign,
 } from './CharitMeApp';
 
 // ─────────────────────────────────────────────
@@ -35,12 +36,14 @@ export {
   type TableRow,
   type ShellVariant,
   type ShellProps,
+  type SidebarCampaign,
 } from './CharitMeApp';
 
 // ─────────────────────────────────────────────
 // User fetch helper
 // ─────────────────────────────────────────────
 type ShellUser = {
+  id: string | null;
   name: string | null;
   email: string;
   role: string;
@@ -52,7 +55,7 @@ async function fetchShellUser(): Promise<ShellUser> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { name: null, email: '', role: 'Organizer', avatarUrl: null, hasAdminAccess: false };
+    if (!user) return { id: null, name: null, email: '', role: 'Organizer', avatarUrl: null, hasAdminAccess: false };
 
     const { data: profile } = await supabaseAdmin
       .from('profiles')
@@ -67,6 +70,7 @@ async function fetchShellUser(): Promise<ShellUser> {
       : 'Organizer';
 
     return {
+      id: user.id,
       name: profile?.full_name ?? null,
       email: user.email ?? '',
       role,
@@ -74,7 +78,31 @@ async function fetchShellUser(): Promise<ShellUser> {
       hasAdminAccess,
     };
   } catch {
-    return { name: null, email: '', role: 'Organizer', avatarUrl: null, hasAdminAccess: false };
+    return { id: null, name: null, email: '', role: 'Organizer', avatarUrl: null, hasAdminAccess: false };
+  }
+}
+
+// ─────────────────────────────────────────────
+// Sidebar campaign list — powers the "My Campaigns"
+// expandable nav item so organizers can jump straight
+// into a specific campaign's management page.
+// ─────────────────────────────────────────────
+const SIDEBAR_CAMPAIGN_LIMIT = 8;
+
+async function fetchSidebarCampaigns(userId: string | null): Promise<{ campaigns: SidebarCampaign[]; hasMore: boolean }> {
+  if (!userId) return { campaigns: [], hasMore: false };
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('campaigns')
+      .select('id,title,status')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(SIDEBAR_CAMPAIGN_LIMIT + 1);
+    if (error || !data) return { campaigns: [], hasMore: false };
+    const hasMore = data.length > SIDEBAR_CAMPAIGN_LIMIT;
+    return { campaigns: (data as SidebarCampaign[]).slice(0, SIDEBAR_CAMPAIGN_LIMIT), hasMore };
+  } catch {
+    return { campaigns: [], hasMore: false };
   }
 }
 
@@ -85,9 +113,15 @@ async function fetchShellUser(): Promise<ShellUser> {
 // ─────────────────────────────────────────────
 export async function CharitMeShell(props: ShellProps) {
   const user = await fetchShellUser();
+  const showCampaignsNav = (props.mode ?? 'dashboard') !== 'admin' && !props.guestMode && !props.hideSidebar;
+  const { campaigns, hasMore } = showCampaignsNav
+    ? await fetchSidebarCampaigns(user.id)
+    : { campaigns: [], hasMore: false };
   return (
     <_CharitMeShell
       {...props}
+      sidebarCampaigns={campaigns}
+      sidebarCampaignsHasMore={hasMore}
       userName={user.name ?? user.email}
       userEmail={user.email}
       userRole={user.role}

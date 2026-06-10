@@ -3,6 +3,7 @@ import Link from 'next/link';
 import LogoutButton from './LogoutButton';
 import NotificationBell from './NotificationBell';
 import { ThemeToggle } from './ThemeProvider';
+import CampaignsSidebarNav from './CampaignsSidebarNav';
 
 export type Metric = {
   label: string;
@@ -22,6 +23,8 @@ export type TableRow = {
   href?: string;
 };
 
+export type SidebarCampaign = { id: string; title: string; status: string };
+
 export type ShellProps = {
   active: string;
   children: React.ReactNode;
@@ -33,6 +36,8 @@ export type ShellProps = {
   userAvatarUrl?: string | null;
   guestMode?: boolean;
   hideSidebar?: boolean;
+  sidebarCampaigns?: SidebarCampaign[];
+  sidebarCampaignsHasMore?: boolean;
 };
 
 export type ShellVariant = 'dashboard' | 'admin';
@@ -110,6 +115,7 @@ export function KFIcon({ name, className = '' }: { name: string; className?: str
     filter: <path d="M22 3H2l8 9v7l4 2v-9l8-9Z" />,
     upload: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M17 8l-5-5-5 5M12 3v12" /></>,
     logout: <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></>,
+    chevron: <path d="M9 18l6-6-6-6" />,
   };
   return <svg {...props}>{paths[name] ?? paths.home}</svg>;
 }
@@ -123,7 +129,7 @@ export function Logo() {
   );
 }
 
-export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAccess: _hasAdminAccess = false, userName, userEmail, userRole, userAvatarUrl, guestMode = false, hideSidebar = false }: ShellProps) {
+export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAccess: _hasAdminAccess = false, userName, userEmail, userRole, userAvatarUrl, guestMode = false, hideSidebar = false, sidebarCampaigns = [], sidebarCampaignsHasMore = false }: ShellProps) {
   const _nav = mode === 'admin' ? adminNav : dashboardNav; void _nav;
   const displayName = userName || userEmail?.split('@')[0] || (mode === 'admin' ? 'Admin User' : 'My Account');
   const displayRole = userRole || (mode === 'admin' ? 'Super Admin' : 'Organizer');
@@ -168,13 +174,29 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
               {dashboardNav.map(([label, href, icon, badge]) => {
                 const isActive = active === label || (active === 'Campaigns' && label === 'My Campaigns');
                 const isGuestDisabled = guestMode && label !== 'My Campaigns';
-                return isGuestDisabled ? (
-                  <span key={href} className="kf-nav-guest-item" title="Sign in to access">
-                    <KFIcon name={icon} />
-                    <span>{label}</span>
-                    {badge && <em>{badge}</em>}
-                  </span>
-                ) : (
+                if (isGuestDisabled) {
+                  return (
+                    <span key={href} className="kf-nav-guest-item" title="Sign in to access">
+                      <KFIcon name={icon} />
+                      <span>{label}</span>
+                      {badge && <em>{badge}</em>}
+                    </span>
+                  );
+                }
+                if (label === 'My Campaigns') {
+                  return (
+                    <CampaignsSidebarNav
+                      key={href}
+                      href={href}
+                      icon={icon}
+                      label={label}
+                      isActive={isActive}
+                      campaigns={sidebarCampaigns}
+                      hasMore={sidebarCampaignsHasMore}
+                    />
+                  );
+                }
+                return (
                   <Link key={href} href={href} className={isActive ? 'active' : ''}>
                     <KFIcon name={icon} />
                     <span>{label}</span>

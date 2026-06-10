@@ -992,6 +992,34 @@ img, svg { display: block; }
   font-style: normal;
   font-weight: 950;
 }
+/* ── Expandable "My Campaigns" sidebar group ── */
+.kf-nav-group { display: grid; gap: 2px; }
+.kf-nav-item-row { display: flex; align-items: stretch; gap: 2px; }
+.kf-nav .kf-nav-item-link { flex: 1; min-width: 0; }
+.kf-nav-toggle {
+  width: 36px; flex-shrink: 0; display: grid; place-items: center;
+  border: 0; border-radius: 10px; background: transparent; color: #67718e; cursor: pointer;
+}
+.kf-nav-toggle:hover { background: #f5f2ff; color: #4e16f5; }
+.kf-nav-toggle svg { width: 14px; height: 14px; transition: transform .15s ease; }
+.kf-nav-toggle svg.kf-chevron-open { transform: rotate(90deg); }
+.kf-nav-sub {
+  display: grid; gap: 2px;
+  padding: 2px 0 4px 14px;
+  margin-left: 22px;
+  border-left: 2px solid var(--b1);
+}
+.kf-nav .kf-nav-sub-link {
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+  min-height: 34px; padding: 0 10px; border-radius: 8px;
+  font-size: 13px; font-weight: 700; color: var(--t3); text-decoration: none;
+}
+.kf-nav .kf-nav-sub-link:hover { background: #f5f2ff; color: #18234d; }
+.kf-nav .kf-nav-sub-link.active { background: #f0eaff; color: #4e16f5; font-weight: 900; }
+.kf-nav-sub-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.kf-nav-sub-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.kf-nav .kf-nav-sub-more { color: var(--t3); font-weight: 800; }
+.kf-nav .kf-nav-sub-more:hover { color: #4e16f5; }
 .kf-pro {
   padding: 22px 18px;
   border: 1px solid #e8ddff;
@@ -4161,6 +4189,11 @@ img, svg { display: block; }
 [data-theme="dark"] .kf-nav a:hover { background: var(--s2); color: var(--t1); }
 [data-theme="dark"] .kf-nav a.active { color: #a78bfa; background: var(--s2); font-weight: 950; }
 [data-theme="dark"] .kf-nav em { background: var(--s3); color: #a78bfa; }
+[data-theme="dark"] .kf-nav-toggle { color: var(--t3); }
+[data-theme="dark"] .kf-nav-toggle:hover { background: var(--s2); color: #a78bfa; }
+[data-theme="dark"] .kf-nav-sub { border-left-color: var(--b1); }
+[data-theme="dark"] .kf-nav .kf-nav-sub-link:hover { background: var(--s2); color: var(--t1); }
+[data-theme="dark"] .kf-nav .kf-nav-sub-link.active { background: var(--s2); color: #a78bfa; }
 [data-theme="dark"] .kf-admin-nav {
   background: linear-gradient(180deg, #1a1248 0%, #0e0e2a 100%);
   border-top-color: #6c35ff;
