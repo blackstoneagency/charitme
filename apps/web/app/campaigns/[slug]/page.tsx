@@ -15,11 +15,14 @@ import CampaignCarousel from './CampaignCarousel';
 import DonorWall, { type WallDonation } from './DonorWall';
 import DonationTicker from './DonationTicker';
 import EmployerMatchWidget from './EmployerMatchWidget';
+import ReferralBox from './ReferralBox';
 import { getPhotosForCategory, getCoverForCategory } from '../../../lib/photo-catalog';
 
 export const dynamic = 'force-dynamic';
 
 const RENDER_TIME = Date.now();
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -30,6 +33,7 @@ interface Props {
     utm_campaign?: string;
     utm_content?: string;
     share_event_id?: string;
+    ref?: string;
   }>;
 }
 
@@ -159,24 +163,31 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CampaignPage({ params, searchParams }: Props) {
   type SP = NonNullable<Awaited<Props['searchParams']>>;
   const [{ slug }, sp] = await Promise.all([params, searchParams ?? Promise.resolve({} as SP)]);
+  const justDonated = sp.donated === '1';
+  const campaign = await getCampaign(slug);
+  if (!campaign) notFound();
+
+  // Logged-in user (used for private-campaign visibility + referral links)
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Private campaigns are only visible to the owner and admins
+  const visibility = (campaign as { visibility?: string }).visibility ?? 'public';
+  if (visibility === 'private') {
+    if (!user || user.id !== campaign.user_id) notFound();
+  }
+
+  // Personal referral link attribution (?ref=<userId>) — ignore self-referrals
+  const referrerId = sp.ref && UUID_RE.test(sp.ref) && sp.ref !== user?.id ? sp.ref : undefined;
+
   const utm = {
     utmSource:    sp.utm_source,
     utmMedium:    sp.utm_medium,
     utmCampaign:  sp.utm_campaign,
     utmContent:   sp.utm_content,
     shareEventId: sp.share_event_id,
+    referrerId,
   };
-  const justDonated = sp.donated === '1';
-  const campaign = await getCampaign(slug);
-  if (!campaign) notFound();
-
-  // Private campaigns are only visible to the owner and admins
-  const visibility = (campaign as { visibility?: string }).visibility ?? 'public';
-  if (visibility === 'private') {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || user.id !== campaign.user_id) notFound();
-  }
 
   const [donations, updates, ledger, faqs, donorMessages] = await Promise.all([
     getRecentDonations(campaign.id),
@@ -458,6 +469,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             qrUrl={qrUrl}
             qrPosterId={campaign.id}
           />
+
+          {/* Personal referral link — earn rewards for referred donations */}
+          <ReferralBox campaignUrl={campaignUrl} userId={user?.id ?? null} />
 
         </div>{/* end pc-left */}
 

@@ -1445,6 +1445,15 @@ img, svg { display: block; }
 .pc-guarantee b, .pc-guarantee span { display: block; }
 .pc-guarantee span { color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 5px; }
 
+/* Personal referral link box */
+.pc-referral { margin-top: 18px; border-radius: 14px; background: #f8fff9; border: 1px solid #d4f4df; padding: 16px; }
+.pc-referral-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+.pc-referral-head b { display: block; color: var(--ink); font-size: 14px; }
+.pc-referral-head span { display: block; color: var(--muted); font-size: 12px; line-height: 1.45; margin-top: 3px; }
+.pc-referral .pc-share-copy { margin-bottom: 10px; }
+.pc-referral-link { display: inline-block; font-size: 12px; font-weight: 800; color: var(--green-dark, #065f46); text-decoration: none; }
+.pc-referral-link:hover { text-decoration: underline; }
+
 /* Employer donation matching widget */
 .pc-match { margin-top: 18px; border-radius: 14px; background: #f9f7ff; border: 1px solid var(--line); padding: 16px; }
 .pc-match-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
@@ -4372,6 +4381,9 @@ img, svg { display: block; }
 [data-theme="dark"] .pc-guarantee { background: var(--s1); border-color: var(--b1); }
 [data-theme="dark"] .pc-guarantee b { color: var(--t1); }
 [data-theme="dark"] .pc-guarantee span { color: var(--t3); }
+[data-theme="dark"] .pc-referral { background: var(--s1); border-color: var(--b1); }
+[data-theme="dark"] .pc-referral-head b { color: var(--t1); }
+[data-theme="dark"] .pc-referral-head span { color: var(--t3); }
 [data-theme="dark"] .pc-match { background: var(--s1); border-color: var(--b1); }
 [data-theme="dark"] .pc-match-head b { color: var(--t1); }
 [data-theme="dark"] .pc-match-head span, [data-theme="dark"] .pc-match-note, [data-theme="dark"] .pc-match-howto { color: var(--t3); }

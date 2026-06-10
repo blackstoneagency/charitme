@@ -22,6 +22,8 @@ const Schema = z.object({
   utmCampaign:  z.string().max(100).optional(),
   utmContent:   z.string().max(100).optional(),
   shareEventId: z.string().uuid().optional(),
+  // Personal referral link (?ref=<userId>) — credits another user's referral rewards
+  referrerId:   z.string().uuid().optional(),
 });
 
 // POST /api/donations/recurring
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest) {
   }
 
   const { campaignId, amountCents, cadence, message, anonymous, donorEmail,
-          utmSource, utmMedium, utmCampaign, utmContent, shareEventId } = parsed.data;
+          utmSource, utmMedium, utmCampaign, utmContent, shareEventId, referrerId } = parsed.data;
   const tipPercent = parsed.data.tipPercent ?? DEFAULT_DONOR_TIP_PERCENT;
   const tipCents = donorTip(amountCents, tipPercent);
 
@@ -66,6 +68,31 @@ export async function POST(request: NextRequest) {
 
   const origin = getAppOrigin();
   const stripeEmail = user?.email ?? donorEmail ?? undefined;
+
+  // ── Referral attribution ────────────────────────────────────────────────────
+  // Donations made via a personal referral link (?ref=<userId>) create a
+  // share_events row up front so the existing webhook conversion-tracking
+  // logic (which marks share_events.converted + donation_id) applies unchanged.
+  let referralShareEventId: string | undefined;
+  if (referrerId && referrerId !== user?.id) {
+    try {
+      const { data: refEvent } = await supabaseAdmin
+        .from('share_events')
+        .insert({
+          campaign_id: campaignId,
+          sharer_id: referrerId,
+          channel: 'link',
+          utm_source: 'referral',
+          utm_medium: 'referral-link',
+          converted: false,
+        })
+        .select('id')
+        .single();
+      referralShareEventId = refEvent?.id;
+    } catch (err) {
+      console.warn('[donations/recurring] Failed to record referral share event:', err);
+    }
+  }
 
   // Map our cadence to Stripe interval
   const intervalMap: Record<string, Stripe.PriceCreateParams.Recurring.Interval> = {
@@ -120,11 +147,11 @@ export async function POST(request: NextRequest) {
       tipCents:             String(tipCents),
       cadence,
       isRecurring:          '1',
-      utmSource:            utmSource ?? '',
-      utmMedium:            utmMedium ?? '',
+      utmSource:            utmSource || (referralShareEventId ? 'referral' : ''),
+      utmMedium:            utmMedium || (referralShareEventId ? 'referral-link' : ''),
       utmCampaign:          utmCampaign ?? '',
       utmContent:           utmContent ?? '',
-      shareEventId:         shareEventId ?? '',
+      shareEventId:         referralShareEventId ?? shareEventId ?? '',
     },
     subscription_data: {
       metadata: {

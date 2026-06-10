@@ -75,7 +75,7 @@ Legend:
 | Donor wall / "Wall of Fame" | ✅ | ✅ | ⚠️ | ✅ **Shipped** — Recent + Top Donors tabs, tier badges, load more |
 | Top-fundraiser leaderboard | ✅ | ✅ | ❌ | ✅ **Shipped** — site-wide `/leaderboard` with Top Campaigns + Top Donors (all-time/month/week) |
 | Donor badges / impact points / streaks | ✅ | ⚠️ | ❌ | ✅ **Shipped** — Giving Levels (Supporter→Icon) with progress bar, 8 achievement badges, monthly giving streaks on `/profile` |
-| Referral program / share-to-earn | ⚠️ | ⚠️ | ❌ | ❌ → 🚀 **building w/ tracked links** |
+| Referral program / share-to-earn | ⚠️ | ⚠️ | ❌ | ✅ **Shipped** — personal `?ref=<userId>` link on every campaign, tracked end-to-end via `share_events`, with a `/dashboard/referrals` rewards dashboard (5 tiers: Connector→Champion) |
 | Employer donation matching lookup | Double the Donation add-on | Double the Donation add-on | ❌ | ✅ **Shipped** — built-in employer matching search on every donate flow, free |
 | Recent donation live ticker | ✅ | ✅ | ✅ | ✅ **Shipped** — auto-polling live ticker on campaign pages |
 | Goal meter / donor map | ✅ | ✅ | ✅ | ✅ |
@@ -130,7 +130,7 @@ Each item below ships as its own commit + push to `claude/charitme-gofundme-audi
 5. ✅ **Public Top-Fundraiser / Top-Donor Leaderboards** (site-wide `/leaderboard`, with per-campaign Top Donors already shipped via Donor Wall)
 6. ✅ **Donor Gamification**: badges, giving levels, streaks shown on donor profile
 7. ✅ **Employer Donation Matching** lookup widget on donate flow
-8. 🚀 **Referral program**: trackable referral links + rewards dashboard
+8. ✅ **Referral program**: personal `?ref=<userId>` referral links on every campaign page, end-to-end conversion tracking via `share_events` (reuses existing webhook logic), and a `/dashboard/referrals` rewards dashboard with 5 tiers (Connector → Champion)
 9. 🚀 **Public campaign milestones / stretch goals** display
 10. 🚀 **Reward/perk tiers** for campaigns (Kickstarter-style)
 11. Blog CMS expansion

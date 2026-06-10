@@ -33,6 +33,8 @@ const DonateSchema = z.object({
   utmCampaign:        z.string().max(100).optional(),
   utmContent:         z.string().max(100).optional(),
   shareEventId:       z.string().uuid().optional(),
+  // Personal referral link (?ref=<userId>) — credits another user's referral rewards
+  referrerId:         z.string().uuid().optional(),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,6 +79,7 @@ export async function POST(request: NextRequest) {
     utmCampaign,
     utmContent,
     shareEventId,
+    referrerId,
   } = parsed.data;
 
   const paymentMethod: PaymentMethod = parsed.data.paymentMethod ?? 'stripe';
@@ -105,6 +108,31 @@ export async function POST(request: NextRequest) {
   const stripeEmail = user?.email ?? donorEmail ?? undefined;
 
   const origin = getAppOrigin();
+
+  // ── Referral attribution ────────────────────────────────────────────────────
+  // Donations made via a personal referral link (?ref=<userId>) create a
+  // share_events row up front so the existing webhook conversion-tracking
+  // logic (which marks share_events.converted + donation_id) applies unchanged.
+  let referralShareEventId: string | undefined;
+  if (referrerId && referrerId !== user?.id) {
+    try {
+      const { data: refEvent } = await supabaseAdmin
+        .from('share_events')
+        .insert({
+          campaign_id: campaignId,
+          sharer_id: referrerId,
+          channel: 'link',
+          utm_source: 'referral',
+          utm_medium: 'referral-link',
+          converted: false,
+        })
+        .select('id')
+        .single();
+      referralShareEventId = refEvent?.id;
+    } catch (err) {
+      console.warn('[donations] Failed to record referral share event:', err);
+    }
+  }
 
   // ── Look up organizer's connected Stripe account ────────────────────────────
   const { data: connectedAccount } = await supabaseAdmin
@@ -193,11 +221,11 @@ export async function POST(request: NextRequest) {
       hasConnectedAccount:  hasConnectedAccount ? '1' : '0',
       organizerUserId:      campaign.user_id,
       // Share attribution
-      utmSource:            utmSource ?? '',
-      utmMedium:            utmMedium ?? '',
+      utmSource:            utmSource || (referralShareEventId ? 'referral' : ''),
+      utmMedium:            utmMedium || (referralShareEventId ? 'referral-link' : ''),
       utmCampaign:          utmCampaign ?? '',
       utmContent:           utmContent ?? '',
-      shareEventId:         shareEventId ?? '',
+      shareEventId:         referralShareEventId ?? shareEventId ?? '',
     },
     payment_intent_data: hasConnectedAccount
       ? {

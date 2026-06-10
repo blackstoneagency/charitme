@@ -79,6 +79,7 @@ interface UtmProps {
   utmCampaign?: string;
   utmContent?: string;
   shareEventId?: string;
+  referrerId?: string;
 }
 
 export default function DonateButton({
@@ -149,6 +150,7 @@ export default function DonateButton({
           ...(utm?.utmCampaign  ? { utmCampaign:  utm.utmCampaign }  : {}),
           ...(utm?.utmContent   ? { utmContent:   utm.utmContent }   : {}),
           ...(utm?.shareEventId ? { shareEventId: utm.shareEventId } : {}),
+          ...(utm?.referrerId   ? { referrerId:   utm.referrerId }   : {}),
         }),
       });
       const text = await res.text();

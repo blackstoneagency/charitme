@@ -45,6 +45,7 @@ const dashboardNav = [
   ['Donations', '/dashboard/donations', 'gift'],
   ['Recurring', '/dashboard/recurring', 'gift'],
   ['Donors', '/dashboard/donor', 'users'],
+  ['Referrals', '/dashboard/referrals', 'crown'],
   ['Updates', '/dashboard/updates', 'doc'],
   ['Payouts', '/dashboard/payouts', 'wallet'],
   ['Analytics', '/dashboard/analytics', 'chart'],
