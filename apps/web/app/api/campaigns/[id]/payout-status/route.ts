@@ -1,0 +1,69 @@
+import 'server-only';
+import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '../../../../../lib/supabase';
+import { createClient } from '../../../../../lib/supabase-server';
+import { resolvePayoutDestination } from '../../../../../lib/payout-destination';
+
+export const dynamic = 'force-dynamic';
+
+// GET /api/campaigns/[id]/payout-status — owner-only payout destination state.
+// Donations are blocked platform-wide until payoutReady is true, because every
+// donation is a Stripe destination charge straight to the recipient's account.
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { data: campaign } = await supabaseAdmin
+    .from('campaigns')
+    .select('id, user_id, beneficiary_profile_id, beneficiary_name')
+    .eq('id', id)
+    .single();
+
+  if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+  if (campaign.user_id !== user.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const destination = await resolvePayoutDestination(campaign);
+
+  // Beneficiary linkage + their own connect state (for the setup checklist)
+  let beneficiaryConnected = false;
+  if (campaign.beneficiary_profile_id) {
+    const { data } = await supabaseAdmin
+      .from('connected_accounts')
+      .select('details_submitted, payouts_enabled, charges_enabled')
+      .eq('user_id', campaign.beneficiary_profile_id)
+      .eq('verification_status', 'verified')
+      .maybeSingle();
+    beneficiaryConnected = !!(data?.details_submitted && data.payouts_enabled && data.charges_enabled);
+  }
+
+  const { data: organizerAccount } = await supabaseAdmin
+    .from('connected_accounts')
+    .select('details_submitted, payouts_enabled, charges_enabled')
+    .eq('user_id', campaign.user_id)
+    .eq('verification_status', 'verified')
+    .maybeSingle();
+  const organizerConnected = !!(organizerAccount?.details_submitted && organizerAccount.payouts_enabled && organizerAccount.charges_enabled);
+
+  // Most recent unaccepted, unexpired invite (if any)
+  const { data: invite } = await supabaseAdmin
+    .from('beneficiary_invites')
+    .select('email, created_at, expires_at, accepted_at')
+    .eq('campaign_id', id)
+    .is('accepted_at', null)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return NextResponse.json({
+    payoutReady: !!destination,
+    destinationRole: destination?.role ?? null,
+    organizerConnected,
+    beneficiaryLinked: !!campaign.beneficiary_profile_id,
+    beneficiaryConnected,
+    beneficiaryName: campaign.beneficiary_name ?? null,
+    pendingInvite: invite ? { email: invite.email, expiresAt: invite.expires_at } : null,
+  });
+}

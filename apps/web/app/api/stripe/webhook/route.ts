@@ -219,6 +219,8 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
     const hasConnected       = meta.hasConnectedAccount === '1';
     const connectedAccountId = meta.connectedAccountId ?? '';
     const organizerUserId    = meta.organizerUserId ?? '';
+    // Funds recipient — the beneficiary when the campaign is on someone's behalf
+    const payoutRecipientId  = meta.payoutRecipientId || organizerUserId;
     const paymentIntentId    = typeof session.payment_intent === 'string' ? session.payment_intent : null;
     const currency           = (session.currency ?? 'usd').toLowerCase();
 
@@ -307,7 +309,7 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
 
       const { data: payoutRow } = await supabaseAdmin.from('payouts').insert({
         campaign_id:     meta.campaignId,
-        user_id:         organizerUserId,
+        user_id:         payoutRecipientId,
         amount_cents:    amountCents,
         fee_cents:       feeTotal,
         payout_speed:    'standard',
@@ -317,7 +319,7 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
           : null,
         note: hasConnected
           ? `Stripe Connect transfer requested (${paymentMethod}). Final bank payout remains pending processor confirmation. CharitMe tip: ${formatCents(platformFeeCents)}, donor-covered processing: ${formatCents(processingFeeCents)}.`
-          : `Pending manual payout — organizer has no connected Stripe account. Donation via ${paymentMethod}.`,
+          : `Pending manual payout — recipient has no connected Stripe account. Donation via ${paymentMethod}.`,
       }).select('id').maybeSingle();
 
       if (campaignPaymentId) {

@@ -13,6 +13,7 @@ import {
   type PaymentMethod,
 } from '@shared/fees';
 import { normalizeCurrency } from '@shared/currencies';
+import { resolvePayoutDestination } from '../../../lib/payout-destination';
 import { getAppOrigin } from '../../../lib/auth-config';
 import { checkRateLimit } from '../../../lib/rate-limit';
 
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
   // ── Fetch campaign ──────────────────────────────────────────────────────────
   const { data: campaign } = await supabaseAdmin
     .from('campaigns')
-    .select('id, title, slug, status, user_id')
+    .select('id, title, slug, status, user_id, beneficiary_profile_id')
     .eq('id', campaignId)
     .single();
 
@@ -162,19 +163,19 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // ── Look up organizer's connected Stripe account ────────────────────────────
-  const { data: connectedAccount } = await supabaseAdmin
-    .from('connected_accounts')
-    .select('stripe_account_id, payouts_enabled, details_submitted, charges_enabled')
-    .eq('user_id', campaign.user_id)
-    .eq('verification_status', 'verified')
-    .maybeSingle();
-
-  const hasConnectedAccount =
-    !!connectedAccount?.details_submitted &&
-    !!connectedAccount.payouts_enabled &&
-    !!connectedAccount.charges_enabled &&
-    !!connectedAccount.stripe_account_id;
+  // ── Resolve payout destination (beneficiary first, then organizer) ──────────
+  // CharitMe NEVER holds donation funds: every charge is a destination charge
+  // straight to the recipient's own Stripe account. No destination → no charge.
+  const destination = await resolvePayoutDestination(campaign);
+  if (!destination) {
+    return NextResponse.json(
+      {
+        error: 'This campaign cannot accept donations yet — the recipient is completing secure payout setup.',
+        code: 'PAYOUT_NOT_READY',
+      },
+      { status: 409 },
+    );
+  }
 
   // ── Build Stripe Checkout line items ────────────────────────────────────────
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
@@ -218,10 +219,11 @@ export async function POST(request: NextRequest) {
   // application_fee_amount = tipCents + processingFeeCents
   //   • tipCents      → CharitMe's revenue (8% donor tip)
   //   • processingFee → offsets Stripe's deduction from CharitMe's balance
-  //                     so the organizer always receives exactly amountCents
+  //                     so the recipient always receives exactly amountCents
   //
   // transfer_data.destination → Stripe automatically transfers amountCents
-  //   to the organizer's connected account when the charge is captured.
+  //   to the recipient's connected account (beneficiary if set, otherwise the
+  //   organizer) when the charge is captured — CharitMe never holds the funds.
   //
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'payment',
@@ -245,9 +247,11 @@ export async function POST(request: NextRequest) {
       platformFeeCents:     String(tipCents),            // CharitMe's actual revenue
       paymentMethod,
       // Connected account info (so webhook knows routing without extra DB lookup)
-      connectedAccountId:   connectedAccount?.stripe_account_id ?? '',
-      hasConnectedAccount:  hasConnectedAccount ? '1' : '0',
+      connectedAccountId:   destination.stripeAccountId,
+      hasConnectedAccount:  '1',
       organizerUserId:      campaign.user_id,
+      payoutRecipientId:    destination.recipientUserId,
+      payoutRole:           destination.role,
       // Share attribution
       utmSource:            utmSource || (referralShareEventId ? 'referral' : ''),
       utmMedium:            utmMedium || (referralShareEventId ? 'referral-link' : ''),
@@ -257,16 +261,11 @@ export async function POST(request: NextRequest) {
       rewardId:             rewardId ?? '',
       currency,
     },
-    payment_intent_data: hasConnectedAccount
-      ? {
-          // CharitMe keeps tip + processing coverage; organizer gets amountCents
-          application_fee_amount: tipCents + processingFeeCents,
-          transfer_data: { destination: connectedAccount!.stripe_account_id },
-        }
-      : {
-          // No connected account — full amount stays in CharitMe's platform account
-          // Admin will need to manually pay out to the organizer
-        },
+    payment_intent_data: {
+      // CharitMe keeps tip + processing coverage; recipient gets amountCents
+      application_fee_amount: tipCents + processingFeeCents,
+      transfer_data: { destination: destination.stripeAccountId },
+    },
   };
 
   const requestKey  = request.headers.get('idempotency-key') ?? crypto.randomUUID();
@@ -286,32 +285,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Connected account invalid — fall back to direct charge (no split)
+    // Destination account invalid — NEVER fall back to charging into the
+    // platform balance (CharitMe must never hold funds). Block the donation
+    // and surface a payout-setup error instead.
     if (
       msg.includes('No such destination') ||
       msg.includes('account') ||
       msg.includes('transfer')
     ) {
-      console.warn('[donations] Falling back to direct charge — connected account invalid:', msg);
-      const fallbackParams: Stripe.Checkout.SessionCreateParams = {
-        ...sessionParams,
-        payment_intent_data: {},
-        metadata: {
-          ...sessionParams.metadata,
-          hasConnectedAccount: '0',
-          connectedAccountId: '',
-          fallback: '1',
+      console.error('[donations] Destination account invalid — blocking donation:', msg);
+      return NextResponse.json(
+        {
+          error: 'This campaign cannot accept donations right now — the recipient\'s payout account needs attention.',
+          code: 'PAYOUT_NOT_READY',
         },
-      };
-      try {
-        session = await createCheckoutSession(fallbackParams, `${idempotencyKey}_fallback`);
-      } catch (fallbackErr: unknown) {
-        const fallbackMsg = fallbackErr instanceof Error ? fallbackErr.message : 'Stripe error';
-        return NextResponse.json({ error: fallbackMsg }, { status: 502 });
-      }
-    } else {
-      return NextResponse.json({ error: msg }, { status: 502 });
+        { status: 409 },
+      );
     }
+    return NextResponse.json({ error: msg }, { status: 502 });
   }
 
   return NextResponse.json({ url: session!.url });

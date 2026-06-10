@@ -406,6 +406,7 @@ export default async function CampaignDetailPage({
               { href: `/dashboard/campaigns/${campaign.id}/faqs`, icon: 'doc', label: 'Manage FAQs', desc: 'AI-generated Q&A' },
               { href: `/dashboard/campaigns/${campaign.id}/milestones`, icon: 'check', label: 'Manage Milestones', desc: 'Stretch goals for donors' },
               { href: `/dashboard/campaigns/${campaign.id}/rewards`, icon: 'gift', label: 'Reward Tiers', desc: 'Perks at pledge levels' },
+              { href: `/dashboard/campaigns/${campaign.id}/payout-setup`, icon: 'wallet', label: 'Payout Setup', desc: 'Direct-to-bank deposits' },
               { href: `/dashboard/campaigns/${campaign.id}/edit`, icon: 'doc', label: 'Edit Campaign', desc: 'Update title, story, media' },
               { href: `/api/campaigns/${campaign.id}/qr-poster`, icon: 'send', label: 'Print QR Poster', desc: 'Download & print' },
               { href: `/dashboard/campaigns/${campaign.id}/updates`, icon: 'doc', label: 'Post Update', desc: 'Keep donors informed' },

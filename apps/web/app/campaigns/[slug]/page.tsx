@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 import { formatMoneyShort, normalizeCurrency } from '@shared/currencies';
+import { resolvePayoutDestination } from '../../../lib/payout-destination';
 import { calculateTrustScore, getTrustSignals } from '../../../lib/ai-platform';
 import DonateButton from './DonateButton';
 import ReportButton from './ReportButton';
@@ -218,7 +219,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     referrerId,
   };
 
-  const [donations, updates, ledger, faqs, donorMessages, milestones, rewards, currency] = await Promise.all([
+  const [donations, updates, ledger, faqs, donorMessages, milestones, rewards, currency, payoutDestination] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
     getLedger(campaign.id),
@@ -227,7 +228,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     getMilestones(campaign.id),
     getRewards(campaign.id),
     getCampaignCurrency(campaign.id),
+    resolvePayoutDestination(campaign),
   ]);
+  const payoutReady = !!payoutDestination;
 
   const raised = campaign.raised_amount ?? 0;
   const goal = campaign.goal_amount || 1;
@@ -268,7 +271,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         raised={raised}
         goal={goal}
         pct={pct}
-        isActive={isActive}
+        isActive={isActive && payoutReady}
         campaignId={campaign.id}
         currency={currency}
       />
@@ -527,8 +530,13 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
             <Milestones milestones={milestones} raisedCents={raised} currency={currency} />
 
-            {isActive ? (
+            {isActive && payoutReady ? (
               <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} utm={utm} rewards={rewards} currency={currency} />
+            ) : isActive && !payoutReady ? (
+              <div className="pc-ended">
+                💜 Donations open soon — secure payout setup is being completed so 100% of every
+                gift goes straight to the recipient&apos;s own bank account. CharitMe never holds funds.
+              </div>
             ) : !acceptDonations && campaign.status === 'active' ? (
               <div className="pc-ended">Donations are temporarily paused for this campaign.</div>
             ) : (

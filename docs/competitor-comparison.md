@@ -63,8 +63,9 @@ Legend:
 | Public trust badge | GoFundMe ✅ (basic) | ✅ CharitScore™ |
 | Transparency ledger (spend tracking) | ❌ none | ✅ **Unique** |
 | Campaign reporting / moderation | ✅ | ✅ |
+| Zero fund custody (instant direct-to-recipient transfers) | ❌ all competitors pool funds in a platform balance | ✅ **Unique** — every donation is a Stripe destination charge straight to the recipient's own account at the moment of payment; CharitMe never holds funds. Campaigns on someone's behalf route money directly to the **beneficiary's** bank via the invite flow — the organizer never touches it either. No destination → donations are blocked, never pooled |
 
-**Verdict:** Already ahead here — no action needed.
+**Verdict:** Already ahead here — and the zero-custody model eliminates the "platform froze my funds" failure mode that plagues GoFundMe headlines.
 
 ---
 

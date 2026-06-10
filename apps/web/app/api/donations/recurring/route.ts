@@ -7,6 +7,7 @@ import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
 import { donorTip, MIN_DONATION_CENTS, MAX_DONATION_CENTS, DEFAULT_DONOR_TIP_PERCENT } from '@shared/fees';
 import { normalizeCurrency } from '@shared/currencies';
+import { resolvePayoutDestination } from '../../../../lib/payout-destination';
 import { getAppOrigin } from '../../../../lib/auth-config';
 import { checkRateLimit } from '../../../../lib/rate-limit';
 
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
   // Verify campaign is active
   const { data: campaign } = await supabaseAdmin
     .from('campaigns')
-    .select('id, title, slug, status, user_id')
+    .select('id, title, slug, status, user_id, beneficiary_profile_id')
     .eq('id', campaignId)
     .single();
 
@@ -116,15 +117,18 @@ export async function POST(request: NextRequest) {
   // Total charged per period
   const totalPerPeriod = amountCents + tipCents;
 
-  // Get connected account if available
-  const { data: connectedAccount } = await supabaseAdmin
-    .from('connected_accounts')
-    .select('stripe_account_id, payouts_enabled, details_submitted')
-    .eq('user_id', campaign.user_id)
-    .eq('verification_status', 'verified')
-    .maybeSingle();
-
-  const hasConnected = !!(connectedAccount?.details_submitted && connectedAccount.payouts_enabled);
+  // Resolve payout destination (beneficiary first, then organizer).
+  // CharitMe NEVER holds donation funds — no destination, no subscription.
+  const destination = await resolvePayoutDestination(campaign);
+  if (!destination) {
+    return NextResponse.json(
+      {
+        error: 'This campaign cannot accept donations yet — the recipient is completing secure payout setup.',
+        code: 'PAYOUT_NOT_READY',
+      },
+      { status: 409 },
+    );
+  }
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'subscription',
@@ -162,6 +166,11 @@ export async function POST(request: NextRequest) {
       utmContent:           utmContent ?? '',
       shareEventId:         referralShareEventId ?? shareEventId ?? '',
       currency,
+      connectedAccountId:   destination.stripeAccountId,
+      hasConnectedAccount:  '1',
+      organizerUserId:      campaign.user_id,
+      payoutRecipientId:    destination.recipientUserId,
+      payoutRole:           destination.role,
     },
     subscription_data: {
       metadata: {
@@ -170,12 +179,9 @@ export async function POST(request: NextRequest) {
         cadence,
         isRecurring: '1',
       },
-      ...(hasConnected
-        ? {
-            application_fee_percent: tipCents > 0 ? parseFloat(((tipCents / totalPerPeriod) * 100).toFixed(2)) : undefined,
-            transfer_data: { destination: connectedAccount!.stripe_account_id },
-          }
-        : {}),
+      // Every recurring charge transfers straight to the recipient's account
+      application_fee_percent: tipCents > 0 ? parseFloat(((tipCents / totalPerPeriod) * 100).toFixed(2)) : undefined,
+      transfer_data: { destination: destination.stripeAccountId },
     },
   };
 
@@ -190,18 +196,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Payment processing is not configured. Please contact support.' }, { status: 503 });
     }
 
-    // Connected account invalid — retry without transfer
+    // Destination invalid — NEVER fall back to charging into the platform
+    // balance (CharitMe must never hold funds). Block the subscription.
     if (msg.includes('No such destination') || msg.includes('account') || msg.includes('transfer')) {
-      console.warn('[donations/recurring] Falling back to direct charge:', msg);
-      const fallbackParams = { ...sessionParams, payment_intent_data: {} };
-      try {
-        session = await createCheckoutSession(fallbackParams, `recurring_${campaignId}_${user?.id ?? 'guest'}_${crypto.randomUUID()}_fallback`);
-      } catch (fe: unknown) {
-        return NextResponse.json({ error: fe instanceof Error ? fe.message : 'Stripe error' }, { status: 502 });
-      }
-    } else {
-      return NextResponse.json({ error: msg }, { status: 502 });
+      console.error('[donations/recurring] Destination account invalid — blocking subscription:', msg);
+      return NextResponse.json(
+        {
+          error: 'This campaign cannot accept donations right now — the recipient\'s payout account needs attention.',
+          code: 'PAYOUT_NOT_READY',
+        },
+        { status: 409 },
+      );
     }
+    return NextResponse.json({ error: msg }, { status: 502 });
   }
   return NextResponse.json({ url: session!.url });
 }
