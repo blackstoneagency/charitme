@@ -1,17 +1,15 @@
 import 'server-only';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { CharitMeShell, TopBar, KFIcon } from '../../../../components/CharitMeShellServer';
+import { CharitMeShell, TopBar } from '../../../../components/CharitMeShellServer';
 import { requireUser } from '../../../../lib/auth';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import CampaignControls from './_components/CampaignControls';
-import SupportersPanel from './_components/SupportersPanel';
+import CampaignWorkspace from './_components/CampaignWorkspace';
 
 export const dynamic = 'force-dynamic';
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 // Types
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 type Campaign = {
   id: string;
   title: string;
@@ -29,9 +27,9 @@ type Campaign = {
   updated_at: string;
 };
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 // Helpers
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 function fmtCents(cents: number): string {
   const dollars = Math.round(cents / 100);
   if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1)}M`;
@@ -48,7 +46,7 @@ function fmtDate(iso: string): string {
 }
 
 function daysLeft(deadline: string | null): string {
-  if (!deadline) return 'â€”';
+  if (!deadline) return '—';
   const diff = Math.ceil((new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
   if (diff <= 0) return 'Ended';
   return `${diff} day${diff !== 1 ? 's' : ''} left`;
@@ -63,9 +61,9 @@ function pillTone(status: string) {
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 // Data fetch
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 async function fetchCampaignDetail(campaignId: string, userId: string): Promise<{
   campaign: Campaign | null;
   updatesCount: number;
@@ -109,9 +107,9 @@ async function fetchCampaignDetail(campaignId: string, userId: string): Promise<
   }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 // Page
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─────────────────────────────────────────────
 export default async function CampaignDetailPage({
   params,
 }: {
@@ -140,7 +138,7 @@ export default async function CampaignDetailPage({
 
       <div style={{ padding: '0 32px 40px', display: 'grid', gap: 24 }}>
 
-        {/* â”€â”€ Status + Metrics strip â”€â”€ */}
+        {/* ── Status + Metrics strip ── */}
         <div className="kf-card" style={{ padding: 24 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
             {/* Cover image */}
@@ -197,49 +195,8 @@ export default async function CampaignDetailPage({
           </div>
         </div>
 
-        {/* â”€â”€ Actions + Campaign Status â”€â”€ */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 24, alignItems: 'start' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <Link href={`/dashboard/campaigns/${campaign.id}/edit`} className="kf-primary"
-              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-              <KFIcon name="doc" /> Edit Campaign
-            </Link>
-            <Link href="/dashboard/campaigns" className="kf-outline"
-              style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}>
-              â† Back
-            </Link>
-          </div>
-          <CampaignControls campaignId={campaign.id} currentStatus={campaign.status} />
-        </div>
-
-        {/* â”€â”€ Campaign Tools â”€â”€ */}
-        <section>
-          <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 800 }}>Campaign Tools</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
-            {[
-              { href: `/dashboard/campaigns/${campaign.id}/supporters`, icon: 'users', label: 'My Supporters', desc: 'Donor CRM + re-engagement' },
-              { href: `/dashboard/campaigns/${campaign.id}/share`, icon: 'send', label: 'Share & AI Content', desc: 'UTM links + AI posts' },
-              { href: `/dashboard/campaigns/${campaign.id}/thank-donors`, icon: 'chat', label: 'Thank Donors', desc: 'Email your supporters' },
-              { href: `/dashboard/campaigns/${campaign.id}/ledger`, icon: 'doc', label: 'Fund Ledger', desc: 'Track how funds are used' },
-              { href: `/dashboard/campaigns/${campaign.id}/faqs`, icon: 'doc', label: 'Manage FAQs', desc: 'AI-generated Q&A' },
-              { href: `/api/campaigns/${campaign.id}/qr-poster`, icon: 'send', label: 'Print QR Poster', desc: 'Download & print' },
-              { href: `/dashboard/campaigns/${campaign.id}/updates`, icon: 'doc', label: 'Post Update', desc: 'Keep donors informed' },
-              { href: `/dashboard/campaigns/${campaign.id}/analytics`, icon: 'chart', label: 'Analytics', desc: 'Trends & attribution' },
-              { href: `/dashboard/campaigns/${campaign.id}/settings`, icon: 'settings', label: 'Settings', desc: 'Visibility & donations' },
-            ].map(action => (
-              <Link key={action.label} href={action.href} target={action.href.startsWith('/api') ? '_blank' : undefined}
-                className="kf-card"
-                style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 14px', textDecoration: 'none', transition: 'border-color .15s' }}>
-                <KFIcon name={action.icon} />
-                <strong style={{ fontSize: 13, color: 'var(--t1)', marginTop: 6 }}>{action.label}</strong>
-                <span style={{ fontSize: 11, color: 'var(--t3)' }}>{action.desc}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* ── My Supporters (replaces donations/updates) ── */}
-        <SupportersPanel campaignId={campaign.id} showHeading />
+        {/* ── Workspace: actions, status, tools + active tool content ── */}
+        <CampaignWorkspace campaignId={campaign.id} currentStatus={campaign.status} />
 
       </div>
     </CharitMeShell>
