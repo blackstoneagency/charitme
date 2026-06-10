@@ -111,6 +111,16 @@ async function getMilestones(campaignId: string) {
   return (data ?? []) as { id: string; title: string; description: string | null; target_amount: number | null; reached_at: string | null; sort_order: number }[];
 }
 
+async function getRewards(campaignId: string) {
+  const { data } = await supabaseAdmin
+    .from('campaign_rewards')
+    .select('id, title, description, amount_cents, estimated_delivery, item_limit, claimed_count, sort_order')
+    .eq('campaign_id', campaignId)
+    .order('sort_order', { ascending: true })
+    .order('amount_cents', { ascending: true });
+  return (data ?? []) as { id: string; title: string; description: string | null; amount_cents: number; estimated_delivery: string | null; item_limit: number | null; claimed_count: number; sort_order: number }[];
+}
+
 function asProfile(value: unknown): Profile {
   if (Array.isArray(value)) return (value[0] ?? {}) as Profile;
   return (value ?? {}) as Profile;
@@ -199,13 +209,14 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     referrerId,
   };
 
-  const [donations, updates, ledger, faqs, donorMessages, milestones] = await Promise.all([
+  const [donations, updates, ledger, faqs, donorMessages, milestones, rewards] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
     getLedger(campaign.id),
     getFAQs(campaign.id),
     getDonorMessages(campaign.id),
     getMilestones(campaign.id),
+    getRewards(campaign.id),
   ]);
 
   const raised = campaign.raised_amount ?? 0;
@@ -506,7 +517,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             <Milestones milestones={milestones} raisedCents={raised} />
 
             {isActive ? (
-              <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} utm={utm} />
+              <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} utm={utm} rewards={rewards} />
             ) : !acceptDonations && campaign.status === 'active' ? (
               <div className="pc-ended">Donations are temporarily paused for this campaign.</div>
             ) : (

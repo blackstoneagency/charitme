@@ -35,6 +35,8 @@ const DonateSchema = z.object({
   shareEventId:       z.string().uuid().optional(),
   // Personal referral link (?ref=<userId>) — credits another user's referral rewards
   referrerId:         z.string().uuid().optional(),
+  // Reward / perk tier selected at checkout (Kickstarter-style)
+  rewardId:           z.string().uuid().optional(),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -80,6 +82,7 @@ export async function POST(request: NextRequest) {
     utmContent,
     shareEventId,
     referrerId,
+    rewardId,
   } = parsed.data;
 
   const paymentMethod: PaymentMethod = parsed.data.paymentMethod ?? 'stripe';
@@ -101,6 +104,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Campaign not found', code: 'NOT_FOUND' }, { status: 404 });
   if (campaign.status !== 'active')
     return NextResponse.json({ error: 'Campaign is not active', code: 'CAMPAIGN_INACTIVE' }, { status: 400 });
+
+  // ── Reward / perk tier validation ───────────────────────────────────────────
+  if (rewardId) {
+    const { data: reward } = await supabaseAdmin
+      .from('campaign_rewards')
+      .select('id, campaign_id, amount_cents, item_limit, claimed_count')
+      .eq('id', rewardId)
+      .single();
+
+    if (!reward || reward.campaign_id !== campaignId)
+      return NextResponse.json({ error: 'Reward not found', code: 'REWARD_NOT_FOUND' }, { status: 404 });
+    if (amountCents < reward.amount_cents)
+      return NextResponse.json({ error: 'Donation amount is below the minimum for this reward', code: 'REWARD_MIN_NOT_MET' }, { status: 400 });
+    if (reward.item_limit != null && reward.claimed_count >= reward.item_limit)
+      return NextResponse.json({ error: 'This reward is sold out', code: 'REWARD_SOLD_OUT' }, { status: 400 });
+  }
 
   // ── Auth ────────────────────────────────────────────────────────────────────
   const supabase = await createClient();
@@ -226,6 +245,7 @@ export async function POST(request: NextRequest) {
       utmCampaign:          utmCampaign ?? '',
       utmContent:           utmContent ?? '',
       shareEventId:         referralShareEventId ?? shareEventId ?? '',
+      rewardId:             rewardId ?? '',
     },
     payment_intent_data: hasConnectedAccount
       ? {

@@ -175,6 +175,21 @@ create table public.campaign_milestones (
   created_at    timestamptz not null default now()
 );
 
+-- ── campaign_rewards (Kickstarter-style perk tiers) ────────────────────────────
+create table public.campaign_rewards (
+  id                 uuid primary key default uuid_generate_v4(),
+  campaign_id        uuid not null references campaigns(id) on delete cascade,
+  title              text not null,
+  description        text,
+  amount_cents       bigint not null check (amount_cents > 0),
+  estimated_delivery text,
+  item_limit         int check (item_limit is null or item_limit > 0),
+  claimed_count      int not null default 0,
+  sort_order         int not null default 0,
+  created_at         timestamptz not null default now()
+);
+create index idx_campaign_rewards_campaign on campaign_rewards(campaign_id, sort_order);
+
 -- ── donations ────────────────────────────────────────────────────────────────
 create table public.donations (
   id                         uuid primary key default uuid_generate_v4(),
@@ -195,6 +210,7 @@ create table public.donations (
   offline_method             text,
   offline_donor_name         text,
   offline_donor_email        text,
+  reward_id                  uuid references campaign_rewards(id) on delete set null,
   created_at                 timestamptz not null default now(),
   updated_at                 timestamptz not null default now()
 );
@@ -550,6 +566,7 @@ alter table campaigns               enable row level security;
 alter table campaign_media          enable row level security;
 alter table campaign_updates        enable row level security;
 alter table campaign_milestones     enable row level security;
+alter table campaign_rewards        enable row level security;
 alter table donations               enable row level security;
 alter table recurring_donations     enable row level security;
 alter table donor_messages          enable row level security;
@@ -611,6 +628,15 @@ create policy milestones_public_read  on campaign_milestones for select using (t
 create policy milestones_owner_write  on campaign_milestones for insert with check
   (is_admin() or exists (select 1 from campaigns where campaigns.id = campaign_id and campaigns.user_id = auth.uid()));
 create policy milestones_owner_delete on campaign_milestones for delete using
+  (is_admin() or exists (select 1 from campaigns where campaigns.id = campaign_id and campaigns.user_id = auth.uid()));
+
+-- campaign_rewards
+create policy rewards_public_read  on campaign_rewards for select using (true);
+create policy rewards_owner_write  on campaign_rewards for insert with check
+  (is_admin() or exists (select 1 from campaigns where campaigns.id = campaign_id and campaigns.user_id = auth.uid()));
+create policy rewards_owner_update on campaign_rewards for update using
+  (is_admin() or exists (select 1 from campaigns where campaigns.id = campaign_id and campaigns.user_id = auth.uid()));
+create policy rewards_owner_delete on campaign_rewards for delete using
   (is_admin() or exists (select 1 from campaigns where campaigns.id = campaign_id and campaigns.user_id = auth.uid()));
 
 -- donations
@@ -798,6 +824,14 @@ exception when others then
 end; $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- claim_campaign_reward RPC — atomically increments a reward tier's claimed_count
+-- ─────────────────────────────────────────────────────────────────────────────
+create or replace function public.claim_campaign_reward(p_reward_id uuid)
+returns void language sql security definer set search_path = public as $$
+  update campaign_rewards set claimed_count = claimed_count + 1 where id = p_reward_id;
+$$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- SEED DATA — 500 rows per table
 -- Bypasses FK checks via session_replication_role so auth.users are not needed.
 -- Remove this block before deploying to a production project.
@@ -816,7 +850,8 @@ insert into feature_flags (key, enabled, description, rollout_pct) values
   ('referral_program',     false, 'Donor referral tracking',             0),
   ('team_fundraising',     true,  'Peer-to-peer team fundraising',      100),
   ('embedded_forms',       false, 'Embeddable donation widget',          25),
-  ('nonprofit_receipts',   true,  'Automated nonprofit tax receipts',   100)
+  ('nonprofit_receipts',   true,  'Automated nonprofit tax receipts',   100),
+  ('reward_tiers',         true,  'Kickstarter-style reward/perk tiers on campaigns', 100)
 on conflict (key) do nothing;
 
 -- ── Platform settings (singleton, already inserted above) ─────────────────────

@@ -255,6 +255,12 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
         });
       }
     }
+
+    // Record claimed reward tier (non-fatal)
+    if (!alreadyDone && donationId && meta.rewardId) {
+      void supabaseAdmin.from('donations').update({ reward_id: meta.rewardId }).eq('id', donationId);
+      void supabaseAdmin.rpc('claim_campaign_reward', { p_reward_id: meta.rewardId });
+    }
     const campaignPaymentId = await recordCampaignPayment({
       donationId,
       campaignId: meta.campaignId,
