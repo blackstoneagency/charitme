@@ -3,7 +3,7 @@ import type Stripe from 'stripe';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
-import { stripe } from '../../../lib/stripe';
+import { createCheckoutSession, ONE_TIME_PAYMENT_METHOD_TYPES } from '../../../lib/stripe';
 import {
   donorTip,
   methodProcessingFee,
@@ -169,6 +169,8 @@ export async function POST(request: NextRequest) {
   //
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'payment',
+    // Apple Pay / Google Pay (via card), Link, Cash App, US bank transfer (ACH), Amazon Pay
+    payment_method_types: ONE_TIME_PAYMENT_METHOD_TYPES,
     line_items: lineItems,
     ...(stripeEmail ? { customer_email: stripeEmail } : {}),
     success_url: `${origin}/campaigns/${campaign.slug}?donated=1`,
@@ -214,7 +216,7 @@ export async function POST(request: NextRequest) {
 
   let session: Stripe.Checkout.Session;
   try {
-    session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey });
+    session = await createCheckoutSession(sessionParams, idempotencyKey);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Stripe error';
     console.error('[donations] Stripe error:', msg);
@@ -244,9 +246,7 @@ export async function POST(request: NextRequest) {
         },
       };
       try {
-        session = await stripe.checkout.sessions.create(fallbackParams, {
-          idempotencyKey: `${idempotencyKey}_fallback`,
-        });
+        session = await createCheckoutSession(fallbackParams, `${idempotencyKey}_fallback`);
       } catch (fallbackErr: unknown) {
         const fallbackMsg = fallbackErr instanceof Error ? fallbackErr.message : 'Stripe error';
         return NextResponse.json({ error: fallbackMsg }, { status: 502 });

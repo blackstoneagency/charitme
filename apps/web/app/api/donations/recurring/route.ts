@@ -2,7 +2,7 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import type Stripe from 'stripe';
-import { stripe } from '../../../../lib/stripe';
+import { createCheckoutSession, RECURRING_PAYMENT_METHOD_TYPES } from '../../../../lib/stripe';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
 import { donorTip, MIN_DONATION_CENTS, MAX_DONATION_CENTS, DEFAULT_DONOR_TIP_PERCENT } from '@shared/fees';
@@ -92,6 +92,8 @@ export async function POST(request: NextRequest) {
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'subscription',
+    // Apple Pay / Google Pay (via card), Link, US bank transfer (ACH)
+    payment_method_types: RECURRING_PAYMENT_METHOD_TYPES,
     ...(stripeEmail ? { customer_email: stripeEmail } : {}),
     line_items: [
       {
@@ -140,9 +142,9 @@ export async function POST(request: NextRequest) {
     },
   };
 
-  let session: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>;
+  let session: Stripe.Checkout.Session;
   try {
-    session = await stripe.checkout.sessions.create(sessionParams);
+    session = await createCheckoutSession(sessionParams, `recurring_${campaignId}_${user?.id ?? 'guest'}_${crypto.randomUUID()}`);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Stripe error';
     console.error('[donations/recurring] Stripe error:', msg);
@@ -156,7 +158,7 @@ export async function POST(request: NextRequest) {
       console.warn('[donations/recurring] Falling back to direct charge:', msg);
       const fallbackParams = { ...sessionParams, payment_intent_data: {} };
       try {
-        session = await stripe.checkout.sessions.create(fallbackParams);
+        session = await createCheckoutSession(fallbackParams, `recurring_${campaignId}_${user?.id ?? 'guest'}_${crypto.randomUUID()}_fallback`);
       } catch (fe: unknown) {
         return NextResponse.json({ error: fe instanceof Error ? fe.message : 'Stripe error' }, { status: 502 });
       }

@@ -22,8 +22,8 @@ Legend:
 |---|---|---|---|---|---|---|---|
 | One-time donation | ✅ | ✅ | ✅ | ✅ | ✅ (pledge) | ✅ | ✅ |
 | Recurring donation | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Card / Apple Pay / Google Pay | ✅ | ✅ | ✅ (22+ methods) | ✅ | ✅ | ✅ | ⚠️ → 🚀 **Card-only today; expanding to wallet + bank + BNPL** |
-| PayPal / Venmo at checkout | ✅ | ✅ | ✅ | ✅ | n/a | ✅ | ❌ → 🚀 |
+| Card / Apple Pay / Google Pay | ✅ | ✅ | ✅ (22+ methods) | ✅ | ✅ | ✅ | ✅ **Shipped** — Apple Pay, Google Pay, Link, Cash App, US bank (ACH), Amazon Pay |
+| PayPal / Venmo at checkout | ✅ | ✅ | ✅ | ✅ | n/a | ✅ | ❌ → planned (PayPal/Venmo require separate Stripe activation) |
 | "Pay over time" / installment pledges | ✅ (BNPL) | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ → planned |
 | Donor tip / "cover fees" | ✅ | ✅ (tip-or-fee) | ✅ | ✅ | n/a | ✅ | ✅ |
 | Transparent fee breakdown | ⚠️ | ✅ | ✅ | ⚠️ | ✅ | ⚠️ | ✅ **Better** — itemized at checkout |
@@ -31,7 +31,7 @@ Legend:
 | Offline donation recording | ⚠️ | ✅ | ✅ | ✅ | ❌ | ⚠️ | ✅ |
 | Crypto donations | ❌ | ⚠️ | ⚠️ | ❌ | ❌ | ❌ | ❌ → planned |
 
-**Verdict:** CharitMe's fee transparency is best-in-class. Biggest gap: Stripe Checkout is locked to card-only — a one-line config change unlocks Apple Pay, Google Pay, Link, US bank transfer (ACH), and Cash App, immediately matching Donorbox's 22-payment-method claim at near-zero engineering cost.
+**Verdict:** CharitMe's fee transparency is best-in-class. ✅ Stripe Checkout now offers Apple Pay, Google Pay, Link, Cash App, US bank transfer (ACH), and Amazon Pay alongside cards — for both one-time and recurring donations — closing in on Donorbox's 22-payment-method claim at near-zero engineering cost. Accounts where a method isn't yet activated automatically fall back to card-only so checkout never breaks.
 
 ---
 
@@ -124,7 +124,7 @@ Legend:
 Each item below ships as its own commit + push to `claude/charitme-gofundme-audit-8vizt7` so partial progress is always deployable:
 
 1. ✅ **This document** (competitive matrix)
-2. 🚀 **Expand Stripe Checkout payment methods** — enable Apple Pay, Google Pay, Link, US bank transfer (ACH), Cash App, Amazon Pay automatically via `automatic_payment_methods`
+2. ✅ **Expand Stripe Checkout payment methods** — Apple Pay, Google Pay, Link, US bank transfer (ACH), Cash App, Amazon Pay enabled on one-time + recurring donation checkout, with automatic card-only fallback
 3. 🚀 **PWA**: manifest.json, service worker, offline fallback, install prompt
 4. 🚀 **Public Donor Wall + Live Donation Ticker** on campaign pages
 5. 🚀 **Public Top-Fundraiser / Top-Donor Leaderboards** (site-wide + per-campaign)

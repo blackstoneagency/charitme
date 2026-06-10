@@ -1,6 +1,6 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '../../../../lib/stripe';
+import { createCheckoutSession, RECURRING_PAYMENT_METHOD_TYPES } from '../../../../lib/stripe';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
 import { getAppOrigin } from '../../../../lib/auth-config';
@@ -43,8 +43,9 @@ export async function POST(request: NextRequest) {
 
   const origin = getAppOrigin();
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await createCheckoutSession({
     mode: 'subscription',
+    payment_method_types: RECURRING_PAYMENT_METHOD_TYPES,
     ...(profile?.stripe_customer_id
       ? { customer: profile.stripe_customer_id }
       : { customer_email: user.email }),
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
     subscription_data: {
       metadata: { userId: user.id, plan, billing },
     },
-  });
+  }, `platform_sub_${user.id}_${plan}_${billing}_${crypto.randomUUID()}`);
 
   return NextResponse.json({ url: session.url });
 }
