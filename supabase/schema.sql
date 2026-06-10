@@ -850,7 +850,7 @@ insert into feature_flags (key, enabled, description, rollout_pct) values
   ('campaign_analytics',   true,  'Campaign analytics dashboard',       100),
   ('referral_program',     false, 'Donor referral tracking',             0),
   ('team_fundraising',     true,  'Peer-to-peer team fundraising',      100),
-  ('embedded_forms',       false, 'Embeddable donation widget',          25),
+  ('embedded_forms',       true,  'Embeddable donation widget',         100),
   ('nonprofit_receipts',   true,  'Automated nonprofit tax receipts',   100),
   ('reward_tiers',         true,  'Kickstarter-style reward/perk tiers on campaigns', 100),
   ('multi_currency',       true,  'Campaign-level currency selection across 24 currencies', 100)

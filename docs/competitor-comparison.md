@@ -48,7 +48,7 @@ Legend:
 | AI campaign copilot (story, social, FAQ, goal) | None of them | ✅ **Unique to CharitMe** |
 | AI fundraising coach | None of them | ✅ **Unique to CharitMe** |
 | QR code poster generator | Few | ✅ |
-| Embeddable donation widget | Donorbox ✅✅ (core product) | ⚠️ 25% rollout → enable fully |
+| Embeddable donation widget | Donorbox ✅✅ (core product) | ✅ **Shipped** — iframe embed at `/campaigns/[slug]/embed`, feature flag graduated from 25% rollout to fully enabled |
 
 **Verdict:** CharitMe's AI tooling (copilot, coach, growth plan) is a genuine category-leading differentiator nothing else in this list has. With milestones and reward tiers now shipped, CharitMe matches or exceeds Kickstarter/Indiegogo on campaign creation tooling.
 
