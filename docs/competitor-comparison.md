@@ -43,14 +43,14 @@ Legend:
 | 18+ categories | Most have 8-12 | ✅ **Better** — 18 categories |
 | Team / peer-to-peer fundraising | Classy ✅, GoFundMe ✅ | ✅ |
 | Co-organizer roles & permissions | Classy ✅ | ✅ |
-| Milestones / stretch goals | Kickstarter ✅, Indiegogo ✅ | ✅ schema exists — ⚠️ not shown publicly → 🚀 |
+| Milestones / stretch goals | Kickstarter ✅, Indiegogo ✅ | ✅ **Shipped** — public "Milestones & stretch goals" panel on every campaign page with live progress bars, plus an organizer "Manage Milestones" page to add/reorder/mark goals reached |
 | Reward / perk tiers (Kickstarter-style) | Kickstarter ✅, Indiegogo ✅ | ❌ → planned |
 | AI campaign copilot (story, social, FAQ, goal) | None of them | ✅ **Unique to CharitMe** |
 | AI fundraising coach | None of them | ✅ **Unique to CharitMe** |
 | QR code poster generator | Few | ✅ |
 | Embeddable donation widget | Donorbox ✅✅ (core product) | ⚠️ 25% rollout → enable fully |
 
-**Verdict:** CharitMe's AI tooling (copilot, coach, growth plan) is a genuine category-leading differentiator nothing else in this list has. The gap is **surfacing milestones publicly** and adding **reward tiers** for creative/business/event campaigns.
+**Verdict:** CharitMe's AI tooling (copilot, coach, growth plan) is a genuine category-leading differentiator nothing else in this list has. With milestones now public, the remaining gap is **reward tiers** for creative/business/event campaigns.
 
 ---
 
@@ -131,7 +131,7 @@ Each item below ships as its own commit + push to `claude/charitme-gofundme-audi
 6. ✅ **Donor Gamification**: badges, giving levels, streaks shown on donor profile
 7. ✅ **Employer Donation Matching** lookup widget on donate flow
 8. ✅ **Referral program**: personal `?ref=<userId>` referral links on every campaign page, end-to-end conversion tracking via `share_events` (reuses existing webhook logic), and a `/dashboard/referrals` rewards dashboard with 5 tiers (Connector → Champion)
-9. 🚀 **Public campaign milestones / stretch goals** display
+9. ✅ **Public campaign milestones / stretch goals** display — campaign pages now show a "🎯 Milestones & stretch goals" panel with progress bars based on funds raised, and organizers get a new `/dashboard/campaigns/[id]/milestones` page to add, delete, and mark milestones reached
 10. 🚀 **Reward/perk tiers** for campaigns (Kickstarter-style)
 11. Blog CMS expansion
 12. Multi-currency expansion + i18n groundwork

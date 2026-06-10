@@ -16,6 +16,7 @@ import DonorWall, { type WallDonation } from './DonorWall';
 import DonationTicker from './DonationTicker';
 import EmployerMatchWidget from './EmployerMatchWidget';
 import ReferralBox from './ReferralBox';
+import Milestones from './Milestones';
 import { getPhotosForCategory, getCoverForCategory } from '../../../lib/photo-catalog';
 
 export const dynamic = 'force-dynamic';
@@ -99,6 +100,15 @@ async function getFAQs(campaignId: string) {
     .order('sort_order', { ascending: true })
     .limit(10);
   return (data ?? []) as { id: string; question: string; answer: string; sort_order: number }[];
+}
+
+async function getMilestones(campaignId: string) {
+  const { data } = await supabaseAdmin
+    .from('campaign_milestones')
+    .select('id, title, description, target_amount, reached_at, sort_order')
+    .eq('campaign_id', campaignId)
+    .order('sort_order', { ascending: true });
+  return (data ?? []) as { id: string; title: string; description: string | null; target_amount: number | null; reached_at: string | null; sort_order: number }[];
 }
 
 function asProfile(value: unknown): Profile {
@@ -189,12 +199,13 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     referrerId,
   };
 
-  const [donations, updates, ledger, faqs, donorMessages] = await Promise.all([
+  const [donations, updates, ledger, faqs, donorMessages, milestones] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
     getLedger(campaign.id),
     getFAQs(campaign.id),
     getDonorMessages(campaign.id),
+    getMilestones(campaign.id),
   ]);
 
   const raised = campaign.raised_amount ?? 0;
@@ -491,6 +502,8 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               <span><b style={{ color: 'var(--t1)' }}>{campaign.backer_count ?? donations.length}</b> donations</span>
               <span>{daysLeft !== null ? `${daysLeft} days left` : 'No deadline'}</span>
             </div>
+
+            <Milestones milestones={milestones} raisedCents={raised} />
 
             {isActive ? (
               <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} utm={utm} />
