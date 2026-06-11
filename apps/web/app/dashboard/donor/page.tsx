@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar, MetricGrid, KFIcon, type Metric } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import DonorTagEditor from './DonorTagEditor';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ type DonorAggregate = {
   donationCount: number;
   lastDonation: string;
   isAnonymous: boolean;
+  tags: string[];
 };
 
 // ─────────────────────────────────────────────
@@ -59,8 +61,9 @@ async function fetchDonorData(userId: string): Promise<{
   totalUnique: number;
   newLast30: number;
   avgDonationCents: number;
+  allTags: string[];
 }> {
-  const empty = { donors: [], totalCents: 0, totalUnique: 0, newLast30: 0, avgDonationCents: 0 };
+  const empty = { donors: [], totalCents: 0, totalUnique: 0, newLast30: 0, avgDonationCents: 0, allTags: [] };
 
   try {
     // Step 1: get user's campaign IDs
@@ -119,7 +122,20 @@ async function fetchDonorData(userId: string): Promise<{
       }
     }
 
-    // Step 4: aggregate by donor key (first entry per key is most recent donation)
+    // Step 4: fetch CRM tags for this organizer's donor contacts
+    const { data: contactData } = await supabaseAdmin
+      .from('donor_crm_contacts')
+      .select('email, tags')
+      .eq('owner_id', userId)
+      .is('nonprofit_id', null);
+
+    const tagsByEmail = new Map<string, string[]>();
+    for (const c of (contactData ?? []) as { email: string | null; tags: string[] | null }[]) {
+      if (!c.email) continue;
+      tagsByEmail.set(c.email.toLowerCase(), c.tags ?? []);
+    }
+
+    // Step 5: aggregate by donor key (first entry per key is most recent donation)
     const aggMap = new Map<string, DonorAggregate>();
     let totalDonationInstances = 0;
 
@@ -135,15 +151,17 @@ async function fetchDonorData(userId: string): Promise<{
         existing.donationCount += 1;
         // lastDonation is already the most recent (sorted desc)
       } else {
+        const email = isAnon ? '' : (profile?.email ?? '');
         aggMap.set(key, {
           key,
           donorId: d.donor_id,
           name: isAnon ? 'Anonymous' : (profile?.name ?? 'Donor'),
-          email: isAnon ? '' : (profile?.email ?? ''),
+          email,
           totalCents: d.amount_cents,
           donationCount: 1,
           lastDonation: d.created_at,
           isAnonymous: isAnon,
+          tags: email ? (tagsByEmail.get(email.toLowerCase()) ?? []) : [],
         });
       }
     }
@@ -161,7 +179,9 @@ async function fetchDonorData(userId: string): Promise<{
       d => new Date(d.lastDonation) >= thirtyDaysAgo && d.donationCount === 1,
     ).length;
 
-    return { donors, totalCents, totalUnique, newLast30, avgDonationCents };
+    const allTags = [...new Set(donors.flatMap((d) => d.tags))].sort((a, b) => a.localeCompare(b));
+
+    return { donors, totalCents, totalUnique, newLast30, avgDonationCents, allTags };
   } catch {
     return empty;
   }
@@ -176,10 +196,11 @@ export default async function DonorsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const user = await requireUser();
-  const [{ donors, totalCents, totalUnique, newLast30, avgDonationCents }, params] =
+  const [{ donors, totalCents, totalUnique, newLast30, avgDonationCents, allTags }, params] =
     await Promise.all([fetchDonorData(user.id), searchParams]);
 
   const activeTab = String(params.tab ?? 'all').toLowerCase();
+  const activeTag = typeof params.tag === 'string' ? params.tag : '';
 
   const metrics: Metric[] = [
     {
@@ -222,7 +243,7 @@ export default async function DonorsPage({
   });
 
   // Tab-based filtering
-  const filtered =
+  const tabFiltered =
     activeTab === 'new'
       ? newDonors
       : activeTab === 'top-donors'
@@ -230,6 +251,13 @@ export default async function DonorsPage({
       : activeTab === 'recurring'
       ? recurringDonors
       : donors;
+
+  // Tag filtering
+  const filtered = activeTag ? tabFiltered.filter(d => d.tags.includes(activeTag)) : tabFiltered;
+
+  function tabHref(tab: string): string {
+    return activeTag ? `?tab=${tab}&tag=${encodeURIComponent(activeTag)}` : `?tab=${tab}`;
+  }
 
   return (
     <CharitMeShell active="Donors">
@@ -249,26 +277,51 @@ export default async function DonorsPage({
             </div>
 
             <div className="kf-tabs">
-              <Link href="?tab=all" className={activeTab === 'all' ? 'active' : ''} style={{ textDecoration: 'none' }}>
+              <Link href={tabHref('all')} className={activeTab === 'all' ? 'active' : ''} style={{ textDecoration: 'none' }}>
                 All ({totalUnique})
               </Link>
-              <Link href="?tab=new" className={activeTab === 'new' ? 'active' : ''} style={{ textDecoration: 'none' }}>
+              <Link href={tabHref('new')} className={activeTab === 'new' ? 'active' : ''} style={{ textDecoration: 'none' }}>
                 New ({newLast30})
               </Link>
-              <Link href="?tab=top-donors" className={activeTab === 'top-donors' ? 'active' : ''} style={{ textDecoration: 'none' }}>
+              <Link href={tabHref('top-donors')} className={activeTab === 'top-donors' ? 'active' : ''} style={{ textDecoration: 'none' }}>
                 Top Donors ({topDonors.length})
               </Link>
-              <Link href="?tab=recurring" className={activeTab === 'recurring' ? 'active' : ''} style={{ textDecoration: 'none' }}>
+              <Link href={tabHref('recurring')} className={activeTab === 'recurring' ? 'active' : ''} style={{ textDecoration: 'none' }}>
                 Recurring ({recurringDonors.length})
               </Link>
             </div>
+
+            {allTags.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '10px 20px', borderBottom: '1px solid var(--b1)' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: 4 }}>
+                  Tags:
+                </span>
+                {allTags.map((tag) => {
+                  const isActive = activeTag === tag;
+                  return (
+                    <Link
+                      key={tag}
+                      href={isActive ? `?tab=${activeTab}` : `?tab=${activeTab}&tag=${encodeURIComponent(tag)}`}
+                      style={{
+                        fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 12, textDecoration: 'none',
+                        background: isActive ? '#6c35ff' : 'var(--s2)',
+                        color: isActive ? '#fff' : 'var(--t2)',
+                        border: isActive ? '1px solid #6c35ff' : '1px solid var(--b1)',
+                      }}
+                    >
+                      {tag}{isActive ? ' ×' : ''}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="kf-table-scroll">
             {/* Table header */}
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr 100px 120px 100px',
+                gridTemplateColumns: '1fr 180px 90px 110px 100px',
                 gap: 12,
                 padding: '8px 20px',
                 fontSize: 11,
@@ -280,6 +333,7 @@ export default async function DonorsPage({
               }}
             >
               <span>Donor</span>
+              <span>Tags</span>
               <span>Gifts</span>
               <span>Last Gift</span>
               <span style={{ textAlign: 'right' }}>Total Given</span>
@@ -294,7 +348,7 @@ export default async function DonorsPage({
                     className="kf-row"
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 100px 120px 100px',
+                      gridTemplateColumns: '1fr 180px 90px 110px 100px',
                       gap: 12,
                       alignItems: 'center',
                     }}
@@ -346,6 +400,15 @@ export default async function DonorsPage({
                         ) : null}
                       </div>
                     </div>
+
+                    {/* Tags */}
+                    <DonorTagEditor
+                      email={donor.email}
+                      fullName={donor.name}
+                      initialTags={donor.tags}
+                      lifetimeValueCents={donor.totalCents}
+                      lastDonation={donor.lastDonation}
+                    />
 
                     {/* Gift count */}
                     <div style={{ fontSize: 14, color: 'var(--t2)' }}>
