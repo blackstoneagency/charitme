@@ -107,6 +107,7 @@ export default function DonateButton({
   const [amount, setAmount]               = useState('100');
   const [subscribeEmail, setSubscribeEmail] = useState(false);
   const [anonymous, setAnonymous]         = useState(false);
+  const [message, setMessage]             = useState('');
   const [tipPercent, setTipPercent]       = useState<number>(DEFAULT_DONOR_TIP_PERCENT);
   const [loading, setLoading]             = useState(false);
   const [error, setError]                 = useState('');
@@ -170,7 +171,7 @@ export default function DonateButton({
           campaignId,
           amountCents,
           cadence: 'monthly',
-          message: undefined,
+          message: message.trim() ? message.trim() : undefined,
           anonymous,
           coverProcessingFee: !isMonthly,
           tipPercent,
@@ -463,6 +464,27 @@ export default function DonateButton({
             );
           })}
         </div>
+      </div>
+
+      {/* ── Optional message of support ── */}
+      <div>
+        <label htmlFor="donor-message" style={{ display: 'block', fontSize: 12, fontWeight: 900, color: MU, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
+          Leave a message of support (optional)
+        </label>
+        <textarea
+          id="donor-message"
+          value={message}
+          onChange={(e) => setMessage(e.target.value.slice(0, 500))}
+          placeholder="Sending love and support…"
+          rows={3}
+          maxLength={500}
+          style={{
+            width: '100%', boxSizing: 'border-box', border: `1.5px solid ${BD}`, borderRadius: 12,
+            padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', outline: 'none', resize: 'vertical',
+            background: 'var(--s1, #fff)', color: INK,
+          }}
+        />
+        <div style={{ fontSize: 11, color: MU, marginTop: 4, textAlign: 'right' }}>{message.length}/500</div>
       </div>
 
       {/* ── Checkboxes ── */}
