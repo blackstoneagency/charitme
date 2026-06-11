@@ -176,7 +176,7 @@ export default async function ProfilePage() {
             <Link href="/dashboard" className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:border-emerald-300 hover:text-emerald-700">
               Fundraiser Dashboard →
             </Link>
-            <Link href="/dashboard/donor" className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:border-blue-300 hover:text-blue-700">
+            <Link href="/donor" className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:border-blue-300 hover:text-blue-700">
               Donation History →
             </Link>
             {roles.includes('admin') && (
