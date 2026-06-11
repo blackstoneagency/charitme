@@ -126,6 +126,31 @@ async function getRewards(campaignId: string) {
   return (data ?? []) as { id: string; title: string; description: string | null; amount_cents: number; estimated_delivery: string | null; item_limit: number | null; claimed_count: number; sort_order: number }[];
 }
 
+type SimilarCampaign = {
+  id: string;
+  slug: string;
+  title: string;
+  tagline: string | null;
+  category: string | null;
+  cover_image_url: string | null;
+  goal_amount: number;
+  raised_amount: number;
+  backer_count: number | null;
+};
+
+async function getSimilarCampaigns(campaignId: string, category: string | null): Promise<SimilarCampaign[]> {
+  if (!category) return [];
+  const { data } = await supabaseAdmin
+    .from('campaigns')
+    .select('id, slug, title, tagline, category, cover_image_url, goal_amount, raised_amount, backer_count')
+    .eq('category', category)
+    .eq('status', 'active')
+    .neq('id', campaignId)
+    .order('raised_amount', { ascending: false })
+    .limit(4);
+  return (data ?? []) as SimilarCampaign[];
+}
+
 async function getCampaignCurrency(campaignId: string) {
   const { data } = await supabaseAdmin
     .from('campaign_launch_settings')
@@ -223,7 +248,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     referrerId,
   };
 
-  const [donations, updates, ledger, faqs, donorMessages, milestones, rewards, currency, payoutDestination, trustInput] = await Promise.all([
+  const [donations, updates, ledger, faqs, donorMessages, milestones, rewards, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
     getLedger(campaign.id),
@@ -234,6 +259,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     getCampaignCurrency(campaign.id),
     resolvePayoutDestination(campaign),
     buildCampaignTrustInput(campaign),
+    getSimilarCampaigns(campaign.id, campaign.category),
   ]);
   const payoutReady = !!payoutDestination;
 
@@ -654,6 +680,47 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         </article>
 
       </section>
+
+      {/* ── Similar campaigns ── */}
+      {similarCampaigns.length > 0 && (
+        <section style={{ maxWidth: 1100, margin: '0 auto 40px', padding: '0 24px' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 16, color: 'var(--t1, #1a1a2e)' }}>
+            Similar Campaigns
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 14 }}>
+            {similarCampaigns.map((c) => {
+              const sPct = c.goal_amount > 0 ? Math.min(100, Math.round((c.raised_amount / c.goal_amount) * 100)) : 0;
+              return (
+                <Link key={c.id} href={`/campaigns/${c.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <div style={{ border: '1px solid var(--b1, #f1f5f9)', borderRadius: 12, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--s1, #fff)' }}>
+                    <div style={{
+                      height: 130, background: `url(${c.cover_image_url || getCoverForCategory(c.category)}) center/cover`,
+                    }} />
+                    <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                      {c.category && <span style={{ fontSize: 11, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: 0.4 }}>{c.category}</span>}
+                      <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--t1, #1a1a2e)', lineHeight: 1.3 }}>{c.title}</div>
+                      {c.tagline && (
+                        <div style={{ fontSize: 12, color: 'var(--t3, #94a3b8)', lineHeight: 1.4 }}>
+                          {c.tagline.slice(0, 80)}{c.tagline.length > 80 ? '…' : ''}
+                        </div>
+                      )}
+                      <div style={{ marginTop: 'auto' }}>
+                        <div style={{ background: 'var(--s3, #f1f5f9)', borderRadius: 99, height: 6, overflow: 'hidden', marginBottom: 6 }}>
+                          <div style={{ height: '100%', width: `${sPct}%`, background: 'var(--green, #19b86a)', borderRadius: 99 }} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                          <strong style={{ color: 'var(--t1, #1a1a2e)' }}>{formatMoneyShort(c.raised_amount, currency)}</strong>
+                          <span style={{ color: 'var(--t3, #94a3b8)' }}>{sPct}% funded</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ── FAQ ── */}
       {faqs.length > 0 && (
