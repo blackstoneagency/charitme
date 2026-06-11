@@ -5,9 +5,9 @@ import React, { useState, useEffect } from 'react';
 export default function DonationSuccess() {
   const [visible, setVisible] = useState(true);
 
-  // Auto-dismiss after 8 seconds
+  // Auto-dismiss after 12 seconds
   useEffect(() => {
-    const t = setTimeout(() => setVisible(false), 8000);
+    const t = setTimeout(() => setVisible(false), 12000);
     return () => clearTimeout(t);
   }, []);
 
@@ -44,6 +44,16 @@ export default function DonationSuccess() {
         <span style={{ fontSize: 13, opacity: 0.9 }}>
           Your receipt has been emailed to you.
         </span>
+        <a
+          href="#quick-share"
+          onClick={() => setVisible(false)}
+          style={{
+            display: 'inline-block', marginTop: 6, fontSize: 13, fontWeight: 800,
+            color: '#fff', textDecoration: 'underline', textUnderlineOffset: 2,
+          }}
+        >
+          Double your impact — share with friends →
+        </a>
       </div>
       <button
         type="button"
