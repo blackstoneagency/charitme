@@ -4,6 +4,7 @@ import { createClient } from '../../lib/supabase-server';
 import { supabaseAdmin } from '../../lib/supabase';
 import { formatCents } from '../../lib/stripe';
 import RecommendedCampaigns from './RecommendedCampaigns';
+import SavedCampaigns from './SavedCampaigns';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,6 +111,7 @@ export default async function DonorPortalPage() {
         ))}
       </div>
 
+      <SavedCampaigns />
       <RecommendedCampaigns />
 
       {/* Recurring donations */}

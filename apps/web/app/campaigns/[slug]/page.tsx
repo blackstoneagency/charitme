@@ -20,6 +20,7 @@ import EmployerMatchWidget from './EmployerMatchWidget';
 import ReferralBox from './ReferralBox';
 import Milestones from './Milestones';
 import CommentForm from './CommentForm';
+import SaveCampaignButton from './SaveCampaignButton';
 import { getPhotosForCategory, getCoverForCategory } from '../../../lib/photo-catalog';
 
 export const dynamic = 'force-dynamic';
@@ -255,6 +256,17 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
   const wallDonations = donations.map(toWallDonation);
 
+  let isSaved = false;
+  if (user) {
+    const { data: savedRow } = await supabaseAdmin
+      .from('saved_campaigns')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('campaign_id', campaign.id)
+      .maybeSingle();
+    isSaved = !!savedRow;
+  }
+
   const rawImageUrls = (campaign as CampaignWithImages).image_urls ?? [];
   const galleryImages: string[] =
     rawImageUrls.length >= 4
@@ -311,7 +323,10 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         </div>
 
         {/* Title */}
-        <h1 className="pc-title-h1">{campaign.title}</h1>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <h1 className="pc-title-h1" style={{ margin: 0 }}>{campaign.title}</h1>
+          <SaveCampaignButton campaignId={campaign.id} initialSaved={isSaved} isAuthenticated={!!user} loginNext={`/campaigns/${slug}`} />
+        </div>
 
         {/* Organizer row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
