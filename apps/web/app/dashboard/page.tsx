@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { CharitMeShell, KFIcon } from '../../components/CharitMeShellServer';
 import AccountMenu from './AccountMenu';
-import NotificationBell from './NotificationBell';
+import NotificationBell from '../../components/NotificationBell';
 import { requireUser } from '../../lib/auth';
 import { supabaseAdmin } from '../../lib/supabase';
 import { isAdmin } from '../../lib/roles';
