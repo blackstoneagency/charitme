@@ -5,7 +5,7 @@ import { supabaseAdmin } from '../../lib/supabase';
 import { formatCents } from '../../lib/stripe';
 import RecommendedCampaigns from './RecommendedCampaigns';
 import SavedCampaigns from './SavedCampaigns';
-import ReceiptButton from './ReceiptButton';
+import DonationHistoryList from './DonationHistoryList';
 
 export const dynamic = 'force-dynamic';
 
@@ -161,70 +161,7 @@ export default async function DonorPortalPage() {
       )}
 
       {/* Donation history */}
-      <div style={cardStyle}>
-        <h2 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          Donation History
-          {donations.length > 0 && (
-            <span style={{ fontSize: 12, color: 'var(--t3, #94a3b8)' }}>{donations.length} total</span>
-          )}
-        </h2>
-
-        {donations.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--t3, #94a3b8)' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>💚</div>
-            <p style={{ fontWeight: 700, margin: '0 0 4px' }}>No donations yet.</p>
-            <p style={{ fontSize: 13 }}>Find a campaign to support below.</p>
-            <Link href="/campaigns" style={{ display: 'inline-block', marginTop: 12, padding: '10px 24px', background: 'var(--violet, #6c35ff)', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
-              Browse Campaigns
-            </Link>
-          </div>
-        ) : (
-          <div>
-            {donations.map(d => {
-              const camp = campaignMap.get(d.campaign_id);
-              return (
-                <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '14px 0', borderBottom: '1px solid var(--b1, #f1f5f9)' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>
-                      {camp ? (
-                        <Link href={`/campaigns/${camp.slug}`} style={{ color: 'var(--t1, #1a1a2e)', textDecoration: 'none' }}>{camp.title}</Link>
-                      ) : 'Campaign'}
-                    </div>
-                    {d.message && (
-                      <div style={{ fontSize: 12, color: 'var(--t3, #64748b)', fontStyle: 'italic', margin: '2px 0' }}>
-                        &ldquo;{d.message.slice(0, 80)}{d.message.length > 80 ? '…' : ''}&rdquo;
-                      </div>
-                    )}
-                    <div style={{ fontSize: 12, color: 'var(--t3, #94a3b8)', marginTop: 2 }}>
-                      {fmtDate(d.created_at)}
-                      {d.anonymous && ' · Anonymous'}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 16 }}>
-                    <strong style={{ fontSize: 15, color: d.status === 'refunded' ? 'var(--t3, #94a3b8)' : 'var(--violet, #6c35ff)', textDecoration: d.status === 'refunded' ? 'line-through' : 'none' }}>
-                      {formatCents(d.amount_cents)}
-                    </strong>
-                    <span style={{
-                      fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
-                      background: d.status === 'completed' ? 'rgba(22,163,74,.10)' : d.status === 'refunded' ? 'var(--s2)' : 'rgba(190,18,60,.08)',
-                      color: d.status === 'completed' ? 'var(--green-dark, #065f46)' : d.status === 'refunded' ? 'var(--t3, #64748b)' : 'var(--red, #be123c)',
-                    }}>{d.status}</span>
-                    {d.status === 'completed' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                        <ReceiptButton donationId={d.id} />
-                        <Link href={`/dashboard/refund?donation_id=${d.id}`}
-                          style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', textDecoration: 'none' }}>
-                          Refund?
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <DonationHistoryList donations={donations} campaigns={Object.fromEntries(campaignMap)} />
 
       <div style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: 'var(--t3, #94a3b8)' }}>
         Need help with a donation? <Link href="/contact" style={{ color: 'var(--violet, #6c35ff)', fontWeight: 700 }}>Contact support</Link>
