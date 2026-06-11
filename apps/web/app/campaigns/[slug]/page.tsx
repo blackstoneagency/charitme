@@ -43,7 +43,7 @@ interface Props {
   }>;
 }
 
-type Profile = { full_name?: string | null; avatar_url?: string | null };
+type Profile = { full_name?: string | null; avatar_url?: string | null; show_public_profile?: boolean | null };
 type CampaignWithImages = { image_urls?: string[] | null };
 
 async function getCampaign(slug: string) {
@@ -58,7 +58,7 @@ async function getCampaign(slug: string) {
 async function getRecentDonations(campaignId: string) {
   const { data } = await supabaseAdmin
     .from('donations')
-    .select('id, amount_cents, message, anonymous, created_at, offline_donor_name, profiles:donor_id(full_name, avatar_url)')
+    .select('id, donor_id, amount_cents, message, anonymous, created_at, offline_donor_name, profiles:donor_id(full_name, avatar_url, show_public_profile)')
     .eq('campaign_id', campaignId)
     .eq('status', 'completed')
     .order('created_at', { ascending: false })
@@ -168,6 +168,7 @@ function asProfile(value: unknown): Profile {
 
 type DonationRow = {
   id: string;
+  donor_id?: string | null;
   amount_cents: number;
   message: string | null;
   anonymous: boolean;
@@ -186,6 +187,8 @@ function toWallDonation(d: DonationRow): WallDonation {
     message: d.message,
     createdAt: d.created_at,
     anonymous: d.anonymous,
+    donorId: d.anonymous ? null : (d.donor_id ?? null),
+    showPublicProfile: profile.show_public_profile ?? true,
   };
 }
 

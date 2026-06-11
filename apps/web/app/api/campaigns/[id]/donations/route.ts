@@ -4,7 +4,7 @@ import { checkRateLimit } from '../../../../../lib/rate-limit';
 
 const MAX_LIMIT = 50;
 
-type DonorProfile = { full_name?: string | null; avatar_url?: string | null };
+type DonorProfile = { full_name?: string | null; avatar_url?: string | null; show_public_profile?: boolean | null };
 
 function asProfile(value: unknown): DonorProfile {
   if (Array.isArray(value)) return (value[0] ?? {}) as DonorProfile;
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   let query = supabaseAdmin
     .from('donations')
-    .select('id, amount_cents, message, anonymous, created_at, offline_donor_name, profiles:donor_id(full_name, avatar_url)')
+    .select('id, donor_id, amount_cents, message, anonymous, created_at, offline_donor_name, profiles:donor_id(full_name, avatar_url, show_public_profile)')
     .eq('campaign_id', id)
     .eq('status', 'completed');
 
@@ -62,6 +62,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       message: d.message,
       createdAt: d.created_at,
       anonymous: d.anonymous,
+      donorId: d.anonymous ? null : (d.donor_id ?? null),
+      showPublicProfile: profile.show_public_profile ?? true,
     };
   });
 

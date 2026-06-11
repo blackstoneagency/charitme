@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useState } from 'react';
 
 export interface WallDonation {
@@ -10,6 +11,8 @@ export interface WallDonation {
   message: string | null;
   createdAt: string;
   anonymous: boolean;
+  donorId?: string | null;
+  showPublicProfile?: boolean;
 }
 
 function fmtCents(c: number) {
@@ -121,7 +124,13 @@ export default function DonorWall({
                 </div>
                 <div className="pc-donor-info">
                   <div className="pc-donor-name">
-                    {d.anonymous ? 'Anonymous' : d.name}
+                    {!d.anonymous && d.donorId && d.showPublicProfile ? (
+                      <Link href={`/donors/${d.donorId}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                        {d.name}
+                      </Link>
+                    ) : (
+                      d.anonymous ? 'Anonymous' : d.name
+                    )}
                     {badge && <span title="Generous gift" aria-hidden="true">{badge}</span>}
                   </div>
                   {d.message && <div className="pc-donor-msg">{d.message}</div>}
