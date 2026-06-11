@@ -177,6 +177,7 @@ export default function DonateButton({
           tipPercent,
           paymentMethod: preferredMethod,
           donorEmail: !user && guestEmail.trim() ? guestEmail.trim() : undefined,
+          subscribeToUpdates: subscribeEmail,
           // Share attribution — forwarded from landing URL
           ...(utm?.utmSource    ? { utmSource:    utm.utmSource }    : {}),
           ...(utm?.utmMedium    ? { utmMedium:    utm.utmMedium }    : {}),

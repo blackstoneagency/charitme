@@ -29,6 +29,8 @@ const DonateSchema = z.object({
   tipPercent:         z.number().min(0).max(100).optional(),
   paymentMethod:      z.enum(['stripe','paypal','venmo','gpay','bank','card']).optional(),
   donorEmail:         z.string().email().optional(),
+  // "Subscribe to receive emails" checkbox — opts the donor into campaign update emails
+  subscribeToUpdates: z.boolean().optional(),
   // Share attribution — UTM params forwarded from the landing URL
   utmSource:          z.string().max(100).optional(),
   utmMedium:          z.string().max(100).optional(),
@@ -85,6 +87,7 @@ export async function POST(request: NextRequest) {
     shareEventId,
     referrerId,
     rewardId,
+    subscribeToUpdates,
   } = parsed.data;
 
   const paymentMethod: PaymentMethod = parsed.data.paymentMethod ?? 'stripe';
@@ -260,6 +263,7 @@ export async function POST(request: NextRequest) {
       shareEventId:         referralShareEventId ?? shareEventId ?? '',
       rewardId:             rewardId ?? '',
       currency,
+      subscribeToUpdates:   subscribeToUpdates ? '1' : '0',
     },
     payment_intent_data: {
       // CharitMe keeps tip + processing coverage; recipient gets amountCents

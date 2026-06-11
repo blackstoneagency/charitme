@@ -182,6 +182,11 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
 
       await sendDonorReceipt(meta.donorId, meta.campaignId, `${formatCents(amountCents)}/month`);
 
+      // "Subscribe to receive emails" checkbox — opt the donor into campaign update emails (non-fatal)
+      if (meta.donorId && meta.subscribeToUpdates === '1') {
+        void supabaseAdmin.from('profiles').update({ notification_updates: true }).eq('id', meta.donorId);
+      }
+
       // Record charge currency (non-fatal; column defaults to 'usd')
       const recurringCurrency = (session.currency ?? 'usd').toLowerCase();
       if (recurringCurrency !== 'usd') {
@@ -241,6 +246,11 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
 
     const alreadyDone = (data as { status: string } | null)?.status === 'already_processed';
     const donationId = await findDonationId({ paymentIntentId, checkoutSessionId: session.id });
+
+    // "Subscribe to receive emails" checkbox — opt the donor into campaign update emails (non-fatal)
+    if (!alreadyDone && meta.donorId && meta.subscribeToUpdates === '1') {
+      void supabaseAdmin.from('profiles').update({ notification_updates: true }).eq('id', meta.donorId);
+    }
 
     // Store UTM attribution on the donation record (non-fatal)
     if (!alreadyDone && donationId) {

@@ -26,6 +26,8 @@ const Schema = z.object({
   shareEventId: z.string().uuid().optional(),
   // Personal referral link (?ref=<userId>) — credits another user's referral rewards
   referrerId:   z.string().uuid().optional(),
+  // "Subscribe to receive emails" checkbox — opts the donor into campaign update emails
+  subscribeToUpdates: z.boolean().optional(),
 });
 
 // POST /api/donations/recurring
@@ -53,7 +55,8 @@ export async function POST(request: NextRequest) {
   }
 
   const { campaignId, amountCents, cadence, message, anonymous, donorEmail,
-          utmSource, utmMedium, utmCampaign, utmContent, shareEventId, referrerId } = parsed.data;
+          utmSource, utmMedium, utmCampaign, utmContent, shareEventId, referrerId,
+          subscribeToUpdates } = parsed.data;
   const tipPercent = parsed.data.tipPercent ?? DEFAULT_DONOR_TIP_PERCENT;
   const tipCents = donorTip(amountCents, tipPercent);
 
@@ -171,6 +174,7 @@ export async function POST(request: NextRequest) {
       organizerUserId:      campaign.user_id,
       payoutRecipientId:    destination.recipientUserId,
       payoutRole:           destination.role,
+      subscribeToUpdates:   subscribeToUpdates ? '1' : '0',
     },
     subscription_data: {
       metadata: {
