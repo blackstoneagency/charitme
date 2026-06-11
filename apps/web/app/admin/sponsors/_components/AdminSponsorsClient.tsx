@@ -64,14 +64,14 @@ function SponsorRow({
   const [editing, setEditing] = useState(false);
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 20px', background: '#fff', borderRadius: 12, border: '1px solid #eef0f7', marginBottom: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 20px', background: '#fff', borderRadius: 12, border: '1px solid #eef0f7', marginBottom: 10, flexWrap: 'wrap' }}>
       {/* Logo preview */}
       <div style={{ width: 80, height: 44, borderRadius: 8, border: '1px solid #eef0f7', background: '#f8f9fc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
         <LogoImg key={sponsor.logo_url ?? 'none'} src={sponsor.logo_url} website={sponsor.website} name={sponsor.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
       </div>
 
       {/* Name / website */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: '1 1 200px', minWidth: 0 }}>
         {editing ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <input value={editName} onChange={e => setEditName(e.target.value)}
@@ -193,7 +193,7 @@ export default function AdminSponsorsClient() {
   const visible = sponsors.filter(s => s.active && (s.logo_url || s.website));
 
   return (
-    <div style={{ padding: '0 32px 40px', maxWidth: 900 }}>
+    <div className="kf-admin-dash" style={{ maxWidth: 900 }}>
       {notice && (
         <div style={{ margin: '0 0 16px', padding: '10px 16px', borderRadius: 10, background: notice.includes('❌') ? '#fff0f3' : '#f0fdf4', border: `1px solid ${notice.includes('❌') ? '#fecdd3' : '#bbf7d0'}`, color: notice.includes('❌') ? '#be123c' : '#15803d', fontWeight: 700, fontSize: 13 }}>
           {notice}
