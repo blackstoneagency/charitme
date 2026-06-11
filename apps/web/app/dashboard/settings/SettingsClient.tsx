@@ -31,6 +31,7 @@ interface Props {
   initialProfile: ProfileData;
   campaignsCount: number;
   userEmail: string;
+  userId: string;
   hasStripeCustomer: boolean;
 }
 
@@ -144,7 +145,7 @@ function NotifRow({ id, label, desc, defaultOn }: { id: string; label: string; d
 // ─────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────
-export default function SettingsClient({ initialProfile, campaignsCount, userEmail, hasStripeCustomer }: Props) {
+export default function SettingsClient({ initialProfile, campaignsCount, userEmail, userId, hasStripeCustomer }: Props) {
   const uid = useId();
   const [section, setSection] = useState<Section>('profile');
   const [saving, setSaving] = useState(false);
@@ -422,11 +423,18 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               </div>
               <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '16px 0 10px' }}>Privacy</div>
               <div className="kf-setpref">
-                <div className="kf-setpref-info"><strong>Profile Visibility</strong><span>Who can see your profile</span></div>
-                <select value={showPublicProfile ? 'public' : 'private'} onChange={e => setShowPublicProfile(e.target.value === 'public')} style={{ height: 36, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 12px', fontSize: 13 }}>
-                  <option value="public">Public</option>
-                  <option value="private">Private</option>
-                </select>
+                <div className="kf-setpref-info"><strong>Profile Visibility</strong><span>Who can see your giving activity on the leaderboard and donor walls</span></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {showPublicProfile && (
+                    <Link href={`/donors/${userId}`} target="_blank" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none' }}>
+                      Preview →
+                    </Link>
+                  )}
+                  <select value={showPublicProfile ? 'public' : 'private'} onChange={e => setShowPublicProfile(e.target.value === 'public')} style={{ height: 36, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 12px', fontSize: 13 }}>
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
+                  </select>
+                </div>
               </div>
               <div className="kf-setpref" style={{ borderBottom: 0 }}>
                 <div className="kf-setpref-info"><strong>Sign Out</strong><span>Sign out of this device</span></div>

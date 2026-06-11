@@ -114,6 +114,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
         initialProfile={profile}
         campaignsCount={campaignsCount}
         userEmail={user.email ?? ''}
+        userId={user.id}
         hasStripeCustomer={!!profile.stripe_customer_id}
       />
     </CharitMeShell>
