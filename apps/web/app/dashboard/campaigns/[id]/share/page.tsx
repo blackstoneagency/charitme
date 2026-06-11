@@ -12,6 +12,18 @@ type Campaign = { id: string; title: string; slug: string };
 
 type ContentType = 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'whatsapp' | 'sms' | 'email' | 'update';
 
+type ChannelStat = { channel: string; label: string; shares: number; conversions: number; conversionRate: number };
+type UntriedChannel = { channel: string; label: string };
+
+type ViralLoopData = {
+  totalShares: number;
+  totalConversions: number;
+  conversionRate: number;
+  byChannel: ChannelStat[];
+  untriedChannels: UntriedChannel[];
+  message: string;
+};
+
 const CHANNELS: { type: ContentType; label: string; icon: string; color: string }[] = [
   { type: 'facebook', label: 'Facebook', icon: 'f', color: '#1877f2' },
   { type: 'twitter', label: 'X / Twitter', icon: 'X', color: '#000' },
@@ -33,6 +45,9 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
+  const [viral, setViral] = useState<ViralLoopData | null>(null);
+  const [viralLoading, setViralLoading] = useState(true);
+  const [viralError, setViralError] = useState('');
 
   useEffect(() => { params.then(({ id }) => setCampaignId(id)); }, [params]);
 
@@ -48,6 +63,21 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
         });
     });
   }, [campaignId, router]);
+
+  useEffect(() => {
+    if (!campaignId || !campaign) return;
+    let cancelled = false;
+    fetch(`/api/ai/viral-loop?campaignId=${encodeURIComponent(campaignId)}`)
+      .then(async (res) => {
+        const data = await res.json();
+        if (cancelled) return;
+        if (!res.ok) { setViralError(data.error ?? 'Could not load viral loop insights.'); return; }
+        setViral(data as ViralLoopData);
+      })
+      .catch(() => { if (!cancelled) setViralError('Could not load viral loop insights.'); })
+      .finally(() => { if (!cancelled) setViralLoading(false); });
+    return () => { cancelled = true; };
+  }, [campaignId, campaign]);
 
   async function generate() {
     if (!campaign) return;
@@ -123,6 +153,65 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
           <p style={{ fontSize: 11, color: 'var(--t3)', margin: '12px 0 0' }}>
             Campaign URL: <code style={{ fontSize: 11 }}>{campaignUrl}</code>
           </p>
+        </section>
+
+        {/* AI Viral Loop Generator */}
+        <section className="kf-card" style={{ padding: 24 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 800, margin: '0 0 6px' }}>✨ AI Viral Loop Insights</h2>
+          <p style={{ fontSize: 13, color: 'var(--t3)', margin: '0 0 16px' }}>See which channels are converting shares into donations and what to try next.</p>
+
+          {viralLoading && <p style={{ fontSize: 13, color: 'var(--t3)' }}>Analyzing share activity…</p>}
+          {viralError && <div style={{ padding: '10px 14px', background: 'rgba(190,18,60,.08)', border: '1px solid rgba(190,18,60,.25)', borderRadius: 9, color: 'var(--red, #be123c)', fontSize: 13, fontWeight: 600 }}>⚠ {viralError}</div>}
+
+          {viral && (
+            <div style={{ display: 'grid', gap: 14 }}>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 120px', background: 'var(--s2, #f8fafc)', borderRadius: 10, padding: '12px 16px' }}>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--t1)' }}>{viral.totalShares}</div>
+                  <div style={{ fontSize: 11, color: 'var(--t3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>Total shares</div>
+                </div>
+                <div style={{ flex: '1 1 120px', background: 'var(--s2, #f8fafc)', borderRadius: 10, padding: '12px 16px' }}>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--t1)' }}>{viral.totalConversions}</div>
+                  <div style={{ fontSize: 11, color: 'var(--t3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>Donations from shares</div>
+                </div>
+                <div style={{ flex: '1 1 120px', background: 'var(--s2, #f8fafc)', borderRadius: 10, padding: '12px 16px' }}>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--t1)' }}>{Math.round(viral.conversionRate * 100)}%</div>
+                  <div style={{ fontSize: 11, color: 'var(--t3)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em' }}>Conversion rate</div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 13.5, color: '#4338ca', background: '#f5f3ff', border: '1px solid #ede9fe', borderRadius: 8, padding: '10px 14px', lineHeight: 1.5 }}>
+                {viral.message}
+              </div>
+
+              {viral.byChannel.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t2)', marginBottom: 6 }}>Performance by channel</div>
+                  <div style={{ display: 'grid', gap: 6 }}>
+                    {viral.byChannel.map((c) => (
+                      <div key={c.channel} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--b1)' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--t1)' }}>{c.label}</span>
+                        <span style={{ color: 'var(--t3)' }}>{c.shares} share{c.shares === 1 ? '' : 's'} · {c.conversions} donation{c.conversions === 1 ? '' : 's'} · {Math.round(c.conversionRate * 100)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {viral.untriedChannels.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t2)', marginBottom: 6 }}>Channels you haven&apos;t tried</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {viral.untriedChannels.map((c) => (
+                      <span key={c.channel} style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)', background: 'var(--s2, #f8fafc)', border: '1px solid var(--b1)', borderRadius: 20, padding: '4px 12px' }}>
+                        {c.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         {/* AI content generator */}
