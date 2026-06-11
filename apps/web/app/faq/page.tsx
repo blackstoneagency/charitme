@@ -27,6 +27,7 @@ const FAQ_SECTIONS = [
   },
   {
     title: 'Payouts',
+    id: 'payouts',
     items: [
       { q: 'How do I receive money from my campaign?', a: 'Connect a Stripe Express account from your dashboard. After verification, donations are transferred directly to your Stripe account on the standard schedule (typically 2 business days after donation).' },
       { q: 'How long does payout verification take?', a: 'Stripe identity verification typically takes 1–3 minutes for most users. Some accounts require additional document review, which can take 1–2 business days. Payouts are available as soon as verification is complete.' },
