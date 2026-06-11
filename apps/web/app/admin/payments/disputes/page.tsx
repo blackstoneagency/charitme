@@ -9,7 +9,7 @@ export default async function PaymentDisputesPage(): Promise<JSX.Element> {
   return (
     <CharitMeShell active="Payment Flows" mode="admin">
       <TopBar title="Payment Disputes" subtitle="Open, won, and lost campaign payment disputes." />
-      <div style={{ padding: '0 32px 40px' }}>
+      <div className="kf-admin-dash">
         <PaymentTable rows={data.rows} />
       </div>
     </CharitMeShell>

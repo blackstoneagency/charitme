@@ -208,17 +208,17 @@ export default function AdminCountriesClient() {
   const activeCount    = countries.filter(c => c.active).length;
 
   return (
-    <div style={{ padding: '0 32px 48px', maxWidth: 1200 }}>
+    <div className="kf-admin-dash" style={{ maxWidth: 1200 }}>
 
       {/* Notice */}
       {notice && (
-        <div style={{ margin: '0 0 16px', padding: '10px 16px', borderRadius: 10, background: notice.includes('❌') ? '#fff0f3' : '#f0fdf4', border: `1px solid ${notice.includes('❌') ? '#fecdd3' : '#bbf7d0'}`, color: notice.includes('❌') ? '#be123c' : '#15803d', fontWeight: 700, fontSize: 13 }}>
+        <div style={{ padding: '10px 16px', borderRadius: 10, background: notice.includes('❌') ? '#fff0f3' : '#f0fdf4', border: `1px solid ${notice.includes('❌') ? '#fecdd3' : '#bbf7d0'}`, color: notice.includes('❌') ? '#be123c' : '#15803d', fontWeight: 700, fontSize: 13 }}>
           {notice}
         </div>
       )}
 
       {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+      <div className="kf-metrics">
         {[
           { label: 'Total Countries',  value: countries.length, color: '#6c35ff' },
           { label: 'Can Fundraise',    value: fundraiseCount,   color: '#19b86a' },
@@ -233,7 +233,7 @@ export default function AdminCountriesClient() {
       </div>
 
       {/* Public page link */}
-      <div style={{ marginBottom: 20, padding: '12px 18px', background: '#f0eaff', borderRadius: 12, border: '1px solid #c4b5fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '12px 18px', background: '#f0eaff', borderRadius: 12, border: '1px solid #c4b5fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: '#4c1d95' }}>
           🌍 Public page:{' '}
           <code style={{ background: 'rgba(0,0,0,.06)', padding: '2px 6px', borderRadius: 4 }}>/supported-countries</code>
@@ -244,7 +244,7 @@ export default function AdminCountriesClient() {
       </div>
 
       {/* Add form */}
-      <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
+      <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, padding: '20px 24px' }}>
         <div style={{ fontWeight: 800, fontSize: 14, color: '#1a1a2e', marginBottom: 14 }}>+ Add Country</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -292,7 +292,7 @@ export default function AdminCountriesClient() {
       </div>
 
       {/* Filter + search */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         {(['all','fundraise','donate'] as const).map(f => (
           <button
             key={f}
@@ -314,7 +314,7 @@ export default function AdminCountriesClient() {
       {loading ? (
         <div style={{ color: '#94a3b8', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Loading…</div>
       ) : (
-        <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'auto' }}>
+        <div className="kf-table-scroll" style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 860 }}>
             <thead>
               <tr style={{ background: '#f8fafc' }}>

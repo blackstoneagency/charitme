@@ -10,7 +10,7 @@ export default async function PaymentPayoutsPage(): Promise<JSX.Element> {
   return (
     <CharitMeShell active="Payment Flows" mode="admin">
       <TopBar title="Campaign Owner Payouts" subtitle="Owner payout status backed by canonical campaign payment records." />
-      <div style={{ padding: '0 32px 40px' }}>
+      <div className="kf-admin-dash">
         <PaymentTable rows={rows} />
       </div>
     </CharitMeShell>

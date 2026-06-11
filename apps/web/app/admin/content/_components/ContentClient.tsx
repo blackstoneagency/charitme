@@ -131,7 +131,7 @@ function EditModal({ item, onClose, onSaved }: { item: ContentRecord; onClose: (
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ width: 560, background: '#fff', borderRadius: 16, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
+      <div className="kf-modal-responsive" style={{ width: 560, background: '#fff', borderRadius: 16, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ margin: 0, fontSize: 17, fontWeight: 950 }}>Edit Content</h2>
           <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5' }}>×</button>
@@ -182,7 +182,7 @@ function DeleteModal({ item, onClose, onDeleted }: { item: ContentRecord; onClos
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ width: 420, background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 24px 80px rgba(20,20,80,.18)' }}>
+      <div className="kf-modal-responsive" style={{ width: 420, background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 24px 80px rgba(20,20,80,.18)' }}>
         <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 950, color: '#0f0f30' }}>Delete Content?</h2>
         <p style={{ margin: '0 0 4px', color: '#26335c', fontSize: 14 }}>
           <strong>&ldquo;{item.title || 'Untitled'}&rdquo;</strong>
@@ -217,7 +217,7 @@ function ContentDetailPanel({
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ marginLeft: 'auto', width: 520, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
+      <div className="kf-panel-responsive" style={{ marginLeft: 'auto', width: 520, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -343,7 +343,7 @@ function CreateContentWizard({
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ width: 520, background: '#fff', borderRadius: 18, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
+      <div className="kf-modal-responsive" style={{ width: 520, background: '#fff', borderRadius: 18, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 950, color: '#0f0f30' }}>Create Campaign Update</div>
@@ -485,9 +485,9 @@ export default function ContentClient({
   const recentActivity = content.slice(0, 5).map(c => ({ title: c.title || 'Untitled', type: c.type, author: c.author, date: c.updated_at }));
 
   return (
-    <div style={{ padding: '0 32px 40px' }}>
+    <div className="kf-admin-dash">
       {/* KPI */}
-      <div className="kf-metrics" style={{ marginBottom: 24 }}>
+      <div className="kf-metrics">
         {[
           { label: 'Total Content', value: content.length.toLocaleString(), tone: 'violet', icon: 'doc' },
           { label: 'Published', value: publishedCount.toLocaleString(), tone: 'green', icon: 'check' },
@@ -509,7 +509,7 @@ export default function ContentClient({
       </div>
 
       {/* Charts row */}
-      <div className="kf-two-col" style={{ marginBottom: 24 }}>
+      <div className="kf-two-col">
         <section className="kf-card">
           <div className="kf-card-head"><h2>Content by Type</h2></div>
           <div style={{ padding: '10px 20px 20px' }}>
@@ -563,25 +563,27 @@ export default function ContentClient({
               </select>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 900, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
-              <span>Title</span><span>Type</span><span>Campaign</span><span>Updated</span>
-            </div>
-
-            {currentPage.map(c => (
-              <div key={c.id}
-                style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
-                onClick={() => setSelected(c)}
-                onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 850, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title || 'Untitled'}</div>
-                  <div style={{ fontSize: 11, color: '#8c9ab5', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.body.slice(0, 70)}{c.body.length > 70 ? '…' : ''}</div>
-                </div>
-                <span style={{ fontSize: 12, color: '#66708d', fontWeight: 700 }}>{c.type}</span>
-                <span style={{ fontSize: 12, color: '#66708d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campaign_title}</span>
-                <span style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(c.updated_at)}</span>
+            <div className="kf-table-scroll">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 900, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                <span>Title</span><span>Type</span><span>Campaign</span><span>Updated</span>
               </div>
-            ))}
+
+              {currentPage.map(c => (
+                <div key={c.id}
+                  style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+                  onClick={() => setSelected(c)}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 850, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title || 'Untitled'}</div>
+                    <div style={{ fontSize: 11, color: '#8c9ab5', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.body.slice(0, 70)}{c.body.length > 70 ? '…' : ''}</div>
+                  </div>
+                  <span style={{ fontSize: 12, color: '#66708d', fontWeight: 700 }}>{c.type}</span>
+                  <span style={{ fontSize: 12, color: '#66708d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campaign_title}</span>
+                  <span style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(c.updated_at)}</span>
+                </div>
+              ))}
+            </div>
 
             {currentPage.length === 0 && <div style={{ padding: '32px', textAlign: 'center', color: '#8c9ab5', fontSize: 14 }}>No content found</div>}
 

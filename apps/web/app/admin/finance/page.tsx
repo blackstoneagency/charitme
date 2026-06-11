@@ -80,9 +80,9 @@ export default async function FinancePage() {
         actions={<></>}
       />
 
-      <div style={{ padding: '0 32px 40px', display: 'flex', flexDirection: 'column', gap: 32 }}>
+      <div className="kf-admin-dash">
         {/* Metrics grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        <div className="kf-metrics">
           {metrics.map(m => (
             <div key={m.label} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '20px 24px' }}>
               <div style={{ fontSize: 24, fontWeight: 900, color: m.color }}>{m.value}</div>

@@ -18,7 +18,7 @@ export default async function CampaignPaymentFlowsPage({ searchParams }: PagePro
   return (
     <CharitMeShell active="Payment Flows" mode="admin">
       <TopBar title="Campaign Payment Flows" subtitle="Trace donor payment, processor fees, ChartiMe.com revenue, owner transfer, payout, and settlement." />
-      <div style={{ padding: '0 32px 40px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div className="kf-admin-dash">
         <SummaryCards data={data} />
         <PaymentFiltersBar campaigns={campaigns} />
         <PaymentTable rows={data.rows} />

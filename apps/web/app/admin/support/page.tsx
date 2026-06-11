@@ -38,6 +38,7 @@ function CaseTable({ cases, title }: { cases: SupportCase[]; title: string }) {
       {cases.length === 0 ? (
         <div style={{ padding: 32, textAlign: 'center', color: '#64748b' }}>No cases</div>
       ) : (
+        <div className="kf-table-scroll">
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: '#f8fafc' }}>
@@ -77,6 +78,7 @@ function CaseTable({ cases, title }: { cases: SupportCase[]; title: string }) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );
@@ -201,9 +203,9 @@ export default async function AdminSupportPage() {
         actions={<></>}
       />
 
-      <div style={{ padding: '0 32px 40px', display: 'flex', flexDirection: 'column', gap: 32 }}>
+      <div className="kf-admin-dash">
         {/* Summary metrics */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        <div className="kf-metrics">
           {[
             { label: 'Open Cases',          value: open.length, color: '#f59e0b' },
             { label: 'In Progress',          value: inProg.length, color: '#6c35ff' },

@@ -221,8 +221,8 @@ export default function SettingsClient({ categories, settings: initialSettings, 
   }
 
   return (
-    <div style={{ padding: '0 32px 32px', display: 'grid', gap: 22 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18 }}>
+    <div className="kf-admin-dash">
+      <div className="kf-metrics">
         {[
           { label: 'Platform Status', value: overview.platformStatus, icon: 'check', tone: 'green' as const },
           { label: 'Categories', value: overview.categoriesCount.toString(), icon: 'stack', tone: 'violet' as const },
@@ -236,7 +236,7 @@ export default function SettingsClient({ categories, settings: initialSettings, 
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 20, alignItems: 'start' }}>
+      <div className="kf-settings-layout" style={{ alignItems: 'start' }}>
         <nav className="kf-settings-nav">
           <h3 style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 950, textTransform: 'uppercase', color: '#4b5676', letterSpacing: '0.05em' }}>Settings</h3>
           {categories.map(cat => (
@@ -274,7 +274,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
   return (
     <div style={{ padding: '22px 26px', borderTop: '1px solid #eef0f7' }}>
       <h3 style={{ margin: '0 0 18px', fontSize: 16, fontWeight: 950 }}>{title}</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>{children}</div>
+      <div className="kf-form-grid">{children}</div>
     </div>
   );
 }

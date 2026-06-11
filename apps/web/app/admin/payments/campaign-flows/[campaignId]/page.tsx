@@ -17,7 +17,7 @@ export default async function CampaignPaymentFlowPage({ params }: PageProps): Pr
   return (
     <CharitMeShell active="Payment Flows" mode="admin">
       <TopBar title={title} subtitle="Campaign-level money movement from checkout through settlement." />
-      <div style={{ padding: '0 32px 40px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div className="kf-admin-dash">
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <Link href={`/admin/payments/campaign-flows/${campaignId}/transactions`} style={buttonStyle}>Transactions</Link>
           <Link href="/admin/payments/reconciliation" style={buttonStyle}>Reconciliation</Link>

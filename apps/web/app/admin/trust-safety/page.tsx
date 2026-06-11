@@ -77,10 +77,10 @@ export default async function TrustSafetyPage() {
         actions={<></>}
       />
 
-      <div style={{ padding: '0 32px 40px', display: 'flex', flexDirection: 'column', gap: 32 }}>
+      <div className="kf-admin-dash">
 
         {/* Summary stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <div className="kf-three-col">
           {[
             { label: 'Unresolved Risk Flags', value: flags.length, color: '#ef4444' },
             { label: 'Open Reports', value: reports.length, color: '#f59e0b' },
@@ -101,6 +101,7 @@ export default async function TrustSafetyPage() {
           {flags.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>✅ No unresolved risk flags</div>
           ) : (
+            <div className="kf-table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: '#f8fafc' }}>
@@ -135,6 +136,7 @@ export default async function TrustSafetyPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 
@@ -146,6 +148,7 @@ export default async function TrustSafetyPage() {
           {reports.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>✅ No open reports</div>
           ) : (
+            <div className="kf-table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: '#f8fafc' }}>
@@ -183,6 +186,7 @@ export default async function TrustSafetyPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 
@@ -192,6 +196,7 @@ export default async function TrustSafetyPage() {
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8' }}>
               <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Frozen Payouts</h2>
             </div>
+            <div className="kf-table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: '#f8fafc' }}>
@@ -214,6 +219,7 @@ export default async function TrustSafetyPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>

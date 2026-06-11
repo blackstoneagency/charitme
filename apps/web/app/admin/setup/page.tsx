@@ -103,9 +103,9 @@ export default async function AdminSetupPage() {
         }
       />
 
-      <div style={{ padding: '0 32px 40px', maxWidth: 820 }}>
+      <div className="kf-admin-dash" style={{ maxWidth: 820 }}>
         {/* Summary strip */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 24 }}>
+        <div className="kf-three-col">
           {[
             { label: 'Passing',  count: ok.length,      bg: '#f0fff8', color: '#065f46' },
             { label: 'Warnings', count: empties.length,  bg: '#fffbeb', color: '#92400e' },

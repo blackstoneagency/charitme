@@ -29,7 +29,7 @@ export default async function TransactionDetailPage({ params }: PageProps): Prom
   return (
     <CharitMeShell active="Payment Flows" mode="admin">
       <TopBar title="Transaction Drill-Down" subtitle="Donor checkout to processor objects, fees, owner transfer, payout, and reconciliation." />
-      <div style={{ padding: '0 32px 40px', display: 'grid', gap: 18 }}>
+      <div className="kf-admin-dash">
         <section style={panel}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
             <Metric label="Gross" value={money(payment.gross_amount, payment.currency)} />
@@ -110,7 +110,7 @@ function ObjectRow({ label, value }: { label: string; value: string | null }): J
 function Rows({ rows, empty = 'No records.' }: { rows: string[][]; empty?: string }): JSX.Element {
   if (rows.length === 0) return <p style={muted}>{empty}</p>;
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div className="kf-table-scroll" style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <tbody>
           {rows.map((row, index) => (

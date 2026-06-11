@@ -153,9 +153,9 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
   });
 
   return (
-    <div style={{ padding: '0 32px 32px', display: 'grid', gap: 22 }}>
+    <div className="kf-admin-dash">
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18 }}>
+      <div className="kf-metrics">
         {[
           { label: 'Total Events', value: totalEvents.toLocaleString(), icon: 'audit', tone: 'violet' as const },
           { label: 'Unique Users', value: uniqueUsers.toLocaleString(), icon: 'users', tone: 'green' as const },
@@ -173,7 +173,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
       </div>
 
       {/* Charts row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 18 }}>
+      <div className="kf-grid-main-aside">
         <section className="kf-card" style={{ overflow: 'hidden' }}>
           <div className="kf-card-head"><h2>Activity Over Time</h2><span style={{ color: '#4b5676', fontSize: 13 }}>Last 30 days</span></div>
           <div style={{ padding: '0 10px 8px' }}>
@@ -187,7 +187,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
       </div>
 
       {/* Recent feed + main table layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 18, alignItems: 'start' }}>
+      <div className="kf-grid-aside">
         {/* Recent activity feed */}
         <section className="kf-card" style={{ overflow: 'hidden' }}>
           <div className="kf-card-head"><h2>Recent Activity</h2></div>
@@ -250,31 +250,33 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
           </div>
 
           {/* Table header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 110px 90px 80px', gap: 12, padding: '8px 20px', background: '#f8f9fc', borderTop: '1px solid #eef0f7', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 950, color: '#4b5676', textTransform: 'uppercase' }}>
-            <span>Date & Time</span>
-            <span>Action</span>
-            <span>Category</span>
-            <span>Status</span>
-            <span>Details</span>
-          </div>
-
-          {filtered.slice(0, 15).map(e => (
-            <div key={e.id} style={{ display: 'grid', gridTemplateColumns: '130px 1fr 110px 90px 80px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7', alignItems: 'center' }}>
-              <span style={{ fontSize: 11, color: '#67718e' }}>{e.dateTime}</span>
-              <div>
-                <strong style={{ display: 'block', fontSize: 12, fontWeight: 850 }}>{e.action}</strong>
-                {e.stripeEventId && <small style={{ color: '#8c95b2', fontSize: 10 }}>{e.stripeEventId.slice(0, 20)}…</small>}
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 850, color: CATEGORY_COLORS[e.category] ?? '#551cf2' }}>{e.category}</span>
-              <StatusPill>{e.status}</StatusPill>
-              <button
-                onClick={() => setSelectedEvent(e)}
-                style={{ height: 30, padding: '0 10px', borderRadius: 7, border: '1px solid #e0e4ef', background: '#fff', color: '#551cf2', fontSize: 11, fontWeight: 950, cursor: 'pointer' }}
-              >
-                View
-              </button>
+          <div className="kf-table-scroll">
+            <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 110px 90px 80px', gap: 12, padding: '8px 20px', background: '#f8f9fc', borderTop: '1px solid #eef0f7', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 950, color: '#4b5676', textTransform: 'uppercase' }}>
+              <span>Date & Time</span>
+              <span>Action</span>
+              <span>Category</span>
+              <span>Status</span>
+              <span>Details</span>
             </div>
-          ))}
+
+            {filtered.slice(0, 15).map(e => (
+              <div key={e.id} style={{ display: 'grid', gridTemplateColumns: '130px 1fr 110px 90px 80px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#67718e' }}>{e.dateTime}</span>
+                <div>
+                  <strong style={{ display: 'block', fontSize: 12, fontWeight: 850 }}>{e.action}</strong>
+                  {e.stripeEventId && <small style={{ color: '#8c95b2', fontSize: 10 }}>{e.stripeEventId.slice(0, 20)}…</small>}
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 850, color: CATEGORY_COLORS[e.category] ?? '#551cf2' }}>{e.category}</span>
+                <StatusPill>{e.status}</StatusPill>
+                <button
+                  onClick={() => setSelectedEvent(e)}
+                  style={{ height: 30, padding: '0 10px', borderRadius: 7, border: '1px solid #e0e4ef', background: '#fff', color: '#551cf2', fontSize: 11, fontWeight: 950, cursor: 'pointer' }}
+                >
+                  View
+                </button>
+              </div>
+            ))}
+          </div>
 
           {filtered.length === 0 && (
             <div style={{ textAlign: 'center', padding: 32, color: '#67718e', fontSize: 13 }}>No events match your filter.</div>
@@ -294,6 +296,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
           onClick={() => setSelectedEvent(null)}
         >
           <div
+            className="kf-panel-responsive"
             style={{ width: 420, background: '#fff', overflowY: 'auto', padding: 28, display: 'grid', alignContent: 'start', gap: 18 }}
             onClick={e => e.stopPropagation()}
           >
@@ -364,7 +367,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
       {/* Export modal */}
       {showExportModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999 }} onClick={() => setShowExportModal(false)}>
-          <div style={{ width: 380, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }} onClick={e => e.stopPropagation()}>
+          <div className="kf-modal-responsive" style={{ width: 380, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }} onClick={e => e.stopPropagation()}>
             <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 950 }}>Export Audit Logs</h2>
             <p style={{ margin: '0 0 20px', color: '#67718e', fontSize: 13 }}>Choose the format to export {totalEvents.toLocaleString()} events.</p>
             <div style={{ display: 'grid', gap: 10 }}>

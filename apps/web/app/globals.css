@@ -3358,10 +3358,13 @@ img, svg { display: block; }
 .kf-grid-6 { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; }
 .kf-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .kf-grid-aside { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+.kf-grid-main-aside { display: grid; grid-template-columns: 1fr 320px; gap: 18px; align-items: start; }
+.kf-modal-responsive { max-width: calc(100vw - 32px) !important; }
 
 @media (max-width: 1180px) {
   .kf-grid-6 { grid-template-columns: repeat(3, 1fr); }
   .kf-grid-aside { grid-template-columns: 1fr; }
+  .kf-grid-main-aside { grid-template-columns: 1fr; }
 }
 @media (max-width: 860px) {
   .kf-grid-6 { grid-template-columns: repeat(2, 1fr); }

@@ -151,7 +151,7 @@ function UserDetailPanel({ user, onClose }: { user: UserRecord; onClose: () => v
       style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ marginLeft: 'auto', width: 480, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
+      <div className="kf-panel-responsive" style={{ marginLeft: 'auto', width: 480, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '22px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
             {getInitials(user.full_name, user.email)}
@@ -300,7 +300,7 @@ function AddUserPanel({ onClose }: { onClose: () => void }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ marginLeft: 'auto', width: 460, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
+      <div className="kf-panel-responsive" style={{ marginLeft: 'auto', width: 460, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '22px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: 17, fontWeight: 950, color: '#0f0f30' }}>Add New User</div>
           <button type="button" onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5', lineHeight: 1 }}>×</button>
@@ -385,9 +385,9 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
   const sectionTabs = ['users', 'roles', 'export', 'audit'];
 
   return (
-    <div style={{ padding: '0 32px 40px' }}>
+    <div className="kf-admin-dash">
       {/* KPI row */}
-      <div className="kf-metrics" style={{ marginBottom: 24 }}>
+      <div className="kf-metrics">
         {[
           { label: 'Total Users', value: totalUsers.toLocaleString(), tone: 'violet', icon: 'users' },
           { label: 'Active Users', value: activeUsers.toLocaleString(), tone: 'green', icon: 'check' },
@@ -412,7 +412,7 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
       </div>
 
       {/* Growth chart + recent users */}
-      <div className="kf-two-col" style={{ marginBottom: 24 }}>
+      <div className="kf-two-col">
         <section className="kf-card kf-chart">
           <div className="kf-card-head">
             <h2>User Growth</h2>
@@ -484,34 +484,36 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
             </div>
 
             {/* Table header */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 130px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 900, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
-              <span>User</span>
-              <span>Role</span>
-              <span>Status</span>
-              <span>Joined</span>
-            </div>
-
-            {/* Table rows */}
-            {currentPage.map(u => (
-              <div key={u.id}
-                style={{ display: 'grid', gridTemplateColumns: '1fr 140px 130px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
-                onClick={() => setSelectedUser(u)}
-                onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#e7f8ed,#19b86a)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
-                    {getInitials(u.full_name, u.email)}
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 850, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getDisplayName(u)}</div>
-                    <div style={{ fontSize: 11, color: '#8c9ab5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
-                  </div>
-                </div>
-                <span className="kf-pill violet" style={{ fontSize: 11 }}>{getPrimaryRole(u.roles)}</span>
-                <span className="kf-pill green" style={{ fontSize: 11 }}>Active</span>
-                <div style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(u.created_at)}</div>
+            <div className="kf-table-scroll">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 130px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 900, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                <span>User</span>
+                <span>Role</span>
+                <span>Status</span>
+                <span>Joined</span>
               </div>
-            ))}
+
+              {/* Table rows */}
+              {currentPage.map(u => (
+                <div key={u.id}
+                  style={{ display: 'grid', gridTemplateColumns: '1fr 140px 130px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+                  onClick={() => setSelectedUser(u)}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#e7f8ed,#19b86a)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+                      {getInitials(u.full_name, u.email)}
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 850, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getDisplayName(u)}</div>
+                      <div style={{ fontSize: 11, color: '#8c9ab5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                    </div>
+                  </div>
+                  <span className="kf-pill violet" style={{ fontSize: 11 }}>{getPrimaryRole(u.roles)}</span>
+                  <span className="kf-pill green" style={{ fontSize: 11 }}>Active</span>
+                  <div style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(u.created_at)}</div>
+                </div>
+              ))}
+            </div>
 
             {currentPage.length === 0 && (
               <div style={{ padding: '32px', textAlign: 'center', color: '#8c9ab5', fontSize: 14 }}>No users found</div>

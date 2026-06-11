@@ -15,7 +15,7 @@ export default async function CampaignTransactionsPage({ params }: PageProps): P
   return (
     <CharitMeShell active="Payment Flows" mode="admin">
       <TopBar title="Campaign Transactions" subtitle="Every canonical payment record for this campaign." />
-      <div style={{ padding: '0 32px 40px' }}>
+      <div className="kf-admin-dash">
         <PaymentTable rows={data.rows} />
       </div>
     </CharitMeShell>

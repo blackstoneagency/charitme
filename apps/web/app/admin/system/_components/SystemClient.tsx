@@ -261,7 +261,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
 
   if (saveState === 'saved' && activeCategory) {
     return (
-      <div style={{ padding: '0 32px 40px' }}>
+      <div>
         <div className="sys-layout">
           {/* Nav */}
           <nav className="sys-nav">
@@ -859,7 +859,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
         </div>
 
         {/* KPI row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
+        <div className="kf-metrics" style={{ marginBottom: 20 }}>
           {[
             { label: 'Services Online', value: overview.servicesOnline, icon: '✓', color: '#6c35ff' },
             { label: 'Integrations Active', value: overview.integrationsActive, icon: '🔗', color: '#19b86a' },

@@ -37,7 +37,7 @@ export function SummaryCards({ data }: { data: PaymentAdminData }) {
 
 export function PaymentFiltersBar({ campaigns }: { campaigns: Array<{ id: string; title: string }> }) {
   return (
-    <form style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 10, alignItems: 'end', background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: 14 }}>
+    <form className="kf-grid-6" style={{ alignItems: 'end', background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: 14 }}>
       <Select name="processor" label="Processor" values={['', 'stripe', 'paypal', 'manual', 'other']} />
       <Select name="paymentStatus" label="Payment" values={['', 'pending', 'processing', 'succeeded', 'failed', 'canceled', 'refunded', 'partially_refunded', 'disputed']} />
       <Select name="payoutStatus" label="Payout" values={['', 'not_applicable', 'requested', 'approved', 'pending', 'paid', 'failed', 'frozen', 'released']} />
@@ -82,7 +82,7 @@ export function PaymentTable({ rows, baseHref = '/admin/payments/campaign-flows'
         <strong>Campaign Payment Ledger</strong>
         <Link href="/api/admin/payments/export?type=campaign-ledger" style={{ color: '#6c35ff', fontSize: 12, fontWeight: 900, textDecoration: 'none' }}>Export CSV</Link>
       </div>
-      <div style={{ overflowX: 'auto' }}>
+      <div className="kf-table-scroll" style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr style={{ background: '#f8fafc' }}>

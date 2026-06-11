@@ -10,7 +10,7 @@ export default async function PaymentRefundsPage(): Promise<JSX.Element> {
   return (
     <CharitMeShell active="Payment Flows" mode="admin">
       <TopBar title="Payment Refunds" subtitle="Partial and full campaign payment refunds." />
-      <div style={{ padding: '0 32px 40px' }}>
+      <div className="kf-admin-dash">
         <PaymentTable rows={[...partial.rows, ...full.rows]} />
       </div>
     </CharitMeShell>

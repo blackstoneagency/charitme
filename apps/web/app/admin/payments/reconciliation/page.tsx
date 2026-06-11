@@ -14,7 +14,7 @@ export default async function PaymentReconciliationPage(): Promise<JSX.Element> 
   return (
     <CharitMeShell active="Payment Flows" mode="admin">
       <TopBar title="Payment Reconciliation" subtitle="Missing fees, mismatches, payout issues, webhook gaps, refunds, disputes, and stale pending settlement." />
-      <div style={{ padding: '0 32px 40px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div className="kf-admin-dash">
         <SummaryCards data={{ rows, summary }} />
         <PaymentTable rows={rows} />
       </div>
