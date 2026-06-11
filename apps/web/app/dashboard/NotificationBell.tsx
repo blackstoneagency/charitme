@@ -120,7 +120,7 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div style={{
+        <div className="kf-modal-responsive" style={{
           position: 'absolute', top: 'calc(100% + 8px)', right: 0,
           width: 340, background: 'var(--s1, #fff)', borderRadius: 16,
           boxShadow: '0 8px 40px rgba(0,0,0,.18)', zIndex: 9999,

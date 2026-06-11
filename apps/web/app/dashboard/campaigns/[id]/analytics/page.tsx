@@ -132,7 +132,7 @@ export default function CampaignAnalyticsPage({ params }: { params: Promise<{ id
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+      <div className="kf-two-col" style={{ marginBottom: 20 }}>
         {/* Top referral sources */}
         <div style={{ background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 14, padding: '20px 22px' }}>
           <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 800, color: 'var(--t1, #1a1a2e)' }}>Top referral sources</h2>

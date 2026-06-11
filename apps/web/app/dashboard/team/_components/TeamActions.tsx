@@ -123,7 +123,7 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
           style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
           onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}
         >
-          <div style={{ width: 460, background: 'var(--s1, #fff)', borderRadius: 16, boxShadow: '0 20px 60px rgba(20,20,80,.18)', overflow: 'hidden' }}>
+          <div className="kf-modal-responsive" style={{ width: 460, background: 'var(--s1, #fff)', borderRadius: 16, boxShadow: '0 20px 60px rgba(20,20,80,.18)', overflow: 'hidden' }}>
             <div style={{ padding: '22px 24px 18px', borderBottom: '1px solid var(--b1, #eef0f7)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: 17, fontWeight: 950, color: 'var(--t1, #0f0f30)' }}>Invite Team Member</div>
               <button type="button" onClick={() => setOpen(false)} style={{ width: 32, height: 32, border: '1px solid var(--b1, #e6e9f2)', borderRadius: '50%', background: 'var(--s1, #fff)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3, #8c9ab5)' }}>×</button>
