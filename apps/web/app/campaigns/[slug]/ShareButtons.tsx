@@ -63,9 +63,17 @@ const TILES: { channel: Channel; label: string; iconText: string; iconBg: string
   },
 ];
 
+function escapeAttr(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 export default function ShareButtons({ campaignId, campaignUrl, campaignTitle, qrUrl, qrPosterId }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const embedInputRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
+  const [embedCopied, setEmbedCopied] = useState(false);
+
+  const embedCode = `<iframe src="${campaignUrl}/embed" width="400" height="500" style="border:0;border-radius:12px;max-width:100%" title="Donate to ${escapeAttr(campaignTitle)}"></iframe>`;
 
   const recordShare = (channel: Channel) => {
     void fetch('/api/share-events', {
@@ -86,6 +94,18 @@ export default function ShareButtons({ campaignId, campaignUrl, campaignTitle, q
       setTimeout(() => setCopied(false), 2000);
     });
     recordShare('link');
+  };
+
+  const handleCopyEmbed = () => {
+    navigator.clipboard.writeText(embedCode).then(() => {
+      setEmbedCopied(true);
+      setTimeout(() => setEmbedCopied(false), 2000);
+    }).catch(() => {
+      embedInputRef.current?.select();
+      document.execCommand('copy');
+      setEmbedCopied(true);
+      setTimeout(() => setEmbedCopied(false), 2000);
+    });
   };
 
   return (
@@ -132,6 +152,19 @@ export default function ShareButtons({ campaignId, campaignUrl, campaignTitle, q
               🖨 Download printable poster →
             </a>
           </div>
+
+          <details className="pc-match-howto" style={{ marginTop: 14 }}>
+            <summary>🔌 Embed this campaign on your website</summary>
+            <p className="pc-match-note" style={{ margin: '8px 0' }}>
+              Paste this code into your site to show a live donation widget for this campaign.
+            </p>
+            <div className="pc-share-copy">
+              <input ref={embedInputRef} type="text" readOnly value={embedCode} aria-label="Embed code" />
+              <button type="button" onClick={handleCopyEmbed} style={{ minWidth: 60 }}>
+                {embedCopied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+          </details>
         </div>
 
         {/* QR code */}
