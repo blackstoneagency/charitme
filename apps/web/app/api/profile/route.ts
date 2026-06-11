@@ -9,6 +9,7 @@ const UpdateProfileSchema = z.object({
   avatar_url: z.string().url().optional().nullable(),
   notification_email: z.boolean().optional(),
   notification_updates: z.boolean().optional(),
+  notification_marketing: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -19,7 +20,7 @@ export async function GET() {
 
     const { data, error } = await supabaseAdmin
       .from('profiles')
-      .select('id, full_name, bio, avatar_url, roles, created_at')
+      .select('id, full_name, bio, avatar_url, roles, created_at, notification_email, notification_updates, notification_marketing')
       .eq('id', user.id)
       .single();
 
@@ -49,12 +50,15 @@ export async function PATCH(request: NextRequest) {
     if (parsed.data.full_name !== undefined) updates.full_name = parsed.data.full_name;
     if (parsed.data.bio !== undefined) updates.bio = parsed.data.bio;
     if (parsed.data.avatar_url !== undefined) updates.avatar_url = parsed.data.avatar_url;
+    if (parsed.data.notification_email !== undefined) updates.notification_email = parsed.data.notification_email;
+    if (parsed.data.notification_updates !== undefined) updates.notification_updates = parsed.data.notification_updates;
+    if (parsed.data.notification_marketing !== undefined) updates.notification_marketing = parsed.data.notification_marketing;
 
     const { data, error } = await supabaseAdmin
       .from('profiles')
       .update(updates)
       .eq('id', user.id)
-      .select('id, full_name, bio, avatar_url, roles')
+      .select('id, full_name, bio, avatar_url, roles, notification_email, notification_updates, notification_marketing')
       .single();
 
     if (error) return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });

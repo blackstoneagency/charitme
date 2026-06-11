@@ -14,7 +14,7 @@ async function getProfile(userId: string) {
   try {
     const { data } = await supabaseAdmin
       .from('profiles')
-      .select('full_name, bio, avatar_url, roles, created_at')
+      .select('full_name, bio, avatar_url, roles, created_at, notification_email, notification_updates, notification_marketing')
       .eq('id', userId)
       .single();
     return data;
@@ -195,6 +195,9 @@ export default async function ProfilePage() {
           bio: profile?.bio ?? null,
           avatar_url: profile?.avatar_url ?? null,
           roles,
+          notification_email: profile?.notification_email ?? true,
+          notification_updates: profile?.notification_updates ?? true,
+          notification_marketing: profile?.notification_marketing ?? false,
         }}
         email={user.email ?? ''}
       />
