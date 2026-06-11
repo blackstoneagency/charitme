@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import PauseResumeButton from './PauseResumeButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -131,7 +132,9 @@ export default async function RecurringPage() {
                       </div>
                       <small>
                         {fmtCents(sub.amount_cents)}/{sub.cadence} ·
-                        {sub.status === 'active' && sub.next_bill_at
+                        {sub.status === 'paused'
+                          ? ' Billing paused'
+                          : sub.status === 'active' && sub.next_bill_at
                           ? ` Next billing: ${fmtDate(sub.next_bill_at)}`
                           : ` Started ${fmtDate(sub.created_at)}`}
                       </small>
@@ -139,6 +142,9 @@ export default async function RecurringPage() {
                     <div style={{ fontWeight: 700, color: 'var(--green)', flexShrink: 0 }}>
                       {fmtCents(sub.amount_cents)}
                     </div>
+                    {(sub.status === 'active' || sub.status === 'paused') && sub.stripe_subscription_id && (
+                      <PauseResumeButton subscriptionId={sub.stripe_subscription_id} status={sub.status as 'active' | 'paused'} />
+                    )}
                     {sub.status === 'active' && sub.stripe_subscription_id && (
                       <CancelButton subscriptionId={sub.stripe_subscription_id} />
                     )}
@@ -150,6 +156,7 @@ export default async function RecurringPage() {
         </section>
 
         <p style={{ fontSize: 12, color: 'var(--t3)', lineHeight: 1.6 }}>
+          Pausing skips upcoming charges without canceling — resume any time.
           Cancellations take effect at the end of the current billing period. You will not be charged again after cancellation.
           For questions, <Link href="/contact" style={{ color: 'var(--green)' }}>contact support</Link>.
         </p>
