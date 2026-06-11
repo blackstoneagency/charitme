@@ -95,9 +95,9 @@ export default function ReportsClient({ reports, categories, totalReports, sched
   ];
 
   return (
-    <div style={{ padding: '0 32px 32px', display: 'grid', gap: 22 }}>
+    <div className="kf-admin-dash">
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18 }}>
+      <div className="kf-metrics">
         {metrics.map((m) => (
           <article key={m.label} className="kf-card kf-metric">
             <div className={`kf-square ${m.tone}`}><KFIcon name={m.icon} /></div>
@@ -110,7 +110,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
       </div>
 
       {/* Two-column layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 20, alignItems: 'start' }}>
+      <div className="kf-grid-aside">
         {/* Left: category overview + donut */}
         <div style={{ display: 'grid', gap: 18 }}>
           {/* Category breakdown */}
@@ -206,39 +206,40 @@ export default function ReportsClient({ reports, categories, totalReports, sched
             </div>
           </div>
 
-          {/* Table header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 120px 90px 80px 80px', gap: 12, padding: '8px 20px', background: '#f8f9fc', borderTop: '1px solid #eef0f7', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 950, color: '#4b5676', textTransform: 'uppercase' }}>
-            <span>Report Name</span>
-            <span>Category</span>
-            <span>Created By</span>
-            <span>Status</span>
-            <span>Date</span>
-            <span>Actions</span>
-          </div>
-
-          {/* Table rows */}
-          {filtered.map(r => (
-            <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '1fr 110px 120px 90px 80px 80px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7', alignItems: 'center' }}>
-              <div>
-                <strong style={{ display: 'block', fontSize: 13, fontWeight: 850 }}>{r.name}</strong>
-                <small style={{ color: '#67718e', fontSize: 11 }}>{r.description}</small>
-              </div>
-              <span style={{ fontSize: 12, fontWeight: 850, color: CATEGORY_COLORS[r.category] ?? '#551cf2' }}>
-                {r.category}
-              </span>
-              <span style={{ fontSize: 12, fontWeight: 750, color: '#334064' }}>{r.createdBy}</span>
-              <StatusPill>{r.status}</StatusPill>
-              <span style={{ fontSize: 11, color: '#67718e' }}>{r.createdOn}</span>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button
-                  onClick={() => setExportReport(r)}
-                  style={{ height: 30, padding: '0 10px', borderRadius: 7, border: '1px solid #e0e4ef', background: '#fff', color: '#551cf2', fontSize: 11, fontWeight: 950, cursor: 'pointer' }}
-                >
-                  Export
-                </button>
-              </div>
+          {/* Table header + rows */}
+          <div className="kf-table-scroll">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 120px 90px 80px 80px', gap: 12, padding: '8px 20px', background: '#f8f9fc', borderTop: '1px solid #eef0f7', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 950, color: '#4b5676', textTransform: 'uppercase' }}>
+              <span>Report Name</span>
+              <span>Category</span>
+              <span>Created By</span>
+              <span>Status</span>
+              <span>Date</span>
+              <span>Actions</span>
             </div>
-          ))}
+
+            {filtered.map(r => (
+              <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '1fr 110px 120px 90px 80px 80px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7', alignItems: 'center' }}>
+                <div>
+                  <strong style={{ display: 'block', fontSize: 13, fontWeight: 850 }}>{r.name}</strong>
+                  <small style={{ color: '#67718e', fontSize: 11 }}>{r.description}</small>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 850, color: CATEGORY_COLORS[r.category] ?? '#551cf2' }}>
+                  {r.category}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 750, color: '#334064' }}>{r.createdBy}</span>
+                <StatusPill>{r.status}</StatusPill>
+                <span style={{ fontSize: 11, color: '#67718e' }}>{r.createdOn}</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={() => setExportReport(r)}
+                    style={{ height: 30, padding: '0 10px', borderRadius: 7, border: '1px solid #e0e4ef', background: '#fff', color: '#551cf2', fontSize: 11, fontWeight: 950, cursor: 'pointer' }}
+                  >
+                    Export
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
 
           {filtered.length === 0 && (
             <div style={{ textAlign: 'center', padding: 32, color: '#67718e', fontSize: 13 }}>
@@ -251,7 +252,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
       {/* Export Modal */}
       {exportReport && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999 }} onClick={() => setExportReport(null)}>
-          <div style={{ width: 380, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }} onClick={e => e.stopPropagation()}>
+          <div className="kf-modal-responsive" style={{ width: 380, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }} onClick={e => e.stopPropagation()}>
             <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 950 }}>Export Report</h2>
             <p style={{ margin: '0 0 20px', color: '#67718e', fontSize: 13 }}>{exportReport.name}</p>
             <div style={{ display: 'grid', gap: 10 }}>

@@ -159,7 +159,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ marginLeft: 'auto', width: 500, background: 'var(--s1, #fff)', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
+      <div className="kf-panel-responsive" style={{ marginLeft: 'auto', width: 500, background: 'var(--s1, #fff)', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--b1, #eef0f7)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 17, fontWeight: 950, color: 'var(--t1, #0f0f30)' }}>{payout.recipient_name}</div>
@@ -468,35 +468,37 @@ export default function PayoutsClient({
               <button type="button" style={{ height: 42, padding: '0 18px', border: '1px solid var(--b2, #e0e4ef)', borderRadius: 9, background: 'var(--s1, #fff)', fontSize: 13, fontWeight: 750, cursor: 'pointer' }} onClick={() => exportCsv(filtered)}>Export CSV</button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid var(--b1, #eef0f7)', fontSize: 11, fontWeight: 900, color: 'var(--t3, #8c9ab5)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
-              <span>Recipient</span>
-              <span>Campaign</span>
-              <span>Amount</span>
-              <span>Status</span>
-              <span>Date</span>
-            </div>
-
-            {currentPage.map(p => (
-              <div key={p.id}
-                style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid var(--b1, #f0f2f8)', cursor: 'pointer', alignItems: 'center' }}
-                onClick={() => setSelected(p)}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--s2, #fbf9ff)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#fdeaf6,#ec3fb4)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
-                    {p.recipient_name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 850, color: 'var(--t1, #101944)' }}>{p.recipient_name}</div>
-                    {p.recipient_email && <div style={{ fontSize: 11, color: 'var(--t3, #8c9ab5)' }}>{p.recipient_email}</div>}
-                  </div>
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--t2, #26335c)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.campaign_title}</div>
-                <div style={{ fontSize: 14, fontWeight: 950, color: 'var(--t1, #101944)' }}>{fmtCents(p.amount_cents)}</div>
-                <StatusPill status={p.status} />
-                <div style={{ fontSize: 12, color: 'var(--t3, #8c9ab5)' }}>{fmtDate(p.created_at)}</div>
+            <div className="kf-table-scroll">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid var(--b1, #eef0f7)', fontSize: 11, fontWeight: 900, color: 'var(--t3, #8c9ab5)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                <span>Recipient</span>
+                <span>Campaign</span>
+                <span>Amount</span>
+                <span>Status</span>
+                <span>Date</span>
               </div>
-            ))}
+
+              {currentPage.map(p => (
+                <div key={p.id}
+                  style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid var(--b1, #f0f2f8)', cursor: 'pointer', alignItems: 'center' }}
+                  onClick={() => setSelected(p)}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--s2, #fbf9ff)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#fdeaf6,#ec3fb4)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+                      {p.recipient_name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 850, color: 'var(--t1, #101944)' }}>{p.recipient_name}</div>
+                      {p.recipient_email && <div style={{ fontSize: 11, color: 'var(--t3, #8c9ab5)' }}>{p.recipient_email}</div>}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--t2, #26335c)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.campaign_title}</div>
+                  <div style={{ fontSize: 14, fontWeight: 950, color: 'var(--t1, #101944)' }}>{fmtCents(p.amount_cents)}</div>
+                  <StatusPill status={p.status} />
+                  <div style={{ fontSize: 12, color: 'var(--t3, #8c9ab5)' }}>{fmtDate(p.created_at)}</div>
+                </div>
+              ))}
+            </div>
 
             {currentPage.length === 0 && <div style={{ padding: '32px', textAlign: 'center', color: 'var(--t3, #8c9ab5)', fontSize: 14 }}>No payouts found</div>}
 
@@ -512,7 +514,7 @@ export default function PayoutsClient({
 
         {activeTab === 'recurring' && (
           <div style={{ padding: '20px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 20 }}>
+            <div className="kf-metrics" style={{ marginBottom: 20 }}>
               {[{ label: 'Total Recurring', value: totalCount, color: 'var(--violet, #6c35ff)' }, { label: 'Active', value: completedCount, color: '#19b86a' }, { label: 'Paused', value: pendingCount, color: '#f97316' }, { label: 'Cancelled', value: 0, color: '#ff3b5f' }].map(s => (
                 <div key={s.label} style={{ padding: '18px', border: '1px solid var(--b1, #e6e9f2)', borderRadius: 12 }}>
                   <div style={{ fontSize: 12, color: 'var(--t3, #66708d)', fontWeight: 700, marginBottom: 6 }}>{s.label}</div>
