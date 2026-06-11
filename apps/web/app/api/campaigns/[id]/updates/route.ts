@@ -92,15 +92,16 @@ export async function POST(
 
         const { data: profiles } = await supabaseAdmin
           .from('profiles')
-          .select('id, email, full_name')
+          .select('id, email, full_name, notification_updates')
           .in('id', donorIds);
 
         const campaignUrl = `${ORIGIN}/campaigns/${campaign.slug}`;
         const updateTitle = title?.trim() || `Update from ${campaign.title}`;
         const year = new Date().getFullYear();
 
-        for (const profile of (profiles ?? []) as { id: string; email: string | null; full_name: string | null }[]) {
+        for (const profile of (profiles ?? []) as { id: string; email: string | null; full_name: string | null; notification_updates: boolean | null }[]) {
           if (!profile.email) continue;
+          if (profile.notification_updates === false) continue; // donor opted out of campaign update emails
           const firstName = profile.full_name?.split(' ')[0] ?? 'Supporter';
 
           await resend.emails.send({
@@ -128,7 +129,7 @@ export async function POST(
         <a href="${campaignUrl}" style="display:block;text-align:center;background:linear-gradient(135deg,#6c35ff,#4d1ee0);color:#fff;font-size:14px;font-weight:700;padding:14px;border-radius:10px;text-decoration:none">View Campaign Updates</a>
       </td></tr>
       <tr><td style="background:#f8f9fc;padding:16px 32px;text-align:center;border-top:1px solid #f0f0f0">
-        <p style="font-size:11px;color:#94a3b8;margin:0">© ${year} CharitMe · <a href="${ORIGIN}/donor" style="color:#94a3b8">Manage email preferences</a></p>
+        <p style="font-size:11px;color:#94a3b8;margin:0">© ${year} CharitMe · <a href="${ORIGIN}/profile" style="color:#94a3b8">Manage email preferences</a></p>
       </td></tr>
     </table>
   </td></tr>
