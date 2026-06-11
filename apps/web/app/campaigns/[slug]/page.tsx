@@ -535,7 +535,11 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                 <b>{organizer.full_name ?? 'CharitMe Organizer'}</b>
                 <small>Organizer · {campaign.location ?? 'New York, USA'}</small>
               </div>
-              <Link href="/login" className="pc-org-message">Message</Link>
+              {user ? (
+                <a href="#donations" className="pc-org-message">Message</a>
+              ) : (
+                <Link href={`/login?next=${encodeURIComponent(`/campaigns/${slug}#donations`)}`} className="pc-org-message">Message</Link>
+              )}
             </div>
           </div>
 
