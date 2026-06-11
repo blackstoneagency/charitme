@@ -284,6 +284,26 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const campaignUrl = `${ORIGIN}/campaigns/${campaign.slug}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(campaignUrl)}&color=6c35ff&bgcolor=ffffff&margin=10`;
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN },
+      { '@type': 'ListItem', position: 2, name: campaign.category ?? 'Campaign', item: `${ORIGIN}/campaigns?category=${encodeURIComponent(campaign.category ?? '')}` },
+      { '@type': 'ListItem', position: 3, name: campaign.title, item: campaignUrl },
+    ],
+  };
+
+  const faqJsonLd = faqs.length > 0 ? {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map(faq => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+    })),
+  } : null;
+
   const wallDonations = donations.map(toWallDonation);
 
   let isSaved = false;
@@ -340,6 +360,8 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
   return (
     <main className="public-campaign">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      {faqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />}
       {justDonated && <DonationSuccess />}
       <MobileDonateCTA
         campaignTitle={campaign.title}
