@@ -94,7 +94,7 @@ export default async function SuccessStoriesPage() {
             </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 48, alignItems: 'center' }}>
+          <div className="ss-hero-grid">
             <div>
               <h1 style={{ fontSize: 'clamp(32px, 5vw, 58px)', fontWeight: 950, color: '#fff', lineHeight: 1.12, maxWidth: 680, margin: '0 0 20px' }}>
                 Real people. Real stories.<br />
@@ -127,7 +127,7 @@ export default async function SuccessStoriesPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 12, width: 340, flexShrink: 0 }}>
+            <div className="ss-hero-collage">
               <div style={{ gridColumn: '1 / 3', height: 180, borderRadius: 20, backgroundImage: `url(${HERO_PHOTOS[0]})`, backgroundSize: 'cover', backgroundPosition: 'center', boxShadow: '0 8px 32px rgba(0,0,0,.4)' }} />
               <div style={{ height: 140, borderRadius: 16, backgroundImage: `url(${HERO_PHOTOS[1]})`, backgroundSize: 'cover', backgroundPosition: 'center', boxShadow: '0 8px 24px rgba(0,0,0,.35)' }} />
               <div style={{ height: 140, borderRadius: 16, backgroundImage: `url(${HERO_PHOTOS[2]})`, backgroundSize: 'cover', backgroundPosition: 'center', boxShadow: '0 8px 24px rgba(0,0,0,.35)' }} />
@@ -145,7 +145,7 @@ export default async function SuccessStoriesPage() {
               <h2 style={{ fontSize: 'clamp(22px,3vw,36px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 0' }}>Community spotlight</h2>
             </div>
             <Link href={`/campaigns/${featured.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'center', background: 'linear-gradient(145deg, var(--s1, #faf8ff), var(--s2, #f3f0ff))', border: '1.5px solid var(--b1, #ede9fe)', borderRadius: 24, padding: '40px', overflow: 'hidden' }}>
+              <div className="ss-featured-grid">
                 <div style={{ borderRadius: 18, overflow: 'hidden', height: 340, backgroundImage: `url(${featured.cover_image_url || getCoverForCategory(featured.category)})`, backgroundSize: 'cover', backgroundPosition: 'center', boxShadow: '0 16px 48px rgba(108,53,255,.18)' }} />
                 <div>
                   {featured.category && (
@@ -157,7 +157,7 @@ export default async function SuccessStoriesPage() {
                   <p style={{ fontSize: 15, color: 'var(--t2, #475569)', lineHeight: 1.75, margin: '0 0 28px' }}>
                     {featured.description ?? 'This campaign is building momentum and creating real community impact through CharitMe.'}
                   </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 28 }}>
+                  <div className="ss-featured-stats">
                     {[
                       { val: formatCents(featured.raised_amount), lbl: 'Raised' },
                       { val: featured.backer_count.toLocaleString(), lbl: 'Donors' },

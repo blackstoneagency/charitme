@@ -202,7 +202,7 @@ function FeeCalculator() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="kf-two-col" style={{ gap: 16 }}>
         {/* CharitMe */}
         <div style={{ background: '#f0fff8', border: '2px solid #19b86a', borderRadius: 16, padding: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
