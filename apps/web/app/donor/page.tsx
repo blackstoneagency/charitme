@@ -5,6 +5,7 @@ import { supabaseAdmin } from '../../lib/supabase';
 import { formatCents } from '../../lib/stripe';
 import RecommendedCampaigns from './RecommendedCampaigns';
 import SavedCampaigns from './SavedCampaigns';
+import ReceiptButton from './ReceiptButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -209,10 +210,13 @@ export default async function DonorPortalPage() {
                       color: d.status === 'completed' ? 'var(--green-dark, #065f46)' : d.status === 'refunded' ? 'var(--t3, #64748b)' : 'var(--red, #be123c)',
                     }}>{d.status}</span>
                     {d.status === 'completed' && (
-                      <Link href={`/dashboard/refund?donation_id=${d.id}`}
-                        style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', textDecoration: 'none' }}>
-                        Refund?
-                      </Link>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                        <ReceiptButton donationId={d.id} />
+                        <Link href={`/dashboard/refund?donation_id=${d.id}`}
+                          style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', textDecoration: 'none' }}>
+                          Refund?
+                        </Link>
+                      </div>
                     )}
                   </div>
                 </div>
