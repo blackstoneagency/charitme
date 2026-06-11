@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
+import RunFraudScanButton from './RunFraudScanButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,7 +75,7 @@ export default async function TrustSafetyPage() {
       <TopBar
         title="Trust & Safety"
         subtitle="AI risk flags, campaign reports, and frozen payouts."
-        actions={<></>}
+        actions={<RunFraudScanButton />}
       />
 
       <div className="kf-admin-dash">
