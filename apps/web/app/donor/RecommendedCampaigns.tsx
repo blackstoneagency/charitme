@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import { formatCents } from '../../lib/stripe';
+import { Spinner } from '../../components/ui';
 
 type Recommendation = {
   id: string;
@@ -47,7 +48,16 @@ export default function RecommendedCampaigns() {
     return () => { cancelled = true; };
   }, []);
 
-  if (loading || !data || data.recommendations.length === 0) return null;
+  if (loading) {
+    return (
+      <div style={{ ...cardStyle, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--t3, #94a3b8)' }}>
+        <Spinner size={16} />
+        <span style={{ fontSize: 13.5, fontWeight: 600 }}>Finding campaigns for you…</span>
+      </div>
+    );
+  }
+
+  if (!data || data.recommendations.length === 0) return null;
 
   return (
     <div style={{ ...cardStyle, marginBottom: 24 }}>

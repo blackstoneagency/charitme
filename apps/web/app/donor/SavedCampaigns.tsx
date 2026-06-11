@@ -36,7 +36,23 @@ export default function SavedCampaigns() {
     return () => { cancelled = true; };
   }, []);
 
-  if (!campaigns || campaigns.length === 0) return null;
+  if (!campaigns) return null;
+
+  if (campaigns.length === 0) {
+    return (
+      <div style={{ ...cardStyle, marginBottom: 24 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 16px' }}>♥ Saved Campaigns</h2>
+        <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--t3, #94a3b8)' }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>♥</div>
+          <p style={{ fontWeight: 700, margin: '0 0 4px' }}>No saved campaigns yet.</p>
+          <p style={{ fontSize: 13 }}>Tap the heart icon on any campaign to save it for later.</p>
+          <Link href="/campaigns" style={{ display: 'inline-block', marginTop: 12, padding: '10px 24px', background: 'var(--violet, #6c35ff)', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+            Browse Campaigns
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ ...cardStyle, marginBottom: 24 }}>
