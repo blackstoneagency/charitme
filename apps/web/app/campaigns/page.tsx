@@ -112,54 +112,65 @@ export default async function CampaignsPage({ searchParams }: Props) {
       </div>
 
       {/* ── Search + filter bar ── */}
-      <form method="GET" style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder="Search campaigns…"
-          style={{ flex: '1 1 220px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', outline: 'none' }}
-        />
-        <input
-          name="location"
-          defaultValue={location}
-          placeholder="Location…"
-          style={{ flex: '0 1 140px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', outline: 'none' }}
-        />
-        <select name="category" defaultValue={category ?? ''}
-          style={{ padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', background: '#fff', color: 'var(--t1)', cursor: 'pointer' }}>
-          <option value="">All categories</option>
-          {CAMPAIGN_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <select name="sort" defaultValue={sort}
-          style={{ padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', background: '#fff', color: 'var(--t1)', cursor: 'pointer' }}>
-          {(Object.entries(SORT_LABELS) as [SortOption, string][]).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
-          ))}
-        </select>
-        <button type="submit" style={{ padding: '10px 20px', background: 'var(--green)', color: '#fff', borderRadius: 'var(--r)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: 'none' }}>
-          Search
-        </button>
-      </form>
+      <style>{`
+        .cb-filter-pill { position: relative; display: inline-flex; cursor: pointer; }
+        .cb-filter-pill input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+        .cb-filter-pill span { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; border: 1.5px solid var(--b2); background: #fff; color: var(--t2); transition: border-color .15s, background .15s, color .15s; }
+        .cb-filter-pill input:focus-visible + span { outline: 2px solid var(--violet); outline-offset: 2px; }
+        .cb-filter-pill.verified input:checked + span { border-color: #6c35ff; background: #f0eaff; color: #551cf2; }
+        .cb-filter-pill.tax input:checked + span { border-color: #19b86a; background: #f0fff8; color: #065f46; }
+      `}</style>
+      <form method="GET" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Search campaigns…"
+            style={{ flex: '1 1 220px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', outline: 'none' }}
+          />
+          <input
+            name="location"
+            defaultValue={location}
+            placeholder="Location…"
+            style={{ flex: '0 1 140px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', outline: 'none' }}
+          />
+          <select name="category" defaultValue={category ?? ''}
+            style={{ padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', background: '#fff', color: 'var(--t1)', cursor: 'pointer' }}>
+            <option value="">All categories</option>
+            {CAMPAIGN_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select name="sort" defaultValue={sort}
+            style={{ padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', background: '#fff', color: 'var(--t1)', cursor: 'pointer' }}>
+            {(Object.entries(SORT_LABELS) as [SortOption, string][]).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
+          <button type="submit" style={{ padding: '10px 20px', background: 'var(--green)', color: '#fff', borderRadius: 'var(--r)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: 'none' }}>
+            Search
+          </button>
+        </div>
 
-      {/* ── Toggle filters ── */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '28px', flexWrap: 'wrap' }}>
-        <a href={`/campaigns?${new URLSearchParams({ ...(q ? { q } : {}), ...(category ? { category } : {}), sort, verified: verified ? '' : '1', ...(tax ? { tax: '1' } : {}), ...(location ? { location } : {}) }).toString()}`}
-          style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 700, textDecoration: 'none', border: '1.5px solid', borderColor: verified ? '#6c35ff' : 'var(--b2)', background: verified ? '#f0eaff' : '#fff', color: verified ? '#551cf2' : 'var(--t2)' }}>
-          ✓ Verified only
-        </a>
-        <a href={`/campaigns?${new URLSearchParams({ ...(q ? { q } : {}), ...(category ? { category } : {}), sort, tax: tax ? '' : '1', ...(verified ? { verified: '1' } : {}), ...(location ? { location } : {}) }).toString()}`}
-          style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 700, textDecoration: 'none', border: '1.5px solid', borderColor: tax ? '#19b86a' : 'var(--b2)', background: tax ? '#f0fff8' : '#fff', color: tax ? '#065f46' : 'var(--t2)' }}>
-          💚 Tax-deductible
-        </a>
-        {(q || category || verified || tax || location || sort !== 'raised') && (
-          <Link href="/campaigns" style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 700, textDecoration: 'none', border: '1.5px solid var(--b2)', color: 'var(--t3)' }}>
-            ✕ Clear all
-          </Link>
-        )}
-        <span style={{ fontSize: '13px', color: 'var(--t3)', alignSelf: 'center', marginLeft: 4 }}>
-          {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''} found
-        </span>
-      </div>
+        {/* ── Toggle filters — submitted together with the search above so typed
+             keywords/location aren't lost when toggling these checkboxes ── */}
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <label className="cb-filter-pill verified">
+            <input type="checkbox" name="verified" value="1" defaultChecked={verified} />
+            <span>✓ Verified only</span>
+          </label>
+          <label className="cb-filter-pill tax">
+            <input type="checkbox" name="tax" value="1" defaultChecked={tax} />
+            <span>💚 Tax-deductible</span>
+          </label>
+          {(q || category || verified || tax || location || sort !== 'raised') && (
+            <Link href="/campaigns" style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 700, textDecoration: 'none', border: '1.5px solid var(--b2)', color: 'var(--t3)' }}>
+              ✕ Clear all
+            </Link>
+          )}
+          <span style={{ fontSize: '13px', color: 'var(--t3)', marginLeft: 4 }}>
+            {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''} found
+          </span>
+        </div>
+      </form>
 
       {campaigns.length === 0 ? (
         <EmptyState
