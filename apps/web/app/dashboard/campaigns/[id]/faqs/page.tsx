@@ -95,7 +95,7 @@ export default function CampaignFAQsPage({ params }: { params: Promise<{ id: str
         }
       />
 
-      <div style={{ padding: '0 32px 40px', maxWidth: 720, display: 'grid', gap: 20 }}>
+      <div className="kf-admin-dash" style={{ maxWidth: 720 }}>
         {error && <div style={{ padding: '12px 16px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 10, color: '#be123c', fontSize: 14, fontWeight: 600 }}>⚠ {error}</div>}
 
         {/* Existing FAQs */}

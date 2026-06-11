@@ -183,7 +183,7 @@ export default async function AnalyticsPage({
         }
       />
 
-      <div style={{ padding: '0 32px 32px' }}>
+      <div className="kf-admin-dash">
         <MetricGrid metrics={metrics} />
 
         {/* Two-column: chart + campaign table */}
@@ -275,6 +275,7 @@ export default async function AnalyticsPage({
                 <p>No campaigns yet.</p>
               </div>
             ) : (
+              <div className="kf-table-scroll">
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--b2)', color: 'var(--t3)' }}>
@@ -339,6 +340,7 @@ export default async function AnalyticsPage({
                   })}
                 </tbody>
               </table>
+              </div>
             )}
           </section>
         </div>

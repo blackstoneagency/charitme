@@ -82,7 +82,7 @@ export default function NewUpdatePage() {
           </button>
         }
       />
-      <div style={{ padding: '0 32px 40px', maxWidth: 680 }}>
+      <div className="kf-admin-dash" style={{ maxWidth: 680 }}>
         <form onSubmit={handleSubmit}>
           <div className="kf-setpanel">
             <div className="kf-setpanel-head">

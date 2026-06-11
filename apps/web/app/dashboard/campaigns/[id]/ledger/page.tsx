@@ -121,7 +121,7 @@ export default function LedgerPage({ params }: { params: Promise<{ id: string }>
         }
       />
 
-      <div style={{ padding: '0 32px 40px', display: 'grid', gap: 20, maxWidth: 720 }}>
+      <div className="kf-admin-dash" style={{ maxWidth: 720 }}>
         {error && <div style={{ padding: '12px 16px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 10, color: '#be123c', fontSize: 14, fontWeight: 600 }}>⚠ {error}</div>}
 
         {/* Add entry form */}
@@ -141,7 +141,7 @@ export default function LedgerPage({ params }: { params: Promise<{ id: string }>
                 <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} maxLength={200}
                   placeholder="e.g. Hospital invoice — surgery" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+              <div className="kf-three-col" style={{ gap: 14 }}>
                 <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
                   Amount ($) <span style={{ fontWeight: 400 }}>optional</span>
                   <input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} min="0" step="0.01"

@@ -221,7 +221,7 @@ export default async function CampaignDetailPage({
         }
       />
 
-      <div style={{ padding: '0 32px 40px', display: 'grid', gap: 24 }}>
+      <div className="kf-admin-dash">
 
         {/* ── Status + Metrics strip ── */}
         <div className="kf-card" style={{ padding: 24 }}>

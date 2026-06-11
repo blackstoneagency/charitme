@@ -590,7 +590,7 @@ export default async function AiGrowthPlanPage({
         }
       />
 
-      <div style={{ padding: '0 32px 32px', display: 'grid', gap: '24px' }}>
+      <div className="kf-admin-dash">
 
         {/* ── Empty State ── */}
         {!hasCampaigns && (

@@ -62,7 +62,7 @@ export default async function RefundPage({
           title="Request a Refund"
           subtitle="Submit a refund request for a recent donation."
         />
-        <div style={{ padding: '0 32px 40px', maxWidth: 640 }}>
+        <div className="kf-admin-dash" style={{ maxWidth: 640 }}>
           <RefundForm donations={[]} preselectedId={null} />
         </div>
       </CharitMeShell>
@@ -110,7 +110,7 @@ export default async function RefundPage({
         title="Request a Refund"
         subtitle="Select a donation and describe your reason. Our team reviews requests within 3–5 business days."
       />
-      <div style={{ padding: '0 32px 40px' }}>
+      <div className="kf-admin-dash">
         <RefundForm donations={enriched} preselectedId={preselectedId} />
       </div>
     </CharitMeShell>

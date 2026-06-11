@@ -98,7 +98,7 @@ export default function CampaignRewardsPage({ params }: { params: Promise<{ id: 
         }
       />
 
-      <div style={{ padding: '0 32px 40px', maxWidth: 720, display: 'grid', gap: 20 }}>
+      <div className="kf-admin-dash" style={{ maxWidth: 720 }}>
         {error && <div style={{ padding: '12px 16px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 10, color: '#be123c', fontSize: 14, fontWeight: 600 }}>⚠ {error}</div>}
 
         {/* Existing rewards */}
@@ -155,7 +155,7 @@ export default function CampaignRewardsPage({ params }: { params: Promise<{ id: 
               <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)} rows={3} maxLength={1000}
                 placeholder="What does the donor get for this pledge?" style={{ border: '1px solid var(--b2)', borderRadius: 9, padding: '10px 12px', fontSize: 14, resize: 'vertical', lineHeight: 1.6 }} />
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="kf-two-col" style={{ gap: 14 }}>
               <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: '#26335c' }}>
                 Estimated delivery (optional)
                 <input value={newDelivery} onChange={e => setNewDelivery(e.target.value)} maxLength={100}

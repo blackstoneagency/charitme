@@ -67,7 +67,7 @@ export default async function RecurringPage() {
         subtitle="Manage your monthly and recurring giving commitments."
       />
 
-      <div style={{ padding: '0 32px 40px', display: 'grid', gap: 20 }}>
+      <div className="kf-admin-dash">
 
         {/* Stats row */}
         {recurringList.length > 0 && (

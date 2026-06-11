@@ -79,7 +79,7 @@ function ConnectModal({
       style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ width: 440, background: 'var(--s1, #fff)', borderRadius: 16, boxShadow: '0 20px 60px rgba(20,20,80,.18)', overflow: 'hidden' }}>
+      <div className="kf-modal-responsive" style={{ width: 440, background: 'var(--s1, #fff)', borderRadius: 16, boxShadow: '0 20px 60px rgba(20,20,80,.18)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--b1, #eef0f7)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -258,7 +258,7 @@ export default function IntegrationsClient({ initialConnections, catalog }: Inte
   const connectedItems = catalog.filter(item => getConnection(item.name) !== null);
 
   return (
-    <div style={{ padding: '0 32px 32px', display: 'grid', gap: 24 }}>
+    <div className="kf-admin-dash">
       {error && (
         <div style={{ padding: '12px 16px', background: 'rgba(190,18,60,.08)', border: '1px solid rgba(190,18,60,.25)', borderRadius: 10, color: 'var(--red, #c0003c)', fontSize: 14, fontWeight: 600 }}>
           {error}

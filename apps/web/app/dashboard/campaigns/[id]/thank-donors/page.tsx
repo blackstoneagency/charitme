@@ -127,7 +127,7 @@ export default function ThankDonorsPage({ params }: { params: Promise<{ id: stri
     return (
       <CharitMeShell active="My Campaigns">
         <TopBar title="Thank Donors" subtitle="Thank-you emails sent!" />
-        <div style={{ padding: '0 32px 40px', maxWidth: 560 }}>
+        <div className="kf-admin-dash" style={{ maxWidth: 560 }}>
           <div style={{ background: '#f0fff8', border: '1.5px solid #bbf7d0', borderRadius: 14, padding: '32px 28px', textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>💌</div>
             <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 900, color: '#064e3b' }}>Thank-you emails sent!</h2>
@@ -151,7 +151,7 @@ export default function ThankDonorsPage({ params }: { params: Promise<{ id: stri
         actions={<Link href={`/dashboard/campaigns/${campaignId}`} className="kf-outline" style={{ textDecoration: 'none' }}>← Back</Link>}
       />
 
-      <div style={{ padding: '0 32px 40px', display: 'grid', gap: 20, maxWidth: 760 }}>
+      <div className="kf-admin-dash" style={{ maxWidth: 760 }}>
         {error && <div style={{ padding: '12px 16px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 10, color: '#be123c', fontSize: 14, fontWeight: 600 }}>⚠ {error}</div>}
 
         {donations.length === 0 ? (

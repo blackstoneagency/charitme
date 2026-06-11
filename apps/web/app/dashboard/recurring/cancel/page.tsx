@@ -42,7 +42,7 @@ export default function CancelRecurringPage() {
     return (
       <CharitMeShell active="Recurring">
         <TopBar title="Subscription Cancelled" subtitle="" />
-        <div style={{ padding: '0 32px 40px', maxWidth: 500 }}>
+        <div className="kf-admin-dash" style={{ maxWidth: 500 }}>
           <div style={{ background: '#f0fff8', border: '1.5px solid #bbf7d0', borderRadius: 14, padding: '32px 28px', textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
             <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 900, color: '#064e3b' }}>Cancellation confirmed</h2>
@@ -61,7 +61,7 @@ export default function CancelRecurringPage() {
   return (
     <CharitMeShell active="Recurring">
       <TopBar title="Cancel Recurring Donation" subtitle="This action will stop future billing." />
-      <div style={{ padding: '0 32px 40px', maxWidth: 500 }}>
+      <div className="kf-admin-dash" style={{ maxWidth: 500 }}>
         <div style={{ background: 'var(--s2)', border: '1px solid var(--b2)', borderRadius: 14, padding: '28px 28px', textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
           <h2 style={{ margin: '0 0 10px', fontSize: 18, fontWeight: 900 }}>Cancel this recurring donation?</h2>

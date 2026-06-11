@@ -116,7 +116,7 @@ export default function MfaPage() {
         subtitle="Add an extra layer of security to your account with an authenticator app."
         actions={<Link href="/dashboard/settings?section=security" className="kf-outline">← Back to Settings</Link>}
       />
-      <div style={{ padding: '0 32px 40px', maxWidth: 560 }}>
+      <div className="kf-admin-dash" style={{ maxWidth: 560 }}>
         {error && (
           <div style={{ marginBottom: 16, padding: '12px 16px', background: '#fff0f3', border: '1px solid #ffc0cb', borderRadius: 10, color: '#c0003c', fontSize: 14, fontWeight: 600 }}>
             {error}

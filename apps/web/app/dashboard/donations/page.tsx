@@ -326,6 +326,7 @@ export default async function DonationsPage({
               })}
             </div>
 
+            <div className="kf-table-scroll">
             {/* Table header */}
             <div
               style={{
@@ -349,21 +350,7 @@ export default async function DonationsPage({
             </div>
 
             {/* Rows */}
-            {filtered.length === 0 ? (
-              <div
-                style={{
-                  padding: '48px 24px',
-                  textAlign: 'center',
-                  color: 'var(--t3)',
-                }}
-              >
-                <KFIcon name="gift" />
-                <p style={{ marginTop: 12, fontWeight: 600 }}>No donations yet.</p>
-                <p style={{ fontSize: 13, marginTop: 4 }}>
-                  Donations will appear here once your campaigns receive contributions.
-                </p>
-              </div>
-            ) : (
+            {filtered.length > 0 && (
               <div className="kf-rows">
                 {filtered.map((d, i) => (
                   <div
@@ -442,6 +429,24 @@ export default async function DonationsPage({
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+            </div>
+
+            {/* Empty state */}
+            {filtered.length === 0 && (
+              <div
+                style={{
+                  padding: '48px 24px',
+                  textAlign: 'center',
+                  color: 'var(--t3)',
+                }}
+              >
+                <KFIcon name="gift" />
+                <p style={{ marginTop: 12, fontWeight: 600 }}>No donations yet.</p>
+                <p style={{ fontSize: 13, marginTop: 4 }}>
+                  Donations will appear here once your campaigns receive contributions.
+                </p>
               </div>
             )}
 

@@ -123,7 +123,7 @@ export default async function ReferralsPage() {
                 </p>
               </div>
             ) : (
-              <>
+              <div className="kf-table-scroll">
                 <div
                   style={{
                     display: 'grid',
@@ -164,7 +164,7 @@ export default async function ReferralsPage() {
                     </div>
                   ))}
                 </div>
-              </>
+              </div>
             )}
           </section>
         </div>

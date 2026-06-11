@@ -121,7 +121,7 @@ export default function AiCoachPage() {
         subtitle="Get expert fundraising advice, content, and strategy — powered by AI."
       />
 
-      <div style={{ display: 'flex', height: 'calc(100vh - 140px)', flexDirection: 'column', padding: '0 32px 0' }}>
+      <div className="kf-flow-pad" style={{ display: 'flex', height: 'calc(100vh - 140px)', flexDirection: 'column' }}>
 
         {/* Campaign selector */}
         {campaigns.length > 0 && (

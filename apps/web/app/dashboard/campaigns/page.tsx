@@ -208,6 +208,7 @@ export default async function MyCampaignsPage({
               })}
             </div>
 
+            <div className="kf-table-scroll">
             {/* Table header */}
             <div
               style={{
@@ -233,30 +234,7 @@ export default async function MyCampaignsPage({
             </div>
 
             {/* Rows */}
-            {filtered.length === 0 ? (
-              <div
-                style={{
-                  padding: '48px 24px',
-                  textAlign: 'center',
-                  color: 'var(--t3)',
-                }}
-              >
-                <KFIcon name="stack" />
-                <p style={{ marginTop: 12, fontWeight: 600 }}>No campaigns here yet.</p>
-                <p style={{ fontSize: 13, marginTop: 4 }}>
-                  {activeTab === 'all' ? (
-                    <>
-                      <Link href="/create" style={{ color: 'var(--green)' }}>
-                        Create your first campaign
-                      </Link>{' '}
-                      to get started.
-                    </>
-                  ) : (
-                    `No ${activeTab} campaigns.`
-                  )}
-                </p>
-              </div>
-            ) : (
+            {filtered.length > 0 && (
               <div className="kf-rows">
                 {filtered.map((c) => {
                   const progress =
@@ -383,6 +361,33 @@ export default async function MyCampaignsPage({
                     </div>
                   );
                 })}
+              </div>
+            )}
+            </div>
+
+            {/* Empty state */}
+            {filtered.length === 0 && (
+              <div
+                style={{
+                  padding: '48px 24px',
+                  textAlign: 'center',
+                  color: 'var(--t3)',
+                }}
+              >
+                <KFIcon name="stack" />
+                <p style={{ marginTop: 12, fontWeight: 600 }}>No campaigns here yet.</p>
+                <p style={{ fontSize: 13, marginTop: 4 }}>
+                  {activeTab === 'all' ? (
+                    <>
+                      <Link href="/create" style={{ color: 'var(--green)' }}>
+                        Create your first campaign
+                      </Link>{' '}
+                      to get started.
+                    </>
+                  ) : (
+                    `No ${activeTab} campaigns.`
+                  )}
+                </p>
               </div>
             )}
 

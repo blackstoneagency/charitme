@@ -263,6 +263,7 @@ export default async function DonorsPage({
               </Link>
             </div>
 
+            <div className="kf-table-scroll">
             {/* Table header */}
             <div
               style={{
@@ -284,20 +285,8 @@ export default async function DonorsPage({
               <span style={{ textAlign: 'right' }}>Total Given</span>
             </div>
 
-            {/* Rows or empty state */}
-            {filtered.length === 0 ? (
-              <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--t3)' }}>
-                <KFIcon name="users" />
-                <p style={{ marginTop: 12, fontWeight: 600 }}>
-                  {donors.length === 0 ? 'No donors yet.' : `No ${activeTab === 'all' ? '' : activeTab + ' '}donors found.`}
-                </p>
-                <p style={{ fontSize: 13, marginTop: 4 }}>
-                  {donors.length === 0
-                    ? 'Donors will appear here once your campaigns receive contributions.'
-                    : 'Try a different filter tab.'}
-                </p>
-              </div>
-            ) : (
+            {/* Rows */}
+            {filtered.length > 0 && (
               <div className="kf-rows">
                 {filtered.map((donor, i) => (
                   <div
@@ -376,6 +365,22 @@ export default async function DonorsPage({
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+            </div>
+
+            {/* Empty state */}
+            {filtered.length === 0 && (
+              <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--t3)' }}>
+                <KFIcon name="users" />
+                <p style={{ marginTop: 12, fontWeight: 600 }}>
+                  {donors.length === 0 ? 'No donors yet.' : `No ${activeTab === 'all' ? '' : activeTab + ' '}donors found.`}
+                </p>
+                <p style={{ fontSize: 13, marginTop: 4 }}>
+                  {donors.length === 0
+                    ? 'Donors will appear here once your campaigns receive contributions.'
+                    : 'Try a different filter tab.'}
+                </p>
               </div>
             )}
 

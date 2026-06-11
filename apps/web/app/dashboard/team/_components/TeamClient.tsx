@@ -103,14 +103,7 @@ export function TeamClient({ campaigns, initialMembers, profiles, currentUserId 
   return (
     <>
       {/* Metrics strip */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4,1fr)',
-          gap: 16,
-          marginBottom: 24,
-        }}
-      >
+      <div className="kf-metrics">
         {metrics.map((m) => (
           <div key={m.label} className={`kf-metric-card ${m.tone}`} style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '16px 20px' }}>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--t3)', marginBottom: 6 }}>{m.label}</div>
@@ -148,6 +141,7 @@ export function TeamClient({ campaigns, initialMembers, profiles, currentUserId 
           ))}
         </div>
 
+        <div className="kf-table-scroll">
         {/* Column headers */}
         <div
           style={{
@@ -172,28 +166,7 @@ export function TeamClient({ campaigns, initialMembers, profiles, currentUserId 
         </div>
 
         {/* Rows */}
-        {filtered.length === 0 ? (
-          <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--t3)' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width={40} height={40} style={{ opacity: 0.35, display: 'block', margin: '0 auto' }}>
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            <p style={{ marginTop: 12, fontWeight: 600, color: 'var(--t2)' }}>
-              {totalMembers === 0
-                ? 'Invite team members to collaborate on your campaigns.'
-                : `No ${activeTab} members.`}
-            </p>
-            {totalMembers === 0 && campaigns.length === 0 && (
-              <Link
-                href="/create"
-                className="kf-primary"
-                style={{ display: 'inline-block', marginTop: 16, textDecoration: 'none' }}
-              >
-                Create a Campaign First
-              </Link>
-            )}
-          </div>
-        ) : (
+        {filtered.length > 0 && (
           <div className="kf-rows">
             {filtered.map((m) => {
               const name = profileMap.get(m.user_id) ?? 'Unknown';
@@ -278,6 +251,30 @@ export function TeamClient({ campaigns, initialMembers, profiles, currentUserId 
                 </div>
               );
             })}
+          </div>
+        )}
+        </div>
+
+        {filtered.length === 0 && (
+          <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--t3)' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width={40} height={40} style={{ opacity: 0.35, display: 'block', margin: '0 auto' }}>
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <p style={{ marginTop: 12, fontWeight: 600, color: 'var(--t2)' }}>
+              {totalMembers === 0
+                ? 'Invite team members to collaborate on your campaigns.'
+                : `No ${activeTab} members.`}
+            </p>
+            {totalMembers === 0 && campaigns.length === 0 && (
+              <Link
+                href="/create"
+                className="kf-primary"
+                style={{ display: 'inline-block', marginTop: 16, textDecoration: 'none' }}
+              >
+                Create a Campaign First
+              </Link>
+            )}
           </div>
         )}
 

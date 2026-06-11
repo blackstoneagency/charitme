@@ -96,7 +96,7 @@ export default function SharePage({ params }: { params: Promise<{ id: string }> 
         actions={<Link href={`/dashboard/campaigns/${campaignId}`} className="kf-outline" style={{ textDecoration: 'none' }}>← Back</Link>}
       />
 
-      <div style={{ padding: '0 32px 40px', display: 'grid', gap: 24, maxWidth: 900 }}>
+      <div className="kf-admin-dash" style={{ maxWidth: 900 }}>
 
         {/* Quick share buttons with UTM */}
         <section className="kf-card" style={{ padding: 24 }}>
