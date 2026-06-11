@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   MAX_DONATION_CENTS,
   DEFAULT_DONOR_TIP_PERCENT,
@@ -114,6 +114,25 @@ export default function DonateButton({
   const [isGuest, setIsGuest]             = useState<boolean | null>(null);
   const [preferredMethod, setPreferredMethod] = useState<PaymentMethod>('stripe');
   const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
+  const [presets, setPresets] = useState<number[]>([...PRESETS]);
+  const [aiNudge, setAiNudge] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/ai/donor-conversion?campaignId=${encodeURIComponent(campaignId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { suggestedAmounts?: number[]; message?: string } | null) => {
+        if (cancelled || !data) return;
+        if (Array.isArray(data.suggestedAmounts) && data.suggestedAmounts.length > 0) {
+          setPresets(data.suggestedAmounts);
+        }
+        if (typeof data.message === 'string' && data.message.trim()) {
+          setAiNudge(data.message.trim());
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [campaignId]);
 
   const amountCents = Math.round((Number.parseFloat(amount) || 0) * 100);
   const isMonthly   = frequency === 'monthly';
@@ -295,9 +314,16 @@ export default function DonateButton({
         </div>
       )}
 
-      {/* ── Preset amounts — 3×2 grid ── */}
+      {/* ── AI donor conversion nudge ── */}
+      {aiNudge && (
+        <div style={{ background: 'var(--s2, #f5f3ff)', border: `1px solid ${BD}`, borderRadius: 10, padding: '10px 14px', fontSize: 12.5, color: 'var(--t2, #4338ca)', lineHeight: 1.5 }}>
+          ✨ {aiNudge}
+        </div>
+      )}
+
+      {/* ── Preset amounts — personalized via AI Donor Conversion Engine ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-        {PRESETS.map((preset) => {
+        {presets.map((preset) => {
           const active = amount === String(preset);
           return (
             <button
