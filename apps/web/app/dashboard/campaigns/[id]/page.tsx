@@ -5,6 +5,7 @@ import { CharitMeShell, TopBar, KFIcon } from '../../../../components/CharitMeSh
 import { requireUser } from '../../../../lib/auth';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import CampaignControls from './_components/CampaignControls';
+import TrustScoreCard from './_components/TrustScoreCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -279,6 +280,9 @@ export default async function CampaignDetailPage({
             </div>
           </div>
         </div>
+
+        {/* ── AI Trust Score Coach ── */}
+        <TrustScoreCard campaignId={campaign.id} />
 
         {/* ── Two-col: Donations + Updates ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>

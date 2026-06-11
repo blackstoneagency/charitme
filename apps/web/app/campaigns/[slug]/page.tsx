@@ -7,6 +7,7 @@ import { createClient } from '../../../lib/supabase-server';
 import { formatMoneyShort, normalizeCurrency } from '@shared/currencies';
 import { resolvePayoutDestination } from '../../../lib/payout-destination';
 import { calculateTrustScore, getTrustSignals } from '../../../lib/ai-platform';
+import { buildCampaignTrustInput } from '../../../lib/trust-signals';
 import DonateButton from './DonateButton';
 import ReportButton from './ReportButton';
 import ShareButtons from './ShareButtons';
@@ -220,7 +221,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     referrerId,
   };
 
-  const [donations, updates, ledger, faqs, donorMessages, milestones, rewards, currency, payoutDestination] = await Promise.all([
+  const [donations, updates, ledger, faqs, donorMessages, milestones, rewards, currency, payoutDestination, trustInput] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
     getLedger(campaign.id),
@@ -230,14 +231,15 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     getRewards(campaign.id),
     getCampaignCurrency(campaign.id),
     resolvePayoutDestination(campaign),
+    buildCampaignTrustInput(campaign),
   ]);
   const payoutReady = !!payoutDestination;
 
   const raised = campaign.raised_amount ?? 0;
   const goal = campaign.goal_amount || 1;
   const pct = Math.min(100, Math.round((raised / goal) * 100));
-  const trustScore = calculateTrustScore(campaign);
-  const trustSignals = getTrustSignals(campaign).slice(0, 5);
+  const trustScore = calculateTrustScore(trustInput);
+  const trustSignals = getTrustSignals(trustInput).slice(0, 5);
   const organizer = asProfile(campaign.profiles);
   const daysLeft: number | null = campaign.deadline
     ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - RENDER_TIME) / 86_400_000))
