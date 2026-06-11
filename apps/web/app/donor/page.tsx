@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '../../lib/supabase-server';
 import { supabaseAdmin } from '../../lib/supabase';
 import { formatCents } from '../../lib/stripe';
+import RecommendedCampaigns from './RecommendedCampaigns';
 
 export const dynamic = 'force-dynamic';
 
@@ -108,6 +109,8 @@ export default async function DonorPortalPage() {
           </div>
         ))}
       </div>
+
+      <RecommendedCampaigns />
 
       {/* Recurring donations */}
       {recurring.length > 0 && (
