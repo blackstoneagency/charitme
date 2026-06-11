@@ -2,6 +2,7 @@ import 'server-only';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
+import AiTriageButton from './AiTriageButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +43,7 @@ function CaseTable({ cases, title }: { cases: SupportCase[]; title: string }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: '#f8fafc' }}>
-              {['Submitter', 'Subject', 'Priority', 'Status', 'Created'].map(h => (
+              {['Submitter', 'Subject', 'Priority', 'Status', 'Created', 'AI'].map(h => (
                 <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, color: '#64748b', fontSize: 12 }}>{h}</th>
               ))}
             </tr>
@@ -73,6 +74,9 @@ function CaseTable({ cases, title }: { cases: SupportCase[]; title: string }) {
                 </td>
                 <td style={{ padding: '12px 16px', color: '#64748b' }}>
                   {new Date(c.created_at).toLocaleDateString()}
+                </td>
+                <td style={{ padding: '12px 16px' }}>
+                  <AiTriageButton caseId={c.id} subject={c.subject} />
                 </td>
               </tr>
             ))}
