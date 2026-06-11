@@ -46,9 +46,9 @@ export default async function DonorPortalPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/donor');
 
-  const { data: donationData } = await supabaseAdmin
+  const { data: donationData, count: donationCount } = await supabaseAdmin
     .from('donations')
-    .select('id, amount_cents, tip_cents, status, anonymous, message, created_at, campaign_id')
+    .select('id, amount_cents, tip_cents, status, anonymous, message, created_at, campaign_id', { count: 'exact' })
     .eq('donor_id', user.id)
     .order('created_at', { ascending: false })
     .limit(100);
@@ -161,7 +161,11 @@ export default async function DonorPortalPage() {
       )}
 
       {/* Donation history */}
-      <DonationHistoryList donations={donations} campaigns={Object.fromEntries(campaignMap)} />
+      <DonationHistoryList
+        donations={donations}
+        campaigns={Object.fromEntries(campaignMap)}
+        hasMore={(donationCount ?? 0) > donations.length}
+      />
 
       <div style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: 'var(--t3, #94a3b8)' }}>
         Need help with a donation? <Link href="/contact" style={{ color: 'var(--violet, #6c35ff)', fontWeight: 700 }}>Contact support</Link>

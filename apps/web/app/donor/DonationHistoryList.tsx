@@ -38,25 +38,32 @@ type SortKey = 'newest' | 'oldest' | 'amount_desc' | 'amount_asc';
 export default function DonationHistoryList({
   donations,
   campaigns,
+  hasMore: initialHasMore = false,
 }: {
   donations: DonationRow[];
   campaigns: Record<string, CampaignRow>;
+  hasMore?: boolean;
 }) {
+  const [items, setItems] = useState(donations);
+  const [campaignMap, setCampaignMap] = useState(campaigns);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'refunded' | 'pending'>('all');
   const [campaignFilter, setCampaignFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortKey>('newest');
 
   const campaignOptions = useMemo(() => {
     const seen = new Map<string, string>();
-    for (const d of donations) {
-      const c = campaigns[d.campaign_id];
+    for (const d of items) {
+      const c = campaignMap[d.campaign_id];
       if (c && !seen.has(c.id)) seen.set(c.id, c.title);
     }
     return [...seen.entries()];
-  }, [donations, campaigns]);
+  }, [items, campaignMap]);
 
   const filtered = useMemo(() => {
-    let result = donations;
+    let result = items;
     if (statusFilter !== 'all') result = result.filter((d) => d.status === statusFilter);
     if (campaignFilter !== 'all') result = result.filter((d) => d.campaign_id === campaignFilter);
 
@@ -76,9 +83,27 @@ export default function DonationHistoryList({
         break;
     }
     return sorted;
-  }, [donations, statusFilter, campaignFilter, sortBy]);
+  }, [items, statusFilter, campaignFilter, sortBy]);
 
-  if (donations.length === 0) {
+  async function loadMore() {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    setLoadError('');
+    try {
+      const res = await fetch(`/api/donor/donations?offset=${items.length}`);
+      if (!res.ok) throw new Error();
+      const data = (await res.json()) as { donations: DonationRow[]; campaigns: Record<string, CampaignRow>; hasMore: boolean };
+      setItems((prev) => [...prev, ...data.donations]);
+      setCampaignMap((prev) => ({ ...prev, ...data.campaigns }));
+      setHasMore(data.hasMore);
+    } catch {
+      setLoadError('Could not load more donations.');
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  if (items.length === 0) {
     return (
       <div style={cardStyle}>
         <h2 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 16px' }}>Donation History</h2>
@@ -98,7 +123,7 @@ export default function DonationHistoryList({
     <div style={cardStyle}>
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <h2 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>
-          Donation History <span style={{ color: 'var(--t3, #94a3b8)', fontWeight: 600 }}>({filtered.length} of {donations.length})</span>
+          Donation History <span style={{ color: 'var(--t3, #94a3b8)', fontWeight: 600 }}>({filtered.length} of {items.length}{hasMore ? '+' : ''})</span>
         </h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} style={selectStyle}>
@@ -131,7 +156,7 @@ export default function DonationHistoryList({
       ) : (
         <div>
           {filtered.map((d) => {
-            const camp = campaigns[d.campaign_id];
+            const camp = campaignMap[d.campaign_id];
             return (
               <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '14px 0', borderBottom: '1px solid var(--b1, #f1f5f9)' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -172,6 +197,24 @@ export default function DonationHistoryList({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {hasMore && (
+        <div style={{ textAlign: 'center', marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--b1, #f1f5f9)' }}>
+          <button
+            type="button"
+            onClick={() => void loadMore()}
+            disabled={loadingMore}
+            style={{
+              fontSize: 13, fontWeight: 700, color: 'var(--violet, #6c35ff)', background: 'none',
+              border: '1px solid var(--b2, #e2e8f0)', borderRadius: 10, padding: '10px 24px',
+              cursor: loadingMore ? 'wait' : 'pointer',
+            }}
+          >
+            {loadingMore ? 'Loading…' : 'Load more'}
+          </button>
+          {loadError && <div style={{ color: 'var(--red, #be123c)', fontSize: 12, marginTop: 6 }}>{loadError}</div>}
         </div>
       )}
     </div>
