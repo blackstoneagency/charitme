@@ -85,8 +85,9 @@ async function getDonorMessages(campaignId: string) {
 async function getLedger(campaignId: string) {
   const { data } = await supabaseAdmin
     .from('transparency_ledger_items')
-    .select('id, item_type, title, amount_cents, category, status, created_at')
+    .select('id, item_type, title, amount_cents, category, status, created_at, ai_summary, review_status')
     .eq('campaign_id', campaignId)
+    .in('review_status', ['auto_approved', 'approved'])
     .order('created_at', { ascending: false })
     .limit(4);
   return data ?? [];
@@ -618,10 +619,17 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         <article className="pc-card">
           <h2>Transparency Ledger</h2>
           {ledger.map((item) => (
-            <p key={item.id}>
-              <span>{item.title}</span>
-              <b>{item.amount_cents ? formatMoneyShort(item.amount_cents, currency) : item.status}</b>
-            </p>
+            <div key={item.id}>
+              <p style={{ margin: 0 }}>
+                <span>{item.title}</span>
+                <b>{item.amount_cents ? formatMoneyShort(item.amount_cents, currency) : item.status}</b>
+              </p>
+              {item.ai_summary ? (
+                <div style={{ margin: '-6px 0 13px', fontSize: 13, color: 'var(--t3)', lineHeight: 1.5 }}>
+                  {item.ai_summary}
+                </div>
+              ) : null}
+            </div>
           ))}
           {ledger.length === 0 ? <p><span>Receipts and milestones will appear here.</span><b>Live</b></p> : null}
         </article>
