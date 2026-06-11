@@ -149,7 +149,13 @@ export default function LeaderboardClient({
                     </div>
                     <div className="pc-donor-info">
                       <div className="pc-donor-name">
-                        {d.name}
+                        {d.showPublicProfile ? (
+                          <Link href={`/donors/${d.donorId}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                            {d.name}
+                          </Link>
+                        ) : (
+                          d.name
+                        )}
                         {badge && <span title="Generous giver" aria-hidden="true">{badge}</span>}
                       </div>
                       <div className="pc-donor-time">{d.donationCount} donation{d.donationCount === 1 ? '' : 's'}</div>

@@ -28,6 +28,7 @@ export interface LeaderboardDonor {
   avatarUrl: string | null;
   totalCents: number;
   donationCount: number;
+  showPublicProfile: boolean;
 }
 
 type ProfileLite = { full_name?: string | null; avatar_url?: string | null };
@@ -112,7 +113,7 @@ export async function getTopDonors(period: LeaderboardPeriod, limit = 20): Promi
   const donorIds = ranked.map(([id]) => id);
   const { data: profiles } = await supabaseAdmin
     .from('profiles')
-    .select('id, full_name, avatar_url')
+    .select('id, full_name, avatar_url, show_public_profile')
     .in('id', donorIds);
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
@@ -126,6 +127,7 @@ export async function getTopDonors(period: LeaderboardPeriod, limit = 20): Promi
       avatarUrl: profile?.avatar_url ?? null,
       totalCents: stats.totalCents,
       donationCount: stats.donationCount,
+      showPublicProfile: profile?.show_public_profile ?? true,
     };
   });
 }
