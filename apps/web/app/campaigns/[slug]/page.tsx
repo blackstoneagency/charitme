@@ -308,6 +308,21 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     }
   }
 
+  const repliesByMessage = new Map<string, { id: string; message: string; created_at: string }[]>();
+  if (messageIds.length > 0) {
+    const { data: replies } = await supabaseAdmin
+      .from('campaign_owner_replies')
+      .select('id, donor_message_id, message, created_at')
+      .in('donor_message_id', messageIds)
+      .order('created_at', { ascending: true });
+    for (const r of (replies ?? []) as { id: string; donor_message_id: string | null; message: string; created_at: string }[]) {
+      if (!r.donor_message_id) continue;
+      const bucket = repliesByMessage.get(r.donor_message_id) ?? [];
+      bucket.push({ id: r.id, message: r.message, created_at: r.created_at });
+      repliesByMessage.set(r.donor_message_id, bucket);
+    }
+  }
+
   const rawImageUrls = (campaign as CampaignWithImages).image_urls ?? [];
   const galleryImages: string[] =
     rawImageUrls.length >= 4
@@ -546,16 +561,22 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                           </span>
                         </div>
                         <div className="pc-comment-text">{msg.message}</div>
-                      <div style={{ marginTop: 6 }}>
-                        <CommentLikeButton
-                          campaignId={campaign.id}
-                          messageId={msg.id}
-                          initialCount={messageLikeCounts.get(msg.id) ?? 0}
-                          initialLiked={messageLikedByUser.has(msg.id)}
-                          isAuthenticated={!!user}
-                          loginNext={`/campaigns/${slug}`}
-                        />
-                      </div>
+                        <div style={{ marginTop: 6 }}>
+                          <CommentLikeButton
+                            campaignId={campaign.id}
+                            messageId={msg.id}
+                            initialCount={messageLikeCounts.get(msg.id) ?? 0}
+                            initialLiked={messageLikedByUser.has(msg.id)}
+                            isAuthenticated={!!user}
+                            loginNext={`/campaigns/${slug}`}
+                          />
+                        </div>
+                        {(repliesByMessage.get(msg.id) ?? []).map((reply) => (
+                          <div key={reply.id} className="pc-comment-reply">
+                            <span className="pc-comment-reply-badge">Organizer</span>
+                            <span className="pc-comment-reply-text">{reply.message}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   );
