@@ -175,9 +175,9 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
   const totalStr = weekPoints.reduce((s, p) => s + p.value, 0).toLocaleString();
 
   return (
-    <div style={{ padding: '0 32px 32px', display: 'grid', gap: 22 }}>
+    <div className="kf-admin-dash">
       {/* KPI metrics */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18 }}>
+      <div className="kf-metrics">
         {metrics.map((m) => (
           <article key={m.label} className="kf-card kf-metric">
             <div className={`kf-square ${toneClass(m.tone)}`}><KFIcon name={m.icon} /></div>
@@ -191,7 +191,7 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
       </div>
 
       {/* Charts row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
+      <div className="kf-two-col">
         {/* Line chart */}
         <section className="kf-card kf-chart">
           <div className="kf-card-head">
@@ -208,7 +208,7 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
       </div>
 
       {/* Bottom section */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18 }}>
+      <div className="kf-three-col">
         {/* Top Campaigns */}
         <section className="kf-card" style={{ overflow: 'hidden' }}>
           <div className="kf-card-head"><h2>Top Campaigns</h2></div>
