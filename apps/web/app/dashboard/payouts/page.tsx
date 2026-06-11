@@ -4,6 +4,7 @@ import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import RequestPayoutButton from './RequestPayoutButton';
 import PayoutConciergeCard from './PayoutConciergeCard';
+import FeeOptimizerCard from './FeeOptimizerCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -170,6 +171,8 @@ export default async function PayoutsPage({
         <MetricGrid metrics={metrics} />
 
         <PayoutConciergeCard campaigns={(activeCampaigns ?? []) as { id: string; title: string; raised_amount: number }[]} />
+
+        <FeeOptimizerCard campaigns={(activeCampaigns ?? []) as { id: string; title: string; raised_amount: number }[]} />
 
         <section className="kf-card kf-table-card">
           <div className="kf-card-head">
