@@ -3,6 +3,7 @@ import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/C
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import RequestPayoutButton from './RequestPayoutButton';
+import PayoutConciergeCard from './PayoutConciergeCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -167,6 +168,8 @@ export default async function PayoutsPage({
 
       <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
         <MetricGrid metrics={metrics} />
+
+        <PayoutConciergeCard campaigns={(activeCampaigns ?? []) as { id: string; title: string; raised_amount: number }[]} />
 
         <section className="kf-card kf-table-card">
           <div className="kf-card-head">
