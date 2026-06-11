@@ -145,7 +145,7 @@ export default function TrustSafetyPage() {
       </section>
 
       {/* How to report */}
-      <section className="bg-slate-50 py-16">
+      <section id="report" className="bg-slate-50 py-16">
         <div className="container">
           <div className="mb-10 max-w-2xl">
             <h2 className="text-3xl font-black text-slate-950">How to report a campaign</h2>

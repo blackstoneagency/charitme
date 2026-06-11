@@ -53,6 +53,7 @@ const FAQ_SECTIONS = [
   },
   {
     title: 'For donors',
+    id: 'donors',
     items: [
       { q: 'Can I donate anonymously?', a: 'Yes. Check "Make my donation anonymous" at checkout. Your name will not appear on the public campaign page. The campaign organizer also will not see your name — only the donation amount and timestamp.' },
       { q: 'Will I get a receipt?', a: 'Yes. Stripe sends an automated payment receipt to your email after every donation. For donations to verified nonprofit campaigns, a formal tax receipt is also emailed where applicable.' },
@@ -115,7 +116,7 @@ export default function FaqPage() {
         <div className="container">
           <div className="mx-auto max-w-3xl space-y-14">
             {FAQ_SECTIONS.map((section) => (
-              <div key={section.title}>
+              <div key={section.title} id={'id' in section ? section.id : undefined}>
                 <h2 className="mb-6 text-2xl font-black text-slate-950">{section.title}</h2>
                 <div className="space-y-4">
                   {section.items.map((item) => (
