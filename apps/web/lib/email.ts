@@ -55,7 +55,7 @@ export async function sendReceiptEmail(input: {
 
   const year = new Date().getFullYear();
   const campaignUrl = `${ORIGIN}/campaigns/${input.campaignSlug}`;
-  const dashboardUrl = `${ORIGIN}/dashboard/donations`;
+  const dashboardUrl = `${ORIGIN}/donor`;
 
   const body = `
     <p style="font-size:16px;color:#1a1a2e;font-weight:700;margin:0 0 8px;">
@@ -197,7 +197,7 @@ export async function sendRefundEmail(input: {
   if (!resend) return;
 
   const year = new Date().getFullYear();
-  const dashboardUrl = `${ORIGIN}/dashboard/donations`;
+  const dashboardUrl = `${ORIGIN}/donor`;
 
   const body = `
     <p style="font-size:16px;color:#1a1a2e;font-weight:700;margin:0 0 8px;">
@@ -385,7 +385,7 @@ export async function sendTaxReceiptEmail(input: {
   if (!resend) return;
 
   const year = new Date().getFullYear();
-  const dashboardUrl = `${ORIGIN}/dashboard/donations`;
+  const dashboardUrl = `${ORIGIN}/donor`;
 
   const body = `
     <p style="font-size:16px;color:#1a1a2e;font-weight:700;margin:0 0 8px;">
