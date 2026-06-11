@@ -19,6 +19,7 @@ import DonationTicker from './DonationTicker';
 import EmployerMatchWidget from './EmployerMatchWidget';
 import ReferralBox from './ReferralBox';
 import Milestones from './Milestones';
+import CommentForm from './CommentForm';
 import { getPhotosForCategory, getCoverForCategory } from '../../../lib/photo-catalog';
 
 export const dynamic = 'force-dynamic';
@@ -470,6 +471,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               Comments
               <span className="pc-section-count">{donorMessages.length}</span>
             </h3>
+            <CommentForm campaignId={campaign.id} isAuthenticated={!!user} loginNext={`/campaigns/${slug}`} />
             {donorMessages.length > 0 ? (
               <div className="pc-comment-list">
                 {donorMessages.map((msg) => {
@@ -495,7 +497,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               </div>
             ) : (
               <p style={{ fontSize: 14, color: 'var(--t3)', margin: 0 }}>
-                Please sign in and donate to comment.
+                Be the first to leave a message of support.
               </p>
             )}
           </div>
