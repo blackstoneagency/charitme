@@ -48,8 +48,8 @@ export default function SaveCampaignButton({
       onClick={() => void toggle()}
       disabled={loading}
       aria-pressed={saved}
-      aria-label={saved ? 'Remove from saved campaigns' : 'Save campaign'}
-      title={saved ? 'Saved — click to remove' : 'Save for later'}
+      aria-label={saved ? 'Remove from saved campaigns' : 'Save campaign and follow for updates'}
+      title={saved ? "Saved — you'll get email updates from this campaign. Click to remove." : 'Save for later and get email updates from this campaign'}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px',
         borderRadius: 999, border: `1.5px solid ${saved ? 'var(--violet)' : 'var(--b2)'}`,

@@ -78,16 +78,26 @@ export async function POST(
   if (notifyDonors && resend) {
     void (async () => {
       try {
-        // Get all non-anonymous donors for this campaign
-        const { data: donations } = await supabaseAdmin
-          .from('donations')
-          .select('donor_id')
-          .eq('campaign_id', campaignId)
-          .eq('status', 'completed')
-          .eq('anonymous', false)
-          .not('donor_id', 'is', null);
+        // Notify everyone who supported or saved this campaign — non-anonymous
+        // donors plus anyone who saved/followed it for updates.
+        const [{ data: donations }, { data: savers }] = await Promise.all([
+          supabaseAdmin
+            .from('donations')
+            .select('donor_id')
+            .eq('campaign_id', campaignId)
+            .eq('status', 'completed')
+            .eq('anonymous', false)
+            .not('donor_id', 'is', null),
+          supabaseAdmin
+            .from('saved_campaigns')
+            .select('user_id')
+            .eq('campaign_id', campaignId),
+        ]);
 
-        const donorIds = [...new Set((donations ?? []).map(d => (d as { donor_id: string }).donor_id).filter(Boolean))];
+        const donorIds = [...new Set([
+          ...(donations ?? []).map(d => (d as { donor_id: string }).donor_id).filter(Boolean),
+          ...(savers ?? []).map(s => (s as { user_id: string }).user_id).filter(Boolean),
+        ])];
         if (donorIds.length === 0) return;
 
         const { data: profiles } = await supabaseAdmin
