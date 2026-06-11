@@ -271,9 +271,21 @@ export default async function DonorsPage({
             {/* Card header + tab strip */}
             <div className="kf-card-head">
               <h2>All Donors</h2>
-              <span style={{ fontSize: 13, color: 'var(--t3)' }}>
-                {totalUnique.toLocaleString()} donor{totalUnique !== 1 ? 's' : ''}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 13, color: 'var(--t3)' }}>
+                  {totalUnique.toLocaleString()} donor{totalUnique !== 1 ? 's' : ''}
+                </span>
+                <Link
+                  href="/api/exports/donors"
+                  style={{
+                    fontSize: 12, fontWeight: 700, color: 'var(--t2)', textDecoration: 'none',
+                    border: '1px solid var(--b2)', borderRadius: 8, padding: '4px 10px',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  ⬇ Export CSV
+                </Link>
+              </div>
             </div>
 
             <div className="kf-tabs">
