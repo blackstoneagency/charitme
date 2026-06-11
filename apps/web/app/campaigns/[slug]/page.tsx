@@ -20,6 +20,7 @@ import EmployerMatchWidget from './EmployerMatchWidget';
 import ReferralBox from './ReferralBox';
 import Milestones from './Milestones';
 import CommentForm from './CommentForm';
+import CommentLikeButton from './CommentLikeButton';
 import SaveCampaignButton from './SaveCampaignButton';
 import { getPhotosForCategory, getCoverForCategory } from '../../../lib/photo-catalog';
 
@@ -293,6 +294,20 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     isSaved = !!savedRow;
   }
 
+  const messageLikeCounts = new Map<string, number>();
+  const messageLikedByUser = new Set<string>();
+  const messageIds = donorMessages.map((m) => m.id);
+  if (messageIds.length > 0) {
+    const { data: likes } = await supabaseAdmin
+      .from('donor_message_likes')
+      .select('donor_message_id, user_id')
+      .in('donor_message_id', messageIds);
+    for (const like of (likes ?? []) as { donor_message_id: string; user_id: string }[]) {
+      messageLikeCounts.set(like.donor_message_id, (messageLikeCounts.get(like.donor_message_id) ?? 0) + 1);
+      if (user && like.user_id === user.id) messageLikedByUser.add(like.donor_message_id);
+    }
+  }
+
   const rawImageUrls = (campaign as CampaignWithImages).image_urls ?? [];
   const galleryImages: string[] =
     rawImageUrls.length >= 4
@@ -530,7 +545,17 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                             {new Date(msg.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </span>
                         </div>
-                        <div className="pc-comment-text">&#x2665;&nbsp;1 &nbsp;&middot;&nbsp; {msg.message}</div>
+                        <div className="pc-comment-text">{msg.message}</div>
+                      <div style={{ marginTop: 6 }}>
+                        <CommentLikeButton
+                          campaignId={campaign.id}
+                          messageId={msg.id}
+                          initialCount={messageLikeCounts.get(msg.id) ?? 0}
+                          initialLiked={messageLikedByUser.has(msg.id)}
+                          isAuthenticated={!!user}
+                          loginNext={`/campaigns/${slug}`}
+                        />
+                      </div>
                       </div>
                     </div>
                   );
