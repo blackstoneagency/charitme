@@ -513,7 +513,7 @@ export default function CreatePage() {
                     <label>Campaign Deadline <span className="cr2-optional">— optional</span></label>
                     <input type="date" value={form.deadline} onChange={e => upd('deadline', e.target.value)} />
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div className="kf-two-col" style={{ gap: 16 }}>
                     <div className="cr2-field">
                       <label>Beneficiary Name</label>
                       <input type="text" value={form.beneficiaryName} onChange={e => upd('beneficiaryName', e.target.value)} placeholder="Jane Smith" maxLength={120} />
