@@ -1188,10 +1188,10 @@ async function sendDonorReceipt(
   if (!donorId) return;
   try {
     const [{ data: profile }, { data: camp }] = await Promise.all([
-      supabaseAdmin.from('profiles').select('full_name, email').eq('id', donorId).single(),
+      supabaseAdmin.from('profiles').select('full_name, email, notification_email').eq('id', donorId).single(),
       supabaseAdmin.from('campaigns').select('title, slug').eq('id', campaignId).single(),
     ]);
-    if (profile?.email && camp) {
+    if (profile?.email && camp && profile.notification_email !== false) {
       await sendReceiptEmail({
         to: profile.email,
         donorName: profile.full_name,
@@ -1214,7 +1214,7 @@ async function sendOrganizerDonationNotification(
 ) {
   try {
     const [{ data: organizer }, { data: camp }, { data: donor }] = await Promise.all([
-      supabaseAdmin.from('profiles').select('full_name, email').eq('id', organizerUserId).single(),
+      supabaseAdmin.from('profiles').select('full_name, email, notification_email').eq('id', organizerUserId).single(),
       supabaseAdmin.from('campaigns').select('title, slug, raised_amount, goal_amount').eq('id', campaignId).single(),
       donorId ? supabaseAdmin.from('profiles').select('full_name').eq('id', donorId).single() : Promise.resolve({ data: null }),
     ]);
@@ -1233,6 +1233,8 @@ async function sendOrganizerDonationNotification(
       link: `/dashboard/campaigns`,
       meta: { campaign_id: campaignId, amount_cents: amountCents, donor_id: donorId },
     });
+
+    if (organizer.notification_email === false) return; // organizer opted out of account emails
 
     await sendOrganizerDonationAlert({
       to: organizer.email,
