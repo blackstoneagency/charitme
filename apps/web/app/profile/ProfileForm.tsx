@@ -51,6 +51,30 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
   const [errorMessage, setErrorMessage] = useState('');
   const [pwResetMsg, setPwResetMsg] = useState('');
 
+  const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setAvatarUploading(true);
+    setAvatarError('');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload/profile-image', { method: 'POST', body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error ?? 'Could not upload photo');
+      setAvatarUrl(data.url as string);
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : 'Could not upload photo');
+    } finally {
+      setAvatarUploading(false);
+    }
+  }
+
   const [notifyEmail, setNotifyEmail] = useState(profile.notification_email);
   const [notifyUpdates, setNotifyUpdates] = useState(profile.notification_updates);
   const [notifyMarketing, setNotifyMarketing] = useState(profile.notification_marketing);
@@ -111,9 +135,14 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
       <div className="mt-8 grid gap-6 lg:grid-cols-[240px_1fr]">
         {/* Avatar + info sidebar */}
         <div className="flex flex-col items-center rounded-3xl border border-slate-200 bg-white p-6 shadow-sm text-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-2xl font-black text-emerald-700">
-            {initials}
-          </div>
+          <label className="group relative flex h-20 w-20 cursor-pointer items-center justify-center rounded-full bg-emerald-100 text-2xl font-black text-emerald-700" style={avatarUrl ? { backgroundImage: `url(${avatarUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
+            {!avatarUrl && initials}
+            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 text-[11px] font-black text-white opacity-0 transition-opacity group-hover:bg-black/40 group-hover:opacity-100">
+              {avatarUploading ? '…' : 'Change'}
+            </span>
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" onChange={(e) => void handleAvatarChange(e)} disabled={avatarUploading} />
+          </label>
+          {avatarError && <p className="mt-2 text-xs font-bold text-red-600">{avatarError}</p>}
           <div className="mt-3 font-black text-slate-950">{name || 'Your name'}</div>
           <div className="mt-1 text-sm text-slate-500">{email}</div>
           <div className="mt-3 flex flex-wrap justify-center gap-1.5">
