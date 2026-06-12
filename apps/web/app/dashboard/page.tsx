@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { CharitMeShell, KFIcon } from '../../components/CharitMeShellServer';
 import AccountMenu from './AccountMenu';
+import CampaignMenu from './CampaignMenu';
 import NotificationBell from '../../components/NotificationBell';
 import { requireUser } from '../../lib/auth';
 import { supabaseAdmin } from '../../lib/supabase';
@@ -383,9 +384,12 @@ export default async function DashboardPage() {
   ];
 
   const displayCampaigns = data.campaigns.slice(0, 3).map(c => ({
+        id: c.id,
+        slug: c.slug,
         title: c.title,
         image: c.cover_image_url ?? 'medical',
         status: capitalize(c.status),
+        rawStatus: c.status,
         raised: fmtCents(c.raised_amount),
         goal: fmtCents(c.goal_amount),
         progress: c.goal_amount > 0 ? Math.min(100, Math.round((c.raised_amount / c.goal_amount) * 100)) : 0,
@@ -554,12 +558,7 @@ export default async function DashboardPage() {
                     <Link className="campaign-detail" href={campaign.href}>
                       View Details <span>&gt;</span>
                     </Link>
-                    <button
-                      className="campaign-menu"
-                      aria-label={`More options for ${campaign.title}`}
-                    >
-                      ...
-                    </button>
+                    <CampaignMenu id={campaign.id} slug={campaign.slug} title={campaign.title} status={campaign.rawStatus} />
                   </article>
                 ))}
               </div>
