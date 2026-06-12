@@ -57,6 +57,13 @@ const FOOTER_LINKS = {
 // NOTE: /create is intentionally NOT bypassed — it now shows the global nav above its wizard
 const SHELL_BYPASS = ['/dashboard', '/admin', '/profile'];
 
+// Campaign embed widgets (/campaigns/[slug]/embed) are designed to run inside an
+// <iframe> on third-party sites — they render their own minimal layout and must
+// never include the site nav/footer.
+function isEmbedRoute(path: string): boolean {
+  return /^\/campaigns\/[^/]+\/embed\/?$/.test(path);
+}
+
 function Logo() {
   return (
     <Link href="/" className="kind-logo" aria-label="CharitMe home">
@@ -75,7 +82,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const supabase = useMemo(() => createClient(), []);
-  const bypass = SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/'));
+  const bypass = SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/')) || isEmbedRoute(path);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
