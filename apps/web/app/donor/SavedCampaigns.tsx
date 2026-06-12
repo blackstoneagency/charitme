@@ -15,6 +15,7 @@ type SavedCampaign = {
   raised_amount: number;
   backer_count: number;
   status: string;
+  currency?: string | null;
 };
 
 const cardStyle: React.CSSProperties = {
@@ -76,7 +77,7 @@ export default function SavedCampaigns() {
                       <div style={{ height: '100%', width: `${pct}%`, background: 'var(--green, #19b86a)', borderRadius: 99 }} />
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                      <strong style={{ color: 'var(--t1, #1a1a2e)' }}>{formatCents(c.raised_amount)}</strong>
+                      <strong style={{ color: 'var(--t1, #1a1a2e)' }}>{formatCents(c.raised_amount, c.currency ?? 'usd')}</strong>
                       <span style={{ color: 'var(--t3, #94a3b8)' }}>{pct}% funded</span>
                     </div>
                   </div>

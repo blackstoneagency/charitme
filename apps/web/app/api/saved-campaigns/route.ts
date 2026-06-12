@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
+import { attachCampaignCurrencies } from '../../../lib/home-data';
 
 const ToggleSchema = z.object({
   campaignId: z.string().uuid(),
@@ -38,7 +39,7 @@ export async function GET() {
     .map((id) => campaignMap.get(id))
     .filter((c): c is NonNullable<typeof c> => !!c);
 
-  return NextResponse.json({ campaigns: ordered });
+  return NextResponse.json({ campaigns: await attachCampaignCurrencies(ordered) });
 }
 
 // POST /api/saved-campaigns { campaignId }

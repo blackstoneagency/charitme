@@ -19,6 +19,7 @@ type Recommendation = {
   trustStatus: string | null;
   healthScore: number;
   matchReason: string;
+  currency?: string | null;
 };
 
 type MatchingResult = {
@@ -83,7 +84,7 @@ export default function RecommendedCampaigns() {
                     <div style={{ height: '100%', width: `${r.percentFunded}%`, background: 'var(--green, #19b86a)', borderRadius: 99 }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                    <strong style={{ color: 'var(--t1, #1a1a2e)' }}>{formatCents(r.raisedAmount)}</strong>
+                    <strong style={{ color: 'var(--t1, #1a1a2e)' }}>{formatCents(r.raisedAmount, r.currency ?? 'usd')}</strong>
                     <span style={{ color: 'var(--t3, #94a3b8)' }}>{r.percentFunded}% funded</span>
                   </div>
                 </div>

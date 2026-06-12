@@ -4,6 +4,7 @@ import { openai, OPENAI_MODEL } from '../../../../lib/openai';
 import { checkRateLimit } from '../../../../lib/rate-limit';
 import { createClient } from '../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import { attachCampaignCurrencies } from '../../../../lib/home-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,6 +39,7 @@ type Recommendation = {
   trustStatus: string | null;
   healthScore: number;
   matchReason: string;
+  currency?: string | null;
 };
 
 function categoryOf(row: DonationWithCategory): string | null {
@@ -118,7 +120,7 @@ export async function GET(request: NextRequest) {
     .sort((a, b) => b.score - a.score)
     .slice(0, 6);
 
-  const recommendations: Recommendation[] = scored.map(({ campaign: c, categoryAffinity }) => {
+  const recommendationsBase: Recommendation[] = scored.map(({ campaign: c, categoryAffinity }) => {
     const matchReason = categoryAffinity > 0
       ? `Matches your interest in ${c.category} causes`
       : c.trust_status === 'Verified'
@@ -140,6 +142,8 @@ export async function GET(request: NextRequest) {
       matchReason,
     };
   });
+
+  const recommendations = await attachCampaignCurrencies(recommendationsBase);
 
   let message = fallbackMessage(topCategories, donations.length > 0);
   let model = 'fallback';
