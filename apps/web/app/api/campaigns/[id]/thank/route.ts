@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { createClient } from '../../../../../lib/supabase-server';
 import { resend } from '../../../../../lib/email';
+import { formatMoney } from '@shared/currencies';
 
 const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
 const FROM = process.env.EMAIL_FROM ?? 'CharitMe <hello@charitme.com>';
@@ -63,7 +64,7 @@ export async function POST(
   // ── Fetch donation + donor records ───────────────────────────────────────
   let query = supabaseAdmin
     .from('donations')
-    .select('id, donor_id, amount_cents, anonymous, message')
+    .select('id, donor_id, amount_cents, currency, anonymous, message')
     .eq('campaign_id', campaignId)
     .eq('status', 'completed')
     .eq('anonymous', false);
@@ -107,13 +108,13 @@ export async function POST(
   let sent = 0;
   const failed: string[] = [];
 
-  for (const donation of donations as { id: string; donor_id: string | null; amount_cents: number }[]) {
+  for (const donation of donations as { id: string; donor_id: string | null; amount_cents: number; currency: string | null }[]) {
     if (!donation.donor_id) continue;
     const profile = profileMap.get(donation.donor_id);
     if (!profile?.email) continue;
 
     const donorFirstName = profile.full_name?.split(' ')[0] ?? 'Friend';
-    const donatedAmount = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(donation.amount_cents / 100);
+    const donatedAmount = formatMoney(donation.amount_cents, donation.currency ?? 'usd');
 
     const html = `<!DOCTYPE html>
 <html lang="en">
