@@ -8,6 +8,8 @@ import NotificationBell from '../../components/NotificationBell';
 import { requireUser } from '../../lib/auth';
 import { supabaseAdmin } from '../../lib/supabase';
 import { isAdmin } from '../../lib/roles';
+import { attachCampaignCurrencies } from '../../lib/home-data';
+import { formatMoneyCompact, formatMoneyShort } from '@shared/currencies';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +25,7 @@ type CampaignRow = {
   raised_amount: number;
   backer_count: number;
   cover_image_url: string | null;
+  currency?: string | null;
 };
 
 type ActivityItem = {
@@ -184,7 +187,7 @@ async function getDashboardData(userId: string, period: Period): Promise<DashDat
         .limit(5),
     ]);
 
-    const campaigns = (campaignData ?? []) as CampaignRow[];
+    const campaigns = await attachCampaignCurrencies((campaignData ?? []) as CampaignRow[]);
     const totalRaised = campaigns.reduce((s, c) => s + (c.raised_amount ?? 0), 0);
     const totalDonations = campaigns.reduce((s, c) => s + (c.backer_count ?? 0), 0);
     const avgDonation = totalDonations > 0 ? Math.round(totalRaised / totalDonations) : 0;
@@ -246,7 +249,7 @@ async function getDashboardData(userId: string, period: Period): Promise<DashDat
       ] = await Promise.all([
         supabaseAdmin
           .from('donations')
-          .select('id, amount_cents, created_at, donor_id, anonymous')
+          .select('id, amount_cents, currency, created_at, donor_id, anonymous')
           .in('campaign_id', campaignIds)
           .eq('status', 'completed')
           .order('created_at', { ascending: false })
@@ -283,6 +286,7 @@ async function getDashboardData(userId: string, period: Period): Promise<DashDat
       type RawDon = {
         id: string;
         amount_cents: number;
+        currency: string | null;
         created_at: string;
         donor_id: string | null;
         anonymous: boolean;
@@ -322,7 +326,7 @@ async function getDashboardData(userId: string, period: Period): Promise<DashDat
                 .slice(0, 2)
                 .toUpperCase();
         return {
-          title: `${donorName} donated ${fmtCents(d.amount_cents)}`,
+          title: `${donorName} donated ${formatMoneyShort(d.amount_cents, d.currency ?? 'usd')}`,
           time: timeAgo(d.created_at),
           initials: ini,
         };
@@ -424,8 +428,8 @@ export default async function DashboardPage({
         image: c.cover_image_url ?? 'medical',
         status: capitalize(c.status),
         rawStatus: c.status,
-        raised: fmtCents(c.raised_amount),
-        goal: fmtCents(c.goal_amount),
+        raised: formatMoneyCompact(c.raised_amount, c.currency ?? 'usd'),
+        goal: formatMoneyCompact(c.goal_amount, c.currency ?? 'usd'),
         progress: c.goal_amount > 0 ? Math.min(100, Math.round((c.raised_amount / c.goal_amount) * 100)) : 0,
         raisedAmount: c.raised_amount,
         backerCount: c.backer_count,
