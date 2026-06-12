@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
     payment_method_types: ONE_TIME_PAYMENT_METHOD_TYPES,
     line_items: lineItems,
     ...(stripeEmail ? { customer_email: stripeEmail } : {}),
-    success_url: `${origin}/campaigns/${campaign.slug}?donated=1`,
+    success_url: `${origin}/campaigns/${campaign.slug}?donated=1&amount=${amountCents}`,
     cancel_url:  `${origin}/campaigns/${campaign.slug}`,
     metadata: {
       // Core fields

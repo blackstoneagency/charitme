@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
         quantity: 1,
       },
     ],
-    success_url: `${origin}/campaigns/${campaign.slug}?donated=1&recurring=1`,
+    success_url: `${origin}/campaigns/${campaign.slug}?donated=1&recurring=1&amount=${amountCents}`,
     cancel_url: `${origin}/campaigns/${campaign.slug}`,
     metadata: {
       campaignId,

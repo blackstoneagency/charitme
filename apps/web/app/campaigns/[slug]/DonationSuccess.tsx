@@ -2,14 +2,36 @@
 
 import React, { useState, useEffect } from 'react';
 
-export default function DonationSuccess() {
+interface Props {
+  campaignId: string;
+  amountCents?: number;
+}
+
+export default function DonationSuccess({ campaignId, amountCents }: Props) {
   const [visible, setVisible] = useState(true);
+  const [impactMessage, setImpactMessage] = useState('');
 
   // Auto-dismiss after 12 seconds
   useEffect(() => {
     const t = setTimeout(() => setVisible(false), 12000);
     return () => clearTimeout(t);
   }, []);
+
+  // Fetch a personalized AI impact message for this donation
+  useEffect(() => {
+    if (!amountCents || amountCents <= 0) return;
+    let cancelled = false;
+    fetch(`/api/ai/donation-impact?campaignId=${encodeURIComponent(campaignId)}&amount=${amountCents}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { message?: string } | null) => {
+        if (cancelled || !data) return;
+        if (typeof data.message === 'string' && data.message.trim()) {
+          setImpactMessage(data.message.trim());
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [campaignId, amountCents]);
 
   if (!visible) return null;
 
@@ -42,7 +64,7 @@ export default function DonationSuccess() {
           Thank you for donating!
         </strong>
         <span style={{ fontSize: 13, opacity: 0.9 }}>
-          Your receipt has been emailed to you.
+          {impactMessage || 'Your receipt has been emailed to you.'}
         </span>
         <a
           href="#quick-share"

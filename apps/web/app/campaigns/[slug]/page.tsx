@@ -35,6 +35,7 @@ interface Props {
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{
     donated?: string;
+    amount?: string;
     utm_source?: string;
     utm_medium?: string;
     utm_campaign?: string;
@@ -234,6 +235,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   type SP = NonNullable<Awaited<Props['searchParams']>>;
   const [{ slug }, sp] = await Promise.all([params, searchParams ?? Promise.resolve({} as SP)]);
   const justDonated = sp.donated === '1';
+  const donatedAmountCents = sp.amount ? Number.parseInt(sp.amount, 10) : NaN;
   const campaign = await getCampaign(slug);
   if (!campaign) notFound();
 
@@ -384,7 +386,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     <main className="public-campaign">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       {faqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />}
-      {justDonated && <DonationSuccess />}
+      {justDonated && (
+        <DonationSuccess
+          campaignId={campaign.id}
+          amountCents={Number.isFinite(donatedAmountCents) && donatedAmountCents > 0 ? donatedAmountCents : undefined}
+        />
+      )}
       <MobileDonateCTA
         campaignTitle={campaign.title}
         raised={raised}
