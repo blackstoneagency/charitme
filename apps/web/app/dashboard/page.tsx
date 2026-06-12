@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { CharitMeShell, KFIcon } from '../../components/CharitMeShellServer';
 import AccountMenu from './AccountMenu';
 import CampaignSortableList from './CampaignSortableList';
+import PeriodSelect from './PeriodSelect';
 import NotificationBell from '../../components/NotificationBell';
 import { requireUser } from '../../lib/auth';
 import { supabaseAdmin } from '../../lib/supabase';
@@ -34,6 +35,17 @@ type ChartDay = {
   label: string;
   amount: number; // cents
 };
+
+// ─────────────────────────────────────────────
+// Performance chart periods
+// ─────────────────────────────────────────────
+const PERIODS = {
+  '7d':  { totalDays: 7,  buckets: 7, label: 'Last 7 Days',  noun: 'week',    change: 'last 7 days' },
+  '30d': { totalDays: 30, buckets: 6, label: 'Last 30 Days', noun: 'month',   change: 'last 30 days' },
+  '90d': { totalDays: 90, buckets: 6, label: 'Last 90 Days', noun: 'quarter', change: 'last 90 days' },
+} as const;
+type Period = keyof typeof PERIODS;
+const PERIOD_KEYS = Object.keys(PERIODS) as Period[];
 
 type DashData = {
   firstName: string;
@@ -100,7 +112,9 @@ function buildChart(days: ChartDay[]): {
   dots: { x: number; y: number }[];
   yLabels: string[];
 } {
-  const XS = [42, 124, 206, 288, 370, 452, 534] as const;
+  const X_START = 42;
+  const X_END = 534;
+  const XS = days.map((_, i) => (days.length <= 1 ? (X_START + X_END) / 2 : X_START + ((X_END - X_START) * i) / (days.length - 1)));
   const Y_BOT = 246;
   const Y_TOP = 18;
   const Y_RANGE = Y_BOT - Y_TOP;
@@ -143,7 +157,7 @@ function buildChart(days: ChartDay[]): {
 // ─────────────────────────────────────────────
 // Data fetching
 // ─────────────────────────────────────────────
-async function getDashboardData(userId: string): Promise<DashData> {
+async function getDashboardData(userId: string, period: Period): Promise<DashData> {
   const fallback: DashData = {
     firstName: 'there',
     userName: null,
@@ -188,27 +202,40 @@ async function getDashboardData(userId: string): Promise<DashData> {
     let donorBreakdown = { total: 0, newCount: 0, returningCount: 0, anonymousCount: 0 };
     let growthCounts = { contentCreated: 0, peopleReached: 0, engagement: 0, newDonors: 0 };
 
-    // Build 7-day date range
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0]!;
+    // Build the chart's date range + bucket layout for the selected period
+    const { totalDays, buckets: numBuckets } = PERIODS[period];
+    const bucketSize = totalDays / numBuckets;
 
-    // Initialize chart days map (last 7 days including today)
-    const dayMap = new Map<string, { amount: number; label: string }>();
-    for (let i = 6; i >= 0; i--) {
+    const periodStart = new Date();
+    periodStart.setDate(periodStart.getDate() - (totalDays - 1));
+    const periodStartStr = periodStart.toISOString().split('T')[0]!;
+
+    // Each bucket's label is its most-recent day (the rightmost bucket's label is today)
+    const buckets: { amount: number; label: string }[] = [];
+    for (let b = 0; b < numBuckets; b++) {
+      const labelDaysAgo = (numBuckets - 1 - b) * bucketSize;
       const d = new Date();
-      d.setDate(d.getDate() - i);
-      const iso = d.toISOString().split('T')[0]!;
-      const label = new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', {
+      d.setDate(d.getDate() - labelDaysAgo);
+      const label = new Date(d.toISOString().split('T')[0]! + 'T12:00:00Z').toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
       });
-      dayMap.set(iso, { amount: 0, label });
+      buckets.push({ amount: 0, label });
+    }
+
+    // Map each date within the period to its chart bucket
+    const dateToBucket = new Map<string, number>();
+    for (let daysAgo = totalDays - 1; daysAgo >= 0; daysAgo--) {
+      const d = new Date();
+      d.setDate(d.getDate() - daysAgo);
+      const iso = d.toISOString().split('T')[0]!;
+      const bucketIdx = Math.min(numBuckets - 1, numBuckets - 1 - Math.floor(daysAgo / bucketSize));
+      dateToBucket.set(iso, bucketIdx);
     }
 
     if (campaignIds.length > 0) {
       // Parallel: recent donations (activity), chart donations, updates count,
-      //           messages count, new donors last 7 days
+      //           messages count, new donors in the selected period
       const [
         { data: activityDons },
         { data: chartDons },
@@ -229,7 +256,7 @@ async function getDashboardData(userId: string): Promise<DashData> {
           .select('amount_cents, created_at')
           .in('campaign_id', campaignIds)
           .eq('status', 'completed')
-          .gte('created_at', sevenDaysAgoStr),
+          .gte('created_at', periodStartStr),
         supabaseAdmin
           .from('donations')
           .select('donor_id, anonymous')
@@ -248,7 +275,7 @@ async function getDashboardData(userId: string): Promise<DashData> {
           .select('donor_id')
           .in('campaign_id', campaignIds)
           .eq('status', 'completed')
-          .gte('created_at', sevenDaysAgoStr)
+          .gte('created_at', periodStartStr)
           .not('donor_id', 'is', null),
       ]);
 
@@ -321,11 +348,11 @@ async function getDashboardData(userId: string): Promise<DashData> {
       // Build chart data
       for (const d of (chartDons ?? []) as { amount_cents: number; created_at: string }[]) {
         const key = d.created_at.split('T')[0]!;
-        const entry = dayMap.get(key);
-        if (entry) entry.amount += d.amount_cents;
+        const bucketIdx = dateToBucket.get(key);
+        if (bucketIdx !== undefined) buckets[bucketIdx]!.amount += d.amount_cents;
       }
 
-      // New donors (unique donor_ids in last 7 days)
+      // New donors (unique donor_ids in the selected period)
       const newDonorIds = new Set(
         (newDonorData ?? []).map((d: { donor_id: string }) => d.donor_id),
       ).size;
@@ -338,7 +365,7 @@ async function getDashboardData(userId: string): Promise<DashData> {
       };
     }
 
-    chartDays = [...dayMap.values()].map(v => ({ label: v.label, amount: v.amount }));
+    chartDays = buckets;
 
     return {
       firstName,
@@ -364,7 +391,11 @@ async function getDashboardData(userId: string): Promise<DashData> {
 // ─────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const user = await requireUser();
 
   // Admins go directly to the admin panel
@@ -372,7 +403,10 @@ export default async function DashboardPage() {
     redirect('/admin');
   }
 
-  const data = await getDashboardData(user.id);
+  const params = await searchParams;
+  const period: Period = PERIOD_KEYS.includes(params.period as Period) ? (params.period as Period) : '7d';
+
+  const data = await getDashboardData(user.id, period);
 
   const hasRealCampaigns = data.campaigns.length > 0;
 
@@ -423,22 +457,23 @@ export default async function DashboardPage() {
       : [];
 
   // Chart
-  const hasChartData = data.chartDays.some(d => d.amount > 0);
-  const chart = buildChart(
-    data.chartDays.length === 7
-      ? data.chartDays
-      : Array.from({ length: 7 }, (_, i) => {
-          const d = new Date();
-          d.setDate(d.getDate() - (6 - i));
-          return {
-            label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            amount: 0,
-          };
-        }),
-  );
+  const periodCfg = PERIODS[period];
+  const chartDays = data.chartDays.length === periodCfg.buckets
+    ? data.chartDays
+    : Array.from({ length: periodCfg.buckets }, (_, i) => {
+        const labelDaysAgo = (periodCfg.buckets - 1 - i) * (periodCfg.totalDays / periodCfg.buckets);
+        const d = new Date();
+        d.setDate(d.getDate() - labelDaysAgo);
+        return {
+          label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          amount: 0,
+        };
+      });
+  const hasChartData = chartDays.some(d => d.amount > 0);
+  const chart = buildChart(chartDays);
 
-  // 7-day raised total from chart data
-  const weekRaised = data.chartDays.reduce((s, d) => s + d.amount, 0);
+  // Total raised within the selected period, from chart data
+  const periodRaised = chartDays.reduce((s, d) => s + d.amount, 0);
 
   // Donor breakdown — real percentages from completed donations
   const db = data.donorBreakdown;
@@ -509,9 +544,7 @@ export default async function DashboardPage() {
               <section className="dash-card performance-card">
                 <div className="dash-card-title compact">
                   <h2>Performance Overview</h2>
-                  <button>
-                    Last 7 Days <span>v</span>
-                  </button>
+                  <PeriodSelect current={period} />
                 </div>
                 <div className="performance-body">
                   <div className="perf-chart">
@@ -521,7 +554,7 @@ export default async function DashboardPage() {
                     <svg
                       viewBox="0 0 560 270"
                       role="img"
-                      aria-label="7-day donation performance chart"
+                      aria-label={`${periodCfg.label} donation performance chart`}
                     >
                       <defs>
                         <linearGradient
@@ -558,25 +591,21 @@ export default async function DashboardPage() {
                     </svg>
                     {hasChartData ? (
                       <div className="perf-tip">
-                        <small>{data.chartDays[6]?.label ?? ''}</small>
-                        <b>{fmtCents(data.chartDays[6]?.amount ?? 0)}</b>
+                        <small>{chartDays[chartDays.length - 1]?.label ?? ''}</small>
+                        <b>{fmtCents(chartDays[chartDays.length - 1]?.amount ?? 0)}</b>
                       </div>
                     ) : null}
                     <div className="perf-days">
-                      {data.chartDays.length === 7
-                        ? data.chartDays.map(d => (
-                            <span key={d.label}>{d.label}</span>
-                          ))
-                        : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
-                            <span key={d}>{d}</span>
-                          ))}
+                      {chartDays.map((d, i) => (
+                        <span key={i}>{d.label}</span>
+                      ))}
                     </div>
                   </div>
                   <div className="perf-summary">
                     <PerfNumber
-                      value={hasRealCampaigns ? fmtCents(weekRaised) : '$0'}
-                      label="Raised this week"
-                      change={hasRealCampaigns ? 'last 7 days' : 'no data yet'}
+                      value={hasRealCampaigns ? fmtCents(periodRaised) : '$0'}
+                      label={`Raised this ${periodCfg.noun}`}
+                      change={hasRealCampaigns ? periodCfg.change : 'no data yet'}
                     />
                     <PerfNumber
                       value={String(data.totalDonations)}
@@ -591,7 +620,7 @@ export default async function DashboardPage() {
                     <PerfNumber
                       value={String(g.newDonors)}
                       label="New Donors"
-                      change="last 7 days"
+                      change={periodCfg.change}
                     />
                   </div>
                 </div>
