@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { ensureUserProfile } from '../../../../lib/profile-sync';
+import { checkRateLimit } from '../../../../lib/rate-limit';
 
 type SyncProfileResponse = {
   ok: boolean;
@@ -16,6 +17,11 @@ function json(body: SyncProfileResponse, status: number): NextResponse<SyncProfi
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse<SyncProfileResponse>> {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
+  if (!checkRateLimit(`sync-profile:${ip}`, 10, 60_000)) {
+    return json({ ok: false, error: 'Too many requests', code: 'RATE_LIMITED' }, 429);
+  }
+
   const authorization = request.headers.get('authorization');
   const tokenResult = bearerTokenSchema.safeParse(
     authorization?.startsWith('Bearer ') ? authorization.slice('Bearer '.length).trim() : '',

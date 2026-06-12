@@ -38,14 +38,12 @@ function authErrorMessage(raw: string | null): string {
 }
 
 async function syncProfile(accessToken: string): Promise<void> {
-  const response = await fetch('/api/auth/sync-profile', {
+  // Best-effort: requireUser() creates a missing profile on the first
+  // protected page load, so login must never block on this call.
+  await fetch('/api/auth/sync-profile', {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
-  });
-
-  if (!response.ok) {
-    throw new Error('Could not prepare your account profile. Please try again.');
-  }
+  }).catch(() => {});
 }
 
 function LoginForm() {
@@ -70,9 +68,8 @@ function LoginForm() {
       supabase.auth.getSession().then(async ({ data: sessionData }) => {
         const accessToken = sessionData.session?.access_token;
         if (accessToken) await syncProfile(accessToken);
+      }).finally(() => {
         router.replace(next);
-      }).catch(() => {
-        setError('Could not prepare your account profile. Please try again.');
       });
     });
   }, [next, router, supabase]);
