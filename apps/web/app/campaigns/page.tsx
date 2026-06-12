@@ -106,6 +106,17 @@ export default async function CampaignsPage({ searchParams }: Props) {
   });
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  const currencyMap = new Map<string, string>();
+  if (campaigns.length > 0) {
+    const { data: launchSettings } = await supabaseAdmin
+      .from('campaign_launch_settings')
+      .select('campaign_id, currency')
+      .in('campaign_id', campaigns.map((c) => c.id));
+    for (const ls of launchSettings ?? []) {
+      if (ls.currency) currencyMap.set(ls.campaign_id, ls.currency);
+    }
+  }
+
   function pageHref(targetPage: number) {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
@@ -213,6 +224,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
           {campaigns.map((c) => {
             const pct  = Math.min(100, Math.round(((c.raised_amount ?? 0) / c.goal_amount) * 100));
             const days = daysLeft(c.deadline);
+            const currency = currencyMap.get(c.id) ?? 'usd';
             const trust = calculateTrustScore(c);
             const isVerified = c.trust_status === 'Verified';
             const isTaxDeductible = (c as { nonprofit_verified?: boolean }).nonprofit_verified;
@@ -251,7 +263,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
                       {[
                         { label: 'Trust', value: `${trust}` },
                         { label: 'Donors', value: `${c.backer_count ?? 0}` },
-                        { label: 'Goal', value: formatCents(c.goal_amount) },
+                        { label: 'Goal', value: formatCents(c.goal_amount, currency) },
                       ].map((signal) => (
                         <div key={signal.label} style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '8px' }}>
                           <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--t1)' }}>{signal.value}</div>
@@ -263,10 +275,10 @@ export default async function CampaignsPage({ searchParams }: Props) {
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', flexWrap: 'wrap', gap: '4px' }}>
                       <div>
                         <span style={{ fontWeight: 700, color: 'var(--green)', fontSize: '14px' }}>
-                          {formatCents(c.raised_amount ?? 0)}
+                          {formatCents(c.raised_amount ?? 0, currency)}
                         </span>
                         <span style={{ fontSize: '12px', color: 'var(--t4)', marginLeft: '4px' }}>
-                          of {formatCents(c.goal_amount)}
+                          of {formatCents(c.goal_amount, currency)}
                         </span>
                       </div>
                       <span style={{ fontSize: '12px', color: 'var(--t4)' }}>
