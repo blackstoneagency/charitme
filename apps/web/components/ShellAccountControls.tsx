@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ThemeToggle } from './ThemeProvider';
-import { createClient } from '../lib/supabase-browser';
 
 type Props = {
   name?: string | null;
@@ -49,19 +48,19 @@ export default function ShellAccountControls({ name, email }: Props) {
 
   useEffect(() => {
     if (name || email) return;
-    const supabase = createClient();
     let cancelled = false;
-    void supabase.auth.getUser().then(({ data }) => {
-      if (cancelled) return;
-      const user = data.user;
-      const metadataName = typeof user?.user_metadata?.full_name === 'string'
-        ? user.user_metadata.full_name
-        : null;
-      setSessionAccount({
-        name: metadataName,
-        email: user?.email ?? null,
-      });
-    });
+    // Plain fetch instead of supabase-browser: keeps @supabase/supabase-js
+    // out of the client bundle of every page that renders the shell.
+    fetch('/api/profile')
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { profile?: { full_name?: string | null }; email?: string | null } | null) => {
+        if (cancelled || !data) return;
+        setSessionAccount({
+          name: data.profile?.full_name ?? null,
+          email: data.email ?? null,
+        });
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
