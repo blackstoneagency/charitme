@@ -46,3 +46,7 @@ export async function ensureUserProfile(user: User): Promise<void> {
     console.error('[profile-sync] could not create profile:', insertError.message);
   }
 }
+
+// Alias for callers written against the original name. Same insert-if-missing
+// semantics: existing profiles (roles, edited names) are never overwritten.
+export const syncUserProfile = ensureUserProfile;
