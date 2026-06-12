@@ -159,7 +159,7 @@ export default async function ReferralsPage() {
                       <span style={{ fontSize: 13, color: 'var(--t2)' }}>{c.attempts}</span>
                       <span style={{ fontSize: 13, color: 'var(--t2)' }}>{c.conversions}</span>
                       <strong style={{ textAlign: 'right', fontSize: 15, color: 'var(--green)' }}>
-                        {formatCents(c.raisedCents)}
+                        {formatCents(c.raisedCents, c.currency ?? 'usd')}
                       </strong>
                     </div>
                   ))}

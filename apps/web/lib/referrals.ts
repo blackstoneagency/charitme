@@ -54,6 +54,7 @@ export interface ReferralCampaignStat {
   attempts: number;
   conversions: number;
   raisedCents: number;
+  currency?: string | null;
 }
 
 export interface ReferralStats {
@@ -117,10 +118,26 @@ export async function getReferralStats(userId: string): Promise<ReferralStats> {
     }
   }
 
+  const campaignStats = [...byCampaign.values()].sort((a, b) => b.raisedCents - a.raisedCents);
+
+  if (campaignStats.length > 0) {
+    const { data: launchSettings } = await supabaseAdmin
+      .from('campaign_launch_settings')
+      .select('campaign_id, currency')
+      .in('campaign_id', campaignStats.map(c => c.campaignId));
+    const currencyMap = new Map<string, string>();
+    for (const ls of launchSettings ?? []) {
+      if (ls.currency) currencyMap.set(ls.campaign_id, ls.currency);
+    }
+    for (const stat of campaignStats) {
+      stat.currency = currencyMap.get(stat.campaignId) ?? null;
+    }
+  }
+
   return {
     totalAttempts: events.length,
     totalConversions,
     totalRaisedCents,
-    campaigns: [...byCampaign.values()].sort((a, b) => b.raisedCents - a.raisedCents),
+    campaigns: campaignStats,
   };
 }
