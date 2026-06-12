@@ -497,7 +497,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
         {/* Live donation ticker */}
         {wallDonations.length > 0 && (
-          <DonationTicker campaignId={campaign.id} initialDonations={wallDonations.slice(0, 10)} />
+          <DonationTicker campaignId={campaign.id} initialDonations={wallDonations.slice(0, 10)} currency={currency} />
         )}
       </section>
 

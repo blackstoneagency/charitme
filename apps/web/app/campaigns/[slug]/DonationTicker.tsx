@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { formatMoneyShort, DEFAULT_CURRENCY } from '@shared/currencies';
 
 interface TickerDonation {
   id: string;
@@ -8,12 +9,6 @@ interface TickerDonation {
   amountCents: number;
   createdAt: string;
   anonymous: boolean;
-}
-
-function fmtCents(c: number) {
-  const d = c / 100;
-  if (d >= 1_000) return `$${Math.round(d).toLocaleString()}`;
-  return `$${d.toFixed(2)}`;
 }
 
 function timeAgo(iso: string): string {
@@ -32,10 +27,13 @@ const ROTATE_INTERVAL_MS = 5_000;
 export default function DonationTicker({
   campaignId,
   initialDonations,
+  currency = DEFAULT_CURRENCY,
 }: {
   campaignId: string;
   initialDonations: TickerDonation[];
+  currency?: string;
 }) {
+  const fmtCents = (c: number) => formatMoneyShort(c, currency);
   const [items, setItems] = useState(initialDonations);
   const [index, setIndex] = useState(0);
   const [, setTick] = useState(0);
