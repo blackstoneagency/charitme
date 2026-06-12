@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — CharitMe',
+  title: 'Privacy Policy',
   description: 'How CharitMe collects, uses, and protects your personal information.',
 };
 

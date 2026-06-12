@@ -8,7 +8,7 @@ import { getCoverForCategory } from '../../lib/photo-catalog';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Browse Campaigns — CharitMe',
+  title: 'Browse Campaigns',
   description: 'Discover verified fundraising campaigns across medical, emergency, education, community, and more.',
   alternates: { canonical: 'https://www.charitme.com/campaigns' },
 };

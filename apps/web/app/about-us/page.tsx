@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
 
 export const metadata: Metadata = {
-  title: 'About Us — CharitMe',
+  title: 'About Us',
   description: 'CharitMe combines compassionate design, AI-powered guidance, and radical transparency to help every cause reach its full potential.',
 };
 

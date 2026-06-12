@@ -15,9 +15,9 @@ type FeaturePageProps = {
 export async function generateMetadata({ params }: FeaturePageProps) {
   const { slug } = await params;
   const platformModule = getPlatformModule(slug);
-  if (!platformModule) return { title: 'CharitMe Features' };
+  if (!platformModule) return { title: 'Features' };
   return {
-    title: `${platformModule.title} | CharitMe Features`,
+    title: `${platformModule.title} — Features`,
     description: platformModule.summary,
     alternates: { canonical: `${BASE}/features/${platformModule.slug}` },
   };

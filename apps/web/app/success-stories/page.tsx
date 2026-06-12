@@ -6,7 +6,7 @@ import { getCoverForCategory, unsplash } from '../../lib/photo-catalog';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Success Stories — CharitMe',
+  title: 'Success Stories',
   description: 'Real CharitMe success stories from fundraisers and communities creating impact.',
 };
 

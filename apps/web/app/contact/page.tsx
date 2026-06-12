@@ -5,7 +5,7 @@ import { supabaseAdmin } from '../../lib/supabase';
 import ContactForm from './ContactForm';
 
 export const metadata: Metadata = {
-  title: 'Contact Us — CharitMe',
+  title: 'Contact Us',
   description: "Reach the CharitMe team — we're here to help with campaigns, donations, AI fundraising, billing, and more.",
 };
 

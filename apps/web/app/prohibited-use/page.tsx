@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Prohibited Use Policy — CharitMe',
+  title: 'Prohibited Use Policy',
   description: 'Activities and campaigns that are not permitted on the CharitMe platform.',
 };
 

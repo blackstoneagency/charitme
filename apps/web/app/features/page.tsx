@@ -3,7 +3,7 @@ import { getFeatureCoverage, PLATFORM_MODULES } from '../../lib/feature-catalog'
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Platform Features — CharitMe',
+  title: 'Platform Features',
   description: 'Every table-stakes fundraising feature plus an AI trust layer competitors do not have. Campaigns, memberships, nonprofits, events, creator commerce and more.',
 };
 

@@ -7,7 +7,7 @@ import { formatHomeCents } from '../../lib/home-utils';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'AI Fundraising — CharitMe',
+  title: 'AI Fundraising',
   description: 'CharitMe AI tools help fundraisers create campaigns, connect with donors, and optimize results.',
 };
 
