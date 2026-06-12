@@ -88,7 +88,7 @@ const COUNTRIES = [
   'Japan', 'Singapore', 'Hong Kong SAR', 'Other',
 ];
 
-const CATEGORY_META: Record<string, { icon: string; tone: string; desc: string }> = {
+const _CATEGORY_META: Record<string, { icon: string; tone: string; desc: string }> = {
   Medical:     { icon: 'heart',  tone: 'violet', desc: 'Surgery, treatment, recovery' },
   Memorial:    { icon: 'gift',   tone: 'violet', desc: 'Final expenses, tribute' },
   Emergency:   { icon: 'shield', tone: 'orange', desc: 'Crisis, urgent need' },
@@ -150,6 +150,7 @@ function CampaignPreviewModal({
         <div className="cr2-preview-page">
           <div className="cr2-preview-hero">
             {coverImageUrl
+              // eslint-disable-next-line @next/next/no-img-element
               ? <img src={coverImageUrl} alt="Cover" />
               : 'Cover photo will appear here'}
           </div>

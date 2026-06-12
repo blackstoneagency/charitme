@@ -649,7 +649,6 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               return (
                 <Link key={rc.id} href={`/campaigns/${rc.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 16, overflow: 'hidden' }}>
                   <div style={{ height: 140, background: '#ede8ff', overflow: 'hidden' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={rc.cover_image_url || getCoverForCategory(rc.category)}
                       alt={rc.title}
