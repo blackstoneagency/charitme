@@ -200,7 +200,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
   const campaignUrl = `${ORIGIN}/campaigns/${slug}`;
   const description = campaign.tagline ?? campaign.description?.slice(0, 160) ?? '';
-  const image = campaign.cover_image_url ?? `${ORIGIN}/og-default.png`;
+  const image = campaign.cover_image_url ?? getCoverForCategory(campaign.category);
 
   return {
     title: campaign.title,
