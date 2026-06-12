@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import React, { useState } from 'react';
+import { formatMoneyShort, DEFAULT_CURRENCY } from '@shared/currencies';
 
 export interface WallDonation {
   id: string;
@@ -13,12 +14,6 @@ export interface WallDonation {
   anonymous: boolean;
   donorId?: string | null;
   showPublicProfile?: boolean;
-}
-
-function fmtCents(c: number) {
-  const d = c / 100;
-  if (d >= 1_000) return `$${Math.round(d).toLocaleString()}`;
-  return `$${d.toFixed(2)}`;
 }
 
 function timeAgo(iso: string): string {
@@ -46,11 +41,14 @@ export default function DonorWall({
   campaignId,
   initialDonations,
   totalCount,
+  currency = DEFAULT_CURRENCY,
 }: {
   campaignId: string;
   initialDonations: WallDonation[];
   totalCount: number;
+  currency?: string;
 }) {
+  const fmtCents = (c: number) => formatMoneyShort(c, currency);
   const [tab, setTab] = useState<'recent' | 'top'>('recent');
   const [recent, setRecent] = useState(initialDonations);
   const [top, setTop] = useState<WallDonation[] | null>(null);

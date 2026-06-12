@@ -716,7 +716,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           )}
         </div>
 
-        <DonorWall campaignId={campaign.id} initialDonations={wallDonations} totalCount={campaign.backer_count ?? donations.length} />
+        <DonorWall campaignId={campaign.id} initialDonations={wallDonations} totalCount={campaign.backer_count ?? donations.length} currency={currency} />
 
         <article className="pc-card">
           <h2>Transparency Ledger</h2>
