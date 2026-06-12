@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { CharitMeShell, KFIcon } from '../../components/CharitMeShellServer';
-import AccountMenu from './AccountMenu';
-import NotificationBell from './NotificationBell';
+import ShellAccountControls from '../../components/ShellAccountControls';
 import { requireUser } from '../../lib/auth';
 import { supabaseAdmin } from '../../lib/supabase';
 import { isAdmin } from '../../lib/roles';
@@ -467,13 +466,7 @@ export default async function DashboardPage() {
             <p>Here&apos;s what&apos;s happening with your campaigns.</p>
           </div>
           <div className="dash-actions">
-            <label className="dash-search">
-              <KFIcon name="search" />
-              <input placeholder="Search anything..." />
-              <kbd>&#8984;K</kbd>
-            </label>
-            <NotificationBell />
-            <AccountMenu name={data.userName ?? data.firstName} email={user.email ?? null} />
+            <ShellAccountControls name={data.userName ?? data.firstName} email={user.email ?? null} />
           </div>
         </header>
 

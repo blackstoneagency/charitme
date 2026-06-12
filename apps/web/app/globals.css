@@ -1083,6 +1083,21 @@ img, svg { display: block; }
 .kf-topbar h1 { margin: 0; color: #090d35; font-size: 32px; line-height: 1; letter-spacing: -.04em; font-weight: 800; }
 .kf-topbar p { margin: 14px 0 0; color: #2c3760; font-size: 17px; }
 .kf-top-actions { display: flex; align-items: center; gap: 14px; }
+.kf-shell-account-controls {
+  margin-left: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.kf-shell-account-controls .theme-toggle-btn,
+.kf-shell-account-controls .kind-search-btn,
+.kf-shell-account-controls .kind-bell {
+  width: 44px;
+  height: 44px;
+}
+.kf-shell-account-controls .theme-toggle-btn {
+  border-radius: 50%;
+}
 .kf-search {
   width: 276px;
   height: 52px;
@@ -1626,8 +1641,8 @@ img, svg { display: block; }
 .perf-summary small { margin-top: 5px; color: #16a34a; font-size: 12px; font-weight: 600; }
 .source-card { padding: 22px 22px 24px; }
 .source-body { display: flex; align-items: center; justify-content: center; gap: 38px; min-height: 240px; }
-.source-donut { width: 176px; height: 176px; display: grid; place-items: center; border-radius: 50%; background: conic-gradient(#6c35ff 0 32%, #ec3fb4 32% 56%, #2f80ed 56% 74%, #19b86a 74% 86%, #f59e0b 86% 93%, #a9afc2 93% 100%); }
-.source-donut span { width: 108px; height: 108px; display: grid; place-items: center; align-content: center; border-radius: 50%; background: #fff; }
+.source-donut { width: 176px; height: 176px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 44px; background: conic-gradient(#6c35ff 0 32%, #ec3fb4 32% 56%, #2f80ed 56% 74%, #19b86a 74% 86%, #f59e0b 86% 93%, #a9afc2 93% 100%); box-shadow: 0 18px 42px rgba(108,53,255,.12); transform: rotate(-8deg); }
+.source-donut span { width: 108px; height: 108px; display: grid; place-items: center; align-content: center; border-radius: 30px; background: #fff; transform: rotate(8deg); }
 .source-donut b, .source-donut small { display: block; text-align: center; }
 .source-donut b { font-size: 26px; font-weight: 750; color: #0f1535; }
 .source-donut small { color: #8a92ac; font-size: 12px; }
@@ -4313,6 +4328,8 @@ img, svg { display: block; }
 [data-theme="dark"] .kind-mobile button { color: var(--t1); }
 [data-theme="dark"] .kind-bell { color: #c0c8e8; }
 [data-theme="dark"] .kind-bell:hover { background: var(--s2); color: #a78bfa; }
+[data-theme="dark"] .kind-search-btn { color: #c0c8e8; }
+[data-theme="dark"] .kind-search-btn:hover { background: var(--s2); color: #a78bfa; }
 [data-theme="dark"] .kind-signin { color: #c0c8e8; }
 [data-theme="dark"] .kind-signin:hover { color: #a78bfa; }
 [data-theme="dark"] .kind-start-pill { border-color: var(--b1); background: var(--s2); color: var(--t1); }
@@ -5369,6 +5386,43 @@ img, svg { display: block; }
   .kf-row { grid-template-columns: 48px minmax(0,1fr) 90px 100px; gap: 10px; padding: 10px 14px; }
 }
 
+@media (max-width: 900px) {
+  .dash-head,
+  .kf-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .dash-actions,
+  .kf-top-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 600px) {
+  .kf-shell-account-controls {
+    gap: 8px;
+  }
+  .kf-shell-account-controls .theme-toggle-btn,
+  .kf-shell-account-controls .kind-search-btn,
+  .kf-shell-account-controls .kind-bell {
+    width: 40px;
+    height: 40px;
+  }
+  .kf-shell-account-controls .kind-user-name {
+    display: none;
+  }
+  .kf-shell-account-controls .kind-user-btn {
+    padding: 0;
+  }
+  .dash-home {
+    padding: 20px 16px 88px;
+  }
+  .source-body {
+    flex-direction: column;
+    gap: 24px;
+  }
+}
 /* ═══════════════════════════════════════════════════════════════════════════
    DEVICE-ADAPTIVE RESPONSIVE — PUBLIC CAMPAIGN PAGE
    ═══════════════════════════════════════════════════════════════════════════ */

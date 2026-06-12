@@ -1,7 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import LogoutButton from './LogoutButton';
-import NotificationBell from './NotificationBell';
+import ShellAccountControls from './ShellAccountControls';
 
 export type Metric = {
   label: string;
@@ -112,10 +111,8 @@ export function Logo() {
   );
 }
 
-export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAccess = false, userName, userEmail, userRole, userAvatarUrl }: ShellProps) {
+export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAccess = false }: ShellProps) {
   const nav = mode === 'admin' ? adminNav : dashboardNav;
-  const displayName = userName || userEmail?.split('@')[0] || (mode === 'admin' ? 'Admin User' : 'My Account');
-  const displayRole = userRole || (mode === 'admin' ? 'Super Admin' : 'Organizer');
   return (
     <div className="kf-app">
       <aside className="kf-sidebar">
@@ -152,19 +149,6 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
             </nav>
           </div>
         )}
-        <div className="kf-pro">
-          <div><KFIcon name="crown" /> CharitMe Pro</div>
-          <p>Unlock advanced tools, insights, automation, and priority support.</p>
-          <Link href="/pricing">Upgrade Now</Link>
-        </div>
-        <div className="kf-profile">
-          <Avatar name={displayName} imageUrl={userAvatarUrl} />
-          <div>
-            <strong>{displayName}</strong>
-            <span>{displayRole}</span>
-          </div>
-          <LogoutButton />
-        </div>
       </aside>
       <main className="kf-main">{children}</main>
     </div>
@@ -179,17 +163,12 @@ export function TopBar({ title, subtitle, actions }: { title: string; subtitle?:
         {subtitle && <p>{subtitle}</p>}
       </div>
       <div className="kf-top-actions">
-        <label className="kf-search"><KFIcon name="search" /><input placeholder={`Search ${title.toLowerCase()}...`} /></label>
         {actions}
-        {/* Notification bell — count fetched client-side; hidden when count is 0 */}
-        <NotificationBell />
+        <ShellAccountControls />
       </div>
     </header>
   );
 }
-
-// NotificationBell is a 'use client' component in ./NotificationBell.tsx
-// It uses useState/useEffect — must NOT be defined here (no 'use client' directive)
 
 export function Avatar({ name, imageUrl }: { name: string; imageUrl?: string | null }) {
   const initials = name.split(/\s+/).filter(Boolean).map((n) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
