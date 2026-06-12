@@ -29,7 +29,9 @@ export async function GET() {
   const { data: campaigns } = await supabaseAdmin
     .from('campaigns')
     .select('id, slug, title, tagline, category, cover_image_url, goal_amount, raised_amount, backer_count, status')
-    .in('id', campaignIds);
+    .in('id', campaignIds)
+    .neq('visibility', 'private')
+    .is('deleted_at', null);
 
   const campaignMap = new Map((campaigns ?? []).map((c) => [c.id as string, c]));
   const ordered = campaignIds

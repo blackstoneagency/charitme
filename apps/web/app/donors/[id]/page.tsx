@@ -87,7 +87,9 @@ export default async function PublicDonorProfilePage({ params }: { params: Promi
     const { data: camps } = await supabaseAdmin
       .from('campaigns')
       .select('id, title, slug, cover_image_url, category')
-      .in('id', campaignIds);
+      .in('id', campaignIds)
+      .eq('visibility', 'public')
+      .is('deleted_at', null);
     for (const c of (camps ?? []) as CampaignRow[]) campaignMap.set(c.id, c);
   }
 
