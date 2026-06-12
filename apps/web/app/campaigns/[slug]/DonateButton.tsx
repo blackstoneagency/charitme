@@ -10,7 +10,7 @@ import {
   type PaymentMethod,
 } from '@shared/fees';
 import { createClient } from '../../../lib/supabase-browser';
-import { formatMoney, formatMoneyShort, currencySymbol, DEFAULT_CURRENCY } from '@shared/currencies';
+import { formatMoney, formatMoneyShort, currencySymbol, normalizeCurrency, DEFAULT_CURRENCY } from '@shared/currencies';
 
 /* ── Design tokens (CSS-variable-aware for dark mode) ──── */
 const V   = 'var(--violet, #6c35ff)';
@@ -120,8 +120,8 @@ export default function DonateButton({
   }, [amountCents, tipPercent, isMonthly, preferredMethod]);
 
   const handleDonate = async () => {
-    if (Number.isNaN(amountCents) || amountCents < 100) { setError('Minimum donation is $1.00'); return; }
-    if (amountCents > MAX_DONATION_CENTS)               { setError('Maximum donation is $1,000,000'); return; }
+    if (Number.isNaN(amountCents) || amountCents < 100) { setError(`Minimum donation is ${money(100)}`); return; }
+    if (amountCents > MAX_DONATION_CENTS)               { setError(`Maximum donation is ${moneyShort(MAX_DONATION_CENTS)}`); return; }
 
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -363,7 +363,7 @@ export default function DonateButton({
           />
           {isMonthly && <span style={{ fontSize: 13, color: MU, fontWeight: 700 }}>/mo</span>}
         </div>
-        <div style={{ fontSize: 11, color: MU, fontWeight: 700, marginTop: 4, letterSpacing: '.05em' }}>USD</div>
+        <div style={{ fontSize: 11, color: MU, fontWeight: 700, marginTop: 4, letterSpacing: '.05em' }}>{normalizeCurrency(currency)}</div>
       </div>
 
       {/* ── Tip CharitMe services — slider or custom ── */}
