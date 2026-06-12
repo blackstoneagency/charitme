@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'FAQ',
   description: 'Answers to the most common questions about CharitMe — fees, payouts, AI tools, trust scores, and donor safety.',
+  alternates: { canonical: 'https://www.charitme.com/faq' },
 };
 
 const FAQ_SECTIONS = [

@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Terms of Service',
   description: 'The terms that govern your use of the CharitMe fundraising platform.',
+  alternates: { canonical: 'https://www.charitme.com/terms' },
 };
 
 const LAST_UPDATED = 'May 2025';

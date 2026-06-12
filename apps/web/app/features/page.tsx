@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Platform Features',
   description: 'Every table-stakes fundraising feature plus an AI trust layer competitors do not have. Campaigns, memberships, nonprofits, events, creator commerce and more.',
+  alternates: { canonical: 'https://www.charitme.com/features' },
 };
 
 const MODULE_ICONS: Record<string, string> = {

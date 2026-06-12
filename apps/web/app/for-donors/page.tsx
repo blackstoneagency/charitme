@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'For Donors — Give with Confidence',
   description: 'CharitMe gives every donor AI-computed trust scores, transparent fee breakdowns, anonymous giving, receipts, and impact updates — so you can give confidently.',
+  alternates: { canonical: 'https://www.charitme.com/for-donors' },
 };
 
 const DONOR_FEATURES = [

@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'AI Fundraising',
   description: 'CharitMe AI tools help fundraisers create campaigns, connect with donors, and optimize results.',
+  alternates: { canonical: 'https://www.charitme.com/ai-fundraising' },
 };
 
 // ── Live data from Supabase ───────────────────────────────────────────────────

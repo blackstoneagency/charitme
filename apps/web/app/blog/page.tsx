@@ -6,6 +6,7 @@ import { BLOG_POSTS } from '../../lib/blog-posts';
 export const metadata: Metadata = {
   title: 'Blog',
   description: 'CharitMe fundraising guides, AI tips, donor trust insights, and campaign growth playbooks.',
+  alternates: { canonical: 'https://www.charitme.com/blog' },
 };
 
 const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' });

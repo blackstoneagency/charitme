@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Security',
   description: 'How CharitMe protects your data, payments, and account using industry-standard security controls.',
+  alternates: { canonical: 'https://www.charitme.com/security' },
 };
 
 export default function SecurityPage() {

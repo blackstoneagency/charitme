@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description: 'How CharitMe collects, uses, and protects your personal information.',
+  alternates: { canonical: 'https://www.charitme.com/privacy' },
 };
 
 const LAST_UPDATED = 'May 2025';

@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Success Stories',
   description: 'Real CharitMe success stories from fundraisers and communities creating impact.',
+  alternates: { canonical: 'https://www.charitme.com/success-stories' },
 };
 
 type StoryCampaign = {

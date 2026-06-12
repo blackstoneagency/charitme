@@ -5,6 +5,7 @@ import { PRICING_TIERS } from '../../lib/pricing';
 export const metadata: Metadata = {
   title: 'For Nonprofits — AI-Powered Fundraising',
   description: 'CharitMe gives nonprofits donor CRM, recurring donations, automated tax receipts, team access, campaign templates, and AI-powered outreach tools.',
+  alternates: { canonical: 'https://www.charitme.com/for-nonprofits' },
 };
 
 const NONPROFIT_FEATURES = [

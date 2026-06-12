@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Supported Countries',
   description: 'See which countries can create campaigns and receive donations on CharitMe. Fundraise from 20+ countries and accept donations from 70+ countries worldwide.',
+  alternates: { canonical: 'https://www.charitme.com/supported-countries' },
 };
 
 type Country = {
