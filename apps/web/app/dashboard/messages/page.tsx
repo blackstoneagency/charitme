@@ -5,9 +5,6 @@ import MessagesClient, { type Thread, type OwnerReply, type ThreadState } from '
 
 export const dynamic = 'force-dynamic';
 
-const PAGE_TIME = Date.now();
-void PAGE_TIME; // suppress unused warning — used for relative time in client
-
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
