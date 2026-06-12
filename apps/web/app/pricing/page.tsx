@@ -158,6 +158,16 @@ const FAQS = [
   ['Is there a free trial for paid plans?', 'Yes! Starter and Pro both come with a 14-day free trial. No credit card required to start.'],
 ] as const;
 
+const PRICING_FAQ_JSONLD = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQS.map(([question, answer]) => ({
+    '@type': 'Question',
+    name: question,
+    acceptedAnswer: { '@type': 'Answer', text: answer },
+  })),
+};
+
 function FeeCalculator() {
   const [amount, setAmount] = useState(1000);
   const cents = amount * 100;
@@ -293,6 +303,7 @@ export default function PricingPage() {
 
   return (
     <div className="pub-page pricing-page">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(PRICING_FAQ_JSONLD) }} />
       <section className="pricing-hero">
         <div className="pub-breadcrumb">
           <Link href="/">Home</Link> <span>&gt;</span> <b>Pricing</b>
