@@ -6,6 +6,7 @@ import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 import { formatMoneyShort, normalizeCurrency } from '@shared/currencies';
 import { resolvePayoutDestination } from '../../../lib/payout-destination';
+import { attachCampaignCurrencies } from '../../../lib/home-data';
 import { calculateTrustScore, getTrustSignals } from '../../../lib/ai-platform';
 import { buildCampaignTrustInput } from '../../../lib/trust-signals';
 import DonateButton from './DonateButton';
@@ -140,6 +141,7 @@ type SimilarCampaign = {
   goal_amount: number;
   raised_amount: number;
   backer_count: number | null;
+  currency?: string | null;
 };
 
 async function getSimilarCampaigns(campaignId: string, category: string | null): Promise<SimilarCampaign[]> {
@@ -154,7 +156,7 @@ async function getSimilarCampaigns(campaignId: string, category: string | null):
     .neq('id', campaignId)
     .order('raised_amount', { ascending: false })
     .limit(4);
-  return (data ?? []) as SimilarCampaign[];
+  return attachCampaignCurrencies((data ?? []) as SimilarCampaign[]);
 }
 
 async function getCampaignCurrency(campaignId: string) {
@@ -766,7 +768,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                           <div style={{ height: '100%', width: `${sPct}%`, background: 'var(--green, #19b86a)', borderRadius: 99 }} />
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-                          <strong style={{ color: 'var(--t1, #1a1a2e)' }}>{formatMoneyShort(c.raised_amount, currency)}</strong>
+                          <strong style={{ color: 'var(--t1, #1a1a2e)' }}>{formatMoneyShort(c.raised_amount, c.currency ?? 'usd')}</strong>
                           <span style={{ color: 'var(--t3, #94a3b8)' }}>{sPct}% funded</span>
                         </div>
                       </div>
