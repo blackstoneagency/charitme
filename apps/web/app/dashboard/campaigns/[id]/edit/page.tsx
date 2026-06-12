@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar, KFIcon } from '../../../../../components/CharitMeApp';
 import { createClient } from '../../../../../lib/supabase-browser';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
+import { currencySymbol, formatMoney } from '@shared/currencies';
 
 type Campaign = {
   id: string;
@@ -51,6 +52,7 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
     location: '',
   });
   const [originalSlug, setOriginalSlug] = useState('');
+  const [currency, setCurrency] = useState('usd');
 
   // Resolve params (Next 15 async params)
   useEffect(() => {
@@ -73,6 +75,14 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
           if (err || !data) { router.push('/dashboard/campaigns'); return; }
           const c = data as Campaign;
           setOriginalSlug(c.slug);
+          supabase
+            .from('campaign_launch_settings')
+            .select('currency')
+            .eq('campaign_id', c.id)
+            .maybeSingle()
+            .then(({ data: launchSettings }) => {
+              setCurrency((launchSettings as { currency: string | null } | null)?.currency ?? 'usd');
+            });
           setForm({
             title: c.title,
             tagline: c.tagline ?? '',
@@ -120,7 +130,7 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
     if (form.title.trim().length < 3) { setError('Title must be at least 3 characters.'); return; }
     if (form.description.trim().length < 20) { setError('Story must be at least 20 characters.'); return; }
     const goalCents = Math.round(parseFloat(form.goal) * 100);
-    if (goalCents < 100) { setError('Goal must be at least $1.00.'); return; }
+    if (goalCents < 100) { setError(`Goal must be at least ${formatMoney(100, currency)}.`); return; }
 
     setSaving(true);
     setError('');
@@ -209,7 +219,7 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
               <input value={form.tagline} onChange={e => upd('tagline', e.target.value)} maxLength={160} placeholder="One sentence that hooks donors" />
             </Field>
             <div className="kf-two-col">
-              <Field label="Fundraising Goal ($) *">
+              <Field label={`Fundraising Goal (${currencySymbol(currency)}) *`}>
                 <input type="number" value={form.goal} onChange={e => upd('goal', e.target.value)} min="1" placeholder="25000" />
               </Field>
               <Field label="Deadline (optional)">
