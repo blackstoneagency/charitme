@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { openai, OPENAI_MODEL } from '../../../../lib/openai';
 import { checkRateLimit } from '../../../../lib/rate-limit';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import { formatMoney, normalizeCurrency } from '@shared/currencies';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,9 +48,10 @@ function fallbackMessage(opts: {
   donorCount: number;
   avgDonationCents: number;
   daysLeft: number | null;
+  currency: string;
 }): string {
-  const { title, percentFunded, donorCount, avgDonationCents, daysLeft } = opts;
-  const avgStr = `$${Math.round(avgDonationCents / 100).toLocaleString('en-US')}`;
+  const { title, percentFunded, donorCount, avgDonationCents, daysLeft, currency } = opts;
+  const avgStr = formatMoney(avgDonationCents, currency);
 
   if (daysLeft !== null && daysLeft <= 3 && daysLeft >= 0) {
     return `Time is running out for "${title}" — only ${daysLeft} day${daysLeft === 1 ? '' : 's'} left. The average gift is ${avgStr}, and every donation helps close the gap.`;
@@ -81,13 +83,22 @@ export async function GET(request: NextRequest) {
   if (campaignError) return NextResponse.json({ error: campaignError.message }, { status: 500 });
   if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
 
-  const { data: recentDonations } = await supabaseAdmin
-    .from('donations')
-    .select('amount_cents')
-    .eq('campaign_id', campaignId)
-    .eq('status', 'completed')
-    .order('created_at', { ascending: false })
-    .limit(200);
+  const [{ data: recentDonations }, { data: launchSettings }] = await Promise.all([
+    supabaseAdmin
+      .from('donations')
+      .select('amount_cents')
+      .eq('campaign_id', campaignId)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(200),
+    supabaseAdmin
+      .from('campaign_launch_settings')
+      .select('currency')
+      .eq('campaign_id', campaignId)
+      .maybeSingle(),
+  ]);
+
+  const currency = normalizeCurrency(launchSettings?.currency);
 
   const amounts = (recentDonations ?? []).map((d) => d.amount_cents).filter((n): n is number => typeof n === 'number' && n > 0);
   const avgDonationCents = amounts.length > 0
@@ -112,6 +123,7 @@ export async function GET(request: NextRequest) {
     donorCount: campaign.backer_count,
     avgDonationCents,
     daysLeft,
+    currency,
   });
   let model = 'fallback';
 
@@ -122,7 +134,7 @@ export async function GET(request: NextRequest) {
         input: [
           {
             role: 'system',
-            content: 'You are CharitMe Donor Conversion AI. Write a single short (1-2 sentence), warm, persuasive nudge encouraging a visitor to donate to a campaign. Use only facts from the input — never invent amounts, donor counts, or deadlines that are not provided. Return strict JSON: {"message": string}.',
+            content: 'You are CharitMe Donor Conversion AI. Write a single short (1-2 sentence), warm, persuasive nudge encouraging a visitor to donate to a campaign. Use only facts from the input — never invent amounts, donor counts, or deadlines that are not provided. When mentioning the average donation, use the pre-formatted "avgDonationFormatted" string verbatim (it is already in the campaign\'s currency) rather than inventing your own currency symbol. Return strict JSON: {"message": string}.',
           },
           {
             role: 'user',
@@ -130,7 +142,7 @@ export async function GET(request: NextRequest) {
               campaignTitle: campaign.title,
               percentFunded: Math.round(percentFunded),
               donorCount: campaign.backer_count,
-              avgDonationDollars: Math.round(avgDonationCents / 100),
+              avgDonationFormatted: formatMoney(avgDonationCents, currency),
               daysLeft,
             }),
           },
