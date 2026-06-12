@@ -10,6 +10,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Browse Campaigns — CharitMe',
   description: 'Discover verified fundraising campaigns across medical, emergency, education, community, and more.',
+  alternates: { canonical: 'https://www.charitme.com/campaigns' },
 };
 export const dynamic = 'force-dynamic';
 
