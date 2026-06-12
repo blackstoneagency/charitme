@@ -340,8 +340,10 @@ export default function MessagesClient({ threads, campaignMap, replies, threadSt
                 </div>
               ))}
 
-              {/* Owner's sent replies for this thread (from DB + new sends) */}
-              {[...(replies[activeThread.messages[0]?.id ?? ''] ?? []), ...sentReplies].map(r => (
+              {/* Owner's sent replies for this thread (from DB + new sends), oldest first */}
+              {[...activeThread.messages.flatMap(m => replies[m.id] ?? []), ...sentReplies]
+                .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                .map(r => (
                 <div key={r.id} className="kf-bubble right">
                   <p>
                     {r.message}
