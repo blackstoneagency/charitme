@@ -37,6 +37,17 @@ function authErrorMessage(raw: string | null): string {
   return raw;
 }
 
+async function syncProfile(accessToken: string): Promise<void> {
+  const response = await fetch('/api/auth/sync-profile', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!response.ok) {
+    throw new Error('Could not prepare your account profile. Please try again.');
+  }
+}
+
 function LoginForm() {
   const params = useSearchParams();
   const router = useRouter();
@@ -55,7 +66,14 @@ function LoginForm() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) router.replace(next);
+      if (!data.user) return;
+      supabase.auth.getSession().then(async ({ data: sessionData }) => {
+        const accessToken = sessionData.session?.access_token;
+        if (accessToken) await syncProfile(accessToken);
+        router.replace(next);
+      }).catch(() => {
+        setError('Could not prepare your account profile. Please try again.');
+      });
     });
   }, [next, router, supabase]);
 
@@ -78,8 +96,11 @@ function LoginForm() {
         if (signUpError) throw signUpError;
         setSuccess('Check your email to confirm your account, then sign in.');
       } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
+        if (signInData.session?.access_token) {
+          await syncProfile(signInData.session.access_token);
+        }
         router.replace(next);
       }
     } catch (caught) {
