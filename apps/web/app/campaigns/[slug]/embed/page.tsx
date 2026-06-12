@@ -2,6 +2,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import { formatMoneyShort } from '@shared/currencies';
 import DonateButton from '../DonateButton';
 
 export const dynamic = 'force-dynamic';
@@ -29,10 +30,17 @@ export default async function CampaignEmbedPage({ params }: Props) {
 
   if (!campaign || (campaign as { visibility?: string }).visibility === 'private') notFound();
 
+  const { data: launchSettings } = await supabaseAdmin
+    .from('campaign_launch_settings')
+    .select('currency')
+    .eq('campaign_id', campaign.id)
+    .maybeSingle();
+  const currency = launchSettings?.currency ?? 'usd';
+
   const raised = campaign.raised_amount ?? 0;
   const goal   = campaign.goal_amount || 1;
   const pct    = Math.min(100, Math.round((raised / goal) * 100));
-  const fmt    = (c: number) => '$' + (c / 100).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  const fmt    = (c: number) => formatMoneyShort(c, currency);
   const acceptDonations = (campaign as { accept_donations?: boolean }).accept_donations !== false;
 
   return (
@@ -67,7 +75,7 @@ export default async function CampaignEmbedPage({ params }: Props) {
       </div>
 
       {acceptDonations ? (
-        <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
+        <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} currency={currency} />
       ) : (
         <div style={{ background: '#f8fafc', border: '1px solid #e8ecf4', borderRadius: 10, padding: '12px 14px', textAlign: 'center', fontSize: 13, color: '#64748b' }}>
           Donations are temporarily paused.
