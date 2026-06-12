@@ -22,8 +22,11 @@ const FOOTER_LINKS = {
   Platform: [
     ['How It Works', '/how-it-works'],
     ['AI Fundraising', '/ai-fundraising'],
+    ['AI Campaign Builder', '/ai-campaign'],
+    ['Platform Features', '/features'],
     ['Success Stories', '/success-stories'],
     ['Pricing', '/pricing'],
+    ['Fast Payouts', '/fast-payouts'],
   ],
   Resources: [
     ['Blog', '/blog'],
@@ -31,11 +34,14 @@ const FOOTER_LINKS = {
     ['Help Center', '/help'],
     ['FAQ', '/faq'],
     ['Fundraising Guides', '/how-it-works'],
+    ['Supported Countries', '/supported-countries'],
   ],
   Company: [
     ['About Us', '/about-us'],
     ['Contact Us', '/contact'],
-    ['Pricing', '/pricing'],
+    ['For Nonprofits', '/for-nonprofits'],
+    ['For Individuals', '/for-individuals'],
+    ['For Donors', '/for-donors'],
     ['Trust & Safety', '/trust-safety'],
   ],
   Legal: [

@@ -5,8 +5,8 @@ import { supabaseAdmin } from '../../lib/supabase';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Supported Countries — CharitME',
-  description: 'See which countries can create campaigns and receive donations on CharitME. Fundraise from 20+ countries and accept donations from 70+ countries worldwide.',
+  title: 'Supported Countries',
+  description: 'See which countries can create campaigns and receive donations on CharitMe. Fundraise from 20+ countries and accept donations from 70+ countries worldwide.',
 };
 
 type Country = {
@@ -48,11 +48,11 @@ export default async function SupportedCountriesPage() {
             <b>Supported Countries</b>
           </div>
           <div className="sc-hero-badge">🌍 Global Reach</div>
-          <h1>Where CharitME Works</h1>
+          <h1>Where CharitMe Works</h1>
           <p>
-            CharitME supports fundraisers in <strong>{fundraisers.length} countries</strong> and
+            CharitMe supports fundraisers in <strong>{fundraisers.length} countries</strong> and
             accepts donations from <strong>{all.length} countries</strong> worldwide.
-            Whether you&apos;re launching a campaign or supporting a cause, CharitME connects you globally.
+            Whether you&apos;re launching a campaign or supporting a cause, CharitMe connects you globally.
           </p>
           <div className="sc-hero-stats">
             <div className="sc-stat">
@@ -132,7 +132,7 @@ export default async function SupportedCountriesPage() {
           <div className="sc-info-card">
             <div className="sc-info-icon">💳</div>
             <h3>Accepted Payment Methods</h3>
-            <p>CharitME accepts Visa, Mastercard, American Express, and Apple Pay. Available payment methods may vary by country.</p>
+            <p>CharitMe accepts Visa, Mastercard, American Express, and Apple Pay. Available payment methods may vary by country.</p>
           </div>
           <div className="sc-info-card">
             <div className="sc-info-icon">🏦</div>
@@ -142,7 +142,7 @@ export default async function SupportedCountriesPage() {
           <div className="sc-info-card">
             <div className="sc-info-icon">🔒</div>
             <h3>Secure &amp; Trusted</h3>
-            <p>All donations are processed with bank-level encryption. CharitME charges 0% platform fee — only standard Stripe processing fees apply.</p>
+            <p>All donations are processed with bank-level encryption. CharitMe charges 0% platform fee — only standard Stripe processing fees apply.</p>
           </div>
           <div className="sc-info-card">
             <div className="sc-info-icon">📧</div>
@@ -157,7 +157,7 @@ export default async function SupportedCountriesPage() {
           <div className="sc-cta-glow" />
           <div className="sc-cta-inner">
             <h2>Ready to make a difference?</h2>
-            <p>Join thousands of fundraisers using CharitME to raise money for causes that matter.</p>
+            <p>Join thousands of fundraisers using CharitMe to raise money for causes that matter.</p>
             <Link href="/create" className="sc-btn-primary sc-btn-lg">Start Your Campaign →</Link>
           </div>
         </section>
