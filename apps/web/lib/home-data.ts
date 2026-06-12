@@ -38,7 +38,12 @@ export async function getStoryCampaigns(filters: StoryFilters): Promise<HomeCamp
   }
 
   if (normalized.storyQ) {
-    query = query.or(`title.ilike.%${normalized.storyQ}%,tagline.ilike.%${normalized.storyQ}%,description.ilike.%${normalized.storyQ}%,category.ilike.%${normalized.storyQ}%`);
+    // PostgREST .or() parses commas/parens as filter syntax — strip them so
+    // searches like "Smith, John" don't break the filter (or inject extra clauses)
+    const safeQ = normalized.storyQ.replace(/[,()]/g, ' ').trim();
+    if (safeQ) {
+      query = query.or(`title.ilike.%${safeQ}%,tagline.ilike.%${safeQ}%,description.ilike.%${safeQ}%,category.ilike.%${safeQ}%`);
+    }
   }
 
   if (normalized.storySort === 'raised') {

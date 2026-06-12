@@ -50,7 +50,12 @@ async function getCampaigns(opts: {
     if (opts.taxDeductibleOnly) query = query.eq('nonprofit_verified', true);
     if (opts.location) query = query.ilike('location', `%${opts.location}%`);
     if (opts.q) {
-      query = query.or(`title.ilike.%${opts.q}%,tagline.ilike.%${opts.q}%,description.ilike.%${opts.q}%`);
+      // PostgREST .or() parses commas/parens as filter syntax — strip them so
+      // searches like "Smith, John" don't break the filter (or inject extra clauses)
+      const safeQ = opts.q.replace(/[,()]/g, ' ').trim();
+      if (safeQ) {
+        query = query.or(`title.ilike.%${safeQ}%,tagline.ilike.%${safeQ}%,description.ilike.%${safeQ}%`);
+      }
     }
 
     // Sort
