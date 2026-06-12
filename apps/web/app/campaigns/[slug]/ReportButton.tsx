@@ -14,7 +14,7 @@ export default function ReportButton({ campaignId }: { campaignId: string }) {
   };
 
   return (
-    <button onClick={report} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600">
+    <button type="button" onClick={report} disabled={sent} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600 disabled:opacity-60">
       {sent ? 'Report sent to Trust & Safety' : 'Report campaign'}
     </button>
   );

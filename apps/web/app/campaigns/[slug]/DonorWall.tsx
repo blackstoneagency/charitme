@@ -111,7 +111,10 @@ export default function DonorWall({
       {loadingTop && tab === 'top' ? (
         <p style={{ color: 'var(--t3)', fontSize: 13, padding: '12px 0' }}>Loading top donors…</p>
       ) : list.length === 0 ? (
-        <p><span>Be the first supporter</span><b>{fmtCents(0)}</b></p>
+        <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--t3)' }}>
+          <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: 'var(--t2)' }}>No donations yet</p>
+          <p style={{ margin: '6px 0 0', fontSize: 13 }}>Be the first to support this campaign!</p>
+        </div>
       ) : (
         <div className="pc-donor-list">
           {list.map((d) => {
