@@ -62,6 +62,7 @@ const dashboardNav = [
 
 const adminNav = [
   ['Dashboard', '/admin', 'home'],
+  ['New Customers', '/admin/new-customers', 'search'],
   ['Users', '/admin/users', 'users'],
   ['Campaigns', '/admin/campaigns', 'stack'],
   ['Donations', '/admin/donations', 'gift'],
