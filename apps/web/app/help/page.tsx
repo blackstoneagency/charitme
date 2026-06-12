@@ -1,7 +1,5 @@
 'use client';
 
-'use client';
-
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 
@@ -80,8 +78,19 @@ export default function HelpPage() {
     });
   }, [search, activeCategory]);
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: ARTICLES.map((a) => ({
+      '@type': 'Question',
+      name: a.question,
+      acceptedAnswer: { '@type': 'Answer', text: a.answer },
+    })),
+  };
+
   return (
     <div className="pub-page simple-public" style={{ maxWidth: 860, margin: '0 auto' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <section style={{ marginBottom: 40 }}>
         <div className="pub-breadcrumb">Home <span>&gt;</span> <b>Help Center</b></div>
         <h1>Help Center</h1>
