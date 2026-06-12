@@ -164,10 +164,10 @@ export default function HomeStoriesClient({ initialCampaigns, initialFilters }: 
         })}
         {campaigns.length === 0 && (
           <article className="kind-story-card empty">
-            <div className="kind-story-media community"><span>Live Data</span></div>
+            <div className="kind-story-media community"><span>No results</span></div>
             <div className="kind-story-body">
               <h2>No matching stories yet</h2>
-              <p>Campaign stories will appear here as soon as matching Supabase campaign records are available.</p>
+              <p>Try a different filter or search term, or check back soon as new campaigns launch on CharitMe.</p>
             </div>
           </article>
         )}
