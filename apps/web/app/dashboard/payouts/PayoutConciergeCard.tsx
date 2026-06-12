@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import React, { useState } from 'react';
+import { formatMoneyShort } from '@shared/currencies';
 
-interface Campaign { id: string; title: string; raised_amount: number }
+interface Campaign { id: string; title: string; raised_amount: number; currency?: string | null }
 interface Props { campaigns: Campaign[] }
 
 type Blocker = { code: string; label: string; actionUrl: string };
@@ -24,12 +25,11 @@ const READINESS_STYLE: Record<Readiness, { label: string; color: string; bg: str
   blocked:       { label: 'On hold', color: '#ef4444', bg: '#fee2e2' },
 };
 
-function fmt(cents: number) {
-  return '$' + (cents / 100).toLocaleString('en-US', { maximumFractionDigits: 0 });
-}
-
 export default function PayoutConciergeCard({ campaigns }: Props) {
   const [campaignId, setCampaignId] = useState(campaigns[0]?.id ?? '');
+  const selected = campaigns.find(c => c.id === campaignId);
+  const currency = selected?.currency ?? 'usd';
+  const fmt = (cents: number) => formatMoneyShort(cents, currency);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<ConciergeResult | null>(null);

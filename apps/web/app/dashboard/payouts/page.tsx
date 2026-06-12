@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { attachCampaignCurrencies } from '../../../lib/home-data';
+import { formatMoneyShort } from '@shared/currencies';
 import RequestPayoutButton from './RequestPayoutButton';
 import PayoutConciergeCard from './PayoutConciergeCard';
 import FeeOptimizerCard from './FeeOptimizerCard';
@@ -87,7 +89,7 @@ export default async function PayoutsPage({
   const activeTab = (typeof params.tab === 'string' ? params.tab : 'all').toLowerCase();
 
   // Fetch active campaigns with available balance for the request payout widget
-  const { data: activeCampaigns } = await supabaseAdmin
+  const { data: activeCampaignData } = await supabaseAdmin
     .from('campaigns')
     .select('id, title, raised_amount')
     .eq('user_id', userId)
@@ -95,6 +97,9 @@ export default async function PayoutsPage({
     .is('deleted_at', null)
     .order('raised_amount', { ascending: false })
     .limit(20);
+  const activeCampaigns = await attachCampaignCurrencies(
+    (activeCampaignData ?? []) as { id: string; title: string; raised_amount: number }[],
+  );
 
   // Step 1: fetch payouts for this user
   const { data: payoutData } = await supabaseAdmin
@@ -106,9 +111,10 @@ export default async function PayoutsPage({
 
   const payouts = (payoutData ?? []) as PayoutRow[];
 
-  // Step 2: fetch campaign titles for all payout campaign IDs
+  // Step 2: fetch campaign titles + currencies for all payout campaign IDs
   const campaignIds = [...new Set(payouts.map((p) => p.campaign_id))];
   let campaignTitleMap = new Map<string, string>();
+  let campaignCurrencyMap = new Map<string, string | null>();
   if (campaignIds.length > 0) {
     const { data: campaignData } = await supabaseAdmin
       .from('campaigns')
@@ -116,6 +122,8 @@ export default async function PayoutsPage({
       .in('id', campaignIds);
     const campaigns = (campaignData ?? []) as CampaignIdTitle[];
     campaignTitleMap = new Map(campaigns.map((c) => [c.id, c.title]));
+    const withCurrencies = await attachCampaignCurrencies(campaigns);
+    campaignCurrencyMap = new Map(withCurrencies.map((c) => [c.id, c.currency]));
   }
 
   // Metrics
@@ -164,15 +172,15 @@ export default async function PayoutsPage({
       <TopBar
         title="Payouts"
         subtitle="Review and manage payouts to your beneficiaries."
-        actions={<RequestPayoutButton campaigns={(activeCampaigns ?? []) as { id: string; title: string; raised_amount: number }[]} />}
+        actions={<RequestPayoutButton campaigns={activeCampaigns} />}
       />
 
       <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
         <MetricGrid metrics={metrics} />
 
-        <PayoutConciergeCard campaigns={(activeCampaigns ?? []) as { id: string; title: string; raised_amount: number }[]} />
+        <PayoutConciergeCard campaigns={activeCampaigns} />
 
-        <FeeOptimizerCard campaigns={(activeCampaigns ?? []) as { id: string; title: string; raised_amount: number }[]} />
+        <FeeOptimizerCard campaigns={activeCampaigns} />
 
         <section className="kf-card kf-table-card">
           <div className="kf-card-head">
@@ -219,6 +227,7 @@ export default async function PayoutsPage({
                 const tone = statusTone(payout.status);
                 const speedLabel = SPEED_LABELS[payout.payout_speed] ?? payout.payout_speed;
                 const campaignTitle = campaignTitleMap.get(payout.campaign_id) ?? 'Unknown Campaign';
+                const payoutCurrency = campaignCurrencyMap.get(payout.campaign_id) ?? 'usd';
                 return (
                   <div key={payout.id} className="kf-row">
                     <div className="kf-square blue">
@@ -235,10 +244,10 @@ export default async function PayoutsPage({
                     </div>
                     <div style={{ textAlign: 'right', minWidth: 90 }}>
                       <b style={{ color: 'var(--green)', display: 'block' }}>
-                        {fmtCents(payout.amount_cents)}
+                        {formatMoneyShort(payout.amount_cents, payoutCurrency)}
                       </b>
                       <small style={{ color: 'var(--t3)' }}>
-                        fee: {fmtCents(payout.fee_cents)}
+                        fee: {formatMoneyShort(payout.fee_cents, payoutCurrency)}
                       </small>
                     </div>
                     <span className={`kf-pill ${tone}`}>

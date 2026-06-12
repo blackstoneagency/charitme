@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
+import { formatMoneyShort } from '@shared/currencies';
 
-interface Campaign { id: string; title: string; raised_amount: number }
+interface Campaign { id: string; title: string; raised_amount: number; currency?: string | null }
 
 interface Props { campaigns: Campaign[] }
 
@@ -14,10 +15,6 @@ const SPEED_OPTS: { value: Speed; label: string; desc: string; fee: string }[] =
   { value: 'instant',  label: 'Instant',   desc: 'Within minutes',    fee: '1.5% fee' },
 ];
 
-function fmt(cents: number) {
-  return '$' + (cents / 100).toLocaleString('en-US', { maximumFractionDigits: 0 });
-}
-
 export default function RequestPayoutButton({ campaigns }: Props) {
   const [open, setOpen]           = useState(false);
   const [campaignId, setCampaignId] = useState(campaigns[0]?.id ?? '');
@@ -27,6 +24,8 @@ export default function RequestPayoutButton({ campaigns }: Props) {
   const [result, setResult]       = useState<{ ok: boolean; message: string } | null>(null);
 
   const selected = campaigns.find(c => c.id === campaignId);
+  const currency = selected?.currency ?? 'usd';
+  const fmt = (cents: number) => formatMoneyShort(cents, currency);
   const speedFee = speed === 'same_day' ? 0.005 : speed === 'instant' ? 0.015 : 0;
   const estFee   = selected ? Math.round(selected.raised_amount * speedFee) : 0;
   const estNet   = selected ? selected.raised_amount - estFee : 0;
@@ -95,7 +94,7 @@ export default function RequestPayoutButton({ campaigns }: Props) {
                   style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--b1, #e8ecf4)', fontSize: 14, background: 'var(--s1, #fff)', color: 'var(--t1, #1a1a2e)' }}
                 >
                   {campaigns.map(c => (
-                    <option key={c.id} value={c.id}>{c.title} — {fmt(c.raised_amount)}</option>
+                    <option key={c.id} value={c.id}>{c.title} — {formatMoneyShort(c.raised_amount, c.currency ?? 'usd')}</option>
                   ))}
                 </select>
               </div>
