@@ -1,10 +1,13 @@
 import { MetadataRoute } from 'next';
 import { BLOG_POSTS } from '../lib/blog-posts';
 import { PLATFORM_MODULES } from '../lib/feature-catalog';
+import { supabaseAdmin } from '../lib/supabase';
 
 const BASE = 'https://www.charitme.com';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export const dynamic = 'force-dynamic';
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [
     { url: BASE,                        priority: 1.0,  changeFrequency: 'daily'   as const },
     { url: `${BASE}/campaigns`,         priority: 0.9,  changeFrequency: 'hourly'  as const },
@@ -46,5 +49,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: new Date(),
   }));
 
-  return [...staticRoutes, ...blogRoutes, ...featureRoutes];
+  const { data: campaigns } = await supabaseAdmin
+    .from('campaigns')
+    .select('slug, updated_at')
+    .eq('status', 'active')
+    .order('raised_amount', { ascending: false })
+    .limit(5000);
+
+  const campaignRoutes = (campaigns ?? []).map(c => ({
+    url: `${BASE}/campaigns/${c.slug}`,
+    priority: 0.7,
+    changeFrequency: 'daily' as const,
+    lastModified: new Date(c.updated_at),
+  }));
+
+  return [...staticRoutes, ...blogRoutes, ...featureRoutes, ...campaignRoutes];
 }
