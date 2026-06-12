@@ -2,6 +2,8 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
 import { getCoverForCategory, unsplash } from '../../lib/photo-catalog';
+import { attachCampaignCurrencies } from '../../lib/home-data';
+import { currencySymbol } from '@shared/currencies';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +14,7 @@ export const metadata: Metadata = {
 };
 
 type StoryCampaign = {
+  id: string;
   slug: string;
   title: string;
   description: string | null;
@@ -21,10 +24,11 @@ type StoryCampaign = {
   goal_amount: number;
   backer_count: number;
   created_at: string;
+  currency?: string | null;
 };
 
-function formatCents(cents: number): string {
-  return `$${(cents / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+function formatCents(cents: number, currency: string = 'usd'): string {
+  return `${currencySymbol(currency)}${(cents / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 }
 
 function shortCount(value: number): string {
@@ -42,7 +46,7 @@ async function getStoryData() {
   const [{ data: campaigns }, { count: campaignCount }, { count: donationCount }] = await Promise.all([
     supabaseAdmin
       .from('campaigns')
-      .select('slug,title,description,category,cover_image_url,raised_amount,goal_amount,backer_count,created_at')
+      .select('id,slug,title,description,category,cover_image_url,raised_amount,goal_amount,backer_count,created_at')
       .in('status', ['active', 'completed'])
       .eq('visibility', 'public')
       .is('deleted_at', null)
@@ -52,7 +56,7 @@ async function getStoryData() {
     supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
   ]);
 
-  const stories = (campaigns ?? []) as StoryCampaign[];
+  const stories = await attachCampaignCurrencies((campaigns ?? []) as StoryCampaign[]);
   const totalRaised = stories.reduce((sum, s) => sum + s.raised_amount, 0);
   const totalDonors = stories.reduce((sum, s) => sum + s.backer_count, 0);
 
@@ -162,7 +166,7 @@ export default async function SuccessStoriesPage() {
                   </p>
                   <div className="ss-featured-stats">
                     {[
-                      { val: formatCents(featured.raised_amount), lbl: 'Raised' },
+                      { val: formatCents(featured.raised_amount, featured.currency ?? 'usd'), lbl: 'Raised' },
                       { val: featured.backer_count.toLocaleString(), lbl: 'Donors' },
                       { val: `${pct(featured.raised_amount, featured.goal_amount)}%`, lbl: 'Funded' },
                     ].map(s => (
@@ -222,8 +226,8 @@ export default async function SuccessStoriesPage() {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
-                            <div style={{ fontSize: 18, fontWeight: 950, color: 'var(--violet, #6c35ff)' }}>{formatCents(story.raised_amount)}</div>
-                            <div style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', fontWeight: 600 }}>of {formatCents(story.goal_amount)} goal</div>
+                            <div style={{ fontSize: 18, fontWeight: 950, color: 'var(--violet, #6c35ff)' }}>{formatCents(story.raised_amount, story.currency ?? 'usd')}</div>
+                            <div style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', fontWeight: 600 }}>of {formatCents(story.goal_amount, story.currency ?? 'usd')} goal</div>
                           </div>
                           <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--violet, #6c35ff)' }}>{progress}% funded &#8594;</span>
                         </div>
@@ -273,7 +277,7 @@ export default async function SuccessStoriesPage() {
                     <div style={{ width: 44, height: 44, borderRadius: '50%', backgroundImage: `url(${COMMUNITY_PHOTOS[i % COMMUNITY_PHOTOS.length]})`, backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0, border: '2px solid var(--b1, #ede9fe)' }} />
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--t1, #0e0520)' }}>{story.title.split(' ').slice(0, 3).join(' ')}</div>
-                      <div style={{ fontSize: 12, color: 'var(--t3, #94a3b8)', fontWeight: 600 }}>{story.category ?? 'Campaign'} &middot; {formatCents(story.raised_amount)} raised</div>
+                      <div style={{ fontSize: 12, color: 'var(--t3, #94a3b8)', fontWeight: 600 }}>{story.category ?? 'Campaign'} &middot; {formatCents(story.raised_amount, story.currency ?? 'usd')} raised</div>
                     </div>
                   </div>
                 </div>
