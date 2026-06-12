@@ -77,6 +77,17 @@ export default async function DonorPortalPage() {
     for (const c of (camps ?? []) as CampaignRow[]) campaignMap.set(c.id, c);
   }
 
+  const currencyMap = new Map<string, string>();
+  if (cids.length > 0) {
+    const { data: launchSettings } = await supabaseAdmin
+      .from('campaign_launch_settings')
+      .select('campaign_id, currency')
+      .in('campaign_id', cids);
+    for (const ls of launchSettings ?? []) {
+      if (ls.currency) currencyMap.set(ls.campaign_id, ls.currency);
+    }
+  }
+
   const totalGiven   = donations.filter(d => d.status === 'completed').reduce((s, d) => s + d.amount_cents, 0);
   const totalTips    = donations.filter(d => d.status === 'completed').reduce((s, d) => s + (d.tip_cents ?? 0), 0);
   const activeRecurring = recurring.filter(r => r.status === 'active');
@@ -141,7 +152,7 @@ export default async function DonorPortalPage() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <strong style={{ color: 'var(--violet, #6c35ff)' }}>{formatCents(r.amount_cents)}/{r.cadence === 'monthly' ? 'mo' : r.cadence}</strong>
+                    <strong style={{ color: 'var(--violet, #6c35ff)' }}>{formatCents(r.amount_cents, currencyMap.get(r.campaign_id) ?? 'usd')}/{r.cadence === 'monthly' ? 'mo' : r.cadence}</strong>
                     <span style={{
                       fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
                       background: r.status === 'active' ? 'rgba(22,163,74,.10)' : 'rgba(190,18,60,.08)',
