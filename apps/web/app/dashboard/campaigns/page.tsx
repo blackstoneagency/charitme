@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { attachCampaignCurrencies } from '../../../lib/home-data';
+import { formatMoneyCompact } from '@shared/currencies';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +22,7 @@ type Campaign = {
   category: string | null;
   deadline: string | null;
   created_at: string;
+  currency?: string | null;
 };
 
 // ─────────────────────────────────────────────
@@ -81,7 +84,7 @@ async function fetchCampaigns(userId: string): Promise<Campaign[]> {
       .order('created_at', { ascending: false })
       .limit(50);
     if (error) return [];
-    return (data ?? []) as Campaign[];
+    return attachCampaignCurrencies((data ?? []) as Campaign[]);
   } catch {
     return [];
   }
@@ -294,9 +297,9 @@ export default async function MyCampaignsPage({
 
                       {/* Raised / Goal */}
                       <div style={{ textAlign: 'right' }}>
-                        <strong style={{ fontSize: 14 }}>{fmtCents(c.raised_amount)}</strong>
+                        <strong style={{ fontSize: 14 }}>{formatMoneyCompact(c.raised_amount, c.currency ?? 'usd')}</strong>
                         <p style={{ fontSize: 11, color: 'var(--t3)', margin: 0 }}>
-                          of {fmtCents(c.goal_amount)}
+                          of {formatMoneyCompact(c.goal_amount, c.currency ?? 'usd')}
                         </p>
                       </div>
 
