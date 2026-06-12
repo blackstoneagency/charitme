@@ -1,4 +1,5 @@
 import { supabaseAdmin } from './supabase';
+import { attachCampaignCurrencies } from './home-data';
 
 export type LeaderboardPeriod = 'all' | 'month' | 'week';
 export const LEADERBOARD_PERIODS: LeaderboardPeriod[] = ['all', 'month', 'week'];
@@ -19,6 +20,7 @@ export interface LeaderboardCampaign {
   location: string | null;
   organizerName: string;
   organizerAvatarUrl: string | null;
+  currency?: string | null;
 }
 
 export interface LeaderboardDonor {
@@ -58,7 +60,7 @@ export async function getTopCampaigns(limit = 20): Promise<LeaderboardCampaign[]
 
   if (error || !data) return [];
 
-  return data.map((c, i) => {
+  const campaigns = data.map((c, i) => {
     const profile = asProfile(c.profiles);
     return {
       rank: i + 1,
@@ -78,6 +80,8 @@ export async function getTopCampaigns(limit = 20): Promise<LeaderboardCampaign[]
       organizerAvatarUrl: profile.avatar_url ?? null,
     };
   });
+
+  return attachCampaignCurrencies(campaigns);
 }
 
 export async function getTopDonors(period: LeaderboardPeriod, limit = 20): Promise<LeaderboardDonor[]> {

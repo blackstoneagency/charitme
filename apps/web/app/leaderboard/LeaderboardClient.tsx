@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { ProgressBar, Badge } from '../../components/ui';
 import { getCoverForCategory } from '../../lib/photo-catalog';
+import { formatMoneyShort } from '@shared/currencies';
 import type { LeaderboardCampaign, LeaderboardDonor, LeaderboardPeriod } from '../../lib/leaderboard';
 
 function fmtCents(c: number) {
@@ -111,8 +112,8 @@ export default function LeaderboardClient({
                     </div>
                   </div>
                   <div className="lb-campaign-amount">
-                    <b>{fmtCents(c.raisedAmount)}</b>
-                    <span>of {fmtCents(c.goalAmount)} · {c.backerCount} donors</span>
+                    <b>{formatMoneyShort(c.raisedAmount, c.currency ?? 'usd')}</b>
+                    <span>of {formatMoneyShort(c.goalAmount, c.currency ?? 'usd')} · {c.backerCount} donors</span>
                   </div>
                 </div>
               ))}
