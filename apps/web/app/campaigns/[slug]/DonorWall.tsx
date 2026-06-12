@@ -144,7 +144,7 @@ export default function DonorWall({
       )}
 
       {tab === 'recent' && hasMore && (
-        <button type="button" className="pc-donor-loadmore" onClick={loadMore} disabled={loadingMore}>
+        <button type="button" className="pc-loadmore" onClick={loadMore} disabled={loadingMore}>
           {loadingMore ? 'Loading…' : 'Load more donors'}
         </button>
       )}

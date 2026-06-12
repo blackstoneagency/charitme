@@ -20,7 +20,7 @@ import EmployerMatchWidget from './EmployerMatchWidget';
 import ReferralBox from './ReferralBox';
 import Milestones from './Milestones';
 import CommentForm from './CommentForm';
-import CommentLikeButton from './CommentLikeButton';
+import CommentsList, { type WallComment } from './CommentsList';
 import SaveCampaignButton from './SaveCampaignButton';
 import { getPhotosForCategory, getCoverForCategory } from '../../../lib/photo-catalog';
 
@@ -346,6 +346,21 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     }
   }
 
+  const initialComments: WallComment[] = donorMessages.map((msg) => {
+    const msgProfile = asProfile(msg.profiles);
+    return {
+      id: msg.id,
+      name: msg.anonymous ? 'Anonymous' : (msgProfile.full_name ?? 'Kind supporter'),
+      avatarUrl: msg.anonymous ? null : (msgProfile.avatar_url ?? null),
+      anonymous: msg.anonymous,
+      message: msg.message,
+      createdAt: msg.created_at,
+      likeCount: messageLikeCounts.get(msg.id) ?? 0,
+      likedByUser: messageLikedByUser.has(msg.id),
+      replies: (repliesByMessage.get(msg.id) ?? []).map((r) => ({ id: r.id, message: r.message, createdAt: r.created_at })),
+    };
+  });
+
   const rawImageUrls = (campaign as CampaignWithImages).image_urls ?? [];
   const galleryImages: string[] =
     rawImageUrls.length >= 4
@@ -572,50 +587,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               <span className="pc-section-count">{donorMessages.length}</span>
             </h3>
             <CommentForm campaignId={campaign.id} isAuthenticated={!!user} loginNext={`/campaigns/${slug}`} />
-            {donorMessages.length > 0 ? (
-              <div className="pc-comment-list">
-                {donorMessages.map((msg) => {
-                  const msgProfile = asProfile(msg.profiles);
-                  const initials = (msg.anonymous ? 'A' : (msgProfile.full_name?.[0] ?? 'D'));
-                  return (
-                    <div key={msg.id} className="pc-comment">
-                      <div className="pc-comment-avatar" style={{ backgroundImage: (!msg.anonymous && msgProfile.avatar_url) ? `url(${msgProfile.avatar_url})` : undefined }}>
-                        {(msg.anonymous || !msgProfile.avatar_url) && initials}
-                      </div>
-                      <div className="pc-comment-body">
-                        <div className="pc-comment-name">
-                          {msg.anonymous ? 'Anonymous' : (msgProfile.full_name ?? 'Kind supporter')}
-                          <span className="pc-comment-date">
-                            {new Date(msg.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </span>
-                        </div>
-                        <div className="pc-comment-text">{msg.message}</div>
-                        <div style={{ marginTop: 6 }}>
-                          <CommentLikeButton
-                            campaignId={campaign.id}
-                            messageId={msg.id}
-                            initialCount={messageLikeCounts.get(msg.id) ?? 0}
-                            initialLiked={messageLikedByUser.has(msg.id)}
-                            isAuthenticated={!!user}
-                            loginNext={`/campaigns/${slug}`}
-                          />
-                        </div>
-                        {(repliesByMessage.get(msg.id) ?? []).map((reply) => (
-                          <div key={reply.id} className="pc-comment-reply">
-                            <span className="pc-comment-reply-badge">Organizer</span>
-                            <span className="pc-comment-reply-text">{reply.message}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p style={{ fontSize: 14, color: 'var(--t3)', margin: 0 }}>
-                Be the first to leave a message of support.
-              </p>
-            )}
+            <CommentsList
+              campaignId={campaign.id}
+              initialComments={initialComments}
+              isAuthenticated={!!user}
+              loginNext={`/campaigns/${slug}`}
+            />
           </div>
 
           {/* Quick Share — client component records share events */}
