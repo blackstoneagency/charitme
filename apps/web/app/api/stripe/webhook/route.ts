@@ -639,7 +639,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
 
   // Notify donor of refund (non-blocking)
   if (don.donor_id && isFullRefund && don.campaigns) {
-    sendDonorRefundNotification(don.donor_id, don.campaigns.title, don.amount_cents).catch(() => {});
+    sendDonorRefundNotification(don.donor_id, don.campaigns.title, don.amount_cents, charge.currency).catch(() => {});
   }
 
   const payment = await findCampaignPayment({ paymentIntentId: piId, chargeId: charge.id });
@@ -1034,7 +1034,7 @@ async function handlePayoutPaid(payout: Stripe.Payout) {
       }),
     ]);
     if (payout.status === 'paid') {
-      notifyOrganizerPayout(payment.campaign_owner_id, payment.campaign_id, payout.amount, 'paid').catch(() => {});
+      notifyOrganizerPayout(payment.campaign_owner_id, payment.campaign_id, payout.amount, 'paid', undefined, payout.currency).catch(() => {});
     }
   }
 }
@@ -1076,7 +1076,7 @@ async function handlePayoutFailed(payout: Stripe.Payout) {
         metadata: { failure_code: payout.failure_code ?? null, failure_message: payout.failure_message ?? null },
       }),
     ]);
-    notifyOrganizerPayout(payment.campaign_owner_id, payment.campaign_id, payout.amount, 'failed', payout.failure_code).catch(() => {});
+    notifyOrganizerPayout(payment.campaign_owner_id, payment.campaign_id, payout.amount, 'failed', payout.failure_code, payout.currency).catch(() => {});
   }
 }
 
@@ -1260,6 +1260,7 @@ async function notifyOrganizerPayout(
   amountCents: number,
   status: 'paid' | 'failed' | 'scheduled',
   failureCode?: string | null,
+  currency: string = 'usd',
 ) {
   if (!organizerUserId) return;
   try {
@@ -1276,7 +1277,7 @@ async function notifyOrganizerPayout(
     await supabaseAdmin.from('notifications').insert({
       user_id: organizerUserId,
       kind: `payout_${status}`,
-      title: `Payout ${status}: ${fmt(amountCents)}`,
+      title: `Payout ${status}: ${fmt(amountCents, currency)}`,
       body: camp ? `Payout for "${camp.title}"` : undefined,
       link: '/dashboard/payouts',
       meta: { campaign_id: campaignId, amount_cents: amountCents, status },
@@ -1286,7 +1287,7 @@ async function notifyOrganizerPayout(
       to: organizer.email,
       organizerName: organizer.full_name,
       campaignTitle: camp?.title ?? 'your campaign',
-      amountFormatted: fmt(amountCents),
+      amountFormatted: fmt(amountCents, currency),
       status,
       failureReason: failureCode ? `Failure code: ${failureCode}` : undefined,
     });
@@ -1299,6 +1300,7 @@ async function sendDonorRefundNotification(
   donorId: string,
   campaignTitle: string,
   amountCents: number,
+  currency: string = 'usd',
 ) {
   try {
     const { data: profile } = await supabaseAdmin
@@ -1309,7 +1311,7 @@ async function sendDonorRefundNotification(
     if (!profile?.email) return;
 
     const { formatCents: fmt } = await import('../../../../lib/stripe');
-    const amountFormatted = fmt(amountCents);
+    const amountFormatted = fmt(amountCents, currency);
 
     await supabaseAdmin.from('notifications').insert({
       user_id: donorId,

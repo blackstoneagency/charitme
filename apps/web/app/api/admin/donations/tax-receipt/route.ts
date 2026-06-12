@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     .select(`
       id,
       amount_cents,
+      currency,
       donor_id,
       created_at,
       campaigns:campaign_id (
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { formatCents } = await import('../../../../../lib/stripe');
-  const amountFormatted = formatCents(donation.amount_cents as number);
+  const amountFormatted = formatCents(donation.amount_cents as number, (donation.currency as string | null) ?? 'usd');
   const receiptNumber = `CHM-${(donation.id as string).slice(0, 8).toUpperCase()}`;
   const donationDate = new Date(donation.created_at as string).toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric',

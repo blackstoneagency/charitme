@@ -20,13 +20,13 @@ export async function POST(request: NextRequest) {
   // Load donation — donor must own it or be admin
   const { data: donation } = await supabaseAdmin
     .from('donations')
-    .select('id, donor_id, amount_cents, campaign_id, status, campaigns:campaign_id(title, slug)')
+    .select('id, donor_id, amount_cents, currency, campaign_id, status, campaigns:campaign_id(title, slug)')
     .eq('id', parsed.data.donationId)
     .single();
 
   if (!donation) return NextResponse.json({ error: 'Donation not found' }, { status: 404 });
 
-  type DonRow = { id: string; donor_id: string | null; amount_cents: number; campaign_id: string; status: string; campaigns: { title: string; slug: string } | null };
+  type DonRow = { id: string; donor_id: string | null; amount_cents: number; currency: string | null; campaign_id: string; status: string; campaigns: { title: string; slug: string } | null };
   const don = donation as unknown as DonRow;
 
   if (don.donor_id !== user.id) {
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     donorName: profile.full_name,
     campaignTitle: camp.title,
     campaignSlug: camp.slug,
-    amountFormatted: formatCents(don.amount_cents),
+    amountFormatted: formatCents(don.amount_cents, don.currency ?? 'usd'),
     donationId: don.id,
   });
 
