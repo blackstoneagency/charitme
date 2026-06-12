@@ -67,10 +67,13 @@ async function getRecentDonations(campaignId: string) {
 }
 
 async function getUpdates(campaignId: string) {
+  // Exclude updates still waiting on their "schedule for later" time —
+  // they become visible once published_at is set or scheduled_at has passed.
   const { data } = await supabaseAdmin
     .from('campaign_updates')
     .select('id, title, body, created_at')
     .eq('campaign_id', campaignId)
+    .or(`published_at.not.is.null,scheduled_at.lte.${new Date().toISOString()}`)
     .order('created_at', { ascending: false })
     .limit(4);
   return data ?? [];
