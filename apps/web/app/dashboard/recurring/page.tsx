@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { formatCents } from '../../../lib/stripe';
 import PauseResumeButton from './PauseResumeButton';
 
 export const dynamic = 'force-dynamic';
@@ -18,10 +19,6 @@ type RecurringRow = {
 };
 
 type CampaignRef = { id: string; title: string; slug: string };
-
-function fmtCents(c: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(c / 100);
-}
 
 function fmtDate(iso: string | null): string {
   if (!iso) return '—';
@@ -58,6 +55,17 @@ export default async function RecurringPage() {
     }
   }
 
+  const currencyMap = new Map<string, string>();
+  if (campaignIds.length > 0) {
+    const { data: launchSettings } = await supabaseAdmin
+      .from('campaign_launch_settings')
+      .select('campaign_id, currency')
+      .in('campaign_id', campaignIds);
+    for (const ls of launchSettings ?? []) {
+      if (ls.currency) currencyMap.set(ls.campaign_id, ls.currency);
+    }
+  }
+
   const active = recurringList.filter(r => r.status === 'active');
   const totalMonthly = active.reduce((sum, r) => sum + (r.cadence === 'monthly' ? r.amount_cents : 0), 0);
 
@@ -75,7 +83,7 @@ export default async function RecurringPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
             {[
               { label: 'Active subscriptions', value: active.length.toString(), icon: 'check', tone: 'green' as const },
-              { label: 'Monthly total', value: fmtCents(totalMonthly), icon: 'gift', tone: 'violet' as const },
+              { label: 'Monthly total', value: formatCents(totalMonthly), icon: 'gift', tone: 'violet' as const },
               { label: 'Campaigns supported', value: campaignIds.length.toString(), icon: 'stack', tone: 'blue' as const },
             ].map(m => (
               <article key={m.label} className="kf-card kf-metric">
@@ -112,6 +120,7 @@ export default async function RecurringPage() {
             <div className="kf-rows">
               {recurringList.map(sub => {
                 const camp = campaignMap.get(sub.campaign_id);
+                const currency = currencyMap.get(sub.campaign_id) ?? 'usd';
                 return (
                   <div key={sub.id} className="kf-row">
                     <div className={`kf-square ${statusColor(sub.status)}`}>
@@ -131,7 +140,7 @@ export default async function RecurringPage() {
                         </span>
                       </div>
                       <small>
-                        {fmtCents(sub.amount_cents)}/{sub.cadence} ·
+                        {formatCents(sub.amount_cents, currency)}/{sub.cadence} ·
                         {sub.status === 'paused'
                           ? ' Billing paused'
                           : sub.status === 'active' && sub.next_bill_at
@@ -140,7 +149,7 @@ export default async function RecurringPage() {
                       </small>
                     </div>
                     <div style={{ fontWeight: 700, color: 'var(--green)', flexShrink: 0 }}>
-                      {fmtCents(sub.amount_cents)}
+                      {formatCents(sub.amount_cents, currency)}
                     </div>
                     {(sub.status === 'active' || sub.status === 'paused') && sub.stripe_subscription_id && (
                       <PauseResumeButton subscriptionId={sub.stripe_subscription_id} status={sub.status as 'active' | 'paused'} />
