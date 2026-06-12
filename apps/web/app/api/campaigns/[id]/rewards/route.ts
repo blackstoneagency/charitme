@@ -20,15 +20,22 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const { data, error } = await supabaseAdmin
-    .from('campaign_rewards')
-    .select('id, title, description, amount_cents, estimated_delivery, item_limit, claimed_count, sort_order, created_at')
-    .eq('campaign_id', id)
-    .order('sort_order', { ascending: true })
-    .order('amount_cents', { ascending: true });
+  const [{ data, error }, { data: launchSettings }] = await Promise.all([
+    supabaseAdmin
+      .from('campaign_rewards')
+      .select('id, title, description, amount_cents, estimated_delivery, item_limit, claimed_count, sort_order, created_at')
+      .eq('campaign_id', id)
+      .order('sort_order', { ascending: true })
+      .order('amount_cents', { ascending: true }),
+    supabaseAdmin
+      .from('campaign_launch_settings')
+      .select('currency')
+      .eq('campaign_id', id)
+      .maybeSingle(),
+  ]);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ rewards: data ?? [] });
+  return NextResponse.json({ rewards: data ?? [], currency: launchSettings?.currency ?? 'usd' });
 }
 
 // POST /api/campaigns/[id]/rewards
