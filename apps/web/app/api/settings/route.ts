@@ -1,8 +1,13 @@
 import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
+import { SUPPORTED_CURRENCY_CODES } from '@shared/currencies';
+import { SUPPORTED_LOCALE_CODES } from '../../../lib/i18n';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
+
+const CURRENCY_CODES_LOWER = new Set(SUPPORTED_CURRENCY_CODES.map(c => c.toLowerCase()));
+const LOCALE_CODES = new Set(SUPPORTED_LOCALE_CODES);
 
 const SettingsSchema = z.object({
   // Profile
@@ -15,8 +20,8 @@ const SettingsSchema = z.object({
   org_tagline: z.string().max(200).optional().nullable(),
   // Locale
   timezone: z.string().max(60).optional(),
-  currency: z.enum(['usd', 'eur', 'gbp', 'cad', 'aud']).optional(),
-  language: z.enum(['en', 'es', 'fr', 'de', 'pt']).optional(),
+  currency: z.string().refine(c => CURRENCY_CODES_LOWER.has(c.toLowerCase()), 'Unsupported currency').optional(),
+  language: z.string().refine(l => LOCALE_CODES.has(l.toLowerCase()), 'Unsupported language').optional(),
   date_format: z.enum(['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD']).optional(),
   time_format: z.enum(['12h', '24h']).optional(),
   // Preferences
