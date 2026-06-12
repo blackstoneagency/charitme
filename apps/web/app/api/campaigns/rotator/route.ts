@@ -1,6 +1,7 @@
 import 'server-only';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import { attachCampaignCurrencies } from '../../../../lib/home-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +10,7 @@ export async function GET() {
     supabaseAdmin
       .from('campaigns')
       .select(
-        'slug,title,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,featured,profiles:user_id(full_name)',
+        'id,slug,title,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,featured,profiles:user_id(full_name)',
       )
       .eq('status', 'active')
       .eq('visibility', 'public')
@@ -34,7 +35,7 @@ export async function GET() {
   }
 
   type Raw = {
-    slug: string; title: string; category: string | null;
+    id: string; slug: string; title: string; category: string | null;
     cover_image_url: string | null; featured: boolean | null;
     goal_amount: number; raised_amount: number; backer_count: number;
     trust_status: string | null; campaign_health_score: number | null;
@@ -42,9 +43,10 @@ export async function GET() {
     profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
   };
 
-  const campaigns = ((campaignsResult.data ?? []) as Raw[])
+  const rawCampaigns = ((campaignsResult.data ?? []) as Raw[])
     .filter(c => c.cover_image_url?.startsWith('http'))
     .map(c => ({
+      id:                    c.id,
       slug:                  c.slug,
       title:                 c.title,
       category:              c.category,
@@ -60,6 +62,8 @@ export async function GET() {
         ? (c.profiles[0]?.full_name ?? null)
         : ((c.profiles as { full_name: string | null } | null)?.full_name ?? null),
     }));
+
+  const campaigns = await attachCampaignCurrencies(rawCampaigns);
 
   // Last donation timestamp for the live badge
   type DonationRow = { created_at: string };

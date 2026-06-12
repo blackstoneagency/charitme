@@ -6,12 +6,7 @@ import type React from 'react';
 import { useMemo, useState, useTransition } from 'react';
 import { STORY_FILTERS, STORY_SORTS } from '../lib/home-story-options';
 import type { HomeCampaign, StoryFilterValue, StoryFilters, StorySortValue } from '../lib/home-types';
-
-function formatCents(cents: number): string {
-  const dollars = cents / 100;
-  if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1)}M`;
-  return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-}
+import { formatMoneyCompact } from '@shared/currencies';
 
 function storyTone(category: string | null): string {
   const value = (category ?? '').toLowerCase();
@@ -155,7 +150,7 @@ export default function HomeStoriesClient({ initialCampaigns, initialFilters }: 
                 <p>{campaign.description ?? campaign.tagline ?? 'Follow this campaign story and its verified fundraising progress.'}</p>
                 <div className="kind-story-meta">
                   <span><Icon name="users" className="h-4 w-4" /><b>{campaign.backer_count.toLocaleString()}</b><small>Donors</small></span>
-                  <span><Icon name="dollar" className="h-4 w-4" /><b>{formatCents(campaign.raised_amount)}</b><small>Raised</small></span>
+                  <span><Icon name="dollar" className="h-4 w-4" /><b>{formatMoneyCompact(campaign.raised_amount, campaign.currency ?? 'usd')}</b><small>Raised</small></span>
                   <span><Icon name="calendar" className="h-4 w-4" /><b>{campaign.deadline ? new Date(campaign.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Live now'}</b></span>
                 </div>
               </div>

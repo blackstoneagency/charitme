@@ -4,7 +4,7 @@ import HeroRotator from './HeroRotator';
 import SponsorsBar from './SponsorsBar';
 import HomeStoriesClient from './HomeStoriesClient';
 import { getHomeData, profileName } from '../lib/home-data';
-import { formatHomeCents } from '../lib/home-utils';
+import { formatMoneyCompact } from '@shared/currencies';
 import type { StoryFilters } from '../lib/home-types';
 
 export const dynamic = 'force-dynamic';
@@ -156,7 +156,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
                 <p>{item.description ?? `${item.title} is collecting support through verified CharitMe records.`}</p>
                 <div className="kind-person">
                   <i style={{ background: ['linear-gradient(135deg, #8b5cf6, #f59e0b)', 'linear-gradient(135deg, #10b981, #f472b6)', 'linear-gradient(135deg, #0f172a, #06b6d4)'][index % 3] }} />
-                  <div><strong>{profileName(item.profiles)}</strong><span>{item.title}</span><b>Raised {formatHomeCents(item.raised_amount)}</b></div>
+                  <div><strong>{profileName(item.profiles)}</strong><span>{item.title}</span><b>Raised {formatMoneyCompact(item.raised_amount, item.currency ?? 'usd')}</b></div>
                 </div>
               </article>
             ))}

@@ -76,3 +76,17 @@ export function formatMoneyShort(cents: number, currency: string = DEFAULT_CURRE
   }
   return formatMoney(cents, currency, locale);
 }
+
+/** "$1.2M" for large amounts, otherwise "$1,234" — for hero stats and story cards. */
+export function formatMoneyCompact(cents: number, currency: string = DEFAULT_CURRENCY, locale: string = 'en-US'): string {
+  const amount = cents / 100;
+  if (amount >= 1_000_000) {
+    return `${currencySymbol(currency)}${(amount / 1_000_000).toFixed(1)}M`;
+  }
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: normalizeCurrency(currency),
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}

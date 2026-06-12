@@ -8,6 +8,7 @@ export type StoryFilters = {
 };
 
 export type HomeCampaign = {
+  id?: string;
   slug: string;
   title: string;
   tagline?: string | null;
@@ -20,5 +21,6 @@ export type HomeCampaign = {
   trust_status?: string | null;
   campaign_health_score?: number | null;
   deadline: string | null;
+  currency?: string | null;
   profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
 };

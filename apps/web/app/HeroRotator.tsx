@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { formatMoneyCompact } from '@shared/currencies';
 
 export type RotatorCampaign = {
   slug: string;
@@ -16,6 +17,7 @@ export type RotatorCampaign = {
   deadline: string | null;
   organizer_name: string | null;
   featured: boolean | null;
+  currency?: string | null;
 };
 
 function relativeTime(iso: string | null): string {
@@ -36,12 +38,6 @@ function trustLabel(status: string | null): string {
     'Flagged':        'Flagged',
   };
   return map[status ?? ''] ?? 'Live';
-}
-
-function formatCents(cents: number): string {
-  const dollars = cents / 100;
-  if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1)}M`;
-  return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 }
 
 const ROTATION_INTERVAL = 7000; // ms between slides
@@ -290,8 +286,8 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
         </p>
 
         <div className="kind-raise-row" style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>
-          <strong>{formatCents(campaign?.raised_amount ?? 0)} <span>raised</span></strong>
-          <span>{formatCents(campaign?.goal_amount ?? 0)} goal</span>
+          <strong>{formatMoneyCompact(campaign?.raised_amount ?? 0, campaign?.currency ?? 'usd')} <span>raised</span></strong>
+          <span>{formatMoneyCompact(campaign?.goal_amount ?? 0, campaign?.currency ?? 'usd')} goal</span>
         </div>
         <div className="kind-progress">
           <i style={{ width: `${heroPercent}%`, transition: 'width 0.6s ease' }} />

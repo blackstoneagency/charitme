@@ -25,12 +25,28 @@ export function profileName(value: HomeCampaign['profiles']): string {
   return profile?.full_name ?? 'CharitMe Organizer';
 }
 
+/** Batch-fetch each campaign's configured currency from campaign_launch_settings. */
+export async function attachCampaignCurrencies<T extends { id: string }>(items: T[]): Promise<(T & { currency: string | null })[]> {
+  if (items.length === 0) return [];
+  const { data: launchSettings } = await supabaseAdmin
+    .from('campaign_launch_settings')
+    .select('campaign_id, currency')
+    .in('campaign_id', items.map((c) => c.id));
+
+  const currencyMap = new Map<string, string>();
+  for (const ls of launchSettings ?? []) {
+    if (ls.currency) currencyMap.set(ls.campaign_id, ls.currency);
+  }
+
+  return items.map((item) => ({ ...item, currency: currencyMap.get(item.id) ?? null }));
+}
+
 export async function getStoryCampaigns(filters: StoryFilters): Promise<HomeCampaign[]> {
   const normalized = normalizeStoryFilters(filters);
   const categoryValues = categoryGroup(normalized.storyCategory as StoryFilterValue);
   let query = supabaseAdmin
     .from('campaigns')
-    .select('slug,title,tagline,description,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,created_at,status')
+    .select('id,slug,title,tagline,description,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,created_at,status')
     .eq('status', 'active')
     .eq('visibility', 'public')
     .is('deleted_at', null);
@@ -58,7 +74,7 @@ export async function getStoryCampaigns(filters: StoryFilters): Promise<HomeCamp
 
   const { data, error } = await query.limit(12);
   if (error) return [];
-  return (data ?? []) as HomeCampaign[];
+  return attachCampaignCurrencies((data ?? []) as (HomeCampaign & { id: string })[]);
 }
 
 export async function getHomeData(filters: StoryFilters): Promise<{
@@ -80,7 +96,7 @@ export async function getHomeData(filters: StoryFilters): Promise<{
   ] = await Promise.all([
     supabaseAdmin
       .from('campaigns')
-      .select('slug,title,description,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,profiles:user_id(full_name)')
+      .select('id,slug,title,description,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,profiles:user_id(full_name)')
       .eq('status', 'active')
       .eq('visibility', 'public')
       .is('deleted_at', null)
@@ -89,7 +105,7 @@ export async function getHomeData(filters: StoryFilters): Promise<{
     getStoryCampaigns(filters),
     supabaseAdmin
       .from('campaigns')
-      .select('slug,title,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,video_url,featured,profiles:user_id(full_name)')
+      .select('id,slug,title,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,video_url,featured,profiles:user_id(full_name)')
       .eq('status', 'active')
       .eq('visibility', 'public')
       .is('deleted_at', null)
@@ -110,9 +126,10 @@ export async function getHomeData(filters: StoryFilters): Promise<{
       .gt('campaign_health_score', 0),
   ]);
 
-  const featuredCampaigns = (campaigns ?? []) as HomeCampaign[];
+  const featuredCampaigns = await attachCampaignCurrencies((campaigns ?? []) as (HomeCampaign & { id: string })[]);
 
   type RawRotator = {
+    id: string;
     slug: string;
     title: string;
     category: string | null;
@@ -128,9 +145,10 @@ export async function getHomeData(filters: StoryFilters): Promise<{
     profiles?: { full_name: string | null } | { full_name: string | null }[] | null;
   };
 
-  const rotatorCampaigns: RotatorCampaign[] = ((rotatorRaw ?? []) as RawRotator[])
+  const rawRotatorCampaigns = ((rotatorRaw ?? []) as RawRotator[])
     .filter(c => c.cover_image_url && c.cover_image_url.startsWith('http'))
     .map(c => ({
+      id: c.id,
       slug: c.slug,
       title: c.title,
       category: c.category,
@@ -146,6 +164,8 @@ export async function getHomeData(filters: StoryFilters): Promise<{
         ? (c.profiles[0]?.full_name ?? null)
         : ((c.profiles as { full_name: string | null } | null)?.full_name ?? null),
     }));
+
+  const rotatorCampaigns: RotatorCampaign[] = await attachCampaignCurrencies(rawRotatorCampaigns);
 
   const platformRaised = ((completedDonationResult.data ?? []) as { amount_cents: number }[])
     .reduce((sum, r) => sum + (r.amount_cents ?? 0), 0);
