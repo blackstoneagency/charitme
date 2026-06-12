@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // Extract bare domain from a URL or domain string
 function extractDomain(urlOrDomain: string): string {

@@ -65,10 +65,10 @@ type FrequencyMode = 'once' | 'monthly';
 interface PayOption { id: PaymentMethod; label: string; icon: React.ReactNode }
 
 const PAY_OPTIONS: PayOption[] = [
-  { id: 'stripe',  label: 'Stripe',         icon: <span style={{ fontWeight: 900, fontSize: 13, color: '#635bff' }}>S</span> },
-  { id: 'paypal',  label: 'PayPal',         icon: <span style={{ fontWeight: 900, fontSize: 13, color: '#003087' }}>P</span> },
-  { id: 'venmo',   label: 'Venmo',          icon: <span style={{ fontWeight: 900, fontSize: 13, color: '#3D95CE' }}>V</span> },
-  { id: 'gpay',    label: 'Google Pay',     icon: <span style={{ fontWeight: 900, fontSize: 13, color: '#4285F4' }}>G</span> },
+  { id: 'stripe',  label: 'Stripe',         icon: <span style={{ fontWeight: 700, fontSize: 13, color: '#635bff' }}>S</span> },
+  { id: 'paypal',  label: 'PayPal',         icon: <span style={{ fontWeight: 700, fontSize: 13, color: '#003087' }}>P</span> },
+  { id: 'venmo',   label: 'Venmo',          icon: <span style={{ fontWeight: 700, fontSize: 13, color: '#3D95CE' }}>V</span> },
+  { id: 'gpay',    label: 'Google Pay',     icon: <span style={{ fontWeight: 700, fontSize: 13, color: '#4285F4' }}>G</span> },
   { id: 'bank',    label: 'Bank transfer',  icon: <span style={{ fontSize: 14 }}>🏛</span> },
   { id: 'card',    label: 'Credit or debit',icon: <span style={{ fontSize: 14 }}>💳</span> },
 ];
@@ -185,7 +185,7 @@ export default function DonateButton({
               borderRadius: 10,
               background: frequency === f ? (f === 'monthly' ? GR : '#fff') : 'transparent',
               color: frequency === f ? (f === 'monthly' ? '#fff' : V) : MU,
-              fontWeight: 900,
+              fontWeight: 700,
               fontSize: 14,
               cursor: 'pointer',
               boxShadow: frequency === f ? '0 2px 10px rgba(0,0,0,.12)' : 'none',
@@ -204,7 +204,7 @@ export default function DonateButton({
       {/* ── Monthly boost nudge ── */}
       {isMonthly && (
         <div style={{ background: `${GR}12`, borderRadius: 10, padding: '10px 14px', border: `1px solid ${GR}30` }}>
-          <div style={{ fontWeight: 900, fontSize: 13, color: GR }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: GR }}>
             💚 0% platform fee · 100% reaches the campaign
           </div>
           <div style={{ fontSize: 12, color: GR, marginTop: 3, opacity: .85 }}>
@@ -214,7 +214,7 @@ export default function DonateButton({
       )}
       {!isMonthly && (
         <div style={{ background: '#f0fff8', borderRadius: 10, padding: '10px 14px', border: '1px solid #bbf7d0' }}>
-          <div style={{ fontWeight: 900, fontSize: 13, color: '#065f46' }}>0% mandatory platform fee</div>
+          <div style={{ fontWeight: 700, fontSize: 13, color: '#065f46' }}>0% mandatory platform fee</div>
           <div style={{ fontSize: 12, color: '#065f46', marginTop: 3 }}>
             CharitMe is supported by optional donor tips. Every fee is shown before checkout.
           </div>
@@ -238,7 +238,7 @@ export default function DonateButton({
                 borderRadius: 12,
                 background: active ? V : '#fff',
                 color: active ? '#fff' : INK,
-                fontWeight: 900,
+                fontWeight: 700,
                 fontSize: 15,
                 cursor: 'pointer',
                 transition: 'border-color .15s, background .15s, color .15s',
@@ -248,7 +248,7 @@ export default function DonateButton({
               {popular && (
                 <span style={{
                   position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)',
-                  fontSize: 8.5, fontWeight: 900, letterSpacing: '.05em', whiteSpace: 'nowrap',
+                  fontSize: 8.5, fontWeight: 700, letterSpacing: '.05em', whiteSpace: 'nowrap',
                   background: active ? '#fff' : V, color: active ? V : '#fff',
                   padding: '1px 7px', borderRadius: 999,
                 }}>POPULAR</span>
@@ -261,7 +261,7 @@ export default function DonateButton({
       {/* ── Custom amount input ── */}
       <div style={{ border: `1.5px solid ${BD}`, borderRadius: 12, background: '#fff', overflow: 'hidden', padding: '12px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 22, fontWeight: 900, color: MU }}>$</span>
+          <span style={{ fontSize: 22, fontWeight: 800, color: MU }}>$</span>
           <input
             type="number"
             min="1"
@@ -274,7 +274,7 @@ export default function DonateButton({
               flex: 1,
               border: 0,
               fontSize: 28,
-              fontWeight: 900,
+              fontWeight: 700,
               outline: 'none',
               background: 'transparent',
               color: INK,
@@ -290,8 +290,8 @@ export default function DonateButton({
       {/* ── Tip CharitMe services — slider ── */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 800, color: INK }}>Tip CharitMe services</span>
-          <span style={{ fontSize: 13, fontWeight: 900, color: V }}>{tipPercent}%</span>
+          <span style={{ fontSize: 13, fontWeight: 650, color: INK }}>Tip CharitMe services</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: V }}>{tipPercent}%</span>
         </div>
         <p style={{ margin: '0 0 10px', fontSize: 12, color: MU, lineHeight: 1.5 }}>
           CharitMe has a 0% platform fee for organizers and relies primarily on the generosity of donors like you to operate our service.
@@ -317,7 +317,7 @@ export default function DonateButton({
 
       {/* ── Payment method — radio list ── */}
       <div>
-        <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 900, color: MU, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+        <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 700, color: MU, textTransform: 'uppercase', letterSpacing: '.06em' }}>
           Payment method
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: `1.5px solid ${BD}`, borderRadius: 14, overflow: 'hidden' }}>
@@ -403,7 +403,7 @@ export default function DonateButton({
 
       {/* ── Transparent breakdown ── */}
       <div style={{ background: '#f9f7ff', borderRadius: 14, padding: '16px 18px', border: `1px solid ${BD}` }}>
-        <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 900, color: MU, textTransform: 'uppercase', letterSpacing: '.07em' }}>
+        <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, color: MU, textTransform: 'uppercase', letterSpacing: '.07em' }}>
           Transparent breakdown
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -415,7 +415,7 @@ export default function DonateButton({
               value={money(breakdown.processing)}
             />
           )}
-          <div style={{ borderTop: `1px solid ${BD}`, marginTop: 4, paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 18, fontWeight: 950, color: INK }}>
+          <div style={{ borderTop: `1px solid ${BD}`, marginTop: 4, paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 18, fontWeight: 800, color: INK }}>
             <span>Total{isMonthly ? '/month' : ''}</span>
             <span>{money(breakdown.total)}</span>
           </div>
@@ -446,7 +446,7 @@ export default function DonateButton({
             : `linear-gradient(135deg, ${V}, ${VD})`,
           color: '#fff',
           fontSize: 17,
-          fontWeight: 950,
+          fontWeight: 700,
           cursor: loading ? 'not-allowed' : 'pointer',
           letterSpacing: '-.01em',
           boxShadow: isMonthly
@@ -477,7 +477,7 @@ function BRow({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: MU }}>
       <span>{label}</span>
-      <span style={{ fontWeight: 800, color: INK }}>{value}</span>
+      <span style={{ fontWeight: 650, color: INK }}>{value}</span>
     </div>
   );
 }

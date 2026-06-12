@@ -254,12 +254,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span className="pc-verified">✓ Verified Campaign</span>
           {campaign.category && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: '#f0eaff', color: 'var(--violet)', fontSize: 12, fontWeight: 800, letterSpacing: '.04em' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: '#f0eaff', color: 'var(--violet)', fontSize: 12, fontWeight: 650, letterSpacing: '.04em' }}>
               {campaign.category}
             </span>
           )}
           {(campaign as { nonprofit_verified?: boolean }).nonprofit_verified && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: '#dcfce7', color: '#15803d', fontSize: 12, fontWeight: 800 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: '#dcfce7', color: '#15803d', fontSize: 12, fontWeight: 650 }}>
               Tax Deductible
             </span>
           )}
@@ -270,12 +270,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
         {/* Organizer row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,var(--violet),var(--violet-2))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 15, flexShrink: 0 }}>
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,var(--violet),var(--violet-2))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15, flexShrink: 0 }}>
             {(organizer.full_name ?? 'C')[0]}
           </div>
           <p className="pc-organizer" style={{ margin: 0 }}>
-            Organized by <b style={{ color: 'var(--ink)', fontWeight: 800 }}>{organizer.full_name ?? 'CharitMe Organizer'}</b>
-            {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: '#dcfce7', color: '#15803d', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 800 }}>✓ Verified</span>
+            Organized by <b style={{ color: 'var(--ink)', fontWeight: 650 }}>{organizer.full_name ?? 'CharitMe Organizer'}</b>
+            {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: '#dcfce7', color: '#15803d', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 650 }}>✓ Verified</span>
             {' '}· {campaign.location ?? 'New York, USA'}
           </p>
         </div>
@@ -303,7 +303,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               </svg>
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--t1)' }}>CharitMe Score</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>CharitMe Score</div>
               <div style={{ fontSize: 11, fontWeight: 700, color: trustScore >= 70 ? '#059669' : trustScore >= 45 ? '#d97706' : '#dc2626' }}>
                 {trustScore >= 70 ? 'Strong Trust' : trustScore >= 45 ? 'Needs Attention' : 'Needs Review'}
               </div>
@@ -322,11 +322,11 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             const icon   = isVerified ? '✓' : isWatch ? '⚠' : '○';
             return (
               <div key={signal.label} className="pc-trust-signal" title={signal.detail}>
-                <span style={{ width: 28, height: 28, borderRadius: '50%', background: bg, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, flexShrink: 0 }}>
+                <span style={{ width: 28, height: 28, borderRadius: '50%', background: bg, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
                   {icon}
                 </span>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t1)', whiteSpace: 'nowrap' }}>{signal.label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 650, color: 'var(--t1)', whiteSpace: 'nowrap' }}>{signal.label}</div>
                   <div style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{signal.state}</div>
                 </div>
               </div>
@@ -385,12 +385,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
             {/* Donate + Share buttons inline */}
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-              <a href="#donate-section" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, background: 'linear-gradient(135deg,var(--violet),var(--violet-2))', color: '#fff', fontWeight: 900, fontSize: 15, textDecoration: 'none' }}>
+              <a href="#donate-section" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, background: 'linear-gradient(135deg,var(--violet),var(--violet-2))', color: '#fff', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
                 Donate
               </a>
               <a
                 href="#quick-share"
-                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, border: '1.5px solid var(--b2)', color: 'var(--t1)', fontWeight: 800, fontSize: 15, textDecoration: 'none', background: '#fff', gap: 6 }}
+                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, border: '1.5px solid var(--b2)', color: 'var(--t1)', fontWeight: 650, fontSize: 15, textDecoration: 'none', background: '#fff', gap: 6 }}
               >
                 Share
               </a>
@@ -468,7 +468,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
             {/* "Boost by giving monthly" nudge */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--t2)' }}>Boost your impact by giving monthly 🌱</span>
+              <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--t2)' }}>Boost your impact by giving monthly 🌱</span>
             </div>
 
             <strong className="pc-raised">{formatCents(raised)}</strong>
@@ -518,15 +518,15 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           <h2>Campaign created with AI</h2>
           <p>CharitMe helps organizers tell their story, reach more people, and maximize impact while keeping trust and transparency visible.</p>
           <ul>
-            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 850 }}>AI story assistant</Link></li>
-            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 850 }}>AI outreach plan</Link></li>
-            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 850 }}>AI growth strategy</Link></li>
+            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 650 }}>AI story assistant</Link></li>
+            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 650 }}>AI outreach plan</Link></li>
+            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 650 }}>AI growth strategy</Link></li>
           </ul>
         </article>
 
         {/* Impact Tracker */}
         <div className="pc-impact-card">
-          <h2 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 900, letterSpacing: '-.02em' }}>Impact Tracker</h2>
+          <h2 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 800, letterSpacing: '-.02em' }}>Impact Tracker</h2>
           <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--t3)', lineHeight: 1.5 }}>Your generosity is making a difference</p>
           <div className="pc-impact-donut">
             <svg width="130" height="130" viewBox="0 0 130 130" aria-hidden="true">
@@ -544,24 +544,24 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '12px 0 0', padding: '12px 14px', background: 'rgba(108,53,255,.05)', border: '1px solid rgba(108,53,255,.12)', borderRadius: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
               <span style={{ fontWeight: 700 }}>Momentum</span>
-              <span style={{ fontWeight: 900, color: impact.momentum === 'surging' ? '#059669' : impact.momentum === 'steady' ? '#6c35ff' : 'var(--t3)' }}>
+              <span style={{ fontWeight: 700, color: impact.momentum === 'surging' ? '#059669' : impact.momentum === 'steady' ? '#6c35ff' : 'var(--t3)' }}>
                 {impact.momentum === 'surging' ? '🔥 Surging' : impact.momentum === 'steady' ? '📈 Steady' : '🌱 Just started'}
               </span>
             </div>
             {impact.dailyVelocityCents >= 100 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
                 <span style={{ fontWeight: 700 }}>Raising per day</span>
-                <span style={{ fontWeight: 900, color: 'var(--t1)' }}>~{formatCents(impact.dailyVelocityCents)}</span>
+                <span style={{ fontWeight: 700, color: 'var(--t1)' }}>~{formatCents(impact.dailyVelocityCents)}</span>
               </div>
             )}
             {impact.projectedDaysToGoal !== null && impact.projectedDaysToGoal > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
                 <span style={{ fontWeight: 700 }}>On pace to hit goal in</span>
-                <span style={{ fontWeight: 900, color: '#059669' }}>~{impact.projectedDaysToGoal} day{impact.projectedDaysToGoal === 1 ? '' : 's'}</span>
+                <span style={{ fontWeight: 700, color: '#059669' }}>~{impact.projectedDaysToGoal} day{impact.projectedDaysToGoal === 1 ? '' : 's'}</span>
               </div>
             )}
             {impact.projectedDaysToGoal === 0 && (
-              <div style={{ fontSize: 12.5, fontWeight: 900, color: '#059669', textAlign: 'center' }}>🎉 Goal reached!</div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: '#059669', textAlign: 'center' }}>🎉 Goal reached!</div>
             )}
           </div>
           {updates.length > 0 ? (
@@ -615,7 +615,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
       {/* ── FAQ ── */}
       {faqs.length > 0 && (
         <section style={{ maxWidth: 800, margin: '0 auto 40px', padding: '0 24px' }}>
-          <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 16, color: '#1a1a2e' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16, color: '#1a1a2e' }}>
             Frequently Asked Questions
           </h2>
           <div style={{ display: 'grid', gap: 8 }}>
@@ -637,7 +637,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
       {/* ── Donor matching — related campaigns ── */}
       {relatedCampaigns.length > 0 && (
         <section style={{ maxWidth: 1080, margin: '0 auto 48px', padding: '0 24px' }}>
-          <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 4, color: 'var(--t1)' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4, color: 'var(--t1)' }}>
             Donors also supported
           </h2>
           <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--t3)' }}>
@@ -657,8 +657,8 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                     />
                   </div>
                   <div style={{ padding: '14px 16px 16px' }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>{rc.category}</div>
-                    <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--t1)', marginBottom: 10, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{rc.title}</div>
+                    <div style={{ fontSize: 11, fontWeight: 650, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 6 }}>{rc.category}</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 10, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{rc.title}</div>
                     <div style={{ height: 6, background: '#eef0f7', borderRadius: 999, overflow: 'hidden', marginBottom: 8 }}>
                       <span style={{ display: 'block', height: '100%', width: `${rcPct}%`, background: 'linear-gradient(90deg, #6c35ff, #a78bfa)', borderRadius: 999 }} />
                     </div>

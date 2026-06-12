@@ -79,7 +79,7 @@ export default function MobileDonateCTA({ campaignTitle, raised, pct, isActive }
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           height: 44, padding: '0 20px', borderRadius: 10, border: 0,
           background: 'linear-gradient(135deg,#6c35ff,#4d1ee0)',
-          color: '#fff', fontSize: 14, fontWeight: 900, textDecoration: 'none',
+          color: '#fff', fontSize: 14, fontWeight: 700, textDecoration: 'none',
           flexShrink: 0, boxShadow: '0 4px 12px rgba(108,53,255,.35)',
         }}
         aria-label={`Donate to ${campaignTitle}`}

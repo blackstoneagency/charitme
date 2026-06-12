@@ -54,7 +54,7 @@ export default async function CampaignEmbedPage({ params }: Props) {
           />
         )}
 
-        <h2 style={{ fontSize: 18, fontWeight: 900, color: '#1a1a2e', marginBottom: 4, lineHeight: 1.3 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1a1a2e', marginBottom: 4, lineHeight: 1.3 }}>
           {campaign.title}
         </h2>
         {campaign.tagline && (
@@ -64,7 +64,7 @@ export default async function CampaignEmbedPage({ params }: Props) {
         {/* Progress */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 15, fontWeight: 900, color: '#6c35ff' }}>{fmt(raised)}</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#6c35ff' }}>{fmt(raised)}</span>
             <span style={{ fontSize: 13, color: '#64748b' }}>of {fmt(goal)}</span>
           </div>
           <div style={{ background: '#e8ecf4', borderRadius: 99, height: 8, overflow: 'hidden' }}>

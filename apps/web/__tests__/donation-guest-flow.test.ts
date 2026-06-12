@@ -4,7 +4,6 @@ import {
   methodProcessingFee,
   MIN_DONATION_CENTS,
   MAX_DONATION_CENTS,
-  type PaymentMethod,
 } from '@shared/fees';
 import { reconcileMoneyFlow, summarizePaymentRows, type AdminPaymentRow } from '../lib/payment-flow-core';
 
