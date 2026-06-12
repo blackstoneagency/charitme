@@ -1,6 +1,7 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../../lib/supabase';
+import { formatMoneyShort } from '@shared/currencies';
 
 const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
 
@@ -24,12 +25,19 @@ export async function GET(
     return new NextResponse('Campaign not found', { status: 404 });
   }
 
+  const { data: launchSettings } = await supabaseAdmin
+    .from('campaign_launch_settings')
+    .select('currency')
+    .eq('campaign_id', campaign.id)
+    .maybeSingle();
+  const currency = launchSettings?.currency ?? 'usd';
+
   const campaignUrl = `${ORIGIN}/campaigns/${campaign.slug}`;
   const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(campaignUrl)}&color=6c35ff&bgcolor=ffffff&margin=12`;
   const pct = campaign.goal_amount > 0
     ? Math.min(100, Math.round((campaign.raised_amount / campaign.goal_amount) * 100))
     : 0;
-  const raised = `$${(campaign.raised_amount / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  const raised = formatMoneyShort(campaign.raised_amount, currency);
 
   const html = `<!DOCTYPE html>
 <html lang="en">
