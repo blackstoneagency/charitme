@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CharitMeShell, TopBar } from '../../../../../components/CharitMeApp';
 import { createClient } from '../../../../../lib/supabase-browser';
+import { formatMoneyShort, currencySymbol } from '@shared/currencies';
 
 type Milestone = {
   id: string;
@@ -19,6 +20,7 @@ export default function CampaignMilestonesPage({ params }: { params: Promise<{ i
   const router = useRouter();
   const [campaignId, setCampaignId] = useState('');
   const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [currency, setCurrency] = useState('usd');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -34,8 +36,9 @@ export default function CampaignMilestonesPage({ params }: { params: Promise<{ i
         if (!user) { router.push('/login'); return; }
         fetch(`/api/campaigns/${id}/milestones`)
           .then(res => res.json())
-          .then((data: { milestones?: Milestone[] }) => {
+          .then((data: { milestones?: Milestone[]; currency?: string }) => {
             setMilestones(data.milestones ?? []);
+            setCurrency(data.currency ?? 'usd');
             setLoading(false);
           })
           .catch(() => setLoading(false));
@@ -86,7 +89,7 @@ export default function CampaignMilestonesPage({ params }: { params: Promise<{ i
     await fetch(`/api/campaigns/${campaignId}/milestones/${id}`, { method: 'DELETE' }).catch(() => undefined);
   }
 
-  const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  const money = (cents: number) => formatMoneyShort(cents, currency);
 
   if (loading) {
     return <CharitMeShell active="My Campaigns"><TopBar title="Campaign Milestones" subtitle="Loading…" /><div style={{ padding: 32, color: 'var(--t3)' }}>Loading…</div></CharitMeShell>;
@@ -149,7 +152,7 @@ export default function CampaignMilestonesPage({ params }: { params: Promise<{ i
             <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: '#26335c' }}>
               Target amount (optional)
               <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: 12, top: 0, bottom: 0, display: 'flex', alignItems: 'center', color: 'var(--t3)', fontWeight: 800 }}>$</span>
+                <span style={{ position: 'absolute', left: 12, top: 0, bottom: 0, display: 'flex', alignItems: 'center', color: 'var(--t3)', fontWeight: 800 }}>{currencySymbol(currency)}</span>
                 <input value={newTarget} onChange={e => setNewTarget(e.target.value)} type="number" min="1" step="1"
                   placeholder="2500" style={{ width: '100%', boxSizing: 'border-box', height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px 0 26px', fontSize: 14 }} />
               </div>
