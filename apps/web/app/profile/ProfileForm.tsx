@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import { createClient } from '../../lib/supabase-browser';
 
 type Profile = {
   full_name: string | null;
@@ -50,6 +51,38 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [pwResetMsg, setPwResetMsg] = useState('');
+
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pwChangeStatus, setPwChangeStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [pwChangeError, setPwChangeError] = useState('');
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      setPwChangeStatus('error');
+      setPwChangeError('Password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwChangeStatus('error');
+      setPwChangeError('Passwords do not match.');
+      return;
+    }
+    setPwChangeStatus('saving');
+    setPwChangeError('');
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      setPwChangeStatus('error');
+      setPwChangeError(error.message);
+      return;
+    }
+    setNewPassword('');
+    setConfirmPassword('');
+    setPwChangeStatus('saved');
+    setTimeout(() => setPwChangeStatus('idle'), 2500);
+  }
 
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -242,10 +275,57 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
           <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
             <h2 className="mb-4 text-lg font-black text-slate-950">Account security</h2>
             <div className="space-y-3">
+              <form onSubmit={handlePasswordChange} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-sm font-black text-slate-950">Set a new password</div>
+                <div className="text-xs text-slate-500">Choose a new password for your account</div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="profile-new-password" className="mb-1 block text-xs font-black text-slate-700">New password</label>
+                    <input
+                      id="profile-new-password"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="At least 6 characters"
+                      minLength={6}
+                      autoComplete="new-password"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="profile-confirm-password" className="mb-1 block text-xs font-black text-slate-700">Confirm password</label>
+                    <input
+                      id="profile-confirm-password"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter new password"
+                      minLength={6}
+                      autoComplete="new-password"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+                    />
+                  </div>
+                </div>
+                {pwChangeStatus === 'error' && (
+                  <p className="mt-3 text-xs font-bold text-red-600">{pwChangeError}</p>
+                )}
+                {pwChangeStatus === 'saved' && (
+                  <p className="mt-3 text-xs font-bold text-emerald-600">✓ Password updated</p>
+                )}
+                <div className="mt-3 flex items-center gap-3">
+                  <button
+                    type="submit"
+                    disabled={pwChangeStatus === 'saving' || !newPassword || !confirmPassword}
+                    className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-black text-white disabled:opacity-60"
+                  >
+                    {pwChangeStatus === 'saving' ? 'Updating…' : 'Update password'}
+                  </button>
+                </div>
+              </form>
               <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <div>
                   <div className="text-sm font-black text-slate-950">Password</div>
-                  <div className="text-xs text-slate-500">Change your account password via email</div>
+                  <div className="text-xs text-slate-500">Forgot your password? Email yourself a reset link</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                   {pwResetMsg && <span style={{ fontSize: 11, color: 'var(--green-dark, #15803d)', fontWeight: 600 }}>{pwResetMsg}</span>}
