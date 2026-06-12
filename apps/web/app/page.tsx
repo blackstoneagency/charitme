@@ -163,10 +163,10 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             {featuredCampaigns.length === 0 && (
               <article>
                 <div className="kind-quote">&quot;</div>
-                <p>Campaign stories will appear here as soon as active campaigns are available in Supabase.</p>
+                <p>Be among the first to launch a campaign and inspire the CharitMe community.</p>
                 <div className="kind-person">
                   <i style={{ background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)' }} />
-                  <div><strong>CharitMe</strong><span>Live Supabase data</span><b>Awaiting campaigns</b></div>
+                  <div><strong>CharitMe</strong><span>Your story starts here</span><b>Start a campaign</b></div>
                 </div>
               </article>
             )}
