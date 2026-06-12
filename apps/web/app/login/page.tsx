@@ -1,6 +1,7 @@
 'use client';
 
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '../../lib/supabase-browser';
 import { getAuthCallbackUrl, safeNextPath } from '../../lib/auth-config';
@@ -149,6 +150,10 @@ function LoginForm() {
             Password
             <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" required minLength={6} />
           </label>
+
+          {mode === 'login' ? (
+            <Link href="/forgot-password" className="auth-forgot">Forgot password?</Link>
+          ) : null}
 
           {error ? <p className="auth-error">{error}</p> : null}
           {success ? <p className="auth-success">{success}</p> : null}
