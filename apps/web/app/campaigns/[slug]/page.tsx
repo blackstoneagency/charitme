@@ -23,6 +23,7 @@ import Milestones from './Milestones';
 import CommentForm from './CommentForm';
 import CommentsList, { type WallComment } from './CommentsList';
 import SaveCampaignButton from './SaveCampaignButton';
+import CampaignAssistant from './CampaignAssistant';
 import { getPhotosForCategory, getCoverForCategory } from '../../../lib/photo-catalog';
 
 export const dynamic = 'force-dynamic';
@@ -788,27 +789,30 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         </section>
       )}
 
-      {/* ── FAQ ── */}
-      {faqs.length > 0 && (
-        <section style={{ maxWidth: 800, margin: '0 auto 40px', padding: '0 24px' }}>
-          <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 16, color: 'var(--t1, #1a1a2e)' }}>
-            Frequently Asked Questions
-          </h2>
-          <div style={{ display: 'grid', gap: 8 }}>
-            {faqs.map(faq => (
-              <details key={faq.id} style={{ background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 12, overflow: 'hidden' }}>
-                <summary style={{ padding: '16px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer', color: 'var(--t1, #1a1a2e)', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  {faq.question}
-                  <span style={{ fontSize: 20, color: 'var(--violet, #6c35ff)', flexShrink: 0, marginLeft: 12 }}>+</span>
-                </summary>
-                <div style={{ padding: '4px 20px 18px', fontSize: 14, color: 'var(--t3, #64748b)', lineHeight: 1.7 }}>
-                  {faq.answer}
-                </div>
-              </details>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* ── FAQ + AI assistant ── */}
+      <section style={{ maxWidth: 800, margin: '0 auto 40px', padding: '0 24px' }}>
+        {faqs.length > 0 && (
+          <>
+            <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 16, color: 'var(--t1, #1a1a2e)' }}>
+              Frequently Asked Questions
+            </h2>
+            <div style={{ display: 'grid', gap: 8 }}>
+              {faqs.map(faq => (
+                <details key={faq.id} style={{ background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 12, overflow: 'hidden' }}>
+                  <summary style={{ padding: '16px 20px', fontSize: 15, fontWeight: 700, cursor: 'pointer', color: 'var(--t1, #1a1a2e)', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    {faq.question}
+                    <span style={{ fontSize: 20, color: 'var(--violet, #6c35ff)', flexShrink: 0, marginLeft: 12 }}>+</span>
+                  </summary>
+                  <div style={{ padding: '4px 20px 18px', fontSize: 14, color: 'var(--t3, #64748b)', lineHeight: 1.7 }}>
+                    {faq.answer}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </>
+        )}
+        <CampaignAssistant campaignId={campaign.id} />
+      </section>
 
       {/* ── Trust bar ── */}
       <section className="pc-safe">
