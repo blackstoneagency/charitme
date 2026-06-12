@@ -117,6 +117,7 @@ export default function DonateButton({
   const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
   const [presets, setPresets] = useState<number[]>([...PRESETS]);
   const [aiNudge, setAiNudge] = useState('');
+  const [customTipMode, setCustomTipMode] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -393,31 +394,52 @@ export default function DonateButton({
         <div style={{ fontSize: 11, color: MU, fontWeight: 700, marginTop: 4, letterSpacing: '.05em' }}>USD</div>
       </div>
 
-      {/* ── Tip CharitMe services — slider ── */}
+      {/* ── Tip CharitMe services — slider or custom ── */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontSize: 13, fontWeight: 800, color: INK }}>Tip CharitMe services</span>
-          <span style={{ fontSize: 13, fontWeight: 900, color: V }}>{tipPercent}%</span>
+          {customTipMode ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                value={tipPercent}
+                onChange={(e) => setTipPercent(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
+                aria-label="Custom tip percentage"
+                style={{ width: 56, border: `1.5px solid ${BD}`, borderRadius: 8, padding: '4px 6px', fontSize: 13, fontWeight: 900, color: V, fontFamily: 'inherit', outline: 'none', background: 'var(--s1, #fff)', textAlign: 'right' }}
+              />
+              <span style={{ fontSize: 13, fontWeight: 900, color: V }}>%</span>
+            </div>
+          ) : (
+            <span style={{ fontSize: 13, fontWeight: 900, color: V }}>{tipPercent}%</span>
+          )}
         </div>
         <p style={{ margin: '0 0 10px', fontSize: 12, color: MU, lineHeight: 1.5 }}>
           CharitMe has a 0% platform fee for organizers and relies primarily on the generosity of donors like you to operate our service.
         </p>
-        <input
-          type="range"
-          min={TIP_MIN}
-          max={TIP_MAX}
-          step="0.5"
-          value={tipPercent}
-          onChange={(e) => setTipPercent(Number(e.target.value))}
-          aria-label="Tip percentage"
-          style={{ width: '100%', accentColor: V, cursor: 'pointer' }}
-        />
+        {!customTipMode && (
+          <input
+            type="range"
+            min={TIP_MIN}
+            max={TIP_MAX}
+            step="0.5"
+            value={tipPercent}
+            onChange={(e) => setTipPercent(Number(e.target.value))}
+            aria-label="Tip percentage"
+            style={{ width: '100%', accentColor: V, cursor: 'pointer' }}
+          />
+        )}
         <button
           type="button"
-          onClick={() => setTipPercent(0)}
-          style={{ background: 'none', border: 'none', color: V, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: '6px 0 0', display: 'block' }}
+          onClick={() => {
+            if (customTipMode && tipPercent > TIP_MAX) setTipPercent(TIP_MAX);
+            setCustomTipMode((v) => !v);
+          }}
+          style={{ background: 'none', border: 'none', color: V, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: '6px 0 0', display: 'block', fontFamily: 'inherit' }}
         >
-          Enter custom tip
+          {customTipMode ? 'Use slider instead' : 'Enter custom tip'}
         </button>
       </div>
 
