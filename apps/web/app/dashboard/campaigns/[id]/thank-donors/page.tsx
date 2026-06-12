@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CharitMeShell, TopBar } from '../../../../../components/CharitMeApp';
 import { createClient } from '../../../../../lib/supabase-browser';
+import { formatMoneyShort } from '@shared/currencies';
 
 type Donation = {
   id: string;
   amount_cents: number;
+  currency: string | null;
   created_at: string;
   anonymous: boolean;
   donor_id: string | null;
@@ -56,12 +58,12 @@ export default function ThankDonorsPage({ params }: { params: Promise<{ id: stri
 
       Promise.all([
         supabase.from('campaigns').select('id, title, slug').eq('id', campaignId).eq('user_id', user.id).single(),
-        supabase.from('donations').select('id, amount_cents, created_at, anonymous, donor_id').eq('campaign_id', campaignId).eq('status', 'completed').eq('anonymous', false).order('created_at', { ascending: false }).limit(200),
+        supabase.from('donations').select('id, amount_cents, currency, created_at, anonymous, donor_id').eq('campaign_id', campaignId).eq('status', 'completed').eq('anonymous', false).order('created_at', { ascending: false }).limit(200),
       ]).then(([{ data: camp }, { data: dons }]) => {
         if (!camp) { router.push('/dashboard/campaigns'); return; }
         setCampaign(camp as Campaign);
 
-        const donList = (dons ?? []) as { id: string; amount_cents: number; created_at: string; anonymous: boolean; donor_id: string | null }[];
+        const donList = (dons ?? []) as { id: string; amount_cents: number; currency: string | null; created_at: string; anonymous: boolean; donor_id: string | null }[];
         const uniqueDonorIds = [...new Set(donList.map(d => d.donor_id).filter(Boolean))] as string[];
 
         if (uniqueDonorIds.length === 0) {
@@ -111,7 +113,6 @@ export default function ThankDonorsPage({ params }: { params: Promise<{ id: stri
     }
   }
 
-  const fmtCents = (c: number) => `$${(c / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
   const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   if (loading) {
@@ -198,7 +199,7 @@ export default function ThankDonorsPage({ params }: { params: Promise<{ id: stri
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <strong style={{ fontSize: 14, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.donor_name}</strong>
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', flexShrink: 0 }}>{fmtCents(d.amount_cents)}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', flexShrink: 0 }}>{formatMoneyShort(d.amount_cents, d.currency ?? 'usd')}</span>
                     <span style={{ fontSize: 11, color: 'var(--t3)', flexShrink: 0 }}>{fmtDate(d.created_at)}</span>
                   </label>
                 ))}

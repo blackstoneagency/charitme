@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { formatMoneyShort } from '@shared/currencies';
 
 type DailyPoint = { date: string; count: number; amount: number };
 type SourceRow  = { source: string; count: number; amount: number };
@@ -12,6 +13,7 @@ type Analytics = {
     id: string; title: string; slug: string; status: string;
     raised_amount: number; goal_amount: number; backer_count: number;
   };
+  currency?: string;
   period: { days: number; from: string };
   summary: {
     donationsLast30Days: number;
@@ -28,10 +30,6 @@ type Analytics = {
   topSources: SourceRow[];
   sharesByChannel: ChannelRow[];
 };
-
-function fmt(cents: number) {
-  return '$' + (cents / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
 
 function pct(n: number, d: number) {
   return d > 0 ? Math.round((n / d) * 100) : 0;
@@ -66,6 +64,8 @@ export default function CampaignAnalyticsPage({ params }: { params: Promise<{ id
   if (error || !analytics) return <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--red, #ef4444)' }}>{error || 'No data'}</div>;
 
   const { campaign, summary, dailyTrend, topSources, sharesByChannel } = analytics;
+  const currency = analytics.currency ?? 'usd';
+  const fmt = (cents: number) => formatMoneyShort(cents, currency);
   const goalPct = pct(campaign.raised_amount, campaign.goal_amount);
   const maxDay = Math.max(...dailyTrend.map(d => d.amount), 1);
 

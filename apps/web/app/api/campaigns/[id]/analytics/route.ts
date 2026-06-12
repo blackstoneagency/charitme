@@ -36,6 +36,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     { data: donations },
     { data: shareEvents },
     { data: recurringDonations },
+    { data: launchSettings },
   ] = await Promise.all([
     supabaseAdmin
       .from('donations')
@@ -55,6 +56,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       .select('id, amount_cents, cadence, status')
       .eq('campaign_id', id)
       .eq('status', 'active'),
+    supabaseAdmin
+      .from('campaign_launch_settings')
+      .select('currency')
+      .eq('campaign_id', id)
+      .maybeSingle(),
   ]);
 
   // ── Daily donation trend (last 30 days) ──────────────────────────────────
@@ -129,6 +135,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       goal_amount: campaign.goal_amount,
       backer_count: campaign.backer_count,
     },
+    currency: launchSettings?.currency ?? 'usd',
     period: { days: 30, from: thirtyDaysAgo.slice(0, 10) },
     summary: {
       donationsLast30Days: allDonations.length,

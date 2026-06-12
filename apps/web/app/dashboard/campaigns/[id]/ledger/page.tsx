@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CharitMeShell, TopBar } from '../../../../../components/CharitMeApp';
 import { createClient } from '../../../../../lib/supabase-browser';
+import { formatMoneyShort, currencySymbol } from '@shared/currencies';
 
 type LedgerItem = {
   id: string;
@@ -41,13 +42,13 @@ const REVIEW_STATUS_LABELS: Record<string, { label: string; color: string }> = {
   rejected: { label: 'Rejected · Hidden from donors', color: 'red' },
 };
 
-const fmtCents = (c: number) => `$${(c / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
 export default function LedgerPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [campaignId, setCampaignId] = useState('');
   const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [currency, setCurrency] = useState('usd');
   const [items, setItems] = useState<LedgerItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -78,10 +79,12 @@ export default function LedgerPage({ params }: { params: Promise<{ id: string }>
       Promise.all([
         supabase.from('campaigns').select('id, title').eq('id', campaignId).eq('user_id', user.id).single(),
         supabase.from('transparency_ledger_items').select(LEDGER_SELECT).eq('campaign_id', campaignId).order('created_at', { ascending: false }),
-      ]).then(([{ data: camp }, { data: ledger }]) => {
+        supabase.from('campaign_launch_settings').select('currency').eq('campaign_id', campaignId).maybeSingle(),
+      ]).then(([{ data: camp }, { data: ledger }, { data: launchSettings }]) => {
         if (!camp) { router.push('/dashboard/campaigns'); return; }
         setCampaign(camp as Campaign);
         setItems((ledger ?? []) as LedgerItem[]);
+        setCurrency((launchSettings as { currency: string | null } | null)?.currency ?? 'usd');
         setLoading(false);
       });
     });
@@ -240,7 +243,7 @@ export default function LedgerPage({ params }: { params: Promise<{ id: string }>
               </label>
               <div className="kf-three-col" style={{ gap: 14 }}>
                 <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
-                  Amount ($) <span style={{ fontWeight: 400 }}>optional</span>
+                  Amount ({currencySymbol(currency)}) <span style={{ fontWeight: 400 }}>optional</span>
                   <input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} min="0" step="0.01"
                     placeholder="0.00" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
                 </label>
@@ -300,7 +303,7 @@ export default function LedgerPage({ params }: { params: Promise<{ id: string }>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       {item.amount_cents !== null && item.amount_cents > 0 && (
                         <strong style={{ fontSize: 15, color: item.item_type === 'offline_donation' ? 'var(--green)' : 'var(--t1)' }}>
-                          {item.item_type === 'offline_donation' ? '+' : ''}{fmtCents(item.amount_cents)}
+                          {item.item_type === 'offline_donation' ? '+' : ''}{formatMoneyShort(item.amount_cents, currency)}
                         </strong>
                       )}
                     </div>
