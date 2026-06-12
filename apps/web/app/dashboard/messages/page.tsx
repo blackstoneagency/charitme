@@ -1,7 +1,7 @@
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
-import MessagesClient, { type Thread, type OwnerReply } from './MessagesClient';
+import MessagesClient, { type Thread, type OwnerReply, type ThreadState } from './MessagesClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +15,7 @@ type Campaign = { id: string; title: string };
 type DonorMessage = { id: string; campaign_id: string; donor_id: string; message: string; created_at: string };
 type Profile = { id: string; full_name: string | null };
 type RawReply = { id: string; donor_message_id: string | null; message: string; created_at: string };
+type RawThreadState = { donor_id: string; archived: boolean; last_read_at: string | null };
 
 // ─────────────────────────────────────────────
 // Data fetch
@@ -23,6 +24,7 @@ async function fetchData(userId: string): Promise<{
   threads: Thread[];
   campaignMap: Record<string, string>;
   replies: Record<string, OwnerReply[]>;
+  threadState: Record<string, ThreadState>;
 }> {
   try {
     const { data: campaigns } = await supabaseAdmin
@@ -31,9 +33,9 @@ async function fetchData(userId: string): Promise<{
       .eq('user_id', userId);
 
     const cids = ((campaigns ?? []) as Campaign[]).map((c) => c.id);
-    if (cids.length === 0) return { threads: [], campaignMap: {}, replies: {} };
+    if (cids.length === 0) return { threads: [], campaignMap: {}, replies: {}, threadState: {} };
 
-    const [{ data: messages }, { data: replyData }] = await Promise.all([
+    const [{ data: messages }, { data: replyData }, { data: stateData }] = await Promise.all([
       supabaseAdmin
         .from('donor_messages')
         .select('id,campaign_id,donor_id,message,created_at')
@@ -45,7 +47,16 @@ async function fetchData(userId: string): Promise<{
         .select('id,donor_message_id,message,created_at')
         .eq('owner_id', userId)
         .order('created_at', { ascending: true }),
+      supabaseAdmin
+        .from('message_thread_state')
+        .select('donor_id,archived,last_read_at')
+        .eq('owner_id', userId),
     ]);
+
+    const threadState: Record<string, ThreadState> = {};
+    for (const s of (stateData ?? []) as RawThreadState[]) {
+      threadState[s.donor_id] = { archived: s.archived, lastReadAt: s.last_read_at };
+    }
 
     const msgs = (messages ?? []) as DonorMessage[];
     const uniqueDonorIds = [...new Set(msgs.map((m) => m.donor_id))];
@@ -100,9 +111,9 @@ async function fetchData(userId: string): Promise<{
       replies[r.donor_message_id] = bucket;
     }
 
-    return { threads, campaignMap, replies };
+    return { threads, campaignMap, replies, threadState };
   } catch {
-    return { threads: [], campaignMap: {}, replies: {} };
+    return { threads: [], campaignMap: {}, replies: {}, threadState: {} };
   }
 }
 
@@ -111,12 +122,12 @@ async function fetchData(userId: string): Promise<{
 // ─────────────────────────────────────────────
 export default async function MessagesPage() {
   const user = await requireUser();
-  const { threads, campaignMap, replies } = await fetchData(user.id);
+  const { threads, campaignMap, replies, threadState } = await fetchData(user.id);
 
   return (
     <CharitMeShell active="Messages">
       <TopBar title="Messages" subtitle="Communicate with your supporters." />
-      <MessagesClient threads={threads} campaignMap={campaignMap} replies={replies} />
+      <MessagesClient threads={threads} campaignMap={campaignMap} replies={replies} threadState={threadState} />
     </CharitMeShell>
   );
 }

@@ -25,10 +25,13 @@ export type Thread = {
   campaignIds: string[];
 };
 
+export type ThreadState = { archived: boolean; lastReadAt: string | null };
+
 export type MessagesClientProps = {
   threads: Thread[];
   campaignMap: Record<string, string>;
   replies: Record<string, OwnerReply[]>; // keyed by donor_message_id
+  threadState: Record<string, ThreadState>; // keyed by donor_id
 };
 
 // ─────────────────────────────────────────────
@@ -46,6 +49,13 @@ function fmtDate(iso: string): string {
 
 function avatarInitials(name: string): string {
   return name.split(/\s+/).map(n => n[0] ?? '').join('').slice(0, 2).toUpperCase() || '?';
+}
+
+function isUnread(thread: Thread, state?: ThreadState): boolean {
+  const latest = thread.messages[0];
+  if (!latest) return false;
+  if (!state?.lastReadAt) return true;
+  return new Date(latest.created_at).getTime() > new Date(state.lastReadAt).getTime();
 }
 
 const COLORS = ['#6c35ff', '#19b86a', '#2f80ed', '#ec3fb4', '#f59e0b'];
@@ -67,7 +77,7 @@ function Avatar({ name, idx }: { name: string; idx: number }) {
 // ─────────────────────────────────────────────
 // Main client component
 // ─────────────────────────────────────────────
-export default function MessagesClient({ threads, campaignMap, replies }: MessagesClientProps) {
+export default function MessagesClient({ threads, campaignMap, replies, threadState }: MessagesClientProps) {
   // Track active thread by donorId instead of index — survives filter changes gracefully
   const [activeDonorId, setActiveDonorId] = useState<string | null>(threads[0]?.donorId ?? null);
   const [search, setSearch] = useState('');
@@ -76,29 +86,91 @@ export default function MessagesClient({ threads, campaignMap, replies }: Messag
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState('');
   const [sentReplies, setSentReplies] = useState<OwnerReply[]>([]);
+  const [localState, setLocalState] = useState<Record<string, ThreadState>>(() => {
+    // The initially active thread is shown immediately, so treat it as read right away.
+    const initial = threads[0];
+    if (initial && isUnread(initial, threadState[initial.donorId])) {
+      return {
+        ...threadState,
+        [initial.donorId]: { archived: threadState[initial.donorId]?.archived ?? false, lastReadAt: new Date().toISOString() },
+      };
+    }
+    return threadState;
+  });
   const threadEndRef = useRef<HTMLDivElement>(null);
 
-  // Filter threads based on search
-  const filtered = threads.filter(t =>
-    search.trim() === '' ||
-    t.donorName.toLowerCase().includes(search.toLowerCase()) ||
-    t.messages.some(m => m.message.toLowerCase().includes(search.toLowerCase()))
-  );
+  // Filter threads based on search + active tab (archived state / unread status)
+  const filtered = threads.filter(t => {
+    const matchesSearch =
+      search.trim() === '' ||
+      t.donorName.toLowerCase().includes(search.toLowerCase()) ||
+      t.messages.some(m => m.message.toLowerCase().includes(search.toLowerCase()));
+    if (!matchesSearch) return false;
+
+    const archived = localState[t.donorId]?.archived ?? false;
+    if (activeTab === 'archived') return archived;
+    if (archived) return false;
+    if (activeTab === 'unread') return isUnread(t, localState[t.donorId]);
+    return true;
+  });
+
+  const unreadCount = threads.filter(t => !(localState[t.donorId]?.archived ?? false) && isUnread(t, localState[t.donorId])).length;
+  const archivedCount = threads.filter(t => localState[t.donorId]?.archived ?? false).length;
+  const inboxCount = threads.length - archivedCount;
 
   // Derive active thread — falls back to first filtered item if active donor not in results
   const activeThread = filtered.find(t => t.donorId === activeDonorId) ?? filtered[0] ?? null;
 
-  // Select a thread by donorId
+  // Select a thread by donorId, marking it as read
   const selectThread = useCallback((donorId: string) => {
     setActiveDonorId(donorId);
     setSentReplies([]); // clear local sent replies when switching thread
     setSendError('');
-  }, []);
+
+    const thread = threads.find(t => t.donorId === donorId);
+    if (thread && isUnread(thread, localState[donorId])) {
+      const now = new Date().toISOString();
+      setLocalState(prev => ({ ...prev, [donorId]: { archived: prev[donorId]?.archived ?? false, lastReadAt: now } }));
+      void fetch('/api/messages/thread-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ donorId, markRead: true }),
+      });
+    }
+  }, [threads, localState]);
 
   // Scroll to bottom of thread when active thread changes or new reply is sent
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeThread?.donorId, sentReplies.length]);
+
+  // Persist the "read" status for the initially active thread (marked read in state above)
+  useEffect(() => {
+    const initial = threads[0];
+    if (!initial || !isUnread(initial, threadState[initial.donorId])) return;
+    void fetch('/api/messages/thread-state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ donorId: initial.donorId, markRead: true }),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function toggleArchive(donorId: string) {
+    const current = localState[donorId]?.archived ?? false;
+    const next = !current;
+    setLocalState(prev => ({ ...prev, [donorId]: { archived: next, lastReadAt: prev[donorId]?.lastReadAt ?? null } }));
+    try {
+      const res = await fetch('/api/messages/thread-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ donorId, archived: next }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setLocalState(prev => ({ ...prev, [donorId]: { archived: current, lastReadAt: prev[donorId]?.lastReadAt ?? null } }));
+    }
+  }
 
   async function handleSend() {
     if (!compose.trim() || !activeThread) return;
@@ -153,19 +225,19 @@ export default function MessagesClient({ threads, campaignMap, replies }: Messag
             className={activeTab === 'inbox' ? 'active' : ''}
             onClick={() => setActiveTab('inbox')}
           >
-            Inbox ({threads.length})
+            Inbox ({inboxCount})
           </button>
           <button
             className={activeTab === 'unread' ? 'active' : ''}
             onClick={() => setActiveTab('unread')}
           >
-            Unread
+            Unread{unreadCount > 0 ? ` (${unreadCount})` : ''}
           </button>
           <button
             className={activeTab === 'archived' ? 'active' : ''}
             onClick={() => setActiveTab('archived')}
           >
-            Archived
+            Archived{archivedCount > 0 ? ` (${archivedCount})` : ''}
           </button>
         </div>
         <label className="kf-search">
@@ -177,10 +249,19 @@ export default function MessagesClient({ threads, campaignMap, replies }: Messag
           />
         </label>
         {filtered.length === 0 ? (
-          <p style={{ padding: '16px 20px', fontSize: 13, color: 'var(--t3)' }}>No conversations match your search.</p>
+          <p style={{ padding: '16px 20px', fontSize: 13, color: 'var(--t3)' }}>
+            {search.trim() !== ''
+              ? 'No conversations match your search.'
+              : activeTab === 'unread'
+              ? "All caught up — no unread conversations."
+              : activeTab === 'archived'
+              ? 'No archived conversations.'
+              : 'No conversations yet.'}
+          </p>
         ) : (
           filtered.map((thread) => {
             const latest = thread.messages[0];
+            const unread = isUnread(thread, localState[thread.donorId]);
             return (
               <article
                 key={thread.donorId}
@@ -190,7 +271,10 @@ export default function MessagesClient({ threads, campaignMap, replies }: Messag
               >
                 <Avatar name={thread.donorName} idx={threads.findIndex(t => t.donorId === thread.donorId)} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <strong>{thread.donorName}</strong>
+                  <strong style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {thread.donorName}
+                    {unread && <span aria-label="Unread" style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--violet, #6c35ff)', flexShrink: 0 }} />}
+                  </strong>
                   {latest && (
                     <p style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180, fontSize: 13, color: 'var(--t3)' }}>
                       {latest.message}
@@ -222,6 +306,26 @@ export default function MessagesClient({ threads, campaignMap, replies }: Messag
                     : `${activeThread.campaignIds.length} campaigns`}
                 </p>
               </div>
+              <button
+                onClick={() => void toggleArchive(activeThread.donorId)}
+                style={{
+                  marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 14px', borderRadius: 999, border: '1px solid var(--b1)',
+                  background: 'var(--s2)', color: 'var(--t2)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                {localState[activeThread.donorId]?.archived ? (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width={14} height={14}><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1H3z"/><path d="M3 9v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9"/><path d="M10 13h4"/></svg>
+                    Unarchive
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width={14} height={14}><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1H3z"/><path d="M3 9v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9"/><path d="M10 13h4"/></svg>
+                    Archive
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Messages */}
