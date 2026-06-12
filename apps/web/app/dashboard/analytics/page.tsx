@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { attachCampaignCurrencies } from '../../../lib/home-data';
+import { formatMoneyCompact } from '@shared/currencies';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +18,7 @@ type CampaignRow = {
   backer_count: number;
   goal_amount: number;
   status: string;
+  currency?: string | null;
 };
 
 type DonationRow = {
@@ -95,7 +98,7 @@ export default async function AnalyticsPage({
     .select('id,title,slug,raised_amount,backer_count,goal_amount,status')
     .eq('user_id', userId);
 
-  const campaigns = (campaignData ?? []) as CampaignRow[];
+  const campaigns = await attachCampaignCurrencies((campaignData ?? []) as CampaignRow[]);
   const cids = campaigns.map((c) => c.id);
 
   // Step 2: get completed donations for these campaigns
@@ -137,7 +140,7 @@ export default async function AnalyticsPage({
     { label: 'Raised This Week', value: fmtCents(weeklyRaised), change: 'last 7 days', icon: 'gift', tone: 'violet' as const },
     { label: 'Raised This Month', value: fmtCents(monthlyRaised), change: 'last 30 days', icon: 'chart', tone: 'green' as const },
     { label: 'Total Backers', value: totalBackers.toLocaleString(), change: `avg ${fmtCents(avgDonation)} / donation`, icon: 'users', tone: 'orange' as const },
-    { label: 'Top Campaign', value: bestCampaign ? fmtCents(bestCampaign.raised_amount) : '$0', change: bestCampaign ? bestCampaign.title.slice(0, 28) + (bestCampaign.title.length > 28 ? '…' : '') : 'No campaigns yet', icon: 'send', tone: 'blue' as const },
+    { label: 'Top Campaign', value: bestCampaign ? formatMoneyCompact(bestCampaign.raised_amount, bestCampaign.currency ?? 'usd') : '$0', change: bestCampaign ? bestCampaign.title.slice(0, 28) + (bestCampaign.title.length > 28 ? '…' : '') : 'No campaigns yet', icon: 'send', tone: 'blue' as const },
   ];
 
   // SVG line chart: 7-day rolling donations
@@ -322,10 +325,10 @@ export default async function AnalyticsPage({
                           </div>
                         </td>
                         <td style={{ textAlign: 'right', padding: '10px 8px', fontWeight: 600, color: 'var(--green)' }}>
-                          {fmtCents(c.raised_amount)}
+                          {formatMoneyCompact(c.raised_amount, c.currency ?? 'usd')}
                         </td>
                         <td style={{ textAlign: 'right', padding: '10px 8px', color: 'var(--t3)' }}>
-                          {fmtCents(c.goal_amount)}
+                          {formatMoneyCompact(c.goal_amount, c.currency ?? 'usd')}
                         </td>
                         <td style={{ textAlign: 'right', padding: '10px 8px' }}>
                           {c.backer_count.toLocaleString()}
@@ -364,6 +367,7 @@ export default async function AnalyticsPage({
                     .map(c => ({
                       id: c.id,
                       title: c.title,
+                      currency: c.currency,
                       total: donations.filter(d => d.campaign_id === c.id).reduce((s, d) => s + d.amount_cents, 0),
                     }))
                     .sort((a, b) => b.total - a.total);
@@ -375,7 +379,7 @@ export default async function AnalyticsPage({
                       <div key={c.id} style={{ marginBottom: 12 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                           <span style={{ color: 'var(--t2)', fontWeight: 600, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</span>
-                          <span style={{ color: 'var(--green)', fontWeight: 700 }}>{fmtCents(c.total)}</span>
+                          <span style={{ color: 'var(--green)', fontWeight: 700 }}>{formatMoneyCompact(c.total, c.currency ?? 'usd')}</span>
                         </div>
                         <div style={{ height: 6, borderRadius: 3, background: 'var(--b2)', overflow: 'hidden' }}>
                           <div style={{ height: '100%', width: `${barPct}%`, background: colors[idx % colors.length], borderRadius: 3 }} />

@@ -4,6 +4,7 @@ import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/C
 // Donors can request refunds for their own donations at /dashboard/refund.
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { formatMoneyCompact } from '@shared/currencies';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ type CampaignRef = {
 type Donation = {
   id: string;
   amount_cents: number;
+  currency: string | null;
   status: string;
   created_at: string;
   anonymous: boolean;
@@ -109,7 +111,7 @@ async function fetchDonationsData(userId: string): Promise<{
     // Step 2: get completed donations
     const { data: donData, error: donError } = await supabaseAdmin
       .from('donations')
-      .select('id,amount_cents,status,created_at,anonymous,donor_id,campaign_id')
+      .select('id,amount_cents,currency,status,created_at,anonymous,donor_id,campaign_id')
       .in('campaign_id', campaignIds)
       .eq('status', 'completed')
       .order('created_at', { ascending: false })
@@ -411,7 +413,7 @@ export default async function DonationsPage({
                           fontWeight: 700,
                         }}
                       >
-                        {fmtCents(d.amount_cents)}
+                        {formatMoneyCompact(d.amount_cents, d.currency ?? 'usd')}
                       </strong>
                     </div>
 
