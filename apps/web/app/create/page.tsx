@@ -105,6 +105,7 @@ export default function CreatePage() {
   const [connectingStripe, setConnectingStripe] = useState(false);
   const [isGuest, setIsGuest]         = useState<boolean | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'draft' | 'publish'>('publish');
 
   useEffect(() => {
     const supabase = createClient();
@@ -812,7 +813,12 @@ export default function CreatePage() {
                 <button type="button" className="cr2-nav-back" onClick={goPrev} disabled={stepIdx === 0}>← Back</button>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                   {stepIdx >= 1 && step !== 'preview' && step !== 'payout' && step !== 'summary' && (
-                    <button type="button" className="cr2-nav-draft" onClick={() => void saveDraft()} disabled={loading}>
+                    <button
+                      type="button"
+                      className="cr2-nav-draft"
+                      onClick={() => { if (isGuest !== false) { setPendingAction('draft'); setShowLoginModal(true); } else { void saveDraft(); } }}
+                      disabled={loading}
+                    >
                       {loading ? 'Saving…' : 'Save Draft'}
                     </button>
                   )}
@@ -820,7 +826,7 @@ export default function CreatePage() {
                     <button
                       type="button"
                       className="cr2-nav-launch"
-                      onClick={() => { if (isGuest !== false) { setShowLoginModal(true); } else { void publish(); } }}
+                      onClick={() => { if (isGuest !== false) { setPendingAction('publish'); setShowLoginModal(true); } else { void publish(); } }}
                       disabled={loading}
                     >
                       {loading ? 'Launching…' : '🚀 Launch Campaign'}
@@ -912,7 +918,7 @@ export default function CreatePage() {
           savedForm={form}
           savedStep={step}
           onClose={() => setShowLoginModal(false)}
-          onSuccess={() => { setIsGuest(false); setShowLoginModal(false); void publish(); }}
+          onSuccess={() => { setIsGuest(false); setShowLoginModal(false); void (pendingAction === 'draft' ? saveDraft() : publish()); }}
         />
       )}
     </CharitMeShell>
