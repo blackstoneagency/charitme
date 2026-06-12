@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { normalizeCurrency } from '@shared/currencies';
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
@@ -17,8 +18,8 @@ export const stripe: Stripe = stripeSecretKey
     },
   });
 
-export function formatCents(cents: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
+export function formatCents(cents: number, currency: string = 'usd'): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: normalizeCurrency(currency) }).format(cents / 100);
 }
 
 // ── Checkout payment methods ────────────────────────────────────────────────

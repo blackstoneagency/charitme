@@ -180,15 +180,16 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
         next_bill_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       }, { onConflict: 'stripe_subscription_id', ignoreDuplicates: false });
 
-      await sendDonorReceipt(meta.donorId, meta.campaignId, `${formatCents(amountCents)}/month`);
+      // Record charge currency (non-fatal; column defaults to 'usd')
+      const recurringCurrency = (session.currency ?? 'usd').toLowerCase();
+
+      await sendDonorReceipt(meta.donorId, meta.campaignId, `${formatCents(amountCents, recurringCurrency)}/month`);
 
       // "Subscribe to receive emails" checkbox — opt the donor into campaign update emails (non-fatal)
       if (meta.donorId && meta.subscribeToUpdates === '1') {
         void supabaseAdmin.from('profiles').update({ notification_updates: true }).eq('id', meta.donorId);
       }
 
-      // Record charge currency (non-fatal; column defaults to 'usd')
-      const recurringCurrency = (session.currency ?? 'usd').toLowerCase();
       if (recurringCurrency !== 'usd') {
         const currencyDonId = await findDonationId({ paymentIntentId: null, checkoutSessionId: session.id });
         if (currencyDonId) void supabaseAdmin.from('donations').update({ currency: recurringCurrency }).eq('id', currencyDonId);
@@ -328,7 +329,7 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
           ? `auto_${paymentIntentId ?? session.id}`
           : null,
         note: hasConnected
-          ? `Stripe Connect transfer requested (${paymentMethod}). Final bank payout remains pending processor confirmation. CharitMe tip: ${formatCents(platformFeeCents)}, donor-covered processing: ${formatCents(processingFeeCents)}.`
+          ? `Stripe Connect transfer requested (${paymentMethod}). Final bank payout remains pending processor confirmation. CharitMe tip: ${formatCents(platformFeeCents, currency)}, donor-covered processing: ${formatCents(processingFeeCents, currency)}.`
           : `Pending manual payout — recipient has no connected Stripe account. Donation via ${paymentMethod}.`,
       }).select('id').maybeSingle();
 
@@ -400,12 +401,12 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
     }
 
     if (!alreadyDone && meta.donorId && amountCents > 0) {
-      await sendDonorReceipt(meta.donorId, meta.campaignId, formatCents(amountCents), eventId);
+      await sendDonorReceipt(meta.donorId, meta.campaignId, formatCents(amountCents, currency), eventId);
     }
 
     // ── Notify organizer of new donation (non-blocking) ────────────────────
     if (!alreadyDone && organizerUserId && amountCents > 0) {
-      sendOrganizerDonationNotification(organizerUserId, meta.campaignId, amountCents, meta.donorId || null).catch(() => {});
+      sendOrganizerDonationNotification(organizerUserId, meta.campaignId, amountCents, meta.donorId || null, currency).catch(() => {});
     }
   } else if (meta.plan && meta.userId) {
     // ── Platform SaaS subscription ────────────────────────────────────────
@@ -1211,6 +1212,7 @@ async function sendOrganizerDonationNotification(
   campaignId: string,
   amountCents: number,
   donorId: string | null,
+  currency: string = 'usd',
 ) {
   try {
     const [{ data: organizer }, { data: camp }, { data: donor }] = await Promise.all([
@@ -1228,8 +1230,8 @@ async function sendOrganizerDonationNotification(
     await supabaseAdmin.from('notifications').insert({
       user_id: organizerUserId,
       kind: 'donation_received',
-      title: `New donation: ${fmt(amountCents)}`,
-      body: `${donorDisplayName} donated ${fmt(amountCents)} to "${camp.title}".`,
+      title: `New donation: ${fmt(amountCents, currency)}`,
+      body: `${donorDisplayName} donated ${fmt(amountCents, currency)} to "${camp.title}".`,
       link: `/dashboard/campaigns`,
       meta: { campaign_id: campaignId, amount_cents: amountCents, donor_id: donorId },
     });
@@ -1241,10 +1243,10 @@ async function sendOrganizerDonationNotification(
       organizerName: organizer.full_name,
       campaignTitle: camp.title,
       campaignSlug: camp.slug,
-      amountFormatted: fmt(amountCents),
+      amountFormatted: fmt(amountCents, currency),
       donorDisplayName,
-      totalRaisedFormatted: fmt(camp.raised_amount ?? 0),
-      goalFormatted: fmt(camp.goal_amount ?? 0),
+      totalRaisedFormatted: fmt(camp.raised_amount ?? 0, currency),
+      goalFormatted: fmt(camp.goal_amount ?? 0, currency),
     });
   } catch {
     // Non-fatal
