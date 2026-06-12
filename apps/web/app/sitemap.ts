@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { BLOG_POSTS } from '../lib/blog-posts';
+import { PLATFORM_MODULES } from '../lib/feature-catalog';
 
 const BASE = 'https://www.charitme.com';
 
@@ -8,7 +9,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: BASE,                        priority: 1.0,  changeFrequency: 'daily'   as const },
     { url: `${BASE}/campaigns`,         priority: 0.9,  changeFrequency: 'hourly'  as const },
     { url: `${BASE}/leaderboard`,       priority: 0.75, changeFrequency: 'hourly'  as const },
-    { url: `${BASE}/create`,            priority: 0.9,  changeFrequency: 'weekly'  as const },
     { url: `${BASE}/pricing`,           priority: 0.85, changeFrequency: 'weekly'  as const },
     { url: `${BASE}/features`,          priority: 0.8,  changeFrequency: 'weekly'  as const },
     { url: `${BASE}/how-it-works`,      priority: 0.8,  changeFrequency: 'weekly'  as const },
@@ -39,5 +39,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: new Date(`${p.publishedAt}T00:00:00`),
   }));
 
-  return [...staticRoutes, ...blogRoutes];
+  const featureRoutes = PLATFORM_MODULES.map(m => ({
+    url: `${BASE}/features/${m.slug}`,
+    priority: 0.65,
+    changeFrequency: 'monthly' as const,
+    lastModified: new Date(),
+  }));
+
+  return [...staticRoutes, ...blogRoutes, ...featureRoutes];
 }
