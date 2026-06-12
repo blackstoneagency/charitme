@@ -65,8 +65,19 @@ const FAQ_SECTIONS = [
 ];
 
 export default function FaqPage() {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQ_SECTIONS.flatMap((section) => section.items.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: { '@type': 'Answer', text: item.a },
+    }))),
+  };
+
   return (
     <div className="bg-white">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       {/* Hero */}
       <section className="hero-mesh border-b border-slate-200 py-16 sm:py-20">
         <div className="container">
