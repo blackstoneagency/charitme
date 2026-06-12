@@ -1405,6 +1405,10 @@ img, svg { display: block; }
 .pc-left { display: flex; flex-direction: column; gap: 20px; }
 .pc-right { display: flex; flex-direction: column; gap: 0; position: sticky; top: 20px; }
 
+/* Loading skeleton */
+.pc-skeleton-block { background: linear-gradient(90deg, var(--s2, #f1f5f9) 25%, var(--s1, #f8fafc) 37%, var(--s2, #f1f5f9) 63%); background-size: 400% 100%; animation: pc-skeleton-shimmer 1.4s ease infinite; border-radius: 12px; }
+@keyframes pc-skeleton-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
 /* Image carousel */
 .pc-carousel { display: flex; flex-direction: column; gap: 10px; }
 .pc-carousel-main { position: relative; border-radius: 16px; overflow: hidden; background: #111; }
