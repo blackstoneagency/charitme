@@ -121,12 +121,12 @@ async function fetchDonationsData(userId: string): Promise<{
 
     const rawDonations = donData as Donation[];
 
-    // Step 3: fetch donor profiles
+    // Step 3: fetch donor profiles for non-anonymous donations
     const uniqueDonorIds = [
       ...new Set(
         rawDonations
-          .map((d) => d.donor_id)
-          .filter((id): id is string => id !== null && !rawDonations.find((d) => d.donor_id === id && d.anonymous)),
+          .filter((d) => d.donor_id && !d.anonymous)
+          .map((d) => d.donor_id as string),
       ),
     ];
 
