@@ -111,11 +111,11 @@ function LoginForm() {
           <div className="kind-logo auth-logo"><span><i /><b /></span><strong>CharitMe</strong></div>
           <p className="auth-kicker">Secure fundraising workspace</p>
           <h1>{mode === 'login' ? 'Welcome back.' : 'Create your CharitMe account.'}</h1>
-          <p>Manage campaigns, donations, payouts, updates, and supporter conversations with your production Supabase account.</p>
+          <p>Manage campaigns, donations, payouts, updates, and supporter conversations — all in one secure CharitMe account.</p>
           <div className="auth-proof">
             <span>Google OAuth</span>
             <span>Email accounts</span>
-            <span>Supabase sessions</span>
+            <span>Secure sessions</span>
           </div>
         </div>
 
