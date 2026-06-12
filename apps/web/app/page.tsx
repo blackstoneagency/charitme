@@ -47,8 +47,32 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
   const filters = await searchParams ?? {};
   const { stats, featuredCampaigns, carouselCampaigns, rotatorCampaigns } = await getHomeData(filters);
 
+  const BASE = 'https://www.charitme.com';
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        name: 'CharitMe',
+        url: BASE,
+        logo: `${BASE}/icon.png`,
+      },
+      {
+        '@type': 'WebSite',
+        name: 'CharitMe',
+        url: BASE,
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: `${BASE}/campaigns?q={search_term_string}`,
+          'query-input': 'required name=search_term_string',
+        },
+      },
+    ],
+  };
+
   return (
     <div className="kind-page">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <section className="kind-hero">
         <div className="container kind-hero-grid">
           <div className="kind-hero-copy">
