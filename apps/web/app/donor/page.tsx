@@ -13,6 +13,7 @@ type DonationRow = {
   id: string;
   amount_cents: number;
   tip_cents: number;
+  currency: string | null;
   status: string;
   anonymous: boolean;
   message: string | null;
@@ -48,7 +49,7 @@ export default async function DonorPortalPage() {
 
   const { data: donationData, count: donationCount } = await supabaseAdmin
     .from('donations')
-    .select('id, amount_cents, tip_cents, status, anonymous, message, created_at, campaign_id', { count: 'exact' })
+    .select('id, amount_cents, tip_cents, currency, status, anonymous, message, created_at, campaign_id', { count: 'exact' })
     .eq('donor_id', user.id)
     .order('created_at', { ascending: false })
     .limit(100);

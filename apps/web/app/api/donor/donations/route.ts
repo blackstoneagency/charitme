@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
   const { data: donationData, count } = await supabaseAdmin
     .from('donations')
-    .select('id, amount_cents, tip_cents, status, anonymous, message, created_at, campaign_id', { count: 'exact' })
+    .select('id, amount_cents, tip_cents, currency, status, anonymous, message, created_at, campaign_id', { count: 'exact' })
     .eq('donor_id', user.id)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);

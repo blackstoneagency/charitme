@@ -9,6 +9,7 @@ type DonationRow = {
   id: string;
   amount_cents: number;
   tip_cents: number;
+  currency: string | null;
   status: string;
   anonymous: boolean;
   message: string | null;
@@ -177,7 +178,7 @@ export default function DonationHistoryList({
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 16 }}>
                   <strong style={{ fontSize: 15, color: d.status === 'refunded' ? 'var(--t3, #94a3b8)' : 'var(--violet, #6c35ff)', textDecoration: d.status === 'refunded' ? 'line-through' : 'none' }}>
-                    {formatCents(d.amount_cents)}
+                    {formatCents(d.amount_cents, d.currency ?? 'usd')}
                   </strong>
                   <span style={{
                     fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
