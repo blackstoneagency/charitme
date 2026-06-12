@@ -12,6 +12,11 @@ interface Props {
 
 type Channel = 'facebook' | 'messenger' | 'linkedin' | 'twitter' | 'whatsapp' | 'email' | 'link';
 
+// Messenger's Send dialog requires our own registered Facebook app whose
+// domain whitelist includes this site — without one the dialog errors out,
+// so the tile is hidden unless the app id is configured.
+const FB_APP_ID = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID;
+
 const TILES: { channel: Channel; label: string; iconText: string; iconBg: string; iconColor: string; getHref: (url: string, title: string) => string }[] = [
   {
     channel: 'facebook',
@@ -21,14 +26,14 @@ const TILES: { channel: Channel; label: string; iconText: string; iconBg: string
     iconColor: '#1877f2',
     getHref: (url) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
   },
-  {
-    channel: 'messenger',
+  ...(FB_APP_ID ? [{
+    channel: 'messenger' as Channel,
     label: 'Messenger',
     iconText: 'm',
     iconBg: '#e6f3ff',
     iconColor: '#0084ff',
-    getHref: (url) => `https://www.facebook.com/dialog/send?link=${encodeURIComponent(url)}&app_id=181477038500745`,
-  },
+    getHref: (url: string) => `https://www.facebook.com/dialog/send?link=${encodeURIComponent(url)}&app_id=${FB_APP_ID}&redirect_uri=${encodeURIComponent(url)}`,
+  }] : []),
   {
     channel: 'linkedin',
     label: 'LinkedIn',
