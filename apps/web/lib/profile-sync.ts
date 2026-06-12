@@ -8,24 +8,41 @@ function metadataText(metadata: User['user_metadata'], key: string): string | nu
   return typeof value === 'string' && value.trim() ? value : null;
 }
 
-export async function syncUserProfile(user: User): Promise<void> {
-  const metadata = user.user_metadata;
-  const roles = parseRoles(metadata.roles);
-  const fullName = metadataText(metadata, 'full_name') ?? metadataText(metadata, 'name');
-  const avatarUrl = metadataText(metadata, 'avatar_url');
+/**
+ * Safety net for auth users whose row predates the on_auth_user_created
+ * trigger: create the missing profiles row from auth metadata.
+ *
+ * Existing rows are never modified — profiles is the canonical store for
+ * roles (admin suspend/promote writes there) and for user-edited fields
+ * like full_name, so auth metadata must not overwrite it. Best-effort:
+ * failures are logged, never thrown, so a profiles hiccup cannot break
+ * login or every protected page.
+ */
+export async function ensureUserProfile(user: User): Promise<void> {
+  const { data: existing, error: selectError } = await supabaseAdmin
+    .from('profiles')
+    .select('id')
+    .eq('id', user.id)
+    .maybeSingle();
 
-  const { error } = await supabaseAdmin
+  if (existing) return;
+  if (selectError) {
+    console.error('[profile-sync] could not check profile:', selectError.message);
+    return;
+  }
+
+  const metadata = user.user_metadata;
+  const { error: insertError } = await supabaseAdmin
     .from('profiles')
     .upsert({
       id: user.id,
       email: user.email ?? null,
-      full_name: fullName,
-      avatar_url: avatarUrl,
-      roles,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'id' });
+      full_name: metadataText(metadata, 'full_name') ?? metadataText(metadata, 'name'),
+      avatar_url: metadataText(metadata, 'avatar_url'),
+      roles: parseRoles(metadata.roles),
+    }, { onConflict: 'id', ignoreDuplicates: true });
 
-  if (error) {
-    throw new Error(`Could not sync user profile: ${error.message}`);
+  if (insertError) {
+    console.error('[profile-sync] could not create profile:', insertError.message);
   }
 }

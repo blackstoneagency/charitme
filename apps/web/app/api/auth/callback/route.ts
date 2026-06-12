@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { safeNextPath } from '../../../../lib/auth-config';
-import { syncUserProfile } from '../../../../lib/profile-sync';
+import { ensureUserProfile } from '../../../../lib/profile-sync';
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
@@ -81,13 +81,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  try {
-    await syncUserProfile(user);
-  } catch (caught) {
-    const loginUrl = new URL('/login', origin);
-    loginUrl.searchParams.set('error', caught instanceof Error ? caught.message : 'Could not create your profile');
-    return NextResponse.redirect(loginUrl);
-  }
+  await ensureUserProfile(user);
 
   return redirectResponse;
 }

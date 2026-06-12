@@ -2,7 +2,7 @@ import 'server-only';
 import { createClient } from './supabase-server';
 import { redirect } from 'next/navigation';
 import { isAdmin } from './roles';
-import { syncUserProfile } from './profile-sync';
+import { ensureUserProfile } from './profile-sync';
 
 export async function getUser() {
   const supabase = await createClient();
@@ -13,7 +13,7 @@ export async function getUser() {
 export async function requireUser() {
   const user = await getUser();
   if (!user) redirect('/login');
-  await syncUserProfile(user);
+  await ensureUserProfile(user);
   return user;
 }
 
