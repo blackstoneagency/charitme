@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { CharitMeShell, KFIcon } from '../../components/CharitMeShellServer';
 import AccountMenu from './AccountMenu';
-import CampaignMenu from './CampaignMenu';
+import CampaignSortableList from './CampaignSortableList';
 import NotificationBell from '../../components/NotificationBell';
 import { requireUser } from '../../lib/auth';
 import { supabaseAdmin } from '../../lib/supabase';
@@ -393,6 +393,8 @@ export default async function DashboardPage() {
         raised: fmtCents(c.raised_amount),
         goal: fmtCents(c.goal_amount),
         progress: c.goal_amount > 0 ? Math.min(100, Math.round((c.raised_amount / c.goal_amount) * 100)) : 0,
+        raisedAmount: c.raised_amount,
+        backerCount: c.backer_count,
         donations: String(c.backer_count),
         views: '—',
         conversion: '—',
@@ -500,73 +502,7 @@ export default async function DashboardPage() {
             </div>
 
             {/* ── Campaign panel ── */}
-            <section className="dash-card campaign-panel">
-              <div className="dash-card-title">
-                <h2>Your Campaigns</h2>
-                <button>
-                  Sort by: Performance <span>v</span>
-                </button>
-              </div>
-
-              {!hasRealCampaigns && (
-                <div style={{ padding: '12px 20px 4px' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '10px 14px',
-                      borderRadius: '10px',
-                      background: 'rgba(108,53,255,0.07)',
-                      border: '1px solid rgba(108,53,255,0.15)',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      color: 'var(--violet, #4e16f5)',
-                    }}
-                  >
-                    <KFIcon name="send" />
-                    <span>
-                      No campaigns yet —{' '}
-                      <Link href="/create" style={{ textDecoration: 'underline' }}>
-                        create your first campaign
-                      </Link>{' '}
-                      to start collecting real data here.
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              <div className="campaign-list">
-                {displayCampaigns.map(campaign => (
-                  <article className="campaign-item" key={campaign.title}>
-                    <CampaignImage image={campaign.image} />
-                    <div className="campaign-copy">
-                      <span className={`campaign-status ${campaign.status.toLowerCase()}`}>
-                        {campaign.status}
-                      </span>
-                      <h3>{campaign.title}</h3>
-                      <p>
-                        <b>{campaign.raised}</b> raised of {campaign.goal} goal
-                      </p>
-                      <div className="campaign-progress">
-                        <span style={{ width: `${campaign.progress}%` }} />
-                      </div>
-                    </div>
-                    <CampaignStat value={campaign.donations} label="Donations" />
-                    <CampaignStat value={campaign.views} label="Views" />
-                    <CampaignStat value={campaign.conversion} label="Conversion" />
-                    <Link className="campaign-detail" href={campaign.href}>
-                      View Details <span>&gt;</span>
-                    </Link>
-                    <CampaignMenu id={campaign.id} slug={campaign.slug} title={campaign.title} status={campaign.rawStatus} />
-                  </article>
-                ))}
-              </div>
-              <Link href="/dashboard/campaigns" className="campaign-footer">
-                View All Campaigns <span>-&gt;</span>
-              </Link>
-            </section>
-
+            <CampaignSortableList campaigns={displayCampaigns} hasRealCampaigns={hasRealCampaigns} />
             {/* ── Analytics row ── */}
             <div className="dash-analytics">
               {/* Performance chart */}
@@ -809,21 +745,6 @@ export default async function DashboardPage() {
 // ─────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────
-function CampaignImage({ image }: { image: string }) {
-  if (image.startsWith('/'))
-    return <div className="campaign-img" style={{ backgroundImage: `url(${image})` }} />;
-  return <div className={`campaign-img ${image}`} />;
-}
-
-function CampaignStat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="campaign-stat">
-      <strong>{value}</strong>
-      <span>{label}</span>
-    </div>
-  );
-}
-
 function PerfNumber({
   value,
   label,

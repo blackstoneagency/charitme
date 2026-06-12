@@ -1732,6 +1732,11 @@ img, svg { display: block; }
 .campaign-stat strong { color: #10163f; font-size: 18px; font-weight: 950; }
 .campaign-stat span { margin-top: 7px; color: #4b5676; font-size: 12px; font-weight: 750; }
 .campaign-detail { height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; border-radius: 10px; color: #551cf2; background: #f0eaff; font-size: 14px; font-weight: 950; }
+.campaign-sort-wrap { position: relative; }
+.campaign-sort-dropdown { position: absolute; right: 0; top: calc(100% + 8px); width: 180px; z-index: 60; padding: 8px; border: 1px solid #e6e9f2; border-radius: 14px; background: #fff; box-shadow: 0 26px 56px rgba(17,24,64,.18); animation: dashMenuIn .16s ease; }
+.campaign-sort-dropdown button { width: 100%; display: flex; align-items: center; height: 38px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; color: #27305d; font-size: 13px; font-weight: 800; text-align: left; cursor: pointer; transition: background .15s ease, color .15s ease; }
+.campaign-sort-dropdown button:hover { background: rgba(108,53,255,.08); color: #551cf2; }
+.campaign-sort-dropdown button.active { color: #551cf2; background: rgba(108,53,255,.08); }
 .campaign-menu-wrap { position: relative; justify-self: end; }
 .campaign-menu { border: 0; background: transparent; color: #202a55; font-size: 18px; font-weight: 950; cursor: pointer; }
 .campaign-menu-dropdown { position: absolute; right: 0; top: calc(100% + 8px); width: 190px; z-index: 60; padding: 8px; border: 1px solid #e6e9f2; border-radius: 14px; background: #fff; box-shadow: 0 26px 56px rgba(17,24,64,.18); animation: dashMenuIn .16s ease; }
@@ -4608,6 +4613,9 @@ img, svg { display: block; }
 [data-theme="dark"] .campaign-menu { color: var(--t2); }
 [data-theme="dark"] .campaign-menu-dropdown { background: var(--s1); border-color: var(--line); box-shadow: none; }
 [data-theme="dark"] .campaign-menu-dropdown a, [data-theme="dark"] .campaign-menu-dropdown button { color: var(--t2); }
+[data-theme="dark"] .campaign-sort-dropdown { background: var(--s1); border-color: var(--line); box-shadow: none; }
+[data-theme="dark"] .campaign-sort-dropdown button { color: var(--t2); }
+[data-theme="dark"] .campaign-sort-dropdown button.active, [data-theme="dark"] .campaign-sort-dropdown button:hover { color: #a78bfa; background: var(--s2); }
 [data-theme="dark"] .task-row { color: var(--t1); }
 [data-theme="dark"] .task-row:hover { background: rgba(108,53,255,.08); }
 [data-theme="dark"] .task-row input { background: var(--s2); border-color: var(--b1); }
