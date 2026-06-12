@@ -32,7 +32,14 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const profile = await getProfile(id);
   const name = profile?.full_name || 'Donor';
-  return { title: `${name} · Donor Profile` };
+  if (!profile || profile.show_public_profile === false) {
+    return { title: `${name} · Donor Profile`, robots: { index: false, follow: false } };
+  }
+  return {
+    title: `${name} · Donor Profile`,
+    description: `See ${name}'s giving activity, badges, and supported campaigns on CharitMe.`,
+    alternates: { canonical: `https://www.charitme.com/donors/${id}` },
+  };
 }
 
 export default async function PublicDonorProfilePage({ params }: { params: Promise<{ id: string }> }) {
