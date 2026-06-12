@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 type DonationRow = {
   id: string;
   amount_cents: number;
+  currency: string | null;
   status: string;
   created_at: string;
   campaign_id: string;
@@ -45,7 +46,7 @@ export default async function RefundPage({
 
   const { data: rawDonations } = await supabaseAdmin
     .from('donations')
-    .select('id, amount_cents, status, created_at, campaign_id')
+    .select('id, amount_cents, currency, status, created_at, campaign_id')
     .eq('donor_id', user.id)
     .in('status', ['completed', 'refunded'])
     .gte('created_at', ninetyDaysAgo.toISOString())
@@ -97,6 +98,7 @@ export default async function RefundPage({
   const enriched: RefundableDonation[] = donations.map((d) => ({
     id: d.id,
     amount_cents: d.amount_cents,
+    currency: d.currency,
     campaign_title: campaignMap.get(d.campaign_id) ?? 'Unknown Campaign',
     campaign_id: d.campaign_id,
     created_at: d.created_at,

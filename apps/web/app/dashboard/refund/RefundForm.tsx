@@ -2,11 +2,13 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { formatCents } from '../../../lib/stripe';
 
 // ── Types passed from server component ───────────────────────────────────────
 export type RefundableDonation = {
   id: string;
   amount_cents: number;
+  currency: string | null;
   campaign_title: string;
   campaign_id: string;
   created_at: string;
@@ -15,12 +17,6 @@ export type RefundableDonation = {
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function fmtCents(cents: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(
-    cents / 100,
-  );
-}
-
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
     month: 'short',
@@ -237,7 +233,7 @@ export default function RefundForm({
                       {d.campaign_title}
                     </strong>
                     <strong style={{ fontSize: 14, color: 'var(--green)', flexShrink: 0 }}>
-                      {fmtCents(d.amount_cents)}
+                      {formatCents(d.amount_cents, d.currency ?? 'usd')}
                     </strong>
                   </div>
                   <div
