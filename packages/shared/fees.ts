@@ -8,7 +8,7 @@ export const MAX_DONATION_CENTS = 1_000_000_00;
 // ── Per-payment-method processing fee config ──────────────────────────────────
 // Shared between DonateButton (client) and /api/donations (server) so fees
 // shown in the UI exactly match what gets charged at checkout.
-export type PaymentMethod = 'stripe' | 'paypal' | 'venmo' | 'gpay' | 'bank' | 'card';
+export type PaymentMethod = 'stripe' | 'paypal' | 'bank' | 'card';
 
 export interface MethodFeeConfig {
   pct:   number;       // percentage rate (e.g. 2.9)
@@ -20,9 +20,7 @@ export interface MethodFeeConfig {
 export const METHOD_FEES: Record<PaymentMethod, MethodFeeConfig> = {
   stripe: { pct: 2.9,  fixed: 30,        label: '2.9% + $0.30'  },
   card:   { pct: 2.9,  fixed: 30,        label: '2.9% + $0.30'  },
-  gpay:   { pct: 2.9,  fixed: 30,        label: '2.9% + $0.30'  },
   paypal: { pct: 3.49, fixed: 49,        label: '3.49% + $0.49' },
-  venmo:  { pct: 1.9,  fixed: 10,        label: '1.9% + $0.10'  },
   bank:   { pct: 0.8,  fixed: 0, cap: 500, label: '0.8% (max $5)' },
 };
 

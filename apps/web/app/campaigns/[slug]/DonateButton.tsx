@@ -5,6 +5,9 @@ import {
   MAX_DONATION_CENTS,
   DEFAULT_DONOR_TIP_PERCENT,
   donorTip,
+  methodProcessingFee,
+  METHOD_FEES,
+  type PaymentMethod,
 } from '@shared/fees';
 import { createClient } from '../../../lib/supabase-browser';
 import { formatMoney, formatMoneyShort, currencySymbol, DEFAULT_CURRENCY } from '@shared/currencies';
@@ -25,35 +28,6 @@ const PRESETS = [50, 100, 250, 500, 1000, 2000] as const;
 const TIP_MIN = 0;
 const TIP_MAX = 20;
 
-/**
- * Per-method processing fee.
- * All routes ultimately go through Stripe; these reflect Stripe's published
- * rates for each payment rail as of 2024.
- *  - Card / Stripe / Google Pay / Apple Pay: 2.9% + $0.30
- *  - PayPal (via Stripe): 3.49% + $0.49
- *  - Venmo (via Stripe):  1.9%  + $0.10
- *  - ACH / Bank transfer: 0.8%  capped at $5.00
- */
-type PaymentMethod = 'stripe' | 'paypal' | 'venmo' | 'gpay' | 'bank' | 'card';
-
-interface FeeConfig { pct: number; fixed: number; cap?: number; label: string }
-
-const METHOD_FEES: Record<PaymentMethod, FeeConfig> = {
-  stripe: { pct: 2.9,  fixed: 30,  label: '2.9% + $0.30' },
-  card:   { pct: 2.9,  fixed: 30,  label: '2.9% + $0.30' },
-  gpay:   { pct: 2.9,  fixed: 30,  label: '2.9% + $0.30' },
-  paypal: { pct: 3.49, fixed: 49,  label: '3.49% + $0.49' },
-  venmo:  { pct: 1.9,  fixed: 10,  label: '1.9% + $0.10' },
-  bank:   { pct: 0.8,  fixed: 0, cap: 500, label: '0.8% (max $5)' },
-};
-
-function methodProcessingFee(amountCents: number, method: PaymentMethod): number {
-  const cfg = METHOD_FEES[method];
-  const fee = Math.round(amountCents * (cfg.pct / 100)) + cfg.fixed;
-  return cfg.cap !== undefined ? Math.min(fee, cfg.cap) : fee;
-}
-
-
 type FrequencyMode = 'once' | 'monthly';
 
 interface PayOption { id: PaymentMethod; label: string; icon: React.ReactNode }
@@ -61,8 +35,6 @@ interface PayOption { id: PaymentMethod; label: string; icon: React.ReactNode }
 const PAY_OPTIONS: PayOption[] = [
   { id: 'stripe',  label: 'Stripe',         icon: <span style={{ fontWeight: 900, fontSize: 13, color: '#635bff' }}>S</span> },
   { id: 'paypal',  label: 'PayPal',         icon: <span style={{ fontWeight: 900, fontSize: 13, color: '#003087' }}>P</span> },
-  { id: 'venmo',   label: 'Venmo',          icon: <span style={{ fontWeight: 900, fontSize: 13, color: '#3D95CE' }}>V</span> },
-  { id: 'gpay',    label: 'Google Pay',     icon: <span style={{ fontWeight: 900, fontSize: 13, color: '#4285F4' }}>G</span> },
   { id: 'bank',    label: 'Bank transfer',  icon: <span style={{ fontSize: 14 }}>🏛</span> },
   { id: 'card',    label: 'Credit or debit',icon: <span style={{ fontSize: 14 }}>💳</span> },
 ];

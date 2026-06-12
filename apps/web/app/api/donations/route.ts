@@ -27,7 +27,7 @@ const DonateSchema = z.object({
   anonymous:          z.boolean().optional(),
   coverProcessingFee: z.boolean().optional(),
   tipPercent:         z.number().min(0).max(100).optional(),
-  paymentMethod:      z.enum(['stripe','paypal','venmo','gpay','bank','card']).optional(),
+  paymentMethod:      z.enum(['stripe','paypal','bank','card']).optional(),
   donorEmail:         z.string().email().optional(),
   // "Subscribe to receive emails" checkbox — opts the donor into campaign update emails
   subscribeToUpdates: z.boolean().optional(),
