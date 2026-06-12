@@ -22,6 +22,9 @@ const SettingsSchema = z.object({
   // Preferences
   show_public_profile: z.boolean().optional(),
   campaign_recommendations: z.boolean().optional(),
+  // Notifications
+  notification_email: z.boolean().optional(),
+  notification_marketing: z.boolean().optional(),
 });
 
 type SettingsRow = z.infer<typeof SettingsSchema>;
@@ -38,7 +41,8 @@ export async function GET() {
         'full_name,bio,avatar_url,plan,stripe_customer_id,' +
         'org_name,org_website,org_tagline,' +
         'timezone,currency,language,date_format,time_format,' +
-        'show_public_profile,campaign_recommendations'
+        'show_public_profile,campaign_recommendations,' +
+        'notification_email,notification_marketing'
       )
       .eq('id', user.id)
       .single();
@@ -72,6 +76,7 @@ export async function PATCH(request: NextRequest) {
       'org_name', 'org_website', 'org_tagline',
       'timezone', 'currency', 'language', 'date_format', 'time_format',
       'show_public_profile', 'campaign_recommendations',
+      'notification_email', 'notification_marketing',
     ];
     for (const key of fields) {
       if (d[key] !== undefined) updates[key] = d[key];
@@ -85,7 +90,8 @@ export async function PATCH(request: NextRequest) {
         'full_name,bio,avatar_url,plan,' +
         'org_name,org_website,org_tagline,' +
         'timezone,currency,language,date_format,time_format,' +
-        'show_public_profile,campaign_recommendations'
+        'show_public_profile,campaign_recommendations,' +
+        'notification_email,notification_marketing'
       )
       .single();
 

@@ -25,6 +25,8 @@ interface ProfileData {
   time_format: string | null;
   show_public_profile: boolean | null;
   campaign_recommendations: boolean | null;
+  notification_email: boolean | null;
+  notification_marketing: boolean | null;
 }
 
 interface Props {
@@ -163,6 +165,8 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
   const [language, setLanguage] = useState(initialProfile.language ?? 'en');
   const [showPublicProfile, setShowPublicProfile] = useState(initialProfile.show_public_profile ?? true);
   const [campaignRecs, setCampaignRecs] = useState(initialProfile.campaign_recommendations ?? true);
+  const [notifyEmail, setNotifyEmail] = useState(initialProfile.notification_email ?? true);
+  const [notifyMarketing, setNotifyMarketing] = useState(initialProfile.notification_marketing ?? false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarFileRef = useRef<HTMLInputElement>(null);
 
@@ -217,10 +221,26 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
       const res = await fetch('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ timezone, currency, language, show_public_profile: showPublicProfile, campaign_recommendations: campaignRecs }),
+        body: JSON.stringify({
+          timezone, currency, language, show_public_profile: showPublicProfile,
+          campaign_recommendations: campaignRecs, notification_marketing: notifyMarketing,
+        }),
       });
       if (!res.ok) { const e = await res.json().catch(() => ({})); showToast('error', (e as { error?: string }).error ?? 'Failed to save.'); return; }
       showToast('success', 'Preferences saved!');
+    } catch { showToast('error', 'Something went wrong.'); } finally { setSaving(false); }
+  }
+
+  async function saveNotifications() {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notification_email: notifyEmail }),
+      });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); showToast('error', (e as { error?: string }).error ?? 'Failed to save.'); return; }
+      showToast('success', 'Notification settings saved!');
     } catch { showToast('error', 'Something went wrong.'); } finally { setSaving(false); }
   }
 
@@ -369,8 +389,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 </div>
                 <div style={{ paddingTop: 8 }}>
                   <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 12 }}>Email Preferences</div>
-                  <PrefRow id={`${uid}-updates`} label="Product updates" desc="News about new CharitMe features" checked={false} onChange={() => null} />
-                  <PrefRow id={`${uid}-tips`} label="Tips and best practices" desc="Guides and strategies for fundraising" checked={false} onChange={() => null} />
+                  <PrefRow id={`${uid}-marketing`} label="Marketing emails" desc="Product updates, tips, and fundraising best practices" checked={notifyMarketing} onChange={setNotifyMarketing} />
                   <PrefRow id={`${uid}-digest`} label="Weekly performance summary" desc="Weekly email with campaign stats" checked={campaignRecs} onChange={setCampaignRecs} />
                 </div>
               </div>
@@ -386,6 +405,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 <div className="kf-setpanel-icon">{Ico.bell}</div>
                 <div><h2>Notifications</h2><p>Manage how you receive notifications.</p></div>
               </div>
+              <button type="button" className="kf-setpanel-save" onClick={saveNotifications} disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
             </div>
             <div className="kf-setpanel-body">
               <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 8 }}>In-App Notifications</div>
@@ -395,10 +415,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               <NotifRow id={`${uid}-n4`} label="Payouts and transfers" desc="When payouts are processed or transferred" defaultOn={true} />
               <NotifRow id={`${uid}-n5`} label="Mentions and comments" desc="When someone mentions you or comments" defaultOn={false} />
               <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '18px 0 8px' }}>Email Notifications</div>
-              <NotifRow id={`${uid}-ne1`} label="Receive email notifications" desc="Get notified by email for important events" defaultOn={true} />
-              <SetField label="Email Frequency">
-                <select defaultValue="instant"><option value="instant">Instant</option><option value="daily">Daily Digest</option><option value="weekly">Weekly</option></select>
-              </SetField>
+              <PrefRow id={`${uid}-ne1`} label="Receive email notifications" desc="Get notified by email for donations, payouts, and account activity" checked={notifyEmail} onChange={setNotifyEmail} />
             </div>
           </div>
         );
