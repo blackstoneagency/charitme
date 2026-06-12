@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getPlatformModule, PLATFORM_MODULES } from '../../../lib/feature-catalog';
 
+const BASE = 'https://www.charitme.com';
+
 export function generateStaticParams() {
   return PLATFORM_MODULES.map((module) => ({ slug: module.slug }));
 }
@@ -13,9 +15,11 @@ type FeaturePageProps = {
 export async function generateMetadata({ params }: FeaturePageProps) {
   const { slug } = await params;
   const platformModule = getPlatformModule(slug);
+  if (!platformModule) return { title: 'CharitMe Features' };
   return {
-    title: platformModule ? `${platformModule.title} | CharitMe Features` : 'CharitMe Features',
-    description: platformModule?.summary,
+    title: `${platformModule.title} | CharitMe Features`,
+    description: platformModule.summary,
+    alternates: { canonical: `${BASE}/features/${platformModule.slug}` },
   };
 }
 
@@ -24,8 +28,19 @@ export default async function FeatureDetailPage({ params }: FeaturePageProps) {
   const platformModule = getPlatformModule(slug);
   if (!platformModule) notFound();
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: BASE },
+      { '@type': 'ListItem', position: 2, name: 'Features', item: `${BASE}/features` },
+      { '@type': 'ListItem', position: 3, name: platformModule.title, item: `${BASE}/features/${platformModule.slug}` },
+    ],
+  };
+
   return (
     <div className="bg-white">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <section className="border-b border-slate-200 bg-slate-950 text-white">
         <div className="container py-14">
           <Link href="/features" className="text-sm font-black text-emerald-300">All features</Link>
