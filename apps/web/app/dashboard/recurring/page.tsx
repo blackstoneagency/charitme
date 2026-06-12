@@ -146,7 +146,11 @@ export default async function RecurringPage() {
                       <PauseResumeButton subscriptionId={sub.stripe_subscription_id} status={sub.status as 'active' | 'paused'} />
                     )}
                     {sub.status === 'active' && sub.stripe_subscription_id && (
-                      <CancelButton subscriptionId={sub.stripe_subscription_id} />
+                      <Link
+                        href={`/dashboard/recurring/cancel?sub=${sub.stripe_subscription_id}`}
+                        style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', padding: '6px 14px', border: '1px solid var(--b2)', borderRadius: 8, textDecoration: 'none', background: '#fff', flexShrink: 0 }}>
+                        Cancel
+                      </Link>
                     )}
                   </div>
                 );
@@ -162,28 +166,5 @@ export default async function RecurringPage() {
         </p>
       </div>
     </CharitMeShell>
-  );
-}
-
-function CancelButton({ subscriptionId }: { subscriptionId: string }) {
-  // This is a server component page — render a client-friendly form for cancel action
-  return (
-    <form action={`/api/donations/recurring/cancel`} method="POST" style={{ display: 'inline' }}>
-      <input type="hidden" name="subscriptionId" value={subscriptionId} />
-      <CancelButtonClient subscriptionId={subscriptionId} />
-    </form>
-  );
-}
-
-// Inline client cancel button component
-function CancelButtonClient({ subscriptionId }: { subscriptionId: string }) {
-  // We'll make this a simple link to a confirmation action
-  // Full client interactivity is handled by the confirmation modal approach below
-  return (
-    <Link
-      href={`/dashboard/recurring/cancel?sub=${subscriptionId}`}
-      style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', padding: '6px 14px', border: '1px solid var(--b2)', borderRadius: 8, textDecoration: 'none', background: '#fff', flexShrink: 0 }}>
-      Cancel
-    </Link>
   );
 }
