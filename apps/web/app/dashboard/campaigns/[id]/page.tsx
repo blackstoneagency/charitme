@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { CharitMeShell, TopBar, KFIcon } from '../../../../components/CharitMeShellServer';
 import { requireUser } from '../../../../lib/auth';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import { formatMoneyCompact } from '@shared/currencies';
 import CampaignControls from './_components/CampaignControls';
 import TrustScoreCard from './_components/TrustScoreCard';
 
@@ -50,13 +51,6 @@ type Update = {
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
-function fmtCents(cents: number): string {
-  const dollars = Math.round(cents / 100);
-  if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1)}M`;
-  if (dollars >= 1_000) return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-  return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-}
-
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
     month: 'short',
@@ -95,6 +89,7 @@ async function fetchCampaignDetail(campaignId: string, userId: string): Promise<
   donations: Donation[];
   updates: Update[];
   teamCount: number;
+  currency: string;
 }> {
   try {
     // Step 1: campaign (must be owned by user)
@@ -105,15 +100,16 @@ async function fetchCampaignDetail(campaignId: string, userId: string): Promise<
       .eq('user_id', userId)
       .single();
 
-    if (campErr || !campData) return { campaign: null, donations: [], updates: [], teamCount: 0 };
+    if (campErr || !campData) return { campaign: null, donations: [], updates: [], teamCount: 0, currency: 'usd' };
 
     const campaign = campData as Campaign;
 
-    // Step 2: recent donations + updates + team count in parallel
+    // Step 2: recent donations + updates + team count + currency in parallel
     const [
       { data: donData },
       { data: updData },
       { count: teamCount },
+      { data: launchSettings },
     ] = await Promise.all([
       supabaseAdmin
         .from('donations')
@@ -132,6 +128,11 @@ async function fetchCampaignDetail(campaignId: string, userId: string): Promise<
         .from('team_members')
         .select('*', { count: 'exact', head: true })
         .eq('campaign_id', campaignId),
+      supabaseAdmin
+        .from('campaign_launch_settings')
+        .select('currency')
+        .eq('campaign_id', campaignId)
+        .maybeSingle(),
     ]);
 
     // Step 3: resolve donor names
@@ -167,9 +168,10 @@ async function fetchCampaignDetail(campaignId: string, userId: string): Promise<
       donations,
       updates: (updData ?? []) as Update[],
       teamCount: teamCount ?? 0,
+      currency: launchSettings?.currency ?? 'usd',
     };
   } catch {
-    return { campaign: null, donations: [], updates: [], teamCount: 0 };
+    return { campaign: null, donations: [], updates: [], teamCount: 0, currency: 'usd' };
   }
 }
 
@@ -183,7 +185,7 @@ export default async function CampaignDetailPage({
 }) {
   const user = await requireUser();
   const { id } = await params;
-  const { campaign, donations, updates, teamCount } = await fetchCampaignDetail(id, user.id);
+  const { campaign, donations, updates, teamCount, currency } = await fetchCampaignDetail(id, user.id);
 
   if (!campaign) notFound();
 
@@ -191,8 +193,8 @@ export default async function CampaignDetailPage({
     ? Math.min(100, Math.round((campaign.raised_amount / campaign.goal_amount) * 100))
     : 0;
 
-  const totalRaisedDisplay = fmtCents(campaign.raised_amount);
-  const goalDisplay = fmtCents(campaign.goal_amount);
+  const totalRaisedDisplay = formatMoneyCompact(campaign.raised_amount, currency);
+  const goalDisplay = formatMoneyCompact(campaign.goal_amount, currency);
   const deadline = daysLeft(campaign.deadline);
 
   return (
@@ -322,7 +324,7 @@ export default async function CampaignDetailPage({
                       <small style={{ fontSize: 11, color: 'var(--t3)' }}>{fmtDate(d.created_at)}</small>
                     </div>
                     <strong style={{ fontSize: 15, color: 'var(--green)', flexShrink: 0 }}>
-                      {fmtCents(d.amount_cents)}
+                      {formatMoneyCompact(d.amount_cents, currency)}
                     </strong>
                   </div>
                 ))}
