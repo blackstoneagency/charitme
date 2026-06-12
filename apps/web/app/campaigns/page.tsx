@@ -43,7 +43,9 @@ async function getCampaigns(opts: {
     let query = supabaseAdmin
       .from('campaigns')
       .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, trust_status, nonprofit_verified, location, campaign_health_score', { count: 'exact' })
-      .eq('status', 'active');
+      .eq('status', 'active')
+      .eq('visibility', 'public')
+      .is('deleted_at', null);
 
     if (opts.category) query = query.eq('category', opts.category);
     if (opts.verifiedOnly) query = query.eq('trust_status', 'Verified');

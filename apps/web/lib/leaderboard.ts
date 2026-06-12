@@ -51,6 +51,8 @@ export async function getTopCampaigns(limit = 20): Promise<LeaderboardCampaign[]
     .from('campaigns')
     .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, category, trust_status, nonprofit_verified, location, profiles:user_id(full_name, avatar_url)')
     .eq('status', 'active')
+    .eq('visibility', 'public')
+    .is('deleted_at', null)
     .order('raised_amount', { ascending: false })
     .limit(limit);
 

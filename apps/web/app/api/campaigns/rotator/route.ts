@@ -12,6 +12,8 @@ export async function GET() {
         'slug,title,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,featured,profiles:user_id(full_name)',
       )
       .eq('status', 'active')
+      .eq('visibility', 'public')
+      .is('deleted_at', null)
       .not('cover_image_url', 'is', null)
       .neq('cover_image_url', '')
       .order('featured', { ascending: false })

@@ -31,7 +31,9 @@ export async function getStoryCampaigns(filters: StoryFilters): Promise<HomeCamp
   let query = supabaseAdmin
     .from('campaigns')
     .select('slug,title,tagline,description,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,created_at,status')
-    .eq('status', 'active');
+    .eq('status', 'active')
+    .eq('visibility', 'public')
+    .is('deleted_at', null);
 
   if (categoryValues.length > 0) {
     query = query.in('category', categoryValues);
@@ -80,6 +82,8 @@ export async function getHomeData(filters: StoryFilters): Promise<{
       .from('campaigns')
       .select('slug,title,description,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,profiles:user_id(full_name)')
       .eq('status', 'active')
+      .eq('visibility', 'public')
+      .is('deleted_at', null)
       .order('raised_amount', { ascending: false })
       .limit(3),
     getStoryCampaigns(filters),
@@ -87,17 +91,21 @@ export async function getHomeData(filters: StoryFilters): Promise<{
       .from('campaigns')
       .select('slug,title,category,cover_image_url,goal_amount,raised_amount,backer_count,trust_status,campaign_health_score,deadline,video_url,featured,profiles:user_id(full_name)')
       .eq('status', 'active')
+      .eq('visibility', 'public')
+      .is('deleted_at', null)
       .not('cover_image_url', 'is', null)
       .neq('cover_image_url', '')
       .order('featured', { ascending: false })
       .order('raised_amount', { ascending: false })
       .limit(20),
-    supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+    supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active').eq('visibility', 'public').is('deleted_at', null),
     supabaseAdmin.from('donations').select('amount_cents', { count: 'exact' }).eq('status', 'completed'),
     supabaseAdmin
       .from('campaigns')
       .select('campaign_health_score')
       .eq('status', 'active')
+      .eq('visibility', 'public')
+      .is('deleted_at', null)
       .not('campaign_health_score', 'is', null)
       .gt('campaign_health_score', 0),
   ]);

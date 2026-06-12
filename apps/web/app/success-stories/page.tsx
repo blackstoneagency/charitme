@@ -44,9 +44,11 @@ async function getStoryData() {
       .from('campaigns')
       .select('slug,title,description,category,cover_image_url,raised_amount,goal_amount,backer_count,created_at')
       .in('status', ['active', 'completed'])
+      .eq('visibility', 'public')
+      .is('deleted_at', null)
       .order('raised_amount', { ascending: false })
       .limit(9),
-    supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).in('status', ['active', 'completed']),
+    supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).in('status', ['active', 'completed']).eq('visibility', 'public').is('deleted_at', null),
     supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
   ]);
 

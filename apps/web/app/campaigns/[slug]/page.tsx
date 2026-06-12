@@ -149,6 +149,8 @@ async function getSimilarCampaigns(campaignId: string, category: string | null):
     .select('id, slug, title, tagline, category, cover_image_url, goal_amount, raised_amount, backer_count')
     .eq('category', category)
     .eq('status', 'active')
+    .eq('visibility', 'public')
+    .is('deleted_at', null)
     .neq('id', campaignId)
     .order('raised_amount', { ascending: false })
     .limit(4);

@@ -25,6 +25,8 @@ async function getAIPageData() {
       .from('campaigns')
       .select('slug,title,tagline,cover_image_url,goal_amount,raised_amount,backer_count,category')
       .eq('status', 'active')
+      .eq('visibility', 'public')
+      .is('deleted_at', null)
       .order('raised_amount', { ascending: false })
       .limit(3),
   ]);

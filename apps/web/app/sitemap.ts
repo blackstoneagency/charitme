@@ -53,6 +53,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .from('campaigns')
     .select('slug, updated_at')
     .eq('status', 'active')
+    .eq('visibility', 'public')
+    .is('deleted_at', null)
     .order('raised_amount', { ascending: false })
     .limit(5000);
 

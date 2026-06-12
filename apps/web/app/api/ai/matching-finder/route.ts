@@ -97,6 +97,8 @@ export async function GET(request: NextRequest) {
     .from('campaigns')
     .select('id, slug, title, tagline, category, cover_image_url, goal_amount, raised_amount, backer_count, trust_status, campaign_health_score, user_id')
     .eq('status', 'active')
+    .eq('visibility', 'public')
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(150);
 
