@@ -171,7 +171,7 @@ export default function AiCoachPage() {
                 width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
                 background: msg.role === 'user' ? '#6c35ff' : 'linear-gradient(135deg,#6c35ff,#ec3fb4)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 14, color: '#fff', fontWeight: 900,
+                fontSize: 14, color: '#fff', fontWeight: 700,
               }}>
                 {msg.role === 'user' ? 'U' : '🤖'}
               </div>

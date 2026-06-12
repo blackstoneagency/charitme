@@ -4,10 +4,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 /* ── shared styles ── */
 const card: React.CSSProperties = { background: '#fff', border: '1px solid #eef0f7', borderRadius: 14, padding: '20px 24px', marginBottom: 16 };
-const btn: React.CSSProperties = { padding: '8px 18px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 800, cursor: 'pointer' };
+const btn: React.CSSProperties = { padding: '8px 18px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 650, cursor: 'pointer' };
 const btnGhost: React.CSSProperties = { padding: '8px 18px', background: '#f8f9fc', color: '#374151', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' };
 const input: React.CSSProperties = { padding: '9px 14px', borderRadius: 9, border: '1px solid #d1d5db', fontSize: 13, fontFamily: 'inherit' };
-const th: React.CSSProperties = { textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid #eef0f7' };
+const th: React.CSSProperties = { textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid #eef0f7' };
 const td: React.CSSProperties = { padding: '12px 14px', fontSize: 13, color: '#374151', borderBottom: '1px solid #f5f6fa' };
 
 const TABS = [
@@ -50,7 +50,7 @@ export default function AdminMarketingClient({ initialTab = 'overview', overview
       <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: '#f8f9fc', borderRadius: 12, padding: 4, border: '1px solid #eef0f7', flexWrap: 'wrap' }}>
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            style={{ padding: '9px 18px', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 800, cursor: 'pointer',
+            style={{ padding: '9px 18px', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 650, cursor: 'pointer',
               background: tab === t.key ? '#fff' : 'transparent', color: tab === t.key ? '#6c35ff' : '#64748b',
               boxShadow: tab === t.key ? '0 1px 6px rgba(0,0,0,.08)' : 'none' }}>
             {t.label}
@@ -83,15 +83,15 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 20 }}>
         {kpis.map(k => (
           <button key={k.label} onClick={() => go(k.tab)} style={{ ...card, marginBottom: 0, textAlign: 'left', cursor: 'pointer' }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em' }}>{k.label}</div>
-            <div style={{ fontSize: 30, fontWeight: 900, color: '#1a1a2e', marginTop: 6 }}>{k.value}</div>
+            <div style={{ fontSize: 12, fontWeight: 650, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em' }}>{k.label}</div>
+            <div style={{ fontSize: 30, fontWeight: 700, color: '#1a1a2e', marginTop: 6 }}>{k.value}</div>
           </button>
         ))}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div style={card}>
-          <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>Contacts by type</div>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>Contacts by type</div>
           {Object.keys(overview.byType).length === 0 && <p style={{ fontSize: 13, color: '#94a3b8' }}>No contacts yet. Use Audience → “Sync platform users” to import donors and organizers, or capture leads from site forms.</p>}
           {Object.entries(overview.byType).sort((a, b) => b[1] - a[1]).map(([type, count]) => (
             <div key={type} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f5f6fa', fontSize: 13 }}>
@@ -101,7 +101,7 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
           ))}
         </div>
         <div style={card}>
-          <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>Top segments</div>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>Top segments</div>
           {overview.topSegments.map(s => (
             <div key={s.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f5f6fa', fontSize: 13 }}>
               <span style={{ color: '#64748b', fontWeight: 600 }}>{s.name}</span>
@@ -113,7 +113,7 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
       </div>
 
       <div style={{ ...card, background: '#f7f2ff', borderColor: '#e0d5ff' }}>
-        <div style={{ fontWeight: 900, fontSize: 14, color: '#4d1ee0', marginBottom: 6 }}>Capture endpoint</div>
+        <div style={{ fontWeight: 700, fontSize: 14, color: '#4d1ee0', marginBottom: 6 }}>Capture endpoint</div>
         <p style={{ fontSize: 13, color: '#5b3fa8', margin: 0, lineHeight: 1.6 }}>
           POST <code style={{ background: '#fff', padding: '2px 8px', borderRadius: 6 }}>/api/marketing/capture</code> with{' '}
           <code style={{ background: '#fff', padding: '2px 8px', borderRadius: 6 }}>{'{ email, event, utmSource, ... }'}</code> from any form, popup, or page.
@@ -195,7 +195,7 @@ function AudienceTab({ flash }: { flash: (m: string) => void }) {
             {contacts.map(c => (
               <tr key={c.id} onClick={() => void openProfile(c.id)} style={{ cursor: 'pointer' }}>
                 <td style={td}>
-                  <div style={{ fontWeight: 800, color: '#1a1a2e' }}>{[c.first_name, c.last_name].filter(Boolean).join(' ') || '—'}</div>
+                  <div style={{ fontWeight: 650, color: '#1a1a2e' }}>{[c.first_name, c.last_name].filter(Boolean).join(' ') || '—'}</div>
                   <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.email}</div>
                 </td>
                 <td style={td}><Pill text={c.client_type.replaceAll('_', ' ')} color="#6c35ff" /></td>
@@ -223,7 +223,7 @@ function ProfileDrawer({ profile, onClose }: { profile: ContactProfile; onClose:
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
       <div onClick={e => e.stopPropagation()} style={{ width: 'min(480px, 92vw)', background: '#fff', height: '100%', overflowY: 'auto', padding: '28px 28px 48px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#1a1a2e' }}>{[c.first_name, c.last_name].filter(Boolean).join(' ') || c.email}</h3>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1a1a2e' }}>{[c.first_name, c.last_name].filter(Boolean).join(' ') || c.email}</h3>
           <button onClick={onClose} style={{ ...btnGhost, padding: '4px 12px' }}>✕</button>
         </div>
         <p style={{ margin: '0 0 18px', fontSize: 13, color: '#94a3b8' }}>{c.email}{c.country ? ` · ${c.country}` : ''}</p>
@@ -237,8 +237,8 @@ function ProfileDrawer({ profile, onClose }: { profile: ContactProfile; onClose:
             ['First touch', c.last_touch_source ?? '—'], ['Last active', dt(c.last_active_at)],
           ].map(([k, v]) => (
             <div key={k} style={{ background: '#f8f9fc', borderRadius: 10, padding: '10px 14px' }}>
-              <div style={{ fontSize: 10, fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase' }}>{k}</div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e', marginTop: 2 }}>{v}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{k}</div>
+              <div style={{ fontSize: 14, fontWeight: 650, color: '#1a1a2e', marginTop: 2 }}>{v}</div>
             </div>
           ))}
         </div>
@@ -322,7 +322,7 @@ function SegmentsTab({ flash }: { flash: (m: string) => void }) {
   return (
     <div>
       <div style={card}>
-        <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>Create segment</div>
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>Create segment</div>
         <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Segment name" style={{ ...input, flex: '1 1 220px' }} />
           <select value={logic} onChange={e => setLogic(e.target.value as 'and' | 'or')} style={input}>
@@ -421,7 +421,7 @@ function CampaignsTab({ flash }: { flash: (m: string) => void }) {
   return (
     <div>
       <div style={card}>
-        <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>New email campaign</div>
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>New email campaign</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
           <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Internal name" style={input} />
           <select value={form.segment_id} onChange={e => setForm(f => ({ ...f, segment_id: e.target.value }))} style={input}>
@@ -516,7 +516,7 @@ function AutomationsTab({ flash }: { flash: (m: string) => void }) {
       </div>
 
       <div style={card}>
-        <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 12, color: '#1a1a2e' }}>Recent runs</div>
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: '#1a1a2e' }}>Recent runs</div>
         {runs.length === 0 && <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>No runs yet — click “Run now” on an automation.</p>}
         {runs.map(r => (
           <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '6px 0', borderBottom: '1px solid #f5f6fa' }}>
@@ -560,7 +560,7 @@ function CopilotTab({ flash }: { flash: (m: string) => void }) {
   return (
     <div>
       <div style={card}>
-        <div style={{ fontWeight: 900, fontSize: 14, marginBottom: 4, color: '#1a1a2e' }}>AI Marketing Copilot</div>
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: '#1a1a2e' }}>AI Marketing Copilot</div>
         <p style={{ fontSize: 13, color: '#94a3b8', margin: '0 0 14px' }}>Grounded in your live contact, event, and campaign data.</p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           {COPILOT_TASKS.map(t => (
@@ -585,7 +585,7 @@ function CopilotTab({ flash }: { flash: (m: string) => void }) {
 
 /* ── tiny helpers ── */
 function Pill({ text, color }: { text: string; color: string }) {
-  return <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 999, fontSize: 11, fontWeight: 800, color, background: `${color}18`, marginLeft: 4 }}>{text}</span>;
+  return <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 999, fontSize: 11, fontWeight: 650, color, background: `${color}18`, marginLeft: 4 }}>{text}</span>;
 }
 function ScoreBar({ value }: { value: number }) {
   const color = value >= 70 ? '#059669' : value >= 40 ? '#d97706' : '#94a3b8';
@@ -601,7 +601,7 @@ function ScoreBar({ value }: { value: number }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 12, fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>{title}</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>{title}</div>
       {children}
     </div>
   );

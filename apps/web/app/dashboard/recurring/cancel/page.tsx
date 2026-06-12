@@ -45,7 +45,7 @@ export default function CancelRecurringPage() {
         <div style={{ padding: '0 32px 40px', maxWidth: 500 }}>
           <div style={{ background: '#f0fff8', border: '1.5px solid #bbf7d0', borderRadius: 14, padding: '32px 28px', textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
-            <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 900, color: '#064e3b' }}>Cancellation confirmed</h2>
+            <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: '#064e3b' }}>Cancellation confirmed</h2>
             <p style={{ fontSize: 14, color: '#065f46', margin: '0 0 20px', lineHeight: 1.6 }}>
               Your recurring donation has been cancelled. You won&apos;t be charged again. Your final billing period access continues until its end date.
             </p>
@@ -64,7 +64,7 @@ export default function CancelRecurringPage() {
       <div style={{ padding: '0 32px 40px', maxWidth: 500 }}>
         <div style={{ background: 'var(--s2)', border: '1px solid var(--b2)', borderRadius: 14, padding: '28px 28px', textAlign: 'center' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
-          <h2 style={{ margin: '0 0 10px', fontSize: 18, fontWeight: 900 }}>Cancel this recurring donation?</h2>
+          <h2 style={{ margin: '0 0 10px', fontSize: 18, fontWeight: 700 }}>Cancel this recurring donation?</h2>
           <p style={{ fontSize: 14, color: 'var(--t3)', margin: '0 0 24px', lineHeight: 1.6 }}>
             You will not be charged again. Your current billing period continues until its end date.
             The campaign organiser will no longer receive your monthly support.

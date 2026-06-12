@@ -63,7 +63,7 @@ export default async function AdminCampaignsPage() {
         <TopBar title="Campaigns" subtitle="Database error" actions={<></>} />
         <div style={{ padding: '32px', maxWidth: 700 }}>
           <div style={{ padding: '20px 24px', background: '#fff0f3', border: '1.5px solid #fecdd3', borderRadius: 14 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 900, color: '#be123c', margin: '0 0 8px' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#be123c', margin: '0 0 8px' }}>
               ❌ Supabase Query Error
             </h2>
             <p style={{ fontFamily: 'monospace', fontSize: 13, color: '#be123c', margin: '0 0 12px', lineHeight: 1.6 }}>

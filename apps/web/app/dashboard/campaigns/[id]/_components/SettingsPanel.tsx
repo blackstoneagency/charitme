@@ -111,7 +111,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
 
   const section = (title: string, children: React.ReactNode) => (
     <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, padding: '24px 28px', marginBottom: 20 }}>
-      <h2 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 800, color: '#1a1a2e' }}>{title}</h2>
+      <h2 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 650, color: '#1a1a2e' }}>{title}</h2>
       {children}
     </div>
   );
@@ -155,7 +155,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
   return (
     <div style={{ maxWidth: 680 }}>
       <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 24, fontWeight: 900, color: '#1a1a2e', margin: 0 }}>Campaign Settings</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 700, color: '#1a1a2e', margin: 0 }}>Campaign Settings</h2>
       </div>
 
       {error && (
@@ -203,7 +203,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
           style={{
             background: coreState === 'saved' ? '#19b86a' : '#6c35ff',
             color: '#fff', border: 'none', borderRadius: 10,
-            padding: '10px 24px', fontWeight: 800, fontSize: 14, cursor: 'pointer',
+            padding: '10px 24px', fontWeight: 650, fontSize: 14, cursor: 'pointer',
           }}
         >
           {btnLabel(coreState)}
@@ -237,7 +237,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
           style={{
             background: launchState === 'saved' ? '#19b86a' : '#6c35ff',
             color: '#fff', border: 'none', borderRadius: 10,
-            padding: '10px 24px', fontWeight: 800, fontSize: 14, cursor: 'pointer',
+            padding: '10px 24px', fontWeight: 650, fontSize: 14, cursor: 'pointer',
           }}
         >
           {btnLabel(launchState)}
@@ -254,7 +254,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
           style={{
             background: 'none', border: '1.5px solid #ef4444',
             color: '#ef4444', borderRadius: 10,
-            padding: '10px 24px', fontWeight: 800, fontSize: 14, cursor: 'pointer',
+            padding: '10px 24px', fontWeight: 650, fontSize: 14, cursor: 'pointer',
           }}
         >
           Delete campaign

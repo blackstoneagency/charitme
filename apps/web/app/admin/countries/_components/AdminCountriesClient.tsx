@@ -27,10 +27,10 @@ const iStyle: React.CSSProperties = {
   fontSize: 13, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box',
 };
 const lStyle: React.CSSProperties = {
-  fontSize: 11, fontWeight: 800, color: '#64748b',
+  fontSize: 11, fontWeight: 650, color: '#64748b',
   textTransform: 'uppercase', letterSpacing: '.04em',
 };
-const btnSave:   React.CSSProperties = { padding: '5px 14px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 800, cursor: 'pointer' };
+const btnSave:   React.CSSProperties = { padding: '5px 14px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 650, cursor: 'pointer' };
 const btnCancel: React.CSSProperties = { padding: '5px 12px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: 7, fontSize: 12, cursor: 'pointer' };
 const btnEdit:   React.CSSProperties = { padding: '5px 12px', background: '#f0eaff', color: '#6c35ff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
 const btnDel:    React.CSSProperties = { padding: '5px 12px', background: '#fff0f3', color: '#be123c', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
@@ -125,7 +125,7 @@ function CountryRow({
       <td style={{ padding: '11px 14px', textAlign: 'center' }}>
         <button
           onClick={() => void onUpdate(country.id, { active: !country.active })}
-          style={{ ...pill(country.active ? '#f0fdf4' : '#fef2f2', country.active ? '#15803d' : '#dc2626'), border: 'none', cursor: 'pointer', fontWeight: 800 }}
+          style={{ ...pill(country.active ? '#f0fdf4' : '#fef2f2', country.active ? '#15803d' : '#dc2626'), border: 'none', cursor: 'pointer', fontWeight: 650 }}
         >
           {country.active ? '● Active' : '○ Hidden'}
         </button>
@@ -226,7 +226,7 @@ export default function AdminCountriesClient() {
           { label: 'Active / Visible', value: activeCount,      color: '#f59e0b' },
         ].map(m => (
           <div key={m.label} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '18px 22px' }}>
-            <div style={{ fontSize: 26, fontWeight: 900, color: m.color }}>{m.value}</div>
+            <div style={{ fontSize: 26, fontWeight: 700, color: m.color }}>{m.value}</div>
             <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>{m.label}</div>
           </div>
         ))}
@@ -238,14 +238,14 @@ export default function AdminCountriesClient() {
           🌍 Public page:{' '}
           <code style={{ background: 'rgba(0,0,0,.06)', padding: '2px 6px', borderRadius: 4 }}>/supported-countries</code>
         </span>
-        <Link href="/supported-countries" target="_blank" style={{ fontSize: 12, fontWeight: 800, color: '#6c35ff', textDecoration: 'none' }}>
+        <Link href="/supported-countries" target="_blank" style={{ fontSize: 12, fontWeight: 650, color: '#6c35ff', textDecoration: 'none' }}>
           View Page →
         </Link>
       </div>
 
       {/* Add form */}
       <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
-        <div style={{ fontWeight: 800, fontSize: 14, color: '#1a1a2e', marginBottom: 14 }}>+ Add Country</div>
+        <div style={{ fontWeight: 650, fontSize: 14, color: '#1a1a2e', marginBottom: 14 }}>+ Add Country</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={lStyle}>Flag</label>
@@ -284,7 +284,7 @@ export default function AdminCountriesClient() {
           <button
             onClick={() => void addCountry()}
             disabled={adding || !newForm.name.trim()}
-            style={{ height: 40, padding: '0 22px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 9, fontWeight: 800, fontSize: 13, cursor: 'pointer', flexShrink: 0, opacity: adding || !newForm.name.trim() ? .5 : 1 }}
+            style={{ height: 40, padding: '0 22px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 9, fontWeight: 650, fontSize: 13, cursor: 'pointer', flexShrink: 0, opacity: adding || !newForm.name.trim() ? .5 : 1 }}
           >
             {adding ? 'Adding…' : '+ Add'}
           </button>

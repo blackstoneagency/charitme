@@ -253,7 +253,7 @@ function ActionItem({
         display: 'flex', alignItems: 'center', gap: 10,
         width: '100%', padding: '10px 14px', marginBottom: 6,
         border: `1px solid ${color}22`, borderRadius: 10, background: bg,
-        color, fontWeight: 850, fontSize: 13, cursor: disabled ?? loading ? 'default' : 'pointer',
+        color, fontWeight: 650, fontSize: 13, cursor: disabled ?? loading ? 'default' : 'pointer',
         opacity: disabled ? 0.45 : 1, transition: 'opacity .15s',
         textAlign: 'left',
       }}
@@ -686,7 +686,7 @@ function DetailView({
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 30, fontWeight: 950, color: '#0f1238', letterSpacing: '-.02em', lineHeight: 1 }}>
+            <div style={{ fontSize: 30, fontWeight: 800, color: '#0f1238', letterSpacing: '-.02em', lineHeight: 1 }}>
               {fmtCents(detail.amountCents)}
             </div>
             <div style={{ fontSize: 12, color: '#8c9ab5', marginTop: 4 }}>{fmtDateTime(detail.createdAt)}</div>
@@ -696,7 +696,7 @@ function DetailView({
             <button
               type="button"
               className="kf-danger"
-              style={{ height: 40, padding: '0 20px', fontSize: 13, fontWeight: 900, borderRadius: 10 }}
+              style={{ height: 40, padding: '0 20px', fontSize: 13, fontWeight: 700, borderRadius: 10 }}
               onClick={() => setShowRefundModal(true)}
             >
               Refund
@@ -788,7 +788,7 @@ function DetailView({
                       {i < timeline.length - 1 && <div className="ado-timeline-line-seg" />}
                     </div>
                     <div style={{ paddingBottom: i < timeline.length - 1 ? 20 : 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: '#101944' }}>{ev.event}</div>
+                      <div style={{ fontSize: 13, fontWeight: 650, color: '#101944' }}>{ev.event}</div>
                       <div style={{ fontSize: 12, color: '#8c9ab5', marginTop: 2 }}>{fmtDateTime(ev.date)}</div>
                     </div>
                   </div>
@@ -951,7 +951,7 @@ export default function DonationsClient({
     <div style={{ padding: '0 32px 40px' }}>
       {detailLoading && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'grid', placeItems: 'center', background: 'rgba(10,15,60,.25)', backdropFilter: 'blur(2px)' }}>
-          <div style={{ background: '#fff', borderRadius: 14, padding: '28px 40px', fontSize: 14, color: '#26335c', fontWeight: 750 }}>Loading donation…</div>
+          <div style={{ background: '#fff', borderRadius: 14, padding: '28px 40px', fontSize: 14, color: '#26335c', fontWeight: 600 }}>Loading donation…</div>
         </div>
       )}
 
@@ -1030,21 +1030,21 @@ export default function DonationsClient({
               onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
-              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                 {d.donor_name.charAt(0).toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 850, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.donor_name}</div>
+                <div style={{ fontSize: 14, fontWeight: 650, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.donor_name}</div>
                 <div style={{ fontSize: 12, color: '#66708d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.campaign_title}</div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 950, color: '#101944' }}>{fmtCents(d.amount_cents)}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#101944' }}>{fmtCents(d.amount_cents)}</div>
                 <div style={{ fontSize: 11, color: '#8c9ab5' }}>{fmtDate(d.created_at)}</div>
               </div>
             </div>
           ))}
           <div style={{ height: 48, display: 'grid', placeItems: 'center', borderTop: '1px solid #f0f2f8' }}>
-            <button type="button" style={{ background: 'none', border: 'none', color: '#551cf2', fontWeight: 950, fontSize: 14, cursor: 'pointer' }}
+            <button type="button" style={{ background: 'none', border: 'none', color: '#551cf2', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
               onClick={() => setPanelTab('Donations')}>
               View all donations →
             </button>
@@ -1054,12 +1054,12 @@ export default function DonationsClient({
           <div className="kf-card-head"><h2>Top Donors</h2></div>
           {topDonors.slice(0, 5).map((d, i) => (
             <div key={d.donor_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid #f0f2f8' }}>
-              <span style={{ width: 22, textAlign: 'center', fontSize: 12, fontWeight: 900, color: '#8c9ab5' }}>{i + 1}</span>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+              <span style={{ width: 22, textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#8c9ab5' }}>{i + 1}</span>
+              <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                 {d.donor_name.charAt(0).toUpperCase()}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 850, color: '#101944' }}>{d.donor_name}</div>
+                <div style={{ fontSize: 14, fontWeight: 650, color: '#101944' }}>{d.donor_name}</div>
                 <div style={{ fontSize: 12, color: '#66708d' }}>{d.donation_count} donation{d.donation_count !== 1 ? 's' : ''}</div>
               </div>
               <strong style={{ fontSize: 15, color: '#101944' }}>{fmtCents(d.total_cents)}</strong>
@@ -1110,7 +1110,7 @@ export default function DonationsClient({
                 <option value="failed">Failed</option>
               </select>
               <button type="button"
-                style={{ height: 42, padding: '0 18px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}
+                style={{ height: 42, padding: '0 18px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                 onClick={() => window.open('/api/admin/reports/export?type=donations&format=' + exportFormat, '_blank')}>
                 Export
               </button>
@@ -1133,7 +1133,7 @@ export default function DonationsClient({
             </div>
 
             {/* Table header */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 900, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
               <span>Donor</span><span>Campaign</span><span>Amount</span><span>Status</span><span>Date</span>
             </div>
 
@@ -1147,16 +1147,16 @@ export default function DonationsClient({
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                     {d.donor_name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 850, color: '#101944' }}>{d.donor_name}</div>
+                    <div style={{ fontSize: 13, fontWeight: 650, color: '#101944' }}>{d.donor_name}</div>
                     {d.donor_email && <div style={{ fontSize: 11, color: '#8c9ab5' }}>{d.donor_email}</div>}
                   </div>
                 </div>
                 <div style={{ fontSize: 13, color: '#26335c', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.campaign_title}</div>
-                <div style={{ fontSize: 14, fontWeight: 950, color: '#101944' }}>{fmtCents(d.amount_cents)}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#101944' }}>{fmtCents(d.amount_cents)}</div>
                 <StatusPill status={d.status} />
                 <div style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(d.created_at)}</div>
               </div>
@@ -1188,26 +1188,26 @@ export default function DonationsClient({
         {/* ── Donors tab ──────────────────────────────────────────────────────── */}
         {panelTab === 'Donors' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950, color: '#0f1238' }}>All Donors</h3>
+            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#0f1238' }}>All Donors</h3>
             {topDonors.length === 0 && (
               <p style={{ color: '#8c9ab5', fontSize: 14 }}>No donor data available.</p>
             )}
             <div style={{ border: '1px solid #e6e9f2', borderRadius: 12, overflow: 'hidden' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr 1fr 1fr', gap: 12, padding: '10px 18px', background: '#f9faff', borderBottom: '1px solid #e6e9f2', color: '#66708d', fontSize: 11, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr 1fr 1fr', gap: 12, padding: '10px 18px', background: '#f9faff', borderBottom: '1px solid #e6e9f2', color: '#66708d', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
                 <span>Donor</span><span>Total Donated</span><span>Donations</span><span>Avg / Gift</span>
               </div>
               {topDonors.slice(0, 20).map((d, i) => (
                 <div key={d.donor_id} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr 1fr 1fr', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < topDonors.length - 1 ? '1px solid #f0f2f8' : 'none', background: '#fff' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ width: 22, fontSize: 12, fontWeight: 900, color: i < 3 ? '#6c35ff' : '#8c9ab5', textAlign: 'center' }}>#{i + 1}</span>
-                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+                    <span style={{ width: 22, fontSize: 12, fontWeight: 700, color: i < 3 ? '#6c35ff' : '#8c9ab5', textAlign: 'center' }}>#{i + 1}</span>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                       {d.donor_name.charAt(0).toUpperCase()}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 850, color: '#101944' }}>{d.donor_name}</div>
+                    <div style={{ fontSize: 13, fontWeight: 650, color: '#101944' }}>{d.donor_name}</div>
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 950, color: '#6c35ff' }}>{fmtCents(d.total_cents)}</div>
-                  <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 750 }}>{d.donation_count}×</div>
-                  <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 750 }}>{fmtCents(Math.round(d.total_cents / d.donation_count))}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#6c35ff' }}>{fmtCents(d.total_cents)}</div>
+                  <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 600 }}>{d.donation_count}×</div>
+                  <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 600 }}>{fmtCents(Math.round(d.total_cents / d.donation_count))}</div>
                 </div>
               ))}
             </div>
@@ -1226,7 +1226,7 @@ export default function DonationsClient({
               ].map(s => (
                 <div key={s.label} style={{ padding: '18px', border: '1px solid #e6e9f2', borderRadius: 12, background: '#fff' }}>
                   <div style={{ fontSize: 12, color: '#66708d', marginBottom: 6, fontWeight: 700 }}>{s.label}</div>
-                  <div style={{ fontSize: 24, fontWeight: 950, color: s.color }}>{s.value}</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{s.value}</div>
                 </div>
               ))}
             </div>
@@ -1241,22 +1241,22 @@ export default function DonationsClient({
                         <path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
                       </svg>
                     </div>
-                    <strong style={{ display: 'block', color: '#26335c', fontSize: 15, fontWeight: 900, marginBottom: 6 }}>No recurring donors found</strong>
+                    <strong style={{ display: 'block', color: '#26335c', fontSize: 15, fontWeight: 700, marginBottom: 6 }}>No recurring donors found</strong>
                     <span style={{ fontSize: 13 }}>Donors who give more than once will appear here.</span>
                   </div>
                 );
               }
               return (
                 <div style={{ border: '1px solid #e6e9f2', borderRadius: 12, overflow: 'hidden' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr 1fr .9fr .9fr', gap: 12, padding: '10px 18px', background: '#f9faff', borderBottom: '1px solid #e6e9f2', color: '#66708d', fontSize: 11, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr 1fr .9fr .9fr', gap: 12, padding: '10px 18px', background: '#f9faff', borderBottom: '1px solid #e6e9f2', color: '#66708d', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
                     <span>Donor</span><span>Total Donated</span><span>Donations</span><span>Avg / Gift</span><span>Status</span>
                   </div>
                   {recurring.map((d, i) => (
                     <div key={d.donor_id} style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr 1fr .9fr .9fr', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < recurring.length - 1 ? '1px solid #f0f2f8' : 'none', background: '#fff' }}>
-                      <div style={{ fontSize: 13, fontWeight: 850, color: '#101944' }}>{d.donor_name}</div>
-                      <div style={{ fontSize: 14, fontWeight: 950, color: '#6c35ff' }}>{fmtCents(d.total_cents)}</div>
-                      <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 750 }}>{d.donation_count}×</div>
-                      <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 750 }}>{fmtCents(Math.round(d.total_cents / d.donation_count))}</div>
+                      <div style={{ fontSize: 13, fontWeight: 650, color: '#101944' }}>{d.donor_name}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#6c35ff' }}>{fmtCents(d.total_cents)}</div>
+                      <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 600 }}>{d.donation_count}×</div>
+                      <div style={{ fontSize: 13, color: '#3b4a74', fontWeight: 600 }}>{fmtCents(Math.round(d.total_cents / d.donation_count))}</div>
                       <span className="kf-pill green">Active</span>
                     </div>
                   ))}
@@ -1270,14 +1270,14 @@ export default function DonationsClient({
         {panelTab === 'Refunds' && (
           <div style={{ padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 950, color: '#0f1238' }}>Refunded Donations</h3>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f1238' }}>Refunded Donations</h3>
               <span className="kf-pill red">{refundedCount} refunded</span>
             </div>
             {donations.filter(d => d.status === 'refunded').length === 0 ? (
               <div style={{ textAlign: 'center', padding: '32px', color: '#8c9ab5', fontSize: 14 }}>No refunded donations.</div>
             ) : (
               <div style={{ border: '1px solid #e6e9f2', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 130px', gap: 12, padding: '10px 18px', background: '#f9faff', borderBottom: '1px solid #e6e9f2', color: '#66708d', fontSize: 11, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 130px', gap: 12, padding: '10px 18px', background: '#f9faff', borderBottom: '1px solid #e6e9f2', color: '#66708d', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em' }}>
                   <span>Donor</span><span>Campaign</span><span>Amount</span><span>Date</span>
                 </div>
                 {donations.filter(d => d.status === 'refunded').map((d, i, arr) => (
@@ -1286,9 +1286,9 @@ export default function DonationsClient({
                     onClick={() => { fetchDetail(d.id); }}
                     onMouseEnter={e => (e.currentTarget.style.background = '#fff5f7')}
                     onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
-                    <div style={{ fontSize: 13, fontWeight: 850, color: '#101944' }}>{d.donor_name}</div>
+                    <div style={{ fontSize: 13, fontWeight: 650, color: '#101944' }}>{d.donor_name}</div>
                     <div style={{ fontSize: 13, color: '#26335c', fontWeight: 700 }}>{d.campaign_title}</div>
-                    <div style={{ fontSize: 14, fontWeight: 950, color: '#ff3b5f' }}>{fmtCents(d.amount_cents)}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#ff3b5f' }}>{fmtCents(d.amount_cents)}</div>
                     <div style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(d.created_at)}</div>
                   </div>
                 ))}
@@ -1300,7 +1300,7 @@ export default function DonationsClient({
         {/* ── Reports tab ───────────────────────────────────────────────────── */}
         {panelTab === 'Reports' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 950, color: '#0f1238' }}>Reports & Analytics</h3>
+            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700, color: '#0f1238' }}>Reports & Analytics</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
               {[
                 { label: 'Donation Summary', desc: 'All donations with status breakdown', icon: '📊' },
@@ -1314,7 +1314,7 @@ export default function DonationsClient({
                   style={{ padding: '18px', border: '1px solid #e6e9f2', borderRadius: 12, background: '#fff', textAlign: 'left', cursor: 'pointer' }}
                   onClick={() => window.open(`/api/admin/reports/export?type=${r.label.toLowerCase().replace(/ /g, '_')}`, '_blank')}>
                   <div style={{ fontSize: 20, marginBottom: 8 }}>{r.icon}</div>
-                  <div style={{ fontSize: 14, fontWeight: 850, color: '#0f1238', marginBottom: 4 }}>{r.label}</div>
+                  <div style={{ fontSize: 14, fontWeight: 650, color: '#0f1238', marginBottom: 4 }}>{r.label}</div>
                   <div style={{ fontSize: 12, color: '#8c9ab5' }}>{r.desc}</div>
                 </button>
               ))}
@@ -1325,7 +1325,7 @@ export default function DonationsClient({
         {/* ── Export tab ────────────────────────────────────────────────────── */}
         {panelTab === 'Export' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 950, color: '#0f1238' }}>Export Data</h3>
+            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700, color: '#0f1238' }}>Export Data</h3>
             <div style={{ maxWidth: 460, display: 'grid', gap: 18 }}>
               <div className="ado-field">
                 <label>Data Type</label>
@@ -1354,7 +1354,7 @@ export default function DonationsClient({
                 </select>
               </div>
               <button type="button" className="kf-primary"
-                style={{ height: 44, fontSize: 14, fontWeight: 950 }}
+                style={{ height: 44, fontSize: 14, fontWeight: 700 }}
                 onClick={() =>
                   fetch('/api/admin/reports/export', {
                     method: 'POST',
@@ -1408,7 +1408,7 @@ function AuditTab() {
 
   return (
     <div style={{ padding: '20px' }}>
-      <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950, color: '#0f1238' }}>Audit Log</h3>
+      <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#0f1238' }}>Audit Log</h3>
       {entries.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '32px', color: '#8c9ab5', fontSize: 14 }}>No audit entries yet.</div>
       ) : (
@@ -1416,7 +1416,7 @@ function AuditTab() {
           <div key={e.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '12px 0', borderBottom: '1px solid #f0f2f8' }}>
             <div style={{ width: 10, height: 10, borderRadius: '50%', background: auditActionColor(e.action), marginTop: 4, flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#26335c' }}>{auditActionLabel(e.action)}</div>
+              <div style={{ fontSize: 13, fontWeight: 650, color: '#26335c' }}>{auditActionLabel(e.action)}</div>
               <div style={{ fontSize: 11, color: '#8c9ab5', marginTop: 2 }}>by {e.actorName}</div>
             </div>
             <span style={{ fontSize: 12, color: '#8c9ab5', flexShrink: 0 }}>{fmtDateTime(e.createdAt)}</span>

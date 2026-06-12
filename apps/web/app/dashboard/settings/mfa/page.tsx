@@ -144,7 +144,7 @@ export default function MfaPage() {
                   {factors.map(f => (
                     <div key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', border: '1px solid var(--b2)', borderRadius: 10, background: '#f8f9fc' }}>
                       <div>
-                        <div style={{ fontWeight: 750, fontSize: 14 }}>{f.friendly_name ?? 'Authenticator'}</div>
+                        <div style={{ fontWeight: 600, fontSize: 14 }}>{f.friendly_name ?? 'Authenticator'}</div>
                         <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>
                           Status: <span style={{ color: f.status === 'verified' ? 'var(--green)' : '#f59e0b', fontWeight: 700 }}>{f.status === 'verified' ? 'Verified' : 'Pending'}</span>
                         </div>
@@ -184,7 +184,7 @@ export default function MfaPage() {
                       type="button"
                       disabled={verifying}
                       onClick={verifyFactor}
-                      style={{ height: 44, padding: '0 20px', border: 0, borderRadius: 9, background: '#6c35ff', color: '#fff', fontWeight: 850, fontSize: 14, cursor: 'pointer' }}
+                      style={{ height: 44, padding: '0 20px', border: 0, borderRadius: 9, background: '#6c35ff', color: '#fff', fontWeight: 650, fontSize: 14, cursor: 'pointer' }}
                     >
                       {verifying ? 'Verifying…' : 'Verify'}
                     </button>
@@ -203,7 +203,7 @@ export default function MfaPage() {
                     type="button"
                     disabled={enrolling}
                     onClick={startEnroll}
-                    style={{ height: 44, border: 0, borderRadius: 9, background: 'linear-gradient(135deg,#6c35ff,#551cf2)', color: '#fff', fontWeight: 850, fontSize: 14, cursor: 'pointer', opacity: enrolling ? 0.6 : 1 }}
+                    style={{ height: 44, border: 0, borderRadius: 9, background: 'linear-gradient(135deg,#6c35ff,#551cf2)', color: '#fff', fontWeight: 650, fontSize: 14, cursor: 'pointer', opacity: enrolling ? 0.6 : 1 }}
                   >
                     {enrolling ? 'Setting up…' : 'Set Up Authenticator App'}
                   </button>

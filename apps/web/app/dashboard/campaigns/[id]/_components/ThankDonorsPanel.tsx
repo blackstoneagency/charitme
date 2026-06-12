@@ -95,7 +95,7 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
       <div style={{ maxWidth: 560 }}>
         <div style={{ background: '#f0fff8', border: '1.5px solid #bbf7d0', borderRadius: 14, padding: '32px 28px', textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>💌</div>
-          <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 900, color: '#064e3b' }}>Thank-you emails sent!</h2>
+          <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 700, color: '#064e3b' }}>Thank-you emails sent!</h2>
           <p style={{ fontSize: 14, color: '#065f46', margin: '0 0 8px' }}><strong>{success.sent}</strong> email{success.sent !== 1 ? 's' : ''} sent successfully.</p>
           {success.failed > 0 && <p style={{ fontSize: 13, color: '#c2410c', margin: '0 0 20px' }}>{success.failed} could not be delivered (missing email).</p>}
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 20 }}>
@@ -109,7 +109,7 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
   return (
     <div style={{ display: 'grid', gap: 20, maxWidth: 760 }}>
       <div>
-        <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 900, color: 'var(--t1)' }}>Thank Your Donors</h2>
+        <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Thank Your Donors</h2>
         <p style={{ margin: 0, fontSize: 14, color: 'var(--t3)' }}>
           {campaign ? `Send personalised thank-you emails to ${campaign.title} donors.` : 'Thank your supporters.'}
         </p>
@@ -127,7 +127,7 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
         <>
           {/* Template picker */}
           <section className="kf-card" style={{ padding: 24 }}>
-            <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 14px' }}>Message</h2>
+            <h2 style={{ fontSize: 14, fontWeight: 650, margin: '0 0 14px' }}>Message</h2>
             <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
               {TEMPLATES.map(t => (
                 <button key={t.label} type="button" onClick={() => setMessage(t.text)}
@@ -144,7 +144,7 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
           {/* Donor selection */}
           <section className="kf-card" style={{ padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h2 style={{ fontSize: 14, fontWeight: 800, margin: 0 }}>Recipients ({selected.size} of {donations.length})</h2>
+              <h2 style={{ fontSize: 14, fontWeight: 650, margin: 0 }}>Recipients ({selected.size} of {donations.length})</h2>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button type="button" onClick={() => setSelected(new Set(donations.map(d => d.id)))} style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>Select all</button>
                 <button type="button" onClick={() => setSelected(new Set())} style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>Clear</button>
@@ -171,7 +171,7 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
           {/* Send */}
           <div style={{ display: 'flex', gap: 12 }}>
             <button type="button" onClick={() => void handleSend()} disabled={sending || selected.size === 0 || message.trim().length < 10}
-              style={{ height: 48, padding: '0 32px', border: 0, borderRadius: 10, background: sending || selected.size === 0 ? 'var(--b2)' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)', color: '#fff', fontWeight: 800, fontSize: 14, cursor: sending || selected.size === 0 ? 'not-allowed' : 'pointer' }}>
+              style={{ height: 48, padding: '0 32px', border: 0, borderRadius: 10, background: sending || selected.size === 0 ? 'var(--b2)' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)', color: '#fff', fontWeight: 650, fontSize: 14, cursor: sending || selected.size === 0 ? 'not-allowed' : 'pointer' }}>
               {sending ? 'Sending…' : `Send to ${selected.size} donor${selected.size !== 1 ? 's' : ''}`}
             </button>
           </div>

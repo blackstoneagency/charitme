@@ -71,7 +71,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
   const metricCard = (label: string, value: string, sub?: string) => (
     <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '20px 22px' }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: 26, fontWeight: 900, color: '#1a1a2e' }}>{value}</div>
+      <div style={{ fontSize: 26, fontWeight: 700, color: '#1a1a2e' }}>{value}</div>
       {sub && <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{sub}</div>}
     </div>
   );
@@ -81,7 +81,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h2 style={{ fontSize: 24, fontWeight: 900, color: '#1a1a2e', margin: 0 }}>Analytics <span style={{ fontSize: 13, fontWeight: 600, color: '#94a3b8' }}>last 30 days</span></h2>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: '#1a1a2e', margin: 0 }}>Analytics <span style={{ fontSize: 13, fontWeight: 600, color: '#94a3b8' }}>last 30 days</span></h2>
           <a href={`/campaigns/${campaign.slug}`} target="_blank" rel="noopener noreferrer"
             style={{ fontSize: 13, color: '#6c35ff', fontWeight: 700, textDecoration: 'none' }}>
             View campaign →
@@ -92,7 +92,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
       {/* Campaign progress */}
       <div style={{ background: '#f5f0ff', border: '1px solid #e0d4ff', borderRadius: 14, padding: '16px 22px', marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <span style={{ fontWeight: 800, fontSize: 15, color: '#1a1a2e' }}>{fmt(campaign.raised_amount)} raised</span>
+          <span style={{ fontWeight: 650, fontSize: 15, color: '#1a1a2e' }}>{fmt(campaign.raised_amount)} raised</span>
           <span style={{ fontSize: 13, color: '#6c35ff', fontWeight: 700 }}>{goalPct}% of {fmt(campaign.goal_amount)} goal</span>
         </div>
         <div style={{ background: '#e0d4ff', borderRadius: 99, height: 8, overflow: 'hidden' }}>
@@ -113,7 +113,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
       {/* Daily trend chart */}
       {dailyTrend.length > 0 && (
         <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '20px 22px', marginBottom: 20 }}>
-          <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800, color: '#1a1a2e' }}>Daily donations (last 30 days)</h2>
+          <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 650, color: '#1a1a2e' }}>Daily donations (last 30 days)</h2>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 80, overflow: 'hidden' }}>
             {dailyTrend.map(d => (
               <div key={d.date} title={`${d.date}: ${fmt(d.amount)} (${d.count} donors)`}
@@ -131,7 +131,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
         {/* Top referral sources */}
         <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '20px 22px' }}>
-          <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 800, color: '#1a1a2e' }}>Top referral sources</h2>
+          <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 650, color: '#1a1a2e' }}>Top referral sources</h2>
           {topSources.length === 0 ? (
             <div style={{ color: '#94a3b8', fontSize: 13 }}>No UTM data yet</div>
           ) : (
@@ -140,7 +140,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
                 <div key={s.source} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 13, color: '#334064', fontWeight: 600, textTransform: 'capitalize' }}>{s.source}</span>
                   <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1a1a2e' }}>{fmt(s.amount)}</span>
+                    <span style={{ fontSize: 13, fontWeight: 650, color: '#1a1a2e' }}>{fmt(s.amount)}</span>
                     <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 6 }}>{s.count} donors</span>
                   </div>
                 </div>
@@ -151,7 +151,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
 
         {/* Shares by channel */}
         <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '20px 22px' }}>
-          <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 800, color: '#1a1a2e' }}>Shares by channel</h2>
+          <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 650, color: '#1a1a2e' }}>Shares by channel</h2>
           {sharesByChannel.length === 0 ? (
             <div style={{ color: '#94a3b8', fontSize: 13 }}>No shares yet</div>
           ) : (
@@ -162,7 +162,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
                     {CHANNEL_ICON[ch.channel] ?? '🌐'} <span style={{ fontWeight: 600, color: '#334064', textTransform: 'capitalize' }}>{ch.channel}</span>
                   </span>
                   <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1a1a2e' }}>{ch.shares}</span>
+                    <span style={{ fontSize: 13, fontWeight: 650, color: '#1a1a2e' }}>{ch.shares}</span>
                     <span style={{ fontSize: 11, color: ch.conversionRate > 0 ? '#19b86a' : '#94a3b8', marginLeft: 6 }}>
                       {ch.conversionRate}% converted
                     </span>

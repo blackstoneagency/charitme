@@ -102,7 +102,7 @@ export default function RefundForm({
         }}
       >
         <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
-        <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: '#064e3b' }}>
+        <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 650, color: '#064e3b' }}>
           Refund request submitted
         </h2>
         <p style={{ fontSize: 14, color: '#065f46', margin: '0 0 24px', lineHeight: 1.6 }}>
@@ -185,7 +185,7 @@ export default function RefundForm({
     <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 22, maxWidth: 560 }}>
       {/* Donation selector */}
       <section className="kf-card" style={{ padding: 20 }}>
-        <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 14px', color: 'var(--t1)' }}>
+        <h2 style={{ fontSize: 14, fontWeight: 650, margin: '0 0 14px', color: 'var(--t1)' }}>
           Select a donation
         </h2>
         <div style={{ display: 'grid', gap: 10 }}>
@@ -290,7 +290,7 @@ export default function RefundForm({
       {/* Reason */}
       <section className="kf-card" style={{ padding: 20 }}>
         <label
-          style={{ display: 'grid', gap: 8, fontSize: 13, fontWeight: 750, color: 'var(--t1)' }}
+          style={{ display: 'grid', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}
         >
           Reason for refund request *
           <textarea
@@ -379,7 +379,7 @@ export default function RefundForm({
                 ? '#c0b8e8'
                 : 'linear-gradient(135deg, #6c35ff, #4d1ee0)',
             color: '#fff',
-            fontWeight: 800,
+            fontWeight: 650,
             fontSize: 14,
             cursor:
               submitting || !eligible || !reason.trim() || overLimit

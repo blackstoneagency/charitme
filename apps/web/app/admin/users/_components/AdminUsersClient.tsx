@@ -163,7 +163,7 @@ function rolePillColor(role: string): React.CSSProperties {
   // Normalize — 'admin' → 'Admin', etc.
   const key = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
   const c = map[key] ?? { bg: '#f1f5f9', color: '#334155' };
-  return { background: c.bg, color: c.color, padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 850 };
+  return { background: c.bg, color: c.color, padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 650 };
 }
 
 // ─── SVG Line Chart ───────────────────────────────────────────────────────────
@@ -385,7 +385,7 @@ export default function AdminUsersClient({
             <button onClick={() => setView('list')}>View all users →</button>
           </div>
           <div style={{ display: 'grid' }}>
-            <div className="users-recent-row" style={{ fontWeight: 950, fontSize: 11, color: '#66708d', textTransform: 'uppercase' }}>
+            <div className="users-recent-row" style={{ fontWeight: 700, fontSize: 11, color: '#66708d', textTransform: 'uppercase' }}>
               <span>User</span><span>Role</span><span>Joined</span>
             </div>
             {recentUsers.map((u) => (
@@ -393,7 +393,7 @@ export default function AdminUsersClient({
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Avatar name={u.name} imageUrl={u.avatarUrl} />
                   <span>
-                    <b style={{ display: 'block', fontSize: 13, color: '#0f1238', fontWeight: 850 }}>{u.name}</b>
+                    <b style={{ display: 'block', fontSize: 13, color: '#0f1238', fontWeight: 650 }}>{u.name}</b>
                     <span style={{ fontSize: 11, color: '#66708d' }}>{u.email}</span>
                   </span>
                 </span>
@@ -605,7 +605,7 @@ export default function AdminUsersClient({
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
-        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 950, color: '#0f1238' }}>Success!</h2>
+        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: '#0f1238' }}>Success!</h2>
         <p style={{ margin: 0, color: '#66708d', fontSize: 14 }}>
           {notice || 'The user has been updated successfully.'}
         </p>
@@ -668,7 +668,7 @@ export default function AdminUsersClient({
           <div className="users-detail-layout">
             {/* Left: User Information */}
             <div>
-              <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 950, color: '#0f1238' }}>User Information</h3>
+              <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 700, color: '#0f1238' }}>User Information</h3>
               <div className="users-detail-info">
                 {[
                   ['Full Name', selected.name],
@@ -696,7 +696,7 @@ export default function AdminUsersClient({
 
             {/* Right: More Actions panel */}
             <div>
-              <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 950, color: '#0f1238' }}>More Actions</h3>
+              <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 700, color: '#0f1238' }}>More Actions</h3>
               <div className="users-actions-panel">
                 <ActionBtn
                   icon="✏️"
@@ -768,7 +768,7 @@ export default function AdminUsersClient({
                     <KFIcon name={a.type === 'Donation' ? 'gift' : 'stack'} />
                   </div>
                   <div>
-                    <b style={{ display: 'block', fontWeight: 850, color: '#0f1238', fontSize: 13 }}>{a.title}</b>
+                    <b style={{ display: 'block', fontWeight: 650, color: '#0f1238', fontSize: 13 }}>{a.title}</b>
                     <span style={{ fontSize: 12, color: '#66708d' }}>
                       {a.detail}
                       {a.amount ? ` • ${a.amount}` : ''}
@@ -781,7 +781,7 @@ export default function AdminUsersClient({
               ))}
               {selectedActivities.length > 0 && (
                 <button
-                  style={{ marginTop: 12, border: 0, background: 'transparent', color: '#6c35ff', fontSize: 12, fontWeight: 850, cursor: 'pointer' }}
+                  style={{ marginTop: 12, border: 0, background: 'transparent', color: '#6c35ff', fontSize: 12, fontWeight: 650, cursor: 'pointer' }}
                 >
                   View all activity →
                 </button>
@@ -843,7 +843,7 @@ export default function AdminUsersClient({
                       background: 'transparent',
                       textAlign: 'left',
                       fontSize: 13,
-                      fontWeight: 850,
+                      fontWeight: 650,
                       color: danger ? '#e11d48' : '#101842',
                       cursor: 'pointer',
                     }}
@@ -937,10 +937,10 @@ function DonationsTab({
           </div>
           {donations.map((d) => (
             <div className="users-donations-row" key={d.id}>
-              <span style={{ color: '#0f1238', fontWeight: 950 }}>{money(d.amountCents)}</span>
+              <span style={{ color: '#0f1238', fontWeight: 700 }}>{money(d.amountCents)}</span>
               <span>{d.campaignTitle}</span>
               <span>
-                <span style={{ background: d.status === 'completed' ? '#dcfce7' : '#fef9c3', color: d.status === 'completed' ? '#166534' : '#854d0e', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 850 }}>
+                <span style={{ background: d.status === 'completed' ? '#dcfce7' : '#fef9c3', color: d.status === 'completed' ? '#166534' : '#854d0e', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 650 }}>
                   {d.status}
                 </span>
               </span>
@@ -996,9 +996,9 @@ function CampaignsTab({
           </div>
           {campaigns.map((c) => (
             <div className="users-campaigns-row" key={c.id}>
-              <span style={{ fontWeight: 850, color: '#0f1238' }}>{c.title}</span>
+              <span style={{ fontWeight: 650, color: '#0f1238' }}>{c.title}</span>
               <span>
-                <span style={{ background: c.status === 'active' ? '#dcfce7' : '#f1f5f9', color: c.status === 'active' ? '#166534' : '#475569', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 850 }}>
+                <span style={{ background: c.status === 'active' ? '#dcfce7' : '#f1f5f9', color: c.status === 'active' ? '#166534' : '#475569', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 650 }}>
                   {c.status}
                 </span>
               </span>
@@ -1092,7 +1092,7 @@ function SettingsTab({
               {showPw ? '🙈' : '👁'}
             </button>
             <button type="button" onClick={genPassword}
-              style={{ height: 42, padding: '0 12px', border: '1.5px solid #dfe3f0', borderRadius: 10, background: '#f8f7ff', color: '#551cf2', fontSize: 12, fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              style={{ height: 42, padding: '0 12px', border: '1.5px solid #dfe3f0', borderRadius: 10, background: '#f8f7ff', color: '#551cf2', fontSize: 12, fontWeight: 650, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
               Generate
             </button>
           </div>
@@ -1267,7 +1267,7 @@ function AddUserView({
           <button
             type="button"
             onClick={genPassword}
-            style={{ height: 42, padding: '0 12px', border: '1.5px solid #dfe3f0', borderRadius: 10, background: '#f8f7ff', color: '#551cf2', fontSize: 12, fontWeight: 850, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+            style={{ height: 42, padding: '0 12px', border: '1.5px solid #dfe3f0', borderRadius: 10, background: '#f8f7ff', color: '#551cf2', fontSize: 12, fontWeight: 650, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
           >
             Generate
           </button>
@@ -1327,7 +1327,7 @@ function ExportOverlay({
     <div className="users-export-overlay" onClick={onClose}>
       <div className="users-export-panel" onClick={(e) => e.stopPropagation()}>
         <div className="users-export-header">
-          <span style={{ fontSize: 16, fontWeight: 950, color: '#0f1238' }}>Export Users</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#0f1238' }}>Export Users</span>
           <button
             style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: '#66708d' }}
             onClick={onClose}

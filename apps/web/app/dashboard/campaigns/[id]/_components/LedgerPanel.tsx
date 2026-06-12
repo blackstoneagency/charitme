@@ -102,7 +102,7 @@ export default function LedgerPanel({ campaignId }: { campaignId: string }) {
     <div style={{ display: 'grid', gap: 20, maxWidth: 720 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 900, color: 'var(--t1)' }}>Transparency Ledger</h2>
+          <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Transparency Ledger</h2>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--t3)' }}>
             Show donors exactly how {campaign?.title ?? 'this campaign'}&apos;s funds are used.
           </p>
@@ -117,32 +117,32 @@ export default function LedgerPanel({ campaignId }: { campaignId: string }) {
       {/* Add entry form */}
       {showForm && (
         <section className="kf-card" style={{ padding: 24 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 18px' }}>New Ledger Entry</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 650, margin: '0 0 18px' }}>New Ledger Entry</h2>
           <div style={{ display: 'grid', gap: 14 }}>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
               Entry type
               <select value={form.item_type} onChange={e => setForm(p => ({ ...p, item_type: e.target.value }))}
                 style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14, background: '#fff' }}>
                 {ITEM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
               Title / Description *
               <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} maxLength={200}
                 placeholder="e.g. Hospital invoice — surgery" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                 Amount ($) <span style={{ fontWeight: 400 }}>optional</span>
                 <input type="number" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} min="0" step="0.01"
                   placeholder="0.00" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                 Category <span style={{ fontWeight: 400 }}>optional</span>
                 <input value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} maxLength={80}
                   placeholder="Medical, Travel…" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                 Status
                 <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
                   style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14, background: '#fff' }}>
@@ -151,7 +151,7 @@ export default function LedgerPanel({ campaignId }: { campaignId: string }) {
               </label>
             </div>
             <button type="button" onClick={() => void handleAdd()} disabled={saving || !form.title.trim()}
-              style={{ height: 44, border: 0, borderRadius: 10, background: saving ? 'var(--b2)' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)', color: '#fff', fontWeight: 800, fontSize: 14, cursor: saving ? 'wait' : 'pointer' }}>
+              style={{ height: 44, border: 0, borderRadius: 10, background: saving ? 'var(--b2)' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)', color: '#fff', fontWeight: 650, fontSize: 14, cursor: saving ? 'wait' : 'pointer' }}>
               {saving ? 'Saving…' : 'Add to Ledger'}
             </button>
           </div>

@@ -75,10 +75,10 @@ export default function CampaignControls({
 
   return (
     <section className="kf-card" style={{ padding: 24 }}>
-      <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800 }}>Campaign Status</h2>
+      <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 650 }}>Campaign Status</h2>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: error ? 12 : 16, flexWrap: 'wrap' }}>
-        <span style={{ padding: '4px 14px', borderRadius: 20, fontSize: 13, fontWeight: 800, ...badge }}>
+        <span style={{ padding: '4px 14px', borderRadius: 20, fontSize: 13, fontWeight: 650, ...badge }}>
           {badge.label}
         </span>
         <span style={{ fontSize: 13, color: 'var(--t3)' }}>

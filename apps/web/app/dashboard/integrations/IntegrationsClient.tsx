@@ -84,7 +84,7 @@ function ConnectModal({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 24 }}>{item.icon}</span>
-              <strong style={{ fontSize: 16, fontWeight: 800 }}>Connect {item.name}</strong>
+              <strong style={{ fontSize: 16, fontWeight: 650 }}>Connect {item.name}</strong>
             </div>
             <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--t3)' }}>{item.desc}</p>
           </div>
@@ -97,7 +97,7 @@ function ConnectModal({
           )}
 
           {needsWebhook ? (
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
               Webhook URL
               <input
                 type="url"
@@ -111,7 +111,7 @@ function ConnectModal({
               </span>
             </label>
           ) : (
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
               {item.name === 'Google Analytics' ? 'Tracking ID / Measurement ID' : item.name === 'Facebook Pixel' ? 'Pixel ID' : 'API Key'}
               <input
                 type="text"
@@ -132,10 +132,10 @@ function ConnectModal({
         </div>
 
         <div style={{ padding: '14px 24px', borderTop: '1px solid #eef0f7', display: 'flex', gap: 10 }}>
-          <button type="button" onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>
+          <button type="button" onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             Cancel
           </button>
-          <button type="button" onClick={() => void handleConnect()} disabled={saving} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: 'var(--green)', color: '#fff', fontSize: 13, fontWeight: 950, cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1 }}>
+          <button type="button" onClick={() => void handleConnect()} disabled={saving} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: 'var(--green)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1 }}>
             {saving ? 'Connecting…' : 'Connect'}
           </button>
         </div>

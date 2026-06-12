@@ -85,7 +85,7 @@ export default async function FinancePage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {metrics.map(m => (
             <div key={m.label} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '20px 24px' }}>
-              <div style={{ fontSize: 24, fontWeight: 900, color: m.color }}>{m.value}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: m.color }}>{m.value}</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', marginTop: 4 }}>{m.label}</div>
               <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{m.sub}</div>
             </div>
@@ -95,7 +95,7 @@ export default async function FinancePage() {
         {/* Recent donations ledger */}
         <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Recent Transactions</h2>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 650 }}>Recent Transactions</h2>
             <a href="/api/admin/reports/export?type=donations" style={{ fontSize: 13, color: '#6c35ff', fontWeight: 700, textDecoration: 'none' }}>
               Export CSV ↓
             </a>

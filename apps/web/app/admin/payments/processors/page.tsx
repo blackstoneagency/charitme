@@ -15,7 +15,7 @@ export default async function PaymentProcessorsPage(): Promise<JSX.Element> {
             <div key={row.processor} style={{ padding: 18, borderTop: '1px solid #edf1f7', display: 'flex', justifyContent: 'space-between', gap: 18 }}>
               <div>
                 <strong style={{ color: '#111944' }}>{row.display_name}</strong>
-                <p style={{ color: '#64748b', margin: '4px 0 0', fontWeight: 800 }}>{row.processor}</p>
+                <p style={{ color: '#64748b', margin: '4px 0 0', fontWeight: 650 }}>{row.processor}</p>
               </div>
               <Pill value={row.status} />
             </div>

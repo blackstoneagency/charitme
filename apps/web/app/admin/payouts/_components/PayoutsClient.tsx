@@ -162,7 +162,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
       <div style={{ marginLeft: 'auto', width: 500, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 950, color: '#0f0f30' }}>{payout.recipient_name}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: '#0f0f30' }}>{payout.recipient_name}</div>
             <div style={{ fontSize: 13, color: '#66708d', marginTop: 2 }}>{payout.recipient_email || 'No email'}</div>
             <div style={{ marginTop: 6, display: 'flex', gap: 6 }}>
               <StatusPill status={payout.status} />
@@ -173,7 +173,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
         </div>
 
         <div style={{ padding: '16px 24px', borderBottom: '1px solid #eef0f7', background: '#fbf9ff' }}>
-          <div style={{ fontSize: 32, fontWeight: 950, color: '#101944', letterSpacing: '-.03em' }}>{fmtCents(payout.amount_cents)}</div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: '#101944', letterSpacing: '-.03em' }}>{fmtCents(payout.amount_cents)}</div>
           <div style={{ fontSize: 13, color: '#66708d', marginTop: 4 }}>Requested {fmtDate(payout.created_at)}</div>
         </div>
 
@@ -202,7 +202,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
               ].map(([label, val]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
                   <span style={{ color: '#66708d', fontWeight: 700 }}>{label}</span>
-                  <span style={{ color: '#101944', fontWeight: 750 }}>{val}</span>
+                  <span style={{ color: '#101944', fontWeight: 600 }}>{val}</span>
                 </div>
               ))}
             </div>
@@ -217,7 +217,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
                 <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: (ev as { color: string }).color, marginTop: 5, flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 750, color: '#101944' }}>{(ev as { event: string }).event}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#101944' }}>{(ev as { event: string }).event}</div>
                     <div style={{ fontSize: 12, color: '#8c9ab5', marginTop: 2 }}>{fmtDate((ev as { date: string }).date)}</div>
                   </div>
                 </div>
@@ -231,7 +231,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
                 <span style={{ fontSize: 13, color: '#66708d', fontWeight: 700 }}>Current Status:</span>
                 <StatusPill status={payout.status} />
               </div>
-              <div style={{ fontSize: 14, fontWeight: 750, color: '#101944' }}>Select Action</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#101944' }}>Select Action</div>
               {[
                 { value: 'approve', label: 'Approve Payout', desc: 'Approve and initiate the payout' },
                 { value: 'mark_paid', label: 'Mark as Paid', desc: 'Mark as paid manually' },
@@ -241,18 +241,18 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
                 <label key={a.value} style={{ display: 'flex', gap: 10, cursor: 'pointer', padding: '12px', border: `1px solid ${actionMode === a.value ? '#6c35ff' : '#e6e9f2'}`, borderRadius: 10, background: actionMode === a.value ? '#f3ecff' : '#fff' }}>
                   <input type="radio" name="action" value={a.value} checked={actionMode === a.value} onChange={e => setActionMode(e.target.value)} style={{ flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 850, color: '#101944' }}>{a.label}</div>
+                    <div style={{ fontSize: 13, fontWeight: 650, color: '#101944' }}>{a.label}</div>
                     <div style={{ fontSize: 12, color: '#66708d', marginTop: 2 }}>{a.desc}</div>
                   </div>
                 </label>
               ))}
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                 Add Note
                 <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional note…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 80, resize: 'vertical' }} />
               </label>
               <div style={{ display: 'flex', gap: 12 }}>
-                <button type="button" onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>Cancel</button>
-                <button type="button" onClick={handleAction} disabled={saving} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+                <button type="button" onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                <button type="button" onClick={handleAction} disabled={saving} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
                   {saving ? 'Saving…' : 'Confirm Action'}
                 </button>
               </div>
@@ -404,11 +404,11 @@ export default function PayoutsClient({
 
           {/* Top Recipients */}
           <div style={{ padding: '0 20px 20px', borderTop: '1px solid #f0f2f8', paddingTop: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 950, color: '#101944', marginBottom: 12 }}>Top Recipients</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#101944', marginBottom: 12 }}>Top Recipients</div>
             {topRecipients.slice(0, 3).map((r, i) => (
               <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #f0f2f8' }}>
-                <span style={{ width: 22, textAlign: 'center', fontSize: 13, fontWeight: 950, color: '#6c35ff' }}>#{i + 1}</span>
-                <div style={{ flex: 1, fontSize: 13, fontWeight: 750, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
+                <span style={{ width: 22, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#6c35ff' }}>#{i + 1}</span>
+                <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
                 <strong style={{ fontSize: 13, color: '#101944' }}>{fmtCents(r.total_cents)}</strong>
               </div>
             ))}
@@ -424,16 +424,16 @@ export default function PayoutsClient({
             onClick={() => setSelected(p)}
             onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-            <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#fdeaf6,#ec3fb4)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+            <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#fdeaf6,#ec3fb4)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
               {p.recipient_name.charAt(0).toUpperCase()}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 850, color: '#101944' }}>{p.recipient_name}</div>
+              <div style={{ fontSize: 13, fontWeight: 650, color: '#101944' }}>{p.recipient_name}</div>
               <div style={{ fontSize: 11, color: '#66708d' }}>{p.campaign_title}</div>
             </div>
             <StatusPill status={p.status} />
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 15, fontWeight: 950, color: '#101944' }}>{fmtCents(p.amount_cents)}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#101944' }}>{fmtCents(p.amount_cents)}</div>
               <div style={{ fontSize: 11, color: '#8c9ab5' }}>{fmtDate(p.created_at)}</div>
             </div>
           </div>
@@ -465,10 +465,10 @@ export default function PayoutsClient({
                 <option value="requested">Requested</option>
                 <option value="failed">Failed</option>
               </select>
-              <button type="button" style={{ height: 42, padding: '0 18px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }} onClick={() => exportCsv(filtered)}>Export CSV</button>
+              <button type="button" style={{ height: 42, padding: '0 18px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }} onClick={() => exportCsv(filtered)}>Export CSV</button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 900, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
               <span>Recipient</span>
               <span>Campaign</span>
               <span>Amount</span>
@@ -483,16 +483,16 @@ export default function PayoutsClient({
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#fdeaf6,#ec3fb4)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#fdeaf6,#ec3fb4)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                     {p.recipient_name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 850, color: '#101944' }}>{p.recipient_name}</div>
+                    <div style={{ fontSize: 13, fontWeight: 650, color: '#101944' }}>{p.recipient_name}</div>
                     {p.recipient_email && <div style={{ fontSize: 11, color: '#8c9ab5' }}>{p.recipient_email}</div>}
                   </div>
                 </div>
                 <div style={{ fontSize: 13, color: '#26335c', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.campaign_title}</div>
-                <div style={{ fontSize: 14, fontWeight: 950, color: '#101944' }}>{fmtCents(p.amount_cents)}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#101944' }}>{fmtCents(p.amount_cents)}</div>
                 <StatusPill status={p.status} />
                 <div style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(p.created_at)}</div>
               </div>
@@ -516,7 +516,7 @@ export default function PayoutsClient({
               {[{ label: 'Total Recurring', value: totalCount, color: '#6c35ff' }, { label: 'Active', value: completedCount, color: '#19b86a' }, { label: 'Paused', value: pendingCount, color: '#f97316' }, { label: 'Cancelled', value: 0, color: '#ff3b5f' }].map(s => (
                 <div key={s.label} style={{ padding: '18px', border: '1px solid #e6e9f2', borderRadius: 12 }}>
                   <div style={{ fontSize: 12, color: '#66708d', fontWeight: 700, marginBottom: 6 }}>{s.label}</div>
-                  <div style={{ fontSize: 24, fontWeight: 950, color: s.color }}>{s.value}</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{s.value}</div>
                 </div>
               ))}
             </div>
@@ -526,27 +526,27 @@ export default function PayoutsClient({
 
         {activeTab === 'add' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 950 }}>Add Manual Payout</h3>
+            <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700 }}>Add Manual Payout</h3>
             <p style={{ margin: '0 0 20px', fontSize: 13, color: '#66708d' }}>Create a payout for an existing platform user. Find User IDs in Admin → Users.</p>
             {addSuccess && (
-              <div style={{ padding: '12px 16px', borderRadius: 9, background: '#def7e7', color: '#079447', fontSize: 13, fontWeight: 850, marginBottom: 16 }}>
+              <div style={{ padding: '12px 16px', borderRadius: 9, background: '#def7e7', color: '#079447', fontSize: 13, fontWeight: 650, marginBottom: 16 }}>
                 ✓ Payout created successfully. Reload the page to see it in the list.
               </div>
             )}
             <div style={{ maxWidth: 460, display: 'grid', gap: 16 }}>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                 Recipient User ID <span style={{ color: '#e11d48' }}>*</span>
                 <input type="text" value={addUserId} onChange={e => setAddUserId(e.target.value)} placeholder="e.g. 12a3bc45-6d7e-..." style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                 Campaign ID (optional)
                 <input type="text" value={addCampaignId} onChange={e => setAddCampaignId(e.target.value)} placeholder="Leave blank for unattached payout" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                 Amount (USD) <span style={{ color: '#e11d48' }}>*</span>
                 <input type="number" min="0.01" step="0.01" value={addAmount} onChange={e => setAddAmount(e.target.value)} placeholder="0.00" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                 Payout Method
                 <select value={addMethod} onChange={e => setAddMethod(e.target.value)} style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
                   <option>Bank Transfer</option>
@@ -556,14 +556,14 @@ export default function PayoutsClient({
                   <option>Check</option>
                 </select>
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                 Internal Note
                 <textarea value={addNote} onChange={e => setAddNote(e.target.value)} placeholder="Reason for manual payout…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 80, resize: 'vertical' }} />
               </label>
-              {addError && <p style={{ margin: 0, color: '#e11d48', fontSize: 13, fontWeight: 750 }}>{addError}</p>}
+              {addError && <p style={{ margin: 0, color: '#e11d48', fontSize: 13, fontWeight: 600 }}>{addError}</p>}
               <div style={{ display: 'flex', gap: 12 }}>
-                <button type="button" onClick={() => { setAddUserId(''); setAddCampaignId(''); setAddAmount(''); setAddNote(''); setAddError(''); setAddSuccess(false); }} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>Clear</button>
-                <button type="button" onClick={handleCreatePayout} disabled={addSaving} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: addSaving ? 'default' : 'pointer', opacity: addSaving ? 0.65 : 1 }}>
+                <button type="button" onClick={() => { setAddUserId(''); setAddCampaignId(''); setAddAmount(''); setAddNote(''); setAddError(''); setAddSuccess(false); }} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Clear</button>
+                <button type="button" onClick={handleCreatePayout} disabled={addSaving} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: addSaving ? 'default' : 'pointer', opacity: addSaving ? 0.65 : 1 }}>
                   {addSaving ? 'Creating…' : 'Create Payout'}
                 </button>
               </div>
@@ -573,7 +573,7 @@ export default function PayoutsClient({
 
         {activeTab === 'methods' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950 }}>Payout Methods</h3>
+            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Payout Methods</h3>
             <div style={{ display: 'grid', gap: 12 }}>
               {[
                 { name: 'Bank Transfer', isDefault: true },
@@ -582,47 +582,47 @@ export default function PayoutsClient({
                 { name: 'Stripe Connect', isDefault: false },
               ].map(m => (
                 <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', border: '1px solid #e6e9f2', borderRadius: 12 }}>
-                  <div style={{ flex: 1, fontSize: 14, fontWeight: 750, color: '#101944' }}>{m.name}</div>
-                  {m.isDefault && <span style={{ fontSize: 11, fontWeight: 950, color: '#551cf2', background: '#efe8ff', padding: '3px 10px', borderRadius: 999 }}>Default</span>}
-                  <button type="button" style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 12, fontWeight: 750, cursor: 'pointer' }}>Configure</button>
+                  <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#101944' }}>{m.name}</div>
+                  {m.isDefault && <span style={{ fontSize: 11, fontWeight: 700, color: '#551cf2', background: '#efe8ff', padding: '3px 10px', borderRadius: 999 }}>Default</span>}
+                  <button type="button" style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Configure</button>
                 </div>
               ))}
             </div>
-            <button type="button" style={{ marginTop: 14, height: 42, padding: '0 20px', border: '1px dashed #d7c9ff', borderRadius: 9, background: '#fbf7ff', color: '#551cf2', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>+ Add Method</button>
+            <button type="button" style={{ marginTop: 14, height: 42, padding: '0 20px', border: '1px dashed #d7c9ff', borderRadius: 9, background: '#fbf7ff', color: '#551cf2', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>+ Add Method</button>
           </div>
         )}
 
         {activeTab === 'reports' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 950 }}>Payout Reports</h3>
+            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700 }}>Payout Reports</h3>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
               <select style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 13 }}><option>Payout Summary</option><option>Recipient Report</option><option>Fee Report</option></select>
               <select style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 13 }}><option>Last 30 Days</option><option>Last 90 Days</option><option>This Year</option></select>
               <select style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 13 }}><option>By Week</option><option>By Month</option></select>
-              <button type="button" style={{ height: 42, padding: '0 20px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer' }}>Generate</button>
+              <button type="button" style={{ height: 42, padding: '0 20px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Generate</button>
             </div>
           </div>
         )}
 
         {activeTab === 'export' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 950 }}>Export Payouts</h3>
+            <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700 }}>Export Payouts</h3>
             <p style={{ margin: '0 0 20px', fontSize: 13, color: '#66708d' }}>{payouts.length.toLocaleString()} total payouts available for export.</p>
             <div style={{ maxWidth: 420, display: 'grid', gap: 16 }}>
               <div style={{ padding: '14px 16px', border: '1px solid #e6e9f2', borderRadius: 10, background: '#fbf9ff', fontSize: 13 }}>
-                <div style={{ fontWeight: 850, marginBottom: 4, color: '#101944' }}>Columns included:</div>
+                <div style={{ fontWeight: 650, marginBottom: 4, color: '#101944' }}>Columns included:</div>
                 <div style={{ color: '#66708d' }}>Recipient, Email, Campaign, Amount (USD), Status, Method, Date</div>
               </div>
               <button
                 type="button"
-                style={{ height: 44, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 14, fontWeight: 950, cursor: 'pointer' }}
+                style={{ height: 44, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
                 onClick={() => exportCsv(payouts)}
               >
                 Download CSV ({payouts.length.toLocaleString()} rows)
               </button>
               <button
                 type="button"
-                style={{ height: 44, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer', color: '#551cf2' }}
+                style={{ height: 44, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#551cf2' }}
                 onClick={() => exportCsv(filtered)}
               >
                 Export Current Filter ({filtered.length.toLocaleString()} rows)
@@ -634,9 +634,9 @@ export default function PayoutsClient({
         {activeTab === 'audit' && (
           <div style={{ padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 950 }}>Payout Audit Log</h3>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Payout Audit Log</h3>
               {!auditLoading && auditEntries === null && (
-                <button type="button" onClick={loadAuditLog} style={{ height: 36, padding: '0 16px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>Load Log</button>
+                <button type="button" onClick={loadAuditLog} style={{ height: 36, padding: '0 16px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Load Log</button>
               )}
             </div>
             {auditLoading && <div style={{ padding: '24px 0', textAlign: 'center', color: '#8c9ab5', fontSize: 14 }}>Loading audit log…</div>}
@@ -652,7 +652,7 @@ export default function PayoutsClient({
                 <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
-                    <span style={{ fontWeight: 750, color: '#26335c' }}>{e.action.replace('payout.', '').replace(/_/g, ' ')}</span>
+                    <span style={{ fontWeight: 600, color: '#26335c' }}>{e.action.replace('payout.', '').replace(/_/g, ' ')}</span>
                     <span style={{ color: '#8c9ab5', marginLeft: 8, fontSize: 11 }}>by {e.actorName}</span>
                   </div>
                   {amtCents && <strong style={{ color: '#101944' }}>{fmtCents(amtCents)}</strong>}

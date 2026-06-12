@@ -115,12 +115,12 @@ export default function ReportsClient({ reports, categories, totalReports, sched
         <div style={{ display: 'grid', gap: 18 }}>
           {/* Category breakdown */}
           <section className="kf-card" style={{ padding: 20 }}>
-            <h2 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950 }}>Reports Overview</h2>
+            <h2 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Reports Overview</h2>
             {categories.map((c) => (
               <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                 <i style={{ width: 10, height: 10, borderRadius: '50%', background: c.color, flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: 13, fontWeight: 750 }}>{c.label}</span>
-                <b style={{ fontSize: 13, fontWeight: 950 }}>{c.count}</b>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{c.label}</span>
+                <b style={{ fontSize: 13, fontWeight: 700 }}>{c.count}</b>
               </div>
             ))}
             {/* Simple donut */}
@@ -149,7 +149,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
                   })()}
                 </svg>
                 <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
-                  <strong style={{ fontSize: 18, fontWeight: 950 }}>{totalReports}</strong>
+                  <strong style={{ fontSize: 18, fontWeight: 800 }}>{totalReports}</strong>
                   <small style={{ color: '#67718e', fontSize: 10 }}>reports</small>
                 </div>
               </div>
@@ -162,7 +162,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
             {reports.slice(0, 5).map(r => (
               <div key={r.id} style={{ padding: '10px 16px', borderBottom: '1px solid #eef0f7' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                  <strong style={{ fontSize: 12, fontWeight: 850, flex: 1 }}>{r.name}</strong>
+                  <strong style={{ fontSize: 12, fontWeight: 650, flex: 1 }}>{r.name}</strong>
                   <StatusPill>{r.status}</StatusPill>
                 </div>
                 <small style={{ color: '#67718e', fontSize: 11 }}>{r.category} · {r.createdOn}</small>
@@ -193,7 +193,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   style={{
-                    height: 34, padding: '0 14px', borderRadius: 8, fontSize: 12, fontWeight: 850,
+                    height: 34, padding: '0 14px', borderRadius: 8, fontSize: 12, fontWeight: 650,
                     border: '1px solid', cursor: 'pointer',
                     borderColor: activeCategory === cat ? '#6c35ff' : '#e0e4ef',
                     background: activeCategory === cat ? '#f0eaff' : '#fff',
@@ -207,7 +207,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
           </div>
 
           {/* Table header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 120px 90px 80px 80px', gap: 12, padding: '8px 20px', background: '#f8f9fc', borderTop: '1px solid #eef0f7', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 950, color: '#4b5676', textTransform: 'uppercase' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 120px 90px 80px 80px', gap: 12, padding: '8px 20px', background: '#f8f9fc', borderTop: '1px solid #eef0f7', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: '#4b5676', textTransform: 'uppercase' }}>
             <span>Report Name</span>
             <span>Category</span>
             <span>Created By</span>
@@ -220,19 +220,19 @@ export default function ReportsClient({ reports, categories, totalReports, sched
           {filtered.map(r => (
             <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '1fr 110px 120px 90px 80px 80px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7', alignItems: 'center' }}>
               <div>
-                <strong style={{ display: 'block', fontSize: 13, fontWeight: 850 }}>{r.name}</strong>
+                <strong style={{ display: 'block', fontSize: 13, fontWeight: 650 }}>{r.name}</strong>
                 <small style={{ color: '#67718e', fontSize: 11 }}>{r.description}</small>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 850, color: CATEGORY_COLORS[r.category] ?? '#551cf2' }}>
+              <span style={{ fontSize: 12, fontWeight: 650, color: CATEGORY_COLORS[r.category] ?? '#551cf2' }}>
                 {r.category}
               </span>
-              <span style={{ fontSize: 12, fontWeight: 750, color: '#334064' }}>{r.createdBy}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#334064' }}>{r.createdBy}</span>
               <StatusPill>{r.status}</StatusPill>
               <span style={{ fontSize: 11, color: '#67718e' }}>{r.createdOn}</span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button
                   onClick={() => setExportReport(r)}
-                  style={{ height: 30, padding: '0 10px', borderRadius: 7, border: '1px solid #e0e4ef', background: '#fff', color: '#551cf2', fontSize: 11, fontWeight: 950, cursor: 'pointer' }}
+                  style={{ height: 30, padding: '0 10px', borderRadius: 7, border: '1px solid #e0e4ef', background: '#fff', color: '#551cf2', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
                 >
                   Export
                 </button>
@@ -252,11 +252,11 @@ export default function ReportsClient({ reports, categories, totalReports, sched
       {exportReport && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999 }} onClick={() => setExportReport(null)}>
           <div style={{ width: 380, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 950 }}>Export Report</h2>
+            <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800 }}>Export Report</h2>
             <p style={{ margin: '0 0 20px', color: '#67718e', fontSize: 13 }}>{exportReport.name}</p>
             <div style={{ display: 'grid', gap: 10 }}>
               {(['CSV', 'Excel', 'PDF'] as const).map(fmt => (
-                <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: `1px solid ${exportFmt === fmt ? '#6c35ff' : '#e0e4ef'}`, borderRadius: 9, cursor: 'pointer', fontSize: 14, fontWeight: 850 }}>
+                <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: `1px solid ${exportFmt === fmt ? '#6c35ff' : '#e0e4ef'}`, borderRadius: 9, cursor: 'pointer', fontSize: 14, fontWeight: 650 }}>
                   <input type="radio" name="fmt" value={fmt} checked={exportFmt === fmt} onChange={() => setExportFmt(fmt)} />
                   Export as {fmt}
                 </label>
@@ -264,7 +264,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
             </div>
             {exportError && <p style={{ margin: '10px 0 0', color: '#e11d48', fontSize: 13 }}>{exportError}</p>}
             <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
-              <button onClick={() => { setExportReport(null); setExportError(''); }} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontWeight: 850, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => { setExportReport(null); setExportError(''); }} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontWeight: 650, cursor: 'pointer' }}>Cancel</button>
               <button className="kf-primary" style={{ height: 42, padding: '0 22px', opacity: exportLoading ? 0.7 : 1 }} onClick={downloadReport} disabled={exportLoading}>{exportLoading ? 'Exporting…' : 'Download'}</button>
             </div>
           </div>

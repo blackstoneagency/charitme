@@ -86,7 +86,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
   return (
     <div style={{ display: 'grid', gap: 24, maxWidth: 900 }}>
       <div>
-        <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 900, color: 'var(--t1)' }}>Share &amp; Grow</h2>
+        <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Share &amp; Grow</h2>
         <p style={{ margin: 0, fontSize: 14, color: 'var(--t3)' }}>
           Share &ldquo;{campaign.title}&rdquo; and AI-generate content for every channel.
         </p>
@@ -94,7 +94,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
 
       {/* Quick share buttons with UTM */}
       <section className="kf-card" style={{ padding: 24 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 800, margin: '0 0 6px' }}>Share Links</h2>
+        <h2 style={{ fontSize: 15, fontWeight: 650, margin: '0 0 6px' }}>Share Links</h2>
         <p style={{ fontSize: 13, color: 'var(--t3)', margin: '0 0 16px' }}>UTM-tagged links so you can track which channel drives the most donations.</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           {Object.entries(shareLinks).map(([channel, url]) => {
@@ -121,7 +121,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
 
       {/* AI content generator */}
       <section className="kf-card" style={{ padding: 24 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 800, margin: '0 0 6px' }}>AI Content Generator</h2>
+        <h2 style={{ fontSize: 15, fontWeight: 650, margin: '0 0 6px' }}>AI Content Generator</h2>
         <p style={{ fontSize: 13, color: 'var(--t3)', margin: '0 0 16px' }}>Generate ready-to-use posts, emails, and updates for any channel in one click.</p>
 
         {/* Channel selector */}
@@ -142,7 +142,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
         </label>
 
         <button type="button" onClick={() => void generate()} disabled={generating}
-          style={{ height: 44, padding: '0 28px', border: 0, borderRadius: 10, background: generating ? 'var(--b2)' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)', color: '#fff', fontSize: 14, fontWeight: 800, cursor: generating ? 'wait' : 'pointer', marginBottom: 16 }}>
+          style={{ height: 44, padding: '0 28px', border: 0, borderRadius: 10, background: generating ? 'var(--b2)' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)', color: '#fff', fontSize: 14, fontWeight: 650, cursor: generating ? 'wait' : 'pointer', marginBottom: 16 }}>
           {generating ? 'Generating…' : `Generate ${CHANNELS.find(c => c.type === activeChannel)?.label} Content`}
         </button>
 

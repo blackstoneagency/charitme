@@ -114,7 +114,7 @@ export function TeamClient({ campaigns, initialMembers, profiles, currentUserId 
         {metrics.map((m) => (
           <div key={m.label} className={`kf-metric-card ${m.tone}`} style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '16px 20px' }}>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--t3)', marginBottom: 6 }}>{m.label}</div>
-            <div style={{ fontSize: 28, fontWeight: 950, color: 'var(--t1)' }}>{m.value}</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--t1)' }}>{m.value}</div>
           </div>
         ))}
       </div>

@@ -108,7 +108,7 @@ export default function NotificationsPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Link href="/dashboard" style={{ color: '#94a3b8', fontSize: 13, textDecoration: 'none' }}>← Dashboard</Link>
           </div>
-          <h1 style={{ fontSize: 24, fontWeight: 900, color: '#1a1a2e', margin: '8px 0 0' }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1a1a2e', margin: '8px 0 0' }}>
             Notifications
             {unreadCount > 0 && (
               <span style={{

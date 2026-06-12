@@ -112,7 +112,7 @@ export default async function AdminSetupPage() {
             { label: 'Errors',   count: errors.length,   bg: '#fff0f3', color: '#be123c' },
           ].map(s => (
             <div key={s.label} style={{ padding: '14px 18px', background: s.bg, borderRadius: 12, textAlign: 'center' }}>
-              <div style={{ fontSize: 30, fontWeight: 900, color: s.color }}>{s.count}</div>
+              <div style={{ fontSize: 30, fontWeight: 700, color: s.color }}>{s.count}</div>
               <div style={{ fontSize: 12, fontWeight: 700, color: s.color }}>{s.label}</div>
             </div>
           ))}
@@ -121,7 +121,7 @@ export default async function AdminSetupPage() {
         {/* One-click apply */}
         {tableMissing > 0 && (
           <div style={{ padding: '22px 26px', background: '#fff0f3', border: '2px solid #fca5a5', borderRadius: 16, marginBottom: 24 }}>
-            <h3 style={{ fontSize: 17, fontWeight: 900, color: '#be123c', margin: '0 0 8px' }}>
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: '#be123c', margin: '0 0 8px' }}>
               ❌ {tableMissing} table{tableMissing !== 1 ? 's' : ''} not reachable via API
             </h3>
             <p style={{ fontSize: 14, color: '#7f1d1d', margin: '0 0 6px', lineHeight: 1.6 }}>
@@ -142,7 +142,7 @@ export default async function AdminSetupPage() {
 
         {tableMissing === 0 && tablesOk > 0 && (
           <div style={{ padding: '16px 22px', background: '#f0fff8', border: '1.5px solid #bbf7d0', borderRadius: 14, marginBottom: 24 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 800, color: '#065f46', margin: 0 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 650, color: '#065f46', margin: 0 }}>
               ✅ All {tablesOk} tables present — database is connected and ready
             </h3>
           </div>
@@ -154,9 +154,9 @@ export default async function AdminSetupPage() {
             const s = STATUS_STYLE[check.status];
             return (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: '28px 1fr auto', gap: 10, padding: '13px 20px', borderBottom: i < checks.length - 1 ? '1px solid var(--b1)' : 'none', background: check.status !== 'ok' ? s.bg : undefined, alignItems: 'flex-start' }}>
-                <span style={{ fontSize: 15, fontWeight: 900, color: s.color, paddingTop: 1 }}>{s.icon}</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: s.color, paddingTop: 1 }}>{s.icon}</span>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--t1)', fontFamily: 'monospace' }}>{check.label}</div>
+                  <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--t1)', fontFamily: 'monospace' }}>{check.label}</div>
                   {check.fix && (
                     <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, lineHeight: 1.5 }}>
                       <strong>Fix:</strong> {check.fix}

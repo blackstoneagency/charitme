@@ -36,7 +36,7 @@ export function QrPosterPanel({ campaignId }: { campaignId: string }) {
     <div style={{ display: 'grid', gap: 16, maxWidth: 900 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 900, color: 'var(--t1)' }}>Print QR Poster</h2>
+          <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Print QR Poster</h2>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--t3)' }}>
             Download &amp; print a poster with a QR code that links straight to your campaign.
           </p>
@@ -87,7 +87,7 @@ export default function CampaignWorkspace({
 
       {/* ── Campaign Tools ── */}
       <section>
-        <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 800 }}>Campaign Tools</h2>
+        <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 650 }}>Campaign Tools</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
           {TOOLS.map(tool => {
             const active = activeTool === tool.key;

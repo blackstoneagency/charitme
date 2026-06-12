@@ -79,7 +79,7 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
     <div style={{ maxWidth: 720 }}>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontSize: 24, fontWeight: 900, color: '#1a1a2e', margin: 0 }}>Campaign Updates</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 700, color: '#1a1a2e', margin: 0 }}>Campaign Updates</h2>
         <p style={{ fontSize: 14, color: '#64748b', margin: '6px 0 0' }}>
           Post progress updates to your donors. They&apos;ll receive an email notification if opted in.
         </p>
@@ -87,7 +87,7 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
 
       {/* New update form */}
       <form onSubmit={handlePost} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, padding: '24px 28px', marginBottom: 28 }}>
-        <h2 style={{ margin: '0 0 18px', fontSize: 16, fontWeight: 800, color: '#1a1a2e' }}>Post a new update</h2>
+        <h2 style={{ margin: '0 0 18px', fontSize: 16, fontWeight: 650, color: '#1a1a2e' }}>Post a new update</h2>
 
         {formError && (
           <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', marginBottom: 14, color: '#dc2626', fontSize: 13 }}>
@@ -141,7 +141,7 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
             style={{
               background: saveState === 'saved' ? '#19b86a' : '#6c35ff',
               color: '#fff', border: 'none', borderRadius: 10,
-              padding: '10px 28px', fontWeight: 800, fontSize: 14,
+              padding: '10px 28px', fontWeight: 650, fontSize: 14,
               cursor: saveState === 'saving' ? 'not-allowed' : 'pointer',
               opacity: saveState === 'saving' ? 0.7 : 1,
             }}
@@ -152,7 +152,7 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
       </form>
 
       {/* Existing updates */}
-      <h2 style={{ fontSize: 16, fontWeight: 800, color: '#1a1a2e', marginBottom: 14 }}>
+      <h2 style={{ fontSize: 16, fontWeight: 650, color: '#1a1a2e', marginBottom: 14 }}>
         Past updates {updates.length > 0 && <span style={{ fontWeight: 500, color: '#94a3b8' }}>({updates.length})</span>}
       </h2>
 
@@ -170,7 +170,7 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
             <div key={u.id} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '18px 22px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                 <div>
-                  {u.title && <div style={{ fontWeight: 800, fontSize: 15, color: '#1a1a2e', marginBottom: 2 }}>{u.title}</div>}
+                  {u.title && <div style={{ fontWeight: 650, fontSize: 15, color: '#1a1a2e', marginBottom: 2 }}>{u.title}</div>}
                   <div style={{ fontSize: 12, color: '#94a3b8' }}>{timeAgo(u.created_at)}</div>
                 </div>
                 {u.ai_generated && (

@@ -154,7 +154,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
     <div style={{ maxWidth: 720, display: 'grid', gap: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 900, color: 'var(--t1)' }}>Edit Campaign</h2>
+          <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Edit Campaign</h2>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--t3)' }}>Update your campaign details. Changes are live immediately.</p>
         </div>
         {originalSlug && (
@@ -178,7 +178,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
 
       {/* Basic info */}
       <section className="kf-card" style={{ padding: 24 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 800, margin: '0 0 18px' }}>Campaign Details</h2>
+        <h2 style={{ fontSize: 15, fontWeight: 650, margin: '0 0 18px' }}>Campaign Details</h2>
         <div style={{ display: 'grid', gap: 16 }}>
           <Field label="Campaign Title *">
             <input value={form.title} onChange={e => upd('title', e.target.value)} maxLength={100} placeholder="Help Sarah cover emergency medical bills" />
@@ -210,7 +210,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
       {/* Beneficiary */}
       <section className="kf-card" style={{ padding: 24, position: 'relative' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>Beneficiary</h2>
+          <h2 style={{ fontSize: 15, fontWeight: 650, margin: 0 }}>Beneficiary</h2>
           <BeneficiaryInviteButton campaignId={campaignId} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -225,7 +225,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
 
       {/* Story */}
       <section className="kf-card" style={{ padding: 24 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 800, margin: '0 0 18px' }}>Campaign Story</h2>
+        <h2 style={{ fontSize: 15, fontWeight: 650, margin: '0 0 18px' }}>Campaign Story</h2>
         <Field label="Story *">
           <textarea value={form.description} onChange={e => upd('description', e.target.value)} rows={12}
             placeholder="Who needs help? What happened? How will funds be used?" />
@@ -235,7 +235,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
 
       {/* Media */}
       <section className="kf-card" style={{ padding: 24 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 800, margin: '0 0 18px' }}>Media</h2>
+        <h2 style={{ fontSize: 15, fontWeight: 650, margin: '0 0 18px' }}>Media</h2>
         <div style={{ display: 'grid', gap: 16 }}>
           <Field label="Cover Photo">
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -271,7 +271,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
           style={{
             height: 48, padding: '0 32px', border: 0, borderRadius: 10,
             background: saving ? '#c0b8e8' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)',
-            color: '#fff', fontWeight: 800, fontSize: 14, cursor: saving ? 'wait' : 'pointer',
+            color: '#fff', fontWeight: 650, fontSize: 14, cursor: saving ? 'wait' : 'pointer',
           }}>
           {saving ? 'Saving…' : 'Save Changes'}
         </button>
@@ -282,7 +282,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+    <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
       {label}
       {children}
     </label>
@@ -317,7 +317,7 @@ function BeneficiaryInviteButton({ campaignId }: { campaignId: string }) {
 
   return (
     <div style={{ position: 'absolute', right: 0, top: 0, zIndex: 50, background: '#fff', border: '1.5px solid #e0d5ff', borderRadius: 12, padding: 18, boxShadow: '0 8px 32px rgba(108,53,255,.15)', width: 320 }}>
-      <p style={{ fontWeight: 800, fontSize: 14, margin: '0 0 12px', color: '#1a1a2e' }}>Invite Beneficiary</p>
+      <p style={{ fontWeight: 650, fontSize: 14, margin: '0 0 12px', color: '#1a1a2e' }}>Invite Beneficiary</p>
       {err && <p style={{ fontSize: 12, color: '#be123c', margin: '0 0 8px' }}>{err}</p>}
       <label style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
         Name *

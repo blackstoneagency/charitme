@@ -110,7 +110,7 @@ export default function NotificationBell() {
           <span style={{
             position: 'absolute', top: -4, right: -4,
             background: '#ef4444', color: '#fff',
-            fontSize: 9, fontWeight: 900, lineHeight: 1,
+            fontSize: 9, fontWeight: 700, lineHeight: 1,
             padding: '2px 4px', borderRadius: 8,
             minWidth: 14, textAlign: 'center',
           }}>
@@ -128,7 +128,7 @@ export default function NotificationBell() {
         }}>
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid #f0f0f8' }}>
-            <span style={{ fontWeight: 900, fontSize: 14, color: '#1a1a2e' }}>Notifications</span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: '#1a1a2e' }}>Notifications</span>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               {unread > 0 && (
                 <button onClick={markAllRead} style={{ background: 'none', border: 'none', fontSize: 11, color: '#6c35ff', fontWeight: 700, cursor: 'pointer', padding: 0 }}>

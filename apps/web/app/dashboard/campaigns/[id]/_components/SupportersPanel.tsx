@@ -28,7 +28,7 @@ const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { max
 const dt = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
 const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid var(--b2)', borderRadius: 14, padding: '20px 24px', marginBottom: 16 };
-const th: React.CSSProperties = { textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 900, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid var(--b2)' };
+const th: React.CSSProperties = { textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid var(--b2)' };
 const td: React.CSSProperties = { padding: '11px 14px', fontSize: 13, color: 'var(--t2)', borderBottom: '1px solid var(--b1)' };
 
 export default function SupportersPanel({
@@ -106,7 +106,7 @@ export default function SupportersPanel({
     <div style={{ maxWidth: 1080 }}>
       {showHeading && (
         <>
-          <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 900, color: 'var(--t1)' }}>My Supporters</h2>
+          <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>My Supporters</h2>
           <p style={{ margin: '0 0 10px', fontSize: 14, color: 'var(--t3)' }}>
             {data.campaign.title} — know your donors, bring them back.
           </p>
@@ -124,8 +124,8 @@ export default function SupportersPanel({
           ['Sends left today', String(data.sendsRemainingToday)],
         ].map(([label, value]) => (
           <div key={label} style={{ ...card, marginBottom: 0, padding: '16px 20px' }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
-            <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--t1)', marginTop: 4 }}>{value}</div>
+            <div style={{ fontSize: 11, fontWeight: 650, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--t1)', marginTop: 4 }}>{value}</div>
           </div>
         ))}
       </div>
@@ -138,7 +138,7 @@ export default function SupportersPanel({
 
       {/* ── Re-engagement sender ── */}
       <div style={card}>
-        <h2 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 900, color: 'var(--t1)' }}>Re-engage your supporters</h2>
+        <h2 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>Re-engage your supporters</h2>
         <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--t3)' }}>
           Pick a template, personalize it, send. CharitMe delivers the email, honors unsubscribes automatically, and never shares donor email addresses with you.
         </p>
@@ -146,7 +146,7 @@ export default function SupportersPanel({
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
           {data.templates.map(t => (
             <button key={t.key} onClick={() => pickTemplate(t.key)}
-              style={{ padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: 'pointer',
+              style={{ padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 650, cursor: 'pointer',
                 border: `1.5px solid ${templateKey === t.key ? '#6c35ff' : 'var(--b2)'}`,
                 background: templateKey === t.key ? 'rgba(108,53,255,.08)' : 'var(--s1)',
                 color: templateKey === t.key ? '#6c35ff' : 'var(--t2)' }}>
@@ -159,7 +159,7 @@ export default function SupportersPanel({
           <p style={{ margin: '0 0 14px', fontSize: 12.5, color: 'var(--t3)' }}>{selectedTemplate.description}</p>
         )}
 
-        <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: 'var(--t2)', marginBottom: 6 }}>Send to</label>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 650, color: 'var(--t2)', marginBottom: 6 }}>Send to</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
           {data.targetGroups.map(g => (
             <button key={g.key} onClick={() => setTargetGroup(g.key)} title={g.description}
@@ -172,7 +172,7 @@ export default function SupportersPanel({
           ))}
         </div>
 
-        <label style={{ display: 'block', fontSize: 12, fontWeight: 800, color: 'var(--t2)', marginBottom: 6 }}>
+        <label style={{ display: 'block', fontSize: 12, fontWeight: 650, color: 'var(--t2)', marginBottom: 6 }}>
           Message — {'{{first_name}}'} personalizes per donor
         </label>
         <textarea
@@ -185,7 +185,7 @@ export default function SupportersPanel({
         <button
           onClick={() => void send()}
           disabled={sending || data.sendsRemainingToday <= 0 || (data.targetCounts[targetGroup] ?? 0) === 0}
-          style={{ padding: '12px 26px', background: data.sendsRemainingToday <= 0 ? 'var(--b2)' : '#6c35ff', color: '#fff', border: 'none', borderRadius: 11, fontSize: 14, fontWeight: 900, cursor: data.sendsRemainingToday <= 0 ? 'not-allowed' : 'pointer' }}>
+          style={{ padding: '12px 26px', background: data.sendsRemainingToday <= 0 ? 'var(--b2)' : '#6c35ff', color: '#fff', border: 'none', borderRadius: 11, fontSize: 14, fontWeight: 700, cursor: data.sendsRemainingToday <= 0 ? 'not-allowed' : 'pointer' }}>
           {sending ? 'Sending…'
             : data.sendsRemainingToday <= 0 ? 'Daily limit reached (2/day)'
             : `Send to ${data.targetCounts[targetGroup] ?? 0} supporters →`}
@@ -204,16 +204,16 @@ export default function SupportersPanel({
               {data.supporters.map(s => (
                 <tr key={s.key}>
                   <td style={td}>
-                    <div style={{ fontWeight: 800, color: 'var(--t1)' }}>{s.name}</div>
+                    <div style={{ fontWeight: 650, color: 'var(--t1)' }}>{s.name}</div>
                     <div style={{ fontSize: 11.5, color: 'var(--t4)', fontFamily: 'var(--mono)' }}>{s.emailMasked ?? 'no email on file'}</div>
                   </td>
-                  <td style={td}>{s.giftCount}{s.isRepeat && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 900, color: '#059669', background: 'rgba(5,150,105,.1)', padding: '2px 7px', borderRadius: 999 }}>REPEAT</span>}</td>
+                  <td style={td}>{s.giftCount}{s.isRepeat && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#059669', background: 'rgba(5,150,105,.1)', padding: '2px 7px', borderRadius: 999 }}>REPEAT</span>}</td>
                   <td style={td}><b style={{ color: 'var(--t1)' }}>{money(s.totalCents)}</b></td>
                   <td style={td}>{dt(s.lastGiftAt)}</td>
                   <td style={td}>
                     {!s.reachable ? <span style={{ fontSize: 11, color: 'var(--t4)' }}>unreachable</span>
-                      : s.isLapsed ? <span style={{ fontSize: 11, fontWeight: 800, color: '#d97706' }}>lapsed</span>
-                      : <span style={{ fontSize: 11, fontWeight: 800, color: '#059669' }}>active</span>}
+                      : s.isLapsed ? <span style={{ fontSize: 11, fontWeight: 650, color: '#d97706' }}>lapsed</span>
+                      : <span style={{ fontSize: 11, fontWeight: 650, color: '#059669' }}>active</span>}
                   </td>
                 </tr>
               ))}
@@ -224,7 +224,7 @@ export default function SupportersPanel({
         <div>
           {/* ── Attribution ── */}
           <div style={card}>
-            <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 900, color: 'var(--t1)' }}>Where donations come from</h3>
+            <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Where donations come from</h3>
             {data.attribution.length === 0 && <p style={{ margin: 0, fontSize: 12.5, color: 'var(--t3)' }}>No share-link data yet. Use the Share page to create tracked links — results show here.</p>}
             {data.attribution.map(a => (
               <div key={a.channel} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--b1)', fontSize: 13 }}>
@@ -236,11 +236,11 @@ export default function SupportersPanel({
 
           {/* ── Send history ── */}
           <div style={card}>
-            <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 900, color: 'var(--t1)' }}>Send history</h3>
+            <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Send history</h3>
             {data.history.length === 0 && <p style={{ margin: 0, fontSize: 12.5, color: 'var(--t3)' }}>No sends yet.</p>}
             {data.history.map(h => (
               <div key={h.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--b1)' }}>
-                <div style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--t1)' }}>{h.subject}</div>
+                <div style={{ fontSize: 12.5, fontWeight: 650, color: 'var(--t1)' }}>{h.subject}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--t3)', marginTop: 2 }}>
                   {dt(h.created_at)} · {h.target_group.replaceAll('_', ' ')} · sent {h.sent_count}/{h.recipient_count}
                   {h.suppressed_count > 0 && ` · ${h.suppressed_count} skipped`}

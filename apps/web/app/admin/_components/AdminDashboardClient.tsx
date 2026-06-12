@@ -151,13 +151,13 @@ function SourceDonut({ sources, total }: { sources: SourceItem[]; total: string 
           position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', alignContent: 'center',
           textAlign: 'center',
         }}>
-          <strong style={{ fontSize: 22, fontWeight: 950 }}>{total}</strong>
+          <strong style={{ fontSize: 22, fontWeight: 800 }}>{total}</strong>
           <small style={{ color: '#67718e', fontSize: 11 }}>Total</small>
         </div>
       </div>
       <div style={{ display: 'grid', gap: 10, flex: 1 }}>
         {sources.map((src) => (
-          <p key={src.label} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0, color: '#26335c', fontWeight: 800 }}>
+          <p key={src.label} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0, color: '#26335c', fontWeight: 650 }}>
             <i style={{ width: 10, height: 10, borderRadius: '50%', background: src.color, flexShrink: 0 }} />
             {src.label}
             <b style={{ marginLeft: 'auto' }}>{src.pct}%</b>
@@ -218,11 +218,11 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <StatusPill>{c.status}</StatusPill>
-                    <strong style={{ fontSize: 13, fontWeight: 850 }}>{c.title}</strong>
+                    <strong style={{ fontSize: 13, fontWeight: 650 }}>{c.title}</strong>
                   </div>
                   <small style={{ color: '#67718e', fontSize: 11 }}>Goal: {c.goal}</small>
                 </div>
-                <b style={{ fontSize: 15, fontWeight: 950 }}>{c.raised}</b>
+                <b style={{ fontSize: 15, fontWeight: 700 }}>{c.raised}</b>
               </div>
             ))}
           </div>
@@ -237,14 +237,14 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
           <div>
             {donations.slice(0, 5).map((d) => (
               <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7' }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #8b5cf6, #f59e0b)', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 12, fontWeight: 950, flexShrink: 0 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #8b5cf6, #f59e0b)', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                   {d.donor.charAt(0).toUpperCase()}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <strong style={{ display: 'block', fontSize: 13, fontWeight: 850 }}>{d.donor}</strong>
+                  <strong style={{ display: 'block', fontSize: 13, fontWeight: 650 }}>{d.donor}</strong>
                   <small style={{ color: '#67718e', fontSize: 11 }}>{d.campaign} · {d.date}</small>
                 </div>
-                <b style={{ fontSize: 14, fontWeight: 950 }}>{d.amount}</b>
+                <b style={{ fontSize: 14, fontWeight: 700 }}>{d.amount}</b>
               </div>
             ))}
           </div>
@@ -261,9 +261,9 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
               <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 9, border: '1px solid #eef0f7', background: '#fafbff' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.status === 'Operational' ? '#19b86a' : s.status === 'Degraded' ? '#f59e0b' : '#ef4444' }} />
-                  <span style={{ fontSize: 13, fontWeight: 800 }}>{s.name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 650 }}>{s.name}</span>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 950, color: s.status === 'Operational' ? '#079447' : s.status === 'Degraded' ? '#f97316' : '#ef4444' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: s.status === 'Operational' ? '#079447' : s.status === 'Degraded' ? '#f97316' : '#ef4444' }}>
                   {s.status}
                 </span>
               </div>

@@ -73,7 +73,7 @@ export default function FaqsPanel({ campaignId }: { campaignId: string }) {
     <div style={{ display: 'grid', gap: 20, maxWidth: 720 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div>
-          <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 900, color: 'var(--t1)' }}>Campaign FAQs</h2>
+          <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>Campaign FAQs</h2>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--t3)' }}>
             Answer common donor questions. Shown publicly on your campaign page.
           </p>
@@ -89,7 +89,7 @@ export default function FaqsPanel({ campaignId }: { campaignId: string }) {
       {/* Existing FAQs */}
       {faqs.length > 0 && (
         <section className="kf-card" style={{ padding: 24 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 16px' }}>Current FAQs ({faqs.length})</h2>
+          <h2 style={{ fontSize: 14, fontWeight: 650, margin: '0 0 16px' }}>Current FAQs ({faqs.length})</h2>
           <div style={{ display: 'grid', gap: 12 }}>
             {faqs.map((faq, i) => (
               <div key={faq.id} style={{ padding: '14px 16px', border: '1px solid var(--b2)', borderRadius: 10, background: 'var(--s1)' }}>
@@ -115,7 +115,7 @@ export default function FaqsPanel({ campaignId }: { campaignId: string }) {
 
       {/* Add FAQ form */}
       <section className="kf-card" style={{ padding: 24 }}>
-        <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 16px' }}>Add a Question</h2>
+        <h2 style={{ fontSize: 14, fontWeight: 650, margin: '0 0 16px' }}>Add a Question</h2>
         <div style={{ display: 'grid', gap: 14 }}>
           <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: '#26335c' }}>
             Question
@@ -128,7 +128,7 @@ export default function FaqsPanel({ campaignId }: { campaignId: string }) {
               placeholder="Provide a clear, honest answer…" style={{ border: '1px solid var(--b2)', borderRadius: 9, padding: '10px 12px', fontSize: 14, resize: 'vertical', lineHeight: 1.6 }} />
           </label>
           <button type="button" onClick={() => void addFAQ()} disabled={saving || !newQ.trim() || !newA.trim()}
-            style={{ height: 44, border: 0, borderRadius: 10, background: saving ? 'var(--b2)' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)', color: '#fff', fontWeight: 800, fontSize: 14, cursor: saving ? 'wait' : 'pointer' }}>
+            style={{ height: 44, border: 0, borderRadius: 10, background: saving ? 'var(--b2)' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)', color: '#fff', fontWeight: 650, fontSize: 14, cursor: saving ? 'wait' : 'pointer' }}>
             {saving ? 'Adding…' : 'Add FAQ'}
           </button>
         </div>

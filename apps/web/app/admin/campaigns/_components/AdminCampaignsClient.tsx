@@ -547,7 +547,7 @@ export default function AdminCampaignsClient({
                 <div style={{ fontSize: 11, fontWeight: 700, color: isActive ? 'rgba(255,255,255,.75)' : '#94a3b8', letterSpacing: '.04em', marginBottom: 2 }}>
                   {m.label.toUpperCase()}
                 </div>
-                <div style={{ fontSize: 24, fontWeight: 900, color: isActive ? '#fff' : '#1a1a2e', lineHeight: 1 }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: isActive ? '#fff' : '#1a1a2e', lineHeight: 1 }}>
                   {m.value}
                 </div>
                 <div style={{ fontSize: 11, color: isActive ? 'rgba(255,255,255,.7)' : '#94a3b8', marginTop: 2 }}>
@@ -643,10 +643,10 @@ export default function AdminCampaignsClient({
             <span className="ac-cell"><SPill status={c.status} /></span>
             <span className="ac-cell" style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
               {c.featured && (
-                <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 6, background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e' }}>⭐ Featured</span>
+                <span style={{ fontSize: 10, fontWeight: 650, padding: '2px 7px', borderRadius: 6, background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e' }}>⭐ Featured</span>
               )}
               {c.coverImageUrl?.startsWith('http') && c.status === 'active' && (
-                <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 6, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af' }}>🏠 Carousel</span>
+                <span style={{ fontSize: 10, fontWeight: 650, padding: '2px 7px', borderRadius: 6, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af' }}>🏠 Carousel</span>
               )}
             </span>
             <span className="ac-cell ac-date">{fmtDate(c.createdAt)}</span>
@@ -769,7 +769,7 @@ export default function AdminCampaignsClient({
             </button>
           </div>
           <section className="kf-card" style={{ padding: 24 }}>
-            <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800 }}>Campaign Status</h2>
+            <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 650 }}>Campaign Status</h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
               <SPill status={selected.status} />
               <span style={{ fontSize: 13, color: 'var(--t3)' }}>
@@ -801,7 +801,7 @@ export default function AdminCampaignsClient({
 
         {/* ── Campaign Tools ── */}
         <section style={{ marginBottom: 24 }}>
-          <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 800 }}>Campaign Tools</h2>
+          <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 650 }}>Campaign Tools</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
             {DETAIL_TOOLS.map(tool => {
               const active = activeTab === tool.key;
@@ -1463,7 +1463,7 @@ function EditForm({
       {/* ── MEDIA MANAGEMENT ── */}
       <div className="ac-field full" style={{ borderTop: '1px solid #eef0f7', paddingTop: 20, marginTop: 4 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <strong style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e' }}>Media Management</strong>
+          <strong style={{ fontSize: 14, fontWeight: 650, color: '#1a1a2e' }}>Media Management</strong>
           <div style={{ display: 'flex', gap: 4, background: '#f8f9fc', borderRadius: 10, padding: 4 }}>
             <button style={sectionTabStyle(mediaSection === 'cover')}   onClick={() => setMediaSection('cover')}>Cover Image</button>
             <button style={sectionTabStyle(mediaSection === 'gallery')} onClick={() => setMediaSection('gallery')}>Gallery ({(draft.imageUrls ?? []).length})</button>
@@ -1544,7 +1544,7 @@ function EditForm({
                     <img src={url} alt={`Gallery image ${i + 1}`} style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} />
                     <div style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4 }}>
                       {i === 0 && (
-                        <span style={{ padding: '2px 8px', background: '#6c35ff', color: '#fff', fontSize: 10, fontWeight: 800, borderRadius: 6 }}>
+                        <span style={{ padding: '2px 8px', background: '#6c35ff', color: '#fff', fontSize: 10, fontWeight: 650, borderRadius: 6 }}>
                           COVER
                         </span>
                       )}
@@ -1638,7 +1638,7 @@ function EditForm({
       <div className="ac-field full" style={{ borderTop: '1px solid #eef0f7', paddingTop: 20, marginTop: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <strong style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e', display: 'block', marginBottom: 4 }}>
+            <strong style={{ fontSize: 14, fontWeight: 650, color: '#1a1a2e', display: 'block', marginBottom: 4 }}>
               {draft.featured ? '⭐ Featured on Homepage' : '☆ Feature on Homepage'}
             </strong>
             <span style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
@@ -1650,7 +1650,7 @@ function EditForm({
             type="button"
             onClick={() => upd('featured', !draft.featured)}
             style={{
-              height: 40, padding: '0 20px', borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: 'pointer',
+              height: 40, padding: '0 20px', borderRadius: 10, fontWeight: 650, fontSize: 13, cursor: 'pointer',
               border: draft.featured ? '1.5px solid #f59e0b' : '1.5px solid #6c35ff',
               background: draft.featured ? '#fffbeb' : '#f0eaff',
               color: draft.featured ? '#92400e' : '#4d1ee0',

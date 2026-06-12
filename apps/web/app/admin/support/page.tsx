@@ -33,7 +33,7 @@ function CaseTable({ cases, title }: { cases: SupportCase[]; title: string }) {
   return (
     <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
       <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8' }}>
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>{title} ({cases.length})</h2>
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 650 }}>{title} ({cases.length})</h2>
       </div>
       {cases.length === 0 ? (
         <div style={{ padding: 32, textAlign: 'center', color: '#64748b' }}>No cases</div>
@@ -211,7 +211,7 @@ export default async function AdminSupportPage() {
             { label: 'Resolved (all time)',  value: resolved, color: '#19b86a' },
           ].map(m => (
             <div key={m.label} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '20px 24px' }}>
-              <div style={{ fontSize: 28, fontWeight: 900, color: m.color }}>{m.value}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: m.color }}>{m.value}</div>
               <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{m.label}</div>
             </div>
           ))}
