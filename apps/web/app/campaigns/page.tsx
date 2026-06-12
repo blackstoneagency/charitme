@@ -16,6 +16,8 @@ export const dynamic = 'force-dynamic';
 
 type SortOption = 'raised' | 'latest' | 'donors' | 'ending' | 'trust';
 
+const PAGE_SIZE = 60;
+
 interface Props {
   searchParams: Promise<{
     category?: string;
@@ -24,6 +26,7 @@ interface Props {
     verified?: string;
     location?: string;
     tax?: string;
+    page?: string;
   }>;
 }
 
@@ -34,11 +37,12 @@ async function getCampaigns(opts: {
   verifiedOnly?: boolean;
   location?: string;
   taxDeductibleOnly?: boolean;
+  page: number;
 }) {
   try {
     let query = supabaseAdmin
       .from('campaigns')
-      .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, trust_status, nonprofit_verified, location, campaign_health_score')
+      .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, trust_status, nonprofit_verified, location, campaign_health_score', { count: 'exact' })
       .eq('status', 'active');
 
     if (opts.category) query = query.eq('category', opts.category);
@@ -58,10 +62,12 @@ async function getCampaigns(opts: {
       default:        query = query.order('raised_amount', { ascending: false }); break; // 'raised'
     }
 
-    const { data } = await query.limit(60);
-    return data ?? [];
+    const from = (opts.page - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+    const { data, count } = await query.range(from, to);
+    return { campaigns: data ?? [], total: count ?? 0 };
   } catch {
-    return [];
+    return { campaigns: [], total: 0 };
   }
 }
 
@@ -86,10 +92,25 @@ export default async function CampaignsPage({ searchParams }: Props) {
   const verified = sp.verified === '1';
   const location = sp.location;
   const tax      = sp.tax === '1';
+  const page     = Math.max(1, parseInt(sp.page ?? '1', 10) || 1);
 
-  const campaigns = await getCampaigns({
-    category, q, sort, verifiedOnly: verified, location, taxDeductibleOnly: tax,
+  const { campaigns, total } = await getCampaigns({
+    category, q, sort, verifiedOnly: verified, location, taxDeductibleOnly: tax, page,
   });
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  function pageHref(targetPage: number) {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (location) params.set('location', location);
+    if (category) params.set('category', category);
+    if (sort !== 'raised') params.set('sort', sort);
+    if (verified) params.set('verified', '1');
+    if (tax) params.set('tax', '1');
+    if (targetPage > 1) params.set('page', String(targetPage));
+    const qs = params.toString();
+    return `/campaigns${qs ? `?${qs}` : ''}`;
+  }
 
   return (
     <div className="container" style={{ padding: '40px 24px' }}>
@@ -168,7 +189,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
             </Link>
           )}
           <span style={{ fontSize: '13px', color: 'var(--t3)', marginLeft: 4 }}>
-            {campaigns.length} campaign{campaigns.length !== 1 ? 's' : ''} found
+            {total} campaign{total !== 1 ? 's' : ''} found
           </span>
         </div>
       </form>
@@ -250,6 +271,32 @@ export default async function CampaignsPage({ searchParams }: Props) {
               </Link>
             );
           })}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '32px' }}>
+          {page > 1 ? (
+            <Link href={pageHref(page - 1)} style={{ padding: '10px 18px', borderRadius: 'var(--r)', border: '1px solid var(--b2)', color: 'var(--t1)', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>
+              ← Previous
+            </Link>
+          ) : (
+            <span style={{ padding: '10px 18px', borderRadius: 'var(--r)', border: '1px solid var(--b1)', color: 'var(--t4)', fontSize: '13px', fontWeight: 700 }}>
+              ← Previous
+            </span>
+          )}
+          <span style={{ fontSize: '13px', color: 'var(--t3)', fontWeight: 700 }}>
+            Page {page} of {totalPages}
+          </span>
+          {page < totalPages ? (
+            <Link href={pageHref(page + 1)} style={{ padding: '10px 18px', borderRadius: 'var(--r)', border: '1px solid var(--b2)', color: 'var(--t1)', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>
+              Next →
+            </Link>
+          ) : (
+            <span style={{ padding: '10px 18px', borderRadius: 'var(--r)', border: '1px solid var(--b1)', color: 'var(--t4)', fontSize: '13px', fontWeight: 700 }}>
+              Next →
+            </span>
+          )}
         </div>
       )}
     </div>
