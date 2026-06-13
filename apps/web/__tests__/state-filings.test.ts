@@ -15,6 +15,7 @@ import {
   mapNewOrleansFiling,
   mapMesaFiling,
   mapBentonvilleFiling,
+  mapAlaskaFiling,
   parseFlCorLine,
   parseFlDate,
   titleCaseBusinessName,
@@ -41,6 +42,7 @@ import {
   type NolaFilingRow,
   type MesaFilingRow,
   type BentonvilleFilingRow,
+  type AkFilingRow,
 } from '../lib/state-filings';
 
 // Builds a fixed-width Sunbiz cor.txt record by placing fields at the
@@ -1041,8 +1043,70 @@ describe('mapBentonvilleFiling', () => {
   });
 });
 
+describe('mapAlaskaFiling', () => {
+  const baseRow: AkFilingRow = {
+    LicenseNumber: '123456',
+    BusinessName: 'MIDNIGHT SUN CAFE LLC',
+    Owners: 'Midnight Sun Cafe LLC',
+    Status: 'Active',
+    IssueDate: Date.UTC(2026, 5, 2),
+    PhysicalLine1: '123 Main St',
+    PhysicalCity: 'ANCHORAGE',
+    PhysicalState: 'AK',
+    PhysicalZipOut: '99501',
+  };
+
+  it('maps an LLC license to an "Active" AK lead, detecting the LLC suffix on Owners and omitting owner_name', () => {
+    const lead = mapAlaskaFiling(baseRow);
+    expect(lead.business_name).toBe('Midnight Sun Cafe LLC');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('AK');
+    expect(lead.filing_date).toBe('2026-06-02');
+    expect(lead.filing_status).toBe('Active');
+    expect(lead.owner_name).toBeNull();
+    expect(lead.address).toBe('123 Main St, Anchorage, AK 99501');
+    expect(lead.source_ref).toBe('ak-business-license:123456');
+  });
+
+  it('captures a sole proprietor\'s name as owner_name when Owners has no entity suffix, and title-cases the city', () => {
+    const lead = mapAlaskaFiling({
+      ...baseRow,
+      LicenseNumber: '789012',
+      BusinessName: 'THE BLOOMING ONION CO',
+      Owners: 'Phil Augustine',
+      IssueDate: Date.UTC(2019, 2, 15),
+      PhysicalLine1: '456 Parks Hwy',
+      PhysicalCity: 'WASILLA',
+      PhysicalZipOut: '99654',
+    });
+    expect(lead.business_name).toBe('The Blooming Onion CO');
+    expect(lead.entity_type).toBeNull();
+    expect(lead.owner_name).toBe('Phil Augustine');
+    expect(lead.filing_date).toBe('2019-03-15');
+    expect(lead.address).toBe('456 Parks Hwy, Wasilla, AK 99654');
+    expect(lead.source_ref).toBe('ak-business-license:789012');
+  });
+
+  it('detects Corporation and Professional Corporation suffixes on Owners', () => {
+    expect(mapAlaskaFiling({ ...baseRow, Owners: 'Glacier Tours Inc' }).entity_type).toBe('Corporation');
+    expect(mapAlaskaFiling({ ...baseRow, Owners: 'Tundra Dental P.C.' }).entity_type).toBe('Professional Corporation');
+  });
+
+  it('handles missing fields gracefully', () => {
+    const lead = mapAlaskaFiling({ BusinessName: 'QUIET CORNER BOOKS' });
+    expect(lead.business_name).toBe('Quiet Corner Books');
+    expect(lead.entity_type).toBeNull();
+    expect(lead.state).toBe('AK');
+    expect(lead.filing_date).toBeNull();
+    expect(lead.filing_status).toBeNull();
+    expect(lead.owner_name).toBeNull();
+    expect(lead.address).toBeNull();
+    expect(lead.source_ref).toBeUndefined();
+  });
+});
+
 describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES / PA_NEW_ENTITY_TYPES / CT_NEW_ENTITY_TYPES / TX_NEW_ENTITY_TYPES', () => {
-  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, Illinois, Virginia, Washington, Delaware, Louisiana, Arizona, and Arkansas feeds with labels', () => {
+  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, Illinois, Virginia, Washington, Delaware, Louisiana, Arizona, Arkansas, and Alaska feeds with labels', () => {
     expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
     expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
     expect(STATE_FEED_SOURCES.FL.label).toMatch(/Florida/);
@@ -1058,6 +1122,7 @@ describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / F
     expect(STATE_FEED_SOURCES.LA.label).toMatch(/Louisiana/);
     expect(STATE_FEED_SOURCES.AZ.label).toMatch(/Arizona/);
     expect(STATE_FEED_SOURCES.AR.label).toMatch(/Arkansas/);
+    expect(STATE_FEED_SOURCES.AK.label).toMatch(/Alaska/);
   });
 
   it('targets only brand-new entity formation document/filing/entity types', () => {

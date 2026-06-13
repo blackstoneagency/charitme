@@ -61,6 +61,8 @@ import {
   mapMesaFiling,
   BENTONVILLE_DATASET_URL,
   mapBentonvilleFiling,
+  AK_DATASET_URL,
+  mapAlaskaFiling,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
@@ -75,6 +77,7 @@ import {
   type NolaFilingRow,
   type MesaFilingRow,
   type BentonvilleFilingRow,
+  type AkFilingRow,
   type StateFeedCode,
 } from './state-filings';
 
@@ -674,6 +677,41 @@ export async function fetchArkansasFilings(dateFrom?: string, dateTo?: string, l
   }
 }
 
+// Alaska Division of Corporations, Business & Professional Licensing —
+// statewide business-license dataset, free, no API key, ArcGIS MapServer
+// (not Socrata). Filtered to active licenses whose `IssueDate` falls in the
+// requested date range, used as a proxy for new AK business activity.
+export async function fetchAlaskaFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const clauses = ["Status='Active'", 'IssueDate IS NOT NULL'];
+    if (dateFrom) clauses.push(`IssueDate >= timestamp '${dateFrom} 00:00:00'`);
+    if (dateTo) clauses.push(`IssueDate <= timestamp '${dateTo} 23:59:59'`);
+
+    const params = new URLSearchParams({
+      where: clauses.join(' AND '),
+      outFields: '*',
+      orderByFields: 'IssueDate DESC',
+      resultRecordCount: String(limit),
+      f: 'json',
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${AK_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const json = await res.json() as { features?: { attributes: AkFilingRow }[]; error?: unknown };
+    if (json.error || !json.features) return [];
+    return json.features.map((f) => mapAlaskaFiling(f.attributes)).filter((f) => f.business_name);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
 export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
   CO: fetchColoradoFilings,
@@ -690,6 +728,7 @@ export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: 
   LA: fetchLouisianaFilings,
   AZ: fetchArizonaFilings,
   AR: fetchArkansasFilings,
+  AK: fetchAlaskaFilings,
 };
 
 // ── Normalize + score raw filings, then dedupe/insert into business_leads ────
