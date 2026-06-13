@@ -448,6 +448,64 @@ export function mapPaFiling(row: PaFilingRow): StateFilingLead {
   };
 }
 
+// ── Connecticut — Secretary of State "Business Registry - Business Master" ──
+// https://data.ct.gov/resource/n7gp-d28j.json — free, no API key, updated
+// daily. Uniquely among these feeds, CT publishes the registrant's email
+// address (`business_email_address`) directly, so most CT leads arrive with
+// an email already attached — no AI enrichment needed.
+
+export const CT_DATASET_URL = 'https://data.ct.gov/resource/n7gp-d28j.json';
+
+// `business_type` values representing brand-new domestic formations (not
+// reservations, mergers, or financial-institution charters).
+export const CT_NEW_ENTITY_TYPES = ['LLC', 'Stock', 'Non-Stock', 'Limited Partnership', 'LLP', 'B Corp'] as const;
+
+const CT_ENTITY_TYPE_LABELS: Record<string, string> = {
+  LLC: 'LLC',
+  Stock: 'Corporation',
+  'Non-Stock': 'Nonprofit',
+  'Limited Partnership': 'Limited Partnership',
+  LLP: 'LLP',
+  'B Corp': 'Corporation',
+};
+
+export interface CtFilingRow {
+  name?: string;
+  business_type?: string;
+  status?: string;
+  accountnumber?: string;
+  date_registration?: string;
+  billingstreet?: string;
+  billingcity?: string;
+  billingstate?: string;
+  billingpostalcode?: string;
+  business_email_address?: string;
+  category_survey_email_address?: string;
+  naics_code?: string;
+}
+
+function ctAddress(row: CtFilingRow): string | null {
+  const stateZip = [row.billingstate?.trim(), row.billingpostalcode?.trim()].filter(Boolean).join(' ');
+  const street = row.billingstreet?.trim();
+  const city = row.billingcity ? maybeTitleCase(row.billingcity.trim()) : null;
+  const parts = [street || null, city, stateZip || null].filter(Boolean);
+  return parts.length ? parts.join(', ') : null;
+}
+
+export function mapConnecticutFiling(row: CtFilingRow): StateFilingLead {
+  return {
+    business_name: maybeTitleCase(row.name ?? ''),
+    entity_type: normalizeEntityType(CT_ENTITY_TYPE_LABELS[row.business_type ?? ''] ?? row.business_type ?? null),
+    state: 'CT',
+    filing_date: row.date_registration ? row.date_registration.slice(0, 10) : null,
+    filing_status: row.status ?? null,
+    address: ctAddress(row),
+    industry: row.naics_code ?? null,
+    email: row.business_email_address || row.category_survey_email_address || null,
+    source_ref: row.accountnumber ? `ct-sos:${row.accountnumber}` : undefined,
+  };
+}
+
 // ── Registry of available free state feeds ──────────────────────────────────
 // Single source of truth for both server-side validation (ingest route) and
 // the admin UI's state picker. Add an entry here + a fetch+map implementation
@@ -473,6 +531,10 @@ export const STATE_FEED_SOURCES = {
   PA: {
     label: 'Pennsylvania — Dept. of State',
     description: 'New domestic LLC, corporation, nonprofit, and partnership registrations from the PA Registered Businesses open dataset, including the Organizer/Incorporator’s first and last name. Free, no API key, updated regularly.',
+  },
+  CT: {
+    label: 'Connecticut — Secretary of State',
+    description: 'New domestic LLC, corporation, nonprofit, and partnership registrations from the CT Business Registry Master open dataset — uniquely includes the registrant’s email address directly. Free, no API key, updated daily.',
   },
 } as const;
 

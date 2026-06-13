@@ -9,7 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
-import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling } from '../../../../../lib/state-filings';
+import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +35,8 @@ type Check = { name: string; ok: boolean; detail: string };
 //      (incl. the filer's first/last name) into one lead correctly,
 //  13. the free PA state-registry connector maps a filing row (incl. the
 //      Organizer's first/last name) correctly.
+//  14. the free CT state-registry connector maps a filing row (incl. the
+//      registrant's email address, published directly by CT) correctly.
 //
 // Returns 200 only when every check passes, so it can be wired to uptime
 // monitors or run manually from the admin UI.
@@ -278,6 +280,27 @@ export async function GET() {
     name: 'pa_state_feed',
     ok: paLead.business_name === "Marberger's Contractors Llc" && paLead.entity_type === 'LLC' && paLead.state === 'PA' && paLead.filing_date === '2025-07-30' && paLead.owner_name === 'Curtis Marberger',
     detail: `mapped "${paLead.business_name}" (${paLead.entity_type}, ${paLead.state}, filed ${paLead.filing_date}, owner ${paLead.owner_name})`,
+  });
+
+  // 14. CT state-registry connector — a sample domestic LLC filing row should
+  // map correctly, including the registrant email published directly by CT.
+  const ctLead = mapConnecticutFiling({
+    name: 'Nutmeg Accounting LLC',
+    business_type: 'LLC',
+    status: 'Active',
+    accountnumber: '3460640',
+    date_registration: '2026-06-11T00:00:00.000',
+    billingstreet: '16 Farm Field Ridge Rd',
+    billingcity: 'Sandy Hook',
+    billingstate: 'CT',
+    billingpostalcode: '06482-1081',
+    business_email_address: 'sahmed@nutmegaccountingllc.com',
+    naics_code: 'Other Accounting Services (541219)',
+  });
+  checks.push({
+    name: 'ct_state_feed',
+    ok: ctLead.business_name === 'Nutmeg Accounting LLC' && ctLead.entity_type === 'LLC' && ctLead.state === 'CT' && ctLead.filing_date === '2026-06-11' && ctLead.email === 'sahmed@nutmegaccountingllc.com',
+    detail: `mapped "${ctLead.business_name}" (${ctLead.entity_type}, ${ctLead.state}, filed ${ctLead.filing_date}, email ${ctLead.email})`,
   });
 
   const ok = checks.every((c) => c.ok);

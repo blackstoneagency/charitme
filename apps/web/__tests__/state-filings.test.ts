@@ -5,6 +5,7 @@ import {
   mapFlFiling,
   mapOregonFilings,
   mapPaFiling,
+  mapConnecticutFiling,
   parseFlCorLine,
   parseFlDate,
   titleCaseBusinessName,
@@ -14,11 +15,13 @@ import {
   FL_NEW_ENTITY_FILING_TYPES,
   OR_NEW_ENTITY_TYPES,
   PA_NEW_ENTITY_TYPES,
+  CT_NEW_ENTITY_TYPES,
   STATE_FEED_SOURCES,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
   type PaFilingRow,
+  type CtFilingRow,
 } from '../lib/state-filings';
 
 // Builds a fixed-width Sunbiz cor.txt record by placing fields at the
@@ -440,13 +443,70 @@ describe('mapPaFiling', () => {
   });
 });
 
-describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES / PA_NEW_ENTITY_TYPES', () => {
-  it('registers the New York, Colorado, Florida, Oregon, and Pennsylvania feeds with labels', () => {
+describe('mapConnecticutFiling', () => {
+  const baseRow: CtFilingRow = {
+    name: 'Nutmeg Accounting LLC',
+    business_type: 'LLC',
+    status: 'Active',
+    accountnumber: '3460640',
+    date_registration: '2026-06-11T00:00:00.000',
+    billingstreet: '16 Farm Field Ridge Rd',
+    billingcity: 'Sandy Hook',
+    billingstate: 'CT',
+    billingpostalcode: '06482-1081',
+    business_email_address: 'sahmed@nutmegaccountingllc.com',
+    naics_code: 'Other Accounting Services (541219)',
+  };
+
+  it('maps a domestic LLC filing, including the registrant email', () => {
+    const lead = mapConnecticutFiling(baseRow);
+    expect(lead.business_name).toBe('Nutmeg Accounting LLC');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('CT');
+    expect(lead.filing_date).toBe('2026-06-11');
+    expect(lead.filing_status).toBe('Active');
+    expect(lead.email).toBe('sahmed@nutmegaccountingllc.com');
+    expect(lead.industry).toBe('Other Accounting Services (541219)');
+    expect(lead.address).toBe('16 Farm Field Ridge Rd, Sandy Hook, CT 06482-1081');
+    expect(lead.source_ref).toBe('ct-sos:3460640');
+  });
+
+  it('maps Stock and Non-Stock business types to Corporation and Nonprofit', () => {
+    expect(mapConnecticutFiling({ ...baseRow, business_type: 'Stock' }).entity_type).toBe('Corporation');
+    expect(mapConnecticutFiling({ ...baseRow, business_type: 'Non-Stock' }).entity_type).toBe('Nonprofit');
+  });
+
+  it('title-cases an ALL CAPS business name and city, preserving the LLC suffix', () => {
+    const lead = mapConnecticutFiling({
+      ...baseRow,
+      name: 'MORALES MEZA PAINTING LLC',
+      billingcity: 'BRIDGEPORT',
+    });
+    expect(lead.business_name).toBe('Morales Meza Painting LLC');
+    expect(lead.address).toBe('16 Farm Field Ridge Rd, Bridgeport, CT 06482-1081');
+  });
+
+  it('falls back to the diversity-survey email when business_email_address is missing', () => {
+    const lead = mapConnecticutFiling({ ...baseRow, business_email_address: undefined, category_survey_email_address: 'fallback@example.com' });
+    expect(lead.email).toBe('fallback@example.com');
+  });
+
+  it('handles missing email, address, and account number gracefully', () => {
+    const lead = mapConnecticutFiling({ name: 'BARE LLC', business_type: 'LLC' });
+    expect(lead.email).toBeNull();
+    expect(lead.address).toBeNull();
+    expect(lead.source_ref).toBeUndefined();
+  });
+});
+
+describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES / PA_NEW_ENTITY_TYPES / CT_NEW_ENTITY_TYPES', () => {
+  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, and Connecticut feeds with labels', () => {
     expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
     expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
     expect(STATE_FEED_SOURCES.FL.label).toMatch(/Florida/);
     expect(STATE_FEED_SOURCES.OR.label).toMatch(/Oregon/);
     expect(STATE_FEED_SOURCES.PA.label).toMatch(/Pennsylvania/);
+    expect(STATE_FEED_SOURCES.CT.label).toMatch(/Connecticut/);
   });
 
   it('targets only brand-new entity formation document/filing/entity types', () => {
@@ -457,5 +517,6 @@ describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / F
     expect(OR_NEW_ENTITY_TYPES).not.toContain('ASSUMED BUSINESS NAME');
     expect(PA_NEW_ENTITY_TYPES).toContain('Domestic Limited Liability Company');
     expect(PA_NEW_ENTITY_TYPES).not.toContain('Foreign Limited Liability Company');
+    expect(CT_NEW_ENTITY_TYPES).toEqual(['LLC', 'Stock', 'Non-Stock', 'Limited Partnership', 'LLP', 'B Corp']);
   });
 });

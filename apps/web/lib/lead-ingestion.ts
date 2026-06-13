@@ -37,10 +37,14 @@ import {
   PA_DATASET_URL,
   PA_NEW_ENTITY_TYPES,
   mapPaFiling,
+  CT_DATASET_URL,
+  CT_NEW_ENTITY_TYPES,
+  mapConnecticutFiling,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
   type PaFilingRow,
+  type CtFilingRow,
   type StateFeedCode,
 } from './state-filings';
 
@@ -312,12 +316,46 @@ export async function fetchPennsylvaniaFilings(dateFrom?: string, dateTo?: strin
   }
 }
 
+// Connecticut SOS "Business Registry - Business Master" — free, no API key.
+// Filtered to domestic LLC/Corp/Nonprofit/etc. business types so results are
+// brand-new in-state formations. Uniquely, each row already includes the
+// registrant's email address.
+export async function fetchConnecticutFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const typeList = CT_NEW_ENTITY_TYPES.map((t) => `'${t}'`).join(', ');
+    const clauses = [`business_type IN(${typeList})`];
+    if (dateFrom) clauses.push(`date_registration >= '${dateFrom}T00:00:00'`);
+    if (dateTo) clauses.push(`date_registration <= '${dateTo}T23:59:59'`);
+
+    const params = new URLSearchParams({
+      $where: clauses.join(' AND '),
+      $order: 'date_registration DESC',
+      $limit: String(limit),
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${CT_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const rows = await res.json() as CtFilingRow[];
+    return rows.map(mapConnecticutFiling).filter((f) => f.business_name);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
 export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
   CO: fetchColoradoFilings,
   FL: fetchFloridaFilings,
   OR: fetchOregonFilings,
   PA: fetchPennsylvaniaFilings,
+  CT: fetchConnecticutFilings,
 };
 
 // ── Normalize + score raw filings, then dedupe/insert into business_leads ────
