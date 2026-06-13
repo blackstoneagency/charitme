@@ -25,7 +25,9 @@ export interface LeadRow {
   status: string;
   alerted: boolean;
   source: string;
-  marketing_contact_id: string | null;
+  // Optional: absent when the marketing-link migration (20260613000000) hasn't
+  // been applied yet and the page falls back to a column set without it.
+  marketing_contact_id?: string | null;
   created_at: string;
 }
 
