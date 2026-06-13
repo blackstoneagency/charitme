@@ -99,7 +99,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
           alignItems: 'center',
           gap: 12,
           fontSize: 14,
-          fontWeight: 750,
+          fontWeight: 600,
           color: '#0f6e3f',
         }}>
           🎉{' '}

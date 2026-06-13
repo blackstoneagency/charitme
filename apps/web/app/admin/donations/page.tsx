@@ -175,7 +175,7 @@ export default async function AdminDonationsPage() {
             href="/api/exports/donations"
             download
             className="kf-primary"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 20px', fontSize: 13, fontWeight: 900, textDecoration: 'none' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 20px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
           >
             Export CSV
           </Link>

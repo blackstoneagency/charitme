@@ -26,7 +26,7 @@ export default async function CampaignPaymentFlowPage({ params }: PageProps): Pr
         <SummaryCards data={data} />
         <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: 18 }}>
           <strong style={{ color: '#111944', display: 'block', marginBottom: 8 }}>Settlement Snapshot</strong>
-          <span style={{ color: '#64748b', fontWeight: 800 }}>
+          <span style={{ color: '#64748b', fontWeight: 650 }}>
             Gross {money(data.summary.totalGross)} · Platform revenue {money(data.summary.totalPlatformRevenue)} · Owner net {money(data.summary.totalOwnerNet)}
           </span>
         </div>
@@ -44,6 +44,6 @@ const buttonStyle = {
   background: '#6c35ff',
   color: '#fff',
   padding: '0 14px',
-  fontWeight: 900,
+  fontWeight: 700,
   textDecoration: 'none',
 } as const;

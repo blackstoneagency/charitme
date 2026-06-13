@@ -192,60 +192,62 @@ function FeeCalculator() {
   const pct = (n: number) => `${((n / cents) * 100).toFixed(1)}%`;
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-        <label style={{ fontSize: 14, fontWeight: 700, color: '#26335c' }}>
+    <div className="fee-calc">
+      <div className="fee-calc-controls">
+        <label className="fee-calc-label">
           Donation amount:
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-            <span style={{ fontSize: 18, fontWeight: 900, color: '#64748b' }}>$</span>
+          <div className="fee-calc-input-row">
+            <span className="fee-calc-dollar">$</span>
             <input type="number" value={amount} onChange={e => setAmount(Math.max(1, Number(e.target.value)))}
-              min="1" style={{ width: 120, height: 42, border: '1.5px solid #e0d5ff', borderRadius: 10, padding: '0 12px', fontSize: 16, fontWeight: 700, outline: 'none' }} />
+              min="1" className="fee-calc-input" />
           </div>
         </label>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 22 }}>
+        <div className="fee-calc-presets">
           {[100, 500, 1000, 5000].map(v => (
             <button key={v} type="button" onClick={() => setAmount(v)}
-              style={{ height: 36, padding: '0 16px', borderRadius: 8, border: `1.5px solid ${amount === v ? '#6c35ff' : '#e0d5ff'}`, background: amount === v ? '#f0eaff' : '#fff', color: amount === v ? '#551cf2' : '#64748b', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              className={`fee-calc-preset${amount === v ? ' active' : ''}`}>
               ${v.toLocaleString()}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="kf-two-col" style={{ gap: 16 }}>
+      <div className="fee-calc-grid">
         {/* CharitMe */}
-        <div style={{ background: '#f0fff8', border: '2px solid #19b86a', borderRadius: 16, padding: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <span style={{ fontWeight: 900, fontSize: 16, color: '#065f46' }}>💚 CharitMe</span>
-            <span style={{ background: '#19b86a', color: '#fff', fontSize: 11, fontWeight: 900, padding: '3px 10px', borderRadius: 20 }}>BEST VALUE</span>
+        <div className="fee-calc-box fee-calc-box--green">
+          <div className="fee-calc-box-head">
+            <span>💚 CharitMe</span>
+            <span className="fee-calc-badge">BEST VALUE</span>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 900, color: '#047857', marginBottom: 4 }}>{fmt(kfNet)}</div>
-          <div style={{ fontSize: 13, color: '#065f46', marginBottom: 16 }}>reaches the fundraiser ({pct(kfNet)} of {fmt(amount)})</div>
-          <div style={{ fontSize: 12, color: '#047857', lineHeight: 1.8 }}>
+          <div className="fee-calc-amount fee-calc-amount--green">{fmt(kfNet)}</div>
+          <div className="fee-calc-reach">reaches the fundraiser ({pct(kfNet)} of {fmt(amount)})</div>
+          <div className="fee-calc-breakdown fee-calc-breakdown--green">
             <div>Platform fee: <strong>$0</strong> (0%)</div>
             <div>Stripe processing: <strong>−{fmt(kfStripe)}</strong></div>
             <div>Optional donor tip: <strong>+{fmt(kfTip)}</strong> (8% default, donor chooses)</div>
-            <div style={{ marginTop: 8, fontWeight: 900 }}>Monthly recurring: <strong>$0 extra fee</strong></div>
+            <div className="fee-calc-recurring">Monthly recurring: <strong>$0 extra fee</strong></div>
           </div>
         </div>
 
         {/* GoFundMe */}
-        <div style={{ background: '#faf8ff', border: '1px solid #e0d5ff', borderRadius: 16, padding: 24 }}>
-          <div style={{ fontWeight: 900, fontSize: 16, color: '#334064', marginBottom: 16 }}>GoFundMe</div>
-          <div style={{ fontSize: 28, fontWeight: 900, color: '#4b5676', marginBottom: 4 }}>{fmt(gfmNet)}</div>
-          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>reaches the fundraiser ({pct(gfmNet)} of {fmt(amount)})</div>
-          <div style={{ fontSize: 12, color: '#4b5676', lineHeight: 1.8 }}>
+        <div className="fee-calc-box fee-calc-box--neutral">
+          <div className="fee-calc-box-head">
+            <span>GoFundMe</span>
+          </div>
+          <div className="fee-calc-amount fee-calc-amount--neutral">{fmt(gfmNet)}</div>
+          <div className="fee-calc-reach">reaches the fundraiser ({pct(gfmNet)} of {fmt(amount)})</div>
+          <div className="fee-calc-breakdown fee-calc-breakdown--neutral">
             <div>Platform fee: <strong>$0</strong> (0%)</div>
             <div>Stripe processing: <strong>−{fmt(gfmStripe)}</strong></div>
-            <div style={{ color: '#e11d48', fontWeight: 700 }}>
+            <div className="fee-calc-warning">
               Monthly recurring: <strong>−{fmt(gfmRecurringFee)}</strong> extra (5% fee on recurring)
             </div>
-            <div style={{ marginTop: 8 }}>Recurring fundraiser gets: <strong style={{ color: '#e11d48' }}>{fmt(gfmNetRecurring)}</strong></div>
+            <div>Recurring fundraiser gets: <strong className="fee-calc-bad">{fmt(gfmNetRecurring)}</strong></div>
           </div>
         </div>
       </div>
 
-      <p style={{ textAlign: 'center', fontSize: 12, color: '#94a3b8', marginTop: 16 }}>
+      <p className="fee-calc-note">
         * Stripe fees (2.9% + $0.30) apply to both platforms. CharitMe charges 0% on all donations including recurring. GoFundMe charges 5% on recurring donations.
         Donors can optionally cover Stripe fees on CharitMe.
       </p>
@@ -357,10 +359,9 @@ export default function PricingPage() {
 
               <button
                 type="button"
-                className={plan.outline ? 'outline' : ''}
+                className={`price-cta-btn${plan.outline ? ' price-cta-outline' : ' price-cta-solid'}`}
                 onClick={() => handleCTA(plan)}
                 disabled={isLoading}
-                style={{ height: 40, margin: '24px 0 18px', display: 'grid', placeItems: 'center', borderRadius: 6, color: plan.outline ? '#4015e8' : '#fff', background: plan.outline ? '#fff' : '#4b1af2', border: plan.outline ? '1px solid #5e38ff' : 'none', fontWeight: 950, cursor: 'pointer' }}
               >
                 {isLoading ? 'Opening Stripe…' : plan.cta}
               </button>

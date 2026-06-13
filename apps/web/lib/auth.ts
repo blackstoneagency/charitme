@@ -2,6 +2,7 @@ import 'server-only';
 import { createClient } from './supabase-server';
 import { redirect } from 'next/navigation';
 import { isAdmin } from './roles';
+import { ensureUserProfile } from './profile-sync';
 
 export async function getUser() {
   const supabase = await createClient();
@@ -12,6 +13,7 @@ export async function getUser() {
 export async function requireUser() {
   const user = await getUser();
   if (!user) redirect('/login');
+  await ensureUserProfile(user);
   return user;
 }
 
@@ -25,4 +27,16 @@ export async function requireAdmin() {
   const allowed = await isAdmin(user.id, user.email);
   if (!allowed) redirect('/dashboard');
   return user;
+}
+
+/**
+ * True when the user owns the campaign or is a platform admin.
+ * Used by campaign tool APIs so admins can operate on any campaign.
+ */
+export async function canManageCampaign(
+  user: { id: string; email?: string | null },
+  campaignUserId: string,
+): Promise<boolean> {
+  if (campaignUserId === user.id) return true;
+  return isAdmin(user.id, user.email);
 }

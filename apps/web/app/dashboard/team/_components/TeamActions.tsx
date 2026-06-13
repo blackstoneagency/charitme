@@ -123,17 +123,17 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
           style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
           onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}
         >
-          <div className="kf-modal-responsive" style={{ width: 460, background: 'var(--s1, #fff)', borderRadius: 16, boxShadow: '0 20px 60px rgba(20,20,80,.18)', overflow: 'hidden' }}>
-            <div style={{ padding: '22px 24px 18px', borderBottom: '1px solid var(--b1, #eef0f7)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: 17, fontWeight: 950, color: 'var(--t1, #0f0f30)' }}>Invite Team Member</div>
-              <button type="button" onClick={() => setOpen(false)} style={{ width: 32, height: 32, border: '1px solid var(--b1, #e6e9f2)', borderRadius: '50%', background: 'var(--s1, #fff)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3, #8c9ab5)' }}>×</button>
+          <div style={{ width: 460, background: '#fff', borderRadius: 16, boxShadow: '0 20px 60px rgba(20,20,80,.18)', overflow: 'hidden' }}>
+            <div style={{ padding: '22px 24px 18px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#0f0f30' }}>Invite Team Member</div>
+              <button type="button" onClick={() => setOpen(false)} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5' }}>×</button>
             </div>
             <div style={{ padding: '24px', display: 'grid', gap: 16 }}>
               {error && <div style={{ padding: '10px 14px', background: 'rgba(190,18,60,.08)', borderRadius: 9, color: 'var(--red, #c0003c)', fontSize: 13, fontWeight: 700 }}>{error}</div>}
               {success && <div style={{ padding: '10px 14px', background: 'rgba(25,184,106,.08)', borderRadius: 9, color: 'var(--green-dark, #15803d)', fontSize: 13, fontWeight: 700 }}>{success}</div>}
 
               {campaigns.length > 1 && (
-                <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: 'var(--t2, #26335c)' }}>
+                <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                   Campaign
                   <select value={campaignId} onChange={e => setCampaignId(e.target.value)} style={{ height: 44, border: '1px solid var(--b2, #dfe3ee)', borderRadius: 9, padding: '0 14px', fontSize: 14, background: 'var(--s1)', color: 'var(--t1)' }}>
                     {campaigns.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -141,7 +141,7 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
                 </label>
               )}
 
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: 'var(--t2, #26335c)' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                 Email Address
                 <input
                   type="email"
@@ -153,7 +153,7 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
                 <span style={{ fontSize: 11, color: 'var(--t3, #8c9ab5)', fontWeight: 400 }}>The user must already have a CharitMe account.</span>
               </label>
 
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: 'var(--t2, #26335c)' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                 Role
                 <select value={role} onChange={e => setRole(e.target.value as 'admin' | 'member' | 'viewer')} style={{ height: 44, border: '1px solid var(--b2, #dfe3ee)', borderRadius: 9, padding: '0 14px', fontSize: 14, background: 'var(--s1)', color: 'var(--t1)' }}>
                   <option value="admin">Admin — can edit and manage campaign</option>
@@ -162,9 +162,9 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
                 </select>
               </label>
             </div>
-            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--b1, #eef0f7)', display: 'flex', gap: 12 }}>
-              <button type="button" onClick={() => setOpen(false)} style={{ flex: 1, height: 44, border: '1px solid var(--b1, #e0e4ef)', borderRadius: 9, background: 'var(--s1, #fff)', color: 'var(--t1)', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>Cancel</button>
-              <button type="button" onClick={handleInvite} disabled={saving} style={{ flex: 1, height: 44, border: 0, borderRadius: 9, background: 'var(--violet, #551cf2)', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+            <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'flex', gap: 12 }}>
+              <button type="button" onClick={() => setOpen(false)} style={{ flex: 1, height: 44, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button type="button" onClick={handleInvite} disabled={saving} style={{ flex: 1, height: 44, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
                 {saving ? 'Adding…' : 'Add Member'}
               </button>
             </div>

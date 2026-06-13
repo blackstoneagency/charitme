@@ -55,7 +55,7 @@ function StatusPill({ status }: { status: string }) {
   };
   const c = colors[tone] ?? colors.violet;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 10px', borderRadius: 7, fontSize: 11, fontWeight: 950, background: c.bg, color: c.color }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, background: c.bg, color: c.color }}>
       {capitalize(status)}
     </span>
   );
@@ -131,25 +131,25 @@ function EditModal({ item, onClose, onSaved }: { item: ContentRecord; onClose: (
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="kf-modal-responsive" style={{ width: 560, background: '#fff', borderRadius: 16, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
+      <div style={{ width: 560, background: '#fff', borderRadius: 16, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 950 }}>Edit Content</h2>
+          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Edit Content</h2>
           <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5' }}>×</button>
         </div>
         <div style={{ padding: '24px', display: 'grid', gap: 16 }}>
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
             Title (optional)
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Update title…" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
           </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
             Content <span style={{ color: '#e11d48' }}>*</span>
             <textarea value={body} onChange={e => setBody(e.target.value)} style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 160, resize: 'vertical' }} />
           </label>
           {error && <p style={{ margin: 0, color: '#e11d48', fontSize: 13 }}>{error}</p>}
         </div>
         <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>Cancel</button>
-          <button onClick={handleSave} disabled={saving} style={{ height: 42, padding: '0 22px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.65 : 1 }}>
+          <button onClick={onClose} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSave} disabled={saving} style={{ height: 42, padding: '0 22px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.65 : 1 }}>
             {saving ? 'Saving…' : 'Save Changes'}
           </button>
         </div>
@@ -182,16 +182,16 @@ function DeleteModal({ item, onClose, onDeleted }: { item: ContentRecord; onClos
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="kf-modal-responsive" style={{ width: 420, background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 24px 80px rgba(20,20,80,.18)' }}>
-        <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 950, color: '#0f0f30' }}>Delete Content?</h2>
+      <div style={{ width: 420, background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 24px 80px rgba(20,20,80,.18)' }}>
+        <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: '#0f0f30' }}>Delete Content?</h2>
         <p style={{ margin: '0 0 4px', color: '#26335c', fontSize: 14 }}>
           <strong>&ldquo;{item.title || 'Untitled'}&rdquo;</strong>
         </p>
         <p style={{ margin: '0 0 20px', color: '#66708d', fontSize: 13 }}>This will permanently remove the update from the campaign. This action cannot be undone.</p>
         {error && <p style={{ margin: '0 0 12px', color: '#e11d48', fontSize: 13 }}>{error}</p>}
         <div style={{ display: 'flex', gap: 12 }}>
-          <button onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>Cancel</button>
-          <button onClick={handleDelete} disabled={deleting} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#e11d48', color: '#fff', fontSize: 13, fontWeight: 950, cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.65 : 1 }}>
+          <button onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleDelete} disabled={deleting} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#e11d48', color: '#fff', fontSize: 13, fontWeight: 700, cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.65 : 1 }}>
             {deleting ? 'Deleting…' : 'Delete'}
           </button>
         </div>
@@ -217,14 +217,14 @@ function ContentDetailPanel({
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="kf-panel-responsive" style={{ marginLeft: 'auto', width: 520, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginLeft: 'auto', width: 520, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <StatusPill status={item.status} />
               <span style={{ fontSize: 12, color: '#8c9ab5' }}>Updated {fmtDate(item.updated_at)}</span>
             </div>
-            <div style={{ fontSize: 17, fontWeight: 950, color: '#0f0f30', lineHeight: 1.3 }}>{item.title || 'Untitled'}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: '#0f0f30', lineHeight: 1.3 }}>{item.title || 'Untitled'}</div>
           </div>
           <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5', flexShrink: 0 }}>×</button>
         </div>
@@ -252,7 +252,7 @@ function ContentDetailPanel({
               ].map(([label, val]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
                   <span style={{ color: '#66708d', fontWeight: 700 }}>{label}</span>
-                  <span style={{ color: '#101944', fontWeight: 750, textAlign: 'right', maxWidth: '55%', wordBreak: 'break-word' }}>{val}</span>
+                  <span style={{ color: '#101944', fontWeight: 600, textAlign: 'right', maxWidth: '55%', wordBreak: 'break-word' }}>{val}</span>
                 </div>
               ))}
             </div>
@@ -271,7 +271,7 @@ function ContentDetailPanel({
                 <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: ev.color, marginTop: 5, flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 750, color: '#101944' }}>{ev.event}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#101944' }}>{ev.event}</div>
                     <div style={{ fontSize: 12, color: '#8c9ab5', marginTop: 2 }}>{fmtDate(ev.date)}</div>
                   </div>
                 </div>
@@ -282,8 +282,8 @@ function ContentDetailPanel({
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'grid', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <button type="button" onClick={onEdit} style={{ height: 40, border: '1px solid #6c35ff', borderRadius: 9, background: '#f3ecff', color: '#551cf2', fontSize: 13, fontWeight: 850, cursor: 'pointer' }}>Edit Content</button>
-            <button type="button" onClick={onDelete} style={{ height: 40, border: '1px solid #ff3b5f30', borderRadius: 9, background: '#fff0f3', color: '#ff3b5f', fontSize: 13, fontWeight: 850, cursor: 'pointer' }}>Delete Content</button>
+            <button type="button" onClick={onEdit} style={{ height: 40, border: '1px solid #6c35ff', borderRadius: 9, background: '#f3ecff', color: '#551cf2', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Edit Content</button>
+            <button type="button" onClick={onDelete} style={{ height: 40, border: '1px solid #ff3b5f30', borderRadius: 9, background: '#fff0f3', color: '#ff3b5f', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Delete Content</button>
           </div>
         </div>
       </div>
@@ -343,10 +343,10 @@ function CreateContentWizard({
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="kf-modal-responsive" style={{ width: 520, background: '#fff', borderRadius: 18, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
+      <div style={{ width: 520, background: '#fff', borderRadius: 18, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 950, color: '#0f0f30' }}>Create Campaign Update</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#0f0f30' }}>Create Campaign Update</div>
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               {[1, 2, 3].map(s => (
                 <div key={s} style={{ width: 28, height: 4, borderRadius: 2, background: step >= s ? '#6c35ff' : '#e6e9f2' }} />
@@ -359,9 +359,9 @@ function CreateContentWizard({
         <div style={{ padding: '24px' }}>
           {step === 1 && (
             <div style={{ display: 'grid', gap: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 950, color: '#101944', marginBottom: 4 }}>Campaign Target</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#101944', marginBottom: 4 }}>Campaign Target</div>
               <p style={{ margin: 0, fontSize: 13, color: '#66708d' }}>Enter the Campaign ID this update belongs to. You can find campaign IDs in Admin → Campaigns.</p>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                 Campaign ID <span style={{ color: '#e11d48' }}>*</span>
                 <input
                   value={campaignId}
@@ -374,12 +374,12 @@ function CreateContentWizard({
           )}
           {step === 2 && (
             <div style={{ display: 'grid', gap: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 950, color: '#101944', marginBottom: 4 }}>Content Details</div>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#101944', marginBottom: 4 }}>Content Details</div>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                 Title (optional)
                 <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Update title…" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                 Content <span style={{ color: '#e11d48' }}>*</span>
                 <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write the campaign update…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 140, resize: 'vertical' }} />
               </label>
@@ -387,7 +387,7 @@ function CreateContentWizard({
           )}
           {step === 3 && (
             <div style={{ display: 'grid', gap: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 950, color: '#101944', marginBottom: 4 }}>Review & Publish</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#101944', marginBottom: 4 }}>Review & Publish</div>
               <div style={{ padding: '14px', background: '#fbf9ff', borderRadius: 10, border: '1px solid #e6e9f2', fontSize: 13, lineHeight: 1.8 }}>
                 <div><b>Campaign ID:</b> {campaignId}</div>
                 <div><b>Title:</b> {title || '(untitled)'}</div>
@@ -400,7 +400,7 @@ function CreateContentWizard({
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
           {step > 1 && (
-            <button onClick={() => { setStep(s => s - 1); setError(''); }} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>← Back</button>
+            <button onClick={() => { setStep(s => s - 1); setError(''); }} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>← Back</button>
           )}
           {step < 3 ? (
             <button
@@ -410,11 +410,11 @@ function CreateContentWizard({
                 setError('');
                 setStep(s => s + 1);
               }}
-              style={{ height: 42, padding: '0 24px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer' }}>
+              style={{ height: 42, padding: '0 24px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               Next →
             </button>
           ) : (
-            <button onClick={handleSubmit} disabled={saving} style={{ height: 42, padding: '0 24px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.65 : 1 }}>
+            <button onClick={handleSubmit} disabled={saving} style={{ height: 42, padding: '0 24px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.65 : 1 }}>
               {saving ? 'Publishing…' : 'Publish Update'}
             </button>
           )}
@@ -485,9 +485,9 @@ export default function ContentClient({
   const recentActivity = content.slice(0, 5).map(c => ({ title: c.title || 'Untitled', type: c.type, author: c.author, date: c.updated_at }));
 
   return (
-    <div className="kf-admin-dash">
+    <div style={{ padding: '0 32px 40px' }}>
       {/* KPI */}
-      <div className="kf-metrics">
+      <div className="kf-metrics" style={{ marginBottom: 24 }}>
         {[
           { label: 'Total Content', value: content.length.toLocaleString(), tone: 'violet', icon: 'doc' },
           { label: 'Published', value: publishedCount.toLocaleString(), tone: 'green', icon: 'check' },
@@ -509,7 +509,7 @@ export default function ContentClient({
       </div>
 
       {/* Charts row */}
-      <div className="kf-two-col">
+      <div className="kf-two-col" style={{ marginBottom: 24 }}>
         <section className="kf-card">
           <div className="kf-card-head"><h2>Content by Type</h2></div>
           <div style={{ padding: '10px 20px 20px' }}>
@@ -523,7 +523,7 @@ export default function ContentClient({
               <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 20px', borderBottom: '1px solid #f0f2f8' }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6c35ff', marginTop: 5, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 850, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</div>
+                  <div style={{ fontSize: 13, fontWeight: 650, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</div>
                   <div style={{ fontSize: 12, color: '#66708d', marginTop: 2 }}>{a.type} · {a.author}</div>
                 </div>
                 <div style={{ fontSize: 11, color: '#8c9ab5', flexShrink: 0 }}>{fmtDate(a.date)}</div>
@@ -545,7 +545,7 @@ export default function ContentClient({
               </button>
             ))}
           </div>
-          <button type="button" onClick={() => setShowCreate(true)} style={{ height: 40, padding: '0 18px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer' }}>
+          <button type="button" onClick={() => setShowCreate(true)} style={{ height: 40, padding: '0 18px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
             + Create Content
           </button>
         </div>
@@ -563,27 +563,25 @@ export default function ContentClient({
               </select>
             </div>
 
-            <div className="kf-table-scroll">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 900, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
-                <span>Title</span><span>Type</span><span>Campaign</span><span>Updated</span>
-              </div>
-
-              {currentPage.map(c => (
-                <div key={c.id}
-                  style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
-                  onClick={() => setSelected(c)}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 850, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title || 'Untitled'}</div>
-                    <div style={{ fontSize: 11, color: '#8c9ab5', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.body.slice(0, 70)}{c.body.length > 70 ? '…' : ''}</div>
-                  </div>
-                  <span style={{ fontSize: 12, color: '#66708d', fontWeight: 700 }}>{c.type}</span>
-                  <span style={{ fontSize: 12, color: '#66708d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campaign_title}</span>
-                  <span style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(c.updated_at)}</span>
-                </div>
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+              <span>Title</span><span>Type</span><span>Campaign</span><span>Updated</span>
             </div>
+
+            {currentPage.map(c => (
+              <div key={c.id}
+                style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+                onClick={() => setSelected(c)}
+                onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 650, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title || 'Untitled'}</div>
+                  <div style={{ fontSize: 11, color: '#8c9ab5', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.body.slice(0, 70)}{c.body.length > 70 ? '…' : ''}</div>
+                </div>
+                <span style={{ fontSize: 12, color: '#66708d', fontWeight: 700 }}>{c.type}</span>
+                <span style={{ fontSize: 12, color: '#66708d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campaign_title}</span>
+                <span style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(c.updated_at)}</span>
+              </div>
+            ))}
 
             {currentPage.length === 0 && <div style={{ padding: '32px', textAlign: 'center', color: '#8c9ab5', fontSize: 14 }}>No content found</div>}
 
@@ -599,12 +597,12 @@ export default function ContentClient({
 
         {activeTab === 'activity' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950 }}>Content Activity</h3>
+            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Content Activity</h3>
             {content.slice(0, 10).map((c, i) => (
               <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6c35ff', marginTop: 4, flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
-                  <span style={{ fontWeight: 850, color: '#101944' }}>{c.title || 'Untitled'}</span>
+                  <span style={{ fontWeight: 650, color: '#101944' }}>{c.title || 'Untitled'}</span>
                   <span style={{ color: '#66708d', marginLeft: 6 }}>· {c.campaign_title}</span>
                 </div>
                 <span style={{ color: '#8c9ab5', flexShrink: 0 }}>{fmtDate(c.updated_at)}</span>
@@ -616,7 +614,7 @@ export default function ContentClient({
 
         {activeTab === 'audit' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950 }}>Audit Log</h3>
+            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Audit Log</h3>
             <p style={{ color: '#66708d', fontSize: 13 }}>Content actions (create, edit, delete) are logged in the platform audit log. View full logs in Admin → Audit Log, filtering by target type &ldquo;campaign_update&rdquo;.</p>
           </div>
         )}

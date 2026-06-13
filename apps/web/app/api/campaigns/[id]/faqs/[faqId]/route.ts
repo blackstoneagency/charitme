@@ -1,8 +1,9 @@
-import 'server-only';
+﻿import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../../../lib/supabase';
 import { createClient } from '../../../../../../lib/supabase-server';
+import { canManageCampaign } from '../../../../../../lib/auth';
 
 const UpdateSchema = z.object({
   question:  z.string().trim().min(5).max(300).optional(),
@@ -11,9 +12,10 @@ const UpdateSchema = z.object({
   isPublic:  z.boolean().optional(),
 });
 
-async function verifyCampaignOwner(campaignId: string, userId: string) {
-  const { data } = await supabaseAdmin.from('campaigns').select('id').eq('id', campaignId).eq('user_id', userId).single();
-  return !!data;
+async function verifyCampaignOwner(campaignId: string, user: { id: string; email?: string | null }) {
+  const { data } = await supabaseAdmin.from('campaigns').select('id, user_id').eq('id', campaignId).single();
+  if (!data) return false;
+  return canManageCampaign(user, data.user_id);
 }
 
 // PATCH /api/campaigns/[id]/faqs/[faqId]
@@ -23,7 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { id: campaignId, faqId } = await params;
-  if (!await verifyCampaignOwner(campaignId, user.id)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!await verifyCampaignOwner(campaignId, user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   let body: unknown;
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
@@ -56,7 +58,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { id: campaignId, faqId } = await params;
-  if (!await verifyCampaignOwner(campaignId, user.id)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!await verifyCampaignOwner(campaignId, user)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { error } = await supabaseAdmin
     .from('campaign_faqs')

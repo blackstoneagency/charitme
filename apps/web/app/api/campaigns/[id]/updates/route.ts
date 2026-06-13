@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { createClient } from '../../../../../lib/supabase-server';
+import { canManageCampaign } from '../../../../../lib/auth';
 import { resend } from '../../../../../lib/email';
 
 const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
@@ -28,15 +29,16 @@ export async function POST(
 
   const { id: campaignId } = await params;
 
-  // Verify ownership
+  // Verify ownership (campaign owner or platform admin)
   const { data: campaign } = await supabaseAdmin
     .from('campaigns')
     .select('id, title, slug, user_id')
     .eq('id', campaignId)
-    .eq('user_id', user.id)
     .single();
 
-  if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+  if (!campaign || !(await canManageCampaign(user, campaign.user_id))) {
+    return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+  }
 
   let body: unknown;
   try { body = await request.json(); } catch {

@@ -6,33 +6,27 @@ import { useRouter } from 'next/navigation';
 type Status = 'draft' | 'active' | 'paused' | 'completed' | 'frozen' | 'archived';
 
 const STATUS_ACTIONS: Record<Status, { label: string; next: Status; color: string; confirm?: string }[]> = {
-  draft:     [{ label: 'Publish Campaign', next: 'active', color: 'var(--green, #19b86a)' }],
+  draft:     [{ label: 'Publish Campaign', next: 'active', color: '#19b86a' }],
   active:    [
     { label: 'Pause Donations', next: 'paused', color: '#f59e0b', confirm: 'Pausing stops new donations but keeps the page live. Continue?' },
-    { label: 'Close Campaign',  next: 'completed', color: 'var(--t3, #64748b)', confirm: 'Closing marks the campaign as completed. Donors will see it as ended. Continue?' },
+    { label: 'Close Campaign',  next: 'completed', color: '#64748b', confirm: 'Closing marks the campaign as completed. Donors will see it as ended. Continue?' },
   ],
   paused:    [
-    { label: 'Resume Donations', next: 'active', color: 'var(--green, #19b86a)' },
-    { label: 'Close Campaign',   next: 'completed', color: 'var(--t3, #64748b)', confirm: 'Close this campaign permanently?' },
+    { label: 'Resume Donations', next: 'active', color: '#19b86a' },
+    { label: 'Close Campaign',   next: 'completed', color: '#64748b', confirm: 'Close this campaign permanently?' },
   ],
-  completed: [{ label: 'Archive Campaign', next: 'archived', color: 'var(--t3, #64748b)', confirm: 'Archived campaigns are hidden from search. You can still view them in your dashboard.' }],
+  completed: [{ label: 'Archive Campaign', next: 'archived', color: '#64748b', confirm: 'Archived campaigns are hidden from search. You can still view them in your dashboard.' }],
   frozen:    [],
   archived:  [],
 };
 
-// CSS-class names for status pills (aligned with .kf-pill.* which have dark mode overrides)
-const STATUS_PILL_CLASS: Record<Status, string> = {
-  draft:     'kf-pill violet',
-  active:    'kf-pill green',
-  paused:    'kf-pill orange',
-  completed: 'kf-pill blue',
-  frozen:    'kf-pill red',
-  archived:  'kf-pill gray',
-};
-
-const STATUS_LABEL: Record<Status, string> = {
-  draft: 'Draft', active: 'Active', paused: 'Paused',
-  completed: 'Completed', frozen: 'Frozen', archived: 'Archived',
+const STATUS_BADGE: Record<Status, { bg: string; color: string; label: string }> = {
+  draft:     { bg: '#f1f5f9', color: '#64748b',  label: 'Draft'     },
+  active:    { bg: '#f0fff8', color: '#065f46',  label: 'Active'    },
+  paused:    { bg: '#fffbeb', color: '#92400e',  label: 'Paused'    },
+  completed: { bg: '#e0f2fe', color: '#0369a1',  label: 'Completed' },
+  frozen:    { bg: '#fff0f3', color: '#be123c',  label: 'Frozen'    },
+  archived:  { bg: '#f1f5f9', color: '#475569',  label: 'Archived'  },
 };
 
 export default function CampaignControls({
@@ -48,7 +42,7 @@ export default function CampaignControls({
   const [showDelete, setShowDelete] = useState(false);
 
   const status = currentStatus as Status;
-  const pillClass = STATUS_PILL_CLASS[status] ?? STATUS_PILL_CLASS.draft;
+  const badge  = STATUS_BADGE[status] ?? STATUS_BADGE.draft;
   const actions = STATUS_ACTIONS[status] ?? [];
 
   async function changeStatus(next: Status, confirmMsg?: string) {
@@ -81,11 +75,11 @@ export default function CampaignControls({
 
   return (
     <section className="kf-card" style={{ padding: 24 }}>
-      <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800 }}>Campaign Status</h2>
+      <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 650 }}>Campaign Status</h2>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: error ? 12 : 16, flexWrap: 'wrap' }}>
-        <span className={pillClass}>
-          {STATUS_LABEL[status] ?? status}
+        <span style={{ padding: '4px 14px', borderRadius: 20, fontSize: 13, fontWeight: 650, ...badge }}>
+          {badge.label}
         </span>
         <span style={{ fontSize: 13, color: 'var(--t3)' }}>
           {status === 'active'    && 'Your campaign is live and accepting donations.'}
@@ -98,7 +92,7 @@ export default function CampaignControls({
       </div>
 
       {error && (
-        <div style={{ padding: '10px 14px', background: 'rgba(190,18,60,.08)', border: '1px solid rgba(190,18,60,.25)', borderRadius: 9, color: 'var(--red, #be123c)', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
+        <div style={{ padding: '10px 14px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 9, color: '#be123c', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
           ⚠ {error}
         </div>
       )}
@@ -126,7 +120,7 @@ export default function CampaignControls({
             type="button"
             disabled={loading}
             onClick={() => setShowDelete(true)}
-            style={{ height: 38, padding: '0 18px', border: '1px solid rgba(190,18,60,.3)', borderRadius: 9, background: 'rgba(190,18,60,.07)', color: 'var(--red, #be123c)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            style={{ height: 38, padding: '0 18px', border: '1px solid #fca5a5', borderRadius: 9, background: '#fff0f3', color: '#be123c', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
           >
             Delete Campaign
           </button>
@@ -134,20 +128,20 @@ export default function CampaignControls({
       </div>
 
       {showDelete && (
-        <div style={{ marginTop: 16, padding: '16px 18px', background: 'rgba(190,18,60,.07)', border: '1.5px solid rgba(190,18,60,.25)', borderRadius: 12 }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--red, #be123c)', margin: '0 0 12px' }}>
+        <div style={{ marginTop: 16, padding: '16px 18px', background: '#fff0f3', border: '1.5px solid #fca5a5', borderRadius: 12 }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#be123c', margin: '0 0 12px' }}>
             ⚠ Delete this campaign? This cannot be undone.
           </p>
-          <p style={{ fontSize: 13, color: 'var(--t3)', margin: '0 0 14px', lineHeight: 1.6 }}>
+          <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 14px', lineHeight: 1.6 }}>
             All campaign data, updates, and media will be permanently removed. Donation records are retained for compliance.
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
             <button type="button" onClick={() => void deleteCampaign()} disabled={loading}
-              style={{ padding: '8px 20px', border: 0, borderRadius: 8, background: 'var(--red, #be123c)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              style={{ padding: '8px 20px', border: 0, borderRadius: 8, background: '#be123c', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               {loading ? 'Deleting…' : 'Yes, permanently delete'}
             </button>
             <button type="button" onClick={() => setShowDelete(false)}
-              style={{ padding: '8px 20px', border: '1px solid var(--b2)', borderRadius: 8, background: 'var(--s1)', fontSize: 13, fontWeight: 700, cursor: 'pointer', color: 'var(--t1)' }}>
+              style={{ padding: '8px 20px', border: '1px solid var(--b2)', borderRadius: 8, background: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               Cancel
             </button>
           </div>
@@ -155,9 +149,9 @@ export default function CampaignControls({
       )}
 
       {status === 'frozen' && (
-        <p style={{ fontSize: 13, color: 'var(--red, #be123c)', margin: '12px 0 0' }}>
+        <p style={{ fontSize: 13, color: '#be123c', margin: '12px 0 0' }}>
           This campaign has been frozen by our trust & safety team.{' '}
-          <a href="/contact" style={{ color: 'var(--violet, #6c35ff)', fontWeight: 700 }}>Contact support</a> to appeal.
+          <a href="/contact" style={{ color: '#6c35ff', fontWeight: 700 }}>Contact support</a> to appeal.
         </p>
       )}
     </section>

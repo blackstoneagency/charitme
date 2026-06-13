@@ -38,6 +38,15 @@ function authErrorMessage(raw: string | null): string {
   return raw;
 }
 
+async function syncProfile(accessToken: string): Promise<void> {
+  // Best-effort: requireUser() creates a missing profile on the first
+  // protected page load, so login must never block on this call.
+  await fetch('/api/auth/sync-profile', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  }).catch(() => {});
+}
+
 function LoginForm() {
   const params = useSearchParams();
   const router = useRouter();
@@ -56,7 +65,13 @@ function LoginForm() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) router.replace(next);
+      if (!data.user) return;
+      supabase.auth.getSession().then(async ({ data: sessionData }) => {
+        const accessToken = sessionData.session?.access_token;
+        if (accessToken) await syncProfile(accessToken);
+      }).finally(() => {
+        router.replace(next);
+      });
     });
   }, [next, router, supabase]);
 
@@ -79,8 +94,11 @@ function LoginForm() {
         if (signUpError) throw signUpError;
         setSuccess('Check your email to confirm your account, then sign in.');
       } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
+        if (signInData.session?.access_token) {
+          await syncProfile(signInData.session.access_token);
+        }
         router.replace(next);
       }
     } catch (caught) {

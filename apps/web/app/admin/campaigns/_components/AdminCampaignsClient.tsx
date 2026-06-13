@@ -3,6 +3,16 @@
 import React, { useMemo, useState, useTransition, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { KFIcon } from '../../../../components/CharitMeApp';
+import SupportersPanel from '../../../dashboard/campaigns/[id]/_components/SupportersPanel';
+import SharePanel from '../../../dashboard/campaigns/[id]/_components/SharePanel';
+import ThankDonorsPanel from '../../../dashboard/campaigns/[id]/_components/ThankDonorsPanel';
+import LedgerPanel from '../../../dashboard/campaigns/[id]/_components/LedgerPanel';
+import FaqsPanel from '../../../dashboard/campaigns/[id]/_components/FaqsPanel';
+import EditCampaignPanel from '../../../dashboard/campaigns/[id]/_components/EditCampaignPanel';
+import UpdatesPanel from '../../../dashboard/campaigns/[id]/_components/UpdatesPanel';
+import AnalyticsPanel from '../../../dashboard/campaigns/[id]/_components/AnalyticsPanel';
+import SettingsPanel from '../../../dashboard/campaigns/[id]/_components/SettingsPanel';
+import { QrPosterPanel } from '../../../dashboard/campaigns/[id]/_components/CampaignWorkspace';
 
 // ─────────────────────────────────────────────────────────
 // Types
@@ -43,15 +53,6 @@ type Donation = {
   donorName: string;
 };
 
-type Update = {
-  id: string;
-  title: string;
-  body: string;
-  aiGenerated: boolean;
-  createdAt: string;
-  authorName: string;
-};
-
 type CreateDraft = {
   title: string;
   category: string;
@@ -75,7 +76,10 @@ type ConfirmAction = {
   danger?: boolean;
 };
 
-type DetailTab = 'overview' | 'updates' | 'donations' | 'payouts' | 'more';
+type DetailTab =
+  | 'supporters' | 'share' | 'thank-donors' | 'ledger' | 'faqs' | 'qr-poster'
+  | 'post-update' | 'analytics' | 'settings' | 'edit'
+  | 'overview' | 'donations' | 'payouts' | 'more';
 
 // ─────────────────────────────────────────────────────────
 // Constants
@@ -91,6 +95,51 @@ const STATUS_LABEL: Record<string, string> = {
 const STATUS_TONE: Record<string, string> = {
   active: 'green', draft: 'gray', paused: 'orange',
   completed: 'blue', rejected: 'red', frozen: 'red',
+};
+
+// Campaign Tools shown on the detail view — mirrors the organizer campaign
+// workspace, plus admin-only tools at the end. Clicking a card swaps the
+// content area below; nothing navigates away.
+const DETAIL_TOOLS: { key: DetailTab; icon: string; label: string; desc: string; admin?: boolean }[] = [
+  { key: 'supporters', icon: 'users', label: 'My Supporters', desc: 'Donor CRM + re-engagement' },
+  { key: 'share', icon: 'send', label: 'Share & AI Content', desc: 'UTM links + AI posts' },
+  { key: 'thank-donors', icon: 'chat', label: 'Thank Donors', desc: 'Email your supporters' },
+  { key: 'ledger', icon: 'doc', label: 'Fund Ledger', desc: 'Track how funds are used' },
+  { key: 'faqs', icon: 'doc', label: 'Manage FAQs', desc: 'AI-generated Q&A' },
+  { key: 'qr-poster', icon: 'send', label: 'Print QR Poster', desc: 'Download & print' },
+  { key: 'post-update', icon: 'doc', label: 'Post Update', desc: 'Keep donors informed' },
+  { key: 'analytics', icon: 'chart', label: 'Analytics', desc: 'Trends & attribution' },
+  { key: 'settings', icon: 'settings', label: 'Settings', desc: 'Visibility & donations' },
+  { key: 'overview', icon: 'stack', label: 'Overview', desc: 'Admin summary & health', admin: true },
+  { key: 'donations', icon: 'gift', label: 'Donations', desc: 'All donations (admin)', admin: true },
+  { key: 'payouts', icon: 'audit', label: 'Payouts', desc: 'Freeze / unfreeze payouts', admin: true },
+  { key: 'more', icon: 'settings', label: 'Admin Controls', desc: 'Trust, media, featured', admin: true },
+];
+
+const STATUS_PANEL_TEXT: Record<string, string> = {
+  active:    'Your campaign is live and accepting donations.',
+  paused:    'Donations are paused. The page is still visible.',
+  draft:     'Not yet published. Publish to start accepting donations.',
+  completed: 'Campaign is closed. No new donations accepted.',
+  frozen:    'Campaign frozen by trust & safety.',
+  rejected:  'Campaign archived. Not visible in search.',
+};
+
+const STATUS_PANEL_ACTIONS: Record<string, { label: string; next: string; color: string; confirm?: string }[]> = {
+  active: [
+    { label: 'Pause Donations', next: 'paused', color: '#f59e0b', confirm: 'Pausing stops new donations but keeps the page live. Continue?' },
+    { label: 'Close Campaign', next: 'completed', color: '#64748b', confirm: 'Closing marks the campaign as completed. Donors will see it as ended. Continue?' },
+  ],
+  paused: [
+    { label: 'Resume Donations', next: 'active', color: '#19b86a' },
+    { label: 'Close Campaign', next: 'completed', color: '#64748b', confirm: 'Close this campaign permanently?' },
+  ],
+  draft: [
+    { label: 'Publish Campaign', next: 'active', color: '#19b86a' },
+  ],
+  completed: [
+    { label: 'Archive Campaign', next: 'rejected', color: '#64748b', confirm: 'Archived campaigns are hidden from search.' },
+  ],
 };
 
 function fmtCents(cents: number): string {
@@ -152,15 +201,11 @@ export default function AdminCampaignsClient({
   const [page, setPage] = useState(1);
 
   // ── Detail state
-  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
+  const [activeTab, setActiveTab] = useState<DetailTab>('supporters');
   const [showActions, setShowActions] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [donations, setDonations] = useState<Donation[] | null>(null);
-  const [updates, setUpdates] = useState<Update[] | null>(null);
   const [loadingTab, setLoadingTab] = useState(false);
-  const [newUpdateText, setNewUpdateText] = useState('');
-  const [newUpdateTitle, setNewUpdateTitle] = useState('');
-  const [postingUpdate, setPostingUpdate] = useState(false);
 
   // ── Create wizard state
   const [createStep, setCreateStep] = useState(1);
@@ -213,10 +258,9 @@ export default function AdminCampaignsClient({
   function openDetail(c: AdminCampaign) {
     setSelected(c);
     setView('detail');
-    setActiveTab('overview');
+    setActiveTab('supporters');
     setShowActions(false);
     setDonations(null);
-    setUpdates(null);
     setNotice('');
   }
 
@@ -238,14 +282,7 @@ export default function AdminCampaignsClient({
         if (res.ok) setDonations(await res.json() as Donation[]);
       } finally { setLoadingTab(false); }
     }
-    if (tab === 'updates' && !updates) {
-      setLoadingTab(true);
-      try {
-        const res = await fetch(`/api/admin/campaigns/${campaignId}/updates`);
-        if (res.ok) setUpdates(await res.json() as Update[]);
-      } finally { setLoadingTab(false); }
-    }
-  }, [donations, updates]);
+  }, [donations]);
 
   function patchCampaign(patch: Record<string, unknown>, optimistic?: Partial<AdminCampaign>) {
     if (!selected) return;
@@ -353,28 +390,6 @@ export default function AdminCampaignsClient({
     };
     const mapped = patchMap[key];
     if (mapped) patchCampaign(mapped.patch, mapped.optimistic);
-  }
-
-  async function postUpdate() {
-    if (!selected || !newUpdateText.trim()) return;
-    setPostingUpdate(true);
-    try {
-      const res = await fetch(`/api/admin/campaigns/${selected.id}/updates`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newUpdateTitle.trim() || null, body: newUpdateText.trim() }),
-      });
-      if (res.ok) {
-        const { update } = await res.json() as { update: { id: string; title: string; body: string; ai_generated: boolean; created_at: string } };
-        const newU: Update = {
-          id: update.id, title: update.title ?? '', body: update.body,
-          aiGenerated: update.ai_generated, createdAt: update.created_at, authorName: 'Admin',
-        };
-        setUpdates(prev => [newU, ...(prev ?? [])]);
-        setNewUpdateText('');
-        setNewUpdateTitle('');
-      }
-    } finally { setPostingUpdate(false); }
   }
 
   async function submitCreate() {
@@ -532,7 +547,7 @@ export default function AdminCampaignsClient({
                 <div style={{ fontSize: 11, fontWeight: 700, color: isActive ? 'rgba(255,255,255,.75)' : '#94a3b8', letterSpacing: '.04em', marginBottom: 2 }}>
                   {m.label.toUpperCase()}
                 </div>
-                <div style={{ fontSize: 24, fontWeight: 900, color: isActive ? '#fff' : '#1a1a2e', lineHeight: 1 }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: isActive ? '#fff' : '#1a1a2e', lineHeight: 1 }}>
                   {m.value}
                 </div>
                 <div style={{ fontSize: 11, color: isActive ? 'rgba(255,255,255,.7)' : '#94a3b8', marginTop: 2 }}>
@@ -628,10 +643,10 @@ export default function AdminCampaignsClient({
             <span className="ac-cell"><SPill status={c.status} /></span>
             <span className="ac-cell" style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
               {c.featured && (
-                <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 6, background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e' }}>⭐ Featured</span>
+                <span style={{ fontSize: 10, fontWeight: 650, padding: '2px 7px', borderRadius: 6, background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e' }}>⭐ Featured</span>
               )}
               {c.coverImageUrl?.startsWith('http') && c.status === 'active' && (
-                <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 6, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af' }}>🏠 Carousel</span>
+                <span style={{ fontSize: 10, fontWeight: 650, padding: '2px 7px', borderRadius: 6, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af' }}>🏠 Carousel</span>
               )}
             </span>
             <span className="ac-cell ac-date">{fmtDate(c.createdAt)}</span>
@@ -690,24 +705,146 @@ export default function AdminCampaignsClient({
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="ac-tabs">
-          {(['overview', 'updates', 'donations', 'payouts', 'more'] as DetailTab[]).map(tab => (
-            <button
-              key={tab}
-              className={`ac-tab${activeTab === tab ? ' active' : ''}`}
-              onClick={() => void loadTab(tab, selected.id)}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              {tab === 'updates' && updates !== null && <em>{updates.length}</em>}
-              {tab === 'donations' && donations !== null && <em>{donations.length}</em>}
-            </button>
-          ))}
+        {/* ── Hero strip (status + metrics) ── */}
+        <div className="kf-card" style={{ padding: 24, marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
+            <div
+              style={{
+                width: 96, height: 96, borderRadius: 12, flexShrink: 0,
+                background: selected.coverImageUrl
+                  ? `url(${selected.coverImageUrl}) center/cover no-repeat`
+                  : 'linear-gradient(135deg,#ede9fe,#6c35ff)',
+              }}
+            />
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
+                <SPill status={selected.status} />
+                {selected.category && (
+                  <span style={{ fontSize: 12, color: 'var(--t3)', background: 'var(--s2)', padding: '2px 8px', borderRadius: 6 }}>
+                    {selected.category}
+                  </span>
+                )}
+                <span style={{ fontSize: 12, color: 'var(--t3)', marginLeft: 'auto' }}>
+                  Created {fmtDate(selected.createdAt)}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--t2)', marginBottom: 6 }}>
+                <span><strong style={{ color: 'var(--green)' }}>{fmtCents(selected.raisedAmount)}</strong> raised of {fmtCents(selected.goalAmount)}</span>
+                <span><strong>{progress}%</strong> funded</span>
+              </div>
+              <div style={{ height: 8, borderRadius: 99, background: 'var(--b1)', overflow: 'hidden', marginBottom: 12 }}>
+                <div style={{ height: '100%', width: `${progress}%`, background: 'var(--green)', borderRadius: 99, transition: 'width 0.4s ease' }} />
+              </div>
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Backers', value: selected.backerCount.toLocaleString() },
+                  { label: 'Deadline', value: days === null ? '—' : days === 0 ? 'Ended' : `${days} days left` },
+                  { label: 'Organizer', value: selected.organizer },
+                  { label: 'Health Score', value: `${selected.healthScore}/100` },
+                ].map(({ label, value }) => (
+                  <div key={label}>
+                    <strong style={{ fontSize: 18, fontWeight: 700, display: 'block', lineHeight: 1 }}>{value}</strong>
+                    <small style={{ fontSize: 12, color: 'var(--t3)' }}>{label}</small>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Tab content */}
+        {/* ── Actions + Campaign Status ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 24, alignItems: 'start', marginBottom: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <button
+              type="button"
+              onClick={() => { setActiveTab('edit'); setShowActions(false); }}
+              className="kf-primary"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap', cursor: 'pointer' }}
+            >
+              <KFIcon name="doc" /> Edit Campaign
+            </button>
+            <button type="button" onClick={backToList} className="kf-outline"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', cursor: 'pointer' }}>
+              ← Back
+            </button>
+          </div>
+          <section className="kf-card" style={{ padding: 24 }}>
+            <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 650 }}>Campaign Status</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+              <SPill status={selected.status} />
+              <span style={{ fontSize: 13, color: 'var(--t3)' }}>
+                {STATUS_PANEL_TEXT[selected.status] ?? ''}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {(STATUS_PANEL_ACTIONS[selected.status] ?? []).map(action => (
+                <button
+                  key={action.next}
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => {
+                    if (action.confirm && !window.confirm(action.confirm)) return;
+                    patchCampaign({ status: action.next }, { status: action.next });
+                  }}
+                  style={{
+                    height: 38, padding: '0 18px', border: 0, borderRadius: 9,
+                    background: action.color, color: '#fff', fontSize: 13, fontWeight: 700,
+                    cursor: isPending ? 'wait' : 'pointer', opacity: isPending ? 0.6 : 1,
+                  }}
+                >
+                  {isPending ? '…' : action.label}
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        {/* ── Campaign Tools ── */}
+        <section style={{ marginBottom: 24 }}>
+          <h2 style={{ margin: '0 0 14px', fontSize: 15, fontWeight: 650 }}>Campaign Tools</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+            {DETAIL_TOOLS.map(tool => {
+              const active = activeTab === tool.key;
+              return (
+                <button
+                  key={tool.key}
+                  type="button"
+                  onClick={() => void loadTab(tool.key, selected.id)}
+                  className="kf-card"
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4,
+                    padding: '14px 14px', cursor: 'pointer', textAlign: 'left', font: 'inherit',
+                    border: active ? '1.5px solid #6c35ff' : undefined,
+                    background: active ? 'rgba(108,53,255,.06)' : undefined,
+                    transition: 'border-color .15s, background .15s',
+                  }}
+                >
+                  <KFIcon name={tool.icon} />
+                  <strong style={{ fontSize: 13, color: active ? '#6c35ff' : 'var(--t1)', marginTop: 6 }}>
+                    {tool.label}{tool.admin ? ' 🛡' : ''}
+                  </strong>
+                  <span style={{ fontSize: 11, color: 'var(--t3)' }}>{tool.desc}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Tool content — loads inline below the tools row */}
         <div className="ac-detail-body">
           {loadingTab && <div className="ac-loading">Loading…</div>}
+
+          {/* ── Organizer workspace panels ── */}
+          {!loadingTab && activeTab === 'supporters' && <SupportersPanel campaignId={selected.id} showHeading />}
+          {!loadingTab && activeTab === 'share' && <SharePanel campaignId={selected.id} />}
+          {!loadingTab && activeTab === 'thank-donors' && <ThankDonorsPanel campaignId={selected.id} />}
+          {!loadingTab && activeTab === 'ledger' && <LedgerPanel campaignId={selected.id} />}
+          {!loadingTab && activeTab === 'faqs' && <FaqsPanel campaignId={selected.id} />}
+          {!loadingTab && activeTab === 'qr-poster' && <QrPosterPanel campaignId={selected.id} />}
+          {!loadingTab && activeTab === 'post-update' && <UpdatesPanel campaignId={selected.id} />}
+          {!loadingTab && activeTab === 'analytics' && <AnalyticsPanel campaignId={selected.id} />}
+          {!loadingTab && activeTab === 'settings' && <SettingsPanel campaignId={selected.id} />}
+          {!loadingTab && activeTab === 'edit' && <EditCampaignPanel campaignId={selected.id} />}
 
           {/* ── Overview ── */}
           {!loadingTab && activeTab === 'overview' && (
@@ -760,47 +897,6 @@ export default function AdminCampaignsClient({
                   </div>
                 )}
               </div>
-            </div>
-          )}
-
-          {/* ── Updates ── */}
-          {!loadingTab && activeTab === 'updates' && (
-            <div className="ac-tab-pane">
-              <div className="ac-update-compose">
-                <h3>Post an Update</h3>
-                <input
-                  placeholder="Update title (optional)"
-                  value={newUpdateTitle}
-                  onChange={e => setNewUpdateTitle(e.target.value)}
-                  className="ac-input"
-                />
-                <textarea
-                  placeholder="Write an update for donors..."
-                  value={newUpdateText}
-                  onChange={e => setNewUpdateText(e.target.value)}
-                  className="ac-textarea"
-                  rows={4}
-                />
-                <button
-                  className="ac-btn-primary"
-                  disabled={!newUpdateText.trim() || postingUpdate}
-                  onClick={postUpdate}
-                >
-                  {postingUpdate ? 'Posting…' : 'Post Update'}
-                </button>
-              </div>
-              {updates === null && <div className="ac-loading">Loading updates…</div>}
-              {updates !== null && updates.length === 0 && <div className="ac-empty">No updates posted yet.</div>}
-              {updates !== null && updates.map(u => (
-                <div key={u.id} className="ac-update-card">
-                  <div className="ac-update-meta">
-                    <strong>{u.title || 'Update'}</strong>
-                    <span>{fmtDate(u.createdAt)} · by {u.authorName}</span>
-                    {u.aiGenerated && <em className="ac-ai-badge">AI</em>}
-                  </div>
-                  <p>{u.body}</p>
-                </div>
-              ))}
             </div>
           )}
 
@@ -860,10 +956,10 @@ export default function AdminCampaignsClient({
             </div>
           )}
 
-          {/* ── More (edit) ── */}
+          {/* ── Admin Controls (trust, media, featured) ── */}
           {!loadingTab && activeTab === 'more' && (
             <div className="ac-tab-pane ac-edit-form">
-              <h3>Edit Campaign</h3>
+              <h3>Admin Controls</h3>
               <EditForm campaign={selected} onSave={(patch, optimistic) => patchCampaign(patch, optimistic)} isPending={isPending} />
             </div>
           )}
@@ -891,7 +987,7 @@ export default function AdminCampaignsClient({
               <strong>More Actions</strong>
               <button onClick={() => setShowActions(false)}>✕</button>
             </div>
-            <ActionItem icon="doc" label="Edit Campaign" onClick={() => { setShowActions(false); loadTab('more', selected.id); }} />
+            <ActionItem icon="doc" label="Edit Campaign" onClick={() => { setShowActions(false); setActiveTab('edit'); }} />
             <ActionItem icon="check" label="Approve Campaign" onClick={() => requestConfirm({
               key: 'approve', label: 'Approve Campaign',
               description: 'Approve this campaign? It will be visible to all users once approved.',
@@ -1367,7 +1463,7 @@ function EditForm({
       {/* ── MEDIA MANAGEMENT ── */}
       <div className="ac-field full" style={{ borderTop: '1px solid #eef0f7', paddingTop: 20, marginTop: 4 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <strong style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e' }}>Media Management</strong>
+          <strong style={{ fontSize: 14, fontWeight: 650, color: '#1a1a2e' }}>Media Management</strong>
           <div style={{ display: 'flex', gap: 4, background: '#f8f9fc', borderRadius: 10, padding: 4 }}>
             <button style={sectionTabStyle(mediaSection === 'cover')}   onClick={() => setMediaSection('cover')}>Cover Image</button>
             <button style={sectionTabStyle(mediaSection === 'gallery')} onClick={() => setMediaSection('gallery')}>Gallery ({(draft.imageUrls ?? []).length})</button>
@@ -1448,7 +1544,7 @@ function EditForm({
                     <img src={url} alt={`Gallery image ${i + 1}`} style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} />
                     <div style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4 }}>
                       {i === 0 && (
-                        <span style={{ padding: '2px 8px', background: '#6c35ff', color: '#fff', fontSize: 10, fontWeight: 800, borderRadius: 6 }}>
+                        <span style={{ padding: '2px 8px', background: '#6c35ff', color: '#fff', fontSize: 10, fontWeight: 650, borderRadius: 6 }}>
                           COVER
                         </span>
                       )}
@@ -1542,7 +1638,7 @@ function EditForm({
       <div className="ac-field full" style={{ borderTop: '1px solid #eef0f7', paddingTop: 20, marginTop: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <strong style={{ fontSize: 14, fontWeight: 800, color: '#1a1a2e', display: 'block', marginBottom: 4 }}>
+            <strong style={{ fontSize: 14, fontWeight: 650, color: '#1a1a2e', display: 'block', marginBottom: 4 }}>
               {draft.featured ? '⭐ Featured on Homepage' : '☆ Feature on Homepage'}
             </strong>
             <span style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
@@ -1554,7 +1650,7 @@ function EditForm({
             type="button"
             onClick={() => upd('featured', !draft.featured)}
             style={{
-              height: 40, padding: '0 20px', borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: 'pointer',
+              height: 40, padding: '0 20px', borderRadius: 10, fontWeight: 650, fontSize: 13, cursor: 'pointer',
               border: draft.featured ? '1.5px solid #f59e0b' : '1.5px solid #6c35ff',
               background: draft.featured ? '#fffbeb' : '#f0eaff',
               color: draft.featured ? '#92400e' : '#4d1ee0',

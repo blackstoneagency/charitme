@@ -151,13 +151,13 @@ function UserDetailPanel({ user, onClose }: { user: UserRecord; onClose: () => v
       style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="kf-panel-responsive" style={{ marginLeft: 'auto', width: 480, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginLeft: 'auto', width: 480, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '22px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+          <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
             {getInitials(user.full_name, user.email)}
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 17, fontWeight: 950, color: '#0f0f30' }}>{getDisplayName(user)}</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: '#0f0f30' }}>{getDisplayName(user)}</div>
             <div style={{ fontSize: 13, color: '#66708d', marginTop: 2 }}>{user.email}</div>
             <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
               <span className="kf-pill green">Active</span>
@@ -193,11 +193,11 @@ function UserDetailPanel({ user, onClose }: { user: UserRecord; onClose: () => v
               ].map(([label, val]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
                   <span style={{ color: '#66708d', fontWeight: 700 }}>{label}</span>
-                  <span style={{ color: '#101944', fontWeight: 750 }}>{val}</span>
+                  <span style={{ color: '#101944', fontWeight: 600 }}>{val}</span>
                 </div>
               ))}
               <div style={{ marginTop: 16 }}>
-                <button type="button" style={{ width: '100%', height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer', marginBottom: 8 }}>View Public Profile</button>
+                <button type="button" style={{ width: '100%', height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 8 }}>View Public Profile</button>
               </div>
             </div>
           )}
@@ -219,7 +219,7 @@ function UserDetailPanel({ user, onClose }: { user: UserRecord; onClose: () => v
               {actionDone && <div style={{ padding: '10px 14px', background: '#f0fdf5', borderRadius: 9, color: '#15803d', fontSize: 13, fontWeight: 700 }}>{actionDone}</div>}
               {showRolePicker ? (
                 <div style={{ padding: 14, border: '1px solid #dfe3ee', borderRadius: 10, display: 'grid', gap: 10 }}>
-                  <div style={{ fontSize: 13, fontWeight: 850, color: '#26335c' }}>Select New Role</div>
+                  <div style={{ fontSize: 13, fontWeight: 650, color: '#26335c' }}>Select New Role</div>
                   <select value={pendingRole} onChange={e => setPendingRole(e.target.value)}
                     style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
                     <option value="donor">Donor</option>
@@ -228,31 +228,31 @@ function UserDetailPanel({ user, onClose }: { user: UserRecord; onClose: () => v
                   </select>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button type="button" onClick={() => handleAction('change-role')} disabled={actionLoading === 'change-role'}
-                      style={{ flex: 1, height: 38, border: 0, borderRadius: 9, background: '#2563eb', color: '#fff', fontWeight: 850, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'change-role' ? 0.6 : 1 }}>
+                      style={{ flex: 1, height: 38, border: 0, borderRadius: 9, background: '#2563eb', color: '#fff', fontWeight: 650, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'change-role' ? 0.6 : 1 }}>
                       {actionLoading === 'change-role' ? 'Saving…' : 'Confirm'}
                     </button>
                     <button type="button" onClick={() => setShowRolePicker(false)}
-                      style={{ flex: 1, height: 38, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontWeight: 750, fontSize: 13, cursor: 'pointer' }}>
+                      style={{ flex: 1, height: 38, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                       Cancel
                     </button>
                   </div>
                 </div>
               ) : (
                 <button type="button" onClick={() => setShowRolePicker(true)}
-                  style={{ width: '100%', height: 44, border: '1px solid #2563eb20', borderRadius: 10, background: '#eaf1ff', color: '#2563eb', fontWeight: 850, fontSize: 13, cursor: 'pointer' }}>
+                  style={{ width: '100%', height: 44, border: '1px solid #2563eb20', borderRadius: 10, background: '#eaf1ff', color: '#2563eb', fontWeight: 650, fontSize: 13, cursor: 'pointer' }}>
                   Change Role
                 </button>
               )}
               <button type="button" disabled={!!actionLoading} onClick={() => handleAction('reset-password')}
-                style={{ width: '100%', height: 44, border: '1px solid #f9731620', borderRadius: 10, background: '#fff0e4', color: '#f97316', fontWeight: 850, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'reset-password' ? 0.6 : 1 }}>
+                style={{ width: '100%', height: 44, border: '1px solid #f9731620', borderRadius: 10, background: '#fff0e4', color: '#f97316', fontWeight: 650, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'reset-password' ? 0.6 : 1 }}>
                 {actionLoading === 'reset-password' ? 'Sending…' : 'Reset Password'}
               </button>
               <button type="button" disabled={!!actionLoading} onClick={() => handleAction('suspend')}
-                style={{ width: '100%', height: 44, border: '1px solid #ff3b5f20', borderRadius: 10, background: '#fff0f3', color: '#ff3b5f', fontWeight: 850, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'suspend' ? 0.6 : 1 }}>
+                style={{ width: '100%', height: 44, border: '1px solid #ff3b5f20', borderRadius: 10, background: '#fff0f3', color: '#ff3b5f', fontWeight: 650, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'suspend' ? 0.6 : 1 }}>
                 {actionLoading === 'suspend' ? 'Updating…' : 'Suspend User'}
               </button>
               <button type="button" disabled={!!actionLoading} onClick={() => handleAction('delete')}
-                style={{ width: '100%', height: 44, border: '1px solid #ff3b5f', borderRadius: 10, background: '#fff0f3', color: '#ff3b5f', fontWeight: 850, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'delete' ? 0.6 : 1 }}>
+                style={{ width: '100%', height: 44, border: '1px solid #ff3b5f', borderRadius: 10, background: '#fff0f3', color: '#ff3b5f', fontWeight: 650, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'delete' ? 0.6 : 1 }}>
                 {actionLoading === 'delete' ? 'Deleting…' : '⚠ Delete User'}
               </button>
             </div>
@@ -300,9 +300,9 @@ function AddUserPanel({ onClose }: { onClose: () => void }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="kf-panel-responsive" style={{ marginLeft: 'auto', width: 460, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginLeft: 'auto', width: 460, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '22px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 17, fontWeight: 950, color: '#0f0f30' }}>Add New User</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: '#0f0f30' }}>Add New User</div>
           <button type="button" onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5', lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: '24px', display: 'grid', gap: 16, flex: 1 }}>
@@ -311,13 +311,13 @@ function AddUserPanel({ onClose }: { onClose: () => void }) {
             { label: 'Full Name', value: newName, onChange: setNewName, type: 'text', placeholder: 'Jane Smith' },
             { label: 'Email Address', value: newEmail, onChange: setNewEmail, type: 'email', placeholder: 'jane@example.com' },
           ].map(f => (
-            <label key={f.label} style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+            <label key={f.label} style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
               {f.label}
               <input type={f.type} value={f.value} onChange={e => f.onChange(e.target.value)} placeholder={f.placeholder}
                 style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14, outline: 'none' }} />
             </label>
           ))}
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
             Role
             <select value={newRole} onChange={e => setNewRole(e.target.value)} style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
               <option value="donor">Donor</option>
@@ -325,7 +325,7 @@ function AddUserPanel({ onClose }: { onClose: () => void }) {
               <option value="admin">Admin</option>
             </select>
           </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
             Status
             <select value={newStatus} onChange={e => setNewStatus(e.target.value)} style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
               <option value="active">Active</option>
@@ -338,8 +338,8 @@ function AddUserPanel({ onClose }: { onClose: () => void }) {
           </label>
         </div>
         <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'flex', gap: 12 }}>
-          <button type="button" onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 750, cursor: 'pointer' }}>Cancel</button>
-          <button type="button" onClick={handleCreate} disabled={creating} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer', opacity: creating ? 0.6 : 1 }}>
+          <button type="button" onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button type="button" onClick={handleCreate} disabled={creating} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', opacity: creating ? 0.6 : 1 }}>
             {creating ? 'Creating…' : 'Create User'}
           </button>
         </div>
@@ -385,9 +385,9 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
   const sectionTabs = ['users', 'roles', 'export', 'audit'];
 
   return (
-    <div className="kf-admin-dash">
+    <div style={{ padding: '0 32px 40px' }}>
       {/* KPI row */}
-      <div className="kf-metrics">
+      <div className="kf-metrics" style={{ marginBottom: 24 }}>
         {[
           { label: 'Total Users', value: totalUsers.toLocaleString(), tone: 'violet', icon: 'users' },
           { label: 'Active Users', value: activeUsers.toLocaleString(), tone: 'green', icon: 'check' },
@@ -412,7 +412,7 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
       </div>
 
       {/* Growth chart + recent users */}
-      <div className="kf-two-col">
+      <div className="kf-two-col" style={{ marginBottom: 24 }}>
         <section className="kf-card kf-chart">
           <div className="kf-card-head">
             <h2>User Growth</h2>
@@ -430,11 +430,11 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
               onClick={() => setSelectedUser(u)}
               onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#e7f8ed,#19b86a)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+              <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#e7f8ed,#19b86a)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                 {getInitials(u.full_name, u.email)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 850, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getDisplayName(u)}</div>
+                <div style={{ fontSize: 13, fontWeight: 650, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getDisplayName(u)}</div>
                 <div style={{ fontSize: 11, color: '#66708d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -458,7 +458,7 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
           ))}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10, paddingRight: 0 }}>
             <button type="button" onClick={() => setShowAdd(true)}
-              style={{ height: 40, padding: '0 18px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 950, cursor: 'pointer' }}>
+              style={{ height: 40, padding: '0 18px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               + Add User
             </button>
           </div>
@@ -484,36 +484,34 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
             </div>
 
             {/* Table header */}
-            <div className="kf-table-scroll">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 130px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 900, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
-                <span>User</span>
-                <span>Role</span>
-                <span>Status</span>
-                <span>Joined</span>
-              </div>
-
-              {/* Table rows */}
-              {currentPage.map(u => (
-                <div key={u.id}
-                  style={{ display: 'grid', gridTemplateColumns: '1fr 140px 130px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
-                  onClick={() => setSelectedUser(u)}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#e7f8ed,#19b86a)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
-                      {getInitials(u.full_name, u.email)}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 850, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getDisplayName(u)}</div>
-                      <div style={{ fontSize: 11, color: '#8c9ab5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
-                    </div>
-                  </div>
-                  <span className="kf-pill violet" style={{ fontSize: 11 }}>{getPrimaryRole(u.roles)}</span>
-                  <span className="kf-pill green" style={{ fontSize: 11 }}>Active</span>
-                  <div style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(u.created_at)}</div>
-                </div>
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 130px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+              <span>User</span>
+              <span>Role</span>
+              <span>Status</span>
+              <span>Joined</span>
             </div>
+
+            {/* Table rows */}
+            {currentPage.map(u => (
+              <div key={u.id}
+                style={{ display: 'grid', gridTemplateColumns: '1fr 140px 130px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+                onClick={() => setSelectedUser(u)}
+                onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#e7f8ed,#19b86a)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                    {getInitials(u.full_name, u.email)}
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 650, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{getDisplayName(u)}</div>
+                    <div style={{ fontSize: 11, color: '#8c9ab5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                  </div>
+                </div>
+                <span className="kf-pill violet" style={{ fontSize: 11 }}>{getPrimaryRole(u.roles)}</span>
+                <span className="kf-pill green" style={{ fontSize: 11 }}>Active</span>
+                <div style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(u.created_at)}</div>
+              </div>
+            ))}
 
             {currentPage.length === 0 && (
               <div style={{ padding: '32px', textAlign: 'center', color: '#8c9ab5', fontSize: 14 }}>No users found</div>
@@ -540,7 +538,7 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
 
         {activeSection === 'roles' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950 }}>Roles & Permissions</h3>
+            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Roles & Permissions</h3>
             <div style={{ display: 'grid', gap: 12 }}>
               {[
                 { role: 'Super Admin', desc: 'Full access to all platform features and settings.', color: '#ff3b5f' },
@@ -551,10 +549,10 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
                 <div key={r.role} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', border: '1px solid #e6e9f2', borderRadius: 12, background: '#fff' }}>
                   <div style={{ width: 10, height: 10, borderRadius: '50%', background: r.color, flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 950, color: '#101944' }}>{r.role}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#101944' }}>{r.role}</div>
                     <div style={{ fontSize: 13, color: '#66708d', marginTop: 2 }}>{r.desc}</div>
                   </div>
-                  <button type="button" style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 12, fontWeight: 750, cursor: 'pointer' }}>
+                  <button type="button" style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                     Edit
                   </button>
                 </div>
@@ -565,20 +563,20 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
 
         {activeSection === 'export' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 950 }}>Export Users</h3>
+            <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700 }}>Export Users</h3>
             <div style={{ maxWidth: 420, display: 'grid', gap: 16 }}>
               {[
                 { label: 'File Format', options: ['CSV', 'Excel', 'JSON'] },
                 { label: 'Include Fields', options: ['All Fields', 'Basic Info', 'Custom'] },
               ].map(f => (
-                <label key={f.label} style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+                <label key={f.label} style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                   {f.label}
                   <select style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
                     {f.options.map(o => <option key={o}>{o}</option>)}
                   </select>
                 </label>
               ))}
-              <button type="button" style={{ height: 44, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 14, fontWeight: 950, cursor: 'pointer' }} onClick={() => exportUsersCsv(users)}>
+              <button type="button" style={{ height: 44, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer' }} onClick={() => exportUsersCsv(users)}>
                 Export Users
               </button>
             </div>
@@ -587,10 +585,10 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
 
         {activeSection === 'audit' && (
           <div style={{ padding: '20px' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 950 }}>Audit Log</h3>
+            <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Audit Log</h3>
             <div style={{ padding: '16px', background: '#f8f9fc', borderRadius: 10, fontSize: 14, color: '#66708d', lineHeight: 1.6 }}>
               User activity is recorded in the platform-wide audit log.{' '}
-              <a href="/admin/audit-log" style={{ color: '#551cf2', fontWeight: 750, textDecoration: 'none' }}>
+              <a href="/admin/audit-log" style={{ color: '#551cf2', fontWeight: 600, textDecoration: 'none' }}>
                 View full Audit Log →
               </a>
             </div>

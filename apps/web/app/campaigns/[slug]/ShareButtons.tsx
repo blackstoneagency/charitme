@@ -116,7 +116,7 @@ export default function ShareButtons({ campaignId, campaignUrl, campaignTitle, q
   return (
     <div className="pc-quick-share" id="quick-share">
       <div className="pc-quick-share-header">
-        <strong style={{ fontSize: 16, fontWeight: 900, color: 'var(--t1)' }}>Quick share</strong>
+        <strong style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>Quick share</strong>
         <span style={{ fontSize: 12, color: 'var(--t3)' }}>📱 Share this campaign</span>
       </div>
       <div className="pc-quick-share-qr">

@@ -88,7 +88,7 @@ export default async function TrustSafetyPage() {
             { label: 'Frozen Payouts', value: frozen.length, color: '#6c35ff' },
           ].map(m => (
             <div key={m.label} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '20px 24px' }}>
-              <div style={{ fontSize: 28, fontWeight: 900, color: m.color }}>{m.value}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: m.color }}>{m.value}</div>
               <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{m.label}</div>
             </div>
           ))}
@@ -97,7 +97,7 @@ export default async function TrustSafetyPage() {
         {/* Risk Flags */}
         <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8' }}>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Unresolved Risk Flags</h2>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 650 }}>Unresolved Risk Flags</h2>
           </div>
           {flags.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>✅ No unresolved risk flags</div>
@@ -144,7 +144,7 @@ export default async function TrustSafetyPage() {
         {/* Campaign Reports */}
         <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8' }}>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Campaign Reports</h2>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 650 }}>Campaign Reports</h2>
           </div>
           {reports.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>✅ No open reports</div>
@@ -195,7 +195,7 @@ export default async function TrustSafetyPage() {
         {frozen.length > 0 && (
           <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8' }}>
-              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Frozen Payouts</h2>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 650 }}>Frozen Payouts</h2>
             </div>
             <div className="kf-table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>

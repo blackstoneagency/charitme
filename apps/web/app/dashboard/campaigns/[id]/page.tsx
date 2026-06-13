@@ -1,12 +1,9 @@
 import 'server-only';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { CharitMeShell, TopBar, KFIcon } from '../../../../components/CharitMeShellServer';
+import { CharitMeShell, TopBar } from '../../../../components/CharitMeShellServer';
 import { requireUser } from '../../../../lib/auth';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import { formatMoneyCompact } from '@shared/currencies';
-import CampaignControls from './_components/CampaignControls';
-import TrustScoreCard from './_components/TrustScoreCard';
+import CampaignWorkspace from './_components/CampaignWorkspace';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,27 +27,16 @@ type Campaign = {
   updated_at: string;
 };
 
-type Donation = {
-  id: string;
-  amount_cents: number;
-  anonymous: boolean;
-  donor_id: string | null;
-  donor_name: string;
-  created_at: string;
-  message: string | null;
-};
-
-type Update = {
-  id: string;
-  title: string | null;
-  body: string;
-  ai_generated: boolean;
-  created_at: string;
-};
-
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
+function fmtCents(cents: number): string {
+  const dollars = Math.round(cents / 100);
+  if (dollars >= 1_000_000) return `$${(dollars / 1_000_000).toFixed(1)}M`;
+  if (dollars >= 1_000) return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  return `$${dollars.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+}
+
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
     month: 'short',
@@ -75,21 +61,13 @@ function pillTone(status: string) {
   }
 }
 
-const AVATAR_COLORS = ['#6c35ff', '#19b86a', '#2f80ed', '#ec3fb4', '#f59e0b'];
-
-function initials(name: string): string {
-  return name.split(/\s+/).map(n => n[0] ?? '').join('').slice(0, 2).toUpperCase();
-}
-
 // ─────────────────────────────────────────────
 // Data fetch
 // ─────────────────────────────────────────────
 async function fetchCampaignDetail(campaignId: string, userId: string): Promise<{
   campaign: Campaign | null;
-  donations: Donation[];
-  updates: Update[];
+  updatesCount: number;
   teamCount: number;
-  currency: string;
 }> {
   try {
     // Step 1: campaign (must be owned by user)
@@ -100,78 +78,32 @@ async function fetchCampaignDetail(campaignId: string, userId: string): Promise<
       .eq('user_id', userId)
       .single();
 
-    if (campErr || !campData) return { campaign: null, donations: [], updates: [], teamCount: 0, currency: 'usd' };
+    if (campErr || !campData) return { campaign: null, updatesCount: 0, teamCount: 0 };
 
     const campaign = campData as Campaign;
 
-    // Step 2: recent donations + updates + team count + currency in parallel
+    // Step 2: updates + team counts in parallel
     const [
-      { data: donData },
-      { data: updData },
+      { count: updatesCount },
       { count: teamCount },
-      { data: launchSettings },
     ] = await Promise.all([
       supabaseAdmin
-        .from('donations')
-        .select('id,amount_cents,anonymous,donor_id,created_at,message')
-        .eq('campaign_id', campaignId)
-        .eq('status', 'completed')
-        .order('created_at', { ascending: false })
-        .limit(20),
-      supabaseAdmin
         .from('campaign_updates')
-        .select('id,title,body,ai_generated,created_at')
-        .eq('campaign_id', campaignId)
-        .order('created_at', { ascending: false })
-        .limit(10),
+        .select('*', { count: 'exact', head: true })
+        .eq('campaign_id', campaignId),
       supabaseAdmin
         .from('team_members')
         .select('*', { count: 'exact', head: true })
         .eq('campaign_id', campaignId),
-      supabaseAdmin
-        .from('campaign_launch_settings')
-        .select('currency')
-        .eq('campaign_id', campaignId)
-        .maybeSingle(),
     ]);
-
-    // Step 3: resolve donor names
-    const rawDonations = (donData ?? []) as {
-      id: string; amount_cents: number; anonymous: boolean;
-      donor_id: string | null; created_at: string; message: string | null;
-    }[];
-
-    const donorIds = [...new Set(
-      rawDonations.filter(d => d.donor_id && !d.anonymous).map(d => d.donor_id as string),
-    )];
-
-    const profileMap = new Map<string, string>();
-    if (donorIds.length > 0) {
-      const { data: profileData } = await supabaseAdmin
-        .from('profiles')
-        .select('id,full_name')
-        .in('id', donorIds);
-      for (const p of (profileData ?? []) as { id: string; full_name: string | null }[]) {
-        if (p.full_name) profileMap.set(p.id, p.full_name);
-      }
-    }
-
-    const donations: Donation[] = rawDonations.map(d => ({
-      ...d,
-      donor_name: d.anonymous || !d.donor_id
-        ? 'Anonymous'
-        : (profileMap.get(d.donor_id) ?? 'Donor'),
-    }));
 
     return {
       campaign,
-      donations,
-      updates: (updData ?? []) as Update[],
+      updatesCount: updatesCount ?? 0,
       teamCount: teamCount ?? 0,
-      currency: launchSettings?.currency ?? 'usd',
     };
   } catch {
-    return { campaign: null, donations: [], updates: [], teamCount: 0, currency: 'usd' };
+    return { campaign: null, updatesCount: 0, teamCount: 0 };
   }
 }
 
@@ -185,7 +117,7 @@ export default async function CampaignDetailPage({
 }) {
   const user = await requireUser();
   const { id } = await params;
-  const { campaign, donations, updates, teamCount, currency } = await fetchCampaignDetail(id, user.id);
+  const { campaign, updatesCount, teamCount } = await fetchCampaignDetail(id, user.id);
 
   if (!campaign) notFound();
 
@@ -193,8 +125,8 @@ export default async function CampaignDetailPage({
     ? Math.min(100, Math.round((campaign.raised_amount / campaign.goal_amount) * 100))
     : 0;
 
-  const totalRaisedDisplay = formatMoneyCompact(campaign.raised_amount, currency);
-  const goalDisplay = formatMoneyCompact(campaign.goal_amount, currency);
+  const totalRaisedDisplay = fmtCents(campaign.raised_amount);
+  const goalDisplay = fmtCents(campaign.goal_amount);
   const deadline = daysLeft(campaign.deadline);
 
   return (
@@ -202,29 +134,9 @@ export default async function CampaignDetailPage({
       <TopBar
         title={campaign.title}
         subtitle={campaign.tagline ?? campaign.category ?? 'Campaign details'}
-        actions={
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 200 }}>
-            <a
-              href={`/campaigns/${campaign.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="kf-blue"
-              style={{ textDecoration: 'none', justifyContent: 'center' }}
-            >
-              <KFIcon name="send" /> View Campaign
-            </a>
-            <Link href={`/dashboard/campaigns/${campaign.id}/edit`} className="kf-primary"
-              style={{ textDecoration: 'none', justifyContent: 'center' }}>
-              <KFIcon name="doc" /> Edit Campaign
-            </Link>
-            <Link href="/dashboard/campaigns" className="kf-outline" style={{ textDecoration: 'none', justifyContent: 'center' }}>
-              ← Back
-            </Link>
-          </div>
-        }
       />
 
-      <div className="kf-admin-dash">
+      <div style={{ padding: '0 32px 40px', display: 'grid', gap: 24 }}>
 
         {/* ── Status + Metrics strip ── */}
         <div className="kf-card" style={{ padding: 24 }}>
@@ -271,7 +183,7 @@ export default async function CampaignDetailPage({
                   { label: 'Backers', value: campaign.backer_count.toLocaleString() },
                   { label: 'Deadline', value: deadline },
                   { label: 'Team Members', value: String(teamCount) },
-                  { label: 'Updates', value: String(updates.length) },
+                  { label: 'Updates', value: String(updatesCount) },
                 ].map(({ label, value }) => (
                   <div key={label}>
                     <strong style={{ fontSize: 18, fontWeight: 700, display: 'block', lineHeight: 1 }}>{value}</strong>
@@ -283,146 +195,8 @@ export default async function CampaignDetailPage({
           </div>
         </div>
 
-        {/* ── AI Trust Score Coach ── */}
-        <TrustScoreCard campaignId={campaign.id} />
-
-        {/* ── Two-col: Donations + Updates ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
-
-          {/* Recent Donations */}
-          <section className="kf-card" style={{ overflow: 'hidden' }}>
-            <div className="kf-card-head">
-              <h2>Recent Donations</h2>
-              <Link href="/dashboard/donations" style={{ fontSize: 13, color: 'var(--green)', textDecoration: 'none' }}>
-                View All →
-              </Link>
-            </div>
-            {donations.length === 0 ? (
-              <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--t3)', fontSize: 14 }}>
-                <KFIcon name="gift" />
-                <p style={{ marginTop: 10 }}>No donations yet.</p>
-              </div>
-            ) : (
-              <div className="kf-rows">
-                {donations.map((d, i) => (
-                  <div key={d.id} className="kf-row" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px' }}>
-                    <div style={{
-                      width: 34, height: 34, borderRadius: '50%',
-                      background: AVATAR_COLORS[i % AVATAR_COLORS.length],
-                      color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 12, fontWeight: 700, flexShrink: 0,
-                    }}>
-                      {initials(d.donor_name)}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <strong style={{ fontSize: 13, display: 'block' }}>{d.donor_name}</strong>
-                      {d.message && (
-                        <p style={{ fontSize: 12, color: 'var(--t3)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          &ldquo;{d.message}&rdquo;
-                        </p>
-                      )}
-                      <small style={{ fontSize: 11, color: 'var(--t3)' }}>{fmtDate(d.created_at)}</small>
-                    </div>
-                    <strong style={{ fontSize: 15, color: 'var(--green)', flexShrink: 0 }}>
-                      {formatMoneyCompact(d.amount_cents, currency)}
-                    </strong>
-                  </div>
-                ))}
-              </div>
-            )}
-            {donations.length > 0 && (
-              <div className="kf-table-footer" style={{ padding: '10px 20px', fontSize: 13, color: 'var(--t3)' }}>
-                Showing {donations.length} most recent donations
-              </div>
-            )}
-          </section>
-
-          {/* Campaign Updates */}
-          <section className="kf-card" style={{ overflow: 'hidden' }}>
-            <div className="kf-card-head">
-              <h2>Campaign Updates</h2>
-              <Link href="/dashboard/updates/new" className="kf-primary" style={{ fontSize: 13, textDecoration: 'none' }}>
-                + Post Update
-              </Link>
-            </div>
-            {updates.length === 0 ? (
-              <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--t3)', fontSize: 14 }}>
-                <KFIcon name="doc" />
-                <p style={{ marginTop: 10 }}>No updates posted yet.</p>
-                <p style={{ fontSize: 12, marginTop: 4 }}>Campaigns with updates raise 80% more.</p>
-              </div>
-            ) : (
-              <div className="kf-rows">
-                {updates.map((u) => (
-                  <div key={u.id} className="kf-row" style={{ padding: '14px 20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        {u.title && (
-                          <strong style={{ fontSize: 14, display: 'block', marginBottom: 4 }}>{u.title}</strong>
-                        )}
-                        <p style={{ fontSize: 13, color: 'var(--t2)', margin: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', lineHeight: 1.5 }}>
-                          {u.body}
-                        </p>
-                      </div>
-                      <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                        <small style={{ fontSize: 11, color: 'var(--t3)' }}>{fmtDate(u.created_at)}</small>
-                        {u.ai_generated && (
-                          <span style={{ display: 'block', fontSize: 10, color: '#6c35ff', fontWeight: 700, marginTop: 2 }}>AI</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {updates.length > 0 && (
-              <div className="kf-table-footer" style={{ padding: '10px 20px', fontSize: 13, color: 'var(--t3)' }}>
-                Showing {updates.length} updates
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* ── Description ── */}
-        {campaign.description && (
-          <section className="kf-card" style={{ padding: 24 }}>
-            <h2 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700 }}>Campaign Description</h2>
-            <p style={{ fontSize: 14, color: 'var(--t2)', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>
-              {campaign.description.slice(0, 800)}{campaign.description.length > 800 ? '…' : ''}
-            </p>
-          </section>
-        )}
-
-        {/* ── Quick actions ── */}
-        <section className="kf-card" style={{ padding: 24 }}>
-          <h2 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800 }}>Campaign Tools</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
-            {[
-              { href: `/dashboard/campaigns/${campaign.id}/share`, icon: 'send', label: 'Share & AI Content', desc: 'UTM links + AI posts' },
-              { href: `/dashboard/campaigns/${campaign.id}/thank-donors`, icon: 'chat', label: 'Thank Donors', desc: 'Email your supporters' },
-              { href: `/dashboard/campaigns/${campaign.id}/ledger`, icon: 'doc', label: 'Fund Ledger', desc: 'Track how funds are used' },
-              { href: `/dashboard/campaigns/${campaign.id}/faqs`, icon: 'doc', label: 'Manage FAQs', desc: 'AI-generated Q&A' },
-              { href: `/dashboard/campaigns/${campaign.id}/milestones`, icon: 'check', label: 'Manage Milestones', desc: 'Stretch goals for donors' },
-              { href: `/dashboard/campaigns/${campaign.id}/rewards`, icon: 'gift', label: 'Reward Tiers', desc: 'Perks at pledge levels' },
-              { href: `/dashboard/campaigns/${campaign.id}/payout-setup`, icon: 'wallet', label: 'Payout Setup', desc: 'Direct-to-bank deposits' },
-              { href: `/dashboard/campaigns/${campaign.id}/edit`, icon: 'doc', label: 'Edit Campaign', desc: 'Update title, story, media' },
-              { href: `/api/campaigns/${campaign.id}/qr-poster`, icon: 'send', label: 'Print QR Poster', desc: 'Download & print' },
-              { href: `/dashboard/campaigns/${campaign.id}/updates`, icon: 'doc', label: 'Post Update', desc: 'Keep donors informed' },
-              { href: `/dashboard/campaigns/${campaign.id}/analytics`, icon: 'chart', label: 'Analytics', desc: 'Trends & attribution' },
-              { href: `/dashboard/campaigns/${campaign.id}/settings`, icon: 'settings', label: 'Settings', desc: 'Visibility & donations' },
-            ].map(action => (
-              <Link key={action.href} href={action.href} target={action.href.startsWith('/api') ? '_blank' : undefined}
-                style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 16px', border: '1px solid var(--b2)', borderRadius: 12, textDecoration: 'none', background: 'var(--s1)', transition: 'border-color .15s' }}>
-                <KFIcon name={action.icon} />
-                <strong style={{ fontSize: 13, color: 'var(--t1)', marginTop: 6 }}>{action.label}</strong>
-                <span style={{ fontSize: 11, color: 'var(--t3)' }}>{action.desc}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Campaign Controls ── */}
-        <CampaignControls campaignId={campaign.id} currentStatus={campaign.status} />
+        {/* ── Workspace: actions, status, tools + active tool content ── */}
+        <CampaignWorkspace campaignId={campaign.id} currentStatus={campaign.status} />
 
       </div>
     </CharitMeShell>

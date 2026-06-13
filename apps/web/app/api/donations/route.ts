@@ -16,6 +16,7 @@ import { normalizeCurrency } from '@shared/currencies';
 import { resolvePayoutDestination } from '../../../lib/payout-destination';
 import { getAppOrigin } from '../../../lib/auth-config';
 import { checkRateLimit } from '../../../lib/rate-limit';
+import { resolveContact, trackEvent } from '../../../lib/marketing-engine';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema
@@ -27,7 +28,7 @@ const DonateSchema = z.object({
   anonymous:          z.boolean().optional(),
   coverProcessingFee: z.boolean().optional(),
   tipPercent:         z.number().min(0).max(100).optional(),
-  paymentMethod:      z.enum(['stripe','paypal','bank','card']).optional(),
+  paymentMethod:      z.enum(['stripe','paypal','venmo','gpay','bank','card']).optional(),
   donorEmail:         z.string().email().optional(),
   // "Subscribe to receive emails" checkbox — opts the donor into campaign update emails
   subscribeToUpdates: z.boolean().optional(),
@@ -308,6 +309,22 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ error: msg }, { status: 502 });
   }
+
+  // Marketing capture: donation_started event for abandoned-donation automations (non-blocking)
+  try {
+    const captureEmail = user?.email ?? donorEmail;
+    if (captureEmail) {
+      const contactId = await resolveContact({ email: captureEmail, userId: user?.id });
+      if (contactId) {
+        await trackEvent({
+          contactId,
+          eventType: 'donation_started',
+          campaignId,
+          amountCents,
+        });
+      }
+    }
+  } catch { /* capture must never block checkout */ }
 
   return NextResponse.json({ url: session!.url });
 }

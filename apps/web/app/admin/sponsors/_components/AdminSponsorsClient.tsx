@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // Extract bare domain from a URL or domain string
 function extractDomain(urlOrDomain: string): string {
@@ -87,7 +87,7 @@ function SponsorRow({
           </div>
         ) : (
           <>
-            <div style={{ fontWeight: 800, fontSize: 14, color: '#1a1a2e' }}>{sponsor.name}</div>
+            <div style={{ fontWeight: 650, fontSize: 14, color: '#1a1a2e' }}>{sponsor.name}</div>
             {sponsor.website && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{sponsor.website}</div>}
           </>
         )}
@@ -216,7 +216,7 @@ export default function AdminSponsorsClient() {
 
       {/* Add sponsor */}
       <div style={{ marginBottom: 24, padding: '20px 24px', background: '#f8f9fc', borderRadius: 14, border: '1px solid #eef0f7' }}>
-        <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>Add Sponsor</div>
+        <div style={{ fontWeight: 650, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>Add Sponsor</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Company name *"
             style={{ flex: '1 1 180px', padding: '9px 14px', borderRadius: 9, border: '1px solid #d1d5db', fontSize: 13, fontWeight: 700 }}
@@ -224,7 +224,7 @@ export default function AdminSponsorsClient() {
           <input value={newSite} onChange={e => setNewSite(e.target.value)} placeholder="Website URL (optional)"
             style={{ flex: '2 1 240px', padding: '9px 14px', borderRadius: 9, border: '1px solid #d1d5db', fontSize: 13, color: '#6b7280' }} />
           <button onClick={() => void addSponsor()} disabled={adding || !newName.trim()}
-            style={{ padding: '9px 22px', background: '#6c35ff', color: '#fff', borderRadius: 9, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 13, flexShrink: 0 }}>
+            style={{ padding: '9px 22px', background: '#6c35ff', color: '#fff', borderRadius: 9, border: 'none', cursor: 'pointer', fontWeight: 650, fontSize: 13, flexShrink: 0 }}>
             {adding ? 'Adding…' : '+ Add'}
           </button>
         </div>

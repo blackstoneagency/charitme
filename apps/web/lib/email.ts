@@ -41,6 +41,37 @@ function btn(href: string, label: string, style: 'primary' | 'secondary' = 'prim
 }
 
 // ─────────────────────────────────────────────
+// Generic marketing email (Admin → Marketing campaigns)
+// ─────────────────────────────────────────────
+export async function sendMarketingEmail(input: {
+  to: string;
+  subject: string;
+  text: string;
+  previewText?: string | null;
+}): Promise<{ sent: boolean }> {
+  if (!resend) return { sent: false };
+  const year = new Date().getFullYear();
+  const unsubscribeUrl = `${ORIGIN}/api/marketing/unsubscribe?email=${encodeURIComponent(input.to)}`;
+  const paragraphs = input.text
+    .split(/\n{2,}/)
+    .map(p => `<p style="font-size:14px;color:#1a1a2e;line-height:1.7;margin:0 0 16px;">${p.replace(/\n/g, '<br/>')}</p>`)
+    .join('');
+  const body = `${paragraphs}
+    <p style="font-size:11px;color:#94a3b8;margin:28px 0 0;line-height:1.6;">
+      You are receiving this because you interacted with CharitMe.
+      <a href="${unsubscribeUrl}" style="color:#94a3b8;">Unsubscribe</a>
+    </p>`;
+  await resend.emails.send({
+    from: FROM,
+    to: input.to,
+    subject: input.subject,
+    html: emailWrapper(input.previewText ?? 'CharitMe', body, year),
+    text: `${input.text}\n\nUnsubscribe: ${unsubscribeUrl}`,
+  });
+  return { sent: true };
+}
+
+// ─────────────────────────────────────────────
 // Donation receipt (donor)
 // ─────────────────────────────────────────────
 export async function sendReceiptEmail(input: {

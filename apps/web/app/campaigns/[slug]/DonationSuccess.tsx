@@ -60,7 +60,7 @@ export default function DonationSuccess({ campaignId, amountCents }: Props) {
     >
       <span style={{ fontSize: 24 }}>💚</span>
       <div style={{ flex: 1 }}>
-        <strong style={{ display: 'block', fontSize: 15, fontWeight: 900 }}>
+        <strong style={{ display: 'block', fontSize: 15, fontWeight: 700 }}>
           Thank you for donating!
         </strong>
         <span style={{ fontSize: 13, opacity: 0.9 }}>

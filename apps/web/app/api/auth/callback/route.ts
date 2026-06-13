@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { safeNextPath } from '../../../../lib/auth-config';
+import { ensureUserProfile } from '../../../../lib/profile-sync';
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
@@ -71,6 +72,16 @@ export async function GET(request: NextRequest) {
     loginUrl.searchParams.set('error', error.message);
     return NextResponse.redirect(loginUrl);
   }
+
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    const loginUrl = new URL('/login', origin);
+    loginUrl.searchParams.set('error', userError?.message ?? 'Could not confirm your signed-in user');
+    return NextResponse.redirect(loginUrl);
+  }
+
+  await ensureUserProfile(user);
 
   return redirectResponse;
 }

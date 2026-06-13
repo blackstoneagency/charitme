@@ -12,7 +12,9 @@ export async function GET() {
     .order('created_at', { ascending: true });
 
   if (error) return NextResponse.json({ sponsors: [] });
-  // Only return sponsors that have a logo uploaded
-  const withLogos = (data ?? []).filter((s: { logo_url: string | null }) => s.logo_url?.startsWith('http'));
+  // Return sponsors that have either an uploaded logo OR a website (for favicon fallback)
+  const withLogos = (data ?? []).filter((s: { logo_url: string | null; website: string | null }) =>
+    s.logo_url?.startsWith('http') || s.website
+  );
   return NextResponse.json({ sponsors: withLogos });
 }

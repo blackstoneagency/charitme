@@ -103,8 +103,8 @@ export default async function DonorPortalPage() {
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 24px' }}>
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 900, margin: '0 0 4px', color: 'var(--t1)' }}>Your Giving History</h1>
-        <p style={{ color: 'var(--t3, #64748b)', fontSize: 15, margin: 0 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 4px' }}>Your Giving History</h1>
+        <p style={{ color: '#64748b', fontSize: 15, margin: 0 }}>
           All your donations, receipts, and recurring giving in one place.
         </p>
       </div>
@@ -118,8 +118,8 @@ export default async function DonorPortalPage() {
           { label: 'Monthly Recurring',  value: monthlyTotal > 0 ? `${formatCents(monthlyTotal)}/mo` : '—', color: statsColors[3] },
         ].map(s => (
           <div key={s.label} style={{ ...cardStyle, textAlign: 'center' }}>
-            <div style={{ fontSize: 22, fontWeight: 900, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 12, color: 'var(--t3, #94a3b8)', marginTop: 4, fontWeight: 700 }}>{s.label}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4, fontWeight: 700 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -130,7 +130,7 @@ export default async function DonorPortalPage() {
       {/* Recurring donations */}
       {recurring.length > 0 && (
         <div style={{ ...cardStyle, marginBottom: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ fontSize: 16, fontWeight: 650, margin: '0 0 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             Recurring Donations
             <Link href="/dashboard/recurring" style={{ fontSize: 13, color: 'var(--violet, #6c35ff)', fontWeight: 700, textDecoration: 'none' }}>
               Manage →

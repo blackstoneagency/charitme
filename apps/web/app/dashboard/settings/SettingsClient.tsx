@@ -275,11 +275,11 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               <div className="kf-setpanel-body">
                 {/* Avatar */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
-                  <div style={{ width: 64, height: 64, borderRadius: '50%', background: avatarUrl ? `url(${avatarUrl}) center/cover no-repeat` : 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 950, color: '#fff', flexShrink: 0 }}>
+                  <div style={{ width: 64, height: 64, borderRadius: '50%', background: avatarUrl ? `url(${avatarUrl}) center/cover no-repeat` : 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 22, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
                     {!avatarUrl && (fullName.charAt(0) || userEmail.charAt(0)).toUpperCase()}
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 950, color: '#101944' }}>{fullName || userEmail}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#101944' }}>{fullName || userEmail}</div>
                     <div style={{ fontSize: 12, color: '#66708d', marginTop: 2 }}>{userEmail}</div>
                     <input
                       ref={avatarFileRef}
@@ -290,7 +290,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                     />
                     <button
                       type="button"
-                      style={{ marginTop: 8, height: 32, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 12, fontWeight: 750, cursor: avatarUploading ? 'wait' : 'pointer', opacity: avatarUploading ? 0.6 : 1 }}
+                      style={{ marginTop: 8, height: 32, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 12, fontWeight: 600, cursor: avatarUploading ? 'wait' : 'pointer', opacity: avatarUploading ? 0.6 : 1 }}
                       disabled={avatarUploading}
                       onClick={() => avatarFileRef.current?.click()}
                     >
@@ -388,8 +388,9 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                   </SetField>
                 </div>
                 <div style={{ paddingTop: 8 }}>
-                  <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 12 }}>Email Preferences</div>
-                  <PrefRow id={`${uid}-marketing`} label="Marketing emails" desc="Product updates, tips, and fundraising best practices" checked={notifyMarketing} onChange={setNotifyMarketing} />
+                  <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 12 }}>Email Preferences</div>
+                  <PrefRow id={`${uid}-updates`} label="Product updates" desc="News about new CharitMe features" checked={false} onChange={() => null} />
+                  <PrefRow id={`${uid}-tips`} label="Tips and best practices" desc="Guides and strategies for fundraising" checked={false} onChange={() => null} />
                   <PrefRow id={`${uid}-digest`} label="Weekly performance summary" desc="Weekly email with campaign stats" checked={campaignRecs} onChange={setCampaignRecs} />
                 </div>
               </div>
@@ -408,14 +409,17 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               <button type="button" className="kf-setpanel-save" onClick={saveNotifications} disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
             </div>
             <div className="kf-setpanel-body">
-              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 8 }}>In-App Notifications</div>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 8 }}>In-App Notifications</div>
               <NotifRow id={`${uid}-n1`} label="New donations" desc="When a donor contributes to your campaign" defaultOn={true} />
               <NotifRow id={`${uid}-n2`} label="New donors" desc="When someone makes their first donation" defaultOn={true} />
               <NotifRow id={`${uid}-n3`} label="Campaign updates" desc="When your campaign reaches a milestone" defaultOn={true} />
               <NotifRow id={`${uid}-n4`} label="Payouts and transfers" desc="When payouts are processed or transferred" defaultOn={true} />
               <NotifRow id={`${uid}-n5`} label="Mentions and comments" desc="When someone mentions you or comments" defaultOn={false} />
-              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '18px 0 8px' }}>Email Notifications</div>
-              <PrefRow id={`${uid}-ne1`} label="Receive email notifications" desc="Get notified by email for donations, payouts, and account activity" checked={notifyEmail} onChange={setNotifyEmail} />
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '18px 0 8px' }}>Email Notifications</div>
+              <NotifRow id={`${uid}-ne1`} label="Receive email notifications" desc="Get notified by email for important events" defaultOn={true} />
+              <SetField label="Email Frequency">
+                <select defaultValue="instant"><option value="instant">Instant</option><option value="daily">Daily Digest</option><option value="weekly">Weekly</option></select>
+              </SetField>
             </div>
           </div>
         );
@@ -438,7 +442,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 <div className="kf-setpref-info"><strong>Two-Factor Authentication</strong><span>Add an extra layer of security to your account</span></div>
                 <Link href="/dashboard/settings/mfa" style={{ fontSize: 13, fontWeight: 700, color: '#101944', border: '1px solid #e0e4ef', borderRadius: 8, padding: '7px 16px', background: '#fff', textDecoration: 'none', display: 'inline-block' }}>Manage 2FA</Link>
               </div>
-              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '16px 0 10px' }}>Privacy</div>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '16px 0 10px' }}>Privacy</div>
               <div className="kf-setpref">
                 <div className="kf-setpref-info"><strong>Profile Visibility</strong><span>Who can see your giving activity on the leaderboard and donor walls</span></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -471,22 +475,22 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               </div>
             </div>
             <div className="kf-setpanel-body">
-              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 12 }}>Connected</div>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 12 }}>Connected</div>
               {hasStripeCustomer ? (
                 <div className="kf-setpref">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: '#6772e515', border: '1px solid #6772e530', display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 950, color: '#6772e5', flexShrink: 0 }}>S</div>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: '#6772e515', border: '1px solid #6772e530', display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 700, color: '#6772e5', flexShrink: 0 }}>S</div>
                     <div className="kf-setpref-info"><strong>Stripe</strong><span>Payment processing</span></div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 950, color: '#19b86a', background: '#e8f8ee', padding: '3px 10px', borderRadius: 999 }}>Connected</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#19b86a', background: '#e8f8ee', padding: '3px 10px', borderRadius: 999 }}>Connected</span>
                     <BillingPortalButton />
                   </div>
                 </div>
               ) : (
                 <p style={{ fontSize: 13, color: 'var(--t3)', padding: '8px 0' }}>No integrations connected yet.</p>
               )}
-              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '16px 0 12px' }}>Available</div>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '16px 0 12px' }}>Available</div>
               {[
                 { name: 'Facebook Pixel', desc: 'Conversion tracking', color: '#1877f2' },
                 { name: 'Slack', desc: 'Team notifications', color: '#4a154b' },
@@ -496,7 +500,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               ].map(i => (
                 <div key={i.name} className="kf-setpref">
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 10, background: `${i.color}15`, border: `1px solid ${i.color}30`, display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 950, color: i.color, flexShrink: 0 }}>{i.name.charAt(0)}</div>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: `${i.color}15`, border: `1px solid ${i.color}30`, display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 700, color: i.color, flexShrink: 0 }}>{i.name.charAt(0)}</div>
                     <div className="kf-setpref-info"><strong>{i.name}</strong><span>{i.desc}</span></div>
                   </div>
                   <Link href="/dashboard/integrations" style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)', padding: '4px 12px', border: '1px solid var(--green)', borderRadius: 8, textDecoration: 'none' }}>Connect →</Link>
@@ -516,18 +520,18 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               </div>
             </div>
             <div className="kf-setpanel-body">
-              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 12 }}>Team Members</div>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', marginBottom: 12 }}>Team Members</div>
               <div className="kf-setpref">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 950, color: '#fff', flexShrink: 0 }}>{(initialProfile.full_name || userEmail).charAt(0).toUpperCase()}</div>
+                  <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>{(initialProfile.full_name || userEmail).charAt(0).toUpperCase()}</div>
                   <div className="kf-setpref-info"><strong>{initialProfile.full_name || userEmail}</strong><span>{userEmail}</span></div>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 950, color: '#551cf2', background: '#efe8ff', padding: '3px 10px', borderRadius: 999 }}>Owner</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#551cf2', background: '#efe8ff', padding: '3px 10px', borderRadius: 999 }}>Owner</span>
               </div>
-              <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '18px 0 12px' }}>Invite Team Member</div>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: '#66708d', margin: '18px 0 12px' }}>Invite Team Member</div>
               <div style={{ padding: '14px 16px', background: 'var(--s3)', borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                 <p style={{ fontSize: 13, color: 'var(--t2)', margin: 0 }}>Invite collaborators and manage permissions from the Team page.</p>
-                <Link href="/dashboard/team" style={{ flexShrink: 0, fontSize: 13, fontWeight: 750, color: '#551cf2', textDecoration: 'none', background: '#efe8ff', borderRadius: 8, padding: '8px 16px', whiteSpace: 'nowrap' }}>Go to Team →</Link>
+                <Link href="/dashboard/team" style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: '#551cf2', textDecoration: 'none', background: '#efe8ff', borderRadius: 8, padding: '8px 16px', whiteSpace: 'nowrap' }}>Go to Team →</Link>
               </div>
             </div>
           </div>
@@ -559,7 +563,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                   </p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 18, fontWeight: 950, color: '#101944' }}>{planInfo.price}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#101944' }}>{planInfo.price}</div>
                 </div>
               </div>
 
@@ -637,7 +641,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
       <div className="kf-settings-v2">
         {/* Left nav */}
         <nav className="kf-setnav">
-          <div style={{ padding: '12px 14px 4px', fontSize: 11, fontWeight: 900, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8c9ab5' }}>Settings</div>
+          <div style={{ padding: '12px 14px 4px', fontSize: 11, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: '#8c9ab5' }}>Settings</div>
           {navItems.map(item => (
             <NavItem key={item.id} label={item.label} desc={item.desc} icon={item.icon} active={section === item.id} onClick={() => setSection(item.id)} />
           ))}
@@ -682,7 +686,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 </div>
               </div>
               {currentPlan !== 'pro' && (
-                <Link href="/pricing" style={{ display: 'block', marginTop: 14, textAlign: 'center', fontSize: 13, fontWeight: 750, color: '#fff', background: 'var(--green)', borderRadius: 8, padding: '9px 0', textDecoration: 'none' }}>Upgrade Plan</Link>
+                <Link href="/pricing" style={{ display: 'block', marginTop: 14, textAlign: 'center', fontSize: 13, fontWeight: 600, color: '#fff', background: 'var(--green)', borderRadius: 8, padding: '9px 0', textDecoration: 'none' }}>Upgrade Plan</Link>
               )}
             </div>
           </div>

@@ -52,7 +52,7 @@ export default function ApplySchemaButton() {
   if (state === 'needs-token') {
     return (
       <div style={{ background: '#fffbeb', border: '1.5px solid #fcd34d', borderRadius: 12, padding: '18px 20px' }}>
-        <h4 style={{ fontSize: 15, fontWeight: 900, color: '#92400e', margin: '0 0 10px' }}>
+        <h4 style={{ fontSize: 15, fontWeight: 700, color: '#92400e', margin: '0 0 10px' }}>
           🔑 One more step: Add <code>SUPABASE_ACCESS_TOKEN</code> to Vercel
         </h4>
         <p style={{ fontSize: 13, color: '#78350f', margin: '0 0 14px', lineHeight: 1.6 }}>
@@ -130,7 +130,7 @@ export default function ApplySchemaButton() {
           display: 'inline-flex', alignItems: 'center', gap: 10,
           padding: '14px 32px', border: 0, borderRadius: 12,
           background: state === 'running' ? '#9f7de8' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)',
-          color: '#fff', fontSize: 15, fontWeight: 900,
+          color: '#fff', fontSize: 15, fontWeight: 700,
           cursor: state === 'running' ? 'wait' : 'pointer',
           boxShadow: '0 4px 20px rgba(108,53,255,.35)',
         }}

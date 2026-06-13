@@ -81,7 +81,7 @@ export default async function AdminDashboardPage() {
       <CharitMeShell active="Dashboard" mode="admin">
         <div style={{ padding: '40px 32px', maxWidth: 720 }}>
           <div style={{ padding: '24px 28px', background: '#fff0f3', border: '1.5px solid #fecdd3', borderRadius: 14 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 900, color: '#be123c', margin: '0 0 10px' }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#be123c', margin: '0 0 10px' }}>
               ❌ {isKeyMissing ? 'Missing Supabase credentials' : 'Database connection error'}
             </h2>
             <p style={{ fontFamily: 'monospace', fontSize: 13, color: '#be123c', margin: '0 0 14px', lineHeight: 1.7 }}>

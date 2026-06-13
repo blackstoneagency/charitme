@@ -55,7 +55,7 @@ type Props = {
 };
 
 const fieldStyle: React.CSSProperties = { height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 14, background: '#fff' };
-const labelStyle: React.CSSProperties = { display: 'grid', gap: 6, fontSize: 13, fontWeight: 850, color: '#26335c' };
+const labelStyle: React.CSSProperties = { display: 'grid', gap: 6, fontSize: 13, fontWeight: 650, color: '#26335c' };
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -74,7 +74,7 @@ function SettingToggle({ title, description, value, onChange }: { title: string;
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 16px', border: '1px solid #eef0f7', borderRadius: 10 }}>
       <div>
-        <strong style={{ display: 'block', fontSize: 14, fontWeight: 850 }}>{title}</strong>
+        <strong style={{ display: 'block', fontSize: 14, fontWeight: 650 }}>{title}</strong>
         <small style={{ color: '#67718e', fontSize: 12 }}>{description}</small>
       </div>
       <Toggle value={value} onChange={onChange} />
@@ -206,7 +206,7 @@ export default function SettingsClient({ categories, settings: initialSettings, 
         <Panel title="Integration Switches">
           <SettingToggle title="Google OAuth" description="Enable Google as an auth provider." value={settings.googleOAuthEnabled} onChange={v => set('googleOAuthEnabled', v)} />
           <SettingToggle title="Stripe Connect" description="Enable connected accounts and payout onboarding." value={settings.stripeConnectEnabled} onChange={v => set('stripeConnectEnabled', v)} />
-          <p style={{ margin: 0, color: '#67718e', fontWeight: 750 }}>Connected integrations: {overview.integrations.toLocaleString()}</p>
+          <p style={{ margin: 0, color: '#67718e', fontWeight: 600 }}>Connected integrations: {overview.integrations.toLocaleString()}</p>
         </Panel>
       );
     }
@@ -238,9 +238,9 @@ export default function SettingsClient({ categories, settings: initialSettings, 
 
       <div className="kf-settings-layout" style={{ alignItems: 'start' }}>
         <nav className="kf-settings-nav">
-          <h3 style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 950, textTransform: 'uppercase', color: '#4b5676', letterSpacing: '0.05em' }}>Settings</h3>
+          <h3 style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#4b5676', letterSpacing: '0.05em' }}>Settings</h3>
           {categories.map(cat => (
-            <button key={cat.key} onClick={() => setActiveCategory(cat.label)} style={{ minHeight: 46, display: 'flex', alignItems: 'center', gap: 13, padding: '0 14px', borderRadius: 9, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 14, textAlign: 'left', width: '100%', background: activeCategory === cat.label ? '#f0eaff' : 'transparent', color: activeCategory === cat.label ? '#551cf2' : '#18234d' }}>
+            <button key={cat.key} onClick={() => setActiveCategory(cat.label)} style={{ minHeight: 46, display: 'flex', alignItems: 'center', gap: 13, padding: '0 14px', borderRadius: 9, border: 'none', cursor: 'pointer', fontWeight: 650, fontSize: 14, textAlign: 'left', width: '100%', background: activeCategory === cat.label ? '#f0eaff' : 'transparent', color: activeCategory === cat.label ? '#551cf2' : '#18234d' }}>
               <KFIcon name={cat.icon} />
               <div><span>{cat.label}</span><small style={{ display: 'block', fontSize: 11, fontWeight: 650, color: activeCategory === cat.label ? '#7c50f5' : '#67718e', marginTop: 2 }}>{cat.description}</small></div>
             </button>
@@ -256,7 +256,7 @@ export default function SettingsClient({ categories, settings: initialSettings, 
           </div>
           {renderDetailPanel()}
           <div style={{ padding: '16px 26px', borderTop: '1px solid #eef0f7', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-            {notice && <span style={{ color: notice.includes('could not') ? '#e11d48' : '#079447', fontSize: 13, fontWeight: 850, alignSelf: 'center' }}>{notice}</span>}
+            {notice && <span style={{ color: notice.includes('could not') ? '#e11d48' : '#079447', fontSize: 13, fontWeight: 650, alignSelf: 'center' }}>{notice}</span>}
             <button className="kf-outline" style={{ height: 44, padding: '0 20px' }} onClick={() => setSettings(initialSettings)} disabled={isPending}>Reset</button>
             <button className="kf-primary" style={{ height: 44, padding: '0 24px' }} onClick={handleSave} disabled={isPending}>{isPending ? 'Saving...' : 'Save Changes'}</button>
           </div>
@@ -273,8 +273,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ padding: '22px 26px', borderTop: '1px solid #eef0f7' }}>
-      <h3 style={{ margin: '0 0 18px', fontSize: 16, fontWeight: 950 }}>{title}</h3>
-      <div className="kf-form-grid">{children}</div>
+      <h3 style={{ margin: '0 0 18px', fontSize: 16, fontWeight: 700 }}>{title}</h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 16 }}>{children}</div>
     </div>
   );
 }

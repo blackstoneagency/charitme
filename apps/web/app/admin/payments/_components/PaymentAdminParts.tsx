@@ -28,7 +28,7 @@ export function SummaryCards({ data }: { data: PaymentAdminData }) {
       {cards.map(([label, value]) => (
         <div key={label} style={cardStyle}>
           <strong style={{ display: 'block', color: '#111944', fontSize: 22 }}>{value}</strong>
-          <span style={{ display: 'block', color: '#64748b', fontSize: 12, fontWeight: 800, marginTop: 5 }}>{label}</span>
+          <span style={{ display: 'block', color: '#64748b', fontSize: 12, fontWeight: 650, marginTop: 5 }}>{label}</span>
         </div>
       ))}
     </div>
@@ -42,21 +42,21 @@ export function PaymentFiltersBar({ campaigns }: { campaigns: Array<{ id: string
       <Select name="paymentStatus" label="Payment" values={['', 'pending', 'processing', 'succeeded', 'failed', 'canceled', 'refunded', 'partially_refunded', 'disputed']} />
       <Select name="payoutStatus" label="Payout" values={['', 'not_applicable', 'requested', 'approved', 'pending', 'paid', 'failed', 'frozen', 'released']} />
       <Select name="reconciliationStatus" label="Reconciliation" values={['', 'reconciled', 'pending_data', 'mismatch', 'failed', 'needs_review', 'ignored']} />
-      <label style={{ display: 'grid', gap: 5, color: '#64748b', fontSize: 11, fontWeight: 900 }}>
+      <label style={{ display: 'grid', gap: 5, color: '#64748b', fontSize: 11, fontWeight: 700 }}>
         Campaign
         <select name="campaignId" style={inputStyle}>
           <option value="">All</option>
           {campaigns.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
         </select>
       </label>
-      <button type="submit" style={{ height: 38, border: 0, borderRadius: 10, background: '#6c35ff', color: '#fff', fontWeight: 900 }}>Apply</button>
+      <button type="submit" style={{ height: 38, border: 0, borderRadius: 10, background: '#6c35ff', color: '#fff', fontWeight: 700 }}>Apply</button>
     </form>
   );
 }
 
 function Select({ name, label, values }: { name: string; label: string; values: string[] }) {
   return (
-    <label style={{ display: 'grid', gap: 5, color: '#64748b', fontSize: 11, fontWeight: 900 }}>
+    <label style={{ display: 'grid', gap: 5, color: '#64748b', fontSize: 11, fontWeight: 700 }}>
       {label}
       <select name={name} style={inputStyle}>
         {values.map(v => <option key={v || 'all'} value={v}>{v || 'All'}</option>)}
@@ -71,7 +71,7 @@ const inputStyle = {
   borderRadius: 10,
   padding: '0 10px',
   color: '#111944',
-  fontWeight: 800,
+  fontWeight: 650,
   minWidth: 0,
 } as const;
 
@@ -80,7 +80,7 @@ export function PaymentTable({ rows, baseHref = '/admin/payments/campaign-flows'
     <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
       <div style={{ padding: '16px 18px', borderBottom: '1px solid #edf1f7', display: 'flex', justifyContent: 'space-between' }}>
         <strong>Campaign Payment Ledger</strong>
-        <Link href="/api/admin/payments/export?type=campaign-ledger" style={{ color: '#6c35ff', fontSize: 12, fontWeight: 900, textDecoration: 'none' }}>Export CSV</Link>
+        <Link href="/api/admin/payments/export?type=campaign-ledger" style={{ color: '#6c35ff', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}>Export CSV</Link>
       </div>
       <div className="kf-table-scroll" style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -105,7 +105,7 @@ export function PaymentTable({ rows, baseHref = '/admin/payments/campaign-flows'
                 <td style={td}><Pill value={row.payout_status} /></td>
                 <td style={td}><Pill value={row.reconciliation_status} /></td>
                 <td style={td}>
-                  <Link href={`${baseHref}/${row.campaign_id ?? 'unknown'}/transactions/${row.id}`} style={{ color: '#6c35ff', fontWeight: 900 }}>Open</Link>
+                  <Link href={`${baseHref}/${row.campaign_id ?? 'unknown'}/transactions/${row.id}`} style={{ color: '#6c35ff', fontWeight: 700 }}>Open</Link>
                 </td>
               </tr>
             ))}
@@ -121,8 +121,8 @@ export function PaymentTable({ rows, baseHref = '/admin/payments/campaign-flows'
 
 export function Pill({ value }: { value: string }) {
   const tone = statusTone(value);
-  return <span style={{ display: 'inline-flex', padding: '4px 9px', borderRadius: 999, background: `${tone}16`, color: tone, fontWeight: 900, whiteSpace: 'nowrap' }}>{value}</span>;
+  return <span style={{ display: 'inline-flex', padding: '4px 9px', borderRadius: 999, background: `${tone}16`, color: tone, fontWeight: 700, whiteSpace: 'nowrap' }}>{value}</span>;
 }
 
-const th = { textAlign: 'left', color: '#64748b', fontSize: 11, fontWeight: 900, padding: '10px 12px', whiteSpace: 'nowrap' } as const;
+const th = { textAlign: 'left', color: '#64748b', fontSize: 11, fontWeight: 700, padding: '10px 12px', whiteSpace: 'nowrap' } as const;
 const td = { color: '#111944', padding: '11px 12px', whiteSpace: 'nowrap', verticalAlign: 'middle' } as const;

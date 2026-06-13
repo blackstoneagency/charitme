@@ -109,7 +109,7 @@ export default function NewUpdatePage() {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: 16 }}>
-                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                     Campaign *
                     <select
                       value={campaignId}
@@ -123,7 +123,7 @@ export default function NewUpdatePage() {
                     </select>
                   </label>
 
-                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                     Title <span style={{ color: 'var(--t3)', fontWeight: 400 }}>(optional)</span>
                     <input
                       type="text"
@@ -135,7 +135,7 @@ export default function NewUpdatePage() {
                     />
                   </label>
 
-                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 750, color: '#26335c' }}>
+                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
                     Update *
                     <textarea
                       value={body}
@@ -173,7 +173,7 @@ export default function NewUpdatePage() {
                       style={{
                         height: 48, padding: '0 32px', border: 0, borderRadius: 11,
                         background: saving || !body.trim() ? '#c0b8e8' : 'linear-gradient(135deg,#6c35ff,#551cf2)',
-                        color: '#fff', fontWeight: 950, fontSize: 15, cursor: saving ? 'wait' : 'pointer',
+                        color: '#fff', fontWeight: 700, fontSize: 15, cursor: saving ? 'wait' : 'pointer',
                       }}
                     >
                       {saving ? (scheduleMode ? 'Scheduling…' : 'Posting…') : (scheduleMode ? 'Schedule Update' : 'Post Update')}
@@ -181,7 +181,7 @@ export default function NewUpdatePage() {
                     <button
                       type="button"
                       onClick={() => router.back()}
-                      style={{ height: 48, padding: '0 24px', border: '1px solid #dfe3ee', borderRadius: 11, background: '#fff', fontWeight: 750, fontSize: 14, cursor: 'pointer' }}
+                      style={{ height: 48, padding: '0 24px', border: '1px solid #dfe3ee', borderRadius: 11, background: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
                     >
                       Cancel
                     </button>

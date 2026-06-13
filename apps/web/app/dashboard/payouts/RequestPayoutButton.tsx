@@ -62,7 +62,7 @@ export default function RequestPayoutButton({ campaigns }: Props) {
         onClick={() => setOpen(true)}
         style={{
           background: '#6c35ff', color: '#fff', border: 'none',
-          borderRadius: 10, padding: '10px 20px', fontWeight: 800,
+          borderRadius: 10, padding: '10px 20px', fontWeight: 650,
           fontSize: 14, cursor: 'pointer',
         }}
       >
@@ -80,7 +80,7 @@ export default function RequestPayoutButton({ campaigns }: Props) {
             width: '100%', maxWidth: 480,
             boxShadow: '0 24px 60px rgba(0,0,0,.2)',
           }}>
-            <h2 style={{ margin: '0 0 20px', fontSize: 20, fontWeight: 900, color: 'var(--t1, #1a1a2e)' }}>
+            <h2 style={{ margin: '0 0 20px', fontSize: 20, fontWeight: 700, color: '#1a1a2e' }}>
               Request Payout
             </h2>
 
@@ -141,9 +141,9 @@ export default function RequestPayoutButton({ campaigns }: Props) {
                       <span style={{ fontWeight: 700, color: '#f59e0b' }}>−{fmt(estFee)}</span>
                     </div>
                   )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--b1, #e8ecf4)', paddingTop: 6, marginTop: 4 }}>
-                    <span style={{ fontWeight: 800, color: 'var(--t1, #1a1a2e)' }}>You receive</span>
-                    <span style={{ fontWeight: 900, color: '#19b86a', fontSize: 15 }}>{fmt(estNet)}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e8ecf4', paddingTop: 6, marginTop: 4 }}>
+                    <span style={{ fontWeight: 650, color: '#1a1a2e' }}>You receive</span>
+                    <span style={{ fontWeight: 700, color: '#19b86a', fontSize: 15 }}>{fmt(estNet)}</span>
                   </div>
                 </div>
               )}
@@ -185,7 +185,7 @@ export default function RequestPayoutButton({ campaigns }: Props) {
                 <button
                   type="submit"
                   disabled={loading || !campaignId}
-                  style={{ flex: 2, padding: '11px 0', borderRadius: 10, border: 'none', background: '#6c35ff', color: '#fff', fontWeight: 800, fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
+                  style={{ flex: 2, padding: '11px 0', borderRadius: 10, border: 'none', background: '#6c35ff', color: '#fff', fontWeight: 650, fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
                 >
                   {loading ? 'Requesting…' : 'Request Payout'}
                 </button>

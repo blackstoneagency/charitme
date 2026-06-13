@@ -25,6 +25,7 @@ import CommentsList, { type WallComment } from './CommentsList';
 import SaveCampaignButton from './SaveCampaignButton';
 import CampaignAssistant from './CampaignAssistant';
 import { getPhotosForCategory, getCoverForCategory } from '../../../lib/photo-catalog';
+import { optimizeAsks, computeImpact } from '../../../lib/donation-optimizer';
 
 export const dynamic = 'force-dynamic';
 
@@ -377,6 +378,16 @@ export default async function CampaignPage({ params, searchParams }: Props) {
       ? rawImageUrls
       : getPhotosForCategory(campaign.category, 4);
 
+  // AI Donation Optimizer — campaign-tuned ask amounts + impact projection
+  const campaignStats = {
+    goalCents: goal,
+    raisedCents: raised,
+    backerCount: campaign.backer_count ?? donations.length,
+    createdAt: campaign.created_at as string,
+  };
+  const asks = optimizeAsks(campaignStats);
+  const impact = computeImpact(campaignStats);
+
   // Arc SVG for Impact Tracker donut
   const arcPct = Math.max(5, pct);
   const r = 52;
@@ -422,12 +433,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span className="pc-verified">✓ Verified Campaign</span>
           {campaign.category && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: 'var(--s2, #f0eaff)', color: 'var(--violet)', fontSize: 12, fontWeight: 800, letterSpacing: '.04em' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: '#f0eaff', color: 'var(--violet)', fontSize: 12, fontWeight: 650, letterSpacing: '.04em' }}>
               {campaign.category}
             </span>
           )}
           {(campaign as { nonprofit_verified?: boolean }).nonprofit_verified && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: 'rgba(22,163,74,.12)', color: 'var(--green-dark, #15803d)', fontSize: 12, fontWeight: 800 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: '#dcfce7', color: '#15803d', fontSize: 12, fontWeight: 650 }}>
               Tax Deductible
             </span>
           )}
@@ -441,12 +452,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
         {/* Organizer row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,var(--violet),var(--violet-2))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 15, flexShrink: 0 }}>
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,var(--violet),var(--violet-2))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 15, flexShrink: 0 }}>
             {(organizer.full_name ?? 'C')[0]}
           </div>
           <p className="pc-organizer" style={{ margin: 0 }}>
-            Organized by <b style={{ color: 'var(--ink)', fontWeight: 800 }}>{organizer.full_name ?? 'CharitMe Organizer'}</b>
-            {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(22,163,74,.12)', color: 'var(--green-dark, #15803d)', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 800 }}>✓ Verified</span>
+            Organized by <b style={{ color: 'var(--ink)', fontWeight: 650 }}>{organizer.full_name ?? 'CharitMe Organizer'}</b>
+            {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: '#dcfce7', color: '#15803d', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 650 }}>✓ Verified</span>
             {' '}· {campaign.location ?? 'New York, USA'}
           </p>
         </div>
@@ -474,7 +485,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
               </svg>
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--t1)' }}>CharitMe Score</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>CharitMe Score</div>
               <div style={{ fontSize: 11, fontWeight: 700, color: trustScore >= 70 ? '#059669' : trustScore >= 45 ? '#d97706' : '#dc2626' }}>
                 {trustScore >= 70 ? 'Strong Trust' : trustScore >= 45 ? 'Needs Attention' : 'Needs Review'}
               </div>
@@ -493,11 +504,11 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             const icon   = isVerified ? '✓' : isWatch ? '⚠' : '○';
             return (
               <div key={signal.label} className="pc-trust-signal" title={signal.detail}>
-                <span style={{ width: 28, height: 28, borderRadius: '50%', background: bg, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, flexShrink: 0 }}>
+                <span style={{ width: 28, height: 28, borderRadius: '50%', background: bg, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
                   {icon}
                 </span>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t1)', whiteSpace: 'nowrap' }}>{signal.label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 650, color: 'var(--t1)', whiteSpace: 'nowrap' }}>{signal.label}</div>
                   <div style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{signal.state}</div>
                 </div>
               </div>
@@ -561,12 +572,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
             {/* Donate + Share buttons inline */}
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-              <a href="#donate-section" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, background: 'linear-gradient(135deg,var(--violet),var(--violet-2))', color: '#fff', fontWeight: 900, fontSize: 15, textDecoration: 'none' }}>
+              <a href="#donate-section" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, background: 'linear-gradient(135deg,var(--violet),var(--violet-2))', color: '#fff', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
                 Donate
               </a>
               <a
                 href="#quick-share"
-                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, border: '1.5px solid var(--b2)', color: 'var(--t1)', fontWeight: 800, fontSize: 15, textDecoration: 'none', background: 'var(--s1, #fff)', gap: 6 }}
+                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, border: '1.5px solid var(--b2)', color: 'var(--t1)', fontWeight: 650, fontSize: 15, textDecoration: 'none', background: '#fff', gap: 6 }}
               >
                 Share
               </a>
@@ -630,7 +641,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
             {/* "Boost by giving monthly" nudge */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--t2)' }}>Boost your impact by giving monthly 🌱</span>
+              <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--t2)' }}>Boost your impact by giving monthly 🌱</span>
             </div>
 
             <strong className="pc-raised">{formatMoneyShort(raised, currency)}</strong>
@@ -644,7 +655,15 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             <Milestones milestones={milestones} raisedCents={raised} currency={currency} />
 
             {isActive && payoutReady ? (
-              <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} utm={utm} rewards={rewards} currency={currency} />
+              <DonateButton
+                campaignId={campaign.id}
+                campaignTitle={campaign.title}
+                utm={utm}
+                rewards={rewards}
+                currency={currency}
+                smartPresets={asks.presets}
+                recommendedAmount={asks.recommended}
+              />
             ) : isActive && !payoutReady ? (
               <div className="pc-ended">
                 💜 Donations open soon — secure payout setup is being completed so 100% of every
@@ -684,15 +703,15 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           <h2>Campaign created with AI</h2>
           <p>CharitMe helps organizers tell their story, reach more people, and maximize impact while keeping trust and transparency visible.</p>
           <ul>
-            <li><Link href="/features" style={{ color: 'var(--violet, #4d31c9)', textDecoration: 'none', fontWeight: 850 }}>AI story assistant</Link></li>
-            <li><Link href="/features" style={{ color: 'var(--violet, #4d31c9)', textDecoration: 'none', fontWeight: 850 }}>AI outreach plan</Link></li>
-            <li><Link href="/features" style={{ color: 'var(--violet, #4d31c9)', textDecoration: 'none', fontWeight: 850 }}>AI growth strategy</Link></li>
+            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 650 }}>AI story assistant</Link></li>
+            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 650 }}>AI outreach plan</Link></li>
+            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 650 }}>AI growth strategy</Link></li>
           </ul>
         </article>
 
         {/* Impact Tracker */}
         <div className="pc-impact-card">
-          <h2 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 900, letterSpacing: '-.02em' }}>Impact Tracker</h2>
+          <h2 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 800, letterSpacing: '-.02em' }}>Impact Tracker</h2>
           <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--t3)', lineHeight: 1.5 }}>Your generosity is making a difference</p>
           <div className="pc-impact-donut">
             <svg width="130" height="130" viewBox="0 0 130 130" aria-hidden="true">
@@ -704,6 +723,31 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             <p style={{ margin: 0, fontSize: 13, textAlign: 'center', color: 'var(--t2)', fontWeight: 700 }}>
               {formatMoneyShort(raised, currency)} raised of {formatMoneyShort(goal, currency)}
             </p>
+          </div>
+
+          {/* AI Impact Engine — momentum + projection */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '12px 0 0', padding: '12px 14px', background: 'rgba(108,53,255,.05)', border: '1px solid rgba(108,53,255,.12)', borderRadius: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
+              <span style={{ fontWeight: 700 }}>Momentum</span>
+              <span style={{ fontWeight: 700, color: impact.momentum === 'surging' ? '#059669' : impact.momentum === 'steady' ? '#6c35ff' : 'var(--t3)' }}>
+                {impact.momentum === 'surging' ? '🔥 Surging' : impact.momentum === 'steady' ? '📈 Steady' : '🌱 Just started'}
+              </span>
+            </div>
+            {impact.dailyVelocityCents >= 100 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
+                <span style={{ fontWeight: 700 }}>Raising per day</span>
+                <span style={{ fontWeight: 700, color: 'var(--t1)' }}>~{formatMoneyShort(impact.dailyVelocityCents, currency)}</span>
+              </div>
+            )}
+            {impact.projectedDaysToGoal !== null && impact.projectedDaysToGoal > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
+                <span style={{ fontWeight: 700 }}>On pace to hit goal in</span>
+                <span style={{ fontWeight: 700, color: '#059669' }}>~{impact.projectedDaysToGoal} day{impact.projectedDaysToGoal === 1 ? '' : 's'}</span>
+              </div>
+            )}
+            {impact.projectedDaysToGoal === 0 && (
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: '#059669', textAlign: 'center' }}>🎉 Goal reached!</div>
+            )}
           </div>
           {updates.length > 0 ? (
             <div style={{ display: 'grid', gap: 14, marginTop: 8 }}>
@@ -751,7 +795,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
       {/* ── Similar campaigns ── */}
       {similarCampaigns.length > 0 && (
         <section style={{ maxWidth: 1100, margin: '0 auto 40px', padding: '0 24px' }}>
-          <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 16, color: 'var(--t1, #1a1a2e)' }}>
+          <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16, color: 'var(--t1, #1a1a2e)' }}>
             Similar Campaigns
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 14 }}>
@@ -793,7 +837,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
       <section style={{ maxWidth: 800, margin: '0 auto 40px', padding: '0 24px' }}>
         {faqs.length > 0 && (
           <>
-            <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 16, color: 'var(--t1, #1a1a2e)' }}>
+            <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16, color: 'var(--t1, #1a1a2e)' }}>
               Frequently Asked Questions
             </h2>
             <div style={{ display: 'grid', gap: 8 }}>

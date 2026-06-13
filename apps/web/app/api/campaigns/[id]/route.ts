@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
+import { canManageCampaign } from '../../../../lib/auth';
 
 const VALID_STATUSES = ['draft', 'active', 'paused', 'completed', 'frozen', 'archived'] as const;
 
@@ -25,14 +26,14 @@ const UpdateSchema = z.object({
   goalHistory:             z.any().optional(),
 });
 
-async function verifyOwnership(campaignId: string, userId: string) {
+async function verifyOwnership(campaignId: string, user: { id: string; email?: string | null }) {
   const { data } = await supabaseAdmin
     .from('campaigns')
     .select('id, user_id, status, goal_amount')
     .eq('id', campaignId)
     .single();
   if (!data) return { ok: false, error: 'Campaign not found', status: 404 };
-  if (data.user_id !== userId) return { ok: false, error: 'Forbidden', status: 403 };
+  if (!(await canManageCampaign(user, data.user_id))) return { ok: false, error: 'Forbidden', status: 403 };
   return { ok: true, campaign: data };
 }
 
@@ -43,7 +44,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const check = await verifyOwnership(id, user.id);
+  const check = await verifyOwnership(id, user);
   if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
 
   const body = await request.json().catch(() => null);
@@ -118,7 +119,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const check = await verifyOwnership(id, user.id);
+  const check = await verifyOwnership(id, user);
   if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
 
   const campaign = check.campaign!;
@@ -172,13 +173,15 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
   const { data, error } = await supabaseAdmin
     .from('campaigns')
-    .select('id, slug, title, tagline, description, status, visibility, accept_donations, goal_amount, raised_amount, backer_count, cover_image_url, category, deadline, location, video_url, beneficiary_name, beneficiary_relationship, created_at, updated_at')
+    .select('id, user_id, slug, title, tagline, description, status, visibility, accept_donations, goal_amount, raised_amount, backer_count, cover_image_url, category, deadline, location, video_url, beneficiary_name, beneficiary_relationship, created_at, updated_at')
     .eq('id', id)
-    .eq('user_id', user.id)
     .is('deleted_at', null)
     .single();
 
   if (error || !data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!(await canManageCampaign(user, data.user_id))) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
 
   return NextResponse.json(data);
 }

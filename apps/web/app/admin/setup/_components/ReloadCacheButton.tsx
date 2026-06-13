@@ -35,7 +35,7 @@ export default function ReloadCacheButton() {
     display: 'inline-flex', alignItems: 'center', gap: 8,
     padding: '12px 24px', border: 0, borderRadius: 10,
     background: state === 'loading' ? '#64748b' : '#1a1a2e',
-    color: '#fff', fontSize: 14, fontWeight: 800,
+    color: '#fff', fontSize: 14, fontWeight: 650,
     cursor: state === 'loading' ? 'wait' : 'pointer',
     transition: 'opacity .15s',
   };

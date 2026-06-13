@@ -134,7 +134,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
     <div className="container" style={{ padding: '40px 24px' }}>
       <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px' }}>Browse trusted campaigns</h1>
+          <h1 style={{ fontSize: '28px', fontWeight: 650, marginBottom: '8px' }}>Browse trusted campaigns</h1>
           <p style={{ color: 'var(--t3)', fontSize: '15px' }}>
             Support causes with AI trust scores, transparent goals, and real-time verification.
           </p>
@@ -266,7 +266,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
                         { label: 'Goal', value: formatCents(c.goal_amount, currency) },
                       ].map((signal) => (
                         <div key={signal.label} style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '8px' }}>
-                          <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--t1)' }}>{signal.value}</div>
+                          <div style={{ fontSize: '12px', fontWeight: 650, color: 'var(--t1)' }}>{signal.value}</div>
                           <div style={{ fontSize: '10px', color: 'var(--t4)', marginTop: '1px' }}>{signal.label}</div>
                         </div>
                       ))}
