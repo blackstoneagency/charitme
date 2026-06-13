@@ -69,12 +69,16 @@ async function fetchShellUser(): Promise<ShellUser> {
       : roles.includes('moderator') ? 'Moderator'
       : 'Organizer';
 
+    // Fall back to the auth session's user_metadata (as the public AppShell
+    // header does) so the signed-in name/avatar are consistent everywhere.
+    const meta = (user.user_metadata ?? {}) as { full_name?: string; name?: string; avatar_url?: string; picture?: string };
+
     return {
       id: user.id,
-      name: profile?.full_name ?? null,
+      name: profile?.full_name ?? meta.full_name ?? meta.name ?? null,
       email: user.email ?? '',
       role,
-      avatarUrl: profile?.avatar_url ?? null,
+      avatarUrl: profile?.avatar_url ?? meta.avatar_url ?? meta.picture ?? null,
       hasAdminAccess,
     };
   } catch {

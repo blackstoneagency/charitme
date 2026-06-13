@@ -72,8 +72,8 @@ img, svg { display: block; }
   border-radius: 12px 12px 4px 12px;
   transform: rotate(45deg);
 }
-.kind-logo i { left: 2px; background: linear-gradient(135deg, #7c55ff, #be6bff); }
-.kind-logo b { right: 2px; background: linear-gradient(135deg, #b84aff, #6d35ff); opacity: .9; }
+.kind-logo i { left: 2px; background: #7c55ff; }
+.kind-logo b { right: 2px; background: #7c55ff; }
 .kind-logo strong { font-size: 22px; letter-spacing: -.02em; color: #111331; line-height: 1; }
 .kind-header nav { display: flex; align-items: center; gap: 20px; flex: 1; min-width: 0; }
 .kind-header nav a { display: inline-flex; align-items: center; gap: 5px; color: #121838; font-size: 13px; font-weight: 700; white-space: nowrap; }
@@ -813,8 +813,8 @@ img, svg { display: block; }
 .kf-logo { display: flex; align-items: center; gap: 12px; }
 .kf-logo > span { position: relative; width: 36px; height: 31px; display: block; }
 .kf-logo i, .kf-logo b { position: absolute; top: 3px; width: 22px; height: 22px; border-radius: 14px 14px 5px 14px; transform: rotate(45deg); }
-.kf-logo i { left: 2px; background: linear-gradient(135deg, #7c55ff, #be6bff); }
-.kf-logo b { right: 2px; background: linear-gradient(135deg, #b84aff, #6d35ff); opacity: .9; }
+.kf-logo i { left: 2px; background: #7c55ff; }
+.kf-logo b { right: 2px; background: #7c55ff; }
 .kf-logo strong { display: block; color: #0b1037; font-size: 30px; line-height: 1; letter-spacing: -.04em; }
 .kf-logo small { display: block; margin-top: 6px; color: #4b5676; font-size: 11px; font-weight: 700; }
 .kf-create {
