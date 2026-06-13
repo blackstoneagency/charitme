@@ -50,6 +50,8 @@ import {
   mapChicagoFiling,
   NORFOLK_DATASET_URL,
   mapNorfolkFiling,
+  WA_DATASET_URL,
+  mapWashingtonFiling,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
@@ -59,6 +61,7 @@ import {
   type SfFilingRow,
   type ChicagoFilingRow,
   type NorfolkFilingRow,
+  type WaFilingRow,
   type StateFeedCode,
 } from './state-filings';
 
@@ -492,6 +495,39 @@ export async function fetchVirginiaFilings(dateFrom?: string, dateTo?: string, l
   }
 }
 
+// WA Dept. of Labor & Industries "Contractor License Data - General" — free,
+// no API key. Used as a proxy for new WA business activity since WA's
+// Secretary of State doesn't publish a free open-data feed of new entity
+// formations. Filtered to ACTIVE, WA-addressed contractor licenses that
+// became newly effective in the requested date range.
+export async function fetchWashingtonFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const clauses = ["state='WA'", "contractorlicensestatus='ACTIVE'", 'licenseeffectivedate IS NOT NULL'];
+    if (dateFrom) clauses.push(`licenseeffectivedate >= '${dateFrom}T00:00:00'`);
+    if (dateTo) clauses.push(`licenseeffectivedate <= '${dateTo}T23:59:59'`);
+
+    const params = new URLSearchParams({
+      $where: clauses.join(' AND '),
+      $order: 'licenseeffectivedate DESC',
+      $limit: String(limit),
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${WA_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const rows = await res.json() as WaFilingRow[];
+    return rows.map(mapWashingtonFiling).filter((f) => f.business_name);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
 export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
   CO: fetchColoradoFilings,
@@ -503,6 +539,7 @@ export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: 
   CA: fetchCaliforniaFilings,
   IL: fetchIllinoisFilings,
   VA: fetchVirginiaFilings,
+  WA: fetchWashingtonFilings,
 };
 
 // ── Normalize + score raw filings, then dedupe/insert into business_leads ────

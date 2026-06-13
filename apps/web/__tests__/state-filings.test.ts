@@ -10,6 +10,7 @@ import {
   mapSanFranciscoFiling,
   mapChicagoFiling,
   mapNorfolkFiling,
+  mapWashingtonFiling,
   parseFlCorLine,
   parseFlDate,
   titleCaseBusinessName,
@@ -31,6 +32,7 @@ import {
   type SfFilingRow,
   type ChicagoFilingRow,
   type NorfolkFilingRow,
+  type WaFilingRow,
 } from '../lib/state-filings';
 
 // Builds a fixed-width Sunbiz cor.txt record by placing fields at the
@@ -722,8 +724,68 @@ describe('mapNorfolkFiling', () => {
   });
 });
 
+describe('mapWashingtonFiling', () => {
+  const baseRow: WaFilingRow = {
+    contractorlicensenumber: 'DJCONCL744LE',
+    businessname: 'D&J CONCRETE LLC',
+    businesstypecodedesc: 'Limited Liability Company',
+    primaryprincipalname: 'ROJAS RAMIREZ, DAVID',
+    address1: '1035 S 5TH AVE',
+    city: 'PASCO',
+    state: 'WA',
+    zip: '99301',
+    phonenumber: '5097922741',
+    licenseeffectivedate: '2026-06-15T00:00:00.000',
+    specialtycode1desc: 'CONCRETE',
+    contractorlicensestatus: 'ACTIVE',
+  };
+
+  it('maps a newly-effective LLC contractor license to an "ACTIVE" WA lead with phone and owner name', () => {
+    const lead = mapWashingtonFiling(baseRow);
+    expect(lead.business_name).toBe('D&j Concrete LLC');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('WA');
+    expect(lead.filing_date).toBe('2026-06-15');
+    expect(lead.filing_status).toBe('ACTIVE');
+    expect(lead.owner_name).toBe('David Rojas Ramirez');
+    expect(lead.address).toBe('1035 S 5TH AVE, Pasco, WA 99301');
+    expect(lead.industry).toBe('CONCRETE');
+    expect(lead.phone).toBe('5097922741');
+    expect(lead.source_ref).toBe('wa-li:DJCONCL744LE');
+  });
+
+  it('maps an "Individual" contractor to a lead with no entity_type and the principal as owner_name', () => {
+    const lead = mapWashingtonFiling({
+      ...baseRow,
+      contractorlicensenumber: 'RIDGEWW742LK',
+      businessname: 'RIDGEFIELD WINDOW WASHING',
+      businesstypecodedesc: 'Individual',
+      primaryprincipalname: 'MARSHALL, JACOB MACKENZIE',
+    });
+    expect(lead.business_name).toBe('Ridgefield Window Washing');
+    expect(lead.entity_type).toBeNull();
+    expect(lead.owner_name).toBe('Jacob Mackenzie Marshall');
+  });
+
+  it('maps a Limited Liability Partnership to "LLP" without misclassifying it as "LLC"', () => {
+    const lead = mapWashingtonFiling({ ...baseRow, businesstypecodedesc: 'Limited Liability Partnership' });
+    expect(lead.entity_type).toBe('LLP');
+  });
+
+  it('handles missing fields gracefully', () => {
+    const lead = mapWashingtonFiling({ businessname: 'BARE CONTRACTOR' });
+    expect(lead.entity_type).toBeNull();
+    expect(lead.owner_name).toBeNull();
+    expect(lead.address).toBeNull();
+    expect(lead.industry).toBeNull();
+    expect(lead.phone).toBeNull();
+    expect(lead.filing_date).toBeNull();
+    expect(lead.source_ref).toBeUndefined();
+  });
+});
+
 describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES / PA_NEW_ENTITY_TYPES / CT_NEW_ENTITY_TYPES / TX_NEW_ENTITY_TYPES', () => {
-  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, Illinois, and Virginia feeds with labels', () => {
+  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, Illinois, Virginia, and Washington feeds with labels', () => {
     expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
     expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
     expect(STATE_FEED_SOURCES.FL.label).toMatch(/Florida/);
@@ -734,6 +796,7 @@ describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / F
     expect(STATE_FEED_SOURCES.CA.label).toMatch(/California/);
     expect(STATE_FEED_SOURCES.IL.label).toMatch(/Illinois/);
     expect(STATE_FEED_SOURCES.VA.label).toMatch(/Virginia/);
+    expect(STATE_FEED_SOURCES.WA.label).toMatch(/Washington/);
   });
 
   it('targets only brand-new entity formation document/filing/entity types', () => {

@@ -772,6 +772,76 @@ export function mapNorfolkFiling(row: NorfolkFilingRow): StateFilingLead {
   };
 }
 
+// ── Washington — Dept. of Labor & Industries "Contractor License Data" ──────
+// https://data.wa.gov/resource/m8qx-ubtq.json — free, no API key, updated
+// daily. WA's Secretary of State doesn't publish a free open-data feed of new
+// entity formations, so newly-effective contractor licenses from L&I are used
+// as a proxy for new WA business activity. Uniquely among these feeds, L&I
+// publishes the business's direct phone number (`phonenumber`) and the
+// responsible individual's name in "LAST, FIRST" format
+// (`primaryprincipalname`, normalized via the shared `norfolkOwnerName()`).
+
+export const WA_DATASET_URL = 'https://data.wa.gov/resource/m8qx-ubtq.json';
+
+// `businesstypecodedesc` values that map cleanly to canonical entity types.
+// "Individual" (sole proprietor — no registered entity) maps to null so the
+// principal's name is captured via `owner_name` instead of `entity_type`.
+const WA_ENTITY_TYPE_LABELS: Record<string, string | null> = {
+  'Limited Liability Company': 'LLC',
+  'Limited Liability Partnership': 'LLP',
+  Corporation: 'Corporation',
+  Partnership: 'Partnership',
+  Individual: null,
+};
+
+export interface WaFilingRow {
+  contractorlicensenumber?: string;
+  businessname?: string;
+  businesstypecodedesc?: string;
+  primaryprincipalname?: string;
+  address1?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  phonenumber?: string;
+  licenseeffectivedate?: string;
+  specialtycode1desc?: string;
+  contractorlicensestatus?: string;
+}
+
+function waEntityType(desc: string | undefined): string | null {
+  if (!desc) return null;
+  if (desc in WA_ENTITY_TYPE_LABELS) {
+    const label = WA_ENTITY_TYPE_LABELS[desc];
+    return label ? normalizeEntityType(label) : null;
+  }
+  return normalizeEntityType(desc);
+}
+
+function waAddress(row: WaFilingRow): string | null {
+  const stateZip = [row.state?.trim(), row.zip?.trim()].filter(Boolean).join(' ');
+  const street = [row.address1?.trim(), row.address2?.trim()].filter(Boolean).join(' ');
+  const city = row.city ? maybeTitleCase(row.city.trim()) : null;
+  const parts = [street || null, city, stateZip || null].filter(Boolean);
+  return parts.length ? parts.join(', ') : null;
+}
+
+export function mapWashingtonFiling(row: WaFilingRow): StateFilingLead {
+  return {
+    business_name: maybeTitleCase(row.businessname ?? ''),
+    entity_type: waEntityType(row.businesstypecodedesc),
+    state: 'WA',
+    filing_date: row.licenseeffectivedate ? row.licenseeffectivedate.slice(0, 10) : null,
+    filing_status: row.contractorlicensestatus ?? null,
+    owner_name: row.primaryprincipalname ? norfolkOwnerName(row.primaryprincipalname) : null,
+    address: waAddress(row),
+    industry: row.specialtycode1desc ?? null,
+    phone: row.phonenumber ?? null,
+    source_ref: row.contractorlicensenumber ? `wa-li:${row.contractorlicensenumber}` : undefined,
+  };
+}
+
 // ── Registry of available free state feeds ──────────────────────────────────
 // Single source of truth for both server-side validation (ingest route) and
 // the admin UI's state picker. Add an entry here + a fetch+map implementation
@@ -817,6 +887,10 @@ export const STATE_FEED_SOURCES = {
   VA: {
     label: 'Virginia — Norfolk Business Licenses',
     description: 'Newly-opened businesses from the City of Norfolk’s business license open dataset, used as a proxy for new VA business activity — includes the owner’s first and last name for sole proprietorships. Free, no API key, updated daily.',
+  },
+  WA: {
+    label: 'Washington — L&I Contractor Licenses',
+    description: 'Newly-effective contractor licenses from the WA Dept. of Labor & Industries open dataset, used as a proxy for new WA business activity — uniquely includes the business’s direct phone number and the responsible individual’s first and last name. Free, no API key, updated daily.',
   },
 } as const;
 

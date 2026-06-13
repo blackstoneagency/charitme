@@ -9,7 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
-import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling, mapNorfolkFiling } from '../../../../../lib/state-filings';
+import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling, mapNorfolkFiling, mapWashingtonFiling } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,6 +48,9 @@ type Check = { name: string; ok: boolean; detail: string };
 //  18. the free VA (Norfolk) state-registry connector maps a newly-opened
 //      business row to a VA lead, including "LAST, FIRST" sole-proprietor
 //      owner-name normalization, correctly.
+//  19. the free WA (L&I Contractor Licenses) state-registry connector maps a
+//      newly-effective license row to a WA lead, including the direct phone
+//      number and "LAST, FIRST" principal-name normalization, correctly.
 //
 // Returns 200 only when every check passes, so it can be wired to uptime
 // monitors or run manually from the admin UI.
@@ -387,6 +390,29 @@ export async function GET() {
     name: 'va_state_feed',
     ok: vaLead.business_name === 'Jgb Construction' && vaLead.entity_type === null && vaLead.state === 'VA' && vaLead.filing_date === '2026-06-06' && vaLead.owner_name === 'Jessie Brant',
     detail: `mapped "${vaLead.business_name}" (${vaLead.entity_type}, ${vaLead.state}, filed ${vaLead.filing_date}, owner ${vaLead.owner_name})`,
+  });
+
+  // 19. WA (L&I Contractor Licenses) state-registry connector — a
+  // newly-effective LLC contractor-license row should map to a WA lead with
+  // the direct phone number and "LAST, FIRST" principal name normalized.
+  const waLead = mapWashingtonFiling({
+    contractorlicensenumber: 'DJCONCL744LE',
+    businessname: 'D&J CONCRETE LLC',
+    businesstypecodedesc: 'Limited Liability Company',
+    primaryprincipalname: 'ROJAS RAMIREZ, DAVID',
+    address1: '1035 S 5TH AVE',
+    city: 'PASCO',
+    state: 'WA',
+    zip: '99301',
+    phonenumber: '5097922741',
+    licenseeffectivedate: '2026-06-15T00:00:00.000',
+    specialtycode1desc: 'CONCRETE',
+    contractorlicensestatus: 'ACTIVE',
+  });
+  checks.push({
+    name: 'wa_state_feed',
+    ok: waLead.business_name === 'D&j Concrete LLC' && waLead.entity_type === 'LLC' && waLead.state === 'WA' && waLead.filing_date === '2026-06-15' && waLead.owner_name === 'David Rojas Ramirez' && waLead.phone === '5097922741',
+    detail: `mapped "${waLead.business_name}" (${waLead.entity_type}, ${waLead.state}, filed ${waLead.filing_date}, owner ${waLead.owner_name}, phone ${waLead.phone})`,
   });
 
   const ok = checks.every((c) => c.ok);
