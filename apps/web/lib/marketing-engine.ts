@@ -113,6 +113,7 @@ export async function trackEvent(args: {
   contactId?: string | null;
   eventType: string;
   campaignId?: string;
+  marketingCampaignId?: string;
   amountCents?: number;
   utmSource?: string; utmMedium?: string; utmCampaign?: string;
   url?: string;
@@ -122,6 +123,7 @@ export async function trackEvent(args: {
     contact_id: args.contactId ?? null,
     event_type: args.eventType,
     campaign_id: args.campaignId ?? null,
+    marketing_campaign_id: args.marketingCampaignId ?? null,
     amount_cents: args.amountCents ?? null,
     utm_source: args.utmSource ?? null,
     utm_medium: args.utmMedium ?? null,
