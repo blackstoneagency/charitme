@@ -630,6 +630,74 @@ export function mapSanFranciscoFiling(row: SfFilingRow): StateFilingLead {
   };
 }
 
+// ── Illinois (Chicago) — "Business Licenses" ─────────────────────────────────
+// https://data.cityofchicago.org/resource/r5kz-chrr.json — free, no API key,
+// updated daily. Illinois' Secretary of State does not publish a free
+// open-data feed of new entity filings, so newly-issued City of Chicago
+// "Limited Business License" records (license_code 1010, application_type
+// ISSUE — the base license every Chicago business needs) are used as an IL
+// proxy. `legal_name` is either a registered entity (LLC/Corp/etc — detected
+// via suffix) or an individual's name (sole proprietor), mirroring the SF
+// pattern so both `entity_type` and `owner_name` can be populated.
+
+export const CHI_DATASET_URL = 'https://data.cityofchicago.org/resource/r5kz-chrr.json';
+
+// Base general business license — every Chicago business needs one, making
+// a newly-ISSUEd record here a strong signal of new local business activity.
+export const CHI_LICENSE_CODE = '1010';
+
+export interface ChicagoFilingRow {
+  license_id?: string;
+  legal_name?: string;
+  doing_business_as_name?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+  business_activity?: string;
+  date_issued?: string;
+}
+
+// Detects a registered-entity suffix on `legal_name` (e.g. "MY PERFUME HOUSE
+// LLC", "C.D. CITY, INC."). Returns null when the name looks like an
+// individual's (sole proprietor), e.g. "VIKTORIA BROWN".
+function chicagoEntityType(legalName: string): string | null {
+  const name = legalName.trim();
+  if (!name) return null;
+  const lower = name.toLowerCase();
+  if (lower.includes('limited liability company') || /\bl\.?\s?l\.?\s?c\.?$/.test(lower)) return 'LLC';
+  if (lower.includes('limited liability partnership') || /\bl\.?\s?l\.?\s?p\.?$/.test(lower)) return 'LLP';
+  if (lower.includes('limited partnership') || /\bl\.?\s?p\.?$/.test(lower)) return 'Limited Partnership';
+  if (/\b(?:incorporated|inc|corp(?:oration)?)\.?$/.test(lower)) return 'Corporation';
+  if (/\bp\.?c\.?$/.test(lower)) return 'Professional Corporation';
+  return null;
+}
+
+function chicagoAddress(row: ChicagoFilingRow): string | null {
+  const stateZip = [row.state?.trim(), row.zip_code?.trim()].filter(Boolean).join(' ');
+  const street = row.address?.trim();
+  const city = row.city ? maybeTitleCase(row.city.trim()) : null;
+  const parts = [street || null, city, stateZip || null].filter(Boolean);
+  return parts.length ? parts.join(', ') : null;
+}
+
+export function mapChicagoFiling(row: ChicagoFilingRow): StateFilingLead {
+  const legalName = (row.legal_name ?? '').trim();
+  const dba = (row.doing_business_as_name ?? '').trim();
+  const entityType = chicagoEntityType(legalName);
+  return {
+    business_name: maybeTitleCase(dba || legalName),
+    entity_type: entityType,
+    state: 'IL',
+    filing_date: row.date_issued ? row.date_issued.slice(0, 10) : null,
+    filing_status: 'Active',
+    owner_name: entityType ? null : (maybeTitleCase(legalName) || null),
+    address: chicagoAddress(row),
+    industry: row.business_activity ? row.business_activity.split('|')[0].trim() : null,
+    source_ref: row.license_id ? `chicago-bl:${row.license_id}` : undefined,
+  };
+}
+
 // ── Registry of available free state feeds ──────────────────────────────────
 // Single source of truth for both server-side validation (ingest route) and
 // the admin UI's state picker. Add an entry here + a fetch+map implementation
@@ -667,6 +735,10 @@ export const STATE_FEED_SOURCES = {
   CA: {
     label: 'California — San Francisco Registered Businesses',
     description: 'Newly-registered business locations from San Francisco’s business tax certificate open dataset, used as a proxy for new CA business activity — includes the owner’s first and last name for sole proprietorships. Free, no API key, updated daily.',
+  },
+  IL: {
+    label: 'Illinois — City of Chicago Business Licenses',
+    description: 'Newly-issued Limited Business Licenses (the base license every Chicago business needs) from Chicago’s open data portal, used as a proxy for new IL business activity — includes the owner’s first and last name for sole proprietorships. Free, no API key, updated daily.',
   },
 } as const;
 

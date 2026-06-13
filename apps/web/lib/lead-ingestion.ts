@@ -45,6 +45,9 @@ import {
   mapTexasFiling,
   SF_DATASET_URL,
   mapSanFranciscoFiling,
+  CHI_DATASET_URL,
+  CHI_LICENSE_CODE,
+  mapChicagoFiling,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
@@ -52,6 +55,7 @@ import {
   type CtFilingRow,
   type TxFilingRow,
   type SfFilingRow,
+  type ChicagoFilingRow,
   type StateFeedCode,
 } from './state-filings';
 
@@ -421,6 +425,38 @@ export async function fetchCaliforniaFilings(dateFrom?: string, dateTo?: string,
   }
 }
 
+// City of Chicago "Business Licenses" — free, no API key. Used as a proxy for
+// new IL business activity since IL's Secretary of State doesn't publish a
+// free open-data feed of new entity filings. Filtered to newly-ISSUEd base
+// "Limited Business License" (1010) records in the requested date range.
+export async function fetchIllinoisFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const clauses = [`license_code='${CHI_LICENSE_CODE}'`, "application_type='ISSUE'"];
+    if (dateFrom) clauses.push(`date_issued >= '${dateFrom}T00:00:00'`);
+    if (dateTo) clauses.push(`date_issued <= '${dateTo}T23:59:59'`);
+
+    const params = new URLSearchParams({
+      $where: clauses.join(' AND '),
+      $order: 'date_issued DESC',
+      $limit: String(limit),
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${CHI_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const rows = await res.json() as ChicagoFilingRow[];
+    return rows.map(mapChicagoFiling).filter((f) => f.business_name);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
 export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
   CO: fetchColoradoFilings,
@@ -430,6 +466,7 @@ export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: 
   CT: fetchConnecticutFilings,
   TX: fetchTexasFilings,
   CA: fetchCaliforniaFilings,
+  IL: fetchIllinoisFilings,
 };
 
 // ── Normalize + score raw filings, then dedupe/insert into business_leads ────

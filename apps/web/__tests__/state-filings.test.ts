@@ -8,6 +8,7 @@ import {
   mapConnecticutFiling,
   mapTexasFiling,
   mapSanFranciscoFiling,
+  mapChicagoFiling,
   parseFlCorLine,
   parseFlDate,
   titleCaseBusinessName,
@@ -27,6 +28,7 @@ import {
   type CtFilingRow,
   type TxFilingRow,
   type SfFilingRow,
+  type ChicagoFilingRow,
 } from '../lib/state-filings';
 
 // Builds a fixed-width Sunbiz cor.txt record by placing fields at the
@@ -609,8 +611,66 @@ describe('mapSanFranciscoFiling', () => {
   });
 });
 
+describe('mapChicagoFiling', () => {
+  const baseRow: ChicagoFilingRow = {
+    license_id: '3087012',
+    legal_name: 'MY PERFUME HOUSE LLC',
+    doing_business_as_name: 'MY PERFUME HOUSE',
+    address: '1150 W BELMONT AVE  4',
+    city: 'CHICAGO',
+    state: 'IL',
+    zip_code: '60657',
+    business_activity: 'Retail Sales of General Merchandise',
+    date_issued: '2026-06-12T00:00:00.000',
+  };
+
+  it('maps a newly-issued Limited Business License for an LLC to an "Active" IL lead', () => {
+    const lead = mapChicagoFiling(baseRow);
+    expect(lead.business_name).toBe('My Perfume House');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('IL');
+    expect(lead.filing_date).toBe('2026-06-12');
+    expect(lead.filing_status).toBe('Active');
+    expect(lead.owner_name).toBeNull();
+    expect(lead.address).toBe('1150 W BELMONT AVE  4, Chicago, IL 60657');
+    expect(lead.industry).toBe('Retail Sales of General Merchandise');
+    expect(lead.source_ref).toBe('chicago-bl:3087012');
+  });
+
+  it('captures a sole proprietor\'s first and last name as owner_name when there is no entity suffix', () => {
+    const lead = mapChicagoFiling({
+      ...baseRow,
+      legal_name: 'VIKTORIA BROWN',
+      doing_business_as_name: 'ECLECTICA BY VIKA',
+    });
+    expect(lead.business_name).toBe('Eclectica By Vika');
+    expect(lead.entity_type).toBeNull();
+    expect(lead.owner_name).toBe('Viktoria Brown');
+  });
+
+  it('falls back to legal_name when doing_business_as_name is absent, detects Inc suffixes, and uses the first listed business activity', () => {
+    const lead = mapChicagoFiling({
+      ...baseRow,
+      legal_name: 'Insurance Guys411 Inc',
+      doing_business_as_name: undefined,
+      business_activity: 'Operation of an Administrative Commercial Office | Provide Consulting Services',
+    });
+    expect(lead.business_name).toBe('Insurance Guys411 Inc');
+    expect(lead.entity_type).toBe('Corporation');
+    expect(lead.industry).toBe('Operation of an Administrative Commercial Office');
+  });
+
+  it('handles missing fields gracefully', () => {
+    const lead = mapChicagoFiling({ legal_name: 'BARE LLC' });
+    expect(lead.address).toBeNull();
+    expect(lead.industry).toBeNull();
+    expect(lead.filing_date).toBeNull();
+    expect(lead.source_ref).toBeUndefined();
+  });
+});
+
 describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES / PA_NEW_ENTITY_TYPES / CT_NEW_ENTITY_TYPES / TX_NEW_ENTITY_TYPES', () => {
-  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, and California feeds with labels', () => {
+  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, and Illinois feeds with labels', () => {
     expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
     expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
     expect(STATE_FEED_SOURCES.FL.label).toMatch(/Florida/);
@@ -619,6 +679,7 @@ describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / F
     expect(STATE_FEED_SOURCES.CT.label).toMatch(/Connecticut/);
     expect(STATE_FEED_SOURCES.TX.label).toMatch(/Texas/);
     expect(STATE_FEED_SOURCES.CA.label).toMatch(/California/);
+    expect(STATE_FEED_SOURCES.IL.label).toMatch(/Illinois/);
   });
 
   it('targets only brand-new entity formation document/filing/entity types', () => {

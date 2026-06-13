@@ -9,7 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
-import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling } from '../../../../../lib/state-filings';
+import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +42,9 @@ type Check = { name: string; ok: boolean; detail: string };
 //  16. the free CA (San Francisco) state-registry connector maps a new
 //      business-registration row to a CA lead, including sole-proprietor
 //      owner first/last name capture, correctly.
+//  17. the free IL (Chicago) state-registry connector maps a new Limited
+//      Business License row to an IL lead, including LLC/Inc entity-type
+//      detection and DBA name capture, correctly.
 //
 // Returns 200 only when every check passes, so it can be wired to uptime
 // monitors or run manually from the admin UI.
@@ -345,6 +348,26 @@ export async function GET() {
     name: 'ca_state_feed',
     ok: caLead.business_name === 'Collingwood Rental' && caLead.entity_type === null && caLead.state === 'CA' && caLead.filing_date === '2026-06-11' && caLead.owner_name === 'Jesse Woodward',
     detail: `mapped "${caLead.business_name}" (${caLead.entity_type}, ${caLead.state}, filed ${caLead.filing_date}, owner ${caLead.owner_name})`,
+  });
+
+  // 17. IL (Chicago) state-registry connector — a newly-issued Limited
+  // Business License for an LLC should map to a properly-typed, named,
+  // IL-located lead using the DBA name as business_name.
+  const ilLead = mapChicagoFiling({
+    license_id: '3087012',
+    legal_name: 'MY PERFUME HOUSE LLC',
+    doing_business_as_name: 'MY PERFUME HOUSE',
+    address: '1150 W BELMONT AVE  4',
+    city: 'CHICAGO',
+    state: 'IL',
+    zip_code: '60657',
+    business_activity: 'Retail Sales of General Merchandise',
+    date_issued: '2026-06-12T00:00:00.000',
+  });
+  checks.push({
+    name: 'il_state_feed',
+    ok: ilLead.business_name === 'My Perfume House' && ilLead.entity_type === 'LLC' && ilLead.state === 'IL' && ilLead.filing_date === '2026-06-12' && ilLead.filing_status === 'Active',
+    detail: `mapped "${ilLead.business_name}" (${ilLead.entity_type}, ${ilLead.state}, filed ${ilLead.filing_date}, status ${ilLead.filing_status})`,
   });
 
   const ok = checks.every((c) => c.ok);
