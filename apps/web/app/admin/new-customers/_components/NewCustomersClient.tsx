@@ -25,6 +25,7 @@ export interface LeadRow {
   status: string;
   alerted: boolean;
   source: string;
+  marketing_contact_id: string | null;
   created_at: string;
 }
 
@@ -34,6 +35,7 @@ interface Stats {
   enriched: number;
   hot: number;
   contacted: number;
+  synced: number;
 }
 
 const STATUS_OPTIONS = ['new', 'enriched', 'contacted', 'qualified', 'converted', 'rejected'] as const;
@@ -241,12 +243,13 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
     }
   }
 
-  const statItems = [
+  const statItems: { label: string; value: number; color: string; href?: string }[] = [
     { label: 'Total leads', value: stats.total, color: '#1a1a2e' },
     { label: 'New', value: stats.new, color: '#6c35ff' },
     { label: 'AI-enriched', value: stats.enriched, color: '#0ea5e9' },
     { label: 'Hot (60+)', value: stats.hot, color: '#19b86a' },
     { label: 'In outreach', value: stats.contacted, color: '#f59e0b' },
+    { label: 'Synced to Marketing', value: stats.synced, color: '#8b5cf6', href: '/admin/marketing?tab=campaigns' },
   ];
 
   return (
@@ -270,12 +273,23 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 14 }}>
-        {statItems.map((s) => (
-          <div key={s.label} style={card}>
-            <div style={{ fontSize: 26, fontWeight: 900, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 2 }}>{s.label}</div>
-          </div>
-        ))}
+        {statItems.map((s) => {
+          const content = (
+            <>
+              <div style={{ fontSize: 26, fontWeight: 900, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 2 }}>
+                {s.label}{s.href && <span style={{ color: '#8b5cf6' }}> →</span>}
+              </div>
+            </>
+          );
+          return s.href ? (
+            <a key={s.label} href={s.href} style={{ ...card, display: 'block', textDecoration: 'none', cursor: 'pointer' }}>
+              {content}
+            </a>
+          ) : (
+            <div key={s.label} style={card}>{content}</div>
+          );
+        })}
       </div>
 
       {/* Toolbar */}
@@ -473,6 +487,11 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                           {l.website ? <a href={l.website} target="_blank" rel="noopener noreferrer" style={{ color: '#0ea5e9', textDecoration: 'none' }}>🌐 {l.website.replace(/^https?:\/\//, '')}</a> : <span style={{ color: '#cbd5e1' }}>🌐 —</span>}
                           {l.email ? <a href={`mailto:${l.email}`} style={{ color: '#6c35ff', textDecoration: 'none' }}>✉️ {l.email}</a> : <span style={{ color: '#cbd5e1' }}>✉️ —</span>}
                           {l.phone ? <span style={{ color: '#334064' }}>📞 {l.phone}</span> : <span style={{ color: '#cbd5e1' }}>📞 —</span>}
+                          {l.marketing_contact_id && (
+                            <a href="/admin/marketing?tab=campaigns" title="Targetable via the 'New Business Leads' segment" style={{ color: '#8b5cf6', textDecoration: 'none', fontWeight: 700 }}>
+                              📣 In Marketing
+                            </a>
+                          )}
                         </div>
                       ) : (
                         <span style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>Not enriched yet</span>

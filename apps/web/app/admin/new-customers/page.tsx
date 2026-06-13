@@ -11,7 +11,7 @@ export default async function NewCustomersPage() {
 
   const { data, error } = await supabaseAdmin
     .from('business_leads')
-    .select('id, business_name, entity_type, state, filing_date, filing_status, registered_agent, owner_name, industry, address, website, email, phone, enrichment_notes, enrichment_model, enriched_at, lead_score, lead_grade, status, alerted, source, created_at')
+    .select('id, business_name, entity_type, state, filing_date, filing_status, registered_agent, owner_name, industry, address, website, email, phone, enrichment_notes, enrichment_model, enriched_at, lead_score, lead_grade, status, alerted, source, marketing_contact_id, created_at')
     .order('lead_score', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(500);
@@ -50,6 +50,7 @@ export default async function NewCustomersPage() {
     enriched: leads.filter((l) => l.enriched_at).length,
     hot: leads.filter((l) => l.lead_score >= 60).length,
     contacted: leads.filter((l) => ['contacted', 'qualified', 'converted'].includes(l.status)).length,
+    synced: leads.filter((l) => l.marketing_contact_id).length,
   };
 
   return (
