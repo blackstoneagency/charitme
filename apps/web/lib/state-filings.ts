@@ -1136,6 +1136,68 @@ export function mapBentonvilleFiling(row: BentonvilleFilingRow): StateFilingLead
   };
 }
 
+// ── AK: Alaska Division of Corporations, Business & Professional Licensing ──
+// A genuine statewide feed (ArcGIS MapServer, not Socrata) — free, no API
+// key. `IssueDate` is the original license-issuance date and does not change
+// on renewal (~35% of all records predate 2020), making it a reliable
+// "new business" signal. `Owners` is either the same entity restated with an
+// LLC/Corp/etc suffix, or an individual's name for sole proprietors —
+// mirroring the SF/Chicago pattern so both `entity_type` and `owner_name`
+// can be populated.
+
+export const AK_DATASET_URL = 'https://maps.commerce.alaska.gov/server/rest/services/Economics_Related/Business_Licenses/MapServer/2/query';
+
+export interface AkFilingRow {
+  LicenseNumber?: string;
+  BusinessName?: string;
+  Owners?: string;
+  Status?: string;
+  IssueDate?: number;
+  PhysicalLine1?: string;
+  PhysicalLine2?: string;
+  PhysicalCity?: string;
+  PhysicalState?: string;
+  PhysicalZipOut?: string;
+}
+
+// Detects a registered-entity suffix on `Owners` (e.g. "Midnight Sun Cafe
+// LLC"). Returns null when it looks like an individual's name (sole
+// proprietor), e.g. "Phil Augustine".
+function akEntityType(owners: string): string | null {
+  const name = owners.trim();
+  if (!name) return null;
+  const lower = name.toLowerCase();
+  if (lower.includes('limited liability company') || /\bl\.?\s?l\.?\s?c\.?$/.test(lower)) return 'LLC';
+  if (lower.includes('limited liability partnership') || /\bl\.?\s?l\.?\s?p\.?$/.test(lower)) return 'LLP';
+  if (lower.includes('limited partnership') || /\bl\.?\s?p\.?$/.test(lower)) return 'Limited Partnership';
+  if (/\b(?:incorporated|inc|corp(?:oration)?)\.?$/.test(lower)) return 'Corporation';
+  if (/\bp\.?c\.?$/.test(lower)) return 'Professional Corporation';
+  return null;
+}
+
+function akAddress(row: AkFilingRow): string | null {
+  const stateZip = [row.PhysicalState?.trim(), row.PhysicalZipOut?.trim()].filter(Boolean).join(' ');
+  const street = [row.PhysicalLine1?.trim(), row.PhysicalLine2?.trim()].filter(Boolean).join(' ');
+  const city = row.PhysicalCity ? maybeTitleCase(row.PhysicalCity.trim()) : null;
+  const parts = [street || null, city, stateZip || null].filter(Boolean);
+  return parts.length ? parts.join(', ') : null;
+}
+
+export function mapAlaskaFiling(row: AkFilingRow): StateFilingLead {
+  const owners = (row.Owners ?? '').trim();
+  const entityType = akEntityType(owners);
+  return {
+    business_name: maybeTitleCase((row.BusinessName ?? '').trim()),
+    entity_type: entityType,
+    state: 'AK',
+    filing_date: row.IssueDate ? new Date(row.IssueDate).toISOString().slice(0, 10) : null,
+    filing_status: row.Status ?? null,
+    owner_name: entityType ? null : (maybeTitleCase(owners) || null),
+    address: akAddress(row),
+    source_ref: row.LicenseNumber ? `ak-business-license:${row.LicenseNumber}` : undefined,
+  };
+}
+
 // ── Registry of available free state feeds ──────────────────────────────────
 // Single source of truth for both server-side validation (ingest route) and
 // the admin UI's state picker. Add an entry here + a fetch+map implementation
@@ -1201,6 +1263,10 @@ export const STATE_FEED_SOURCES = {
   AR: {
     label: 'Arkansas — City of Bentonville Business Registry',
     description: 'Newly-submitted business registrations from the City of Bentonville’s open data portal, flagged new vs. existing — uniquely includes the registrant’s email address and website directly alongside phone, entity type, and address. Free, no API key, updated regularly.',
+  },
+  AK: {
+    label: 'Alaska — Statewide Business Licenses',
+    description: 'Newly-issued statewide business licenses from the Alaska Division of Corporations, Business & Professional Licensing open dataset — includes entity type, the registrant/owner’s name for sole proprietors, and a full physical address. Free, no API key, updated regularly.',
   },
 } as const;
 

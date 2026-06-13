@@ -9,7 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
-import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling, mapNorfolkFiling, mapWashingtonFiling, mapDelawareFiling, mapNewOrleansFiling, mapMesaFiling, mapBentonvilleFiling } from '../../../../../lib/state-filings';
+import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling, mapNorfolkFiling, mapWashingtonFiling, mapDelawareFiling, mapNewOrleansFiling, mapMesaFiling, mapBentonvilleFiling, mapAlaskaFiling } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -501,6 +501,26 @@ export async function GET() {
     name: 'ar_state_feed',
     ok: arLead.business_name === 'Ozark Natural Lawn Care LLC' && arLead.entity_type === 'LLC' && arLead.state === 'AR' && arLead.filing_date === '2026-04-15' && arLead.filing_status === 'Active' && arLead.address === '904 Sw Green World St, Bentonville, AR 72712' && arLead.email === 'info@ozarklawn.com' && arLead.website === 'https://ozarklawn.com/' && arLead.phone === '479-348-5066',
     detail: `mapped "${arLead.business_name}" (${arLead.entity_type}, ${arLead.state}, filed ${arLead.filing_date}, email ${arLead.email}, website ${arLead.website}, phone ${arLead.phone})`,
+  });
+
+  // 24. AK (Alaska statewide Business Licenses) state-registry connector —
+  // an active LLC license should map to an AK lead with the LLC suffix
+  // detected on Owners, no owner_name, and a full physical address.
+  const akLead = mapAlaskaFiling({
+    LicenseNumber: '123456',
+    BusinessName: 'MIDNIGHT SUN CAFE LLC',
+    Owners: 'Midnight Sun Cafe LLC',
+    Status: 'Active',
+    IssueDate: Date.UTC(2026, 5, 2),
+    PhysicalLine1: '123 Main St',
+    PhysicalCity: 'ANCHORAGE',
+    PhysicalState: 'AK',
+    PhysicalZipOut: '99501',
+  });
+  checks.push({
+    name: 'ak_state_feed',
+    ok: akLead.business_name === 'Midnight Sun Cafe LLC' && akLead.entity_type === 'LLC' && akLead.state === 'AK' && akLead.filing_date === '2026-06-02' && akLead.filing_status === 'Active' && akLead.owner_name === null && akLead.address === '123 Main St, Anchorage, AK 99501',
+    detail: `mapped "${akLead.business_name}" (${akLead.entity_type}, ${akLead.state}, filed ${akLead.filing_date}, address ${akLead.address})`,
   });
 
   const ok = checks.every((c) => c.ok);
