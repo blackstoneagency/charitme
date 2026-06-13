@@ -429,8 +429,8 @@ function CampaignsTab({ flash }: { flash: (m: string) => void }) {
             {segments.map(s => <option key={s.id} value={s.id}>{s.name} ({s.member_count})</option>)}
           </select>
         </div>
-        <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder="Subject — supports {{first_name}}" style={{ ...input, width: '100%', boxSizing: 'border-box', marginBottom: 10 }} />
-        <textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} placeholder={'Email body (plain text). Personalize with {{first_name}}.'} rows={5} style={{ ...input, width: '100%', boxSizing: 'border-box', marginBottom: 10, resize: 'vertical' }} />
+        <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder="Subject — supports {{first_name}} and {{tracking_url}}" style={{ ...input, width: '100%', boxSizing: 'border-box', marginBottom: 10 }} />
+        <textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} placeholder={'Email body (plain text). Personalize with {{first_name}}. Include {{tracking_url}} to add a click-tracked link back to the site.'} rows={5} style={{ ...input, width: '100%', boxSizing: 'border-box', marginBottom: 10, resize: 'vertical' }} />
         <button onClick={() => void create()} disabled={busy} style={btn}>{busy ? 'Creating…' : 'Create draft'}</button>
       </div>
 

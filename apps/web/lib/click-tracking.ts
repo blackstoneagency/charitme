@@ -53,3 +53,33 @@ export function resolveRedirectUrl(destination: string, origin: string): string 
     return `${origin.replace(/\/$/, '')}/`;
   }
 }
+
+const SHORT_CODE_CHARS = 'abcdefghijklmnopqrstuvwxyz0123456789';
+
+/** Random lowercase alphanumeric short code for /go/[code] links. */
+export function generateShortCode(length = 8): string {
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  let out = '';
+  for (let i = 0; i < length; i++) {
+    out += SHORT_CODE_CHARS[bytes[i] % SHORT_CODE_CHARS.length];
+  }
+  return out;
+}
+
+/** Slugifies a campaign name for use as a utm_campaign value. */
+export function slugifyCampaignName(name: string): string {
+  const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return slug || 'campaign';
+}
+
+/**
+ * Builds the /go/[code] tracking URL for a campaign recipient. `cid` is
+ * omitted for anonymous (e.g. test-send) links.
+ */
+export function buildTrackingUrl(origin: string, shortCode: string, campaignId: string, contactId?: string): string {
+  const url = new URL(`/go/${shortCode}`, origin);
+  url.searchParams.set('camp', campaignId);
+  if (contactId) url.searchParams.set('cid', contactId);
+  return url.toString();
+}

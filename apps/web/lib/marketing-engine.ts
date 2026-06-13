@@ -3,6 +3,7 @@
 // Pure logic lives in marketing-core.ts.
 
 import { supabaseAdmin } from './supabase';
+import { generateShortCode, slugifyCampaignName } from './click-tracking';
 import {
   computeLeadScore,
   computeEngagementScore,
@@ -137,6 +138,47 @@ export async function trackEvent(args: {
       .update({ last_active_at: new Date().toISOString() })
       .eq('id', args.contactId);
   }
+}
+
+/**
+ * Find-or-create the single /go/[code] click-tracking link for a campaign,
+ * used to resolve {{tracking_url}} in campaign bodies/subjects. Returns the
+ * short_code, or null if creation failed.
+ */
+export async function getOrCreateCampaignTrackingLink(campaign: {
+  id: string;
+  name: string;
+  campaign_type: string;
+  created_by?: string | null;
+}): Promise<string | null> {
+  const { data: existing } = await supabaseAdmin
+    .from('marketing_utm_links')
+    .select('short_code')
+    .eq('campaign_id', campaign.id)
+    .maybeSingle();
+  if (existing?.short_code) return existing.short_code;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const shortCode = generateShortCode();
+    const { data: created, error } = await supabaseAdmin
+      .from('marketing_utm_links')
+      .insert({
+        name: `Campaign: ${campaign.name}`,
+        destination_url: '/',
+        utm_source: campaign.campaign_type === 'email' ? 'email' : campaign.campaign_type,
+        utm_medium: 'campaign',
+        utm_campaign: slugifyCampaignName(campaign.name),
+        short_code: shortCode,
+        campaign_id: campaign.id,
+        created_by: campaign.created_by ?? null,
+      })
+      .select('short_code')
+      .single();
+    if (created) return created.short_code;
+    // short_code collision (unique constraint) — retry with a fresh code
+    if (error && !`${error.message}`.includes('short_code')) return null;
+  }
+  return null;
 }
 
 /** Recompute scores/classification for one contact from live data. */

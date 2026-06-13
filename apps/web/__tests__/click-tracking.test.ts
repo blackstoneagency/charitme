@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { appendUtmParams, resolveRedirectUrl } from '../lib/click-tracking';
+import {
+  appendUtmParams,
+  resolveRedirectUrl,
+  generateShortCode,
+  slugifyCampaignName,
+  buildTrackingUrl,
+} from '../lib/click-tracking';
 
 describe('appendUtmParams', () => {
   const utm = { source: 'email', medium: 'campaign', campaign: 'summer-2026' };
@@ -64,5 +70,56 @@ describe('resolveRedirectUrl', () => {
 
   it('strips a trailing slash from the origin in the fallback', () => {
     expect(resolveRedirectUrl('/campaigns/help-mia', 'not a valid origin/')).toBe('not a valid origin/');
+  });
+});
+
+describe('generateShortCode', () => {
+  it('generates an 8-character lowercase alphanumeric code by default', () => {
+    const code = generateShortCode();
+    expect(code).toHaveLength(8);
+    expect(code).toMatch(/^[a-z0-9]{8}$/);
+  });
+
+  it('respects a custom length', () => {
+    expect(generateShortCode(12)).toHaveLength(12);
+  });
+
+  it('generates different codes across calls', () => {
+    const codes = new Set(Array.from({ length: 20 }, () => generateShortCode()));
+    expect(codes.size).toBeGreaterThan(1);
+  });
+});
+
+describe('slugifyCampaignName', () => {
+  it('lowercases and hyphenates a campaign name', () => {
+    expect(slugifyCampaignName('Summer Giving Push 2026')).toBe('summer-giving-push-2026');
+  });
+
+  it('strips punctuation and collapses repeated separators', () => {
+    expect(slugifyCampaignName('New Leads -- Welcome!!')).toBe('new-leads-welcome');
+  });
+
+  it('trims leading/trailing hyphens', () => {
+    expect(slugifyCampaignName('  --Re-Engagement--  ')).toBe('re-engagement');
+  });
+
+  it('falls back to "campaign" when nothing alphanumeric remains', () => {
+    expect(slugifyCampaignName('!!!')).toBe('campaign');
+  });
+});
+
+describe('buildTrackingUrl', () => {
+  const origin = 'https://www.charitme.com';
+
+  it('builds a /go/[code] URL with campaign and contact ids', () => {
+    expect(buildTrackingUrl(origin, 'ab12cd34', 'camp-1', 'contact-1')).toBe(
+      'https://www.charitme.com/go/ab12cd34?camp=camp-1&cid=contact-1',
+    );
+  });
+
+  it('omits cid when no contactId is given (e.g. test sends)', () => {
+    expect(buildTrackingUrl(origin, 'ab12cd34', 'camp-1')).toBe(
+      'https://www.charitme.com/go/ab12cd34?camp=camp-1',
+    );
   });
 });

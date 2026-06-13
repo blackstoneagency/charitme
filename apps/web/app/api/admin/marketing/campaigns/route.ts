@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { verifyAdmin } from '../../users/_auth';
-import { isSuppressed } from '../../../../../lib/marketing-engine';
+import { isSuppressed, getOrCreateCampaignTrackingLink } from '../../../../../lib/marketing-engine';
+import { buildTrackingUrl } from '../../../../../lib/click-tracking';
+import { getAppOrigin } from '../../../../../lib/auth-config';
 import { sendMarketingEmail } from '../../../../../lib/email';
 
 const CampaignSchema = z.object({
@@ -72,10 +74,16 @@ export async function PATCH(req: NextRequest) {
 
   if (action === 'send_test') {
     if (!testEmail) return NextResponse.json({ error: 'testEmail required' }, { status: 400 });
+    let testBody = campaign.body ?? '(no body)';
+    if (testBody.includes('{{tracking_url}}')) {
+      const shortCode = await getOrCreateCampaignTrackingLink(campaign);
+      const trackingUrl = shortCode ? buildTrackingUrl(getAppOrigin(), shortCode, campaign.id) : getAppOrigin();
+      testBody = testBody.replaceAll('{{tracking_url}}', trackingUrl);
+    }
     const result = await sendMarketingEmail({
       to: testEmail,
       subject: `[TEST] ${campaign.subject ?? campaign.name}`,
-      text: campaign.body ?? '(no body)',
+      text: testBody,
       previewText: campaign.preview_text,
     });
     return NextResponse.json({ ok: true, sent: result.sent, detail: result.sent ? undefined : 'Email provider not configured — check RESEND_API_KEY' });
@@ -103,6 +111,11 @@ export async function PATCH(req: NextRequest) {
   let suppressed = 0;
   let failed = 0;
 
+  const needsTrackingUrl = (campaign.body ?? '').includes('{{tracking_url}}')
+    || (campaign.subject ?? '').includes('{{tracking_url}}');
+  const trackingShortCode = needsTrackingUrl ? await getOrCreateCampaignTrackingLink(campaign) : null;
+  const origin = getAppOrigin();
+
   for (const m of members ?? []) {
     const contact = m.marketing_contacts as unknown as { id: string; email: string | null; status: string; first_name?: string | null } | null;
     if (!contact?.email || contact.status !== 'active') { suppressed++; continue; }
@@ -118,12 +131,17 @@ export async function PATCH(req: NextRequest) {
       .maybeSingle();
     if (existing && existing.status !== 'pending') continue;
 
-    const personalized = (campaign.body ?? '')
-      .replaceAll('{{first_name}}', contact.first_name || 'friend');
+    const trackingUrl = trackingShortCode
+      ? buildTrackingUrl(origin, trackingShortCode, campaign.id, contact.id)
+      : origin;
+    const personalize = (text: string) => text
+      .replaceAll('{{first_name}}', contact.first_name || 'friend')
+      .replaceAll('{{tracking_url}}', trackingUrl);
+    const personalized = personalize(campaign.body ?? '');
     const result = campaign.campaign_type === 'email'
       ? await sendMarketingEmail({
           to: contact.email,
-          subject: (campaign.subject ?? campaign.name).replaceAll('{{first_name}}', contact.first_name || 'friend'),
+          subject: personalize(campaign.subject ?? campaign.name),
           text: personalized,
           previewText: campaign.preview_text,
         })
