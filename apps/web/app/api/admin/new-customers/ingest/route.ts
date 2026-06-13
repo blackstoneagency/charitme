@@ -8,6 +8,7 @@ import {
   normalizeState,
   normalizeEntityType,
   generateSampleFilings,
+  buildIncorporationDateFilter,
   type BusinessLeadInput,
 } from '../../../../../lib/business-leads';
 
@@ -29,26 +30,46 @@ const FilingSchema = z.object({
   source_ref: z.string().trim().max(240).optional().nullable(),
 });
 
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
 const BodySchema = z.union([
   z.object({ mode: z.literal('sample'), count: z.number().int().min(1).max(50).optional() }),
   z.object({ mode: z.literal('manual'), filings: z.array(FilingSchema).min(1).max(200) }),
   z.object({
     mode: z.literal('opencorporates'),
-    query: z.string().trim().min(2).max(120),
+    query: z.string().trim().min(2).max(120).optional(),
     jurisdiction: z.string().trim().max(20).optional(),
+    date_from: z.string().regex(ISO_DATE_RE).optional(),
+    date_to: z.string().regex(ISO_DATE_RE).optional(),
   }),
 ]);
 
 type Source = 'sample' | 'manual' | 'opencorporates' | 'api';
 
 // ── Free OpenCorporates connector (best-effort, never throws) ────────────────
-// Uses the free, no-key tier. If the network policy blocks it or the tier is
-// rate-limited, we return [] so ingestion degrades gracefully instead of failing.
-async function fetchOpenCorporates(query: string, jurisdiction?: string): Promise<BusinessLeadInput[]> {
+// Works with or without OPENCORPORATES_API_TOKEN (set in Vercel env if available).
+// If the network policy blocks it, the tier is rate-limited, or no token is
+// configured, we return [] so ingestion degrades gracefully instead of failing.
+async function fetchOpenCorporates(
+  query?: string,
+  jurisdiction?: string,
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<BusinessLeadInput[]> {
   try {
-    const params = new URLSearchParams({ q: query, order: 'created_at', per_page: '30' });
+    const params = new URLSearchParams({ per_page: '30' });
+    if (query) params.set('q', query);
     if (jurisdiction) params.set('jurisdiction_code', jurisdiction.toLowerCase());
-    const apiToken = process.env.OPENCORPORATES_API_TOKEN; // optional — free tier works without
+
+    const dateFilter = buildIncorporationDateFilter(dateFrom, dateTo);
+    if (dateFilter) {
+      params.set('incorporation_date', dateFilter);
+      params.set('order', 'incorporation_date');
+    } else {
+      params.set('order', 'created_at');
+    }
+
+    const apiToken = process.env.OPENCORPORATES_API_TOKEN; // optional — required by OC for most queries
     if (apiToken) params.set('api_token', apiToken);
 
     const controller = new AbortController();
@@ -72,7 +93,7 @@ async function fetchOpenCorporates(query: string, jurisdiction?: string): Promis
       } }[] };
     };
 
-    return (json.results?.companies ?? []).map(({ company }) => ({
+    const companies = (json.results?.companies ?? []).map(({ company }) => ({
       business_name: company.name ?? '',
       entity_type: company.company_type ?? null,
       state: company.jurisdiction_code?.replace(/^us_/, '').toUpperCase() ?? null,
@@ -80,6 +101,16 @@ async function fetchOpenCorporates(query: string, jurisdiction?: string): Promis
       filing_status: company.current_status ?? null,
       address: company.registered_address_in_full ?? null,
     })).filter((c) => c.business_name);
+
+    // Defense-in-depth: enforce the requested date range client-side too, in
+    // case the API ignores/loosely-interprets the incorporation_date filter.
+    if (!dateFrom && !dateTo) return companies;
+    return companies.filter((c) => {
+      if (!c.filing_date) return false;
+      if (dateFrom && c.filing_date < dateFrom) return false;
+      if (dateTo && c.filing_date > dateTo) return false;
+      return true;
+    });
   } catch {
     return []; // network blocked / rate-limited / timeout — degrade gracefully
   }
@@ -107,11 +138,19 @@ export async function POST(request: NextRequest) {
     rawFilings = parsed.data.filings;
   } else {
     source = 'opencorporates';
-    rawFilings = await fetchOpenCorporates(parsed.data.query, parsed.data.jurisdiction);
+    rawFilings = await fetchOpenCorporates(
+      parsed.data.query,
+      parsed.data.jurisdiction,
+      parsed.data.date_from,
+      parsed.data.date_to,
+    );
     if (rawFilings.length === 0) {
+      const range = parsed.data.date_from || parsed.data.date_to
+        ? ` for ${parsed.data.date_from ?? '…'} to ${parsed.data.date_to ?? '…'}`
+        : '';
       return NextResponse.json({
         inserted: 0, skipped: 0, source,
-        message: 'No results from OpenCorporates (the free tier may be rate-limited or blocked by the network policy). Try the sample source or paste filings manually.',
+        message: `No results from OpenCorporates${range} (requires OPENCORPORATES_API_TOKEN, the free tier may be rate-limited, or there were no filings in this range). Try a wider date range, the sample source, or paste filings manually.`,
       });
     }
   }

@@ -113,6 +113,24 @@ export function normalizeEntityType(value: string | null | undefined): string | 
   return v;
 }
 
+// ── OpenCorporates query helpers ─────────────────────────────────────────────
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Builds OpenCorporates' `incorporation_date` filter value from an optional
+ * from/to range (each `YYYY-MM-DD` or omitted). Mirrors OC's documented
+ * syntax: exact date, `from:to` range, or open-ended `from:` / `:to`.
+ * Returns null when neither bound is a valid date (no filter applied).
+ */
+export function buildIncorporationDateFilter(dateFrom?: string | null, dateTo?: string | null): string | null {
+  const from = (dateFrom && ISO_DATE_RE.test(dateFrom)) ? dateFrom : null;
+  const to = (dateTo && ISO_DATE_RE.test(dateTo)) ? dateTo : null;
+  if (!from && !to) return null;
+  if (from && to) return from === to ? from : `${from}:${to}`;
+  return from ? `${from}:` : `:${to}`;
+}
+
 function gradeForScore(score: number): LeadGrade {
   if (score >= 80) return 'A';
   if (score >= 60) return 'B';

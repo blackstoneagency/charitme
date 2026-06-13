@@ -10,6 +10,7 @@ import {
   normalizeWebsite,
   normalizeEntityType,
   normalizeState,
+  buildIncorporationDateFilter,
   ALERT_SCORE_THRESHOLD,
   type BusinessLeadInput,
 } from '../lib/business-leads';
@@ -150,6 +151,37 @@ describe('fallbackEnrichment', () => {
     const out = fallbackEnrichment({ business_name: 'Acme LLC', email: 'x@acme.com', phone: '3025550148' });
     expect(out.email).toBe('x@acme.com');
     expect(out.phone).toBe('(302) 555-0148');
+  });
+});
+
+describe('buildIncorporationDateFilter', () => {
+  it('builds an exact-date filter when from === to', () => {
+    expect(buildIncorporationDateFilter('2026-06-12', '2026-06-12')).toBe('2026-06-12');
+  });
+
+  it('builds a range filter when from and to differ', () => {
+    expect(buildIncorporationDateFilter('2026-06-01', '2026-06-12')).toBe('2026-06-01:2026-06-12');
+  });
+
+  it('builds an open-ended "after" filter when only from is given', () => {
+    expect(buildIncorporationDateFilter('2026-06-01', null)).toBe('2026-06-01:');
+    expect(buildIncorporationDateFilter('2026-06-01')).toBe('2026-06-01:');
+  });
+
+  it('builds an open-ended "before" filter when only to is given', () => {
+    expect(buildIncorporationDateFilter(null, '2026-06-12')).toBe(':2026-06-12');
+    expect(buildIncorporationDateFilter(undefined, '2026-06-12')).toBe(':2026-06-12');
+  });
+
+  it('returns null when neither bound is a valid date', () => {
+    expect(buildIncorporationDateFilter(null, null)).toBeNull();
+    expect(buildIncorporationDateFilter(undefined, undefined)).toBeNull();
+    expect(buildIncorporationDateFilter('not-a-date', 'also-bad')).toBeNull();
+  });
+
+  it('ignores an invalid bound and uses only the valid one', () => {
+    expect(buildIncorporationDateFilter('bad', '2026-06-12')).toBe(':2026-06-12');
+    expect(buildIncorporationDateFilter('2026-06-01', 'bad')).toBe('2026-06-01:');
   });
 });
 

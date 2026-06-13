@@ -69,6 +69,14 @@ const card: React.CSSProperties = {
   background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '16px 20px',
 };
 
+// Local YYYY-MM-DD (not UTC) so the date pickers default to "today" for the
+// admin's own timezone, matching the "new filings from today" expectation.
+function todayISO(): string {
+  const d = new Date();
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
 export default function NewCustomersClient({ initialLeads, stats }: { initialLeads: LeadRow[]; stats: Stats }) {
   const [leads, setLeads] = useState<LeadRow[]>(initialLeads);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
@@ -81,8 +89,10 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
   const [minScore, setMinScore] = useState(0);
   const [search, setSearch] = useState('');
 
-  // OpenCorporates connector
+  // OpenCorporates connector — date range defaults to today (new filings only)
   const [ocQuery, setOcQuery] = useState('');
+  const [ocDateFrom, setOcDateFrom] = useState(() => todayISO());
+  const [ocDateTo, setOcDateTo] = useState(() => todayISO());
 
   // API self-test
   const [testResult, setTestResult] = useState<{ ok: boolean; checks: { name: string; ok: boolean; detail: string }[] } | null>(null);
@@ -114,7 +124,12 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
     try {
       const body = mode === 'sample'
         ? { mode: 'sample', count: 8 }
-        : { mode: 'opencorporates', query: ocQuery.trim() };
+        : {
+          mode: 'opencorporates',
+          ...(ocQuery.trim().length >= 2 ? { query: ocQuery.trim() } : {}),
+          ...(ocDateFrom ? { date_from: ocDateFrom } : {}),
+          ...(ocDateTo ? { date_to: ocDateTo } : {}),
+        };
       const res = await fetch('/api/admin/new-customers/ingest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -238,18 +253,35 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
           {ingesting ? 'Working…' : '＋ Add sample filings'}
         </button>
 
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             value={ocQuery}
             onChange={(e) => setOcQuery(e.target.value)}
-            placeholder="Search OpenCorporates (free)…"
-            style={{ padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13, width: 230 }}
+            placeholder="Search OpenCorporates (optional)…"
+            style={{ padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13, width: 200 }}
+          />
+          <input
+            type="date"
+            value={ocDateFrom}
+            max={ocDateTo}
+            onChange={(e) => setOcDateFrom(e.target.value)}
+            aria-label="Filed from"
+            style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13 }}
+          />
+          <span style={{ color: '#94a3b8', fontSize: 12 }}>to</span>
+          <input
+            type="date"
+            value={ocDateTo}
+            min={ocDateFrom}
+            onChange={(e) => setOcDateTo(e.target.value)}
+            aria-label="Filed to"
+            style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13 }}
           />
           <button
             type="button"
             onClick={() => void ingest('opencorporates')}
-            disabled={ingesting || ocQuery.trim().length < 2}
-            style={btnSecondary(ingesting || ocQuery.trim().length < 2)}
+            disabled={ingesting}
+            style={btnSecondary(ingesting)}
           >
             Pull
           </button>

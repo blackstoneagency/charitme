@@ -7,6 +7,7 @@ import {
   parseEnrichment,
   generateSampleFilings,
   shouldAlertAdmin,
+  buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +22,9 @@ type Check = { name: string; ok: boolean; detail: string };
 //   2. the AI-enrichment JSON parser sanitizes untrusted input,
 //   3. the sample free data source produces valid filings,
 //   4. the business_leads table is reachable in Supabase,
-//   5. the notifications table (admin alert sink) is reachable.
+//   5. the notifications table (admin alert sink) is reachable,
+//   6. the OpenCorporates date-range filter builds correctly (defaults to "today"),
+//   7. whether OPENCORPORATES_API_TOKEN is configured for live pulls (informational).
 //
 // Returns 200 only when every check passes, so it can be wired to uptime
 // monitors or run manually from the admin UI.
@@ -85,6 +88,29 @@ export async function GET() {
     name: 'notifications_table',
     ok: !notifError,
     detail: notifError ? notifError.message : 'reachable',
+  });
+
+  // 6. Date-range filter — "today" should resolve to an exact-date filter,
+  // matching the admin UI's default (pull new filings from today).
+  const today = new Date().toISOString().slice(0, 10);
+  const exactToday = buildIncorporationDateFilter(today, today);
+  const openAfter = buildIncorporationDateFilter(today, null);
+  const noFilter = buildIncorporationDateFilter(null, null);
+  checks.push({
+    name: 'date_range_filter',
+    ok: exactToday === today && openAfter === `${today}:` && noFilter === null,
+    detail: `today→${exactToday}, openAfter→${openAfter}, none→${noFilter}`,
+  });
+
+  // 7. OpenCorporates token — informational only. The pipeline degrades to "no
+  // results" without one, so this never fails the overall self-test.
+  const hasOcToken = !!process.env.OPENCORPORATES_API_TOKEN;
+  checks.push({
+    name: 'opencorporates_token',
+    ok: true,
+    detail: hasOcToken
+      ? 'OPENCORPORATES_API_TOKEN is configured — live OpenCorporates pulls are enabled.'
+      : 'OPENCORPORATES_API_TOKEN not set — OpenCorporates pulls will return no results until configured (use sample filings meanwhile).',
   });
 
   const ok = checks.every((c) => c.ok);
