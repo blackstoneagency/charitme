@@ -278,6 +278,113 @@ export function mapFlFiling(row: FlFilingRow): StateFilingLead {
   };
 }
 
+// ── Oregon — Secretary of State "New Businesses Registered Last Month" ──────
+// https://data.oregon.gov/resource/esjy-u4fc.json — free, no API key, refreshed
+// monthly with the prior month's new business registrations. Unlike NY/CO/FL,
+// each registry_number spans several rows — one per `associated_name_type`
+// (PRINCIPAL PLACE OF BUSINESS, REGISTERED AGENT, INDIVIDUAL WITH DIRECT
+// KNOWLEDGE, MANAGER, ...) — so mapOregonFilings groups them into one lead per
+// business. Uniquely among these feeds, OR publishes the filer's first/last
+// name directly.
+
+export const OR_DATASET_URL = 'https://data.oregon.gov/resource/esjy-u4fc.json';
+
+// Domestic entity types representing brand-new in-state formations (excludes
+// "ASSUMED BUSINESS NAME" — a DBA registration, not a new entity — and
+// "FOREIGN *" entities registering to do business in OR from elsewhere).
+export const OR_NEW_ENTITY_TYPES = [
+  'DOMESTIC LIMITED LIABILITY COMPANY',
+  'DOMESTIC BUSINESS CORPORATION',
+  'DOMESTIC NONPROFIT CORPORATION',
+  'DOMESTIC PROFESSIONAL CORPORATION',
+  'DOMESTIC LIMITED PARTNERSHIP',
+  'DOMESTIC REGISTERED LIMITED LIABILITY PARTNERSHIP',
+  'COOPERATIVE',
+] as const;
+
+// associated_name_type rows that may identify the filer, checked in priority order.
+const OR_OWNER_ASSOCIATIONS = [
+  'INDIVIDUAL WITH DIRECT KNOWLEDGE',
+  'MEMBER',
+  'MANAGER',
+  'PRESIDENT',
+  'REGISTRANT',
+  'AUTHORIZED REPRESENTATIVE',
+  'GENERAL PARTNER',
+  'PARTNER',
+] as const;
+
+export interface OrFilingRow {
+  registry_number?: string;
+  business_name?: string;
+  entity_type?: string;
+  registry_date?: string;
+  associated_name_type?: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+  suffix?: string;
+  entity_of_record_name?: string;
+  address_?: string;
+  address_continued?: string;
+  city?: string;
+  state?: string;
+  zip_code?: string;
+}
+
+function orPersonName(row: OrFilingRow | undefined): string | null {
+  if (!row) return null;
+  const parts = [row.first_name, row.middle_name, row.last_name, row.suffix]
+    .map((p) => p?.trim())
+    .filter((p): p is string => !!p);
+  return parts.length ? maybeTitleCase(parts.join(' ')) : null;
+}
+
+function orAddress(row: OrFilingRow | undefined): string | null {
+  if (!row) return null;
+  const stateZip = [row.state?.trim(), row.zip_code?.trim()].filter(Boolean).join(' ');
+  const line1 = [row.address_?.trim(), row.address_continued?.trim()].filter(Boolean).join(' ');
+  const city = row.city ? maybeTitleCase(row.city) : null;
+  const parts = [line1 ? maybeTitleCase(line1) : null, city, stateZip].filter(Boolean);
+  return parts.length ? parts.join(', ') : null;
+}
+
+// Groups raw rows by registry_number (one row per associated_name_type) into
+// one lead per business — Oregon's only multi-row state feed.
+export function mapOregonFilings(rows: OrFilingRow[]): StateFilingLead[] {
+  const groups = new Map<string, OrFilingRow[]>();
+  for (const row of rows) {
+    if (!row.registry_number) continue;
+    const list = groups.get(row.registry_number);
+    if (list) list.push(row); else groups.set(row.registry_number, [row]);
+  }
+
+  const leads: StateFilingLead[] = [];
+  for (const [registryNumber, group] of groups) {
+    const first = group[0];
+    if (!first.business_name) continue;
+    if (!(OR_NEW_ENTITY_TYPES as readonly string[]).includes(first.entity_type ?? '')) continue;
+
+    const byType = (type: string) => group.find((r) => r.associated_name_type === type);
+    const ownerRow = OR_OWNER_ASSOCIATIONS.map(byType).find((r) => orPersonName(r));
+    const agentRow = byType('REGISTERED AGENT');
+    const addressRow = byType('PRINCIPAL PLACE OF BUSINESS') ?? byType('MAILING ADDRESS');
+
+    leads.push({
+      business_name: maybeTitleCase(first.business_name),
+      entity_type: normalizeEntityType(first.entity_type ?? null),
+      state: 'OR',
+      filing_date: first.registry_date ? first.registry_date.slice(0, 10) : null,
+      registered_agent: agentRow?.entity_of_record_name ? maybeTitleCase(agentRow.entity_of_record_name) : orPersonName(agentRow),
+      owner_name: orPersonName(ownerRow),
+      address: orAddress(addressRow),
+      industry: null,
+      source_ref: `or-sos:${registryNumber}`,
+    });
+  }
+  return leads;
+}
+
 // ── Registry of available free state feeds ──────────────────────────────────
 // Single source of truth for both server-side validation (ingest route) and
 // the admin UI's state picker. Add an entry here + a fetch+map implementation
@@ -295,6 +402,10 @@ export const STATE_FEED_SOURCES = {
   FL: {
     label: 'Florida — Division of Corporations (Sunbiz)',
     description: 'New domestic LLC, profit, and non-profit corporation filings from Sunbiz’s daily corporate data file. Free (public SFTP credentials), updated daily.',
+  },
+  OR: {
+    label: 'Oregon — Secretary of State',
+    description: 'New domestic LLC, corporation, nonprofit, and partnership registrations from the Oregon Business Registry open dataset — includes the filer’s first and last name. Free, no API key, refreshed monthly.',
   },
 } as const;
 

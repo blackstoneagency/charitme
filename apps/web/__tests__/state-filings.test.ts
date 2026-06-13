@@ -3,6 +3,7 @@ import {
   mapNyFiling,
   mapCoFiling,
   mapFlFiling,
+  mapOregonFilings,
   parseFlCorLine,
   parseFlDate,
   titleCaseBusinessName,
@@ -10,9 +11,11 @@ import {
   NY_NEW_ENTITY_DOC_TYPES,
   CO_NEW_ENTITY_TYPES,
   FL_NEW_ENTITY_FILING_TYPES,
+  OR_NEW_ENTITY_TYPES,
   STATE_FEED_SOURCES,
   type NyFilingRow,
   type CoFilingRow,
+  type OrFilingRow,
 } from '../lib/state-filings';
 
 // Builds a fixed-width Sunbiz cor.txt record by placing fields at the
@@ -283,16 +286,120 @@ describe('parseFlCorLine / mapFlFiling', () => {
   });
 });
 
-describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES', () => {
-  it('registers the New York, Colorado, and Florida feeds with labels', () => {
+describe('mapOregonFilings', () => {
+  // Mirrors a real registry_number group from data.oregon.gov/resource/esjy-u4fc:
+  // one row per associated_name_type, all sharing business_name/entity_type/registry_date.
+  const baseGroup: OrFilingRow[] = [
+    {
+      registry_number: '257459397',
+      business_name: 'FINANCEGOALZ LLC',
+      entity_type: 'DOMESTIC LIMITED LIABILITY COMPANY',
+      registry_date: '2026-05-29T16:53:25.000',
+      associated_name_type: 'INDIVIDUAL WITH DIRECT KNOWLEDGE',
+      first_name: 'DANIELLE',
+      last_name: 'DUNCAN',
+      address_: '1300 SW PARK AVE',
+      city: 'PORTLAND',
+      state: 'OR',
+      zip_code: '97201',
+    },
+    {
+      registry_number: '257459397',
+      business_name: 'FINANCEGOALZ LLC',
+      entity_type: 'DOMESTIC LIMITED LIABILITY COMPANY',
+      registry_date: '2026-05-29T16:53:25.000',
+      associated_name_type: 'MAILING ADDRESS',
+      address_: '1300 SW PARK AVE',
+      address_continued: 'SUITE 1301',
+      city: 'PORTLAND',
+      state: 'OR',
+      zip_code: '97201',
+    },
+    {
+      registry_number: '257459397',
+      business_name: 'FINANCEGOALZ LLC',
+      entity_type: 'DOMESTIC LIMITED LIABILITY COMPANY',
+      registry_date: '2026-05-29T16:53:25.000',
+      associated_name_type: 'PRINCIPAL PLACE OF BUSINESS',
+      address_: '1300 SW PARK AVE',
+      city: 'PORTLAND',
+      state: 'OR',
+      zip_code: '97201',
+    },
+    {
+      registry_number: '257459397',
+      business_name: 'FINANCEGOALZ LLC',
+      entity_type: 'DOMESTIC LIMITED LIABILITY COMPANY',
+      registry_date: '2026-05-29T16:53:25.000',
+      associated_name_type: 'REGISTERED AGENT',
+      first_name: 'DANIELLE',
+      last_name: 'DUNCAN',
+      address_: '1300 SW PARK AVE',
+      city: 'PORTLAND',
+      state: 'OR',
+      zip_code: '97201',
+    },
+  ];
+
+  it('groups multi-row registry data into one lead with owner first/last name', () => {
+    const [lead] = mapOregonFilings(baseGroup);
+    expect(lead.business_name).toBe('Financegoalz LLC');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('OR');
+    expect(lead.filing_date).toBe('2026-05-29');
+    expect(lead.owner_name).toBe('Danielle Duncan');
+    expect(lead.registered_agent).toBe('Danielle Duncan');
+    expect(lead.address).toBe('1300 Sw Park Ave, Portland, OR 97201');
+    expect(lead.source_ref).toBe('or-sos:257459397');
+  });
+
+  it('prefers an organization registered agent over an individual name', () => {
+    const withOrgAgent: OrFilingRow[] = [
+      ...baseGroup.filter((r) => r.associated_name_type !== 'REGISTERED AGENT'),
+      {
+        registry_number: '257459397',
+        business_name: 'FINANCEGOALZ LLC',
+        entity_type: 'DOMESTIC LIMITED LIABILITY COMPANY',
+        registry_date: '2026-05-29T16:53:25.000',
+        associated_name_type: 'REGISTERED AGENT',
+        entity_of_record_name: '1 OFFICE SOLUTIONS LLC',
+        address_: '1055 NE MOE LN',
+        city: 'HERMISTON',
+        state: 'OR',
+        zip_code: '97838',
+      },
+    ];
+    expect(mapOregonFilings(withOrgAgent)[0].registered_agent).toBe('1 Office Solutions LLC');
+  });
+
+  it('falls back to MAILING ADDRESS when no PRINCIPAL PLACE OF BUSINESS row exists', () => {
+    const noPrincipal = baseGroup.filter((r) => r.associated_name_type !== 'PRINCIPAL PLACE OF BUSINESS');
+    expect(mapOregonFilings(noPrincipal)[0].address).toBe('1300 Sw Park Ave Suite 1301, Portland, OR 97201');
+  });
+
+  it('skips groups missing a business name or not a new-entity type', () => {
+    expect(mapOregonFilings([{ registry_number: '1', entity_type: 'DOMESTIC LIMITED LIABILITY COMPANY' }])).toEqual([]);
+    expect(mapOregonFilings([{ registry_number: '2', business_name: 'OLD CO LLC', entity_type: 'ASSUMED BUSINESS NAME' }])).toEqual([]);
+  });
+
+  it('ignores rows with no registry_number', () => {
+    expect(mapOregonFilings([{ business_name: 'NO ID LLC', entity_type: 'DOMESTIC LIMITED LIABILITY COMPANY' }])).toEqual([]);
+  });
+});
+
+describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES', () => {
+  it('registers the New York, Colorado, Florida, and Oregon feeds with labels', () => {
     expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
     expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
     expect(STATE_FEED_SOURCES.FL.label).toMatch(/Florida/);
+    expect(STATE_FEED_SOURCES.OR.label).toMatch(/Oregon/);
   });
 
-  it('targets only brand-new entity formation document/filing types', () => {
+  it('targets only brand-new entity formation document/filing/entity types', () => {
     expect(NY_NEW_ENTITY_DOC_TYPES).toEqual(['ARTICLES OF ORGANIZATION', 'CERTIFICATE OF INCORPORATION']);
     expect(CO_NEW_ENTITY_TYPES).toEqual(['DLLC', 'DPC', 'DNC']);
     expect(FL_NEW_ENTITY_FILING_TYPES).toEqual(['DOMP', 'DOMNP', 'FLAL']);
+    expect(OR_NEW_ENTITY_TYPES).toContain('DOMESTIC LIMITED LIABILITY COMPANY');
+    expect(OR_NEW_ENTITY_TYPES).not.toContain('ASSUMED BUSINESS NAME');
   });
 });

@@ -9,7 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
-import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine } from '../../../../../lib/state-filings';
+import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +30,9 @@ type Check = { name: string; ok: boolean; detail: string };
 //   9. the free NY state-registry connector maps a filing row correctly,
 //  10. the free CO state-registry connector maps a filing row correctly,
 //  11. the free FL state-registry connector parses a fixed-width record and
-//      maps it correctly.
+//      maps it correctly,
+//  12. the free OR state-registry connector groups multi-row registry data
+//      (incl. the filer's first/last name) into one lead correctly.
 //
 // Returns 200 only when every check passes, so it can be wired to uptime
 // monitors or run manually from the admin UI.
@@ -215,6 +217,44 @@ export async function GET() {
     detail: flLead
       ? `mapped "${flLead.business_name}" (${flLead.entity_type}, ${flLead.state}, filed ${flLead.filing_date})`
       : 'parseFlCorLine returned null',
+  });
+
+  // 12. OR state-registry connector — a sample multi-row registry group
+  // (one row per associated_name_type) should group into a single lead,
+  // surfacing the filer's first/last name as owner_name.
+  const orGroup = [
+    {
+      registry_number: '257459397',
+      business_name: 'FINANCEGOALZ LLC',
+      entity_type: 'DOMESTIC LIMITED LIABILITY COMPANY',
+      registry_date: '2026-05-29T16:53:25.000',
+      associated_name_type: 'INDIVIDUAL WITH DIRECT KNOWLEDGE',
+      first_name: 'DANIELLE',
+      last_name: 'DUNCAN',
+      address_: '1300 SW PARK AVE',
+      city: 'PORTLAND',
+      state: 'OR',
+      zip_code: '97201',
+    },
+    {
+      registry_number: '257459397',
+      business_name: 'FINANCEGOALZ LLC',
+      entity_type: 'DOMESTIC LIMITED LIABILITY COMPANY',
+      registry_date: '2026-05-29T16:53:25.000',
+      associated_name_type: 'PRINCIPAL PLACE OF BUSINESS',
+      address_: '1300 SW PARK AVE',
+      city: 'PORTLAND',
+      state: 'OR',
+      zip_code: '97201',
+    },
+  ];
+  const [orLead] = mapOregonFilings(orGroup);
+  checks.push({
+    name: 'or_state_feed',
+    ok: !!orLead && orLead.business_name === 'Financegoalz LLC' && orLead.entity_type === 'LLC' && orLead.state === 'OR' && orLead.filing_date === '2026-05-29' && orLead.owner_name === 'Danielle Duncan',
+    detail: orLead
+      ? `mapped "${orLead.business_name}" (${orLead.entity_type}, ${orLead.state}, filed ${orLead.filing_date}, owner ${orLead.owner_name})`
+      : 'mapOregonFilings returned no leads',
   });
 
   const ok = checks.every((c) => c.ok);

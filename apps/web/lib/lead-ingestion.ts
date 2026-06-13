@@ -31,8 +31,12 @@ import {
   FL_NEW_ENTITY_FILING_TYPES,
   parseFlCorLine,
   mapFlFiling,
+  OR_DATASET_URL,
+  OR_NEW_ENTITY_TYPES,
+  mapOregonFilings,
   type NyFilingRow,
   type CoFilingRow,
+  type OrFilingRow,
   type StateFeedCode,
 } from './state-filings';
 
@@ -235,10 +239,47 @@ export async function fetchFloridaFilings(dateFrom?: string, dateTo?: string, li
   }
 }
 
+// Oregon Secretary of State "New Businesses Registered Last Month" — free, no
+// API key, refreshed monthly. Filtered to domestic LLC/Corp/Nonprofit/etc.
+// entity types so results are brand-new in-state formations. Each business
+// spans several rows (one per associated_name_type); mapOregonFilings groups
+// them and uniquely surfaces the filer's first/last name. `limit` is the
+// number of *businesses* returned — we over-fetch rows to account for the
+// ~5-6 rows per business, then group and slice.
+export async function fetchOregonFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const typeList = OR_NEW_ENTITY_TYPES.map((t) => `'${t}'`).join(', ');
+    const clauses = [`entity_type IN(${typeList})`];
+    if (dateFrom) clauses.push(`registry_date >= '${dateFrom}T00:00:00'`);
+    if (dateTo) clauses.push(`registry_date <= '${dateTo}T23:59:59'`);
+
+    const params = new URLSearchParams({
+      $where: clauses.join(' AND '),
+      $order: 'registry_date DESC',
+      $limit: String(limit * 6),
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${OR_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const rows = await res.json() as OrFilingRow[];
+    return mapOregonFilings(rows).filter((f) => f.business_name).slice(0, limit);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
 export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
   CO: fetchColoradoFilings,
   FL: fetchFloridaFilings,
+  OR: fetchOregonFilings,
 };
 
 // ── Normalize + score raw filings, then dedupe/insert into business_leads ────
