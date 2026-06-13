@@ -9,7 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
-import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings } from '../../../../../lib/state-filings';
+import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +32,9 @@ type Check = { name: string; ok: boolean; detail: string };
 //  11. the free FL state-registry connector parses a fixed-width record and
 //      maps it correctly,
 //  12. the free OR state-registry connector groups multi-row registry data
-//      (incl. the filer's first/last name) into one lead correctly.
+//      (incl. the filer's first/last name) into one lead correctly,
+//  13. the free PA state-registry connector maps a filing row (incl. the
+//      Organizer's first/last name) correctly.
 //
 // Returns 200 only when every check passes, so it can be wired to uptime
 // monitors or run manually from the admin UI.
@@ -255,6 +257,27 @@ export async function GET() {
     detail: orLead
       ? `mapped "${orLead.business_name}" (${orLead.entity_type}, ${orLead.state}, filed ${orLead.filing_date}, owner ${orLead.owner_name})`
       : 'mapOregonFilings returned no leads',
+  });
+
+  // 13. PA state-registry connector — a sample domestic LLC filing row,
+  // including the Organizer's first/last name, should map correctly.
+  const paLead = mapPaFiling({
+    business_name: "Marberger's Contractors Llc",
+    filing_number: '0014681149',
+    address_line1: '3075 Horseshoe Pike',
+    city: 'Honey Brook',
+    state: 'PA',
+    zip: '19344-8656',
+    typeofbusinessregistration: 'Domestic Limited Liability Company',
+    creationdate: '2025-07-30T00:00:00.000',
+    party_type: 'Organizer',
+    first_name: 'Curtis',
+    last_name: 'Marberger',
+  });
+  checks.push({
+    name: 'pa_state_feed',
+    ok: paLead.business_name === "Marberger's Contractors Llc" && paLead.entity_type === 'LLC' && paLead.state === 'PA' && paLead.filing_date === '2025-07-30' && paLead.owner_name === 'Curtis Marberger',
+    detail: `mapped "${paLead.business_name}" (${paLead.entity_type}, ${paLead.state}, filed ${paLead.filing_date}, owner ${paLead.owner_name})`,
   });
 
   const ok = checks.every((c) => c.ok);

@@ -385,6 +385,69 @@ export function mapOregonFilings(rows: OrFilingRow[]): StateFilingLead[] {
   return leads;
 }
 
+// ── Pennsylvania — Dept. of State "Registered Businesses in PA Current" ─────
+// https://data.pa.gov/resource/xvd7-5r2c.json — free, no API key, one row per
+// business with its Organizer/Incorporator's first/middle/last name attached.
+// `creationdate` is the formation date; `typeofbusinessregistration`
+// distinguishes brand-new domestic formations from foreign qualifications.
+
+export const PA_DATASET_URL = 'https://data.pa.gov/resource/xvd7-5r2c.json';
+
+// Domestic registration types representing brand-new in-state formations
+// (excludes "Foreign *" entities registering to do business in PA).
+export const PA_NEW_ENTITY_TYPES = [
+  'Domestic Limited Liability Company',
+  'Domestic Business Corporation',
+  'Domestic Nonprofit Corporation',
+  'Domestic Limited Partnership (LP/LLLP)',
+  'Domestic Business Trust',
+  'Domestic General Partnership (GP/LLP)',
+] as const;
+
+export interface PaFilingRow {
+  business_name?: string;
+  filing_number?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  typeofbusinessregistration?: string;
+  creationdate?: string;
+  party_type?: string;
+  first_name?: string;
+  middle_name?: string;
+  last_name?: string;
+}
+
+function paOwnerName(row: PaFilingRow): string | null {
+  const parts = [row.first_name, row.middle_name, row.last_name]
+    .map((p) => p?.trim())
+    .filter((p): p is string => !!p);
+  return parts.length ? maybeTitleCase(parts.join(' ')) : null;
+}
+
+function paAddress(row: PaFilingRow): string | null {
+  const stateZip = [row.state?.trim(), row.zip?.trim()].filter(Boolean).join(' ');
+  const line1 = [row.address_line1?.trim(), row.address_line2?.trim()].filter(Boolean).join(' ');
+  const city = row.city?.trim();
+  const parts = [line1 || null, city || null, stateZip || null].filter(Boolean);
+  return parts.length ? parts.join(', ') : null;
+}
+
+export function mapPaFiling(row: PaFilingRow): StateFilingLead {
+  return {
+    business_name: maybeTitleCase(row.business_name ?? ''),
+    entity_type: normalizeEntityType(row.typeofbusinessregistration ?? null),
+    state: 'PA',
+    filing_date: row.creationdate ? row.creationdate.slice(0, 10) : null,
+    owner_name: paOwnerName(row),
+    address: paAddress(row),
+    industry: null,
+    source_ref: row.filing_number ? `pa-dos:${row.filing_number}` : undefined,
+  };
+}
+
 // ── Registry of available free state feeds ──────────────────────────────────
 // Single source of truth for both server-side validation (ingest route) and
 // the admin UI's state picker. Add an entry here + a fetch+map implementation
@@ -406,6 +469,10 @@ export const STATE_FEED_SOURCES = {
   OR: {
     label: 'Oregon — Secretary of State',
     description: 'New domestic LLC, corporation, nonprofit, and partnership registrations from the Oregon Business Registry open dataset — includes the filer’s first and last name. Free, no API key, refreshed monthly.',
+  },
+  PA: {
+    label: 'Pennsylvania — Dept. of State',
+    description: 'New domestic LLC, corporation, nonprofit, and partnership registrations from the PA Registered Businesses open dataset, including the Organizer/Incorporator’s first and last name. Free, no API key, updated regularly.',
   },
 } as const;
 

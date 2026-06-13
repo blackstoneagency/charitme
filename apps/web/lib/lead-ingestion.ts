@@ -34,9 +34,13 @@ import {
   OR_DATASET_URL,
   OR_NEW_ENTITY_TYPES,
   mapOregonFilings,
+  PA_DATASET_URL,
+  PA_NEW_ENTITY_TYPES,
+  mapPaFiling,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
+  type PaFilingRow,
   type StateFeedCode,
 } from './state-filings';
 
@@ -275,11 +279,45 @@ export async function fetchOregonFilings(dateFrom?: string, dateTo?: string, lim
   }
 }
 
+// Pennsylvania Dept. of State "Registered Businesses in PA Current" — free, no
+// API key. Filtered to domestic LLC/Corp/Nonprofit/etc. registration types so
+// results are brand-new in-state formations, not foreign qualifications. Each
+// row already includes the Organizer/Incorporator's first/middle/last name.
+export async function fetchPennsylvaniaFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const typeList = PA_NEW_ENTITY_TYPES.map((t) => `'${t}'`).join(', ');
+    const clauses = [`typeofbusinessregistration IN(${typeList})`];
+    if (dateFrom) clauses.push(`creationdate >= '${dateFrom}T00:00:00'`);
+    if (dateTo) clauses.push(`creationdate <= '${dateTo}T23:59:59'`);
+
+    const params = new URLSearchParams({
+      $where: clauses.join(' AND '),
+      $order: 'creationdate DESC',
+      $limit: String(limit),
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${PA_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const rows = await res.json() as PaFilingRow[];
+    return rows.map(mapPaFiling).filter((f) => f.business_name);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
 export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
   CO: fetchColoradoFilings,
   FL: fetchFloridaFilings,
   OR: fetchOregonFilings,
+  PA: fetchPennsylvaniaFilings,
 };
 
 // ── Normalize + score raw filings, then dedupe/insert into business_leads ────

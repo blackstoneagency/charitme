@@ -4,6 +4,7 @@ import {
   mapCoFiling,
   mapFlFiling,
   mapOregonFilings,
+  mapPaFiling,
   parseFlCorLine,
   parseFlDate,
   titleCaseBusinessName,
@@ -12,10 +13,12 @@ import {
   CO_NEW_ENTITY_TYPES,
   FL_NEW_ENTITY_FILING_TYPES,
   OR_NEW_ENTITY_TYPES,
+  PA_NEW_ENTITY_TYPES,
   STATE_FEED_SOURCES,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
+  type PaFilingRow,
 } from '../lib/state-filings';
 
 // Builds a fixed-width Sunbiz cor.txt record by placing fields at the
@@ -387,12 +390,63 @@ describe('mapOregonFilings', () => {
   });
 });
 
-describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES', () => {
-  it('registers the New York, Colorado, Florida, and Oregon feeds with labels', () => {
+describe('mapPaFiling', () => {
+  const baseRow: PaFilingRow = {
+    business_name: "Marberger's Contractors Llc",
+    filing_number: '0014681149',
+    address_line1: '3075 Horseshoe Pike',
+    city: 'Honey Brook',
+    state: 'PA',
+    zip: '19344-8656',
+    typeofbusinessregistration: 'Domestic Limited Liability Company',
+    creationdate: '2025-07-30T00:00:00.000',
+    party_type: 'Organizer',
+    first_name: 'Curtis',
+    last_name: 'Marberger',
+  };
+
+  it('maps a domestic LLC filing, preserving already-correct casing', () => {
+    const lead = mapPaFiling(baseRow);
+    expect(lead.business_name).toBe("Marberger's Contractors Llc");
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('PA');
+    expect(lead.filing_date).toBe('2025-07-30');
+    expect(lead.owner_name).toBe('Curtis Marberger');
+    expect(lead.address).toBe('3075 Horseshoe Pike, Honey Brook, PA 19344-8656');
+    expect(lead.source_ref).toBe('pa-dos:0014681149');
+  });
+
+  it('maps a domestic corporation filing', () => {
+    const lead = mapPaFiling({ ...baseRow, business_name: 'RIVERSIDE HOLDINGS INC', typeofbusinessregistration: 'Domestic Business Corporation' });
+    expect(lead.business_name).toBe('Riverside Holdings INC');
+    expect(lead.entity_type).toBe('Corporation');
+  });
+
+  it('maps a domestic nonprofit corporation filing', () => {
+    const lead = mapPaFiling({ ...baseRow, typeofbusinessregistration: 'Domestic Nonprofit Corporation' });
+    expect(lead.entity_type).toBe('Nonprofit');
+  });
+
+  it('includes a middle name when present', () => {
+    const lead = mapPaFiling({ ...baseRow, middle_name: 'James' });
+    expect(lead.owner_name).toBe('Curtis James Marberger');
+  });
+
+  it('handles missing owner name, address, and filing number gracefully', () => {
+    const lead = mapPaFiling({ business_name: 'BARE LLC', typeofbusinessregistration: 'Domestic Limited Liability Company' });
+    expect(lead.owner_name).toBeNull();
+    expect(lead.address).toBeNull();
+    expect(lead.source_ref).toBeUndefined();
+  });
+});
+
+describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES / PA_NEW_ENTITY_TYPES', () => {
+  it('registers the New York, Colorado, Florida, Oregon, and Pennsylvania feeds with labels', () => {
     expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
     expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
     expect(STATE_FEED_SOURCES.FL.label).toMatch(/Florida/);
     expect(STATE_FEED_SOURCES.OR.label).toMatch(/Oregon/);
+    expect(STATE_FEED_SOURCES.PA.label).toMatch(/Pennsylvania/);
   });
 
   it('targets only brand-new entity formation document/filing/entity types', () => {
@@ -401,5 +455,7 @@ describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / F
     expect(FL_NEW_ENTITY_FILING_TYPES).toEqual(['DOMP', 'DOMNP', 'FLAL']);
     expect(OR_NEW_ENTITY_TYPES).toContain('DOMESTIC LIMITED LIABILITY COMPANY');
     expect(OR_NEW_ENTITY_TYPES).not.toContain('ASSUMED BUSINESS NAME');
+    expect(PA_NEW_ENTITY_TYPES).toContain('Domestic Limited Liability Company');
+    expect(PA_NEW_ENTITY_TYPES).not.toContain('Foreign Limited Liability Company');
   });
 });
