@@ -6,7 +6,7 @@ import { getMarketingOverview } from './_components/overview';
 
 export const dynamic = 'force-dynamic';
 
-const VALID_TABS = ['overview', 'audience', 'segments', 'campaigns', 'automations', 'copilot'] as const;
+const VALID_TABS = ['overview', 'audience', 'segments', 'campaigns', 'automations', 'copilot', 'outreach'] as const;
 type TabKey = typeof VALID_TABS[number];
 
 export default async function AdminMarketingPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {

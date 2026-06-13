@@ -41,6 +41,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const url = new URL(request.url);
   const cid = url.searchParams.get('cid');
   const camp = url.searchParams.get('camp');
+  const lo = url.searchParams.get('lo');
 
   const withUtm = appendUtmParams(link.destination_url, {
     source: link.utm_source,
@@ -95,6 +96,28 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             .eq('id', camp);
         }
       }
+    }
+  }
+
+  // Lead Outreach (Marketing → Outreach): roll the click up onto the per-lead
+  // record so the admin funnel shows exactly who clicked their unique link.
+  if (lo) {
+    const { data: outreach } = await supabaseAdmin
+      .from('lead_outreach')
+      .select('status, click_count, first_click_at')
+      .eq('id', lo)
+      .maybeSingle();
+    if (outreach) {
+      const now = new Date().toISOString();
+      await supabaseAdmin
+        .from('lead_outreach')
+        .update({
+          click_count: (outreach.click_count ?? 0) + 1,
+          first_click_at: outreach.first_click_at ?? now,
+          last_click_at: now,
+          status: outreach.status === 'converted' ? 'converted' : 'clicked',
+        })
+        .eq('id', lo);
     }
   }
 
