@@ -1,6 +1,7 @@
 import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
+import SftpClient from 'ssh2-sftp-client';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { verifyAdmin } from '../../users/_auth';
 import {
@@ -18,6 +19,13 @@ import {
   CO_DATASET_URL,
   CO_NEW_ENTITY_TYPES,
   mapCoFiling,
+  FL_SFTP_HOST,
+  FL_SFTP_USER,
+  FL_SFTP_PASSWORD,
+  FL_COR_DIR,
+  FL_NEW_ENTITY_FILING_TYPES,
+  parseFlCorLine,
+  mapFlFiling,
   STATE_FEED_SOURCES,
   type NyFilingRow,
   type CoFilingRow,
@@ -25,6 +33,9 @@ import {
 } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
+// Florida's connector downloads + parses a daily file over SFTP, which is
+// slower than the other (HTTP API) connectors — give it room to finish.
+export const maxDuration = 60;
 
 const FilingSchema = z.object({
   business_name: z.string().trim().min(1).max(200),
@@ -56,7 +67,7 @@ const BodySchema = z.union([
   }),
   z.object({
     mode: z.literal('state'),
-    state: z.enum(['NY', 'CO']),
+    state: z.enum(['NY', 'CO', 'FL']),
     date_from: z.string().regex(ISO_DATE_RE).optional(),
     date_to: z.string().regex(ISO_DATE_RE).optional(),
   }),
@@ -200,9 +211,73 @@ async function fetchColoradoFilings(dateFrom?: string, dateTo?: string, limit = 
   }
 }
 
+// Most recent `maxDays` calendar dates (YYYY-MM-DD, newest first) covering the
+// requested range, capped to bound how many Sunbiz daily files we download.
+function floridaDateRange(dateFrom?: string, dateTo?: string, maxDays = 3): string[] {
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const end = dateTo ?? dateFrom ?? todayIso;
+  const start = dateFrom ?? dateTo ?? todayIso;
+  const endDate = new Date(`${end}T00:00:00Z`);
+  const startDate = new Date(`${start}T00:00:00Z`);
+
+  const dates: string[] = [];
+  for (const d = new Date(endDate); d >= startDate && dates.length < maxDays; d.setUTCDate(d.getUTCDate() - 1)) {
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+// Florida Division of Corporations (Sunbiz) daily corporate data file — free,
+// published SFTP credentials, updated daily. Each /doc/cor/yyyymmddc.txt
+// covers one calendar day of corporate-record transactions; we keep only
+// records whose original formation date (fileDate) matches that day, so
+// results are brand-new domestic LLC/Corp/Nonprofit formations, not
+// transactions against pre-existing entities.
+async function fetchFloridaFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  const dates = floridaDateRange(dateFrom, dateTo);
+  const sftp = new SftpClient();
+  const out: BusinessLeadInput[] = [];
+  try {
+    await sftp.connect({
+      host: FL_SFTP_HOST,
+      port: 22,
+      username: FL_SFTP_USER,
+      password: FL_SFTP_PASSWORD,
+      readyTimeout: 8000,
+    });
+
+    for (const date of dates) {
+      if (out.length >= limit) break;
+      const yyyymmdd = date.replace(/-/g, '');
+      let buf: Buffer;
+      try {
+        buf = await sftp.get(`${FL_COR_DIR}/${yyyymmdd}c.txt`) as Buffer;
+      } catch {
+        continue; // file not published for this date (yet) — try other dates
+      }
+
+      for (const line of buf.toString('latin1').split(/\r?\n/)) {
+        if (out.length >= limit) break;
+        const row = parseFlCorLine(line);
+        if (!row || !row.corporationName) continue;
+        if (row.status !== 'A') continue;
+        if (!(FL_NEW_ENTITY_FILING_TYPES as readonly string[]).includes(row.filingType)) continue;
+        if (row.fileDate !== date) continue; // only entities formed on this exact day
+        out.push(mapFlFiling(row));
+      }
+    }
+    return out;
+  } catch {
+    return []; // SFTP blocked / unreachable / timeout — degrade gracefully
+  } finally {
+    await sftp.end().catch(() => {});
+  }
+}
+
 const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
   CO: fetchColoradoFilings,
+  FL: fetchFloridaFilings,
 };
 
 export async function POST(request: NextRequest) {

@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // ssh2 (via ssh2-sftp-client, used by the FL Sunbiz connector) ships a
+  // native .node binary that webpack can't bundle — keep it external so
+  // it's loaded via require() at runtime in the serverless function.
+  serverExternalPackages: ['ssh2-sftp-client', 'ssh2'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.supabase.co' },

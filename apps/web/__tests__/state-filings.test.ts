@@ -2,14 +2,52 @@ import { describe, expect, it } from 'vitest';
 import {
   mapNyFiling,
   mapCoFiling,
+  mapFlFiling,
+  parseFlCorLine,
+  parseFlDate,
   titleCaseBusinessName,
   maybeTitleCase,
   NY_NEW_ENTITY_DOC_TYPES,
   CO_NEW_ENTITY_TYPES,
+  FL_NEW_ENTITY_FILING_TYPES,
   STATE_FEED_SOURCES,
   type NyFilingRow,
   type CoFilingRow,
 } from '../lib/state-filings';
+
+// Builds a fixed-width Sunbiz cor.txt record by placing fields at the
+// documented 0-indexed byte ranges (see lib/state-filings.ts), padding the
+// rest with spaces — mirrors the real file format closely enough to exercise
+// parseFlCorLine's slicing logic.
+function buildFlCorLine(fields: {
+  corporationNumber?: string;
+  corporationName?: string;
+  status?: string;
+  filingType?: string;
+  addressLine1?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  fileDate?: string;
+  registeredAgentName?: string;
+}, length = 1440): string {
+  const chars = new Array(length).fill(' ');
+  const place = (value: string | undefined, start: number, len: number) => {
+    if (!value) return;
+    for (let i = 0; i < Math.min(value.length, len); i++) chars[start + i] = value[i];
+  };
+  place(fields.corporationNumber, 0, 12);
+  place(fields.corporationName, 12, 192);
+  place(fields.status, 204, 1);
+  place(fields.filingType, 205, 15);
+  place(fields.addressLine1, 220, 42);
+  place(fields.city, 304, 28);
+  place(fields.state, 332, 2);
+  place(fields.zip, 334, 10);
+  place(fields.fileDate, 472, 8);
+  place(fields.registeredAgentName, 544, 42);
+  return chars.join('');
+}
 
 // This suite exercises the pure mapping layer for free state-registry feeds —
 // the ingest route's fetch functions call these with live API rows, so green
@@ -154,14 +192,107 @@ describe('mapCoFiling', () => {
   });
 });
 
-describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES', () => {
-  it('registers the New York and Colorado feeds with labels', () => {
-    expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
-    expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
+describe('parseFlDate', () => {
+  it('converts CCYYMMDD to YYYY-MM-DD', () => {
+    expect(parseFlDate('20260612')).toBe('2026-06-12');
   });
 
-  it('targets only brand-new entity formation document types', () => {
+  it('returns null for non-8-digit or implausible dates', () => {
+    expect(parseFlDate('2026612')).toBeNull();
+    expect(parseFlDate('abcdefgh')).toBeNull();
+    expect(parseFlDate('00000000')).toBeNull();
+    expect(parseFlDate('20269999')).toBeNull();
+  });
+});
+
+describe('parseFlCorLine / mapFlFiling', () => {
+  const llcLine = buildFlCorLine({
+    corporationNumber: 'L26000123456',
+    corporationName: 'ACME VENTURES LLC',
+    status: 'A',
+    filingType: 'FLAL',
+    addressLine1: '100 BISCAYNE BLVD',
+    city: 'MIAMI',
+    state: 'FL',
+    zip: '33131',
+    fileDate: '20260612',
+    registeredAgentName: 'CT CORPORATION SYSTEM',
+  });
+
+  it('parses fixed-width fields at their documented byte positions', () => {
+    const row = parseFlCorLine(llcLine);
+    expect(row).not.toBeNull();
+    expect(row).toMatchObject({
+      corporationNumber: 'L26000123456',
+      corporationName: 'ACME VENTURES LLC',
+      status: 'A',
+      filingType: 'FLAL',
+      addressLine1: '100 BISCAYNE BLVD',
+      city: 'MIAMI',
+      state: 'FL',
+      zip: '33131',
+      fileDate: '2026-06-12',
+      registeredAgentName: 'CT CORPORATION SYSTEM',
+    });
+  });
+
+  it('maps a Florida LLC filing to a BusinessLeadInput', () => {
+    const lead = mapFlFiling(parseFlCorLine(llcLine)!);
+    expect(lead.business_name).toBe('Acme Ventures LLC');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('FL');
+    expect(lead.filing_date).toBe('2026-06-12');
+    expect(lead.filing_status).toBe('Active');
+    expect(lead.registered_agent).toBe('CT CORPORATION SYSTEM');
+    expect(lead.address).toBe('100 Biscayne Blvd, Miami, FL 33131');
+    expect(lead.source_ref).toBe('fl-sunbiz:L26000123456');
+  });
+
+  it('maps a domestic profit corporation filing', () => {
+    const corpLine = buildFlCorLine({ corporationNumber: 'P26000999999', corporationName: 'RIVERSIDE HOLDINGS INC', status: 'A', filingType: 'DOMP', fileDate: '20260612' });
+    expect(mapFlFiling(parseFlCorLine(corpLine)!).entity_type).toBe('Corporation');
+  });
+
+  it('maps a domestic non-profit corporation filing', () => {
+    const npLine = buildFlCorLine({ corporationNumber: 'N26000111111', corporationName: 'RIVERSIDE COMMUNITY FOUNDATION INC', status: 'A', filingType: 'DOMNP', fileDate: '20260612' });
+    expect(mapFlFiling(parseFlCorLine(npLine)!).entity_type).toBe('Nonprofit');
+  });
+
+  it('maps inactive status and falls back to the raw code for unknown statuses', () => {
+    const inactive = buildFlCorLine({ ...{ corporationName: 'OLD CO LLC', filingType: 'FLAL' }, status: 'I' });
+    expect(mapFlFiling(parseFlCorLine(inactive)!).filing_status).toBe('Inactive');
+
+    const unknown = buildFlCorLine({ corporationName: 'WEIRD CO LLC', filingType: 'FLAL', status: 'X' });
+    expect(mapFlFiling(parseFlCorLine(unknown)!).filing_status).toBe('X');
+  });
+
+  it('returns null for lines shorter than the minimum field-readable length', () => {
+    expect(parseFlCorLine('too short')).toBeNull();
+  });
+
+  it('returns a null filing_date for a malformed File Date field', () => {
+    const badDate = buildFlCorLine({ corporationName: 'NO DATE LLC', filingType: 'FLAL', status: 'A', fileDate: '????????' });
+    expect(parseFlCorLine(badDate)!.fileDate).toBeNull();
+  });
+
+  it('handles a missing address/registered agent gracefully', () => {
+    const bare = buildFlCorLine({ corporationNumber: 'L26000000001', corporationName: 'BARE LLC', status: 'A', filingType: 'FLAL', fileDate: '20260612' });
+    const lead = mapFlFiling(parseFlCorLine(bare)!);
+    expect(lead.address).toBeNull();
+    expect(lead.registered_agent).toBeNull();
+  });
+});
+
+describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES', () => {
+  it('registers the New York, Colorado, and Florida feeds with labels', () => {
+    expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
+    expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
+    expect(STATE_FEED_SOURCES.FL.label).toMatch(/Florida/);
+  });
+
+  it('targets only brand-new entity formation document/filing types', () => {
     expect(NY_NEW_ENTITY_DOC_TYPES).toEqual(['ARTICLES OF ORGANIZATION', 'CERTIFICATE OF INCORPORATION']);
     expect(CO_NEW_ENTITY_TYPES).toEqual(['DLLC', 'DPC', 'DNC']);
+    expect(FL_NEW_ENTITY_FILING_TYPES).toEqual(['DOMP', 'DOMNP', 'FLAL']);
   });
 });

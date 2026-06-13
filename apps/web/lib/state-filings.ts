@@ -148,6 +148,136 @@ export function mapCoFiling(row: CoFilingRow): StateFilingLead {
   };
 }
 
+// ── Florida — Division of Corporations "Sunbiz" daily corporate data file ───
+// sftp://sftp.floridados.gov (user "Public", free published credentials) —
+// /doc/cor/yyyymmddc.txt, a fixed-width (1440 chars/record) extract of every
+// corporate-record transaction processed that day. `fileDate` is the
+// entity's *original formation* date (separate from the daily-batch date),
+// so a brand-new formation has fileDate === the date of the file it appears
+// in. `filingType` distinguishes domestic LLC/Corp/Nonprofit formations from
+// foreign qualifications, partnerships, trusts, and agent designations.
+//
+// Field layout per https://dos.sunbiz.org/data-definitions/cor.html (1-indexed
+// start/length, converted below to 0-indexed slice ranges):
+//   Corporation Number      1  / 12   →  [0, 12)
+//   Corporation Name        13 / 192  →  [12, 204)
+//   Status                  205 / 1   →  [204, 205)   'A' active, 'I' inactive
+//   Filing Type             206 / 15  →  [205, 220)
+//   Principal Address 1     221 / 42  →  [220, 262)
+//   Principal City          305 / 28  →  [304, 332)
+//   Principal State         333 / 2   →  [332, 334)
+//   Principal Zip           335 / 10  →  [334, 344)
+//   File Date (CCYYMMDD)    473 / 8   →  [472, 480)
+//   Registered Agent Name   545 / 42  →  [544, 586)
+//
+// NOTE: this connector could not be exercised against live Sunbiz data —
+// outbound SFTP (port 22) is blocked in the development sandbox. The field
+// positions/codes follow Sunbiz's published spec; mapFlFiling/parseFlCorLine
+// are unit-tested against hand-built fixed-width records matching that spec.
+
+export const FL_SFTP_HOST = 'sftp.floridados.gov';
+export const FL_SFTP_USER = 'Public';
+export const FL_SFTP_PASSWORD = 'PubAccess1845!';
+export const FL_COR_DIR = '/doc/cor';
+
+const FL_FIELD_RANGES = {
+  corporationNumber: [0, 12],
+  corporationName: [12, 204],
+  status: [204, 205],
+  filingType: [205, 220],
+  addressLine1: [220, 262],
+  city: [304, 332],
+  state: [332, 334],
+  zip: [334, 344],
+  fileDate: [472, 480],
+  registeredAgentName: [544, 586],
+} as const;
+
+// Minimum line length to safely read through the File Date field.
+export const FL_COR_MIN_LENGTH = 480;
+
+// Filing types representing a brand-new domestic LLC/Corp/Nonprofit formation
+// (excludes foreign qualifications, partnerships, trusts, agent designations).
+export const FL_NEW_ENTITY_FILING_TYPES = ['DOMP', 'DOMNP', 'FLAL'] as const;
+
+const FL_FILING_TYPE_LABELS: Record<string, string> = {
+  DOMP: 'Domestic Profit Corporation',
+  DOMNP: 'Domestic Non-Profit Corporation',
+  FLAL: 'Florida Limited Liability Company',
+  FORP: 'Foreign Profit Corporation',
+  FORNP: 'Foreign Non-Profit Corporation',
+  FORL: 'Foreign Limited Liability Company',
+  DOMLP: 'Domestic Limited Partnership',
+  FORLP: 'Foreign Limited Partnership',
+};
+
+export interface FlFilingRow {
+  corporationNumber: string;
+  corporationName: string;
+  status: string;
+  filingType: string;
+  fileDate: string | null;
+  addressLine1: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  registeredAgentName: string | null;
+}
+
+const FL_DATE_RE = /^\d{8}$/;
+
+// CCYYMMDD → YYYY-MM-DD, or null if not a plausible date.
+export function parseFlDate(raw: string): string | null {
+  const v = raw.trim();
+  if (!FL_DATE_RE.test(v)) return null;
+  const iso = `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}`;
+  return Number.isNaN(new Date(iso).getTime()) ? null : iso;
+}
+
+// Parses one fixed-width record from a Sunbiz cor.txt file. Returns null for
+// lines too short to contain the fields we need (e.g. trailing blank lines).
+export function parseFlCorLine(line: string): FlFilingRow | null {
+  if (line.length < FL_COR_MIN_LENGTH) return null;
+  const field = (key: keyof typeof FL_FIELD_RANGES): string => {
+    const [start, end] = FL_FIELD_RANGES[key];
+    return line.length >= start ? line.slice(start, Math.min(end, line.length)).trim() : '';
+  };
+  return {
+    corporationNumber: field('corporationNumber'),
+    corporationName: field('corporationName'),
+    status: field('status').toUpperCase(),
+    filingType: field('filingType').toUpperCase(),
+    fileDate: parseFlDate(field('fileDate')),
+    addressLine1: field('addressLine1') || null,
+    city: field('city') || null,
+    state: field('state') || null,
+    zip: field('zip') || null,
+    registeredAgentName: field('registeredAgentName') || null,
+  };
+}
+
+function flAddress(row: FlFilingRow): string | null {
+  const stateZip = [row.state, row.zip].filter(Boolean).join(' ');
+  const line1 = row.addressLine1 ? maybeTitleCase(row.addressLine1) : null;
+  const city = row.city ? maybeTitleCase(row.city) : null;
+  const parts = [line1, city, stateZip].filter(Boolean);
+  return parts.length ? parts.join(', ') : null;
+}
+
+export function mapFlFiling(row: FlFilingRow): StateFilingLead {
+  return {
+    business_name: maybeTitleCase(row.corporationName),
+    entity_type: normalizeEntityType(FL_FILING_TYPE_LABELS[row.filingType] ?? row.filingType ?? null),
+    state: 'FL',
+    filing_date: row.fileDate,
+    filing_status: row.status === 'A' ? 'Active' : row.status === 'I' ? 'Inactive' : (row.status || null),
+    registered_agent: row.registeredAgentName,
+    address: flAddress(row),
+    industry: null,
+    source_ref: row.corporationNumber ? `fl-sunbiz:${row.corporationNumber}` : undefined,
+  };
+}
+
 // ── Registry of available free state feeds ──────────────────────────────────
 // Single source of truth for both server-side validation (ingest route) and
 // the admin UI's state picker. Add an entry here + a fetch+map implementation
@@ -161,6 +291,10 @@ export const STATE_FEED_SOURCES = {
   CO: {
     label: 'Colorado — Secretary of State',
     description: 'New domestic LLC, corporation, and nonprofit formations from the Colorado Business Entities open dataset. Free, no API key, updated regularly.',
+  },
+  FL: {
+    label: 'Florida — Division of Corporations (Sunbiz)',
+    description: 'New domestic LLC, profit, and non-profit corporation filings from Sunbiz’s daily corporate data file. Free (public SFTP credentials), updated daily.',
   },
 } as const;
 
