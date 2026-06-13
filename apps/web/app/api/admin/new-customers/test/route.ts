@@ -9,7 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
-import { mapNyFiling } from '../../../../../lib/state-filings';
+import { mapNyFiling, mapCoFiling } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +26,8 @@ type Check = { name: string; ok: boolean; detail: string };
 //   5. the notifications table (admin alert sink) is reachable,
 //   6. the OpenCorporates date-range filter builds correctly (defaults to "today"),
 //   7. whether OPENCORPORATES_API_TOKEN is configured for live pulls (informational),
-//   8. the free NY state-registry connector maps a filing row correctly.
+//   8. the free NY state-registry connector maps a filing row correctly,
+//   9. the free CO state-registry connector maps a filing row correctly.
 //
 // Returns 200 only when every check passes, so it can be wired to uptime
 // monitors or run manually from the admin UI.
@@ -129,6 +130,23 @@ export async function GET() {
     name: 'ny_state_feed',
     ok: nyLead.business_name === 'Chiapperino LLC' && nyLead.entity_type === 'LLC' && nyLead.state === 'NY' && nyLead.filing_date === '2026-06-09',
     detail: `mapped "${nyLead.business_name}" (${nyLead.entity_type}, ${nyLead.state}, filed ${nyLead.filing_date})`,
+  });
+
+  // 9. CO state-registry connector — a sample domestic LLC formation row
+  // should map to a properly-typed, named, CO-located LLC lead.
+  const coLead = mapCoFiling({
+    entityid: '20261714629',
+    entityname: 'SETTLE QUANTUMEX LLC',
+    entitytype: 'DLLC',
+    entitystatus: 'Good Standing',
+    entityformdate: '2026-06-11T00:00:00.000',
+    principalcity: 'Denver',
+    principalstate: 'CO',
+  });
+  checks.push({
+    name: 'co_state_feed',
+    ok: coLead.business_name === 'Settle Quantumex LLC' && coLead.entity_type === 'LLC' && coLead.state === 'CO' && coLead.filing_date === '2026-06-11',
+    detail: `mapped "${coLead.business_name}" (${coLead.entity_type}, ${coLead.state}, filed ${coLead.filing_date})`,
   });
 
   const ok = checks.every((c) => c.ok);

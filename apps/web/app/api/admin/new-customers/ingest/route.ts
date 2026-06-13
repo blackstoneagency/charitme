@@ -15,8 +15,12 @@ import {
   NY_DATASET_URL,
   NY_NEW_ENTITY_DOC_TYPES,
   mapNyFiling,
+  CO_DATASET_URL,
+  CO_NEW_ENTITY_TYPES,
+  mapCoFiling,
   STATE_FEED_SOURCES,
   type NyFilingRow,
+  type CoFilingRow,
   type StateFeedCode,
 } from '../../../../../lib/state-filings';
 
@@ -52,7 +56,7 @@ const BodySchema = z.union([
   }),
   z.object({
     mode: z.literal('state'),
-    state: z.enum(['NY']),
+    state: z.enum(['NY', 'CO']),
     date_from: z.string().regex(ISO_DATE_RE).optional(),
     date_to: z.string().regex(ISO_DATE_RE).optional(),
   }),
@@ -163,8 +167,42 @@ async function fetchNewYorkFilings(dateFrom?: string, dateTo?: string, limit = 5
   }
 }
 
+// Colorado Secretary of State "Business Entities in Colorado" — free, no API
+// key, updated regularly. Filtered to domestic LLC/Corp/Nonprofit entity-type
+// codes so results are brand-new formations, not foreign qualifications or
+// existing-entity record updates.
+async function fetchColoradoFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const typeList = CO_NEW_ENTITY_TYPES.map((t) => `'${t}'`).join(', ');
+    const clauses = [`entitytype IN(${typeList})`];
+    if (dateFrom) clauses.push(`entityformdate >= '${dateFrom}T00:00:00'`);
+    if (dateTo) clauses.push(`entityformdate <= '${dateTo}T23:59:59'`);
+
+    const params = new URLSearchParams({
+      $where: clauses.join(' AND '),
+      $order: 'entityformdate DESC',
+      $limit: String(limit),
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${CO_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const rows = await res.json() as CoFilingRow[];
+    return rows.map(mapCoFiling).filter((f) => f.business_name);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
 const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
+  CO: fetchColoradoFilings,
 };
 
 export async function POST(request: NextRequest) {

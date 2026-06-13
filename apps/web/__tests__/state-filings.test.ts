@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   mapNyFiling,
+  mapCoFiling,
   titleCaseBusinessName,
+  maybeTitleCase,
   NY_NEW_ENTITY_DOC_TYPES,
+  CO_NEW_ENTITY_TYPES,
   STATE_FEED_SOURCES,
   type NyFilingRow,
+  type CoFilingRow,
 } from '../lib/state-filings';
 
 // This suite exercises the pure mapping layer for free state-registry feeds —
@@ -20,6 +24,27 @@ describe('titleCaseBusinessName', () => {
 
   it('collapses extra whitespace', () => {
     expect(titleCaseBusinessName('  RIVERSIDE   FOUNDATION  ')).toBe('Riverside Foundation');
+  });
+
+  it('keeps standalone Roman numerals upper-cased', () => {
+    expect(titleCaseBusinessName('ASSOCIATES III, INC.')).toBe('Associates III, INC.');
+    expect(titleCaseBusinessName('PHASE IV HOLDINGS LLC')).toBe('Phase IV Holdings LLC');
+  });
+});
+
+describe('maybeTitleCase', () => {
+  it('title-cases names that are entirely SHOUTING', () => {
+    expect(maybeTitleCase('SETTLE QUANTUMEX LLC')).toBe('Settle Quantumex LLC');
+  });
+
+  it('leaves already mixed-case names (and acronyms) untouched', () => {
+    expect(maybeTitleCase('TLC Consulting Limited')).toBe('TLC Consulting Limited');
+    expect(maybeTitleCase('Party Boss, LLC')).toBe('Party Boss, LLC');
+  });
+
+  it('collapses extra whitespace either way', () => {
+    expect(maybeTitleCase('  Acme   Holdings  ')).toBe('Acme Holdings');
+    expect(maybeTitleCase('  ACME   HOLDINGS  ')).toBe('Acme Holdings');
   });
 });
 
@@ -73,12 +98,70 @@ describe('mapNyFiling', () => {
   });
 });
 
-describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES', () => {
-  it('registers the New York feed with a label', () => {
+describe('mapCoFiling', () => {
+  const baseRow: CoFilingRow = {
+    entityid: '20261714629',
+    entityname: 'SETTLE QUANTUMEX LLC',
+    entitytype: 'DLLC',
+    entitystatus: 'Good Standing',
+    entityformdate: '2026-06-11T00:00:00.000',
+    principaladdress1: '3922 Kalamath St',
+    principalcity: 'Denver',
+    principalstate: 'CO',
+    principalzipcode: '80211',
+    agentfirstname: 'RYAN',
+    agentmiddlename: 'PAUL',
+    agentlastname: 'ANDREW',
+  };
+
+  it('maps a domestic LLC filing to a BusinessLeadInput', () => {
+    const lead = mapCoFiling(baseRow);
+    expect(lead.business_name).toBe('Settle Quantumex LLC');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('CO');
+    expect(lead.filing_date).toBe('2026-06-11');
+    expect(lead.filing_status).toBe('Good Standing');
+    expect(lead.registered_agent).toBe('RYAN PAUL ANDREW');
+    expect(lead.address).toBe('3922 Kalamath St, Denver, CO 80211');
+    expect(lead.industry).toBeNull();
+    expect(lead.source_ref).toBe('co-sos:20261714629');
+  });
+
+  it('maps a domestic profit corporation filing', () => {
+    const lead = mapCoFiling({ ...baseRow, entityname: 'ASSOCIATES III, INC.', entitytype: 'DPC' });
+    expect(lead.business_name).toBe('Associates III, INC.');
+    expect(lead.entity_type).toBe('Corporation');
+  });
+
+  it('maps a domestic nonprofit corporation filing', () => {
+    const lead = mapCoFiling({ ...baseRow, entityname: 'ROCK RIDGE CONDOMINIUMS, INC.', entitytype: 'DNC' });
+    expect(lead.entity_type).toBe('Nonprofit');
+  });
+
+  it('prefers an organization registered agent over an individual name', () => {
+    const lead = mapCoFiling({
+      ...baseRow,
+      agentorganizationname: 'C T CORPORATION SYSTEM',
+    });
+    expect(lead.registered_agent).toBe('C T CORPORATION SYSTEM');
+  });
+
+  it('handles missing address, agent, and entityid gracefully', () => {
+    const lead = mapCoFiling({ entityname: 'BARE LLC', entitytype: 'DLLC' });
+    expect(lead.address).toBeNull();
+    expect(lead.registered_agent).toBeNull();
+    expect(lead.source_ref).toBeUndefined();
+  });
+});
+
+describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES', () => {
+  it('registers the New York and Colorado feeds with labels', () => {
     expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
+    expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
   });
 
   it('targets only brand-new entity formation document types', () => {
     expect(NY_NEW_ENTITY_DOC_TYPES).toEqual(['ARTICLES OF ORGANIZATION', 'CERTIFICATE OF INCORPORATION']);
+    expect(CO_NEW_ENTITY_TYPES).toEqual(['DLLC', 'DPC', 'DNC']);
   });
 });
