@@ -9,7 +9,7 @@ import { createClient } from '../../lib/supabase-browser';
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
-type WizardStep = 'type' | 'location' | 'story' | 'title' | 'goal' | 'media' | 'payout' | 'summary' | 'live';
+type WizardStep = 'type' | 'category' | 'location' | 'story' | 'title' | 'goal' | 'media' | 'payout' | 'summary' | 'live';
 
 type PayoutMethod = 'stripe' | 'paypal' | 'venmo' | 'googlepay' | 'sinch';
 type PayoutAccount = {
@@ -64,13 +64,14 @@ interface UploadedImage {
 // ─────────────────────────────────────────────
 const WIZARD_STEPS: { key: WizardStep; label: string; num: number }[] = [
   { key: 'type',     label: 'Campaign Type', num: 1 },
-  { key: 'location', label: 'Location',      num: 2 },
-  { key: 'story',    label: 'Your Story',    num: 3 },
-  { key: 'title',    label: 'Title',         num: 4 },
-  { key: 'goal',     label: 'Goal',          num: 5 },
-  { key: 'media',    label: 'Media',         num: 6 },
-  { key: 'payout',   label: 'Get Paid',      num: 7 },
-  { key: 'summary',  label: 'Review',        num: 8 },
+  { key: 'category', label: 'Category',      num: 2 },
+  { key: 'location', label: 'Location',      num: 3 },
+  { key: 'story',    label: 'Your Story',    num: 4 },
+  { key: 'title',    label: 'Title',         num: 5 },
+  { key: 'goal',     label: 'Goal',          num: 6 },
+  { key: 'media',    label: 'Media',         num: 7 },
+  { key: 'payout',   label: 'Get Paid',      num: 8 },
+  { key: 'summary',  label: 'Review',        num: 9 },
 ];
 
 const JOURNEY_STEPS = ['Plan', 'Create', 'Launch', 'Manage', 'Celebrate', 'Impact'];
@@ -578,7 +579,7 @@ export default function CreatePage() {
 
   const journeyState = (i: number): 'done' | 'active' | '' => {
     if (i === 0) return 'done';
-    if (i === 1) return stepIdx <= 5 ? 'active' : 'done';
+    if (i === 1) return stepIdx <= 6 ? 'active' : 'done';
     if (i === 2) { if (step === 'live') return 'done'; if (step === 'summary') return 'active'; return ''; }
     return '';
   };
@@ -586,7 +587,8 @@ export default function CreatePage() {
   const goalDisplay = parseFloat(form.goal || '0').toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
   const heroCopy: Record<string, { title: string; sub: string }> = {
-    type:     { title: 'Start Your Fundraiser',    sub: 'Tell us who you\'re raising funds for and what cause it supports.' },
+    type:     { title: 'Start Your Fundraiser',    sub: 'Tell us who you\'re raising funds for.' },
+    category: { title: 'Pick a Category',           sub: 'Choose the category that best fits your cause — it helps donors find you.' },
     location: { title: 'Where Are You Located?',   sub: 'We use your location to connect you with local donors and comply with fundraising laws.' },
     story:    { title: 'Tell Your Story',           sub: 'Write a compelling story — campaigns with great stories raise 3× more.' },
     title:    { title: 'Name Your Campaign',        sub: 'A great title helps donors understand your cause at a glance.' },
@@ -711,6 +713,18 @@ export default function CreatePage() {
                       <p>You&apos;ll invite a beneficiary to receive funds or distribute them yourself</p>
                     </button>
                   </div>
+
+                  <div className="cr2-proof-line">
+                    <span>🌍</span>
+                    Every hour, around 6,000 people choose to give on CharitMe.
+                  </div>
+                </div>
+              )}
+
+              {/* ── Step: Category ── */}
+              {step === 'category' && (
+                <div className="cr2-type-panel">
+                  <h2 className="cr2-step-q">What best describes your cause?</h2>
 
                   <div className="cr2-divider-label">Choose a category</div>
                   <div className="cr2-cat-chips">
@@ -1514,16 +1528,16 @@ interface ScoreResult {
 }
 
 function computeScore(form: FormState, step: WizardStep, payoutLinked: boolean, isGuest: boolean | null): ScoreResult {
-  const stepOrder: WizardStep[] = ['type','location','story','title','goal','media','payout','summary','live'];
+  const stepOrder: WizardStep[] = ['type','category','location','story','title','goal','media','payout','summary','live'];
   const si = stepOrder.indexOf(step);
 
-  const identity: ScoreState   = isGuest === false ? 'verified' : (si >= 2 ? 'watch' : 'pending');
+  const identity: ScoreState   = isGuest === false ? 'verified' : (si >= 3 ? 'watch' : 'pending');
   const beneficiary: ScoreState = form.description.length > 200 ? 'verified'
     : form.description.length > 50 ? 'watch' : 'pending';
-  const payout: ScoreState     = payoutLinked ? 'verified' : (si >= 6 ? 'watch' : 'pending');
+  const payout: ScoreState     = payoutLinked ? 'verified' : (si >= 7 ? 'watch' : 'pending');
   const storyQuality: ScoreState = form.description.length > 400 ? 'verified'
     : form.description.length > 100 ? 'watch' : 'pending';
-  const evidence: ScoreState   = form.coverImageUrl ? 'verified' : (si >= 5 ? 'watch' : 'pending');
+  const evidence: ScoreState   = form.coverImageUrl ? 'verified' : (si >= 6 ? 'watch' : 'pending');
 
   const pts = { pending: 0, watch: 10, verified: 20 };
   const total = pts[identity] + pts[beneficiary] + pts[payout] + pts[storyQuality] + pts[evidence];
