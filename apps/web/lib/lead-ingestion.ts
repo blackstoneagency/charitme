@@ -63,6 +63,8 @@ import {
   mapBentonvilleFiling,
   AK_DATASET_URL,
   mapAlaskaFiling,
+  NV_DATASET_URL,
+  mapNevadaFiling,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
@@ -78,6 +80,7 @@ import {
   type MesaFilingRow,
   type BentonvilleFilingRow,
   type AkFilingRow,
+  type NvFilingRow,
   type StateFeedCode,
 } from './state-filings';
 
@@ -712,6 +715,39 @@ export async function fetchAlaskaFilings(dateFrom?: string, dateTo?: string, lim
   }
 }
 
+// City of Henderson "Active Business Licenses" — free, no API key, Socrata.
+// Used as a proxy for new NV business activity since Nevada's Secretary of
+// State doesn't publish a free open feed of new entity filings. Filtered to
+// records whose `issued_date` (original license issuance) falls in the
+// requested date range.
+export async function fetchNevadaFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const clauses = ['issued_date IS NOT NULL'];
+    if (dateFrom) clauses.push(`issued_date >= '${dateFrom}T00:00:00'`);
+    if (dateTo) clauses.push(`issued_date <= '${dateTo}T23:59:59'`);
+
+    const params = new URLSearchParams({
+      $where: clauses.join(' AND '),
+      $order: 'issued_date DESC',
+      $limit: String(limit),
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${NV_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const rows = await res.json() as NvFilingRow[];
+    return rows.map(mapNevadaFiling).filter((f) => f.business_name);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
 export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
   CO: fetchColoradoFilings,
@@ -729,6 +765,7 @@ export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: 
   AZ: fetchArizonaFilings,
   AR: fetchArkansasFilings,
   AK: fetchAlaskaFilings,
+  NV: fetchNevadaFilings,
 };
 
 // ── Normalize + score raw filings, then dedupe/insert into business_leads ────
