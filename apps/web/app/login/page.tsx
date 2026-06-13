@@ -126,7 +126,8 @@ function LoginForm() {
     <main className="auth-page">
       <section className="auth-panel">
         <div className="auth-copy">
-          <div className="kind-logo auth-logo"><span><i /><b /></span><strong>CharitMe</strong></div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <div className="kind-logo auth-logo"><img src="/logo.svg" alt="" className="kind-logo-img" width={34} height={34} /><strong>CharitMe</strong></div>
           <p className="auth-kicker">Secure fundraising workspace</p>
           <h1>{mode === 'login' ? 'Welcome back.' : 'Create your CharitMe account.'}</h1>
           <p>Manage campaigns, donations, payouts, updates, and supporter conversations — all in one secure CharitMe account.</p>

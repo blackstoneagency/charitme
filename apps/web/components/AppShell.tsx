@@ -76,10 +76,8 @@ function isEmbedRoute(path: string): boolean {
 function Logo() {
   return (
     <Link href="/" className="kind-logo" aria-label="CharitMe home">
-      <span>
-        <i />
-        <b />
-      </span>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo.svg" alt="" className="kind-logo-img" width={34} height={34} />
       <strong>CharitMe</strong>
     </Link>
   );

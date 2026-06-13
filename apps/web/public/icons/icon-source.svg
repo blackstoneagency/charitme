@@ -1,19 +1,53 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="CharitMe">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="cm-tile" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#7c55ff"/>
-      <stop offset="1" stop-color="#6d35ff"/>
+      <stop offset="1" stop-color="#5b21b6"/>
     </linearGradient>
-    <linearGradient id="d1" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="cm-heart-w" x1="120" y1="90" x2="400" y2="420" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#e7defc"/>
+      <stop offset="1" stop-color="#efe6ff"/>
     </linearGradient>
-    <linearGradient id="d2" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffd9fb"/>
-      <stop offset="1" stop-color="#ffffff"/>
+    <linearGradient id="cm-hand-w" x1="110" y1="440" x2="430" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d7c5f6"/>
+      <stop offset="1" stop-color="#c2a8ef"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <rect x="120" y="156" width="180" height="180" rx="40" fill="url(#d1)" transform="rotate(45 210 246)"/>
-  <rect x="212" y="156" width="180" height="180" rx="40" fill="url(#d2)" opacity="0.92" transform="rotate(45 302 246)"/>
+
+  <rect width="512" height="512" rx="112" fill="url(#cm-tile)"/>
+
+  <g transform="translate(256 264) scale(0.74) translate(-256 -264)">
+    <!-- Cradling hand -->
+    <path d="M104 470
+             C86 452 90 426 110 420
+             C152 408 196 408 240 404
+             C300 398 356 380 402 346
+             C424 330 442 312 458 298
+             C472 286 492 298 484 318
+             C466 364 434 402 392 432
+             C338 470 280 488 218 488
+             C176 488 138 480 110 462
+             C107 460 105 462 104 470 Z"
+          fill="url(#cm-hand-w)"/>
+
+    <!-- Heart body -->
+    <path d="M256 452
+             C256 452 64 320 64 198
+             C64 132 112 92 168 92
+             C210 92 240 118 256 156
+             C272 118 302 92 344 92
+             C400 92 448 132 448 198
+             C448 320 256 452 256 452 Z"
+          fill="url(#cm-heart-w)"/>
+
+    <!-- Inner heart cutout -->
+    <path d="M256 244
+             C256 244 196 206 196 168
+             C196 148 211 135 230 135
+             C242 135 251 142 256 152
+             C261 142 270 135 282 135
+             C301 135 316 148 316 168
+             C316 206 256 244 256 244 Z"
+          fill="#6d28d9"/>
+  </g>
 </svg>
