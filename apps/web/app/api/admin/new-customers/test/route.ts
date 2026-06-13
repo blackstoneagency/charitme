@@ -9,7 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
-import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling } from '../../../../../lib/state-filings';
+import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +39,9 @@ type Check = { name: string; ok: boolean; detail: string };
 //      registrant's email address, published directly by CT) correctly.
 //  15. the free TX state-registry connector maps a new sales-tax-permit row
 //      for an in-state LLC correctly.
+//  16. the free CA (San Francisco) state-registry connector maps a new
+//      business-registration row to a CA lead, including sole-proprietor
+//      owner first/last name capture, correctly.
 //
 // Returns 200 only when every check passes, so it can be wired to uptime
 // monitors or run manually from the admin UI.
@@ -322,6 +325,26 @@ export async function GET() {
     name: 'tx_state_feed',
     ok: txLead.business_name === 'Jo N Go LLC' && txLead.entity_type === 'LLC' && txLead.state === 'TX' && txLead.filing_date === '2026-06-06' && txLead.filing_status === 'Active',
     detail: `mapped "${txLead.business_name}" (${txLead.entity_type}, ${txLead.state}, filed ${txLead.filing_date}, status ${txLead.filing_status})`,
+  });
+
+  // 16. CA (San Francisco) state-registry connector — a sole-proprietor row
+  // with no entity suffix should map to a CA lead with the owner's first and
+  // last name captured directly.
+  const caLead = mapSanFranciscoFiling({
+    ttxid: '1425027-06-261-1185371',
+    ownership_name: 'Jesse Woodward',
+    dba_name: 'Collingwood Rental',
+    full_business_address: '245 Collingwood St',
+    city: 'San Francisco',
+    state: 'CA',
+    business_zip: '94114',
+    dba_start_date: '2026-06-11T00:00:00.000',
+    naic_code_description: 'Accommodations',
+  });
+  checks.push({
+    name: 'ca_state_feed',
+    ok: caLead.business_name === 'Collingwood Rental' && caLead.entity_type === null && caLead.state === 'CA' && caLead.filing_date === '2026-06-11' && caLead.owner_name === 'Jesse Woodward',
+    detail: `mapped "${caLead.business_name}" (${caLead.entity_type}, ${caLead.state}, filed ${caLead.filing_date}, owner ${caLead.owner_name})`,
   });
 
   const ok = checks.every((c) => c.ok);

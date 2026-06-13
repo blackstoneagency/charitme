@@ -7,6 +7,7 @@ import {
   mapPaFiling,
   mapConnecticutFiling,
   mapTexasFiling,
+  mapSanFranciscoFiling,
   parseFlCorLine,
   parseFlDate,
   titleCaseBusinessName,
@@ -25,6 +26,7 @@ import {
   type PaFilingRow,
   type CtFilingRow,
   type TxFilingRow,
+  type SfFilingRow,
 } from '../lib/state-filings';
 
 // Builds a fixed-width Sunbiz cor.txt record by placing fields at the
@@ -553,8 +555,62 @@ describe('mapTexasFiling', () => {
   });
 });
 
+describe('mapSanFranciscoFiling', () => {
+  const baseRow: SfFilingRow = {
+    ttxid: '1425013-06-261',
+    ownership_name: '185 Cb, LLC',
+    dba_name: 'Waters Edge',
+    full_business_address: '185 Berry St Ste 1500',
+    city: 'San Francisco',
+    state: 'CA',
+    business_zip: '94107',
+    dba_start_date: '2026-06-11T00:00:00.000',
+    naic_code_description: 'Food Services',
+  };
+
+  it('maps an LLC-owned DBA to a CA lead using the trade name as business_name', () => {
+    const lead = mapSanFranciscoFiling(baseRow);
+    expect(lead.business_name).toBe('Waters Edge');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('CA');
+    expect(lead.filing_date).toBe('2026-06-11');
+    expect(lead.filing_status).toBe('Active');
+    expect(lead.owner_name).toBeNull();
+    expect(lead.address).toBe('185 Berry St Ste 1500, San Francisco, CA 94107');
+    expect(lead.industry).toBe('Food Services');
+    expect(lead.source_ref).toBe('sf-business:1425013-06-261');
+  });
+
+  it('captures a sole proprietor\'s first and last name as owner_name when there is no entity suffix', () => {
+    const lead = mapSanFranciscoFiling({
+      ...baseRow,
+      ownership_name: 'Jesse Woodward',
+      dba_name: 'Collingwood Rental',
+    });
+    expect(lead.business_name).toBe('Collingwood Rental');
+    expect(lead.entity_type).toBeNull();
+    expect(lead.owner_name).toBe('Jesse Woodward');
+  });
+
+  it('falls back to ownership_name when dba_name is absent, and detects Inc/LP/LLP suffixes', () => {
+    expect(mapSanFranciscoFiling({ ...baseRow, ownership_name: 'Belkorp Ag LLC', dba_name: undefined }).business_name).toBe('Belkorp Ag LLC');
+    expect(mapSanFranciscoFiling({ ...baseRow, ownership_name: 'Acme Widgets Incorporated', dba_name: undefined }).entity_type).toBe('Corporation');
+    expect(mapSanFranciscoFiling({ ...baseRow, ownership_name: 'Acme Properties, L.P.', dba_name: undefined }).entity_type).toBe('Limited Partnership');
+    expect(mapSanFranciscoFiling({ ...baseRow, ownership_name: 'Acme Holdings LLP', dba_name: undefined }).entity_type).toBe('LLP');
+  });
+
+  it('handles missing fields gracefully', () => {
+    const lead = mapSanFranciscoFiling({ ownership_name: 'Reyna Rosa Perez Gomez', dba_name: 'Reyna Rosa Perez Gomez' });
+    expect(lead.address).toBeNull();
+    expect(lead.industry).toBeNull();
+    expect(lead.filing_date).toBeNull();
+    expect(lead.source_ref).toBeUndefined();
+    expect(lead.owner_name).toBe('Reyna Rosa Perez Gomez');
+  });
+});
+
 describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES / PA_NEW_ENTITY_TYPES / CT_NEW_ENTITY_TYPES / TX_NEW_ENTITY_TYPES', () => {
-  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, and Texas feeds with labels', () => {
+  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, and California feeds with labels', () => {
     expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
     expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
     expect(STATE_FEED_SOURCES.FL.label).toMatch(/Florida/);
@@ -562,6 +618,7 @@ describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / F
     expect(STATE_FEED_SOURCES.PA.label).toMatch(/Pennsylvania/);
     expect(STATE_FEED_SOURCES.CT.label).toMatch(/Connecticut/);
     expect(STATE_FEED_SOURCES.TX.label).toMatch(/Texas/);
+    expect(STATE_FEED_SOURCES.CA.label).toMatch(/California/);
   });
 
   it('targets only brand-new entity formation document/filing/entity types', () => {

@@ -565,6 +565,71 @@ export function mapTexasFiling(row: TxFilingRow): StateFilingLead {
   };
 }
 
+// ── California (San Francisco) — "Registered Business Locations" ───────────
+// https://data.sfgov.org/resource/g8m3-pdis.json — free, no API key, updated
+// daily. California's Secretary of State does not publish a free open-data
+// feed of new entity filings, so San Francisco's business-registration tax
+// certificate data (which covers any business operating in or mailing from
+// SF, including statewide LLCs/corporations) is used as a CA proxy.
+// `ownership_name` is either a registered entity (LLC/Corp/etc — detected via
+// suffix) or an individual's name (sole proprietor); `sfEntityType()`
+// distinguishes the two so both `entity_type` and `owner_name` (a real first
+// + last name for sole proprietors) can be populated from one field.
+
+export const SF_DATASET_URL = 'https://data.sfgov.org/resource/g8m3-pdis.json';
+
+export interface SfFilingRow {
+  ttxid?: string;
+  ownership_name?: string;
+  dba_name?: string;
+  full_business_address?: string;
+  city?: string;
+  state?: string;
+  business_zip?: string;
+  dba_start_date?: string;
+  naic_code_description?: string;
+}
+
+// Detects a registered-entity suffix on `ownership_name` (e.g. "185 Cb, LLC",
+// "Belkorp Ag LLC", "XYZ Partners, L.P."). Returns null when the name looks
+// like an individual's (sole proprietor).
+function sfEntityType(ownershipName: string): string | null {
+  const name = ownershipName.trim();
+  if (!name) return null;
+  const lower = name.toLowerCase();
+  if (lower.includes('limited liability company') || /\bl\.?\s?l\.?\s?c\.?$/.test(lower)) return 'LLC';
+  if (lower.includes('limited liability partnership') || /\bl\.?\s?l\.?\s?p\.?$/.test(lower)) return 'LLP';
+  if (lower.includes('limited partnership') || /\bl\.?\s?p\.?$/.test(lower)) return 'Limited Partnership';
+  if (/\b(?:incorporated|inc|corp(?:oration)?)\.?$/.test(lower)) return 'Corporation';
+  if (/\bp\.?c\.?$/.test(lower)) return 'Professional Corporation';
+  return null;
+}
+
+function sfAddress(row: SfFilingRow): string | null {
+  const stateZip = [row.state?.trim(), row.business_zip?.trim()].filter(Boolean).join(' ');
+  const street = row.full_business_address?.trim();
+  const city = row.city ? maybeTitleCase(row.city.trim()) : null;
+  const parts = [street || null, city, stateZip || null].filter(Boolean);
+  return parts.length ? parts.join(', ') : null;
+}
+
+export function mapSanFranciscoFiling(row: SfFilingRow): StateFilingLead {
+  const ownership = (row.ownership_name ?? '').trim();
+  const dba = (row.dba_name ?? '').trim();
+  const entityType = sfEntityType(ownership);
+  return {
+    business_name: maybeTitleCase(dba || ownership),
+    entity_type: entityType,
+    state: 'CA',
+    filing_date: row.dba_start_date ? row.dba_start_date.slice(0, 10) : null,
+    filing_status: 'Active',
+    owner_name: entityType ? null : (maybeTitleCase(ownership) || null),
+    address: sfAddress(row),
+    industry: row.naic_code_description ?? null,
+    source_ref: row.ttxid ? `sf-business:${row.ttxid}` : undefined,
+  };
+}
+
 // ── Registry of available free state feeds ──────────────────────────────────
 // Single source of truth for both server-side validation (ingest route) and
 // the admin UI's state picker. Add an entry here + a fetch+map implementation
@@ -598,6 +663,10 @@ export const STATE_FEED_SOURCES = {
   TX: {
     label: 'Texas — Comptroller (Sales Tax Permits)',
     description: 'Newly-issued sales tax permits for LLCs, corporations, professional corporations/associations, and limited partnerships from the Texas Comptroller open dataset — used as a proxy for new business activity. Free, no API key.',
+  },
+  CA: {
+    label: 'California — San Francisco Registered Businesses',
+    description: 'Newly-registered business locations from San Francisco’s business tax certificate open dataset, used as a proxy for new CA business activity — includes the owner’s first and last name for sole proprietorships. Free, no API key, updated daily.',
   },
 } as const;
 

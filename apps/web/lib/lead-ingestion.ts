@@ -43,12 +43,15 @@ import {
   TX_DATASET_URL,
   TX_NEW_ENTITY_TYPES,
   mapTexasFiling,
+  SF_DATASET_URL,
+  mapSanFranciscoFiling,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
   type PaFilingRow,
   type CtFilingRow,
   type TxFilingRow,
+  type SfFilingRow,
   type StateFeedCode,
 } from './state-filings';
 
@@ -386,6 +389,38 @@ export async function fetchTexasFilings(dateFrom?: string, dateTo?: string, limi
   }
 }
 
+// San Francisco "Registered Business Locations" — free, no API key. Used as a
+// proxy for new CA business activity since CA's Secretary of State doesn't
+// publish a free open-data feed of new entity filings. Filtered to rows with
+// a `dba_start_date` (i.e. newly-registered) in the requested date range.
+export async function fetchCaliforniaFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const clauses = ['dba_start_date IS NOT NULL'];
+    if (dateFrom) clauses.push(`dba_start_date >= '${dateFrom}T00:00:00'`);
+    if (dateTo) clauses.push(`dba_start_date <= '${dateTo}T23:59:59'`);
+
+    const params = new URLSearchParams({
+      $where: clauses.join(' AND '),
+      $order: 'dba_start_date DESC',
+      $limit: String(limit),
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${SF_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const rows = await res.json() as SfFilingRow[];
+    return rows.map(mapSanFranciscoFiling).filter((f) => f.business_name);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
 export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
   CO: fetchColoradoFilings,
@@ -394,6 +429,7 @@ export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: 
   PA: fetchPennsylvaniaFilings,
   CT: fetchConnecticutFilings,
   TX: fetchTexasFilings,
+  CA: fetchCaliforniaFilings,
 };
 
 // ── Normalize + score raw filings, then dedupe/insert into business_leads ────
