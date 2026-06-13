@@ -1198,6 +1198,71 @@ export function mapAlaskaFiling(row: AkFilingRow): StateFilingLead {
   };
 }
 
+// ── NV: City of Henderson "Active Business Licenses" ───────────────────────
+// Nevada's Secretary of State doesn't publish a free open feed of new entity
+// filings, so the City of Henderson (Nevada's second-largest city) business-
+// license dataset is used as a proxy for new NV business activity — free, no
+// API key, Socrata, refreshed regularly (newest issuances land within days).
+// `issued_date` is the original license-issuance date and is a reliable
+// "new business" signal. `owner` is either the entity restated with an
+// LLC/Corp/etc suffix or an individual's name for sole proprietors —
+// mirroring the SF/Chicago/AK pattern so both `entity_type` and `owner_name`
+// can be populated.
+
+export const NV_DATASET_URL = 'https://opendata.cityofhenderson.com/resource/n8gp-u2pj.json';
+
+export interface NvFilingRow {
+  establishment_name?: string;
+  owner?: string;
+  license_number?: string;
+  license_type?: string;
+  issued_date?: string;
+  establishment_address?: string;
+  establishment_city?: string;
+  establishment_state?: string;
+  establishment_zip?: string;
+}
+
+// Detects a registered-entity suffix on `owner` (e.g. "JETT Gaming LLC",
+// "Speedee Mart, Inc."). Returns null when it looks like an individual's name
+// (sole proprietor), e.g. "Kayla Sessions".
+function nvEntityType(owner: string): string | null {
+  const name = owner.trim();
+  if (!name) return null;
+  const lower = name.toLowerCase();
+  if (lower.includes('limited liability company') || /\bl\.?\s?l\.?\s?c\.?$/.test(lower)) return 'LLC';
+  if (lower.includes('limited liability partnership') || /\bl\.?\s?l\.?\s?p\.?$/.test(lower)) return 'LLP';
+  if (lower.includes('limited partnership') || /\bl\.?\s?p\.?$/.test(lower)) return 'Limited Partnership';
+  if (/\b(?:incorporated|inc|corp(?:oration)?)\.?$/.test(lower)) return 'Corporation';
+  if (/\bp\.?c\.?$/.test(lower)) return 'Professional Corporation';
+  return null;
+}
+
+function nvAddress(row: NvFilingRow): string | null {
+  const street = row.establishment_address?.trim() || null;
+  const city = row.establishment_city ? maybeTitleCase(row.establishment_city.trim()) : null;
+  const zip = row.establishment_zip?.trim() || null;
+  if (!street && !city && !zip) return null;
+  const stateZip = ['NV', zip].filter(Boolean).join(' ');
+  return [street, city, stateZip].filter(Boolean).join(', ');
+}
+
+export function mapNevadaFiling(row: NvFilingRow): StateFilingLead {
+  const owner = (row.owner ?? '').trim();
+  const entityType = nvEntityType(owner);
+  return {
+    business_name: maybeTitleCase((row.establishment_name ?? '').trim()),
+    entity_type: entityType,
+    state: 'NV',
+    filing_date: row.issued_date ? row.issued_date.slice(0, 10) : null,
+    filing_status: 'Active',
+    owner_name: entityType ? null : (maybeTitleCase(owner) || null),
+    industry: row.license_type ? maybeTitleCase(row.license_type.trim()) : null,
+    address: nvAddress(row),
+    source_ref: row.license_number ? `nv-henderson-business-license:${row.license_number}` : undefined,
+  };
+}
+
 // ── Registry of available free state feeds ──────────────────────────────────
 // Single source of truth for both server-side validation (ingest route) and
 // the admin UI's state picker. Add an entry here + a fetch+map implementation
@@ -1267,6 +1332,10 @@ export const STATE_FEED_SOURCES = {
   AK: {
     label: 'Alaska — Statewide Business Licenses',
     description: 'Newly-issued statewide business licenses from the Alaska Division of Corporations, Business & Professional Licensing open dataset — includes entity type, the registrant/owner’s name for sole proprietors, and a full physical address. Free, no API key, updated regularly.',
+  },
+  NV: {
+    label: 'Nevada — City of Henderson Business Licenses',
+    description: 'Newly-issued business licenses from the City of Henderson (Nevada’s second-largest city) open data portal, used as a proxy for new NV business activity — includes the owner’s name for sole proprietors, entity type, license category, and a full physical address. Free, no API key, updated regularly.',
   },
 } as const;
 

@@ -9,7 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
-import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling, mapNorfolkFiling, mapWashingtonFiling, mapDelawareFiling, mapNewOrleansFiling, mapMesaFiling, mapBentonvilleFiling, mapAlaskaFiling } from '../../../../../lib/state-filings';
+import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling, mapNorfolkFiling, mapWashingtonFiling, mapDelawareFiling, mapNewOrleansFiling, mapMesaFiling, mapBentonvilleFiling, mapAlaskaFiling, mapNevadaFiling } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -521,6 +521,26 @@ export async function GET() {
     name: 'ak_state_feed',
     ok: akLead.business_name === 'Midnight Sun Cafe LLC' && akLead.entity_type === 'LLC' && akLead.state === 'AK' && akLead.filing_date === '2026-06-02' && akLead.filing_status === 'Active' && akLead.owner_name === null && akLead.address === '123 Main St, Anchorage, AK 99501',
     detail: `mapped "${akLead.business_name}" (${akLead.entity_type}, ${akLead.state}, filed ${akLead.filing_date}, address ${akLead.address})`,
+  });
+
+  // 25. NV (City of Henderson Business Licenses) state-registry connector —
+  // an LLC license should map to an NV lead with the LLC suffix detected on
+  // owner, no owner_name, a license-category industry, and a full address.
+  const nvLead = mapNevadaFiling({
+    license_number: '2012300446',
+    establishment_name: 'Buddies Golden Munchies',
+    owner: 'Buddies Golden Munchies LLC',
+    license_type: 'Mobile Food Vendor',
+    issued_date: '2026-06-04T00:00:00.000',
+    establishment_address: '2601 Wigwam Pkwy',
+    establishment_city: 'HENDERSON',
+    establishment_state: 'Nevada',
+    establishment_zip: '89074',
+  });
+  checks.push({
+    name: 'nv_state_feed',
+    ok: nvLead.business_name === 'Buddies Golden Munchies' && nvLead.entity_type === 'LLC' && nvLead.state === 'NV' && nvLead.filing_date === '2026-06-04' && nvLead.filing_status === 'Active' && nvLead.owner_name === null && nvLead.address === '2601 Wigwam Pkwy, Henderson, NV 89074',
+    detail: `mapped "${nvLead.business_name}" (${nvLead.entity_type}, ${nvLead.state}, filed ${nvLead.filing_date}, address ${nvLead.address})`,
   });
 
   const ok = checks.every((c) => c.ok);

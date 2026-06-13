@@ -16,6 +16,7 @@ import {
   mapMesaFiling,
   mapBentonvilleFiling,
   mapAlaskaFiling,
+  mapNevadaFiling,
   parseFlCorLine,
   parseFlDate,
   titleCaseBusinessName,
@@ -43,6 +44,7 @@ import {
   type MesaFilingRow,
   type BentonvilleFilingRow,
   type AkFilingRow,
+  type NvFilingRow,
 } from '../lib/state-filings';
 
 // Builds a fixed-width Sunbiz cor.txt record by placing fields at the
@@ -1105,8 +1107,70 @@ describe('mapAlaskaFiling', () => {
   });
 });
 
+describe('mapNevadaFiling', () => {
+  const baseRow: NvFilingRow = {
+    license_number: '2012300446',
+    establishment_name: 'Buddies Golden Munchies',
+    owner: 'Buddies Golden Munchies LLC',
+    license_type: 'Mobile Food Vendor',
+    issued_date: '2026-06-04T00:00:00.000',
+    establishment_address: '2601 Wigwam Pkwy',
+    establishment_city: 'HENDERSON',
+    establishment_state: 'Nevada',
+    establishment_zip: '89074',
+  };
+
+  it('maps an LLC license to an "Active" NV lead, detecting the LLC suffix on owner and omitting owner_name', () => {
+    const lead = mapNevadaFiling(baseRow);
+    expect(lead.business_name).toBe('Buddies Golden Munchies');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('NV');
+    expect(lead.filing_date).toBe('2026-06-04');
+    expect(lead.filing_status).toBe('Active');
+    expect(lead.owner_name).toBeNull();
+    expect(lead.industry).toBe('Mobile Food Vendor');
+    expect(lead.address).toBe('2601 Wigwam Pkwy, Henderson, NV 89074');
+    expect(lead.source_ref).toBe('nv-henderson-business-license:2012300446');
+  });
+
+  it('captures a sole proprietor\'s name as owner_name when owner has no entity suffix, and title-cases an all-caps establishment name', () => {
+    const lead = mapNevadaFiling({
+      ...baseRow,
+      license_number: '2026000001',
+      establishment_name: 'KAYLA SESSIONS',
+      owner: 'Kayla Sessions',
+      license_type: 'Gross Revenue',
+      establishment_zip: '89015',
+    });
+    expect(lead.business_name).toBe('Kayla Sessions');
+    expect(lead.entity_type).toBeNull();
+    expect(lead.owner_name).toBe('Kayla Sessions');
+    expect(lead.industry).toBe('Gross Revenue');
+    expect(lead.address).toBe('2601 Wigwam Pkwy, Henderson, NV 89015');
+    expect(lead.source_ref).toBe('nv-henderson-business-license:2026000001');
+  });
+
+  it('detects Corporation suffixes on owner, including a comma before "Inc."', () => {
+    expect(mapNevadaFiling({ ...baseRow, owner: 'Speedee Mart, Inc.' }).entity_type).toBe('Corporation');
+    expect(mapNevadaFiling({ ...baseRow, owner: "YAMA'S INC" }).entity_type).toBe('Corporation');
+  });
+
+  it('handles missing fields gracefully', () => {
+    const lead = mapNevadaFiling({ establishment_name: 'ROSS J\'S ALOHA GRILL' });
+    expect(lead.business_name).toBe('Ross J\'s Aloha Grill');
+    expect(lead.entity_type).toBeNull();
+    expect(lead.state).toBe('NV');
+    expect(lead.filing_date).toBeNull();
+    expect(lead.filing_status).toBe('Active');
+    expect(lead.owner_name).toBeNull();
+    expect(lead.industry).toBeNull();
+    expect(lead.address).toBeNull();
+    expect(lead.source_ref).toBeUndefined();
+  });
+});
+
 describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES / PA_NEW_ENTITY_TYPES / CT_NEW_ENTITY_TYPES / TX_NEW_ENTITY_TYPES', () => {
-  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, Illinois, Virginia, Washington, Delaware, Louisiana, Arizona, Arkansas, and Alaska feeds with labels', () => {
+  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, Illinois, Virginia, Washington, Delaware, Louisiana, Arizona, Arkansas, Alaska, and Nevada feeds with labels', () => {
     expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
     expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
     expect(STATE_FEED_SOURCES.FL.label).toMatch(/Florida/);
@@ -1123,6 +1187,7 @@ describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / F
     expect(STATE_FEED_SOURCES.AZ.label).toMatch(/Arizona/);
     expect(STATE_FEED_SOURCES.AR.label).toMatch(/Arkansas/);
     expect(STATE_FEED_SOURCES.AK.label).toMatch(/Alaska/);
+    expect(STATE_FEED_SOURCES.NV.label).toMatch(/Nevada/);
   });
 
   it('targets only brand-new entity formation document/filing/entity types', () => {
