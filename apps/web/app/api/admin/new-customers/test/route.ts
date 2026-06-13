@@ -9,6 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
+import { mapNyFiling } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,8 @@ type Check = { name: string; ok: boolean; detail: string };
 //   4. the business_leads table is reachable in Supabase,
 //   5. the notifications table (admin alert sink) is reachable,
 //   6. the OpenCorporates date-range filter builds correctly (defaults to "today"),
-//   7. whether OPENCORPORATES_API_TOKEN is configured for live pulls (informational).
+//   7. whether OPENCORPORATES_API_TOKEN is configured for live pulls (informational),
+//   8. the free NY state-registry connector maps a filing row correctly.
 //
 // Returns 200 only when every check passes, so it can be wired to uptime
 // monitors or run manually from the admin UI.
@@ -111,6 +113,22 @@ export async function GET() {
     detail: hasOcToken
       ? 'OPENCORPORATES_API_TOKEN is configured — live OpenCorporates pulls are enabled.'
       : 'OPENCORPORATES_API_TOKEN not set — OpenCorporates pulls will return no results until configured (use sample filings meanwhile).',
+  });
+
+  // 8. NY state-registry connector — a sample "Articles of Organization" row
+  // should map to a properly-typed, named, NY-located LLC lead.
+  const nyLead = mapNyFiling({
+    corpid_num: '7938482',
+    corp_name: 'CHIAPPERINO LLC',
+    entitytype: 'DOMESTIC LIMITED LIABILITY COMPANY',
+    documenttype: 'ARTICLES OF ORGANIZATION',
+    date_filed: '2026-06-09T00:00:00.000',
+    cnty_prin_ofc: 'Kings',
+  });
+  checks.push({
+    name: 'ny_state_feed',
+    ok: nyLead.business_name === 'Chiapperino LLC' && nyLead.entity_type === 'LLC' && nyLead.state === 'NY' && nyLead.filing_date === '2026-06-09',
+    detail: `mapped "${nyLead.business_name}" (${nyLead.entity_type}, ${nyLead.state}, filed ${nyLead.filing_date})`,
   });
 
   const ok = checks.every((c) => c.ok);

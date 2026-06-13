@@ -11,6 +11,14 @@ import {
   buildIncorporationDateFilter,
   type BusinessLeadInput,
 } from '../../../../../lib/business-leads';
+import {
+  NY_DATASET_URL,
+  NY_NEW_ENTITY_DOC_TYPES,
+  mapNyFiling,
+  STATE_FEED_SOURCES,
+  type NyFilingRow,
+  type StateFeedCode,
+} from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,9 +50,15 @@ const BodySchema = z.union([
     date_from: z.string().regex(ISO_DATE_RE).optional(),
     date_to: z.string().regex(ISO_DATE_RE).optional(),
   }),
+  z.object({
+    mode: z.literal('state'),
+    state: z.enum(['NY']),
+    date_from: z.string().regex(ISO_DATE_RE).optional(),
+    date_to: z.string().regex(ISO_DATE_RE).optional(),
+  }),
 ]);
 
-type Source = 'sample' | 'manual' | 'opencorporates' | 'api';
+type Source = 'sample' | 'manual' | 'opencorporates' | 'api' | `state_${string}`;
 
 // ── Free OpenCorporates connector (best-effort, never throws) ────────────────
 // Works with or without OPENCORPORATES_API_TOKEN (set in Vercel env if available).
@@ -116,6 +130,43 @@ async function fetchOpenCorporates(
   }
 }
 
+// ── Free state-registry connectors (best-effort, never throw) ────────────────
+// New York Dept. of State "All Filings" — free, no API key, updated daily.
+// Filtered to ARTICLES OF ORGANIZATION / CERTIFICATE OF INCORPORATION so
+// results are brand-new LLC/Corp formations, not amendments or dissolutions.
+async function fetchNewYorkFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const typeList = NY_NEW_ENTITY_DOC_TYPES.map((t) => `'${t}'`).join(', ');
+    const clauses = [`documenttype IN(${typeList})`];
+    if (dateFrom) clauses.push(`date_filed >= '${dateFrom}T00:00:00'`);
+    if (dateTo) clauses.push(`date_filed <= '${dateTo}T23:59:59'`);
+
+    const params = new URLSearchParams({
+      $where: clauses.join(' AND '),
+      $order: 'date_filed DESC',
+      $limit: String(limit),
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${NY_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const rows = await res.json() as NyFilingRow[];
+    return rows.map(mapNyFiling).filter((f) => f.business_name);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
+const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
+  NY: fetchNewYorkFilings,
+};
+
 export async function POST(request: NextRequest) {
   const admin = await verifyAdmin();
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -136,7 +187,7 @@ export async function POST(request: NextRequest) {
   } else if (parsed.data.mode === 'manual') {
     source = 'manual';
     rawFilings = parsed.data.filings;
-  } else {
+  } else if (parsed.data.mode === 'opencorporates') {
     source = 'opencorporates';
     rawFilings = await fetchOpenCorporates(
       parsed.data.query,
@@ -151,6 +202,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         inserted: 0, skipped: 0, source,
         message: `No results from OpenCorporates${range} (requires OPENCORPORATES_API_TOKEN, the free tier may be rate-limited, or there were no filings in this range). Try a wider date range, the sample source, or paste filings manually.`,
+      });
+    }
+  } else {
+    const stateCode = parsed.data.state;
+    source = `state_${stateCode.toLowerCase()}`;
+    rawFilings = await STATE_FETCHERS[stateCode](parsed.data.date_from, parsed.data.date_to);
+    if (rawFilings.length === 0) {
+      const range = parsed.data.date_from || parsed.data.date_to
+        ? ` for ${parsed.data.date_from ?? '…'} to ${parsed.data.date_to ?? '…'}`
+        : '';
+      return NextResponse.json({
+        inserted: 0, skipped: 0, source,
+        message: `No new filings from ${STATE_FEED_SOURCES[stateCode].label}${range} (the feed may not have published this range yet). Try a wider date range or the sample source.`,
       });
     }
   }

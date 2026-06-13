@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import { STATE_FEED_SOURCES, type StateFeedCode } from '../../../../lib/state-filings';
 
 export interface LeadRow {
   id: string;
@@ -89,10 +90,12 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
   const [minScore, setMinScore] = useState(0);
   const [search, setSearch] = useState('');
 
-  // OpenCorporates connector — date range defaults to today (new filings only)
+  // OpenCorporates / state-feed connectors — date range defaults to today (new filings only)
   const [ocQuery, setOcQuery] = useState('');
   const [ocDateFrom, setOcDateFrom] = useState(() => todayISO());
   const [ocDateTo, setOcDateTo] = useState(() => todayISO());
+  const [stateFeed, setStateFeed] = useState<StateFeedCode>('NY');
+  const stateFeedOptions = Object.entries(STATE_FEED_SOURCES) as [StateFeedCode, { label: string; description: string }][];
 
   // API self-test
   const [testResult, setTestResult] = useState<{ ok: boolean; checks: { name: string; ok: boolean; detail: string }[] } | null>(null);
@@ -119,16 +122,21 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
     return true;
   }), [leads, statusFilter, stateFilter, minScore, search]);
 
-  async function ingest(mode: 'sample' | 'opencorporates') {
+  async function ingest(mode: 'sample' | 'opencorporates' | 'state') {
     setIngesting(true);
     try {
+      const dateRange = {
+        ...(ocDateFrom ? { date_from: ocDateFrom } : {}),
+        ...(ocDateTo ? { date_to: ocDateTo } : {}),
+      };
       const body = mode === 'sample'
         ? { mode: 'sample', count: 8 }
+        : mode === 'state'
+        ? { mode: 'state', state: stateFeed, ...dateRange }
         : {
           mode: 'opencorporates',
           ...(ocQuery.trim().length >= 2 ? { query: ocQuery.trim() } : {}),
-          ...(ocDateFrom ? { date_from: ocDateFrom } : {}),
-          ...(ocDateTo ? { date_to: ocDateTo } : {}),
+          ...dateRange,
         };
       const res = await fetch('/api/admin/new-customers/ingest', {
         method: 'POST',
@@ -243,39 +251,66 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
       </div>
 
       {/* Toolbar */}
-      <div style={{ ...card, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <button
-          type="button"
-          onClick={() => void ingest('sample')}
-          disabled={ingesting}
-          style={btnPrimary(ingesting)}
-        >
-          {ingesting ? 'Working…' : '＋ Add sample filings'}
-        </button>
+      <div style={{ ...card, display: 'grid', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => void ingest('sample')}
+            disabled={ingesting}
+            style={btnPrimary(ingesting)}
+          >
+            {ingesting ? 'Working…' : '＋ Add sample filings'}
+          </button>
+
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <input
+              type="date"
+              value={ocDateFrom}
+              max={ocDateTo}
+              onChange={(e) => setOcDateFrom(e.target.value)}
+              aria-label="Filed from"
+              style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13 }}
+            />
+            <span style={{ color: '#94a3b8', fontSize: 12 }}>to</span>
+            <input
+              type="date"
+              value={ocDateTo}
+              min={ocDateFrom}
+              onChange={(e) => setOcDateTo(e.target.value)}
+              aria-label="Filed to"
+              style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13 }}
+            />
+          </div>
+
+          <div style={{ flex: 1 }} />
+
+          <button type="button" onClick={() => void runSelfTest()} disabled={testing} style={btnGhost(testing)}>
+            {testing ? 'Testing…' : '🧪 Run API self-test'}
+          </button>
+        </div>
 
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b', whiteSpace: 'nowrap' }}>🏛️ Free state registry:</span>
+          <select value={stateFeed} onChange={(e) => setStateFeed(e.target.value as StateFeedCode)} style={selectStyle}>
+            {stateFeedOptions.map(([code, src]) => <option key={code} value={code}>{src.label}</option>)}
+          </select>
+          <button
+            type="button"
+            onClick={() => void ingest('state')}
+            disabled={ingesting}
+            style={btnSecondary(ingesting)}
+          >
+            Pull
+          </button>
+
+          <span style={{ width: 1, height: 22, background: '#e8ecf4', margin: '0 4px' }} />
+
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b', whiteSpace: 'nowrap' }}>🔎 OpenCorporates:</span>
           <input
             value={ocQuery}
             onChange={(e) => setOcQuery(e.target.value)}
-            placeholder="Search OpenCorporates (optional)…"
+            placeholder="Search query (optional)…"
             style={{ padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13, width: 200 }}
-          />
-          <input
-            type="date"
-            value={ocDateFrom}
-            max={ocDateTo}
-            onChange={(e) => setOcDateFrom(e.target.value)}
-            aria-label="Filed from"
-            style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13 }}
-          />
-          <span style={{ color: '#94a3b8', fontSize: 12 }}>to</span>
-          <input
-            type="date"
-            value={ocDateTo}
-            min={ocDateFrom}
-            onChange={(e) => setOcDateTo(e.target.value)}
-            aria-label="Filed to"
-            style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13 }}
           />
           <button
             type="button"
@@ -286,12 +321,6 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
             Pull
           </button>
         </div>
-
-        <div style={{ flex: 1 }} />
-
-        <button type="button" onClick={() => void runSelfTest()} disabled={testing} style={btnGhost(testing)}>
-          {testing ? 'Testing…' : '🧪 Run API self-test'}
-        </button>
       </div>
 
       {/* Self-test result */}
