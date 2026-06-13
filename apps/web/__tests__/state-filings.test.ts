@@ -11,6 +11,7 @@ import {
   mapChicagoFiling,
   mapNorfolkFiling,
   mapWashingtonFiling,
+  mapDelawareFiling,
   parseFlCorLine,
   parseFlDate,
   titleCaseBusinessName,
@@ -33,6 +34,7 @@ import {
   type ChicagoFilingRow,
   type NorfolkFilingRow,
   type WaFilingRow,
+  type DeFilingRow,
 } from '../lib/state-filings';
 
 // Builds a fixed-width Sunbiz cor.txt record by placing fields at the
@@ -784,8 +786,64 @@ describe('mapWashingtonFiling', () => {
   });
 });
 
+describe('mapDelawareFiling', () => {
+  const baseRow: DeFilingRow = {
+    business_name: 'BB WASH OPS 2 LLC',
+    trade_name: 'BUBBLE BOSS CAR WASH',
+    category: 'GENERAL SERVICES',
+    current_license_valid_from: '2026-06-01T00:00:00.000',
+    address_1: '111 GREENHILL AVE',
+    city: 'WILMINGTON',
+    state: 'DE',
+    zip: '198051842',
+    license_number: '2026706274',
+  };
+
+  it('maps a newly-licensed LLC with a DBA to an "Active" DE lead, using the DBA as business_name', () => {
+    const lead = mapDelawareFiling(baseRow);
+    expect(lead.business_name).toBe('Bubble Boss Car Wash');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('DE');
+    expect(lead.filing_date).toBe('2026-06-01');
+    expect(lead.filing_status).toBe('Active');
+    expect(lead.owner_name).toBeNull();
+    expect(lead.address).toBe('111 GREENHILL AVE, Wilmington, DE 198051842');
+    expect(lead.industry).toBe('General Services');
+    expect(lead.source_ref).toBe('de-license:2026706274');
+  });
+
+  it('strips the "&QUOT;,&QUOT;0" export artifact from a sole-proprietor business_name and captures the owner', () => {
+    const lead = mapDelawareFiling({
+      ...baseRow,
+      business_name: 'SHON GEORGE&QUOT;,&QUOT;0',
+      trade_name: 'THE RIGHT PATH',
+    });
+    expect(lead.business_name).toBe('The Right Path');
+    expect(lead.entity_type).toBeNull();
+    expect(lead.owner_name).toBe('Shon George');
+  });
+
+  it('falls back to the cleaned business_name when no DBA is present', () => {
+    const lead = mapDelawareFiling({ ...baseRow, business_name: 'DEREK GRUENHAGEN', trade_name: 'CREEDABLE' });
+    expect(lead.business_name).toBe('Creedable');
+    expect(lead.entity_type).toBeNull();
+    expect(lead.owner_name).toBe('Derek Gruenhagen');
+  });
+
+  it('handles missing fields gracefully', () => {
+    const lead = mapDelawareFiling({ business_name: 'BARE LLC' });
+    expect(lead.business_name).toBe('Bare LLC');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.owner_name).toBeNull();
+    expect(lead.address).toBeNull();
+    expect(lead.industry).toBeNull();
+    expect(lead.filing_date).toBeNull();
+    expect(lead.source_ref).toBeUndefined();
+  });
+});
+
 describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES / PA_NEW_ENTITY_TYPES / CT_NEW_ENTITY_TYPES / TX_NEW_ENTITY_TYPES', () => {
-  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, Illinois, Virginia, and Washington feeds with labels', () => {
+  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, Illinois, Virginia, Washington, and Delaware feeds with labels', () => {
     expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
     expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
     expect(STATE_FEED_SOURCES.FL.label).toMatch(/Florida/);
@@ -797,6 +855,7 @@ describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / F
     expect(STATE_FEED_SOURCES.IL.label).toMatch(/Illinois/);
     expect(STATE_FEED_SOURCES.VA.label).toMatch(/Virginia/);
     expect(STATE_FEED_SOURCES.WA.label).toMatch(/Washington/);
+    expect(STATE_FEED_SOURCES.DE.label).toMatch(/Delaware/);
   });
 
   it('targets only brand-new entity formation document/filing/entity types', () => {

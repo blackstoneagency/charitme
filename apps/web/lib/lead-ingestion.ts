@@ -52,6 +52,8 @@ import {
   mapNorfolkFiling,
   WA_DATASET_URL,
   mapWashingtonFiling,
+  DE_DATASET_URL,
+  mapDelawareFiling,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
@@ -62,6 +64,7 @@ import {
   type ChicagoFilingRow,
   type NorfolkFilingRow,
   type WaFilingRow,
+  type DeFilingRow,
   type StateFeedCode,
 } from './state-filings';
 
@@ -528,6 +531,37 @@ export async function fetchWashingtonFilings(dateFrom?: string, dateTo?: string,
   }
 }
 
+// Delaware "Business License Open Data" — free, no API key. A genuine
+// statewide feed: filtered to DE-addressed records whose current license
+// cycle (`current_license_valid_from`) started in the requested date range.
+export async function fetchDelawareFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const clauses = ["state='DE'", 'current_license_valid_from IS NOT NULL'];
+    if (dateFrom) clauses.push(`current_license_valid_from >= '${dateFrom}T00:00:00'`);
+    if (dateTo) clauses.push(`current_license_valid_from <= '${dateTo}T23:59:59'`);
+
+    const params = new URLSearchParams({
+      $where: clauses.join(' AND '),
+      $order: 'current_license_valid_from DESC',
+      $limit: String(limit),
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${DE_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const rows = await res.json() as DeFilingRow[];
+    return rows.map(mapDelawareFiling).filter((f) => f.business_name);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
 export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
   CO: fetchColoradoFilings,
@@ -540,6 +574,7 @@ export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: 
   IL: fetchIllinoisFilings,
   VA: fetchVirginiaFilings,
   WA: fetchWashingtonFilings,
+  DE: fetchDelawareFilings,
 };
 
 // ── Normalize + score raw filings, then dedupe/insert into business_leads ────

@@ -9,7 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
-import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling, mapNorfolkFiling, mapWashingtonFiling } from '../../../../../lib/state-filings';
+import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling, mapNorfolkFiling, mapWashingtonFiling, mapDelawareFiling } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +51,9 @@ type Check = { name: string; ok: boolean; detail: string };
 //  19. the free WA (L&I Contractor Licenses) state-registry connector maps a
 //      newly-effective license row to a WA lead, including the direct phone
 //      number and "LAST, FIRST" principal-name normalization, correctly.
+//  20. the free DE (Business License Open Data) state-registry connector maps
+//      a newly-licensed row to a DE lead, including DBA capture and stripping
+//      the "&QUOT;,&QUOT;0" sole-proprietor export artifact, correctly.
 //
 // Returns 200 only when every check passes, so it can be wired to uptime
 // monitors or run manually from the admin UI.
@@ -413,6 +416,27 @@ export async function GET() {
     name: 'wa_state_feed',
     ok: waLead.business_name === 'D&j Concrete LLC' && waLead.entity_type === 'LLC' && waLead.state === 'WA' && waLead.filing_date === '2026-06-15' && waLead.owner_name === 'David Rojas Ramirez' && waLead.phone === '5097922741',
     detail: `mapped "${waLead.business_name}" (${waLead.entity_type}, ${waLead.state}, filed ${waLead.filing_date}, owner ${waLead.owner_name}, phone ${waLead.phone})`,
+  });
+
+  // 20. DE (Business License Open Data) state-registry connector — a
+  // sole-proprietor row with the "&QUOT;,&QUOT;0" export artifact should map
+  // to a DE lead with the artifact stripped and the DBA captured as
+  // business_name.
+  const deLead = mapDelawareFiling({
+    business_name: 'SHON GEORGE&QUOT;,&QUOT;0',
+    trade_name: 'THE RIGHT PATH',
+    category: 'GENERAL SERVICES',
+    current_license_valid_from: '2026-03-01T00:00:00.000',
+    address_1: '123 MAIN ST',
+    city: 'DOVER',
+    state: 'DE',
+    zip: '19901',
+    license_number: '2026900001',
+  });
+  checks.push({
+    name: 'de_state_feed',
+    ok: deLead.business_name === 'The Right Path' && deLead.entity_type === null && deLead.state === 'DE' && deLead.filing_date === '2026-03-01' && deLead.owner_name === 'Shon George',
+    detail: `mapped "${deLead.business_name}" (${deLead.entity_type}, ${deLead.state}, filed ${deLead.filing_date}, owner ${deLead.owner_name})`,
   });
 
   const ok = checks.every((c) => c.ok);

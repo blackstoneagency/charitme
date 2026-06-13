@@ -842,6 +842,77 @@ export function mapWashingtonFiling(row: WaFilingRow): StateFilingLead {
   };
 }
 
+// ── Delaware — Business License Open Data ───────────────────────────────────
+// https://data.delaware.gov/resource/5zy2-grhr.json — free, no API key,
+// updated daily. A genuine statewide feed (unlike most of the connectors
+// above, which proxy a single city). `business_name` is either a registered
+// entity (LLC/Corp/etc — detected via suffix) or an individual's name (sole
+// proprietor); `trade_name` is the DBA, mirroring the SF/Chicago/Norfolk
+// pattern. A subset of sole-proprietor names carry a `&QUOT;,&QUOT;0` CSV
+// export artifact, stripped by `deCleanName()`.
+
+export const DE_DATASET_URL = 'https://data.delaware.gov/resource/5zy2-grhr.json';
+
+export interface DeFilingRow {
+  business_name?: string;
+  trade_name?: string;
+  category?: string;
+  current_license_valid_from?: string;
+  address_1?: string;
+  address_2?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  license_number?: string;
+}
+
+// Strips the `&QUOT;,&QUOT;0` artifact that trails ~12% of sole-proprietor
+// `business_name` values in Delaware's export (e.g.
+// "SHON GEORGE&QUOT;,&QUOT;0" → "SHON GEORGE").
+function deCleanName(raw: string): string {
+  return raw.replace(/&QUOT;,?&QUOT;0$/i, '').trim();
+}
+
+// Detects a registered-entity suffix on a (cleaned) `business_name` (e.g.
+// "BB WASH OPS 2 LLC"). Returns null when the name looks like an
+// individual's (sole proprietor), e.g. "DEREK GRUENHAGEN".
+function deEntityType(name: string): string | null {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  const lower = trimmed.toLowerCase();
+  if (lower.includes('limited liability company') || /\bl\.?\s?l\.?\s?c\.?$/.test(lower)) return 'LLC';
+  if (lower.includes('limited liability partnership') || /\bl\.?\s?l\.?\s?p\.?$/.test(lower)) return 'LLP';
+  if (lower.includes('limited partnership') || /\bl\.?\s?p\.?$/.test(lower)) return 'Limited Partnership';
+  if (/\b(?:incorporated|inc|corp(?:oration)?)\.?$/.test(lower)) return 'Corporation';
+  if (/\bp\.?c\.?$/.test(lower)) return 'Professional Corporation';
+  return null;
+}
+
+function deAddress(row: DeFilingRow): string | null {
+  const stateZip = [row.state?.trim(), row.zip?.trim()].filter(Boolean).join(' ');
+  const street = [row.address_1?.trim(), row.address_2?.trim()].filter(Boolean).join(' ');
+  const city = row.city ? maybeTitleCase(row.city.trim()) : null;
+  const parts = [street || null, city, stateZip || null].filter(Boolean);
+  return parts.length ? parts.join(', ') : null;
+}
+
+export function mapDelawareFiling(row: DeFilingRow): StateFilingLead {
+  const name = deCleanName((row.business_name ?? '').trim());
+  const trade = (row.trade_name ?? '').trim();
+  const entityType = deEntityType(name);
+  return {
+    business_name: maybeTitleCase(trade || name),
+    entity_type: entityType,
+    state: 'DE',
+    filing_date: row.current_license_valid_from ? row.current_license_valid_from.slice(0, 10) : null,
+    filing_status: 'Active',
+    owner_name: entityType ? null : (maybeTitleCase(name) || null),
+    address: deAddress(row),
+    industry: row.category ? maybeTitleCase(row.category.replace(/\s+/g, ' ').trim()) : null,
+    source_ref: row.license_number ? `de-license:${row.license_number}` : undefined,
+  };
+}
+
 // ── Registry of available free state feeds ──────────────────────────────────
 // Single source of truth for both server-side validation (ingest route) and
 // the admin UI's state picker. Add an entry here + a fetch+map implementation
@@ -891,6 +962,10 @@ export const STATE_FEED_SOURCES = {
   WA: {
     label: 'Washington — L&I Contractor Licenses',
     description: 'Newly-effective contractor licenses from the WA Dept. of Labor & Industries open dataset, used as a proxy for new WA business activity — uniquely includes the business’s direct phone number and the responsible individual’s first and last name. Free, no API key, updated daily.',
+  },
+  DE: {
+    label: 'Delaware — Business License Open Data',
+    description: 'Newly-issued and recently-renewed Delaware business licenses from the state’s open-data portal — a genuine statewide feed (not a city proxy), including the owner’s first and last name for sole proprietorships. Free, no API key, updated daily.',
   },
 } as const;
 
