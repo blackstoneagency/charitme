@@ -724,6 +724,44 @@ const SCHEMA_CHUNKS: { name: string; sql: string }[] = [
       ('embedded_forms', true, 'Embeddable donation widget', 100)
     on conflict (key) do nothing;
   ` },
+  // ── Migration 20260613000000: business_leads → Marketing link ─────────────
+  // Adds business_leads.marketing_contact_id so the New Customers dashboard can
+  // tie AI-enriched leads into Marketing → Campaigns, plus the system segment
+  // these leads land in. Idempotent. (Fixes the production "column
+  // business_leads.marketing_contact_id does not exist" error.)
+  { name: 'business_leads → Marketing link (marketing_contact_id + segment)', sql: `
+    alter table public.business_leads
+      add column if not exists marketing_contact_id uuid
+      references public.marketing_contacts(id) on delete set null;
+
+    create index if not exists business_leads_marketing_contact_idx
+      on public.business_leads (marketing_contact_id);
+
+    insert into public.marketing_segments (name, description, rules, is_system)
+    select
+      'New Business Leads',
+      'Newly-formed businesses discovered via state registry feeds and enriched with contact info — ready for outreach campaigns.',
+      '{"logic":"and","conditions":[{"field":"client_type","op":"eq","value":"lead"}]}',
+      true
+    where not exists (
+      select 1 from public.marketing_segments
+      where name = 'New Business Leads' and is_system = true
+    );
+
+    select pg_notify('pgrst', 'reload schema');
+  ` },
+  // ── Migration 20260613100000: per-campaign click-tracking links ───────────
+  { name: 'Marketing per-campaign tracking links (marketing_utm_links.campaign_id)', sql: `
+    alter table public.marketing_utm_links
+      add column if not exists campaign_id uuid
+      references public.marketing_campaigns(id) on delete cascade;
+
+    create unique index if not exists marketing_utm_links_campaign_id_key
+      on public.marketing_utm_links (campaign_id)
+      where campaign_id is not null;
+
+    select pg_notify('pgrst', 'reload schema');
+  ` },
 ];
 
 export async function POST(_request: NextRequest) {

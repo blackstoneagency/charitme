@@ -24,8 +24,26 @@ export async function GET() {
       .eq('id', user.id)
       .single();
 
+    // Resolve display name / avatar the same way the public header (AppShell)
+    // does — falling back to the auth session's user_metadata — so the signed-in
+    // identity is consistent across the homepage and the admin/dashboard shell,
+    // even when a profiles row is missing or has no full_name yet.
+    const meta = (user.user_metadata ?? {}) as { full_name?: string; name?: string; avatar_url?: string; picture?: string };
+    const resolvedName = data?.full_name ?? meta.full_name ?? meta.name ?? null;
+    const resolvedAvatar = data?.avatar_url ?? meta.avatar_url ?? meta.picture ?? null;
+
+    if (error && !data) {
+      // No profiles row yet — still return the auth-derived identity so the
+      // header renders the real name instead of a generic "Account".
+      const fallbackProfile = {
+        id: user.id, full_name: resolvedName, bio: null, avatar_url: resolvedAvatar,
+        roles: [], created_at: null,
+        notification_email: true, notification_updates: true, notification_marketing: true,
+      };
+      return NextResponse.json({ profile: fallbackProfile, email: user.email });
+    }
     if (error) return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
-    return NextResponse.json({ profile: data, email: user.email });
+    return NextResponse.json({ profile: { ...data, full_name: resolvedName, avatar_url: resolvedAvatar }, email: user.email });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

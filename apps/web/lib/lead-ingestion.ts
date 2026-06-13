@@ -59,6 +59,8 @@ import {
   mapNewOrleansFiling,
   MESA_DATASET_URL,
   mapMesaFiling,
+  BENTONVILLE_DATASET_URL,
+  mapBentonvilleFiling,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
@@ -72,6 +74,7 @@ import {
   type DeFilingRow,
   type NolaFilingRow,
   type MesaFilingRow,
+  type BentonvilleFilingRow,
   type StateFeedCode,
 } from './state-filings';
 
@@ -635,6 +638,42 @@ export async function fetchArizonaFilings(dateFrom?: string, dateTo?: string, li
   }
 }
 
+// City of Bentonville "Business Registry" — free, no API key, ArcGIS Hub
+// Feature Service (not Socrata). Used as a proxy for new AR business activity
+// since AR's Secretary of State doesn't publish a free open-data feed of new
+// entity filings. Filtered to applications flagged `New_Business='NEW'` whose
+// `Date_of_Application` falls in the requested date range.
+export async function fetchArkansasFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const clauses = ["New_Business='NEW'", 'Date_of_Application IS NOT NULL'];
+    if (dateFrom) clauses.push(`Date_of_Application >= timestamp '${dateFrom} 00:00:00'`);
+    if (dateTo) clauses.push(`Date_of_Application <= timestamp '${dateTo} 23:59:59'`);
+
+    const params = new URLSearchParams({
+      where: clauses.join(' AND '),
+      outFields: '*',
+      orderByFields: 'Date_of_Application DESC',
+      resultRecordCount: String(limit),
+      f: 'json',
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${BENTONVILLE_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const json = await res.json() as { features?: { attributes: BentonvilleFilingRow }[]; error?: unknown };
+    if (json.error || !json.features) return [];
+    return json.features.map((f) => mapBentonvilleFiling(f.attributes)).filter((f) => f.business_name);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
 export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
   CO: fetchColoradoFilings,
@@ -650,6 +689,7 @@ export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: 
   DE: fetchDelawareFilings,
   LA: fetchLouisianaFilings,
   AZ: fetchArizonaFilings,
+  AR: fetchArkansasFilings,
 };
 
 // ── Normalize + score raw filings, then dedupe/insert into business_leads ────

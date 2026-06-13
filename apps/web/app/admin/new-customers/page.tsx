@@ -9,12 +9,36 @@ export const dynamic = 'force-dynamic';
 export default async function NewCustomersPage() {
   await requireAdmin();
 
-  const { data, error } = await supabaseAdmin
+  // The marketing-link migration (20260613000000) adds marketing_contact_id.
+  // On environments where it hasn't been applied yet, selecting that column
+  // hard-errors ("column ... does not exist"), which would crash the whole
+  // page. Select it when present, but transparently fall back to a column set
+  // without it so the page keeps working until the migration is applied via
+  // /admin/setup → "Apply Schema Now".
+  const BASE_COLUMNS = 'id, business_name, entity_type, state, filing_date, filing_status, registered_agent, owner_name, industry, address, website, email, phone, enrichment_notes, enrichment_model, enriched_at, lead_score, lead_grade, status, alerted, source, created_at';
+
+  const primary = await supabaseAdmin
     .from('business_leads')
-    .select('id, business_name, entity_type, state, filing_date, filing_status, registered_agent, owner_name, industry, address, website, email, phone, enrichment_notes, enrichment_model, enriched_at, lead_score, lead_grade, status, alerted, source, marketing_contact_id, created_at')
+    .select(`${BASE_COLUMNS}, marketing_contact_id`)
     .order('lead_score', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(500);
+
+  let data = primary.data as LeadRow[] | null;
+  let error = primary.error;
+  let marketingLinkAvailable = true;
+
+  if (error && /column .*marketing_contact_id.* does not exist/i.test(error.message)) {
+    marketingLinkAvailable = false;
+    const fallback = await supabaseAdmin
+      .from('business_leads')
+      .select(BASE_COLUMNS)
+      .order('lead_score', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(500);
+    data = fallback.data as LeadRow[] | null;
+    error = fallback.error;
+  }
 
   // Surface a missing-migration / DB error clearly instead of a blank page.
   if (error) {
@@ -50,7 +74,7 @@ export default async function NewCustomersPage() {
     enriched: leads.filter((l) => l.enriched_at).length,
     hot: leads.filter((l) => l.lead_score >= 60).length,
     contacted: leads.filter((l) => ['contacted', 'qualified', 'converted'].includes(l.status)).length,
-    synced: leads.filter((l) => l.marketing_contact_id).length,
+    synced: marketingLinkAvailable ? leads.filter((l) => l.marketing_contact_id).length : 0,
   };
 
   return (
