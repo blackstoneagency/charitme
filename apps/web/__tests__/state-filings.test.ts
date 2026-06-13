@@ -12,6 +12,7 @@ import {
   mapNorfolkFiling,
   mapWashingtonFiling,
   mapDelawareFiling,
+  mapNewOrleansFiling,
   parseFlCorLine,
   parseFlDate,
   titleCaseBusinessName,
@@ -35,6 +36,7 @@ import {
   type NorfolkFilingRow,
   type WaFilingRow,
   type DeFilingRow,
+  type NolaFilingRow,
 } from '../lib/state-filings';
 
 // Builds a fixed-width Sunbiz cor.txt record by placing fields at the
@@ -842,8 +844,76 @@ describe('mapDelawareFiling', () => {
   });
 });
 
+describe('mapNewOrleansFiling', () => {
+  const baseRow: NolaFilingRow = {
+    businessname: 'MENDED PATH, LLC',
+    ownername: 'MENDED PATH, LLC',
+    businesstype: 'Offices of Health Practitioners, All Other Miscellaneous',
+    businesslicensenumber: '123456',
+    businessstartdate: '2026-10-01T00:00:00.000',
+    streetnumber: '4706',
+    streetname: 'SAINT PETER',
+    streetsuffix: 'ST',
+    city: 'NEW ORLEANS',
+    state: 'LA',
+    zip: '70119-4435',
+    phonenumber: '(504) 338-1123',
+  };
+
+  it('maps a newly-licensed LLC to an "Active" LA lead, omitting owner_name when it duplicates business_name', () => {
+    const lead = mapNewOrleansFiling(baseRow);
+    expect(lead.business_name).toBe('Mended Path, LLC');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('LA');
+    expect(lead.filing_date).toBe('2026-10-01');
+    expect(lead.filing_status).toBe('Active');
+    expect(lead.owner_name).toBeNull();
+    expect(lead.address).toBe('4706 Saint Peter St, New Orleans, LA 70119-4435');
+    expect(lead.industry).toBe('Offices of Health Practitioners, All Other Miscellaneous');
+    expect(lead.phone).toBe('(504) 338-1123');
+    expect(lead.source_ref).toBe('nola-license:123456');
+  });
+
+  it('captures a distinct individual owner alongside the LLC business name', () => {
+    const lead = mapNewOrleansFiling({ ...baseRow, businessname: 'IT FITSS LLC', ownername: 'STEVEN L. CODY JR.' });
+    expect(lead.business_name).toBe('It Fitss LLC');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.owner_name).toBe('Steven L. Cody Jr.');
+  });
+
+  it('treats a truncated "DBA" owner-name artifact as not a person, leaving entity_type and owner_name null', () => {
+    const lead = mapNewOrleansFiling({
+      ...baseRow,
+      businessname: 'HELLO SUNSHINE',
+      ownername: 'HELLO SUNSHINE, LLC DBA HELLO',
+      businesstype: "Women's Clothing Stores",
+      businessstartdate: '2026-07-01T00:00:00.000',
+      city: 'NEW ORLEANS',
+      state: 'LA',
+      zip: '70130-0000',
+      phonenumber: '(269) 252-8095',
+    });
+    expect(lead.business_name).toBe('Hello Sunshine');
+    expect(lead.entity_type).toBeNull();
+    expect(lead.owner_name).toBeNull();
+    expect(lead.phone).toBe('(269) 252-8095');
+  });
+
+  it('handles missing fields gracefully', () => {
+    const lead = mapNewOrleansFiling({ businessname: 'BARE LLC' });
+    expect(lead.business_name).toBe('Bare LLC');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.owner_name).toBeNull();
+    expect(lead.address).toBeNull();
+    expect(lead.industry).toBeNull();
+    expect(lead.phone).toBeNull();
+    expect(lead.filing_date).toBeNull();
+    expect(lead.source_ref).toBeUndefined();
+  });
+});
+
 describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES / PA_NEW_ENTITY_TYPES / CT_NEW_ENTITY_TYPES / TX_NEW_ENTITY_TYPES', () => {
-  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, Illinois, Virginia, Washington, and Delaware feeds with labels', () => {
+  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, Illinois, Virginia, Washington, Delaware, and Louisiana feeds with labels', () => {
     expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
     expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
     expect(STATE_FEED_SOURCES.FL.label).toMatch(/Florida/);
@@ -856,6 +926,7 @@ describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / F
     expect(STATE_FEED_SOURCES.VA.label).toMatch(/Virginia/);
     expect(STATE_FEED_SOURCES.WA.label).toMatch(/Washington/);
     expect(STATE_FEED_SOURCES.DE.label).toMatch(/Delaware/);
+    expect(STATE_FEED_SOURCES.LA.label).toMatch(/Louisiana/);
   });
 
   it('targets only brand-new entity formation document/filing/entity types', () => {

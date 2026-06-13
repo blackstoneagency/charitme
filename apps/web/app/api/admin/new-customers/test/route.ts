@@ -9,7 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
-import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling, mapNorfolkFiling, mapWashingtonFiling, mapDelawareFiling } from '../../../../../lib/state-filings';
+import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling, mapNorfolkFiling, mapWashingtonFiling, mapDelawareFiling, mapNewOrleansFiling } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -437,6 +437,29 @@ export async function GET() {
     name: 'de_state_feed',
     ok: deLead.business_name === 'The Right Path' && deLead.entity_type === null && deLead.state === 'DE' && deLead.filing_date === '2026-03-01' && deLead.owner_name === 'Shon George',
     detail: `mapped "${deLead.business_name}" (${deLead.entity_type}, ${deLead.state}, filed ${deLead.filing_date}, owner ${deLead.owner_name})`,
+  });
+
+  // 21. LA (New Orleans Occupational Licenses) state-registry connector — a
+  // newly-issued LLC license row with a distinct individual owner should map
+  // to an LA lead with the direct phone number and owner's first/last name
+  // captured alongside the LLC entity_type.
+  const laLead = mapNewOrleansFiling({
+    businessname: 'IT FITSS LLC',
+    ownername: 'STEVEN L. CODY JR.',
+    businesstype: 'Miscellaneous Store Retailers(except Tobacco), All Other',
+    businesslicensenumber: '789012',
+    businessstartdate: '2026-07-01T00:00:00.000',
+    streetnumber: '406',
+    streetname: 'BON TEMPS ROULE',
+    city: 'MANDEVILLE',
+    state: 'LA',
+    zip: '70471-2560',
+    phonenumber: '(850) 305-3372',
+  });
+  checks.push({
+    name: 'la_state_feed',
+    ok: laLead.business_name === 'It Fitss LLC' && laLead.entity_type === 'LLC' && laLead.state === 'LA' && laLead.filing_date === '2026-07-01' && laLead.owner_name === 'Steven L. Cody Jr.' && laLead.phone === '(850) 305-3372',
+    detail: `mapped "${laLead.business_name}" (${laLead.entity_type}, ${laLead.state}, filed ${laLead.filing_date}, owner ${laLead.owner_name}, phone ${laLead.phone})`,
   });
 
   const ok = checks.every((c) => c.ok);

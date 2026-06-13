@@ -54,6 +54,9 @@ import {
   mapWashingtonFiling,
   DE_DATASET_URL,
   mapDelawareFiling,
+  NOLA_DATASET_URL,
+  NOLA_EXCLUDED_BUSINESS_TYPE,
+  mapNewOrleansFiling,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
@@ -65,6 +68,7 @@ import {
   type NorfolkFilingRow,
   type WaFilingRow,
   type DeFilingRow,
+  type NolaFilingRow,
   type StateFeedCode,
 } from './state-filings';
 
@@ -562,6 +566,39 @@ export async function fetchDelawareFilings(dateFrom?: string, dateTo?: string, l
   }
 }
 
+// New Orleans "Occupational Business Licenses" — free, no API key. Used as a
+// proxy for new LA business activity since LA's Secretary of State doesn't
+// publish a free open-data feed of new entity filings. Filtered to LA-based,
+// non-special-event records whose license cycle (`businessstartdate`) starts
+// in the requested date range.
+export async function fetchLouisianaFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const clauses = ["state='LA'", `businesstype != '${NOLA_EXCLUDED_BUSINESS_TYPE}'`, 'businessstartdate IS NOT NULL'];
+    if (dateFrom) clauses.push(`businessstartdate >= '${dateFrom}T00:00:00'`);
+    if (dateTo) clauses.push(`businessstartdate <= '${dateTo}T23:59:59'`);
+
+    const params = new URLSearchParams({
+      $where: clauses.join(' AND '),
+      $order: 'businessstartdate DESC',
+      $limit: String(limit),
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${NOLA_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const rows = await res.json() as NolaFilingRow[];
+    return rows.map(mapNewOrleansFiling).filter((f) => f.business_name);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
 export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
   CO: fetchColoradoFilings,
@@ -575,6 +612,7 @@ export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: 
   VA: fetchVirginiaFilings,
   WA: fetchWashingtonFilings,
   DE: fetchDelawareFilings,
+  LA: fetchLouisianaFilings,
 };
 
 // ── Normalize + score raw filings, then dedupe/insert into business_leads ────

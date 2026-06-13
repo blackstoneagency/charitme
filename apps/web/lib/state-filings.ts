@@ -913,6 +913,94 @@ export function mapDelawareFiling(row: DeFilingRow): StateFilingLead {
   };
 }
 
+// ── Louisiana (New Orleans) — "Occupational Business Licenses" ──────────────
+// https://data.nola.gov/resource/hjcd-grvu.json — free, no API key, updated
+// daily. Louisiana's Secretary of State doesn't publish a free open-data feed
+// of new entity filings, so New Orleans occupational-license records are used
+// as an LA proxy. Uniquely (besides CT/WA), this dataset publishes a direct
+// `phonenumber`. `businessname` is the DBA/trade name; `ownername` is either
+// the legal entity name (often truncated to ~30 chars, sometimes with a
+// trailing "DBA ..." fragment) or an individual's name for sole proprietors.
+
+export const NOLA_DATASET_URL = 'https://data.nola.gov/resource/hjcd-grvu.json';
+
+// One-off "Special Events" vendor permits are excluded at query time — they're
+// overwhelmingly short-term, out-of-state festival vendors rather than
+// ongoing local businesses.
+export const NOLA_EXCLUDED_BUSINESS_TYPE = 'Special Events-Other (Vendor)';
+
+export interface NolaFilingRow {
+  businessname?: string;
+  ownername?: string;
+  businesstype?: string;
+  businesslicensenumber?: string;
+  businessstartdate?: string;
+  streetnumber?: string;
+  streetdirection?: string;
+  streetname?: string;
+  streetsuffix?: string;
+  suite?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  phonenumber?: string;
+}
+
+// Detects a registered-entity suffix on a name (e.g. "MENDED PATH, LLC").
+// Returns null when the name looks like an individual's, e.g.
+// "STEVEN L. CODY JR.".
+function nolaEntityType(name: string): string | null {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+  const lower = trimmed.toLowerCase();
+  if (lower.includes('limited liability company') || /\bl\.?\s?l\.?\s?c\.?$/.test(lower)) return 'LLC';
+  if (lower.includes('limited liability partnership') || /\bl\.?\s?l\.?\s?p\.?$/.test(lower)) return 'LLP';
+  if (lower.includes('limited partnership') || /\bl\.?\s?p\.?$/.test(lower)) return 'Limited Partnership';
+  if (/\b(?:incorporated|inc|corp(?:oration)?)\.?$/.test(lower)) return 'Corporation';
+  if (/\bp\.?c\.?$/.test(lower)) return 'Professional Corporation';
+  return null;
+}
+
+// `ownername` only represents a useful contact name when it isn't itself a
+// registered-entity name, a truncated "X, LLC DBA Y" fragment, or a duplicate
+// of `businessname`.
+function nolaOwnerName(owner: string, businessName: string): string | null {
+  if (!owner) return null;
+  if (nolaEntityType(owner)) return null;
+  if (/\bDBA\b/.test(owner.toUpperCase())) return null;
+  if (owner.toUpperCase() === businessName.toUpperCase()) return null;
+  return maybeTitleCase(owner) || null;
+}
+
+function nolaAddress(row: NolaFilingRow): string | null {
+  const streetParts = [row.streetnumber, row.streetdirection, row.streetname, row.streetsuffix, row.suite]
+    .map((p) => p?.trim())
+    .filter((p): p is string => !!p);
+  const street = streetParts.length ? maybeTitleCase(streetParts.join(' ')) : null;
+  const stateZip = [row.state?.trim(), row.zip?.trim()].filter(Boolean).join(' ');
+  const city = row.city ? maybeTitleCase(row.city.trim()) : null;
+  const parts = [street, city, stateZip || null].filter(Boolean);
+  return parts.length ? parts.join(', ') : null;
+}
+
+export function mapNewOrleansFiling(row: NolaFilingRow): StateFilingLead {
+  const businessName = (row.businessname ?? '').trim();
+  const ownerRaw = (row.ownername ?? '').trim();
+  const entityType = nolaEntityType(businessName) || nolaEntityType(ownerRaw);
+  return {
+    business_name: maybeTitleCase(businessName || ownerRaw),
+    entity_type: entityType,
+    state: 'LA',
+    filing_date: row.businessstartdate ? row.businessstartdate.slice(0, 10) : null,
+    filing_status: 'Active',
+    owner_name: nolaOwnerName(ownerRaw, businessName),
+    address: nolaAddress(row),
+    industry: row.businesstype ?? null,
+    phone: row.phonenumber ?? null,
+    source_ref: row.businesslicensenumber ? `nola-license:${row.businesslicensenumber}` : undefined,
+  };
+}
+
 // ── Registry of available free state feeds ──────────────────────────────────
 // Single source of truth for both server-side validation (ingest route) and
 // the admin UI's state picker. Add an entry here + a fetch+map implementation
@@ -966,6 +1054,10 @@ export const STATE_FEED_SOURCES = {
   DE: {
     label: 'Delaware — Business License Open Data',
     description: 'Newly-issued and recently-renewed Delaware business licenses from the state’s open-data portal — a genuine statewide feed (not a city proxy), including the owner’s first and last name for sole proprietorships. Free, no API key, updated daily.',
+  },
+  LA: {
+    label: 'Louisiana — New Orleans Occupational Licenses',
+    description: 'Newly-issued occupational business licenses from the City of New Orleans open dataset, used as a proxy for new LA business activity — uniquely includes the business’s direct phone number and the owner’s first and last name for sole proprietorships. Free, no API key, updated daily.',
   },
 } as const;
 
