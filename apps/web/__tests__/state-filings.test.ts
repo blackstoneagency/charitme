@@ -14,6 +14,7 @@ import {
   mapDelawareFiling,
   mapNewOrleansFiling,
   mapMesaFiling,
+  mapBentonvilleFiling,
   parseFlCorLine,
   parseFlDate,
   titleCaseBusinessName,
@@ -39,6 +40,7 @@ import {
   type DeFilingRow,
   type NolaFilingRow,
   type MesaFilingRow,
+  type BentonvilleFilingRow,
 } from '../lib/state-filings';
 
 // Builds a fixed-width Sunbiz cor.txt record by placing fields at the
@@ -979,8 +981,68 @@ describe('mapMesaFiling', () => {
   });
 });
 
+describe('mapBentonvilleFiling', () => {
+  const baseRow: BentonvilleFilingRow = {
+    OBJECTID: 481,
+    Business_Name: 'Ozark Natural Lawn Care LLC',
+    Business_Phone: '479-348-5066',
+    Email: 'info@ozarklawn.com',
+    website: 'https://ozarklawn.com/',
+    Physical_Address: '904 SW GREEN WORLD ST',
+    ZIP: 72712,
+    Type_of_Business: 'Other Services (Except Public Administration)',
+    Type_of_Ownership: 'LLC',
+    Date_of_Application: 1776222000000, // 2026-04-15
+    New_Business: 'NEW',
+    STATUS: 'ISSUED',
+  };
+
+  it('maps a newly-submitted LLC registration to an "Active" AR lead with email, website, and a title-cased address', () => {
+    const lead = mapBentonvilleFiling(baseRow);
+    expect(lead.business_name).toBe('Ozark Natural Lawn Care LLC');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('AR');
+    expect(lead.filing_date).toBe('2026-04-15');
+    expect(lead.filing_status).toBe('Active');
+    expect(lead.address).toBe('904 Sw Green World St, Bentonville, AR 72712');
+    expect(lead.industry).toBe('Other Services (Except Public Administration)');
+    expect(lead.website).toBe('https://ozarklawn.com/');
+    expect(lead.email).toBe('info@ozarklawn.com');
+    expect(lead.phone).toBe('479-348-5066');
+    expect(lead.source_ref).toBe('bentonville-business:481');
+  });
+
+  it('maps "SOLE PROPRIETORSHIP" ownership to entity_type "Sole Proprietorship" and a "RECEIVED" status to "Pending"', () => {
+    const lead = mapBentonvilleFiling({
+      ...baseRow,
+      Business_Name: 'Dharini Jayaraman',
+      Type_of_Ownership: 'SOLE PROPRIETORSHIP',
+      STATUS: 'RECEIVED',
+      ZIP: undefined,
+    });
+    expect(lead.entity_type).toBe('Sole Proprietorship');
+    expect(lead.filing_status).toBe('Pending');
+    expect(lead.address).toBe('904 Sw Green World St, Bentonville, AR');
+  });
+
+  it('handles missing fields gracefully', () => {
+    const lead = mapBentonvilleFiling({ Business_Name: 'QUIET DESK LLC', New_Business: 'NEW' });
+    expect(lead.business_name).toBe('Quiet Desk LLC');
+    expect(lead.entity_type).toBeNull();
+    expect(lead.state).toBe('AR');
+    expect(lead.address).toBe('Bentonville, AR');
+    expect(lead.industry).toBeNull();
+    expect(lead.website).toBeNull();
+    expect(lead.email).toBeNull();
+    expect(lead.phone).toBeNull();
+    expect(lead.filing_date).toBeNull();
+    expect(lead.filing_status).toBeNull();
+    expect(lead.source_ref).toBeUndefined();
+  });
+});
+
 describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES / PA_NEW_ENTITY_TYPES / CT_NEW_ENTITY_TYPES / TX_NEW_ENTITY_TYPES', () => {
-  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, Illinois, Virginia, Washington, Delaware, Louisiana, and Arizona feeds with labels', () => {
+  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, Illinois, Virginia, Washington, Delaware, Louisiana, Arizona, and Arkansas feeds with labels', () => {
     expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
     expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
     expect(STATE_FEED_SOURCES.FL.label).toMatch(/Florida/);
@@ -995,6 +1057,7 @@ describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / F
     expect(STATE_FEED_SOURCES.DE.label).toMatch(/Delaware/);
     expect(STATE_FEED_SOURCES.LA.label).toMatch(/Louisiana/);
     expect(STATE_FEED_SOURCES.AZ.label).toMatch(/Arizona/);
+    expect(STATE_FEED_SOURCES.AR.label).toMatch(/Arkansas/);
   });
 
   it('targets only brand-new entity formation document/filing/entity types', () => {

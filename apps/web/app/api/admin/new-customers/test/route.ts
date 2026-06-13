@@ -9,7 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
-import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling, mapNorfolkFiling, mapWashingtonFiling, mapDelawareFiling, mapNewOrleansFiling, mapMesaFiling } from '../../../../../lib/state-filings';
+import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling, mapNorfolkFiling, mapWashingtonFiling, mapDelawareFiling, mapNewOrleansFiling, mapMesaFiling, mapBentonvilleFiling } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -478,6 +478,29 @@ export async function GET() {
     name: 'az_state_feed',
     ok: azLead.business_name === 'On Services LLC' && azLead.entity_type === 'LLC' && azLead.state === 'AZ' && azLead.filing_date === '2026-06-11' && azLead.address === '633 W 2nd Ave Mesa, AZ 85210' && azLead.phone === '4805863004',
     detail: `mapped "${azLead.business_name}" (${azLead.entity_type}, ${azLead.state}, filed ${azLead.filing_date}, address ${azLead.address}, phone ${azLead.phone})`,
+  });
+
+  // 23. AR (City of Bentonville Business Registry) state-registry connector —
+  // a newly-submitted "NEW" LLC registration should map to an AR lead with a
+  // title-cased street address, direct email/website/phone, and "Active" status.
+  const arLead = mapBentonvilleFiling({
+    OBJECTID: 481,
+    Business_Name: 'Ozark Natural Lawn Care LLC',
+    Business_Phone: '479-348-5066',
+    Email: 'info@ozarklawn.com',
+    website: 'https://ozarklawn.com/',
+    Physical_Address: '904 SW GREEN WORLD ST',
+    ZIP: 72712,
+    Type_of_Business: 'Other Services (Except Public Administration)',
+    Type_of_Ownership: 'LLC',
+    Date_of_Application: 1776222000000,
+    New_Business: 'NEW',
+    STATUS: 'ISSUED',
+  });
+  checks.push({
+    name: 'ar_state_feed',
+    ok: arLead.business_name === 'Ozark Natural Lawn Care LLC' && arLead.entity_type === 'LLC' && arLead.state === 'AR' && arLead.filing_date === '2026-04-15' && arLead.filing_status === 'Active' && arLead.address === '904 Sw Green World St, Bentonville, AR 72712' && arLead.email === 'info@ozarklawn.com' && arLead.website === 'https://ozarklawn.com/' && arLead.phone === '479-348-5066',
+    detail: `mapped "${arLead.business_name}" (${arLead.entity_type}, ${arLead.state}, filed ${arLead.filing_date}, email ${arLead.email}, website ${arLead.website}, phone ${arLead.phone})`,
   });
 
   const ok = checks.every((c) => c.ok);

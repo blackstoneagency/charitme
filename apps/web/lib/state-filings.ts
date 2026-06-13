@@ -1069,6 +1069,73 @@ export function mapMesaFiling(row: MesaFilingRow): StateFilingLead {
   };
 }
 
+// ── AR: City of Bentonville Business Registry ────────────────────────────────
+// An ArcGIS Hub Feature Service (not Socrata) — free, no API key. Bentonville's
+// business-registration form uniquely flags each application as `New_Business`
+// 'NEW' vs 'EXISTING', giving a clean new-business signal, and uniquely among
+// all connectors so far captures the registrant's email AND website directly
+// alongside phone — minimal AI enrichment needed. Used as a proxy for new AR
+// business activity since AR's Secretary of State doesn't publish a free
+// open-data feed of new entity filings. Updated regularly (observed lag of a
+// few weeks).
+
+export const BENTONVILLE_DATASET_URL = 'https://services1.arcgis.com/KVEBkgY6kMufuFG2/arcgis/rest/services/Business_Registry_PORTAL_copy_Public_view/FeatureServer/0/query';
+
+// `Type_of_Ownership` values that map cleanly to canonical entity types.
+const BENTONVILLE_ENTITY_TYPE_LABELS: Record<string, string> = {
+  CORPORATION: 'Corporation',
+  LLC: 'LLC',
+  'LIMITED PARTNERSHIP': 'Limited Partnership',
+  'NONPROFIT ORGANIZATION': 'Nonprofit',
+  PARTNERSHIP: 'Partnership',
+  'SOLE PROPRIETORSHIP': 'Sole Proprietorship',
+};
+
+// `STATUS` (license status) values mapped to the same vocabulary used by
+// other connectors' `filing_status`.
+const BENTONVILLE_STATUS_LABELS: Record<string, string> = {
+  ISSUED: 'Active',
+  RECEIVED: 'Pending',
+  EXPIRED: 'Expired',
+};
+
+export interface BentonvilleFilingRow {
+  OBJECTID?: number;
+  Business_Name?: string;
+  Business_Phone?: string;
+  Email?: string;
+  website?: string;
+  Physical_Address?: string;
+  ZIP?: number;
+  Type_of_Business?: string;
+  Type_of_Ownership?: string;
+  Date_of_Application?: number;
+  New_Business?: string;
+  STATUS?: string;
+}
+
+function bentonvilleAddress(row: BentonvilleFilingRow): string | null {
+  const street = row.Physical_Address?.trim() ? maybeTitleCase(row.Physical_Address) : null;
+  const cityState = row.ZIP ? `Bentonville, AR ${row.ZIP}` : 'Bentonville, AR';
+  return street ? `${street}, ${cityState}` : cityState;
+}
+
+export function mapBentonvilleFiling(row: BentonvilleFilingRow): StateFilingLead {
+  return {
+    business_name: maybeTitleCase((row.Business_Name ?? '').trim()),
+    entity_type: normalizeEntityType(BENTONVILLE_ENTITY_TYPE_LABELS[row.Type_of_Ownership ?? ''] ?? row.Type_of_Ownership ?? null),
+    state: 'AR',
+    filing_date: row.Date_of_Application ? new Date(row.Date_of_Application).toISOString().slice(0, 10) : null,
+    filing_status: BENTONVILLE_STATUS_LABELS[row.STATUS ?? ''] ?? row.STATUS ?? null,
+    address: bentonvilleAddress(row),
+    industry: row.Type_of_Business ?? null,
+    website: row.website || null,
+    email: row.Email || null,
+    phone: row.Business_Phone ?? null,
+    source_ref: row.OBJECTID ? `bentonville-business:${row.OBJECTID}` : undefined,
+  };
+}
+
 // ── Registry of available free state feeds ──────────────────────────────────
 // Single source of truth for both server-side validation (ingest route) and
 // the admin UI's state picker. Add an entry here + a fetch+map implementation
@@ -1130,6 +1197,10 @@ export const STATE_FEED_SOURCES = {
   AZ: {
     label: 'Arizona — City of Mesa Business Licenses',
     description: 'Newly-opened business licenses from the City of Mesa’s open data portal, used as a proxy for new AZ business activity — includes the business’s direct phone number, entity type, and address. Free, no API key, updated daily.',
+  },
+  AR: {
+    label: 'Arkansas — City of Bentonville Business Registry',
+    description: 'Newly-submitted business registrations from the City of Bentonville’s open data portal, flagged new vs. existing — uniquely includes the registrant’s email address and website directly alongside phone, entity type, and address. Free, no API key, updated regularly.',
   },
 } as const;
 
