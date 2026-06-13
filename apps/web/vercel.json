@@ -2,5 +2,11 @@
   "env": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://yanexccimwooursawynm.supabase.co",
     "NEXT_PUBLIC_APP_URL": "https://www.charitme.com"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/ingest-filings",
+      "schedule": "0 13 * * *"
+    }
+  ]
 }

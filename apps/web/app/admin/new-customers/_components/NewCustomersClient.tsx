@@ -101,6 +101,14 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
   const [testResult, setTestResult] = useState<{ ok: boolean; checks: { name: string; ok: boolean; detail: string }[] } | null>(null);
   const [testing, setTesting] = useState(false);
 
+  // Daily auto-pull (same job the cron runs) — pulls every connector for the
+  // last 24h and auto-enriches the freshest leads.
+  const [autoPulling, setAutoPulling] = useState(false);
+  const [autoPullResult, setAutoPullResult] = useState<{
+    inserted: number; enriched: number; alerted: number;
+    sources: Record<string, { inserted: number; skipped: number; error?: string }>;
+  } | null>(null);
+
   const flash = (text: string, tone: 'ok' | 'err') => {
     setToast({ text, tone });
     setTimeout(() => setToast(null), 4000);
@@ -199,6 +207,26 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
     }
   }
 
+  async function runAutoPull() {
+    setAutoPulling(true);
+    setAutoPullResult(null);
+    try {
+      const res = await fetch('/api/cron/ingest-filings');
+      const json = await res.json();
+      if (!res.ok) { flash(json.error ?? 'Auto-pull failed.', 'err'); return; }
+      setAutoPullResult(json);
+      flash(
+        `Auto-pull complete — ${json.inserted} new lead${json.inserted === 1 ? '' : 's'}, ${json.enriched} enriched${json.alerted ? `, ${json.alerted} alerted 🔔` : ''}.`,
+        'ok',
+      );
+      if (json.inserted > 0) setTimeout(() => window.location.reload(), 1500);
+    } catch {
+      flash('Auto-pull failed — please try again.', 'err');
+    } finally {
+      setAutoPulling(false);
+    }
+  }
+
   async function runSelfTest() {
     setTesting(true);
     setTestResult(null);
@@ -284,6 +312,10 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
 
           <div style={{ flex: 1 }} />
 
+          <button type="button" onClick={() => void runAutoPull()} disabled={autoPulling} style={btnSecondary(autoPulling)}>
+            {autoPulling ? 'Pulling…' : '⚡ Auto-pull last 24h (all sources)'}
+          </button>
+
           <button type="button" onClick={() => void runSelfTest()} disabled={testing} style={btnGhost(testing)}>
             {testing ? 'Testing…' : '🧪 Run API self-test'}
           </button>
@@ -322,6 +354,25 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
           </button>
         </div>
       </div>
+
+      {/* Auto-pull result */}
+      {autoPullResult && (
+        <div style={{ ...card, borderColor: '#bfdbfe', background: '#f0f7ff' }}>
+          <div style={{ fontSize: 14, fontWeight: 900, color: '#1d4ed8', marginBottom: 10 }}>
+            ⚡ Auto-pull (last 24h): {autoPullResult.inserted} new · {autoPullResult.enriched} enriched · {autoPullResult.alerted} alerted
+          </div>
+          <div style={{ display: 'grid', gap: 6 }}>
+            {Object.entries(autoPullResult.sources).map(([src, r]) => (
+              <div key={src} style={{ display: 'flex', gap: 8, fontSize: 12.5, fontFamily: 'monospace' }}>
+                <strong style={{ minWidth: 140 }}>{src}</strong>
+                <span style={{ color: '#64748b' }}>
+                  {r.error ? `error: ${r.error}` : `${r.inserted} inserted, ${r.skipped} skipped`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Self-test result */}
       {testResult && (
