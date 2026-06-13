@@ -23,12 +23,13 @@ type Check = { name: string; ok: boolean; detail: string };
 //   2. the AI-enrichment JSON parser sanitizes untrusted input,
 //   3. the sample free data source produces valid filings,
 //   4. the business_leads table is reachable in Supabase,
-//   5. the notifications table (admin alert sink) is reachable,
-//   6. the OpenCorporates date-range filter builds correctly (defaults to "today"),
-//   7. whether OPENCORPORATES_API_TOKEN is configured for live pulls (informational),
-//   8. the free NY state-registry connector maps a filing row correctly,
-//   9. the free CO state-registry connector maps a filing row correctly,
-//  10. the free FL state-registry connector parses a fixed-width record and
+//   5. the "New Business Leads" marketing segment exists (lead→Marketing tie-in),
+//   6. the notifications table (admin alert sink) is reachable,
+//   7. the OpenCorporates date-range filter builds correctly (defaults to "today"),
+//   8. whether OPENCORPORATES_API_TOKEN is configured for live pulls (informational),
+//   9. the free NY state-registry connector maps a filing row correctly,
+//  10. the free CO state-registry connector maps a filing row correctly,
+//  11. the free FL state-registry connector parses a fixed-width record and
 //      maps it correctly.
 //
 // Returns 200 only when every check passes, so it can be wired to uptime
@@ -111,7 +112,22 @@ export async function GET() {
     detail: leadsError ? leadsError.message : 'reachable',
   });
 
-  // 5. notifications table (admin alert sink) reachable.
+  // 5. "New Business Leads" marketing segment exists — confirms the
+  // business_leads ↔ marketing_contacts tie-in migration has run, so
+  // enriched leads with an email can be targeted by a Marketing campaign.
+  const { data: leadSegment, error: segmentError } = await supabaseAdmin
+    .from('marketing_segments')
+    .select('id')
+    .eq('name', 'New Business Leads')
+    .eq('is_system', true)
+    .maybeSingle();
+  checks.push({
+    name: 'marketing_leads_segment',
+    ok: !segmentError && !!leadSegment,
+    detail: segmentError ? segmentError.message : (leadSegment ? `segment ${leadSegment.id}` : 'segment not found — run the latest Supabase migrations'),
+  });
+
+  // 6. notifications table (admin alert sink) reachable.
   const { error: notifError } = await supabaseAdmin
     .from('notifications')
     .select('id', { count: 'exact', head: true });
@@ -121,7 +137,7 @@ export async function GET() {
     detail: notifError ? notifError.message : 'reachable',
   });
 
-  // 6. Date-range filter — "today" should resolve to an exact-date filter,
+  // 7. Date-range filter — "today" should resolve to an exact-date filter,
   // matching the admin UI's default (pull new filings from today).
   const today = new Date().toISOString().slice(0, 10);
   const exactToday = buildIncorporationDateFilter(today, today);
@@ -133,7 +149,7 @@ export async function GET() {
     detail: `today→${exactToday}, openAfter→${openAfter}, none→${noFilter}`,
   });
 
-  // 7. OpenCorporates token — informational only. The pipeline degrades to "no
+  // 8. OpenCorporates token — informational only. The pipeline degrades to "no
   // results" without one, so this never fails the overall self-test.
   const hasOcToken = !!process.env.OPENCORPORATES_API_TOKEN;
   checks.push({
@@ -144,7 +160,7 @@ export async function GET() {
       : 'OPENCORPORATES_API_TOKEN not set — OpenCorporates pulls will return no results until configured (use sample filings meanwhile).',
   });
 
-  // 8. NY state-registry connector — a sample "Articles of Organization" row
+  // 9. NY state-registry connector — a sample "Articles of Organization" row
   // should map to a properly-typed, named, NY-located LLC lead.
   const nyLead = mapNyFiling({
     corpid_num: '7938482',
@@ -160,7 +176,7 @@ export async function GET() {
     detail: `mapped "${nyLead.business_name}" (${nyLead.entity_type}, ${nyLead.state}, filed ${nyLead.filing_date})`,
   });
 
-  // 9. CO state-registry connector — a sample domestic LLC formation row
+  // 10. CO state-registry connector — a sample domestic LLC formation row
   // should map to a properly-typed, named, CO-located LLC lead.
   const coLead = mapCoFiling({
     entityid: '20261714629',
@@ -177,7 +193,7 @@ export async function GET() {
     detail: `mapped "${coLead.business_name}" (${coLead.entity_type}, ${coLead.state}, filed ${coLead.filing_date})`,
   });
 
-  // 10. FL state-registry connector — a sample fixed-width Sunbiz cor.txt
+  // 11. FL state-registry connector — a sample fixed-width Sunbiz cor.txt
   // record for a new domestic LLC should parse and map correctly.
   const flLine = buildFlCorLine({
     corporationNumber: 'L26000123456',

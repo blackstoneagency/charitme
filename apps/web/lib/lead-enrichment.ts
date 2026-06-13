@@ -17,6 +17,7 @@ import {
   type EnrichmentResult,
   type ScoreBreakdown,
 } from './business-leads';
+import { resolveContact } from './marketing-engine';
 
 export type LeadRow = {
   id: string;
@@ -32,6 +33,7 @@ export type LeadRow = {
   website: string | null;
   email: string | null;
   phone: string | null;
+  source: string | null;
   alerted: boolean;
 };
 
@@ -48,7 +50,65 @@ export interface EnrichLeadResult {
   alerted: boolean;
 }
 
-const LEAD_SELECT = 'id, business_name, entity_type, state, filing_date, filing_status, registered_agent, owner_name, industry, address, website, email, phone, alerted';
+const LEAD_SELECT = 'id, business_name, entity_type, state, filing_date, filing_status, registered_agent, owner_name, industry, address, website, email, phone, source, alerted';
+
+// New Customers leads are a B2B prospecting source: every contact synced
+// from here uses these attribution + classification values.
+const LEAD_MARKETING_MEDIUM = 'state_registry';
+
+/**
+ * Once a lead has a usable email, mirrors it into marketing_contacts as a
+ * 'lead' so it's targetable from Marketing → Campaigns, and links it back
+ * via business_leads.marketing_contact_id. Adds the contact to the system
+ * "New Business Leads" segment. Best-effort — never throws.
+ */
+async function syncLeadToMarketingContact(lead: LeadRow, enrichment: EnrichmentResult): Promise<void> {
+  if (!enrichment.email) return;
+  try {
+    const nameParts = (lead.owner_name ?? '').trim().split(/\s+/).filter(Boolean);
+    const firstName = nameParts[0];
+    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined;
+
+    const contactId = await resolveContact({
+      email: enrichment.email,
+      phone: enrichment.phone ?? undefined,
+      firstName,
+      lastName,
+      clientType: 'lead',
+      country: 'US',
+      utmSource: `business_lead_${(lead.state ?? 'us').toLowerCase()}`,
+      utmMedium: LEAD_MARKETING_MEDIUM,
+      utmCampaign: lead.source ?? undefined,
+      landingPage: enrichment.website ?? undefined,
+    });
+    if (!contactId) return;
+
+    await supabaseAdmin.from('business_leads').update({ marketing_contact_id: contactId }).eq('id', lead.id);
+    if (lead.state) {
+      await supabaseAdmin.from('marketing_contacts').update({ region: lead.state }).eq('id', contactId);
+    }
+
+    // Add to the "New Business Leads" system segment (idempotent).
+    const { data: segment } = await supabaseAdmin
+      .from('marketing_segments')
+      .select('id')
+      .eq('name', 'New Business Leads')
+      .eq('is_system', true)
+      .maybeSingle();
+    if (segment) {
+      await supabaseAdmin
+        .from('marketing_segment_members')
+        .upsert({ segment_id: segment.id, contact_id: contactId }, { onConflict: 'segment_id,contact_id', ignoreDuplicates: true });
+      const { count } = await supabaseAdmin
+        .from('marketing_segment_members')
+        .select('contact_id', { count: 'exact', head: true })
+        .eq('segment_id', segment.id);
+      await supabaseAdmin.from('marketing_segments').update({ member_count: count ?? 0 }).eq('id', segment.id);
+    }
+  } catch {
+    // Non-fatal — lead enrichment itself already succeeded.
+  }
+}
 
 /**
  * Enriches one business_leads row: AI (or deterministic fallback) looks up
@@ -150,6 +210,10 @@ export async function enrichLead(id: string, actorId: string | null): Promise<En
     .eq('id', lead.id);
 
   if (updateError) return { error: updateError.message, status: 500 };
+
+  // Tie the lead to Marketing (contact + "New Business Leads" segment) so it
+  // can be targeted by an outreach campaign.
+  await syncLeadToMarketingContact(lead, enrichment);
 
   // Audit the AI generation alongside the platform's other AI features.
   await supabaseAdmin.from('ai_generations').insert({
