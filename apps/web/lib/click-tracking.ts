@@ -83,3 +83,16 @@ export function buildTrackingUrl(origin: string, shortCode: string, campaignId: 
   if (contactId) url.searchParams.set('cid', contactId);
   return url.toString();
 }
+
+/**
+ * Builds the unique /go/[code] outreach URL for a single business lead. The
+ * `lo` param lets the /go route roll the click up onto the lead_outreach row
+ * (clicked status + first/last click + count); `cid` attributes the visit to
+ * the resolved marketing contact.
+ */
+export function buildOutreachUrl(origin: string, shortCode: string, outreachId: string, contactId?: string): string {
+  const url = new URL(`/go/${shortCode}`, origin);
+  url.searchParams.set('lo', outreachId);
+  if (contactId) url.searchParams.set('cid', contactId);
+  return url.toString();
+}

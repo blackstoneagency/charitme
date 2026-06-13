@@ -90,7 +90,7 @@ export async function GET(
 <body>
   <div class="poster">
     <div class="poster-header">
-      <div class="poster-logo">💚 CharitMe</div>
+      <div class="poster-logo">💜 CharitMe</div>
       <div class="poster-title">${campaign.title.replace(/</g, '&lt;')}</div>
       ${campaign.tagline ? `<div class="poster-tagline">${campaign.tagline.replace(/</g, '&lt;')}</div>` : ''}
     </div>

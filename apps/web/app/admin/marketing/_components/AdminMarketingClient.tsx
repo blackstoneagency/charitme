@@ -17,6 +17,7 @@ const TABS = [
   { key: 'campaigns',   label: 'Campaigns' },
   { key: 'automations', label: 'Automations' },
   { key: 'copilot',     label: 'AI Copilot' },
+  { key: 'outreach',    label: 'Outreach' },
 ] as const;
 type TabKey = typeof TABS[number]['key'];
 
@@ -32,6 +33,21 @@ interface Campaign { id: string; name: string; campaign_type: string; status: st
 interface Automation { id: string; name: string; trigger_event: string; action_type: string; enabled: boolean; run_count: number; last_run_at: string | null }
 interface AutomationRun { id: string; status: string; detail: string | null; created_at: string; marketing_automations?: { name: string } | null }
 interface ContactProfile { contact: Contact; events: { id: string; event_type: string; created_at: string; amount_cents: number | null }[]; segments: { marketing_segments: { name: string } | null }[]; consent: { channel: string; granted: boolean; source: string | null; created_at: string }[]; identities: { kind: string; value: string }[] }
+
+interface EmailValidationLite { valid?: boolean; score?: number; reasons?: string[]; disposable?: boolean; roleBased?: boolean; freeProvider?: boolean; suggestion?: string | null; mx?: boolean | null }
+interface OutreachState {
+  id: string; short_code: string | null; status: string; channel: string;
+  subject: string | null; body: string | null; email: string | null;
+  email_valid: boolean | null; email_validation: EmailValidationLite; email_validated_at: string | null;
+  sent_at: string | null; first_click_at: string | null; last_click_at: string | null; click_count: number;
+  invite_url: string | null;
+}
+interface OutreachLead {
+  id: string; business_name: string; owner_name: string | null; email: string | null;
+  industry: string | null; state: string | null; lead_score: number; lead_grade: string | null;
+  status: string; marketing_contact_id: string | null; outreach: OutreachState | null;
+}
+interface OutreachStats { total: number; validated: number; deliverable: number; ready: number; sent: number; clicked: number; converted: number }
 
 const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 const dt = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
@@ -66,6 +82,7 @@ export default function AdminMarketingClient({ initialTab = 'overview', overview
       {tab === 'campaigns'   && <CampaignsTab flash={flash} />}
       {tab === 'automations' && <AutomationsTab flash={flash} />}
       {tab === 'copilot'     && <CopilotTab flash={flash} />}
+      {tab === 'outreach'    && <OutreachTab flash={flash} />}
     </div>
   );
 }
@@ -579,6 +596,297 @@ function CopilotTab({ flash }: { flash: (m: string) => void }) {
       {result && (
         <div style={{ ...card, whiteSpace: 'pre-wrap', fontSize: 13.5, lineHeight: 1.7, color: '#374151' }}>{result}</div>
       )}
+    </div>
+  );
+}
+
+/* ═══════════ Outreach ═══════════ */
+const OUTREACH_SUBJECT = '{{first_name}}, a quick idea for {{business_name}}';
+const OUTREACH_BODY = `Hi {{first_name}},
+
+Congratulations on launching {{business_name}}! New businesses like yours are exactly the people we love to support at CharitMe.
+
+If giving back is part of your story — a community cause, a customer match campaign, or a team fundraiser — we make it effortless, and CharitMe charges 0% platform fees so more of every dollar reaches the cause.
+
+See how it works (it takes about 60 seconds): {{tracking_url}}
+
+Warmly,
+The CharitMe Team`;
+
+function outreachStatus(lead: OutreachLead): string {
+  return lead.outreach?.status ?? 'new';
+}
+const OUTREACH_COLORS: Record<string, string> = {
+  new: '#94a3b8', drafted: '#94a3b8', ready: '#2563eb', sent: '#d97706', clicked: '#7c3aed', converted: '#059669', failed: '#dc2626',
+};
+
+function OutreachTab({ flash }: { flash: (m: string) => void }) {
+  const [leads, setLeads] = useState<OutreachLead[]>([]);
+  const [stats, setStats] = useState<OutreachStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState('');
+  const [filter, setFilter] = useState<'all' | 'new' | 'ready' | 'sent' | 'clicked' | 'converted'>('all');
+  const [selected, setSelected] = useState<OutreachLead | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch('/api/admin/marketing/outreach');
+    const d = await res.json() as { leads?: OutreachLead[]; stats?: OutreachStats; error?: string };
+    if (!res.ok) flash(`❌ ${d.error ?? 'Failed to load leads'}`);
+    setLeads(d.leads ?? []);
+    setStats(d.stats ?? null);
+    setLoading(false);
+  }, [flash]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- state updates occur after fetch resolves
+  useEffect(() => { void load(); }, [load]);
+
+  // Patch one lead in place (and the open composer) without a full reload.
+  const patchLead = useCallback((leadId: string, outreach: OutreachState) => {
+    setLeads(ls => ls.map(l => l.id === leadId ? { ...l, outreach } : l));
+    setSelected(s => s && s.id === leadId ? { ...s, outreach } : s);
+  }, []);
+
+  const filtered = leads.filter(l => {
+    const st = outreachStatus(l);
+    const passFilter =
+      filter === 'all' ? true :
+      filter === 'new' ? (st === 'new' || st === 'drafted') :
+      filter === 'ready' ? st === 'ready' :
+      filter === 'sent' ? st === 'sent' :
+      filter === 'clicked' ? st === 'clicked' :
+      st === 'converted';
+    const needle = q.trim().toLowerCase();
+    const passSearch = !needle ||
+      l.business_name.toLowerCase().includes(needle) ||
+      (l.email ?? '').toLowerCase().includes(needle) ||
+      (l.owner_name ?? '').toLowerCase().includes(needle);
+    return passFilter && passSearch;
+  });
+
+  const kpis = stats ? [
+    { label: 'Leads with email', value: stats.total },
+    { label: 'Validated', value: stats.validated },
+    { label: 'Deliverable', value: stats.deliverable },
+    { label: 'Invites sent', value: stats.sent },
+    { label: 'Clicked through', value: stats.clicked },
+    { label: 'Converted', value: stats.converted },
+  ] : [];
+
+  return (
+    <div>
+      <div style={{ ...card, background: '#f7f2ff', borderColor: '#e0d5ff' }}>
+        <div style={{ fontWeight: 700, fontSize: 14, color: '#4d1ee0', marginBottom: 6 }}>🌱 New-business outreach</div>
+        <p style={{ fontSize: 13, color: '#5b3fa8', margin: 0, lineHeight: 1.6 }}>
+          Pulled live from <b>New Customers</b>. Validate each lead&apos;s email, then send a personal invite with a
+          <b> unique tracking link</b> — when they click it and land on the site, the visit is captured back here
+          (clicked → converted). Every link is its own <code style={{ background: '#fff', padding: '1px 7px', borderRadius: 6 }}>/go/&lt;code&gt;</code> short URL.
+        </p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 18 }}>
+        {kpis.map(k => (
+          <div key={k.label} style={{ ...card, marginBottom: 0, padding: '14px 18px' }}>
+            <div style={{ fontSize: 11, fontWeight: 650, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em' }}>{k.label}</div>
+            <div style={{ fontSize: 26, fontWeight: 700, color: '#1a1a2e', marginTop: 4 }}>{k.value.toLocaleString()}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search business, owner, or email…" style={{ ...input, flex: '1 1 240px' }} />
+        <select value={filter} onChange={e => setFilter(e.target.value as typeof filter)} style={input}>
+          <option value="all">All leads</option>
+          <option value="new">Not contacted</option>
+          <option value="ready">Link ready</option>
+          <option value="sent">Invite sent</option>
+          <option value="clicked">Clicked through</option>
+          <option value="converted">Converted</option>
+        </select>
+        <button onClick={() => void load()} style={btnGhost}>⟳ Refresh</button>
+      </div>
+
+      <div style={{ ...card, padding: 0, overflow: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead><tr>
+            <th style={th}>Business</th><th style={th}>Email</th><th style={th}>Score</th>
+            <th style={th}>Outreach</th><th style={th}>Clicks</th><th style={th}></th>
+          </tr></thead>
+          <tbody>
+            {loading && <tr><td style={td} colSpan={6}>Loading leads…</td></tr>}
+            {!loading && filtered.length === 0 && <tr><td style={td} colSpan={6}>No leads with an email yet — enrich leads in New Customers first.</td></tr>}
+            {filtered.map(l => {
+              const st = outreachStatus(l);
+              const ev = l.outreach?.email_valid;
+              return (
+                <tr key={l.id} onClick={() => setSelected(l)} style={{ cursor: 'pointer' }}>
+                  <td style={td}>
+                    <div style={{ fontWeight: 650, color: '#1a1a2e' }}>{l.business_name}</div>
+                    <div style={{ fontSize: 12, color: '#94a3b8' }}>{[l.owner_name, l.industry, l.state].filter(Boolean).join(' · ') || '—'}</div>
+                  </td>
+                  <td style={td}>
+                    <div style={{ fontSize: 12.5, color: '#374151' }}>{l.email}</div>
+                    {ev === true && <Pill text="deliverable" color="#059669" />}
+                    {ev === false && <Pill text="risky" color="#dc2626" />}
+                    {ev == null && <span style={{ fontSize: 11, color: '#cbd5e1' }}>not validated</span>}
+                  </td>
+                  <td style={td}><ScoreBar value={l.lead_score} />{l.lead_grade && <Pill text={l.lead_grade} color="#6c35ff" />}</td>
+                  <td style={td}><Pill text={st} color={OUTREACH_COLORS[st] ?? '#94a3b8'} /></td>
+                  <td style={td}><b style={{ color: l.outreach && l.outreach.click_count > 0 ? '#7c3aed' : '#94a3b8' }}>{l.outreach?.click_count ?? 0}</b></td>
+                  <td style={td}><button onClick={e => { e.stopPropagation(); setSelected(l); }} style={{ ...btn, padding: '6px 14px', fontSize: 12 }}>Outreach →</button></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {selected && (
+        <OutreachComposer
+          lead={selected}
+          onClose={() => setSelected(null)}
+          onUpdate={patchLead}
+          flash={flash}
+        />
+      )}
+    </div>
+  );
+}
+
+function OutreachComposer({ lead, onClose, onUpdate, flash }: {
+  lead: OutreachLead;
+  onClose: () => void;
+  onUpdate: (leadId: string, o: OutreachState) => void;
+  flash: (m: string) => void;
+}) {
+  const o = lead.outreach;
+  const [subject, setSubject] = useState(o?.subject || OUTREACH_SUBJECT);
+  const [body, setBody] = useState(o?.body || OUTREACH_BODY);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const call = async (init: RequestInit, key: string): Promise<OutreachState | null> => {
+    setBusy(key);
+    const res = await fetch('/api/admin/marketing/outreach', init);
+    const d = await res.json() as { outreach?: OutreachState; error?: string };
+    setBusy(null);
+    if (!res.ok || !d.outreach) { flash(`❌ ${d.error ?? 'Request failed'}`); return null; }
+    onUpdate(lead.id, d.outreach);
+    return d.outreach;
+  };
+
+  const validate = () => call(
+    { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'validate_email', leadId: lead.id }) },
+    'validate',
+  ).then(r => { if (r) flash(r.email_valid ? '✓ Email looks deliverable' : '⚠ Email flagged — see details'); });
+
+  const prepare = () => call(
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ leadId: lead.id }) },
+    'prepare',
+  ).then(r => { if (r) flash('✓ Unique tracking link generated'); });
+
+  const send = () => call(
+    { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'send', leadId: lead.id, subject, body }) },
+    'send',
+  ).then(r => { if (r) flash('✓ Outreach sent'); });
+
+  const convert = () => call(
+    { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'mark_converted', leadId: lead.id }) },
+    'convert',
+  ).then(r => { if (r) flash('✓ Marked as converted'); });
+
+  const copy = async () => {
+    if (!o?.invite_url) return;
+    try { await navigator.clipboard.writeText(o.invite_url); setCopied(true); setTimeout(() => setCopied(false), 1800); }
+    catch { flash('❌ Could not copy'); }
+  };
+
+  const val = o?.email_validation;
+  const st = o?.status ?? 'new';
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: 'min(560px, 96vw)', background: '#fff', height: '100%', overflowY: 'auto', padding: '26px 28px 56px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: '#1a1a2e' }}>{lead.business_name}</h3>
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#94a3b8' }}>{[lead.owner_name, lead.industry, lead.state].filter(Boolean).join(' · ') || '—'}</p>
+          </div>
+          <button onClick={onClose} style={{ ...btnGhost, padding: '4px 12px' }}>✕</button>
+        </div>
+        <div style={{ margin: '6px 0 18px' }}><Pill text={st} color={OUTREACH_COLORS[st] ?? '#94a3b8'} /></div>
+
+        {/* 1 — Email validation */}
+        <Section title="① Validate email">
+          <div style={{ background: '#f8f9fc', borderRadius: 10, padding: '14px 16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+              <code style={{ fontSize: 13, color: '#374151' }}>{lead.email}</code>
+              <button onClick={() => void validate()} disabled={busy === 'validate'} style={{ ...btnGhost, padding: '6px 12px', fontSize: 12 }}>
+                {busy === 'validate' ? 'Checking…' : 'Validate'}
+              </button>
+            </div>
+            {o?.email_valid != null && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Pill text={o.email_valid ? '✓ deliverable' : '⚠ risky'} color={o.email_valid ? '#059669' : '#dc2626'} />
+                  {typeof val?.score === 'number' && <span style={{ fontSize: 12, color: '#64748b' }}>score {val.score}/100</span>}
+                  {val?.mx === true && <Pill text="MX ok" color="#059669" />}
+                  {val?.mx === false && <Pill text="no MX" color="#dc2626" />}
+                  {val?.disposable && <Pill text="disposable" color="#dc2626" />}
+                  {val?.roleBased && <Pill text="role-based" color="#d97706" />}
+                  {val?.freeProvider && <Pill text="free-mail" color="#94a3b8" />}
+                </div>
+                {val?.suggestion && <div style={{ fontSize: 12.5, color: '#d97706', marginTop: 8 }}>Did you mean <b>{val.suggestion}</b>?</div>}
+                {(val?.reasons ?? []).length > 0 && (
+                  <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: '#64748b' }}>
+                    {val!.reasons!.map((r, i) => <li key={i}>{r}</li>)}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+        </Section>
+
+        {/* 2 — Unique tracking link */}
+        <Section title="② Unique tracking link">
+          {o?.invite_url ? (
+            <div style={{ background: '#f8f9fc', borderRadius: 10, padding: '14px 16px' }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <code style={{ flex: 1, fontSize: 12, color: '#4d1ee0', wordBreak: 'break-all' }}>{o.invite_url}</code>
+                <button onClick={() => void copy()} style={{ ...btnGhost, padding: '6px 12px', fontSize: 12, whiteSpace: 'nowrap' }}>{copied ? '✓ Copied' : 'Copy'}</button>
+              </div>
+              <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 12.5, color: '#64748b', flexWrap: 'wrap' }}>
+                <span>Clicks: <b style={{ color: o.click_count > 0 ? '#7c3aed' : '#94a3b8' }}>{o.click_count}</b></span>
+                <span>First click: <b>{dt(o.first_click_at)}</b></span>
+                <span>Last click: <b>{dt(o.last_click_at)}</b></span>
+                <span>Sent: <b>{dt(o.sent_at)}</b></span>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => void prepare()} disabled={busy === 'prepare'} style={btn}>
+              {busy === 'prepare' ? 'Generating…' : '🔗 Generate unique link'}
+            </button>
+          )}
+        </Section>
+
+        {/* 3 — Compose + send */}
+        <Section title="③ Compose & send">
+          <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" style={{ ...input, width: '100%', boxSizing: 'border-box', marginBottom: 8 }} />
+          <textarea value={body} onChange={e => setBody(e.target.value)} rows={9} style={{ ...input, width: '100%', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6 }} />
+          <p style={{ fontSize: 11.5, color: '#94a3b8', margin: '6px 0 12px' }}>
+            Variables: <code>{'{{first_name}}'}</code> <code>{'{{business_name}}'}</code> <code>{'{{tracking_url}}'}</code> (inserts the unique link above).
+          </p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button onClick={() => void send()} disabled={busy === 'send' || !o?.short_code} style={btn} title={!o?.short_code ? 'Generate the tracking link first' : ''}>
+              {busy === 'send' ? 'Sending…' : '✉️ Send outreach'}
+            </button>
+            {st !== 'converted' && (
+              <button onClick={() => void convert()} disabled={busy === 'convert' || !o} style={btnGhost}>
+                {busy === 'convert' ? '…' : '✓ Mark converted'}
+              </button>
+            )}
+          </div>
+        </Section>
+      </div>
     </div>
   );
 }
