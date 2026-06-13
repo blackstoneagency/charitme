@@ -1001,6 +1001,74 @@ export function mapNewOrleansFiling(row: NolaFilingRow): StateFilingLead {
   };
 }
 
+// ── AZ: City of Mesa Business Licenses ──────────────────────────────────────
+// data.mesaaz.gov "Business Licenses" — Socrata, free, no API key. `openeddate`
+// marks when a license record was first opened and is a reliable "new
+// business" signal (refreshed daily, lagging ~1-2 days behind real time).
+
+export const MESA_DATASET_URL = 'https://citydata.mesaaz.gov/resource/rg88-ausd.json';
+
+// `type_of_ownership` values that map cleanly to canonical entity types.
+// "Individual/Sole Proprietor" has no registered entity, so it maps to null.
+const MESA_ENTITY_TYPE_LABELS: Record<string, string | null> = {
+  LLC: 'LLC',
+  Corporation: 'Corporation',
+  'Legal Partnership': 'Partnership',
+  'Non-Profit': 'Nonprofit',
+  'Individual/Sole Proprietor': null,
+  'Joint Venture': 'Joint Venture',
+  Trust: 'Trust',
+};
+
+export interface MesaFilingRow {
+  record_id?: string;
+  business_dba_name?: string;
+  naicscodesanddescriptions__2022_naics_title?: string;
+  new_business_address?: string;
+  business_mailing_address?: string;
+  business_phone_number?: string;
+  openeddate?: string;
+  type_of_ownership?: string;
+}
+
+function mesaEntityType(value: string | undefined): string | null {
+  if (!value) return null;
+  if (value in MESA_ENTITY_TYPE_LABELS) {
+    const label = MESA_ENTITY_TYPE_LABELS[value];
+    return label ? normalizeEntityType(label) : null;
+  }
+  return normalizeEntityType(value);
+}
+
+// Splits a combined "STREET CITY, ST ZIP" string into a title-cased street
+// portion and an unchanged "ST ZIP" suffix (state abbreviations should stay
+// upper-cased rather than becoming e.g. "Az").
+const MESA_ADDRESS_STATE_ZIP_RE = /,?\s*([A-Z]{2})\s+(\d{5}(?:-\d{4})?)\s*$/;
+
+function mesaAddress(row: MesaFilingRow): string | null {
+  const raw = (row.new_business_address || row.business_mailing_address || '').replace(/\s+/g, ' ').trim();
+  if (!raw) return null;
+  const match = raw.match(MESA_ADDRESS_STATE_ZIP_RE);
+  if (!match) return maybeTitleCase(raw);
+  const rest = raw.slice(0, match.index).replace(/,\s*$/, '').trim();
+  const stateZip = `${match[1]} ${match[2]}`;
+  return rest ? `${maybeTitleCase(rest)}, ${stateZip}` : stateZip;
+}
+
+export function mapMesaFiling(row: MesaFilingRow): StateFilingLead {
+  return {
+    business_name: maybeTitleCase((row.business_dba_name ?? '').trim()),
+    entity_type: mesaEntityType(row.type_of_ownership),
+    state: 'AZ',
+    filing_date: row.openeddate ? row.openeddate.slice(0, 10) : null,
+    filing_status: 'Active',
+    address: mesaAddress(row),
+    industry: row.naicscodesanddescriptions__2022_naics_title ?? null,
+    phone: row.business_phone_number ?? null,
+    source_ref: row.record_id ? `mesa-license:${row.record_id}` : undefined,
+  };
+}
+
 // ── Registry of available free state feeds ──────────────────────────────────
 // Single source of truth for both server-side validation (ingest route) and
 // the admin UI's state picker. Add an entry here + a fetch+map implementation
@@ -1058,6 +1126,10 @@ export const STATE_FEED_SOURCES = {
   LA: {
     label: 'Louisiana — New Orleans Occupational Licenses',
     description: 'Newly-issued occupational business licenses from the City of New Orleans open dataset, used as a proxy for new LA business activity — uniquely includes the business’s direct phone number and the owner’s first and last name for sole proprietorships. Free, no API key, updated daily.',
+  },
+  AZ: {
+    label: 'Arizona — City of Mesa Business Licenses',
+    description: 'Newly-opened business licenses from the City of Mesa’s open data portal, used as a proxy for new AZ business activity — includes the business’s direct phone number, entity type, and address. Free, no API key, updated daily.',
   },
 } as const;
 

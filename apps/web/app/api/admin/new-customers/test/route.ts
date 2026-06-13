@@ -9,7 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
-import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling, mapNorfolkFiling, mapWashingtonFiling, mapDelawareFiling, mapNewOrleansFiling } from '../../../../../lib/state-filings';
+import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling, mapNorfolkFiling, mapWashingtonFiling, mapDelawareFiling, mapNewOrleansFiling, mapMesaFiling } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -460,6 +460,24 @@ export async function GET() {
     name: 'la_state_feed',
     ok: laLead.business_name === 'It Fitss LLC' && laLead.entity_type === 'LLC' && laLead.state === 'LA' && laLead.filing_date === '2026-07-01' && laLead.owner_name === 'Steven L. Cody Jr.' && laLead.phone === '(850) 305-3372',
     detail: `mapped "${laLead.business_name}" (${laLead.entity_type}, ${laLead.state}, filed ${laLead.filing_date}, owner ${laLead.owner_name}, phone ${laLead.phone})`,
+  });
+
+  // 22. AZ (City of Mesa Business Licenses) state-registry connector — a
+  // newly-opened LLC license row should map to an AZ lead with a title-cased
+  // street address, NAICS-derived industry, and direct phone number.
+  const azLead = mapMesaFiling({
+    record_id: 'LIC26-18728',
+    business_dba_name: 'On Services LLC',
+    naicscodesanddescriptions__2022_naics_title: 'Plumbing, Heating, and Air-Conditioning Contractors',
+    new_business_address: '633 W 2ND AVE MESA, AZ 85210',
+    business_phone_number: '4805863004',
+    openeddate: '2026-06-11T00:00:00.000',
+    type_of_ownership: 'LLC',
+  });
+  checks.push({
+    name: 'az_state_feed',
+    ok: azLead.business_name === 'On Services LLC' && azLead.entity_type === 'LLC' && azLead.state === 'AZ' && azLead.filing_date === '2026-06-11' && azLead.address === '633 W 2nd Ave Mesa, AZ 85210' && azLead.phone === '4805863004',
+    detail: `mapped "${azLead.business_name}" (${azLead.entity_type}, ${azLead.state}, filed ${azLead.filing_date}, address ${azLead.address}, phone ${azLead.phone})`,
   });
 
   const ok = checks.every((c) => c.ok);

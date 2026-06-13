@@ -57,6 +57,8 @@ import {
   NOLA_DATASET_URL,
   NOLA_EXCLUDED_BUSINESS_TYPE,
   mapNewOrleansFiling,
+  MESA_DATASET_URL,
+  mapMesaFiling,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
@@ -69,6 +71,7 @@ import {
   type WaFilingRow,
   type DeFilingRow,
   type NolaFilingRow,
+  type MesaFilingRow,
   type StateFeedCode,
 } from './state-filings';
 
@@ -599,6 +602,39 @@ export async function fetchLouisianaFilings(dateFrom?: string, dateTo?: string, 
   }
 }
 
+// City of Mesa "Business Licenses" — free, no API key. Used as a proxy for
+// new AZ business activity since AZ's Secretary of State doesn't publish a
+// free open-data feed of new entity filings. Filtered to active records whose
+// `openeddate` (when the license record was first opened) falls in the
+// requested date range.
+export async function fetchArizonaFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const clauses = ["record_status='Active'", 'openeddate IS NOT NULL'];
+    if (dateFrom) clauses.push(`openeddate >= '${dateFrom}T00:00:00'`);
+    if (dateTo) clauses.push(`openeddate <= '${dateTo}T23:59:59'`);
+
+    const params = new URLSearchParams({
+      $where: clauses.join(' AND '),
+      $order: 'openeddate DESC',
+      $limit: String(limit),
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${MESA_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const rows = await res.json() as MesaFilingRow[];
+    return rows.map(mapMesaFiling).filter((f) => f.business_name);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
 export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
   CO: fetchColoradoFilings,
@@ -613,6 +649,7 @@ export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: 
   WA: fetchWashingtonFilings,
   DE: fetchDelawareFilings,
   LA: fetchLouisianaFilings,
+  AZ: fetchArizonaFilings,
 };
 
 // ── Normalize + score raw filings, then dedupe/insert into business_leads ────

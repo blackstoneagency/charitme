@@ -13,6 +13,7 @@ import {
   mapWashingtonFiling,
   mapDelawareFiling,
   mapNewOrleansFiling,
+  mapMesaFiling,
   parseFlCorLine,
   parseFlDate,
   titleCaseBusinessName,
@@ -37,6 +38,7 @@ import {
   type WaFilingRow,
   type DeFilingRow,
   type NolaFilingRow,
+  type MesaFilingRow,
 } from '../lib/state-filings';
 
 // Builds a fixed-width Sunbiz cor.txt record by placing fields at the
@@ -912,8 +914,73 @@ describe('mapNewOrleansFiling', () => {
   });
 });
 
+describe('mapMesaFiling', () => {
+  const baseRow: MesaFilingRow = {
+    record_id: 'LIC26-18728',
+    business_dba_name: 'On Services LLC',
+    naicscodesanddescriptions__2022_naics_title: 'Plumbing, Heating, and Air-Conditioning Contractors',
+    new_business_address: '633 W 2ND AVE MESA, AZ 85210',
+    business_mailing_address: '633 W 2ND AVE MESA, AZ 85210',
+    business_phone_number: '4805863004',
+    openeddate: '2026-06-11T00:00:00.000',
+    type_of_ownership: 'LLC',
+  };
+
+  it('maps a newly-opened LLC license to an "Active" AZ lead with a title-cased street address', () => {
+    const lead = mapMesaFiling(baseRow);
+    expect(lead.business_name).toBe('On Services LLC');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('AZ');
+    expect(lead.filing_date).toBe('2026-06-11');
+    expect(lead.filing_status).toBe('Active');
+    expect(lead.address).toBe('633 W 2nd Ave Mesa, AZ 85210');
+    expect(lead.industry).toBe('Plumbing, Heating, and Air-Conditioning Contractors');
+    expect(lead.phone).toBe('4805863004');
+    expect(lead.source_ref).toBe('mesa-license:LIC26-18728');
+  });
+
+  it('maps "Corporation" ownership to entity_type Corporation and preserves an out-of-state address suffix', () => {
+    const lead = mapMesaFiling({
+      ...baseRow,
+      business_dba_name: 'Wadman Corporation',
+      type_of_ownership: 'Corporation',
+      new_business_address: '2920 S 925 W  , UT 84401',
+      business_mailing_address: '2920 S 925 W  , UT 84401',
+    });
+    expect(lead.entity_type).toBe('Corporation');
+    expect(lead.address).toBe('2920 S 925 W, UT 84401');
+  });
+
+  it('maps "Individual/Sole Proprietor" ownership to a null entity_type with no address when none is provided', () => {
+    const lead = mapMesaFiling({
+      record_id: 'LIC26-18713',
+      business_dba_name: 'marisol fresh clean',
+      naicscodesanddescriptions__2022_naics_title: 'Janitorial Services',
+      business_phone_number: '602 930 7415',
+      openeddate: '2026-06-11T00:00:00.000',
+      type_of_ownership: 'Individual/Sole Proprietor',
+    });
+    expect(lead.business_name).toBe('marisol fresh clean');
+    expect(lead.entity_type).toBeNull();
+    expect(lead.address).toBeNull();
+    expect(lead.phone).toBe('602 930 7415');
+  });
+
+  it('handles missing fields gracefully', () => {
+    const lead = mapMesaFiling({ business_dba_name: 'QUIET DESK LLC' });
+    expect(lead.business_name).toBe('Quiet Desk LLC');
+    expect(lead.entity_type).toBeNull();
+    expect(lead.state).toBe('AZ');
+    expect(lead.address).toBeNull();
+    expect(lead.industry).toBeNull();
+    expect(lead.phone).toBeNull();
+    expect(lead.filing_date).toBeNull();
+    expect(lead.source_ref).toBeUndefined();
+  });
+});
+
 describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES / PA_NEW_ENTITY_TYPES / CT_NEW_ENTITY_TYPES / TX_NEW_ENTITY_TYPES', () => {
-  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, Illinois, Virginia, Washington, Delaware, and Louisiana feeds with labels', () => {
+  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, Illinois, Virginia, Washington, Delaware, Louisiana, and Arizona feeds with labels', () => {
     expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
     expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
     expect(STATE_FEED_SOURCES.FL.label).toMatch(/Florida/);
@@ -927,6 +994,7 @@ describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / F
     expect(STATE_FEED_SOURCES.WA.label).toMatch(/Washington/);
     expect(STATE_FEED_SOURCES.DE.label).toMatch(/Delaware/);
     expect(STATE_FEED_SOURCES.LA.label).toMatch(/Louisiana/);
+    expect(STATE_FEED_SOURCES.AZ.label).toMatch(/Arizona/);
   });
 
   it('targets only brand-new entity formation document/filing/entity types', () => {
