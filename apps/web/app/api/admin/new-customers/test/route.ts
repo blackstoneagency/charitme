@@ -9,7 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
-import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling } from '../../../../../lib/state-filings';
+import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling, mapSanFranciscoFiling, mapChicagoFiling, mapNorfolkFiling } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +45,9 @@ type Check = { name: string; ok: boolean; detail: string };
 //  17. the free IL (Chicago) state-registry connector maps a new Limited
 //      Business License row to an IL lead, including LLC/Inc entity-type
 //      detection and DBA name capture, correctly.
+//  18. the free VA (Norfolk) state-registry connector maps a newly-opened
+//      business row to a VA lead, including "LAST, FIRST" sole-proprietor
+//      owner-name normalization, correctly.
 //
 // Returns 200 only when every check passes, so it can be wired to uptime
 // monitors or run manually from the admin UI.
@@ -368,6 +371,22 @@ export async function GET() {
     name: 'il_state_feed',
     ok: ilLead.business_name === 'My Perfume House' && ilLead.entity_type === 'LLC' && ilLead.state === 'IL' && ilLead.filing_date === '2026-06-12' && ilLead.filing_status === 'Active',
     detail: `mapped "${ilLead.business_name}" (${ilLead.entity_type}, ${ilLead.state}, filed ${ilLead.filing_date}, status ${ilLead.filing_status})`,
+  });
+
+  // 18. VA (Norfolk) state-registry connector — a sole-proprietor row with a
+  // "LAST, FIRST" primary_owner should map to a VA lead with the owner's
+  // first and last name normalized to "First Last".
+  const vaLead = mapNorfolkFiling({
+    trading_as_name: 'JGB CONSTRUCTION',
+    primary_owner: 'BRANT, JESSIE',
+    naics: 'Contractor, Handyman',
+    mailing_address: '1364 CHANELKA RD NORFOLK VA, 23503',
+    business_opened_date: '2026-06-06T00:00:00.000',
+  });
+  checks.push({
+    name: 'va_state_feed',
+    ok: vaLead.business_name === 'Jgb Construction' && vaLead.entity_type === null && vaLead.state === 'VA' && vaLead.filing_date === '2026-06-06' && vaLead.owner_name === 'Jessie Brant',
+    detail: `mapped "${vaLead.business_name}" (${vaLead.entity_type}, ${vaLead.state}, filed ${vaLead.filing_date}, owner ${vaLead.owner_name})`,
   });
 
   const ok = checks.every((c) => c.ok);

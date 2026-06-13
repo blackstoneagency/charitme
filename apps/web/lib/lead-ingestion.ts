@@ -48,6 +48,8 @@ import {
   CHI_DATASET_URL,
   CHI_LICENSE_CODE,
   mapChicagoFiling,
+  NORFOLK_DATASET_URL,
+  mapNorfolkFiling,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
@@ -56,6 +58,7 @@ import {
   type TxFilingRow,
   type SfFilingRow,
   type ChicagoFilingRow,
+  type NorfolkFilingRow,
   type StateFeedCode,
 } from './state-filings';
 
@@ -457,6 +460,38 @@ export async function fetchIllinoisFilings(dateFrom?: string, dateTo?: string, l
   }
 }
 
+// City of Norfolk "Business Licenses" — free, no API key. Used as a proxy for
+// new VA business activity since VA's SCC only publishes a single bulk CSV of
+// all-time LLC filings with no date filter or contact info. Filtered to rows
+// with a `business_opened_date` in the requested date range.
+export async function fetchVirginiaFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const clauses = ['business_opened_date IS NOT NULL'];
+    if (dateFrom) clauses.push(`business_opened_date >= '${dateFrom}T00:00:00'`);
+    if (dateTo) clauses.push(`business_opened_date <= '${dateTo}T23:59:59'`);
+
+    const params = new URLSearchParams({
+      $where: clauses.join(' AND '),
+      $order: 'business_opened_date DESC',
+      $limit: String(limit),
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${NORFOLK_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const rows = await res.json() as NorfolkFilingRow[];
+    return rows.map(mapNorfolkFiling).filter((f) => f.business_name);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
 export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
   CO: fetchColoradoFilings,
@@ -467,6 +502,7 @@ export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: 
   TX: fetchTexasFilings,
   CA: fetchCaliforniaFilings,
   IL: fetchIllinoisFilings,
+  VA: fetchVirginiaFilings,
 };
 
 // ── Normalize + score raw filings, then dedupe/insert into business_leads ────

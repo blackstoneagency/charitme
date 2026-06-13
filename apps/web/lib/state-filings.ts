@@ -698,6 +698,80 @@ export function mapChicagoFiling(row: ChicagoFilingRow): StateFilingLead {
   };
 }
 
+// ── Virginia (Norfolk) — "Business Licenses" ─────────────────────────────────
+// https://data.norfolk.gov/resource/dpi6-sct5.json — free, no API key, updated
+// daily. Virginia's SCC only publishes a single multi-decade bulk CSV of all
+// LLCs ever formed (no per-record date filtering, no contact info), so
+// Norfolk's business-license dataset is used as a VA proxy instead —
+// `business_opened_date` flags newly-opened businesses directly.
+// `primary_owner` is either a registered entity (LLC/Corp/etc — detected via
+// suffix) or an individual's name, in either "FIRST LAST" or "LAST, FIRST"
+// format; `norfolkOwnerName()` normalizes both to "First Last".
+
+export const NORFOLK_DATASET_URL = 'https://data.norfolk.gov/resource/dpi6-sct5.json';
+
+export interface NorfolkFilingRow {
+  trading_as_name?: string;
+  primary_owner?: string;
+  naics?: string;
+  mailing_address?: string;
+  business_opened_date?: string;
+}
+
+// Detects a registered-entity suffix on `primary_owner` (e.g. "HAIR GALLERIA
+// 2 LLC", "LEAD INC"). Returns null when the name looks like an individual's.
+function norfolkEntityType(primaryOwner: string): string | null {
+  const name = primaryOwner.trim();
+  if (!name) return null;
+  const lower = name.toLowerCase();
+  if (lower.includes('limited liability company') || /\bl\.?\s?l\.?\s?c\.?$/.test(lower)) return 'LLC';
+  if (lower.includes('limited liability partnership') || /\bl\.?\s?l\.?\s?p\.?$/.test(lower)) return 'LLP';
+  if (lower.includes('limited partnership') || /\bl\.?\s?p\.?$/.test(lower)) return 'Limited Partnership';
+  if (/\b(?:incorporated|inc|corp(?:oration)?)\.?$/.test(lower)) return 'Corporation';
+  if (/\bp\.?c\.?$/.test(lower)) return 'Professional Corporation';
+  return null;
+}
+
+// Normalizes an individual owner's name to "First Last", handling both
+// "FIRST LAST" and "LAST, FIRST" (the format Norfolk uses for sole
+// proprietors, e.g. "DAWSON, JENNIFER").
+function norfolkOwnerName(primaryOwner: string): string | null {
+  const name = primaryOwner.trim();
+  if (!name) return null;
+  if (name.includes(',')) {
+    const [last, first] = name.split(',').map((s) => s.trim());
+    if (!first || !last) return maybeTitleCase(name) || null;
+    return maybeTitleCase(`${first} ${last}`);
+  }
+  return maybeTitleCase(name) || null;
+}
+
+// `mailing_address` arrives as "STREET CITY STATE, ZIP" (no comma before the
+// city). Reformats the trailing "STATE, ZIP" into "CITY, STATE ZIP" so the
+// result reads like a normal address line.
+function norfolkAddress(row: NorfolkFilingRow): string | null {
+  const raw = row.mailing_address?.trim();
+  if (!raw) return null;
+  const m = raw.match(/^(.+)\s+([A-Z]{2}),\s*(\d{5}(?:-\d{4})?)$/);
+  return m ? `${m[1].trim()}, ${m[2]} ${m[3]}` : raw;
+}
+
+export function mapNorfolkFiling(row: NorfolkFilingRow): StateFilingLead {
+  const owner = (row.primary_owner ?? '').trim();
+  const trading = (row.trading_as_name ?? '').trim();
+  const entityType = norfolkEntityType(owner);
+  return {
+    business_name: maybeTitleCase(trading || owner),
+    entity_type: entityType,
+    state: 'VA',
+    filing_date: row.business_opened_date ? row.business_opened_date.slice(0, 10) : null,
+    filing_status: 'Active',
+    owner_name: entityType ? null : norfolkOwnerName(owner),
+    address: norfolkAddress(row),
+    industry: row.naics ?? null,
+  };
+}
+
 // ── Registry of available free state feeds ──────────────────────────────────
 // Single source of truth for both server-side validation (ingest route) and
 // the admin UI's state picker. Add an entry here + a fetch+map implementation
@@ -739,6 +813,10 @@ export const STATE_FEED_SOURCES = {
   IL: {
     label: 'Illinois — City of Chicago Business Licenses',
     description: 'Newly-issued Limited Business Licenses (the base license every Chicago business needs) from Chicago’s open data portal, used as a proxy for new IL business activity — includes the owner’s first and last name for sole proprietorships. Free, no API key, updated daily.',
+  },
+  VA: {
+    label: 'Virginia — Norfolk Business Licenses',
+    description: 'Newly-opened businesses from the City of Norfolk’s business license open dataset, used as a proxy for new VA business activity — includes the owner’s first and last name for sole proprietorships. Free, no API key, updated daily.',
   },
 } as const;
 

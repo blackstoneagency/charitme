@@ -9,6 +9,7 @@ import {
   mapTexasFiling,
   mapSanFranciscoFiling,
   mapChicagoFiling,
+  mapNorfolkFiling,
   parseFlCorLine,
   parseFlDate,
   titleCaseBusinessName,
@@ -29,6 +30,7 @@ import {
   type TxFilingRow,
   type SfFilingRow,
   type ChicagoFilingRow,
+  type NorfolkFilingRow,
 } from '../lib/state-filings';
 
 // Builds a fixed-width Sunbiz cor.txt record by placing fields at the
@@ -669,8 +671,59 @@ describe('mapChicagoFiling', () => {
   });
 });
 
+describe('mapNorfolkFiling', () => {
+  const baseRow: NorfolkFilingRow = {
+    trading_as_name: 'HAIR GALLERIA 2',
+    primary_owner: 'HAIR GALLERIA 2 LLC',
+    naics: 'All Other Miscellaneous Retailers',
+    mailing_address: '1101 E LITTLE CREEK RD NORFOLK VA, 23518',
+    business_opened_date: '2026-07-03T00:00:00.000',
+  };
+
+  it('maps a newly-opened LLC business to an "Active" VA lead and reformats the mailing address', () => {
+    const lead = mapNorfolkFiling(baseRow);
+    expect(lead.business_name).toBe('Hair Galleria 2');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('VA');
+    expect(lead.filing_date).toBe('2026-07-03');
+    expect(lead.filing_status).toBe('Active');
+    expect(lead.owner_name).toBeNull();
+    expect(lead.address).toBe('1101 E LITTLE CREEK RD NORFOLK, VA 23518');
+    expect(lead.industry).toBe('All Other Miscellaneous Retailers');
+  });
+
+  it('normalizes a "LAST, FIRST" sole-proprietor owner to "First Last"', () => {
+    const lead = mapNorfolkFiling({
+      ...baseRow,
+      trading_as_name: 'JGB CONSTRUCTION',
+      primary_owner: 'BRANT, JESSIE',
+    });
+    expect(lead.business_name).toBe('Jgb Construction');
+    expect(lead.entity_type).toBeNull();
+    expect(lead.owner_name).toBe('Jessie Brant');
+  });
+
+  it('handles a "FIRST LAST" sole-proprietor owner with no comma and no trading name', () => {
+    const lead = mapNorfolkFiling({
+      ...baseRow,
+      trading_as_name: 'JULANNE STROBBE',
+      primary_owner: 'JULANNE STROBBE',
+    });
+    expect(lead.business_name).toBe('Julanne Strobbe');
+    expect(lead.entity_type).toBeNull();
+    expect(lead.owner_name).toBe('Julanne Strobbe');
+  });
+
+  it('handles missing fields gracefully', () => {
+    const lead = mapNorfolkFiling({ primary_owner: 'BARE LLC' });
+    expect(lead.address).toBeNull();
+    expect(lead.industry).toBeNull();
+    expect(lead.filing_date).toBeNull();
+  });
+});
+
 describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES / PA_NEW_ENTITY_TYPES / CT_NEW_ENTITY_TYPES / TX_NEW_ENTITY_TYPES', () => {
-  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, and Illinois feeds with labels', () => {
+  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, Texas, California, Illinois, and Virginia feeds with labels', () => {
     expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
     expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
     expect(STATE_FEED_SOURCES.FL.label).toMatch(/Florida/);
@@ -680,6 +733,7 @@ describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / F
     expect(STATE_FEED_SOURCES.TX.label).toMatch(/Texas/);
     expect(STATE_FEED_SOURCES.CA.label).toMatch(/California/);
     expect(STATE_FEED_SOURCES.IL.label).toMatch(/Illinois/);
+    expect(STATE_FEED_SOURCES.VA.label).toMatch(/Virginia/);
   });
 
   it('targets only brand-new entity formation document/filing/entity types', () => {
