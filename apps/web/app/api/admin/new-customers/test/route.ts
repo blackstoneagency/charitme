@@ -9,7 +9,7 @@ import {
   shouldAlertAdmin,
   buildIncorporationDateFilter,
 } from '../../../../../lib/business-leads';
-import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling } from '../../../../../lib/state-filings';
+import { mapNyFiling, mapCoFiling, mapFlFiling, parseFlCorLine, mapOregonFilings, mapPaFiling, mapConnecticutFiling, mapTexasFiling } from '../../../../../lib/state-filings';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +37,8 @@ type Check = { name: string; ok: boolean; detail: string };
 //      Organizer's first/last name) correctly.
 //  14. the free CT state-registry connector maps a filing row (incl. the
 //      registrant's email address, published directly by CT) correctly.
+//  15. the free TX state-registry connector maps a new sales-tax-permit row
+//      for an in-state LLC correctly.
 //
 // Returns 200 only when every check passes, so it can be wired to uptime
 // monitors or run manually from the admin UI.
@@ -301,6 +303,25 @@ export async function GET() {
     name: 'ct_state_feed',
     ok: ctLead.business_name === 'Nutmeg Accounting LLC' && ctLead.entity_type === 'LLC' && ctLead.state === 'CT' && ctLead.filing_date === '2026-06-11' && ctLead.email === 'sahmed@nutmegaccountingllc.com',
     detail: `mapped "${ctLead.business_name}" (${ctLead.entity_type}, ${ctLead.state}, filed ${ctLead.filing_date}, email ${ctLead.email})`,
+  });
+
+  // 15. TX state-registry connector — a sample new sales-tax-permit row for
+  // an in-state LLC should map to a properly-typed, named, TX-located lead.
+  const txLead = mapTexasFiling({
+    taxpayer_number: '32087458215',
+    taxpayer_name: 'JO N GO LLC',
+    taxpayer_address: '1340 SUNSET VW',
+    taxpayer_city: 'FISCHER',
+    taxpayer_state: 'TX',
+    taxpayer_zip_code: '78623',
+    taxpayer_organization_type: 'CL',
+    outlet_naics_code: '722515',
+    outlet_permit_issue_date: '2026-06-06T00:00:00.000',
+  });
+  checks.push({
+    name: 'tx_state_feed',
+    ok: txLead.business_name === 'Jo N Go LLC' && txLead.entity_type === 'LLC' && txLead.state === 'TX' && txLead.filing_date === '2026-06-06' && txLead.filing_status === 'Active',
+    detail: `mapped "${txLead.business_name}" (${txLead.entity_type}, ${txLead.state}, filed ${txLead.filing_date}, status ${txLead.filing_status})`,
   });
 
   const ok = checks.every((c) => c.ok);

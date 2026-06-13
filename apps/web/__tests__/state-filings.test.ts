@@ -6,6 +6,7 @@ import {
   mapOregonFilings,
   mapPaFiling,
   mapConnecticutFiling,
+  mapTexasFiling,
   parseFlCorLine,
   parseFlDate,
   titleCaseBusinessName,
@@ -16,12 +17,14 @@ import {
   OR_NEW_ENTITY_TYPES,
   PA_NEW_ENTITY_TYPES,
   CT_NEW_ENTITY_TYPES,
+  TX_NEW_ENTITY_TYPES,
   STATE_FEED_SOURCES,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
   type PaFilingRow,
   type CtFilingRow,
+  type TxFilingRow,
 } from '../lib/state-filings';
 
 // Builds a fixed-width Sunbiz cor.txt record by placing fields at the
@@ -499,14 +502,66 @@ describe('mapConnecticutFiling', () => {
   });
 });
 
-describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES / PA_NEW_ENTITY_TYPES / CT_NEW_ENTITY_TYPES', () => {
-  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, and Connecticut feeds with labels', () => {
+describe('mapTexasFiling', () => {
+  const baseRow: TxFilingRow = {
+    taxpayer_number: '32087458215',
+    taxpayer_name: 'JO N GO LLC',
+    taxpayer_address: '1340 SUNSET VW',
+    taxpayer_city: 'FISCHER',
+    taxpayer_state: 'TX',
+    taxpayer_zip_code: '78623',
+    taxpayer_organization_type: 'CL',
+    outlet_naics_code: '722515',
+    outlet_permit_issue_date: '2026-06-06T00:00:00.000',
+  };
+
+  it('maps a new LLC sales-tax-permit row to an "Active" lead', () => {
+    const lead = mapTexasFiling(baseRow);
+    expect(lead.business_name).toBe('Jo N Go LLC');
+    expect(lead.entity_type).toBe('LLC');
+    expect(lead.state).toBe('TX');
+    expect(lead.filing_date).toBe('2026-06-06');
+    expect(lead.filing_status).toBe('Active');
+    expect(lead.industry).toBe('722515');
+    expect(lead.address).toBe('1340 SUNSET VW, Fischer, TX 78623');
+    expect(lead.source_ref).toBe('tx-comptroller:32087458215');
+  });
+
+  it('maps CT/CP/AP/PL organization types to Corporation, Corporation, Professional Association, and Limited Partnership', () => {
+    expect(mapTexasFiling({ ...baseRow, taxpayer_organization_type: 'CT' }).entity_type).toBe('Corporation');
+    expect(mapTexasFiling({ ...baseRow, taxpayer_organization_type: 'CP' }).entity_type).toBe('Corporation');
+    expect(mapTexasFiling({ ...baseRow, taxpayer_organization_type: 'AP' }).entity_type).toBe('Professional Association');
+    expect(mapTexasFiling({ ...baseRow, taxpayer_organization_type: 'PL' }).entity_type).toBe('Limited Partnership');
+  });
+
+  it('title-cases an ALL CAPS business name and city, preserving the LLC/INC suffix', () => {
+    const lead = mapTexasFiling({
+      ...baseRow,
+      taxpayer_name: 'ASTROGA MACHINE WORKS INCORPORATED',
+      taxpayer_city: 'HOUSTON',
+    });
+    expect(lead.business_name).toBe('Astroga Machine Works Incorporated');
+    expect(lead.address).toBe('1340 SUNSET VW, Houston, TX 78623');
+  });
+
+  it('handles missing fields gracefully', () => {
+    const lead = mapTexasFiling({ taxpayer_name: 'BARE LLC', taxpayer_organization_type: 'CL' });
+    expect(lead.address).toBeNull();
+    expect(lead.industry).toBeNull();
+    expect(lead.filing_date).toBeNull();
+    expect(lead.source_ref).toBeUndefined();
+  });
+});
+
+describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / FL_NEW_ENTITY_FILING_TYPES / OR_NEW_ENTITY_TYPES / PA_NEW_ENTITY_TYPES / CT_NEW_ENTITY_TYPES / TX_NEW_ENTITY_TYPES', () => {
+  it('registers the New York, Colorado, Florida, Oregon, Pennsylvania, Connecticut, and Texas feeds with labels', () => {
     expect(STATE_FEED_SOURCES.NY.label).toMatch(/New York/);
     expect(STATE_FEED_SOURCES.CO.label).toMatch(/Colorado/);
     expect(STATE_FEED_SOURCES.FL.label).toMatch(/Florida/);
     expect(STATE_FEED_SOURCES.OR.label).toMatch(/Oregon/);
     expect(STATE_FEED_SOURCES.PA.label).toMatch(/Pennsylvania/);
     expect(STATE_FEED_SOURCES.CT.label).toMatch(/Connecticut/);
+    expect(STATE_FEED_SOURCES.TX.label).toMatch(/Texas/);
   });
 
   it('targets only brand-new entity formation document/filing/entity types', () => {
@@ -518,5 +573,8 @@ describe('STATE_FEED_SOURCES / NY_NEW_ENTITY_DOC_TYPES / CO_NEW_ENTITY_TYPES / F
     expect(PA_NEW_ENTITY_TYPES).toContain('Domestic Limited Liability Company');
     expect(PA_NEW_ENTITY_TYPES).not.toContain('Foreign Limited Liability Company');
     expect(CT_NEW_ENTITY_TYPES).toEqual(['LLC', 'Stock', 'Non-Stock', 'Limited Partnership', 'LLP', 'B Corp']);
+    expect(TX_NEW_ENTITY_TYPES).toEqual(['CL', 'CT', 'CP', 'AP', 'PL']);
+    expect(TX_NEW_ENTITY_TYPES).not.toContain('IS');
+    expect(TX_NEW_ENTITY_TYPES).not.toContain('CI');
   });
 });

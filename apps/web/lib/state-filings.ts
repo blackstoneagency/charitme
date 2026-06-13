@@ -506,6 +506,65 @@ export function mapConnecticutFiling(row: CtFilingRow): StateFilingLead {
   };
 }
 
+// ── Texas — Comptroller "Active Sales Tax Permit Holders" ────────────────────
+// https://data.texas.gov/resource/jrea-zgmq.json — free, no API key, ~1M rows,
+// refreshed regularly with a roughly week-long publishing lag. Texas doesn't
+// publish a Secretary-of-State entity-formation feed as open data, so this
+// dataset is used as a proxy: a brand-new sales-tax permit is a strong signal
+// of a newly-operating business. `taxpayer_organization_type` distinguishes
+// for-profit entities (LLC/Corp/Professional Corp/Professional Assoc/LP) from
+// sole proprietors (individuals — excluded for privacy/lead-quality reasons),
+// out-of-state corporations registering to do business in TX (often large
+// existing companies, e.g. Walmart), and nonprofits/schools/municipalities.
+
+export const TX_DATASET_URL = 'https://data.texas.gov/resource/jrea-zgmq.json';
+
+// taxpayer_organization_type codes representing in-state for-profit entities
+// (excludes IS "individual/sole proprietor", CI/CF "out-of-state corporation",
+// and CN/AR/GS/GC "nonprofit/association/government").
+export const TX_NEW_ENTITY_TYPES = ['CL', 'CT', 'CP', 'AP', 'PL'] as const;
+
+const TX_ORG_TYPE_LABELS: Record<string, string> = {
+  CL: 'LLC',
+  CT: 'Corporation',
+  CP: 'Professional Corporation',
+  AP: 'Professional Association',
+  PL: 'Limited Partnership',
+};
+
+export interface TxFilingRow {
+  taxpayer_number?: string;
+  taxpayer_name?: string;
+  taxpayer_address?: string;
+  taxpayer_city?: string;
+  taxpayer_state?: string;
+  taxpayer_zip_code?: string;
+  taxpayer_organization_type?: string;
+  outlet_naics_code?: string;
+  outlet_permit_issue_date?: string;
+}
+
+function txAddress(row: TxFilingRow): string | null {
+  const stateZip = [row.taxpayer_state?.trim(), row.taxpayer_zip_code?.trim()].filter(Boolean).join(' ');
+  const street = row.taxpayer_address?.trim();
+  const city = row.taxpayer_city ? maybeTitleCase(row.taxpayer_city.trim()) : null;
+  const parts = [street || null, city, stateZip || null].filter(Boolean);
+  return parts.length ? parts.join(', ') : null;
+}
+
+export function mapTexasFiling(row: TxFilingRow): StateFilingLead {
+  return {
+    business_name: maybeTitleCase(row.taxpayer_name ?? ''),
+    entity_type: normalizeEntityType(TX_ORG_TYPE_LABELS[row.taxpayer_organization_type ?? ''] ?? row.taxpayer_organization_type ?? null),
+    state: 'TX',
+    filing_date: row.outlet_permit_issue_date ? row.outlet_permit_issue_date.slice(0, 10) : null,
+    filing_status: 'Active',
+    address: txAddress(row),
+    industry: row.outlet_naics_code ?? null,
+    source_ref: row.taxpayer_number ? `tx-comptroller:${row.taxpayer_number}` : undefined,
+  };
+}
+
 // ── Registry of available free state feeds ──────────────────────────────────
 // Single source of truth for both server-side validation (ingest route) and
 // the admin UI's state picker. Add an entry here + a fetch+map implementation
@@ -535,6 +594,10 @@ export const STATE_FEED_SOURCES = {
   CT: {
     label: 'Connecticut — Secretary of State',
     description: 'New domestic LLC, corporation, nonprofit, and partnership registrations from the CT Business Registry Master open dataset — uniquely includes the registrant’s email address directly. Free, no API key, updated daily.',
+  },
+  TX: {
+    label: 'Texas — Comptroller (Sales Tax Permits)',
+    description: 'Newly-issued sales tax permits for LLCs, corporations, professional corporations/associations, and limited partnerships from the Texas Comptroller open dataset — used as a proxy for new business activity. Free, no API key.',
   },
 } as const;
 

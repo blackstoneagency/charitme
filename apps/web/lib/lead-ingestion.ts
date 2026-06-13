@@ -40,11 +40,15 @@ import {
   CT_DATASET_URL,
   CT_NEW_ENTITY_TYPES,
   mapConnecticutFiling,
+  TX_DATASET_URL,
+  TX_NEW_ENTITY_TYPES,
+  mapTexasFiling,
   type NyFilingRow,
   type CoFilingRow,
   type OrFilingRow,
   type PaFilingRow,
   type CtFilingRow,
+  type TxFilingRow,
   type StateFeedCode,
 } from './state-filings';
 
@@ -349,6 +353,39 @@ export async function fetchConnecticutFilings(dateFrom?: string, dateTo?: string
   }
 }
 
+// Texas Comptroller "Active Sales Tax Permit Holders" — free, no API key.
+// Filtered to in-state for-profit organization-type codes (LLC, Corp,
+// Professional Corp/Assoc, LP) so results are newly-permitted local
+// businesses, not sole proprietors, out-of-state corporations, or nonprofits.
+export async function fetchTexasFilings(dateFrom?: string, dateTo?: string, limit = 50): Promise<BusinessLeadInput[]> {
+  try {
+    const typeList = TX_NEW_ENTITY_TYPES.map((t) => `'${t}'`).join(', ');
+    const clauses = [`taxpayer_organization_type IN(${typeList})`, 'outlet_permit_issue_date IS NOT NULL'];
+    if (dateFrom) clauses.push(`outlet_permit_issue_date >= '${dateFrom}T00:00:00'`);
+    if (dateTo) clauses.push(`outlet_permit_issue_date <= '${dateTo}T23:59:59'`);
+
+    const params = new URLSearchParams({
+      $where: clauses.join(' AND '),
+      $order: 'outlet_permit_issue_date DESC',
+      $limit: String(limit),
+    });
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${TX_DATASET_URL}?${params}`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+
+    const rows = await res.json() as TxFilingRow[];
+    return rows.map(mapTexasFiling).filter((f) => f.business_name);
+  } catch {
+    return []; // network blocked / timeout — degrade gracefully
+  }
+}
+
 export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: string) => Promise<BusinessLeadInput[]>> = {
   NY: fetchNewYorkFilings,
   CO: fetchColoradoFilings,
@@ -356,6 +393,7 @@ export const STATE_FETCHERS: Record<StateFeedCode, (dateFrom?: string, dateTo?: 
   OR: fetchOregonFilings,
   PA: fetchPennsylvaniaFilings,
   CT: fetchConnecticutFilings,
+  TX: fetchTexasFilings,
 };
 
 // ── Normalize + score raw filings, then dedupe/insert into business_leads ────
