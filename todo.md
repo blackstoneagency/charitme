@@ -476,3 +476,13 @@ giving challenges from `/admin/challenges`.
 | API | `GET/POST /api/admin/challenges`, `PATCH /api/admin/challenges/[id]` — admin-gated; window validation |
 | UI | `/admin/challenges` — create draft, publish/end/reopen, participant counts + admin nav entry |
 | Evidence | typecheck ✅ · 426 unit tests ✅ · lint ✅ · build ✅. Not yet verified against live Supabase. |
+
+### Follow-up: schema.org structured data for public event pages (delivered)
+
+Addresses the "organic SEO / AEO" competitive gap for this branch's public pages.
+
+| Piece | Detail |
+|-------|--------|
+| Logic | `lib/structured-data.ts` — pure JSON-LD builders: `buildEventJsonLd` (Event + Offer + VirtualLocation/Place), `buildBreadcrumbJsonLd`, `buildItemListJsonLd`, and `jsonLdScript` (escapes `<` to prevent script breakout). 6 unit tests. |
+| Injected | `/events/[slug]` emits Event + BreadcrumbList JSON-LD; `/events` emits an ItemList of upcoming events. |
+| Evidence | typecheck ✅ · 432 unit tests ✅ · lint ✅ · build ✅. No new migration; no live-infra dependency. |

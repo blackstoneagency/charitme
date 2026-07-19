@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
 import { Badge, Card, EmptyState } from '../../components/ui';
 import { eventTypeLabel, isPast } from '../../lib/events';
+import { buildItemListJsonLd, jsonLdScript } from '../../lib/structured-data';
 
 export const metadata: Metadata = {
   title: 'Fundraising Events',
@@ -28,8 +29,11 @@ export default async function EventsPage() {
   const upcoming = events.filter((e) => !isPast(e.starts_at, e.ends_at));
   const past = events.filter((e) => isPast(e.starts_at, e.ends_at));
 
+  const listJsonLd = buildItemListJsonLd('Fundraising events', upcoming.map((e) => ({ name: e.title, path: `/events/${e.slug}` })));
+
   return (
     <div style={{ maxWidth: 1080, margin: '0 auto', padding: '32px 20px 64px' }}>
+      {upcoming.length > 0 && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(listJsonLd) }} />}
       <header style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 32, fontWeight: 900, color: 'var(--t1)', marginBottom: 8 }}>Fundraising events</h1>
         <p style={{ fontSize: 16, color: 'var(--t3)', maxWidth: 640 }}>

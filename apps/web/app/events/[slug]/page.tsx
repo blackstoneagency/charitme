@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { Badge } from '../../../components/ui';
 import { eventTypeLabel, isPast } from '../../../lib/events';
+import { buildBreadcrumbJsonLd, buildEventJsonLd, jsonLdScript } from '../../../lib/structured-data';
 import EventRegisterClient, { type TicketOption } from './EventRegisterClient';
 
 export const dynamic = 'force-dynamic';
@@ -47,8 +48,29 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
     soldCount: Number(t.sold_count) || 0,
   }));
 
+  const paidPrices = ticketOptions.filter((t) => t.priceCents > 0).map((t) => t.priceCents);
+  const lowPriceCents = paidPrices.length > 0 ? Math.min(...paidPrices) : 0;
+  const eventJsonLd = buildEventJsonLd({
+    title: event.title,
+    description: null,
+    slug: event.slug,
+    startsAt: event.starts_at,
+    endsAt: event.ends_at,
+    location: event.location,
+    virtualUrl: event.virtual_url,
+    lowPriceCents,
+    currency: 'usd',
+    isFree: lowPriceCents === 0,
+  });
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: 'Events', path: '/events' },
+    { name: event.title, path: `/events/${event.slug}` },
+  ]);
+
   return (
     <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 20px 64px' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(eventJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScript(breadcrumbJsonLd) }} />
       <Link href="/events" style={{ fontSize: 14, color: 'var(--t3)' }}>← All events</Link>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '16px 0 8px' }}>
         <Badge color="blue">{eventTypeLabel(event.event_type)}</Badge>
