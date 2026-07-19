@@ -74,6 +74,7 @@ const adminNav = [
   ['Support', '/admin/support', 'chat'],
   ['Sponsors', '/admin/sponsors', 'crown'],
   ['Grants', '/admin/grants', 'audit'],
+  ['Privacy Requests', '/admin/privacy', 'audit'],
   ['Content', '/admin/content', 'doc'],
   ['Reports', '/admin/reports', 'chart'],
   ['Settings', '/admin/settings', 'gear'],

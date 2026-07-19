@@ -20,6 +20,27 @@
 
 ## Entries
 
+### 2026-07-19 — Sponsorships + Privacy + Matching slices (rebased onto master)
+- **Context**: this branch (`claude/charitme-github-integration-njok43`, PR #11) originally
+  also built volunteers + grants, but master independently shipped canonical, production-
+  applied volunteers/grants (CHAR-0001..0004). To avoid duplicate/conflicting tables, this
+  branch was **rebased onto latest master and its own volunteers/grants were dropped** —
+  master's versions are authoritative. Only the three genuinely-net-new slices remain.
+- **Sponsorships** (net-new): `sponsorship_opportunities`, `sponsorship_requests` + RLS;
+  `lib/sponsorships*.ts`; `/api/sponsorships/**`; `/sponsor{,/[id],/manage}`. Two-sided
+  offers with live funding progress. 18 tests.
+- **Privacy (GDPR/CCPA)** (net-new): `privacy_requests` (+ partial-unique active index) + RLS;
+  real self-serve data export (`/api/privacy/export`) + deletion requests with admin
+  fulfillment (PII anonymization, txns retained); `/privacy-center`, `/admin/privacy`.
+  Export reads master's `volunteer_applications.applicant_user_id` / `grant_applications.applicant_user_id`. 13 tests.
+- **Corporate matching** (net-new): `matching_programs`, `matching_claims` + RLS; capped
+  match computation; `/api/matching/**`; `/matching{,/[id],/manage}`. 24 tests.
+- **Shared files touched** (Agent-0 coordinate): `components/AppShell.tsx` (footer links),
+  `components/CharitMeApp.tsx` (admin nav: Privacy Requests), `supabase/schema.sql` (3 DDLs appended).
+- **Migrations** (not yet applied to prod): `20260716000000_sponsorships.sql`,
+  `20260718000000_privacy_requests.sql`, `20260719000000_matching_gifts.sql`. Additive + RLS-first.
+- **Gates**: typecheck ✓, vitest 439/439 ✓, `next build` ✓ (all routes emit), no new lint warnings.
+
 ### 2026-07-19 — Agent 5 — Admin grants UI + Volunteers pillar + RLS audit
 - **Admin grants management** (`master` 2fedeef): `/admin/grants` + `/api/admin/grants` (GET/POST) + `/api/admin/grants/[id]` (PATCH/DELETE), admin-gated. Create/edit/publish/close/delete grants; new grants go live on `/grants` immediately. Sidebar "Grants" added to dashboard + admin.
 - **RLS audit** (live prod): 78 public tables, **0 with RLS disabled**. 17 `marketing_*` tables are deny-all-except-service-role (correct for admin-only data). Posture sound. Follow-up: explicit admin policies on marketing tables (defense-in-depth) + per-persona test harness.
