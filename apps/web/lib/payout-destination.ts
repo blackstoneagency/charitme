@@ -21,6 +21,30 @@ export interface PayoutDestination {
   role: 'beneficiary' | 'organizer';
 }
 
+export interface ConnectedAccountReadiness {
+  stripe_account_id?: string | null;
+  details_submitted?: boolean | null;
+  payouts_enabled?: boolean | null;
+  charges_enabled?: boolean | null;
+}
+
+/**
+ * A connected account may accept live donations only when Stripe onboarding is
+ * fully complete: the account exists, onboarding details are submitted, and
+ * BOTH charges and payouts are enabled. Anything less means a destination
+ * charge would fail (or funds could not be paid out), so donations must stay
+ * blocked. This is the enforcement point for the "no donation before payout
+ * readiness" rule — see docs/payments/money-flow.md.
+ */
+export function accountIsPayoutReady(account: ConnectedAccountReadiness | null | undefined): boolean {
+  return (
+    !!account?.stripe_account_id &&
+    !!account.details_submitted &&
+    !!account.payouts_enabled &&
+    !!account.charges_enabled
+  );
+}
+
 async function verifiedAccount(userId: string): Promise<string | null> {
   const { data } = await supabaseAdmin
     .from('connected_accounts')
@@ -29,13 +53,7 @@ async function verifiedAccount(userId: string): Promise<string | null> {
     .eq('verification_status', 'verified')
     .maybeSingle();
 
-  const ok =
-    !!data?.details_submitted &&
-    !!data.payouts_enabled &&
-    !!data.charges_enabled &&
-    !!data.stripe_account_id;
-
-  return ok ? data!.stripe_account_id : null;
+  return accountIsPayoutReady(data) ? data!.stripe_account_id! : null;
 }
 
 export async function resolvePayoutDestination(campaign: {

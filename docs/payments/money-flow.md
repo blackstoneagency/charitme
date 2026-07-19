@@ -1,93 +1,98 @@
-# CharitMe — Money Flow (as-built audit)
+# CharitMe — Donation Money Flow
 
-> Audited against the live code paths (`app/api/donations/route.ts`,
-> `lib/payout-destination.ts`, `app/api/stripe/webhook/route.ts`,
-> `app/api/stripe/connect/route.ts`). This documents what the code **actually does
-> today**, not an aspiration. Any change to the charge model requires the sign-off
-> in `decisions.md` ADR-P1 before implementation.
->
-> ⚠️ Not legal, tax, or payments-compliance advice. Merchant-of-record status,
-> charitable-solicitation registration, money-transmitter exposure, and tax
-> treatment must be validated by qualified professionals before launch.
+> Status: documents the **currently implemented** flow (audited from code, not
+> aspirational). Financial/legal claims below are engineering descriptions, not
+> legal advice. Merchant-of-record status, charitable-solicitation obligations,
+> money-transmitter exposure, escrow/custody implications, and tax treatment
+> **must be validated by qualified payments, legal, tax, and compliance counsel
+> before production launch.**
 
-## Core guarantee (verified in code) ✅
+## Core guarantee: CharitMe never holds recipient funds
 
-**CharitMe never holds donor funds beyond its disclosed fee, and never accepts a
-donation before the recipient is payout-ready.**
+Every donation is created as a **Stripe Connect destination charge** whose
+`transfer_data.destination` is the **recipient's own verified connected
+account**. Stripe moves the net donation to the recipient at charge time; it is
+never routed into CharitMe's platform balance and never sits there awaiting
+payout setup.
 
-- `POST /api/donations` calls `resolvePayoutDestination(campaign)` **before** creating
-  any charge. If it returns `null`, the endpoint returns **`409 PAYOUT_NOT_READY`** and
-  no charge is created.
-- `resolvePayoutDestination` → `verifiedAccount(userId)` requires ALL of:
-  `verification_status = 'verified'`, `details_submitted`, `payouts_enabled`,
-  `charges_enabled`, and a non-null `stripe_account_id`. A half-onboarded account does
-  not qualify.
-- Recipient resolution order: **beneficiary's** verified account first, else the
-  **organizer's** verified account. When a beneficiary is set, the organizer never
-  touches the money.
-- On any Stripe destination/account error the handler **blocks** with
-  `PAYOUT_NOT_READY` — it explicitly does **not** fall back to charging the platform
-  balance.
+CharitMe's revenue is limited to the disclosed **application fee**
+(`application_fee_amount`), which today equals the optional donor **tip** plus
+any donor-elected **processing-fee coverage** — never the donation principal.
 
-## The charge (as-built): Stripe Connect **destination charge**
+Source of truth: `apps/web/app/api/donations/route.ts`,
+`apps/web/lib/payout-destination.ts`, `apps/web/lib/stripe.ts`, and the webhook
+`apps/web/app/api/stripe/webhook/route.ts`.
 
-Per donation the server builds a Checkout Session (`mode: 'payment'`) with:
+## No donation before payout readiness (enforced)
 
-```
-payment_intent_data: {
-  application_fee_amount: tipCents + processingFeeCents,   // CharitMe revenue + fee offset
-  transfer_data: { destination: <recipient connected acct> } // net donation → recipient
-}
-```
+`POST /api/donations` calls `resolvePayoutDestination(campaign)` **before**
+creating any Stripe session. A destination is returned only when a connected
+account passes `accountIsPayoutReady(...)`, which requires **all** of:
 
-- **Gross the donor pays** = `amountCents` (donation) + `tipCents` (optional platform tip)
-  + `processingFeeCents` (only if the donor opts to cover it), as separate line items.
-- **Recipient receives** `amountCents` (the donation), transferred to their connected
-  account by Stripe when the charge is captured.
-- **CharitMe receives** only the `application_fee_amount` (tip + processing-cost offset).
-- Card data never touches CharitMe servers or Supabase (Stripe Checkout hosts the form).
+- `verification_status = 'verified'` (filtered in the query),
+- `details_submitted` — Stripe onboarding completed,
+- `charges_enabled` — the account can take a (destination) charge,
+- `payouts_enabled` — the recipient can actually be paid out,
+- a non-empty `stripe_account_id`.
 
-### Charge model note — destination vs. direct
+If no ready account exists, the endpoint returns **HTTP 409 `PAYOUT_NOT_READY`**
+and **no charge is created**. Resolution order is **beneficiary first, then
+organizer** — a campaign run on someone's behalf routes funds directly to that
+person; the organizer never touches the money.
 
-The recipient-first *intent* of the spec (money is the recipient's, not CharitMe's) is
-satisfied. However, the mechanism is a **destination charge**: the PaymentIntent is
-created **on the platform account** and Stripe transfers the net to the connected
-account. The spec's *preferred* mechanism is a **direct charge** (PaymentIntent created
-**on** the connected account via the `Stripe-Account` header / `on_behalf_of`), which
-generally shifts merchant-of-record, dispute, and refund-fee liability to the recipient.
+Covered by tests: `apps/web/__tests__/payout-destination.test.ts` (money-flow
+test #1). Even if a stale account slipped through, the endpoint's catch block
+maps Stripe destination/account/transfer errors to `PAYOUT_NOT_READY` rather
+than ever falling back to a platform charge.
 
-Moving destination → direct is **architecturally and legally significant** (MoR status,
-chargeback liability, refund-fee handling, per-country/payment-method availability). It
-is tracked as a reviewed decision in `decisions.md` **ADR-P1**, is **not** a code defect,
-and must not be switched without the documented written approval and Stripe **test-mode**
-verification.
+## Fee model (server-authoritative)
 
-## Fee transparency
+| Component | Who receives it | Notes |
+|-----------|-----------------|-------|
+| Donation principal (`amountCents`) | Recipient connected account | via `transfer_data.destination` |
+| Optional donor tip (`tipCents`) | CharitMe (application fee) | percentage clamped 0–100 **server-side** |
+| Optional processing-fee coverage | Offsets Stripe's deduction | only when donor opts in |
 
-| Component | Who keeps it | Source of truth |
-|---|---|---|
-| Donation (`amountCents`) | Recipient connected account | `transfer_data.destination` |
-| Platform tip (`tipCents`) | CharitMe (application fee) | `@shared/fees` `donorTip()`, server-computed |
-| Processing coverage (`processingFeeCents`) | Offsets Stripe's cut so recipient nets full donation | `@shared/fees` `methodProcessingFee()` |
-
-Fees are computed **server-side** from `@shared/fees`; the client cannot alter them (the
-amount is re-derived on the server from `amountCents` + method, not trusted from the body).
+Amounts are computed on the server (`@shared/fees`: `donorTip`,
+`methodProcessingFee`); the client cannot alter the fee. Tips are opt-in and
+must never use dark patterns (see prompt §1.4).
 
 ## Idempotency
 
-Checkout creation uses an idempotency key
-`donation_<campaignId>_<amountCents>_<user|guest>_<requestKey>` so a duplicate submit
-does not create duplicate sessions. Webhook processing idempotency is handled in
-`app/api/stripe/webhook/route.ts` (see `record_donation` / webhook-event dedupe).
+- Checkout creation uses a per-request Stripe `idempotencyKey`
+  (`donation_<campaign>_<amount>_<user>_<requestKey>`) so a double-submit does
+  not create duplicate charges.
+- Webhook processing is idempotent: `record_donation` takes a transaction-level
+  advisory lock keyed on the payment intent / checkout session id, so duplicate
+  or concurrent `checkout.session.completed` deliveries cannot double-count a
+  donation or inflate campaign totals (migration `20260719120000`).
 
-## Gaps / follow-ups (tracked, not yet done)
+## Decision: destination charges (not direct charges) — REVIEW REQUIRED
 
-1. **Immutable double-entry ledger + daily Stripe reconciliation** (spec §1.7). A
-   `donations` record + webhook stats exist; a formal reversing-entry ledger and an
-   automated reconciliation job with exception incidents are not yet built. Needs Stripe
-   **test** keys + a scheduled job.
-2. **Direct-charge migration** — see ADR-P1; gated on legal/finance sign-off + test keys.
-3. **Live money-flow test suite** (spec §8.1) — requires Stripe test clocks / sandbox
-   connected accounts (test keys unavailable in this environment).
-4. **Refund/dispute/negative-balance** operational workflows — partial; needs the ledger
-   in (1) to be complete.
+The master prompt **prefers direct charges** on the connected account and allows
+destination charges only with documentation. CharitMe currently uses
+**destination charges**.
+
+- **Why (today):** destination charges keep a single Checkout integration,
+  centralized `application_fee_amount` handling, and one webhook surface while
+  still transferring net proceeds to the recipient at charge time. The platform
+  does not retain donation principal.
+- **Trade-off vs. direct charges:** with destination charges the **platform is
+  the merchant of record** and can bear more responsibility for refunds,
+  disputes, chargebacks, and negative-balance recovery than with direct charges
+  (where the connected account is the merchant of record). This has real
+  regulatory, tax, and liability implications.
+- **Required before launch:** confirm merchant-of-record posture, money-
+  transmitter / charitable-solicitation exposure, and dispute/negative-balance
+  liability with qualified counsel; if direct charges are required, feature-flag
+  the charge model **by country and recipient type** and prove via reconciliation
+  that no recipient funds become available for CharitMe operating use. Record the
+  final decision (and approvals) in `decisions.md` as an ADR.
+
+## Open items (tracked)
+
+- Daily automated reconciliation between donations, Stripe balance
+  transactions, application fees, refunds, disputes, payouts, and the Supabase
+  ledger, with incident creation on mismatch (prompt §1.7).
+- Direct-charge feature-flag path per country/recipient type (prompt §1.1).
+- Refund fee-allocation and negative-balance recovery workflows (prompt §1.6).

@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Badge } from '../../../components/ui';
 import { getUser } from '../../../lib/auth';
-import { supabaseAdmin } from '../../../lib/supabase';
 import { getEventBySlug, attendeeRegisteredQty } from '../../../lib/events';
 import { isRegistrationOpen, remainingCapacity } from '../../../lib/events-core';
 import RsvpPanel from './RsvpPanel';

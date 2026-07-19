@@ -9,35 +9,48 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  // maybeSingle: a first-time user has no connected_accounts row yet, and
+  // .single() would surface that as an error.
   const { data: connectedAccount } = await supabaseAdmin
     .from('connected_accounts')
     .select('id, stripe_account_id')
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
-  let accountId = connectedAccount?.stripe_account_id;
+  try {
+    let accountId = connectedAccount?.stripe_account_id;
 
-  if (!accountId) {
-    const account = await stripe.accounts.create({
-      type: 'express',
-      email: user.email,
-      capabilities: { transfers: { requested: true } },
+    if (!accountId) {
+      const account = await stripe.accounts.create({
+        type: 'express',
+        email: user.email,
+        capabilities: { transfers: { requested: true } },
+      });
+      accountId = account.id;
+      await supabaseAdmin
+        .from('connected_accounts')
+        .insert({ user_id: user.id, stripe_account_id: accountId });
+    }
+
+    const origin = getAppOrigin();
+    const link = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${origin}/dashboard`,
+      return_url: `${origin}/api/stripe/connect?account=${accountId}&user=${user.id}`,
+      type: 'account_onboarding',
     });
-    accountId = account.id;
-    await supabaseAdmin
-      .from('connected_accounts')
-      .insert({ user_id: user.id, stripe_account_id: accountId });
+
+    return NextResponse.json({ url: link.url });
+  } catch (err) {
+    // Surface the real reason (e.g. missing/invalid STRIPE_SECRET_KEY, Stripe
+    // API error) instead of an opaque 500 with no body.
+    const message = err instanceof Error ? err.message : 'Failed to start Stripe onboarding';
+    console.error('[stripe/connect] onboarding failed:', message);
+    return NextResponse.json(
+      { error: `Stripe onboarding could not start: ${message}` },
+      { status: 502 },
+    );
   }
-
-  const origin = getAppOrigin();
-  const link = await stripe.accountLinks.create({
-    account: accountId,
-    refresh_url: `${origin}/dashboard`,
-    return_url: `${origin}/api/stripe/connect?account=${accountId}&user=${user.id}`,
-    type: 'account_onboarding',
-  });
-
-  return NextResponse.json({ url: link.url });
 }
 
 export async function GET(request: Request) {
