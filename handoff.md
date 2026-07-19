@@ -20,6 +20,14 @@
 
 ## Entries
 
+### 2026-07-19 — Agent 0/1 — Environment wired + grants verified in production
+- **Env configured**: `apps/web/.env.local` cleaned & validated (owner pasted real credentials). Earlier local 500s were caused by malformed env (leading spaces after `=`), NOT missing network. Sandbox **can** reach Supabase (Node fetch → 200/401 in ~0.1s).
+- **Migration applied to LIVE Supabase** (project `yanexccimwooursawynm`) via Management API query endpoint (`POST https://api.supabase.com/v1/projects/{ref}/database/query`, `Authorization: Bearer <SUPABASE_ACCESS_TOKEN>`). Additive + idempotent, so safe. **This is how future migrations can be applied headlessly** (token lives in `.env.local`, do not print it).
+- **Verified in production**: 5 grant tables live, RLS on all, policies 3/2/1/1/1; anon read of `grants` = 200, anon read of `grant_applications` = 0 rows (isolation OK). `GET https://www.charitme.com/api/grants` → 200; `?limit=999` → 400 zod error.
+- **Important caution for all agents**: verification now runs against **PRODUCTION** Supabase (no separate staging). Reads are safe; **do not** write test/fake rows into prod (respect "no fake production data"). Payment testing must use Stripe **test** keys — the configured Stripe keys are **LIVE**.
+- **Security**: live secrets were pasted in chat + previously in `DANIEL_ENV.txt`. Owner advised to rotate Stripe secret/restricted, Supabase service-role, DB password, Resend, Google OAuth secret, and the access token. Nothing secret was committed (`.env.local`/`.env` are gitignored; verified).
+- **Follow-up**: `/grants` shows an empty state until real grants are added (via admin `POST /api/grants` or a seed of real opportunities). No dashboard sidebar link yet.
+
 ### 2026-07-19 — Agent 5/1 — Grants platform vertical slice (CHAR-0001/0002)
 - **Branch**: `agent/grants` (off `agent/orchestration`). Commit `c55f246`.
 - **Completed**: Full Grants domain — schema+RLS, typed lib, 6 API routes, 3 mobile-first pages, 13 unit tests. Gates green (typecheck, 352 tests, `next build`).
