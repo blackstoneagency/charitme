@@ -129,17 +129,17 @@ export default async function AboutUsPage() {
           {/* Live stat pills */}
           <div className="about-hero-stats">
             <div className="about-stat-pill">
-              <span className="about-stat-num">{stats.activeCamps > 0 ? `${stats.activeCamps.toLocaleString()}+` : '350+'}</span>
+              <span className="about-stat-num">{stats.activeCamps.toLocaleString()}</span>
               <span className="about-stat-label">Active Campaigns</span>
             </div>
             <div className="about-stat-divider" />
             <div className="about-stat-pill">
-              <span className="about-stat-num">{stats.totalRaised > 0 ? fmtBig(stats.totalRaised) : '$2M+'}</span>
+              <span className="about-stat-num">{fmtBig(stats.totalRaised)}</span>
               <span className="about-stat-label">Total Raised</span>
             </div>
             <div className="about-stat-divider" />
             <div className="about-stat-pill">
-              <span className="about-stat-num">{stats.uniqueDonors > 0 ? `${stats.uniqueDonors.toLocaleString()}+` : '5,000+'}</span>
+              <span className="about-stat-num">{stats.uniqueDonors.toLocaleString()}</span>
               <span className="about-stat-label">Donors Worldwide</span>
             </div>
             <div className="about-stat-divider" />
@@ -255,7 +255,7 @@ export default async function AboutUsPage() {
       <section className="about-impact-strip">
         <div className="about-impact-inner">
           {[
-            { num: stats.totalRaised > 0 ? fmtBig(stats.totalRaised) : '$2M+', label: 'Raised for real causes', icon: '💰' },
+            { num: fmtBig(stats.totalRaised), label: 'Raised for real causes', icon: '💰' },
             { num: '0%',   label: 'Mandatory platform fee',      icon: '🎯' },
             { num: '< 5m', label: 'To launch a campaign',        icon: '⚡' },
             { num: '99%',  label: 'Uptime SLA',                  icon: '🔒' },

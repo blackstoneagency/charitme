@@ -526,7 +526,7 @@ export default async function AiGrowthPlanPage({
         `Your top campaign "${topCampaign!.title}" has a momentum score of ${topMomentum}/100 — ${topMomentum >= 70 ? 'excellent momentum' : topMomentum >= 40 ? 'moderate momentum' : 'momentum can be improved'}.`,
         `You have ${totalBackers.toLocaleString()} total backers. Re-engaging even 20% of them with an update could significantly lift your next campaign.`,
         `Campaigns with progress milestones get 3× more social shares — consider breaking your ${topCampaign ? fmtCents(topCampaign.goal_amount) : 'goal'} into 3 visible checkpoints.`,
-        `The ${donations.length} donations you've received in the last 30 days average ${donations.length > 0 ? fmtCents(Math.round(donations.reduce((s, d) => s + d.amount_cents, 0) / donations.length)) : '$0'} each — above the platform median of $42.`,
+        `The ${donations.length} donations you've received in the last 30 days average ${donations.length > 0 ? fmtCents(Math.round(donations.reduce((s, d) => s + d.amount_cents, 0) / donations.length)) : '$0'} each.`,
       ]
     : [
         'Campaigns that post a video update in their first week raise 80% more than those that don\'t.',
