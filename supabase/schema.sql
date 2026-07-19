@@ -1690,3 +1690,568 @@ begin
 
   raise notice 'Seeded 500 donor_messages.';
 end $$;
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Sponsorship marketplace — organizers post sponsorship opportunities; sponsors
+-- (companies/individuals) send sponsorship requests with an offered amount.
+--
+-- Distinct from the admin-managed `sponsors` table (homepage logo strip). This is
+-- a two-sided marketplace. Fully wired to Supabase with RLS + updated_at triggers.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- ── sponsorship_opportunities ────────────────────────────────────────────────
+create table if not exists sponsorship_opportunities (
+  id                  uuid primary key default uuid_generate_v4(),
+  organizer_id        uuid not null references profiles(id) on delete cascade,
+  campaign_id         uuid references campaigns(id) on delete set null,
+  title               text not null check (char_length(title) between 3 and 140),
+  description         text not null check (char_length(description) between 10 and 8000),
+  category            text not null default 'Community',
+  benefits            text,
+  min_amount_cents    bigint not null default 0 check (min_amount_cents >= 0),
+  target_amount_cents bigint check (target_amount_cents is null or target_amount_cents >= 0),
+  raised_amount_cents bigint not null default 0 check (raised_amount_cents >= 0),
+  currency            text not null default 'USD',
+  status              text not null default 'open'
+                        check (status in ('draft','open','closed','fulfilled','cancelled')),
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  check (target_amount_cents is null or target_amount_cents >= min_amount_cents)
+);
+
+create index if not exists sponsorship_opportunities_status_idx    on sponsorship_opportunities(status);
+create index if not exists sponsorship_opportunities_organizer_idx on sponsorship_opportunities(organizer_id);
+create index if not exists sponsorship_opportunities_campaign_idx  on sponsorship_opportunities(campaign_id);
+
+-- ── sponsorship_requests ─────────────────────────────────────────────────────
+create table if not exists sponsorship_requests (
+  id                 uuid primary key default uuid_generate_v4(),
+  opportunity_id     uuid not null references sponsorship_opportunities(id) on delete cascade,
+  sponsor_id         uuid not null references profiles(id) on delete cascade,
+  company_name       text,
+  amount_cents       bigint not null check (amount_cents > 0),
+  message            text,
+  benefits_requested text,
+  status             text not null default 'pending'
+                       check (status in ('pending','accepted','declined','withdrawn','fulfilled')),
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now(),
+  unique (opportunity_id, sponsor_id)
+);
+
+create index if not exists sponsorship_requests_opportunity_idx on sponsorship_requests(opportunity_id);
+create index if not exists sponsorship_requests_sponsor_idx     on sponsorship_requests(sponsor_id);
+create index if not exists sponsorship_requests_status_idx      on sponsorship_requests(status);
+
+-- ── updated_at triggers ──────────────────────────────────────────────────────
+drop trigger if exists sponsorship_opportunities_updated_at on sponsorship_opportunities;
+create trigger sponsorship_opportunities_updated_at before update on sponsorship_opportunities
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists sponsorship_requests_updated_at on sponsorship_requests;
+create trigger sponsorship_requests_updated_at before update on sponsorship_requests
+  for each row execute function public.set_updated_at();
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ROW LEVEL SECURITY
+-- ─────────────────────────────────────────────────────────────────────────────
+alter table sponsorship_opportunities enable row level security;
+alter table sponsorship_requests      enable row level security;
+
+-- opportunities: anyone may read publicly-listed ones; organizer/admin manage.
+drop policy if exists sponsorship_opportunities_public_read on sponsorship_opportunities;
+create policy sponsorship_opportunities_public_read on sponsorship_opportunities for select
+  using (
+    status in ('open','closed','fulfilled')
+    or auth.uid() = organizer_id
+    or is_admin()
+  );
+
+drop policy if exists sponsorship_opportunities_organizer_write on sponsorship_opportunities;
+create policy sponsorship_opportunities_organizer_write on sponsorship_opportunities for all
+  using (auth.uid() = organizer_id or is_admin())
+  with check (auth.uid() = organizer_id or is_admin());
+
+-- requests: readable by the sponsor, the opportunity's organizer, and admins.
+drop policy if exists sponsorship_requests_read on sponsorship_requests;
+create policy sponsorship_requests_read on sponsorship_requests for select
+  using (
+    auth.uid() = sponsor_id
+    or is_admin()
+    or exists (
+      select 1 from sponsorship_opportunities o
+      where o.id = opportunity_id and o.organizer_id = auth.uid()
+    )
+  );
+
+drop policy if exists sponsorship_requests_insert on sponsorship_requests;
+create policy sponsorship_requests_insert on sponsorship_requests for insert
+  with check (auth.uid() = sponsor_id);
+
+drop policy if exists sponsorship_requests_update on sponsorship_requests;
+create policy sponsorship_requests_update on sponsorship_requests for update
+  using (
+    auth.uid() = sponsor_id
+    or is_admin()
+    or exists (
+      select 1 from sponsorship_opportunities o
+      where o.id = opportunity_id and o.organizer_id = auth.uid()
+    )
+  );
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Privacy request workflow (GDPR / CCPA) — data export + account deletion.
+--
+-- Users can request a data export (fulfilled immediately, self-serve) or account
+-- deletion (queued for admin review + PII anonymization). Every request is an
+-- auditable record. Fully wired with RLS.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create table if not exists privacy_requests (
+  id              uuid primary key default uuid_generate_v4(),
+  user_id         uuid not null references profiles(id) on delete cascade,
+  type            text not null check (type in ('export','deletion')),
+  status          text not null default 'pending'
+                    check (status in ('pending','in_progress','completed','rejected','cancelled')),
+  note            text,
+  resolution_note text,
+  resolver_id     uuid references profiles(id) on delete set null,
+  resolved_at     timestamptz,
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create index if not exists privacy_requests_user_idx   on privacy_requests(user_id);
+create index if not exists privacy_requests_status_idx on privacy_requests(status);
+
+-- At most one active (pending/in_progress) request per user per type.
+create unique index if not exists privacy_requests_active_uniq
+  on privacy_requests(user_id, type)
+  where status in ('pending','in_progress');
+
+drop trigger if exists privacy_requests_updated_at on privacy_requests;
+create trigger privacy_requests_updated_at before update on privacy_requests
+  for each row execute function public.set_updated_at();
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ROW LEVEL SECURITY
+-- ─────────────────────────────────────────────────────────────────────────────
+alter table privacy_requests enable row level security;
+
+-- Users read/manage their own requests; admins read/resolve all.
+drop policy if exists privacy_requests_read on privacy_requests;
+create policy privacy_requests_read on privacy_requests for select
+  using (auth.uid() = user_id or is_admin());
+
+drop policy if exists privacy_requests_insert on privacy_requests;
+create policy privacy_requests_insert on privacy_requests for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists privacy_requests_update on privacy_requests;
+create policy privacy_requests_update on privacy_requests for update
+  using (auth.uid() = user_id or is_admin())
+  with check (auth.uid() = user_id or is_admin());
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Corporate matching gifts — companies run matching programs; employees submit
+-- match claims for their donations; the company approves and the platform tracks
+-- the matched amount against a per-employee annual cap. Fully wired with RLS.
+--
+-- (Prior state: only a static employer-match estimator widget existed — no
+--  persistence, programs, claims, or approvals.)
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- ── matching_programs ────────────────────────────────────────────────────────
+create table if not exists matching_programs (
+  id                uuid primary key default uuid_generate_v4(),
+  sponsor_id        uuid not null references profiles(id) on delete cascade,
+  company_name      text not null check (char_length(company_name) between 2 and 160),
+  description       text,
+  match_ratio       numeric(6,2) not null default 1.0 check (match_ratio > 0 and match_ratio <= 100),
+  annual_cap_cents  bigint not null default 0 check (annual_cap_cents >= 0),
+  min_donation_cents bigint not null default 0 check (min_donation_cents >= 0),
+  categories        text[] not null default '{}',
+  currency          text not null default 'USD',
+  status            text not null default 'active'
+                      check (status in ('active','paused','closed')),
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
+
+create index if not exists matching_programs_status_idx  on matching_programs(status);
+create index if not exists matching_programs_sponsor_idx on matching_programs(sponsor_id);
+
+-- ── matching_claims ──────────────────────────────────────────────────────────
+create table if not exists matching_claims (
+  id                    uuid primary key default uuid_generate_v4(),
+  program_id            uuid not null references matching_programs(id) on delete cascade,
+  employee_id           uuid not null references profiles(id) on delete cascade,
+  campaign_id           uuid references campaigns(id) on delete set null,
+  donation_id           uuid references donations(id) on delete set null,
+  donation_amount_cents bigint not null check (donation_amount_cents > 0),
+  match_amount_cents    bigint not null default 0 check (match_amount_cents >= 0),
+  status                text not null default 'pending'
+                          check (status in ('pending','approved','declined','paid')),
+  note                  text,
+  reviewer_id           uuid references profiles(id) on delete set null,
+  resolved_at           timestamptz,
+  created_at            timestamptz not null default now(),
+  updated_at            timestamptz not null default now()
+);
+
+create index if not exists matching_claims_program_idx  on matching_claims(program_id);
+create index if not exists matching_claims_employee_idx on matching_claims(employee_id);
+create index if not exists matching_claims_status_idx   on matching_claims(status);
+
+-- ── updated_at triggers ──────────────────────────────────────────────────────
+drop trigger if exists matching_programs_updated_at on matching_programs;
+create trigger matching_programs_updated_at before update on matching_programs
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists matching_claims_updated_at on matching_claims;
+create trigger matching_claims_updated_at before update on matching_claims
+  for each row execute function public.set_updated_at();
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ROW LEVEL SECURITY
+-- ─────────────────────────────────────────────────────────────────────────────
+alter table matching_programs enable row level security;
+alter table matching_claims   enable row level security;
+
+-- programs: anyone may read listed (active/paused/closed) programs; sponsor/admin manage.
+drop policy if exists matching_programs_public_read on matching_programs;
+create policy matching_programs_public_read on matching_programs for select
+  using (status in ('active','paused','closed') or auth.uid() = sponsor_id or is_admin());
+
+drop policy if exists matching_programs_sponsor_write on matching_programs;
+create policy matching_programs_sponsor_write on matching_programs for all
+  using (auth.uid() = sponsor_id or is_admin())
+  with check (auth.uid() = sponsor_id or is_admin());
+
+-- claims: readable by the employee, the program sponsor, and admins.
+drop policy if exists matching_claims_read on matching_claims;
+create policy matching_claims_read on matching_claims for select
+  using (
+    auth.uid() = employee_id
+    or is_admin()
+    or exists (select 1 from matching_programs p where p.id = program_id and p.sponsor_id = auth.uid())
+  );
+
+drop policy if exists matching_claims_insert on matching_claims;
+create policy matching_claims_insert on matching_claims for insert
+  with check (auth.uid() = employee_id);
+
+drop policy if exists matching_claims_update on matching_claims;
+create policy matching_claims_update on matching_claims for update
+  using (
+    auth.uid() = employee_id
+    or is_admin()
+    or exists (select 1 from matching_programs p where p.id = program_id and p.sponsor_id = auth.uid())
+  );
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Events product surface — extends the existing `fundraising_events` /
+-- `event_tickets` / `event_registrations` data model (from the competitor-parity
+-- migration) with the columns and check-in table needed for a self-serve,
+-- organizer-owned events experience with free RSVP registration.
+--
+-- Additive + idempotent: safe on the live DB where the base tables already exist.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- Organizer ownership + richer content on the existing events table.
+alter table fundraising_events add column if not exists created_by  uuid references profiles(id) on delete set null;
+alter table fundraising_events add column if not exists description  text;
+alter table fundraising_events add column if not exists capacity     int;  -- null = unlimited
+alter table fundraising_events add column if not exists cover_image_url text;
+
+create index if not exists fundraising_events_created_by_idx on fundraising_events(created_by);
+create index if not exists fundraising_events_status_starts_idx on fundraising_events(status, starts_at);
+
+-- ── event_checkins ───────────────────────────────────────────────────────────
+create table if not exists event_checkins (
+  id              uuid primary key default uuid_generate_v4(),
+  registration_id uuid not null unique references event_registrations(id) on delete cascade,
+  event_id        uuid not null references fundraising_events(id) on delete cascade,
+  checked_in_by   uuid references profiles(id) on delete set null,
+  checked_in_at   timestamptz not null default now()
+);
+
+create index if not exists event_checkins_event_idx on event_checkins(event_id);
+
+alter table event_checkins enable row level security;
+
+-- Owner (event creator) + admin may read/write check-ins for their events.
+drop policy if exists event_checkins_owner_all on event_checkins;
+create policy event_checkins_owner_all on event_checkins for all
+  using (
+    is_admin()
+    or exists (select 1 from fundraising_events e where e.id = event_id and e.created_by = auth.uid())
+  )
+  with check (
+    is_admin()
+    or exists (select 1 from fundraising_events e where e.id = event_id and e.created_by = auth.uid())
+  );
+
+-- ── Owner-scoped policies on the existing tables (additive; OR'd with existing) ──
+-- Event creators can manage their own events (existing policy already allows public
+-- read of published events + admin).
+drop policy if exists fundraising_events_owner_write on fundraising_events;
+create policy fundraising_events_owner_write on fundraising_events for all
+  using (auth.uid() = created_by or is_admin())
+  with check (auth.uid() = created_by or is_admin());
+
+-- Registrations: the attendee, the event creator, and admins can read; attendees
+-- create their own; the creator/admin can update (e.g. cancel).
+drop policy if exists event_registrations_scoped_read on event_registrations;
+create policy event_registrations_scoped_read on event_registrations for select
+  using (
+    auth.uid() = attendee_id
+    or is_admin()
+    or exists (select 1 from fundraising_events e where e.id = event_id and e.created_by = auth.uid())
+  );
+
+drop policy if exists event_registrations_attendee_insert on event_registrations;
+create policy event_registrations_attendee_insert on event_registrations for insert
+  with check (auth.uid() = attendee_id or is_admin());
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Impact tracking — how each campaign spends funds and the outcomes it delivers.
+-- Powers the "Impact Intelligence" + "Transparency Score" pillars.
+--
+--   impact_plans        — one spending plan per campaign (planned budget)
+--   impact_plan_items   — budget line items (planned vs actual spend)
+--   impact_updates      — verified progress posts (optionally tied to spend)
+--   impact_evidence     — proof attached to an update (receipt/photo/doc/link)
+--   impact_metrics      — outcome metrics (target vs current)
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- Ownership helper: does the current user own the given campaign?
+create or replace function public.owns_campaign(cid uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from campaigns c where c.id = cid and c.user_id = auth.uid());
+$$;
+
+-- ── impact_plans ─────────────────────────────────────────────────────────────
+create table if not exists impact_plans (
+  id                 uuid primary key default uuid_generate_v4(),
+  campaign_id        uuid not null unique references campaigns(id) on delete cascade,
+  created_by         uuid references profiles(id) on delete set null,
+  title              text not null default 'Impact Plan',
+  summary            text,
+  total_budget_cents bigint not null default 0 check (total_budget_cents >= 0),
+  status             text not null default 'draft' check (status in ('draft','published')),
+  created_at         timestamptz not null default now(),
+  updated_at         timestamptz not null default now()
+);
+
+create table if not exists impact_plan_items (
+  id                  uuid primary key default uuid_generate_v4(),
+  plan_id             uuid not null references impact_plans(id) on delete cascade,
+  label               text not null,
+  category            text,
+  planned_amount_cents bigint not null default 0 check (planned_amount_cents >= 0),
+  spent_amount_cents   bigint not null default 0 check (spent_amount_cents >= 0),
+  sort                int not null default 0,
+  created_at          timestamptz not null default now()
+);
+create index if not exists impact_plan_items_plan_idx on impact_plan_items(plan_id);
+
+-- ── impact_updates + evidence ────────────────────────────────────────────────
+create table if not exists impact_updates (
+  id                uuid primary key default uuid_generate_v4(),
+  campaign_id       uuid not null references campaigns(id) on delete cascade,
+  author_id         uuid references profiles(id) on delete set null,
+  title             text not null check (char_length(title) between 2 and 200),
+  body              text not null check (char_length(body) between 1 and 12000),
+  amount_spent_cents bigint check (amount_spent_cents is null or amount_spent_cents >= 0),
+  status            text not null default 'published' check (status in ('draft','published')),
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
+create index if not exists impact_updates_campaign_idx on impact_updates(campaign_id);
+
+create table if not exists impact_evidence (
+  id         uuid primary key default uuid_generate_v4(),
+  update_id  uuid not null references impact_updates(id) on delete cascade,
+  kind       text not null default 'image' check (kind in ('image','receipt','video','document','link')),
+  url        text not null,
+  caption    text,
+  created_at timestamptz not null default now()
+);
+create index if not exists impact_evidence_update_idx on impact_evidence(update_id);
+
+-- ── impact_metrics ───────────────────────────────────────────────────────────
+create table if not exists impact_metrics (
+  id            uuid primary key default uuid_generate_v4(),
+  campaign_id   uuid not null references campaigns(id) on delete cascade,
+  label         text not null,
+  unit          text,
+  target_value  numeric,
+  current_value numeric not null default 0,
+  sort          int not null default 0,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+create index if not exists impact_metrics_campaign_idx on impact_metrics(campaign_id);
+
+-- ── updated_at triggers ──────────────────────────────────────────────────────
+drop trigger if exists impact_plans_updated_at on impact_plans;
+create trigger impact_plans_updated_at before update on impact_plans
+  for each row execute function public.set_updated_at();
+drop trigger if exists impact_updates_updated_at on impact_updates;
+create trigger impact_updates_updated_at before update on impact_updates
+  for each row execute function public.set_updated_at();
+drop trigger if exists impact_metrics_updated_at on impact_metrics;
+create trigger impact_metrics_updated_at before update on impact_metrics
+  for each row execute function public.set_updated_at();
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ROW LEVEL SECURITY — public read of published impact; campaign owner + admin write.
+-- ─────────────────────────────────────────────────────────────────────────────
+alter table impact_plans      enable row level security;
+alter table impact_plan_items enable row level security;
+alter table impact_updates    enable row level security;
+alter table impact_evidence   enable row level security;
+alter table impact_metrics    enable row level security;
+
+drop policy if exists impact_plans_read on impact_plans;
+create policy impact_plans_read on impact_plans for select
+  using (status = 'published' or owns_campaign(campaign_id) or is_admin());
+drop policy if exists impact_plans_write on impact_plans;
+create policy impact_plans_write on impact_plans for all
+  using (owns_campaign(campaign_id) or is_admin())
+  with check (owns_campaign(campaign_id) or is_admin());
+
+drop policy if exists impact_plan_items_read on impact_plan_items;
+create policy impact_plan_items_read on impact_plan_items for select
+  using (is_admin() or exists (
+    select 1 from impact_plans p where p.id = plan_id
+      and (p.status = 'published' or owns_campaign(p.campaign_id))));
+drop policy if exists impact_plan_items_write on impact_plan_items;
+create policy impact_plan_items_write on impact_plan_items for all
+  using (is_admin() or exists (select 1 from impact_plans p where p.id = plan_id and owns_campaign(p.campaign_id)))
+  with check (is_admin() or exists (select 1 from impact_plans p where p.id = plan_id and owns_campaign(p.campaign_id)));
+
+drop policy if exists impact_updates_read on impact_updates;
+create policy impact_updates_read on impact_updates for select
+  using (status = 'published' or owns_campaign(campaign_id) or is_admin());
+drop policy if exists impact_updates_write on impact_updates;
+create policy impact_updates_write on impact_updates for all
+  using (owns_campaign(campaign_id) or is_admin())
+  with check (owns_campaign(campaign_id) or is_admin());
+
+drop policy if exists impact_evidence_read on impact_evidence;
+create policy impact_evidence_read on impact_evidence for select
+  using (is_admin() or exists (
+    select 1 from impact_updates u where u.id = update_id
+      and (u.status = 'published' or owns_campaign(u.campaign_id))));
+drop policy if exists impact_evidence_write on impact_evidence;
+create policy impact_evidence_write on impact_evidence for all
+  using (is_admin() or exists (select 1 from impact_updates u where u.id = update_id and owns_campaign(u.campaign_id)))
+  with check (is_admin() or exists (select 1 from impact_updates u where u.id = update_id and owns_campaign(u.campaign_id)));
+
+drop policy if exists impact_metrics_read on impact_metrics;
+create policy impact_metrics_read on impact_metrics for select
+  using (owns_campaign(campaign_id) or is_admin() or exists (
+    select 1 from campaigns c where c.id = campaign_id and c.status = 'active' and c.visibility = 'public'));
+drop policy if exists impact_metrics_write on impact_metrics;
+create policy impact_metrics_write on impact_metrics for all
+  using (owns_campaign(campaign_id) or is_admin())
+  with check (owns_campaign(campaign_id) or is_admin());
+
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Gamification persistence — earned badges + community challenges.
+--
+-- The badge CATALOG stays in code (`lib/gamification.ts` DONOR_BADGES); this
+-- persists which badges each user has EARNED, plus joinable challenges and
+-- per-user progress. Badges/challenges are public recognition (public read).
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- ── user_badges ──────────────────────────────────────────────────────────────
+create table if not exists user_badges (
+  id         uuid primary key default uuid_generate_v4(),
+  user_id    uuid not null references profiles(id) on delete cascade,
+  badge_id   text not null,               -- matches DONOR_BADGES[].id in code
+  awarded_at timestamptz not null default now(),
+  unique (user_id, badge_id)
+);
+create index if not exists user_badges_user_idx on user_badges(user_id);
+
+-- ── challenges ───────────────────────────────────────────────────────────────
+create table if not exists challenges (
+  id          uuid primary key default uuid_generate_v4(),
+  slug        text not null unique,
+  title       text not null,
+  description text,
+  metric      text not null default 'donation_count'
+                check (metric in ('donation_count','total_cents','campaign_count')),
+  goal_value  bigint not null check (goal_value > 0),
+  starts_at   timestamptz,
+  ends_at     timestamptz,
+  status      text not null default 'active' check (status in ('draft','active','completed')),
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create index if not exists challenges_status_idx on challenges(status);
+
+-- ── challenge_participants ───────────────────────────────────────────────────
+create table if not exists challenge_participants (
+  id             uuid primary key default uuid_generate_v4(),
+  challenge_id   uuid not null references challenges(id) on delete cascade,
+  user_id        uuid not null references profiles(id) on delete cascade,
+  progress_value bigint not null default 0 check (progress_value >= 0),
+  joined_at      timestamptz not null default now(),
+  completed_at   timestamptz,
+  unique (challenge_id, user_id)
+);
+create index if not exists challenge_participants_challenge_idx on challenge_participants(challenge_id);
+create index if not exists challenge_participants_user_idx on challenge_participants(user_id);
+
+drop trigger if exists challenges_updated_at on challenges;
+create trigger challenges_updated_at before update on challenges
+  for each row execute function public.set_updated_at();
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ROW LEVEL SECURITY
+-- ─────────────────────────────────────────────────────────────────────────────
+alter table user_badges            enable row level security;
+alter table challenges             enable row level security;
+alter table challenge_participants enable row level security;
+
+-- Badges are public recognition; the owner (and admin) manage their own rows.
+drop policy if exists user_badges_public_read on user_badges;
+create policy user_badges_public_read on user_badges for select using (true);
+drop policy if exists user_badges_owner_write on user_badges;
+create policy user_badges_owner_write on user_badges for all
+  using (auth.uid() = user_id or is_admin())
+  with check (auth.uid() = user_id or is_admin());
+
+-- Challenges: public read of listed ones; admin-managed.
+drop policy if exists challenges_public_read on challenges;
+create policy challenges_public_read on challenges for select
+  using (status in ('active','completed') or is_admin());
+drop policy if exists challenges_admin_write on challenges;
+create policy challenges_admin_write on challenges for all
+  using (is_admin()) with check (is_admin());
+
+-- Participation is public (for leaderboards); the participant manages their row.
+drop policy if exists challenge_participants_public_read on challenge_participants;
+create policy challenge_participants_public_read on challenge_participants for select using (true);
+drop policy if exists challenge_participants_owner_write on challenge_participants;
+create policy challenge_participants_owner_write on challenge_participants for all
+  using (auth.uid() = user_id or is_admin())
+  with check (auth.uid() = user_id or is_admin());
+
+-- ── Seed a few starter challenges (idempotent by slug) ───────────────────────
+insert into challenges (slug, title, description, metric, goal_value, status)
+values
+  ('first-five-gifts', 'Give Five', 'Make five donations to any causes you care about.', 'donation_count', 5, 'active'),
+  ('hundred-dollar-hero', '$100 Hero', 'Donate $100 in total across the community.', 'total_cents', 10000, 'active'),
+  ('three-cause-champion', 'Three-Cause Champion', 'Support three different campaigns.', 'campaign_count', 3, 'active')
+on conflict (slug) do nothing;

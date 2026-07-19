@@ -23,6 +23,7 @@ const ACCOUNT_MENU = [
   ['Profile', '/profile'],
   ['Your fundraisers', '/dashboard/campaigns'],
   ['Your impact', '/donor'],
+  ['Achievements', '/achievements'],
   ['Messages', '/dashboard/messages'],
   ['Account settings', '/dashboard/settings'],
 ] as const;
@@ -36,6 +37,12 @@ const FOOTER_LINKS = {
     ['Success Stories', '/success-stories'],
     ['Pricing', '/pricing'],
     ['Fast Payouts', '/fast-payouts'],
+    ['Volunteer', '/volunteer'],
+    ['Sponsor a Cause', '/sponsor'],
+    ['Grants', '/grants'],
+    ['Matching Gifts', '/matching'],
+    ['Events', '/events'],
+    ['Impact & Transparency', '/impact/manage'],
   ],
   Resources: [
     ['Blog', '/blog'],
@@ -55,6 +62,7 @@ const FOOTER_LINKS = {
   ],
   Legal: [
     ['Privacy Policy', '/privacy'],
+    ['Privacy Center', '/privacy-center'],
     ['Terms of Service', '/terms'],
     ['Security', '/security'],
     ['Prohibited Use', '/prohibited-use'],
