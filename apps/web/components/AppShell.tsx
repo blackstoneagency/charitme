@@ -41,6 +41,7 @@ const FOOTER_LINKS = {
     ['Grants', '/grants'],
     ['Matching Gifts', '/matching'],
     ['Events', '/events'],
+    ['Impact & Transparency', '/impact/manage'],
   ],
   Resources: [
     ['Blog', '/blog'],

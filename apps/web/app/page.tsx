@@ -143,7 +143,6 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
     getRecentDonations(6),
   ]);
 
-  const heroCampaign = featuredCampaigns[0] ?? null;
   const featured = (carouselCampaigns.length ? carouselCampaigns : featuredCampaigns).slice(0, 6);
   const causes = categoryStats
     .filter((c) => CATEGORY_META[c.category])
@@ -194,39 +193,20 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             </p>
           </div>
 
-          {/* Live featured campaign — real Supabase data */}
-          {heroCampaign ? (
-            <Reveal className="home-hero-card" as="article">
-              <Link href={`/campaigns/${heroCampaign.slug}`} className="home-hc-link" aria-label={`Support ${heroCampaign.title}`}>
-                <div className="home-hc-media">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={coverFor(heroCampaign.cover_image_url, heroCampaign.category)} alt={heroCampaign.title} loading="eager" decoding="async" width={640} height={420} />
-                  <span className="home-hc-tag"><Icon name="shield" className="hi" /> Verified</span>
-                </div>
-                <div className="home-hc-body">
-                  <span className="home-hc-cat">{heroCampaign.category ?? 'Fundraiser'}</span>
-                  <h2 className="home-hc-title">{heroCampaign.title}</h2>
-                  <div className="home-progress" role="progressbar" aria-valuenow={pct(heroCampaign.raised_amount, heroCampaign.goal_amount)} aria-valuemin={0} aria-valuemax={100}>
-                    <span style={{ width: `${pct(heroCampaign.raised_amount, heroCampaign.goal_amount)}%` }} />
-                  </div>
-                  <div className="home-hc-meta">
-                    <strong>{formatMoneyCompact(heroCampaign.raised_amount, heroCampaign.currency ?? 'usd')}</strong>
-                    <span>raised · {heroCampaign.backer_count.toLocaleString()} supporters</span>
-                  </div>
-                  <span className="home-hc-cta">Support this cause <Icon name="arrow" className="hi" /></span>
-                </div>
-              </Link>
-            </Reveal>
-          ) : (
-            <Reveal className="home-hero-card home-hero-card--empty" as="article">
-              <div className="home-hc-body">
-                <span className="home-hc-cat">Be the first</span>
-                <h2 className="home-hc-title">Your story could change everything.</h2>
-                <p>Launch a verified campaign in minutes and inspire a community to help.</p>
-                <Link href="/create" className="home-hc-cta">Start your fundraiser <Icon name="arrow" className="hi" /></Link>
-              </div>
-            </Reveal>
-          )}
+          {/* Branded hero visual */}
+          <Reveal className="home-hero-card" as="article">
+            <div className="home-hc-media">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/hero-child-crop.png" alt="A child helped by a CharitMe fundraiser" loading="eager" decoding="async" width={640} height={420} />
+              <span className="home-hc-tag"><Icon name="shield" className="hi" /> Verified &amp; protected</span>
+            </div>
+            <div className="home-hc-body">
+              <span className="home-hc-cat">Start a trusted campaign</span>
+              <h2 className="home-hc-title">Turn your cause into real impact.</h2>
+              <p>Launch a verified fundraiser in minutes — CharitMe AI writes your story, goal, and plan, and 0% platform fees mean more reaches the people who need it.</p>
+              <Link href="/create" className="home-hc-cta">Start a CharitMe <Icon name="arrow" className="hi" /></Link>
+            </div>
+          </Reveal>
         </div>
 
         {/* Animated impact metrics — real platform numbers */}
