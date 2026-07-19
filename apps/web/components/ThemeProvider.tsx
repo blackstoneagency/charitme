@@ -9,29 +9,18 @@ interface ThemeCtx {
   setTheme: (t: Theme) => void;
 }
 
-const ThemeContext = createContext<ThemeCtx>({ theme: 'light', setTheme: () => {} });
+const ThemeContext = createContext<ThemeCtx>({ theme: 'dark', setTheme: () => {} });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light');
+  const [theme, setThemeState] = useState<Theme>('dark');
 
   useEffect(() => {
     const stored = localStorage.getItem('charitme-theme');
-    const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const resolved: Theme = stored === 'dark' ? 'dark' : stored === 'light' ? 'light' : (sysDark ? 'dark' : 'light');
+    // Dark is the default: only an explicit stored 'light' choice yields light mode.
+    const resolved: Theme = stored === 'light' ? 'light' : 'dark';
     // Apply to DOM immediately; defer React state update to avoid sync-in-effect lint error
     document.documentElement.setAttribute('data-theme', resolved);
     Promise.resolve().then(() => setThemeState(resolved));
-
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const handler = (e: MediaQueryListEvent) => {
-      if (!localStorage.getItem('charitme-theme')) {
-        const next: Theme = e.matches ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', next);
-        Promise.resolve().then(() => setThemeState(next));
-      }
-    };
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
   }, []);
 
   const setTheme = (t: Theme) => {
