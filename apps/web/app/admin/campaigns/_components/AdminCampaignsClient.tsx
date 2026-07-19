@@ -1004,7 +1004,7 @@ export default function AdminCampaignsClient({
               icon: 'bell',
             })} />
             <div className="ac-action-toggle">
-              <ActionItem icon="crown" label="Feature Campaign" onClick={() => {}} />
+              <ActionItem icon="crown" label="Feature Campaign" onClick={() => patchCampaign({ featured: !selected.featured }, { featured: !selected.featured })} />
               <label className="ac-toggle">
                 <input
                   type="checkbox"
@@ -1015,7 +1015,7 @@ export default function AdminCampaignsClient({
               </label>
             </div>
             <div className="ac-action-toggle">
-              <ActionItem icon="link" label="Pin to Homepage" onClick={() => {}} />
+              <ActionItem icon="link" label="Pin to Homepage" onClick={() => patchCampaign({ pinned: !selected.pinned }, { pinned: !selected.pinned })} />
               <label className="ac-toggle">
                 <input
                   type="checkbox"
