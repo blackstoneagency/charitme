@@ -31,6 +31,30 @@
   `/create` payout page now shows the actual cause instead of the generic
   "STRIPE_SECRET_KEY … in Vercel" string.
 
+## Payment architecture audit — VERIFIED SOUND
+
+The launch-critical financial requirement (CharitMe must not custody charitable
+funds; **no donation before recipient payout readiness**) is **already correctly
+implemented** on master. Independently audited this session and corroborated by a
+parallel session's merged `docs/payments/money-flow.md` (commit `73a2d0e`):
+
+- **Recipient-first gate**: `/api/donations` returns `409 PAYOUT_NOT_READY` unless
+  `resolvePayoutDestination` finds a fully-onboarded connected account
+  (`verification_status=verified` + `details_submitted` + `charges_enabled` +
+  `payouts_enabled` + account id) — beneficiary first, then organizer.
+  ✅ Regression-tested: `__tests__/payout-destination.test.ts` (6 pass).
+- **No custody**: Stripe Connect **destination charges**; recipient nets full
+  `amountCents`; CharitMe keeps only `application_fee_amount = tip + processing`,
+  computed **server-side** (`@shared/fees`) — no client fee trust.
+- **Webhook**: signature-verified (`constructEvent`) + idempotent (event-log skip +
+  `record_donation` RPC lock, migration `20260719120000`).
+- **Decision (needs counsel)**: destination (not direct) charges — permitted; the
+  merchant-of-record / direct-charge switch is gated on legal/tax review.
+
+**Conclusion: remaining payment work is verification, not repair** — sandbox
+end-to-end (charge→fee→transfer→payout→reconcile), refund/dispute financial
+states, and the reconciliation job, all needing Stripe **test** keys + staging.
+
 ## Known real findings (open)
 
 | Sev | Area | Finding | Owner action? |
