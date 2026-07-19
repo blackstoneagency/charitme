@@ -6,6 +6,7 @@ import { supabaseAdmin } from '../../../../lib/supabase';
 import { sendReceiptEmail, sendOrganizerDonationAlert, sendPayoutEmail, sendRefundEmail } from '../../../../lib/email';
 import { recordCampaignPayment, recordPaymentEvent } from '../../../../lib/payment-flow';
 import { resolveContact, trackEvent, refreshContactScores } from '../../../../lib/marketing-engine';
+import { postDonation } from '../../../../lib/ledger';
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -263,6 +264,35 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
     if (error) throw new Error(`record_donation failed: ${error.message}`);
 
     const alreadyDone = (data as { status: string } | null)?.status === 'already_processed';
+
+    // Immutable ledger: record the disclosed donation split (best-effort, never
+    // blocks donation recording). Idempotent via the Stripe event id + unique
+    // index, so duplicate webhook deliveries do not double-post. True fee/payout
+    // reconciliation against Stripe balance transactions happens in the recon job.
+    if (!alreadyDone) {
+      try {
+        const { data: don } = await supabaseAdmin
+          .from('donations')
+          .select('id')
+          .eq('stripe_payment_intent_id', paymentIntentId)
+          .maybeSingle();
+        await postDonation(
+          { donationCents: amountCents, platformFeeCents: platformFeeCents, processorFeeCents: processingFeeCents },
+          {
+            idempotencyKey: eventId,
+            currency,
+            campaignId: meta.campaignId,
+            donationId: don?.id ?? null,
+            recipientUserId: payoutRecipientId || null,
+            connectedAccountId: connectedAccountId || null,
+            stripePaymentIntentId: paymentIntentId,
+            source: 'webhook:checkout.session.completed',
+          },
+        );
+      } catch (e) {
+        console.warn('[ledger] donation posting failed (non-blocking):', e);
+      }
+    }
 
     // Marketing capture: donation_completed event + score refresh (non-blocking)
     if (!alreadyDone) {
