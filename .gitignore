@@ -10,3 +10,8 @@ dist
 
 # Agent scratch/credential files
 .codex-*
+# Plaintext credential dumps — never commit
+DANIEL_ENV.txt
+*_ENV.txt
+*.secrets
+.env.*.local
