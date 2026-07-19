@@ -23,6 +23,7 @@ const ACCOUNT_MENU = [
   ['Profile', '/profile'],
   ['Your fundraisers', '/dashboard/campaigns'],
   ['Your impact', '/donor'],
+  ['Achievements', '/achievements'],
   ['Messages', '/dashboard/messages'],
   ['Account settings', '/dashboard/settings'],
 ] as const;
