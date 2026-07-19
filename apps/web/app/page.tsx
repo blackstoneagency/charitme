@@ -189,7 +189,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           {/* Live featured campaign — real Supabase data */}
           {heroCampaign ? (
             <Reveal className="home-hero-card" as="article">
-              <Link href={`/campaigns/${heroCampaign.slug}`} className="home-hc-link" aria-label={`Support ${heroCampaign.title}`}>
+              <Link href={`/campaigns/${heroCampaign.slug}`} className="home-hc-link">
                 <div className="home-hc-media">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={coverFor(heroCampaign.cover_image_url, heroCampaign.category)} alt={heroCampaign.title} loading="eager" decoding="async" width={640} height={420} />
@@ -198,7 +198,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
                 <div className="home-hc-body">
                   <span className="home-hc-cat">{heroCampaign.category ?? 'Fundraiser'}</span>
                   <h2 className="home-hc-title">{heroCampaign.title}</h2>
-                  <div className="home-progress" role="progressbar" aria-valuenow={pct(heroCampaign.raised_amount, heroCampaign.goal_amount)} aria-valuemin={0} aria-valuemax={100}>
+                  <div className="home-progress" role="progressbar" aria-label={`Fundraising progress: ${pct(heroCampaign.raised_amount, heroCampaign.goal_amount)}% of goal`} aria-valuenow={pct(heroCampaign.raised_amount, heroCampaign.goal_amount)} aria-valuemin={0} aria-valuemax={100}>
                     <span style={{ width: `${pct(heroCampaign.raised_amount, heroCampaign.goal_amount)}%` }} />
                   </div>
                   <div className="home-hc-meta">
@@ -337,7 +337,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
                     <div className="home-card-body">
                       <h3>{c.title}</h3>
                       <p className="home-card-org">by {profileName(c.profiles)}</p>
-                      <div className="home-progress" role="progressbar" aria-valuenow={pct(c.raised_amount, c.goal_amount)} aria-valuemin={0} aria-valuemax={100}>
+                      <div className="home-progress" role="progressbar" aria-label={`Fundraising progress: ${pct(c.raised_amount, c.goal_amount)}% of goal`} aria-valuenow={pct(c.raised_amount, c.goal_amount)} aria-valuemin={0} aria-valuemax={100}>
                         <span style={{ width: `${pct(c.raised_amount, c.goal_amount)}%` }} />
                       </div>
                       <div className="home-card-meta">
