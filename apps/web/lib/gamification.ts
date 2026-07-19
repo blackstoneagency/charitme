@@ -64,6 +64,20 @@ export const DONOR_BADGES: DonorBadge[] = [
   { id: 'on-a-streak',    icon: '🔥', label: 'On a Streak',           description: 'Donated 3 months in a row',       earned: (s) => s.monthStreak >= 3 },
 ];
 
+/** All badge ids a donor has earned given their current stats. */
+export function evaluateEarnedBadges(stats: DonorStats): string[] {
+  return DONOR_BADGES.filter((b) => b.earned(stats)).map((b) => b.id);
+}
+
+/**
+ * Badge ids the donor now qualifies for but has not been awarded yet.
+ * `alreadyAwarded` is the set/array of badge ids already persisted.
+ */
+export function newlyEarnedBadges(stats: DonorStats, alreadyAwarded: Iterable<string>): string[] {
+  const have = new Set(alreadyAwarded);
+  return evaluateEarnedBadges(stats).filter((id) => !have.has(id));
+}
+
 // Counts consecutive calendar months (ending this month) that contain at least one donation
 export function computeMonthlyStreak(isoDates: string[]): number {
   const months = new Set(

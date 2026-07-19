@@ -416,3 +416,25 @@ Competitive gaps to close. These are strategic priorities, not features.
 | Organic SEO | Dominates fundraising-related search results |
 | Campaign Virality | Large built-in audience |
 | Operational Scale | Years of optimization and experience |
+
+---
+
+## 4. Delivered on `claude/charitme-github-integration-tbaz3i` (PR #10)
+
+Five additional feature domains shipped as complete vertical slices (migration +
+RLS + pure unit-tested logic + typed API + UI), complementing the grants/volunteers
+work already on master. All `[~] Code Complete` — verified by typecheck + unit tests
++ lint + production build, **not** yet exercised against live Supabase (needs-staging).
+See `docs/gap-audit.md` for the full audit.
+
+| Domain | Tables | API | UI | Tests |
+|--------|--------|-----|----|-------|
+| **Matching gifts** (corporate) | `matching_gift_claims` | `/api/matching-gifts` (+`/[id]`) | `/dashboard/matching-gifts` | 16 |
+| **Sponsorship marketplace** | `sponsorship_opportunities`, `sponsorship_requests` | 3× `/api/sponsorships/*` | `/sponsor`, `/dashboard/sponsorships` | 9 |
+| **Gamification** (durable badges + challenges) | `user_badges`, `challenges`, `challenge_participants` | `/api/badges`, 2× `/api/challenges/*` | `/dashboard/challenges` | 7 |
+| **Privacy** (export/deletion requests) | `privacy_requests`, `consent_records` | `/api/privacy/requests` (+`/[id]`) | `/dashboard/privacy` | 7 |
+| **Events** (public pages + registration) | existing `fundraising_events`/`event_*` | 3× `/api/events/*` | `/events`, `/events/[slug]`, `/dashboard/events` | 7 |
+
+Each domain enforces server-side authz + validated state-machine transitions, and
+ships a pure logic module with no Supabase/Next imports. Remaining scope per domain
+(admin queues, paid-ticket checkout, corporate-account tenancy) tracked inline above.
