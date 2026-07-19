@@ -40,6 +40,7 @@ const FOOTER_LINKS = {
     ['Sponsor a Cause', '/sponsor'],
     ['Grants', '/grants'],
     ['Matching Gifts', '/matching'],
+    ['Events', '/events'],
   ],
   Resources: [
     ['Blog', '/blog'],

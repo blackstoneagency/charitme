@@ -1,0 +1,84 @@
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Btn } from '../../../components/ui';
+
+const linkButtonStyle: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14,
+  padding: '10px 20px', borderRadius: 'var(--r)', background: 'var(--green)', color: '#fff', textDecoration: 'none',
+};
+
+export default function RsvpPanel({
+  eventId,
+  signedIn,
+  isOrganizer,
+  open,
+  alreadyRegistered,
+  slug,
+}: {
+  eventId: string;
+  signedIn: boolean;
+  isOrganizer: boolean;
+  open: boolean;
+  alreadyRegistered: boolean;
+  slug: string;
+}) {
+  const router = useRouter();
+  const [registered, setRegistered] = useState(alreadyRegistered);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (isOrganizer) {
+    return (
+      <div style={{ fontSize: 14, color: 'var(--t3)' }}>
+        This is your event.{' '}
+        <Link href="/events/manage" style={{ color: 'var(--green-dark)', fontWeight: 600 }}>Manage attendees →</Link>
+      </div>
+    );
+  }
+
+  if (registered) {
+    return <p style={{ fontSize: 15, color: 'var(--green-dark)', fontWeight: 600 }}>🎉 You’re registered! We’ll see you there.</p>;
+  }
+
+  if (!signedIn) {
+    return <Link href={`/login?next=/events/${slug}`} style={linkButtonStyle}>Sign in to RSVP</Link>;
+  }
+
+  if (!open) {
+    return <p style={{ fontSize: 14, color: 'var(--t3)' }}>Registration is closed for this event.</p>;
+  }
+
+  async function rsvp() {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/events/${eventId}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity: 1 }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(json.error ?? 'Could not register.');
+        return;
+      }
+      setRegistered(true);
+      router.refresh();
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div>
+      <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 10 }}>Reserve your spot</h2>
+      {error && <p style={{ color: 'var(--red)', fontSize: 13, marginBottom: 8 }}>{error}</p>}
+      <Btn disabled={submitting} onClick={rsvp}>{submitting ? 'Registering…' : 'RSVP — it’s free'}</Btn>
+    </div>
+  );
+}

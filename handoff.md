@@ -20,6 +20,24 @@
 
 ## Entries
 
+### 2026-07-19 — Events product surface (on existing fundraising_events model)
+- **Gap**: `fundraising_events` / `event_tickets` / `event_registrations` already existed
+  (competitor-parity migration) but had **no organizer column, no check-in table, and no
+  UI/API**. Built the product surface on top rather than new tables.
+- **Migration** `20260720000000_events_platform.sql` (additive + idempotent): adds
+  `created_by` / `description` / `capacity` / `cover_image_url` to `fundraising_events`;
+  new `event_checkins` table; owner-scoped RLS on events + registrations + check-ins.
+- **Logic** `lib/events-core.ts` (capacity, upcoming, registration-open, slug, schemas) +
+  `lib/events.ts` (data access, registered-qty counts, attendee lists).
+- **API**: `/api/events` (GET/POST), `/api/events/[id]` (GET/PATCH), `.../register` (free RSVP,
+  capacity-checked), `.../registrations` (organizer), `/api/events/registrations/[id]/checkin`
+  (organizer toggle).
+- **UI**: `/events` (discovery), `/events/[slug]` (detail + RSVP), `/events/manage`
+  (host + attendees + check-in). Footer link added.
+- **Scope**: v1 is **free RSVP**; paid ticketing via Stripe checkout is a documented
+  follow-up (no dead pay button rendered). 17 tests. Gates: typecheck ✓, vitest 456/456 ✓,
+  build ✓ (all routes emit), no new lint warnings.
+
 ### 2026-07-19 — Sponsorships + Privacy + Matching slices (rebased onto master)
 - **Context**: this branch (`claude/charitme-github-integration-njok43`, PR #11) originally
   also built volunteers + grants, but master independently shipped canonical, production-
