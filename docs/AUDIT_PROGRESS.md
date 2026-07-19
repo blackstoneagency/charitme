@@ -55,6 +55,25 @@ parallel session's merged `docs/payments/money-flow.md` (commit `73a2d0e`):
 end-to-end (charge→fee→transfer→payout→reconcile), refund/dispute financial
 states, and the reconciliation job, all needing Stripe **test** keys + staging.
 
+## Payment subsystem audit — conclusions (this session)
+
+Audited the money paths end-to-end at code level. Findings + evidence:
+
+| Area | Result | Evidence |
+|------|--------|----------|
+| Recipient-first gate / no fund custody | ✅ sound | `resolvePayoutDestination` + `409 PAYOUT_NOT_READY`; `payout-destination.test.ts` |
+| Fee math (displayed == charged) | ✅ sound | client+server both `methodProcessingFee(amount+tip)`; `fees.test.ts` (11) |
+| Webhook signature + idempotency | ✅ sound | `constructEvent` + event-log skip + `record_donation` lock |
+| Refund → ledger | ✅ sound; 1 limitation | `docs/payments/refunds-and-disputes.md` (partial-refund stat delta deferred) |
+| Dispute → ledger | ✅ sound (reconciliation-aware) | sets `reconciliation_status=needs_review`; idempotent upsert |
+| Checkout double-submit | ✅ adequately protected | button `disabled={loading}` + webhook dedup; per-attempt key is correct |
+| RLS on admin/finance/marketing tables | ✅ hardened this session | migration `20260723000000`; `docs/security/rls-matrix.md` |
+
+**Overall: the payment subsystem is in good shape.** No blind financial changes
+were made. Remaining payment items are **verification** (Stripe test clocks for
+refund/dispute lifecycles; reconciliation-job output) and **one deferred fix**
+(partial-refund campaign-stat delta), all gated on Stripe **test** keys + staging.
+
 ## Known real findings (open)
 
 | Sev | Area | Finding | Owner action? |
