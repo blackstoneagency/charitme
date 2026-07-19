@@ -9,6 +9,8 @@ import {
   type RequestActor,
   type RequestStatus,
 } from '../../../../../lib/sponsorships-core';
+import { notify } from '../../../../../lib/notify';
+import { sponsorshipOfferResolved } from '../../../../../lib/notify-core';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -29,7 +31,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
   const { data: opp } = await supabaseAdmin
     .from('sponsorship_opportunities')
-    .select('organizer_id, raised_amount_cents')
+    .select('organizer_id, raised_amount_cents, title')
     .eq('id', req.opportunity_id)
     .maybeSingle();
   if (!opp) return NextResponse.json({ error: 'Opportunity not found' }, { status: 404 });
@@ -73,5 +75,11 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
     .update({ status })
     .eq('id', id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Notify the sponsor when the organizer resolves their offer.
+  if (isOrganizer) {
+    await notify(req.sponsor_id, sponsorshipOfferResolved(status, opp.title as string), { request_id: id });
+  }
+
   return NextResponse.json({ ok: true });
 }
