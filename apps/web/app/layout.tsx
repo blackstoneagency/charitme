@@ -31,7 +31,7 @@ export const viewport: Viewport = {
 
 // Inline script runs before React hydration to apply the saved theme with no flash.
 // Dark is the default: only an explicit stored 'light' choice yields light mode.
-const themeScript = `try{var t=localStorage.getItem('charitme-theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark')}catch(e){document.documentElement.setAttribute('data-theme','dark')}`;
+const themeScript = `try{var t=localStorage.getItem('charitme-theme-v2');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark')}catch(e){document.documentElement.setAttribute('data-theme','dark')}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

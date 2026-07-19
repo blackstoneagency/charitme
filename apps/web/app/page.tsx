@@ -3,6 +3,7 @@ import type React from 'react';
 import { safeJsonLd } from '../lib/json-ld';
 import { getHomeData, getCategoryStats, getRecentDonations, profileName } from '../lib/home-data';
 import { getCoverForCategory } from '../lib/photo-catalog';
+import CampaignImage from '../components/CampaignImage';
 import { formatMoneyCompact } from '@shared/currencies';
 import { AiSearch, CountUp, Reveal } from './home-parts';
 
@@ -133,9 +134,6 @@ function timeAgo(iso: string): string {
 function pct(raised: number, goal: number): number {
   if (!goal || goal <= 0) return 0;
   return Math.min(100, Math.round((raised / goal) * 100));
-}
-function coverFor(url: string | null | undefined, category: string | null): string {
-  return url && url.startsWith('http') ? url : getCoverForCategory(category);
 }
 
 export default async function HomePage() {
@@ -341,8 +339,7 @@ export default async function HomePage() {
                 <Reveal as="article" key={c.slug} className="home-card" delay={(i % 3) * 70}>
                   <Link href={`/campaigns/${c.slug}`} className="home-card-link">
                     <div className="home-card-media">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={coverFor(c.cover_image_url, c.category)} alt={c.title} loading="lazy" decoding="async" width={420} height={264} />
+                      <CampaignImage src={c.cover_image_url} category={c.category} alt={c.title} width={420} height={264} />
                       {c.category && <span className="home-card-cat">{c.category}</span>}
                     </div>
                     <div className="home-card-body">
