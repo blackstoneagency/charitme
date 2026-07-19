@@ -103,6 +103,18 @@ tests/build/live-HTTP are listed here.
   real migration + schema SQL and fails if any future table lacks RLS. Replaces
   reliance on the older `rls.test.ts` which only tests a TS re-implementation of
   the policy logic, not the real schema. _Evidence: 341 tests pass (was 339)._
+- **CHAR-F007 · security/production** — The rate limiter was a process-local
+  in-memory Map, so on serverless (Vercel) each instance kept its own counter
+  and the effective limit was `limit × instanceCount` — silently defeating
+  throttling on every public endpoint (AI generation, lead capture, reports).
+  It also never evicted expired keys (memory leak). Fixed: (1) in-memory
+  limiter now sweeps expired entries; (2) added a durable Postgres-backed
+  limiter (`check_rate_limit` RPC + `rate_limit_hits` table, migration
+  `20260719130000`) enforcing one shared counter across instances, degrading to
+  the in-memory limiter if the DB is unavailable; (3) wired the expensive
+  `ai/campaign` endpoint to the durable limiter. Also aliased `server-only` in
+  vitest so server modules are testable. _Evidence: 348 tests pass (+7 incl.
+  eviction + durable-fallback); build ✅._
 - **CHAR-O001 · data** — 50 fabricated sponsors + 500 fabricated support cases
   already exist in the **live** Supabase (inserted before CHAR-F001). Deleting
   production rows needs explicit owner approval — not yet actioned.

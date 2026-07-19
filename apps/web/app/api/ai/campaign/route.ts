@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { fallbackAiCampaign, openai, OPENAI_MODEL, type AiCampaignResponse } from '../../../../lib/openai';
-import { checkRateLimit } from '../../../../lib/rate-limit';
+import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 import { supabaseAdmin } from '../../../../lib/supabase';
 
 const AiCampaignSchema = z.object({
@@ -13,8 +13,9 @@ const AiCampaignSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for') ?? 'local';
-  if (!checkRateLimit(`ai:${ip}`, 12, 60_000)) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
+  // Durable, cross-instance limit for this expensive OpenAI-backed endpoint.
+  if (!(await checkRateLimitDurable(`ai:${ip}`, 12, 60_000))) {
     return NextResponse.json({ error: 'Too many AI requests', code: 'RATE_LIMITED' }, { status: 429 });
   }
 
