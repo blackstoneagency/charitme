@@ -115,6 +115,11 @@ tests/build/live-HTTP are listed here.
   `ai/campaign` endpoint to the durable limiter. Also aliased `server-only` in
   vitest so server modules are testable. _Evidence: 348 tests pass (+7 incl.
   eviction + durable-fallback); build ✅._
+- **CHAR-F008 · privacy** — The public donor-wall endpoint
+  (`GET /api/campaigns/[id]/donations`) returned supporter names, messages, and
+  amounts for **any** campaign id, including `private` (owner-only) campaigns.
+  Added a visibility guard so private/deleted campaigns return an empty wall;
+  public + unlisted are unchanged. _Evidence: 348 tests pass; typecheck/lint ✅._
 - **CHAR-O001 · data** — 50 fabricated sponsors + 500 fabricated support cases
   already exist in the **live** Supabase (inserted before CHAR-F001). Deleting
   production rows needs explicit owner approval — not yet actioned.

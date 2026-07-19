@@ -32,6 +32,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const offset = Math.max(0, Number(url.searchParams.get('offset')) || 0);
   const since = url.searchParams.get('since');
 
+  // Do not expose the donor wall (names, messages, amounts) for private or
+  // deleted campaigns. Public and unlisted campaigns are shown as normal.
+  const { data: campaign } = await supabaseAdmin
+    .from('campaigns')
+    .select('visibility, deleted_at')
+    .eq('id', id)
+    .maybeSingle();
+  if (!campaign || campaign.deleted_at || (campaign as { visibility?: string }).visibility === 'private') {
+    return NextResponse.json({ donations: [], hasMore: false });
+  }
+
   let query = supabaseAdmin
     .from('donations')
     .select('id, donor_id, amount_cents, message, anonymous, created_at, offline_donor_name, profiles:donor_id(full_name, avatar_url, show_public_profile)')
