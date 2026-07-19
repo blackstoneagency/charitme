@@ -20,6 +20,13 @@
 
 ## Entries
 
+### 2026-07-19 — Agent 5 — Admin grants UI + Volunteers pillar + RLS audit
+- **Admin grants management** (`master` 2fedeef): `/admin/grants` + `/api/admin/grants` (GET/POST) + `/api/admin/grants/[id]` (PATCH/DELETE), admin-gated. Create/edit/publish/close/delete grants; new grants go live on `/grants` immediately. Sidebar "Grants" added to dashboard + admin.
+- **RLS audit** (live prod): 78 public tables, **0 with RLS disabled**. 17 `marketing_*` tables are deny-all-except-service-role (correct for admin-only data). Posture sound. Follow-up: explicit admin policies on marketing tables (defense-in-depth) + per-persona test harness.
+- **Volunteers pillar** (`master` d82e89b): full vertical mirroring grants — 3 tables (RLS applied + verified in prod), lib + scorer, 4 API routes, `/volunteer` discovery + detail + apply, `/dashboard/volunteer` tracker, 11 tests. Gates green (363 tests, build).
+- **Verification note**: migrations applied to LIVE Supabase via Management API (idempotent). Read paths verify against prod; authed write paths (apply/submit/withdraw) still need a real logged-in session to certify — no fake prod data created.
+- **Next candidates**: admin volunteer-opportunities UI (mirror admin grants); Events or Impact pillar; per-persona RLS test harness; grant/volunteer seed of real data (owner-provided).
+
 ### 2026-07-19 — Agent 0/1 — Environment wired + grants verified in production
 - **Env configured**: `apps/web/.env.local` cleaned & validated (owner pasted real credentials). Earlier local 500s were caused by malformed env (leading spaces after `=`), NOT missing network. Sandbox **can** reach Supabase (Node fetch → 200/401 in ~0.1s).
 - **Migration applied to LIVE Supabase** (project `yanexccimwooursawynm`) via Management API query endpoint (`POST https://api.supabase.com/v1/projects/{ref}/database/query`, `Authorization: Bearer <SUPABASE_ACCESS_TOKEN>`). Additive + idempotent, so safe. **This is how future migrations can be applied headlessly** (token lives in `.env.local`, do not print it).

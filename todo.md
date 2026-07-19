@@ -74,27 +74,32 @@ AI platform, admin, lead-gen.
   - Commit: c55f246
   - Follow-ups: sidebar nav entry (shared `CharitMeApp` nav — Agent 8); grant_documents upload UI; grant seed data; AI provider enrichment layer on top of deterministic ranker
 
-- [ ] CHAR-0003
+- [x] CHAR-0003 — **Verified in production** (schema + RLS applied to live Supabase 2026-07-19)
   - Area: Volunteers
   - Feature: Volunteer data model + RLS
-  - Description: `volunteer_profiles`, `volunteer_skills`, `volunteer_opportunities`, `volunteer_applications`, `volunteer_shifts`, `volunteer_hours` with RLS.
+  - Description: `volunteer_opportunities`, `volunteer_profiles`, `volunteer_applications` (skills as `text[]` with GIN indexes; shifts/hours folded into applications for v1) with RLS.
   - Agent: 1 (+5)
   - Priority: P1
-  - Dependencies: none
-  - Database: new tables + RLS
-  - API/UI/Security/Tests: model-only; RLS tests
-  - Completion Evidence: —
-  - Commit: —
+  - Database: new tables + RLS applied via Management API
+  - Security: public read of open opportunities; opt-in public volunteer profiles; applicant-scoped applications; anon read of `volunteer_applications` returns 0 rows (isolation verified)
+  - Tests: RLS verified (all 3 tables `rowsecurity=true`, policies 3/2/1); per-persona harness pending
+  - Completion Evidence: migration `20260719010000_volunteers.sql` applied (HTTP 201); pg_class RLS check passed
+  - Commit: d82e89b
+  - Follow-ups: separate `volunteer_shifts`/`volunteer_hours` tables; opportunity-owner review access to applications; volunteer_profiles editor UI
 
-- [ ] CHAR-0004
+- [~] CHAR-0004 — **Code Complete** (read path deploys to prod; authed writes need a real session to certify)
   - Area: Volunteers
   - Feature: Volunteer marketplace + matching + hours tracking
-  - Description: Opportunity creation/search, applications/approvals, scheduling & shifts, check-in/out, hours verification, AI skills matching.
+  - Description: Opportunity discovery/search/filter (remote), idempotent apply, application tracking + withdraw, deterministic skill-match scorer (AI-fallback).
   - Agent: 5 (+6)
   - Priority: P2
   - Dependencies: CHAR-0003
-  - Completion Evidence: —
-  - Commit: —
+  - API: `/api/volunteers/opportunities` (GET/POST), `/api/volunteers/opportunities/[id]/apply`, `/api/volunteers/applications` (GET), `/api/volunteers/applications/[id]` (PATCH withdraw)
+  - UI: `/volunteer`, `/volunteer/[slug]`, `/dashboard/volunteer` (mobile-first) + sidebar nav
+  - Tests: 11 unit tests (scorer + schemas + slots) passing; `next build` compiled all routes
+  - Completion Evidence: 363 tests pass; typecheck clean; build green
+  - Commit: d82e89b
+  - Follow-ups: admin opportunities management UI (mirror admin grants); hours logging + verification UI; AI matching enrichment
 
 - [ ] CHAR-0005
   - Area: Events
@@ -167,9 +172,10 @@ AI platform, admin, lead-gen.
   - Completion Evidence: —
   - Commit: —
 
-- [ ] CHAR-0012
+- [~] CHAR-0012 — **Audit done (posture sound)**; automated per-persona tests pending
   - Area: Security / hardening
   - Feature: RLS coverage audit + automated RLS tests
+  - Audit result (2026-07-19, live prod): 78 public tables; **0 with RLS disabled** (no raw exposure). 17 `marketing_*` tables are RLS-enabled with no policies = deny-all except service role (correct for admin-only data accessed via `supabaseAdmin`). 61 tables have explicit policies. Follow-up (defense-in-depth, non-urgent): add explicit admin-scoped policies to the 17 marketing tables so intent is documented in-schema. Automated per-persona RLS test harness still to build.
   - Description: Enumerate every user-accessible table, confirm RLS enabled + policies, add automated per-persona RLS tests (unauth, donor, organizer, nonprofit admin, corporate admin, T&S, finance, support, super admin).
   - Agent: 1 (+7)
   - Priority: P0
