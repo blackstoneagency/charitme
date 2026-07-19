@@ -452,3 +452,14 @@ Adds corporate accounts, employees, and matching-gift rules on top of this branc
 | API | `GET/POST /api/corporate`, `GET/POST /api/corporate/rules` (+ `PATCH/DELETE /[id]`), `GET/POST /api/corporate/members` — corporate-admin-scoped |
 | UI | `/dashboard/corporate` — register company, define rules with caps, invite employees + nav entry |
 | Evidence | typecheck ✅ · 423 unit tests ✅ (14 new) · lint ✅ · build ✅. Not yet verified against live Supabase. |
+
+### Follow-up: corporate rules wired into the matching-gift claim flow (delivered)
+
+`POST /api/matching-gifts` now resolves the match against a registered corporate
+account's rules + caps (via `lib/corporate.resolveCorporateMatch`) when the donor
+has an active membership or an email domain matching a company — linking
+`corporate_account_id` and using the real ratio/caps net of the donor's prior
+matches this year. Falls back to the static estimator otherwise. The response
+carries `estimate.source: 'corporate' | 'estimator'`. Verified: typecheck · 423
+unit tests · lint · build all pass (corporate resolution logic covered by the
+14 `lib/corporate` tests).

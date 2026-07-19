@@ -4,8 +4,83 @@ import { z } from 'zod';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 import { estimateMatchForEmployer } from '../../../lib/matching-gifts';
+import { emailDomain, resolveCorporateMatch, type MatchingGiftRule } from '../../../lib/corporate';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * If the donor belongs to a registered corporate account (by verified
+ * membership or matching email domain), resolve the match against that
+ * company's rules + caps. Returns null to fall back to the static estimator.
+ */
+async function resolveCorporate(opts: {
+  userId: string;
+  userEmail: string | null | undefined;
+  donationCents: number;
+  campaignId: string;
+}): Promise<{ accountId: string; accountName: string; ratio: number; matchedCents: number } | null> {
+  const { userId, userEmail, donationCents, campaignId } = opts;
+
+  // Prefer an active membership; otherwise match the email domain.
+  const { data: membership } = await supabaseAdmin
+    .from('corporate_members')
+    .select('corporate_id')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .maybeSingle();
+
+  let account: { id: string; name: string; default_match_ratio: number; annual_cap_cents: number | null; active: boolean } | null = null;
+  if (membership) {
+    const { data } = await supabaseAdmin
+      .from('corporate_accounts')
+      .select('id, name, default_match_ratio, annual_cap_cents, active')
+      .eq('id', membership.corporate_id)
+      .maybeSingle();
+    account = data ?? null;
+  } else {
+    const domain = emailDomain(userEmail);
+    if (domain) {
+      const { data } = await supabaseAdmin
+        .from('corporate_accounts')
+        .select('id, name, default_match_ratio, annual_cap_cents, active')
+        .eq('email_domain', domain)
+        .maybeSingle();
+      account = data ?? null;
+    }
+  }
+
+  if (!account || !account.active) return null;
+
+  const [{ data: ruleRows }, { data: campaign }] = await Promise.all([
+    supabaseAdmin.from('matching_gift_rules').select('category, ratio, per_gift_cap_cents, annual_cap_cents, active').eq('corporate_id', account.id),
+    supabaseAdmin.from('campaigns').select('category').eq('id', campaignId).maybeSingle(),
+  ]);
+
+  // Prior matched this calendar year (for the annual cap), for this donor + account.
+  const yearStart = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1)).toISOString();
+  const { data: priorClaims } = await supabaseAdmin
+    .from('matching_gift_claims')
+    .select('estimated_match_cents')
+    .eq('donor_id', userId)
+    .eq('corporate_account_id', account.id)
+    .gte('created_at', yearStart)
+    .in('status', ['submitted', 'requested_from_employer', 'approved', 'received']);
+  const priorMatched = (priorClaims ?? []).reduce((s, c) => s + (Number(c.estimated_match_cents) || 0), 0);
+
+  const rules: MatchingGiftRule[] = (ruleRows ?? []).map((r) => ({
+    category: r.category, ratio: Number(r.ratio) || 0, perGiftCapCents: r.per_gift_cap_cents, annualCapCents: r.annual_cap_cents, active: r.active,
+  }));
+
+  const result = resolveCorporateMatch({
+    account: { defaultMatchRatio: Number(account.default_match_ratio) || 1, annualCapCents: account.annual_cap_cents, active: account.active },
+    rules,
+    donationCents,
+    category: (campaign?.category as string) ?? null,
+    priorMatchedThisYearCents: priorMatched,
+  });
+
+  return { accountId: account.id, accountName: account.name, ratio: result.ratio, matchedCents: result.matchedCents };
+}
 
 const CreateSchema = z.object({
   donationId: z.string().uuid(),
@@ -83,16 +158,30 @@ export async function POST(request: NextRequest) {
   }
 
   const amountCents = Number(donation.amount_cents) || 0;
+
+  // Prefer a verified corporate-account match (rules + caps); fall back to the
+  // static employer estimator.
+  const corporate = await resolveCorporate({
+    userId: user.id,
+    userEmail: user.email,
+    donationCents: amountCents,
+    campaignId: donation.campaign_id,
+  });
   const estimate = estimateMatchForEmployer(amountCents, employerName);
+
+  const usedCorporate = corporate != null;
+  const ratio = usedCorporate ? corporate!.ratio : estimate.ratio;
+  const matchedCents = usedCorporate ? corporate!.matchedCents : estimate.estimatedMatchCents;
 
   const row = {
     donation_id: donationId,
     campaign_id: donation.campaign_id,
     donor_id: user.id,
-    employer_name: employerName,
+    employer_name: usedCorporate ? corporate!.accountName : employerName,
     donation_amount_cents: amountCents,
-    match_ratio: estimate.ratio,
-    estimated_match_cents: estimate.estimatedMatchCents,
+    match_ratio: ratio,
+    estimated_match_cents: matchedCents,
+    corporate_account_id: usedCorporate ? corporate!.accountId : null,
     status: 'submitted' as const,
     note: note ?? null,
   };
@@ -104,5 +193,13 @@ export async function POST(request: NextRequest) {
 
   if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
 
-  return NextResponse.json({ claim: inserted, estimate: { matched: estimate.matched, ratio: estimate.ratio, estimatedMatchCents: estimate.estimatedMatchCents } }, { status: 201 });
+  return NextResponse.json({
+    claim: inserted,
+    estimate: {
+      matched: usedCorporate ? matchedCents > 0 : estimate.matched,
+      ratio,
+      estimatedMatchCents: matchedCents,
+      source: usedCorporate ? 'corporate' : 'estimator',
+    },
+  }, { status: 201 });
 }
