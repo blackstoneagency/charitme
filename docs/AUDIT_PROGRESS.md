@@ -24,6 +24,12 @@
   #10 would only risk regressing live features). Evidence in the PR comment.
 - **Lint cleanup**: removed a dead `supabaseAdmin` import in `app/events/[slug]/page.tsx`
   and a stale file-level `eslint-disable` in `app/campaigns/[slug]/page.tsx`.
+- **Stripe Connect onboarding hardening** (`/api/stripe/connect` POST): wrapped
+  account/link creation in try/catch returning a clean `502 {error}` with the real
+  Stripe reason (was an opaque 500 with no body); switched the connected-account
+  lookup to `.maybeSingle()` so first-time users don't trigger a 0-row error. The
+  `/create` payout page now shows the actual cause instead of the generic
+  "STRIPE_SECRET_KEY … in Vercel" string.
 
 ## Known real findings (open)
 
