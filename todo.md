@@ -179,15 +179,180 @@ tests/build/live-HTTP are listed here.
 
 ## 0.2 Highest-Value Backlog (prioritized, next up)
 
-1. **Stripe webhook idempotency + signature hardening** — audit
-   `/api/stripe/webhook` for replay protection and idempotent stat updates
-   (money path). _Security + Financial._
+1. ~~Stripe webhook idempotency + signature hardening~~ — **DONE** (CHAR-F005
+   idempotency advisory-lock + CHAR-F012 dual-secret verification).
 2. **RLS test matrix** — automated tests per persona (donor, organizer,
-   nonprofit admin, support, finance, super admin) proving tenant isolation.
+   nonprofit admin, support, finance, super admin) proving tenant isolation
+   against a live Postgres (needs a test DB; the DB-free coverage guard from
+   CHAR-F006 is shipped).
 3. **Full CSP with nonces** — enforce script-src/style-src safely (CHAR-O004).
 4. **Semantic search** — upgrade keyword search to embeddings-backed search.
 5. **Production seed strategy** — replace/guard the seeded campaigns/donations/
    profiles so real vs. demo data is unambiguous (CHAR-O001).
+
+See **§0.3** below for the detailed, per-task breakdown of the largest
+remaining feature gaps.
+
+---
+
+## 0.3 Structured Task Backlog (implementable)
+
+Detailed task breakdown for the highest-value gaps, in the spec's §4 format.
+Status values: Not Started · In Progress · Blocked · Code Complete · Testing ·
+Verified · Production Ready. These are grounded in the current codebase
+(existing tables/routes noted under Dependencies).
+
+### Nonprofit onboarding & verification
+
+- [ ] **CHAR-1001**
+  - Area: Nonprofits
+  - Feature: Nonprofit registration & profile
+  - Description: Let an org register as a nonprofit (legal name, EIN/registration
+    number, country, address, mission, website, logo) and manage a public
+    charity profile page. Builds on the existing `nonprofit_profiles` table and
+    `admin/nonprofits` route rather than a new schema.
+  - Agent: 5 (Nonprofits)
+  - Priority: High
+  - Dependencies: `nonprofit_profiles` table (exists); `profiles.role`; Storage
+    `campaign-media`/a new `org-logos` bucket.
+  - Database: extend `nonprofit_profiles` (ein, country, address, status);
+    migration + RLS (owner read/write, public read of verified only).
+  - API: `POST/PATCH /api/nonprofits`, `GET /api/nonprofits/[slug]`.
+  - UI: `/dashboard/nonprofit` onboarding wizard; public `/nonprofits/[slug]`.
+  - Security: server-side validation (EIN format), owner-scoped RLS, admin-only
+    verification transitions.
+  - Tests: zod schema unit tests; RLS coverage (already guarded); route authz.
+  - Completion Evidence: —
+  - Commit: —
+
+- [ ] **CHAR-1002**
+  - Area: Nonprofits / Trust
+  - Feature: Nonprofit verification workflow
+  - Description: Document upload (501(c)(3) letter, registration proof), admin
+    review queue, status transitions (pending → in_review → verified/rejected),
+    verified trust badge on charity + campaign pages.
+  - Agent: 7 (Trust & Safety)
+  - Priority: High
+  - Dependencies: CHAR-1001; `nonprofit_verifications`; `receipts`-style private
+    Storage bucket with signed URLs (pattern exists in `upload/receipt`).
+  - Database: `nonprofit_verifications` (status, documents[], reviewer_id,
+    notes, decided_at); audit_logs entries.
+  - API: `POST /api/nonprofits/[id]/verification`, admin
+    `PATCH /api/admin/nonprofits/[id]/verification`.
+  - UI: org verification page; admin review UI under `admin/trust-safety`.
+  - Security: private bucket + signed URLs; admin-only decisions; audit log.
+  - Tests: status-machine unit tests; upload authz (mirror CHAR-F009 pattern).
+  - Completion Evidence: —
+  - Commit: —
+
+### Volunteer system
+
+- [ ] **CHAR-1101**
+  - Area: Volunteers
+  - Feature: Volunteer profiles, opportunities & applications
+  - Description: Volunteer profile (skills, interests, availability, location);
+    orgs post opportunities; volunteers apply; org approves/declines.
+  - Agent: 5
+  - Priority: Medium
+  - Dependencies: profiles; nonprofit_profiles (CHAR-1001).
+  - Database: `volunteer_profiles`, `volunteer_opportunities`,
+    `volunteer_applications` (+ RLS: public read of open opportunities,
+    owner-scoped applications).
+  - API: CRUD routes under `/api/volunteers/*`.
+  - UI: `/volunteer` marketplace, opportunity detail, application flow,
+    org management under dashboard.
+  - Security: owner-scoped RLS; rate-limit public application submissions
+    (use `checkRateLimitDurable`).
+  - Tests: matching logic; authz; RLS coverage guard picks up new tables.
+  - Completion Evidence: —
+  - Commit: —
+
+- [ ] **CHAR-1102**
+  - Area: Volunteers
+  - Feature: Shifts, check-in/out & hours tracking
+  - Description: Schedule shifts, QR check-in/out, accumulate verified hours,
+    export hours for corporate volunteer programs.
+  - Agent: 5
+  - Priority: Medium
+  - Dependencies: CHAR-1101.
+  - Database: `volunteer_shifts`, `volunteer_hours`.
+  - API: shift CRUD, check-in/out endpoints (idempotent).
+  - UI: shift calendar, check-in screen, hours dashboard.
+  - Security: signed check-in tokens; org-scoped RLS.
+  - Tests: hours aggregation; idempotent check-in.
+  - Completion Evidence: —
+  - Commit: —
+
+### Events & ticketing
+
+- [ ] **CHAR-1201**
+  - Area: Events
+  - Feature: Fundraising events with registration & ticketing
+  - Description: Create free/ticketed events tied to a campaign; registration;
+    Stripe-backed paid tickets reusing the existing checkout + webhook flow;
+    QR check-in.
+  - Agent: 2 / 3
+  - Priority: Medium
+  - Dependencies: campaigns; Stripe checkout + webhook (reuse `record_donation`
+    idempotency pattern for ticket purchases).
+  - Database: `events`, `event_registrations`, `event_tickets`,
+    `event_checkins`.
+  - API: event CRUD, register, ticket purchase (Checkout Session), check-in.
+  - UI: event page, registration, ticket wallet, organizer check-in scanner.
+  - Security: capacity limits enforced server-side; idempotent ticket issuance;
+    signed check-in QR tokens.
+  - Tests: capacity/waitlist logic; idempotent purchase; refund path.
+  - Completion Evidence: —
+  - Commit: —
+
+### Corporate giving & matching gifts
+
+- [ ] **CHAR-1301**
+  - Area: Corporate giving
+  - Feature: Employer matching gifts
+  - Description: Donor selects employer at checkout; matching rules
+    (ratio, cap) create a pending match; corporate admin approves; matched funds
+    recorded against the campaign. Builds on existing `lib/employer-matching.ts`.
+  - Agent: 5 / 3
+  - Priority: Medium
+  - Dependencies: donations; `corporate_accounts`; employer-matching lib.
+  - Database: `corporate_accounts`, `matching_rules`, `matching_gifts`.
+  - API: employer lookup (exists), match creation on donation, admin approval.
+  - UI: employer picker at checkout (widget exists), corporate admin dashboard.
+  - Security: corporate-admin RLS; budget caps enforced server-side; audit log.
+  - Tests: match calculation (ratio/cap); approval workflow; idempotency.
+  - Completion Evidence: —
+  - Commit: —
+
+### Platform hardening (from open items)
+
+- [ ] **CHAR-1401**
+  - Area: Security
+  - Feature: Full Content-Security-Policy with nonces (CHAR-O004)
+  - Description: Add script-src/style-src CSP using a per-request nonce injected
+    via middleware; the app's pervasive inline styles need `style-src` handling
+    (nonce or hash). `frame-ancestors` already shipped (CHAR-F004).
+  - Agent: 8 / 9
+  - Priority: High
+  - Dependencies: middleware.ts; root layout.
+  - Security: eliminates inline-script/style injection surface.
+  - Tests: middleware header test; live-HTTP verification per CHAR-F004.
+  - Completion Evidence: —
+  - Commit: —
+
+- [ ] **CHAR-1402**
+  - Area: Data integrity (CHAR-O001)
+  - Feature: Production seed guard + demo-data labeling
+  - Description: Ensure seeded campaigns/donations/profiles are unambiguously
+    demo (flag column or separate env), and provide an admin-approved cleanup
+    path for the fabricated sponsors/support rows already in the live DB.
+  - Agent: 1 / 9
+  - Priority: High
+  - Dependencies: schema.sql seed block; admin approval (owner decision).
+  - Security: never auto-delete production rows without explicit confirmation.
+  - Tests: seed idempotency; guard prevents seed in production env.
+  - Completion Evidence: —
+  - Commit: —
 
 ---
 
