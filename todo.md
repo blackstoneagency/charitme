@@ -145,6 +145,14 @@ tests/build/live-HTTP are listed here.
   and applied it to all 9 JSON-LD script tags across 7 pages (campaign, home,
   blog, features, help, faq, pricing). _Evidence: 360 tests pass (+4, incl. a
   `</script>` breakout case); build ✅._
+- **CHAR-F012 · payments/connect** — The Stripe webhook verified signatures
+  only against `STRIPE_WEBHOOK_SECRET`, but it also handles Connect events
+  (`account.updated`, `payout.created/paid/failed`, `transfer.created`) that in
+  a standard setup arrive on a separate endpoint signed with
+  `STRIPE_CONNECT_WEBHOOK_SECRET`. Those would be rejected (400), silently
+  breaking payout status + onboarding-completion (`stripe_onboarded`). Now
+  verifies against both configured secrets. _Evidence: typecheck/lint/360
+  tests pass._
 - **CHAR-O001 · data** — 50 fabricated sponsors + 500 fabricated support cases
   already exist in the **live** Supabase (inserted before CHAR-F001). Deleting
   production rows needs explicit owner approval — not yet actioned.

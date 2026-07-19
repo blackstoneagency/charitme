@@ -11,10 +11,26 @@ export async function POST(request: NextRequest) {
   const body = await request.text();
   const sig = request.headers.get('stripe-signature') ?? '';
 
-  let event: Stripe.Event;
-  try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
-  } catch {
+  // Verify against the platform secret and (if configured) the Connect secret.
+  // Connect events (account.updated, payout.*, transfer.*) are delivered on a
+  // separate webhook endpoint signed with STRIPE_CONNECT_WEBHOOK_SECRET; trying
+  // both secrets lets this single route accept platform and Connect events
+  // without weakening verification (an attacker still can't forge either).
+  const secrets = [
+    process.env.STRIPE_WEBHOOK_SECRET,
+    process.env.STRIPE_CONNECT_WEBHOOK_SECRET,
+  ].filter((s): s is string => !!s);
+
+  let event: Stripe.Event | null = null;
+  for (const secret of secrets) {
+    try {
+      event = stripe.webhooks.constructEvent(body, sig, secret);
+      break;
+    } catch {
+      // try the next configured secret
+    }
+  }
+  if (!event) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
