@@ -55,6 +55,17 @@ parallel session's merged `docs/payments/money-flow.md` (commit `73a2d0e`):
 end-to-end (charge→fee→transfer→payout→reconcile), refund/dispute financial
 states, and the reconciliation job, all needing Stripe **test** keys + staging.
 
+## AI routes audit (this session)
+
+Scanned all 16 `/api/ai/*` routes for auth, rate limiting, and provider fallback:
+- **Fixed**: `grant-match` was the only one missing rate limiting — an
+  unauthenticated POST running a ~300-row scan + `grant_matches` upserts per call.
+  Added IP-based `checkRateLimit(20/min)` (commit `05be1e3`).
+- All 16 now rate-limited; all that call OpenAI have a deterministic fallback
+  (no fake responses when the provider is unavailable — §5.10). Public AI routes
+  (campaign, goal-recommend, donation-impact, donor-conversion) are unauthenticated
+  by design but rate-limited.
+
 ## Payment subsystem audit — conclusions (this session)
 
 Audited the money paths end-to-end at code level. Findings + evidence:
