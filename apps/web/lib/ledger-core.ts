@@ -102,6 +102,31 @@ export function buildRefundEntries(input: RefundInput): LedgerLine[] {
   return lines;
 }
 
+/**
+ * A lost dispute (chargeback) is a forced clawback: the money leaves via the card
+ * network, not a refund we initiated. Reverse the recipient payable (and platform
+ * fee if we absorb it) into the `disputes` account rather than `refunds`, so the
+ * two loss channels stay distinguishable in the books.
+ *
+ *   Debit  recipient_payable  refundDonationCents
+ *   Debit  platform_revenue   refundPlatformFee   (if the fee is also lost)
+ *   Credit disputes           total lost
+ */
+export function buildDisputeLossEntries(input: RefundInput): LedgerLine[] {
+  const donation = input.refundDonationCents;
+  const fee = input.refundPlatformFeeCents ?? 0;
+  if (donation < 0 || fee < 0) throw new Error('Dispute amounts must be non-negative');
+  const total = donation + fee;
+  const all: LedgerLine[] = [
+    { account: 'recipient_payable', direction: 'debit', amount_cents: donation },
+    { account: 'platform_revenue', direction: 'debit', amount_cents: fee },
+    { account: 'disputes', direction: 'credit', amount_cents: total },
+  ];
+  const lines = all.filter((l) => l.amount_cents > 0);
+  assertBalanced(lines);
+  return lines;
+}
+
 // ── Reconciliation ────────────────────────────────────────────────────────────
 
 export interface ReconcileResult {

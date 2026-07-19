@@ -8,6 +8,7 @@ import {
   assertBalanced,
   buildDonationEntries,
   buildRefundEntries,
+  buildDisputeLossEntries,
   reconcileAmounts,
   accountBalance,
   type LedgerLine,
@@ -107,6 +108,29 @@ describe('buildRefundEntries', () => {
 
   it('rejects negative refund amounts', () => {
     expect(() => buildRefundEntries({ refundDonationCents: -100 })).toThrow(/non-negative/i);
+  });
+});
+
+describe('buildDisputeLossEntries', () => {
+  it('reverses recipient payable + fee into the disputes account (not refunds)', () => {
+    const lines = buildDisputeLossEntries({ refundDonationCents: 9500, refundPlatformFeeCents: 500 });
+    expect(isBalanced(lines)).toBe(true);
+    expect(accountBalance(lines, 'recipient_payable')).toBe(-9500);
+    expect(accountBalance(lines, 'platform_revenue')).toBe(-500);
+    expect(accountBalance(lines, 'disputes')).toBe(10000);
+    expect(lines.some((l) => l.account === 'refunds')).toBe(false);
+  });
+
+  it('keeps the loss channel distinct from a refund of the same amount', () => {
+    const dispute = buildDisputeLossEntries({ refundDonationCents: 9500 });
+    const refund = buildRefundEntries({ refundDonationCents: 9500 });
+    expect(dispute.some((l) => l.account === 'disputes')).toBe(true);
+    expect(refund.some((l) => l.account === 'refunds')).toBe(true);
+    expect(accountBalance(dispute, 'recipient_payable')).toBe(accountBalance(refund, 'recipient_payable'));
+  });
+
+  it('rejects negative dispute amounts', () => {
+    expect(() => buildDisputeLossEntries({ refundDonationCents: -1 })).toThrow(/non-negative/i);
   });
 });
 

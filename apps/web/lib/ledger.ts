@@ -10,6 +10,7 @@ import {
   assertBalanced,
   buildDonationEntries,
   buildRefundEntries,
+  buildDisputeLossEntries,
   type LedgerLine,
   type DonationSplit,
   type RefundInput,
@@ -76,11 +77,12 @@ export async function postDonation(split: DonationSplit, meta: Omit<LedgerMeta, 
 
 /** Convenience: post a refund reversal. */
 export async function postRefund(input: RefundInput, meta: Omit<LedgerMeta, 'eventType'>) {
-  const full = (input.refundPlatformFeeCents ?? 0) === 0;
-  return postEntryGroup(buildRefundEntries(input), {
-    ...meta,
-    eventType: full ? 'partial_refund' : 'refund',
-  });
+  return postEntryGroup(buildRefundEntries(input), { ...meta, eventType: 'refund' });
+}
+
+/** Convenience: post a chargeback (lost-dispute) reversal into the disputes account. */
+export async function postDisputeLoss(input: RefundInput, meta: Omit<LedgerMeta, 'eventType'>) {
+  return postEntryGroup(buildDisputeLossEntries(input), { ...meta, eventType: 'dispute' });
 }
 
 export interface LedgerRow extends LedgerLine {
@@ -122,8 +124,22 @@ export interface ReconciliationException {
   actualCents?: number | null;
 }
 
-/** Record a reconciliation exception (idempotent-ish: callers should dedupe by ref). */
+/**
+ * Record a reconciliation exception. When a `stripeRef` is supplied, this is
+ * idempotent: it will not open a second OPEN exception of the same kind for the
+ * same ref (so retried webhooks don't pile up duplicates).
+ */
 export async function openReconciliationException(x: ReconciliationException): Promise<void> {
+  if (x.stripeRef) {
+    const { data: existing } = await supabaseAdmin
+      .from('reconciliation_exceptions')
+      .select('id')
+      .eq('status', 'open')
+      .eq('kind', x.kind)
+      .eq('stripe_ref', x.stripeRef)
+      .limit(1);
+    if (existing && existing.length) return; // already flagged, don't duplicate
+  }
   const difference =
     x.expectedCents != null && x.actualCents != null ? x.expectedCents - x.actualCents : null;
   await supabaseAdmin.from('reconciliation_exceptions').insert({

@@ -6,7 +6,7 @@ import { supabaseAdmin } from '../../../../lib/supabase';
 import { sendReceiptEmail, sendOrganizerDonationAlert, sendPayoutEmail, sendRefundEmail } from '../../../../lib/email';
 import { recordCampaignPayment, recordPaymentEvent } from '../../../../lib/payment-flow';
 import { resolveContact, trackEvent, refreshContactScores } from '../../../../lib/marketing-engine';
-import { postDonation } from '../../../../lib/ledger';
+import { postDonation, postRefund, postDisputeLoss, openReconciliationException } from '../../../../lib/ledger';
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -685,13 +685,13 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
 
   // Update donation status
   const { data: donation } = await supabaseAdmin.from('donations')
-    .select('id, amount_cents, campaign_id, donor_id, campaigns:campaign_id(title, slug)')
+    .select('id, amount_cents, tip_cents, campaign_id, donor_id, campaigns:campaign_id(title, slug)')
     .eq('stripe_payment_intent_id', piId)
     .maybeSingle();
 
   if (!donation) return;
 
-  type DonationWithCampaign = { id: string; amount_cents: number; campaign_id: string; donor_id: string | null; campaigns: { title: string; slug: string } | null };
+  type DonationWithCampaign = { id: string; amount_cents: number; tip_cents: number; campaign_id: string; donor_id: string | null; campaigns: { title: string; slug: string } | null };
   const don = donation as unknown as DonationWithCampaign;
 
   await supabaseAdmin.from('donations').update({
@@ -707,6 +707,41 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
         p_amount_cents: don.amount_cents,
       });
     } catch { /* non-fatal */ }
+  }
+
+  // Immutable ledger: reverse the recipient payable on refund (best-effort,
+  // never blocks refund processing). A FULL refund is unambiguous — reverse the
+  // whole donation principal + platform fee, keyed idempotently by charge id.
+  // A PARTIAL refund's split across principal vs. fees is ambiguous from the
+  // charge alone, so we open a reconciliation exception for finance to reverse
+  // by hand rather than guess and post a wrong entry.
+  try {
+    if (isFullRefund) {
+      await postRefund(
+        { refundDonationCents: don.amount_cents, refundPlatformFeeCents: don.tip_cents ?? 0 },
+        {
+          idempotencyKey: `${charge.id}:refund:full`,
+          currency: charge.currency,
+          campaignId: don.campaign_id,
+          donationId: don.id,
+          stripeChargeId: charge.id,
+          stripeRefundId: piId,
+          source: 'webhook:charge.refunded',
+        },
+      );
+    } else {
+      await openReconciliationException({
+        kind: 'amount_mismatch',
+        description: `Partial refund of ${charge.amount_refunded ?? 0} needs a manual ledger reversal (split across principal/fees is ambiguous).`,
+        campaignId: don.campaign_id,
+        donationId: don.id,
+        stripeRef: charge.id,
+        expectedCents: charge.amount_refunded ?? 0,
+        actualCents: 0,
+      });
+    }
+  } catch (e) {
+    console.warn('[ledger] refund reversal failed (non-blocking):', e);
   }
 
   // Update any matching refund record
@@ -857,6 +892,33 @@ async function handleDisputeClosed(dispute: Stripe.Dispute) {
     })
     .eq('stripe_payment_intent_id', piId)
     .eq('status', 'disputed');
+
+  // Immutable ledger: a LOST dispute is a forced clawback — reverse the recipient
+  // payable + platform fee into the disputes account (best-effort, idempotent by
+  // dispute id). A WON dispute leaves the money in place, so no ledger change.
+  if (!won) {
+    try {
+      const { data: don } = await supabaseAdmin.from('donations')
+        .select('id, amount_cents, tip_cents, campaign_id')
+        .eq('stripe_payment_intent_id', piId)
+        .maybeSingle();
+      if (don) {
+        await postDisputeLoss(
+          { refundDonationCents: don.amount_cents, refundPlatformFeeCents: don.tip_cents ?? 0 },
+          {
+            idempotencyKey: `${dispute.id}:dispute:lost`,
+            currency: dispute.currency,
+            campaignId: don.campaign_id,
+            donationId: don.id,
+            stripeRefundId: dispute.id,
+            source: 'webhook:charge.dispute.closed',
+          },
+        );
+      }
+    } catch (e) {
+      console.warn('[ledger] dispute-loss reversal failed (non-blocking):', e);
+    }
+  }
 
   await supabaseAdmin.from('refunds')
     .update({ status: won ? 'declined' : 'processed', processed_at: new Date().toISOString() })
