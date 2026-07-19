@@ -94,7 +94,15 @@ tests/build/live-HTTP are listed here.
   `schema.sql`. _Evidence: migration `20260719120000`; 339 tests still pass.
   Needs to be applied to the DB via the normal migration flow._
 
-### Known open items surfaced this session (need owner decision)
+- **CHAR-F006 · security/tests** — Verified (spec §7) that **all 114 tables**
+  have RLS enabled — 80 via literal statements, 34 (payment + marketing
+  clusters) via dynamic `foreach ... enable row level security` loops that a
+  static grep can't see. Marketing tables use an intentional deny-by-default
+  design (RLS on, no anon/authenticated policies, service-role only). Added
+  `__tests__/rls-coverage.test.ts`, a DB-free regression guard that parses the
+  real migration + schema SQL and fails if any future table lacks RLS. Replaces
+  reliance on the older `rls.test.ts` which only tests a TS re-implementation of
+  the policy logic, not the real schema. _Evidence: 341 tests pass (was 339)._
 - **CHAR-O001 · data** — 50 fabricated sponsors + 500 fabricated support cases
   already exist in the **live** Supabase (inserted before CHAR-F001). Deleting
   production rows needs explicit owner approval — not yet actioned.
