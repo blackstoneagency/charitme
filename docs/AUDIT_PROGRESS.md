@@ -75,6 +75,25 @@ were made. Remaining payment items are **verification** (Stripe test clocks for
 refund/dispute lifecycles; reconciliation-job output) and **one deferred fix**
 (partial-refund campaign-stat delta), all gated on Stripe **test** keys + staging.
 
+## API authorization & tenant-isolation audit — CLEAN (this session)
+
+Middleware's matcher **excludes `/api`**, so API routes must self-gate. Audited:
+
+- **Every `/api/admin/*` route is admin-gated** (`verifyAdmin` / `requireAdmin`);
+  scanned all admin route files — zero without a recognized gate. No
+  unauthenticated admin access (§5.17 "no admin button may bypass authz").
+- **User-data routes scope by the session user**, e.g. `/api/donor/donations`
+  filters `.eq('donor_id', user.id)` — not a client-supplied id.
+- **No IDOR-via-query-param**: scan for `searchParams.get('userId')` / body-userId
+  filters used in queries returned nothing.
+- **Public routes serve only public data**: `/api/sponsors` (active + logo/website
+  only), `/api/grants/[id]` (public), `qr-poster`/`rotator` (status=active).
+- **Service-role-only tables** (34) now RLS-hardened (migration `20260723000000`).
+
+Method: `grep` over `apps/web/app/api/**/route.ts` for auth gates + client-supplied
+id filters. Result: no unauthenticated-admin or cross-tenant read defect found in
+the API layer. Per-persona live RLS verification still pending (needs staging).
+
 ## Known real findings (open)
 
 | Sev | Area | Finding | Owner action? |
