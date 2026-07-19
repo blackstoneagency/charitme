@@ -46,8 +46,8 @@ function Icon({ name, className = 'h-5 w-5' }: { name: string; className?: strin
 const FEATURES: { icon: string; tone: string; title: string; body: string; href: string }[] = [
   { icon: 'rocket', tone: 'violet', title: 'Start a fundraiser', body: 'Launch a trusted campaign in minutes with AI writing your story, goal, and plan.', href: '/create' },
   { icon: 'heart', tone: 'pink', title: 'Donate securely', body: 'Give with confidence through encrypted, PCI-compliant Stripe payments.', href: '/campaigns' },
-  { icon: 'globe', tone: 'blue', title: 'Find causes you love', body: 'Search verified fundraisers and nonprofits by cause, location, or need.', href: '/campaigns' },
-  { icon: 'users', tone: 'teal', title: 'Volunteer & rally', body: 'Bring a community together and grow support with peer-to-peer fundraising.', href: '/campaigns?category=Volunteer' },
+  { icon: 'book', tone: 'blue', title: 'Grants & funding', body: 'Discover grant opportunities and apply with AI-assisted matching and drafts.', href: '/grants' },
+  { icon: 'users', tone: 'teal', title: 'Volunteer', body: 'Find volunteer opportunities near you and match your skills to real needs.', href: '/volunteer' },
   { icon: 'building', tone: 'indigo', title: 'Corporate giving', body: 'Match employee donations and sponsor causes with measurable impact reporting.', href: '/for-nonprofits' },
   { icon: 'refresh', tone: 'green', title: 'Recurring giving', body: 'Turn a single gift into lasting change with flexible monthly support.', href: '/campaigns' },
   { icon: 'flag', tone: 'orange', title: 'Emergency relief', body: 'Respond fast to medical crises, disasters, and urgent family needs.', href: '/campaigns?category=Emergency' },
