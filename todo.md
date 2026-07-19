@@ -127,6 +127,15 @@ tests/build/live-HTTP are listed here.
   checked ownership; POST didn't). Added a `canManageCampaign` check. The
   receipt + profile-image upload endpoints were audited and already enforce
   ownership/user-scoping. _Evidence: 348 tests pass; typecheck/lint ✅._
+- **CHAR-F010 · security/exports** — All 5 CSV export endpoints (donors,
+  donations, analytics, admin reports, admin payments) wrote user-controlled
+  values (donor names, messages, tags, campaign titles) into CSVs with only
+  structural escaping — a value like `=HYPERLINK(...)` or `+cmd|calc` executes
+  as a formula when the organizer/admin opens the file (CSV/formula injection).
+  Centralized a `lib/csv.ts` helper that neutralizes leading formula triggers
+  (`= + - @`, tab, CR) while preserving genuine numbers, and refactored all 5
+  routes onto it. _Evidence: 356 tests pass (+8, incl. injection cases);
+  build ✅._
 - **CHAR-O001 · data** — 50 fabricated sponsors + 500 fabricated support cases
   already exist in the **live** Supabase (inserted before CHAR-F001). Deleting
   production rows needs explicit owner approval — not yet actioned.

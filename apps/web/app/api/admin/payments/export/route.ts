@@ -2,6 +2,7 @@ import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { requireAdmin } from '../../../../../lib/auth';
 import { getPaymentAdminData, type PaymentFilters } from '../../../../../lib/payment-admin-data';
+import { escapeCsvCell } from '../../../../../lib/csv';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   await requireAdmin();
@@ -90,5 +91,5 @@ function param(params: URLSearchParams, key: string): string | undefined {
 }
 
 function toCsv(rows: Array<Array<string | number>>): string {
-  return rows.map(row => row.map(cell => `"${String(cell).replaceAll('"', '""')}"`).join(',')).join('\n');
+  return rows.map(row => row.map(escapeCsvCell).join(',')).join('\n');
 }

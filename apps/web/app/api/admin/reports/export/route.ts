@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { isAdmin } from '../../../../../lib/roles';
 import { createClient } from '../../../../../lib/supabase-server';
+import { escapeCsvCell } from '../../../../../lib/csv';
 
 async function verifyAdmin(): Promise<boolean> {
   try {
@@ -14,16 +15,8 @@ async function verifyAdmin(): Promise<boolean> {
   }
 }
 
-function escapeCsv(val: unknown): string {
-  const s = String(val ?? '');
-  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
-}
-
 function rowToCsv(row: Record<string, unknown>): string {
-  return Object.values(row).map(escapeCsv).join(',');
+  return Object.values(row).map(escapeCsvCell).join(',');
 }
 
 export async function POST(request: NextRequest) {

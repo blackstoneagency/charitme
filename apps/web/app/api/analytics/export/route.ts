@@ -2,19 +2,7 @@ import 'server-only';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
-
-function csv(rows: Record<string, unknown>[], headers: string[]): string {
-  const escape = (v: unknown) => {
-    const s = String(v ?? '');
-    return s.includes(',') || s.includes('"') || s.includes('\n')
-      ? `"${s.replace(/"/g, '""')}"`
-      : s;
-  };
-  return [
-    headers.join(','),
-    ...rows.map(r => headers.map(h => escape(r[h])).join(',')),
-  ].join('\n');
-}
+import { toCsv as csv } from '../../../../lib/csv';
 
 export async function GET() {
   const supabase = await createClient();

@@ -4,20 +4,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
-
-function escape(v: unknown): string {
-  const s = String(v ?? '');
-  return s.includes(',') || s.includes('"') || s.includes('\n')
-    ? `"${s.replace(/"/g, '""')}"`
-    : s;
-}
-
-function toCsv(rows: Record<string, unknown>[], headers: string[]): string {
-  return [
-    headers.join(','),
-    ...rows.map(r => headers.map(h => escape(r[h])).join(',')),
-  ].join('\n');
-}
+import { toCsv } from '../../../../lib/csv';
 
 const HEADERS = ['donor_name', 'email', 'tags', 'total_donated_usd', 'donations_count', 'last_donation_date'];
 
