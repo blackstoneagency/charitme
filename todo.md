@@ -120,6 +120,13 @@ tests/build/live-HTTP are listed here.
   amounts for **any** campaign id, including `private` (owner-only) campaigns.
   Added a visibility guard so private/deleted campaigns return an empty wall;
   public + unlisted are unchanged. _Evidence: 348 tests pass; typecheck/lint ✅._
+- **CHAR-F009 · security/authz** — `POST /api/upload/campaign-image` accepted a
+  `campaignId` and wrote media under that campaign's storage folder **without
+  verifying the caller could manage the campaign** — any authenticated user
+  could upload into another user's campaign media (the DELETE handler already
+  checked ownership; POST didn't). Added a `canManageCampaign` check. The
+  receipt + profile-image upload endpoints were audited and already enforce
+  ownership/user-scoping. _Evidence: 348 tests pass; typecheck/lint ✅._
 - **CHAR-O001 · data** — 50 fabricated sponsors + 500 fabricated support cases
   already exist in the **live** Supabase (inserted before CHAR-F001). Deleting
   production rows needs explicit owner approval — not yet actioned.

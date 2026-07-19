@@ -2,6 +2,7 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import { canManageCampaign } from '../../../../lib/auth';
 
 const BUCKET = 'campaign-media';
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -51,6 +52,20 @@ export async function POST(req: NextRequest) {
   const rawType       = formData.get('type');
   const campaignId    = typeof rawCampaignId === 'string' && rawCampaignId.trim() ? rawCampaignId.trim() : null;
   const slotType      = typeof rawType === 'string' && ALLOWED_SLOT_TYPES.has(rawType) ? rawType : 'cover';
+
+  // Authorization: if the upload is scoped to a campaign, the caller must be
+  // able to manage it. Otherwise anyone could write media into another user's
+  // campaign folder. No campaignId → the file is scoped to the user's own folder.
+  if (campaignId) {
+    const { data: campaign } = await supabaseAdmin
+      .from('campaigns')
+      .select('user_id')
+      .eq('id', campaignId)
+      .maybeSingle();
+    if (!campaign || !(await canManageCampaign(user, campaign.user_id))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
 
   const ext      = (file.name.split('.').pop() ?? 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
   const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
