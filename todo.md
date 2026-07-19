@@ -439,9 +439,11 @@ Each domain enforces server-side authz + validated state-machine transitions, an
 ships a pure logic module with no Supabase/Next imports. Remaining scope per domain
 (admin queues, paid-ticket checkout, corporate-account tenancy) tracked inline above.
 
-### Follow-up: CHAR-0001 corporate-account tenancy (delivered)
+### Follow-up: Corporate-account tenancy (delivered) — completes the matching-gifts domain
 
-Completes the matching-gift domain with corporate accounts, employees, and rules.
+> Note: this branch's feature IDs are independent of Agent 0's `CHAR-00xx` grants/volunteers numbering above.
+
+Adds corporate accounts, employees, and matching-gift rules on top of this branch's matching-gifts slice.
 
 | Piece | Detail |
 |-------|--------|
