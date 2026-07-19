@@ -60,3 +60,23 @@ export function computeChallengeProgress(
   if (goalType === 'donation_count') return donationCentsList.length;
   return donationCentsList.reduce((sum, c) => sum + (Number(c) || 0), 0);
 }
+
+export function isChallengeGoalType(v: unknown): v is ChallengeGoalType {
+  return typeof v === 'string' && (CHALLENGE_GOAL_TYPES as readonly string[]).includes(v);
+}
+
+/** URL-safe slug from a challenge title (admin authoring). */
+export function slugifyChallenge(title: string): string {
+  return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '').slice(0, 70) || 'challenge';
+}
+
+/** Validates the challenge window: an end (if present) must be after the start. */
+export function challengeWindowValid(startsAt: string | null | undefined, endsAt: string | null | undefined): boolean {
+  if (!endsAt) return true;
+  const e = new Date(endsAt).getTime();
+  if (Number.isNaN(e)) return false;
+  if (!startsAt) return true;
+  const s = new Date(startsAt).getTime();
+  if (Number.isNaN(s)) return false;
+  return e > s;
+}

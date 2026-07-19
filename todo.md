@@ -463,3 +463,16 @@ matches this year. Falls back to the static estimator otherwise. The response
 carries `estimate.source: 'corporate' | 'estimator'`. Verified: typecheck · 423
 unit tests · lint · build all pass (corporate resolution logic covered by the
 14 `lib/corporate` tests).
+
+### Follow-up: admin challenge authoring (delivered)
+
+Makes the gamification challenges feature usable end-to-end — previously challenges
+could only be created via raw SQL. Admins can now create, publish, end, and reopen
+giving challenges from `/admin/challenges`.
+
+| Piece | Detail |
+|-------|--------|
+| Logic | `lib/challenges.ts` extended with `slugifyChallenge`, `challengeWindowValid`, `isChallengeGoalType` (pure, +3 unit tests) |
+| API | `GET/POST /api/admin/challenges`, `PATCH /api/admin/challenges/[id]` — admin-gated; window validation |
+| UI | `/admin/challenges` — create draft, publish/end/reopen, participant counts + admin nav entry |
+| Evidence | typecheck ✅ · 426 unit tests ✅ · lint ✅ · build ✅. Not yet verified against live Supabase. |

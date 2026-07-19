@@ -5,6 +5,9 @@ import {
   daysRemaining,
   isChallengeLive,
   isChallengeStatus,
+  isChallengeGoalType,
+  slugifyChallenge,
+  challengeWindowValid,
 } from '../lib/challenges';
 import { evaluateEarnedBadges, newlyEarnedBadges, type DonorStats } from '../lib/gamification';
 
@@ -64,5 +67,23 @@ describe('progress math', () => {
     expect(daysRemaining('2026-07-21T12:00:00Z', now)).toBe(2);
     expect(daysRemaining('2026-07-10T00:00:00Z', now)).toBe(0);
     expect(daysRemaining(null, now)).toBeNull();
+  });
+});
+
+describe('admin authoring helpers', () => {
+  it('validates goal types', () => {
+    expect(isChallengeGoalType('donation_total')).toBe(true);
+    expect(isChallengeGoalType('donation_count')).toBe(true);
+    expect(isChallengeGoalType('nope')).toBe(false);
+  });
+  it('slugifies titles', () => {
+    expect(slugifyChallenge('Summer of Giving 2026!')).toBe('summer-of-giving-2026');
+    expect(slugifyChallenge('   ')).toBe('challenge');
+  });
+  it('validates the challenge window', () => {
+    expect(challengeWindowValid('2026-07-01T00:00:00Z', '2026-07-31T00:00:00Z')).toBe(true);
+    expect(challengeWindowValid('2026-07-31T00:00:00Z', '2026-07-01T00:00:00Z')).toBe(false);
+    expect(challengeWindowValid('2026-07-01T00:00:00Z', null)).toBe(true);
+    expect(challengeWindowValid(null, '2026-07-01T00:00:00Z')).toBe(true);
   });
 });
