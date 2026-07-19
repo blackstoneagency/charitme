@@ -61,7 +61,8 @@ Audited the money paths end-to-end at code level. Findings + evidence:
 
 | Area | Result | Evidence |
 |------|--------|----------|
-| Recipient-first gate / no fund custody | ✅ sound | `resolvePayoutDestination` + `409 PAYOUT_NOT_READY`; `payout-destination.test.ts` |
+| Recipient-first gate / no fund custody (one-time) | ✅ sound | `resolvePayoutDestination` + `409 PAYOUT_NOT_READY`; `payout-destination.test.ts` |
+| Recipient-first gate (recurring/subscription) | ✅ sound — parity | `/api/donations/recurring` same gate + `transfer_data.destination` + catch-block block on account error |
 | Fee math (displayed == charged) | ✅ sound | client+server both `methodProcessingFee(amount+tip)`; `fees.test.ts` (11) |
 | Webhook signature + idempotency | ✅ sound | `constructEvent` + event-log skip + `record_donation` lock |
 | Refund → ledger | ✅ sound; 1 limitation | `docs/payments/refunds-and-disputes.md` (partial-refund stat delta deferred) |
