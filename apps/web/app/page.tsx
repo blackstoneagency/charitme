@@ -4,10 +4,13 @@ import { safeJsonLd } from '../lib/json-ld';
 import { getHomeData, getCategoryStats, getRecentDonations, profileName } from '../lib/home-data';
 import { getCoverForCategory } from '../lib/photo-catalog';
 import { formatMoneyCompact } from '@shared/currencies';
-import type { StoryFilters } from '../lib/home-types';
 import { AiSearch, CountUp, Reveal } from './home-parts';
 
-export const dynamic = 'force-dynamic';
+// Cache the rendered homepage and revalidate every 2 minutes. The page has no
+// per-request/per-user inputs, so ISR removes ~8 Supabase round-trips from the
+// hot path while keeping metrics, featured campaigns, and the donation feed
+// fresh within a short window.
+export const revalidate = 120;
 
 const BASE = 'https://www.charitme.com';
 
@@ -126,10 +129,9 @@ function coverFor(url: string | null | undefined, category: string | null): stri
   return url && url.startsWith('http') ? url : getCoverForCategory(category);
 }
 
-export default async function HomePage({ searchParams }: { searchParams?: Promise<StoryFilters> }) {
-  const filters = (await searchParams) ?? {};
+export default async function HomePage() {
   const [{ metrics, featuredCampaigns, carouselCampaigns }, categoryStats, recentDonations] = await Promise.all([
-    getHomeData(filters),
+    getHomeData({}),
     getCategoryStats(),
     getRecentDonations(6),
   ]);
@@ -192,7 +194,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
               <Link href={`/campaigns/${heroCampaign.slug}`} className="home-hc-link">
                 <div className="home-hc-media">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={coverFor(heroCampaign.cover_image_url, heroCampaign.category)} alt={heroCampaign.title} loading="eager" decoding="async" width={640} height={420} />
+                  <img src={coverFor(heroCampaign.cover_image_url, heroCampaign.category)} alt={heroCampaign.title} loading="eager" fetchPriority="high" decoding="async" width={640} height={420} />
                   <span className="home-hc-tag"><Icon name="shield" className="hi" /> Verified</span>
                 </div>
                 <div className="home-hc-body">
