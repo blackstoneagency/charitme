@@ -438,3 +438,15 @@ See `docs/gap-audit.md` for the full audit.
 Each domain enforces server-side authz + validated state-machine transitions, and
 ships a pure logic module with no Supabase/Next imports. Remaining scope per domain
 (admin queues, paid-ticket checkout, corporate-account tenancy) tracked inline above.
+
+### Follow-up: CHAR-0001 corporate-account tenancy (delivered)
+
+Completes the matching-gift domain with corporate accounts, employees, and rules.
+
+| Piece | Detail |
+|-------|--------|
+| Tables | `corporate_accounts`, `corporate_members`, `matching_gift_rules` (+ `matching_gift_claims.corporate_account_id`), migration `20260721000000`, all with RLS (admin manages; members read) |
+| Logic | `lib/corporate.ts` — pure rule selection (category-specific > catch-all), match computation with per-gift + annual caps, email-domain matching (14 unit tests) |
+| API | `GET/POST /api/corporate`, `GET/POST /api/corporate/rules` (+ `PATCH/DELETE /[id]`), `GET/POST /api/corporate/members` — corporate-admin-scoped |
+| UI | `/dashboard/corporate` — register company, define rules with caps, invite employees + nav entry |
+| Evidence | typecheck ✅ · 423 unit tests ✅ (14 new) · lint ✅ · build ✅. Not yet verified against live Supabase. |

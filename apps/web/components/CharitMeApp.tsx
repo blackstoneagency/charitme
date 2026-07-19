@@ -49,6 +49,7 @@ const dashboardNav = [
   ['Recurring', '/dashboard/recurring', 'gift'],
   ['Donors', '/dashboard/donor', 'users'],
   ['Matching Gifts', '/dashboard/matching-gifts', 'crown'],
+  ['Corporate Giving', '/dashboard/corporate', 'stack'],
   ['Grants', '/dashboard/grants', 'audit'],
   ['Volunteering', '/dashboard/volunteer', 'team'],
   ['Sponsorships', '/dashboard/sponsorships', 'crown'],
