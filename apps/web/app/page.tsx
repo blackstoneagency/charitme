@@ -55,6 +55,15 @@ const FEATURES: { icon: string; tone: string; title: string; body: string; href:
   { icon: 'chart', tone: 'teal', title: 'Transparent reporting', body: 'Every dollar is tracked with verified updates and an open impact ledger.', href: '/trust-safety' },
 ];
 
+// Meet CharitMe AI — the AI "team" cards shown directly under the hero.
+const AI_TEAM: { icon: string; tone: string; title: string; body: string; href: string }[] = [
+  { icon: 'edit', tone: 'violet', title: 'CharitMe AI Builder', body: 'Write your entire fundraiser in seconds — title, story, goal, and strategy — powered by CharitMe AI.', href: '/ai-campaign' },
+  { icon: 'rocket', tone: 'green', title: 'AI Growth Engine', body: 'CharitMe AI finds your ideal donors, optimizes your campaign, and grows donations automatically.', href: '/ai-fundraising' },
+  { icon: 'shield', tone: 'blue', title: 'CharitScore™ Trust', body: 'Our AI-powered trust score gives every campaign a 0–100 CharitScore so donors give with confidence.', href: '/trust-safety' },
+  { icon: 'chart', tone: 'orange', title: 'AI Optimization', body: 'Real-time AI insights, next-best-action suggestions, and campaign health monitoring 24/7.', href: '/ai-fundraising' },
+  { icon: 'heart', tone: 'pink', title: 'AI Donor Relationships', body: 'CharitMe AI writes thank-you notes, updates, and donor messages that feel personal and real.', href: '/ai-fundraising' },
+];
+
 const CATEGORY_META: Record<string, { icon: string; label: string }> = {
   Medical: { icon: 'cross', label: 'Medical' },
   Memorial: { icon: 'heart', label: 'Memorial' },
@@ -164,25 +173,24 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
         <div className="home-hero-aura" aria-hidden="true" />
         <div className="home-wrap home-hero-grid">
           <div className="home-hero-copy">
-            <p className="home-badge"><Icon name="sparkle" className="hi" /> The AI platform for good</p>
+            <p className="home-badge"><Icon name="sparkle" className="hi" /> The AI Crowdfunding Platform</p>
             <h1 id="home-hero-title">
-              Together, we can<br />change a life <span>today.</span>
+              Raise More.<br />Faster. <span>With AI.</span>
             </h1>
             <p className="home-hero-sub">
-              Start a fundraiser, donate to a verified cause, or support a nonprofit —
-              powered by AI, protected by trust, and built so <strong>every dollar</strong> reaches the people who need it.
+              CharitMe is the world&rsquo;s first AI-powered fundraising platform that helps
+              people, teams, creators, and nonprofits create <strong>trusted campaigns</strong> and grow donations.
             </p>
 
             <div className="home-hero-cta">
-              <Link href="/create" className="home-btn home-btn-primary">Start a fundraiser</Link>
-              <Link href="/campaigns" className="home-btn home-btn-ghost">Donate now <Icon name="arrow" className="hi" /></Link>
-              <a href="#causes" className="home-btn home-btn-text">Explore causes</a>
+              <Link href="/ai-campaign" className="home-btn home-btn-primary">Create My Fundraiser With AI</Link>
+              <Link href="/campaigns" className="home-btn home-btn-ghost">Donate Now <Icon name="arrow" className="hi" /></Link>
+              <Link href="/create" className="home-btn home-btn-primary">Create My Fundraiser</Link>
+              <Link href="/features" className="home-btn home-btn-ghost">Why We Beat GoFundMe <Icon name="arrow" className="hi" /></Link>
             </div>
 
-            <AiSearch />
-
             <p className="home-hero-trust">
-              <Icon name="shield" className="hi" /> Verified campaigns · <Icon name="lock" className="hi" /> Secure payments · <strong>0% platform fee</strong>
+              <Icon name="sparkle" className="hi" /> CharitMe AI Builder · <Icon name="chart" className="hi" /> AI Growth Engine · <Icon name="shield" className="hi" /> CharitScore Trust · <strong>0% Platform Fees</strong>
             </p>
           </div>
 
@@ -229,6 +237,27 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
             <div><dt>Donations recorded</dt><dd><CountUp value={metrics.donations} kind="int" /></dd></div>
             <div><dt>Avg. trust score</dt><dd><CountUp value={metrics.trustAvg} kind="percent" /></dd></div>
           </dl>
+        </div>
+      </section>
+
+      {/* ── MEET CHARITME AI ─────────────────────────────────────────────── */}
+      <section className="home-section" aria-labelledby="home-aiteam-title">
+        <div className="home-wrap">
+          <Reveal className="home-head home-head--center">
+            <h2 id="home-aiteam-title">Meet CharitMe AI — Your Personal Fundraising Team.</h2>
+          </Reveal>
+          <div className="home-feature-grid">
+            {AI_TEAM.map((f, i) => (
+              <Reveal as="article" key={f.title} className="home-feature" delay={(i % 3) * 70}>
+                <Link href={f.href} className="home-feature-link">
+                  <span className={`home-fi home-fi-${f.tone}`}><Icon name={f.icon} /></span>
+                  <h3>{f.title}</h3>
+                  <p>{f.body}</p>
+                  <span className="home-feature-more">Learn more <Icon name="arrow" className="hi" /></span>
+                </Link>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
