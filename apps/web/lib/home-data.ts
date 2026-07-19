@@ -126,16 +126,10 @@ export type RecentDonation = {
   createdAt: string;
 };
 
-/** Real campaign counts + supporter totals per category, for the "Discover causes" grid. */
-export async function getCategoryStats(): Promise<CategoryStat[]> {
-  const cols = await campaignColumns();
-  const { data } = await applyLiveFilters(
-    supabaseAdmin.from('campaigns').select('category, backer_count'),
-    cols,
-  );
-
+/** Pure aggregation of campaign rows into per-category counts, most-first. */
+export function aggregateCategoryStats(rows: { category: string | null; backer_count: number | null }[]): CategoryStat[] {
   const map = new Map<string, { count: number; supporters: number }>();
-  for (const row of (data ?? []) as { category: string | null; backer_count: number | null }[]) {
+  for (const row of rows) {
     const cat = row.category ?? 'Community';
     const entry = map.get(cat) ?? { count: 0, supporters: 0 };
     entry.count += 1;
@@ -145,6 +139,16 @@ export async function getCategoryStats(): Promise<CategoryStat[]> {
   return [...map.entries()]
     .map(([category, v]) => ({ category, count: v.count, supporters: v.supporters }))
     .sort((a, b) => b.count - a.count);
+}
+
+/** Real campaign counts + supporter totals per category, for the "Discover causes" grid. */
+export async function getCategoryStats(): Promise<CategoryStat[]> {
+  const cols = await campaignColumns();
+  const { data } = await applyLiveFilters(
+    supabaseAdmin.from('campaigns').select('category, backer_count'),
+    cols,
+  );
+  return aggregateCategoryStats((data ?? []) as { category: string | null; backer_count: number | null }[]);
 }
 
 /** Recent completed donations for the live social-proof feed. Anonymous donors are redacted. */
@@ -160,12 +164,28 @@ export async function getRecentDonations(limit = 8): Promise<RecentDonation[]> {
     .order('created_at', { ascending: false })
     .limit(limit * 3);
 
-  const rows = (data ?? []) as unknown as Array<{
-    id: string; amount_cents: number; anonymous: boolean; created_at: string; offline_donor_name: string | null;
-    campaigns: { title: string; slug: string; visibility: string | null } | { title: string; slug: string; visibility: string | null }[] | null;
-    profiles: { full_name: string | null } | { full_name: string | null }[] | null;
-  }>;
+  return mapRecentDonations((data ?? []) as unknown as RawDonationRow[], limit);
+}
 
+type JoinedCampaign = { title: string; slug: string; visibility?: string | null };
+export type RawDonationRow = {
+  id: string;
+  amount_cents: number;
+  anonymous: boolean;
+  created_at: string;
+  offline_donor_name: string | null;
+  campaigns: JoinedCampaign | JoinedCampaign[] | null;
+  profiles: { full_name: string | null } | { full_name: string | null }[] | null;
+};
+
+/**
+ * Pure transform for the recent-donations feed:
+ * - redacts anonymous donors to "Anonymous",
+ * - never surfaces donations to private campaigns or missing/joined campaigns,
+ * - falls back to offline name then a friendly default,
+ * - caps the result at `limit`.
+ */
+export function mapRecentDonations(rows: RawDonationRow[], limit: number): RecentDonation[] {
   const out: RecentDonation[] = [];
   for (const r of rows) {
     const camp = Array.isArray(r.campaigns) ? r.campaigns[0] : r.campaigns;
