@@ -6016,3 +6016,16 @@ img, svg { display: block; }
   .home *, .home *::before, .home *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
   .home-reveal.is-armed { opacity: 1 !important; transform: none !important; }
 }
+
+/* Homepage image skeleton — an elegant shimmer shows while media loads and is
+   fully occluded once the (opaque) image paints on top. No JS required. */
+.home-hc-media, .home-cause-media, .home-card-media {
+  background-image: linear-gradient(100deg, var(--s2) 30%, var(--s3) 50%, var(--s2) 70%);
+  background-size: 200% 100%;
+  animation: homeShimmer 1.6s ease-in-out infinite;
+}
+@keyframes homeShimmer { 0% { background-position: 180% 0; } 100% { background-position: -80% 0; } }
+.home-hc-media img, .home-cause-media img, .home-card-media img { position: relative; z-index: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .home-hc-media, .home-cause-media, .home-card-media { animation: none; background-image: none; background-color: var(--s2); }
+}
