@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
 import type { Metadata } from 'next';
 import { PublicIcon } from '../../components/PublicIcon';
 import { supabaseAdmin } from '../../lib/supabase';
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
 
 // ── Live data from Supabase ───────────────────────────────────────────────────
 async function getAIPageData() {
+  const aiFundraisingCols = await campaignColumns();
   const [
     { count: activeCampaigns },
     donationsResult,
@@ -21,12 +23,12 @@ async function getAIPageData() {
   ] = await Promise.all([
     supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
     supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed'),
-    supabaseAdmin
-      .from('campaigns')
-      .select('slug,title,tagline,cover_image_url,goal_amount,raised_amount,backer_count,category')
-      .eq('status', 'active')
-      .eq('visibility', 'public')
-      .is('deleted_at', null)
+    applyLiveFilters(
+      supabaseAdmin
+        .from('campaigns')
+        .select('slug,title,tagline,cover_image_url,goal_amount,raised_amount,backer_count,category'),
+      aiFundraisingCols,
+    )
       .order('raised_amount', { ascending: false })
       .limit(3),
   ]);

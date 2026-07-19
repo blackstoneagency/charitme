@@ -4,6 +4,7 @@ import { supabaseAdmin } from './supabase';
 import type { RotatorCampaign } from '../app/HeroRotator';
 import type { HomeCampaign, StoryFilters, StoryFilterValue } from './home-types';
 import { formatHomeCents, normalizeStoryFilters, shortHomeCount } from './home-utils';
+import { campaignColumns, applyLiveFilters } from './campaign-visibility';
 
 const INDIVIDUAL_CATEGORIES: string[] = CAMPAIGN_CATEGORIES.filter(category =>
   !['Nonprofit', 'Community', 'Environment', 'Volunteer', 'Event'].includes(category),
@@ -25,35 +26,8 @@ export function profileName(value: HomeCampaign['profiles']): string {
   return profile?.full_name ?? 'CharitMe Organizer';
 }
 
-// ── Schema resilience ────────────────────────────────────────────────────────
-// The `visibility` and `deleted_at` columns are added by later migrations. On a
-// deployment where those migrations have not been applied yet, filtering on them
-// would error and return nothing. Probe once (cached for the process) and only
-// apply the filters that actually exist, so the homepage renders on any DB state
-// while still enforcing public/non-deleted filtering wherever the columns exist.
-type CampaignCols = { visibility: boolean; deletedAt: boolean };
-let _campaignCols: CampaignCols | null = null;
-
-async function campaignColumns(): Promise<CampaignCols> {
-  if (_campaignCols) return _campaignCols;
-  const [v, d] = await Promise.all([
-    supabaseAdmin.from('campaigns').select('visibility').limit(1),
-    supabaseAdmin.from('campaigns').select('deleted_at').limit(1),
-  ]);
-  _campaignCols = { visibility: !v.error, deletedAt: !d.error };
-  return _campaignCols;
-}
-
-// Structural view of just the two filter methods we call, to avoid deeply
-// instantiating the full PostgREST builder generic (which trips TS2589).
-type AnyFilter = { eq(column: string, value: string): AnyFilter; is(column: string, value: null): AnyFilter };
-
-function applyLiveFilters<Q>(query: Q, cols: CampaignCols): Q {
-  let out = (query as unknown as AnyFilter).eq('status', 'active');
-  if (cols.visibility) out = out.eq('visibility', 'public');
-  if (cols.deletedAt) out = out.is('deleted_at', null);
-  return out as unknown as Q;
-}
+// Schema-resilient "live public campaign" filtering (shared — see the module
+// for why the visibility/deleted_at columns are probed rather than assumed).
 
 /** Batch-fetch each campaign's configured currency from campaign_launch_settings. */
 export async function attachCampaignCurrencies<T extends { id: string }>(items: T[]): Promise<(T & { currency: string | null })[]> {
@@ -126,16 +100,10 @@ export type RecentDonation = {
   createdAt: string;
 };
 
-/** Real campaign counts + supporter totals per category, for the "Discover causes" grid. */
-export async function getCategoryStats(): Promise<CategoryStat[]> {
-  const cols = await campaignColumns();
-  const { data } = await applyLiveFilters(
-    supabaseAdmin.from('campaigns').select('category, backer_count'),
-    cols,
-  );
-
+/** Pure aggregation of campaign rows into per-category counts, most-first. */
+export function aggregateCategoryStats(rows: { category: string | null; backer_count: number | null }[]): CategoryStat[] {
   const map = new Map<string, { count: number; supporters: number }>();
-  for (const row of (data ?? []) as { category: string | null; backer_count: number | null }[]) {
+  for (const row of rows) {
     const cat = row.category ?? 'Community';
     const entry = map.get(cat) ?? { count: 0, supporters: 0 };
     entry.count += 1;
@@ -145,6 +113,16 @@ export async function getCategoryStats(): Promise<CategoryStat[]> {
   return [...map.entries()]
     .map(([category, v]) => ({ category, count: v.count, supporters: v.supporters }))
     .sort((a, b) => b.count - a.count);
+}
+
+/** Real campaign counts + supporter totals per category, for the "Discover causes" grid. */
+export async function getCategoryStats(): Promise<CategoryStat[]> {
+  const cols = await campaignColumns();
+  const { data } = await applyLiveFilters(
+    supabaseAdmin.from('campaigns').select('category, backer_count'),
+    cols,
+  );
+  return aggregateCategoryStats((data ?? []) as { category: string | null; backer_count: number | null }[]);
 }
 
 /** Recent completed donations for the live social-proof feed. Anonymous donors are redacted. */
@@ -160,12 +138,28 @@ export async function getRecentDonations(limit = 8): Promise<RecentDonation[]> {
     .order('created_at', { ascending: false })
     .limit(limit * 3);
 
-  const rows = (data ?? []) as unknown as Array<{
-    id: string; amount_cents: number; anonymous: boolean; created_at: string; offline_donor_name: string | null;
-    campaigns: { title: string; slug: string; visibility: string | null } | { title: string; slug: string; visibility: string | null }[] | null;
-    profiles: { full_name: string | null } | { full_name: string | null }[] | null;
-  }>;
+  return mapRecentDonations((data ?? []) as unknown as RawDonationRow[], limit);
+}
 
+type JoinedCampaign = { title: string; slug: string; visibility?: string | null };
+export type RawDonationRow = {
+  id: string;
+  amount_cents: number;
+  anonymous: boolean;
+  created_at: string;
+  offline_donor_name: string | null;
+  campaigns: JoinedCampaign | JoinedCampaign[] | null;
+  profiles: { full_name: string | null } | { full_name: string | null }[] | null;
+};
+
+/**
+ * Pure transform for the recent-donations feed:
+ * - redacts anonymous donors to "Anonymous",
+ * - never surfaces donations to private campaigns or missing/joined campaigns,
+ * - falls back to offline name then a friendly default,
+ * - caps the result at `limit`.
+ */
+export function mapRecentDonations(rows: RawDonationRow[], limit: number): RecentDonation[] {
   const out: RecentDonation[] = [];
   for (const r of rows) {
     const camp = Array.isArray(r.campaigns) ? r.campaigns[0] : r.campaigns;

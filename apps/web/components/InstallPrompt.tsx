@@ -83,10 +83,11 @@ export default function InstallPrompt() {
         <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--t1)' }}>Install CharitMe</div>
         <div style={{ fontSize: 12, color: 'var(--t3)' }}>Add to your home screen for quick, app-like access.</div>
       </div>
-      <Btn variant="ghost" size="sm" onClick={dismiss} aria-label="Dismiss">
+      <Btn variant="ghost" size="sm" onClick={dismiss}>
         Not now
       </Btn>
-      <Btn variant="primary" size="sm" onClick={install}>
+      {/* Darker green than the default primary so white label meets WCAG AA (4.5:1). */}
+      <Btn variant="primary" size="sm" onClick={install} style={{ background: '#0a7a3d' }}>
         Install
       </Btn>
     </div>

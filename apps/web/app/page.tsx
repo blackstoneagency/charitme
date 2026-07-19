@@ -4,10 +4,13 @@ import { safeJsonLd } from '../lib/json-ld';
 import { getHomeData, getCategoryStats, getRecentDonations, profileName } from '../lib/home-data';
 import { getCoverForCategory } from '../lib/photo-catalog';
 import { formatMoneyCompact } from '@shared/currencies';
-import type { StoryFilters } from '../lib/home-types';
 import { AiSearch, CountUp, Reveal } from './home-parts';
 
-export const dynamic = 'force-dynamic';
+// Cache the rendered homepage and revalidate every 2 minutes. The page has no
+// per-request/per-user inputs, so ISR removes ~8 Supabase round-trips from the
+// hot path while keeping metrics, featured campaigns, and the donation feed
+// fresh within a short window.
+export const revalidate = 120;
 
 const BASE = 'https://www.charitme.com';
 
@@ -46,8 +49,8 @@ function Icon({ name, className = 'h-5 w-5' }: { name: string; className?: strin
 const FEATURES: { icon: string; tone: string; title: string; body: string; href: string }[] = [
   { icon: 'rocket', tone: 'violet', title: 'Start a fundraiser', body: 'Launch a trusted campaign in minutes with AI writing your story, goal, and plan.', href: '/create' },
   { icon: 'heart', tone: 'pink', title: 'Donate securely', body: 'Give with confidence through encrypted, PCI-compliant Stripe payments.', href: '/campaigns' },
-  { icon: 'globe', tone: 'blue', title: 'Find causes you love', body: 'Search verified fundraisers and nonprofits by cause, location, or need.', href: '/campaigns' },
-  { icon: 'users', tone: 'teal', title: 'Volunteer & rally', body: 'Bring a community together and grow support with peer-to-peer fundraising.', href: '/campaigns?category=Volunteer' },
+  { icon: 'book', tone: 'blue', title: 'Grants & funding', body: 'Discover grant opportunities and apply with AI-assisted matching and drafts.', href: '/grants' },
+  { icon: 'users', tone: 'teal', title: 'Volunteer', body: 'Find volunteer opportunities near you and match your skills to real needs.', href: '/volunteer' },
   { icon: 'building', tone: 'indigo', title: 'Corporate giving', body: 'Match employee donations and sponsor causes with measurable impact reporting.', href: '/for-nonprofits' },
   { icon: 'refresh', tone: 'green', title: 'Recurring giving', body: 'Turn a single gift into lasting change with flexible monthly support.', href: '/campaigns' },
   { icon: 'flag', tone: 'orange', title: 'Emergency relief', body: 'Respond fast to medical crises, disasters, and urgent family needs.', href: '/campaigns?category=Emergency' },
@@ -135,10 +138,9 @@ function coverFor(url: string | null | undefined, category: string | null): stri
   return url && url.startsWith('http') ? url : getCoverForCategory(category);
 }
 
-export default async function HomePage({ searchParams }: { searchParams?: Promise<StoryFilters> }) {
-  const filters = (await searchParams) ?? {};
+export default async function HomePage() {
   const [{ metrics, featuredCampaigns, carouselCampaigns }, categoryStats, recentDonations] = await Promise.all([
-    getHomeData(filters),
+    getHomeData({}),
     getCategoryStats(),
     getRecentDonations(6),
   ]);
@@ -197,7 +199,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
           <Reveal className="home-hero-card" as="article">
             <div className="home-hc-media">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/hero-child-crop.png" alt="A child helped by a CharitMe fundraiser" loading="eager" decoding="async" width={640} height={420} />
+              <img src="/hero-child-crop.png" alt="A child helped by a CharitMe fundraiser" loading="eager" fetchPriority="high" decoding="async" width={640} height={420} />
               <span className="home-hc-tag"><Icon name="shield" className="hi" /> Verified &amp; protected</span>
             </div>
             <div className="home-hc-body">
@@ -346,7 +348,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
                     <div className="home-card-body">
                       <h3>{c.title}</h3>
                       <p className="home-card-org">by {profileName(c.profiles)}</p>
-                      <div className="home-progress" role="progressbar" aria-valuenow={pct(c.raised_amount, c.goal_amount)} aria-valuemin={0} aria-valuemax={100}>
+                      <div className="home-progress" role="progressbar" aria-label={`Fundraising progress: ${pct(c.raised_amount, c.goal_amount)}% of goal`} aria-valuenow={pct(c.raised_amount, c.goal_amount)} aria-valuemin={0} aria-valuemax={100}>
                         <span style={{ width: `${pct(c.raised_amount, c.goal_amount)}%` }} />
                       </div>
                       <div className="home-card-meta">

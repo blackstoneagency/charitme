@@ -1,4 +1,5 @@
 import { supabaseAdmin } from './supabase';
+import { campaignColumns, applyLiveFilters } from './campaign-visibility';
 import { attachCampaignCurrencies } from './home-data';
 
 export type LeaderboardPeriod = 'all' | 'month' | 'week';
@@ -49,12 +50,13 @@ export function periodCutoff(period: LeaderboardPeriod): string | null {
 }
 
 export async function getTopCampaigns(limit = 20): Promise<LeaderboardCampaign[]> {
-  const { data, error } = await supabaseAdmin
-    .from('campaigns')
-    .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, category, trust_status, nonprofit_verified, location, profiles:user_id(full_name, avatar_url)')
-    .eq('status', 'active')
-    .eq('visibility', 'public')
-    .is('deleted_at', null)
+  const cols = await campaignColumns();
+  const { data, error } = await applyLiveFilters(
+    supabaseAdmin
+      .from('campaigns')
+      .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, category, trust_status, nonprofit_verified, location, profiles:user_id(full_name, avatar_url)'),
+    cols,
+  )
     .order('raised_amount', { ascending: false })
     .limit(limit);
 

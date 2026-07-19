@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { campaignColumns, applyVisibilityFilters } from '../../lib/campaign-visibility';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
 import { getCoverForCategory, unsplash } from '../../lib/photo-catalog';
@@ -43,16 +44,18 @@ function pct(raised: number, goal: number): number {
 }
 
 async function getStoryData() {
+  const cols = await campaignColumns();
   const [{ data: campaigns }, { count: campaignCount }, { count: donationCount }] = await Promise.all([
-    supabaseAdmin
-      .from('campaigns')
-      .select('id,slug,title,description,category,cover_image_url,raised_amount,goal_amount,backer_count,created_at')
-      .in('status', ['active', 'completed'])
-      .eq('visibility', 'public')
-      .is('deleted_at', null)
+    applyVisibilityFilters(
+      supabaseAdmin
+        .from('campaigns')
+        .select('id,slug,title,description,category,cover_image_url,raised_amount,goal_amount,backer_count,created_at')
+        .in('status', ['active', 'completed']),
+      cols,
+    )
       .order('raised_amount', { ascending: false })
       .limit(9),
-    supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).in('status', ['active', 'completed']).eq('visibility', 'public').is('deleted_at', null),
+    applyVisibilityFilters(supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).in('status', ['active', 'completed']), cols),
     supabaseAdmin.from('donations').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
   ]);
 
