@@ -787,8 +787,22 @@ create or replace function public.record_donation(
 ) returns jsonb language plpgsql security definer as $$
 declare
   v_existing uuid;
+  v_lock_key text;
 begin
-  -- Idempotency check
+  -- Serialize concurrent processing of the SAME donation so the idempotency
+  -- check-then-insert below cannot double-count when Stripe delivers the same
+  -- webhook event concurrently. Distinct donations hash to distinct keys and
+  -- never block each other. (See migration 20260719120000.)
+  v_lock_key := coalesce(
+    nullif(p_stripe_payment_intent_id, ''),
+    nullif(p_stripe_checkout_session_id, ''),
+    p_stripe_event_id
+  );
+  if v_lock_key is not null then
+    perform pg_advisory_xact_lock(hashtextextended(v_lock_key, 0));
+  end if;
+
+  -- Idempotency check (race-safe under the advisory lock above)
   select id into v_existing from donations
   where stripe_checkout_session_id = p_stripe_checkout_session_id
      or (stripe_payment_intent_id = p_stripe_payment_intent_id and p_stripe_payment_intent_id is not null)

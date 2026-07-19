@@ -85,6 +85,15 @@ tests/build/live-HTTP are listed here.
   _Evidence: verified via live HTTP header inspection on dev server; commit
   `a68ddf0`._
 
+- **CHAR-F005 · payments/correctness** — Fixed a check-then-act race in the
+  `record_donation` RPC that could double-count donations (and inflate campaign
+  `raised_amount`/`backer_count`) when Stripe delivers the same
+  `checkout.session.completed` webhook concurrently. Added a transaction-level
+  advisory lock keyed on the payment intent / session id so duplicate
+  deliveries serialize and the second sees the existing row. Mirrored into
+  `schema.sql`. _Evidence: migration `20260719120000`; 339 tests still pass.
+  Needs to be applied to the DB via the normal migration flow._
+
 ### Known open items surfaced this session (need owner decision)
 - **CHAR-O001 · data** — 50 fabricated sponsors + 500 fabricated support cases
   already exist in the **live** Supabase (inserted before CHAR-F001). Deleting
