@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { safeJsonLd } from "../../lib/json-ld";
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -78,7 +79,7 @@ export default function FaqPage() {
 
   return (
     <div className="bg-white">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       {/* Hero */}
       <section className="hero-mesh border-b border-slate-200 py-16 sm:py-20">
         <div className="container">

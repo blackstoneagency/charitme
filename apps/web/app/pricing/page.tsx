@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { safeJsonLd } from "../../lib/json-ld";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase-browser';
@@ -305,7 +306,7 @@ export default function PricingPage() {
 
   return (
     <div className="pub-page pricing-page">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(PRICING_FAQ_JSONLD) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(PRICING_FAQ_JSONLD) }} />
       <section className="pricing-hero">
         <div className="pub-breadcrumb">
           <Link href="/">Home</Link> <span>&gt;</span> <b>Pricing</b>

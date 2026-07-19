@@ -136,6 +136,15 @@ tests/build/live-HTTP are listed here.
   (`= + - @`, tab, CR) while preserving genuine numbers, and refactored all 5
   routes onto it. _Evidence: 356 tests pass (+8, incl. injection cases);
   build ✅._
+- **CHAR-F011 · security/XSS (high)** — Stored XSS via JSON-LD. Campaign pages
+  serialized `campaign.title` and user-authored FAQ text into
+  `<script type="application/ld+json">` with `JSON.stringify`, which does not
+  escape `<`/`>`/`&`. A campaign titled `</script><script>…</script>` would
+  execute on every visitor viewing that public page (session/cookie theft).
+  Added `lib/json-ld.ts#safeJsonLd` (escapes `< > &` + U+2028/U+2029 to unicode)
+  and applied it to all 9 JSON-LD script tags across 7 pages (campaign, home,
+  blog, features, help, faq, pricing). _Evidence: 360 tests pass (+4, incl. a
+  `</script>` breakout case); build ✅._
 - **CHAR-O001 · data** — 50 fabricated sponsors + 500 fabricated support cases
   already exist in the **live** Supabase (inserted before CHAR-F001). Deleting
   production rows needs explicit owner approval — not yet actioned.

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { safeJsonLd } from "../../lib/json-ld";
 import Link from 'next/link';
 
 const CATEGORIES = [
@@ -90,7 +91,7 @@ export default function HelpPage() {
 
   return (
     <div className="pub-page simple-public" style={{ maxWidth: 860, margin: '0 auto' }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       <section style={{ marginBottom: 40 }}>
         <div className="pub-breadcrumb">Home <span>&gt;</span> <b>Help Center</b></div>
         <h1>Help Center</h1>

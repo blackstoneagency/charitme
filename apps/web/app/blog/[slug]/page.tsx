@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { safeJsonLd } from "../../../lib/json-ld";
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PublicIcon } from '../../../components/PublicIcon';
@@ -71,8 +72,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   return (
     <div className="pub-page simple-public blog-post">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }} />
       <section className="blog-post-header">
         <div className="pub-breadcrumb">
           <Link href="/">Home</Link> <span>&gt;</span> <Link href="/blog">Blog</Link> <span>&gt;</span> <b>{post.title}</b>

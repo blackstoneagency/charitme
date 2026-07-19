@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { safeJsonLd } from "../../../lib/json-ld";
 import { notFound } from 'next/navigation';
 import { getPlatformModule, PLATFORM_MODULES } from '../../../lib/feature-catalog';
 
@@ -40,7 +41,7 @@ export default async function FeatureDetailPage({ params }: FeaturePageProps) {
 
   return (
     <div className="bg-white">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }} />
       <section className="border-b border-slate-200 bg-slate-950 text-white">
         <div className="container py-14">
           <Link href="/features" className="text-sm font-black text-emerald-300">All features</Link>

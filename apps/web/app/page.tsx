@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { safeJsonLd } from "../lib/json-ld";
 import type React from 'react';
 import HeroRotator from './HeroRotator';
 import SponsorsBar from './SponsorsBar';
@@ -72,7 +73,7 @@ export default async function HomePage({ searchParams }: { searchParams?: Promis
 
   return (
     <div className="kind-page">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       <section className="kind-hero">
         <div className="container kind-hero-grid">
           <div className="kind-hero-copy">
