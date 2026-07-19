@@ -20,6 +20,15 @@
 
 ## Entries
 
+### 2026-07-19 — Agent 5/1 — Grants platform vertical slice (CHAR-0001/0002)
+- **Branch**: `agent/grants` (off `agent/orchestration`). Commit `c55f246`.
+- **Completed**: Full Grants domain — schema+RLS, typed lib, 6 API routes, 3 mobile-first pages, 13 unit tests. Gates green (typecheck, 352 tests, `next build`).
+- **Files added**: `supabase/migrations/20260719000000_grants.sql`; `apps/web/lib/grants.ts`, `apps/web/lib/grants-server.ts`; `apps/web/app/api/grants/**`, `apps/web/app/api/ai/grant-match/route.ts`; `apps/web/app/grants/**`, `apps/web/app/dashboard/grants/**`; `apps/web/__tests__/grants.test.ts`.
+- **Design notes**: matching scorer is pure/deterministic (unit-tested) and doubles as the AI-unavailable fallback (mirrors `lib/openai.ts` `fallback*`). API routes use `supabaseAdmin` + explicit per-handler authz (RLS is defense-in-depth). Detail layout uses flex-wrap (no shared `globals.css` change). Applications have guarded status transitions (draft→submitted→withdrawn; edits draft-only).
+- **needs-staging**: `grants` tables must be created by running the migration against Supabase; until then `/grants` renders an empty state gracefully and API calls error cleanly (no crash, no build dependency). Live RLS + application-lifecycle verification requires staging (ADR-0003).
+- **Follow-ups for next agents**: (8) add "Grants" to the dashboard sidebar nav in `components/CharitMeApp.tsx`; (5) grant_documents upload UI + grant seed data; (6) optional AI enrichment atop the deterministic ranker; (1/7) RLS test suite once staging exists.
+- **Heads-up (not mine)**: working tree also shows a modified `.env.example` and an untracked `DANIEL_ENV.txt` at repo root from another session — left unstaged; `DANIEL_ENV.txt` may contain secrets and should not be committed.
+
 ### 2026-07-19 — Agent 0 — Phase 1 audit + coordination scaffolding
 - **Completed**: Full repo audit. Established real baseline (see `architecture.md`): 102 pages, 138 API routes, 41 migrations, ~80 wired Supabase tables, 339 tests passing, type-clean. Created `architecture.md`, `handoff.md`, `decisions.md`, restructured `todo.md` into an execution tracker.
 - **Files changed**: `architecture.md`, `handoff.md`, `decisions.md`, `todo.md` (root, docs only — no app code).

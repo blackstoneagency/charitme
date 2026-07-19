@@ -43,7 +43,7 @@ AI platform, admin, lead-gen.
 > vertical slice: migration (RLS-first) → typed lib → API (authz) → mobile-first UI
 > → tests → docs. IDs are stable; statuses advance with evidence.
 
-- [ ] CHAR-0001
+- [~] CHAR-0001 — **Code Complete** (needs-staging for live RLS verify)
   - Area: Grants
   - Feature: Grants data model + RLS
   - Description: Migration for `grants`, `grant_matches`, `grant_applications`, `grant_documents`, `grant_deadlines` with FKs, indexes, timestamps, soft-delete, and RLS (public read of open grants; org-scoped applications).
@@ -53,25 +53,26 @@ AI platform, admin, lead-gen.
   - Database: new tables + RLS
   - API: none (this task)
   - UI: none (this task)
-  - Security: RLS tenant isolation for applications
-  - Tests: RLS test suite (org A cannot read org B applications)
-  - Completion Evidence: —
-  - Commit: —
+  - Security: RLS tenant isolation for applications (applicant-scoped policies written)
+  - Tests: RLS test suite (org A cannot read org B applications) — **pending staging** (ADR-0003)
+  - Completion Evidence: migration `20260719000000_grants.sql`; `next build` pass. Live RLS not verifiable in sandbox.
+  - Commit: c55f246
 
-- [ ] CHAR-0002
+- [~] CHAR-0002 — **Code Complete** (needs-staging for live data-path verify)
   - Area: Grants
   - Feature: Grant discovery + AI matching + application workflow
-  - Description: `/grants` discovery (search/filter/deadline), saved grants & alerts, application drafts with document collection and submission/status tracking; `/api/ai/grant-match` wired to `lib/ai-platform.ts`.
+  - Description: `/grants` discovery (debounced search/filter), application drafts with submission/withdraw + guarded status transitions; `/api/ai/grant-match` deterministic ranker (AI-fallback pattern).
   - Agent: 5 (+6 for AI)
   - Priority: P1
   - Dependencies: CHAR-0001
   - Database: reads CHAR-0001 tables
-  - API: `/api/grants`, `/api/grants/[id]/apply`, `/api/ai/grant-match`
-  - UI: `/grants`, `/dashboard/grants`
-  - Security: server-side authz per role
-  - Tests: unit (matching), integration (application lifecycle)
-  - Completion Evidence: —
-  - Commit: —
+  - API: `/api/grants` (GET/POST), `/api/grants/[id]`, `/api/grants/[id]/apply`, `/api/grants/applications` (GET), `/api/grants/applications/[id]` (GET/PATCH/DELETE), `/api/ai/grant-match`
+  - UI: `/grants`, `/grants/[slug]`, `/dashboard/grants` (mobile-first)
+  - Security: server-side authz per handler (auth via supabase-server; admin gate on POST); status-transition guards
+  - Tests: 13 unit tests (scorer + zod schemas) **passing**; integration (live application lifecycle) pending staging
+  - Completion Evidence: `__tests__/grants.test.ts` 13/13 pass; `next build` compiled all 8 grants routes; typecheck clean
+  - Commit: c55f246
+  - Follow-ups: sidebar nav entry (shared `CharitMeApp` nav — Agent 8); grant_documents upload UI; grant seed data; AI provider enrichment layer on top of deterministic ranker
 
 - [ ] CHAR-0003
   - Area: Volunteers
