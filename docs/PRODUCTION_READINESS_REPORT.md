@@ -52,6 +52,22 @@ RLS-against-prod verification are gated on credentials.
 - AI features (`OPENAI_API_KEY` masked in env) — incl. the not-yet-built Semantic search.
 - Live email/SMS delivery (Resend/Twilio).
 
+## Payments architecture (audited ✅)
+
+The recipient-first money flow is **already correctly implemented** (see
+`docs/payments/money-flow.md`, `decisions.md` ADR-P1):
+- Donations are **blocked** (`409 PAYOUT_NOT_READY`) until the recipient's Stripe Connect
+  account is fully verified + `payouts_enabled` + `charges_enabled`; beneficiary account
+  is preferred over the organizer's.
+- Charges route the net donation to the recipient's connected account; **CharitMe never
+  holds donor funds** and never falls back to the platform balance on account errors.
+- CharitMe keeps only its server-computed, disclosed fee (tip + processing offset).
+- Uses **destination charges** today; a direct-charge migration is a reviewed, sign-off-
+  gated decision (ADR-P1), **not** a defect.
+
+Not yet built (needs Stripe **test** keys + a scheduled job): the formal immutable
+double-entry ledger with reversing entries and automated daily Stripe reconciliation.
+
 ## Blockers
 
 | ID | Severity | Description | Owner action |
