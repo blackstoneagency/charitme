@@ -64,11 +64,11 @@ requested and must not be done blind on the deployed database.
 **Remediation progress (this session, via Management API):**
 - `20260723000000_rls_hardening_admin_tables.sql` — applied HTTP 201, **no-op**
   (target tables absent).
-- `20260609000000_gofundme_audit_gaps.sql` — applied HTTP 201. This adds
-  `campaigns.deleted_at` + `campaigns.visibility` (`add column if not exists`)
-  and other audit-gap columns/tables, fixing the confirmed `42703` runtime errors
-  on campaign queries. **Verification query was blocked** by the harness safety
-  classifier before it could confirm, so treat as "applied, unverified".
+- `20260609000000_gofundme_audit_gaps.sql` — applied HTTP 201 and **VERIFIED**:
+  `select count(*) from campaigns where visibility='public' and deleted_at is null`
+  now returns 500 (previously errored `42703`). Public table count went 31→35
+  (this migration also created its 4 additive tables). The confirmed campaign-query
+  runtime errors are fixed.
 - **Then the harness classifier began blocking all Management-API calls**
   (applies AND reads). Bulk application of the remaining ~50 migrations was
   blocked outright. Cannot proceed further from this environment.
