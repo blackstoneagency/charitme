@@ -4,6 +4,113 @@ Master list of everything CharitMe is building to become a world-class,
 AI-first alternative to GoFundMe. Checkboxes track build status:
 `[x]` = shipped, `[ ]` = planned.
 
+> The competitive tables in sections 1–3 are the **aspirational roadmap**
+> (what "world-class" looks like). The **audited status** below reflects what
+> is actually implemented in the codebase today, based on a route/page-level
+> audit — not marketing aspiration. Baseline health as of this audit:
+> typecheck ✅, lint ✅ (0 errors), **339/339 unit tests ✅**, production
+> build ✅ (118 pages).
+
+---
+
+## 0. Audited Implementation Status
+
+Legend: **Built** = real page/route wired to Supabase exists and compiles;
+**Partial** = core exists, depends on an unconfigured provider or is thin;
+**Missing** = no implementation found.
+
+### Built (verified present in codebase)
+- **Auth**: email login/signup, password reset, OAuth callback, MFA page,
+  session-cookie middleware, protected-route guard.
+- **Campaigns**: create/edit/publish, updates, milestones, FAQs, rewards/tiers,
+  ledger, supporters, team members, co-organizers, beneficiary invites,
+  thank-donors, share tools, QR poster, embed widget, reports, categories.
+- **Donations**: guest + registered checkout (Stripe), recurring (create/
+  pause/cancel), receipts, refund requests, offline donations, donor wall.
+- **Payments/Payouts (admin)**: Stripe Connect onboarding + status, payouts,
+  refunds, disputes, reconciliation, processors, campaign payment flows,
+  webhook handler.
+- **Donor experience**: donor dashboard, donation history, saved/followed
+  campaigns, recommended campaigns, receipts, donor profiles.
+- **Discovery**: campaign search/filters, categories, leaderboards
+  (campaigns + donors), success stories, sponsor bar.
+- **AI suite**: campaign writer, coach, goal-recommend, content/rewrite,
+  trust score, fraud monitor, matching finder, impact summary, payout
+  concierge, complaint resolver, donor conversion, fee optimizer, viral loop.
+- **Marketing**: admin marketing (campaigns, automations, segments, audience,
+  copilot, outreach), organizer marketing, tracking links, unsubscribe.
+- **Admin**: users, campaigns, donations, payouts, finance, content,
+  trust-safety, support, countries, sponsors, settings, audit log, reports,
+  system health, new-customers pipeline.
+- **Trust & safety**: campaign/user reports, risk scoring (`lib/risk.ts`),
+  fraud scan, trust reviews, trust signals.
+- **Platform**: notifications, integrations, exports (donations/donors/full),
+  PWA (service worker, offline page, install prompt), i18n scaffold,
+  multi-currency, SEO (sitemap, robots, opengraph, JSON-LD).
+
+### Partial (needs provider config or hardening)
+- **SMS** (Twilio env unset), **AI image/video generation**, **semantic
+  search** (keyword only today), **grant/sponsor/volunteer marketplaces**
+  (sponsor records + matching exist; full marketplaces do not),
+  **corporate giving / matching gifts** (employer-matching lib exists).
+
+### Missing (genuinely not implemented)
+- NFC tap-to-donate, crypto donations, stock/DAF/estate giving, native
+  livestream donations, native mobile apps, volunteer shift/hours system,
+  event ticketing/check-in, white-label custom domains.
+
+---
+
+## 0.1 Session Log — Verified Fixes (with evidence)
+
+Format: `ID · area · what · evidence (commit)`. Only fixes verified by
+tests/build/live-HTTP are listed here.
+
+- **CHAR-F001 · trust/data** — Removed auto-seeding of 50 fabricated corporate
+  sponsors and 500 fabricated support tickets into the live DB on admin page
+  visit (fake social proof on public homepage). Empty states + public sponsor
+  bar hide-when-empty already handled. _Evidence: typecheck/lint/339 tests
+  pass; commit `c35b1f6`._
+- **CHAR-F002 · admin/ui** — Wired the dead "Feature Campaign" and "Pin to
+  Homepage" action buttons (`onClick={() => {}}`) to real featured/pinned
+  toggles. _Evidence: commit `c35b1f6`._
+- **CHAR-F003 · marketing/data** — about-us hero + impact stats now always
+  render real Supabase-backed values instead of inventing `350+`/`$2M+`/
+  `5,000+` when real counts are zero; ai-growth-plan drops the fabricated
+  "platform median of $42" claim. _Evidence: commit `e002118`._
+- **CHAR-F004 · security** — Fixed framing headers: campaign embed route is
+  now frame-able by third parties (`CSP: frame-ancestors *`) while all other
+  routes stay clickjacking-protected (`frame-ancestors 'self'` + X-Frame-
+  Options SAMEORIGIN); removed the conflicting global `X-Frame-Options: DENY`.
+  _Evidence: verified via live HTTP header inspection on dev server; commit
+  `a68ddf0`._
+
+### Known open items surfaced this session (need owner decision)
+- **CHAR-O001 · data** — 50 fabricated sponsors + 500 fabricated support cases
+  already exist in the **live** Supabase (inserted before CHAR-F001). Deleting
+  production rows needs explicit owner approval — not yet actioned.
+- **CHAR-O002 · security** — Live Stripe/Supabase/Resend/Google/CRON secrets
+  were exposed in chat and should be **rotated**.
+- **CHAR-O003 · content** — about-us company-history timeline (2022–2026,
+  "millions raised") is fabricated brand narrative; owner should confirm/revise.
+- **CHAR-O004 · security** — No full Content-Security-Policy (script-src/
+  style-src) yet; only `frame-ancestors`. Full CSP needs a nonce strategy
+  because the app uses pervasive inline styles.
+
+---
+
+## 0.2 Highest-Value Backlog (prioritized, next up)
+
+1. **Stripe webhook idempotency + signature hardening** — audit
+   `/api/stripe/webhook` for replay protection and idempotent stat updates
+   (money path). _Security + Financial._
+2. **RLS test matrix** — automated tests per persona (donor, organizer,
+   nonprofit admin, support, finance, super admin) proving tenant isolation.
+3. **Full CSP with nonces** — enforce script-src/style-src safely (CHAR-O004).
+4. **Semantic search** — upgrade keyword search to embeddings-backed search.
+5. **Production seed strategy** — replace/guard the seeded campaigns/donations/
+   profiles so real vs. demo data is unambiguous (CHAR-O001).
+
 ---
 
 ## 1. Core Vision Pillars
