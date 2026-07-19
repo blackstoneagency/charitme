@@ -30,7 +30,12 @@ type AnyFilter = { eq(column: string, value: string): AnyFilter; is(column: stri
 
 /** Apply status=active plus visibility=public / deleted_at IS NULL where present. */
 export function applyLiveFilters<Q>(query: Q, cols: CampaignCols): Q {
-  let out = (query as unknown as AnyFilter).eq('status', 'active');
+  return applyVisibilityFilters((query as unknown as AnyFilter).eq('status', 'active') as unknown as Q, cols);
+}
+
+/** Apply only visibility=public / deleted_at IS NULL where present (caller sets status). */
+export function applyVisibilityFilters<Q>(query: Q, cols: CampaignCols): Q {
+  let out = query as unknown as AnyFilter;
   if (cols.visibility) out = out.eq('visibility', 'public');
   if (cols.deletedAt) out = out.is('deleted_at', null);
   return out as unknown as Q;

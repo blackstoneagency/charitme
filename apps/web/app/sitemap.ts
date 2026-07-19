@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next';
+import { campaignColumns, applyLiveFilters } from '../lib/campaign-visibility';
 import { BLOG_POSTS } from '../lib/blog-posts';
 import { PLATFORM_MODULES } from '../lib/feature-catalog';
 import { supabaseAdmin } from '../lib/supabase';
@@ -49,12 +50,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date(),
   }));
 
-  const { data: campaigns } = await supabaseAdmin
-    .from('campaigns')
-    .select('slug, updated_at')
-    .eq('status', 'active')
-    .eq('visibility', 'public')
-    .is('deleted_at', null)
+  const cols = await campaignColumns();
+  const { data: campaigns } = await applyLiveFilters(
+    supabaseAdmin.from('campaigns').select('slug, updated_at'),
+    cols,
+  )
     .order('raised_amount', { ascending: false })
     .limit(5000);
 
