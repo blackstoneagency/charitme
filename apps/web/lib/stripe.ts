@@ -1,7 +1,9 @@
 import Stripe from 'stripe';
 import { normalizeCurrency } from '@shared/currencies';
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+// Trim to tolerate a stray leading/trailing space or newline in the Vercel env
+// value — a common cause of "STRIPE_SECRET_KEY is not set" in production.
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY?.trim() || undefined;
 
 function missingStripeEnv(): never {
   throw new Error('STRIPE_SECRET_KEY is not set');

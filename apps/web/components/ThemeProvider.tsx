@@ -15,7 +15,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('dark');
 
   useEffect(() => {
-    const stored = localStorage.getItem('charitme-theme');
+    const stored = localStorage.getItem('charitme-theme-v2');
     // Dark is the default: only an explicit stored 'light' choice yields light mode.
     const resolved: Theme = stored === 'light' ? 'light' : 'dark';
     // Apply to DOM immediately; defer React state update to avoid sync-in-effect lint error
@@ -25,7 +25,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = (t: Theme) => {
     setThemeState(t);
-    localStorage.setItem('charitme-theme', t);
+    localStorage.setItem('charitme-theme-v2', t);
     document.documentElement.setAttribute('data-theme', t);
   };
 

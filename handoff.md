@@ -20,6 +20,45 @@
 
 ## Entries
 
+### 2026-07-19 — Events product surface (on existing fundraising_events model)
+- **Gap**: `fundraising_events` / `event_tickets` / `event_registrations` already existed
+  (competitor-parity migration) but had **no organizer column, no check-in table, and no
+  UI/API**. Built the product surface on top rather than new tables.
+- **Migration** `20260720000000_events_platform.sql` (additive + idempotent): adds
+  `created_by` / `description` / `capacity` / `cover_image_url` to `fundraising_events`;
+  new `event_checkins` table; owner-scoped RLS on events + registrations + check-ins.
+- **Logic** `lib/events-core.ts` (capacity, upcoming, registration-open, slug, schemas) +
+  `lib/events.ts` (data access, registered-qty counts, attendee lists).
+- **API**: `/api/events` (GET/POST), `/api/events/[id]` (GET/PATCH), `.../register` (free RSVP,
+  capacity-checked), `.../registrations` (organizer), `/api/events/registrations/[id]/checkin`
+  (organizer toggle).
+- **UI**: `/events` (discovery), `/events/[slug]` (detail + RSVP), `/events/manage`
+  (host + attendees + check-in). Footer link added.
+- **Scope**: v1 is **free RSVP**; paid ticketing via Stripe checkout is a documented
+  follow-up (no dead pay button rendered). 17 tests. Gates: typecheck ✓, vitest 456/456 ✓,
+  build ✓ (all routes emit), no new lint warnings.
+
+### 2026-07-19 — Sponsorships + Privacy + Matching slices (rebased onto master)
+- **Context**: this branch (`claude/charitme-github-integration-njok43`, PR #11) originally
+  also built volunteers + grants, but master independently shipped canonical, production-
+  applied volunteers/grants (CHAR-0001..0004). To avoid duplicate/conflicting tables, this
+  branch was **rebased onto latest master and its own volunteers/grants were dropped** —
+  master's versions are authoritative. Only the three genuinely-net-new slices remain.
+- **Sponsorships** (net-new): `sponsorship_opportunities`, `sponsorship_requests` + RLS;
+  `lib/sponsorships*.ts`; `/api/sponsorships/**`; `/sponsor{,/[id],/manage}`. Two-sided
+  offers with live funding progress. 18 tests.
+- **Privacy (GDPR/CCPA)** (net-new): `privacy_requests` (+ partial-unique active index) + RLS;
+  real self-serve data export (`/api/privacy/export`) + deletion requests with admin
+  fulfillment (PII anonymization, txns retained); `/privacy-center`, `/admin/privacy`.
+  Export reads master's `volunteer_applications.applicant_user_id` / `grant_applications.applicant_user_id`. 13 tests.
+- **Corporate matching** (net-new): `matching_programs`, `matching_claims` + RLS; capped
+  match computation; `/api/matching/**`; `/matching{,/[id],/manage}`. 24 tests.
+- **Shared files touched** (Agent-0 coordinate): `components/AppShell.tsx` (footer links),
+  `components/CharitMeApp.tsx` (admin nav: Privacy Requests), `supabase/schema.sql` (3 DDLs appended).
+- **Migrations** (not yet applied to prod): `20260716000000_sponsorships.sql`,
+  `20260718000000_privacy_requests.sql`, `20260719000000_matching_gifts.sql`. Additive + RLS-first.
+- **Gates**: typecheck ✓, vitest 439/439 ✓, `next build` ✓ (all routes emit), no new lint warnings.
+
 ### 2026-07-19 — Agent 5 — Admin grants UI + Volunteers pillar + RLS audit
 - **Admin grants management** (`master` 2fedeef): `/admin/grants` + `/api/admin/grants` (GET/POST) + `/api/admin/grants/[id]` (PATCH/DELETE), admin-gated. Create/edit/publish/close/delete grants; new grants go live on `/grants` immediately. Sidebar "Grants" added to dashboard + admin.
 - **RLS audit** (live prod): 78 public tables, **0 with RLS disabled**. 17 `marketing_*` tables are deny-all-except-service-role (correct for admin-only data). Posture sound. Follow-up: explicit admin policies on marketing tables (defense-in-depth) + per-persona test harness.
