@@ -72,9 +72,23 @@ export async function middleware(request: NextRequest) {
 
   // ── Security headers ─────────────────────────────────────────────────
   response.headers.set('X-Content-Type-Options', 'nosniff');
-  response.headers.set('X-Frame-Options', 'SAMEORIGIN');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+  // Framing / clickjacking protection.
+  // Campaign embed widgets (`/campaigns/<slug>/embed`) are meant to be
+  // iframed on third-party sites, so they must stay frame-able by anyone.
+  // Every other route is locked to same-origin framing. We use the modern
+  // `frame-ancestors` CSP directive (which supersedes X-Frame-Options) and
+  // keep X-Frame-Options only for non-embed routes as a legacy fallback.
+  const isEmbed = /^\/campaigns\/[^/]+\/embed\/?$/.test(path);
+  if (isEmbed) {
+    response.headers.set('Content-Security-Policy', 'frame-ancestors *');
+    response.headers.delete('X-Frame-Options');
+  } else {
+    response.headers.set('Content-Security-Policy', "frame-ancestors 'self'");
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+  }
   // Strict-Transport-Security (HSTS) — only set in production to avoid
   // locking out local dev environments
   if (process.env.NODE_ENV === 'production') {
