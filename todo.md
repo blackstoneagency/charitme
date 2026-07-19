@@ -153,6 +153,17 @@ tests/build/live-HTTP are listed here.
   breaking payout status + onboarding-completion (`stripe_onboarded`). Now
   verifies against both configured secrets. _Evidence: typecheck/lint/360
   tests pass._
+- **CHAR-F013 · scalability** — `POST /api/team-members` (invite co-organizer)
+  loaded up to 1000 auth users into memory per invite and silently failed to
+  find anyone beyond the first page. Replaced with an indexed, wildcard-escaped
+  case-insensitive `profiles` lookup by email. Authorization on team-members
+  POST/PATCH/DELETE was audited and correctly enforces campaign ownership
+  (or self-removal). _Evidence: typecheck/lint/360 tests pass._
+- **CHAR-A001 · audit (no fix needed)** — Verified sound: open-redirect
+  protection (`safeNextPath` rejects non-local hosts, `javascript:`, `//host`),
+  recurring-donation cancel/pause ownership, campaign sub-resource mutation
+  authz (milestones/updates/rewards/faqs/settings/beneficiaries), receipt +
+  profile-image upload scoping. No changes required.
 - **CHAR-O001 · data** — 50 fabricated sponsors + 500 fabricated support cases
   already exist in the **live** Supabase (inserted before CHAR-F001). Deleting
   production rows needs explicit owner approval — not yet actioned.

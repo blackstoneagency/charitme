@@ -40,9 +40,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'You do not own this campaign.' }, { status: 403 });
   }
 
-  // Find the user profile by email
-  const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-  const invitee = authUsers?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+  // Find the invitee by email via an indexed profiles lookup (case-insensitive).
+  // Escape LIKE wildcards so an email is matched literally. This scales to any
+  // user count, unlike listing every auth user (which silently missed users
+  // beyond the first page).
+  const emailPattern = email.replace(/([\\%_])/g, '\\$1');
+  const { data: invitee } = await supabaseAdmin
+    .from('profiles')
+    .select('id')
+    .ilike('email', emailPattern)
+    .maybeSingle();
 
   if (!invitee) {
     return NextResponse.json(
