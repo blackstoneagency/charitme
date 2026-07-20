@@ -20,6 +20,38 @@
 
 ## Entries
 
+### 2026-07-20 — Homepage · Security · Payments audit · Super-admin · SEO/AEO
+> **Full deep-dive: [`docs/SESSION_HANDOFF.md`](docs/SESSION_HANDOFF.md)** — standalone
+> pickup guide with operational knowledge (Management API path, egress blocks, ISR gotcha,
+> migration reconciliation status), all deliverables, next candidates, and a verification recipe.
+- **Homepage rebuild** (`app/page.tsx` + `app/home-parts.tsx` + `lib/home-data.ts`): token-driven
+  (dark default + light + system), mobile-first, ISR(120s), 100% real Supabase data, AI cause
+  search. Real Lighthouse: A11y 100 / SEO 100 / BP 96 / Perf 93.
+- **Security & correctness** (tests added where logic changed): donation double-count fix
+  (`pg_advisory_xact_lock`, migration `20260719120000`, live remote already patched); JSON-LD XSS
+  escaping (`lib/json-ld.ts`, all 9 sites); durable rate limiter (`lib/rate-limit-durable.ts` +
+  `check_rate_limit` RPC + `rate_limit_hits`, migration `20260719130000`); CSV formula-injection
+  guard (`lib/csv.ts`, all 5 export routes); CSP frame-ancestors reconciliation; private-campaign
+  donation privacy; upload authz; dual webhook-secret support; removed all fake seed/stat data;
+  static RLS-coverage guard test.
+- **Payments audit**: donation flow is recipient-first & sound (409 `PAYOUT_NOT_READY` unless
+  connected account fully payout-ready; destination charges; app-fee = tip only; platform never
+  holds funds). Added `lib/payout-destination.ts#accountIsPayoutReady` + test + **`docs/payments/money-flow.md`**.
+  Open (needs Stripe test keys): reconciliation job, refund fee-allocation, negative-balance recovery.
+- **Schema resilience**: `lib/campaign-visibility.ts` (column probe + filter helpers) so public pages
+  render on a partially-migrated DB; applied to homepage, `/campaigns`, `/success-stories`,
+  `/leaderboard`, `/ai-fundraising`, `sitemap.ts`.
+- **Super-admin**: `daniel.hughen@gmail.com` added to `HARDCODED_ADMIN_EMAILS` (`lib/roles.ts`).
+- **Marketing SEO/AEO** (was zero-wiring): `app/api/admin/seo` + `app/api/admin/aeo` (CRUD),
+  `app/admin/marketing/seo` tabbed UI; **public surfacing** via `lib/aeo.ts` — `/faq` now async +
+  ISR(300s), renders published AEO entries visibly AND in FAQPage JSON-LD (content always matches).
+- **Migration reconciliation** (read-only, owner approved "don't apply / run health checks"): no
+  CLI history table — applied-vs-pending determined empirically. All 132 local tables exist remotely
+  (remote ~143, ahead of local). No destructive ops in local migrations. Health checks passed
+  (RLS on, functions/triggers present, dark-mode consistent). Flagged: 508 auth users without
+  profiles (seed artifact), empty analytics tables. **Secrets pasted in chat must be rotated by owner.**
+- **Gates**: typecheck ✓, lint 0 errors ✓, 576 unit tests ✓, `next build` ✓ (130 pages).
+
 ### 2026-07-19 — Events product surface (on existing fundraising_events model)
 - **Gap**: `fundraising_events` / `event_tickets` / `event_registrations` already existed
   (competitor-parity migration) but had **no organizer column, no check-in table, and no
