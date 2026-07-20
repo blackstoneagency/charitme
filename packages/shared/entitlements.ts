@@ -49,6 +49,24 @@ export const FEATURE_KEYS: readonly FeatureKey[] = [
   'multi_admin',
 ] as const;
 
+/** Human-readable labels for each feature, for UI display. */
+export const FEATURE_LABELS: Record<FeatureKey, string> = {
+  ai_campaign_writer: 'AI campaign writer',
+  ai_media: 'AI images & media',
+  custom_campaign_url: 'Custom campaign URL',
+  advanced_analytics: 'Advanced analytics',
+  donor_crm: 'Donor CRM',
+  email_marketing: 'Email marketing',
+  automation: 'Marketing automation',
+  priority_support: 'Priority support',
+  custom_branding: 'Custom branding',
+  white_label: 'White-label pages',
+  api_access: 'API access',
+  sso: 'Single sign-on (SSO)',
+  audit_logs: 'Audit logs',
+  multi_admin: 'Multiple admins',
+};
+
 export interface PlanLimits {
   /** Max simultaneously-active campaigns. null = unlimited. */
   activeCampaigns: number | null;
