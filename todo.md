@@ -790,3 +790,25 @@ Stripe billing / live data are `needs-staging` per ADR-0003.
 **Guardrails (apply to all C-items):** support always optional/reducible to 0% (no
 dark patterns); recipient net never reduced by the 0% platform fee; subscriptions are
 additive revenue and must never gate free giving or free fundraising.
+
+---
+
+## Dark and Light Mode Visibility Audit
+
+See `docs/theme-audit/final-theme-audit-report.md` (method + findings) and
+`docs/theme-audit/theme-audit-log.md` (remediation log).
+
+**Method note:** the theme system is mature — CSS custom properties with a
+`[data-theme="dark"]` layer (737 dark rules) applied by `ThemeProvider`. Static
+audit + build-verified fixes were done here; full per-route visual regression
+(screenshots × themes × viewports, axe/Lighthouse) needs a running app + staging
+Supabase and is scoped in the report, not fabricated.
+
+| ID | Route/Component | Theme | Viewport | Severity | Problem | Status |
+|----|-----------------|-------|----------|----------|---------|--------|
+| THM-001 | `/` home hero spotlight (`.home-spot-*`) | Dark | all | P2 | Hardcoded dark accent icon/text colors low-contrast on dark card; light-mode shadows | **Resolved** (build-verified; visual confirm pending browser) |
+| THM-100 | ~300 inline `#fff`/`#000` colors in TSX (admin-heavy; public: success-stories, features, beneficiary/accept, dashboard/settings) | Both | — | P2 | Inline styles bypass `[data-theme]`; some legitimate white-on-color, so needs per-site browser confirmation before change | **Open** (backlog; needs rendering env) |
+
+**Progress:** theme architecture reviewed ✅ · 1 P2 resolved (homepage hero) ·
+THM-100 backlog documented with file targets · per-route visual matrix blocked on
+browser+staging (see report §"Recommended next step").

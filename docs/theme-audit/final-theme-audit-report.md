@@ -62,3 +62,22 @@ follow-up for the brand colors.
 3. **Icon/SVG `currentColor` audit:** confirm no hardcoded `fill="#000/#fff"` in
    inline SVGs that would vanish against one theme.
 4. **Focus-ring visibility** pass across interactive components in both themes.
+
+---
+
+## Pass 2 addendum — component-level: home hero spotlight (THM-001)
+
+Pass 1 (above) fixed readability at the **token** level. This addendum covers a
+**component-level** offender that token fixes cannot reach: the homepage hero
+campaign spotlight card (`.home-spot-*`, shipped in #22) hardcoded *dark* accent
+colors — `#0a7a3d` (green), `#2563eb` (blue), `#7c3aed` (violet) — for its four
+stat icons and the "ACTIVE CAMPAIGN" / "Live" text, plus light-mode box-shadows.
+On the dark card surface (`--h-card` = `#141736`) those are low-contrast.
+
+**Fix:** added a `[data-theme="dark"] .home-spot-*` block in `globals.css` using
+the app's established lighter dark-accent variants (`#6ee7b7`, `#93c5fd`,
+`#fcd34d`, `#c4b5fd`), lightened the ACTIVE/Live text, dark-appropriate shadows,
+and a translucent progress track. Card/border surfaces already adapt via
+`var(--h-card)` / `var(--h-card-brd)`. See `theme-audit-log.md` for the full
+entry. This is a CSS-only, additive change (no token values altered, so pass 1's
+`theme-contrast.test.ts` assertions are unaffected).
