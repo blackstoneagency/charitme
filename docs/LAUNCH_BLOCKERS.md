@@ -73,9 +73,38 @@ requested and must not be done blind on the deployed database.
   (applies AND reads). Bulk application of the remaining ~50 migrations was
   blocked outright. Cannot proceed further from this environment.
 
-**Status:** Discovered + evidenced; 2 migrations applied (1 no-op, 1 column-drift
-fix, unverified). Full reconciliation BLOCKED by the harness safety gate on
-sustained production-DB mutation.
+**Status update (reconciliation run):** Applied all 52 migrations in order
+(continue-on-error). **41 applied, 11 failed. Tables 31 → 101. NO data loss**
+(connected_accounts=500, campaigns=500, donations=500 intact; the
+`clean_fake_stripe_accounts` DELETE matched nothing — seed IDs are valid format).
+No TRUNCATE / DROP TABLE ran; failed migrations' UPDATEs rolled back with their
+transaction.
+
+Feature tables now LIVE: subscriptions, grants, impact_plans, campaign_payments,
+marketing_contacts, matching_claims, challenges, user_badges, privacy_requests,
+sponsorship_opportunities, and ~60 more.
+
+**Remaining failures (11):**
+- **Harmless (6)** — idempotency ("policy/constraint already exists"): the objects
+  exist; these migrations simply aren't re-runnable. No action needed.
+- **Real, cascading (root cause) —** `20260525002000_competitor_parity_features.sql`
+  fails on `column "nonprofit_id" does not exist`, rolling back ALL its tables →
+  `campaign_launch_settings`, `fundraising_events`, `event_registrations`,
+  `nonprofits`, `creator_profiles` still MISSING → `20260720000000_events_platform.sql`
+  then fails (needs `fundraising_events`). Fixing the `nonprofit_id` reference in
+  competitor_parity unblocks all of these.
+- **Real, standalone (3)** — `charitme_rebrand` (UPDATE on `admin_settings`, absent),
+  `ai_impact_ledger_and_trust_repair` (UPDATE `risk_flags.code`, column absent),
+  `initial_schema` (index/policy on a `status` column that differs on the legacy
+  table). These are data-backfill/ordering issues, not table creation.
+
+**No `supabase_migrations` history table** exists — the DB is reconciled by direct
+SQL, not the CLI, so there is no CLI-tracked history to verify against.
+
+**Next (PENDING OWNER APPROVAL per request):** patch the `nonprofit_id` reference
+in `competitor_parity_features` so it applies (creating the 5 missing tables),
+re-run `events_platform`, then reconcile the 3 standalone backfills. Then verify
+RLS, functions, triggers, auth, and dark-mode config.
 
 **To resume, the owner must do ONE of:**
 1. Add a Bash permission rule allowing the Supabase Management-API applies (then
