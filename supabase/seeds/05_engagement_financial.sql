@@ -64,12 +64,28 @@ begin
   from generate_series(1, 120) g;
 
   -- verification_documents ---------------------------------------------------
-  insert into public.verification_documents (user_id, campaign_id, document_type, storage_path, status)
-  select v_users[1 + (g % n_users)], v_camps[1 + (g % n_camps)],
-         (array['government_id','proof_of_address','bank_statement','nonprofit_ein'])[1 + (g % 4)],
-         'verification/seed-' || v_suffix || '/' || g || '.pdf',
-         (array['pending','pending','approved','rejected'])[1 + (g % 4)]
-  from generate_series(1, 120) g;
+  -- Some databases (built from the old schema.sql) also have a legacy NOT NULL
+  -- `doc_type` column alongside the migration's `document_type`; populate both
+  -- when it's present. (plpgsql only plans the branch it runs, so the doc_type
+  -- branch never errors on a DB that lacks the column.)
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'verification_documents'
+               and column_name = 'doc_type') then
+    insert into public.verification_documents (user_id, campaign_id, document_type, doc_type, storage_path, status)
+    select v_users[1 + (g % n_users)], v_camps[1 + (g % n_camps)],
+           (array['government_id','proof_of_address','bank_statement','nonprofit_ein'])[1 + (g % 4)],
+           (array['id','medical','financial','legal','nonprofit','other'])[1 + (g % 6)],
+           'verification/seed-' || v_suffix || '/' || g || '.pdf',
+           (array['pending','pending','approved','rejected'])[1 + (g % 4)]
+    from generate_series(1, 120) g;
+  else
+    insert into public.verification_documents (user_id, campaign_id, document_type, storage_path, status)
+    select v_users[1 + (g % n_users)], v_camps[1 + (g % n_camps)],
+           (array['government_id','proof_of_address','bank_statement','nonprofit_ein'])[1 + (g % 4)],
+           'verification/seed-' || v_suffix || '/' || g || '.pdf',
+           (array['pending','pending','approved','rejected'])[1 + (g % 4)]
+    from generate_series(1, 120) g;
+  end if;
 
   -- risk_flags ---------------------------------------------------------------
   insert into public.risk_flags
