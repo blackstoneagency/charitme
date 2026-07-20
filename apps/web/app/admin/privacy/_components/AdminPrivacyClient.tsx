@@ -43,7 +43,7 @@ export default function AdminPrivacyClient({ initialRequests }: { initialRequest
 
   return (
     <div>
-      {error && <p style={{ color: 'var(--red)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
+      {error && <p style={{ color: 'var(--red-text)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
           <thead>

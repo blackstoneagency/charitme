@@ -67,14 +67,14 @@ export default function VolunteerApplicationsClient() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {error && <div style={{ fontSize: 13, color: 'var(--red)' }}>{error}</div>}
+      {error && <div style={{ fontSize: 13, color: 'var(--red-text)' }}>{error}</div>}
       {apps.map((a) => (
         <div key={a.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg)', border: '1px solid var(--b1)', borderRadius: 'var(--rl)', padding: 16 }}>
           <div style={{ minWidth: 0, flex: '1 1 240px' }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <Badge color={statusColor[a.status]}>{volunteerApplicationStatusLabel(a.status)}</Badge>
               {a.volunteer_opportunities && <span style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 700 }}>{a.volunteer_opportunities.org_name}</span>}
-              {a.hours_verified && a.hours_logged > 0 && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}>{a.hours_logged} hrs verified</span>}
+              {a.hours_verified && a.hours_logged > 0 && <span style={{ fontSize: 12, color: 'var(--green-text)', fontWeight: 700 }}>{a.hours_logged} hrs verified</span>}
             </div>
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', marginTop: 4 }}>
               {a.volunteer_opportunities

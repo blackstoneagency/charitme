@@ -136,11 +136,11 @@ export default function SeoAeoClient({ initialSeo, initialAeo }: { initialSeo: S
                 {initialSeo.map(r => (
                   <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: '1px solid var(--b1)', borderRadius: 10 }}>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontWeight: 800, color: 'var(--t1)', fontSize: 14 }}>{r.route} {r.noindex && <span style={{ fontSize: 11, color: 'var(--red)' }}>· noindex</span>}</div>
+                      <div style={{ fontWeight: 800, color: 'var(--t1)', fontSize: 14 }}>{r.route} {r.noindex && <span style={{ fontSize: 11, color: 'var(--red-text)' }}>· noindex</span>}</div>
                       <div style={{ fontSize: 12.5, color: 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title || r.meta_description || '—'}</div>
                     </div>
                     <button style={btnGhost} onClick={() => { setSeoForm({ ...EMPTY_SEO, ...r, title: r.title ?? '', meta_description: r.meta_description ?? '', keywords: r.keywords ?? '', og_title: r.og_title ?? '', og_description: r.og_description ?? '', og_image_url: r.og_image_url ?? '', canonical_url: r.canonical_url ?? '' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</button>
-                    <button style={{ ...btnGhost, color: 'var(--red)' }} onClick={() => remove('seo', r.id)}>Delete</button>
+                    <button style={{ ...btnGhost, color: 'var(--red-text)' }} onClick={() => remove('seo', r.id)}>Delete</button>
                   </div>
                 ))}
               </div>
@@ -188,7 +188,7 @@ export default function SeoAeoClient({ initialSeo, initialAeo }: { initialSeo: S
                       <div style={{ fontSize: 11.5, color: 'var(--t4)', marginTop: 4 }}>{a.topic ? `${a.topic} · ` : ''}{a.schema_type} · priority {a.priority}</div>
                     </div>
                     <button style={btnGhost} onClick={() => { setAeoForm({ ...EMPTY_AEO, ...a, topic: a.topic ?? '' }); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</button>
-                    <button style={{ ...btnGhost, color: 'var(--red)' }} onClick={() => remove('aeo', a.id)}>Delete</button>
+                    <button style={{ ...btnGhost, color: 'var(--red-text)' }} onClick={() => remove('aeo', a.id)}>Delete</button>
                   </div>
                 ))}
               </div>

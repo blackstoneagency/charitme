@@ -94,7 +94,7 @@ export default function PrivacyCenter({ initialRequests }: { initialRequests: Pr
         </div>
       )}
       {error && (
-        <div style={{ background: 'var(--s3)', color: 'var(--red)', padding: '10px 14px', borderRadius: 'var(--r)', fontSize: 14 }}>
+        <div style={{ background: 'var(--s3)', color: 'var(--red-text)', padding: '10px 14px', borderRadius: 'var(--r)', fontSize: 14 }}>
           {error}
         </div>
       )}

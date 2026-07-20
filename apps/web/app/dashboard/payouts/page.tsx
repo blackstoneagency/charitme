@@ -243,7 +243,7 @@ export default async function PayoutsPage({
                       <small>{fmtDate(payout.created_at)}</small>
                     </div>
                     <div style={{ textAlign: 'right', minWidth: 90 }}>
-                      <b style={{ color: 'var(--green)', display: 'block' }}>
+                      <b style={{ color: 'var(--green-text)', display: 'block' }}>
                         {formatMoneyShort(payout.amount_cents, payoutCurrency)}
                       </b>
                       <small style={{ color: 'var(--t3)' }}>

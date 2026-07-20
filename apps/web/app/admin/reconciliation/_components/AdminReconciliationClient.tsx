@@ -90,7 +90,7 @@ export default function AdminReconciliationClient({ initialExceptions }: { initi
         ))}
       </div>
 
-      {error && <p style={{ color: 'var(--red)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
+      {error && <p style={{ color: 'var(--red-text)', fontSize: 13, marginBottom: 12 }}>{error}</p>}
 
       {loading ? (
         <p style={{ fontSize: 14, color: 'var(--t4)' }}>Loading…</p>

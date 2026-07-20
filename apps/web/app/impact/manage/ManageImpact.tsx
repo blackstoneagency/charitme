@@ -142,7 +142,7 @@ export default function ManageImpact({
       </div>
 
       {msg && <div style={{ background: 'var(--green-light)', color: 'var(--green-dark)', padding: '10px 14px', borderRadius: 'var(--r)', fontSize: 14, marginBottom: 16 }}>{msg}</div>}
-      {err && <div style={{ background: 'var(--s3)', color: 'var(--red)', padding: '10px 14px', borderRadius: 'var(--r)', fontSize: 14, marginBottom: 16 }}>{err}</div>}
+      {err && <div style={{ background: 'var(--s3)', color: 'var(--red-text)', padding: '10px 14px', borderRadius: 'var(--r)', fontSize: 14, marginBottom: 16 }}>{err}</div>}
 
       {/* Spending plan */}
       <div style={card}>

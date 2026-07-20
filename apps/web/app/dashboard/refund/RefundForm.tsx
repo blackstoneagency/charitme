@@ -166,7 +166,7 @@ export default function RefundForm({
           style={{
             fontSize: 13,
             fontWeight: 700,
-            color: 'var(--green)',
+            color: 'var(--green-text)',
             textDecoration: 'none',
           }}
         >
@@ -232,7 +232,7 @@ export default function RefundForm({
                     >
                       {d.campaign_title}
                     </strong>
-                    <strong style={{ fontSize: 14, color: 'var(--green)', flexShrink: 0 }}>
+                    <strong style={{ fontSize: 14, color: 'var(--green-text)', flexShrink: 0 }}>
                       {formatCents(d.amount_cents, d.currency ?? 'usd')}
                     </strong>
                   </div>

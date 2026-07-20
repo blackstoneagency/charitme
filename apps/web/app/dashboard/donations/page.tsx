@@ -409,7 +409,7 @@ export default async function DonationsPage({
                       <strong
                         style={{
                           fontSize: 15,
-                          color: 'var(--green)',
+                          color: 'var(--green-text)',
                           fontWeight: 700,
                         }}
                       >

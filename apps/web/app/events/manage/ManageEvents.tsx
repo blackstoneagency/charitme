@@ -77,7 +77,7 @@ function CreateForm({ eventTypes, onCreated }: { eventTypes: string[]; onCreated
           <Input label="Location (optional)" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Venue, City" />
           <Input label="Virtual link (optional)" value={virtualUrl} onChange={(e) => setVirtualUrl(e.target.value)} placeholder="https://…" />
         </div>
-        {error && <p style={{ color: 'var(--red)', fontSize: 13 }}>{error}</p>}
+        {error && <p style={{ color: 'var(--red-text)', fontSize: 13 }}>{error}</p>}
         <div>
           <Btn disabled={!valid || saving} onClick={save}>{saving ? 'Publishing…' : 'Publish event'}</Btn>
         </div>

@@ -301,7 +301,7 @@ function BeneficiaryInviteButton({ campaignId }: { campaignId: string }) {
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)}
-        style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)', padding: '6px 14px', border: '1px solid var(--green)', borderRadius: 8, background: '#f0fff8', cursor: 'pointer' }}>
+        style={{ fontSize: 12, fontWeight: 700, color: 'var(--green-text)', padding: '6px 14px', border: '1px solid var(--green)', borderRadius: 8, background: '#f0fff8', cursor: 'pointer' }}>
         + Invite Beneficiary
       </button>
     );

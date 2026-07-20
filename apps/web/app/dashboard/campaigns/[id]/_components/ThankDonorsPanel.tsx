@@ -146,7 +146,7 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <h2 style={{ fontSize: 14, fontWeight: 650, margin: 0 }}>Recipients ({selected.size} of {donations.length})</h2>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button type="button" onClick={() => setSelected(new Set(donations.map(d => d.id)))} style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>Select all</button>
+                <button type="button" onClick={() => setSelected(new Set(donations.map(d => d.id)))} style={{ fontSize: 12, fontWeight: 700, color: 'var(--green-text)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>Select all</button>
                 <button type="button" onClick={() => setSelected(new Set())} style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>Clear</button>
               </div>
             </div>
@@ -161,7 +161,7 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <strong style={{ fontSize: 14, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.donor_name}</strong>
                   </div>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', flexShrink: 0 }}>{fmtCents(d.amount_cents)}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-text)', flexShrink: 0 }}>{fmtCents(d.amount_cents)}</span>
                   <span style={{ fontSize: 11, color: 'var(--t3)', flexShrink: 0 }}>{fmtDate(d.created_at)}</span>
                 </label>
               ))}

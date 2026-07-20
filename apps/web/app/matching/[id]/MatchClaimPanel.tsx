@@ -148,7 +148,7 @@ export default function MatchClaimPanel({
                 {estimatedMatch === 0 && ' (below minimum or cap reached)'}
               </p>
             )}
-            {error && <p style={{ color: 'var(--red)', fontSize: 13 }}>{error}</p>}
+            {error && <p style={{ color: 'var(--red-text)', fontSize: 13 }}>{error}</p>}
             <div>
               <Btn disabled={submitting} onClick={submit}>
                 {submitting ? 'Submitting…' : 'Submit match claim'}

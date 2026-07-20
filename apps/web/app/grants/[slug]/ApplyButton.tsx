@@ -36,7 +36,7 @@ export default function ApplyButton({ grantSlug }: { grantSlug: string }) {
       <Btn size="lg" loading={loading} onClick={start} style={{ width: '100%' }}>
         Start application
       </Btn>
-      {error && <span style={{ fontSize: 12, color: 'var(--red)' }}>{error}</span>}
+      {error && <span style={{ fontSize: 12, color: 'var(--red-text)' }}>{error}</span>}
     </div>
   );
 }

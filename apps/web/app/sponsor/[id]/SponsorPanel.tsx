@@ -136,7 +136,7 @@ export default function SponsorPanel({
             Withdraw offer
           </Btn>
         )}
-        {error && <p style={{ color: 'var(--red)', fontSize: 13, marginTop: 8 }}>{error}</p>}
+        {error && <p style={{ color: 'var(--red-text)', fontSize: 13, marginTop: 8 }}>{error}</p>}
       </div>
     );
   }
@@ -177,7 +177,7 @@ export default function SponsorPanel({
           onChange={(e) => setMessage(e.target.value)}
           rows={3}
         />
-        {error && <p style={{ color: 'var(--red)', fontSize: 13 }}>{error}</p>}
+        {error && <p style={{ color: 'var(--red-text)', fontSize: 13 }}>{error}</p>}
         <div>
           <Btn disabled={submitting} onClick={submit}>
             {submitting ? 'Sending…' : 'Send sponsorship offer'}

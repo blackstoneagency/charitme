@@ -353,7 +353,7 @@ export default async function MyCampaignsPage({
                           style={{
                             fontSize: 12,
                             fontWeight: 600,
-                            color: 'var(--green)',
+                            color: 'var(--green-text)',
                             textDecoration: 'none',
                             whiteSpace: 'nowrap',
                           }}
@@ -382,7 +382,7 @@ export default async function MyCampaignsPage({
                 <p style={{ fontSize: 13, marginTop: 4 }}>
                   {activeTab === 'all' ? (
                     <>
-                      <Link href="/create" style={{ color: 'var(--green)' }}>
+                      <Link href="/create" style={{ color: 'var(--green-text)' }}>
                         Create your first campaign
                       </Link>{' '}
                       to get started.

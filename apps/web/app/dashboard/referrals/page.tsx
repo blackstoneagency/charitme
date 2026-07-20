@@ -100,7 +100,7 @@ export default async function ReferralsPage() {
                       <div style={{ fontSize: 13, color: 'var(--t3)' }}>{tier.description}</div>
                     </div>
                     {earned && (
-                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--green)' }}>Unlocked</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--green-text)' }}>Unlocked</span>
                     )}
                   </div>
                 );
@@ -158,7 +158,7 @@ export default async function ReferralsPage() {
                       </Link>
                       <span style={{ fontSize: 13, color: 'var(--t2)' }}>{c.attempts}</span>
                       <span style={{ fontSize: 13, color: 'var(--t2)' }}>{c.conversions}</span>
-                      <strong style={{ textAlign: 'right', fontSize: 15, color: 'var(--green)' }}>
+                      <strong style={{ textAlign: 'right', fontSize: 15, color: 'var(--green-text)' }}>
                         {formatCents(c.raisedCents, c.currency ?? 'usd')}
                       </strong>
                     </div>
