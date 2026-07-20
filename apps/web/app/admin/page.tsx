@@ -95,7 +95,7 @@ export default async function AdminDashboardPage() {
                 <li>Set <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to your Supabase anon key</li>
                 <li>Set <code>NEXT_PUBLIC_SUPABASE_URL</code> to <code>https://yanexccimwooursawynm.supabase.co</code></li>
                 <li>Redeploy from Vercel dashboard (env vars require a new deploy)</li>
-                <li>Then run <code>schema.sql</code> in Supabase SQL Editor if not done yet</li>
+                <li>If the database is not set up yet, run <code>supabase/catch_up.sql</code> in the Supabase SQL Editor (idempotent — safe on a fresh or existing database)</li>
               </ol>
             </div>
             <a href="/api/health" target="_blank" style={{ display: 'inline-block', marginTop: 12, padding: '10px 22px', background: '#6c35ff', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
