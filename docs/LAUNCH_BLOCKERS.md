@@ -7,13 +7,15 @@ The anon sweep found 25 tables with fully-public (`USING(true)`) SELECT policies
 Most are correctly public (media, milestones, rewards, updates, badges, countries,
 creator_profiles, nonprofit_profiles). Four warrant a decision — **not blind-fixed
 because they encode product intent**:
-- **`donor_messages` (MED)** — 1000 rows, `USING(true)`. Anon can read every
-  donor-wall message directly via PostgREST, **including on private/unlisted
-  campaigns** — bypassing the CHAR-F008 API visibility guard at the RLS layer — and
-  sees `donor_id` even on `anonymous=true` rows. Partly mitigated now that
-  `profiles` is locked (LB-006), so `donor_id` no longer joins to email as anon.
-  *Recommended:* scope the policy to messages whose campaign is public+active (and
-  drop/parameterize `donor_id` exposure on anonymous rows), mirroring the API guard.
+- **`donor_messages` (LOW)** — 1000 rows, `USING(true)`. This is the campaign
+  **Comments** wall, and its GET API (`/api/campaigns/[id]/messages`) intentionally
+  serves comments for **all** campaigns (no visibility guard, unlike CHAR-F008 which
+  gates donation amounts) — so public read is largely by design. The one real gap:
+  raw PostgREST exposes `donor_id` even on `anonymous=true` comments (the API strips
+  it and shows "Anonymous"), i.e. data-layer deanonymization. Largely mitigated now
+  that `profiles` is locked (LB-006) — `donor_id` is an opaque UUID to anon.
+  *Recommended (LOW):* if anonymous comments must be truly anonymous, null out or
+  gate `donor_id` at the row level (or serve the wall exclusively via the API).
 - **`creator_tips` (LOW-MED, latent)** — 0 rows today, but `USING(true)` would
   expose `stripe_payment_intent_id`, `supporter_id`, and tip amounts once the
   feature ships. *Recommended:* restrict reads (or a safe-columns view) before the

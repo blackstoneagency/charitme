@@ -261,6 +261,17 @@ returning exactly the **350** active+public campaigns (150 private/draft/deleted
 hidden). Production `/api/health` unaffected. The anon persona is now fully
 certified across new domains + core tables.
 
+## Live bug fixed — campaign comments were broken in prod (2026-07-20)
+
+While reviewing `donor_messages` (LB-008), found a **live functional bug**:
+`POST /api/campaigns/[id]/messages` (leave a comment / "words of support")
+inserted `visibility: 'public'`, but `donor_messages` has **no `visibility`
+column** (confirmed vs schema.sql, the migration, and the live DB) → every insert
+errored `42703` → **500 on every comment attempt**. Proven live: the exact insert
+with `visibility` fails; without it succeeds. Fix: removed the stray field
+(no read path selects it; both schema paths omit it). Typecheck clean; DB insert
+verified, test row cleaned up (zero residue).
+
 ## AI routes audit (this session)
 
 Scanned all 16 `/api/ai/*` routes for auth, rate limiting, and provider fallback:
