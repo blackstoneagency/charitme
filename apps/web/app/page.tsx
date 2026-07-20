@@ -135,13 +135,31 @@ function pct(raised: number, goal: number): number {
   if (!goal || goal <= 0) return 0;
   return Math.min(100, Math.round((raised / goal) * 100));
 }
+function deadlineLabel(iso: string | null): string {
+  if (!iso) return 'No deadline';
+  const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+  if (!Number.isFinite(days)) return 'No deadline';
+  if (days < 0) return 'Ended';
+  if (days === 0) return 'Ends today';
+  return `${days} day${days === 1 ? '' : 's'} left`;
+}
 
 export default async function HomePage() {
-  const [{ metrics, featuredCampaigns, carouselCampaigns }, categoryStats, recentDonations] = await Promise.all([
+  const [{ metrics, featuredCampaigns, carouselCampaigns, heroCampaign }, categoryStats, recentDonations] = await Promise.all([
     getHomeData({}),
     getCategoryStats(),
     getRecentDonations(6),
   ]);
+
+  // Live campaign spotlight for the hero — a real featured campaign from Supabase.
+  const hc = heroCampaign;
+  const hcCurrency = hc?.currency ?? 'usd';
+  const hcTrust = hc?.campaign_health_score ?? 0;
+  const hcFunded = hc ? pct(hc.raised_amount, hc.goal_amount) : 0;
+  const hcLastDonation = hc ? recentDonations.find((d) => d.campaignSlug === hc.slug) : undefined;
+  const hcLastLabel = hcLastDonation ? timeAgo(hcLastDonation.createdAt) : '—';
+  const hcCover = hc?.cover_image_url || getCoverForCategory(hc?.category ?? null);
+  const hcHref = hc ? `/campaigns/${hc.slug}` : '/create';
 
   const featured = (carouselCampaigns.length ? carouselCampaigns : featuredCampaigns).slice(0, 6);
   const causes = categoryStats
@@ -193,18 +211,53 @@ export default async function HomePage() {
             </p>
           </div>
 
-          {/* Branded hero visual */}
-          <Reveal className="home-hero-card" as="article">
-            <div className="home-hc-media">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/hero-child-crop.png" alt="A child helped by a CharitMe fundraiser" loading="eager" fetchPriority="high" decoding="async" width={640} height={420} />
-              <span className="home-hc-tag"><Icon name="shield" className="hi" /> Verified &amp; protected</span>
-            </div>
-            <div className="home-hc-body">
-              <span className="home-hc-cat">Start a trusted campaign</span>
-              <h2 className="home-hc-title">Turn your cause into real impact.</h2>
-              <p>Launch a verified fundraiser in minutes — CharitMe AI writes your story, goal, and plan, and 0% platform fees mean more reaches the people who need it.</p>
-              <Link href="/create" className="home-hc-cta">Start a CharitMe <Icon name="arrow" className="hi" /></Link>
+          {/* Live campaign spotlight — real featured campaign from Supabase */}
+          <Reveal className="home-spot" as="article" aria-label="Featured campaign">
+            <div className="home-spot-frame">
+              <div className="home-spot-media">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={hcCover} alt={hc ? `Cover for ${hc.title}` : 'Start a trusted campaign on CharitMe'} loading="eager" fetchPriority="high" decoding="async" width={640} height={460} />
+              </div>
+
+              <ul className="home-spot-stats" aria-label="Campaign stats">
+                <li className="home-spot-stat">
+                  <span className="home-spot-ic home-spot-ic--green"><Icon name="shield" className="hi" /></span>
+                  <div><b>{hcTrust}</b><small>Trust Score</small><em>Live</em></div>
+                </li>
+                <li className="home-spot-stat">
+                  <span className="home-spot-ic home-spot-ic--blue"><Icon name="users" className="hi" /></span>
+                  <div><b>{(hc?.backer_count ?? 0).toLocaleString()}</b><small>Donors</small></div>
+                </li>
+                <li className="home-spot-stat">
+                  <span className="home-spot-ic home-spot-ic--amber"><Icon name="chart" className="hi" /></span>
+                  <div><b>{hcFunded}%</b><small>Funded</small></div>
+                </li>
+                <li className="home-spot-stat">
+                  <span className="home-spot-ic home-spot-ic--violet"><Icon name="heart" className="hi" /></span>
+                  <div><b>{hcLastLabel}</b><small>Donations Last Recently</small></div>
+                </li>
+              </ul>
+
+              <div className="home-spot-card">
+                <span className="home-spot-active"><i aria-hidden="true" /> ACTIVE CAMPAIGN</span>
+                <h2 className="home-spot-title">{hc ? hc.title : 'Start a trusted campaign on CharitMe'}</h2>
+                <p className="home-spot-org">
+                  Organized by {hc ? profileName(hc.profiles) : 'CharitMe Organizer'}
+                  <span className="home-spot-verified" aria-label="Verified organizer"><Icon name="check" className="hi" /></span>
+                </p>
+                <div className="home-spot-amounts">
+                  <strong>{formatMoneyCompact(hc?.raised_amount ?? 0, hcCurrency)}</strong> <span>raised</span>
+                  <em>{formatMoneyCompact(hc?.goal_amount ?? 0, hcCurrency)} goal</em>
+                </div>
+                <div className="home-spot-progress" role="progressbar" aria-valuenow={hcFunded} aria-valuemin={0} aria-valuemax={100} aria-label={`${hcFunded}% funded`}>
+                  <span style={{ width: `${hcFunded}%` }} />
+                </div>
+                <div className="home-spot-meta">
+                  <span>{(hc?.backer_count ?? 0).toLocaleString()} donations</span>
+                  <span>{deadlineLabel(hc?.deadline ?? null)}</span>
+                </div>
+                <Link href={hcHref} className="home-spot-donate"><Icon name="heart" className="hi" /> Donate Now</Link>
+              </div>
             </div>
           </Reveal>
         </div>
