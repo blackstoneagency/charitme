@@ -102,6 +102,32 @@ Post-reconciliation, verified against the live DB (Management API):
   attendee PII/email is not exposed; `event_checkins` owner-only. RLS enabled on
   all three.
 
+- **Subscriptions / recurring-donation billing end-to-end** (`recurring_donations`,
+  the seeded 500-row table): schema matches the code — `status` CHECK =
+  `active|paused|cancelled|past_due` (exactly the app's state machine), `cadence`
+  CHECK = `weekly|monthly|quarterly|annual` (matches the zod enum), and the
+  reconciliation-added `nonprofit_id` column is present.
+  - **Idempotency proven**: the webhook upsert (`onConflict:
+    stripe_subscription_id`) is backed by a real UNIQUE index
+    (`recurring_donations_stripe_subscription_id_key`); re-delivering the same
+    `checkout.session.completed` returned the **same row id**, count stayed 1 (no
+    duplicate subscription on webhook retry).
+  - **State machine verified**: `active → paused` (pause route),
+    `paused → active` (resume), `→ past_due` (`invoice.payment_failed`),
+    `→ cancelled` (cancel route, `cancel_at_period_end`). Each transition is
+    gated: pausing a non-`active` row matches 0 rows → route's `400`
+    ("Only active subscriptions can be paused"); the "already cancelled" guard
+    likewise matched 0.
+  - **Ownership isolation**: cancel/pause scope by `donor_id = auth.uid()`; the
+    campaign **organizer is not the donor**, so an organizer's cancel attempt
+    finds 0 rows → route's `403` (a fundraiser cannot cancel a donor's recurring
+    gift). RLS on `recurring_donations` mirrors this: read = donor OR campaign
+    owner OR nonprofit owner OR admin; insert/update = own-or-admin.
+  - Full cleanup, zero residue. Minor cosmetic note (not a bug): a `cancelled_at`
+    column exists but the cancel route sets only `status`/`updated_at`; the
+    cancellation timestamp is inferable from `updated_at` but not recorded
+    explicitly.
+
 ## AI routes audit (this session)
 
 Scanned all 16 `/api/ai/*` routes for auth, rate limiting, and provider fallback:
