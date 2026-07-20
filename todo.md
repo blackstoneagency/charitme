@@ -766,3 +766,27 @@ Competitive gaps to close. These are strategic priorities, not features.
 | Organic SEO | Dominates fundraising-related search results |
 | Campaign Virality | Large built-in audience |
 | Operational Scale | Years of optimization and experience |
+
+---
+
+# Section C — Pricing & Revenue Model Audit (2026-07-20)
+
+Backlog from the Pricing & Revenue Model audit. See `docs/competitor-pricing-analysis.md`
+and `docs/pricing-audit-log.md`. Priority: P0 (done this pass) → P2. Items touching
+Stripe billing / live data are `needs-staging` per ADR-0003.
+
+| # | Pri | Sev | Task | Affected files / areas | Resolution | Deps | Est | Status |
+|---|-----|-----|------|------------------------|------------|------|-----|--------|
+| C1 | P0 | — | Canonical `donationBreakdown()` + support ladder + "recipient receives" line | `packages/shared/fees.ts`, `DonateButton.tsx`, `fees.test.ts` | Shipped; 556 tests green | — | 0.5d | **Code Complete** |
+| C2 | P1 | med | Standalone **"Where your money goes"** animated explainer (reuses `donationBreakdown`) | new `app/where-your-money-goes/` + shared `MoneyBreakdown` component | Build pure component, drive from breakdown | C1 | 1d | Not Started |
+| C3 | P1 | med | **Transparency Center** page (fees, Stripe, KYC/AML, refunds, escrow=none, FAQ, dark/light) | new `app/transparency/`, link from footer | Static + JSON-LD FAQ | C2 | 1.5d | Not Started |
+| C4 | P1 | high | **CharitMe Plus** organizer subscription ($19.99/mo) wired to Stripe Billing + entitlements | new `subscriptions`/`entitlements` tables, `/api/billing/*`, feature flags | Stripe test keys + staging | Stripe test env | 3d | Blocked (`needs-staging`) |
+| C5 | P2 | high | Nonprofit tiers (Starter/Growth/Professional/Enterprise) + comparison table + upgrade flow | plans model, `app/pricing/`, billing portal | Follows C4 | C4 | 3d | Blocked (`needs-staging`) |
+| C6 | P1 | med | Checkout: Apple/Google Pay, ACH, saved methods, round-up (Stripe Payment Element) | `DonateButton.tsx` → Payment Element, `/api/donations` | Stripe test env | Stripe test env | 2d | Blocked (`needs-staging`) |
+| C7 | P2 | med | Admin **pricing dashboard**: MRR/ARR/LTV/CAC, avg donation, **support-reduction %**, funnel | `app/admin/pricing/`, subscription analytics | Needs subs data (C4) | C4 | 2d | Not Started |
+| C8 | P2 | low | Dedicated `/pricing` marketing page + SEO/AEO (schema, FAQ JSON-LD, OG) targeting "fundraising fees" | `app/pricing/`, metadata | — | C1 | 1d | Not Started |
+| C9 | P2 | low | Legal: Fee Policy, Refund Policy, Subscription Terms, Transparency Policy — cross-linked | `app/legal/*` | Copy review | — | 1d | Not Started |
+
+**Guardrails (apply to all C-items):** support always optional/reducible to 0% (no
+dark patterns); recipient net never reduced by the 0% platform fee; subscriptions are
+additive revenue and must never gate free giving or free fundraising.
