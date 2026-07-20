@@ -61,6 +61,7 @@ const FOOTER_LINKS = {
     ['Trust & Safety', '/trust-safety'],
   ],
   Legal: [
+    ['Transparency Center', '/transparency'],
     ['Privacy Policy', '/privacy'],
     ['Privacy Center', '/privacy-center'],
     ['Terms of Service', '/terms'],

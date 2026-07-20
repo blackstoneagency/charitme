@@ -778,8 +778,8 @@ Stripe billing / live data are `needs-staging` per ADR-0003.
 | # | Pri | Sev | Task | Affected files / areas | Resolution | Deps | Est | Status |
 |---|-----|-----|------|------------------------|------------|------|-----|--------|
 | C1 | P0 | — | Canonical `donationBreakdown()` + support ladder + "recipient receives" line | `packages/shared/fees.ts`, `DonateButton.tsx`, `fees.test.ts` | Shipped; 556 tests green | — | 0.5d | **Code Complete** |
-| C2 | P1 | med | Standalone **"Where your money goes"** animated explainer (reuses `donationBreakdown`) | new `app/where-your-money-goes/` + shared `MoneyBreakdown` component | Build pure component, drive from breakdown | C1 | 1d | Not Started |
-| C3 | P1 | med | **Transparency Center** page (fees, Stripe, KYC/AML, refunds, escrow=none, FAQ, dark/light) | new `app/transparency/`, link from footer | Static + JSON-LD FAQ | C2 | 1.5d | Not Started |
+| C2 | P1 | med | Interactive **"Where your money goes"** calculator (reuses `donationBreakdown`) | `app/transparency/MoneyCalculator.tsx` | Shipped in Transparency Center | C1 | 1d | **Code Complete** |
+| C3 | P1 | med | **Transparency Center** page (fees, Stripe, KYC/AML, refunds, escrow=none, FAQ, dark/light) | `app/transparency/page.tsx`, footer link | Shipped; FAQPage JSON-LD | C2 | 1.5d | **Code Complete** |
 | C4 | P1 | high | **CharitMe Plus** organizer subscription ($19.99/mo) wired to Stripe Billing + entitlements | new `subscriptions`/`entitlements` tables, `/api/billing/*`, feature flags | Stripe test keys + staging | Stripe test env | 3d | Blocked (`needs-staging`) |
 | C5 | P2 | high | Nonprofit tiers (Starter/Growth/Professional/Enterprise) + comparison table + upgrade flow | plans model, `app/pricing/`, billing portal | Follows C4 | C4 | 3d | Blocked (`needs-staging`) |
 | C6 | P1 | med | Checkout: Apple/Google Pay, ACH, saved methods, round-up (Stripe Payment Element) | `DonateButton.tsx` → Payment Element, `/api/donations` | Stripe test env | Stripe test env | 2d | Blocked (`needs-staging`) |

@@ -4,6 +4,52 @@ Append-only record of pricing/revenue-model changes. Newest first.
 
 ---
 
+## 2026-07-20 · Transparency Center + interactive "Where your money goes" calculator
+
+**Issue.** No dedicated public trust hub explaining fees, money flow, KYC/AML, and
+"CharitMe never holds your donation." The strongest trust story was buried in the
+donate form and a docs file.
+
+**Reason.** Pricing-audit objective #1 — increase donor trust. A category-dominating
+transparency page that lets a donor *interactively* see where every dollar goes.
+
+**Implementation.**
+- `apps/web/app/transparency/MoneyCalculator.tsx` — client calculator driven by the
+  same `donationBreakdown()` as checkout (so displayed == charged). Amount input,
+  support tier chips (reducible to 0%), method toggle (card/ACH/PayPal/Venmo),
+  cover-processing toggle, animated stacked bar (recipient/support/processing) and a
+  live line-item breakdown with "Recipient receives" + "You pay". Dark/light aware,
+  responsive (clamp sizing).
+- `apps/web/app/transparency/page.tsx` — server page: metadata + OpenGraph + canonical,
+  **FAQPage JSON-LD** for AEO/rich results, and static sections (how payments work,
+  where fees go, no-custody money-flow diagram, verification/security/compliance,
+  refunds/chargebacks, FAQ). Reuses `.pub-page`/`.legal-body` styles.
+- `apps/web/components/AppShell.tsx` — footer link under Legal → **Transparency Center**.
+
+**Files changed.** `apps/web/app/transparency/page.tsx`,
+`apps/web/app/transparency/MoneyCalculator.tsx`, `apps/web/components/AppShell.tsx`,
+`docs/pricing-audit-log.md`, `todo.md`.
+
+**Before.** No `/transparency`; trust content scattered across `/security`,
+`/trust-safety`, and `docs/payments/money-flow.md`.
+
+**After.** One public Transparency Center with an interactive calculator that can never
+disagree with checkout. Closes `todo.md` C2 + C3.
+
+**Revenue impact.** Indirect — higher perceived transparency should lift conversion and
+support-retention. No fee changes.
+
+**UX impact.** Donors can model any gift/support/method combination and see the exact
+recipient net before ever reaching checkout.
+
+**Security/Compliance impact.** Publicly documents PCI (Stripe), KYC, AML, no-custody,
+and the immutable-ledger reconciliation posture. No new data paths (pure calculation).
+
+**Verification.** `tsc --noEmit` ✓ · vitest 556/556 ✓ · `next build` ✓ (`/transparency`
+prerendered static, 126 pages).
+
+---
+
 ## 2026-07-20 · Canonical donor-support model + live "recipient receives" breakdown
 
 **Issue.** The donor-support ("tip") model was spread across the donate form and two
