@@ -4,6 +4,47 @@ Append-only record of pricing/revenue-model changes. Newest first.
 
 ---
 
+## 2026-07-20 · Plan entitlements model (subscription READ/gate side, no Stripe)
+
+**Issue.** A `subscriptions` table existed (plan enum + Stripe IDs + status) but
+nothing mapped a plan to actual feature access — no way for any feature to gate on a
+user's tier. The Stripe billing WRITE side is staging-blocked (C4), but the
+READ/resolve side is not.
+
+**Reason.** Build the reusable, testable foundation for CharitMe Plus / nonprofit tiers
+now, so features can gate on entitlements immediately; wiring Stripe to write the
+subscription row becomes a thin, separable step later.
+
+**Implementation.**
+- `@shared/entitlements` — pure catalog keyed on the existing `subscriptions.plan`
+  enum (free/starter/pro/enterprise) with per-plan features + limits. Higher tiers are
+  feature supersets. `resolveEntitlements(plan, status)` downgrades a lapsed payer
+  (cancelled/past_due/paused) to free; `hasFeature`, `isPaidPlan`, `withinLimit` helpers.
+- `apps/web/lib/entitlements.ts` — `getUserEntitlements(userId)` reads the newest
+  in-good-standing subscription and resolves it, defaulting to free; `userHasFeature`.
+- `app/api/me/entitlements` — signed-in user's effective plan + feature map (free-tier
+  default when unauthenticated) for client gating.
+- `__tests__/entitlements.test.ts` — +10 cases (superset invariant, status downgrade,
+  limit helper, unknown-plan fallback).
+- Registered `@shared/entitlements` in `tsconfig.json` + `vitest.config.ts`.
+
+**Files changed.** `packages/shared/entitlements.ts`, `apps/web/lib/entitlements.ts`,
+`apps/web/app/api/me/entitlements/route.ts`, `apps/web/__tests__/entitlements.test.ts`,
+`apps/web/tsconfig.json`, `apps/web/vitest.config.ts`, `docs/pricing-audit-log.md`, `todo.md`.
+
+**Before.** `subscriptions` rows had no effect on feature access anywhere.
+**After.** Any feature can gate on `getUserEntitlements()`; it works the moment a
+subscription row exists, regardless of who writes it. Advances `todo.md` C4/C5 as far as
+possible without Stripe (the billing WRITE path remains `needs-staging`).
+
+**Revenue impact.** Structural — makes paid tiers enforceable. No fee changes.
+**Security/Compliance impact.** Read-only; lapsed payers lose paid features immediately
+(fail-closed to free).
+
+**Verification.** `tsc --noEmit` ✓ · vitest 573/573 ✓ · `next build` ✓.
+
+---
+
 ## 2026-07-20 · Fee Policy + Refund Policy pages (legal)
 
 **Issue.** No dedicated Fee Policy or Refund Policy pages — a launch-readiness and
