@@ -16,9 +16,11 @@ export async function getUserRoles(userId: string): Promise<UserRole[]> {
 }
 
 // Emails that are always treated as admins regardless of DB roles or env vars.
-// Add additional owner/operator emails here.
+// Add additional owner/operator emails here. Stored lowercase — the check below
+// lowercases the incoming email before comparing.
 const HARDCODED_ADMIN_EMAILS: ReadonlySet<string> = new Set([
   'blackstoneagencyllc@gmail.com',
+  'daniel.hughen@gmail.com',
 ]);
 
 export async function isAdmin(userId: string, email?: string | null): Promise<boolean> {
