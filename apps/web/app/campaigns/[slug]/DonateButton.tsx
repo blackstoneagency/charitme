@@ -585,13 +585,13 @@ export default function DonateButton({
       )}
 
       {/* ── Transparent breakdown ── */}
-      <div style={{ background: '#f9f7ff', borderRadius: 14, padding: '16px 18px', border: `1px solid ${BD}` }}>
+      <div style={{ background: 'var(--s2, #f9f7ff)', borderRadius: 14, padding: '16px 18px', border: `1px solid ${BD}` }}>
         <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, color: MU, textTransform: 'uppercase', letterSpacing: '.07em' }}>
           Transparent breakdown
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           <BRow label={isMonthly ? 'Monthly donation' : 'Donation'} value={money(amountCents)} />
-          {breakdown.tip > 0 && <BRow label={`CharitMe support (${tipPercent}%)`} value={money(breakdown.tip)} />}
+          {breakdown.tip > 0 && <BRow label="CharitMe Support" value={money(breakdown.tip)} />}
           {breakdown.processing > 0 && (
             <BRow
               label={`Processing fee (${METHOD_FEES[preferredMethod].label})`}
@@ -610,7 +610,7 @@ export default function DonateButton({
           </div>
           {/* Recipient always receives the full donation — tip + processing are
               added on top, never deducted (Stripe Connect destination charge). */}
-          <div style={{ marginTop: 6, padding: '9px 11px', borderRadius: 9, background: 'rgba(16,185,129,.10)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13.5, fontWeight: 750, color: '#047857' }}>
+          <div style={{ marginTop: 6, padding: '9px 11px', borderRadius: 9, background: 'rgba(16,185,129,.10)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13.5, fontWeight: 750, color: 'var(--green-dark, #047857)' }}>
             <span>✓ {campaignTitle ? 'Recipient' : 'They'} receive{isMonthly ? '' : 's'} {money(amountCents)}</span>
             <span style={{ fontSize: 11.5, fontWeight: 700, opacity: .85 }}>100% of your donation</span>
           </div>
