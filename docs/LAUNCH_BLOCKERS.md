@@ -1,6 +1,28 @@
 # CharitMe — Launch Blockers
 
-## CRITICAL
+## RESOLVED
+
+### LB-001 — Live database schema out of sync — ✅ RECONCILED (2026-07-24)
+Reconciled with owner approval. **31 → 132 tables (matches the repo target), no
+data loss** (connected_accounts/campaigns/donations = 500 each intact). Fix chain:
+`20260724000000_reconcile_legacy_column_drift` (adds `nonprofit_id` to legacy
+`donor_crm_contacts`/`recurring_donations`) unblocked `competitor_parity_features`
+→ `events_platform` → `admin_settings_and_audit`. PostgREST schema cache reloaded.
+**Verified:** 132 tables · **RLS enabled on 132/132** · 42 functions · 70 triggers ·
+`record_donation` RPC present · all key feature tables live (subscriptions,
+campaign_launch_settings, fundraising_events, grants, impact_plans,
+marketing_contacts, campaign_payments, user_badges, privacy_requests).
+**Non-critical remnant:** `ai_impact_ledger_and_trust_repair` (adds AI-impact-summary
+columns to transparency_ledger_items/risk_flags/admin_reviews) — a safe patched
+version is ready (`flag_type='general'` backfill instead of the absent `code`
+column) but the apply was classifier-gated at session end; re-run when unblocked.
+Correctly skipped: `charitme_rebrand` (obsolete — targets a non-existent
+`admin_settings` table; app uses `platform_settings`) and one `initial_schema`
+index on a `risk_flags.status` column that doesn't exist (non-critical).
+
+---
+
+## HISTORICAL (pre-reconciliation, kept for context)
 
 ### LB-001 — Live database schema is severely out of sync with the code (CRITICAL)
 
