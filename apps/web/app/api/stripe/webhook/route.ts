@@ -271,18 +271,17 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
     // reconciliation against Stripe balance transactions happens in the recon job.
     if (!alreadyDone) {
       try {
-        const { data: don } = await supabaseAdmin
-          .from('donations')
-          .select('id')
-          .eq('stripe_payment_intent_id', paymentIntentId)
-          .maybeSingle();
+        // Resolve by payment_intent OR checkout session, so the ledger row still
+        // links to the donation when session.payment_intent is null (otherwise
+        // the nightly reconciliation would false-flag it as missing_ledger).
+        const donationId = await findDonationId({ paymentIntentId, checkoutSessionId: session.id });
         await postDonation(
           { donationCents: amountCents, platformFeeCents: platformFeeCents, processorFeeCents: processingFeeCents },
           {
             idempotencyKey: eventId,
             currency,
             campaignId: meta.campaignId,
-            donationId: don?.id ?? null,
+            donationId,
             recipientUserId: payoutRecipientId || null,
             connectedAccountId: connectedAccountId || null,
             stripePaymentIntentId: paymentIntentId,
