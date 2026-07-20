@@ -27,7 +27,7 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 │   ├── components/     — AppShell.tsx, ui.tsx
 │   └── lib/            — supabase clients, stripe, auth helpers
 ├── packages/shared/    — fees.ts: platform fee, categories, limits
-└── supabase/schema.sql — 4-table PostgreSQL schema with RLS
+└── supabase/schema.sql — generated full schema mirror (see scripts/regen_schema.sh); catch_up.sql patches existing DBs
 ```
 
 ### Supabase client pattern — CRITICAL
