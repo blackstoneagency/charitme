@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { safeJsonLd } from "../../lib/json-ld";
+import { getPublishedFaqs, groupFaqsByTopic } from '../../lib/aeo';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -7,6 +8,9 @@ export const metadata: Metadata = {
   description: 'Answers to the most common questions about CharitMe — fees, payouts, AI tools, trust scores, and donor safety.',
   alternates: { canonical: 'https://www.charitme.com/faq' },
 };
+
+// Refresh every 5 minutes to pick up newly-published AEO answers.
+export const revalidate = 300;
 
 const FAQ_SECTIONS = [
   {
@@ -66,15 +70,28 @@ const FAQ_SECTIONS = [
   },
 ];
 
-export default function FaqPage() {
+export default async function FaqPage() {
+  // Admin-managed answer-engine entries (published only), surfaced both visibly
+  // and in the FAQPage schema below so the markup always matches page content.
+  const aeoFaqs = await getPublishedFaqs('FAQPage');
+  const aeoSections = groupFaqsByTopic(aeoFaqs);
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: FAQ_SECTIONS.flatMap((section) => section.items.map((item) => ({
-      '@type': 'Question',
-      name: item.q,
-      acceptedAnswer: { '@type': 'Answer', text: item.a },
-    }))),
+    mainEntity: [
+      ...FAQ_SECTIONS.flatMap((section) => section.items.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      }))),
+      // Every AEO entry here is also rendered visibly in the section below.
+      ...aeoFaqs.map((f) => ({
+        '@type': 'Question',
+        name: f.question,
+        acceptedAnswer: { '@type': 'Answer', text: f.answer },
+      })),
+    ],
   };
 
   return (
@@ -145,6 +162,29 @@ export default function FaqPage() {
           </div>
         </div>
       </section>
+
+      {/* Published AEO answers (admin-managed, Supabase-backed) */}
+      {aeoSections.length > 0 && (
+        <section className="border-t border-slate-100 py-16">
+          <div className="container">
+            <div className="mx-auto max-w-3xl space-y-14">
+              {aeoSections.map((section) => (
+                <div key={section.topic}>
+                  <h2 className="mb-6 text-2xl font-black text-slate-950">{section.topic}</h2>
+                  <div className="space-y-4">
+                    {section.items.map((item) => (
+                      <div key={item.question} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <h3 className="font-black text-slate-950">{item.question}</h3>
+                        <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-600">{item.answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="bg-slate-50 py-16">
