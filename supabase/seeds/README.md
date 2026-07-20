@@ -18,6 +18,7 @@ Run these **in order**, once each, top to bottom:
 | 02 | `02_marketplaces.sql` | `sponsorship_opportunities`/`requests`, `grants` (+`deadlines`/`applications`/`documents`/`matches`), `matching_programs`/`claims`, `volunteer_opportunities`/`applications`/`profiles`, `nonprofit_profiles` | 120 each |
 | 03 | `03_events.sql` | `fundraising_events`, `event_tickets`, `event_registrations`, `event_checkins`, `peer_fundraisers` | 120 each |
 | 04 | `04_impact_gamification.sql` | `impact_plans`, `impact_plan_items`, `impact_updates`, `impact_evidence`, `impact_metrics`, `challenges`, `challenge_participants`, `user_badges` | 120 each |
+| 05 | `05_engagement_financial.sql` | `donor_messages`, `recurring_donations`, `refunds`, `payouts`, `verification_documents`, `risk_flags`, `tax_receipts`, `business_leads` | 120 each |
 | 99 | `99_verify_counts.sql` | *(read-only)* reports row counts + an `ok` flag (≥100) per feature | — |
 
 Each feature file re-reads whatever `profiles`/`campaigns` already exist, so if

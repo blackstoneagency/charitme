@@ -16,7 +16,9 @@ declare
     'volunteer_opportunities','volunteer_applications','volunteer_profiles','nonprofit_profiles',
     'fundraising_events','event_tickets','event_registrations','event_checkins','peer_fundraisers',
     'impact_plans','impact_plan_items','impact_updates','impact_evidence','impact_metrics',
-    'challenges','challenge_participants','user_badges'
+    'challenges','challenge_participants','user_badges',
+    'donor_messages','recurring_donations','refunds','payouts',
+    'verification_documents','risk_flags','tax_receipts','business_leads'
   ];
   t text;
   c bigint;
