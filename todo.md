@@ -198,15 +198,16 @@ AI platform, admin, lead-gen.
   - Completion Evidence: —
   - Commit: —
 
-- [ ] CHAR-0013
+- [~] CHAR-0013 — **Env validation + secret-exposure guard DONE**; full script-src CSP deferred (needs browser)
   - Area: Security / hardening
   - Feature: Env validation + secret-exposure audit + security headers/CSP
   - Description: Zod-validated env schema at boot; audit that no service-role/Stripe/AI secrets reach client bundles; add CSP + security headers; confirm rate-limiting coverage (`lib/rate-limit.ts`).
   - Agent: 1 (+9)
   - Priority: P0
   - Dependencies: none
-  - Completion Evidence: —
-  - Commit: —
+  - Completion Evidence: `lib/env.ts` (zod schema, non-throwing `validateEnv`) + `npm run check:env` preflight; `__tests__/env.test.ts` (8) + `__tests__/secret-exposure.test.ts` (4) — the guard caught 4 client files pulling the Stripe server SDK for `formatCents`, fixed by moving it to `@shared/currencies`. Security headers (CSP frame-ancestors, HSTS, X-Frame-Options, Permissions-Policy, nosniff) already present in `middleware.ts`/`next.config.js`. Docs: `docs/security/env-and-secret-exposure.md`. 674 tests pass, type-clean, build 132 pages.
+  - Remaining: full `script-src`/`style-src` CSP (needs a browser to verify it doesn't break the inline-style design system); automated rate-limit coverage assertions.
+  - Commit: (this PR)
 
 - [ ] CHAR-0014
   - Area: QA / observability

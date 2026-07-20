@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "audit:campaign-images": "node scripts/audit-campaign-images.mjs",
-    "audit:campaign-images:live": "node scripts/audit-campaign-images.mjs --live"
+    "audit:campaign-images:live": "node scripts/audit-campaign-images.mjs --live",
+    "check:env": "node scripts/check-env.mjs"
   },
   "dependencies": {
     "@shared/fees": "*",
