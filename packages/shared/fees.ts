@@ -1,5 +1,9 @@
 export const PLATFORM_FEE_PERCENT = 0;
-export const DEFAULT_DONOR_TIP_PERCENT = 8;
+// Suggested donor "support" (optional tip to CharitMe). Always reducible to 0 —
+// see TIP_OPTIONS. This is a suggestion, never a mandatory fee; organizers pay
+// 0% platform fee (PLATFORM_FEE_PERCENT). No dark patterns: the reduction
+// options are always visible on the donation form.
+export const DEFAULT_DONOR_TIP_PERCENT = 15;
 export const PROCESSING_FEE_PERCENT = 2.9;
 export const PROCESSING_FEE_FIXED_CENTS = 30;
 export const MIN_DONATION_CENTS = 100;
@@ -60,7 +64,9 @@ export const CAMPAIGN_CATEGORIES = [
 
 export type CampaignCategory = (typeof CAMPAIGN_CATEGORIES)[number];
 
-export const TIP_OPTIONS = [0, 5, 8, 10, 12] as const;
+// Selectable support percentages, suggested (15) first. Always includes 0 so a
+// donor can opt out entirely with one tap.
+export const TIP_OPTIONS = [15, 12, 10, 8, 5, 3, 1, 0] as const;
 
 export function platformFee(_amountCents: number): number {
   return 0;
