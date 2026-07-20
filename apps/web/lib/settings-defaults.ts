@@ -37,6 +37,9 @@ export const DEFAULTS: Record<SettingsCategory, Record<string, unknown>> = {
     bankTransferEnabled: true,
     platformFeePct: 2.5,
     currency: 'USD',
+    // One-time fee (in cents) a creator pays to feature their campaign in the
+    // homepage rotator. Editable in Super Admin → Settings → Payment.
+    featuredCampaignPriceCents: 500,
   },
   integrations: {
     googleAnalyticsEnabled: false,
