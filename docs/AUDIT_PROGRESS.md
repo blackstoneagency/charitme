@@ -234,6 +234,30 @@ test writes (badge, participants, a throwaway challenge) removed — **zero resi
   **admin-only** write. Progress/goal math unit-tested (`challenges.test.ts`, 12
   pass).
 
+## Anon-persona live RLS certification (2026-07-20) — 2 findings
+
+Certified the **anonymous persona** against live PostgREST using the public anon
+key (the highest-risk persona: unauthenticated exposure). Method: insert hidden
+rows via service-role, then query as anon and confirm invisibility; zero residue
+after. **Passed** for the newest domains — anon sees only public rows and never
+private ones:
+- `privacy_requests` (1 row present) → anon 0 ✓; `sponsorship_requests`
+  (offer amount present) → anon 0 ✓; `event_registrations` → anon 0 ✓.
+- `sponsorship_opportunities` (open + draft present) → anon sees only the open ✓;
+  `challenges` (3 active + 1 draft) → anon sees only the 3 active ✓.
+
+But two **core-table** checks failed — see `LAUNCH_BLOCKERS.md` **LB-006 / LB-007**
+and the prepared fix migration
+`supabase/migrations/20260720120000_fix_profiles_pii_leak_and_campaigns_rls_recursion.sql`:
+- **LB-006 (HIGH):** `profiles_read USING (true)` → anon can dump all 502 rows
+  incl. `email`, `stripe_customer_id`, `stripe_subscription_id`. Live PII leak.
+- **LB-007 (MED):** `campaigns` RLS mutual-recursion with `team_members` →
+  `42P17` 500 on any RLS-enforced campaigns read (app uses service-role so no
+  current outage, but the policy is broken).
+
+Both fixes are prepared but **not applied** — applying to the live DB is a
+security-sensitive prod RLS change pending owner authorization (no staging exists).
+
 ## AI routes audit (this session)
 
 Scanned all 16 `/api/ai/*` routes for auth, rate limiting, and provider fallback:

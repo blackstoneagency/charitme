@@ -1,5 +1,47 @@
 # CharitMe — Launch Blockers
 
+## OPEN — found 2026-07-20 (anon-persona live RLS certification)
+
+### LB-006 — profiles table leaks PII/billing IDs to anonymous callers (HIGH — SECURITY)
+`profiles` RLS is enabled but the SELECT policy was `profiles_read USING (true)`,
+so **any unauthenticated caller** using the public anon key (which ships in the
+client bundle) can dump **every** profile row. Proven live:
+`GET https://yanexccimwooursawynm.supabase.co/rest/v1/profiles?select=email,full_name`
+returns **502 rows** including `email`, `stripe_customer_id`,
+`stripe_subscription_id`, `roles`, `plan`, and notification prefs. The table has a
+`show_public_profile` flag the policy ignores entirely.
+- **Blast radius:** unauthenticated harvest of all users' email addresses + Stripe
+  customer/subscription identifiers. GDPR/CCPA-relevant personal-data exposure.
+- **Why the app still works after a fix:** every public profile surface
+  (`/donors/[id]`, `/profile`, campaign organizer display) reads via the
+  service-role client (`supabaseAdmin`), which bypasses RLS. Restricting the base
+  policy to own-or-admin does not change rendered output; it only closes the
+  anon dump. (If a per-column public surface is ever needed, add a view exposing
+  only safe columns gated on `show_public_profile`.)
+- **Fix prepared (not yet applied):**
+  `supabase/migrations/20260720120000_fix_profiles_pii_leak_and_campaigns_rls_recursion.sql`
+  sets `profiles_read USING (auth.uid() = id or is_admin())`.
+- **Owner action:** authorize applying the migration to the live DB (no staging
+  exists). Treat as urgent — the leak is live now.
+
+### LB-007 — campaigns RLS has infinite recursion (MED — broken policy / 500 landmine)
+`campaigns_public_read` does `EXISTS(... team_members ...)` while
+`team_members.team_campaign_read` does `EXISTS(... campaigns ...)` → mutual
+recursion → **`42P17` "infinite recursion detected in policy for relation
+campaigns"** on ANY RLS-enforced SELECT of `campaigns` (anon or logged-in user).
+Proven live: `GET /rest/v1/campaigns?select=id&limit=3` → HTTP 500. The subquery
+also had a bug (`tm.campaign_id = tm.id`, should correlate to `campaigns.id`).
+- **Not a current outage:** the public campaign pages (`/campaigns`,
+  `/campaigns/[slug]`) and home feed read via `supabaseAdmin` (RLS bypassed), so
+  browsing works. But campaigns RLS is **effectively non-functional** and any
+  future anon/user-key read of campaigns will 500.
+- **Fix prepared (not yet applied):** same migration adds a SECURITY DEFINER
+  helper `is_campaign_team_member()` (owner-privileged, does not re-enter RLS —
+  mirrors `is_admin()`) and rewrites the policy to use it with the corrected join.
+- **Owner action:** authorize applying the migration to the live DB.
+
+---
+
 ## RESOLVED
 
 ### LB-001 — Live database schema out of sync — ✅ RECONCILED (2026-07-24)
