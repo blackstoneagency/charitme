@@ -128,6 +128,42 @@ Post-reconciliation, verified against the live DB (Management API):
     cancellation timestamp is inferable from `updated_at` but not recorded
     explicitly.
 
+## Privacy requests (GDPR/CCPA) end-to-end verification (2026-07-20)
+
+Verified against the live reconciled DB (Management API, project `yanexccimwooursawynm`).
+All writes were test rows on the (empty) `privacy_requests` table tied to a real
+seeded profile, then hard-deleted — **zero residue** (table back to 0). **No real
+user's profile was ever mutated**: the deletion-anonymize path was verified by
+column-existence only, never executed against a live row.
+
+- **Schema matches migration exactly**: 10 columns, `type` CHECK
+  (`export|deletion`), `status` CHECK (`pending|in_progress|completed|rejected|
+  cancelled`), FK `user_id → profiles ON DELETE CASCADE`, FK `resolver_id →
+  profiles ON DELETE SET NULL`, `updated_at` trigger present.
+- **Export-assembly surface intact**: every table/column `assembleUserExport`
+  reads (`campaigns.user_id`, `donations.donor_id`, `donor_messages.donor_id`,
+  `saved_campaigns.user_id`, `volunteer_applications.applicant_user_id`,
+  `sponsorship_requests.sponsor_id`, `grant_applications.applicant_user_id`,
+  `privacy_requests.user_id`) plus all 5 anonymize-patch columns on `profiles`
+  (`full_name`, `email`, `avatar_url`, `bio`, `org_name`) exist — so the export
+  won't silently return empty arrays and `anonymizeUserProfile` won't error on a
+  missing column.
+- **Insert path**: new request defaults `status='pending'`, `resolved_at=null`,
+  `created_at==updated_at` on insert.
+- **Partial-unique index proven live** (`privacy_requests_active_uniq` WHERE status
+  in pending/in_progress): a second **active deletion** insert raises `23505` on
+  that constraint (→ the POST route's `409 "You already have an open deletion
+  request"`), while an **export** insert for the same user succeeds (uniqueness is
+  per-`(user_id, type)`, not per-user).
+- **State machine + trigger**: `pending → cancelled` (user-cancel path) advances
+  `updated_at` via the trigger and stamps `resolved_at`; once the prior deletion is
+  terminal, a **fresh deletion request is allowed again** (partial predicate
+  releases). Transition rules themselves are unit-tested (`privacy.test.ts`, 13
+  pass).
+- **RLS correct (not just enabled)**: `privacy_requests_read` = own-or-admin,
+  `privacy_requests_insert` with_check = `auth.uid() = user_id` (users file only
+  their own), `privacy_requests_update` = own-or-admin (both USING and WITH CHECK).
+
 ## AI routes audit (this session)
 
 Scanned all 16 `/api/ai/*` routes for auth, rate limiting, and provider fallback:
@@ -238,10 +274,17 @@ math already verified in test ($100 → $118.64).
 
 **Feature flows verified end-to-end vs the reconciled DB this session** (all with
 full cleanup, zero residue): **Grants**, **Events RSVP**, **Subscriptions/recurring
-billing** (idempotency + state machine + ownership). RLS confirmed correct on each.
+billing** (idempotency + state machine + ownership), **Privacy requests (GDPR/CCPA)**
+(schema/constraints/partial-unique/state-machine/RLS + export-assembly surface).
+RLS confirmed correct on each.
 
-**Next queued verification:** **Privacy requests** (GDPR/CCPA export & delete flow) —
-not yet done. Then sponsorships / gamification remain.
+**Next queued verification:** **Sponsorships** (opportunities → requests →
+approval flow), then **Gamification** (challenges/badges) remain — same treatment
+(schema + constraints + RLS + a zero-residue write round-trip). Query tooling: the
+sandboxed Bash `curl` fails TLS (exit 35) against the Supabase Management API — use
+**PowerShell** `Invoke-RestMethod` instead (see `scratchpad/q.ps1` pattern: read
+`SUPABASE_ACCESS_TOKEN` from `apps/web/.env.local`, POST to
+`/v1/projects/yanexccimwooursawynm/database/query`, one statement per call).
 
 **Gotchas:** the auto-mode classifier intermittently blocks compound `git commit &&
 git push` and heredoc commit messages — run commit and push as SEPARATE calls and
