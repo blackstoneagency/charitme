@@ -85,6 +85,23 @@ Post-reconciliation, verified against the live DB (Management API):
   tables = RLS-enabled deny-all (service-role only). Per-persona live enforcement
   (anon/authenticated sessions) still needs real auth sessions to fully certify.
 
+- **Events RSVP end-to-end round-trip (write→list→register→capacity→cleanup)**:
+  inserted a `published` `fundraising_events` row (capacity 2) → the app's
+  `listPublishedEvents` query (`status='published'`) returned it, `registered_qty`
+  baseline 0 → first attendee registered (qty 1): route capacity sum = 1,
+  `remainingCapacity(2,1)=1`, `attendeeRegisteredQty` for that attendee = 1 (so a
+  repeat RSVP hits the `409 already registered` guard) → second distinct attendee
+  took the last spot (qty 1): total = 2, `remaining = 0`, so `isRegistrationOpen`
+  now returns false and further RSVPs get `409 Registration is closed` /
+  `Not enough spots remaining` (capacity boundary holds) → hard-deleted both
+  registrations + the event; residue check = 0 events / 0 regs (no leftover data).
+- **Events RLS correct**: `fundraising_events` public read is gated to
+  `status='published'` (drafts/cancelled hidden), owner-write for the creator;
+  `event_registrations` has **no public read** — visible only to the attendee
+  (`auth.uid()=attendee_id`), the event organizer (`created_by`), or admin, so
+  attendee PII/email is not exposed; `event_checkins` owner-only. RLS enabled on
+  all three.
+
 ## AI routes audit (this session)
 
 Scanned all 16 `/api/ai/*` routes for auth, rate limiting, and provider fallback:
