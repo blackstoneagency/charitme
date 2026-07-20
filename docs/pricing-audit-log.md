@@ -4,6 +4,40 @@ Append-only record of pricing/revenue-model changes. Newest first.
 
 ---
 
+## 2026-07-20 · Fee Policy + Refund Policy pages (legal)
+
+**Issue.** No dedicated Fee Policy or Refund Policy pages — a launch-readiness and
+trust gap. Fee/refund behavior was described only in the donate form and docs.
+
+**Reason.** Pricing-audit "Legal" section — publish authoritative, accurate policy
+pages consistent with the actual implementation, cross-linked across the site.
+
+**Implementation.**
+- `app/fees/page.tsx` — Fee Policy: 0% platform fee, optional/reducible support ladder,
+  processing pass-through with the real method rates, no-custody money flow, optional
+  subscriptions as additive products, international note. Metadata + OpenGraph + canonical.
+- `app/refunds/page.tsx` — Refund Policy: request path, full/partial handling, processor
+  fees, 5–10 business-day timing, chargebacks (consistent with the disputes-account
+  ledger reversal), recurring cancellation, post-payout recovery.
+- `components/AppShell.tsx` — footer Legal links to Fee Policy + Refund Policy.
+- Both cross-link Terms, Transparency Center, and each other.
+
+**Files changed.** `app/fees/page.tsx`, `app/refunds/page.tsx`,
+`components/AppShell.tsx`, `docs/pricing-audit-log.md`, `todo.md`.
+
+**Before.** Only Terms/Privacy/Security legal pages; no fee or refund policy.
+
+**After.** Authoritative `/fees` and `/refunds`, accurate to the code and cross-linked.
+Closes `todo.md` C9 (Fee + Refund policies; Subscription/Enterprise terms follow billing).
+
+**Revenue/Security impact.** None (static content). **Compliance impact.** Publishes the
+0%-fee and refund/chargeback posture in accurate, linkable form.
+
+**Verification.** `tsc --noEmit` ✓ · vitest 563/563 ✓ · `next build` ✓ (both prerendered
+static, 128 pages).
+
+---
+
 ## 2026-07-20 · Admin pricing & support analytics (donation-side)
 
 **Issue.** No operator view of how donors respond to optional support — the only

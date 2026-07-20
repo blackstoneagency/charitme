@@ -62,6 +62,8 @@ const FOOTER_LINKS = {
   ],
   Legal: [
     ['Transparency Center', '/transparency'],
+    ['Fee Policy', '/fees'],
+    ['Refund Policy', '/refunds'],
     ['Privacy Policy', '/privacy'],
     ['Privacy Center', '/privacy-center'],
     ['Terms of Service', '/terms'],

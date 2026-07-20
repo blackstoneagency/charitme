@@ -785,7 +785,7 @@ Stripe billing / live data are `needs-staging` per ADR-0003.
 | C6 | P1 | med | Checkout: Apple/Google Pay, ACH, saved methods, round-up (Stripe Payment Element) | `DonateButton.tsx` → Payment Element, `/api/donations` | Stripe test env | Stripe test env | 2d | Blocked (`needs-staging`) |
 | C7 | P2 | med | Admin **pricing dashboard**: avg donation, avg/**support-reduction %**, tier mix (done); MRR/ARR/LTV/CAC + funnel pend subs | `app/admin/pricing/`, `lib/pricing-analytics*` | Donation-side shipped; subs metrics need C4 | C4 | 2d | **Partial (donation-side Code Complete)** |
 | C8 | P2 | low | Dedicated `/pricing` marketing page + SEO/AEO (schema, FAQ JSON-LD, OG) targeting "fundraising fees" | `app/pricing/`, metadata | — | C1 | 1d | Not Started |
-| C9 | P2 | low | Legal: Fee Policy, Refund Policy, Subscription Terms, Transparency Policy — cross-linked | `app/legal/*` | Copy review | — | 1d | Not Started |
+| C9 | P2 | low | Legal: **Fee Policy + Refund Policy** shipped (`/fees`, `/refunds`); Subscription/Enterprise Terms follow billing | `app/fees/`, `app/refunds/` | Fee+Refund done; sub terms need C4 | — | 1d | **Partial (Fee+Refund Code Complete)** |
 
 **Guardrails (apply to all C-items):** support always optional/reducible to 0% (no
 dark patterns); recipient net never reduced by the 0% platform fee; subscriptions are
