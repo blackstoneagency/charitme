@@ -18,7 +18,6 @@ import CampaignCarousel from './CampaignCarousel';
 import DonorWall, { type WallDonation } from './DonorWall';
 import DonationTicker from './DonationTicker';
 import EmployerMatchWidget from './EmployerMatchWidget';
-import ReferralBox from './ReferralBox';
 import Milestones from './Milestones';
 import CommentForm from './CommentForm';
 import CommentsList, { type WallComment } from './CommentsList';
@@ -90,17 +89,6 @@ async function getDonorMessages(campaignId: string) {
     .eq('campaign_id', campaignId)
     .order('created_at', { ascending: false })
     .limit(8);
-  return data ?? [];
-}
-
-async function getLedger(campaignId: string) {
-  const { data } = await supabaseAdmin
-    .from('transparency_ledger_items')
-    .select('id, item_type, title, amount_cents, category, status, created_at, ai_summary, review_status')
-    .eq('campaign_id', campaignId)
-    .in('review_status', ['auto_approved', 'approved'])
-    .order('created_at', { ascending: false })
-    .limit(4);
   return data ?? [];
 }
 
@@ -263,10 +251,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     referrerId,
   };
 
-  const [donations, updates, ledger, faqs, donorMessages, milestones, rewards, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
+  const [donations, updates, faqs, donorMessages, milestones, rewards, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
-    getLedger(campaign.id),
     getFAQs(campaign.id),
     getDonorMessages(campaign.id),
     getMilestones(campaign.id),
@@ -630,9 +617,6 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             qrPosterId={campaign.id}
           />
 
-          {/* Personal referral link — earn rewards for referred donations */}
-          <ReferralBox campaignUrl={campaignUrl} userId={user?.id ?? null} />
-
         </div>{/* end pc-left */}
 
         {/* RIGHT column: sticky donation form */}
@@ -703,9 +687,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           <h2>Campaign created with AI</h2>
           <p>CharitMe helps organizers tell their story, reach more people, and maximize impact while keeping trust and transparency visible.</p>
           <ul>
-            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 650 }}>AI story assistant</Link></li>
-            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 650 }}>AI outreach plan</Link></li>
-            <li><Link href="/features" style={{ color: '#4d31c9', textDecoration: 'none', fontWeight: 650 }}>AI growth strategy</Link></li>
+            <li><Link href="/features" style={{ color: 'var(--pc-ai-link, #4d31c9)', textDecoration: 'none', fontWeight: 650 }}>AI story assistant</Link></li>
+            <li><Link href="/features" style={{ color: 'var(--pc-ai-link, #4d31c9)', textDecoration: 'none', fontWeight: 650 }}>AI outreach plan</Link></li>
+            <li><Link href="/features" style={{ color: 'var(--pc-ai-link, #4d31c9)', textDecoration: 'none', fontWeight: 650 }}>AI growth strategy</Link></li>
           </ul>
         </article>
 
@@ -771,24 +755,6 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         </div>
 
         <DonorWall campaignId={campaign.id} initialDonations={wallDonations} totalCount={campaign.backer_count ?? donations.length} currency={currency} />
-
-        <article className="pc-card">
-          <h2>Transparency Ledger</h2>
-          {ledger.map((item) => (
-            <div key={item.id}>
-              <p style={{ margin: 0 }}>
-                <span>{item.title}</span>
-                <b>{item.amount_cents ? formatMoneyShort(item.amount_cents, currency) : item.status}</b>
-              </p>
-              {item.ai_summary ? (
-                <div style={{ margin: '-6px 0 13px', fontSize: 13, color: 'var(--t3)', lineHeight: 1.5 }}>
-                  {item.ai_summary}
-                </div>
-              ) : null}
-            </div>
-          ))}
-          {ledger.length === 0 ? <p><span>Receipts and milestones will appear here.</span><b>Live</b></p> : null}
-        </article>
 
       </section>
 
