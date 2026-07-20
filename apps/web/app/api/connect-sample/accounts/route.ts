@@ -1,6 +1,7 @@
 import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getStripeClient, StripeConfigError } from '../../../../lib/connect-sample/client';
+import { transfersActive } from '../../../../lib/connect-sample/status';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,9 +93,7 @@ export async function GET() {
         contact_email: a.contact_email,
         // May be undefined on the list payload; the /status route reports the
         // authoritative value.
-        transfers_active:
-          a.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status ===
-          'active',
+        transfers_active: transfersActive(a),
       })),
     });
   } catch (err) {

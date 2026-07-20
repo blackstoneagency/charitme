@@ -1,6 +1,7 @@
 import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getStripeClient, StripeConfigError } from '../../../../../../lib/connect-sample/client';
+import { deriveAccountStatus } from '../../../../../../lib/connect-sample/status';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,23 +22,15 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       include: ['configuration.recipient', 'requirements'],
     });
 
-    // Can the account actually receive transfers into its Stripe balance?
-    const readyToReceivePayments =
-      account?.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status ===
-      'active';
-
-    // Requirements summary: if nothing is currently/past due, onboarding is done.
-    const requirementsStatus = account.requirements?.summary?.minimum_deadline?.status;
-    const onboardingComplete =
-      requirementsStatus !== 'currently_due' && requirementsStatus !== 'past_due';
+    // Derive the payout/onboarding booleans from the hydrated account (pure,
+    // unit-tested — see lib/connect-sample/status.ts).
+    const status = deriveAccountStatus(account);
 
     return NextResponse.json({
       id: account.id,
       display_name: account.display_name,
       contact_email: account.contact_email,
-      readyToReceivePayments,
-      onboardingComplete,
-      requirementsStatus: requirementsStatus ?? null,
+      ...status,
     });
   } catch (err) {
     if (err instanceof StripeConfigError) {

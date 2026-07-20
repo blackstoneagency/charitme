@@ -1,6 +1,7 @@
 import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getStripeClient, getWebhookSecret, StripeConfigError } from '../../../../lib/connect-sample/client';
+import { deriveAccountStatus, transfersActive } from '../../../../lib/connect-sample/status';
 
 export const dynamic = 'force-dynamic';
 // Stripe signature verification needs the raw body — force the Node runtime.
@@ -54,11 +55,10 @@ export async function POST(request: NextRequest) {
         // The account's onboarding requirements changed — re-fetch the full
         // account to see whether onboarding is now complete.
         const account = await notification.fetchRelatedObject();
-        const status = account?.requirements?.summary?.minimum_deadline?.status;
-        const complete = status !== 'currently_due' && status !== 'past_due';
+        const { requirementsStatus, onboardingComplete } = deriveAccountStatus(account);
         console.log(
           `[connect-sample webhook] requirements updated for ${account?.id}: ` +
-            `status=${status ?? 'none'}, onboardingComplete=${complete}`,
+            `status=${requirementsStatus ?? 'none'}, onboardingComplete=${onboardingComplete}`,
         );
         // In a real app: persist onboarding status against your user record here.
         break;
@@ -66,12 +66,9 @@ export async function POST(request: NextRequest) {
       case 'v2.core.account[configuration.recipient].capability_status_updated': {
         // A recipient capability (e.g. stripe_transfers) changed status.
         const account = await notification.fetchRelatedObject();
-        const transfersActive =
-          account?.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers
-            ?.status === 'active';
         console.log(
           `[connect-sample webhook] recipient capability updated for ${account?.id}: ` +
-            `transfersActive=${transfersActive}`,
+            `transfersActive=${transfersActive(account)}`,
         );
         // In a real app: flip a "can receive payouts" flag on your user record.
         break;
