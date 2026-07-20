@@ -114,6 +114,17 @@ them, or (b) create a dedicated Connect webhook and set its real `whsec_…` as
 `STRIPE_CONNECT_WEBHOOK_SECRET` in Vercel. Remove the `whsec_connect...`
 placeholder either way.
 
+### LB-005 — Stripe Connect not fully enabled (blocks all destination charges)
+The app processes every donation as a Stripe Connect **destination charge** to a
+connected recipient account. Verified in the **test** account
+(`acct_1TNulEAxcclD49kv`): `accounts.create` fails with *"You can only create new
+accounts if you've signed up for Connect."* If Connect is likewise not enabled on
+the **live** account, no recipient can onboard and **no donation can be processed
+at all**. Owner action: complete Connect signup (Dashboard → Connect → Get
+started) in both live and test, then re-run `scripts/verify-money-flow.mjs` with a
+test key to prove the full charge→transfer→refund flow. Fee math already verified
+against real Stripe test processing ($100 → $118.64, support $15, processing $3.64).
+
 ### LB-004 — Rotate exposed secrets (SECURITY)
 Full live Stripe secret/restricted/webhook keys, Supabase service-role key + access
 token, DB password, Google OAuth secret, and Resend key were shared in-session

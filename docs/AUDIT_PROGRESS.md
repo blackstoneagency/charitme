@@ -55,6 +55,20 @@ parallel session's merged `docs/payments/money-flow.md` (commit `73a2d0e`):
 end-to-end (charge→fee→transfer→payout→reconcile), refund/dispute financial
 states, and the reconciliation job, all needing Stripe **test** keys + staging.
 
+## Money-flow verification against Stripe TEST mode (this session)
+
+Ran with a real `sk_test_` key (`scripts/verify-money-flow.mjs`, live-key-guarded):
+- ✅ **Fee math verified against real Stripe processing**: $100 donation + 15%
+  support ($15) + processing ($3.64 = 2.9%+$0.30 on the $115 subtotal) = **$118.64**
+  charged; test PaymentIntent `succeeded`. Matches `@shared/fees` exactly.
+- ⚠️ **Connect setup gap (LB-005)**: the sandbox account has Connect **listable
+  but not fully signed up** — `accounts.create` returns *"You can only create new
+  accounts if you've signed up for Connect."* So the destination-charge flow (the
+  app's actual money path — recipient receives the full donation via
+  `transfer_data.destination`) **could not be executed** in test mode yet. The
+  script proves it end-to-end (charge → assert recipient==donation, appFee==tip+proc
+  → refund) the moment Connect is enabled (Dashboard → Connect → get started).
+
 ## AI routes audit (this session)
 
 Scanned all 16 `/api/ai/*` routes for auth, rate limiting, and provider fallback:
