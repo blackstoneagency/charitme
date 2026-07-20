@@ -166,6 +166,11 @@ export function isPaidPlan(planId: string | null | undefined): boolean {
   return planId === 'starter' || planId === 'pro' || planId === 'enterprise';
 }
 
+/** Type guard: is this a known plan id? */
+export function isValidPlan(planId: string | null | undefined): planId is PlanId {
+  return (PLAN_ORDER as readonly string[]).includes(planId ?? '');
+}
+
 /** True when `used` is strictly below the plan's limit (null limit = unlimited). */
 export function withinLimit(entitlements: PlanEntitlements, key: keyof PlanLimits, used: number): boolean {
   const limit = entitlements.limits[key];

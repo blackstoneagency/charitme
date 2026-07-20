@@ -11,9 +11,11 @@ import { supabaseAdmin } from './supabase';
 import {
   resolveEntitlements,
   hasFeature,
+  isPaidPlan,
   PLAN_CATALOG,
   type PlanEntitlements,
   type FeatureKey,
+  type PlanId,
 } from '@shared/entitlements';
 
 /**
@@ -43,4 +45,29 @@ export async function getUserEntitlements(userId: string | null | undefined): Pr
 export async function userHasFeature(userId: string | null | undefined, feature: FeatureKey): Promise<boolean> {
   const ent = await getUserEntitlements(userId);
   return hasFeature(ent, feature);
+}
+
+/**
+ * Admin/manual plan assignment — the pre-billing write path for entitlements.
+ * Cancels any in-good-standing subscription and, for a paid plan, inserts a new
+ * active one so `getUserEntitlements` reflects the change. (Stripe billing will
+ * later write these rows instead.) Free simply leaves the user with no active
+ * subscription. Does not touch `profiles.plan` — the caller keeps that in sync.
+ */
+export async function setUserPlan(userId: string, plan: PlanId): Promise<void> {
+  const now = new Date().toISOString();
+  await supabaseAdmin
+    .from('subscriptions')
+    .update({ status: 'cancelled', cancel_at_period_end: true, updated_at: now })
+    .eq('user_id', userId)
+    .in('status', ['active', 'trialing']);
+
+  if (isPaidPlan(plan)) {
+    await supabaseAdmin.from('subscriptions').insert({
+      user_id: userId,
+      plan,
+      status: 'active',
+      current_period_start: now,
+    });
+  }
 }

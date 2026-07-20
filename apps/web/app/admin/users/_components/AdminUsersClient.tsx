@@ -1125,6 +1125,7 @@ function SettingsTab({
             <label>Plan</label>
             <select className="users-add-select" value={plan} onChange={(e) => setPlan(e.target.value)}>
               <option value="free">Free</option>
+              <option value="starter">Plus</option>
               <option value="pro">Pro</option>
               <option value="enterprise">Enterprise</option>
             </select>
