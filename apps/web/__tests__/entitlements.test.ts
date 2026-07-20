@@ -3,6 +3,7 @@ import {
   PLAN_CATALOG,
   PLAN_ORDER,
   FEATURE_KEYS,
+  FEATURE_LABELS,
   entitlementsForPlan,
   resolveEntitlements,
   hasFeature,
@@ -40,6 +41,14 @@ describe('plan catalog', () => {
         }
       }
     }
+  });
+
+  it('every feature key has a non-empty display label', () => {
+    for (const k of FEATURE_KEYS) {
+      expect(FEATURE_LABELS[k], `missing label for ${k}`).toBeTruthy();
+    }
+    // no stray labels beyond the known keys
+    expect(Object.keys(FEATURE_LABELS).sort()).toEqual([...FEATURE_KEYS].sort());
   });
 
   it('enterprise unlocks white-label, API, SSO, and audit logs', () => {

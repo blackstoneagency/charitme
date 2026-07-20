@@ -2,7 +2,9 @@ import 'server-only';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { getUserEntitlements } from '../../../lib/entitlements';
 import SettingsClient from './SettingsClient';
+import PlanFeaturesCard from './PlanFeaturesCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,10 +78,11 @@ async function fetchCampaignCount(userId: string): Promise<number> {
 
 export default async function SettingsPage({ searchParams }: PageProps) {
   const user = await requireUser();
-  const [profile, sp, campaignsCount] = await Promise.all([
+  const [profile, sp, campaignsCount, entitlements] = await Promise.all([
     fetchProfile(user.id),
     searchParams,
     fetchCampaignCount(user.id),
+    getUserEntitlements(user.id),
   ]);
 
   const subscriptionSuccess = sp.subscription === 'success';
@@ -114,6 +117,9 @@ export default async function SettingsPage({ searchParams }: PageProps) {
           )}
         </div>
       ) : null}
+      <div style={{ padding: '0 32px' }}>
+        <PlanFeaturesCard entitlements={entitlements} activeCampaigns={campaignsCount} />
+      </div>
       <SettingsClient
         initialProfile={profile}
         campaignsCount={campaignsCount}
