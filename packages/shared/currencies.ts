@@ -90,3 +90,16 @@ export function formatMoneyCompact(cents: number, currency: string = DEFAULT_CUR
     maximumFractionDigits: 0,
   }).format(amount);
 }
+
+/**
+ * Currency-formatted cents, e.g. `formatCents(1299, 'usd')` → "$12.99".
+ * Client-safe (no server deps) — lives here so client components don't have to
+ * import the server-only Stripe module just to format money. `lib/stripe.ts`
+ * re-exports this for backward compatibility.
+ */
+export function formatCents(cents: number, currency: string = 'usd'): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: normalizeCurrency(currency),
+  }).format(cents / 100);
+}

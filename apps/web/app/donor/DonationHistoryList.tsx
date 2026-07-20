@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import React, { useMemo, useState } from 'react';
-import { formatCents } from '../../lib/stripe';
+import { formatCents } from '@shared/currencies';
 import ReceiptButton from './ReceiptButton';
 
 type DonationRow = {

@@ -1,5 +1,10 @@
 import Stripe from 'stripe';
-import { normalizeCurrency } from '@shared/currencies';
+
+// Re-exported for backward compatibility. `formatCents` is client-safe and now
+// lives in @shared/currencies so client components can format money without
+// pulling the server-only Stripe SDK into their bundle. Prefer importing it
+// directly from '@shared/currencies' in new code.
+export { formatCents } from '@shared/currencies';
 
 // Trim to tolerate a stray leading/trailing space or newline in the Vercel env
 // value — a common cause of "STRIPE_SECRET_KEY is not set" in production.
@@ -21,9 +26,6 @@ export const stripe: Stripe = stripeSecretKey
     },
   });
 
-export function formatCents(cents: number, currency: string = 'usd'): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: normalizeCurrency(currency) }).format(cents / 100);
-}
 
 // ── Checkout payment methods ────────────────────────────────────────────────
 // Stripe Checkout only shows alt payment methods (Apple Pay/Google Pay via the

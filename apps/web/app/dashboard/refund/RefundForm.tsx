@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { formatCents } from '../../../lib/stripe';
+import { formatCents } from '@shared/currencies';
 
 // ── Types passed from server component ───────────────────────────────────────
 export type RefundableDonation = {
