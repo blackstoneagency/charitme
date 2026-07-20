@@ -61,95 +61,6 @@ const PLANS = [
     popular: true,
     plan: 'pro',
   },
-  {
-    name: 'CharitMe Creator',
-    audience: 'For influencers and content creators',
-    monthlyPrice: 49,
-    yearlyPrice: 49,
-    features: [
-      'Everything in Pro',
-      'AI social post generator',
-      'AI email campaign generator',
-      'Custom branding (remove CharitMe badge)',
-      'Peer-to-peer fundraising tools',
-      'Team members (up to 10)',
-      'Dedicated success manager',
-    ],
-    cta: 'Start Creator',
-    outline: false,
-    plan: 'pro',
-  },
-  {
-    name: 'CharitMe Community',
-    audience: 'For teams and communities',
-    monthlyPrice: 99,
-    yearlyPrice: 99,
-    features: [
-      'Everything in Creator',
-      'Unlimited team members',
-      'Team fundraising leaderboards',
-      'AI grant writer',
-      'Custom donation forms (embeddable)',
-      'Advanced donor CRM',
-      'Dedicated account manager',
-    ],
-    cta: 'Start Community',
-    outline: false,
-    plan: 'pro',
-  },
-  {
-    name: 'CharitMe Nonprofit Growth',
-    audience: 'For small nonprofits',
-    monthlyPrice: 149,
-    yearlyPrice: 149,
-    features: [
-      'Everything in Community',
-      'EIN/501(c)(3) verification badge',
-      'Tax-deductible donation receipts',
-      'Recurring donor management',
-      'AI nonprofit assistant',
-      'Nonprofit reporting dashboard',
-      'Donor CRM-lite',
-    ],
-    cta: 'Start Nonprofit Growth',
-    outline: false,
-    plan: 'pro',
-  },
-  {
-    name: 'CharitMe Nonprofit Scale',
-    audience: 'For established nonprofits',
-    monthlyPrice: 499,
-    yearlyPrice: 499,
-    features: [
-      'Everything in Nonprofit Growth',
-      'Branded donation forms',
-      'API access',
-      'Custom integrations (Salesforce, HubSpot)',
-      'Advanced security & permissions',
-      'SLA support',
-      'Unlimited campaigns',
-    ],
-    cta: 'Start Nonprofit Scale',
-    outline: false,
-    plan: 'pro',
-  },
-  {
-    name: 'CharitMe Enterprise Impact Cloud',
-    audience: 'For large organizations',
-    monthlyPrice: null,
-    features: [
-      'Dedicated infrastructure',
-      'Custom AI model tuning',
-      'White-label option',
-      'Custom Stripe Connect integrations',
-      'Advanced security & permissions',
-      'Unlimited everything',
-      'Custom reporting & dashboards',
-      'SLA & premium support',
-    ],
-    cta: 'Contact Sales',
-    outline: true,
-  },
 ] as const;
 
 const FAQS = [
@@ -271,10 +182,6 @@ export default function PricingPage() {
       router.push('/create');
       return;
     }
-    if (plan.monthlyPrice === null) {
-      router.push('/contact');
-      return;
-    }
 
     setLoading(plan.plan ?? null);
     try {
@@ -345,14 +252,12 @@ export default function PricingPage() {
               <h2>{plan.name}</h2>
               <p>{plan.audience}</p>
               <strong>
-                {price === null ? 'Custom' : price === 0 ? '$0' : `$${price}`}
-                {price !== null && price > 0 ? <span>/{yearly ? 'mo' : 'month'}</span> : null}
+                {price === 0 ? '$0' : `$${price}`}
+                {price > 0 ? <span>/{yearly ? 'mo' : 'month'}</span> : null}
               </strong>
               <small>
                 {price === 0
                   ? 'Forever free'
-                  : price === null
-                  ? 'Tailored to your needs'
                   : yearly
                   ? `Billed annually at $${(price * 12).toLocaleString()}`
                   : `Billed monthly at $${price}/month`}
