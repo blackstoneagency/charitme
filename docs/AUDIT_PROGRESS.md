@@ -255,8 +255,11 @@ and the prepared fix migration
   `42P17` 500 on any RLS-enforced campaigns read (app uses service-role so no
   current outage, but the policy is broken).
 
-Both fixes are prepared but **not applied** — applying to the live DB is a
-security-sensitive prod RLS change pending owner authorization (no staging exists).
+**RESOLVED (owner-authorized, applied to live DB + verified 2026-07-20):** LB-006
+anon `profiles` read 502 → **0**; LB-007 anon `campaigns` read 500 → **200**
+returning exactly the **350** active+public campaigns (150 private/draft/deleted
+hidden). Production `/api/health` unaffected. The anon persona is now fully
+certified across new domains + core tables.
 
 ## AI routes audit (this session)
 

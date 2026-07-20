@@ -1,8 +1,15 @@
 # CharitMe — Launch Blockers
 
-## OPEN — found 2026-07-20 (anon-persona live RLS certification)
+## RESOLVED — found & fixed 2026-07-20 (anon-persona live RLS certification)
 
-### LB-006 — profiles table leaks PII/billing IDs to anonymous callers (HIGH — SECURITY)
+> Both applied to the live DB via Management API and verified with the anon key
+> (owner-authorized). **LB-006:** anon `profiles` read 502 → **0 rows**. **LB-007:**
+> anon `campaigns` read HTTP 500 → **200**, returning exactly the **350**
+> active+public+not-deleted campaigns (150 private/draft/deleted correctly hidden).
+> Production `/api/health` unaffected (service-role paths). Fix committed as
+> `20260720120000_fix_profiles_pii_leak_and_campaigns_rls_recursion.sql`.
+
+### LB-006 — profiles table leaks PII/billing IDs to anonymous callers (HIGH — SECURITY) — ✅ FIXED
 `profiles` RLS is enabled but the SELECT policy was `profiles_read USING (true)`,
 so **any unauthenticated caller** using the public anon key (which ships in the
 client bundle) can dump **every** profile row. Proven live:
@@ -24,7 +31,7 @@ returns **502 rows** including `email`, `stripe_customer_id`,
 - **Owner action:** authorize applying the migration to the live DB (no staging
   exists). Treat as urgent — the leak is live now.
 
-### LB-007 — campaigns RLS has infinite recursion (MED — broken policy / 500 landmine)
+### LB-007 — campaigns RLS has infinite recursion (MED — broken policy / 500 landmine) — ✅ FIXED
 `campaigns_public_read` does `EXISTS(... team_members ...)` while
 `team_members.team_campaign_read` does `EXISTS(... campaigns ...)` → mutual
 recursion → **`42P17` "infinite recursion detected in policy for relation
