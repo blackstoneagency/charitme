@@ -4,7 +4,7 @@
 
 :root {
   --ink: #0f1238;
-  --muted: #65708f;
+  --muted: #5b6688; /* WCAG AA: ≥4.5:1 on card surfaces s1–s3 (was #65708f) */
   --line: #e8e4fb;
   --violet: #6d35ff;
   --violet-2: #a835f4;
@@ -15,8 +15,8 @@
   --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --t1: #0f1238;
   --t2: #27305d;
-  --t3: #65708f;
-  --t4: #8c95b2;
+  --t3: #5b6688; /* WCAG AA: ≥4.5:1 on s1–s3 (was #65708f, failed on tinted surfaces) */
+  --t4: #616a84; /* WCAG AA: faintest text tier, ≥4.5:1 on s1–s3 (was #8c95b2 @ 2.7:1) */
   --s1: #fbfaff;
   --s2: #f5f2ff;
   --s3: #eee8ff;
@@ -4535,7 +4535,7 @@ img, svg { display: block; }
   --t1: #e2e8f8;
   --t2: #b8c2de;
   --t3: #8090b5;
-  --t4: #5a6898;
+  --t4: #828cb1; /* WCAG AA: faintest text tier, ≥4.5:1 on s1–s3 (was #5a6898 @ 3.05:1) */
   --s1: #121530;
   --s2: #181c3c;
   --s3: #1e2348;
