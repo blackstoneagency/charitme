@@ -88,7 +88,7 @@ export default function GrantApplicationsClient() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {error && <div style={{ fontSize: 13, color: 'var(--red)' }}>{error}</div>}
+      {error && <div style={{ fontSize: 13, color: 'var(--red-text)' }}>{error}</div>}
       {apps.map((a) => (
         <div key={a.id} style={{
           display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between',

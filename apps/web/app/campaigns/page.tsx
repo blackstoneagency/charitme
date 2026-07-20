@@ -219,7 +219,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
           icon="🔍"
           title="No campaigns found"
           body="Try different keywords, remove filters, or browse all campaigns."
-          action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green)', fontWeight: 600 }}>Clear filters</Link>}
+          action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Clear filters</Link>}
         />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
@@ -276,7 +276,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
                     <ProgressBar value={c.raised_amount ?? 0} max={c.goal_amount} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', flexWrap: 'wrap', gap: '4px' }}>
                       <div>
-                        <span style={{ fontWeight: 700, color: 'var(--green)', fontSize: '14px' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--green-text)', fontSize: '14px' }}>
                           {formatCents(c.raised_amount ?? 0, currency)}
                         </span>
                         <span style={{ fontSize: '12px', color: 'var(--t4)', marginLeft: '4px' }}>

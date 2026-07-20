@@ -436,7 +436,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
             <div className="kf-setpanel-body">
               <div className="kf-setpref">
                 <div className="kf-setpref-info"><strong>Change Password</strong><span>Update your account login password</span></div>
-                <Link href="/forgot-password" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none' }}>Update Password</Link>
+                <Link href="/forgot-password" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none' }}>Update Password</Link>
               </div>
               <div className="kf-setpref">
                 <div className="kf-setpref-info"><strong>Two-Factor Authentication</strong><span>Add an extra layer of security to your account</span></div>
@@ -447,7 +447,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 <div className="kf-setpref-info"><strong>Profile Visibility</strong><span>Who can see your giving activity on the leaderboard and donor walls</span></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   {showPublicProfile && (
-                    <Link href={`/donors/${userId}`} target="_blank" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none' }}>
+                    <Link href={`/donors/${userId}`} target="_blank" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none' }}>
                       Preview →
                     </Link>
                   )}
@@ -503,7 +503,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                     <div style={{ width: 36, height: 36, borderRadius: 10, background: `${i.color}15`, border: `1px solid ${i.color}30`, display: 'grid', placeItems: 'center', fontSize: 14, fontWeight: 700, color: i.color, flexShrink: 0 }}>{i.name.charAt(0)}</div>
                     <div className="kf-setpref-info"><strong>{i.name}</strong><span>{i.desc}</span></div>
                   </div>
-                  <Link href="/dashboard/integrations" style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)', padding: '4px 12px', border: '1px solid var(--green)', borderRadius: 8, textDecoration: 'none' }}>Connect →</Link>
+                  <Link href="/dashboard/integrations" style={{ fontSize: 12, fontWeight: 700, color: 'var(--green-text)', padding: '4px 12px', border: '1px solid var(--green)', borderRadius: 8, textDecoration: 'none' }}>Connect →</Link>
                 </div>
               ))}
             </div>
@@ -583,7 +583,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                   <strong>Payment Method</strong>
                   <span>{hasStripeCustomer ? 'Visa **** 4242' : 'No payment method on file'}</span>
                 </div>
-                {hasStripeCustomer ? <BillingPortalButton /> : <Link href="/pricing" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none' }}>Add Method {Ico.arrow}</Link>}
+                {hasStripeCustomer ? <BillingPortalButton /> : <Link href="/pricing" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none' }}>Add Method {Ico.arrow}</Link>}
               </div>
 
               {/* Billing history */}
@@ -610,22 +610,22 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
             <div className="kf-setpanel-body">
               <div className="kf-setpref">
                 <div className="kf-setpref-info"><strong>Export Donations CSV</strong><span>Download a full history of all donations</span></div>
-                <Link href="/api/exports/donations" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>{Ico.download} Download</Link>
+                <Link href="/api/exports/donations" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>{Ico.download} Download</Link>
               </div>
               <div className="kf-setpref">
                 <div className="kf-setpref-info"><strong>Export Donors CSV</strong><span>Download a list of all donors</span></div>
-                <Link href="/api/exports/donors" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>{Ico.download} Download</Link>
+                <Link href="/api/exports/donors" style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>{Ico.download} Download</Link>
               </div>
               <div className="kf-setpref">
                 <div className="kf-setpref-info"><strong>Export All Data</strong><span>Download a complete data export (JSON)</span></div>
-                <Link href="/api/exports/full" download style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>{Ico.download} Download Export</Link>
+                <Link href="/api/exports/full" download style={{ fontSize: 13, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>{Ico.download} Download Export</Link>
               </div>
               <div className="kf-setpref" style={{ borderBottom: 0 }}>
                 <div className="kf-setpref-info">
-                  <strong style={{ color: 'var(--red)' }}>Request Account Deletion</strong>
+                  <strong style={{ color: 'var(--red-text)' }}>Request Account Deletion</strong>
                   <span>Permanently delete your account and all data — this cannot be undone</span>
                 </div>
-                <a href="mailto:support@CharitMe.com?subject=Account%20Deletion%20Request" style={{ fontSize: 13, fontWeight: 700, color: 'var(--red)', border: '1px solid var(--red)', borderRadius: 'var(--r)', padding: '7px 16px', textDecoration: 'none', display: 'inline-block' }}>Request Deletion</a>
+                <a href="mailto:support@CharitMe.com?subject=Account%20Deletion%20Request" style={{ fontSize: 13, fontWeight: 700, color: 'var(--red-text)', border: '1px solid var(--red)', borderRadius: 'var(--r)', padding: '7px 16px', textDecoration: 'none', display: 'inline-block' }}>Request Deletion</a>
               </div>
             </div>
           </div>

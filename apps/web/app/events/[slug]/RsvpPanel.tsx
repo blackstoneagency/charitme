@@ -77,7 +77,7 @@ export default function RsvpPanel({
   return (
     <div>
       <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 10 }}>Reserve your spot</h2>
-      {error && <p style={{ color: 'var(--red)', fontSize: 13, marginBottom: 8 }}>{error}</p>}
+      {error && <p style={{ color: 'var(--red-text)', fontSize: 13, marginBottom: 8 }}>{error}</p>}
       <Btn disabled={submitting} onClick={rsvp}>{submitting ? 'Registering…' : 'RSVP — it’s free'}</Btn>
     </div>
   );

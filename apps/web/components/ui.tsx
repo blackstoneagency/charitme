@@ -80,7 +80,7 @@ export function Input({
         {...props}
       />
       {hint && !error && <span style={{ fontSize: '12px', color: 'var(--t4)' }}>{hint}</span>}
-      {error && <span style={{ fontSize: '12px', color: 'var(--red)' }}>{error}</span>}
+      {error && <span style={{ fontSize: '12px', color: 'var(--red-text)' }}>{error}</span>}
     </div>
   );
 }
@@ -113,7 +113,7 @@ export function Textarea({
         {...props}
       />
       {hint && !error && <span style={{ fontSize: '12px', color: 'var(--t4)' }}>{hint}</span>}
-      {error && <span style={{ fontSize: '12px', color: 'var(--red)' }}>{error}</span>}
+      {error && <span style={{ fontSize: '12px', color: 'var(--red-text)' }}>{error}</span>}
     </div>
   );
 }
@@ -122,8 +122,8 @@ export function Textarea({
 type BadgeColor = 'green' | 'red' | 'blue' | 'gray';
 const badgeColors: Record<BadgeColor, React.CSSProperties> = {
   green: { background: 'var(--green-light)', color: 'var(--green-dark)' },
-  red: { background: 'var(--red-light)', color: 'var(--red)' },
-  blue: { background: 'var(--blue-light)', color: 'var(--blue)' },
+  red: { background: 'var(--red-light)', color: 'var(--red-text)' },
+  blue: { background: 'var(--blue-light)', color: 'var(--blue-text)' },
   gray: { background: 'var(--s3)', color: 'var(--t3)' },
 };
 
@@ -227,7 +227,7 @@ export function Select({
         }}
         {...props}
       />
-      {error && <span style={{ fontSize: '12px', color: 'var(--red)' }}>{error}</span>}
+      {error && <span style={{ fontSize: '12px', color: 'var(--red-text)' }}>{error}</span>}
     </div>
   );
 }

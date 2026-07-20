@@ -33,7 +33,7 @@ export default function CancelRecurringPage() {
     return (
       <CharitMeShell active="Recurring">
         <TopBar title="Cancel Recurring Donation" subtitle="" />
-        <div style={{ padding: '32px', color: 'var(--t3)' }}>Invalid request. <Link href="/dashboard/recurring" style={{ color: 'var(--green)' }}>Back to recurring donations.</Link></div>
+        <div style={{ padding: '32px', color: 'var(--t3)' }}>Invalid request. <Link href="/dashboard/recurring" style={{ color: 'var(--green-text)' }}>Back to recurring donations.</Link></div>
       </CharitMeShell>
     );
   }

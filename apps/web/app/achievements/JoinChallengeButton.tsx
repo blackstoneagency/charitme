@@ -30,7 +30,7 @@ export default function JoinChallengeButton({ challengeId }: { challengeId: stri
   return (
     <div style={{ textAlign: 'right' }}>
       <Btn size="sm" disabled={busy} onClick={join}>{busy ? 'Joining…' : 'Join challenge'}</Btn>
-      {err && <div style={{ color: 'var(--red)', fontSize: 12, marginTop: 4 }}>{err}</div>}
+      {err && <div style={{ color: 'var(--red-text)', fontSize: 12, marginTop: 4 }}>{err}</div>}
     </div>
   );
 }

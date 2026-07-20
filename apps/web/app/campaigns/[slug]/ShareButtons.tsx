@@ -152,7 +152,7 @@ export default function ShareButtons({ campaignId, campaignUrl, campaignTitle, q
             <a
               href={`/api/campaigns/${qrPosterId}/qr-poster`}
               target="_blank"
-              style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)', textDecoration: 'none' }}
+              style={{ fontSize: 12, fontWeight: 700, color: 'var(--green-text)', textDecoration: 'none' }}
             >
               🖨 Download printable poster →
             </a>

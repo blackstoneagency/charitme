@@ -58,19 +58,22 @@ function contrast(fg: string, bg: string): number {
 
 const AA_NORMAL = 4.5;
 const TEXT_TIERS = ['t1', 't2', 't3', 't4', 'muted'] as const;
+// Accent colors rendered AS TEXT use dedicated darkened *-text tokens so they
+// clear AA on light surfaces without changing the vivid base fills.
+const ACCENT_TEXT = ['green-text', 'blue-text', 'red-text', 'orange-text'] as const;
 const SURFACES = ['s1', 's2', 's3'] as const;
 
 describe('theme token contrast (WCAG 2.2 AA)', () => {
   it('extracted the token blocks from globals.css', () => {
     // Sanity: both themes define the tiers + surfaces we assert on.
-    for (const key of [...TEXT_TIERS, ...SURFACES]) {
+    for (const key of [...TEXT_TIERS, ...ACCENT_TEXT, ...SURFACES]) {
       expect(light[key], `light --${key}`).toMatch(/^#[0-9a-fA-F]{6}$/);
       expect(dark[key], `dark --${key}`).toMatch(/^#[0-9a-fA-F]{6}$/);
     }
   });
 
   for (const [themeName, tokens] of [['light', light], ['dark', dark]] as const) {
-    for (const tier of TEXT_TIERS) {
+    for (const tier of [...TEXT_TIERS, ...ACCENT_TEXT]) {
       for (const surface of SURFACES) {
         it(`${themeName}: --${tier} on --${surface} meets AA`, () => {
           const ratio = contrast(tokens[tier], tokens[surface]);

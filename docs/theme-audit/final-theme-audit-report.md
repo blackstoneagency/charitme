@@ -29,8 +29,8 @@ values themselves, which is exact and does not depend on rendering.
 | T-01 | **P1** | light | Faintest text tier `--t4` at 2.70–2.98:1 (invisible-grade muted text) | `#8c95b2` too light on `#fbfaff`-family surfaces | **Fixed** → `#616a84` (≥4.5:1) |
 | T-02 | P2 | dark | `--t4` at 3.05–3.59:1 | `#5a6898` too dark on dark cards | **Fixed** → `#828cb1` (≥4.5:1) |
 | T-03 | P2 | light | `--t3`/`--muted` at 4.46:1 on tinted `--s2`/`--s3` | `#65708f` marginal | **Fixed** → `#5b6688` (≥4.7:1) |
-| T-04 | P2 | light | `--orange` `#ff8a1c` white-on-fill 2.36:1 & as text 2.27:1 | saturated brand orange | **Documented** — rebrand decision (owner) |
-| T-05 | P2 | light | `--green`/`--blue`/`--red` fail normal-text AA as text / white-on-fill | brand colors tuned for large/bold use | **Documented** — see token reference |
+| T-04 | P2 | light | `--orange` as text 2.27:1 (green/blue/red also fail as text) | accent colors tuned for fills, reused as text | **Fixed** → added `--*-text` tokens; migrated 76 `color:` sites |
+| T-05 | P2 | light | white-on-fill for green/blue/red/orange small text | brand fills tuned for large/bold use | **Documented** — fills unchanged (owner rebrand call) |
 
 See `theme-token-reference.md` for exact values and the recommended (owner-gated)
 follow-up for the brand colors.

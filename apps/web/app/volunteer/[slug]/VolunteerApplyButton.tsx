@@ -58,7 +58,7 @@ export default function VolunteerApplyButton({ slug }: { slug: string }) {
       <Btn size="lg" loading={loading} onClick={() => (open ? submit() : setOpen(true))} style={{ width: '100%' }}>
         {open ? 'Submit application' : 'Apply to volunteer'}
       </Btn>
-      {error && <span style={{ fontSize: 12, color: 'var(--red)' }}>{error}</span>}
+      {error && <span style={{ fontSize: 12, color: 'var(--red-text)' }}>{error}</span>}
     </div>
   );
 }

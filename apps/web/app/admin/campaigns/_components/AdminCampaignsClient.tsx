@@ -729,7 +729,7 @@ export default function AdminCampaignsClient({
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--t2)', marginBottom: 6 }}>
-                <span><strong style={{ color: 'var(--green)' }}>{fmtCents(selected.raisedAmount)}</strong> raised of {fmtCents(selected.goalAmount)}</span>
+                <span><strong style={{ color: 'var(--green-text)' }}>{fmtCents(selected.raisedAmount)}</strong> raised of {fmtCents(selected.goalAmount)}</span>
                 <span><strong>{progress}%</strong> funded</span>
               </div>
               <div style={{ height: 8, borderRadius: 99, background: 'var(--b1)', overflow: 'hidden', marginBottom: 12 }}>

@@ -40,12 +40,28 @@ the visual hierarchy (t1 → t4 still steps from strong to faint).
 | `--s3` | `#eee8ff` | `#1e2348` | inset / deep-tinted panel |
 | `--b1`/`--b2` | `#e8e4fb`/`#ddd5ff` | `#252948`/`#303668` | borders |
 
-## Brand / semantic colors — DOCUMENTED, NOT changed in this pass
+## Accent-as-text tokens (added — clear AA as colored status text)
 
-These are intentionally left as-is because changing them alters the product's
-visual identity (a rebrand decision that belongs to the owner). They are safe as
-**fills for the primary CTA** and as **text in dark mode**, but several fail AA as
-**colored text on light surfaces** and as **white-on-fill for small/normal text**:
+The base `--green/--blue/--red/--orange` stay vivid for **fills, badges, and
+progress bars** (unchanged — no visual-identity shift). For text, dedicated
+darkened tokens were added and every `color:` usage of an accent was migrated to
+them (73 call sites in TSX + 3 in `globals.css`). These are covered by the
+contrast regression test.
+
+| Token | Light | Dark | Min contrast on s1–s3 |
+|-------|-------|------|-----------------------|
+| `--green-text` | `#0d783c` | `#12a653` | ≥4.68 (light) / ≥4.75 (dark) |
+| `--blue-text` | `#2164d5` | `#448aff` | ≥4.58 / ≥4.55 |
+| `--red-text` | `#c42d49` | `#ff4768` | ≥4.61 / ≥4.57 |
+| `--orange-text` | `#a05712` | `#ff8a1c` | ≥4.56 / ≥6.41 |
+
+**Usage rule:** use `var(--<accent>-text)` for `color:`; use `var(--<accent>)`
+for `background`/`border`/`fill`. Text on a saturated accent *fill* stays white.
+
+## Brand fills — white-on-fill contrast (still owner's call)
+
+The base fills remain as-is. As background fills with **white text**, several
+clear AA only for large/bold text (≥3:1), and orange fails even that:
 
 | Color | Value | White-on-fill | As text on light `--s1` | As text on dark `--s1` |
 |-------|-------|---------------|-------------------------|------------------------|

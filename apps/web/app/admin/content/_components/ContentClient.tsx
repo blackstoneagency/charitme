@@ -283,7 +283,7 @@ function ContentDetailPanel({
         <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'grid', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <button type="button" onClick={onEdit} style={{ height: 40, border: '1px solid #6c35ff', borderRadius: 9, background: '#f3ecff', color: '#551cf2', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Edit Content</button>
-            <button type="button" onClick={onDelete} style={{ height: 40, border: '1px solid #ff3b5f30', borderRadius: 9, background: '#fff0f3', color: '#ff3b5f', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Delete Content</button>
+            <button type="button" onClick={onDelete} style={{ height: 40, border: '1px solid #ff3b5f30', borderRadius: 9, background: '#fff0f3', color: 'var(--red-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Delete Content</button>
           </div>
         </div>
       </div>

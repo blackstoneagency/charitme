@@ -73,7 +73,7 @@ function CreateForm({ onCreated }: { onCreated: () => void }) {
           <Input label="Min donation (USD)" type="number" min={0} step="0.01" value={minDonation} onChange={(e) => setMinDonation(e.target.value)} />
         </div>
         <Input label="Eligible categories (comma-separated, blank = all)" value={categories} onChange={(e) => setCategories(e.target.value)} placeholder="Education, Medical, Environment" />
-        {error && <p style={{ color: 'var(--red)', fontSize: 13 }}>{error}</p>}
+        {error && <p style={{ color: 'var(--red-text)', fontSize: 13 }}>{error}</p>}
         <div>
           <Btn disabled={!valid || saving} onClick={save}>
             {saving ? 'Launching…' : 'Launch program'}

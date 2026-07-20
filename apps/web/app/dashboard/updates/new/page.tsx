@@ -105,7 +105,7 @@ export default function NewUpdatePage() {
               ) : campaigns.length === 0 ? (
                 <div style={{ color: 'var(--t3)', fontSize: 14, padding: 12 }}>
                   You have no campaigns yet.{' '}
-                  <a href="/create" style={{ color: 'var(--green)', textDecoration: 'none', fontWeight: 700 }}>Create one →</a>
+                  <a href="/create" style={{ color: 'var(--green-text)', textDecoration: 'none', fontWeight: 700 }}>Create one →</a>
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: 16 }}>

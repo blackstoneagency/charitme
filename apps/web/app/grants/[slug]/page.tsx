@@ -130,7 +130,7 @@ export default async function GrantDetailPage({ params }: { params: Promise<{ sl
 
             {grant.application_url && (
               <a href={grant.application_url} target="_blank" rel="noopener noreferrer"
-                style={{ fontSize: 13, fontWeight: 700, color: 'var(--blue)', textAlign: 'center' }}>
+                style={{ fontSize: 13, fontWeight: 700, color: 'var(--blue-text)', textAlign: 'center' }}>
                 View funder&apos;s official page ↗
               </a>
             )}

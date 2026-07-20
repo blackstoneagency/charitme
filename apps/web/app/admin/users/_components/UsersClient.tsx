@@ -215,7 +215,7 @@ function UserDetailPanel({ user, onClose }: { user: UserRecord; onClose: () => v
 
           {activeTab === 'settings' && (
             <div style={{ display: 'grid', gap: 10 }}>
-              {actionError && <div style={{ padding: '10px 14px', background: '#fff0f3', borderRadius: 9, color: '#ff3b5f', fontSize: 13, fontWeight: 700 }}>{actionError}</div>}
+              {actionError && <div style={{ padding: '10px 14px', background: '#fff0f3', borderRadius: 9, color: 'var(--red-text)', fontSize: 13, fontWeight: 700 }}>{actionError}</div>}
               {actionDone && <div style={{ padding: '10px 14px', background: '#f0fdf5', borderRadius: 9, color: '#15803d', fontSize: 13, fontWeight: 700 }}>{actionDone}</div>}
               {showRolePicker ? (
                 <div style={{ padding: 14, border: '1px solid #dfe3ee', borderRadius: 10, display: 'grid', gap: 10 }}>
@@ -248,11 +248,11 @@ function UserDetailPanel({ user, onClose }: { user: UserRecord; onClose: () => v
                 {actionLoading === 'reset-password' ? 'Sending…' : 'Reset Password'}
               </button>
               <button type="button" disabled={!!actionLoading} onClick={() => handleAction('suspend')}
-                style={{ width: '100%', height: 44, border: '1px solid #ff3b5f20', borderRadius: 10, background: '#fff0f3', color: '#ff3b5f', fontWeight: 650, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'suspend' ? 0.6 : 1 }}>
+                style={{ width: '100%', height: 44, border: '1px solid #ff3b5f20', borderRadius: 10, background: '#fff0f3', color: 'var(--red-text)', fontWeight: 650, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'suspend' ? 0.6 : 1 }}>
                 {actionLoading === 'suspend' ? 'Updating…' : 'Suspend User'}
               </button>
               <button type="button" disabled={!!actionLoading} onClick={() => handleAction('delete')}
-                style={{ width: '100%', height: 44, border: '1px solid #ff3b5f', borderRadius: 10, background: '#fff0f3', color: '#ff3b5f', fontWeight: 650, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'delete' ? 0.6 : 1 }}>
+                style={{ width: '100%', height: 44, border: '1px solid #ff3b5f', borderRadius: 10, background: '#fff0f3', color: 'var(--red-text)', fontWeight: 650, fontSize: 13, cursor: 'pointer', opacity: actionLoading === 'delete' ? 0.6 : 1 }}>
                 {actionLoading === 'delete' ? 'Deleting…' : '⚠ Delete User'}
               </button>
             </div>
@@ -306,7 +306,7 @@ function AddUserPanel({ onClose }: { onClose: () => void }) {
           <button type="button" onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5', lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: '24px', display: 'grid', gap: 16, flex: 1 }}>
-          {error && <div style={{ padding: '10px 14px', background: '#fff0f3', borderRadius: 9, color: '#ff3b5f', fontSize: 13, fontWeight: 700 }}>{error}</div>}
+          {error && <div style={{ padding: '10px 14px', background: '#fff0f3', borderRadius: 9, color: 'var(--red-text)', fontSize: 13, fontWeight: 700 }}>{error}</div>}
           {[
             { label: 'Full Name', value: newName, onChange: setNewName, type: 'text', placeholder: 'Jane Smith' },
             { label: 'Email Address', value: newEmail, onChange: setNewEmail, type: 'email', placeholder: 'jane@example.com' },
@@ -541,7 +541,7 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
             <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Roles & Permissions</h3>
             <div style={{ display: 'grid', gap: 12 }}>
               {[
-                { role: 'Super Admin', desc: 'Full access to all platform features and settings.', color: '#ff3b5f' },
+                { role: 'Super Admin', desc: 'Full access to all platform features and settings.', color: 'var(--red-text)' },
                 { role: 'Admin', desc: 'Manage users, campaigns, donations, and view reports.', color: '#6c35ff' },
                 { role: 'Organizer', desc: 'Create and manage campaigns, view donations.', color: '#2563eb' },
                 { role: 'Donor', desc: 'Make donations and view campaign details.', color: '#19b86a' },

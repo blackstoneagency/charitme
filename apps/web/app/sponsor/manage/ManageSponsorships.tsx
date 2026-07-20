@@ -89,7 +89,7 @@ function CreateForm({ categories, onCreated }: { categories: string[]; onCreated
           <Input label="Minimum (USD)" type="number" min={0} step="0.01" value={minAmount} onChange={(e) => setMinAmount(e.target.value)} placeholder="0" />
           <Input label="Target (USD, optional)" type="number" min={0} step="0.01" value={targetAmount} onChange={(e) => setTargetAmount(e.target.value)} placeholder="e.g. 5000" />
         </div>
-        {error && <p style={{ color: 'var(--red)', fontSize: 13 }}>{error}</p>}
+        {error && <p style={{ color: 'var(--red-text)', fontSize: 13 }}>{error}</p>}
         <div>
           <Btn disabled={!valid || saving} onClick={save}>
             {saving ? 'Posting…' : 'Post opportunity'}

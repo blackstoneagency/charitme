@@ -28,6 +28,13 @@
   --blue: #2878ff;
   --orange: #ff8a1c;
   --red: #ff3b5f;
+  /* Accent-as-TEXT tokens — darkened so colored status text clears WCAG AA
+     (≥4.5:1) on light surfaces s1–s3. The base --green/--blue/--red/--orange
+     above stay vivid for fills/badges; use these only for `color:`. */
+  --green-text: #0d783c;
+  --blue-text: #2164d5;
+  --red-text: #c42d49;
+  --orange-text: #a05712;
   --r: 14px;
   --rl: 22px;
   --rxl: 28px;
@@ -1405,7 +1412,7 @@ img, svg { display: block; }
 .auth-card input { width: 100%; border: 1px solid var(--line); border-radius: 14px; background: #fff; min-height: 48px; padding: 0 14px; color: var(--ink); outline: none; }
 .auth-card input:focus { border-color: var(--violet); box-shadow: 0 0 0 4px rgba(109,53,255,.10); }
 .auth-error, .auth-success { border-radius: 14px; padding: 12px 14px; font-weight: 650; }
-.auth-error { background: #fff0f3; color: var(--red) !important; }
+.auth-error { background: #fff0f3; color: var(--red-text) !important; }
 .auth-success { background: var(--green-light); color: var(--green-dark) !important; }
 .auth-submit { border: 0; color: #fff; background: linear-gradient(135deg, var(--violet), var(--violet-2), var(--pink)); box-shadow: 0 16px 30px rgba(109,53,255,.20); }
 .auth-submit:disabled, .auth-google:disabled, .auth-apple:disabled { opacity: .65; cursor: wait; }
@@ -1445,7 +1452,7 @@ img, svg { display: block; }
 /* Breadcrumb */
 .pc-breadcrumb { color: var(--muted); font-size: 13px; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
 .pc-breadcrumb a { color: var(--muted); text-decoration: none; transition: color .15s; }
-.pc-breadcrumb a:hover { color: var(--green); text-decoration: underline; }
+.pc-breadcrumb a:hover { color: var(--green-text); text-decoration: underline; }
 .pc-breadcrumb span[aria-current="page"] { color: var(--ink); font-weight: 600; }
 
 /* Verified badge */
@@ -1674,7 +1681,7 @@ img, svg { display: block; }
 .lb-campaign-title:hover { color: var(--violet); }
 .lb-campaign-meta { font-size: 12px; color: var(--t3); margin-bottom: 6px; }
 .lb-campaign-amount { text-align: right; flex-shrink: 0; }
-.lb-campaign-amount b { display: block; color: var(--green); font-size: 15px; }
+.lb-campaign-amount b { display: block; color: var(--green-text); font-size: 15px; }
 .lb-campaign-amount span { font-size: 11px; color: var(--t3); white-space: nowrap; }
 
 /* Trust bar */
@@ -4543,6 +4550,12 @@ img, svg { display: block; }
   --b2: #303668;
   --green-light: #0a2018;
   --green-dark: #4cce86;
+  /* Accent-as-TEXT tokens for dark surfaces (≥4.5:1 on s1–s3). Green/orange
+     base already pass on dark; blue/red are lifted slightly for AA. */
+  --green-text: #12a653;
+  --blue-text: #448aff;
+  --red-text: #ff4768;
+  --orange-text: #ff8a1c;
 }
 
 /* ── Body ── */

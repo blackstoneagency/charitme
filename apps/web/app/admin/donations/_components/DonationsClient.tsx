@@ -645,9 +645,9 @@ function DetailView({
   const timeline: TimelineEvent[] = [
     { event: 'Donation Received', date: detail.createdAt, color: '#0fa456' },
     ...(detail.status === 'completed' ? [{ event: 'Payment Confirmed', date: detail.createdAt, color: '#2563eb' }] : []),
-    ...(detail.status === 'failed' ? [{ event: 'Payment Failed', date: detail.createdAt, color: '#ff3b5f' }] : []),
+    ...(detail.status === 'failed' ? [{ event: 'Payment Failed', date: detail.createdAt, color: 'var(--red-text)' }] : []),
     ...(detail.receiptSentAt ? [{ event: 'Receipt Sent', date: detail.receiptSentAt, color: '#2563eb' }] : []),
-    ...(detail.refundedAt ? [{ event: `Refund Processed — ${detail.refundReason ?? ''}`.trim().replace(/ —$/, ''), date: detail.refundedAt, color: '#ff3b5f' }] : []),
+    ...(detail.refundedAt ? [{ event: `Refund Processed — ${detail.refundReason ?? ''}`.trim().replace(/ —$/, ''), date: detail.refundedAt, color: 'var(--red-text)' }] : []),
     ...(detail.isSpam ? [{ event: 'Marked as Spam', date: detail.createdAt, color: '#f97316' }] : []),
     ...detail.auditLog.map(a => ({ event: auditActionLabel(a.action), date: a.createdAt, color: auditActionColor(a.action) })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -1222,7 +1222,7 @@ export default function DonationsClient({
                 { label: 'Total Recurring', value: topDonors.filter(d => d.donation_count >= 2).length, color: '#6c35ff' },
                 { label: 'Active', value: completedCount, color: '#19b86a' },
                 { label: 'Pending', value: pendingCount, color: '#f97316' },
-                { label: 'Refunded', value: refundedCount, color: '#ff3b5f' },
+                { label: 'Refunded', value: refundedCount, color: 'var(--red-text)' },
               ].map(s => (
                 <div key={s.label} style={{ padding: '18px', border: '1px solid #e6e9f2', borderRadius: 12, background: '#fff' }}>
                   <div style={{ fontSize: 12, color: '#66708d', marginBottom: 6, fontWeight: 700 }}>{s.label}</div>
@@ -1288,7 +1288,7 @@ export default function DonationsClient({
                     onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
                     <div style={{ fontSize: 13, fontWeight: 650, color: '#101944' }}>{d.donor_name}</div>
                     <div style={{ fontSize: 13, color: '#26335c', fontWeight: 700 }}>{d.campaign_title}</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#ff3b5f' }}>{fmtCents(d.amount_cents)}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--red-text)' }}>{fmtCents(d.amount_cents)}</div>
                     <div style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(d.created_at)}</div>
                   </div>
                 ))}

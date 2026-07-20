@@ -148,7 +148,7 @@ export default async function RecurringPage() {
                           : ` Started ${fmtDate(sub.created_at)}`}
                       </small>
                     </div>
-                    <div style={{ fontWeight: 700, color: 'var(--green)', flexShrink: 0 }}>
+                    <div style={{ fontWeight: 700, color: 'var(--green-text)', flexShrink: 0 }}>
                       {formatCents(sub.amount_cents, currency)}
                     </div>
                     {(sub.status === 'active' || sub.status === 'paused') && sub.stripe_subscription_id && (
@@ -171,7 +171,7 @@ export default async function RecurringPage() {
         <p style={{ fontSize: 12, color: 'var(--t3)', lineHeight: 1.6 }}>
           Pausing skips upcoming charges without canceling — resume any time.
           Cancellations take effect at the end of the current billing period. You will not be charged again after cancellation.
-          For questions, <Link href="/contact" style={{ color: 'var(--green)' }}>contact support</Link>.
+          For questions, <Link href="/contact" style={{ color: 'var(--green-text)' }}>contact support</Link>.
         </p>
       </div>
     </CharitMeShell>

@@ -88,7 +88,7 @@ function StatusDonut({ pending, completed, failed, total }: { pending: number; c
   const slices = [
     { label: 'Completed', value: completed, color: '#19b86a' },
     { label: 'Pending', value: pending, color: '#f97316' },
-    { label: 'Failed', value: failed, color: '#ff3b5f' },
+    { label: 'Failed', value: failed, color: 'var(--red-text)' },
   ].filter(s => s.value > 0);
   const t = Math.max(slices.reduce((s, x) => s + x.value, 0), 1);
   const r = 56; const cx = 72; const cy = 72; const circ = 2 * Math.PI * r;
@@ -513,7 +513,7 @@ export default function PayoutsClient({
         {activeTab === 'recurring' && (
           <div style={{ padding: '20px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 20 }}>
-              {[{ label: 'Total Recurring', value: totalCount, color: '#6c35ff' }, { label: 'Active', value: completedCount, color: '#19b86a' }, { label: 'Paused', value: pendingCount, color: '#f97316' }, { label: 'Cancelled', value: 0, color: '#ff3b5f' }].map(s => (
+              {[{ label: 'Total Recurring', value: totalCount, color: '#6c35ff' }, { label: 'Active', value: completedCount, color: '#19b86a' }, { label: 'Paused', value: pendingCount, color: '#f97316' }, { label: 'Cancelled', value: 0, color: 'var(--red-text)' }].map(s => (
                 <div key={s.label} style={{ padding: '18px', border: '1px solid #e6e9f2', borderRadius: 12 }}>
                   <div style={{ fontSize: 12, color: '#66708d', fontWeight: 700, marginBottom: 6 }}>{s.label}</div>
                   <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{s.value}</div>

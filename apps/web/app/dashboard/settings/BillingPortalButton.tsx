@@ -26,7 +26,7 @@ export default function BillingPortalButton() {
 
   return (
     <div style={{ flexShrink: 0 }}>
-      {error ? <p style={{ fontSize: 11, color: 'var(--red)', marginBottom: 4 }}>{error}</p> : null}
+      {error ? <p style={{ fontSize: 11, color: 'var(--red-text)', marginBottom: 4 }}>{error}</p> : null}
       <button
         type="button"
         onClick={openPortal}

@@ -267,7 +267,7 @@ export default async function AnalyticsPage({
           <section className="kf-card">
             <div className="kf-card-head">
               <h2>Campaign Performance</h2>
-              <Link href="/dashboard/campaigns" style={{ fontSize: 13, color: 'var(--green)' }}>
+              <Link href="/dashboard/campaigns" style={{ fontSize: 13, color: 'var(--green-text)' }}>
                 View all
               </Link>
             </div>
@@ -324,7 +324,7 @@ export default async function AnalyticsPage({
                             />
                           </div>
                         </td>
-                        <td style={{ textAlign: 'right', padding: '10px 8px', fontWeight: 600, color: 'var(--green)' }}>
+                        <td style={{ textAlign: 'right', padding: '10px 8px', fontWeight: 600, color: 'var(--green-text)' }}>
                           {formatMoneyCompact(c.raised_amount, c.currency ?? 'usd')}
                         </td>
                         <td style={{ textAlign: 'right', padding: '10px 8px', color: 'var(--t3)' }}>
@@ -354,7 +354,7 @@ export default async function AnalyticsPage({
           <section className="kf-card">
             <div className="kf-card-head">
               <h2>Donations by Campaign</h2>
-              <Link href="/dashboard/campaigns" style={{ fontSize: 13, color: 'var(--green)' }}>
+              <Link href="/dashboard/campaigns" style={{ fontSize: 13, color: 'var(--green-text)' }}>
                 View all
               </Link>
             </div>
@@ -379,7 +379,7 @@ export default async function AnalyticsPage({
                       <div key={c.id} style={{ marginBottom: 12 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                           <span style={{ color: 'var(--t2)', fontWeight: 600, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</span>
-                          <span style={{ color: 'var(--green)', fontWeight: 700 }}>{formatMoneyCompact(c.total, c.currency ?? 'usd')}</span>
+                          <span style={{ color: 'var(--green-text)', fontWeight: 700 }}>{formatMoneyCompact(c.total, c.currency ?? 'usd')}</span>
                         </div>
                         <div style={{ height: 6, borderRadius: 3, background: 'var(--b2)', overflow: 'hidden' }}>
                           <div style={{ height: '100%', width: `${barPct}%`, background: colors[idx % colors.length], borderRadius: 3 }} />

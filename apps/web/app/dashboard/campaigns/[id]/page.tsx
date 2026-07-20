@@ -170,7 +170,7 @@ export default async function CampaignDetailPage({
 
               {/* Progress bar */}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--t2)', marginBottom: 6 }}>
-                <span><strong style={{ color: 'var(--green)' }}>{totalRaisedDisplay}</strong> raised of {goalDisplay}</span>
+                <span><strong style={{ color: 'var(--green-text)' }}>{totalRaisedDisplay}</strong> raised of {goalDisplay}</span>
                 <span><strong>{progress}%</strong> funded</span>
               </div>
               <div style={{ height: 8, borderRadius: 99, background: 'var(--b1)', overflow: 'hidden', marginBottom: 12 }}>

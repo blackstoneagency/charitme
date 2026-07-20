@@ -434,7 +434,7 @@ export default async function DonorsPage({
 
                     {/* Total given */}
                     <div style={{ textAlign: 'right' }}>
-                      <strong style={{ fontSize: 15, color: 'var(--green)', fontWeight: 700 }}>
+                      <strong style={{ fontSize: 15, color: 'var(--green-text)', fontWeight: 700 }}>
                         {fmtCents(donor.totalCents)}
                       </strong>
                     </div>
