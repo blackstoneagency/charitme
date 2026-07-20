@@ -141,40 +141,60 @@ RLS, functions, triggers, auth, and dark-mode config.
 
 ## HIGH
 
-### LB-002 — Stripe env (`STRIPE_SECRET_KEY`) in Vercel
+### LB-002 — Stripe env (`STRIPE_SECRET_KEY`) in Vercel — ✅ RESOLVED (2026-07-20)
 Payout onboarding errored in prod ("STRIPE_SECRET_KEY … in Vercel"). Code
-hardened to trim + surface the real reason (`f8989eb`). Root cause confirmed: the
-owner's source value has a **leading space** (`STRIPE_SECRET_KEY= sk_live_…`); if
-pasted as-is into Vercel it breaks. Owner action: set the full `sk_live_…` (no
-leading/trailing space), `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and
-`STRIPE_WEBHOOK_SECRET` in Vercel (Production scope), then redeploy.
+hardened to trim + surface the real reason (`f8989eb`); root cause was a **leading
+space** on the Vercel value. **Verified fixed** via the non-secret `/api/health`
+config readout after redeploy: `stripeKeyMode=live`, `stripeKeyHasWhitespace=false`,
+`publishableKey=set`, `stripeWebhookSecret=set`. Env is correct in Production.
 
-### LB-003 — Stripe **Connect** webhook secret is a placeholder (CRITICAL for donations)
-The owner's config has `STRIPE_CONNECT_WEBHOOK_SECRET=whsec_connect...` (a
-placeholder, not a real secret). The webhook route
-(`apps/web/app/api/stripe/webhook/route.ts`) verifies signatures against BOTH
-`STRIPE_WEBHOOK_SECRET` and `STRIPE_CONNECT_WEBHOOK_SECRET` (code is correct).
-**Connect events — `account.updated`, `payout.*`, `transfer.*` — are what flip
-`connected_accounts.charges_enabled` / `payouts_enabled`, which the payout-
-readiness gate requires before ANY donation is accepted.** If Connect events
-aren't signature-verified (placeholder secret) they're dropped → accounts never
-marked payout-ready → every donation returns `PAYOUT_NOT_READY`.
-**Owner action:** either (a) enable "Listen to events on Connected accounts" on
-the single `…/api/stripe/webhook` endpoint so `STRIPE_WEBHOOK_SECRET` covers
-them, or (b) create a dedicated Connect webhook and set its real `whsec_…` as
-`STRIPE_CONNECT_WEBHOOK_SECRET` in Vercel. Remove the `whsec_connect...`
-placeholder either way.
+### LB-003 — Stripe **Connect** webhook secret is a placeholder — ✅ RESOLVED (2026-07-20)
+The config had `STRIPE_CONNECT_WEBHOOK_SECRET=whsec_connect...` (a placeholder).
+The webhook route verifies signatures against BOTH `STRIPE_WEBHOOK_SECRET` and
+`STRIPE_CONNECT_WEBHOOK_SECRET`; Connect events (`account.updated`, `payout.*`,
+`transfer.*`) flip `connected_accounts.charges_enabled` / `payouts_enabled`, which
+the payout-readiness gate requires. **Verified fixed** via `/api/health`:
+`stripeConnectWebhookSecret=set` (the readout explicitly flags the `whsec_connect...`
+stub as `PLACEHOLDER`; it now reports `set`, i.e. a real secret). NOTE: still
+confirm the Connect endpoint is actually subscribed to Connected-account events in
+the Stripe dashboard so those events are delivered (secret presence ≠ subscription).
 
-### LB-005 — Stripe Connect not fully enabled (blocks all destination charges)
+### LB-005 — Stripe Connect: signed up, live account creation still gated (blocks all destination charges)
 The app processes every donation as a Stripe Connect **destination charge** to a
-connected recipient account. Verified in the **test** account
-(`acct_1TNulEAxcclD49kv`): `accounts.create` fails with *"You can only create new
-accounts if you've signed up for Connect."* If Connect is likewise not enabled on
-the **live** account, no recipient can onboard and **no donation can be processed
-at all**. Owner action: complete Connect signup (Dashboard → Connect → Get
-started) in both live and test, then re-run `scripts/verify-money-flow.mjs` with a
-test key to prove the full charge→transfer→refund flow. Fee math already verified
-against real Stripe test processing ($100 → $118.64, support $15, processing $3.64).
+connected recipient account, so live donations cannot process until
+`accounts.create` succeeds on the **production** account
+(`acct_1TNul7BrwQtGmNLk` — the account the deployed `sk_live_…` key belongs to;
+confirmed via `GET /v1/account`: charges/payouts/details all enabled).
+
+**Progress (2026-07-20, via live create-then-delete probes — nothing persisted):**
+the `accounts.create` error advanced through three states as onboarding
+progressed, so this is being actively worked, not stuck:
+1. *"You can only create new accounts if you've signed up for Connect"* → Connect
+   not signed up.
+2. *"Please review the responsibilities of managing losses for connected
+   accounts"* → Connect signed up; platform-profile loss/refund/chargeback
+   acknowledgements pending. **Now completed** (platform profile shows *Refunds
+   and chargebacks liability = Stripe*, both acknowledgements *Completed
+   2026-07-20*, funds flow = buyers purchase from platform, sellers paid out
+   individually, Express dashboard).
+3. **Current:** *"You must complete your platform profile to use Connect and
+   create **live** connected accounts. …answer the questionnaire"* → the full
+   **live** platform-profile questionnaire + **Stripe account verification** are
+   the remaining gate. This is Stripe's own review ("verify your account"); no
+   code change bypasses it.
+
+**Owner action (final step):** complete the live platform-profile questionnaire at
+`dashboard.stripe.com/connect/accounts/overview` and clear Stripe's account
+verification. Live connected-account creation unlocks when Stripe finishes that
+review.
+
+**Test-mode verification available without live verification:** test-mode Connect
+does **not** require Stripe's live account verification. To prove the full
+charge→transfer→refund path now, either (a) provide this account's **test** key
+(`sk_test_51TNul7BrwQtGmNLk…`), or (b) enable Connect on a sandbox and use its
+test key — then `scripts/verify-money-flow.mjs` runs the destination-charge flow
+end-to-end. Fee math already verified against real Stripe test processing
+($100 → $118.64, support $15, processing $3.64).
 
 ### LB-004 — Rotate exposed secrets (SECURITY)
 Full live Stripe secret/restricted/webhook keys, Supabase service-role key + access
