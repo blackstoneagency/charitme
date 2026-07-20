@@ -3,7 +3,11 @@ import {
   reconcileDonation,
   reconcileDonations,
   observeLedger,
+  canTransitionException,
+  isTerminalException,
+  EXCEPTION_STATUSES,
   type DonationToReconcile,
+  type ExceptionStatus,
 } from '../lib/reconciliation-core';
 import { buildDonationEntries } from '../lib/ledger-core';
 
@@ -129,5 +133,39 @@ describe('reconcileDonations (batch)', () => {
     const summary = reconcileDonations([item()]);
     expect(summary.clean).toBe(1);
     expect(summary.findings).toEqual([]);
+  });
+});
+
+describe('exception workflow state machine', () => {
+  it('open can be claimed, resolved, or ignored — but not stay nowhere', () => {
+    expect(canTransitionException('open', 'assigned')).toBe(true);
+    expect(canTransitionException('open', 'resolved')).toBe(true);
+    expect(canTransitionException('open', 'ignored')).toBe(true);
+  });
+
+  it('assigned can be resolved, ignored, or handed back to open', () => {
+    expect(canTransitionException('assigned', 'resolved')).toBe(true);
+    expect(canTransitionException('assigned', 'ignored')).toBe(true);
+    expect(canTransitionException('assigned', 'open')).toBe(true);
+  });
+
+  it('terminal states can only be re-opened', () => {
+    expect(canTransitionException('resolved', 'open')).toBe(true);
+    expect(canTransitionException('ignored', 'open')).toBe(true);
+    expect(canTransitionException('resolved', 'assigned')).toBe(false);
+    expect(canTransitionException('ignored', 'resolved')).toBe(false);
+  });
+
+  it('same-state is a no-op (allowed)', () => {
+    for (const s of EXCEPTION_STATUSES) {
+      expect(canTransitionException(s as ExceptionStatus, s as ExceptionStatus)).toBe(true);
+    }
+  });
+
+  it('flags resolved and ignored as terminal', () => {
+    expect(isTerminalException('resolved')).toBe(true);
+    expect(isTerminalException('ignored')).toBe(true);
+    expect(isTerminalException('open')).toBe(false);
+    expect(isTerminalException('assigned')).toBe(false);
   });
 });

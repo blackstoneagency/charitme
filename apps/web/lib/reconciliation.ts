@@ -9,8 +9,10 @@ import { supabaseAdmin } from './supabase';
 import {
   observeLedger,
   reconcileDonations,
+  isTerminalException,
   type DonationToReconcile,
   type ReconciliationSummary,
+  type ExceptionStatus,
 } from './reconciliation-core';
 
 type LedgerLineRow = {
@@ -125,4 +127,61 @@ export async function runReconciliation(
   }
 
   return { ...summary, opened, skippedExisting };
+}
+
+// ── Admin listing + resolution ────────────────────────────────────────────────
+
+export interface ExceptionRow {
+  id: string;
+  kind: string;
+  status: ExceptionStatus;
+  description: string;
+  campaign_id: string | null;
+  donation_id: string | null;
+  stripe_ref: string | null;
+  expected_cents: number | null;
+  actual_cents: number | null;
+  difference_cents: number | null;
+  resolution_note: string | null;
+  resolved_at: string | null;
+  created_at: string;
+}
+
+/** List reconciliation exceptions, newest first. Defaults to open items only. */
+export async function listExceptions(status: ExceptionStatus | 'all' = 'open', limit = 200): Promise<ExceptionRow[]> {
+  let q = supabaseAdmin
+    .from('reconciliation_exceptions')
+    .select(
+      'id, kind, status, description, campaign_id, donation_id, stripe_ref, expected_cents, actual_cents, difference_cents, resolution_note, resolved_at, created_at',
+    )
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (status !== 'all') q = q.eq('status', status);
+  const { data } = await q;
+  return (data ?? []) as ExceptionRow[];
+}
+
+/** Current status of one exception (for transition validation). */
+export async function getExceptionStatus(id: string): Promise<ExceptionStatus | null> {
+  const { data } = await supabaseAdmin
+    .from('reconciliation_exceptions')
+    .select('status')
+    .eq('id', id)
+    .maybeSingle();
+  return (data?.status as ExceptionStatus | undefined) ?? null;
+}
+
+/** Apply a validated status change to an exception (assignee/note optional). */
+export async function updateException(
+  id: string,
+  patch: { status: ExceptionStatus; resolutionNote?: string | null; assigneeId?: string | null },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const row: Record<string, unknown> = { status: patch.status };
+  if (patch.resolutionNote !== undefined) row.resolution_note = patch.resolutionNote;
+  if (patch.assigneeId !== undefined) row.assignee_id = patch.assigneeId;
+  if (isTerminalException(patch.status)) row.resolved_at = new Date().toISOString();
+  else if (patch.status === 'open') row.resolved_at = null; // re-opening clears it
+  const { error } = await supabaseAdmin.from('reconciliation_exceptions').update(row).eq('id', id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }

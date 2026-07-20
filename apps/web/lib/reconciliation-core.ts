@@ -154,6 +154,35 @@ export function reconcileDonations(items: readonly DonationToReconcile[]): Recon
   return { checked: items.length, clean, findings, byKind };
 }
 
+// ── Exception workflow (pure state machine) ──────────────────────────────────
+
+export type ExceptionStatus = 'open' | 'assigned' | 'resolved' | 'ignored';
+
+export const EXCEPTION_STATUSES: readonly ExceptionStatus[] = [
+  'open',
+  'assigned',
+  'resolved',
+  'ignored',
+] as const;
+
+/** Terminal states never require further action (but can be re-opened). */
+export function isTerminalException(status: ExceptionStatus): boolean {
+  return status === 'resolved' || status === 'ignored';
+}
+
+const EXCEPTION_TRANSITIONS: Record<ExceptionStatus, readonly ExceptionStatus[]> = {
+  open: ['assigned', 'resolved', 'ignored'],
+  assigned: ['open', 'resolved', 'ignored'],
+  resolved: ['open'], // re-open if a "fix" turns out wrong
+  ignored: ['open'], // re-open if it wasn't noise after all
+};
+
+/** Whether an exception may move from `from` to `to`. Same-state is a no-op (allowed). */
+export function canTransitionException(from: ExceptionStatus, to: ExceptionStatus): boolean {
+  if (from === to) return true;
+  return EXCEPTION_TRANSITIONS[from]?.includes(to) ?? false;
+}
+
 /**
  * Fold raw ledger lines (as returned from the DB for one donation) into a single
  * observation. Credits are positive for the liability/revenue/fee accounts we
