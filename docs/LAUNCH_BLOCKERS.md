@@ -12,10 +12,10 @@ data loss** (connected_accounts/campaigns/donations = 500 each intact). Fix chai
 `record_donation` RPC present · all key feature tables live (subscriptions,
 campaign_launch_settings, fundraising_events, grants, impact_plans,
 marketing_contacts, campaign_payments, user_badges, privacy_requests).
-**Non-critical remnant:** `ai_impact_ledger_and_trust_repair` (adds AI-impact-summary
-columns to transparency_ledger_items/risk_flags/admin_reviews) — a safe patched
-version is ready (`flag_type='general'` backfill instead of the absent `code`
-column) but the apply was classifier-gated at session end; re-run when unblocked.
+**Remnant now applied:** `ai_impact_ledger_and_trust_repair` applied with a safe
+patched backfill (`flag_type='general'` instead of the absent `code` column) —
+verified: `transparency_ledger_items` gained `risk_score`/`ai_generation_id`/
+`review_status`, `risk_flags.flag_type` has 0 nulls (NOT NULL holds), RLS 132/132.
 Correctly skipped: `charitme_rebrand` (obsolete — targets a non-existent
 `admin_settings` table; app uses `platform_settings`) and one `initial_schema`
 index on a `risk_flags.status` column that doesn't exist (non-critical).
