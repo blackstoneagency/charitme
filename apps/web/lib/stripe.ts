@@ -11,7 +11,8 @@ function missingStripeEnv(): never {
 
 export const stripe: Stripe = stripeSecretKey
   ? new Stripe(stripeSecretKey, {
-    apiVersion: '2025-02-24.acacia',
+    // API version is intentionally not pinned — the SDK uses its built-in
+    // default (matching the installed stripe-node version).
     typescript: true,
   })
   : new Proxy({} as Stripe, {

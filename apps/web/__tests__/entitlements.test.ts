@@ -8,6 +8,7 @@ import {
   resolveEntitlements,
   hasFeature,
   isPaidPlan,
+  isValidPlan,
   withinLimit,
   type PlanId,
   type FeatureKey,
@@ -88,6 +89,15 @@ describe('resolveEntitlements (status-aware)', () => {
 });
 
 describe('helpers', () => {
+  it('isValidPlan accepts only known plan ids', () => {
+    for (const p of ['free', 'starter', 'pro', 'enterprise']) {
+      expect(isValidPlan(p)).toBe(true);
+    }
+    for (const p of ['', 'gold', 'FREE', null, undefined]) {
+      expect(isValidPlan(p as string)).toBe(false);
+    }
+  });
+
   it('isPaidPlan is true only for paid tiers', () => {
     expect(isPaidPlan('free')).toBe(false);
     expect(isPaidPlan(null)).toBe(false);

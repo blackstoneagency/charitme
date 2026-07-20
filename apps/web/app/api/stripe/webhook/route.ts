@@ -497,11 +497,37 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
   }
 }
 
+// ── Stripe API-shape compatibility helpers ────────────────────────────────────
+// The Stripe SDK's TypeScript types follow its pinned API version (2026-06-24),
+// but webhook *payloads* use the API version configured on the endpoint, which
+// may still be an older shape. Read these fields defensively so the handlers
+// work regardless of which shape Stripe sends.
+function invoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
+  const legacy = (invoice as unknown as { subscription?: unknown }).subscription; // pre-2025 shape
+  if (typeof legacy === 'string') return legacy;
+  const sd = invoice.parent?.subscription_details?.subscription;                  // 2025+ shape
+  if (typeof sd === 'string') return sd;
+  return sd?.id ?? null;
+}
+function invoicePaymentIntentId(invoice: Stripe.Invoice): string | null {
+  const legacy = (invoice as unknown as { payment_intent?: unknown }).payment_intent;
+  if (typeof legacy === 'string') return legacy;
+  const pi = (invoice as unknown as { payments?: { data?: Array<{ payment?: { payment_intent?: unknown } }> } })
+    .payments?.data?.[0]?.payment?.payment_intent;
+  return typeof pi === 'string' ? pi : null;
+}
+function subscriptionPeriodEnd(sub: Stripe.Subscription): number | null {
+  const legacy = (sub as unknown as { current_period_end?: unknown }).current_period_end;
+  if (typeof legacy === 'number') return legacy;
+  const item = sub.items?.data?.[0] as unknown as { current_period_end?: number } | undefined;
+  return item?.current_period_end ?? null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // invoice.payment_succeeded  — subsequent recurring billing
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleInvoiceSucceeded(eventId: string, invoice: Stripe.Invoice) {
-  const subscriptionId = typeof invoice.subscription === 'string' ? invoice.subscription : null;
+  const subscriptionId = invoiceSubscriptionId(invoice);
   if (!subscriptionId) return;
 
   const sub = await stripe.subscriptions.retrieve(subscriptionId).catch(() => null);
@@ -525,13 +551,14 @@ async function handleInvoiceSucceeded(eventId: string, invoice: Stripe.Invoice) 
     p_processing_fee_cents: 0,
     p_message: null,
     p_anonymous: subMeta.anonymous === '1',
-    p_stripe_payment_intent_id: typeof invoice.payment_intent === 'string' ? invoice.payment_intent : null,
+    p_stripe_payment_intent_id: invoicePaymentIntentId(invoice),
     p_stripe_checkout_session_id: null,
   });
 
-  if (sub.current_period_end) {
+  const periodEnd = subscriptionPeriodEnd(sub);
+  if (periodEnd) {
     await supabaseAdmin.from('recurring_donations').update({
-      next_bill_at: new Date(sub.current_period_end * 1000).toISOString(),
+      next_bill_at: new Date(periodEnd * 1000).toISOString(),
     }).eq('stripe_subscription_id', subscriptionId);
   }
 }
@@ -540,7 +567,7 @@ async function handleInvoiceSucceeded(eventId: string, invoice: Stripe.Invoice) 
 // invoice.payment_failed
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleInvoiceFailed(invoice: Stripe.Invoice) {
-  const subscriptionId = typeof invoice.subscription === 'string' ? invoice.subscription : null;
+  const subscriptionId = invoiceSubscriptionId(invoice);
   if (!subscriptionId) return;
   await supabaseAdmin.from('recurring_donations').update({ status: 'past_due' })
     .eq('stripe_subscription_id', subscriptionId);

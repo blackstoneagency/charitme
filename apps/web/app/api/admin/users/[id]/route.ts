@@ -2,6 +2,8 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { rolesFor, verifyAdmin } from '../_auth';
+import { setUserPlan } from '../../../../../lib/entitlements';
+import { isValidPlan } from '@shared/entitlements';
 
 const VALID_ROLES = new Set(['donor', 'organizer', 'nonprofit', 'beneficiary', 'admin']);
 
@@ -94,8 +96,12 @@ export async function PATCH(
   if (typeof body.currency === 'string' && body.currency.trim()) {
     profileUpdate.currency = body.currency.trim().toLowerCase();
   }
-  if (typeof body.plan === 'string' && body.plan.trim()) {
-    profileUpdate.plan = body.plan.trim().toLowerCase();
+  const requestedPlan = typeof body.plan === 'string' ? body.plan.trim().toLowerCase() : undefined;
+  if (requestedPlan !== undefined) {
+    if (!isValidPlan(requestedPlan)) {
+      return NextResponse.json({ error: `Invalid plan: ${requestedPlan}` }, { status: 400 });
+    }
+    profileUpdate.plan = requestedPlan;
   }
 
   const { error: profileError } = await supabaseAdmin
@@ -105,6 +111,15 @@ export async function PATCH(
 
   if (profileError) {
     return NextResponse.json({ error: profileError.message }, { status: 500 });
+  }
+
+  // ── Sync the subscriptions table so entitlements reflect the plan change ───
+  if (requestedPlan !== undefined && isValidPlan(requestedPlan)) {
+    try {
+      await setUserPlan(id, requestedPlan);
+    } catch {
+      // non-fatal: profiles.plan is updated; entitlement sync can be retried
+    }
   }
 
   // ── Update auth user (email + metadata + optional password) ───────────────
