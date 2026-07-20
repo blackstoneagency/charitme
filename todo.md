@@ -230,6 +230,38 @@ AI platform, admin, lead-gen.
 
 ---
 
+## Campaign Image workstream
+
+Context: campaigns are procedurally seeded with **no per-row image**; covers were
+assigned per-category, so every campaign in a category shared one identical cover
+(and 5 categories shared covers with each other). Full audit in
+`CAMPAIGN_IMAGE_AUDIT.md`.
+
+- [x] IMG-01 — **Done.** Distinct cover per category (was 2 collisions across 5
+  categories). 3 new HTTP-200-verified covers sourced (Emergency/Travel/Wishes).
+  Evidence: `audit:campaign-images` cover-uniqueness check passes.
+- [x] IMG-02 — **Done.** Per-campaign cover distribution. App:
+  `getCoverForCampaign(category, key)` (FNV-1a over slug) wired into all 6 cover
+  consumers + `CampaignImage`. DB: migration
+  `20260723000000_campaign_cover_per_campaign.sql` (protects user uploads).
+  Evidence: `__tests__/photo-catalog.test.ts` (11) + full build.
+- [x] IMG-03 — **Done.** CI audit `npm run audit:campaign-images[:live]` — exits
+  non-zero on broken (non-200), shared covers, small pools, bad host/params.
+  Evidence: 45/45 IDs HTTP 200 live.
+- [x] IMG-04 — **Done.** Docs: `CAMPAIGN_IMAGE_AUDIT.md`,
+  `CAMPAIGN_IMAGE_SOURCES.md`, `CAMPAIGN_IMAGE_CHANGELOG.md`.
+- [ ] IMG-05 — `needs-staging`. Download → optimize (WebP/AVIF) → upload to
+  Supabase Storage; repoint records at stable storage paths (drop Unsplash
+  hotlink). Requires Storage write + binary pipeline.
+- [ ] IMG-06 — `needs-staging`. Perceptual/dHash near-duplicate detection over
+  image **binaries** (current audit is exact ID-level dedup only). Wire into CI.
+- [ ] IMG-07 — `needs-browser`. Per-image visual relevance + quality grading and
+  responsive visual regression (320–1920px, light/dark).
+- [ ] IMG-08 — `needs-staging`. Storage-bucket RLS/MIME/traversal/SSRF hardening
+  for a server-side image ingestion path (depends on IMG-05).
+
+---
+
 # Section C — Completed (with evidence)
 
 - [x] Dark mode as default theme — commits `d32bb02`, `8267f29`; verified: `data-theme=dark` with no stored pref, light toggle preserved, no mobile overflow.

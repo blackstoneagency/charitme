@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { ProgressBar, Badge } from '../../components/ui';
-import { getCoverForCategory } from '../../lib/photo-catalog';
+import { getCoverForCampaign } from '../../lib/photo-catalog';
 import { formatMoneyShort } from '@shared/currencies';
 import type { LeaderboardCampaign, LeaderboardDonor, LeaderboardPeriod } from '../../lib/leaderboard';
 
@@ -92,7 +92,7 @@ export default function LeaderboardClient({
                   <RankBadge rank={c.rank} />
                   <div
                     className="lb-campaign-cover"
-                    style={{ backgroundImage: `url(${c.coverImageUrl || getCoverForCategory(c.category)})` }}
+                    style={{ backgroundImage: `url(${c.coverImageUrl || getCoverForCampaign(c.category, c.slug)})` }}
                   />
                   <div className="lb-campaign-info">
                     <Link href={`/campaigns/${c.slug}`} className="lb-campaign-title">

@@ -5,7 +5,7 @@ import { ProgressBar, Badge, Card, EmptyState } from '../../components/ui';
 import { formatCents } from '../../lib/stripe';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { calculateTrustScore, getTrustLabel } from '../../lib/ai-platform';
-import { getCoverForCategory } from '../../lib/photo-catalog';
+import { getCoverForCampaign } from '../../lib/photo-catalog';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -234,7 +234,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
             return (
               <Link key={c.id} href={`/campaigns/${c.slug}`} style={{ textDecoration: 'none' }}>
                 <Card style={{ cursor: 'pointer', transition: 'box-shadow .2s', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ height: '190px', background: `url(${c.cover_image_url || getCoverForCategory(c.category)}) center/cover`, position: 'relative', flexShrink: 0 }}>
+                  <div style={{ height: '190px', background: `url(${c.cover_image_url || getCoverForCampaign(c.category, c.slug)}) center/cover`, position: 'relative', flexShrink: 0 }}>
                     <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       <Badge color="gray">{c.category}</Badge>
                       {isVerified && <Badge color="green">✓ Verified</Badge>}

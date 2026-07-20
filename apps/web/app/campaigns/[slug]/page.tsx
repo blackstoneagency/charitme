@@ -24,7 +24,7 @@ import CommentForm from './CommentForm';
 import CommentsList, { type WallComment } from './CommentsList';
 import SaveCampaignButton from './SaveCampaignButton';
 import CampaignAssistant from './CampaignAssistant';
-import { getPhotosForCategory, getCoverForCategory } from '../../../lib/photo-catalog';
+import { getPhotosForCategory, getCoverForCampaign } from '../../../lib/photo-catalog';
 import { optimizeAsks, computeImpact } from '../../../lib/donation-optimizer';
 
 export const dynamic = 'force-dynamic';
@@ -210,7 +210,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
   const campaignUrl = `${ORIGIN}/campaigns/${slug}`;
   const description = campaign.tagline ?? campaign.description?.slice(0, 160) ?? '';
-  const image = campaign.cover_image_url ?? getCoverForCategory(campaign.category);
+  const image = campaign.cover_image_url ?? getCoverForCampaign(campaign.category, campaign.slug);
 
   return {
     title: campaign.title,
@@ -289,7 +289,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     : null;
   const acceptDonations = (campaign as { accept_donations?: boolean }).accept_donations !== false;
   const isActive = campaign.status === 'active' && (daysLeft === null || daysLeft > 0) && acceptDonations;
-  const cover = campaign.cover_image_url || getCoverForCategory(campaign.category);
+  const cover = campaign.cover_image_url || getCoverForCampaign(campaign.category, campaign.slug);
   const videoUrl: string | null = (campaign as { video_url?: string | null }).video_url ?? null;
   const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
   const campaignUrl = `${ORIGIN}/campaigns/${campaign.slug}`;
@@ -805,7 +805,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                 <Link key={c.id} href={`/campaigns/${c.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div style={{ border: '1px solid var(--b1, #f1f5f9)', borderRadius: 12, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--s1, #fff)' }}>
                     <div style={{
-                      height: 130, background: `url(${c.cover_image_url || getCoverForCategory(c.category)}) center/cover`,
+                      height: 130, background: `url(${c.cover_image_url || getCoverForCampaign(c.category, c.slug)}) center/cover`,
                     }} />
                     <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
                       {c.category && <span style={{ fontSize: 11, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: 0.4 }}>{c.category}</span>}
