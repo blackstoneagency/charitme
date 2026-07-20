@@ -69,6 +69,7 @@ const adminNav = [
   ['Payouts', '/admin/payouts', 'wallet'],
   ['Payment Flows', '/admin/payments/campaign-flows', 'wallet'],
   ['Finance', '/admin/finance', 'chart'],
+  ['Pricing', '/admin/pricing', 'chart'],
   ['Reconciliation', '/admin/reconciliation', 'audit'],
   ['Trust & Safety', '/admin/trust-safety', 'audit'],
   ['Marketing', '/admin/marketing', 'send', 'New'],

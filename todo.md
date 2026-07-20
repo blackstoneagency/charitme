@@ -783,7 +783,7 @@ Stripe billing / live data are `needs-staging` per ADR-0003.
 | C4 | P1 | high | **CharitMe Plus** organizer subscription ($19.99/mo) wired to Stripe Billing + entitlements | new `subscriptions`/`entitlements` tables, `/api/billing/*`, feature flags | Stripe test keys + staging | Stripe test env | 3d | Blocked (`needs-staging`) |
 | C5 | P2 | high | Nonprofit tiers (Starter/Growth/Professional/Enterprise) + comparison table + upgrade flow | plans model, `app/pricing/`, billing portal | Follows C4 | C4 | 3d | Blocked (`needs-staging`) |
 | C6 | P1 | med | Checkout: Apple/Google Pay, ACH, saved methods, round-up (Stripe Payment Element) | `DonateButton.tsx` → Payment Element, `/api/donations` | Stripe test env | Stripe test env | 2d | Blocked (`needs-staging`) |
-| C7 | P2 | med | Admin **pricing dashboard**: MRR/ARR/LTV/CAC, avg donation, **support-reduction %**, funnel | `app/admin/pricing/`, subscription analytics | Needs subs data (C4) | C4 | 2d | Not Started |
+| C7 | P2 | med | Admin **pricing dashboard**: avg donation, avg/**support-reduction %**, tier mix (done); MRR/ARR/LTV/CAC + funnel pend subs | `app/admin/pricing/`, `lib/pricing-analytics*` | Donation-side shipped; subs metrics need C4 | C4 | 2d | **Partial (donation-side Code Complete)** |
 | C8 | P2 | low | Dedicated `/pricing` marketing page + SEO/AEO (schema, FAQ JSON-LD, OG) targeting "fundraising fees" | `app/pricing/`, metadata | — | C1 | 1d | Not Started |
 | C9 | P2 | low | Legal: Fee Policy, Refund Policy, Subscription Terms, Transparency Policy — cross-linked | `app/legal/*` | Copy review | — | 1d | Not Started |
 

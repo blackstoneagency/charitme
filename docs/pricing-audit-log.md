@@ -4,6 +4,45 @@ Append-only record of pricing/revenue-model changes. Newest first.
 
 ---
 
+## 2026-07-20 · Admin pricing & support analytics (donation-side)
+
+**Issue.** No operator view of how donors respond to optional support — the only
+donation-side revenue lever CharitMe has (platform fee is 0%).
+
+**Reason.** Pricing-audit "admin pricing dashboard" — measure average donation,
+**average support %**, and **support-reduction %** from real data so the team can
+tune messaging without dark patterns.
+
+**Implementation.**
+- `lib/pricing-analytics-core.ts` — pure: `computePricingAnalytics(rows)` → gross,
+  support revenue, avg donation, avg support %, effective support %, support-reduction
+  % (share below the suggested 15% tier), zero-support %, and a support-tier
+  distribution. `supportPercentOf` guards divide-by-zero.
+- `lib/pricing-analytics.ts` — reads completed online donations (last N days).
+- `app/api/admin/pricing/route.ts` — admin GET (`?days=`).
+- `app/admin/pricing/page.tsx` — stat cards + tier distribution bars; added to admin
+  nav after Finance.
+- `__tests__/pricing-analytics.test.ts` — +7 cases (support-% math, reduction
+  definition, bucketing, exactly-one-bucket, zero-safety).
+
+**Files changed.** `lib/pricing-analytics-core.ts`, `lib/pricing-analytics.ts`,
+`app/api/admin/pricing/route.ts`, `app/admin/pricing/page.tsx`,
+`components/CharitMeApp.tsx`, `__tests__/pricing-analytics.test.ts`,
+`docs/pricing-audit-log.md`, `todo.md`.
+
+**Before.** No pricing/support analytics anywhere.
+
+**After.** Admins see support behavior from real donations. Partially closes `todo.md`
+C7; MRR/ARR/LTV/CAC still pend subscription billing (C4).
+
+**Revenue impact.** Enables data-driven support-messaging decisions. No fee changes.
+**Security/Compliance impact.** Admin-gated read of aggregate donation data; no PII, no
+new write paths.
+
+**Verification.** `tsc --noEmit` ✓ · vitest 563/563 ✓ · `next build` ✓.
+
+---
+
 ## 2026-07-20 · Transparency Center + interactive "Where your money goes" calculator
 
 **Issue.** No dedicated public trust hub explaining fees, money flow, KYC/AML, and
