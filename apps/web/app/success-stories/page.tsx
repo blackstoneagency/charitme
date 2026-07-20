@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { campaignColumns, applyVisibilityFilters } from '../../lib/campaign-visibility';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
-import { getCoverForCategory, unsplash } from '../../lib/photo-catalog';
+import { getCoverForCampaign, unsplash } from '../../lib/photo-catalog';
 import { attachCampaignCurrencies } from '../../lib/home-data';
 import { currencySymbol } from '@shared/currencies';
 
@@ -156,7 +156,7 @@ export default async function SuccessStoriesPage() {
             </div>
             <Link href={`/campaigns/${featured.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
               <div className="ss-featured-grid">
-                <div style={{ borderRadius: 18, overflow: 'hidden', height: 340, backgroundImage: `url(${featured.cover_image_url || getCoverForCategory(featured.category)})`, backgroundSize: 'cover', backgroundPosition: 'center', boxShadow: '0 16px 48px rgba(108,53,255,.18)' }} />
+                <div style={{ borderRadius: 18, overflow: 'hidden', height: 340, backgroundImage: `url(${featured.cover_image_url || getCoverForCampaign(featured.category, featured.slug)})`, backgroundSize: 'cover', backgroundPosition: 'center', boxShadow: '0 16px 48px rgba(108,53,255,.18)' }} />
                 <div>
                   {featured.category && (
                     <span style={{ display: 'inline-block', background: 'rgba(108,53,255,.1)', color: 'var(--violet, #6c35ff)', borderRadius: 999, padding: '4px 14px', fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 16 }}>
@@ -204,7 +204,7 @@ export default async function SuccessStoriesPage() {
           {gridStories.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 24 }}>
               {gridStories.map((story) => {
-                const cover = story.cover_image_url || getCoverForCategory(story.category);
+                const cover = story.cover_image_url || getCoverForCampaign(story.category, story.slug);
                 const progress = pct(story.raised_amount, story.goal_amount);
                 return (
                   <Link key={story.slug} href={`/campaigns/${story.slug}`} style={{ textDecoration: 'none' }}>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { getCoverForCategory } from '../lib/photo-catalog';
+import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
 
 /**
  * Campaign cover <img> that never renders broken. If the stored `src` fails to
@@ -12,6 +12,7 @@ import { getCoverForCategory } from '../lib/photo-catalog';
 export default function CampaignImage({
   src,
   category,
+  campaignKey,
   alt,
   className,
   width,
@@ -21,6 +22,8 @@ export default function CampaignImage({
 }: {
   src: string | null | undefined;
   category: string | null;
+  /** Stable per-campaign key (slug/id) so the fallback varies within a category. */
+  campaignKey?: string | null;
   alt: string;
   className?: string;
   width?: number;
@@ -28,7 +31,9 @@ export default function CampaignImage({
   loading?: 'lazy' | 'eager';
   fetchPriority?: 'high' | 'low' | 'auto';
 }) {
-  const fallback = getCoverForCategory(category);
+  const fallback = campaignKey
+    ? getCoverForCampaign(category, campaignKey)
+    : getCoverForCategory(category);
   const initial = src && src.startsWith('http') ? src : fallback;
   const [current, setCurrent] = useState(initial);
   const [stage, setStage] = useState<0 | 1 | 2>(initial === fallback ? 1 : 0);

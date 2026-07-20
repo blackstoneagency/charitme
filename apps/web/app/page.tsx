@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type React from 'react';
 import { safeJsonLd } from '../lib/json-ld';
 import { getHomeData, getCategoryStats, getRecentDonations, profileName } from '../lib/home-data';
-import { getCoverForCategory } from '../lib/photo-catalog';
+import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
 import CampaignImage from '../components/CampaignImage';
 import { formatMoneyCompact } from '@shared/currencies';
 import { AiSearch, CountUp, Reveal } from './home-parts';
@@ -158,7 +158,7 @@ export default async function HomePage() {
   const hcFunded = hc ? pct(hc.raised_amount, hc.goal_amount) : 0;
   const hcLastDonation = hc ? recentDonations.find((d) => d.campaignSlug === hc.slug) : undefined;
   const hcLastLabel = hcLastDonation ? timeAgo(hcLastDonation.createdAt) : '—';
-  const hcCover = hc?.cover_image_url || getCoverForCategory(hc?.category ?? null);
+  const hcCover = hc?.cover_image_url || getCoverForCampaign(hc?.category ?? null, hc?.slug ?? null);
   const hcHref = hc ? `/campaigns/${hc.slug}` : '/create';
 
   const featured = (carouselCampaigns.length ? carouselCampaigns : featuredCampaigns).slice(0, 6);
@@ -392,7 +392,7 @@ export default async function HomePage() {
                 <Reveal as="article" key={c.slug} className="home-card" delay={(i % 3) * 70}>
                   <Link href={`/campaigns/${c.slug}`} className="home-card-link">
                     <div className="home-card-media">
-                      <CampaignImage src={c.cover_image_url} category={c.category} alt={c.title} width={420} height={264} />
+                      <CampaignImage src={c.cover_image_url} category={c.category} campaignKey={c.slug} alt={c.title} width={420} height={264} />
                       {c.category && <span className="home-card-cat">{c.category}</span>}
                     </div>
                     <div className="home-card-body">

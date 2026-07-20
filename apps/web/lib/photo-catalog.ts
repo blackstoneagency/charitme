@@ -35,7 +35,8 @@ export const CATEGORY_PHOTOS: Record<string, string[]> = {
     unsplash(C.volunteers),                         // community care
   ],
   Emergency: [
-    unsplash(C.volunteers, true),
+    unsplash('1593113630400-ea4288922497', true), // relief / aid supplies
+    unsplash(C.volunteers),
     unsplash(C.volGroup),
     unsplash(C.hands),
     unsplash(C.giving),
@@ -147,12 +148,13 @@ export const CATEGORY_PHOTOS: Record<string, string[]> = {
     unsplash(C.volGroup),
   ],
   Travel: [
-    unsplash(C.volunteers, true),
+    unsplash('1488646953014-85cb44e25828', true), // travel / journey planning
+    unsplash('1501785888041-af3ef285b470'),        // open road / adventure
+    unsplash(C.volunteers),
     unsplash(C.volGroup),
     unsplash(C.hands),
     unsplash(C.giving),
     unsplash(C.heart),
-    unsplash(C.child),
   ],
   Volunteer: [
     unsplash(C.volunteers, true),
@@ -163,7 +165,8 @@ export const CATEGORY_PHOTOS: Record<string, string[]> = {
     unsplash(C.heart),
   ],
   Wishes: [
-    unsplash(C.child, true),
+    unsplash('1533230408708-8f9f91d1235a', true), // sky lanterns / hope
+    unsplash(C.child),
     unsplash(C.heart),
     unsplash(C.giving),
     unsplash(C.hands),
@@ -192,4 +195,37 @@ export function getPhotosForCategory(category: string | null | undefined, min = 
 
 export function getCoverForCategory(category: string | null | undefined): string {
   return getPhotosForCategory(category, 1)[0];
+}
+
+/**
+ * Stable, non-cryptographic string hash (FNV-1a). Used only to spread campaigns
+ * deterministically across a category's photo pool — same input always yields
+ * the same photo, so a campaign's cover never changes between renders/deploys.
+ */
+function hashKey(key: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) {
+    h ^= key.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+/**
+ * Deterministic per-campaign cover. Campaigns in the same category are spread
+ * across that category's full photo pool (keyed by a stable identifier —
+ * prefer slug, else id, else title) instead of every campaign showing pool[0].
+ * This is what removes the "every Medical campaign looks identical" problem for
+ * the many seeded campaigns whose stored `cover_image_url` is null.
+ *
+ * Callers should still prefer a real stored cover when present:
+ *   campaign.cover_image_url || getCoverForCampaign(campaign.category, campaign.slug)
+ */
+export function getCoverForCampaign(
+  category: string | null | undefined,
+  key: string | null | undefined,
+): string {
+  const pool = CATEGORY_PHOTOS[category ?? ''] ?? FALLBACK_PHOTOS;
+  if (!key) return pool[0];
+  return pool[hashKey(key) % pool.length];
 }
