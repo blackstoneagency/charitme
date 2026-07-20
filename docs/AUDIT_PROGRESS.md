@@ -69,6 +69,22 @@ Ran with a real `sk_test_` key (`scripts/verify-money-flow.mjs`, live-key-guarde
   script proves it end-to-end (charge → assert recipient==donation, appFee==tip+proc
   → refund) the moment Connect is enabled (Dashboard → Connect → get started).
 
+## Feature-flow verification against the reconciled DB (2026-07-24)
+
+Post-reconciliation, verified against the live DB (Management API):
+- **Previously-broken read paths now execute cleanly**: `campaigns` visibility
+  query returns 500 (was `42703`); `fundraising_events`, `grants`, `impact_plans`,
+  `marketing_contacts` all queryable (0 rows, no error); `subscriptions` has 500
+  seeded rows.
+- **Grants end-to-end round-trip (write→read→soft-delete→cleanup)**: inserted a
+  grant → the app's public-list query (`status in ('open','upcoming') and
+  deleted_at is null`) returned it → after `deleted_at`, public read = 0
+  (soft-delete works) → hard-deleted; grants back to 0 (no residue).
+- **RLS policies correct (not just enabled)**: `grants` = public-read + creator
+  manage; `grant_applications` = applicant-scoped (tenant isolation); 18 admin-only
+  tables = RLS-enabled deny-all (service-role only). Per-persona live enforcement
+  (anon/authenticated sessions) still needs real auth sessions to fully certify.
+
 ## AI routes audit (this session)
 
 Scanned all 16 `/api/ai/*` routes for auth, rate limiting, and provider fallback:
