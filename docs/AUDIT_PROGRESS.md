@@ -55,6 +55,56 @@ parallel session's merged `docs/payments/money-flow.md` (commit `73a2d0e`):
 end-to-end (charge→fee→transfer→payout→reconcile), refund/dispute financial
 states, and the reconciliation job, all needing Stripe **test** keys + staging.
 
+## AI routes audit (this session)
+
+Scanned all 16 `/api/ai/*` routes for auth, rate limiting, and provider fallback:
+- **Fixed**: `grant-match` was the only one missing rate limiting — an
+  unauthenticated POST running a ~300-row scan + `grant_matches` upserts per call.
+  Added IP-based `checkRateLimit(20/min)` (commit `05be1e3`).
+- All 16 now rate-limited; all that call OpenAI have a deterministic fallback
+  (no fake responses when the provider is unavailable — §5.10). Public AI routes
+  (campaign, goal-recommend, donation-impact, donor-conversion) are unauthenticated
+  by design but rate-limited.
+
+## Payment subsystem audit — conclusions (this session)
+
+Audited the money paths end-to-end at code level. Findings + evidence:
+
+| Area | Result | Evidence |
+|------|--------|----------|
+| Recipient-first gate / no fund custody (one-time) | ✅ sound | `resolvePayoutDestination` + `409 PAYOUT_NOT_READY`; `payout-destination.test.ts` |
+| Recipient-first gate (recurring/subscription) | ✅ sound — parity | `/api/donations/recurring` same gate + `transfer_data.destination` + catch-block block on account error |
+| Fee math (displayed == charged) | ✅ sound | client+server both `methodProcessingFee(amount+tip)`; `fees.test.ts` (11) |
+| Webhook signature + idempotency | ✅ sound | `constructEvent` + event-log skip + `record_donation` lock |
+| Refund → ledger | ✅ sound; 1 limitation | `docs/payments/refunds-and-disputes.md` (partial-refund stat delta deferred) |
+| Dispute → ledger | ✅ sound (reconciliation-aware) | sets `reconciliation_status=needs_review`; idempotent upsert |
+| Checkout double-submit | ✅ adequately protected | button `disabled={loading}` + webhook dedup; per-attempt key is correct |
+| RLS on admin/finance/marketing tables | ✅ hardened this session | migration `20260723000000`; `docs/security/rls-matrix.md` |
+
+**Overall: the payment subsystem is in good shape.** No blind financial changes
+were made. Remaining payment items are **verification** (Stripe test clocks for
+refund/dispute lifecycles; reconciliation-job output) and **one deferred fix**
+(partial-refund campaign-stat delta), all gated on Stripe **test** keys + staging.
+
+## API authorization & tenant-isolation audit — CLEAN (this session)
+
+Middleware's matcher **excludes `/api`**, so API routes must self-gate. Audited:
+
+- **Every `/api/admin/*` route is admin-gated** (`verifyAdmin` / `requireAdmin`);
+  scanned all admin route files — zero without a recognized gate. No
+  unauthenticated admin access (§5.17 "no admin button may bypass authz").
+- **User-data routes scope by the session user**, e.g. `/api/donor/donations`
+  filters `.eq('donor_id', user.id)` — not a client-supplied id.
+- **No IDOR-via-query-param**: scan for `searchParams.get('userId')` / body-userId
+  filters used in queries returned nothing.
+- **Public routes serve only public data**: `/api/sponsors` (active + logo/website
+  only), `/api/grants/[id]` (public), `qr-poster`/`rotator` (status=active).
+- **Service-role-only tables** (34) now RLS-hardened (migration `20260723000000`).
+
+Method: `grep` over `apps/web/app/api/**/route.ts` for auth gates + client-supplied
+id filters. Result: no unauthenticated-admin or cross-tenant read defect found in
+the API layer. Per-persona live RLS verification still pending (needs staging).
+
 ## Known real findings (open)
 
 | Sev | Area | Finding | Owner action? |
