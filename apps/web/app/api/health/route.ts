@@ -28,14 +28,36 @@ export async function GET() {
       checks.diagnosis = 'PGRST_SCHEMA_CACHE — Tables exist but PostgREST cache is stale. Call POST /api/health to reload.';
     }
 
+    // Non-secret config readout so operators can verify env wiring from prod
+    // without exposing any secret value (booleans + key MODE + a public int only).
+    const stripeKeyRaw = process.env.STRIPE_SECRET_KEY;
+    const stripeKeyMode = !stripeKeyRaw
+      ? 'MISSING'
+      : stripeKeyRaw.trim().startsWith('sk_live_')
+        ? 'live'
+        : stripeKeyRaw.trim().startsWith('sk_test_')
+          ? 'test'
+          : 'unrecognized';
     checks.env = {
-      url:            process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'MISSING',
-      serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'MISSING',
-      anonKey:        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'set' : 'MISSING',
-      stripeKey:      process.env.STRIPE_SECRET_KEY ? 'set' : 'MISSING',
-      openaiKey:      process.env.OPENAI_API_KEY ? 'set (optional)' : 'not set (optional)',
-      resendKey:      process.env.RESEND_API_KEY ? 'set (optional)' : 'not set (optional)',
-      appUrl:         process.env.NEXT_PUBLIC_APP_URL ?? 'not set (using fallback)',
+      url:                 process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'MISSING',
+      serviceRoleKey:      process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'MISSING',
+      anonKey:             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'set' : 'MISSING',
+      stripeKey:           stripeKeyRaw ? 'set' : 'MISSING',
+      stripeKeyMode,
+      // true if the value has leading/trailing whitespace (the LB-002 failure mode)
+      stripeKeyHasWhitespace: stripeKeyRaw ? stripeKeyRaw !== stripeKeyRaw.trim() : false,
+      publishableKey:      process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? 'set' : 'MISSING',
+      stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ? 'set' : 'MISSING',
+      // A placeholder like `whsec_connect...` is NOT a real secret (LB-003).
+      stripeConnectWebhookSecret: !process.env.STRIPE_CONNECT_WEBHOOK_SECRET
+        ? 'MISSING'
+        : /placeholder|whsec_connect\.\.\.|^whsec_connect$/i.test(process.env.STRIPE_CONNECT_WEBHOOK_SECRET.trim())
+          ? 'PLACEHOLDER'
+          : 'set',
+      defaultDonorTipPercent: process.env.DEFAULT_DONOR_TIP_PERCENT ?? '(unset → code default 15)',
+      openaiKey:           process.env.OPENAI_API_KEY ? 'set (optional)' : 'not set (optional)',
+      resendKey:           process.env.RESEND_API_KEY ? 'set (optional)' : 'not set (optional)',
+      appUrl:              process.env.NEXT_PUBLIC_APP_URL ?? 'not set (using fallback)',
     };
   } catch (err) {
     checks.supabase = `error: ${err instanceof Error ? err.message : String(err)}`;

@@ -1,6 +1,109 @@
 # CharitMe — Launch Blockers
 
-## CRITICAL
+## OPEN — public-read RLS review (found 2026-07-20, needs owner/product decision)
+
+### LB-008 — `USING(true)` public-read policies over-expose a few tables (MED/LOW — review)
+The anon sweep found 25 tables with fully-public (`USING(true)`) SELECT policies.
+Most are correctly public (media, milestones, rewards, updates, badges, countries,
+creator_profiles, nonprofit_profiles). Four warrant a decision — **not blind-fixed
+because they encode product intent**:
+- **`donor_messages` (LOW)** — 1000 rows, `USING(true)`. This is the campaign
+  **Comments** wall, and its GET API (`/api/campaigns/[id]/messages`) intentionally
+  serves comments for **all** campaigns (no visibility guard, unlike CHAR-F008 which
+  gates donation amounts) — so public read is largely by design. The one real gap:
+  raw PostgREST exposes `donor_id` even on `anonymous=true` comments (the API strips
+  it and shows "Anonymous"), i.e. data-layer deanonymization. Largely mitigated now
+  that `profiles` is locked (LB-006) — `donor_id` is an opaque UUID to anon.
+  *Recommended (LOW):* if anonymous comments must be truly anonymous, null out or
+  gate `donor_id` at the row level (or serve the wall exclusively via the API).
+- **`creator_tips` (LOW-MED, latent)** — 0 rows today, but `USING(true)` would
+  expose `stripe_payment_intent_id`, `supporter_id`, and tip amounts once the
+  feature ships. *Recommended:* restrict reads (or a safe-columns view) before the
+  creator-tips feature goes live.
+- **`platform_settings` (LOW)** — `config` jsonb is anon-readable; keys are mostly
+  display-oriented (fees, support contact, branding) but include internal-ish flags
+  (`stripeLiveMode`, `maintenanceMode`, `allowNewRegistrations`). *Recommended:*
+  split public vs internal settings, or expose only the display subset.
+- **`trust_scores` (LOW / likely by design)** — granular sub-scores
+  (`identity_score`, `activity_score`, …) are anon-readable; probably intended as
+  the public "Transparency Score" feature. Confirm the sub-score granularity is
+  meant to be public.
+
+No fix applied — these need a product call on what each surface should expose. The
+clear-cut leaks (LB-006/007) were fixed and verified.
+
+## RESOLVED — found & fixed 2026-07-20 (anon-persona live RLS certification)
+
+> Both applied to the live DB via Management API and verified with the anon key
+> (owner-authorized). **LB-006:** anon `profiles` read 502 → **0 rows**. **LB-007:**
+> anon `campaigns` read HTTP 500 → **200**, returning exactly the **350**
+> active+public+not-deleted campaigns (150 private/draft/deleted correctly hidden).
+> Production `/api/health` unaffected (service-role paths). Fix committed as
+> `20260720120000_fix_profiles_pii_leak_and_campaigns_rls_recursion.sql`.
+
+### LB-006 — profiles table leaks PII/billing IDs to anonymous callers (HIGH — SECURITY) — ✅ FIXED
+`profiles` RLS is enabled but the SELECT policy was `profiles_read USING (true)`,
+so **any unauthenticated caller** using the public anon key (which ships in the
+client bundle) can dump **every** profile row. Proven live:
+`GET https://yanexccimwooursawynm.supabase.co/rest/v1/profiles?select=email,full_name`
+returns **502 rows** including `email`, `stripe_customer_id`,
+`stripe_subscription_id`, `roles`, `plan`, and notification prefs. The table has a
+`show_public_profile` flag the policy ignores entirely.
+- **Blast radius:** unauthenticated harvest of all users' email addresses + Stripe
+  customer/subscription identifiers. GDPR/CCPA-relevant personal-data exposure.
+- **Why the app still works after a fix:** every public profile surface
+  (`/donors/[id]`, `/profile`, campaign organizer display) reads via the
+  service-role client (`supabaseAdmin`), which bypasses RLS. Restricting the base
+  policy to own-or-admin does not change rendered output; it only closes the
+  anon dump. (If a per-column public surface is ever needed, add a view exposing
+  only safe columns gated on `show_public_profile`.)
+- **Fix prepared (not yet applied):**
+  `supabase/migrations/20260720120000_fix_profiles_pii_leak_and_campaigns_rls_recursion.sql`
+  sets `profiles_read USING (auth.uid() = id or is_admin())`.
+- **Owner action:** authorize applying the migration to the live DB (no staging
+  exists). Treat as urgent — the leak is live now.
+
+### LB-007 — campaigns RLS has infinite recursion (MED — broken policy / 500 landmine) — ✅ FIXED
+`campaigns_public_read` does `EXISTS(... team_members ...)` while
+`team_members.team_campaign_read` does `EXISTS(... campaigns ...)` → mutual
+recursion → **`42P17` "infinite recursion detected in policy for relation
+campaigns"** on ANY RLS-enforced SELECT of `campaigns` (anon or logged-in user).
+Proven live: `GET /rest/v1/campaigns?select=id&limit=3` → HTTP 500. The subquery
+also had a bug (`tm.campaign_id = tm.id`, should correlate to `campaigns.id`).
+- **Not a current outage:** the public campaign pages (`/campaigns`,
+  `/campaigns/[slug]`) and home feed read via `supabaseAdmin` (RLS bypassed), so
+  browsing works. But campaigns RLS is **effectively non-functional** and any
+  future anon/user-key read of campaigns will 500.
+- **Fix prepared (not yet applied):** same migration adds a SECURITY DEFINER
+  helper `is_campaign_team_member()` (owner-privileged, does not re-enter RLS —
+  mirrors `is_admin()`) and rewrites the policy to use it with the corrected join.
+- **Owner action:** authorize applying the migration to the live DB.
+
+---
+
+## RESOLVED
+
+### LB-001 — Live database schema out of sync — ✅ RECONCILED (2026-07-24)
+Reconciled with owner approval. **31 → 132 tables (matches the repo target), no
+data loss** (connected_accounts/campaigns/donations = 500 each intact). Fix chain:
+`20260724000000_reconcile_legacy_column_drift` (adds `nonprofit_id` to legacy
+`donor_crm_contacts`/`recurring_donations`) unblocked `competitor_parity_features`
+→ `events_platform` → `admin_settings_and_audit`. PostgREST schema cache reloaded.
+**Verified:** 132 tables · **RLS enabled on 132/132** · 42 functions · 70 triggers ·
+`record_donation` RPC present · all key feature tables live (subscriptions,
+campaign_launch_settings, fundraising_events, grants, impact_plans,
+marketing_contacts, campaign_payments, user_badges, privacy_requests).
+**Remnant now applied:** `ai_impact_ledger_and_trust_repair` applied with a safe
+patched backfill (`flag_type='general'` instead of the absent `code` column) —
+verified: `transparency_ledger_items` gained `risk_score`/`ai_generation_id`/
+`review_status`, `risk_flags.flag_type` has 0 nulls (NOT NULL holds), RLS 132/132.
+Correctly skipped: `charitme_rebrand` (obsolete — targets a non-existent
+`admin_settings` table; app uses `platform_settings`) and one `initial_schema`
+index on a `risk_flags.status` column that doesn't exist (non-critical).
+
+---
+
+## HISTORICAL (pre-reconciliation, kept for context)
 
 ### LB-001 — Live database schema is severely out of sync with the code (CRITICAL)
 
@@ -73,9 +176,38 @@ requested and must not be done blind on the deployed database.
   (applies AND reads). Bulk application of the remaining ~50 migrations was
   blocked outright. Cannot proceed further from this environment.
 
-**Status:** Discovered + evidenced; 2 migrations applied (1 no-op, 1 column-drift
-fix, unverified). Full reconciliation BLOCKED by the harness safety gate on
-sustained production-DB mutation.
+**Status update (reconciliation run):** Applied all 52 migrations in order
+(continue-on-error). **41 applied, 11 failed. Tables 31 → 101. NO data loss**
+(connected_accounts=500, campaigns=500, donations=500 intact; the
+`clean_fake_stripe_accounts` DELETE matched nothing — seed IDs are valid format).
+No TRUNCATE / DROP TABLE ran; failed migrations' UPDATEs rolled back with their
+transaction.
+
+Feature tables now LIVE: subscriptions, grants, impact_plans, campaign_payments,
+marketing_contacts, matching_claims, challenges, user_badges, privacy_requests,
+sponsorship_opportunities, and ~60 more.
+
+**Remaining failures (11):**
+- **Harmless (6)** — idempotency ("policy/constraint already exists"): the objects
+  exist; these migrations simply aren't re-runnable. No action needed.
+- **Real, cascading (root cause) —** `20260525002000_competitor_parity_features.sql`
+  fails on `column "nonprofit_id" does not exist`, rolling back ALL its tables →
+  `campaign_launch_settings`, `fundraising_events`, `event_registrations`,
+  `nonprofits`, `creator_profiles` still MISSING → `20260720000000_events_platform.sql`
+  then fails (needs `fundraising_events`). Fixing the `nonprofit_id` reference in
+  competitor_parity unblocks all of these.
+- **Real, standalone (3)** — `charitme_rebrand` (UPDATE on `admin_settings`, absent),
+  `ai_impact_ledger_and_trust_repair` (UPDATE `risk_flags.code`, column absent),
+  `initial_schema` (index/policy on a `status` column that differs on the legacy
+  table). These are data-backfill/ordering issues, not table creation.
+
+**No `supabase_migrations` history table** exists — the DB is reconciled by direct
+SQL, not the CLI, so there is no CLI-tracked history to verify against.
+
+**Next (PENDING OWNER APPROVAL per request):** patch the `nonprofit_id` reference
+in `competitor_parity_features` so it applies (creating the 5 missing tables),
+re-run `events_platform`, then reconcile the 3 standalone backfills. Then verify
+RLS, functions, triggers, auth, and dark-mode config.
 
 **To resume, the owner must do ONE of:**
 1. Add a Bash permission rule allowing the Supabase Management-API applies (then
@@ -90,11 +222,65 @@ sustained production-DB mutation.
 
 ## HIGH
 
-### LB-002 — Stripe env (`STRIPE_SECRET_KEY`) in Vercel
+### LB-002 — Stripe env (`STRIPE_SECRET_KEY`) in Vercel — ✅ RESOLVED (2026-07-20)
 Payout onboarding errored in prod ("STRIPE_SECRET_KEY … in Vercel"). Code
-hardened to trim + surface the real reason (`f8989eb`); root cause is the Vercel
-env value (missing/whitespace/truncated). Owner action: verify full `sk_live_…`,
-no whitespace, Production scope, redeploy.
+hardened to trim + surface the real reason (`f8989eb`); root cause was a **leading
+space** on the Vercel value. **Verified fixed** via the non-secret `/api/health`
+config readout after redeploy: `stripeKeyMode=live`, `stripeKeyHasWhitespace=false`,
+`publishableKey=set`, `stripeWebhookSecret=set`. Env is correct in Production.
+
+### LB-003 — Stripe **Connect** webhook secret is a placeholder — ✅ RESOLVED (2026-07-20)
+The config had `STRIPE_CONNECT_WEBHOOK_SECRET=whsec_connect...` (a placeholder).
+The webhook route verifies signatures against BOTH `STRIPE_WEBHOOK_SECRET` and
+`STRIPE_CONNECT_WEBHOOK_SECRET`; Connect events (`account.updated`, `payout.*`,
+`transfer.*`) flip `connected_accounts.charges_enabled` / `payouts_enabled`, which
+the payout-readiness gate requires. **Verified fixed** via `/api/health`:
+`stripeConnectWebhookSecret=set` (the readout explicitly flags the `whsec_connect...`
+stub as `PLACEHOLDER`; it now reports `set`, i.e. a real secret). NOTE: still
+confirm the Connect endpoint is actually subscribed to Connected-account events in
+the Stripe dashboard so those events are delivered (secret presence ≠ subscription).
+
+### LB-005 — Stripe Connect: signed up, live account creation still gated (blocks all destination charges)
+The app processes every donation as a Stripe Connect **destination charge** to a
+connected recipient account, so live donations cannot process until
+`accounts.create` succeeds on the **production** account
+(`acct_1TNul7BrwQtGmNLk` — the account the deployed `sk_live_…` key belongs to;
+confirmed via `GET /v1/account`: charges/payouts/details all enabled).
+
+**Progress (2026-07-20, via live create-then-delete probes — nothing persisted):**
+the `accounts.create` error advanced through three states as onboarding
+progressed, so this is being actively worked, not stuck:
+1. *"You can only create new accounts if you've signed up for Connect"* → Connect
+   not signed up.
+2. *"Please review the responsibilities of managing losses for connected
+   accounts"* → Connect signed up; platform-profile loss/refund/chargeback
+   acknowledgements pending. **Now completed** (platform profile shows *Refunds
+   and chargebacks liability = Stripe*, both acknowledgements *Completed
+   2026-07-20*, funds flow = buyers purchase from platform, sellers paid out
+   individually, Express dashboard).
+3. **Current:** *"You must complete your platform profile to use Connect and
+   create **live** connected accounts. …answer the questionnaire"* → the full
+   **live** platform-profile questionnaire + **Stripe account verification** are
+   the remaining gate. This is Stripe's own review ("verify your account"); no
+   code change bypasses it.
+
+**Owner action (final step):** complete the live platform-profile questionnaire at
+`dashboard.stripe.com/connect/accounts/overview` and clear Stripe's account
+verification. Live connected-account creation unlocks when Stripe finishes that
+review.
+
+**Test-mode verification available without live verification:** test-mode Connect
+does **not** require Stripe's live account verification. To prove the full
+charge→transfer→refund path now, either (a) provide this account's **test** key
+(`sk_test_51TNul7BrwQtGmNLk…`), or (b) enable Connect on a sandbox and use its
+test key — then `scripts/verify-money-flow.mjs` runs the destination-charge flow
+end-to-end. Fee math already verified against real Stripe test processing
+($100 → $118.64, support $15, processing $3.64).
+
+### LB-004 — Rotate exposed secrets (SECURITY)
+Full live Stripe secret/restricted/webhook keys, Supabase service-role key + access
+token, DB password, Google OAuth secret, and Resend key were shared in-session
+(twice). Rotate all before/at launch; treat as compromised.
 
 ## Verification-gated (need Stripe test keys + staging)
 - End-to-end money-flow / refund / dispute / reconciliation proof.

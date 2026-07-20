@@ -608,6 +608,12 @@ export default function DonateButton({
             <span>You pay{isMonthly ? '/month' : ''}</span>
             <span>{money(breakdown.total)}</span>
           </div>
+          {/* Recipient always receives the full donation — tip + processing are
+              added on top, never deducted (Stripe Connect destination charge). */}
+          <div style={{ marginTop: 6, padding: '9px 11px', borderRadius: 9, background: 'rgba(16,185,129,.10)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13.5, fontWeight: 750, color: '#047857' }}>
+            <span>✓ {campaignTitle ? 'Recipient' : 'They'} receive{isMonthly ? '' : 's'} {money(amountCents)}</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, opacity: .85 }}>100% of your donation</span>
+          </div>
         </div>
       </div>
 

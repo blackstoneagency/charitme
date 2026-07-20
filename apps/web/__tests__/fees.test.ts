@@ -3,8 +3,22 @@ import {
   donationTotal, donorTip, platformFee, processingFee,
   methodProcessingFee, METHOD_FEES, MIN_DONATION_CENTS,
   donationBreakdown, SUPPORT_TIER_PERCENTS, SUGGESTED_SUPPORT_PERCENT,
-  DEFAULT_DONOR_TIP_PERCENT,
+  TIP_OPTIONS, DEFAULT_DONOR_TIP_PERCENT,
 } from '@shared/fees';
+
+describe('donor support model', () => {
+  it('suggests 15% support and always allows opting down to 0', () => {
+    expect(DEFAULT_DONOR_TIP_PERCENT).toBe(15);
+    expect(TIP_OPTIONS[0]).toBe(15);          // suggested first
+    expect(TIP_OPTIONS).toContain(0);         // opt-out always available
+    expect([...TIP_OPTIONS]).toEqual([15, 12, 10, 8, 5, 3, 1, 0]);
+  });
+  it('keeps the mandatory platform fee at 0%', () => {
+    expect(platformFee(100_00)).toBe(0);
+    expect(PLATFORM_FEE_PERCENT_IS_ZERO()).toBe(true);
+  });
+});
+function PLATFORM_FEE_PERCENT_IS_ZERO() { return platformFee(1) === 0 && platformFee(1_000_000) === 0; }
 
 describe('CharitMe fee model', () => {
   it('uses 0% mandatory platform fee', () => {
