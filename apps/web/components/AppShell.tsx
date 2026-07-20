@@ -88,7 +88,7 @@ function Logo() {
   return (
     <Link href="/" className="kind-logo" aria-label="CharitMe home">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.svg" alt="" className="kind-logo-img" width={34} height={34} />
+      <img src="/logo.png" alt="" className="kind-logo-img" width={34} height={34} />
       <strong>CharitMe</strong>
     </Link>
   );

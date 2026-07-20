@@ -130,7 +130,7 @@ export function Logo() {
   return (
     <Link href="/" className="kf-logo">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.svg" alt="" className="kf-logo-img" width={42} height={42} />
+      <img src="/logo.png" alt="" className="kf-logo-img" width={42} height={42} />
       <div><strong>CharitMe</strong><small>Fundraising that thinks for you.</small></div>
     </Link>
   );
