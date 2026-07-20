@@ -9,9 +9,13 @@
 | Gate | Command | Result |
 |------|---------|--------|
 | Type-check | `npm run typecheck --workspace=apps/web` | ✅ clean (exit 0) |
-| Unit/integration tests | `npm run test --workspace=apps/web` | ✅ **495 pass**, 31 files |
-| Lint | `npm run lint --workspace=apps/web` | ✅ 0 errors, 10 warnings (cosmetic) |
-| Production build | `npm run build --workspace=apps/web` | ⏳ in progress this session |
+| Unit/integration tests | `npm run test --workspace=apps/web` | ✅ **511 pass**, 32 files (2026-07-20) |
+| Lint | `npm run lint --workspace=apps/web` | ✅ 0 errors, 8 warnings (cosmetic) |
+| Production build | `npm run build --workspace=apps/web` | ✅ **green** (exit 0) — full route manifest built (2026-07-20) |
+
+> All four gates re-measured green on current master (post 59-commit sync) on
+> 2026-07-20. The production build — previously "in progress" — is confirmed
+> passing. Local Node is v22; CI/Vercel pins Node 20 via `.node-version`.
 
 ## Verified this session (committed)
 
