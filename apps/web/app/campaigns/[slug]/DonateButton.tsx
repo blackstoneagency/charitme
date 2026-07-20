@@ -127,9 +127,13 @@ export default function DonateButton({
       method: preferredMethod,
       coverProcessing: !isMonthly,
     });
+    // Recurring charges settle their processing fee per-cycle via Stripe; the
+    // donate form (like before) does not fold it into the shown monthly total,
+    // so keep processing off the monthly breakdown to avoid line items that
+    // don't sum to "You pay".
     return {
       tip: b.supportCents,
-      processing: b.processingCents,
+      processing: isMonthly ? 0 : b.processingCents,
       total: b.totalChargedCents,
       netToRecipient: b.netToRecipientCents,
     };
@@ -594,9 +598,9 @@ export default function DonateButton({
               value={money(breakdown.processing)}
             />
           )}
-          {amountCents > 0 && (
+          {amountCents > 0 && !isMonthly && (
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, color: GR }}>
-              <span>{isMonthly ? 'Recipient receives/mo' : 'Recipient receives'}</span>
+              <span>Recipient receives</span>
               <span>{money(breakdown.netToRecipient)}</span>
             </div>
           )}

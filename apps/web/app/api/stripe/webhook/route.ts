@@ -725,7 +725,7 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
           campaignId: don.campaign_id,
           donationId: don.id,
           stripeChargeId: charge.id,
-          stripeRefundId: piId,
+          stripePaymentIntentId: piId,
           source: 'webhook:charge.refunded',
         },
       );

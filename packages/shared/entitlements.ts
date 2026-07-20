@@ -132,9 +132,9 @@ export function resolveEntitlements(
   planId: string | null | undefined,
   status: string | null | undefined,
 ): PlanEntitlements {
+  // A paid plan only entitles while the subscription is in good standing;
+  // anything else (including free/unknown plans) resolves to the free tier.
   if (!planId || !(ENTITLED_STATUSES as readonly string[]).includes(status ?? '')) {
-    // free plan is always "entitled" regardless of status
-    if (planId === 'free' || !planId) return PLAN_CATALOG.free;
     return PLAN_CATALOG.free;
   }
   return entitlementsForPlan(planId);
