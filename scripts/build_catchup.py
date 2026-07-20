@@ -55,6 +55,16 @@ def add(f, extra_after=None):
     if extra_after:
         parts.append(extra_after)
 
+ENSURE = ''
+_ep = _os.path.join(_os.path.dirname(__file__), '..', 'supabase', 'ensure_columns.sql')
+if _os.path.exists(_ep):
+    ENSURE = ('\n-- ---- column-drift reconciliation: add any missing column to existing\n'
+              '-- ---- tables BEFORE indexes/policies reference them (add column if not\n'
+              '-- ---- exists; no drops, no data loss). Generated from the target schema.\n'
+              + open(_ep).read())
+
+if ENSURE:
+    parts.append(ENSURE)
 add(initial, extra_after=SUPP)
 for f in rest:
     add(f)
