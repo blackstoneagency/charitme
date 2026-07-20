@@ -164,6 +164,40 @@ column-existence only, never executed against a live row.
   `privacy_requests_insert` with_check = `auth.uid() = user_id` (users file only
   their own), `privacy_requests_update` = own-or-admin (both USING and WITH CHECK).
 
+## Sponsorship marketplace end-to-end verification (2026-07-20)
+
+Verified `sponsorship_opportunities` + `sponsorship_requests` against the live
+reconciled DB. Both tables were empty (0/0); all writes were test rows on two
+distinct seeded profiles (organizer ≠ sponsor), removed via cascade delete —
+**zero residue** (back to 0/0).
+
+- **Schema + all constraints match the migration** (both tables): opportunity
+  title/description length CHECKs, `min/target/raised >= 0`, composite
+  `target >= min` CHECK, status enum (`draft|open|closed|fulfilled|cancelled`);
+  request `amount_cents > 0`, status enum (`pending|accepted|declined|withdrawn|
+  fulfilled`), `UNIQUE(opportunity_id, sponsor_id)`; FKs `organizer_id/sponsor_id →
+  profiles ON DELETE CASCADE`, `campaign_id → campaigns ON DELETE SET NULL`,
+  `opportunity_id → sponsorship_opportunities ON DELETE CASCADE`. `updated_at`
+  triggers on both.
+- **Insert defaults correct**: opportunity → `status='open'`, `raised=0`,
+  `currency='USD'`, `created_at==updated_at`.
+- **Constraints enforced live**: duplicate `(opportunity_id, sponsor_id)` request
+  → `23505` (→ one request per sponsor per opportunity); `amount_cents=0`,
+  `target < min`, and title `<3` chars all rejected by their CHECKs.
+- **Accept flow + funding math**: `pending → accepted` advances the request's
+  `updated_at`; committing the amount into `raised_amount_cents` (the route's
+  `committedAmountDelta`) took raised 0 → 25000 on a 50000 target = **50% funding**
+  (matches `fundingProgress`), opportunity `updated_at` advanced.
+- **FK cascade proven**: deleting the opportunity cascade-deleted its request
+  (both tables → 0).
+- **RLS correct (not just enabled)**: opportunities public read gated to
+  `status in (open,closed,fulfilled)` (drafts/cancelled hidden) or organizer/admin;
+  organizer-write = `ALL` (organizer or admin); request rows readable only by the
+  **sponsor, the opportunity's organizer, or admin** (no public read — offer amounts
+  / sponsor identity not exposed); request insert `with_check = auth.uid() =
+  sponsor_id`; request update = sponsor / organizer / admin. Transition + delta math
+  unit-tested (`sponsorships.test.ts`, 18 pass).
+
 ## AI routes audit (this session)
 
 Scanned all 16 `/api/ai/*` routes for auth, rate limiting, and provider fallback:
@@ -275,12 +309,14 @@ math already verified in test ($100 → $118.64).
 **Feature flows verified end-to-end vs the reconciled DB this session** (all with
 full cleanup, zero residue): **Grants**, **Events RSVP**, **Subscriptions/recurring
 billing** (idempotency + state machine + ownership), **Privacy requests (GDPR/CCPA)**
-(schema/constraints/partial-unique/state-machine/RLS + export-assembly surface).
-RLS confirmed correct on each.
+(schema/constraints/partial-unique/state-machine/RLS + export-assembly surface),
+**Sponsorship marketplace** (both tables: constraints/unique/CHECKs/FK-cascade +
+accept-flow funding math + RLS). RLS confirmed correct on each.
 
-**Next queued verification:** **Sponsorships** (opportunities → requests →
-approval flow), then **Gamification** (challenges/badges) remain — same treatment
-(schema + constraints + RLS + a zero-residue write round-trip). Query tooling: the
+**Next queued verification:** **Gamification** (challenges/badges — `challenges`,
+`user_badges`, and related) is the last of the newest-domain feature flows — same
+treatment (schema + constraints + RLS + a zero-residue write round-trip). Query
+tooling: the
 sandboxed Bash `curl` fails TLS (exit 35) against the Supabase Management API — use
 **PowerShell** `Invoke-RestMethod` instead (see `scratchpad/q.ps1` pattern: read
 `SUPABASE_ACCESS_TOKEN` from `apps/web/.env.local`, POST to
