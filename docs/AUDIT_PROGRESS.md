@@ -272,6 +272,34 @@ with `visibility` fails; without it succeeds. Fix: removed the stray field
 (no read path selects it; both schema paths omit it). Typecheck clean; DB insert
 verified, test row cleaned up (zero residue).
 
+## Authenticated-persona live RLS certification (2026-07-20) — CHAR-0012 gap closed
+
+Previously every domain's RLS was verified at the policy-definition + anon level,
+but "per-persona live enforcement (authenticated sessions) still needs real
+sessions" (CHAR-0012). Certified now **without creating users or forging JWTs**:
+inside a transaction, `set local role authenticated` + `set local
+request.jwt.claims to '{"sub":"<real-uuid>","role":"authenticated"}'` makes
+`auth.uid()` resolve to that user and RLS evaluate exactly as in production;
+`set local` auto-resets on commit (read-only, zero side effects).
+
+Certified tenant isolation on the most sensitive surfaces:
+- **`donations`**: donor sees only their own rows (non-admin donor total = 0/own,
+  not 500); organizer sees exactly the donations to their **own** campaigns (1, not
+  500); a non-admin sees nothing on a campaign they neither own nor donated to;
+  **admins see all** (`is_admin()` = `roles ? 'admin'` for `auth.uid()`, correctly
+  defined, SECURITY DEFINER).
+- **`privacy_requests`**: owner sees their own request; a different authenticated
+  non-admin sees **0** (cannot see another user's GDPR deletion request). Zero
+  residue.
+- **`profiles` (post-LB-006)**: authenticated user reads **only their own** row
+  (total visible = 1, not 502), can read own, cannot read another user's; admins
+  see all. Confirms the LB-006 fix isolates correctly without breaking own-profile
+  access.
+
+Method note for the next session: reuse the `set local role authenticated` +
+`request.jwt.claims` technique to extend the matrix to organizer-vs-organizer,
+sponsor-vs-sponsor, and the remaining domain tables.
+
 ## AI routes audit (this session)
 
 Scanned all 16 `/api/ai/*` routes for auth, rate limiting, and provider fallback:
