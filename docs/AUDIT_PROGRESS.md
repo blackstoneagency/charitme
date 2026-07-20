@@ -198,6 +198,38 @@ distinct seeded profiles (organizer ≠ sponsor), removed via cascade delete —
   sponsor_id`; request update = sponsor / organizer / admin. Transition + delta math
   unit-tested (`sponsorships.test.ts`, 18 pass).
 
+## Gamification (challenges + badges) end-to-end verification (2026-07-20)
+
+Verified `user_badges`, `challenges`, `challenge_participants` against the live
+reconciled DB. The 3 seeded starter challenges were present and left intact; all
+test writes (badge, participants, a throwaway challenge) removed — **zero residue**
+(challenges back to exactly 3, badges/participants 0, no `verify-*` leftovers).
+
+- **Seed data intact**: `first-five-gifts` (donation_count/5), `hundred-dollar-hero`
+  (total_cents/10000), `three-cause-champion` (campaign_count/3), all `active`.
+- **Schema + constraints match the migration** (3 tables): `user_badges
+  UNIQUE(user_id, badge_id)`; `challenges` `UNIQUE(slug)`, `goal_value > 0` CHECK,
+  metric enum (`donation_count|total_cents|campaign_count`), status enum
+  (`draft|active|completed`); `challenge_participants` `UNIQUE(challenge_id,
+  user_id)`, `progress_value >= 0` CHECK; all FKs `ON DELETE CASCADE`. `updated_at`
+  trigger on `challenges`.
+- **Idempotency proven** (backs the code's `onConflict` upserts): duplicate badge
+  award → `23505` on `(user_id, badge_id)`; duplicate challenge join → `23505` on
+  `(challenge_id, user_id)` — so re-awarding a badge or re-joining a challenge never
+  duplicates.
+- **Constraints enforced live**: `goal_value=0`, invalid `metric`, and negative
+  `progress_value` all rejected by their CHECKs.
+- **Join → progress → complete**: participant seeds at `progress_value=0`,
+  `completed_at` null; updating progress to the goal stamps `completed_at` (mirrors
+  `joinChallenge` / `listChallengesForUser`).
+- **FK cascade proven**: deleting a challenge cascade-deleted its participant row
+  (orphan count 0).
+- **RLS correct (not just enabled)**: `user_badges` + `challenge_participants` =
+  public read (`true`, for leaderboards) with owner-or-admin write; `challenges` =
+  public read gated to `status in (active,completed)` (drafts hidden) with
+  **admin-only** write. Progress/goal math unit-tested (`challenges.test.ts`, 12
+  pass).
+
 ## AI routes audit (this session)
 
 Scanned all 16 `/api/ai/*` routes for auth, rate limiting, and provider fallback:
@@ -311,16 +343,28 @@ full cleanup, zero residue): **Grants**, **Events RSVP**, **Subscriptions/recurr
 billing** (idempotency + state machine + ownership), **Privacy requests (GDPR/CCPA)**
 (schema/constraints/partial-unique/state-machine/RLS + export-assembly surface),
 **Sponsorship marketplace** (both tables: constraints/unique/CHECKs/FK-cascade +
-accept-flow funding math + RLS). RLS confirmed correct on each.
+accept-flow funding math + RLS), **Gamification** (badges + challenges +
+participants: unique-idempotency, CHECKs, FK-cascade, join→complete flow, RLS).
+RLS confirmed correct on each.
 
-**Next queued verification:** **Gamification** (challenges/badges — `challenges`,
-`user_badges`, and related) is the last of the newest-domain feature flows — same
-treatment (schema + constraints + RLS + a zero-residue write round-trip). Query
-tooling: the
-sandboxed Bash `curl` fails TLS (exit 35) against the Supabase Management API — use
-**PowerShell** `Invoke-RestMethod` instead (see `scratchpad/q.ps1` pattern: read
-`SUPABASE_ACCESS_TOKEN` from `apps/web/.env.local`, POST to
-`/v1/projects/yanexccimwooursawynm/database/query`, one statement per call).
+**Newest-domain DB verification pass: COMPLETE.** All post-reconciliation feature
+domains (Grants, Events RSVP, Subscriptions, Privacy, Sponsorships, Gamification)
+are now verified end-to-end against the live reconciled DB with zero residue and
+RLS confirmed. **Remaining launch work is owner-side, not code:**
+1. **Stripe Connect live-enable (LB-005)** — the sole hard blocker; live
+   `accounts.create` is gated on Stripe's own platform-profile questionnaire +
+   account verification at `dashboard.stripe.com/connect/accounts/overview`. No code
+   change bypasses it; until it clears, donations return `PAYOUT_NOT_READY` by design.
+2. **Rotate exposed secrets (LB-004)** — live Stripe/Supabase/Resend/Google keys
+   were shared in-session; treat as compromised, rotate before/at launch.
+3. **Verification-gated (needs a Stripe test key + staging)** — end-to-end
+   money-flow via `scripts/verify-money-flow.mjs`, refund/dispute lifecycles,
+   per-persona live RLS matrix, partial-refund stat delta.
+
+**Query tooling note:** the sandboxed Bash `curl` fails TLS (exit 35) against the
+Supabase Management API — use **PowerShell** `Invoke-RestMethod` instead (see
+`scratchpad/q.ps1` pattern: read `SUPABASE_ACCESS_TOKEN` from `apps/web/.env.local`,
+POST to `/v1/projects/yanexccimwooursawynm/database/query`, one statement per call).
 
 **Gotchas:** the auto-mode classifier intermittently blocks compound `git commit &&
 git push` and heredoc commit messages — run commit and push as SEPARATE calls and
