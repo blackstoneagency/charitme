@@ -4,6 +4,8 @@ import { CharitMeShell, TopBar } from '../../../../components/CharitMeShellServe
 import { requireUser } from '../../../../lib/auth';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import CampaignWorkspace from './_components/CampaignWorkspace';
+import FeatureCampaignButton from './_components/FeatureCampaignButton';
+import { resolveFeaturePriceCents } from '../../../../lib/featured';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +27,7 @@ type Campaign = {
   deadline: string | null;
   created_at: string;
   updated_at: string;
+  featured: boolean | null;
 };
 
 // ─────────────────────────────────────────────
@@ -73,7 +76,7 @@ async function fetchCampaignDetail(campaignId: string, userId: string): Promise<
     // Step 1: campaign (must be owned by user)
     const { data: campData, error: campErr } = await supabaseAdmin
       .from('campaigns')
-      .select('id,title,slug,tagline,description,status,goal_amount,raised_amount,backer_count,cover_image_url,category,deadline,created_at,updated_at')
+      .select('id,title,slug,tagline,description,status,goal_amount,raised_amount,backer_count,cover_image_url,category,deadline,created_at,updated_at,featured')
       .eq('id', campaignId)
       .eq('user_id', userId)
       .single();
@@ -120,6 +123,18 @@ export default async function CampaignDetailPage({
   const { campaign, updatesCount, teamCount } = await fetchCampaignDetail(id, user.id);
 
   if (!campaign) notFound();
+
+  // Featured-campaign fee (admin-configurable in Super Admin → Settings → Payment).
+  const { data: settingsRow } = await supabaseAdmin
+    .from('platform_settings')
+    .select('config')
+    .eq('id', 1)
+    .maybeSingle();
+  const paymentSettings =
+    settingsRow?.config && typeof settingsRow.config === 'object' && !Array.isArray(settingsRow.config)
+      ? (settingsRow.config as Record<string, unknown>).payment
+      : undefined;
+  const featurePriceLabel = fmtCents(resolveFeaturePriceCents(paymentSettings));
 
   const progress = campaign.goal_amount > 0
     ? Math.min(100, Math.round((campaign.raised_amount / campaign.goal_amount) * 100))
@@ -190,6 +205,20 @@ export default async function CampaignDetailPage({
                     <small style={{ fontSize: 12, color: 'var(--t3)' }}>{label}</small>
                   </div>
                 ))}
+              </div>
+
+              {/* Featured-campaign placement */}
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--b1)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <FeatureCampaignButton
+                  campaignId={campaign.id}
+                  featured={campaign.featured === true}
+                  priceLabel={featurePriceLabel}
+                />
+                {!campaign.featured && (
+                  <span style={{ fontSize: 12.5, color: 'var(--t3)', maxWidth: 340 }}>
+                    Featured campaigns rotate through the homepage spotlight for extra visibility.
+                  </span>
+                )}
               </div>
             </div>
           </div>

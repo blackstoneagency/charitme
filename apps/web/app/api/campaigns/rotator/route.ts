@@ -2,6 +2,7 @@ import 'server-only';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { attachCampaignCurrencies } from '../../../../lib/home-data';
+import { selectRotatorCampaigns } from '../../../../lib/featured';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,7 +64,10 @@ export async function GET() {
         : ((c.profiles as { full_name: string | null } | null)?.full_name ?? null),
     }));
 
-  const campaigns = await attachCampaignCurrencies(rawCampaigns);
+  // When creators have paid to feature campaigns, rotate through ONLY those;
+  // otherwise fall back to the top campaigns so the hero is never empty.
+  const selected = selectRotatorCampaigns(rawCampaigns);
+  const campaigns = await attachCampaignCurrencies(selected);
 
   // Last donation timestamp for the live badge
   type DonationRow = { created_at: string };

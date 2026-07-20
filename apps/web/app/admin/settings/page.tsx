@@ -63,6 +63,7 @@ export default async function AdminSettingsPage() {
     stripeConnectEnabled: true,
     maxUploadMb: 10,
     auditRetentionDays: 365,
+    featuredCampaignPriceDollars: 5,
   };
 
   const { data: savedSettings } = await supabaseAdmin
@@ -71,9 +72,21 @@ export default async function AdminSettingsPage() {
     .eq('id', 1)
     .maybeSingle();
 
+  const savedConfig = (savedSettings?.config && typeof savedSettings.config === 'object' && !Array.isArray(savedSettings.config))
+    ? (savedSettings.config as Record<string, unknown>)
+    : {};
+  const savedPayment = (savedConfig.payment && typeof savedConfig.payment === 'object')
+    ? (savedConfig.payment as Record<string, unknown>)
+    : {};
+  const savedFeaturedCents = Number(savedPayment.featuredCampaignPriceCents);
+
   const settings: PlatformSettings = {
     ...defaultSettings,
-    ...((savedSettings?.config && typeof savedSettings.config === 'object') ? savedSettings.config : {}),
+    ...savedConfig,
+    // Surface the saved featured-campaign price (stored in cents) as dollars.
+    featuredCampaignPriceDollars: Number.isFinite(savedFeaturedCents) && savedFeaturedCents > 0
+      ? savedFeaturedCents / 100
+      : defaultSettings.featuredCampaignPriceDollars,
   };
 
   const overview: OverviewStats = {

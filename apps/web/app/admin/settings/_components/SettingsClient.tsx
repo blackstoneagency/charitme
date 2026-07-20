@@ -30,6 +30,8 @@ export type PlatformSettings = {
   emailFromAddress: string;
   donationFeePercent: number;
   platformFeePercent: number;
+  /** One-time fee (in dollars) a creator pays to feature their campaign. */
+  featuredCampaignPriceDollars: number;
   stripeLiveMode: boolean;
   notifyAdminOnDonation: boolean;
   notifyCampaignApproval: boolean;
@@ -97,7 +99,7 @@ export default function SettingsClient({ categories, settings: initialSettings, 
     if (cat === 'General') return { category: 'general', settings: { platformName: settings.platformName, tagline: settings.tagline, supportEmail: settings.supportEmail, supportPhone: settings.supportPhone, timezone: settings.timezone } };
     if (cat === 'Branding') return { category: 'general', settings: { logoUrl: settings.logoUrl, primaryColor: settings.brandPrimaryColor, accentColor: settings.brandAccentColor, platformName: settings.platformName } };
     if (cat === 'Email') return { category: 'email', settings: { fromName: settings.emailFromName, fromEmail: settings.emailFromAddress, emailVerification: settings.emailVerification, campaignApproval: settings.notifyCampaignApproval } };
-    if (cat === 'Payment') return { category: 'payment', settings: { stripeLive: settings.stripeLiveMode, platformFeePct: settings.platformFeePercent, donationFeePct: settings.donationFeePercent, stripeConnect: settings.stripeConnectEnabled, currency: settings.currency } };
+    if (cat === 'Payment') return { category: 'payment', settings: { stripeLive: settings.stripeLiveMode, platformFeePct: settings.platformFeePercent, donationFeePct: settings.donationFeePercent, stripeConnect: settings.stripeConnectEnabled, currency: settings.currency, featuredCampaignPriceCents: Math.round(Math.max(1, settings.featuredCampaignPriceDollars) * 100) } };
     if (cat === 'Notifications') return { category: 'notifications', settings: { emailEnabled: settings.notifyAdminOnDonation, campaignApproval: settings.notifyCampaignApproval } };
     if (cat === 'Security') return { category: 'security', settings: { requireMfa: settings.requireMfaForAdmins, sessionTimeoutMinutes: settings.sessionTimeoutMinutes, googleOAuth: settings.googleOAuthEnabled, allowNewRegistrations: settings.allowNewRegistrations } };
     if (cat === 'Integrations') return { category: 'integrations', settings: { googleAnalyticsEnabled: settings.googleOAuthEnabled, stripeConnect: settings.stripeConnectEnabled } };
@@ -175,6 +177,7 @@ export default function SettingsClient({ categories, settings: initialSettings, 
         <Panel title="Payment Controls">
           <Field label="Donation Fee Percent"><input type="number" min={0} step={0.1} value={settings.donationFeePercent} onChange={e => set('donationFeePercent', Number(e.target.value))} style={fieldStyle} /></Field>
           <Field label="Platform Fee Percent"><input type="number" min={0} step={0.1} value={settings.platformFeePercent} onChange={e => set('platformFeePercent', Number(e.target.value))} style={fieldStyle} /></Field>
+          <Field label="Featured Campaign Price (USD)"><input type="number" min={1} step={0.5} value={settings.featuredCampaignPriceDollars} onChange={e => set('featuredCampaignPriceDollars', Number(e.target.value))} style={fieldStyle} /></Field>
           <SettingToggle title="Stripe Live Mode" description="Use live Stripe credentials for checkout and payouts." value={settings.stripeLiveMode} onChange={v => set('stripeLiveMode', v)} />
           <SettingToggle title="Stripe Connect" description="Allow organizers to connect payout accounts." value={settings.stripeConnectEnabled} onChange={v => set('stripeConnectEnabled', v)} />
         </Panel>

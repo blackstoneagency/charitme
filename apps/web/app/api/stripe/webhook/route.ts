@@ -168,6 +168,16 @@ async function handleEvent(event: Stripe.Event) {
 async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.Session) {
   const meta = (session.metadata ?? {}) as Record<string, string>;
 
+  // ── Featured-campaign placement purchase ──────────────────────────────────
+  if (meta.type === 'feature_campaign' && meta.campaignId && session.payment_status === 'paid') {
+    const { error } = await supabaseAdmin
+      .from('campaigns')
+      .update({ featured: true })
+      .eq('id', meta.campaignId);
+    if (error) console.error('[webhook] feature_campaign update failed:', error.message);
+    return;
+  }
+
   if (meta.campaignId && meta.isRecurring === '1') {
     // ── First payment of a recurring donation ─────────────────────────────
     const subscriptionId = typeof session.subscription === 'string' ? session.subscription : null;
