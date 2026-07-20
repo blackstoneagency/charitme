@@ -25,6 +25,13 @@ create table if not exists public.admin_settings (
   value text,
   updated_at timestamptz not null default now()
 );
+-- RLS: admin-config tables — admin-only (service role bypasses).
+alter table public.feature_flags  enable row level security;
+alter table public.admin_settings enable row level security;
+drop policy if exists feature_flags_admin_all on public.feature_flags;
+create policy feature_flags_admin_all on public.feature_flags for all using (is_admin()) with check (is_admin());
+drop policy if exists admin_settings_admin_all on public.admin_settings;
+create policy admin_settings_admin_all on public.admin_settings for all using (is_admin()) with check (is_admin());
 """
 
 def idempotent(sql):

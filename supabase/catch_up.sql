@@ -6,11 +6,8 @@
 --
 -- HOW TO USE: paste this whole file into the Supabase SQL editor and Run once.
 --   Validated idempotent on Postgres 16 against BOTH a fresh DB and a
---   schema.sql-drifted DB (two consecutive runs, zero errors on the second).
---   Adds missing tables AND missing columns on existing tables (add column if
---   not exists) before any index/policy references them. No drops, no data loss.
---   Storage calls (storage.foldername, buckets.file_size_limit) resolve on a
---   real Supabase project; they only 404 on a bare Postgres.
+--   schema.sql-drifted DB. Adds missing tables AND missing columns on existing
+--   tables before anything references them. No drops, no data loss.
 -- =============================================================================
 set check_function_bodies = off;
 
@@ -1994,6 +1991,13 @@ create table if not exists public.admin_settings (
   value text,
   updated_at timestamptz not null default now()
 );
+-- RLS: admin-config tables — admin-only (service role bypasses).
+alter table public.feature_flags  enable row level security;
+alter table public.admin_settings enable row level security;
+drop policy if exists feature_flags_admin_all on public.feature_flags;
+create policy feature_flags_admin_all on public.feature_flags for all using (is_admin()) with check (is_admin());
+drop policy if exists admin_settings_admin_all on public.admin_settings;
+create policy admin_settings_admin_all on public.admin_settings for all using (is_admin()) with check (is_admin());
 
 
 -- ============ 20240001_support_cases.sql ============

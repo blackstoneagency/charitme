@@ -72,7 +72,7 @@ export default async function AdminCampaignsPage() {
             <p style={{ fontSize: 13, color: '#64748b', margin: 0, lineHeight: 1.6 }}>
               <strong>Likely causes:</strong>
               <br />1. <code>SUPABASE_SERVICE_ROLE_KEY</code> is not set in Vercel environment variables
-              <br />2. The database schema has not been applied — run <code>schema.sql</code> in the Supabase SQL Editor
+              <br />2. The database schema has not been applied — run <code>supabase/catch_up.sql</code> in the Supabase SQL Editor (idempotent)
               <br />3. The &ldquo;campaigns&rdquo; table does not exist — verify in Supabase → Table Editor
             </p>
             <a href="/api/health" target="_blank" style={{ display: 'inline-block', marginTop: 16, padding: '8px 20px', background: '#6c35ff', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
