@@ -43,6 +43,19 @@ AI platform, admin, lead-gen.
 > vertical slice: migration (RLS-first) → typed lib → API (authz) → mobile-first UI
 > → tests → docs. IDs are stable; statuses advance with evidence.
 
+- [ ] CHAR-1403 — **Testing** — end-to-end QA of the Featured Campaign option
+  - Area: Featured Campaigns / Payments
+  - Feature: Paid featured-campaign placement in the homepage rotator (shipped #27)
+  - Description: Manually verify the full flow now that code is merged: (1) Super Admin → Settings → Payment shows "Featured Campaign Price (USD)", editing it persists and the new price is what the creator is charged; (2) a campaign owner sees the "Feature this campaign — $X" button on their dashboard campaign page and is taken to Stripe Checkout for the configured amount; (3) on successful test-mode payment the Stripe webhook (`checkout.session.completed`, `metadata.type=feature_campaign`) flips `campaigns.featured = true`; (4) the homepage hero rotator then cycles through ONLY featured campaigns, with the countdown bar, and falls back to top campaigns when none are featured; (5) an already-featured campaign shows the "Featured" badge instead of the button and the API rejects a second purchase (400); (6) ownership gating: a non-owner POST to `/api/campaigns/:id/feature` returns 403.
+  - Priority: P1
+  - Dependencies: needs-staging (Stripe test-mode keys + live webhook endpoint) — cannot exceed Code Complete from sandbox per ADR-0003
+  - Database: reads/writes `campaigns.featured`, reads `platform_settings.config.payment.featuredCampaignPriceCents`
+  - API: `POST /api/campaigns/[id]/feature`, `GET /api/campaigns/rotator`, `stripe/webhook`
+  - UI: `/dashboard/campaigns/[id]` (Feature button), `/admin/settings` (price), homepage `HeroRotator`
+  - Tests: `__tests__/featured.test.ts` 8/8 pass (price resolution + rotator selection). **Pending manual/staging:** Stripe checkout → webhook → featured flip; rotator featured-only cycling; 403 ownership; 400 double-purchase.
+  - Completion Evidence: (to fill in during QA — Stripe test session id, webhook event id, `campaigns.featured` DB record, homepage rotator screenshot)
+  - Commit: 586fc3a (feature merged via #27)
+
 - [x] CHAR-0001 — **Verified in production** (schema + RLS applied to live Supabase 2026-07-19)
   - Area: Grants
   - Feature: Grants data model + RLS
