@@ -92,9 +92,32 @@ sustained production-DB mutation.
 
 ### LB-002 — Stripe env (`STRIPE_SECRET_KEY`) in Vercel
 Payout onboarding errored in prod ("STRIPE_SECRET_KEY … in Vercel"). Code
-hardened to trim + surface the real reason (`f8989eb`); root cause is the Vercel
-env value (missing/whitespace/truncated). Owner action: verify full `sk_live_…`,
-no whitespace, Production scope, redeploy.
+hardened to trim + surface the real reason (`f8989eb`). Root cause confirmed: the
+owner's source value has a **leading space** (`STRIPE_SECRET_KEY= sk_live_…`); if
+pasted as-is into Vercel it breaks. Owner action: set the full `sk_live_…` (no
+leading/trailing space), `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, and
+`STRIPE_WEBHOOK_SECRET` in Vercel (Production scope), then redeploy.
+
+### LB-003 — Stripe **Connect** webhook secret is a placeholder (CRITICAL for donations)
+The owner's config has `STRIPE_CONNECT_WEBHOOK_SECRET=whsec_connect...` (a
+placeholder, not a real secret). The webhook route
+(`apps/web/app/api/stripe/webhook/route.ts`) verifies signatures against BOTH
+`STRIPE_WEBHOOK_SECRET` and `STRIPE_CONNECT_WEBHOOK_SECRET` (code is correct).
+**Connect events — `account.updated`, `payout.*`, `transfer.*` — are what flip
+`connected_accounts.charges_enabled` / `payouts_enabled`, which the payout-
+readiness gate requires before ANY donation is accepted.** If Connect events
+aren't signature-verified (placeholder secret) they're dropped → accounts never
+marked payout-ready → every donation returns `PAYOUT_NOT_READY`.
+**Owner action:** either (a) enable "Listen to events on Connected accounts" on
+the single `…/api/stripe/webhook` endpoint so `STRIPE_WEBHOOK_SECRET` covers
+them, or (b) create a dedicated Connect webhook and set its real `whsec_…` as
+`STRIPE_CONNECT_WEBHOOK_SECRET` in Vercel. Remove the `whsec_connect...`
+placeholder either way.
+
+### LB-004 — Rotate exposed secrets (SECURITY)
+Full live Stripe secret/restricted/webhook keys, Supabase service-role key + access
+token, DB password, Google OAuth secret, and Resend key were shared in-session
+(twice). Rotate all before/at launch; treat as compromised.
 
 ## Verification-gated (need Stripe test keys + staging)
 - End-to-end money-flow / refund / dispute / reconciliation proof.
