@@ -1,5 +1,35 @@
 # CharitMe — Launch Blockers
 
+## OPEN — public-read RLS review (found 2026-07-20, needs owner/product decision)
+
+### LB-008 — `USING(true)` public-read policies over-expose a few tables (MED/LOW — review)
+The anon sweep found 25 tables with fully-public (`USING(true)`) SELECT policies.
+Most are correctly public (media, milestones, rewards, updates, badges, countries,
+creator_profiles, nonprofit_profiles). Four warrant a decision — **not blind-fixed
+because they encode product intent**:
+- **`donor_messages` (MED)** — 1000 rows, `USING(true)`. Anon can read every
+  donor-wall message directly via PostgREST, **including on private/unlisted
+  campaigns** — bypassing the CHAR-F008 API visibility guard at the RLS layer — and
+  sees `donor_id` even on `anonymous=true` rows. Partly mitigated now that
+  `profiles` is locked (LB-006), so `donor_id` no longer joins to email as anon.
+  *Recommended:* scope the policy to messages whose campaign is public+active (and
+  drop/parameterize `donor_id` exposure on anonymous rows), mirroring the API guard.
+- **`creator_tips` (LOW-MED, latent)** — 0 rows today, but `USING(true)` would
+  expose `stripe_payment_intent_id`, `supporter_id`, and tip amounts once the
+  feature ships. *Recommended:* restrict reads (or a safe-columns view) before the
+  creator-tips feature goes live.
+- **`platform_settings` (LOW)** — `config` jsonb is anon-readable; keys are mostly
+  display-oriented (fees, support contact, branding) but include internal-ish flags
+  (`stripeLiveMode`, `maintenanceMode`, `allowNewRegistrations`). *Recommended:*
+  split public vs internal settings, or expose only the display subset.
+- **`trust_scores` (LOW / likely by design)** — granular sub-scores
+  (`identity_score`, `activity_score`, …) are anon-readable; probably intended as
+  the public "Transparency Score" feature. Confirm the sub-score granularity is
+  meant to be public.
+
+No fix applied — these need a product call on what each surface should expose. The
+clear-cut leaks (LB-006/007) were fixed and verified.
+
 ## RESOLVED — found & fixed 2026-07-20 (anon-persona live RLS certification)
 
 > Both applied to the live DB via Management API and verified with the anon key
