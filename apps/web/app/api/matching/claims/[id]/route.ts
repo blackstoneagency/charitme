@@ -8,6 +8,8 @@ import {
   type ClaimActor,
   type ClaimStatus,
 } from '../../../../../lib/matching-core';
+import { notify } from '../../../../../lib/notify';
+import { matchingClaimResolved } from '../../../../../lib/notify-core';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -27,7 +29,7 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
   const { data: program } = await supabaseAdmin
     .from('matching_programs')
-    .select('sponsor_id')
+    .select('sponsor_id, company_name')
     .eq('id', claim.program_id)
     .maybeSingle();
   if (!program) return NextResponse.json({ error: 'Program not found' }, { status: 404 });
@@ -61,5 +63,11 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
 
   const { error } = await supabaseAdmin.from('matching_claims').update(patch).eq('id', id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Notify the employee when the company resolves their match claim.
+  if (isSponsor) {
+    await notify(claim.employee_id, matchingClaimResolved(status, (program.company_name as string) ?? 'Your employer'), { claim_id: id });
+  }
+
   return NextResponse.json({ ok: true });
 }

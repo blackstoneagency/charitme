@@ -4,6 +4,9 @@ import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
 import { listSponsorRequests, listOpportunityRequests } from '../../../../lib/sponsorships';
 import { RequestCreateSchema, isAcceptingRequests } from '../../../../lib/sponsorships-core';
+import { notify } from '../../../../lib/notify';
+import { sponsorshipOfferReceived } from '../../../../lib/notify-core';
+import { formatMoneyShort } from '@shared/currencies';
 
 // GET /api/sponsorships/requests            -> the signed-in sponsor's requests
 // GET /api/sponsorships/requests?opportunityId=  -> requests to an owned opportunity
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
 
   const { data: opp } = await supabaseAdmin
     .from('sponsorship_opportunities')
-    .select('organizer_id, status, min_amount_cents')
+    .select('organizer_id, status, min_amount_cents, title, currency')
     .eq('id', opportunity_id)
     .maybeSingle();
   if (!opp) return NextResponse.json({ error: 'Opportunity not found' }, { status: 404 });
@@ -75,5 +78,16 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  await notify(
+    opp.organizer_id,
+    sponsorshipOfferReceived(
+      company_name || 'A sponsor',
+      formatMoneyShort(amount_cents, opp.currency ?? 'usd'),
+      opp.title as string,
+    ),
+    { opportunity_id, amount_cents },
+  );
+
   return NextResponse.json({ ok: true }, { status: 201 });
 }

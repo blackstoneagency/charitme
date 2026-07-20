@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   donationTotal, donorTip, platformFee, processingFee,
   methodProcessingFee, METHOD_FEES, MIN_DONATION_CENTS,
+  donationBreakdown, SUPPORT_TIER_PERCENTS, SUGGESTED_SUPPORT_PERCENT,
   TIP_OPTIONS, DEFAULT_DONOR_TIP_PERCENT,
 } from '@shared/fees';
 
@@ -82,5 +83,62 @@ describe('methodProcessingFee — per-method rates (server/client authoritative)
 
   it('handles the minimum donation without error', () => {
     expect(methodProcessingFee(MIN_DONATION_CENTS, 'stripe')).toBe(Math.round(MIN_DONATION_CENTS * 0.029) + 30);
+  });
+});
+
+describe('donor support model (transparency-first, no dark patterns)', () => {
+  it('suggests 15% but the ladder always reaches 0%', () => {
+    expect(SUGGESTED_SUPPORT_PERCENT).toBe(15);
+    expect(DEFAULT_DONOR_TIP_PERCENT).toBe(15);
+    expect(SUPPORT_TIER_PERCENTS[0]).toBe(15);
+    expect(SUPPORT_TIER_PERCENTS).toContain(0);
+    // descending so the reduce-support choices are always visible
+    const arr = [...SUPPORT_TIER_PERCENTS];
+    expect(arr).toEqual([...arr].sort((a, b) => b - a));
+  });
+});
+
+describe('donationBreakdown — single source of truth', () => {
+  it('when the donor covers processing, the recipient receives 100% of the gift', () => {
+    const b = donationBreakdown({ amountCents: 10_000, supportPercent: 15, method: 'card', coverProcessing: true });
+    expect(b.donationCents).toBe(10_000);
+    expect(b.supportCents).toBe(1_500);
+    expect(b.netToRecipientCents).toBe(10_000); // full gift
+    expect(b.recipientPercent).toBe(100);
+    // charged = gift + support + processing(on gift+support)
+    expect(b.totalChargedCents).toBe(10_000 + 1_500 + methodProcessingFee(11_500, 'card'));
+  });
+
+  it('when the donor does NOT cover processing, only the processor fee comes out of the gift', () => {
+    const b = donationBreakdown({ amountCents: 10_000, supportPercent: 0, method: 'card', coverProcessing: false });
+    const proc = methodProcessingFee(10_000, 'card');
+    expect(b.supportCents).toBe(0);
+    expect(b.netToRecipientCents).toBe(10_000 - proc);
+    expect(b.totalChargedCents).toBe(10_000); // support 0, processing not added on top
+    expect(b.recipientPercent).toBeLessThan(100);
+  });
+
+  it('support never reduces what the recipient receives (support is on top)', () => {
+    const withSupport = donationBreakdown({ amountCents: 10_000, supportPercent: 15, coverProcessing: true });
+    const noSupport = donationBreakdown({ amountCents: 10_000, supportPercent: 0, coverProcessing: true });
+    expect(withSupport.netToRecipientCents).toBe(noSupport.netToRecipientCents);
+    expect(withSupport.totalChargedCents).toBeGreaterThan(noSupport.totalChargedCents);
+  });
+
+  it('matches DonateButton composition: processing is charged on (donation + support)', () => {
+    const b = donationBreakdown({ amountCents: 5_000, supportPercent: 8, method: 'stripe', coverProcessing: true });
+    expect(b.processingCents).toBe(methodProcessingFee(5_000 + donorTip(5_000, 8), 'stripe'));
+  });
+
+  it('clamps support to 0–100 and defaults to the suggested tier', () => {
+    expect(donationBreakdown({ amountCents: 10_000, supportPercent: -5 }).supportPercent).toBe(0);
+    expect(donationBreakdown({ amountCents: 10_000, supportPercent: 250 }).supportPercent).toBe(100);
+    expect(donationBreakdown({ amountCents: 10_000 }).supportPercent).toBe(SUGGESTED_SUPPORT_PERCENT);
+  });
+
+  it('is safe at a zero gift (no divide-by-zero)', () => {
+    const b = donationBreakdown({ amountCents: 0, supportPercent: 15 });
+    expect(b.netToRecipientCents).toBe(0);
+    expect(b.recipientPercent).toBe(0);
   });
 });

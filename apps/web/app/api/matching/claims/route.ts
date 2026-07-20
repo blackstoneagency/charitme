@@ -10,6 +10,9 @@ import {
   categoryEligible,
   isAcceptingClaims,
 } from '../../../../lib/matching-core';
+import { notify } from '../../../../lib/notify';
+import { matchingClaimReceived } from '../../../../lib/notify-core';
+import { formatMoneyShort } from '@shared/currencies';
 
 // GET /api/matching/claims           -> the signed-in employee's claims
 // GET /api/matching/claims?programId= -> claims to a program the user sponsors
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest) {
 
   const { data: program } = await supabaseAdmin
     .from('matching_programs')
-    .select('sponsor_id, status, match_ratio, annual_cap_cents, min_donation_cents, categories')
+    .select('sponsor_id, status, match_ratio, annual_cap_cents, min_donation_cents, categories, company_name, currency')
     .eq('id', input.program_id)
     .maybeSingle();
   if (!program) return NextResponse.json({ error: 'Program not found' }, { status: 404 });
@@ -101,5 +104,16 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Notify the company/program sponsor of the new match claim.
+  await notify(
+    program.sponsor_id,
+    matchingClaimReceived(
+      formatMoneyShort(input.donation_amount_cents, (program.currency as string) ?? 'usd'),
+      (program.company_name as string) ?? 'your program',
+    ),
+    { claim_id: data.id },
+  );
+
   return NextResponse.json({ id: data.id, match_amount_cents: data.match_amount_cents }, { status: 201 });
 }
