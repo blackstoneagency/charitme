@@ -1610,9 +1610,9 @@ img, svg { display: block; }
 .pc-comment-reply-text { font-size: 13px; color: var(--t2); line-height: 1.6; }
 
 /* Bottom 4-col cards */
-.pc-cards { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 22px; margin-top: 24px; }
-.pc-ai { padding: 26px; border: 1px solid var(--line); border-radius: 18px; background: radial-gradient(circle at 78% 35%, rgba(109,53,255,.14), transparent 30%), #fff; box-shadow: var(--shadow-sm); }
-.pc-ai h2 { margin: 0 0 18px; font-size: 22px; letter-spacing: -.02em; }
+.pc-cards { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 22px; margin-top: 24px; }
+.pc-ai { padding: 26px; border: 1px solid var(--line); border-radius: 18px; background: radial-gradient(circle at 78% 35%, rgba(109,53,255,.14), transparent 30%), var(--s1, #fff); box-shadow: var(--shadow-sm); }
+.pc-ai h2 { margin: 0 0 18px; font-size: 22px; letter-spacing: -.02em; color: var(--t1); }
 .pc-ai p { color: var(--muted); line-height: 1.6; }
 .pc-ai li { margin: 10px 0; color: #4d31c9; font-weight: 650; }
 .pc-card { padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.92); box-shadow: var(--shadow-sm); }
@@ -4897,6 +4897,10 @@ img, svg { display: block; }
 [data-theme="dark"] .pc-card h2 { color: var(--t1); }
 [data-theme="dark"] .pc-card p { color: var(--t2); border-top-color: var(--line); }
 [data-theme="dark"] .pc-card p b { color: var(--t1); }
+/* AI card ("Campaign created with AI"): the card surface follows var(--s1),
+   so its token text is readable; the links need a lighter violet on dark. */
+[data-theme="dark"] .pc-ai { --pc-ai-link: #a78bfa; border-color: var(--b1); }
+[data-theme="dark"] .pc-ai li { color: #a78bfa; }
 [data-theme="dark"] .pc-ticker { background: var(--s2); border-color: var(--b1); }
 [data-theme="dark"] .pc-donor-row { border-top-color: var(--line); }
 [data-theme="dark"] .pc-donor-wall-tabs { background: var(--s2); }
