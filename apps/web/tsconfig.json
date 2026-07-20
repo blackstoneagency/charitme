@@ -30,6 +30,9 @@
       ],
       "@shared/currencies": [
         "../../packages/shared/currencies.ts"
+      ],
+      "@shared/entitlements": [
+        "../../packages/shared/entitlements.ts"
       ]
     },
     "target": "ES2017"

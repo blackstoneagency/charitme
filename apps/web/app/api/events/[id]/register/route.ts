@@ -4,6 +4,8 @@ import { supabaseAdmin } from '../../../../../lib/supabase';
 import { createClient } from '../../../../../lib/supabase-server';
 import { getEventById, attendeeRegisteredQty } from '../../../../../lib/events';
 import { RegistrationCreateSchema, isRegistrationOpen, remainingCapacity } from '../../../../../lib/events-core';
+import { notify } from '../../../../../lib/notify';
+import { eventRsvpReceived } from '../../../../../lib/notify-core';
 
 export const dynamic = 'force-dynamic';
 type Ctx = { params: Promise<{ id: string }> };
@@ -56,5 +58,13 @@ export async function POST(request: NextRequest, { params }: Ctx) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Notify the event organizer of the new RSVP.
+  await notify(
+    event.created_by,
+    eventRsvpReceived(attendee_name || user.email || 'A guest', event.title),
+    { event_id: id },
+  );
+
   return NextResponse.json({ id: data.id }, { status: 201 });
 }

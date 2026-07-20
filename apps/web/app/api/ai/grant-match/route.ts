@@ -2,6 +2,7 @@ import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
+import { checkRateLimit } from '../../../../lib/rate-limit';
 import {
   GRANT_PUBLIC_COLUMNS,
   GrantMatchRequestSchema,
@@ -15,6 +16,14 @@ export const dynamic = 'force-dynamic';
 // the deterministic matching model. When the caller is signed in, top matches are
 // persisted to grant_matches so they surface in the dashboard.
 export async function POST(request: NextRequest) {
+  // Rate limit (by IP — the endpoint is callable unauthenticated): each request
+  // runs a ~300-row grants scan and may upsert grant_matches, so cap abuse.
+  // Consistent with the other /api/ai/* routes.
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
+  if (!checkRateLimit(`ai-grant-match:${ip}`, 20, 60_000)) {
+    return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
+  }
+
   const body = await request.json().catch(() => null);
   const parsed = GrantMatchRequestSchema.safeParse(body ?? {});
   if (!parsed.success) {

@@ -4,8 +4,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   MAX_DONATION_CENTS,
   DEFAULT_DONOR_TIP_PERCENT,
-  donorTip,
-  methodProcessingFee,
+  SUPPORT_TIER_PERCENTS,
+  donationBreakdown,
   METHOD_FEES,
   type PaymentMethod,
 } from '@shared/fees';
@@ -120,11 +120,23 @@ export default function DonateButton({
   const isMonthly   = frequency === 'monthly';
 
   const breakdown = useMemo(() => {
-    const tip        = donorTip(amountCents, tipPercent);
-    const subTotal   = amountCents + tip;
-    const processing = !isMonthly ? methodProcessingFee(subTotal, preferredMethod) : 0;
-    const total      = subTotal + processing;
-    return { tip, processing, total };
+    // Single source of truth shared with the server + calculator (see @shared/fees).
+    const b = donationBreakdown({
+      amountCents,
+      supportPercent: tipPercent,
+      method: preferredMethod,
+      coverProcessing: !isMonthly,
+    });
+    // Recurring charges settle their processing fee per-cycle via Stripe; the
+    // donate form (like before) does not fold it into the shown monthly total,
+    // so keep processing off the monthly breakdown to avoid line items that
+    // don't sum to "You pay".
+    return {
+      tip: b.supportCents,
+      processing: isMonthly ? 0 : b.processingCents,
+      total: b.totalChargedCents,
+      netToRecipient: b.netToRecipientCents,
+    };
   }, [amountCents, tipPercent, isMonthly, preferredMethod]);
 
   const handleDonate = async () => {
@@ -407,19 +419,51 @@ export default function DonateButton({
           )}
         </div>
         <p style={{ margin: '0 0 10px', fontSize: 12, color: MU, lineHeight: 1.5 }}>
-          CharitMe has a 0% platform fee for organizers and relies primarily on the generosity of donors like you to operate our service.
+          CharitMe has a 0% platform fee for organizers and relies primarily on the generosity of donors like you to operate our service. Support is always optional — you can set it to 0%.
         </p>
         {!customTipMode && (
-          <input
-            type="range"
-            min={TIP_MIN}
-            max={TIP_MAX}
-            step="0.5"
-            value={tipPercent}
-            onChange={(e) => setTipPercent(Number(e.target.value))}
-            aria-label="Tip percentage"
-            style={{ width: '100%', accentColor: V, cursor: 'pointer' }}
-          />
+          <>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+              {SUPPORT_TIER_PERCENTS.map((p) => {
+                const active = tipPercent === p;
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setTipPercent(p)}
+                    aria-pressed={active}
+                    aria-label={`Set support to ${p} percent`}
+                    style={{
+                      flex: '1 0 auto',
+                      minWidth: 44,
+                      padding: '7px 0',
+                      borderRadius: 9,
+                      border: `1.5px solid ${active ? V : BD}`,
+                      background: active ? VL : 'var(--s1, #fff)',
+                      color: active ? V : INK,
+                      fontSize: 13,
+                      fontWeight: active ? 800 : 600,
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      transition: 'all .12s',
+                    }}
+                  >
+                    {p === 0 ? 'None' : `${p}%`}
+                  </button>
+                );
+              })}
+            </div>
+            <input
+              type="range"
+              min={TIP_MIN}
+              max={TIP_MAX}
+              step="0.5"
+              value={tipPercent}
+              onChange={(e) => setTipPercent(Number(e.target.value))}
+              aria-label="Fine-tune support percentage"
+              style={{ width: '100%', accentColor: V, cursor: 'pointer' }}
+            />
+          </>
         )}
         <button
           type="button"
@@ -547,16 +591,28 @@ export default function DonateButton({
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           <BRow label={isMonthly ? 'Monthly donation' : 'Donation'} value={money(amountCents)} />
-          {breakdown.tip > 0 && <BRow label={`CharitMe tip (${tipPercent}%)`} value={money(breakdown.tip)} />}
+          {breakdown.tip > 0 && <BRow label={`CharitMe support (${tipPercent}%)`} value={money(breakdown.tip)} />}
           {breakdown.processing > 0 && (
             <BRow
               label={`Processing fee (${METHOD_FEES[preferredMethod].label})`}
               value={money(breakdown.processing)}
             />
           )}
+          {amountCents > 0 && !isMonthly && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, color: GR }}>
+              <span>Recipient receives</span>
+              <span>{money(breakdown.netToRecipient)}</span>
+            </div>
+          )}
           <div style={{ borderTop: `1px solid ${BD}`, marginTop: 4, paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 18, fontWeight: 800, color: INK }}>
-            <span>Total{isMonthly ? '/month' : ''}</span>
+            <span>You pay{isMonthly ? '/month' : ''}</span>
             <span>{money(breakdown.total)}</span>
+          </div>
+          {/* Recipient always receives the full donation — tip + processing are
+              added on top, never deducted (Stripe Connect destination charge). */}
+          <div style={{ marginTop: 6, padding: '9px 11px', borderRadius: 9, background: 'rgba(16,185,129,.10)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13.5, fontWeight: 750, color: '#047857' }}>
+            <span>✓ {campaignTitle ? 'Recipient' : 'They'} receive{isMonthly ? '' : 's'} {money(amountCents)}</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, opacity: .85 }}>100% of your donation</span>
           </div>
         </div>
       </div>

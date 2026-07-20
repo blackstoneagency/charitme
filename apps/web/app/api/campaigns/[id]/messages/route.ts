@@ -132,7 +132,6 @@ export async function POST(
       donor_id: user.id,
       message,
       anonymous: !!anonymous,
-      visibility: 'public',
     })
     .select('id, message, anonymous, created_at')
     .single();

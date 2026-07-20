@@ -61,6 +61,9 @@ const FOOTER_LINKS = {
     ['Trust & Safety', '/trust-safety'],
   ],
   Legal: [
+    ['Transparency Center', '/transparency'],
+    ['Fee Policy', '/fees'],
+    ['Refund Policy', '/refunds'],
     ['Privacy Policy', '/privacy'],
     ['Privacy Center', '/privacy-center'],
     ['Terms of Service', '/terms'],
@@ -85,7 +88,7 @@ function Logo() {
   return (
     <Link href="/" className="kind-logo" aria-label="CharitMe home">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.svg" alt="" className="kind-logo-img" width={34} height={34} />
+      <img src="/logo.png" alt="" className="kind-logo-img" width={34} height={34} />
       <strong>CharitMe</strong>
     </Link>
   );
