@@ -5919,6 +5919,22 @@ img, svg { display: block; }
   .home-spot-card { margin: 14px 0 0; }
 }
 
+/* Dark-mode: lighten accent foregrounds + shadows for AA contrast on the dark
+   card surface (var(--h-card) = #141736). Fixed dark accents (#0a7a3d, #2563eb,
+   #7c3aed) are too low-contrast on dark; use the app's dark accent variants. */
+[data-theme="dark"] .home-spot-media { box-shadow: 0 22px 55px rgba(0, 0, 0, .55); }
+[data-theme="dark"] .home-spot-stat { box-shadow: 0 12px 32px rgba(0, 0, 0, .45); }
+[data-theme="dark"] .home-spot-card { box-shadow: 0 26px 64px rgba(0, 0, 0, .6); }
+[data-theme="dark"] .home-spot-ic--green { background: rgba(16, 185, 129, .18); color: #6ee7b7; }
+[data-theme="dark"] .home-spot-ic--blue { background: rgba(59, 130, 246, .2); color: #93c5fd; }
+[data-theme="dark"] .home-spot-ic--amber { background: rgba(245, 158, 11, .2); color: #fcd34d; }
+[data-theme="dark"] .home-spot-ic--violet { background: rgba(139, 92, 246, .22); color: #c4b5fd; }
+[data-theme="dark"] .home-spot-stat em { color: #6ee7b7; }
+[data-theme="dark"] .home-spot-active { color: #6ee7b7; background: rgba(16, 185, 129, .16); }
+[data-theme="dark"] .home-spot-active i { background: #34d399; }
+[data-theme="dark"] .home-spot-progress { background: rgba(255, 255, 255, .08); }
+[data-theme="dark"] .home-spot-verified { background: #3b82f6; }
+
 /* progress bar */
 .home-progress { height: 8px; border-radius: 999px; background: var(--s3); overflow: hidden; }
 .home-progress > span { display: block; height: 100%; border-radius: 999px; background: var(--h-grad); }
