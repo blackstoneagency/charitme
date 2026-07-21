@@ -343,6 +343,31 @@ becomes a build failure instead:
   `file:line table.column`; all pass again on removal. Green on the current codebase
   (730 tests total).
 
+## Financial-table RLS posture — audited live, VERIFIED SOUND
+
+Checked the row-level-security posture of every payment/financial table against the
+live DB (the defense against direct anon/authenticated-key reads — the app itself
+uses the service-role client which bypasses RLS):
+
+- **0 public (`USING true`) read policies** on any of the 23 financial-table
+  read/all policies — no repeat of the LB-006 profiles leak in the money domain.
+- **`campaign_payment_*` internals** (payments, breakdowns, platform/processor fees,
+  reconciliation, disputes, events, exports, settings, webhook events, audit notes,
+  ledger_entries): `is_admin()`-only for writes/all, plus an owner-scoped read on
+  `campaign_payments`/`campaign_payment_breakdowns` via
+  `campaign_payment_owner_can_read(campaign_id, campaign_owner_id)` so an organizer
+  sees only their own payment rows.
+- **`connected_accounts` / `payouts` / `refunds`**: read = own
+  (`auth.uid() = user_id` / `= requested_by`) OR admin. No cross-tenant financial
+  read; `stripe_account_id` not exposed to other users.
+- **`payment_processors`**: readable by any authenticated user
+  (`auth.uid() IS NOT NULL`), but it holds only non-sensitive processor config
+  (`display_name`, `status`, `dashboard_url`, and metadata keys
+  `campaign_donations`/`setup_required`) — no secrets. Acceptable.
+- **DB-wide:** **0 public base tables have RLS disabled** (no raw anon-leak
+  anywhere); 19 tables are RLS-enabled deny-all (service-role-only — the intended
+  pattern for internal/admin tables). No change required.
+
 ## CSV export & receipt routes — audited, all sound
 
 - **CSV formula-injection helper** (`lib/csv.ts`, CHAR-F010): neutralizes leading
