@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '../lib/supabase-browser';
 import { ThemeToggle } from './ThemeProvider';
+import AnnouncementBanner from './AnnouncementBanner';
 
 const NAV = [
   ['Home', '/'],
@@ -145,6 +146,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <AnnouncementBanner />
       <header className="kind-header">
         <div className="container">
           <Logo />
