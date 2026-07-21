@@ -290,6 +290,25 @@ worth a schema-contract test in CI.)
 
 ---
 
+### Durable prevention — schema-contract CI test — ✅ SHIPPED
+The PAY-009/010 class (querying columns that don't exist → fail closed → silently
+broken feature) is invisible to normal tests. Added a **schema-contract test** so it
+becomes a build failure instead:
+- `apps/web/__tests__/schema-contract.test.ts` parses every
+  `.from(table).select(...)` in `apps/web/{app,lib}` and asserts each selected
+  column exists in a committed snapshot, correctly skipping PostgREST embedded
+  relations / aliases / casts / json ops / dynamic selects. Failure prints the exact
+  `file:line table.column`.
+- `apps/web/__tests__/fixtures/schema-columns.json` — the committed 143-table
+  column snapshot (path-anchored via `import.meta.url`, so an empty scan can't pass
+  trivially).
+- `scripts/schema-snapshot.mjs` + `npm run schema:snapshot` — regenerates the
+  snapshot from the live DB after a migration.
+- Already runs in CI via the existing `npm test --workspace=apps/web` step.
+- **Proven to catch the bug:** injecting `.select('donor_name, definitely_not_a_column')`
+  fails the test with both columns flagged; it passes again on removal. Green on the
+  current codebase (730 tests total).
+
 ## CSV export & receipt routes — audited, all sound
 
 - **CSV formula-injection helper** (`lib/csv.ts`, CHAR-F010): neutralizes leading

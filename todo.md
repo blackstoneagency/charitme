@@ -910,7 +910,12 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
   `donor_name`/`donor_email`); admin refunds console (`refunds.reviewed_by`/
   `updated_at` — added via migration `20260721020000`); Impact feature
   (`campaigns.currency` → `campaign_launch_settings`); marketing contact sync
-  (`profiles.country`). All verified live. Follow-up: add a schema-contract CI test.
+  (`profiles.country`). All verified live.
+- [x] 🛡️ **Schema-contract CI test** — `apps/web/__tests__/schema-contract.test.ts`
+  fails the build if any `.from(table).select()` references a column absent from the
+  committed snapshot (`fixtures/schema-columns.json`; refresh via
+  `npm run schema:snapshot`). Turns the PAY-009/010 bug class into a build failure.
+  Proven to catch injected bad columns; runs in CI via `npm test`.
 
 ## Audited & sound (no change needed)
 - [x] Refund routes (admin refund fixed; admin/refunds workflow-only; donor
