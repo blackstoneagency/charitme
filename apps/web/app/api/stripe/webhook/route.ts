@@ -547,9 +547,10 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
 function invoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
   const legacy = (invoice as unknown as { subscription?: unknown }).subscription; // pre-2025 shape
   if (typeof legacy === 'string') return legacy;
-  const sd = invoice.parent?.subscription_details?.subscription;                  // 2025+ shape
+  const sd = (invoice as unknown as { parent?: { subscription_details?: { subscription?: unknown } } })
+    .parent?.subscription_details?.subscription;                                 // 2025+ shape
   if (typeof sd === 'string') return sd;
-  return sd?.id ?? null;
+  return (sd as { id?: string } | undefined)?.id ?? null;
 }
 function invoicePaymentIntentId(invoice: Stripe.Invoice): string | null {
   const legacy = (invoice as unknown as { payment_intent?: unknown }).payment_intent;
