@@ -95,7 +95,7 @@ export default async function FaqPage() {
   };
 
   return (
-    <div className="bg-white">
+    <div className="mktg-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       {/* Hero */}
       <section className="hero-mesh border-b border-slate-200 py-16 sm:py-20">
