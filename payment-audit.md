@@ -217,15 +217,18 @@ rebuild working flows for no functional gain. Kept as-is; documented as intentio
   processor fee 0 pending), so recurring **initial** payments are now traceable in
   the dashboard. `recordCampaignPayment` was made idempotent first (see PAY-008), so
   webhook retries don't duplicate.
-- **Documented remaining (honest, not silently skipped):** (a) subscription
-  **renewals** (`invoice.payment_succeeded`) still don't create a `campaign_payments`
-  row — there's no checkout session to key on, so it needs invoice→payment plumbing;
-  (b) for recurring, the processor fee isn't auto-enriched because the row is keyed
-  by checkout session (no top-level `payment_intent` on a subscription session), so
-  `handleChargeObserved` can't match it — the row stays `pending_data` on the fee.
-  Both are refinements best built + verified against **live** recurring Stripe flows
-  (GATED on Connect enablement), not guessed at here.
-- **Validation:** typecheck clean; 712 tests pass.
+- **Renewals now covered too (follow-up shipped):** `handleInvoiceSucceeded`
+  (`invoice.payment_succeeded`) now records a `campaign_payments` row for each
+  renewal charge, keyed by the **invoice's payment_intent** — which
+  `handleChargeObserved` *can* match, so the real processor fee auto-enriches (better
+  than the initial-charge case, which is keyed by checkout session). Owner +
+  connected account resolved via `resolvePayoutDestination`; idempotent + non-fatal.
+  So recurring donations are now traceable in the admin Payments dashboard for
+  **every** period, not just the first.
+- **Validation:** typecheck clean; 790 tests pass; schema-contract guard confirms the
+  recorder's columns exist. Full live end-to-end (a real renewal invoice) remains
+  GATED on Connect enablement, but the write path mirrors the proven one-time
+  recorder and is idempotent.
 
 ### PAY-008 — `recordCampaignPayment` child-detail rows were not idempotent (LOW — latent) — ✅ FIXED
 - **Area:** `apps/web/lib/payment-flow.ts`.

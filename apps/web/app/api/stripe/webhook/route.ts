@@ -5,6 +5,7 @@ import { stripe, formatCents } from '../../../../lib/stripe';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { sendReceiptEmail, sendOrganizerDonationAlert, sendPayoutEmail, sendRefundEmail } from '../../../../lib/email';
 import { recordCampaignPayment, recordPaymentEvent } from '../../../../lib/payment-flow';
+import { resolvePayoutDestination } from '../../../../lib/payout-destination';
 import { resolveContact, trackEvent, refreshContactScores } from '../../../../lib/marketing-engine';
 import { postDonation, postRefund, postDisputeLoss, openReconciliationException } from '../../../../lib/ledger';
 
@@ -614,6 +615,48 @@ async function handleInvoiceSucceeded(eventId: string, invoice: Stripe.Invoice) 
     await supabaseAdmin.from('recurring_donations').update({
       next_bill_at: new Date(periodEnd * 1000).toISOString(),
     }).eq('stripe_subscription_id', subscriptionId);
+  }
+
+  // Payment observability for the RENEWAL charge — parity with one-time + the
+  // initial recurring charge, so recurring payments stay traceable in the admin
+  // Payments dashboard for every period (PAY-007 follow-up). Keyed by the invoice's
+  // payment_intent, so handleChargeObserved matches it and enriches the real Stripe
+  // processor fee. recordCampaignPayment is idempotent; non-fatal.
+  try {
+    const piId = invoicePaymentIntentId(invoice);
+    const { data: campaign } = await supabaseAdmin
+      .from('campaigns')
+      .select('user_id, beneficiary_profile_id')
+      .eq('id', subMeta.campaignId)
+      .maybeSingle();
+    const destination = campaign
+      ? await resolvePayoutDestination(campaign as { user_id: string; beneficiary_profile_id?: string | null })
+      : null;
+    const donationId = await findDonationId({ paymentIntentId: piId, checkoutSessionId: null });
+    await recordCampaignPayment({
+      donationId,
+      campaignId: subMeta.campaignId,
+      campaignOwnerId: (campaign as { user_id?: string } | null)?.user_id ?? null,
+      donorId: subMeta.donorId || null,
+      processor: 'stripe',
+      processorAccountId: destination?.stripeAccountId ?? null,
+      processorPaymentIntentId: piId,
+      processorCheckoutSessionId: null,
+      grossAmount: amountCents,
+      tipAmount: 0,
+      platformFeeAmount: 0,
+      processorFeeAmount: 0,
+      ownerNetAmount: amountCents,
+      currency: (invoice.currency ?? 'usd').toLowerCase(),
+      paymentStatus: 'succeeded',
+      transferStatus: destination ? 'created' : 'pending',
+      payoutStatus: destination ? 'requested' : 'not_applicable',
+      paidAt: new Date().toISOString(),
+      webhookEventId: eventId,
+      metadata: { recurring: true, renewal: true, subscription_id: subscriptionId, cadence: subMeta.cadence ?? 'monthly' },
+    });
+  } catch (e) {
+    console.warn('[webhook] renewal campaign_payment record failed (non-blocking):', e);
   }
 }
 
