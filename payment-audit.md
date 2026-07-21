@@ -343,6 +343,19 @@ becomes a build failure instead:
   `file:line table.column`; all pass again on removal. Green on the current codebase
   (730 tests total).
 
+## RLS-contract CI guard — ✅ SHIPPED
+
+The financial-RLS audit below is now a **build-time invariant**, not a one-off check.
+`apps/web/__tests__/schema-rls.test.ts` pins the live RLS posture
+(`fixtures/schema-rls.json`, refreshed by `npm run schema:snapshot`) and fails CI if:
+1. **any** public table has RLS disabled (raw anon leak), or
+2. any **sensitive** table (profiles, donations, connected_accounts, payouts,
+   refunds, ledger_entries, all `campaign_payment_*` / fees, recurring_donations,
+   donor_crm_contacts, privacy_requests, audit_logs, webhook_events, matching_claims)
+   has a public `USING(true)` read policy (the LB-006 leak class).
+Proven to catch both an injected RLS-disabled table and an injected public-read on
+`profiles`; green on the current DB.
+
 ## Financial-table RLS posture — audited live, VERIFIED SOUND
 
 Checked the row-level-security posture of every payment/financial table against the

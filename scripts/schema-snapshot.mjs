@@ -71,4 +71,24 @@ for (const row of fnRows) {
 }
 writeSorted('schema-functions.json', functions);
 
-console.log(`Wrote ${Object.keys(columns).length} tables and ${Object.keys(functions).length} functions to ${fixturesDir}`);
+// ── RLS posture: tables with RLS disabled + tables with a public USING(true) read ──
+const rlsRows = await query(
+  `select c.relname as tbl, c.relrowsecurity as rls,
+     exists(select 1 from pg_policy p where p.polrelid = c.oid and p.polcmd in ('r','*')
+            and coalesce(pg_get_expr(p.polqual, p.polrelid), '') in ('true','(true)')) as public_read
+   from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind = 'r'`,
+);
+const rls = {
+  rlsDisabled: rlsRows.filter((r) => !r.rls).map((r) => r.tbl).sort(),
+  publicRead: rlsRows.filter((r) => r.public_read).map((r) => r.tbl).sort(),
+};
+writeFileSync(
+  join(fixturesDir, 'schema-rls.json'),
+  JSON.stringify(rls, Object.keys(rls).sort(), 0) + '\n',
+);
+
+console.log(
+  `Wrote ${Object.keys(columns).length} tables, ${Object.keys(functions).length} functions, ` +
+    `RLS posture (${rls.rlsDisabled.length} disabled, ${rls.publicRead.length} public-read) to ${fixturesDir}`,
+);
