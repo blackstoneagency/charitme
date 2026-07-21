@@ -872,16 +872,34 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Fixed
 - [x] 🔴 **PAY-001** — Removed unauthenticated `connect-sample` live-Stripe demo
   island (pages + `/api/connect-sample/**` + `lib/connect-sample/**` + its test).
-  It created live V2 connected accounts / products / checkouts with no auth or
-  rate limiting using the shared live `STRIPE_SECRET_KEY`. Not linked from the real
-  product. Removed entirely; app stays deployable.
+  Created live V2 accounts/products/checkouts with no auth using the shared live
+  key. Commit `7a1f07f`.
+- [x] 🟠 **PAY-002** — Admin refund route: added `reverse_transfer` +
+  `refund_application_fee` (destination charges were refunded from the platform
+  balance while the charity kept the funds); removed double stat-decrement (route +
+  webhook both decremented); partial refunds no longer mis-marked `refunded`.
+  Commit `3007052`.
+- [x] 🔴 **PAY-004** — `record_donation` double-counted `raised_amount`/`backer_count`
+  (manual update + AFTER INSERT trigger both fired). **Proven & fixed live** (+2× →
+  +1×). Migration `20260721000000` applied to live DB. Commit `f7428e1`.
+- [x] 🟠 **PAY-003** — Offline donations created a duplicate `donations` row
+  (direct insert + `record_donation`). Removed the redundant call; verified 1 row.
+  Commit `f7428e1`.
+- [x] 🟡 **PAY-005** — `claim_campaign_reward` had no `item_limit` guard, so
+  concurrent paid claims could over-sell a limited reward. Added an atomic guard
+  (migration `20260721010000`), applied live + verified. Commit `1a01f89`.
 
-## In progress (this pass)
-- [ ] Audit refund routes (`/api/admin/donations/[id]/refund`, `/api/admin/refunds`,
-  `/api/donations/[id]/refund-request`) — full/partial, ledger + stat consistency.
-- [ ] Webhook event-coverage audit vs required set; signature + idempotency per handler.
-- [ ] `/api/stripe/connect` onboarding audit (account links, capabilities, status).
-- [ ] Offline donations / receipts / tax-receipt auth + tenant scoping.
+## Audited & sound (no change needed)
+- [x] Refund routes (admin refund fixed; admin/refunds workflow-only; donor
+  refund-request request-only) · webhook event coverage + idempotency ·
+  `/api/stripe/connect` onboarding · destination-charge architecture · payout gate ·
+  server-side fee math · recurring subscription state machine.
+
+## Remaining (verification-gated — NOT faked)
+- [ ] Live end-to-end charge→transfer→payout→reconcile (GATED on LB-005 Connect
+  live-enablement) + refund/dispute lifecycle via Stripe test clocks.
+- [ ] Browser / mobile / accessibility / load tests (no harness in this environment).
+- [ ] Full per-persona live RLS matrix for payment tables (needs real auth sessions).
 
 ## Verification-gated (NOT faked — needs Stripe live verification / staging)
 - [ ] Live end-to-end charge→transfer→payout→reconcile (GATED on LB-005 Connect
