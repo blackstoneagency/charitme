@@ -482,6 +482,11 @@ tests/build/live-HTTP are listed here.
   feature tables (grants/events/impact/matching/sponsorships/volunteer/badges) were
   already seeded to 120 by a parallel session. Also fixed a build-blocking Stripe
   typecheck error (`invoice.parent`) introduced upstream so master stays green.
+  **Console data now consumed by the live site (end-to-end):** Announcements →
+  dismissible site-wide banner in the public shell (`/api/announcements` +
+  `AnnouncementBanner`); SEO → homepage `generateMetadata` via `lib/seo.ts`
+  (route-level `seo_settings` overrides); AEO → public FAQ + FAQPage JSON-LD on
+  `/faq` (`lib/aeo.ts`, parallel session). Editing the console changes production.
 
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
