@@ -466,10 +466,10 @@ export default function DonateButton({
           }}
         >
           <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {/* CharitMe brand mark — self-colored SVG that reads on the theme-
-                adaptive (--s2) chip in both dark and light mode. */}
+            {/* CharitMe brand mark — transparent-background PNG that reads on the
+                theme-adaptive (--s2) chip in both dark and light mode. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="CharitMe" width={18} height={18} style={{ display: 'block' }} />
+            <img src="/logo.png" alt="CharitMe" width={20} height={20} style={{ display: 'block' }} />
           </span>
           <span style={{ flex: 1, fontSize: 14, fontWeight: 800, color: INK }}>CharitMe</span>
           <span style={{ fontSize: 13, color: MU, fontWeight: 700, whiteSpace: 'nowrap' }}>{tipPercent}%</span>

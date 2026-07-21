@@ -626,15 +626,19 @@ tests/build/live-HTTP are listed here.
   Supabase; no schema change. _Evidence: typecheck + lint clean; full suite
   **772/772**; `next build` green._
 
-- **CHAR-SM11 · donate UI · brand mark on Service Fee** — Replaced the red heart in
-  the Service Fee dropdown trigger with the real **CharitMe brand mark**
-  (`/public/logo.svg` — self-colored purple-gradient heart cradled by a hand).
-  It sits in the existing icon chip whose background is the theme token `--s2`,
-  so it renders correctly in **both dark and light mode** (same single-asset,
-  theme-adaptive approach the header uses — no per-theme swap needed). Matched the
-  repo convention for the logo `<img>` (inline `@next/next/no-img-element` disable,
-  as in `AppShell`/`CharitMeApp`). _Evidence: typecheck clean; lint clean; full
-  suite **772/772**; `next build` green._
+- **CHAR-SM11 · donate UI · brand mark on Service Fee** — Put the CharitMe brand
+  mark on the Service Fee dropdown trigger (replacing the red heart). Sits in the
+  existing icon chip whose background is the theme token `--s2`, so it reads in
+  **both dark and light mode** (single transparent-background asset, matching how
+  the header logo works — no per-theme swap). Repo convention for the logo `<img>`
+  followed (inline `@next/next/no-img-element` disable, as in `AppShell`/`CharitMeApp`).
+- **CHAR-SM11b · assets · retire old logo.svg** — The initial pass used the **old**
+  logo (`public/logo.svg` — purple heart+hand). Corrected per owner: switched the
+  Service Fee mark to the current logo **`public/logo.png`** (512² red heart with
+  "C" cradled by purple+orange hands, transparent bg — same asset the header
+  already uses) and **deleted `public/logo.svg`** entirely (it had no remaining
+  references anywhere in the source). _Evidence: 0 source refs to logo.svg post-
+  delete; typecheck + lint clean; full suite **772/772**; `next build` green._
 
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
