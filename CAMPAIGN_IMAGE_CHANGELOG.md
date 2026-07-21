@@ -42,3 +42,23 @@ sandbox — apply it via your normal migration path.
 **Not performed (needs staging/browser):** Supabase Storage upload of optimized
 WebP/AVIF, perceptual-hash near-duplicate detection, per-image visual relevance
 grading, responsive visual regression. Tracked in `todo.md`.
+
+## 2026-07-21 — Audit extended to SQL migrations; 23 broken IDs fixed
+
+**Reason:** `audit:campaign-images` only verified the TS catalog. The images
+that actually land in the DB are also written by SQL migrations
+(`campaign_photos*.sql` + the per-campaign distribution), which were unguarded.
+
+**Change:** the audit now also collects every `images.unsplash.com` photo URL
+from `supabase/migrations/*.sql` and includes them in the `--live` HTTP-200
+verification (and approved-host check).
+
+**Found + fixed:** the extended live audit flagged **23 of 68** SQL image IDs
+returning **404** (removed upstream) — all in `20260608010000_campaign_photos.sql`
+gallery arrays. Each was replaced with a verified-live catalog ID. These were
+already superseded in production by `20260723000000_campaign_cover_per_campaign.sql`
+(all-verified catalog IDs), so no user-facing impact — but the repo/seed is now
+clean and the guard covers the DB layer going forward.
+
+**Validation:** `npm run audit:campaign-images:live` → 45/45 IDs HTTP 200 across
+catalog + migrations; 729 unit tests pass.

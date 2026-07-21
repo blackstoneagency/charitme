@@ -16,7 +16,10 @@
  *   - No pool contains a duplicate photo ID within itself.
  *
  * Live check (opt-in with `--live`, used in CI where network is allowed):
- *   - Every distinct photo ID returns HTTP 200.
+ *   - Every distinct photo ID returns HTTP 200 — across BOTH the catalog and
+ *     the campaign-image URLs written by SQL migrations (the images that
+ *     actually land in the database), so a removed upstream photo in either
+ *     source is caught.
  *
  * Exits non-zero when any critical check fails so it can gate CI.
  *
@@ -25,12 +28,13 @@
  *   node scripts/audit-campaign-images.mjs --live   # + HTTP 200 verification
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CATALOG = join(__dirname, '..', 'lib', 'photo-catalog.ts');
+const MIGRATIONS_DIR = join(__dirname, '..', '..', '..', 'supabase', 'migrations');
 const APPROVED_HOSTS = ['images.unsplash.com'];
 const MIN_POOL = 4;
 const LIVE = process.argv.includes('--live');
@@ -129,9 +133,40 @@ for (const [id, cats] of Object.entries(coverToCats)) {
   if (cats.length > 1) fail(`Cover photo ${id} is shared by categories: ${cats.join(', ')} (covers must be distinct).`);
 }
 
+// ---- SQL migration images (what actually lands in the DB) -----------------
+// The catalog is the app-render source of truth, but campaign covers are also
+// written by SQL migrations (campaign_photos*.sql, per-campaign distribution).
+// A broken/removed photo there ships to the DB unnoticed unless we check it too.
+function collectSqlImageUrls() {
+  const urls = new Set();
+  let files = [];
+  try {
+    files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql'));
+  } catch {
+    warn(`Could not read migrations dir at ${MIGRATIONS_DIR}`);
+    return [];
+  }
+  for (const f of files) {
+    const text = readFileSync(join(MIGRATIONS_DIR, f), 'utf8');
+    for (const m of text.matchAll(/https?:\/\/[^\s'"]+/g)) {
+      const url = m[0].replace(/[)'";,]+$/, '');
+      if (/images\.unsplash\.com\/photo-/.test(url)) {
+        if (!APPROVED_HOSTS.includes(hostOf(url))) fail(`SQL migration ${f}: non-approved image host in ${url}`);
+        urls.add(url);
+      }
+    }
+  }
+  return [...urls];
+}
+
+const sqlUrls = collectSqlImageUrls();
+const sqlDistinctIds = [...new Set(sqlUrls.map(idOf))];
+
 // ---- Collect distinct IDs for live check ----------------------------------
 const allUrls = [...Object.values(categories).flat(), ...fallback];
 const distinctIds = [...new Set(allUrls.map(idOf))];
+// Union of catalog + SQL IDs for the live HTTP verification.
+const liveIds = [...new Set([...distinctIds, ...sqlDistinctIds])];
 
 async function httpOk(url) {
   try {
@@ -144,7 +179,7 @@ async function httpOk(url) {
 
 let liveChecked = 0;
 if (LIVE) {
-  const sample = distinctIds.map((id) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=200&q=60`);
+  const sample = liveIds.map((id) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=200&q=60`);
   const results = await Promise.all(sample.map(async (u) => [u, await httpOk(u)]));
   for (const [u, status] of results) {
     liveChecked++;
@@ -155,10 +190,11 @@ if (LIVE) {
 // ---- Report ---------------------------------------------------------------
 console.log('Campaign image audit');
 console.log('────────────────────');
-console.log(`Categories:        ${catNames.length}`);
-console.log(`Distinct photo IDs: ${distinctIds.length}`);
-console.log(`Fallback pool:     ${fallback.length}`);
-console.log(`Live HTTP checks:  ${LIVE ? liveChecked : 'skipped (pass --live)'}`);
+console.log(`Categories:          ${catNames.length}`);
+console.log(`Catalog photo IDs:   ${distinctIds.length}`);
+console.log(`SQL migration IDs:   ${sqlDistinctIds.length}`);
+console.log(`Fallback pool:       ${fallback.length}`);
+console.log(`Live HTTP checks:    ${LIVE ? liveChecked : `skipped (pass --live) — would check ${liveIds.length}`}`);
 if (warnings.length) {
   console.log(`\nWarnings (${warnings.length}):`);
   for (const w of warnings) console.log(`  • ${w}`);
