@@ -3,20 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { createClient } from '../../../../../lib/supabase-server';
+import { isAdmin } from '../../../../../lib/roles';
 import { sendTaxReceiptEmail } from '../../../../../lib/email';
 
 const Schema = z.object({
   donationId: z.string().uuid(),
 });
-
-async function isAdmin(userId: string): Promise<boolean> {
-  const { data } = await supabaseAdmin
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', userId)
-    .single();
-  return !!(data as { is_admin?: boolean } | null)?.is_admin;
-}
 
 // POST /api/admin/donations/tax-receipt
 // Admin: issue/re-send a tax receipt for a specific donation.
@@ -24,7 +16,9 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!await isAdmin(user.id)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  // Admin status is carried in profiles.roles (there is no profiles.is_admin
+  // column). Use the shared resolver (roles + owner emails + ADMIN_EMAILS).
+  if (!await isAdmin(user.id, user.email)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json().catch(() => null);
   const parsed = Schema.safeParse(body);

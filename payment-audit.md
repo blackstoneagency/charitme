@@ -242,7 +242,35 @@ rebuild working flows for no functional gain. Kept as-is; documented as intentio
   `handleChargeObserved`. `recordCampaignPayment` is now safely idempotent.
 - **Validation:** typecheck clean; 712 tests pass.
 
+### PAY-009 — Tax-receipt route checked a nonexistent `profiles.is_admin` column → denied ALL admins (HIGH — BROKEN FEATURE) — ✅ FIXED
+- **Area:** `apps/web/app/api/admin/donations/tax-receipt/route.ts`.
+- **Root cause:** the route's local `isAdmin` ran
+  `profiles.select('is_admin').eq('id', userId)`, but there is **no `is_admin`
+  column** on `profiles` (verified live) — admin status lives in the `roles` jsonb
+  (`roles ? 'admin'`; 5 such admins live). The select errors on the missing column
+  → `data` is null → `isAdmin` returns false for **everyone**, so every legitimate
+  admin got `403 Forbidden` and the tax-receipt feature was entirely non-functional.
+- **Resolution:** replaced the broken local check with the shared
+  `isAdmin(user.id, user.email)` from `lib/roles` (roles + owner emails +
+  `ADMIN_EMAILS`), matching every other admin route. Scanned the codebase —
+  this `profiles.is_admin` misuse was isolated to this one route; the sibling
+  `admin/donations/[id]/receipt` correctly uses `verifyAdmin`.
+- **Validation:** typecheck clean; 729 tests pass.
+
 ---
+
+## CSV export & receipt routes — audited, all sound
+
+- **CSV formula-injection helper** (`lib/csv.ts`, CHAR-F010): neutralizes leading
+  `= + - @ \t \r` on non-numeric cells + structural quoting. Solid.
+- **Every export uses it (or JSON):** `exports/donations`, `exports/donors`,
+  `admin/payments/export`, `admin/reports/export`, `analytics/export` all route
+  user-controlled values through the helper; `exports/full` emits JSON (no formula
+  risk).
+- **Auth + scoping correct:** user exports are auth-gated and scoped by
+  `user_id`/`owner_id` (own campaigns/donors only); admin exports are gated by
+  `requireAdmin` / shared `isAdmin`. Receipt routes: donor receipt is
+  owner-or-admin scoped; admin receipt uses `verifyAdmin`.
 
 ## Verified sound (no change required)
 

@@ -901,6 +901,10 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 - [x] 🟢 **PAY-008** — `recordCampaignPayment` child-detail inserts weren't
   idempotent (latent duplicate risk). Now written only on first creation; recorder
   is safely idempotent.
+- [x] 🟠 **PAY-009** — Tax-receipt route gated on a nonexistent `profiles.is_admin`
+  column, denying ALL admins (feature fully broken). Switched to the shared
+  `isAdmin` (roles-based). CSV export + receipt routes otherwise audited sound
+  (injection-safe helper, correct auth/scoping).
 
 ## Audited & sound (no change needed)
 - [x] Refund routes (admin refund fixed; admin/refunds workflow-only; donor
