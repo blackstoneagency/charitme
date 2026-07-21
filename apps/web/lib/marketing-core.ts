@@ -12,6 +12,15 @@ export type ClientType =
 
 export type LifecycleStage = 'subscriber' | 'lead' | 'engaged' | 'customer' | 'champion' | 'dormant';
 
+/**
+ * Map a donor's "Subscribe to receive emails" choice to a marketing-contact
+ * send-status. Opting in makes the contact emailable; declining creates them as
+ * 'unsubscribed' so a non-consenting donor is never marketed to.
+ */
+export function marketingStatusForOptIn(subscribed: boolean): 'active' | 'unsubscribed' {
+  return subscribed ? 'active' : 'unsubscribed';
+}
+
 export interface ContactInput {
   email?: string;
   phone?: string;
@@ -26,6 +35,14 @@ export interface ContactInput {
   landingPage?: string;
   consentEmail?: boolean;
   consentSource?: string;
+  /**
+   * Marketing send-eligibility for this contact. On CREATE it sets the initial
+   * status (so a non-consenting donor is never created as an emailable contact);
+   * on an EXISTING contact only 'active' is applied (an explicit re-opt-in) —
+   * we never silently downgrade an already-subscribed contact here. Omit to keep
+   * the default ('active' on create, unchanged on update).
+   */
+  marketingStatus?: 'active' | 'unsubscribed';
 }
 
 export interface ContactSignals {

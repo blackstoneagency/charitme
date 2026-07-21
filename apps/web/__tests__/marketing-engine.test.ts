@@ -6,10 +6,21 @@ import {
   classifyClientType,
   computeLifecycleStage,
   matchesSegment,
+  marketingStatusForOptIn,
   type ContactSignals,
   type SegmentableContact,
   type SegmentRules,
 } from '../lib/marketing-core';
+
+describe('marketingStatusForOptIn', () => {
+  it('makes an opted-in donor an active (emailable) contact', () => {
+    expect(marketingStatusForOptIn(true)).toBe('active');
+  });
+
+  it('makes a non-opted-in donor unsubscribed (never marketed to without consent)', () => {
+    expect(marketingStatusForOptIn(false)).toBe('unsubscribed');
+  });
+});
 
 const base: ContactSignals = {
   donationCount: 0,

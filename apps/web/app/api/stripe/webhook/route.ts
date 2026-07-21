@@ -213,9 +213,11 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
 
       await sendDonorReceipt(meta.donorId, meta.campaignId, `${formatCents(amountCents, recurringCurrency)}/month`);
 
-      // "Subscribe to receive emails" checkbox — opt the donor into campaign update emails (non-fatal)
+      // "Subscribe to receive emails" checkbox — opt a logged-in donor into
+      // marketing emails (notification_marketing defaults FALSE, so this is a real
+      // opt-in). Only set on opt-in; never clobber to false here.
       if (meta.donorId && meta.subscribeToUpdates === '1') {
-        void supabaseAdmin.from('profiles').update({ notification_updates: true }).eq('id', meta.donorId);
+        void supabaseAdmin.from('profiles').update({ notification_marketing: true }).eq('id', meta.donorId);
       }
 
       if (recurringCurrency !== 'usd') {
@@ -340,6 +342,7 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
       try {
         const donorEmail = session.customer_details?.email ?? session.customer_email ?? null;
         if (donorEmail) {
+          const subscribed = meta.subscribeToUpdates === '1';
           const contactId = await resolveContact({
             email: donorEmail,
             userId: meta.donorId || undefined,
@@ -347,6 +350,11 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
             utmSource: meta.utmSource || undefined,
             utmMedium: meta.utmMedium || undefined,
             utmCampaign: meta.utmCampaign || undefined,
+            // Consent audit + re-activate an existing contact on explicit opt-in
+            // (never downgrades here — see resolveContact).
+            consentEmail: subscribed,
+            consentSource: 'donation_checkout',
+            ...(subscribed ? { marketingStatus: 'active' as const } : {}),
           });
           if (contactId) {
             await trackEvent({
@@ -367,9 +375,12 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
     }
     const donationId = await findDonationId({ paymentIntentId, checkoutSessionId: session.id });
 
-    // "Subscribe to receive emails" checkbox — opt the donor into campaign update emails (non-fatal)
+    // "Subscribe to receive emails" checkbox — opt a logged-in donor into
+    // marketing emails (notification_marketing defaults FALSE → a real opt-in).
+    // Guests are handled via marketing_contacts consent/status in the capture
+    // block above. Only set on opt-in; never clobber to false here.
     if (!alreadyDone && meta.donorId && meta.subscribeToUpdates === '1') {
-      void supabaseAdmin.from('profiles').update({ notification_updates: true }).eq('id', meta.donorId);
+      void supabaseAdmin.from('profiles').update({ notification_marketing: true }).eq('id', meta.donorId);
     }
 
     // Store UTM attribution on the donation record (non-fatal)

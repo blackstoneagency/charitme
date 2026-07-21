@@ -730,6 +730,33 @@ tests/build/live-HTTP are listed here.
   a themed cover when none is uploaded. Live apply still needs write access / the
   Management API token (same blocker as CHAR-SM12).
 
+- **CHAR-SM14 · donate form · anonymous + subscribe checkboxes (audit + fix)** —
+  Deep-tested the two donate-form checkboxes end-to-end (form → `/api/donations` →
+  Stripe metadata → webhook → Supabase).
+  - **"Don't display my name" (anonymous): already 100% wired ✅.** `anonymous` →
+    Stripe metadata → `record_donation(p_anonymous)` → `donations.anonymous`
+    (NOT NULL default false, verified live) → donor wall renders "Anonymous". No
+    change needed.
+  - **"Subscribe to receive emails": was broken, now fixed.** It was (a) a **no-op
+    for guest donors** (gated on `meta.donorId`), (b) writing `notification_updates`
+    which **defaults `true`** (meaningless), and (c) **gating nothing** — the webhook
+    already captured *every* donor into `marketing_contacts` as `status='active'`
+    regardless of consent, so non-opt-in donors were emailable. Fixes: added
+    `marketingStatusForOptIn()` + `ContactInput.marketingStatus`; `resolveContact`
+    now sets send-status from consent **on create** (non-opt-in donor → created
+    `unsubscribed`) and only **upgrades** an existing contact to `active` on an
+    explicit re-opt-in (never silently downgrades a repeat donor who left the box
+    unchecked). Wired the checkbox through the **pre-checkout capture** and **both
+    webhook paths**: records `marketing_consent` (audit, works for guests + users)
+    and, for logged-in donors, sets `profiles.notification_marketing` (defaults
+    **false** → a real opt-in). Senders already filter `status='active'`, so the
+    box now genuinely controls email eligibility.
+  - **Verified:** live read-only check — `donations.anonymous`,
+    `profiles.notification_marketing`, `marketing_contacts.status`,
+    `marketing_consent.granted` all present (HTTP 200). `marketingStatusForOptIn`
+    unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
+    (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
+
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
   Removed the stray field. _Evidence: verified live vs schema; commit `20d1597`._

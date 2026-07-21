@@ -69,6 +69,9 @@ export async function resolveContact(input: ContactInput): Promise<string | null
         last_touch_campaign: input.utmCampaign ?? null,
         landing_page: input.landingPage ?? null,
         last_active_at: new Date().toISOString(),
+        // Consent-driven send-eligibility: a non-opted-in donor is created
+        // 'unsubscribed' so they are never marketed to without consent.
+        ...(input.marketingStatus ? { status: input.marketingStatus } : {}),
       })
       .select('id')
       .single();
@@ -86,6 +89,11 @@ export async function resolveContact(input: ContactInput): Promise<string | null
     if (input.utmSource) { updates.last_touch_source = input.utmSource; }
     if (input.utmMedium) { updates.last_touch_medium = input.utmMedium; }
     if (input.utmCampaign) { updates.last_touch_campaign = input.utmCampaign; }
+    // Only ever UPGRADE an existing contact to 'active' on an explicit re-opt-in;
+    // never silently downgrade a previously-subscribed contact from here (an
+    // unchecked box on a later donation must not unsubscribe a happy subscriber —
+    // that only happens via the dedicated unsubscribe flow).
+    if (input.marketingStatus === 'active') { updates.status = 'active'; }
     await supabaseAdmin.from('marketing_contacts').update(updates).eq('id', contactId);
   }
 

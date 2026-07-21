@@ -17,6 +17,7 @@ import { resolvePayoutDestination } from '../../../lib/payout-destination';
 import { getAppOrigin } from '../../../lib/auth-config';
 import { checkRateLimit } from '../../../lib/rate-limit';
 import { resolveContact, trackEvent } from '../../../lib/marketing-engine';
+import { marketingStatusForOptIn } from '../../../lib/marketing-core';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Schema
@@ -310,11 +311,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 
-  // Marketing capture: donation_started event for abandoned-donation automations (non-blocking)
+  // Marketing capture: donation_started event for abandoned-donation automations (non-blocking).
+  // The "Subscribe to receive emails" checkbox is honored here at contact
+  // creation so a non-opted-in donor is never created as an emailable contact.
   try {
     const captureEmail = user?.email ?? donorEmail;
     if (captureEmail) {
-      const contactId = await resolveContact({ email: captureEmail, userId: user?.id });
+      const contactId = await resolveContact({
+        email: captureEmail,
+        userId: user?.id,
+        clientType: 'donor',
+        consentEmail: !!subscribeToUpdates,
+        consentSource: 'donation_checkout',
+        marketingStatus: marketingStatusForOptIn(!!subscribeToUpdates),
+      });
       if (contactId) {
         await trackEvent({
           contactId,
