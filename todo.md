@@ -68,7 +68,7 @@ Cross-referencing the required table inventory against tables actually reference
 | **Grants** | ✅ Built + verified | round-trip write/read/soft-delete + RLS verified live (`docs/AUDIT_PROGRESS.md`) |
 | **Volunteers** | ✅ Built | CHAR-0003/0004; tables + RLS + routes live |
 | **Events** | ✅ Built + verified | RSVP capacity/duplicate/RLS round-trip verified live this session |
-| **Corporate giving** | 🟡 Partial | matching gifts built (`matching_programs`/`matching_claims`, `/api/matching/*`, `employer-matching.ts`); `corporate_accounts` + CSR dashboard NOT on master (exist only on the stale unmerged `…-0ehbgx` branch) |
+| **Corporate giving** | ✅ Built | matching gifts (`matching_programs`/`matching_claims`, `/api/matching/*`) + **CSR dashboard** `/dashboard/corporate` (this session, on master's matching infra — the stale branch's parallel `/api/corporate/*` design was intentionally NOT ported). `corporate_accounts`/`_members` multi-admin grouping remains a P3 nicety (single `sponsor_id` owner works today) |
 | **Sponsorship workflow** | ✅ Built | `sponsorship_opportunities/requests` + `/api/sponsorships/*` |
 | **Formal impact tracking** | ✅ Built | `impact_plans/updates/metrics` + `/api/impact/*`; `lib/impact.ts` (currency bug fixed PAY-010) |
 | **Subscriptions / recurring** | ✅ Built + verified | recurring-donation state machine + idempotency verified live; CharitMe Plus entitlements Code Complete (billing write-path Stripe-gated) |
@@ -197,7 +197,15 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Completion Evidence: —
   - Commit: —
 
-- [~] CHAR-0008 — **Partial** — matching gifts built (`matching_programs`/`matching_claims`, `/api/matching/*`); `corporate_accounts` + CSR dashboard only on the stale unmerged `…-0ehbgx` branch, NOT on master
+- [x] CHAR-0008 — **CSR dashboard built + verified** (this session) — `/dashboard/corporate`
+  lets a matching-program sponsor review employee claims (approve/decline/mark-paid via
+  existing `PATCH /api/matching/claims/:id`) with committed/paid/pending rollups.
+  Built on master's `matching_programs`/`matching_claims`/`matching-core` (the stale
+  branch's conflicting `/api/corporate/*` design was deliberately not ported).
+  Evidence: `summarizeProgramClaims` unit-tested (4, 750 total); `next build` compiles
+  the route; live round-trip confirmed the summary math + approve write (test data
+  removed, 0 residue). Nav entry added. Follow-up (P3): `corporate_accounts`/`_members`
+  for multi-admin company grouping (today a single `sponsor_id` owns each program).
   - Area: Corporate giving
   - Feature: Corporate accounts + matching-gift workflow
   - Description: `corporate_accounts`, `corporate_members`, match rules/limits/approval routing; extend `lib/employer-matching.ts`; CSR dashboard.

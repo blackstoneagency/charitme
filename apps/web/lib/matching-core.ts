@@ -105,6 +105,54 @@ export function reservesCap(status: ClaimStatus): boolean {
   return status === 'approved' || status === 'paid';
 }
 
+// ── CSR dashboard aggregation ───────────────────────────────────────────────────
+
+export interface ProgramClaimSummary {
+  total: number;
+  pending: number;
+  approved: number;
+  paid: number;
+  declined: number;
+  /** Approved + paid match (committed / reserves cap). */
+  committedCents: number;
+  /** Paid-out match only. */
+  paidCents: number;
+  /** Match requested by claims still awaiting review. */
+  pendingRequestedCents: number;
+}
+
+/** Aggregate a program's claims into headline CSR-dashboard figures. Pure. */
+export function summarizeProgramClaims(
+  claims: readonly Pick<MatchingClaim, 'status' | 'match_amount_cents'>[],
+): ProgramClaimSummary {
+  const s: ProgramClaimSummary = {
+    total: 0, pending: 0, approved: 0, paid: 0, declined: 0,
+    committedCents: 0, paidCents: 0, pendingRequestedCents: 0,
+  };
+  for (const c of claims) {
+    s.total += 1;
+    switch (c.status) {
+      case 'pending':
+        s.pending += 1;
+        s.pendingRequestedCents += c.match_amount_cents;
+        break;
+      case 'approved':
+        s.approved += 1;
+        s.committedCents += c.match_amount_cents;
+        break;
+      case 'paid':
+        s.paid += 1;
+        s.committedCents += c.match_amount_cents;
+        s.paidCents += c.match_amount_cents;
+        break;
+      case 'declined':
+        s.declined += 1;
+        break;
+    }
+  }
+  return s;
+}
+
 // ── Validation schemas ────────────────────────────────────────────────────────
 
 export const ProgramCreateSchema = z.object({

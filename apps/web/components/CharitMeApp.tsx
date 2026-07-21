@@ -51,6 +51,7 @@ const dashboardNav = [
   ['Donors', '/dashboard/donor', 'users'],
   ['Grants', '/dashboard/grants', 'audit'],
   ['Volunteering', '/dashboard/volunteer', 'team'],
+  ['Corporate Giving', '/dashboard/corporate', 'crown'],
   ['Referrals', '/dashboard/referrals', 'crown'],
   ['Updates', '/dashboard/updates', 'doc'],
   ['Payouts', '/dashboard/payouts', 'wallet'],

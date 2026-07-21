@@ -6,6 +6,7 @@ import {
   isAcceptingClaims,
   canTransitionClaim,
   reservesCap,
+  summarizeProgramClaims,
   ProgramCreateSchema,
   ClaimCreateSchema,
   type ClaimStatus,
@@ -122,5 +123,40 @@ describe('matching_claims RLS: read scope', () => {
   });
   it('an unrelated user cannot read the claim', () => {
     expect(canRead({ employee_id: 'e1', sponsor_id: 's1' }, 'stranger', false)).toBe(false);
+  });
+});
+
+describe('summarizeProgramClaims (CSR dashboard)', () => {
+  const claims: { status: ClaimStatus; match_amount_cents: number }[] = [
+    { status: 'pending',  match_amount_cents: 1000 },
+    { status: 'pending',  match_amount_cents: 500 },
+    { status: 'approved', match_amount_cents: 2000 },
+    { status: 'paid',     match_amount_cents: 3000 },
+    { status: 'declined', match_amount_cents: 9999 },
+  ];
+
+  it('counts each status', () => {
+    const s = summarizeProgramClaims(claims);
+    expect(s.total).toBe(5);
+    expect(s.pending).toBe(2);
+    expect(s.approved).toBe(1);
+    expect(s.paid).toBe(1);
+    expect(s.declined).toBe(1);
+  });
+
+  it('committed = approved + paid match; paid = paid only', () => {
+    const s = summarizeProgramClaims(claims);
+    expect(s.committedCents).toBe(5000); // 2000 + 3000
+    expect(s.paidCents).toBe(3000);
+  });
+
+  it('pendingRequestedCents sums only pending claims; declined never counts', () => {
+    const s = summarizeProgramClaims(claims);
+    expect(s.pendingRequestedCents).toBe(1500); // 1000 + 500
+  });
+
+  it('handles an empty program', () => {
+    const s = summarizeProgramClaims([]);
+    expect(s).toEqual({ total: 0, pending: 0, approved: 0, paid: 0, declined: 0, committedCents: 0, paidCents: 0, pendingRequestedCents: 0 });
   });
 });
