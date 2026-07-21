@@ -28,7 +28,7 @@ export async function GET() {
     { data: teamMembers },
   ] = await Promise.all([
     cids.length > 0
-      ? supabaseAdmin.from('donations').select('id,campaign_id,donor_name,amount_cents,status,created_at').in('campaign_id', cids)
+      ? supabaseAdmin.from('donations').select('id,campaign_id,donor_id,offline_donor_name,anonymous,amount_cents,status,created_at').in('campaign_id', cids)
       : Promise.resolve({ data: [] }),
     cids.length > 0
       ? supabaseAdmin.from('campaign_updates').select('id,campaign_id,title,body,created_at').in('campaign_id', cids)

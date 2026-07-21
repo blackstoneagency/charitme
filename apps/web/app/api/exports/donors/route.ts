@@ -38,14 +38,14 @@ export async function GET() {
 
   const { data: donations } = await supabaseAdmin
     .from('donations')
-    .select('donor_id, donor_name, amount_cents, anonymous, created_at')
+    .select('donor_id, offline_donor_name, amount_cents, anonymous, created_at')
     .in('campaign_id', cids)
     .eq('status', 'completed')
     .order('created_at', { ascending: false });
 
   type Donation = {
     donor_id: string | null;
-    donor_name: string | null;
+    offline_donor_name: string | null;
     amount_cents: number;
     anonymous: boolean;
     created_at: string;
@@ -91,7 +91,7 @@ export async function GET() {
       if (d.created_at > existing.lastDate) existing.lastDate = d.created_at;
     } else {
       donorMap.set(key, {
-        name: isAnon ? 'Anonymous' : (profile?.name ?? d.donor_name ?? 'Donor'),
+        name: isAnon ? 'Anonymous' : (profile?.name ?? d.offline_donor_name ?? 'Donor'),
         email: isAnon ? '' : (profile?.email ?? ''),
         total: d.amount_cents,
         count: 1,

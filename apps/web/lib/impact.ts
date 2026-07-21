@@ -24,14 +24,23 @@ export interface ImpactBundle {
 
 async function resolveCampaign(idOrSlug: string) {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
+  // `currency` is NOT a column on campaigns — it lives in campaign_launch_settings.
   const { data } = await supabaseAdmin
     .from('campaigns')
-    .select('id, slug, title, currency, raised_amount, user_id')
+    .select('id, slug, title, raised_amount, user_id')
     .eq(isUuid ? 'id' : 'slug', idOrSlug)
     .maybeSingle();
-  return data as
-    | { id: string; slug: string; title: string; currency: string | null; raised_amount: number; user_id: string }
-    | null;
+  if (!data) return null;
+  const campaign = data as { id: string; slug: string; title: string; raised_amount: number; user_id: string };
+  const { data: launch } = await supabaseAdmin
+    .from('campaign_launch_settings')
+    .select('currency')
+    .eq('campaign_id', campaign.id)
+    .maybeSingle();
+  return {
+    ...campaign,
+    currency: ((launch as { currency?: string | null } | null)?.currency ?? 'usd').toLowerCase(),
+  };
 }
 
 /**

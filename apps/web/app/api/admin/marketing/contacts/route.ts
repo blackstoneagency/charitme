@@ -91,7 +91,7 @@ export async function PATCH(req: NextRequest) {
   // Bulk sync: import platform users (donors/organizers) who aren't contacts yet
   const { data: profiles } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, full_name, country')
+    .select('id, email, full_name')
     .not('email', 'is', null)
     .limit(500);
 
@@ -104,7 +104,7 @@ export async function PATCH(req: NextRequest) {
       userId: p.id,
       firstName: first || undefined,
       lastName: rest.join(' ') || undefined,
-      country: p.country ?? undefined,
+      // profiles has no country column; contact country is enriched elsewhere.
     });
     if (contactId) {
       await refreshContactScores(contactId);

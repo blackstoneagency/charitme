@@ -37,9 +37,12 @@ export async function GET(req: NextRequest) {
 
   const campaignMap = new Map((campaigns ?? []).map((c: { id: string; title: string }) => [c.id, c.title]));
 
+  // The donations table has no donor_name/donor_email columns — donor identity is
+  // either a registered user (donor_id → profiles.full_name), an offline donor
+  // (offline_donor_name), or anonymous.
   let donationsQuery = supabaseAdmin
     .from('donations')
-    .select('id,campaign_id,donor_name,donor_email,amount_cents,status,created_at')
+    .select('id,campaign_id,donor_id,offline_donor_name,anonymous,amount_cents,status,created_at')
     .in('campaign_id', cids)
     .order('created_at', { ascending: false });
 
@@ -54,18 +57,33 @@ export async function GET(req: NextRequest) {
   type Donation = {
     id: string;
     campaign_id: string;
-    donor_name: string | null;
-    donor_email: string | null;
+    donor_id: string | null;
+    offline_donor_name: string | null;
+    anonymous: boolean | null;
     amount_cents: number;
     status: string;
     created_at: string;
   };
 
-  const rows = ((donations ?? []) as Donation[]).map(d => ({
+  const dons = (donations ?? []) as Donation[];
+
+  // Resolve registered donor display names in one batched lookup.
+  const donorIds = [...new Set(dons.map(d => d.donor_id).filter((v): v is string => !!v))];
+  const nameMap = new Map<string, string>();
+  if (donorIds.length > 0) {
+    const { data: profs } = await supabaseAdmin.from('profiles').select('id,full_name').in('id', donorIds);
+    for (const p of (profs ?? []) as { id: string; full_name: string | null }[]) {
+      nameMap.set(p.id, p.full_name ?? '');
+    }
+  }
+  const donorName = (d: Donation): string =>
+    d.anonymous ? 'Anonymous' : (d.offline_donor_name || (d.donor_id ? nameMap.get(d.donor_id) ?? '' : '') || '');
+
+  const rows = dons.map(d => ({
     id: d.id,
     campaign: campaignMap.get(d.campaign_id) ?? '',
-    donor_name: d.donor_name ?? '',
-    // Note: donor_email intentionally excluded to avoid PII in default export
+    donor_name: donorName(d),
+    // Note: donor email intentionally excluded to avoid PII in default export
     amount_usd: (d.amount_cents / 100).toFixed(2),
     status: d.status,
     date: d.created_at,

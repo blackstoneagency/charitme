@@ -2780,6 +2780,8 @@ CREATE TABLE public.refunds (
     reason text,
     status text DEFAULT 'requested'::text NOT NULL,
     stripe_refund_id text,
+    reviewed_by uuid,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT refunds_status_check CHECK ((status = ANY (ARRAY['requested'::text, 'under_review'::text, 'approved'::text, 'declined'::text, 'processing'::text, 'processed'::text, 'failed'::text, 'canceled'::text])))
 );

@@ -257,6 +257,37 @@ rebuild working flows for no functional gain. Kept as-is; documented as intentio
   `admin/donations/[id]/receipt` correctly uses `verifyAdmin`.
 - **Validation:** typecheck clean; 729 tests pass.
 
+### PAY-010 — Codebase-wide sweep: routes selecting NONEXISTENT columns (silently broke features) — ✅ FIXED
+Prompted by PAY-009, I checked every `.from(table).select(...)` in `apps/web`
+against the live column inventory (143 tables). PostgREST errors the whole query on
+an unknown column, and these call sites ignored the error → the feature silently
+returned nothing. Four real breakages (beyond the false-positive embedded joins like
+`profiles!donor_id(...)`):
+
+- **`donations.donor_name` / `donations.donor_email` don't exist** (only
+  `offline_donor_name`/`offline_donor_email`) → **all three exports broke**:
+  `/api/exports/donations` (CSV always empty), `/api/exports/donors`,
+  `/api/exports/full`. Fixed: resolve donor name from `donor_id`→`profiles.full_name`
+  / `offline_donor_name` / anonymous; drop `donor_email`.
+- **`refunds.reviewed_by` / `refunds.updated_at` don't exist** → `GET/PATCH
+  /api/admin/refunds` (the refund-request review console) errored on every list and
+  status update. The workflow clearly intends them (status enum has
+  `under_review/approved/declined`), so added them via migration
+  `20260721020000_refunds_review_columns.sql` (additive; applied live).
+- **`campaigns.currency` doesn't exist** (currency is in
+  `campaign_launch_settings`) → `lib/impact.ts#resolveCampaign` returned null for
+  **every** campaign, so the entire Impact feature returned nothing. Fixed: select
+  real columns + look currency up from `campaign_launch_settings` (default `usd`).
+- **`profiles.country` doesn't exist** → `POST /api/admin/marketing/contacts` bulk
+  sync errored and imported **0** contacts. Fixed: dropped the column from the
+  select.
+
+**Verified live:** all four previously-erroring queries now return rows against the
+production DB. Re-ran the sweep — only valid embedded-relation joins remain (no real
+mismatches). Typecheck clean; 729 tests pass. (Note: this class is invisible to the
+test suite because no test drives these authed/admin routes against the real schema —
+worth a schema-contract test in CI.)
+
 ---
 
 ## CSV export & receipt routes — audited, all sound

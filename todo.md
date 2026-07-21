@@ -905,6 +905,12 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
   column, denying ALL admins (feature fully broken). Switched to the shared
   `isAdmin` (roles-based). CSV export + receipt routes otherwise audited sound
   (injection-safe helper, correct auth/scoping).
+- [x] 🟠 **PAY-010** — Codebase-wide nonexistent-column sweep (143 tables). Fixed 4
+  silently-broken features: exports (donations/donors/full selected nonexistent
+  `donor_name`/`donor_email`); admin refunds console (`refunds.reviewed_by`/
+  `updated_at` — added via migration `20260721020000`); Impact feature
+  (`campaigns.currency` → `campaign_launch_settings`); marketing contact sync
+  (`profiles.country`). All verified live. Follow-up: add a schema-contract CI test.
 
 ## Audited & sound (no change needed)
 - [x] Refund routes (admin refund fixed; admin/refunds workflow-only; donor
