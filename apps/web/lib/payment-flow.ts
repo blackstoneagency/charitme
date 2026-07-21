@@ -272,6 +272,7 @@ export async function recordCampaignPayment(input: CampaignPaymentInput): Promis
       .maybeSingle();
 
   const { data: existing } = await lookup;
+  const isNewPayment = !existing?.id;
   const write = existing?.id
     ? supabaseAdmin.from('campaign_payments').update(row).eq('id', existing.id).select('id').maybeSingle()
     : supabaseAdmin.from('campaign_payments').insert(row).select('id').maybeSingle();
@@ -281,51 +282,13 @@ export async function recordCampaignPayment(input: CampaignPaymentInput): Promis
   if (error || !data?.id) return null;
   const paymentId = String(data.id);
 
-  await Promise.all([
-    supabaseAdmin.from('campaign_payment_breakdowns').insert({
-      campaign_payment_id: paymentId,
-      campaign_id: input.campaignId,
-      campaign_owner_id: input.campaignOwnerId,
-      donor_id: input.donorId,
-      processor: input.processor,
-      processor_account_id: input.processorAccountId,
-      gross_amount: input.grossAmount,
-      tip_amount: input.tipAmount,
-      processor_fee_amount: input.processorFeeAmount,
-      platform_fee_amount: input.platformFeeAmount,
-      owner_net_amount: input.ownerNetAmount,
-      currency: input.currency.toLowerCase(),
-      status: reconciliation.status === 'pending_data' ? 'pending_data' : 'current',
-      metadata: input.metadata ?? {},
-    }),
-    supabaseAdmin.from('campaign_platform_fees').insert({
-      campaign_payment_id: paymentId,
-      campaign_id: input.campaignId,
-      campaign_owner_id: input.campaignOwnerId,
-      donor_id: input.donorId,
-      processor: input.processor,
-      processor_account_id: input.processorAccountId,
-      processor_object_id: input.processorPaymentIntentId ?? input.processorCheckoutSessionId ?? null,
-      gross_amount: input.grossAmount,
-      platform_fee_amount: input.platformFeeAmount,
-      currency: input.currency.toLowerCase(),
-      status: input.platformFeeAmount > 0 ? 'recorded' : 'pending',
-      metadata: input.metadata ?? {},
-    }),
-    supabaseAdmin.from('campaign_processor_fees').insert({
-      campaign_payment_id: paymentId,
-      campaign_id: input.campaignId,
-      campaign_owner_id: input.campaignOwnerId,
-      donor_id: input.donorId,
-      processor: input.processor,
-      processor_account_id: input.processorAccountId,
-      processor_object_id: input.processorChargeId ?? input.processorPaymentIntentId ?? input.processorCheckoutSessionId ?? null,
-      gross_amount: input.grossAmount,
-      processor_fee_amount: input.processorFeeAmount,
-      currency: input.currency.toLowerCase(),
-      status: input.processorFeeAmount > 0 ? 'recorded' : 'pending',
-      metadata: input.metadata ?? {},
-    }),
+  // The reconciliation row is keyed 1:1 to the payment (upsert) so it is always
+  // safe to refresh. The breakdown / platform-fee / processor-fee detail rows are
+  // append-only `insert`s, so they must only be written when the parent payment is
+  // FIRST created — re-running for an existing payment (e.g. a future second
+  // caller, or a re-record) would otherwise duplicate them. Fee corrections after
+  // the fact are handled by the idempotent upserts in handleChargeObserved.
+  const detailWrites: Array<PromiseLike<unknown>> = [
     supabaseAdmin.from('campaign_payment_reconciliation').upsert({
       campaign_payment_id: paymentId,
       campaign_id: input.campaignId,
@@ -343,7 +306,58 @@ export async function recordCampaignPayment(input: CampaignPaymentInput): Promis
       metadata: input.metadata ?? {},
       checked_at: new Date().toISOString(),
     }, { onConflict: 'campaign_payment_id', ignoreDuplicates: false }),
-  ]);
+  ];
+
+  if (isNewPayment) {
+    detailWrites.push(
+      supabaseAdmin.from('campaign_payment_breakdowns').insert({
+        campaign_payment_id: paymentId,
+        campaign_id: input.campaignId,
+        campaign_owner_id: input.campaignOwnerId,
+        donor_id: input.donorId,
+        processor: input.processor,
+        processor_account_id: input.processorAccountId,
+        gross_amount: input.grossAmount,
+        tip_amount: input.tipAmount,
+        processor_fee_amount: input.processorFeeAmount,
+        platform_fee_amount: input.platformFeeAmount,
+        owner_net_amount: input.ownerNetAmount,
+        currency: input.currency.toLowerCase(),
+        status: reconciliation.status === 'pending_data' ? 'pending_data' : 'current',
+        metadata: input.metadata ?? {},
+      }),
+      supabaseAdmin.from('campaign_platform_fees').insert({
+        campaign_payment_id: paymentId,
+        campaign_id: input.campaignId,
+        campaign_owner_id: input.campaignOwnerId,
+        donor_id: input.donorId,
+        processor: input.processor,
+        processor_account_id: input.processorAccountId,
+        processor_object_id: input.processorPaymentIntentId ?? input.processorCheckoutSessionId ?? null,
+        gross_amount: input.grossAmount,
+        platform_fee_amount: input.platformFeeAmount,
+        currency: input.currency.toLowerCase(),
+        status: input.platformFeeAmount > 0 ? 'recorded' : 'pending',
+        metadata: input.metadata ?? {},
+      }),
+      supabaseAdmin.from('campaign_processor_fees').insert({
+        campaign_payment_id: paymentId,
+        campaign_id: input.campaignId,
+        campaign_owner_id: input.campaignOwnerId,
+        donor_id: input.donorId,
+        processor: input.processor,
+        processor_account_id: input.processorAccountId,
+        processor_object_id: input.processorChargeId ?? input.processorPaymentIntentId ?? input.processorCheckoutSessionId ?? null,
+        gross_amount: input.grossAmount,
+        processor_fee_amount: input.processorFeeAmount,
+        currency: input.currency.toLowerCase(),
+        status: input.processorFeeAmount > 0 ? 'recorded' : 'pending',
+        metadata: input.metadata ?? {},
+      }),
+    );
+  }
+
+  await Promise.all(detailWrites);
 
   return paymentId;
 }

@@ -242,6 +242,38 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
           }
         }
       }
+
+      // Payment observability — parity with one-time donations so recurring
+      // payments are traceable in the admin payments dashboard. The processor fee
+      // is enriched later by handleChargeObserved (charge.succeeded) once Stripe
+      // reports the balance transaction. recordCampaignPayment is idempotent.
+      const recurringDonationId = await findDonationId({ paymentIntentId: null, checkoutSessionId: session.id });
+      await recordCampaignPayment({
+        donationId: recurringDonationId,
+        campaignId: meta.campaignId,
+        campaignOwnerId: meta.organizerUserId || null,
+        donorId: meta.donorId || null,
+        processor: 'stripe',
+        processorAccountId: meta.connectedAccountId || null,
+        processorPaymentIntentId: null,
+        processorCheckoutSessionId: session.id,
+        grossAmount: amountCents,
+        tipAmount: tipCents,
+        platformFeeAmount: tipCents,
+        processorFeeAmount: 0,
+        ownerNetAmount: amountCents,
+        currency: recurringCurrency,
+        paymentStatus: 'succeeded',
+        transferStatus: meta.hasConnectedAccount === '1' ? 'created' : 'pending',
+        payoutStatus: meta.hasConnectedAccount === '1' ? 'requested' : 'not_applicable',
+        paidAt: new Date().toISOString(),
+        webhookEventId: eventId,
+        metadata: {
+          recurring: true,
+          cadence: meta.cadence ?? 'monthly',
+          subscription_id: subscriptionId,
+        },
+      });
     }
   } else if (meta.campaignId) {
     // ── One-time donation ─────────────────────────────────────────────────

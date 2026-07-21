@@ -894,6 +894,13 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
   the platform balance. Replaced with a Stripe Express dashboard login link
   (automatic-payout model); reworked the dashboard button. Admin payout route
   audited (bookkeeping-only, safe).
+- [x] 🟡 **PAY-007** — Recurring donations were absent from the `campaign_payments`
+  observability layer (only one-time recorded). Added parity recording for the
+  recurring initial charge; renewals + fee-enrichment documented as live-gated
+  follow-ups.
+- [x] 🟢 **PAY-008** — `recordCampaignPayment` child-detail inserts weren't
+  idempotent (latent duplicate risk). Now written only on first creation; recorder
+  is safely idempotent.
 
 ## Audited & sound (no change needed)
 - [x] Refund routes (admin refund fixed; admin/refunds workflow-only; donor

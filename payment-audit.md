@@ -205,6 +205,43 @@ rebuild working flows for no functional gain. Kept as-is; documented as intentio
 - **Validation:** typecheck clean; lint 0 errors; 712 tests pass. (Live login-link
   generation is exercised once Connect is live-enabled — GATED on LB-005.)
 
+### PAY-007 — Recurring donations were absent from the payment-observability layer (MEDIUM — TRACEABILITY) — ✅ FIXED (initial charge; renewals documented)
+- **Area:** `apps/web/app/api/stripe/webhook/route.ts` (`handleCheckoutComplete`).
+- **Root cause:** `recordCampaignPayment` was called only in the **one-time** donation
+  branch. Recurring donations created `donations` + `recurring_donations` rows but
+  **no `campaign_payments` row**, so the admin Payments dashboard
+  (`getPaymentAdminData`) — the "every payment is traceable" surface — never showed
+  recurring payments at all.
+- **Resolution:** the recurring branch now records a `campaign_payments` row (parity
+  with one-time: `gross=amount`, `tip`, `platform_fee=tip`, `owner_net=amount`,
+  processor fee 0 pending), so recurring **initial** payments are now traceable in
+  the dashboard. `recordCampaignPayment` was made idempotent first (see PAY-008), so
+  webhook retries don't duplicate.
+- **Documented remaining (honest, not silently skipped):** (a) subscription
+  **renewals** (`invoice.payment_succeeded`) still don't create a `campaign_payments`
+  row — there's no checkout session to key on, so it needs invoice→payment plumbing;
+  (b) for recurring, the processor fee isn't auto-enriched because the row is keyed
+  by checkout session (no top-level `payment_intent` on a subscription session), so
+  `handleChargeObserved` can't match it — the row stays `pending_data` on the fee.
+  Both are refinements best built + verified against **live** recurring Stripe flows
+  (GATED on Connect enablement), not guessed at here.
+- **Validation:** typecheck clean; 712 tests pass.
+
+### PAY-008 — `recordCampaignPayment` child-detail rows were not idempotent (LOW — latent) — ✅ FIXED
+- **Area:** `apps/web/lib/payment-flow.ts`.
+- **Root cause:** the parent `campaign_payments` row and the reconciliation row were
+  upserted, but the `campaign_payment_breakdowns` / `campaign_platform_fees` /
+  `campaign_processor_fees` detail rows were unconditional `.insert()`s. A second
+  call for the same payment (a future caller, a re-record) would duplicate them.
+  Not currently triggered (called once per idempotent `checkout.session.completed`)
+  and it only affects the per-transaction detail list (no summed metric reads these),
+  hence LOW — but it made the recorder unsafe to reuse (e.g. for PAY-007).
+- **Resolution:** the three detail inserts now run **only when the parent payment is
+  newly created**; the reconciliation upsert still always refreshes, and post-hoc fee
+  corrections continue to flow through the idempotent upserts in
+  `handleChargeObserved`. `recordCampaignPayment` is now safely idempotent.
+- **Validation:** typecheck clean; 712 tests pass.
+
 ---
 
 ## Verified sound (no change required)
