@@ -651,15 +651,16 @@ export default function DonateButton({
       {/* ── Transparent breakdown ── */}
       <div style={{ background: 'var(--s2, #f9f7ff)', borderRadius: 14, padding: '16px 18px', border: `1px solid ${BD}` }}>
         <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, color: MU, textTransform: 'uppercase', letterSpacing: '.07em' }}>
-          Transparent breakdown
+          Breakdown
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           <BRow label={isMonthly ? 'Monthly donation' : 'Donation'} value={money(amountCents)} />
-          {breakdown.tip > 0 && <BRow label="CharitMe Support" value={money(breakdown.tip)} />}
-          {breakdown.processing > 0 && (
+          {/* CharitMe support tip + payment-processing fee shown as one combined
+              line (both are added on top of the donation, never deducted). */}
+          {breakdown.tip + breakdown.processing > 0 && (
             <BRow
-              label={`Processing fee (${METHOD_FEES[preferredMethod].label})`}
-              value={money(breakdown.processing)}
+              label="Processing & Service Fee"
+              value={money(breakdown.tip + breakdown.processing)}
             />
           )}
           {amountCents > 0 && !isMonthly && (

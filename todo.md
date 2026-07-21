@@ -566,6 +566,21 @@ tests/build/live-HTTP are listed here.
   `__tests__/sitemap.test.ts` 3/3; full suite **772/772**; `next build` green,
   `/sitemap.xml` route emits._
 
+- **CHAR-SM7 · donate UI · consolidated fee line** — Reworked the donation
+  breakdown on the campaign donate form to the simpler design: header
+  "Transparent breakdown" → **"Breakdown"**, and the two separate lines
+  ("CharitMe Support" tip + "Processing fee (2.9% + $0.30)") collapsed into a
+  single **"Processing & Service Fee"** line (= `tip + processing`, e.g.
+  $7.50 + $1.97 = $9.47). "Recipient receives", "You pay", and the green
+  100%-of-your-donation reassurance box are unchanged. Purely presentational:
+  values still come from `@shared/fees#donationBreakdown` — the same single-
+  source-of-truth module the **server** re-runs to compute the authoritative
+  Stripe charge — so the amount charged and the recipient-first destination-charge
+  flow are untouched (You pay total identical). Wired end-to-end (tip % → server
+  recompute → Stripe) already; no schema change. _Evidence: typecheck + lint
+  clean; full suite **772/772**; `next build` green; combined line + donation
+  reconciles to the "You pay" total by construction._
+
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
   Removed the stray field. _Evidence: verified live vs schema; commit `20d1597`._
