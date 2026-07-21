@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import type React from 'react';
+import type { Metadata } from 'next';
+import { seoMetadata } from '../lib/seo';
 import { safeJsonLd } from '../lib/json-ld';
 import { getHomeData, getCategoryStats, getRecentDonations, profileName } from '../lib/home-data';
 import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
@@ -12,6 +14,12 @@ import { AiSearch, CountUp, Reveal } from './home-parts';
 // hot path while keeping metrics, featured campaigns, and the donation feed
 // fresh within a short window.
 export const revalidate = 120;
+
+// Homepage metadata is overridable from the Super-Admin → Marketing → SEO console
+// (route '/'); falls back to the root layout defaults when unset.
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/');
+}
 
 const BASE = 'https://www.charitme.com';
 
