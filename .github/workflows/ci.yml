@@ -44,8 +44,12 @@ jobs:
       - name: Production build
         run: npm run build --workspace=apps/web
         env:
-          # The app builds with safe placeholder fallbacks; these keep the
-          # build deterministic in CI without exposing real secrets.
+          # Placeholder values so the build is deterministic in CI without real
+          # secrets. Static prerender of some pages (e.g. /faq) touches the
+          # service-role Supabase client, whose Proxy throws only when the key
+          # is absent — a non-empty placeholder lets construction succeed; no
+          # network happens at build (supabase-js returns {error}, never throws).
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
           NEXT_PUBLIC_APP_URL: https://www.charitme.com
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
