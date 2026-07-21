@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   MAX_DONATION_CENTS,
   DEFAULT_DONOR_TIP_PERCENT,
@@ -10,7 +10,7 @@ import {
   type PaymentMethod,
 } from '@shared/fees';
 import { createClient } from '../../../lib/supabase-browser';
-import { formatMoney, formatMoneyShort, currencySymbol, normalizeCurrency, DEFAULT_CURRENCY } from '@shared/currencies';
+import { formatMoney, formatMoneyShort, currencySymbol, DEFAULT_CURRENCY } from '@shared/currencies';
 
 /* ── Design tokens (CSS-variable-aware for dark mode) ──── */
 const V   = 'var(--violet, #6c35ff)';
@@ -23,10 +23,6 @@ const INK = 'var(--t1, #1a1a2e)';
 
 /* Fallback preset amounts when no campaign-tuned asks are provided */
 const DEFAULT_PRESETS = [25, 50, 75, 100, 150, 250];
-
-/* Tip slider range: 0–50% (matches the design axis) */
-const TIP_MIN = 0;
-const TIP_MAX = 50;
 
 type FrequencyMode = 'once' | 'monthly';
 
@@ -88,7 +84,7 @@ const TIP_TIER_META: Record<number, { label: string; icon: string }> = {
   5: { label: 'Thanks', icon: 'heart' },
   3: { label: 'Little bit', icon: 'clap' },
   1: { label: 'Any help counts', icon: 'gift' },
-  0: { label: 'Set it to 0%', icon: 'none' },
+  0: { label: 'No tip', icon: 'none' },
 };
 
 export default function DonateButton({
@@ -130,9 +126,6 @@ export default function DonateButton({
   const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
   const [presets, setPresets] = useState<number[]>(smartPresets && smartPresets.length === 6 ? smartPresets : DEFAULT_PRESETS);
   const [aiNudge, setAiNudge] = useState('');
-  const customTipRef = useRef<HTMLInputElement>(null);
-  /** Slider bubble position (0–100%) clamped to the visible slider range. */
-  const bubbleLeft = ((Math.max(TIP_MIN, Math.min(TIP_MAX, tipPercent)) - TIP_MIN) / (TIP_MAX - TIP_MIN)) * 100;
 
   useEffect(() => {
     let cancelled = false;
@@ -445,10 +438,6 @@ export default function DonateButton({
               {isMonthly && <span style={{ fontSize: 15, color: MU, fontWeight: 700 }}>/mo</span>}
             </span>
           </div>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--s1, #fff)', border: `1px solid ${BD}`, borderRadius: 10, padding: '8px 12px', fontSize: 13, fontWeight: 700, color: INK, flexShrink: 0 }}>
-            <span aria-hidden style={{ fontSize: 15 }}>{({ USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', CAD: '🇨🇦', AUD: '🇦🇺', NZD: '🇳🇿', JPY: '🇯🇵' } as Record<string, string>)[normalizeCurrency(currency)] ?? '🌐'}</span>
-            {normalizeCurrency(currency)}
-          </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, color: MU, fontSize: 13 }}>
           <span style={{ width: 18, height: 18, color: V, flexShrink: 0 }}><TipIcon name="shieldCheck" /></span>
@@ -466,8 +455,8 @@ export default function DonateButton({
         </p>
 
         {/* Suggested tiers — icon + % + label */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 6 }}>
-          {SUPPORT_TIER_PERCENTS.filter((p) => p !== 0).map((p) => {
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
+          {SUPPORT_TIER_PERCENTS.map((p) => {
             const active = tipPercent === p;
             const meta = TIP_TIER_META[p];
             return (
@@ -495,50 +484,6 @@ export default function DonateButton({
           })}
         </div>
 
-        {/* Custom tip — slider + numeric entry */}
-        <div style={{ marginTop: 16, borderTop: `1px solid ${BD}`, paddingTop: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: V }}>Custom tip</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, border: `1.5px solid ${BD}`, borderRadius: 9, padding: '4px 8px', background: 'var(--s1, #fff)' }}>
-              <input
-                ref={customTipRef}
-                type="number"
-                min="0"
-                max="100"
-                step="0.5"
-                value={tipPercent}
-                onChange={(e) => setTipPercent(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
-                aria-label="Custom tip percentage"
-                style={{ width: 34, border: 0, outline: 'none', background: 'transparent', fontSize: 13, fontWeight: 800, color: INK, fontFamily: 'inherit', textAlign: 'right' }}
-              />
-              <span style={{ fontSize: 13, fontWeight: 700, color: MU }}>%</span>
-            </span>
-          </div>
-          <div style={{ position: 'relative', paddingTop: 22 }}>
-            <span style={{ position: 'absolute', top: 0, left: `${bubbleLeft}%`, transform: 'translateX(-50%)', background: V, color: '#fff', fontSize: 10.5, fontWeight: 800, padding: '2px 7px', borderRadius: 999, whiteSpace: 'nowrap' }}>{tipPercent}%</span>
-            <input
-              type="range"
-              min={TIP_MIN}
-              max={TIP_MAX}
-              step="0.5"
-              value={Math.min(tipPercent, TIP_MAX)}
-              onChange={(e) => setTipPercent(Number(e.target.value))}
-              aria-label="Fine-tune support percentage"
-              style={{ width: '100%', accentColor: V, cursor: 'pointer' }}
-            />
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 10, color: MU, fontWeight: 600 }}>
-              {[0, 10, 20, 30, 40, 50].map((t) => <span key={t}>{t}%</span>)}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => customTipRef.current?.focus()}
-            style={{ background: 'none', border: 'none', color: V, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', padding: '10px 0 0', margin: '0 auto', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit' }}
-          >
-            <svg viewBox="0 0 24 24" width={13} height={13} style={ICON_STROKE as React.CSSProperties} aria-hidden><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" /></svg>
-            Enter custom tip
-          </button>
-        </div>
       </div>
 
       {/* ── Payment method — radio list ── */}

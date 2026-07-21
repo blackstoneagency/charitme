@@ -581,6 +581,21 @@ tests/build/live-HTTP are listed here.
   clean; full suite **772/772**; `next build` green; combined line + donation
   reconciles to the "You pay" total by construction._
 
+- **CHAR-SM8 · donate UI · simplify amount + tip controls** — Per design, removed
+  two elements from the donate form: (1) the **currency selector chip** ("🇺🇸 USD")
+  next to the "You're giving" amount, and (2) the entire **custom-tip slider panel**
+  (Custom-tip label, numeric % input, 0–50% range slider, and its "Enter custom
+  tip" button). Cleaned up all now-dead code (`useRef`/`normalizeCurrency` imports,
+  `TIP_MIN`/`TIP_MAX` consts, `customTipRef`, `bubbleLeft`). Because the slider was
+  the only path to a **0% tip** (preset tiles started at 1%), and the platform's
+  optional-tip promise ("you can set it to 0%") must stay true, added a **"No tip"
+  (0%) tile** to the preset row (per user decision) — reused the existing `0` entry
+  in `TIP_TIER_META` (relabeled "Set it to 0%"→"No tip", ⊘ icon) and switched the
+  tile grid from 7-across to **4-per-row** (wraps to 4×2 for the now-8 options).
+  Tipping remains fully optional; amounts/tip still flow through `@shared/fees` →
+  server recompute → Stripe (no schema change). _Evidence: typecheck + lint clean;
+  full suite **772/772**; `next build` green._
+
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
   Removed the stray field. _Evidence: verified live vs schema; commit `20d1597`._
