@@ -292,6 +292,75 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Completion Evidence: —
   - Commit: —
 
+- [~] CHAR-0017 — **Dual-path campaign builder (AI + guided) — audit done, first slice shipped, program continues**
+  - Area: Campaign creation
+  - Priority: P1
+  - Owner goal: from an idea to a publish-ready campaign in minutes, via EITHER a
+    "Build with AI" prompt path OR a step-by-step guided path, both converging on
+    the same canonical campaign model, review, payout, verification, and publish.
+
+  - **What ALREADY exists (do NOT rebuild — extend/consolidate):**
+    - Guided path: `apps/web/app/create/page.tsx` — 1,696-line 9-step wizard
+      (Type → Category → Location → Story → Title → Goal → Media → Get Paid → Review),
+      `sessionStorage['cm_wizard']` autosave/resume, draft save (campaign
+      `status='draft'`), Stripe Connect + Venmo/PayPal/GooglePay/Sinch payout step,
+      publish via `POST /api/campaigns`.
+    - AI path entry: `apps/web/app/ai-campaign/page.tsx` (prompt box + popular
+      requests) → routes to `/create?ai=<prompt>`.
+    - AI engine: `apps/web/app/api/ai/campaign/route.ts` — real OpenAI
+      (`gpt-4.1-mini`) with deterministic `fallbackAiCampaign()` (`lib/openai.ts`),
+      zod-validated, durable rate-limited, logged to `ai_generations`.
+    - Drafts are currently just `campaigns` rows with `status='draft'` — there are
+      NO dedicated `campaign_drafts` / `campaign_ai_sessions` / `campaign_creation_*`
+      tables yet.
+
+  - **DONE this session (shipped on branch `claude/charitme-github-integration-tbaz3i`, commit 9c7b142):**
+    - Fixed broken Build-with-AI path: `/create` never read `?ai=<prompt>`, so the
+      organizer's typed prompt was silently dropped. Now `/create` consumes `?ai=`,
+      seeds the story, jumps to the Story step, and generates the first draft once
+      (fallback guarantees non-empty, reviewable content). `runAi()` takes an
+      optional notes override.
+    - Added `__tests__/ai-campaign-fallback.test.ts` (5 tests) locking the "AI
+      always returns complete content + carries the prompt into the story" contract.
+    - Verified: typecheck + lint clean, build compiles, 782 tests pass.
+
+  - **REAL gaps — sandbox-buildable, ordered by recommended sequence (pick up here):**
+    1. Co-equal entry screen `/create/choose-path` presenting AI vs Step-by-Step as
+       equals (time estimates, autosave + resume-later reassurance). Repoint the
+       ~25 existing `/create` and `/ai-campaign` CTAs (home, marketing pages) to it.
+    2. AI follow-up question flow: after the first generation, ask only missing/
+       ambiguous fields ONE at a time (beneficiary, relationship, timing, use-of-
+       funds, payout recipient, consent, anonymity); never repeat answered/known
+       (profile) fields; allow "I'm not sure"; save each answer; update draft live.
+    3. Guided path: one primary question per screen (progressive disclosure for
+       advanced settings) instead of the current multi-field steps.
+    4. Publish-readiness engine: real-time score across story/goal/use-of-funds/
+       media/organizer/beneficiary/payout/verification, each missing item linking
+       to the exact step. (A "CharitMe Score" sidebar already exists to build on.)
+    5. Structured story editor sections + AI rewrite/tone/readability + unsupported-
+       claim warnings.
+    6. Goal + line-item use-of-funds builder with fee/net-proceeds breakdown.
+    7. Admin observability: `/admin/campaign-builder{,/funnels,/ai,/verification,/errors}`.
+
+  - **Owner/staging-gated (CANNOT be certified from sandbox — see CHAR-0016):**
+    - New builder/draft/AI-session tables + RLS + triggers must be applied to LIVE
+      Supabase via the Management API (no local migration path here).
+    - Stripe Connect "payout ready/KYC" confirmation needs live Connect enablement
+      (existing launch blocker LB-005).
+    - Real AI generation needs `OPENAI_API_KEY` (sandbox runs the deterministic
+      fallback only).
+    - Full E2E / mobile / axe sweep needs a running authed app + staging data.
+
+  - **Handoff notes for the next agent:**
+    - Land/merge the open PR (theme polish + this AI fix) FIRST so builder work does
+      not keep stacking on that branch; then branch fresh from latest master.
+    - Reuse the `campaigns` model + `/api/campaigns` + `lib/openai.ts`; do NOT
+      duplicate. Consolidate `/ai-campaign` and `/create` rather than forking a
+      third flow.
+    - Keep everything design-token themed (light/dark) and mobile-first; the create
+      flow uses `cr2-*` classes in `globals.css`.
+  - Commit: 9c7b142 (AI-path fix + tests)
+
 > Backlog continues: each remaining capability in Section B becomes CHAR-#### tasks
 > as its slice is scheduled. Completed tasks move to **Section C — Completed** with evidence.
 
