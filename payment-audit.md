@@ -331,6 +331,13 @@ becomes a build failure instead:
   DIRECTLY chained to `.from(table)` (a robust brace/string/comment-aware key
   parser). Directly-chained only, so query-builders stored in variables (the filter
   false-positive class) are safely skipped.
+- **And RPC parameters:** `.rpc('fn', {...})` keys are validated against the
+  function's named parameters (from `fixtures/schema-functions.json`, 47 functions).
+  Only functions with named params are checked, so Postgres built-ins (`pg_notify`)
+  and no-arg functions are skipped — false-positive-free. An RPC sweep found **0
+  current violations** (`record_donation`, `claim_campaign_reward`,
+  `increment/decrement_campaign_stats` all correct); this guards the core money
+  functions against future parameter drift.
 - **Proven to catch the bug:** injecting a bad `.select()` column, a bad `.insert()`
   key, and a bad `.update()` key each fail the test with the exact
   `file:line table.column`; all pass again on removal. Green on the current codebase

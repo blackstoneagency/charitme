@@ -27,30 +27,48 @@ const ref =
 if (!token) { console.error('Set SUPABASE_ACCESS_TOKEN.'); process.exit(1); }
 if (!ref) { console.error('Set NEXT_PUBLIC_SUPABASE_URL or SUPABASE_PROJECT_REF.'); process.exit(1); }
 
-const sql = `select table_name, json_agg(column_name order by column_name) as cols
-             from information_schema.columns
-             where table_schema='public'
-             group by table_name`;
-
-const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-    'User-Agent': 'Mozilla/5.0 (schema-snapshot)',
-  },
-  body: JSON.stringify({ query: sql }),
-});
-
-const body = await res.json();
-if (!Array.isArray(body)) {
-  console.error('Unexpected response:', JSON.stringify(body).slice(0, 300));
-  process.exit(1);
+async function query(sql) {
+  const res = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      'User-Agent': 'Mozilla/5.0 (schema-snapshot)',
+    },
+    body: JSON.stringify({ query: sql }),
+  });
+  const body = await res.json();
+  if (!Array.isArray(body)) {
+    console.error('Unexpected response:', JSON.stringify(body).slice(0, 300));
+    process.exit(1);
+  }
+  return body;
 }
 
-const out = {};
-for (const row of body) out[row.table_name] = [...row.cols].sort();
+const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'apps/web/__tests__/fixtures');
+const writeSorted = (name, obj) =>
+  writeFileSync(join(fixturesDir, name), JSON.stringify(Object.fromEntries(Object.entries(obj).sort()), null, 0) + '\n');
 
-const dest = join(dirname(fileURLToPath(import.meta.url)), '..', 'apps/web/__tests__/fixtures/schema-columns.json');
-writeFileSync(dest, JSON.stringify(Object.fromEntries(Object.entries(out).sort()), null, 0) + '\n');
-console.log(`Wrote ${Object.keys(out).length} tables to ${dest}`);
+// ── Columns per table ──
+const colRows = await query(
+  `select table_name, json_agg(column_name order by column_name) as cols
+   from information_schema.columns where table_schema='public' group by table_name`,
+);
+const columns = {};
+for (const row of colRows) columns[row.table_name] = [...row.cols].sort();
+writeSorted('schema-columns.json', columns);
+
+// ── Public functions → named parameters (empty array when none) ──
+const fnRows = await query(
+  `select proname as fn, coalesce(to_json(proargnames), '[]'::json) as params
+   from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public'`,
+);
+const functions = {};
+for (const row of fnRows) {
+  const set = new Set(functions[row.fn] ?? []);
+  for (const p of row.params ?? []) if (p) set.add(p);
+  functions[row.fn] = [...set].sort();
+}
+writeSorted('schema-functions.json', functions);
+
+console.log(`Wrote ${Object.keys(columns).length} tables and ${Object.keys(functions).length} functions to ${fixturesDir}`);

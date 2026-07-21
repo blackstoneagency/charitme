@@ -3,6 +3,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import schemaColumns from './fixtures/schema-columns.json';
+import schemaFunctions from './fixtures/schema-functions.json';
 
 // Anchor scanning to apps/web (this file lives in apps/web/__tests__), NOT
 // process.cwd() — the cwd differs between `npm run test -w apps/web` and a
@@ -29,6 +30,7 @@ const APP_WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const COLUMNS = schemaColumns as Record<string, string[]>;
 const KNOWN_TABLES = new Set(Object.keys(COLUMNS));
+const FUNCTIONS = schemaFunctions as Record<string, string[]>;
 
 // Directories to scan (relative to apps/web).
 const SCAN_DIRS = ['app', 'lib'];
@@ -203,6 +205,44 @@ function collectRefs(): Ref[] {
   return refs;
 }
 
+type RpcRef = { file: string; line: number; fn: string; param: string };
+
+const RPC_RE = /\.rpc\(\s*['"]([a-z_][a-z0-9_]*)['"]\s*,\s*\{/g;
+
+/**
+ * Validate `.rpc('fn', { p_x: ... })` parameter keys against the function's known
+ * named parameters. Only functions present in the snapshot WITH named params are
+ * checked — unknown names (Postgres built-ins like pg_notify, extension functions)
+ * and no-named-param functions are skipped, so this stays false-positive-free.
+ */
+function collectRpcRefs(): RpcRef[] {
+  const refs: RpcRef[] = [];
+  for (const dir of SCAN_DIRS) {
+    const root = join(APP_WEB_ROOT, dir);
+    let files: string[];
+    try { files = listSourceFiles(root); } catch { continue; }
+    for (const file of files) {
+      const src = readFileSync(file, 'utf8');
+      RPC_RE.lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = RPC_RE.exec(src))) {
+        const fn = m[1];
+        const params = FUNCTIONS[fn];
+        if (!params || params.length === 0) continue; // unknown / no named params — skip
+        const braceIdx = m.index + m[0].length - 1; // index of '{'
+        const keys = objectKeys(src, braceIdx);
+        if (!keys) continue;
+        const line = src.slice(0, m.index).split('\n').length;
+        const rel = 'apps/web/' + file.replace(APP_WEB_ROOT + '/', '');
+        for (const key of keys) {
+          if (!params.includes(key)) refs.push({ file: rel, line, fn, param: key });
+        }
+      }
+    }
+  }
+  return refs;
+}
+
 describe('schema contract: .select() columns exist in the schema snapshot', () => {
   it('every selected column exists on its table', () => {
     const bad = collectRefs();
@@ -213,6 +253,18 @@ describe('schema contract: .select() columns exist in the schema snapshot', () =
           '(these fail closed at runtime — fix the query or add the column via migration; ' +
           'if the snapshot is stale run `npm run schema:snapshot`):\n' +
           bad.map((b) => `  ${b.file}:${b.line}  ${b.table}.${b.column}`).join('\n');
+    expect(bad, message).toEqual([]);
+  });
+
+  it('every .rpc() parameter exists on the function', () => {
+    const bad = collectRpcRefs();
+    const message =
+      bad.length === 0
+        ? ''
+        : 'RPC calls pass parameters that do not exist on the function ' +
+          '(these error at runtime; fix the call or the migration; refresh the ' +
+          'snapshot with `npm run schema:snapshot`):\n' +
+          bad.map((b) => `  ${b.file}:${b.line}  ${b.fn}(${b.param})`).join('\n');
     expect(bad, message).toEqual([]);
   });
 });
