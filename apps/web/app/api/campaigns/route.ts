@@ -5,6 +5,7 @@ import { createClient } from '../../../lib/supabase-server';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { checkRateLimit } from '../../../lib/rate-limit';
 import { applyCampaignSearch } from '../../../lib/campaign-search';
+import { totalPages } from '../../../lib/pagination';
 
 function slugify(text: string): string {
   return text
@@ -155,19 +156,21 @@ export async function GET(request: NextRequest) {
   // (ilike leverages the trigram indexes). Each word must match some field.
   query = applyCampaignSearch(query, q);
 
-  const { data, error } = await query;
+  // The main query is built with `count: 'exact'`, so `count` is the total number
+  // of rows matching ALL of the applied filters (category/location/search),
+  // independent of the `.range()` window — exactly what pagination needs.
+  const { data, count, error } = await query;
   if (error) {
     console.error('Campaign list failed', error);
     return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' }, { status: 500 });
   }
 
-  const { data: countResult } = await supabaseAdmin
-    .from('campaigns')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'active')
-    .eq('visibility', visibility)
-    .is('deleted_at', null);
-  void countResult;
-
-  return NextResponse.json({ campaigns: data ?? [], page, limit });
+  const total = count ?? 0;
+  return NextResponse.json({
+    campaigns: data ?? [],
+    page,
+    limit,
+    total,
+    totalPages: totalPages(total, limit),
+  });
 }

@@ -526,6 +526,17 @@ tests/build/live-HTTP are listed here.
   12/12 (tokenizer + injection-safety + AND/OR builder) + photo-catalog 11/11;
   full suite **758/758**; typecheck clean; `next build` green._
 
+- **CHAR-SM4 · pagination bugfix** — `GET /api/campaigns` returned **no total**, so
+  clients couldn't paginate, and it ran a **second count query that ignored the
+  category/location/search filters** — then threw the result away (`void
+  countResult`). Meanwhile the main list query (built with `count: 'exact'`)
+  already produced an accurate, filter-aware total that was being discarded.
+  Fixed to use that `count` and return `total` + `totalPages` (additive — the
+  only client caller is the POST create path, so no shape break), removing the
+  wasted/incorrect DB round-trip. Pagination math extracted to
+  `lib/pagination.ts#totalPages` (≥1, divide-by-zero/negative-safe) with tests.
+  _Evidence: `__tests__/pagination.test.ts` 4/4; typecheck clean; full suite green._
+
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
   Removed the stray field. _Evidence: verified live vs schema; commit `20d1597`._
