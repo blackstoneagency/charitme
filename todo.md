@@ -553,6 +553,19 @@ tests/build/live-HTTP are listed here.
   7/7 (Person↔Organization recipient, active/closed DonateAction, title fallback,
   empty-field omission); full suite **769/769**; typecheck + lint clean._
 
+- **CHAR-SM6 · SEO · sitemap coverage** — The sitemap listed static/blog/feature/
+  campaign URLs but **omitted entire public product verticals** and **every
+  category landing page** — whole indexable sections invisible to search. Added
+  the five public discovery hubs (`/grants`, `/volunteer`, `/events`, `/sponsor`,
+  `/matching`) and all 18 **`/campaigns?category=<Cat>`** landing pages (strong
+  SEO hubs). Deliberately **excluded `/achievements`** (auth-gated personal page —
+  `requireUser`) so no private/redirecting route leaks into the sitemap; verified
+  none of the added paths are `robots.ts`-disallowed. Also hardened campaign
+  `lastModified` with `safeDate()` so a null/invalid `updated_at` can no longer
+  emit an `Invalid Date` into the XML (falls back to now). _Evidence:
+  `__tests__/sitemap.test.ts` 3/3; full suite **772/772**; `next build` green,
+  `/sitemap.xml` route emits._
+
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
   Removed the stray field. _Evidence: verified live vs schema; commit `20d1597`._

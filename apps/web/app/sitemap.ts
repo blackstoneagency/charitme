@@ -3,6 +3,7 @@ import { campaignColumns, applyLiveFilters } from '../lib/campaign-visibility';
 import { BLOG_POSTS } from '../lib/blog-posts';
 import { PLATFORM_MODULES } from '../lib/feature-catalog';
 import { supabaseAdmin } from '../lib/supabase';
+import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 
 const BASE = 'https://www.charitme.com';
 
@@ -12,6 +13,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [
     { url: BASE,                        priority: 1.0,  changeFrequency: 'daily'   as const },
     { url: `${BASE}/campaigns`,         priority: 0.9,  changeFrequency: 'hourly'  as const },
+    { url: `${BASE}/grants`,            priority: 0.75, changeFrequency: 'daily'   as const },
+    { url: `${BASE}/volunteer`,         priority: 0.75, changeFrequency: 'daily'   as const },
+    { url: `${BASE}/events`,            priority: 0.75, changeFrequency: 'daily'   as const },
+    { url: `${BASE}/sponsor`,           priority: 0.7,  changeFrequency: 'daily'   as const },
+    { url: `${BASE}/matching`,          priority: 0.7,  changeFrequency: 'weekly'  as const },
     { url: `${BASE}/leaderboard`,       priority: 0.75, changeFrequency: 'hourly'  as const },
     { url: `${BASE}/pricing`,           priority: 0.85, changeFrequency: 'weekly'  as const },
     { url: `${BASE}/features`,          priority: 0.8,  changeFrequency: 'weekly'  as const },
@@ -50,6 +56,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date(),
   }));
 
+  // Category landing pages (`/campaigns?category=…`) are strong SEO hubs.
+  const categoryRoutes = CAMPAIGN_CATEGORIES.map(cat => ({
+    url: `${BASE}/campaigns?category=${encodeURIComponent(cat)}`,
+    priority: 0.7,
+    changeFrequency: 'daily' as const,
+    lastModified: new Date(),
+  }));
+
   const cols = await campaignColumns();
   const { data: campaigns } = await applyLiveFilters(
     supabaseAdmin.from('campaigns').select('slug, updated_at'),
@@ -62,8 +76,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${BASE}/campaigns/${c.slug}`,
     priority: 0.7,
     changeFrequency: 'daily' as const,
-    lastModified: new Date(c.updated_at),
+    lastModified: safeDate(c.updated_at),
   }));
 
-  return [...staticRoutes, ...blogRoutes, ...featureRoutes, ...campaignRoutes];
+  return [...staticRoutes, ...blogRoutes, ...featureRoutes, ...categoryRoutes, ...campaignRoutes];
+}
+
+/** A valid Date for sitemap `lastModified`, falling back to now for null/invalid input. */
+export function safeDate(value: unknown): Date {
+  if (typeof value === 'string' || typeof value === 'number' || value instanceof Date) {
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  return new Date();
 }
