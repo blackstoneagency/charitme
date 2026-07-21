@@ -671,6 +671,19 @@ tests/build/live-HTTP are listed here.
     but **must be applied to the live DB** (Management API / normal migration-apply
     flow) for the duplicates to clear in production.
 
+- **CHAR-SM13 · images · Unsplash themed-cover wiring (scaffold)** — To upgrade the
+  unique covers from generic Picsum to **category-themed uniques**, added
+  `lib/unsplash.ts`: `categoryQuery()` (18-category → search-query map),
+  `unsplashCoverUrl()` (raw → sized 800×600 crop), `hasUnsplashKey()`, and
+  `searchUnsplashCovers()` (Unsplash Search API, landscape + high content-filter,
+  de-duped, **degrades to [] on missing key / any error** so nothing breaks).
+  Documented `UNSPLASH_ACCESS_KEY` in `.env.example`. _Evidence:
+  `__tests__/unsplash.test.ts` 5/5; full suite **777/777**; typecheck + lint clean._
+  **PENDING:** owner to provide the Unsplash Access Key (goes in `.env.local`,
+  never committed). Once set, the themed backfill assigns each campaign a unique
+  on-theme photo (per-category pool, no cross-campaign reuse), replacing the
+  Picsum backfill; live apply still needs write access / the Management API token.
+
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
   Removed the stray field. _Evidence: verified live vs schema; commit `20d1597`._
