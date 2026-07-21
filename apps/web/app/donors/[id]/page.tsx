@@ -49,7 +49,7 @@ export default async function PublicDonorProfilePage({ params }: { params: Promi
 
   if (profile.show_public_profile === false) {
     return (
-      <div className="bg-white min-h-screen">
+      <div className="mktg-page min-h-screen">
         <div className="container py-16 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-2xl">🔒</div>
           <h1 className="mt-4 text-xl font-black text-slate-950">This donor profile is private</h1>
@@ -110,7 +110,7 @@ export default async function PublicDonorProfilePage({ params }: { params: Promi
   const name = profile.full_name || 'Generous Donor';
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="mktg-page min-h-screen">
       {/* Header */}
       <section className="border-b border-slate-100 bg-slate-50 py-10">
         <div className="container">

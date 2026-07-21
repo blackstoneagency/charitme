@@ -92,7 +92,7 @@ export default async function ProfilePage() {
   const earnedBadgeIds = new Set(DONOR_BADGES.filter((b) => b.earned(gamificationStats)).map((b) => b.id));
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="mktg-page min-h-screen">
       {/* Stats banner */}
       <section className="border-b border-slate-100 bg-slate-50 py-8">
         <div className="container">
