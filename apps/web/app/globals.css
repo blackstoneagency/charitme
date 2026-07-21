@@ -1533,6 +1533,12 @@ img, svg { display: block; }
 .pc-referral-link { display: inline-block; font-size: 12px; font-weight: 800; color: var(--green-dark, #065f46); text-decoration: none; }
 .pc-referral-link:hover { text-decoration: underline; }
 
+/* Collapsible "how it works" / embed helper — shared by the share/embed section */
+.pc-match-note { margin: 10px 0 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
+.pc-match-howto { margin-top: 12px; font-size: 12px; color: var(--muted); }
+.pc-match-howto summary { cursor: pointer; font-weight: 800; color: var(--violet); }
+.pc-match-howto ol { margin: 8px 0 0; padding-left: 18px; line-height: 1.6; }
+
 /* Body: story + sidebar-right */
 .pc-body { display: grid; grid-template-columns: minmax(0,1fr) 400px; gap: 34px; margin-top: 34px; }
 
@@ -4910,6 +4916,7 @@ img, svg { display: block; }
 [data-theme="dark"] .pc-referral-head b { color: var(--t1); }
 [data-theme="dark"] .pc-referral-head span { color: var(--t3); }
 [data-theme="dark"] .pc-milestones { background: var(--s1); border-color: var(--b1); }
+[data-theme="dark"] .pc-match-note, [data-theme="dark"] .pc-match-howto { color: var(--t3); }
 [data-theme="dark"] .pc-organizers { background: rgba(15,18,48,.96); border-color: var(--line); }
 [data-theme="dark"] .pc-org-info b { color: var(--t1); }
 [data-theme="dark"] .pc-org-info small { color: var(--t3); }
