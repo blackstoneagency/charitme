@@ -715,10 +715,20 @@ tests/build/live-HTTP are listed here.
   de-duped, **degrades to [] on missing key / any error** so nothing breaks).
   Documented `UNSPLASH_ACCESS_KEY` in `.env.example`. _Evidence:
   `__tests__/unsplash.test.ts` 5/5; full suite **777/777**; typecheck + lint clean._
-  **PENDING:** owner to provide the Unsplash Access Key (goes in `.env.local`,
-  never committed). Once set, the themed backfill assigns each campaign a unique
-  on-theme photo (per-category pool, no cross-campaign reuse), replacing the
-  Picsum backfill; live apply still needs write access / the Management API token.
+  **PENDING — WAITING ON OWNER (as of this session):** need the real Unsplash
+  **Access Key** (the `Client-ID`, ~40-char string from
+  https://unsplash.com/oauth/applications → app → Keys → *Access Key*, NOT the
+  Secret key). The value pasted so far was the Unsplash **API docs sample**
+  (the "Get a photo" example response — Luke Skywalker / Tatooine placeholder
+  data), not a key, so nothing could be wired. Next steps the moment the key
+  arrives: (1) add `UNSPLASH_ACCESS_KEY` to `apps/web/.env.local` (gitignored,
+  never committed); (2) fetch a themed pool per category via
+  `searchUnsplashCovers()` (~18 requests — fine under Demo mode's 50/hr);
+  (3) assign each of the 500 campaigns a unique on-theme photo (per-category
+  pool, no cross-campaign reuse) and regenerate the backfill migration
+  (replacing the Picsum `20260724000000` one); (4) wire campaign creation to pull
+  a themed cover when none is uploaded. Live apply still needs write access / the
+  Management API token (same blocker as CHAR-SM12).
 
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
