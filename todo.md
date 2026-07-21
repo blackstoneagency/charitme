@@ -537,6 +537,22 @@ tests/build/live-HTTP are listed here.
   `lib/pagination.ts#totalPages` (≥1, divide-by-zero/negative-safe) with tests.
   _Evidence: `__tests__/pagination.test.ts` 4/4; typecheck clean; full suite green._
 
+- **CHAR-SM5 · SEO/AEO · campaign structured data** — Campaign detail pages emitted
+  BreadcrumbList + FAQPage JSON-LD but had **no node describing the campaign
+  itself**, so search/answer engines had no structured signal for what the page
+  is, who the recipient is, or where to donate — a real gap for a platform that
+  explicitly optimizes for AEO. Added `lib/campaign-jsonld.ts#buildCampaignJsonLd`:
+  a truthful schema.org **`WebPage`** graph (name/description/image/datePublished/
+  `about`=category, `isPartOf` WebSite=CharitMe, `publisher`=CharitMe,
+  `author`/recipient = organizer as **Person**, or **Organization** when
+  `nonprofit_verified`), plus a **`DonateAction`** whose `EntryPoint` targets the
+  real `#donate-section` anchor — emitted **only when the campaign is actively
+  accepting donations** (never advertise donating to a closed campaign). All
+  fields derive from real campaign data; empty fields are omitted from the markup.
+  Escaped via the existing `safeJsonLd`. _Evidence: `__tests__/campaign-jsonld.test.ts`
+  7/7 (Person↔Organization recipient, active/closed DonateAction, title fallback,
+  empty-field omission); full suite **769/769**; typecheck + lint clean._
+
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
   Removed the stray field. _Evidence: verified live vs schema; commit `20d1597`._

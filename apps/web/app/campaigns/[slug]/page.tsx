@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { safeJsonLd } from "../../../lib/json-ld";
+import { buildCampaignJsonLd } from "../../../lib/campaign-jsonld";
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -282,6 +283,19 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const campaignUrl = `${ORIGIN}/campaigns/${campaign.slug}`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(campaignUrl)}&color=6c35ff&bgcolor=ffffff&margin=10`;
 
+  const campaignJsonLd = buildCampaignJsonLd({
+    title: campaign.title,
+    description: campaign.tagline ?? campaign.description?.slice(0, 200) ?? '',
+    url: campaignUrl,
+    image: cover,
+    organizerName: organizer?.full_name ?? null,
+    category: campaign.category ?? null,
+    createdAt: (campaign as { created_at?: string | null }).created_at ?? null,
+    isActive,
+    siteOrigin: ORIGIN,
+    nonprofitVerified: (campaign as { nonprofit_verified?: boolean }).nonprofit_verified === true,
+  });
+
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -383,6 +397,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
   return (
     <main className="public-campaign">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(campaignJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }} />
       {faqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }} />}
       {justDonated && (
