@@ -488,6 +488,24 @@ tests/build/live-HTTP are listed here.
   (route-level `seo_settings` overrides); AEO → public FAQ + FAQPage JSON-LD on
   `/faq` (`lib/aeo.ts`, parallel session). Editing the console changes production.
 
+- **CHAR-SM2 · images / no-duplicates** — Campaign discovery showed **500
+  campaigns sharing only 50 distinct covers** (each reused ~10×): every category
+  pool was ~6 photos, many shared cross-category, spread by a colliding hash.
+  Fixed to **500 distinct, theme-matched covers** — every `campaigns.cover_image_url`
+  is now a unique free photo relevant to its category (LoremFlickr keyed on the
+  category theme keyword + a stable per-campaign lock: Education→school,
+  Medical→hospital, Animal→animal, Emergency→rescue, Faith→church, Environment→
+  nature, Creative→art, etc.). A background verify pass GET-checked all 500 and
+  swapped the 2 that hit LoremFlickr's placeholder to unique Picsum photos →
+  **distinct=500, defaults=0** (498 LoremFlickr + 2 Picsum). Code:
+  `getCoverForCampaign` rewritten for unique themed covers (future/null covers),
+  `getUniqueCover` (Picsum) safe last resort, `loremflickr.com`+`picsum.photos`
+  whitelisted in `next.config`; `<CampaignImage>` onError chain still guards
+  runtime failures. Audited all other pages — no duplicate hardcoded images
+  elsewhere. _Evidence: DB distinct_covers 50→500, defaults 0; typecheck clean;
+  `next build` green; commit `984cd64`._ **Follow-up (owner):** add an Unsplash/
+  Pexels API key to upgrade all 500 covers to Unsplash-grade themed uniques.
+
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
   Removed the stray field. _Evidence: verified live vs schema; commit `20d1597`._
