@@ -1147,7 +1147,7 @@ export default function CreatePage() {
                       {!payoutLinked && (
                         <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 18, lineHeight: 1.55 }}>
                           CharitMe charges 0% platform fees. Connect once — donations go directly to you.
-                          <strong style={{ color: '#dc2626' }}> This step is required to continue.</strong>
+                          <strong style={{ color: 'var(--red)' }}> This step is required to continue.</strong>
                         </p>
                       )}
 
