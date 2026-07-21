@@ -112,7 +112,7 @@ export default function HowItWorksPage() {
           and payout transparency behind the scenes — so every campaign can reach its potential.
         </p>
         <div className="pub-actions hiw-hero-actions">
-          <Link href="/create" className="pub-btn primary">Start a Campaign</Link>
+          <Link href="/create/choose-path" className="pub-btn primary">Start a Campaign</Link>
           <Link href="/campaigns" className="pub-btn secondary">Browse Campaigns</Link>
         </div>
       </section>
@@ -144,7 +144,7 @@ export default function HowItWorksPage() {
           ))}
         </div>
         <div className="hiw-cta-row">
-          <Link href="/create" className="pub-btn primary">Start your campaign →</Link>
+          <Link href="/create/choose-path" className="pub-btn primary">Start your campaign →</Link>
         </div>
       </section>
 
@@ -203,7 +203,7 @@ export default function HowItWorksPage() {
         <h2>Ready to start raising?</h2>
         <p>Launch your campaign in under 5 minutes. 0% platform fee. AI Copilot included free.</p>
         <div className="hiw-cta-band-actions">
-          <Link href="/create" className="pub-btn primary">Start free campaign</Link>
+          <Link href="/create/choose-path" className="pub-btn primary">Start free campaign</Link>
           <Link href="/pricing" className="pub-btn secondary">See pricing</Link>
         </div>
       </section>

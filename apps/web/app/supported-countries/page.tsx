@@ -72,7 +72,7 @@ export default async function SupportedCountriesPage() {
             </div>
           </div>
           <div className="sc-hero-actions">
-            <Link href="/create" className="sc-btn-primary">Start Fundraising →</Link>
+            <Link href="/create/choose-path" className="sc-btn-primary">Start Fundraising →</Link>
             <Link href="/campaigns" className="sc-btn-secondary">Browse Campaigns</Link>
           </div>
         </div>
@@ -159,7 +159,7 @@ export default async function SupportedCountriesPage() {
           <div className="sc-cta-inner">
             <h2>Ready to make a difference?</h2>
             <p>Join thousands of fundraisers using CharitMe to raise money for causes that matter.</p>
-            <Link href="/create" className="sc-btn-primary sc-btn-lg">Start Your Campaign →</Link>
+            <Link href="/create/choose-path" className="sc-btn-primary sc-btn-lg">Start Your Campaign →</Link>
           </div>
         </section>
 

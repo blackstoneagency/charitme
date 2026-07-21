@@ -114,7 +114,7 @@ export default async function SuccessStoriesPage() {
                 See how individuals, nonprofits, and communities achieved their goals with CharitMe — powered by AI and zero mandatory fees.
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 56 }}>
-                <Link href="/create" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 52, padding: '0 28px', borderRadius: 14, background: 'linear-gradient(135deg,#6736ff,#d63ae7)', color: '#fff', fontWeight: 900, fontSize: 15, textDecoration: 'none', boxShadow: '0 16px 32px rgba(103,54,255,.4)' }}>
+                <Link href="/create/choose-path" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 52, padding: '0 28px', borderRadius: 14, background: 'linear-gradient(135deg,#6736ff,#d63ae7)', color: '#fff', fontWeight: 900, fontSize: 15, textDecoration: 'none', boxShadow: '0 16px 32px rgba(103,54,255,.4)' }}>
                   Start Your Fundraiser &#8594;
                 </Link>
                 <a href="#stories" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 52, padding: '0 28px', borderRadius: 14, border: '1.5px solid rgba(255,255,255,.2)', color: '#fff', fontWeight: 800, fontSize: 15, textDecoration: 'none', background: 'rgba(255,255,255,.07)' }}>
@@ -245,7 +245,7 @@ export default async function SuccessStoriesPage() {
               <div style={{ fontSize: 48, marginBottom: 16 }}>&#128156;</div>
               <h3 style={{ fontSize: 24, fontWeight: 900, color: 'var(--t1, #0e0520)', marginBottom: 12 }}>Stories coming soon</h3>
               <p style={{ color: 'var(--t3, #64748b)', marginBottom: 28 }}>Be the first to create a campaign and share your story.</p>
-              <Link href="/create" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 48, padding: '0 28px', borderRadius: 12, background: 'linear-gradient(135deg,#6736ff,#d63ae7)', color: '#fff', fontWeight: 900, fontSize: 15, textDecoration: 'none' }}>
+              <Link href="/create/choose-path" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 48, padding: '0 28px', borderRadius: 12, background: 'linear-gradient(135deg,#6736ff,#d63ae7)', color: '#fff', fontWeight: 900, fontSize: 15, textDecoration: 'none' }}>
                 Start Your Fundraiser &#8594;
               </Link>
             </div>
@@ -331,7 +331,7 @@ export default async function SuccessStoriesPage() {
             Join thousands of fundraisers who trust CharitMe&apos;s AI-powered platform to amplify their impact.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 14 }}>
-            <Link href="/create" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 54, padding: '0 32px', borderRadius: 15, background: 'linear-gradient(135deg,#6736ff,#d63ae7)', color: '#fff', fontWeight: 900, fontSize: 16, textDecoration: 'none', boxShadow: '0 16px 40px rgba(103,54,255,.45)' }}>
+            <Link href="/create/choose-path" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 54, padding: '0 32px', borderRadius: 15, background: 'linear-gradient(135deg,#6736ff,#d63ae7)', color: '#fff', fontWeight: 900, fontSize: 16, textDecoration: 'none', boxShadow: '0 16px 40px rgba(103,54,255,.45)' }}>
               Start Your Fundraiser Free &#8594;
             </Link>
             <Link href="/campaigns" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 54, padding: '0 32px', borderRadius: 15, border: '1.5px solid rgba(255,255,255,.2)', color: '#fff', fontWeight: 800, fontSize: 16, textDecoration: 'none', background: 'rgba(255,255,255,.07)' }}>

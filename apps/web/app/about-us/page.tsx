@@ -122,7 +122,7 @@ export default async function AboutUsPage() {
             <br />AI-powered. Radically transparent. Zero mandatory fees.
           </p>
           <div className="about-hero-actions">
-            <Link href="/create" className="about-cta-primary">Start Your Campaign →</Link>
+            <Link href="/create/choose-path" className="about-cta-primary">Start Your Campaign →</Link>
             <Link href="/success-stories" className="about-cta-ghost">See Real Stories</Link>
           </div>
 
@@ -322,7 +322,7 @@ export default async function AboutUsPage() {
             Start your campaign in minutes. No fees. No friction. Just tools that work as hard as you do.
           </p>
           <div className="about-hero-actions" style={{ justifyContent: 'center' }}>
-            <Link href="/create" className="about-cta-primary about-cta-large">Create Your Campaign →</Link>
+            <Link href="/create/choose-path" className="about-cta-primary about-cta-large">Create Your Campaign →</Link>
             <Link href="/contact" className="about-cta-ghost about-cta-large">Talk to Us</Link>
           </div>
         </div>

@@ -260,7 +260,7 @@ export default async function AiFundraisingPage() {
             <Link href="/ai-campaign" className="pub-btn primary aif-btn-primary">
               Start with AI <PublicIcon name="ai" />
             </Link>
-            <Link href="/create" className="pub-btn" style={{ background: 'rgba(255,255,255,.12)', color: '#fff', border: '1px solid rgba(255,255,255,.3)' }}>
+            <Link href="/create/choose-path" className="pub-btn" style={{ background: 'rgba(255,255,255,.12)', color: '#fff', border: '1px solid rgba(255,255,255,.3)' }}>
               Create Manually <PublicIcon name="arrow" />
             </Link>
           </div>

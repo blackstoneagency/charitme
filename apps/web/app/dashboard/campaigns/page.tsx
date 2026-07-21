@@ -163,7 +163,7 @@ export default async function MyCampaignsPage({
         title="My Campaigns"
         subtitle="Manage and grow all your fundraising campaigns."
         actions={
-          <Link href="/create" className="kf-primary" style={{ textDecoration: 'none' }}>
+          <Link href="/create/choose-path" className="kf-primary" style={{ textDecoration: 'none' }}>
             + New Campaign
           </Link>
         }
@@ -382,7 +382,7 @@ export default async function MyCampaignsPage({
                 <p style={{ fontSize: 13, marginTop: 4 }}>
                   {activeTab === 'all' ? (
                     <>
-                      <Link href="/create" style={{ color: 'var(--green-text)' }}>
+                      <Link href="/create/choose-path" style={{ color: 'var(--green-text)' }}>
                         Create your first campaign
                       </Link>{' '}
                       to get started.

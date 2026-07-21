@@ -210,7 +210,7 @@ export default async function HomePage() {
             <div className="home-hero-cta">
               <Link href="/ai-campaign" className="home-btn home-btn-primary">Create My Fundraiser With AI</Link>
               <Link href="/campaigns" className="home-btn home-btn-ghost">Donate Now <Icon name="arrow" className="hi" /></Link>
-              <Link href="/create" className="home-btn home-btn-primary">Create My Fundraiser</Link>
+              <Link href="/create/choose-path" className="home-btn home-btn-primary">Create My Fundraiser</Link>
               <Link href="/features" className="home-btn home-btn-ghost">Why We Beat GoFundMe <Icon name="arrow" className="hi" /></Link>
             </div>
 
@@ -379,7 +379,7 @@ export default async function HomePage() {
               })}
             </div>
           ) : (
-            <p className="home-empty">New causes are launching now — <Link href="/create">be the first to start one</Link>.</p>
+            <p className="home-empty">New causes are launching now — <Link href="/create/choose-path">be the first to start one</Link>.</p>
           )}
         </div>
       </section>
@@ -504,7 +504,7 @@ export default async function HomePage() {
             <h2>{`You have the power to change someone's life today.`}</h2>
             <p>Join a community of givers, organizers, and volunteers turning compassion into real, measurable impact.</p>
             <div className="home-final-cta">
-              <Link href="/create" className="home-btn home-btn-white">Start a fundraiser</Link>
+              <Link href="/create/choose-path" className="home-btn home-btn-white">Start a fundraiser</Link>
               <Link href="/campaigns" className="home-btn home-btn-outline-light">Donate now</Link>
             </div>
           </Reveal>

@@ -268,7 +268,7 @@ export function TeamClient({ campaigns, initialMembers, profiles, currentUserId 
             </p>
             {totalMembers === 0 && campaigns.length === 0 && (
               <Link
-                href="/create"
+                href="/create/choose-path"
                 className="kf-primary"
                 style={{ display: 'inline-block', marginTop: 16, textDecoration: 'none' }}
               >

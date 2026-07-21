@@ -335,9 +335,15 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
     - Verified: typecheck + lint clean, build compiles, 782 tests pass.
 
   - **REAL gaps — sandbox-buildable, ordered by recommended sequence (pick up here):**
-    1. Co-equal entry screen `/create/choose-path` presenting AI vs Step-by-Step as
-       equals (time estimates, autosave + resume-later reassurance). Repoint the
-       ~25 existing `/create` and `/ai-campaign` CTAs (home, marketing pages) to it.
+    1. ✅ **DONE (2026-07-21)** — Co-equal entry screen `/create/choose-path`
+       presenting **Build with AI** (≈2 min) vs **Step by step** (≈10 min) as equals,
+       with autosave/resume reassurance; theme-aware + mobile-first (cards stack
+       < 720px). Repointed **40 generic `/create` CTAs across 24 files** (the explicit
+       "…With AI" / `/ai-campaign` entries kept direct). Made the chooser a **public**
+       middleware exception (viewable before sign-in, like `/ai-campaign`; the
+       `/create` wizard stays login-gated). Verified: typecheck/lint clean, `next build`
+       prerenders the route, live server returns **200 unauthenticated**, Playwright
+       screenshot confirms the rendered design.
     2. AI follow-up question flow: after the first generation, ask only missing/
        ambiguous fields ONE at a time (beneficiary, relationship, timing, use-of-
        funds, payout recipient, consent, anonymity); never repeat answered/known

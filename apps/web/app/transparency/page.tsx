@@ -150,7 +150,7 @@ export default function TransparencyPage() {
         ))}
 
         <p style={{ marginTop: 28 }}>
-          Ready to start? <Link href="/create">Create a campaign</Link> for free, or read{' '}
+          Ready to start? <Link href="/create/choose-path">Create a campaign</Link> for free, or read{' '}
           <Link href="/how-it-works">how it works</Link> and our <Link href="/pricing">pricing</Link>.
         </p>
       </article>

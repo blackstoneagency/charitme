@@ -74,7 +74,7 @@ export default function ForNonprofitsPage() {
               <Link href="/contact" className="rounded-xl bg-purple-700 px-5 py-3 text-sm font-black text-white shadow-soft">
                 Talk to our nonprofit team
               </Link>
-              <Link href="/create" className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-900">
+              <Link href="/create/choose-path" className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-900">
                 Start a campaign free
               </Link>
             </div>

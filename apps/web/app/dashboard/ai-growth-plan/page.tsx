@@ -627,7 +627,7 @@ export default async function AiGrowthPlanPage({
               personalized 7-step roadmap to help you raise more — faster.
             </p>
             <Link
-              href="/create"
+              href="/create/choose-path"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -937,7 +937,7 @@ export default async function AiGrowthPlanPage({
 
             {!hasCampaigns && (
               <Link
-                href="/create"
+                href="/create/choose-path"
                 style={{
                   display: 'flex',
                   alignItems: 'center',

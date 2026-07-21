@@ -118,7 +118,7 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
     <div className="kf-app">
       <aside className="kf-sidebar">
         <Logo />
-        {mode === 'dashboard' && <Link href="/create" className="kf-create"><KFIcon name="plus" /> Create New Campaign</Link>}
+        {mode === 'dashboard' && <Link href="/create/choose-path" className="kf-create"><KFIcon name="plus" /> Create New Campaign</Link>}
         {mode === 'admin' && <div className="kf-section-label">Admin</div>}
         <nav className="kf-nav">
           {nav.map(([label, href, icon, badge]) => {

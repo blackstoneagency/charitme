@@ -54,7 +54,7 @@ export default async function FeatureDetailPage({ params }: FeaturePageProps) {
             <div className="rounded-2xl border border-white/10 bg-white/10 p-6">
               <div className="text-sm font-black uppercase tracking-[0.18em] text-slate-300">Audience</div>
               <p className="mt-3 text-xl font-black">{platformModule.audience}</p>
-              <Link href="/create" className="mt-6 inline-flex rounded-xl bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950">
+              <Link href="/create/choose-path" className="mt-6 inline-flex rounded-xl bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950">
                 {platformModule.primaryCta}
               </Link>
             </div>

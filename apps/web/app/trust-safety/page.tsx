@@ -51,7 +51,7 @@ export default function TrustSafetyPage() {
               so donors can give with confidence, and fundraisers earn the trust they deserve.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/create" className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-soft">
+              <Link href="/create/choose-path" className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-soft">
                 Start a verified campaign
               </Link>
               <Link href="/campaigns" className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-900">
@@ -177,7 +177,7 @@ export default function TrustSafetyPage() {
                 Complete your verification steps, add supporting evidence, and your score rises automatically.
                 If your campaign is reviewed or suspended, you will be notified and can appeal within 48 hours.
               </p>
-              <Link href="/create" className="mt-6 inline-block rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white">
+              <Link href="/create/choose-path" className="mt-6 inline-block rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white">
                 Build your trust score →
               </Link>
             </div>

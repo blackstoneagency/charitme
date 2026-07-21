@@ -84,7 +84,7 @@ export default function ForIndividualsPage() {
               with built-in trust signals so donors give with confidence and you get your money faster.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/create" className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-soft">
+              <Link href="/create/choose-path" className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-soft">
                 Start a free campaign
               </Link>
               <Link href="/how-it-works" className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-900">
@@ -161,7 +161,7 @@ export default function ForIndividualsPage() {
             ))}
           </div>
           <div className="mt-10 text-center">
-            <Link href="/create" className="inline-block rounded-xl bg-emerald-600 px-8 py-4 text-sm font-black text-white shadow-soft">
+            <Link href="/create/choose-path" className="inline-block rounded-xl bg-emerald-600 px-8 py-4 text-sm font-black text-white shadow-soft">
               Start your campaign →
             </Link>
           </div>
@@ -237,7 +237,7 @@ export default function ForIndividualsPage() {
             Free to create. Free to run. AI Copilot included. No credit card required.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link href="/create" className="rounded-xl bg-white px-8 py-4 text-sm font-black text-emerald-700">
+            <Link href="/create/choose-path" className="rounded-xl bg-white px-8 py-4 text-sm font-black text-emerald-700">
               Create a free campaign →
             </Link>
             <Link href="/how-it-works" className="rounded-xl border border-emerald-400 px-8 py-4 text-sm font-black text-white">

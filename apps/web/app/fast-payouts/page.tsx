@@ -63,7 +63,7 @@ export default function FastPayoutsPage() {
               Standard payouts are always free — same-day and instant options are available for eligible verified users.
             </p>
             <div className="fp-ctas">
-              <Link href="/create" className="fp-btn fp-btn-primary">Start a campaign</Link>
+              <Link href="/create/choose-path" className="fp-btn fp-btn-primary">Start a campaign</Link>
               <Link href="/dashboard" className="fp-btn fp-btn-ghost">Connect payouts</Link>
             </div>
             <p className="fp-hero-note">🔒 CharitMe never sees or stores your bank details — everything runs through Stripe.</p>
@@ -206,7 +206,7 @@ export default function FastPayoutsPage() {
             <h2>Ready to get paid?</h2>
             <p>Connect your Stripe account from your dashboard in under 5 minutes. Donations start transferring automatically once your campaign goes live.</p>
             <div className="fp-cta-btns">
-              <Link href="/create" className="fp-btn fp-btn-primary">Start a campaign →</Link>
+              <Link href="/create/choose-path" className="fp-btn fp-btn-primary">Start a campaign →</Link>
               <Link href="/faq#payouts" className="fp-btn fp-btn-ghost">Payout FAQ</Link>
             </div>
           </div>

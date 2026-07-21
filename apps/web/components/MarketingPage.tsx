@@ -17,7 +17,7 @@ export function MarketingPage({ page }: { page: MarketingPageContent }) {
             <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-6xl">{page.title}</h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">{page.description}</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/create" className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-soft">
+              <Link href="/create/choose-path" className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-soft">
                 {page.cta}
               </Link>
               <Link href="/campaigns" className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900">

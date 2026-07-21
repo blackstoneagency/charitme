@@ -178,7 +178,7 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
         {/* ── DASHBOARD mode: user nav ── */}
         {mode === 'dashboard' && (
           <>
-            <Link href="/create" className="kf-create"><KFIcon name="plus" /> Create New Campaign</Link>
+            <Link href="/create/choose-path" className="kf-create"><KFIcon name="plus" /> Create New Campaign</Link>
             <nav className="kf-nav">
               {dashboardNav.map(([label, href, icon, badge]) => {
                 const isActive = active === label || (active === 'Campaigns' && label === 'My Campaigns');

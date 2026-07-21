@@ -3,6 +3,10 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { safeNextPath } from './lib/auth-config';
 
 const PROTECTED = ['/create', '/dashboard', '/profile', '/admin'];
+// Public exceptions that fall UNDER a protected prefix. The campaign path chooser
+// must be viewable before sign-in (mirrors the already-public /ai-campaign entry) —
+// login is still required once the visitor actually starts the wizard at /create.
+const PUBLIC_EXCEPTIONS = ['/create/choose-path'];
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 /**
@@ -62,7 +66,8 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isProtected = PROTECTED.some((p) => path.startsWith(p));
+  const isProtected =
+    PROTECTED.some((p) => path.startsWith(p)) && !PUBLIC_EXCEPTIONS.some((p) => path === p);
 
   if (isProtected && !user) {
     const loginUrl = new URL('/login', request.url);

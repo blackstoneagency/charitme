@@ -47,7 +47,7 @@ export default function ManageImpact({
   if (campaigns.length === 0) {
     return (
       <p style={{ fontSize: 15, color: 'var(--t3)' }}>
-        You don’t have any campaigns yet. <Link href="/create" style={{ color: 'var(--green-dark)', fontWeight: 600 }}>Start one →</Link>
+        You don’t have any campaigns yet. <Link href="/create/choose-path" style={{ color: 'var(--green-dark)', fontWeight: 600 }}>Start one →</Link>
       </p>
     );
   }

@@ -132,7 +132,7 @@ export default function CampaignSortableList({
             <KFIcon name="send" />
             <span>
               No campaigns yet —{' '}
-              <Link href="/create" style={{ textDecoration: 'underline' }}>
+              <Link href="/create/choose-path" style={{ textDecoration: 'underline' }}>
                 create your first campaign
               </Link>{' '}
               to start collecting real data here.
