@@ -22,10 +22,15 @@ export default function ReportButton({ campaignId }: { campaignId: string }) {
 
   return (
     <>
-      <button type="button" onClick={report} disabled={sent} className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-600 disabled:opacity-60">
-        {sent ? 'Report sent to Trust & Safety' : 'Report campaign'}
+      <button
+        type="button"
+        onClick={report}
+        disabled={sent}
+        className={`pc-report-btn${sent ? ' pc-report-btn-sent' : ''}`}
+      >
+        {sent ? '✓ Report sent to Trust & Safety' : 'Report campaign'}
       </button>
-      {error && <p className="mt-2 text-xs font-bold text-red-600">Couldn&apos;t send your report. Please try again.</p>}
+      {error && <p className="mt-2 text-xs font-bold" style={{ color: 'var(--red)' }}>Couldn&apos;t send your report. Please try again.</p>}
     </>
   );
 }
