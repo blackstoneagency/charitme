@@ -626,6 +626,16 @@ tests/build/live-HTTP are listed here.
   Supabase; no schema change. _Evidence: typecheck + lint clean; full suite
   **772/772**; `next build` green._
 
+- **CHAR-SM11 · donate UI · brand mark on Service Fee** — Replaced the red heart in
+  the Service Fee dropdown trigger with the real **CharitMe brand mark**
+  (`/public/logo.svg` — self-colored purple-gradient heart cradled by a hand).
+  It sits in the existing icon chip whose background is the theme token `--s2`,
+  so it renders correctly in **both dark and light mode** (same single-asset,
+  theme-adaptive approach the header uses — no per-theme swap needed). Matched the
+  repo convention for the logo `<img>` (inline `@next/next/no-img-element` disable,
+  as in `AppShell`/`CharitMeApp`). _Evidence: typecheck clean; lint clean; full
+  suite **772/772**; `next build` green._
+
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
   Removed the stray field. _Evidence: verified live vs schema; commit `20d1597`._
