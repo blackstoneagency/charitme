@@ -105,21 +105,21 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
 
   if (loading) {
     return (
-      <div style={{ padding: '24px 0', color: '#94a3b8', fontSize: 14 }}>Loading…</div>
+      <div style={{ padding: '24px 0', color: 'var(--t3)', fontSize: 14 }}>Loading…</div>
     );
   }
 
   const section = (title: string, children: React.ReactNode) => (
-    <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, padding: '24px 28px', marginBottom: 20 }}>
-      <h2 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 650, color: '#1a1a2e' }}>{title}</h2>
+    <div style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 16, padding: '24px 28px', marginBottom: 20 }}>
+      <h2 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 650, color: 'var(--t1)' }}>{title}</h2>
       {children}
     </div>
   );
 
   const field = (label: string, hint: string, children: React.ReactNode) => (
     <div style={{ marginBottom: 20 }}>
-      <label style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#334064', marginBottom: 6 }}>{label}</label>
-      {hint && <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>{hint}</div>}
+      <label style={{ display: 'block', fontWeight: 700, fontSize: 13, color: 'var(--t2)', marginBottom: 6 }}>{label}</label>
+      {hint && <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>{hint}</div>}
       {children}
     </div>
   );
@@ -135,17 +135,17 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
         <label key={opt.value} style={{
           display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 14px',
           borderRadius: 10, cursor: 'pointer', border: '1.5px solid',
-          borderColor: value === opt.value ? '#6c35ff' : '#e8ecf4',
-          background: value === opt.value ? '#f5f0ff' : '#fff',
+          borderColor: value === opt.value ? 'var(--violet)' : 'var(--b1)',
+          background: value === opt.value ? 'rgba(109,53,255,.12)' : 'var(--s1)',
         }}>
           <input
             type="radio" name={name} value={opt.value} checked={value === opt.value}
             onChange={() => onChange(opt.value as T)}
-            style={{ marginTop: 3, accentColor: '#6c35ff' }}
+            style={{ marginTop: 3, accentColor: 'var(--violet)' }}
           />
           <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: '#1a1a2e' }}>{opt.label}</div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{opt.description}</div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--t1)' }}>{opt.label}</div>
+            <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{opt.description}</div>
           </div>
         </label>
       ))}
@@ -155,11 +155,11 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
   return (
     <div style={{ maxWidth: 680 }}>
       <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 24, fontWeight: 700, color: '#1a1a2e', margin: 0 }}>Campaign Settings</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--t1)', margin: 0 }}>Campaign Settings</h2>
       </div>
 
       {error && (
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 16px', marginBottom: 16, color: '#dc2626', fontSize: 13 }}>
+        <div style={{ background: 'rgba(255,59,95,.08)', border: '1px solid rgba(255,59,95,.28)', borderRadius: 10, padding: '12px 16px', marginBottom: 16, color: 'var(--red)', fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -180,7 +180,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
               onClick={() => setAcceptDonations(v => !v)}
               style={{
                 width: 44, height: 24, borderRadius: 99, cursor: 'pointer',
-                background: acceptDonations ? '#6c35ff' : '#e2e8f0',
+                background: acceptDonations ? 'var(--violet)' : 'var(--b2)',
                 transition: 'background .2s', position: 'relative', flexShrink: 0,
               }}
             >
@@ -191,7 +191,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
                 boxShadow: '0 1px 3px rgba(0,0,0,.2)',
               }} />
             </div>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#334064' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
               {acceptDonations ? 'Accepting donations' : 'Donations paused'}
             </span>
           </label>,
@@ -201,7 +201,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
           onClick={saveCoreSettings}
           disabled={coreState === 'saving'}
           style={{
-            background: coreState === 'saved' ? '#19b86a' : '#6c35ff',
+            background: coreState === 'saved' ? 'var(--green)' : 'var(--violet)',
             color: '#fff', border: 'none', borderRadius: 10,
             padding: '10px 24px', fontWeight: 650, fontSize: 14, cursor: 'pointer',
           }}
@@ -223,7 +223,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
           <select
             value={currency}
             onChange={e => setCurrency(e.target.value)}
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e8ecf4', fontSize: 14, color: '#334064' }}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--b1)', fontSize: 14, color: 'var(--t2)' }}
           >
             {['USD', 'EUR', 'GBP', 'CAD', 'AUD'].map(c => (
               <option key={c} value={c}>{c}</option>
@@ -235,7 +235,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
           onClick={saveLaunchSettings}
           disabled={launchState === 'saving'}
           style={{
-            background: launchState === 'saved' ? '#19b86a' : '#6c35ff',
+            background: launchState === 'saved' ? 'var(--green)' : 'var(--violet)',
             color: '#fff', border: 'none', borderRadius: 10,
             padding: '10px 24px', fontWeight: 650, fontSize: 14, cursor: 'pointer',
           }}
@@ -246,14 +246,14 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
 
       {/* Danger zone */}
       {section('Danger Zone', <>
-        <p style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>
+        <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 16 }}>
           Deleting a campaign is permanent. Active campaigns must be paused or closed first.
         </p>
         <button
           onClick={deleteCampaign}
           style={{
-            background: 'none', border: '1.5px solid #ef4444',
-            color: '#ef4444', borderRadius: 10,
+            background: 'none', border: '1.5px solid var(--red)',
+            color: 'var(--red)', borderRadius: 10,
             padding: '10px 24px', fontWeight: 650, fontSize: 14, cursor: 'pointer',
           }}
         >
