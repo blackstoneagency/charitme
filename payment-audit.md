@@ -75,6 +75,40 @@ rebuild working flows for no functional gain. Kept as-is; documented as intentio
   git history if a V2 migration is ever desired.
 - **Validation:** typecheck + full test suite re-run green after removal (see commit).
 
+### PAY-002 — Admin refund route: platform ate destination-charge refunds + double-counted stat reversal + mis-marked partials (HIGH — FINANCIAL CORRECTNESS) — ✅ FIXED
+- **Area:** `apps/web/app/api/admin/donations/[id]/refund/route.ts`.
+- **Root causes (three real bugs):**
+  1. **Platform ate the refund.** Donations are Connect **destination charges**
+     (principal transferred to the charity; only the app fee stayed on the
+     platform). The refund was created **without** `reverse_transfer` /
+     `refund_application_fee`, so Stripe refunded the donor from the **platform**
+     balance while the charity kept the transferred principal — the platform
+     absorbed the full donation on every refund.
+  2. **Double stat reversal.** The route called `decrement_campaign_stats(full
+     amount)` directly, and the resulting `charge.refunded` webhook
+     (`handleChargeRefunded`) **also** decremented — so campaign `raised_amount` /
+     `backer_count` were reversed **twice** per refund.
+  3. **Partial refunds mis-marked.** A partial refund set the whole donation
+     `status='refunded'` and decremented the **full** donation amount (the webhook
+     correctly keeps partials `completed` and skips the decrement).
+- **Resolution:**
+  - Refund now sets `reverse_transfer: true` + `refund_application_fee: true`
+    (pulls the principal back from the charity, returns the proportional platform
+    fee) — matching `scripts/verify-money-flow.mjs`. Falls back to a plain refund
+    only when Stripe reports there is no transfer/fee to reverse (legacy
+    non-destination charge); any other error is surfaced.
+  - Removed the direct `decrement_campaign_stats` call — the idempotent
+    `charge.refunded` webhook is now the single source of truth for stat reversal
+    (event-level idempotency verified: `webhook_events.processed_at` skip).
+  - Only a **full** refund flips the donation to `refunded`; a partial leaves it
+    `completed` (the `status` enum has no `partially_refunded`) and is tracked in
+    the `refunds` table + reconciliation ledger.
+- **Files modified:** the one route above (+ `import type Stripe`).
+- **Validation:** typecheck clean; lint 0 errors; 662 tests pass. Live
+  charge→refund→transfer-reversal proof is **GATED** on Stripe test clocks /
+  Connect live-enablement (documented, not faked); the fix mirrors the pattern the
+  money-flow script already proves.
+
 ---
 
 ## Verified sound (no change required)
