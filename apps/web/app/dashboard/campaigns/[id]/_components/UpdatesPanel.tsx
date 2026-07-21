@@ -96,10 +96,11 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
         )}
 
         <div style={{ marginBottom: 14 }}>
-          <label style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#334064', marginBottom: 6 }}>
+          <label htmlFor="up-title" style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#334064', marginBottom: 6 }}>
             Title <span style={{ fontWeight: 400, color: '#94a3b8' }}>(optional)</span>
           </label>
           <input
+            id="up-title"
             type="text"
             value={title}
             onChange={e => setTitle(e.target.value)}
@@ -110,10 +111,11 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <label style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#334064', marginBottom: 6 }}>
+          <label htmlFor="up-body" style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#334064', marginBottom: 6 }}>
             Update <span style={{ color: '#ef4444' }}>*</span>
           </label>
           <textarea
+            id="up-body"
             value={body}
             onChange={e => setBody(e.target.value)}
             placeholder="Share your progress, milestones, or a thank-you message…"

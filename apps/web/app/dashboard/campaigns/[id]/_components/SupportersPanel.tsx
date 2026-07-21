@@ -159,8 +159,8 @@ export default function SupportersPanel({
           <p style={{ margin: '0 0 14px', fontSize: 12.5, color: 'var(--t3)' }}>{selectedTemplate.description}</p>
         )}
 
-        <label style={{ display: 'block', fontSize: 12, fontWeight: 650, color: 'var(--t2)', marginBottom: 6 }}>Send to</label>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+        <span id="sp-sendto-label" style={{ display: 'block', fontSize: 12, fontWeight: 650, color: 'var(--t2)', marginBottom: 6 }}>Send to</span>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }} role="group" aria-labelledby="sp-sendto-label">
           {data.targetGroups.map(g => (
             <button key={g.key} onClick={() => setTargetGroup(g.key)} title={g.description}
               style={{ padding: '8px 14px', borderRadius: 999, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',

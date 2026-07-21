@@ -58,17 +58,17 @@ export default async function SupportedCountriesPage() {
           <div className="sc-hero-stats">
             <div className="sc-stat">
               <span>{fundraisers.length}</span>
-              <label>Countries can fundraise</label>
+              <span className="sc-stat-cap">Countries can fundraise</span>
             </div>
             <div className="sc-stat-div" />
             <div className="sc-stat">
               <span>{all.length}</span>
-              <label>Countries can donate</label>
+              <span className="sc-stat-cap">Countries can donate</span>
             </div>
             <div className="sc-stat-div" />
             <div className="sc-stat">
               <span>0%</span>
-              <label>Platform fee</label>
+              <span className="sc-stat-cap">Platform fee</span>
             </div>
           </div>
           <div className="sc-hero-actions">

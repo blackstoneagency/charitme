@@ -4435,7 +4435,7 @@ img, svg { display: block; }
 .sc-hero-stats { display: flex; justify-content: center; align-items: center; gap: 0; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 20px 0; margin-bottom: 32px; }
 .sc-stat { flex: 1; text-align: center; }
 .sc-stat span { display: block; font-size: 32px; font-weight: 800; color: #a78bfa; line-height: 1; margin-bottom: 4px; }
-.sc-stat label { font-size: 12px; color: rgba(255,255,255,.6); font-weight: 500; }
+.sc-stat .sc-stat-cap { display: block; font-size: 12px; color: rgba(255,255,255,.6); font-weight: 500; }
 .sc-stat-div { width: 1px; align-self: stretch; background: rgba(255,255,255,.12); }
 .sc-hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 
