@@ -79,25 +79,25 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
     <div style={{ maxWidth: 720 }}>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontSize: 24, fontWeight: 700, color: '#1a1a2e', margin: 0 }}>Campaign Updates</h2>
-        <p style={{ fontSize: 14, color: '#64748b', margin: '6px 0 0' }}>
+        <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--t1)', margin: 0 }}>Campaign Updates</h2>
+        <p style={{ fontSize: 14, color: 'var(--t3)', margin: '6px 0 0' }}>
           Post progress updates to your donors. They&apos;ll receive an email notification if opted in.
         </p>
       </div>
 
       {/* New update form */}
-      <form onSubmit={handlePost} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, padding: '24px 28px', marginBottom: 28 }}>
-        <h2 style={{ margin: '0 0 18px', fontSize: 16, fontWeight: 650, color: '#1a1a2e' }}>Post a new update</h2>
+      <form onSubmit={handlePost} style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 16, padding: '24px 28px', marginBottom: 28 }}>
+        <h2 style={{ margin: '0 0 18px', fontSize: 16, fontWeight: 650, color: 'var(--t1)' }}>Post a new update</h2>
 
         {formError && (
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', marginBottom: 14, color: '#dc2626', fontSize: 13 }}>
+          <div style={{ background: 'rgba(255,59,95,.08)', border: '1px solid rgba(255,59,95,.28)', borderRadius: 8, padding: '10px 14px', marginBottom: 14, color: 'var(--red)', fontSize: 13 }}>
             {formError}
           </div>
         )}
 
         <div style={{ marginBottom: 14 }}>
-          <label htmlFor="up-title" style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#334064', marginBottom: 6 }}>
-            Title <span style={{ fontWeight: 400, color: '#94a3b8' }}>(optional)</span>
+          <label htmlFor="up-title" style={{ display: 'block', fontWeight: 700, fontSize: 13, color: 'var(--t2)', marginBottom: 6 }}>
+            Title <span style={{ fontWeight: 400, color: 'var(--t3)' }}>(optional)</span>
           </label>
           <input
             id="up-title"
@@ -106,13 +106,13 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
             onChange={e => setTitle(e.target.value)}
             placeholder="e.g. We hit 50% of our goal!"
             maxLength={200}
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e8ecf4', fontSize: 14, color: '#334064', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--b1)', fontSize: 14, color: 'var(--t2)', boxSizing: 'border-box' }}
           />
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <label htmlFor="up-body" style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#334064', marginBottom: 6 }}>
-            Update <span style={{ color: '#ef4444' }}>*</span>
+          <label htmlFor="up-body" style={{ display: 'block', fontWeight: 700, fontSize: 13, color: 'var(--t2)', marginBottom: 6 }}>
+            Update <span style={{ color: 'var(--red)' }}>*</span>
           </label>
           <textarea
             id="up-body"
@@ -122,9 +122,9 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
             rows={6}
             maxLength={10000}
             required
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #e8ecf4', fontSize: 14, color: '#334064', boxSizing: 'border-box', resize: 'vertical' }}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--b1)', fontSize: 14, color: 'var(--t2)', boxSizing: 'border-box', resize: 'vertical' }}
           />
-          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4, textAlign: 'right' }}>{body.length}/10000</div>
+          <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4, textAlign: 'right' }}>{body.length}/10000</div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -133,15 +133,15 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
               type="checkbox"
               checked={notifyDonors}
               onChange={e => setNotifyDonors(e.target.checked)}
-              style={{ accentColor: '#6c35ff' }}
+              style={{ accentColor: 'var(--violet)' }}
             />
-            <span style={{ fontWeight: 600, color: '#334064' }}>Email donors about this update</span>
+            <span style={{ fontWeight: 600, color: 'var(--t2)' }}>Email donors about this update</span>
           </label>
           <button
             type="submit"
             disabled={saveState === 'saving'}
             style={{
-              background: saveState === 'saved' ? '#19b86a' : '#6c35ff',
+              background: saveState === 'saved' ? 'var(--green)' : 'var(--violet)',
               color: '#fff', border: 'none', borderRadius: 10,
               padding: '10px 28px', fontWeight: 650, fontSize: 14,
               cursor: saveState === 'saving' ? 'not-allowed' : 'pointer',
@@ -154,14 +154,14 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
       </form>
 
       {/* Existing updates */}
-      <h2 style={{ fontSize: 16, fontWeight: 650, color: '#1a1a2e', marginBottom: 14 }}>
-        Past updates {updates.length > 0 && <span style={{ fontWeight: 500, color: '#94a3b8' }}>({updates.length})</span>}
+      <h2 style={{ fontSize: 16, fontWeight: 650, color: 'var(--t1)', marginBottom: 14 }}>
+        Past updates {updates.length > 0 && <span style={{ fontWeight: 500, color: 'var(--t3)' }}>({updates.length})</span>}
       </h2>
 
-      {loading && <div style={{ color: '#94a3b8', fontSize: 14 }}>Loading…</div>}
+      {loading && <div style={{ color: 'var(--t3)', fontSize: 14 }}>Loading…</div>}
 
       {!loading && updates.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '32px 0', color: '#94a3b8', fontSize: 14 }}>
+        <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--t3)', fontSize: 14 }}>
           No updates yet. Post your first one above!
         </div>
       )}
@@ -169,17 +169,17 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
       {!loading && updates.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {updates.map(u => (
-            <div key={u.id} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '18px 22px' }}>
+            <div key={u.id} style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 14, padding: '18px 22px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                 <div>
-                  {u.title && <div style={{ fontWeight: 650, fontSize: 15, color: '#1a1a2e', marginBottom: 2 }}>{u.title}</div>}
-                  <div style={{ fontSize: 12, color: '#94a3b8' }}>{timeAgo(u.created_at)}</div>
+                  {u.title && <div style={{ fontWeight: 650, fontSize: 15, color: 'var(--t1)', marginBottom: 2 }}>{u.title}</div>}
+                  <div style={{ fontSize: 12, color: 'var(--t3)' }}>{timeAgo(u.created_at)}</div>
                 </div>
                 {u.ai_generated && (
-                  <span style={{ fontSize: 10, background: '#f5f0ff', color: '#6c35ff', fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}>AI</span>
+                  <span style={{ fontSize: 10, background: 'rgba(109,53,255,.14)', color: 'var(--violet)', fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}>AI</span>
                 )}
               </div>
-              <p style={{ fontSize: 14, color: '#334064', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>
+              <p style={{ fontSize: 14, color: 'var(--t2)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>
                 {u.body.length > 300 ? u.body.slice(0, 300) + '…' : u.body}
               </p>
             </div>

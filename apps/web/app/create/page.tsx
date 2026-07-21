@@ -413,14 +413,15 @@ export default function CreatePage() {
     setUploadedImages(prev => prev.filter(i => i.id !== img.id));
   }, []);
 
-  const runAi = async () => {
+  const runAi = async (notesOverride?: string) => {
     setAiLoading(true);
     setError('');
     try {
+      const notes = (notesOverride ?? form.description)?.trim() || 'Help us write a compelling fundraiser.';
       const res = await fetch('/api/ai/campaign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category: form.category, goalAmount: goalCents || 500000, beneficiary: form.beneficiaryName || 'the beneficiary', notes: form.description || 'Help us write a compelling fundraiser.', tone: 'authentic' }),
+        body: JSON.stringify({ category: form.category, goalAmount: goalCents || 500000, beneficiary: form.beneficiaryName || 'the beneficiary', notes, tone: 'authentic' }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'AI generation failed');
@@ -436,6 +437,24 @@ export default function CreatePage() {
       setAiLoading(false);
     }
   };
+
+  // "Build with AI" entry: /ai-campaign routes here as /create?ai=<prompt>.
+  // Carry the prompt through — seed the story, jump to the Story step, and
+  // generate the first draft once (the AI endpoint falls back deterministically,
+  // so this always produces reviewable content the organizer can edit).
+  const aiSeededRef = useRef(false);
+  useEffect(() => {
+    if (aiSeededRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const prompt = params.get('ai');
+    if (!prompt || !prompt.trim()) return;
+    aiSeededRef.current = true;
+    const seed = prompt.trim().slice(0, 4000);
+    setForm(prev => ({ ...prev, description: prev.description.trim().length > seed.length ? prev.description : seed }));
+    setStep('story');
+    void runAi(seed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const submitCampaign = async (status: 'draft' | 'active') => {
     if (form.title.trim().length < 3) { setError('Campaign title must be at least 3 characters.'); return; }
@@ -682,7 +701,7 @@ export default function CreatePage() {
                     <strong>AI Copilot</strong>
                     <p>Auto-generate a polished story, title &amp; social captions from your notes.</p>
                   </div>
-                  <button type="button" className="cr2-ai-banner-btn" onClick={runAi} disabled={aiLoading}>
+                  <button type="button" className="cr2-ai-banner-btn" onClick={() => void runAi()} disabled={aiLoading}>
                     {aiLoading ? 'Generating…' : '✨ Write with AI'}
                   </button>
                 </div>
@@ -1147,7 +1166,7 @@ export default function CreatePage() {
                       {!payoutLinked && (
                         <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 18, lineHeight: 1.55 }}>
                           CharitMe charges 0% platform fees. Connect once — donations go directly to you.
-                          <strong style={{ color: '#dc2626' }}> This step is required to continue.</strong>
+                          <strong style={{ color: 'var(--red)' }}> This step is required to continue.</strong>
                         </p>
                       )}
 

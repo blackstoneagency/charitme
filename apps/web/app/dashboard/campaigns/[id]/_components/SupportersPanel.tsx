@@ -94,7 +94,7 @@ export default function SupportersPanel({
   }
   if (error || !data) {
     return (
-      <div style={{ padding: '24px 0', color: '#ef4444', fontSize: 14 }}>
+      <div style={{ padding: '24px 0', color: 'var(--red)', fontSize: 14 }}>
         {error || 'Not found.'} <Link href="/dashboard/campaigns">← Back to campaigns</Link>
       </div>
     );
@@ -131,7 +131,7 @@ export default function SupportersPanel({
       </div>
 
       {notice && (
-        <div style={{ ...card, padding: '12px 18px', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? '#ef4444' : notice.startsWith('⚠') ? '#d97706' : '#059669' }}>
+        <div style={{ ...card, padding: '12px 18px', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? 'var(--red)' : notice.startsWith('⚠') ? '#d97706' : 'var(--green)' }}>
           {notice}
         </div>
       )}
@@ -147,9 +147,9 @@ export default function SupportersPanel({
           {data.templates.map(t => (
             <button key={t.key} onClick={() => pickTemplate(t.key)}
               style={{ padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 650, cursor: 'pointer',
-                border: `1.5px solid ${templateKey === t.key ? '#6c35ff' : 'var(--b2)'}`,
+                border: `1.5px solid ${templateKey === t.key ? 'var(--violet)' : 'var(--b2)'}`,
                 background: templateKey === t.key ? 'rgba(108,53,255,.08)' : 'var(--s1)',
-                color: templateKey === t.key ? '#6c35ff' : 'var(--t2)' }}>
+                color: templateKey === t.key ? 'var(--violet)' : 'var(--t2)' }}>
               {t.label}
             </button>
           ))}
@@ -164,9 +164,9 @@ export default function SupportersPanel({
           {data.targetGroups.map(g => (
             <button key={g.key} onClick={() => setTargetGroup(g.key)} title={g.description}
               style={{ padding: '8px 14px', borderRadius: 999, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-                border: `1.5px solid ${targetGroup === g.key ? '#6c35ff' : 'var(--b2)'}`,
+                border: `1.5px solid ${targetGroup === g.key ? 'var(--violet)' : 'var(--b2)'}`,
                 background: targetGroup === g.key ? 'rgba(108,53,255,.08)' : 'var(--s1)',
-                color: targetGroup === g.key ? '#6c35ff' : 'var(--t2)' }}>
+                color: targetGroup === g.key ? 'var(--violet)' : 'var(--t2)' }}>
               {g.label} · {data.targetCounts[g.key] ?? 0}
             </button>
           ))}
@@ -185,7 +185,7 @@ export default function SupportersPanel({
         <button
           onClick={() => void send()}
           disabled={sending || data.sendsRemainingToday <= 0 || (data.targetCounts[targetGroup] ?? 0) === 0}
-          style={{ padding: '12px 26px', background: data.sendsRemainingToday <= 0 ? 'var(--b2)' : '#6c35ff', color: '#fff', border: 'none', borderRadius: 11, fontSize: 14, fontWeight: 700, cursor: data.sendsRemainingToday <= 0 ? 'not-allowed' : 'pointer' }}>
+          style={{ padding: '12px 26px', background: data.sendsRemainingToday <= 0 ? 'var(--b2)' : 'var(--violet)', color: '#fff', border: 'none', borderRadius: 11, fontSize: 14, fontWeight: 700, cursor: data.sendsRemainingToday <= 0 ? 'not-allowed' : 'pointer' }}>
           {sending ? 'Sending…'
             : data.sendsRemainingToday <= 0 ? 'Daily limit reached (2/day)'
             : `Send to ${data.targetCounts[targetGroup] ?? 0} supporters →`}
@@ -207,13 +207,13 @@ export default function SupportersPanel({
                     <div style={{ fontWeight: 650, color: 'var(--t1)' }}>{s.name}</div>
                     <div style={{ fontSize: 11.5, color: 'var(--t4)', fontFamily: 'var(--mono)' }}>{s.emailMasked ?? 'no email on file'}</div>
                   </td>
-                  <td style={td}>{s.giftCount}{s.isRepeat && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: '#059669', background: 'rgba(5,150,105,.1)', padding: '2px 7px', borderRadius: 999 }}>REPEAT</span>}</td>
+                  <td style={td}>{s.giftCount}{s.isRepeat && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--green)', background: 'rgba(5,150,105,.1)', padding: '2px 7px', borderRadius: 999 }}>REPEAT</span>}</td>
                   <td style={td}><b style={{ color: 'var(--t1)' }}>{money(s.totalCents)}</b></td>
                   <td style={td}>{dt(s.lastGiftAt)}</td>
                   <td style={td}>
                     {!s.reachable ? <span style={{ fontSize: 11, color: 'var(--t4)' }}>unreachable</span>
                       : s.isLapsed ? <span style={{ fontSize: 11, fontWeight: 650, color: '#d97706' }}>lapsed</span>
-                      : <span style={{ fontSize: 11, fontWeight: 650, color: '#059669' }}>active</span>}
+                      : <span style={{ fontSize: 11, fontWeight: 650, color: 'var(--green)' }}>active</span>}
                   </td>
                 </tr>
               ))}
@@ -229,7 +229,7 @@ export default function SupportersPanel({
             {data.attribution.map(a => (
               <div key={a.channel} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--b1)', fontSize: 13 }}>
                 <span style={{ fontWeight: 700, color: 'var(--t2)', textTransform: 'capitalize' }}>{a.channel}</span>
-                <span style={{ color: 'var(--t3)' }}>{a.clicks} clicks · <b style={{ color: '#059669' }}>{a.conversions} gifts</b></span>
+                <span style={{ color: 'var(--t3)' }}>{a.clicks} clicks · <b style={{ color: 'var(--green)' }}>{a.conversions} gifts</b></span>
               </div>
             ))}
           </div>

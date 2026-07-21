@@ -1539,6 +1539,70 @@ img, svg { display: block; }
 .pc-match-howto summary { cursor: pointer; font-weight: 800; color: var(--violet); }
 .pc-match-howto ol { margin: 8px 0 0; padding-left: 18px; line-height: 1.6; }
 
+/* ── Campaign CTA row: Donate (primary) + Share (secondary) ───────────────── */
+.pc-cta-row { display: flex; gap: 10px; margin-top: 20px; }
+.pc-cta {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: .01em;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: transform .16s ease, box-shadow .16s ease, background .16s ease,
+              border-color .16s ease, color .16s ease;
+}
+.pc-cta:active { transform: translateY(1px); }
+.pc-cta:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+
+.pc-cta-donate {
+  color: #fff;
+  background: linear-gradient(135deg, var(--violet), var(--violet-2));
+  box-shadow: 0 8px 20px -8px rgba(109, 53, 255, .6);
+}
+.pc-cta-donate:hover { transform: translateY(-1px); box-shadow: 0 12px 26px -8px rgba(109, 53, 255, .7); }
+
+.pc-cta-share {
+  color: var(--t1);
+  background: var(--s1);
+  border-color: var(--b2);
+}
+.pc-cta-share:hover { color: var(--violet); border-color: var(--violet); background: var(--s2); transform: translateY(-1px); }
+.pc-cta-share svg { flex-shrink: 0; }
+[data-theme="dark"] .pc-cta-share { background: var(--s2); border-color: var(--b2); color: var(--t1); }
+[data-theme="dark"] .pc-cta-share:hover { background: var(--s3); border-color: var(--violet); color: #c9b6ff; }
+
+/* ── Report campaign: quiet ghost that resolves to a green success state ──── */
+.pc-report-btn {
+  margin-top: 16px;
+  width: 100%;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .01em;
+  cursor: pointer;
+  background: transparent;
+  border: 1.5px solid var(--b1);
+  color: var(--t3);
+  transition: background .16s ease, border-color .16s ease, color .16s ease;
+}
+.pc-report-btn:hover:not(:disabled) { border-color: var(--red); color: var(--red); background: rgba(255, 59, 95, .07); }
+.pc-report-btn:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+.pc-report-btn:disabled { cursor: default; opacity: 1; }
+.pc-report-btn-sent {
+  border-color: var(--green);
+  color: var(--green-text);
+  background: rgba(18, 166, 83, .08);
+}
+[data-theme="dark"] .pc-report-btn-sent { color: var(--green-dark); background: rgba(76, 206, 134, .1); }
+
 /* Body: story + sidebar-right */
 .pc-body { display: grid; grid-template-columns: minmax(0,1fr) 400px; gap: 34px; margin-top: 34px; }
 
@@ -4279,7 +4343,7 @@ img, svg { display: block; }
 .cr2-payout-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
 .cr2-payout-header-label { font-size: 13px; font-weight: 700; color: var(--t2); }
 .cr2-payout-status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 13px; border-radius: 999px; font-size: 12px; font-weight: 650; }
-.cr2-payout-status-pill.checking { background: #f8f9fc; border: 1px solid var(--b2); color: var(--t3); }
+.cr2-payout-status-pill.checking { background: var(--s2); border: 1px solid var(--b2); color: var(--t3); }
 .cr2-payout-status-pill.linked { background: #f0fdf4; border: 1px solid #86efac; color: #15803d; }
 .cr2-payout-status-pill.unlinked { background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; }
 
@@ -4295,16 +4359,18 @@ img, svg { display: block; }
 
 /* Method selection */
 .cr2-payout-also-label { font-size: 12px; font-weight: 650; color: var(--t3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
-.cr2-payout-option { width: 100%; display: flex; align-items: center; gap: 14px; padding: 15px 18px; background: var(--bg); border: 1.5px solid var(--b2); border-radius: 14px; margin-bottom: 10px; cursor: pointer; text-align: left; transition: border-color .15s, background .15s; }
-.cr2-payout-option:hover { border-color: #6c35ff; background: rgba(108,53,255,.04); }
-.cr2-payout-option-featured { border-color: #6c35ff; background: rgba(108,53,255,.04); }
-.cr2-payout-option-icon { font-size: 24px; flex-shrink: 0; }
-.cr2-payout-option-body { flex: 1; }
-.cr2-payout-option-body strong { display: block; font-size: 14px; font-weight: 700; color: var(--t1); margin-bottom: 2px; }
-.cr2-payout-option-body span { font-size: 12px; color: var(--t3); }
-.cr2-payout-recommended { font-size: 10px; background: #6c35ff; color: #fff; padding: 2px 8px; border-radius: 6px; margin-left: 6px; font-weight: 650; vertical-align: middle; }
-.cr2-payout-option-arrow { color: var(--t3); font-weight: 800; font-size: 18px; flex-shrink: 0; }
-.cr2-payout-option-connected { color: #16a34a; font-weight: 800; font-size: 18px; flex-shrink: 0; }
+.cr2-payout-option { width: 100%; display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--s1); border: 1.5px solid var(--b1); border-radius: 14px; margin-bottom: 10px; cursor: pointer; text-align: left; box-shadow: 0 1px 2px rgba(16,18,56,.04); transition: border-color .15s, background .15s, box-shadow .15s, transform .15s; }
+.cr2-payout-option:hover { border-color: var(--violet); background: var(--s2); box-shadow: 0 8px 22px -12px rgba(109,53,255,.45); transform: translateY(-1px); }
+.cr2-payout-option:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+.cr2-payout-option-featured { border-color: var(--violet); background: linear-gradient(135deg, rgba(109,53,255,.06), rgba(168,53,244,.035)); box-shadow: 0 0 0 1px rgba(109,53,255,.22), 0 10px 24px -16px rgba(109,53,255,.5); }
+.cr2-payout-option-featured:hover { background: linear-gradient(135deg, rgba(109,53,255,.1), rgba(168,53,244,.06)); }
+.cr2-payout-option-icon { width: 46px; height: 46px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 22px; line-height: 1; background: var(--s3); border: 1px solid var(--b1); border-radius: 12px; }
+.cr2-payout-option-body { flex: 1; min-width: 0; }
+.cr2-payout-option-body strong { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; font-size: 14px; font-weight: 700; color: var(--t1); margin-bottom: 3px; }
+.cr2-payout-option-body span { display: block; font-size: 12px; color: var(--t3); line-height: 1.4; }
+.cr2-payout-recommended { font-size: 9.5px; letter-spacing: .04em; background: linear-gradient(135deg, var(--violet), var(--violet-2)); color: #fff; padding: 3px 8px; border-radius: 999px; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
+.cr2-payout-option-arrow { color: var(--t3); font-weight: 800; font-size: 20px; flex-shrink: 0; }
+.cr2-payout-option-connected { color: var(--green); font-weight: 800; font-size: 18px; flex-shrink: 0; }
 
 /* Sub-forms */
 .cr2-payout-subform { }
@@ -4338,9 +4404,10 @@ img, svg { display: block; }
 [data-theme="dark"] .cr2-payout-primary-info strong { color: #6ee7b7; }
 [data-theme="dark"] .cr2-payout-primary-info span { color: #a7f3d0; }
 [data-theme="dark"] .cr2-payout-primary-check { color: #4ade80; }
-[data-theme="dark"] .cr2-payout-option { background: var(--s2); border-color: var(--b1); }
-[data-theme="dark"] .cr2-payout-option:hover { background: var(--s3); border-color: #6c35ff; }
-[data-theme="dark"] .cr2-payout-option-featured { background: rgba(108,53,255,.12); border-color: #6c35ff; }
+[data-theme="dark"] .cr2-payout-option { background: var(--s2); border-color: var(--b2); box-shadow: 0 1px 2px rgba(0,0,0,.28); }
+[data-theme="dark"] .cr2-payout-option:hover { background: var(--s3); border-color: var(--violet); box-shadow: 0 8px 22px -12px rgba(109,53,255,.55); }
+[data-theme="dark"] .cr2-payout-option-featured { background: linear-gradient(135deg, rgba(109,53,255,.18), rgba(168,53,244,.08)); border-color: var(--violet); box-shadow: 0 0 0 1px rgba(109,53,255,.35), 0 10px 24px -16px rgba(109,53,255,.6); }
+[data-theme="dark"] .cr2-payout-option-icon { background: var(--s3); border-color: var(--b2); }
 [data-theme="dark"] .cr2-payout-trust-row { background: rgba(108,53,255,.12); border-color: rgba(108,53,255,.25); color: #c4b5fd; }
 [data-theme="dark"] .cr2-payout-input { background: var(--s2); border-color: var(--b1); color: var(--t1); }
 [data-theme="dark"] .cr2-payout-input:focus { border-color: #6c35ff; }

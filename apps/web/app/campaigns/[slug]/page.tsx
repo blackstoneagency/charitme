@@ -572,14 +572,18 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             </div>
 
             {/* Donate + Share buttons inline */}
-            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-              <a href="#donate-section" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, background: 'linear-gradient(135deg,var(--violet),var(--violet-2))', color: '#fff', fontWeight: 700, fontSize: 15, textDecoration: 'none' }}>
+            <div className="pc-cta-row">
+              <a href="#donate-section" className="pc-cta pc-cta-donate">
                 Donate
               </a>
-              <a
-                href="#quick-share"
-                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, border: '1.5px solid var(--b2)', color: 'var(--t1)', fontWeight: 650, fontSize: 15, textDecoration: 'none', background: '#fff', gap: 6 }}
-              >
+              <a href="#quick-share" className="pc-cta pc-cta-share">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="18" cy="5" r="3" />
+                  <circle cx="6" cy="12" r="3" />
+                  <circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
                 Share
               </a>
             </div>
