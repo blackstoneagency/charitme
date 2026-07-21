@@ -4,6 +4,10 @@
 > production-readiness program. Section A is the actionable engineering backlog.
 > Section B (further down) is the competitive product vision it serves.
 
+> **Payment Workflow Hardening pass (2026-07-21)** — see **Section D** at the end
+> of this file and the companion **`payment-audit.md`** for the exhaustive
+> per-workflow audit + fixes.
+
 ## Status legend
 `Not Started` · `In Progress` · `Blocked` · `Code Complete` · `Testing` · `Verified` · `Production Ready`
 
@@ -858,3 +862,35 @@ Supabase and is scoped in the report, not fabricated.
 **Progress:** theme architecture reviewed ✅ · 1 P2 resolved (homepage hero) ·
 THM-100 backlog documented with file targets · per-route visual matrix blocked on
 browser+staging (see report §"Recommended next step").
+
+---
+
+# Section D — Payment Workflow Hardening (2026-07-21)
+
+Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in `payment-audit.md`.
+
+## Fixed
+- [x] 🔴 **PAY-001** — Removed unauthenticated `connect-sample` live-Stripe demo
+  island (pages + `/api/connect-sample/**` + `lib/connect-sample/**` + its test).
+  It created live V2 connected accounts / products / checkouts with no auth or
+  rate limiting using the shared live `STRIPE_SECRET_KEY`. Not linked from the real
+  product. Removed entirely; app stays deployable.
+
+## In progress (this pass)
+- [ ] Audit refund routes (`/api/admin/donations/[id]/refund`, `/api/admin/refunds`,
+  `/api/donations/[id]/refund-request`) — full/partial, ledger + stat consistency.
+- [ ] Webhook event-coverage audit vs required set; signature + idempotency per handler.
+- [ ] `/api/stripe/connect` onboarding audit (account links, capabilities, status).
+- [ ] Offline donations / receipts / tax-receipt auth + tenant scoping.
+
+## Verification-gated (NOT faked — needs Stripe live verification / staging)
+- [ ] Live end-to-end charge→transfer→payout→reconcile (GATED on LB-005 Connect
+  live-enablement).
+- [ ] Refund/dispute lifecycle via Stripe test clocks.
+- [ ] Browser / mobile / accessibility / load tests (no harness in this environment).
+
+## Verified sound (no change needed)
+- Destination-charge architecture, no-custody payout-readiness gate, server-side
+  fee math, webhook idempotency (`record_donation` + unique-index upsert), recurring
+  subscription state machine + donor-scoped ownership. Evidence in `payment-audit.md`
+  and `docs/AUDIT_PROGRESS.md`.
