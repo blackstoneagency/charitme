@@ -246,10 +246,12 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Completion Evidence: —
   - Commit: —
 
-- [~] CHAR-0012 — **Audit done (posture sound)**; automated per-persona tests pending
+- [~] CHAR-0012 — **Audit done + RLS-contract CI guard shipped**; live per-persona anon-key certification still needs sessions
   - Area: Security / hardening
   - Feature: RLS coverage audit + automated RLS tests
-  - Audit result (2026-07-19, live prod): 78 public tables; **0 with RLS disabled** (no raw exposure). 17 `marketing_*` tables are RLS-enabled with no policies = deny-all except service role (correct for admin-only data accessed via `supabaseAdmin`). 61 tables have explicit policies. Follow-up (defense-in-depth, non-urgent): add explicit admin-scoped policies to the 17 marketing tables so intent is documented in-schema. Automated per-persona RLS test harness still to build.
+  - **Guard shipped (2026-07-21):** `apps/web/__tests__/schema-rls.test.ts` pins the live RLS posture (`fixtures/schema-rls.json`) and fails CI if any public table loses RLS or any sensitive financial/PII table gains a public `USING(true)` read policy (the LB-006 class). Proven to catch injected regressions. Refresh via `npm run schema:snapshot`.
+  - Audit result (refreshed 2026-07-21, live prod, 143 tables): **0 with RLS disabled**; 24 legitimately-public display tables; **0 sensitive tables publicly readable** (financial-table policies verified — see `payment-audit.md`).
+  - Follow-up: full per-persona (donor/organizer/nonprofit/corporate/T&S/finance/support/admin) live certification with real anon/authenticated sessions (needs staging auth).
   - Description: Enumerate every user-accessible table, confirm RLS enabled + policies, add automated per-persona RLS tests (unauth, donor, organizer, nonprofit admin, corporate admin, T&S, finance, support, super admin).
   - Agent: 1 (+7)
   - Priority: P0
