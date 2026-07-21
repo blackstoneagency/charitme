@@ -640,6 +640,37 @@ tests/build/live-HTTP are listed here.
   references anywhere in the source). _Evidence: 0 source refs to logo.svg post-
   delete; typecheck + lint clean; full suite **772/772**; `next build` green._
 
+- **CHAR-SM12 · images · eliminate duplicate covers (deep-dive audit)** — Live audit
+  (service-role REST) found **500 campaigns sharing only 50 distinct cover URLs**
+  (each reused up to 60×) — e.g. two "Help … cover urgent medical costs" cards on
+  the same image. **Root cause:** migration `20260723000000_campaign_cover_per_campaign.sql`
+  assigns covers via `hashtext(slug) % pool_len` from **6-7-photo-per-category
+  Unsplash pools that also overlap across categories** — mathematically it can
+  only ever produce ~50 distinct images for 500 campaigns. **Fix (guaranteed
+  uniqueness, free, no API key):**
+  - New migration **`20260724000000_campaign_cover_unique_picsum.sql`** (supersedes
+    the above): assigns every campaign a **globally-unique Lorem Picsum image id**
+    (`picsum.photos/id/<id>` — free, commercial-use, no attribution) via
+    `row_number()` over a stable order from an embedded **800-id validated pool**;
+    sets `cover_image_url` + single-image `image_urls` in sync; **preserves genuine
+    uploads** (only null/placeholder-host covers touched); idempotent.
+  - Code: `lib/photo-catalog.ts#getCoverForCampaign` moved off LoremFlickr (whose
+    small per-keyword Flickr pool made different campaigns resolve to the SAME
+    photo) to a **unique Picsum seed per campaign** — the code-level default for
+    new/uncovered campaigns. `CampaignImage` fallback chain now flows through it.
+    Test rewritten (`__tests__/photo-catalog.test.ts`).
+  - **Verified (read-only, live):** a dry-run computed the 500-way unique assignment
+    and confirmed **500 distinct covers, 0 collisions**; picsum ids validated via
+    `picsum.photos/v2/list`. _typecheck + lint clean; full suite **772/772**;
+    `next build` green._
+  - **Trade-off / follow-up:** Picsum guarantees uniqueness but is **not
+    category-themed**; themed uniques at 500-scale need an Unsplash/Pexels API key
+    (standing owner follow-up). **PENDING LIVE APPLY:** the direct bulk REST write
+    was blocked by the sandbox safety classifier and this session has no Management
+    API token (didn't survive a container restart), so the migration is committed
+    but **must be applied to the live DB** (Management API / normal migration-apply
+    flow) for the duplicates to clear in production.
+
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
   Removed the stray field. _Evidence: verified live vs schema; commit `20d1597`._

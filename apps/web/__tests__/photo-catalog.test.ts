@@ -41,44 +41,41 @@ describe('photo-catalog structure', () => {
   });
 });
 
-describe('getCoverForCampaign — unique theme-matched per-campaign cover', () => {
-  // Post-CHAR-SM2: covers are per-campaign-unique LoremFlickr photos keyed on the
-  // category theme keyword + a stable per-campaign lock (not drawn from the
-  // CATEGORY_PHOTOS Unsplash pool, which now backs category cover / grids only).
-  const lockOf = (url: string) => Number((url.match(/lock=(\d+)/) || [])[1]);
-
+describe('getCoverForCampaign — unique per-campaign cover', () => {
+  // Covers are per-campaign-unique Lorem Picsum photos seeded on the campaign's
+  // stable key (slug/id). Distinct keys → distinct seeds → distinct images, which
+  // eliminates the LoremFlickr small-pool duplicate-photo problem.
   it('is deterministic: same key always yields the same cover', () => {
     const a = getCoverForCampaign('Medical', 'help-sarah-fight-cancer');
     const b = getCoverForCampaign('Medical', 'help-sarah-fight-cancer');
     expect(a).toBe(b);
   });
 
-  it('returns a themed LoremFlickr URL keyed on the category', () => {
-    // Medical → hospital
-    expect(getCoverForCampaign('Medical', 'k')).toMatch(
-      /^https:\/\/loremflickr\.com\/800\/450\/hospital\?lock=\d+$/,
+  it('returns a Picsum seed URL keyed on the campaign key', () => {
+    expect(getCoverForCampaign('Medical', 'help-sarah')).toBe(
+      'https://picsum.photos/seed/cm-help-sarah/800/600',
     );
-    // Education → school
-    expect(getCoverForCampaign('Education', 'k')).toContain('/school?lock=');
   });
 
-  it('gives distinct covers to distinct campaigns (spreads via the lock)', () => {
+  it('gives a distinct URL to every distinct campaign key', () => {
     const picks = new Set<string>();
     for (let i = 0; i < 200; i++) picks.add(getCoverForCampaign('Medical', `medical-campaign-${i}`));
-    // 200 varied keys should produce many distinct locks (near-collision-free).
-    expect(picks.size).toBeGreaterThan(150);
+    // 200 distinct keys → 200 distinct seed URLs (no collisions by construction).
+    expect(picks.size).toBe(200);
   });
 
-  it('falls back to the generic "charity" theme for unknown categories', () => {
-    expect(getCoverForCampaign('NoSuchCategory', 'k')).toContain('/charity?lock=');
+  it('url-encodes keys so odd slugs stay valid', () => {
+    expect(getCoverForCampaign('Medical', 'a b/c')).toBe(
+      'https://picsum.photos/seed/cm-a%20b%2Fc/800/600',
+    );
   });
 
-  it('still returns a stable themed cover when no key is provided', () => {
+  it('falls back to a stable category-based seed when no key is provided', () => {
     const a = getCoverForCampaign('Medical', null);
     const b = getCoverForCampaign('Medical', '');
     expect(a).toBe(b);
-    expect(a).toContain('/hospital?lock=');
-    expect(lockOf(a)).toBeGreaterThanOrEqual(1000);
+    expect(a).toBe('https://picsum.photos/seed/cm-cat-Medical/800/600');
+    expect(getCoverForCampaign(null, null)).toBe('https://picsum.photos/seed/cm-cat-charity/800/600');
   });
 });
 

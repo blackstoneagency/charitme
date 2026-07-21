@@ -198,36 +198,22 @@ export function getCoverForCategory(category: string | null | undefined): string
 }
 
 /**
- * Stable, non-cryptographic string hash (FNV-1a). Used only to spread campaigns
- * deterministically across a category's photo pool — same input always yields
- * the same photo, so a campaign's cover never changes between renders/deploys.
- */
-function hashKey(key: string): number {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < key.length; i++) {
-    h ^= key.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return h >>> 0;
-}
-
-// Category → theme keyword for per-campaign unique cover generation. Keeps each
-// campaign's cover on-theme while guaranteeing it is visually distinct.
-const CATEGORY_KEYWORD: Record<string, string> = {
-  Animal: 'animal', Business: 'business', Community: 'community', Competition: 'sports',
-  Creative: 'art', Education: 'school', Emergency: 'rescue', Environment: 'nature',
-  Event: 'celebration', Faith: 'church', Family: 'family', Medical: 'hospital',
-  Memorial: 'candle', Nonprofit: 'charity', Sports: 'sport', Travel: 'travel',
-  Volunteer: 'volunteer', Wishes: 'hope',
-};
-
-/**
- * A UNIQUE, theme-matched cover for a campaign. Each campaign gets a distinct,
- * free, professional photo relevant to its category — no two campaigns share the
- * same image. Uses LoremFlickr keyed on the campaign's stable id/slug so the
- * cover is deterministic (never changes between renders/deploys). If the source
- * ever fails at runtime, <CampaignImage> falls back to a verified Unsplash
- * category photo, then a gradient placeholder.
+ * A UNIQUE, professional cover for a campaign that has no stored cover. Each
+ * campaign gets a distinct free photo (Lorem Picsum — free for commercial use,
+ * no API key, no attribution), deterministically keyed on its stable id/slug so
+ * the cover never changes between renders/deploys.
+ *
+ * We deliberately moved off the previous LoremFlickr keyword approach: for a
+ * given keyword LoremFlickr draws from a small Flickr pool, so different
+ * campaigns frequently resolved to the SAME underlying photo (visible duplicate
+ * covers in discovery listings). A distinct Picsum seed per campaign avoids that.
+ *
+ * Trade-off: covers are not category-themed. Guaranteeing a unique image per
+ * campaign at scale without an image-search API key requires a large general
+ * pool. Themed uniques are a documented upgrade once an Unsplash/Pexels API key
+ * is configured. The live backfill (migration 20260724000000) additionally
+ * assigns guaranteed-distinct Picsum *ids* to every existing campaign; this
+ * function is the code-level default for new / uncovered campaigns.
  *
  * Callers should still prefer a real stored cover when present:
  *   campaign.cover_image_url || getCoverForCampaign(campaign.category, campaign.slug)
@@ -236,10 +222,8 @@ export function getCoverForCampaign(
   category: string | null | undefined,
   key: string | null | undefined,
 ): string {
-  const keyword = CATEGORY_KEYWORD[category ?? ''] ?? 'charity';
-  // A stable, large lock per campaign → a distinct themed photo per campaign.
-  const lock = key ? (hashKey(key) % 900000) + 1000 : Math.floor(hashKey(keyword) % 9000) + 1000;
-  return `https://loremflickr.com/800/450/${keyword}?lock=${lock}`;
+  const seed = key && key.trim() ? key.trim() : `cat-${category ?? 'charity'}`;
+  return `https://picsum.photos/seed/cm-${encodeURIComponent(seed)}/800/600`;
 }
 
 /** Unique, professional, reliable cover independent of theme (used as a safe last-resort). */
