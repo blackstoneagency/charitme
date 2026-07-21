@@ -1485,7 +1485,7 @@ function EditForm({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={draft.coverImageUrl}
-                  alt="Cover image"
+                  alt="Campaign cover"
                   style={{ width: '100%', maxWidth: 480, height: 200, objectFit: 'cover', borderRadius: 12, border: '1px solid #e2e8f0', display: 'block' }}
                 />
                 <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 6 }}>
@@ -1541,7 +1541,7 @@ function EditForm({
                 {(draft.imageUrls ?? []).map((url, i) => (
                   <div key={url} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt={`Gallery image ${i + 1}`} style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} />
+                    <img src={url} alt={`Gallery ${i + 1}`} style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }} />
                     <div style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4 }}>
                       {i === 0 && (
                         <span style={{ padding: '2px 8px', background: '#6c35ff', color: '#fff', fontSize: 10, fontWeight: 650, borderRadius: 6 }}>

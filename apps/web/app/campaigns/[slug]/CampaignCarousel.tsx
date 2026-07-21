@@ -24,7 +24,7 @@ export default function CampaignCarousel({
       {/* Main image */}
       <div className="pc-carousel-main">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt={`${title} — photo ${idx + 1}`} />
+        <img src={src} alt={`${title} — ${idx + 1}`} />
         {total > 1 && (
           <>
             <button
@@ -52,14 +52,18 @@ export default function CampaignCarousel({
       {total > 1 && (
         <div className="pc-carousel-thumbs">
           {images.map((s, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <button
               key={`${s}-${i}`}
-              src={s}
-              alt=""
+              type="button"
               onClick={() => setIdx(i)}
+              aria-label={`Show ${title} image ${i + 1}`}
+              aria-current={i === idx}
               className={`pc-carousel-thumb${i === idx ? ' active' : ''}`}
-            />
+              style={{ padding: 0, background: 'none' }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={s} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6, display: 'block' }} />
+            </button>
           ))}
         </div>
       )}
