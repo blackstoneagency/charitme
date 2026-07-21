@@ -133,7 +133,7 @@ CREATE FUNCTION public.claim_campaign_reward(p_reward_id uuid) RETURNS void
     LANGUAGE sql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
-  update public.campaign_rewards set claimed_count = claimed_count + 1 where id = p_reward_id;
+  update public.campaign_rewards set claimed_count = claimed_count + 1 where id = p_reward_id and (item_limit is null or claimed_count < item_limit);
 $$;
 
 

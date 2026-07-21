@@ -693,7 +693,7 @@ const SCHEMA_CHUNKS: { name: string; sql: string }[] = [
 
     create or replace function public.claim_campaign_reward(p_reward_id uuid)
     returns void language sql security definer set search_path = public as $$
-      update public.campaign_rewards set claimed_count = claimed_count + 1 where id = p_reward_id;
+      update public.campaign_rewards set claimed_count = claimed_count + 1 where id = p_reward_id and (item_limit is null or claimed_count < item_limit);
     $$;
 
     insert into public.feature_flags (key, enabled, description, rollout_pct) values

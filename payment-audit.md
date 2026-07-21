@@ -152,6 +152,23 @@ rebuild working flows for no functional gain. Kept as-is; documented as intentio
 - **Validation:** typecheck clean; 662 tests pass. (Note: pre-existing offline rows
   in the live DB were left untouched — no data deletion without owner sign-off.)
 
+### PAY-005 — Limited rewards could be over-claimed past `item_limit` (LOW-MED — DATA INTEGRITY) — ✅ FIXED
+- **Area:** `claim_campaign_reward` RPC (called from the checkout webhook).
+- **Root cause:** the donations route pre-checks `claimed_count < item_limit`
+  before creating the Checkout Session, but the webhook then ran an
+  **unconditional** `claimed_count = claimed_count + 1`. Two donors who both pass
+  the pre-check and pay can push `claimed_count` past `item_limit` (check-then-act
+  race) — over-selling a limited perk.
+- **Resolution:** migration `20260721010000_claim_reward_limit_guard.sql` adds the
+  atomic guard `... where id = p_reward_id and (item_limit is null or
+  claimed_count < item_limit)`; a claim after exhaustion matches 0 rows (the
+  donation still stands, the perk is simply unavailable). Mirrored into
+  `schema.sql`, `catch_up.sql`, the `20260610000000` reward-tiers migration, and
+  the `apply-schema` bootstrap. Applied to the live DB.
+- **Verified LIVE (reverted):** with `item_limit=1`, claim #1 → `claimed_count=1`,
+  claim #2 → stays `1` (no over-claim). Test reward deleted, zero residue.
+- **Validation:** typecheck clean; 662 tests pass.
+
 ---
 
 ## Verified sound (no change required)
