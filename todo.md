@@ -609,6 +609,23 @@ tests/build/live-HTTP are listed here.
   → server recompute (fee shown per method unchanged); no schema change.
   _Evidence: typecheck + lint clean; full suite **772/772**; `next build` green._
 
+- **CHAR-SM10 · donate UI · Service Fee + Payment dropdowns** — Reworked the donate
+  form's fee area to the two-dropdown design: a **"SERVICE FEE"** labeled dropdown
+  whose collapsed trigger shows "❤️ CharitMe · {tip}% · ⌄" and **expands to the full
+  "Tip CharitMe services" panel** (heading, "0% platform fee … Support is optional!"
+  copy, and the 4×2 tier grid incl. the 0% "No tip" tile); and a **"PAYMENT METHOD &
+  PROCESSING FEE"** labeled dropdown whose trigger shows "S Stripe · 2.9% + $0.30 · ⌄"
+  and expands to the payment-options radio list. Both default collapsed (compact),
+  animate a chevron, and are keyboard/SR-accessible (`aria-expanded`/`aria-controls`;
+  options are a proper `role="radiogroup"` of radios — fixes the earlier
+  `no-noninteractive-element-to-interactive-role` lint). The "0% mandatory platform
+  fee" banner was already present. Fully wired end-to-end and unchanged underneath:
+  tip % + method still post to `POST /api/donations` (`tipPercent`,
+  `paymentMethod`) and the server recomputes the authoritative charge via
+  `@shared/fees#donationBreakdown` → Stripe destination charge → webhook →
+  Supabase; no schema change. _Evidence: typecheck + lint clean; full suite
+  **772/772**; `next build` green._
+
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
   Removed the stray field. _Evidence: verified live vs schema; commit `20d1597`._
