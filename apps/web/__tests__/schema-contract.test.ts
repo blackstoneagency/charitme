@@ -87,6 +87,49 @@ type Ref = { file: string; line: number; table: string; column: string };
 
 const FROM_RE = /\.from\(\s*['"]([a-z_][a-z0-9_]*)['"]\s*\)/g;
 
+/**
+ * Parse the top-level keys of an object literal starting at `src[open] === '{'`.
+ * Tracks strings/templates/comments and nesting so only depth-1 keys are returned.
+ * Returns null if the braces don't balance (bail rather than risk a false positive).
+ */
+function objectKeys(src: string, open: number): string[] | null {
+  const keys: string[] = [];
+  let i = open + 1;
+  let depth = 1;
+  let expectKey = true;
+  let cur = '';
+  const flush = () => {
+    const k = cur.trim();
+    if (expectKey && k && /^[a-z_][a-z0-9_]*$/.test(k)) keys.push(k);
+    cur = '';
+  };
+  while (i < src.length && depth > 0) {
+    const ch = src[i];
+    const two = src.slice(i, i + 2);
+    if (two === '//') { i = src.indexOf('\n', i); if (i === -1) return null; continue; }
+    if (two === '/*') { i = src.indexOf('*/', i); if (i === -1) return null; i += 2; continue; }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      // skip string literal; a string in key position is not a bare column
+      const q = ch; i++;
+      while (i < src.length && src[i] !== q) { if (src[i] === '\\') i++; i++; }
+      i++; if (depth === 1) { expectKey = false; } cur = ''; continue;
+    }
+    if (ch === '{' || ch === '[' || ch === '(') { depth++; i++; continue; }
+    if (ch === '}' || ch === ']' || ch === ')') {
+      depth--;
+      if (depth === 0) { flush(); return keys; }
+      i++; continue;
+    }
+    if (depth === 1) {
+      if (ch === ',') { flush(); expectKey = true; i++; continue; }
+      if (ch === ':') { flush(); expectKey = false; i++; continue; }
+      cur += ch;
+    }
+    i++;
+  }
+  return depth === 0 ? keys : null;
+}
+
 /** Extract the first string-literal argument to the next `.select(` after `idx`. */
 function extractSelectArg(src: string, idx: number, boundary: number): string | null {
   const selIdx = src.indexOf('.select(', idx);
@@ -123,15 +166,36 @@ function collectRefs(): Ref[] {
         const { table, end, start } = froms[k];
         if (!KNOWN_TABLES.has(table)) continue; // view / unknown relation — skip
         const boundary = k + 1 < froms.length ? froms[k + 1].start : src.length;
-        const arg = extractSelectArg(src, end, boundary);
-        if (arg === null) continue;
-        if (arg.includes('${')) continue; // dynamic select — can't validate statically
         const line = src.slice(0, start).split('\n').length;
         const rel = 'apps/web/' + file.replace(APP_WEB_ROOT + '/', '');
-        for (const tok of topLevelSplit(arg)) {
-          const col = realColumn(tok);
-          if (!col) continue;
-          if (!COLUMNS[table].includes(col)) refs.push({ file: rel, line, table, column: col });
+
+        // ── .select('...') columns ──
+        const arg = extractSelectArg(src, end, boundary);
+        if (arg !== null && !arg.includes('${')) {
+          for (const tok of topLevelSplit(arg)) {
+            const col = realColumn(tok);
+            if (!col) continue;
+            if (!COLUMNS[table].includes(col)) refs.push({ file: rel, line, table, column: col });
+          }
+        }
+
+        // ── .insert/.update/.upsert({ ... }) object keys ──
+        // Only when DIRECTLY chained to this .from() (no intervening .from(, `;`,
+        // or function boundary) — filters/writes applied to a query stored in a
+        // variable can't be attributed to a table statically, so we skip them.
+        const region = src.slice(end, boundary);
+        const wm = /\.(insert|update|upsert)\(\s*\{/.exec(region);
+        if (wm) {
+          const pre = region.slice(0, wm.index);
+          if (!/\.from\(|;|function|=>/.test(pre)) {
+            const braceIdx = end + wm.index + wm[0].length - 1; // index of '{'
+            const keys = objectKeys(src, braceIdx);
+            if (keys) {
+              for (const key of keys) {
+                if (!COLUMNS[table].includes(key)) refs.push({ file: rel, line, table, column: key });
+              }
+            }
+          }
         }
       }
     }

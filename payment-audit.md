@@ -290,6 +290,28 @@ worth a schema-contract test in CI.)
 
 ---
 
+### PAY-011 — Write side of the nonexistent-column class: broken INSERT/UPDATE columns (MED — SILENT WRITE FAILURES) — ✅ FIXED
+Extending the sweep to `.insert/.update/.upsert` object keys (write side) found more
+real breakages — a bad write column makes the whole statement error; several were in
+try/catch so the feature "worked" but the write was silently lost:
+- **`audit_logs.resource_type`/`resource_id` don't exist** (the table uses
+  `target_type`/`target_id`) → payout audit-log inserts in `/api/admin/payouts` and
+  `/api/admin/payouts/[id]` silently failed, so payout actions left **no audit
+  trail**. Fixed to `target_type`/`target_id`.
+- **`campaign_payment_reconciliation.reason`/`reviewed_by`/`reviewed_at` don't
+  exist** → the admin "mark reviewed" and "retry reconciliation" actions
+  (`/api/admin/payments/[transactionId]/actions`) errored on write. Mapped to the
+  real columns (`updated_by`/`updated_at`; the human-readable reason is already
+  stored on `campaign_payments.reconciliation_reason` + the `issues` array).
+- **`campaign_payment_disputes.closed_at` doesn't exist** → the `charge.dispute.closed`
+  webhook write errored. Dropped it (`updated_at` records the close time).
+- **Filter side (`.eq/.in/.order`) intentionally NOT added to CI**: the only 3
+  candidates were false positives — filters applied to a query builder stored in a
+  variable (`const base = from('marketing_contacts')…; base.eq('client_type',…)`)
+  can't be attributed to a table statically. Left out to keep CI false-positive-free.
+- **Validation:** typecheck clean; 730 tests pass; every fixed write uses only
+  columns confirmed present in the live schema.
+
 ### Durable prevention — schema-contract CI test — ✅ SHIPPED
 The PAY-009/010 class (querying columns that don't exist → fail closed → silently
 broken feature) is invisible to normal tests. Added a **schema-contract test** so it
@@ -305,9 +327,14 @@ becomes a build failure instead:
 - `scripts/schema-snapshot.mjs` + `npm run schema:snapshot` — regenerates the
   snapshot from the live DB after a migration.
 - Already runs in CI via the existing `npm test --workspace=apps/web` step.
-- **Proven to catch the bug:** injecting `.select('donor_name, definitely_not_a_column')`
-  fails the test with both columns flagged; it passes again on removal. Green on the
-  current codebase (730 tests total).
+- **Now also checks writes:** `.insert/.update/.upsert({...})` object keys when
+  DIRECTLY chained to `.from(table)` (a robust brace/string/comment-aware key
+  parser). Directly-chained only, so query-builders stored in variables (the filter
+  false-positive class) are safely skipped.
+- **Proven to catch the bug:** injecting a bad `.select()` column, a bad `.insert()`
+  key, and a bad `.update()` key each fail the test with the exact
+  `file:line table.column`; all pass again on removal. Green on the current codebase
+  (730 tests total).
 
 ## CSV export & receipt routes — audited, all sound
 

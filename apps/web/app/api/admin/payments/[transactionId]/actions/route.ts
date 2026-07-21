@@ -52,9 +52,7 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
   if (parsed.data.action === 'mark_reviewed') {
     await supabaseAdmin.from('campaign_payment_reconciliation').update({
       status: 'ignored',
-      reason: 'admin_reviewed',
-      reviewed_by: admin.id,
-      reviewed_at: new Date().toISOString(),
+      updated_by: admin.id,
       updated_at: new Date().toISOString(),
     }).eq('campaign_payment_id', transactionId);
     await supabaseAdmin.from('campaign_payments').update({
@@ -94,7 +92,6 @@ export async function POST(request: NextRequest, context: RouteContext): Promise
       owner_net_amount: payment.campaign_owner_net_amount,
       currency: payment.currency,
       status: result.status,
-      reason,
       issues: result.issues,
       checked_at: new Date().toISOString(),
     }, { onConflict: 'campaign_payment_id', ignoreDuplicates: false });

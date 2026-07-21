@@ -911,11 +911,18 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
   `updated_at` — added via migration `20260721020000`); Impact feature
   (`campaigns.currency` → `campaign_launch_settings`); marketing contact sync
   (`profiles.country`). All verified live.
+- [x] 🟡 **PAY-011** — Write side of the nonexistent-column class. Fixed silently-
+  failing writes: payout audit logs (`audit_logs.resource_type/id` → `target_type/id`);
+  admin payment reconciliation actions (`campaign_payment_reconciliation.reason/
+  reviewed_by/reviewed_at` → `updated_by/updated_at`); dispute-closed webhook
+  (`campaign_payment_disputes.closed_at` dropped). Filter side (`.eq/.in/.order`) had
+  only false positives (query-builder variables) — not fixed, not added to CI.
 - [x] 🛡️ **Schema-contract CI test** — `apps/web/__tests__/schema-contract.test.ts`
-  fails the build if any `.from(table).select()` references a column absent from the
-  committed snapshot (`fixtures/schema-columns.json`; refresh via
-  `npm run schema:snapshot`). Turns the PAY-009/010 bug class into a build failure.
-  Proven to catch injected bad columns; runs in CI via `npm test`.
+  fails the build if any `.from(table).select()` OR directly-chained
+  `.insert/.update/.upsert({...})` references a column absent from the committed
+  snapshot (`fixtures/schema-columns.json`; refresh via `npm run schema:snapshot`).
+  Turns the PAY-009/010/011 bug class into a build failure. Proven to catch injected
+  bad select/insert/update columns; runs in CI via `npm test`.
 
 ## Audited & sound (no change needed)
 - [x] Refund routes (admin refund fixed; admin/refunds workflow-only; donor

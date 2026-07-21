@@ -1004,7 +1004,6 @@ async function handleDisputeClosed(dispute: Stripe.Dispute) {
     }).eq('id', payment.id),
     supabaseAdmin.from('campaign_payment_disputes').update({
       status: won ? 'won' : 'lost',
-      closed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }).eq('processor_object_id', dispute.id),
     recordPaymentEvent({

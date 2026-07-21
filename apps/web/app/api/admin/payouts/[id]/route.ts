@@ -78,8 +78,8 @@ export async function PATCH(
     await supabaseAdmin.from('audit_logs').insert({
       actor_id: adminId,
       action: `payout.${action}`,
-      resource_type: 'payout',
-      resource_id: id,
+      target_type: 'payout',
+      target_id: id,
       metadata: { note, new_status: newStatus },
       created_at: new Date().toISOString(),
     });

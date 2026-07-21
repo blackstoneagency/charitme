@@ -89,8 +89,8 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin.from('audit_logs').insert({
         actor_id: adminId,
         action: 'payout.created',
-        resource_type: 'payout',
-        resource_id: (data as { id: string }).id,
+        target_type: 'payout',
+        target_id: (data as { id: string }).id,
         metadata: { note, amount_cents, manual: true },
         created_at: new Date().toISOString(),
       });
