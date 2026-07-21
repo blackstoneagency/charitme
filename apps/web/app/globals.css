@@ -6117,3 +6117,142 @@ img, svg { display: block; }
 @media (prefers-reduced-motion: reduce) {
   .home-hc-media, .home-cause-media, .home-card-media { animation: none; background-image: none; background-color: var(--s2); }
 }
+
+/* ============================================================================
+   Fast Payouts marketing page (/fast-payouts)
+   Fully theme-aware: colours come from the design-token variables, which the
+   [data-theme="dark"] block already flips, so light/dark stay in parity. Only
+   the mesh gradients + colour-tinted info cards need explicit dark overrides.
+   ========================================================================== */
+.fp { background: var(--soft); color: var(--t1); }
+.fp .container { max-width: 1120px; }
+.fp section { position: relative; }
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+.fp-hero {
+  overflow: hidden;
+  border-bottom: 1px solid var(--b1);
+  padding: 86px 0 96px;
+  background:
+    radial-gradient(58% 120% at 12% -10%, rgba(18, 166, 83, .13), transparent 60%),
+    radial-gradient(48% 100% at 92% 0%, rgba(109, 53, 255, .10), transparent 55%),
+    var(--s1);
+}
+[data-theme="dark"] .fp-hero {
+  background:
+    radial-gradient(58% 120% at 12% -10%, rgba(18, 166, 83, .20), transparent 60%),
+    radial-gradient(48% 100% at 92% 0%, rgba(109, 53, 255, .22), transparent 55%),
+    var(--s1);
+}
+.fp-hero-inner { max-width: 760px; }
+.fp-badge {
+  display: inline-flex; align-items: center; gap: 9px;
+  border: 1px solid var(--b2); background: var(--s2);
+  color: var(--green-dark); font-weight: 800; font-size: 13px;
+  letter-spacing: .01em; padding: 8px 15px; border-radius: 999px;
+}
+.fp-badge i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(18, 166, 83, .16); }
+.fp-h1 { font-size: clamp(34px, 5.1vw, 60px); line-height: 1.03; letter-spacing: -.022em; font-weight: 900; color: var(--t1); margin: 20px 0 0; }
+.fp-lead { font-size: 18px; line-height: 1.62; color: var(--t3); max-width: 660px; margin: 22px 0 0; }
+.fp-ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+.fp-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 52px; padding: 0 26px; border-radius: 14px; font-weight: 800; font-size: 15px;
+  text-decoration: none; cursor: pointer; border: 1.5px solid transparent;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .15s ease, background .15s ease;
+}
+.fp-btn-primary { background: linear-gradient(135deg, #14b45b, #0b8f45); color: #fff; box-shadow: 0 14px 34px rgba(12, 140, 69, .34); }
+.fp-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 18px 42px rgba(12, 140, 69, .42); }
+.fp-btn-ghost { background: var(--s1); color: var(--t1); border-color: var(--b2); }
+.fp-btn-ghost:hover { border-color: var(--green); transform: translateY(-2px); }
+.fp-hero-note { margin-top: 18px; font-size: 13px; color: var(--t4); display: flex; align-items: center; gap: 7px; }
+
+/* ── Stat strip ───────────────────────────────────────────────────────── */
+.fp-stats { border-bottom: 1px solid var(--b1); padding: 30px 0; background: var(--soft); }
+.fp-stat-grid { display: grid; gap: 16px; grid-template-columns: repeat(4, 1fr); }
+.fp-stat { text-align: center; padding: 22px 16px; border: 1px solid var(--b1); border-radius: var(--rl); background: var(--s1); box-shadow: var(--shadow-sm); }
+.fp-stat b { display: block; font-size: 30px; font-weight: 900; color: var(--green-dark); letter-spacing: -.02em; }
+.fp-stat span { display: block; margin-top: 5px; font-size: 13px; font-weight: 700; color: var(--t3); }
+
+/* ── Section shells ───────────────────────────────────────────────────── */
+.fp-section { padding: 76px 0; }
+.fp-section.alt { background: var(--s2); }
+.fp-eyebrow { font-size: 12px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; color: var(--green-dark); }
+.fp-h2 { font-size: clamp(26px, 3.2vw, 34px); font-weight: 900; letter-spacing: -.02em; color: var(--t1); margin: 10px 0 0; }
+.fp-sub { margin: 12px 0 0; font-size: 16px; line-height: 1.6; color: var(--t3); max-width: 620px; }
+.fp-head { margin-bottom: 40px; }
+
+/* ── Steps ────────────────────────────────────────────────────────────── */
+.fp-steps { display: grid; gap: 16px; }
+.fp-step { display: flex; gap: 20px; align-items: flex-start; padding: 24px; border: 1px solid var(--b1); border-radius: var(--rxl); background: var(--s1); box-shadow: var(--shadow-sm); transition: border-color .15s ease, transform .15s ease; }
+.fp-step:hover { border-color: var(--green); transform: translateY(-2px); }
+.fp-step-ic { flex-shrink: 0; width: 58px; height: 58px; display: grid; place-items: center; font-size: 26px; border-radius: 18px; background: var(--green-light); border: 1px solid var(--b1); }
+[data-theme="dark"] .fp-step-ic { background: rgba(18, 166, 83, .14); border-color: rgba(18, 166, 83, .28); }
+.fp-step-n { font-size: 12px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; color: var(--green-dark); }
+.fp-step h3 { font-size: 18px; font-weight: 800; color: var(--t1); margin: 4px 0 0; }
+.fp-step p { font-size: 14px; line-height: 1.6; color: var(--t3); margin: 8px 0 0; }
+
+/* ── Options table (card-styled) ──────────────────────────────────────── */
+.fp-table-wrap { border: 1px solid var(--b1); border-radius: var(--rxl); overflow: hidden; box-shadow: var(--shadow-sm); background: var(--s1); }
+.fp-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.fp-table th { text-align: left; font-weight: 800; color: var(--t2); background: var(--s2); padding: 16px 22px; border-bottom: 1px solid var(--b1); font-size: 12.5px; letter-spacing: .04em; text-transform: uppercase; }
+.fp-table td { padding: 18px 22px; border-bottom: 1px solid var(--b1); color: var(--t3); vertical-align: middle; }
+.fp-table tr:last-child td { border-bottom: 0; }
+.fp-table tr.hl td { background: var(--green-light); }
+[data-theme="dark"] .fp-table tr.hl td { background: rgba(18, 166, 83, .10); }
+.fp-table .fp-opt-name { font-weight: 800; color: var(--t1); display: flex; align-items: center; gap: 9px; }
+.fp-pill { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: var(--green); color: #fff; letter-spacing: .02em; }
+.fp-fee { font-weight: 800; color: var(--green-dark); }
+.fp-note { margin-top: 16px; font-size: 12.5px; line-height: 1.55; color: var(--t4); max-width: 720px; }
+
+/* ── Trust / holds ────────────────────────────────────────────────────── */
+.fp-trust-grid { display: grid; gap: 40px; grid-template-columns: 1fr 1fr; align-items: start; }
+.fp-check { display: flex; align-items: flex-start; gap: 11px; font-size: 14.5px; color: var(--t2); line-height: 1.5; }
+.fp-check span:first-child { flex-shrink: 0; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--green); color: #fff; font-size: 12px; font-weight: 900; margin-top: 1px; }
+.fp-checks { margin-top: 22px; display: grid; gap: 14px; }
+.fp-hold-card { border: 1px solid var(--b1); border-radius: var(--rxl); background: var(--s1); padding: 28px; box-shadow: var(--shadow-sm); }
+.fp-hold-card h3 { font-size: 20px; font-weight: 900; color: var(--t1); margin: 0 0 16px; }
+.fp-hold { border-radius: var(--rl); padding: 16px 18px; border: 1px solid; }
+.fp-hold + .fp-hold { margin-top: 12px; }
+.fp-hold b { display: block; font-weight: 800; color: var(--t1); font-size: 14.5px; }
+.fp-hold p { margin: 5px 0 0; font-size: 13px; line-height: 1.55; color: var(--t3); }
+.fp-hold.amber { background: rgba(255, 138, 28, .10); border-color: rgba(255, 138, 28, .30); }
+.fp-hold.red { background: rgba(255, 59, 95, .09); border-color: rgba(255, 59, 95, .28); }
+.fp-hold.green { background: var(--green-light); border-color: rgba(18, 166, 83, .30); }
+[data-theme="dark"] .fp-hold.green { background: rgba(18, 166, 83, .12); }
+
+/* ── FAQ ──────────────────────────────────────────────────────────────── */
+.fp-faqs { max-width: 780px; margin: 0 auto; display: grid; gap: 14px; }
+.fp-faq { border: 1px solid var(--b1); border-radius: var(--rxl); background: var(--s1); padding: 24px 26px; box-shadow: var(--shadow-sm); }
+.fp-faq h3 { font-size: 16px; font-weight: 800; color: var(--t1); margin: 0; display: flex; gap: 10px; align-items: flex-start; }
+.fp-faq h3 span { color: var(--green-dark); flex-shrink: 0; }
+.fp-faq p { margin: 12px 0 0; font-size: 14px; line-height: 1.62; color: var(--t3); }
+
+/* ── CTA ──────────────────────────────────────────────────────────────── */
+.fp-cta { padding: 76px 0; }
+.fp-cta-box { border-radius: var(--rxl); padding: 60px 32px; text-align: center; background: linear-gradient(135deg, #12a653, #0a7e42); box-shadow: 0 26px 70px rgba(10, 126, 66, .34); }
+.fp-cta-box h2 { font-size: clamp(26px, 3.4vw, 36px); font-weight: 900; color: #fff; margin: 0; letter-spacing: -.02em; }
+.fp-cta-box p { margin: 16px auto 0; max-width: 540px; color: rgba(255, 255, 255, .9); font-size: 16px; line-height: 1.6; }
+.fp-cta-btns { margin-top: 30px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.fp-cta-btns .fp-btn-primary { background: #fff; color: #0a7e42; box-shadow: 0 14px 34px rgba(0, 0, 0, .18); }
+.fp-cta-btns .fp-btn-primary:hover { background: #f3fff8; }
+.fp-cta-btns .fp-btn-ghost { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .5); }
+.fp-cta-btns .fp-btn-ghost:hover { border-color: #fff; background: rgba(255, 255, 255, .08); }
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .fp-trust-grid { grid-template-columns: 1fr; gap: 28px; }
+  .fp-stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 720px) {
+  .fp-hero { padding: 60px 0 66px; }
+  .fp-section { padding: 56px 0; }
+  .fp-table-wrap { overflow-x: auto; }
+  .fp-table { min-width: 560px; }
+  .fp-step { padding: 20px; gap: 15px; }
+  .fp-step-ic { width: 50px; height: 50px; font-size: 22px; }
+}
+@media (max-width: 460px) {
+  .fp-stat-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .fp-btn { width: 100%; }
+}
