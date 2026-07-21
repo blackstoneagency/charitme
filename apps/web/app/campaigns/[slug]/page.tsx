@@ -18,7 +18,6 @@ import MobileDonateCTA from './MobileDonateCTA';
 import CampaignCarousel from './CampaignCarousel';
 import DonorWall, { type WallDonation } from './DonorWall';
 import DonationTicker from './DonationTicker';
-import EmployerMatchWidget from './EmployerMatchWidget';
 import Milestones from './Milestones';
 import CommentForm from './CommentForm';
 import CommentsList, { type WallComment } from './CommentsList';
@@ -675,20 +674,6 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             )}
 
             <ReportButton campaignId={campaign.id} />
-
-            {/* Protection guarantee */}
-            <div className="pc-guarantee">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 24 }}>🛡️</span>
-                <div>
-                  <b>CharitMe protects your donation</b>
-                  <span>We guarantee a full refund for up to a year in the rare case that fraud occurs. See the CharitMe Giving Guarantee.</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Employer donation matching lookup */}
-            <EmployerMatchWidget />
 
           </div>
         </div>{/* end pc-right */}
