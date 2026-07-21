@@ -888,6 +888,12 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 - [x] 🟡 **PAY-005** — `claim_campaign_reward` had no `item_limit` guard, so
   concurrent paid claims could over-sell a limited reward. Added an atomic guard
   (migration `20260721010000`), applied live + verified. Commit `1a01f89`.
+- [x] 🔴 **PAY-006** — Self-service `/api/payouts` fired `stripe.transfers.create`
+  for the full `raised_amount` to the organizer's connected account — but
+  destination charges already delivered those funds there, so it double-paid out of
+  the platform balance. Replaced with a Stripe Express dashboard login link
+  (automatic-payout model); reworked the dashboard button. Admin payout route
+  audited (bookkeeping-only, safe).
 
 ## Audited & sound (no change needed)
 - [x] Refund routes (admin refund fixed; admin/refunds workflow-only; donor

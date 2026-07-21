@@ -180,6 +180,31 @@ rebuild working flows for no functional gain. Kept as-is; documented as intentio
   claim #2 → stays `1` (no over-claim). Test reward deleted, zero residue.
 - **Validation:** typecheck clean; 662 tests pass.
 
+### PAY-006 — Self-service payout route DOUBLE-PAID recipients via a manual transfer (CRITICAL — FINANCIAL) — ✅ FIXED
+- **Area:** `apps/web/app/api/payouts/route.ts` (+ `dashboard/payouts/RequestPayoutButton.tsx`).
+- **Root cause:** the "Request Payout" button (live on `/dashboard/payouts`) called
+  `/api/payouts`, which ran `stripe.transfers.create({ amount: raised_amount −
+  alreadyPaidOut, destination: <organizer connected account> })`. But CharitMe uses
+  **destination charges** — every donation already transferred its principal to that
+  same connected account at charge time, and Stripe auto-pays it out. A second,
+  platform-initiated transfer of the whole `raised_amount` therefore **double-pays
+  the recipient** out of the platform balance (which only holds application fees),
+  overdrawing the platform. The route also computed "available balance" from
+  `campaigns.raised_amount`, a denormalized figure — not the real Stripe balance.
+  This contradicts the intended architecture (destination charge → **automatic**
+  Stripe payout → bank).
+- **Resolution:** removed the manual transfer entirely. `/api/payouts` now returns a
+  single-use **Stripe Express dashboard login link**
+  (`stripe.accounts.createLoginLink`) so the organizer views their real balance,
+  payout schedule, and history and can start an instant payout in Stripe. The
+  dashboard button was reworked to "Manage Payouts" — it explains payouts are
+  automatic and opens the Stripe dashboard, instead of a money-request modal with
+  (now-meaningless) speed-fee options. Auth + connected-account-ready checks kept.
+  The admin payout route (`/api/admin/payouts`) was audited and is safe — it only
+  writes a `payouts` bookkeeping row, no Stripe transfer.
+- **Validation:** typecheck clean; lint 0 errors; 712 tests pass. (Live login-link
+  generation is exercised once Connect is live-enabled — GATED on LB-005.)
+
 ---
 
 ## Verified sound (no change required)
