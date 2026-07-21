@@ -27,6 +27,42 @@ is a **gap-closure + hardening + elevation** program, not a rebuild (ADR-0001).
 > and most were **verified end-to-end this session**. Do NOT rebuild them — verify
 > and polish only.
 
+## Launch-Readiness Seed Audit (2026-07-21)
+
+Goal: **every feature/service offering seeded with ≥100 rows** so the live site
+demonstrates real volume in every list, dashboard, and admin console. The seed
+suite lives in `supabase/seeds/` (run `00`→`06`, then `99` to verify). Each file
+loads **120 rows/table**, guarded by `to_regclass()` + `on conflict do nothing`,
+so it is safe on any database and re-runnable.
+
+| Seed file | Feature domain | Tables | Rows/ea |
+|-----------|----------------|--------|---------|
+| `00_test_users.sql` | Accounts | `auth.users`→`profiles` | 120 |
+| `01_campaigns_core.sql` | Campaigns + donations | campaigns, updates, faqs, milestones, rewards, donations, saved, notifications | 120 |
+| `02_marketplaces.sql` | Grants · sponsorships · matching · volunteers · nonprofits | 12 tables | 120 |
+| `03_events.sql` | Events & peer fundraising | events, tickets, registrations, check-ins, peer_fundraisers | 120 |
+| `04_impact_gamification.sql` | Impact & gamification | impact_*, challenges, participants, badges | 120 |
+| `05_engagement_financial.sql` | Engagement & financial history | donor_messages, recurring, refunds, payouts, verification, risk_flags, tax_receipts, business_leads | 120 |
+| **`06_extended_features.sql`** *(new)* | **Creator monetization · digital products · auctions · livestreams · giving days · donor CRM** | creator_profiles, membership_tiers, member_subscriptions, exclusive_posts, creator_tips, digital_products, product_orders, auction_items, auction_bids, livestreams, giving_days, donor_crm_contacts, donor_segments, campaign_media, transparency_ledger_items | 120 |
+| `99_verify_counts.sql` | *(read-only)* coverage report | 57 tables checked | — |
+
+**Coverage: 57 feature tables** across the 15 domains now have a ≥100-row seed
+path. `06` was validated end-to-end against a throwaway Postgres 16 instance
+(schema loaded from the `competitor_parity_features` migration + `campaign_media`
+/`transparency_ledger_items` DDL): all 15 tables reached ≥120 rows, the file ran
+twice cleanly (conflict guards held), and `99` reported `OK` for every one.
+
+> **`needs-staging` (ADR-0003).** These seeds cannot be executed against live or
+> staging Supabase from the sandbox — that is the **owner's step**. Run `00`→`06`
+> in the Supabase SQL editor (service role), then `99`, and confirm every row
+> shows `OK`. Per-user tables only reach 100 once ≥100 profiles exist (`00`).
+> Do **not** run the demo seeds against the production project without the
+> demo-data guard/labeling (see “Production seed guard” below) — they insert
+> fabricated rows.
+
+## Gap analysis — genuinely absent/thin domains
+Cross-referencing the required table inventory against tables actually referenced in code:
+
 | Domain | State now (2026-07-21) | Evidence |
 |--------|------------------------|----------|
 | **Grants** | ✅ Built + verified | round-trip write/read/soft-delete + RLS verified live (`docs/AUDIT_PROGRESS.md`) |

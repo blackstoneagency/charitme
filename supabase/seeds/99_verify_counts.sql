@@ -1,6 +1,6 @@
 -- =============================================================================
 -- CharitMe seed · 99 · Verify coverage
--- Run after 00–04. Prints one line per feature table with its row count and an
+-- Run after 00–06. Prints one line per feature table with its row count and an
 -- OK / <100 flag. Tables that aren't present on this database (e.g. schema.sql-
 -- only tables) are reported as "(not present)" instead of erroring.
 -- Output appears in the SQL editor "Messages" pane (or psql stderr).
@@ -18,7 +18,11 @@ declare
     'impact_plans','impact_plan_items','impact_updates','impact_evidence','impact_metrics',
     'challenges','challenge_participants','user_badges',
     'donor_messages','recurring_donations','refunds','payouts',
-    'verification_documents','risk_flags','tax_receipts','business_leads'
+    'verification_documents','risk_flags','tax_receipts','business_leads',
+    'creator_profiles','membership_tiers','member_subscriptions','exclusive_posts',
+    'creator_tips','digital_products','product_orders','auction_items','auction_bids',
+    'livestreams','giving_days','donor_crm_contacts','donor_segments',
+    'campaign_media','transparency_ledger_items'
   ];
   t text;
   c bigint;

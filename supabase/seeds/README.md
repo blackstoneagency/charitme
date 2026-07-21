@@ -19,6 +19,7 @@ Run these **in order**, once each, top to bottom:
 | 03 | `03_events.sql` | `fundraising_events`, `event_tickets`, `event_registrations`, `event_checkins`, `peer_fundraisers` | 120 each |
 | 04 | `04_impact_gamification.sql` | `impact_plans`, `impact_plan_items`, `impact_updates`, `impact_evidence`, `impact_metrics`, `challenges`, `challenge_participants`, `user_badges` | 120 each |
 | 05 | `05_engagement_financial.sql` | `donor_messages`, `recurring_donations`, `refunds`, `payouts`, `verification_documents`, `risk_flags`, `tax_receipts`, `business_leads` | 120 each |
+| 06 | `06_extended_features.sql` | `creator_profiles`, `membership_tiers`, `member_subscriptions`, `exclusive_posts`, `creator_tips`, `digital_products`, `product_orders`, `auction_items`, `auction_bids`, `livestreams`, `giving_days`, `donor_crm_contacts`, `donor_segments`, `campaign_media`, `transparency_ledger_items` | 120 each |
 | 99 | `99_verify_counts.sql` | *(read-only)* reports row counts + an `ok` flag (≥100) per feature | — |
 
 Each feature file re-reads whatever `profiles`/`campaigns` already exist, so if
@@ -50,6 +51,6 @@ sponsors have existing seed migrations. Ask if you want any of these added.
 
 ## Verifying
 
-After running 00–04, run `99_verify_counts.sql`. Every row should show `ok = true`
+After running 00–06, run `99_verify_counts.sql`. Every row should show `ok = true`
 (≥100). Anything showing `false` on a per-user table means you need more profiles —
 run `00_test_users.sql`.
