@@ -753,8 +753,8 @@ export default function CreatePage() {
                   <h2 className="cr2-step-q" style={{ padding: '0', marginBottom: 22 }}>Where are you located?</h2>
 
                   <div className="cr2-field">
-                    <label>Country</label>
-                    <select value={form.country} onChange={e => upd('country', e.target.value)}>
+                    <label htmlFor="cr-country">Country</label>
+                    <select id="cr-country" value={form.country} onChange={e => upd('country', e.target.value)}>
                       {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                     <a href="/supported-countries" className="cr2-countries-link" target="_blank" rel="noopener noreferrer">
@@ -763,8 +763,9 @@ export default function CreatePage() {
                   </div>
 
                   <div className="cr2-field">
-                    <label>ZIP / Postal Code</label>
+                    <label htmlFor="cr-zip">ZIP / Postal Code</label>
                     <input
+                      id="cr-zip"
                       type="text"
                       value={form.zipCode}
                       onChange={e => upd('zipCode', e.target.value)}
@@ -776,8 +777,9 @@ export default function CreatePage() {
                   {form.forSelf === 'false' && (
                     <>
                       <div className="cr2-field">
-                        <label>Beneficiary Name</label>
+                        <label htmlFor="cr-beneficiary-name">Beneficiary Name</label>
                         <input
+                          id="cr-beneficiary-name"
                           type="text"
                           value={form.beneficiaryName}
                           onChange={e => upd('beneficiaryName', e.target.value)}
@@ -786,8 +788,9 @@ export default function CreatePage() {
                         />
                       </div>
                       <div className="cr2-field">
-                        <label>Your Relationship to Them</label>
+                        <label htmlFor="cr-beneficiary-rel">Your Relationship to Them</label>
                         <input
+                          id="cr-beneficiary-rel"
                           type="text"
                           value={form.beneficiaryRelationship}
                           onChange={e => upd('beneficiaryRelationship', e.target.value)}
@@ -811,8 +814,9 @@ export default function CreatePage() {
                   <h2 className="cr2-step-q" style={{ padding: 0, marginBottom: 8 }}>Tell Donors Your Story.</h2>
 
                   <div className="cr2-field">
-                    <label>Campaign Story * <span className="cr2-optional">— min. 20 characters</span></label>
+                    <label htmlFor="cr-story">Campaign Story * <span className="cr2-optional">— min. 20 characters</span></label>
                     <textarea
+                      id="cr-story"
                       value={form.description}
                       onChange={e => upd('description', e.target.value)}
                       placeholder="Introduce yourself and what you're raising funds for..."
@@ -914,6 +918,7 @@ export default function CreatePage() {
                           checked={form.autoGoal === 'true'}
                           onChange={e => upd('autoGoal', e.target.checked ? 'true' : 'false')}
                         />
+                        <span className="sr-only">Automated goal setting</span>
                       </label>
                     </div>
                     <p className="cr2-auto-goal-body">
@@ -1034,10 +1039,10 @@ export default function CreatePage() {
                         <span style={{ fontSize: 26 }}>💚</span>
                         <div><strong>Venmo</strong><p>Receive donations directly to your Venmo account.</p></div>
                       </div>
-                      <label className="cr2-payout-field-label">Venmo Username</label>
+                      <label htmlFor="cr-venmo" className="cr2-payout-field-label">Venmo Username</label>
                       <div className="cr2-payout-input-prefix-wrap">
                         <span className="cr2-payout-input-prefix">@</span>
-                        <input type="text" value={venmoHandle} onChange={e => setVenmoHandle(e.target.value.replace(/^@/, ''))} placeholder="yourvenmo" className="cr2-payout-input cr2-payout-input-has-prefix" />
+                        <input id="cr-venmo" type="text" value={venmoHandle} onChange={e => setVenmoHandle(e.target.value.replace(/^@/, ''))} placeholder="yourvenmo" className="cr2-payout-input cr2-payout-input-has-prefix" />
                       </div>
                       <button type="button" className="cr2-payout-connect-btn cr2-payout-btn-venmo" onClick={() => void saveVenmo()} disabled={loading || !venmoHandle.trim()}>
                         {loading ? 'Saving…' : '💚 Save Venmo Account'}
@@ -1052,8 +1057,8 @@ export default function CreatePage() {
                         <span style={{ fontSize: 26 }}>🔵</span>
                         <div><strong>Google Pay</strong><p>Receive donations via your Google Pay account.</p></div>
                       </div>
-                      <label className="cr2-payout-field-label">Google Account Email</label>
-                      <input type="email" value={googlePayEmail} onChange={e => setGooglePayEmail(e.target.value)} placeholder="you@gmail.com" className="cr2-payout-input" />
+                      <label htmlFor="cr-gpay-email" className="cr2-payout-field-label">Google Account Email</label>
+                      <input id="cr-gpay-email" type="email" value={googlePayEmail} onChange={e => setGooglePayEmail(e.target.value)} placeholder="you@gmail.com" className="cr2-payout-input" />
                       <button type="button" className="cr2-payout-connect-btn cr2-payout-btn-gpay" onClick={() => void saveGooglePay()} disabled={loading || !googlePayEmail.trim()}>
                         {loading ? 'Saving…' : '🔵 Save Google Pay Account'}
                       </button>
@@ -1067,8 +1072,8 @@ export default function CreatePage() {
                         <span style={{ fontSize: 26 }}>💙</span>
                         <div><strong>PayPal</strong><p>Donations sent to your PayPal account. PayPal fees apply on their end.</p></div>
                       </div>
-                      <label className="cr2-payout-field-label">PayPal Email Address</label>
-                      <input type="email" value={paypalEmail} onChange={e => setPaypalEmail(e.target.value)} placeholder="you@paypal.com" className="cr2-payout-input" />
+                      <label htmlFor="cr-paypal-email" className="cr2-payout-field-label">PayPal Email Address</label>
+                      <input id="cr-paypal-email" type="email" value={paypalEmail} onChange={e => setPaypalEmail(e.target.value)} placeholder="you@paypal.com" className="cr2-payout-input" />
                       <button type="button" className="cr2-payout-connect-btn cr2-payout-btn-paypal" onClick={() => void savePaypal()} disabled={loading || !paypalEmail.trim()}>
                         {loading ? 'Saving…' : '💙 Save PayPal Account'}
                       </button>
@@ -1085,12 +1090,12 @@ export default function CreatePage() {
                       <div className="cr2-payout-trust-row">
                         🔒 Powered by <strong>Sinch</strong> · Bank-level encryption · Instant verification
                       </div>
-                      <label className="cr2-payout-field-label">Routing Number (9 digits)</label>
-                      <input type="text" value={routingNumber} onChange={e => setRoutingNumber(e.target.value.replace(/\D/g, '').slice(0, 9))} placeholder="021000021" className="cr2-payout-input" maxLength={9} />
-                      <label className="cr2-payout-field-label" style={{ marginTop: 14 }}>Account Number</label>
-                      <input type="text" value={accountNumber} onChange={e => setAccountNumber(e.target.value.replace(/\D/g, ''))} placeholder="Enter account number" className="cr2-payout-input" />
-                      <label className="cr2-payout-field-label" style={{ marginTop: 14 }}>Account Type</label>
-                      <div className="cr2-payout-acct-type-row">
+                      <label htmlFor="cr-routing" className="cr2-payout-field-label">Routing Number (9 digits)</label>
+                      <input id="cr-routing" type="text" value={routingNumber} onChange={e => setRoutingNumber(e.target.value.replace(/\D/g, '').slice(0, 9))} placeholder="021000021" className="cr2-payout-input" maxLength={9} />
+                      <label htmlFor="cr-account" className="cr2-payout-field-label" style={{ marginTop: 14 }}>Account Number</label>
+                      <input id="cr-account" type="text" value={accountNumber} onChange={e => setAccountNumber(e.target.value.replace(/\D/g, ''))} placeholder="Enter account number" className="cr2-payout-input" />
+                      <span className="cr2-payout-field-label" style={{ marginTop: 14, display: 'block' }}>Account Type</span>
+                      <div className="cr2-payout-acct-type-row" role="group" aria-label="Account type">
                         <button type="button" className={`cr2-acct-type-btn${accountType === 'checking' ? ' selected' : ''}`} onClick={() => setAccountType('checking')}>Checking</button>
                         <button type="button" className={`cr2-acct-type-btn${accountType === 'savings' ? ' selected' : ''}`} onClick={() => setAccountType('savings')}>Savings</button>
                       </div>
