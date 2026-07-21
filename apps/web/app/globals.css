@@ -6293,3 +6293,18 @@ img, svg { display: block; }
 [data-theme="dark"] .mktg-page .text-emerald-800,
 [data-theme="dark"] .mktg-page .text-emerald-700,
 [data-theme="dark"] .mktg-page .text-emerald-600 { color: #4cce86 !important; }
+
+/* status tints (e.g. auth form messages) */
+[data-theme="dark"] .mktg-page .bg-red-50 { background: rgba(255, 59, 95, .12) !important; }
+[data-theme="dark"] .mktg-page .text-red-700 { color: #ff8098 !important; }
+
+/* form fields (bare inputs with no bg class default to white in the browser) */
+[data-theme="dark"] .mktg-page input,
+[data-theme="dark"] .mktg-page textarea,
+[data-theme="dark"] .mktg-page select {
+  background: var(--s2);
+  color: var(--t1);
+  border-color: var(--b2);
+}
+[data-theme="dark"] .mktg-page input::placeholder,
+[data-theme="dark"] .mktg-page textarea::placeholder { color: var(--t4); }
