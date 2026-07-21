@@ -37,7 +37,15 @@ npm run typecheck
 npm run lint --workspace=apps/web
 npm run test --workspace=apps/web
 npm run build
+
+# Guards (also run in CI)
+npm run audit:campaign-images --workspace=apps/web        # covers: unique, valid, live
+npm run check:env --workspace=apps/web                    # env preflight (deploy)
 ```
+
+**CI** (`.github/workflows/ci.yml`) runs typecheck · lint · test · campaign-image
+audit · build on every PR and push to `master`. A weekly job
+(`image-links.yml`) re-verifies every campaign image still resolves (HTTP 200).
 
 ## Supabase
 

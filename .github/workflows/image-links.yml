@@ -1,0 +1,25 @@
+name: Campaign image link check
+
+# Campaign covers hotlink the Unsplash CDN. Photos can be removed upstream over
+# time, so this verifies every catalog image still returns HTTP 200 on a
+# schedule (and on demand) — separate from CI so a dead third-party link never
+# blocks a code merge, but is surfaced promptly.
+
+on:
+  schedule:
+    - cron: '0 7 * * 1' # Mondays 07:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  live-image-audit:
+    name: verify every campaign image resolves (HTTP 200)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - name: Live campaign image audit
+        run: npm run audit:campaign-images:live --workspace=apps/web
