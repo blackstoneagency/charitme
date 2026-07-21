@@ -462,6 +462,25 @@ tests/build/live-HTTP are listed here.
   case-insensitive `profiles` lookup by email. Authorization on team-members
   POST/PATCH/DELETE was audited and correctly enforces campaign ownership
   (or self-removal). _Evidence: typecheck/lint/360 tests pass._
+- **CHAR-SM1 · super-admin console** — Built an owner-tier **Super-Admin Console**
+  gated to the new `super_admin` role (granted to daniel.hughen@gmail.com;
+  hardcoded + DB role). New left-nav collapsible **Admin** dropdown (self-gates via
+  `/api/admin/super/whoami`) renders 8 feature pages in the main content area:
+  **Overview**, **Roles & Permissions** (grant/revoke any role per user),
+  **Users** (directory + suspend/restore + plan), **Marketing** (tabs: **SEO**
+  per-route meta → `seo_settings`, **AEO** answer-engine Q&A → `aeo_entries`,
+  **Campaigns** → `marketing_campaigns`), **Feature Flags** (`feature_flags`),
+  **Platform Settings** (`platform_settings.config`), **Announcements**
+  (`announcements`), **Activity Log** (`audit_logs`). All wired to Supabase via
+  service-role APIs behind `guardSuperAdmin`, every mutation audit-logged. New
+  tables `seo_settings`/`aeo_entries`/`announcements` (migration
+  `20260720140000_super_admin_console.sql`, applied live, RLS on). _Evidence:
+  typecheck clean; `next build` green (8 pages + 8 API routes compiled)._
+
+- **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
+  non-existent `visibility` column into `donor_messages` → every comment 500'd.
+  Removed the stray field. _Evidence: verified live vs schema; commit `20d1597`._
+
 - **CHAR-A001 · audit (no fix needed)** — Verified sound: open-redirect
   protection (`safeNextPath` rejects non-local hosts, `javascript:`, `//host`),
   recurring-donation cancel/pause ownership, campaign sub-resource mutation

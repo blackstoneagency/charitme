@@ -1,7 +1,7 @@
 import 'server-only';
 import { createClient } from './supabase-server';
 import { redirect } from 'next/navigation';
-import { isAdmin } from './roles';
+import { isAdmin, isSuperAdmin } from './roles';
 import { ensureUserProfile } from './profile-sync';
 
 export async function getUser() {
@@ -26,6 +26,17 @@ export async function requireAdmin() {
   const user = await requireUser();
   const allowed = await isAdmin(user.id, user.email);
   if (!allowed) redirect('/dashboard');
+  return user;
+}
+
+/**
+ * Requires the session user to be a SUPER admin (owner-tier). Gates the
+ * Super-Admin Console. Redirects admins to /admin and others to /dashboard.
+ */
+export async function requireSuperAdmin() {
+  const user = await requireUser();
+  const allowed = await isSuperAdmin(user.id, user.email);
+  if (!allowed) redirect('/admin');
   return user;
 }
 

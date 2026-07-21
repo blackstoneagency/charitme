@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import ShellAccountControls from './ShellAccountControls';
 import CampaignsSidebarNav from './CampaignsSidebarNav';
+import SuperAdminNav from './SuperAdminNav';
 
 export type Metric = {
   label: string;
@@ -168,6 +169,8 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
                 );
               })}
             </nav>
+            {/* Super-admin-only console dropdown (self-gates via API; renders nothing for non-super-admins) */}
+            <SuperAdminNav />
           </>
         )}
 
