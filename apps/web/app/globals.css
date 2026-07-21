@@ -6256,3 +6256,40 @@ img, svg { display: block; }
   .fp-stat-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
   .fp-btn { width: 100%; }
 }
+
+/* ============================================================================
+   Marketing-page dark-mode adapter
+   Several public pages (faq, trust-safety, for-donors, for-nonprofits,
+   for-individuals, features/[slug]) are built with hardcoded-light Tailwind
+   colour utilities that ignore [data-theme]. Wrapping a page in `.mktg-page`
+   remaps just those light-surface / dark-text utilities to the design tokens
+   in dark mode, so the page adapts. Green buttons (bg-emerald-600 + text-white)
+   and intentionally-dark blocks (bg-slate-950) are left untouched.
+   ========================================================================== */
+.mktg-page { background: #fff; }
+[data-theme="dark"] .mktg-page { background: var(--bg); color: var(--t1); }
+
+/* surfaces */
+[data-theme="dark"] .mktg-page .bg-white { background: var(--s1) !important; }
+[data-theme="dark"] .mktg-page .bg-slate-50,
+[data-theme="dark"] .mktg-page .bg-slate-100 { background: var(--s2) !important; }
+[data-theme="dark"] .mktg-page .bg-emerald-50 { background: rgba(18, 166, 83, .10) !important; }
+[data-theme="dark"] .mktg-page .bg-emerald-100 { background: rgba(18, 166, 83, .16) !important; }
+
+/* borders */
+[data-theme="dark"] .mktg-page .border-slate-200,
+[data-theme="dark"] .mktg-page .border-slate-100 { border-color: var(--b1) !important; }
+[data-theme="dark"] .mktg-page .border-emerald-100,
+[data-theme="dark"] .mktg-page .border-emerald-200,
+[data-theme="dark"] .mktg-page .border-emerald-400 { border-color: rgba(18, 166, 83, .30) !important; }
+
+/* text tiers (light-surface text only; light-on-dark utils left alone) */
+[data-theme="dark"] .mktg-page .text-slate-950,
+[data-theme="dark"] .mktg-page .text-slate-900 { color: var(--t1) !important; }
+[data-theme="dark"] .mktg-page .text-slate-800,
+[data-theme="dark"] .mktg-page .text-slate-700 { color: var(--t2) !important; }
+[data-theme="dark"] .mktg-page .text-slate-600,
+[data-theme="dark"] .mktg-page .text-slate-500 { color: var(--t3) !important; }
+[data-theme="dark"] .mktg-page .text-emerald-800,
+[data-theme="dark"] .mktg-page .text-emerald-700,
+[data-theme="dark"] .mktg-page .text-emerald-600 { color: #4cce86 !important; }

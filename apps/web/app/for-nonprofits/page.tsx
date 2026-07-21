@@ -55,7 +55,7 @@ const NONPROFIT_PLANS = PRICING_TIERS.filter((t) => t.name.startsWith('Nonprofit
 
 export default function ForNonprofitsPage() {
   return (
-    <div className="bg-white">
+    <div className="mktg-page">
       {/* Hero */}
       <section className="hero-mesh border-b border-slate-200 py-16 sm:py-24">
         <div className="container">

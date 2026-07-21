@@ -68,7 +68,7 @@ const INDIVIDUAL_FAQS = [
 
 export default function ForIndividualsPage() {
   return (
-    <div className="bg-white">
+    <div className="mktg-page">
       {/* Hero */}
       <section className="hero-mesh border-b border-slate-200 py-16 sm:py-24">
         <div className="container">

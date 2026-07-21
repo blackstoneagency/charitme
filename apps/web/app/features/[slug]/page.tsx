@@ -40,7 +40,7 @@ export default async function FeatureDetailPage({ params }: FeaturePageProps) {
   };
 
   return (
-    <div className="bg-white">
+    <div className="mktg-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }} />
       <section className="border-b border-slate-200 bg-slate-950 text-white">
         <div className="container py-14">
