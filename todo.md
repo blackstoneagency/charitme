@@ -476,6 +476,12 @@ tests/build/live-HTTP are listed here.
   tables `seo_settings`/`aeo_entries`/`announcements` (migration
   `20260720140000_super_admin_console.sql`, applied live, RLS on). _Evidence:
   typecheck clean; `next build` green (8 pages + 8 API routes compiled)._
+  **Seeded** each console table to 105 records for full testing
+  (`supabase/seeds/super_admin_console_seed.sql`): aeo_entries 105 (90 published),
+  seo_settings 105, marketing_campaigns 105, announcements 105 (2 active). Other
+  feature tables (grants/events/impact/matching/sponsorships/volunteer/badges) were
+  already seeded to 120 by a parallel session. Also fixed a build-blocking Stripe
+  typecheck error (`invoice.parent`) introduced upstream so master stays green.
 
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
