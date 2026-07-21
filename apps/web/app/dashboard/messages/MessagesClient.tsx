@@ -241,7 +241,8 @@ export default function MessagesClient({ threads, campaignMap, replies, threadSt
           </button>
         </div>
         <label className="kf-search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width={15} height={15}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <span className="sr-only">Search conversations</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width={15} height={15} aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           <input
             placeholder="Search conversations..."
             value={search}

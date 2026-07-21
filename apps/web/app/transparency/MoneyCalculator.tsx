@@ -65,7 +65,7 @@ export default function MoneyCalculator() {
       }}
     >
       {/* Amount */}
-      <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: MU, marginBottom: 8 }}>
+      <label htmlFor="mc-amount" style={{ display: 'block', fontSize: 13, fontWeight: 700, color: MU, marginBottom: 8 }}>
         Your donation
       </label>
       <div
@@ -86,9 +86,9 @@ export default function MoneyCalculator() {
           min="0"
           step="1"
           inputMode="decimal"
+          id="mc-amount"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          aria-label="Donation amount in dollars"
           style={{
             flex: 1,
             border: 0,
@@ -105,10 +105,10 @@ export default function MoneyCalculator() {
       </div>
 
       {/* Support tiers */}
-      <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: MU, marginBottom: 8 }}>
+      <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: MU, marginBottom: 8 }} id="mc-support-label">
         CharitMe support (optional — always reducible to 0%)
-      </label>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
+      </span>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }} role="group" aria-labelledby="mc-support-label">
         {SUPPORT_TIER_PERCENTS.map((p) => {
           const active = supportPercent === p;
           return (

@@ -193,8 +193,9 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
             <h2 className="mb-6 text-lg font-black text-slate-950">Personal information</h2>
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-sm font-black text-slate-700">Display name</label>
+                <label htmlFor="pf-name" className="mb-1.5 block text-sm font-black text-slate-700">Display name</label>
                 <input
+                  id="pf-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Jane Smith"
@@ -203,8 +204,9 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-black text-slate-700">Email address</label>
+                <label htmlFor="pf-email" className="mb-1.5 block text-sm font-black text-slate-700">Email address</label>
                 <input
+                  id="pf-email"
                   value={email}
                   disabled
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-400 outline-none"
@@ -213,8 +215,9 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
               </div>
             </div>
             <div className="mt-5">
-              <label className="mb-1.5 block text-sm font-black text-slate-700">Bio <span className="font-normal text-slate-400">(optional)</span></label>
+              <label htmlFor="pf-bio" className="mb-1.5 block text-sm font-black text-slate-700">Bio <span className="font-normal text-slate-400">(optional)</span></label>
               <textarea
+                id="pf-bio"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 placeholder="A short description about you or your organization…"
