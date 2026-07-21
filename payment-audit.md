@@ -149,8 +149,19 @@ rebuild working flows for no functional gain. Kept as-is; documented as intentio
 - **Verified LIVE (reverted):** an offline insert done exactly as the fixed route
   now yields **+amount once, +1 backer, exactly 1 row** (was 2 rows). Baseline
   restored, zero residue.
-- **Validation:** typecheck clean; 662 tests pass. (Note: pre-existing offline rows
-  in the live DB were left untouched — no data deletion without owner sign-off.)
+- **Validation:** typecheck clean; 662 tests pass.
+- **Live data cleanup — investigated, NONE needed (owner-authorized check, 2026-07-21):**
+  the 25 `offline=true` rows in the live DB are all **seed data** (100% carry the
+  procedural seed timestamp `.126906`; `offline_method` is NULL, which the route
+  always sets), so they never ran through the buggy route. A join test for the
+  bug's signature — an `offline=true` row A with a matching `record_donation` row B
+  (same `campaign_id` + `amount_cents`, both stripe ids null, donor_id null, within
+  5s) — returned **0 pairs**. The 24 rows that superficially matched the row-B
+  shape are legitimate **seeded anonymous donations** (all `anonymous=true`, 24
+  distinct campaigns, no internal duplicates). Conclusion: the PAY-003 bug never
+  executed against real production data (donations are not live yet), so **nothing
+  was deleted** — removing those rows would have corrupted legitimate seed data.
+  All checks were read-only.
 
 ### PAY-005 — Limited rewards could be over-claimed past `item_limit` (LOW-MED — DATA INTEGRITY) — ✅ FIXED
 - **Area:** `claim_campaign_reward` RPC (called from the checkout webhook).
