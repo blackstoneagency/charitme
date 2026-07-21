@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   MAX_DONATION_CENTS,
   DEFAULT_DONOR_TIP_PERCENT,
@@ -123,9 +123,28 @@ export default function DonateButton({
   const [guestEmail, setGuestEmail]       = useState('');
   const [isGuest, setIsGuest]             = useState<boolean | null>(null);
   const [preferredMethod, setPreferredMethod] = useState<PaymentMethod>('stripe');
+  const [methodOpen, setMethodOpen] = useState(false);
+  const methodRef = useRef<HTMLDivElement>(null);
   const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
   const [presets, setPresets] = useState<number[]>(smartPresets && smartPresets.length === 6 ? smartPresets : DEFAULT_PRESETS);
   const [aiNudge, setAiNudge] = useState('');
+
+  // Close the payment-method dropdown on outside click or Escape.
+  useEffect(() => {
+    if (!methodOpen) return;
+    const onPointer = (e: MouseEvent | TouchEvent) => {
+      if (methodRef.current && !methodRef.current.contains(e.target as Node)) setMethodOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMethodOpen(false); };
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('touchstart', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('touchstart', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [methodOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -486,50 +505,83 @@ export default function DonateButton({
 
       </div>
 
-      {/* ── Payment method — radio list ── */}
-      <div>
+      {/* ── Payment method — dropdown ── */}
+      <div ref={methodRef} style={{ position: 'relative' }}>
         <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 700, color: MU, textTransform: 'uppercase', letterSpacing: '.06em' }}>
           Payment method
         </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: `1.5px solid ${BD}`, borderRadius: 14, overflow: 'hidden' }}>
-          {PAY_OPTIONS.map((opt, idx) => {
-            const active = preferredMethod === opt.id;
-            const feeCfg = METHOD_FEES[opt.id];
-            return (
-              <label
-                key={opt.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '13px 16px',
-                  background: active ? VL : 'var(--s1, #fff)',
-                  borderTop: idx > 0 ? `1px solid ${BD}` : 'none',
-                  cursor: 'pointer',
-                  transition: 'background .15s',
-                }}
-              >
-                <input
-                  type="radio"
-                  name="preferredMethod"
-                  value={opt.id}
-                  checked={active}
-                  onChange={() => setPreferredMethod(opt.id)}
-                  style={{ accentColor: V, width: 16, height: 16, flexShrink: 0 }}
-                />
-                <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {opt.icon}
-                </span>
-                <span style={{ flex: 1, fontSize: 14, fontWeight: active ? 800 : 600, color: active ? V : INK }}>
-                  {opt.label}
-                </span>
-                <span style={{ fontSize: 11, color: MU, fontWeight: 600, whiteSpace: 'nowrap' }}>
-                  {feeCfg.label}
-                </span>
-              </label>
-            );
-          })}
-        </div>
+        {(() => {
+          const sel = PAY_OPTIONS.find((o) => o.id === preferredMethod) ?? PAY_OPTIONS[0];
+          const selFee = METHOD_FEES[sel.id];
+          return (
+            <button
+              type="button"
+              onClick={() => setMethodOpen((o) => !o)}
+              aria-haspopup="listbox"
+              aria-expanded={methodOpen}
+              aria-label={`Payment method: ${sel.label}. Tap to change.`}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '13px 16px', background: 'var(--s1, #fff)',
+                border: `1.5px solid ${methodOpen ? V : BD}`, borderRadius: 14,
+                cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'border-color .15s',
+              }}
+            >
+              <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {sel.icon}
+              </span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 800, color: INK }}>{sel.label}</span>
+              <span style={{ fontSize: 11, color: MU, fontWeight: 600, whiteSpace: 'nowrap' }}>{selFee.label}</span>
+              <svg viewBox="0 0 24 24" width={16} height={16} aria-hidden style={{ ...(ICON_STROKE as React.CSSProperties), color: MU, flexShrink: 0, transform: methodOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+          );
+        })()}
+        {methodOpen && (
+          <div
+            role="listbox"
+            aria-label="Payment method"
+            style={{
+              position: 'absolute', zIndex: 30, left: 0, right: 0, marginTop: 6,
+              border: `1.5px solid ${BD}`, borderRadius: 14, overflow: 'hidden',
+              background: 'var(--s1, #fff)', boxShadow: '0 12px 32px rgba(0,0,0,.16)',
+            }}
+          >
+            {PAY_OPTIONS.map((opt, idx) => {
+              const active = preferredMethod === opt.id;
+              const feeCfg = METHOD_FEES[opt.id];
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => { setPreferredMethod(opt.id); setMethodOpen(false); }}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '13px 16px', background: active ? VL : 'var(--s1, #fff)',
+                    border: 0, borderTop: idx > 0 ? `1px solid ${BD}` : 'none',
+                    cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background .15s',
+                  }}
+                >
+                  <span aria-hidden style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${active ? V : BD}`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {active && <span style={{ width: 8, height: 8, borderRadius: '50%', background: V }} />}
+                  </span>
+                  <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--s2, #f5f5f5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {opt.icon}
+                  </span>
+                  <span style={{ flex: 1, fontSize: 14, fontWeight: active ? 800 : 600, color: active ? V : INK }}>
+                    {opt.label}
+                  </span>
+                  <span style={{ fontSize: 11, color: MU, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    {feeCfg.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── Optional message of support ── */}

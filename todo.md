@@ -596,6 +596,19 @@ tests/build/live-HTTP are listed here.
   server recompute → Stripe (no schema change). _Evidence: typecheck + lint clean;
   full suite **772/772**; `next build` green._
 
+- **CHAR-SM9 · donate UI · payment-method dropdown** — Converted the Payment
+  Method section on the donate form from an always-expanded 6-row radio list
+  (Stripe/PayPal/Venmo/Google Pay/Bank transfer/Credit-or-debit) into a
+  **collapsible dropdown** to reclaim vertical space. Collapsed state is a trigger
+  button showing the selected method (icon + label + fee) with a rotating chevron;
+  opening reveals the full option list (radio-dot + icon + label + processing-fee
+  label per row). Accessible: trigger is `aria-haspopup="listbox"` +
+  `aria-expanded`; panel is `role="listbox"` with `role="option"`/`aria-selected`
+  rows; closes on **outside-click, touch, and Escape** (listener attached only
+  while open). Selection still drives `preferredMethod` → `@shared/fees` breakdown
+  → server recompute (fee shown per method unchanged); no schema change.
+  _Evidence: typecheck + lint clean; full suite **772/772**; `next build` green._
+
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
   Removed the stray field. _Evidence: verified live vs schema; commit `20d1597`._
