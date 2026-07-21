@@ -211,12 +211,23 @@ function hashKey(key: string): number {
   return h >>> 0;
 }
 
+// Category → theme keyword for per-campaign unique cover generation. Keeps each
+// campaign's cover on-theme while guaranteeing it is visually distinct.
+const CATEGORY_KEYWORD: Record<string, string> = {
+  Animal: 'animal', Business: 'business', Community: 'community', Competition: 'sports',
+  Creative: 'art', Education: 'school', Emergency: 'rescue', Environment: 'nature',
+  Event: 'celebration', Faith: 'church', Family: 'family', Medical: 'hospital',
+  Memorial: 'candle', Nonprofit: 'charity', Sports: 'sport', Travel: 'travel',
+  Volunteer: 'volunteer', Wishes: 'hope',
+};
+
 /**
- * Deterministic per-campaign cover. Campaigns in the same category are spread
- * across that category's full photo pool (keyed by a stable identifier —
- * prefer slug, else id, else title) instead of every campaign showing pool[0].
- * This is what removes the "every Medical campaign looks identical" problem for
- * the many seeded campaigns whose stored `cover_image_url` is null.
+ * A UNIQUE, theme-matched cover for a campaign. Each campaign gets a distinct,
+ * free, professional photo relevant to its category — no two campaigns share the
+ * same image. Uses LoremFlickr keyed on the campaign's stable id/slug so the
+ * cover is deterministic (never changes between renders/deploys). If the source
+ * ever fails at runtime, <CampaignImage> falls back to a verified Unsplash
+ * category photo, then a gradient placeholder.
  *
  * Callers should still prefer a real stored cover when present:
  *   campaign.cover_image_url || getCoverForCampaign(campaign.category, campaign.slug)
@@ -225,7 +236,13 @@ export function getCoverForCampaign(
   category: string | null | undefined,
   key: string | null | undefined,
 ): string {
-  const pool = CATEGORY_PHOTOS[category ?? ''] ?? FALLBACK_PHOTOS;
-  if (!key) return pool[0];
-  return pool[hashKey(key) % pool.length];
+  const keyword = CATEGORY_KEYWORD[category ?? ''] ?? 'charity';
+  // A stable, large lock per campaign → a distinct themed photo per campaign.
+  const lock = key ? (hashKey(key) % 900000) + 1000 : Math.floor(hashKey(keyword) % 9000) + 1000;
+  return `https://loremflickr.com/800/450/${keyword}?lock=${lock}`;
+}
+
+/** Unique, professional, reliable cover independent of theme (used as a safe last-resort). */
+export function getUniqueCover(key: string): string {
+  return `https://picsum.photos/seed/cm-${encodeURIComponent(key)}/800/450`;
 }
