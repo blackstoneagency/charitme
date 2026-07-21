@@ -565,7 +565,8 @@ const SCHEMA_CHUNKS: { name: string; sql: string }[] = [
       end if;
       insert into donations (campaign_id, donor_id, amount_cents, tip_cents, processing_fee_cents, status, anonymous, message, stripe_payment_intent_id, stripe_checkout_session_id)
       values (p_campaign_id, p_donor_id, p_amount_cents, p_tip_cents, p_processing_fee_cents, 'completed', p_anonymous, p_message, p_stripe_payment_intent_id, p_stripe_checkout_session_id);
-      update campaigns set raised_amount = raised_amount + p_amount_cents, backer_count = backer_count + 1, updated_at = now() where id = p_campaign_id;
+      -- raised_amount / backer_count are incremented by the AFTER INSERT trigger
+      -- donations_increment_campaign_stats; incrementing here too double-counts.
       insert into webhook_events (stripe_event_id, event_type, payload, processed_at) values (p_stripe_event_id, 'checkout.session.completed', '{}'::jsonb, now()) on conflict (stripe_event_id) do nothing;
       return jsonb_build_object('status','recorded');
     exception when others then

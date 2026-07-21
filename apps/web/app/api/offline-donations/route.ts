@@ -67,21 +67,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to record donation.' }, { status: 500 });
   }
 
-  // Update campaign raised_amount and backer_count
-  try {
-    await supabaseAdmin.rpc('record_donation', {
-      p_stripe_event_id: `offline_${donation.id}`,
-      p_campaign_id: campaignId,
-      p_donor_id: null,
-      p_amount_cents: amountCents,
-      p_tip_cents: 0,
-      p_processing_fee_cents: 0,
-      p_message: notes ?? null,
-      p_anonymous: !donorName,
-      p_stripe_payment_intent_id: null,
-      p_stripe_checkout_session_id: null,
-    });
-  } catch { /* non-fatal — donation already inserted */ }
+  // Campaign raised_amount / backer_count are incremented by the AFTER INSERT
+  // trigger donations_increment_campaign_stats (fires on the 'completed' insert
+  // above). We MUST NOT also call record_donation here — that inserts a SECOND
+  // donation row (without the offline metadata) and increments stats again.
 
   // Add to transparency ledger
   try {

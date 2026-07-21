@@ -109,6 +109,49 @@ rebuild working flows for no functional gain. Kept as-is; documented as intentio
   Connect live-enablement (documented, not faked); the fix mirrors the pattern the
   money-flow script already proves.
 
+### PAY-004 — `record_donation` DOUBLE-COUNTED every donation's campaign totals (CRITICAL — FINANCIAL ACCURACY, live-proven) — ✅ FIXED
+- **Area:** `record_donation` RPC (live DB + `supabase/migrations`, `schema.sql`,
+  `catch_up.sql`, `apps/web/app/api/admin/apply-schema/route.ts`).
+- **Root cause:** the original schema (`20260525000000_initial_schema`) defines an
+  `AFTER INSERT` trigger `donations_increment_campaign_stats` that already
+  increments `campaigns.raised_amount` (+amount) and `backer_count` (+1) for every
+  `status='completed'` donation row. A later change
+  (`20260719120000_record_donation_idempotency_lock`) **added a manual
+  `update campaigns set raised_amount = raised_amount + amount, backer_count += 1`**
+  inside `record_donation` — unaware the trigger already did it. Both fire.
+- **Proven LIVE (controlled, fully reverted test):** one `record_donation(12345)`
+  call created **1** donation row but moved a campaign from
+  `raised_amount 4500 → 29190` (**+24690 = 2×**) and `backer_count 1 → 3` (**+2**).
+  Every webhook donation (one-time + recurring first payment + renewals) inflated
+  campaign totals **2×**. (Seeded rows were bulk-inserted and only ever hit the
+  trigger once, so historical seed totals are single-counted — the bug bites every
+  *new* real donation, i.e. the moment donations go live.)
+- **Resolution:** migration `20260721000000_fix_record_donation_double_count.sql`
+  recreates `record_donation` **without** the manual `update campaigns` (the
+  trigger is the single source of truth). Non-destructive `CREATE OR REPLACE`
+  (no data touched). Mirrored the removal into `schema.sql`, `catch_up.sql`, and
+  the inline `apply-schema` bootstrap so the bug can't be reintroduced.
+- **Applied to the live DB** (Management API) and **re-verified LIVE:** the same
+  call now moves `4500 → 16845` (**+12345 = 1×**) and `backer_count 1 → 2` (**+1**).
+  Test data deleted, campaign restored to its exact baseline (4500/1), zero residue.
+- **Validation:** typecheck clean; 662 tests pass.
+
+### PAY-003 — Offline donations created a DUPLICATE row + extra stat count (HIGH — DATA INTEGRITY) — ✅ FIXED
+- **Area:** `apps/web/app/api/offline-donations/route.ts`.
+- **Root cause:** the route inserted the offline `donations` row directly (with
+  offline metadata) — which already fires the increment trigger — **and then also
+  called `record_donation`**, which inserts a SECOND donation row (without the
+  offline fields) and (pre-PAY-004) incremented again. Net before fix: **2 donation
+  rows** per offline donation (donor wall / exports showed it twice) and, combined
+  with PAY-004, a ~3× stat inflation.
+- **Resolution:** removed the `record_donation` call; the direct insert alone fires
+  the trigger to increment stats exactly once.
+- **Verified LIVE (reverted):** an offline insert done exactly as the fixed route
+  now yields **+amount once, +1 backer, exactly 1 row** (was 2 rows). Baseline
+  restored, zero residue.
+- **Validation:** typecheck clean; 662 tests pass. (Note: pre-existing offline rows
+  in the live DB were left untouched — no data deletion without owner sign-off.)
+
 ---
 
 ## Verified sound (no change required)
