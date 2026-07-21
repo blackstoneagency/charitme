@@ -218,6 +218,29 @@ rebuild working flows for no functional gain. Kept as-is; documented as intentio
 - **Recurring subscription state machine:** `active→paused→active→past_due→cancelled`
   with per-transition guards; donor-scoped ownership (organizer cannot cancel a
   donor's gift). Verified live against the reconciled DB.
+- **Platform plan checkout** (`/api/stripe/checkout`): auth-gated subscription-mode
+  Checkout with env price IDs; metadata (`userId/plan/billing`) matches the webhook's
+  SaaS-subscription branch and `customer.subscription.updated/deleted`. Correctly no
+  destination charge (platform's own revenue).
+- **Admin payout route** (`/api/admin/payouts`): admin-gated; writes a `payouts`
+  bookkeeping row only — **no** Stripe transfer (safe, unlike the old self-service
+  route fixed in PAY-006).
+- **Admin payment actions** (`/api/admin/payments/[transactionId]/actions`):
+  admin-gated; only notes / mark-reviewed / retry-reconciliation (pure
+  `reconcileMoneyFlow` calc) — no money movement.
+- **Donor receipt** (`/api/donations/receipt`): auth + owner-or-admin scoped;
+  emails the authenticated user only.
+- **Dispute handling** (`charge.dispute.created/closed`): sets `status='disputed'`,
+  records the chargeback in `refunds`, flags reconciliation for finance review, and
+  audit-logs. Deliberately does not auto-adjust campaign stats until a dispute is
+  resolved (reconciliation-aware design) — noted, not a defect.
+- **Connect onboarding** (`/api/stripe/connect`): express account + `transfers`
+  capability (correct for destination charges); the payout-readiness gate
+  independently requires `charges_enabled`+`payouts_enabled`, so the immediate
+  `verification_status='verified'` label can't open the gate prematurely.
+- **`lib/stripe.ts`**: key trimming; missing-key proxy; comprehensive payment
+  methods (card→Apple/Google Pay, Link, Cash App, ACH, PayPal, BNPL); progressive
+  method-stripping with per-retry idempotency keys.
 
 ## GATED (needs Stripe live verification or staging — NOT faked)
 
