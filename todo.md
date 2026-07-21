@@ -506,6 +506,26 @@ tests/build/live-HTTP are listed here.
   `next build` green; commit `984cd64`._ **Follow-up (owner):** add an Unsplash/
   Pexels API key to upgrade all 500 covers to Unsplash-grade themed uniques.
 
+- **CHAR-SM3 · search / multi-word matching** — Campaign discovery search used a
+  single substring match (`title.ilike.%<whole query>%`), so a multi-word query
+  like "cancer treatment fund" only matched when that exact phrase appeared as a
+  substring — a campaign titled "Treatment fund for cancer" was invisible. The
+  public `/api/campaigns` route was even narrower (searched **`title` only**).
+  Fixed with a tokenized keyword search (new `lib/campaign-search.ts`): the query
+  is split into terms and **each term must appear in some searchable field**
+  (`title`/`tagline`/`description`) — **AND across terms, OR across fields** — by
+  chaining one PostgREST `.or()` per term. Purely index-backed (ilike over the
+  existing trigram indexes): **no schema change, no embeddings, no new DB reads.**
+  Hardening folded in: strips `,()` (PostgREST filter-syntax) and neutralizes
+  `% _` ilike wildcards so a search can't be broken or turned into match-
+  everything, and caps at 6 terms to bound the generated filter. Wired into both
+  `/campaigns` (server page) and `/api/campaigns`. Also fixed a **stale
+  `photo-catalog.test.ts`** left red on master by the CHAR-SM2 `getCoverForCampaign`
+  rewrite (it still asserted the old Unsplash-pool contract) — updated to the new
+  themed-LoremFlickr contract. _Evidence: `__tests__/campaign-search.test.ts`
+  12/12 (tokenizer + injection-safety + AND/OR builder) + photo-catalog 11/11;
+  full suite **758/758**; typecheck clean; `next build` green._
+
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
   Removed the stray field. _Evidence: verified live vs schema; commit `20d1597`._

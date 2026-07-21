@@ -41,38 +41,44 @@ describe('photo-catalog structure', () => {
   });
 });
 
-describe('getCoverForCampaign — deterministic per-campaign spread', () => {
+describe('getCoverForCampaign — unique theme-matched per-campaign cover', () => {
+  // Post-CHAR-SM2: covers are per-campaign-unique LoremFlickr photos keyed on the
+  // category theme keyword + a stable per-campaign lock (not drawn from the
+  // CATEGORY_PHOTOS Unsplash pool, which now backs category cover / grids only).
+  const lockOf = (url: string) => Number((url.match(/lock=(\d+)/) || [])[1]);
+
   it('is deterministic: same key always yields the same cover', () => {
     const a = getCoverForCampaign('Medical', 'help-sarah-fight-cancer');
     const b = getCoverForCampaign('Medical', 'help-sarah-fight-cancer');
     expect(a).toBe(b);
   });
 
-  it('spreads many campaigns across the pool (not all pool[0])', () => {
-    const pool = CATEGORY_PHOTOS['Medical'];
+  it('returns a themed LoremFlickr URL keyed on the category', () => {
+    // Medical → hospital
+    expect(getCoverForCampaign('Medical', 'k')).toMatch(
+      /^https:\/\/loremflickr\.com\/800\/450\/hospital\?lock=\d+$/,
+    );
+    // Education → school
+    expect(getCoverForCampaign('Education', 'k')).toContain('/school?lock=');
+  });
+
+  it('gives distinct covers to distinct campaigns (spreads via the lock)', () => {
     const picks = new Set<string>();
     for (let i = 0; i < 200; i++) picks.add(getCoverForCampaign('Medical', `medical-campaign-${i}`));
-    // With 200 varied keys over a pool of N, we expect to hit most of the pool.
-    expect(picks.size).toBeGreaterThan(1);
-    expect(picks.size).toBeLessThanOrEqual(pool.length);
-    for (const p of picks) expect(pool).toContain(p);
+    // 200 varied keys should produce many distinct locks (near-collision-free).
+    expect(picks.size).toBeGreaterThan(150);
   });
 
-  it('always returns a photo from the category pool', () => {
-    for (const cat of categories) {
-      const url = getCoverForCampaign(cat, `${cat}-xyz`);
-      expect(CATEGORY_PHOTOS[cat]).toContain(url);
-    }
+  it('falls back to the generic "charity" theme for unknown categories', () => {
+    expect(getCoverForCampaign('NoSuchCategory', 'k')).toContain('/charity?lock=');
   });
 
-  it('falls back to the fallback pool for unknown categories', () => {
-    const url = getCoverForCampaign('NoSuchCategory', 'k');
-    expect(FALLBACK_PHOTOS).toContain(url);
-  });
-
-  it('returns pool[0] when no key is provided (stable default)', () => {
-    expect(getCoverForCampaign('Medical', null)).toBe(CATEGORY_PHOTOS['Medical'][0]);
-    expect(getCoverForCampaign('Medical', '')).toBe(CATEGORY_PHOTOS['Medical'][0]);
+  it('still returns a stable themed cover when no key is provided', () => {
+    const a = getCoverForCampaign('Medical', null);
+    const b = getCoverForCampaign('Medical', '');
+    expect(a).toBe(b);
+    expect(a).toContain('/hospital?lock=');
+    expect(lockOf(a)).toBeGreaterThanOrEqual(1000);
   });
 });
 

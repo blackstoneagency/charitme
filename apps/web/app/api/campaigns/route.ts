@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { checkRateLimit } from '../../../lib/rate-limit';
+import { applyCampaignSearch } from '../../../lib/campaign-search';
 
 function slugify(text: string): string {
   return text
@@ -150,8 +151,9 @@ export async function GET(request: NextRequest) {
 
   if (category) query = query.eq('category', category);
   if (location) query = query.ilike('location', `%${location}%`);
-  // Full-text search on title using trigram index — ilike takes advantage of gin_trgm_ops
-  if (q) query = query.ilike('title', `%${q}%`);
+  // Tokenized multi-word keyword search across title/tagline/description
+  // (ilike leverages the trigram indexes). Each word must match some field.
+  query = applyCampaignSearch(query, q);
 
   const { data, error } = await query;
   if (error) {

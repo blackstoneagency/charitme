@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { supabaseAdmin } from '../../lib/supabase';
 import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
+import { applyCampaignSearch } from '../../lib/campaign-search';
 import { ProgressBar, Badge, Card, EmptyState } from '../../components/ui';
 import { formatCents } from '../../lib/stripe';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
@@ -53,14 +54,8 @@ async function getCampaigns(opts: {
     if (opts.verifiedOnly) query = query.eq('trust_status', 'Verified');
     if (opts.taxDeductibleOnly) query = query.eq('nonprofit_verified', true);
     if (opts.location) query = query.ilike('location', `%${opts.location}%`);
-    if (opts.q) {
-      // PostgREST .or() parses commas/parens as filter syntax — strip them so
-      // searches like "Smith, John" don't break the filter (or inject extra clauses)
-      const safeQ = opts.q.replace(/[,()]/g, ' ').trim();
-      if (safeQ) {
-        query = query.or(`title.ilike.%${safeQ}%,tagline.ilike.%${safeQ}%,description.ilike.%${safeQ}%`);
-      }
-    }
+    // Tokenized multi-word keyword search (each word must match some field).
+    query = applyCampaignSearch(query, opts.q);
 
     // Sort
     switch (opts.sort) {
