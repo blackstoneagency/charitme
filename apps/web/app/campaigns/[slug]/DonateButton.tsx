@@ -24,9 +24,9 @@ const INK = 'var(--t1, #1a1a2e)';
 /* Fallback preset amounts when no campaign-tuned asks are provided */
 const DEFAULT_PRESETS = [25, 50, 75, 100, 150, 250];
 
-/* Tip slider range: 0–25% (matches the design axis) */
+/* Tip slider range: 0–50% (matches the design axis) */
 const TIP_MIN = 0;
-const TIP_MAX = 25;
+const TIP_MAX = 50;
 
 type FrequencyMode = 'once' | 'monthly';
 
@@ -460,7 +460,6 @@ export default function DonateButton({
       <div style={{ border: `1px solid ${BD}`, borderRadius: 16, padding: '16px 18px', background: 'var(--s1, #fff)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 16, fontWeight: 800, color: INK }}>Tip CharitMe services</span>
-          <span style={{ background: VL, color: V, fontSize: 12, fontWeight: 800, padding: '4px 10px', borderRadius: 999 }}>{tipPercent}%</span>
         </div>
         <p style={{ margin: '8px 0 12px', fontSize: 12.5, color: MU, lineHeight: 1.5 }}>
           CharitMe has a 0% platform fee for organizers and relies primarily on the generosity of donors like you to operate our service. Support is always optional — you can set it to 0%.
@@ -496,25 +495,6 @@ export default function DonateButton({
           })}
         </div>
 
-        {/* None */}
-        <button
-          type="button"
-          onClick={() => setTipPercent(0)}
-          aria-pressed={tipPercent === 0}
-          aria-label="Set support to 0 percent"
-          style={{
-            width: '100%', marginTop: 8, display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 14px', borderRadius: 12,
-            border: `1.5px solid ${tipPercent === 0 ? V : BD}`,
-            background: tipPercent === 0 ? VL : 'var(--s1, #fff)',
-            color: tipPercent === 0 ? V : INK, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-          }}
-        >
-          <span style={{ width: 20, height: 20, color: tipPercent === 0 ? V : MU, flexShrink: 0 }}><TipIcon name="none" /></span>
-          <span style={{ fontSize: 13.5, fontWeight: 800 }}>None</span>
-          <span style={{ fontSize: 12, color: MU, fontWeight: 600 }}>Set it to 0%</span>
-        </button>
-
         {/* Custom tip — slider + numeric entry */}
         <div style={{ marginTop: 16, borderTop: `1px solid ${BD}`, paddingTop: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -547,7 +527,7 @@ export default function DonateButton({
               style={{ width: '100%', accentColor: V, cursor: 'pointer' }}
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 10, color: MU, fontWeight: 600 }}>
-              {[0, 5, 10, 15, 20, 25].map((t) => <span key={t}>{t}%</span>)}
+              {[0, 10, 20, 30, 40, 50].map((t) => <span key={t}>{t}%</span>)}
             </div>
           </div>
           <button
