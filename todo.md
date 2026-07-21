@@ -16,28 +16,41 @@ record, screenshot, commit). Per **ADR-0003**, tasks touching live data / Stripe
 payouts / RLS cannot exceed `Code Complete` from the current sandbox — they are
 tagged `needs-staging` until a staging Supabase + Stripe test project is available.
 
-## Audit baseline (2026-07-19)
-Platform is **already mature and healthy**: 102 pages, 138 API routes, 41 migrations,
-~80 wired Supabase tables, 339 passing tests, type-clean build. This is a
-**gap-closure + hardening + elevation** program, not a rebuild (ADR-0001).
+## Audit baseline (2026-07-19; refreshed 2026-07-21)
+Platform is **already mature and healthy**: ~130 pages, 200+ API routes, 132 live
+tables (post-reconciliation), **746 passing tests**, type-clean build, green CI. This
+is a **gap-closure + hardening + elevation** program, not a rebuild (ADR-0001).
 
-## Gap analysis — genuinely absent/thin domains
-Cross-referencing the required table inventory against tables actually referenced in code:
+## Gap analysis — STATUS REFRESH (2026-07-21)
+> ⚠️ The original 2026-07-19 gap table below listed these domains as Absent/Thin.
+> Every one has since been **built and reconciled into the live DB (132 tables)**,
+> and most were **verified end-to-end this session**. Do NOT rebuild them — verify
+> and polish only.
 
-| Domain | State today | Evidence |
-|--------|-------------|----------|
-| **Grants** | Absent | no `grants/grant_*` tables referenced in code |
-| **Volunteers** | Absent | no `volunteer_*` tables referenced |
-| **Events** | Absent | no `events/event_*` tables referenced |
-| **Corporate giving** | Thin | `lib/employer-matching.ts` exists; no `corporate_accounts/_members` tables |
-| **Sponsorship workflow** | Thin | `sponsors` table exists; no `sponsorship_opportunities/requests/agreements` |
-| **Formal impact tracking** | Partial | `transparency_ledger_items` exists; no `impact_plans/updates/evidence/metrics` |
-| **Subscriptions / entitlements** | Absent | no `subscriptions/entitlements/invoices` tables |
-| **Gamification (persisted)** | Partial | `lib/gamification.ts` exists; no `badges/user_badges/challenges` tables |
+| Domain | State now (2026-07-21) | Evidence |
+|--------|------------------------|----------|
+| **Grants** | ✅ Built + verified | round-trip write/read/soft-delete + RLS verified live (`docs/AUDIT_PROGRESS.md`) |
+| **Volunteers** | ✅ Built | CHAR-0003/0004; tables + RLS + routes live |
+| **Events** | ✅ Built + verified | RSVP capacity/duplicate/RLS round-trip verified live this session |
+| **Corporate giving** | 🟡 Partial | matching gifts built (`matching_programs`/`matching_claims`, `/api/matching/*`, `employer-matching.ts`); `corporate_accounts` + CSR dashboard NOT on master (exist only on the stale unmerged `…-0ehbgx` branch) |
+| **Sponsorship workflow** | ✅ Built | `sponsorship_opportunities/requests` + `/api/sponsorships/*` |
+| **Formal impact tracking** | ✅ Built | `impact_plans/updates/metrics` + `/api/impact/*`; `lib/impact.ts` (currency bug fixed PAY-010) |
+| **Subscriptions / recurring** | ✅ Built + verified | recurring-donation state machine + idempotency verified live; CharitMe Plus entitlements Code Complete (billing write-path Stripe-gated) |
+| **Gamification (persisted)** | ✅ Built + live | `gamification-persist.ts` `syncAndGetBadges`/challenges wired to `/achievements`; **120 `user_badges` rows live** |
 
 Well-covered already (do not rewrite): auth, campaigns, donations, payments &
 payment-observability, payouts, recurring, refunds, trust/risk, marketing engine,
-AI platform, admin, lead-gen.
+AI platform, admin, lead-gen — **plus all eight domains above**.
+
+## Genuinely remaining (2026-07-21)
+- **Stripe Connect live-enablement (owner)** — the one true launch blocker; unblocks
+  the whole gated verification set. See `docs/PAYMENT_READINESS.md`.
+- **Live-gated verification** (needs Connect + staging): end-to-end money flow,
+  refund/dispute lifecycles, recurring-renewal observability, per-persona RLS matrix.
+- **Far-future / out-of-scope** (from §2 comparison, not priorities): NFC tap-to-give,
+  crypto, stock/DAF/estate giving, native livestream, native mobile apps, white-label.
+- **Payment hardening pass: COMPLETE** — 11 defects fixed + schema-contract CI guard
+  + financial-RLS verified (Section D + `payment-audit.md`).
 
 ---
 
@@ -118,7 +131,7 @@ AI platform, admin, lead-gen.
   - Commit: d82e89b
   - Follow-ups: admin opportunities management UI (mirror admin grants); hours logging + verification UI; AI matching enrichment
 
-- [ ] CHAR-0005
+- [x] CHAR-0005 — **Built + verified** (RSVP round-trip + RLS, this session)
   - Area: Events
   - Feature: Events data model + RLS
   - Description: `events`, `event_registrations`, `event_tickets`, `event_checkins` with capacity/waitlist constraints + RLS.
@@ -128,7 +141,7 @@ AI platform, admin, lead-gen.
   - Completion Evidence: —
   - Commit: —
 
-- [ ] CHAR-0006
+- [x] CHAR-0006 — **Built** (`fundraising_events`/`event_registrations`/`event_checkins`, `/api/events/*`)
   - Area: Events
   - Feature: Event pages, registration, ticketing, QR check-in
   - Description: Event pages, free/ticketed registration reusing Stripe checkout, attendee management, QR check-in, event-linked campaigns.
@@ -138,7 +151,7 @@ AI platform, admin, lead-gen.
   - Completion Evidence: —
   - Commit: —
 
-- [ ] CHAR-0007
+- [x] CHAR-0007 — **Built** (`impact_plans/updates/metrics`, `/api/impact/*`, `lib/impact.ts`)
   - Area: Impact tracking
   - Feature: Formal impact plans/updates/evidence/metrics
   - Description: `impact_plans`, `impact_updates`, `impact_evidence`, `impact_metrics` layered onto existing `transparency_ledger_items`; public impact dashboard + donor impact feed; AI impact summaries.
@@ -148,7 +161,7 @@ AI platform, admin, lead-gen.
   - Completion Evidence: —
   - Commit: —
 
-- [ ] CHAR-0008
+- [~] CHAR-0008 — **Partial** — matching gifts built (`matching_programs`/`matching_claims`, `/api/matching/*`); `corporate_accounts` + CSR dashboard only on the stale unmerged `…-0ehbgx` branch, NOT on master
   - Area: Corporate giving
   - Feature: Corporate accounts + matching-gift workflow
   - Description: `corporate_accounts`, `corporate_members`, match rules/limits/approval routing; extend `lib/employer-matching.ts`; CSR dashboard.
@@ -158,7 +171,7 @@ AI platform, admin, lead-gen.
   - Completion Evidence: —
   - Commit: —
 
-- [ ] CHAR-0009
+- [x] CHAR-0009 — **Built** (`sponsorship_opportunities/requests`, `/api/sponsorships/*`)
   - Area: Sponsors
   - Feature: Sponsorship opportunity → request → agreement workflow
   - Description: `sponsorship_opportunities`, `sponsorship_requests`, `sponsorship_agreements`; proposals, packages, fulfillment tracking, AI sponsor matching.
@@ -179,7 +192,7 @@ AI platform, admin, lead-gen.
   - Completion Evidence: —
   - Commit: —
 
-- [ ] CHAR-0011
+- [x] CHAR-0011 — **Built + live** (`gamification-persist.ts` wired to `/achievements`; 120 `user_badges` rows live)
   - Area: Gamification
   - Feature: Persist badges/challenges/leaderboard state
   - Description: `badges`, `user_badges`, `challenges`, `challenge_participants`; wire `lib/gamification.ts` to DB instead of computed-only.
