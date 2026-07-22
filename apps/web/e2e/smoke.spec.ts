@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { INDEXABLE_PUBLIC_ROUTES } from '../lib/public-routes';
 
 test.describe.configure({ mode: 'serial' });
 test.setTimeout(60_000);
@@ -16,13 +17,23 @@ test('pricing page shows transparent fee model', async ({ page }) => {
   await expect(page.getByText('CharitMe Boost')).toBeVisible();
 });
 
-test('public pages expose searchable metadata and AEO structured data', async ({ page }) => {
+test('all indexable public pages expose searchable metadata and AEO structured data', async ({ page }) => {
+  const responses: { route: string; response: Awaited<ReturnType<typeof page.request.get>>; html: string }[] = [];
+  for (const route of INDEXABLE_PUBLIC_ROUTES) {
+    const response = await page.request.get(route.path);
+    responses.push({ route: route.path, response, html: await response.text() });
+  }
+
+  for (const { route, response, html } of responses) {
+    expect(response.ok(), `${route} should return a successful response`).toBeTruthy();
+    expect(html, `${route} should include a title`).toMatch(/<title>[^<]+<\/title>/i);
+    expect(html, `${route} should include a meta description`).toMatch(/<meta name="description"[^>]+content="[^"]+"/i);
+    expect(html, `${route} should include structured data`).toMatch(/application\/ld\+json/i);
+  }
+
   await page.goto('/campaigns', { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveTitle(/campaigns/i);
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /campaign/i);
-  const structuredDataScripts = page.locator('script[type="application/ld+json"]');
-  await expect(structuredDataScripts.first()).toBeAttached({ timeout: 10_000 });
-  expect(await structuredDataScripts.count()).toBeGreaterThan(0);
 
   const robots = await page.request.get('/robots.txt');
   expect(robots.ok()).toBeTruthy();
