@@ -208,6 +208,7 @@ export default function CreatePage() {
   const [payoutAccount, setPayoutAccount] = useState<PayoutAccount>(null);
   const [payoutLoading, setPayoutLoading] = useState(false);
   const [payoutMethod, setPayoutMethod]   = useState<PayoutMethod | null>(null);
+  const [showAltPayouts, setShowAltPayouts] = useState(false);
   const [paypalEmail, setPaypalEmail]     = useState('');
   const [venmoHandle, setVenmoHandle]     = useState('');
   const [googlePayEmail, setGooglePayEmail] = useState('');
@@ -1243,6 +1244,32 @@ export default function CreatePage() {
                           : <span className="cr2-payout-option-arrow">›</span>}
                       </button>
 
+                      {/* Progressive disclosure: lead with the recommended option
+                          (Stripe, above); tuck the alternates behind a toggle so the
+                          required payout step poses one primary choice, not five. If
+                          any alternate is already connected, reveal by default. */}
+                      {(() => {
+                        const anyAltConnected = Boolean(paymentMethods.venmo || paymentMethods.googlepay || paymentMethods.paypal || paymentMethods.sinch);
+                        const open = showAltPayouts || anyAltConnected;
+                        return (
+                          <>
+                            {!open && (
+                              <button
+                                type="button"
+                                className="cr2-payout-more-toggle"
+                                onClick={() => setShowAltPayouts(true)}
+                                style={{
+                                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                  padding: '12px 16px', marginTop: 6, borderRadius: 12, cursor: 'pointer',
+                                  border: '1.5px dashed var(--b1, #e8ecf4)', background: 'transparent',
+                                  fontSize: 13.5, fontWeight: 700, color: 'var(--t2, #475569)', fontFamily: 'inherit',
+                                }}
+                                aria-expanded={false}
+                              >
+                                More ways to get paid <span aria-hidden>▾</span>
+                              </button>
+                            )}
+                            <div style={{ display: open ? 'block' : 'none' }} aria-hidden={!open}>
                       {/* Venmo */}
                       <button type="button" className="cr2-payout-option" onClick={() => { setVenmoHandle(paymentMethods.venmo?.replace('@','') ?? ''); setPayoutMethod('venmo'); }}>
                         <span className="cr2-payout-option-icon">💚</span>
@@ -1290,6 +1317,10 @@ export default function CreatePage() {
                           ? <span className="cr2-payout-option-connected">✓</span>
                           : <span className="cr2-payout-option-arrow">›</span>}
                       </button>
+                            </div>
+                          </>
+                        );
+                      })()}
 
                       {/* Important notice */}
                       <div className="cr2-payout-important">
