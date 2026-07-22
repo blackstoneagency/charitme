@@ -28,6 +28,17 @@ describe('campaign media metadata synchronization contract', () => {
     expect(route).toContain('The file uploaded, but its campaign media metadata could not be stored.');
     expect(route).toContain('The file was removed, but its campaign media metadata could not be removed.');
   });
+
+  it('keeps the normalized media table protected by explicit RLS policies', async () => {
+    const source = await import('node:fs/promises');
+    const migration = await source.readFile(new URL('../../../supabase/migrations/20260725030000_campaign_media_rls.sql', import.meta.url), 'utf8');
+    expect(migration).toContain('campaign_media_public_read');
+    expect(migration).toContain('campaign_media_owner_insert');
+    expect(migration).toContain('campaign_media_owner_update');
+    expect(migration).toContain('campaign_media_owner_delete');
+    expect(migration).toContain("campaigns.visibility = 'public'");
+    expect(migration).toContain('campaigns.user_id = auth.uid()');
+  });
 });
 
 describe('campaign wizard recovery contract', () => {
