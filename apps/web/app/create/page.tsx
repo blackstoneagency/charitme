@@ -7,6 +7,7 @@ import { CharitMeShell, KFIcon } from '../../components/CharitMeApp';
 import { createClient } from '../../lib/supabase-browser';
 import AiFollowUps from './AiFollowUps';
 import ReadinessChecklist from './ReadinessChecklist';
+import GoalProceedsBreakdown from './GoalProceedsBreakdown';
 import { publishReadiness } from '../../lib/campaign-readiness';
 import { analyzeStory } from '../../lib/story-analysis';
 
@@ -970,6 +971,8 @@ export default function CreatePage() {
                       Your starting goal would be ${autoGoalStart.toLocaleString()}
                     </p>
                   </div>
+
+                  <GoalProceedsBreakdown goalCents={goalCents} />
                 </div>
               )}
 
