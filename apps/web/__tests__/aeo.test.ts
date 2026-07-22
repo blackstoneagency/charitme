@@ -24,6 +24,10 @@ describe('AEO route normalization', () => {
     const firstRule = Array.isArray(rules) ? rules[0] : rules;
     const disallowed = firstRule.disallow ?? [];
     expect(disallowed).toContain('/events/manage');
+    expect(disallowed).toContain('/achievements');
+    expect(disallowed).toContain('/privacy-center');
+    expect(disallowed).toContain('/dashboard');
+    expect(disallowed).toContain('/admin');
     expect(disallowed).toContain('/impact/manage');
     expect(disallowed).toContain('/matching/manage');
     expect(disallowed).toContain('/sponsor/manage');
