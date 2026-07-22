@@ -80,7 +80,7 @@ function ConnectModal({
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="kf-modal-responsive" style={{ width: 440, background: 'var(--s1, #fff)', borderRadius: 16, boxShadow: '0 20px 60px rgba(20,20,80,.18)', overflow: 'hidden' }}>
-        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--b1, #eef0f7)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--b1, var(--b1))', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 24 }}>{item.icon}</span>
@@ -88,30 +88,30 @@ function ConnectModal({
             </div>
             <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--t3)' }}>{item.desc}</p>
           </div>
-          <button type="button" onClick={onClose} style={{ width: 30, height: 30, border: '1px solid var(--b1, #e6e9f2)', borderRadius: '50%', background: 'var(--s1, #fff)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3, #8c9ab5)' }}>×</button>
+          <button type="button" onClick={onClose} style={{ width: 30, height: 30, border: '1px solid var(--b1, var(--b1))', borderRadius: '50%', background: 'var(--s1, #fff)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3, var(--t3))' }}>×</button>
         </div>
 
         <div style={{ padding: 24, display: 'grid', gap: 14 }}>
           {error && (
-            <div style={{ padding: '10px 14px', background: 'rgba(190,18,60,.08)', borderRadius: 9, color: 'var(--red, #c0003c)', fontSize: 13, fontWeight: 700 }}>{error}</div>
+            <div style={{ padding: '10px 14px', background: 'rgba(190,18,60,.08)', borderRadius: 9, color: 'var(--red, var(--red))', fontSize: 13, fontWeight: 700 }}>{error}</div>
           )}
 
           {needsWebhook ? (
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
+            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
               Webhook URL
               <input
                 type="url"
                 value={webhookUrl}
                 onChange={e => setWebhookUrl(e.target.value)}
                 placeholder="https://hooks.zapier.com/hooks/catch/..."
-                style={{ height: 42, border: '1px solid var(--b2, #dfe3ee)', borderRadius: 9, padding: '0 12px', fontSize: 14, background: 'var(--s1)', color: 'var(--t1)' }}
+                style={{ height: 42, border: '1px solid var(--b2, var(--b1))', borderRadius: 9, padding: '0 12px', fontSize: 14, background: 'var(--s1)', color: 'var(--t1)' }}
               />
-              <span style={{ fontSize: 11, color: 'var(--t3, #8c9ab5)', fontWeight: 400 }}>
+              <span style={{ fontSize: 11, color: 'var(--t3, var(--t3))', fontWeight: 400 }}>
                 Paste the webhook URL from your {item.name} account.
               </span>
             </label>
           ) : (
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
+            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
               {item.name === 'Google Analytics' ? 'Tracking ID / Measurement ID' : item.name === 'Facebook Pixel' ? 'Pixel ID' : 'API Key'}
               <input
                 type="text"
@@ -122,17 +122,17 @@ function ConnectModal({
                   item.name === 'Facebook Pixel' ? '123456789012345' :
                   'Enter your API key'
                 }
-                style={{ height: 42, border: '1px solid var(--b2, #dfe3ee)', borderRadius: 9, padding: '0 12px', fontSize: 14, fontFamily: 'monospace', background: 'var(--s1)', color: 'var(--t1)' }}
+                style={{ height: 42, border: '1px solid var(--b2, var(--b1))', borderRadius: 9, padding: '0 12px', fontSize: 14, fontFamily: 'monospace', background: 'var(--s1)', color: 'var(--t1)' }}
               />
-              <span style={{ fontSize: 11, color: 'var(--t3, #8c9ab5)', fontWeight: 400 }}>
+              <span style={{ fontSize: 11, color: 'var(--t3, var(--t3))', fontWeight: 400 }}>
                 Find this in your {item.name} account settings.
               </span>
             </label>
           )}
         </div>
 
-        <div style={{ padding: '14px 24px', borderTop: '1px solid #eef0f7', display: 'flex', gap: 10 }}>
-          <button type="button" onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+        <div style={{ padding: '14px 24px', borderTop: '1px solid var(--b1)', display: 'flex', gap: 10 }}>
+          <button type="button" onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid var(--b1)', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             Cancel
           </button>
           <button type="button" onClick={() => void handleConnect()} disabled={saving} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: 'var(--green)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1 }}>
@@ -260,7 +260,7 @@ export default function IntegrationsClient({ initialConnections, catalog }: Inte
   return (
     <div className="kf-admin-dash">
       {error && (
-        <div style={{ padding: '12px 16px', background: 'rgba(190,18,60,.08)', border: '1px solid rgba(190,18,60,.25)', borderRadius: 10, color: 'var(--red, #c0003c)', fontSize: 14, fontWeight: 600 }}>
+        <div style={{ padding: '12px 16px', background: 'rgba(190,18,60,.08)', border: '1px solid rgba(190,18,60,.25)', borderRadius: 10, color: 'var(--red, var(--red))', fontSize: 14, fontWeight: 600 }}>
           {error}
         </div>
       )}
