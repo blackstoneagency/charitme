@@ -10,6 +10,12 @@ export const dynamic = 'force-dynamic';
 const CONTACT_COOKIE = 'cm_cid';
 const CONTACT_COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
+function noIndexRedirect(url: string): NextResponse {
+  const response = NextResponse.redirect(url, 302);
+  response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  return response;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /go/[code]
 //
@@ -35,7 +41,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     .maybeSingle();
 
   if (!link) {
-    return NextResponse.redirect(`${origin}/`, 302);
+    return noIndexRedirect(`${origin}/`);
   }
 
   const url = new URL(request.url);
@@ -121,7 +127,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
   }
 
-  const response = NextResponse.redirect(redirectUrl, 302);
+  const response = noIndexRedirect(redirectUrl);
   if (cid) {
     response.cookies.set(CONTACT_COOKIE, cid, {
       httpOnly: true,
