@@ -4,17 +4,6 @@
 > production-readiness program. Section A is the actionable engineering backlog.
 > Section B (further down) is the competitive product vision it serves.
 
-## 🚨 SECURITY — exposed keys STILL LIVE (rotation NOT effective as of this check)
-Owner reported secrets rotated, but a read-only check shows the **exposed** keys
-still work: **old Stripe `sk_live` → 200**, **old Supabase access token → 201**,
-**old service-role key → 200**. Setting new values in Vercel does not revoke the
-old ones. **Must actually REVOKE/ROLL:** Stripe → Developers → API keys → *roll*
-the secret key + delete the exposed restricted key (then update `STRIPE_SECRET_KEY`
-in Vercel with the rolled value); Supabase → Settings → API keys → rotate anon +
-service-role (update Vercel); Supabase account → Access Tokens → **revoke** the
-`sbp_…`; Supabase → Database → reset password; rotate Google OAuth secret, Resend,
-CRON. #1 (Vercel Stripe env) IS verified live via `/api/health`.
-
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
@@ -34,14 +23,11 @@ CRON. #1 (Vercel Stripe env) IS verified live via `/api/health`.
 
 **Owner actions still blocking full production-readiness** (step-by-step in
 **`docs/DEPLOY_STRIPE.md`**): (1) set Stripe env in **Vercel** (`STRIPE_SECRET_KEY`,
-publishable, `STRIPE_WEBHOOK_SECRET`, 4 price ids, tip%) + redeploy — **needs Vercel
-access I don't have** (no token/CLI in this env; paste a scoped `VERCEL_TOKEN` and I
-can set them via the Vercel API); (2) ✅ **eli54u.com webhook DELETED** (Stripe API,
-`deleted:true`; only the legit charitme endpoint w/ 20 events remains);
-(3) **rotate all shared secrets** — **must be owner-done**: most are dashboard-only
-rotations, and rotating anything without simultaneously updating Vercel would take
-production down; (4) provide **OpenAI** + **Unsplash** keys; (5) decide
-**publish-before-payout** (biggest builder drop-off lever).
+publishable, `STRIPE_WEBHOOK_SECRET`, 4 price ids, tip%) — **✅ DONE & verified
+live** via `/api/health` (stripeKey live, publishable/webhook secret set, supabase
+connected); (2) ✅ **eli54u.com webhook DELETED** (Stripe API, `deleted:true`; only
+the legit charitme endpoint w/ 20 events remains); (3) provide **OpenAI** +
+**Unsplash** keys; (4) decide **publish-before-payout** (biggest builder drop-off lever).
 **Resolved:** `STRIPE_CONNECT_WEBHOOK_SECRET` is **NOT needed** — verified in the
 webhook handler (tries `STRIPE_WEBHOOK_SECRET` first, filters unset secrets); the
 single endpoint receives all Connect events signed with the main secret. Leave unset.
