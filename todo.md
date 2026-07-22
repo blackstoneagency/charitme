@@ -355,8 +355,18 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
        Verified: typecheck/lint clean, `next build` compiles, 797 tests pass.
        Follow-up (needs richer form model): use-of-funds line items, explicit
        payout-recipient/consent/anonymity fields (not in the current `FormState`).
-    3. Guided path: one primary question per screen (progressive disclosure for
-       advanced settings) instead of the current multi-field steps.
+    3. 🟡 **Partial (2026-07-22)** — Guided path: one primary question per screen.
+       The 9-step wizard is already largely one-question-per-screen; the crowded
+       exception was the required **Get Paid** step showing five payout methods
+       flat (decision paralysis at the conversion-critical moment). Now leads with
+       the one recommended option (Stripe Connect) and tucks the four alternates
+       (Venmo/Google Pay/PayPal/Sinch) behind a **"More ways to get paid"**
+       disclosure — alternates stay mounted (display toggle) so connected-state
+       detection holds, and it auto-opens when any alternate is already linked.
+       Verified: typecheck/lint clean, `next build` compiles, 776 tests pass.
+       **Still to do (lower value):** collapse the location step's secondary ZIP
+       behind an optional reveal; progressive disclosure for the goal step's
+       auto-goal box.
     4. ✅ **DONE (2026-07-21)** — Publish-readiness engine. `lib/campaign-readiness.ts`
        (`publishReadiness`, 7 unit tests) scores title/story/goal/category/location/
        media/payout (+ beneficiary when for someone else); `required` items mirror the
