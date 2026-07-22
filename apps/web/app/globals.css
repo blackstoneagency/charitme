@@ -4218,6 +4218,12 @@ img, svg { display: block; }
 .cr2-launch-header h2 { font-size: clamp(20px, 3vw, 26px); font-weight: 800; color: var(--t1); margin: 0 0 6px; letter-spacing: -.02em; }
 .cr2-launch-header p { font-size: 14px; color: var(--t3); margin: 0; }
 .cr2-launch-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 20px 28px; border-bottom: 1px solid #eef0f7; }
+.cr2-feature-launch-option { display: flex; align-items: center; gap: 12px; margin: 20px 28px 0; padding: 14px 16px; border: 1px solid rgba(108,53,255,.24); border-radius: 14px; background: rgba(108,53,255,.05); cursor: pointer; }
+.cr2-feature-launch-option input { width: 20px; height: 20px; accent-color: #6c35ff; flex: 0 0 auto; }
+.cr2-feature-launch-copy { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.cr2-feature-launch-copy strong { color: var(--t1); font-size: 14px; }
+.cr2-feature-launch-copy span { color: var(--t3); font-size: 12px; line-height: 1.4; }
+.cr2-feature-launch-price { color: #6c35ff; font-size: 15px; font-weight: 800; white-space: nowrap; }
 .cr2-btn-launch { height: 56px; background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%); color: #fff; border: none; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: opacity .15s, transform .15s; letter-spacing: -.01em; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 6px 20px rgba(22,163,74,.3); }
 .cr2-btn-launch:hover:not(:disabled) { opacity: .92; transform: translateY(-1px); }
 .cr2-btn-launch:disabled { opacity: .6; cursor: wait; }
@@ -4284,6 +4290,7 @@ img, svg { display: block; }
 [data-theme="dark"] .cr2-review-row { border-color: var(--b1); }
 [data-theme="dark"] .cr2-launch-header { border-color: var(--b1); }
 [data-theme="dark"] .cr2-launch-btns { border-color: var(--b1); }
+[data-theme="dark"] .cr2-feature-launch-option { background: rgba(139,92,246,.12); border-color: rgba(167,139,250,.42); }
 [data-theme="dark"] .cr2-title-big { background: var(--s2); border-color: var(--b1); color: var(--t1); }
 [data-theme="dark"] .cr2-title-big:focus { border-color: #6c35ff; }
 [data-theme="dark"] .cr2-preview-main h1 { color: var(--t1); }

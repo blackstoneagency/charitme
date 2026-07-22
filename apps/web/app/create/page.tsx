@@ -6,6 +6,7 @@ import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { CharitMeShell, KFIcon } from '../../components/CharitMeApp';
 import { createClient } from '../../lib/supabase-browser';
 import { isMissingPaymentMethodsColumn } from '../../lib/profile-payment-methods';
+import { FEATURE_PRICE_DEFAULT_CENTS } from '../../lib/featured';
 
 // ─────────────────────────────────────────────
 // Types
@@ -229,7 +230,24 @@ export default function CreatePage() {
   const [isGuest, setIsGuest]         = useState<boolean | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [featureCampaign, setFeatureCampaign] = useState(false);
+  const [featurePriceCents, setFeaturePriceCents] = useState(FEATURE_PRICE_DEFAULT_CENTS);
   const requestKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch('/api/campaigns/feature-price', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const payload = await response.json() as { priceCents?: unknown };
+        const price = Number(payload.priceCents);
+        if (mounted && Number.isInteger(price) && price > 0) setFeaturePriceCents(price);
+      })
+      .catch(() => {
+        // Keep the $5 default visible when the settings service is unavailable.
+      });
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -239,9 +257,10 @@ export default function CreatePage() {
         const saved = sessionStorage.getItem(WIZARD_STORAGE_KEY);
         if (saved) {
           try {
-            const { savedForm, savedStep } = JSON.parse(saved) as { savedForm: FormState; savedStep: WizardStep };
+            const { savedForm, savedStep, savedFeatureCampaign } = JSON.parse(saved) as { savedForm: FormState; savedStep: WizardStep; savedFeatureCampaign?: boolean };
             setForm(savedForm);
             setStep(savedStep);
+            if (typeof savedFeatureCampaign === 'boolean') setFeatureCampaign(savedFeatureCampaign);
           } catch { /* ignore */ }
           sessionStorage.removeItem(WIZARD_STORAGE_KEY);
         }
@@ -252,9 +271,10 @@ export default function CreatePage() {
       const saved = sessionStorage.getItem(WIZARD_STORAGE_KEY);
       if (saved) {
         try {
-          const { savedForm, savedStep } = JSON.parse(saved) as { savedForm: FormState; savedStep: WizardStep };
+          const { savedForm, savedStep, savedFeatureCampaign } = JSON.parse(saved) as { savedForm: FormState; savedStep: WizardStep; savedFeatureCampaign?: boolean };
           setForm(savedForm);
           setStep(savedStep);
+          if (typeof savedFeatureCampaign === 'boolean') setFeatureCampaign(savedFeatureCampaign);
         } catch { /* ignore */ }
         sessionStorage.removeItem(WIZARD_STORAGE_KEY);
       }
@@ -291,11 +311,11 @@ export default function CreatePage() {
   useEffect(() => {
     if (isGuest === null) return;
     try {
-      sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify({ savedForm: form, savedStep: step }));
+      sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify({ savedForm: form, savedStep: step, savedFeatureCampaign: featureCampaign }));
     } catch {
       // Session storage can be unavailable in privacy-restricted browsers.
     }
-  }, [form, isGuest, step]);
+  }, [form, featureCampaign, isGuest, step]);
 
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [dragging, setDragging]             = useState(false);
@@ -514,7 +534,7 @@ export default function CreatePage() {
           status,
         }),
       });
-      const data = await res.json() as { slug?: unknown; warning?: unknown; error?: unknown };
+      const data = await res.json() as { id?: unknown; slug?: unknown; warning?: unknown; error?: unknown };
       if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : `Failed to ${status === 'draft' ? 'save draft' : 'publish'}.`);
       try {
         sessionStorage.removeItem(WIZARD_STORAGE_KEY);
@@ -523,6 +543,15 @@ export default function CreatePage() {
       if (status === 'draft') { setError(''); window.location.href = '/dashboard/campaigns'; return; }
       if (typeof data.warning === 'string') setWarning(data.warning);
       setPublishedSlug(typeof data.slug === 'string' ? data.slug : '');
+      if (featureCampaign && typeof data.id === 'string') {
+        const featureRes = await fetch(`/api/campaigns/${data.id}/feature`, { method: 'POST' });
+        const featureData = await featureRes.json() as { url?: unknown; error?: unknown };
+        if (featureRes.ok && typeof featureData.url === 'string') {
+          window.location.assign(featureData.url);
+          return;
+        }
+        setWarning('Your campaign is live. Featured placement checkout could not start; you can retry it from your campaign dashboard.');
+      }
       setStep('live');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed. Please try again.');
@@ -1295,6 +1324,19 @@ export default function CreatePage() {
                   {/* Score bar */}
                   <ScoreBar score={computeScore(form, step, payoutLinked, isGuest)} />
 
+                  <label className="cr2-feature-launch-option">
+                    <input
+                      type="checkbox"
+                      checked={featureCampaign}
+                      onChange={(event) => setFeatureCampaign(event.target.checked)}
+                    />
+                    <span className="cr2-feature-launch-copy">
+                      <strong>Feature this campaign on CharitMe</strong>
+                      <span>Rotate through the homepage spotlight for extra visibility.</span>
+                    </span>
+                    <span className="cr2-feature-launch-price">${(featurePriceCents / 100).toFixed(2)}</span>
+                  </label>
+
                   <div className="cr2-launch-btns">
                     <button
                       type="button"
@@ -1302,7 +1344,7 @@ export default function CreatePage() {
                       onClick={() => { if (isGuest !== false) { setShowLoginModal(true); } else { void publish(); } }}
                       disabled={loading}
                     >
-                      🚀 {loading ? 'Launching…' : 'LAUNCH'}
+                      🚀 {loading ? (featureCampaign ? 'Launching & opening checkout…' : 'Launching…') : featureCampaign ? `LAUNCH & FEATURE FOR $${(featurePriceCents / 100).toFixed(2)}` : 'LAUNCH'}
                     </button>
                     <button
                       type="button"
@@ -1467,6 +1509,7 @@ export default function CreatePage() {
         <GuestLoginModal
           savedForm={form}
           savedStep={step}
+          featureCampaign={featureCampaign}
           onClose={() => setShowLoginModal(false)}
           onSuccess={() => {
             setIsGuest(false);
@@ -1506,11 +1549,12 @@ function AppleMark() {
   );
 }
 
-function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
+function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep, featureCampaign }: {
   onClose: () => void;
   onSuccess: () => void;
   savedForm: FormState;
   savedStep: WizardStep;
+  featureCampaign: boolean;
 }) {
   const supabase = React.useMemo(() => createClient(), []);
   const [modalMode, setModalMode] = useState<'login' | 'signup'>('login');
@@ -1522,7 +1566,7 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
   const [ok, setOk]         = useState('');
 
   const handleOAuth = (provider: 'google' | 'apple') => {
-    sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify({ savedForm, savedStep }));
+    sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify({ savedForm, savedStep, savedFeatureCampaign: featureCampaign }));
     window.location.href = `/api/auth/signin?provider=${provider}&next=/create`;
   };
 

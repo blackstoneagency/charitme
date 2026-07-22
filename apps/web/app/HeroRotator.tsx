@@ -182,8 +182,12 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
   const progressPct = count > 1 ? ((ROTATION_INTERVAL - countdown) / ROTATION_INTERVAL) * 100 : 0;
 
   return (
+    // The visual spotlight pauses on hover; its actionable controls below remain native buttons.
+    /* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */
     <div
       className="kind-hero-art"
+      role="region"
+      aria-label="Featured campaign spotlight"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >

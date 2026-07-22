@@ -217,7 +217,7 @@ export async function getHomeData(filters: StoryFilters): Promise<{
       .neq('cover_image_url', '')
       .order('featured', { ascending: false })
       .order('raised_amount', { ascending: false })
-      .limit(20),
+      .limit(1000),
     applyLiveFilters(supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }), cols),
     supabaseAdmin.from('donations').select('amount_cents', { count: 'exact' }).eq('status', 'completed'),
     applyLiveFilters(

@@ -62,6 +62,10 @@ describe('featured campaign production contracts', () => {
   const routeSource = readSource('app/api/campaigns/[id]/feature/route.ts');
   const webhookSource = readSource('app/api/stripe/webhook/route.ts');
   const buttonSource = readSource('app/dashboard/campaigns/[id]/_components/FeatureCampaignButton.tsx');
+  const builderSource = readSource('app/create/page.tsx');
+  const rotatorSource = readSource('app/HeroRotator.tsx');
+  const priceRouteSource = readSource('app/api/campaigns/feature-price/route.ts');
+  const rotatorApiSource = readSource('app/api/campaigns/rotator/route.ts');
 
   it('requires auth, ownership, and idempotent Stripe checkout metadata', () => {
     expect(routeSource).toContain("if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })");
@@ -84,5 +88,21 @@ describe('featured campaign production contracts', () => {
     expect(buttonSource).toContain('Feature this campaign');
     expect(buttonSource).toContain("method: 'POST'");
     expect(buttonSource).toContain('window.location.assign(json.url)');
+  });
+
+  it('offers the paid placement during campaign launch and uses live admin pricing', () => {
+    expect(builderSource).toContain("fetch('/api/campaigns/feature-price'");
+    expect(builderSource).toContain('checked={featureCampaign}');
+    expect(builderSource).toContain('`/api/campaigns/${data.id}/feature`');
+    expect(builderSource).toContain('LAUNCH & FEATURE FOR');
+    expect(priceRouteSource).toContain('resolveFeaturePriceCents(payment)');
+  });
+
+  it('rotates the complete featured result set with a pausable fill clock', () => {
+    expect(rotatorApiSource).toContain('.limit(1000)');
+    expect(rotatorSource).toContain('onMouseEnter={() => setPaused(true)}');
+    expect(rotatorSource).toContain('onMouseLeave={() => setPaused(false)}');
+    expect(rotatorSource).toContain('width: `${progressPct}%`');
+    expect(rotatorSource).toContain('aria-label="Featured campaign spotlight"');
   });
 });

@@ -20,7 +20,7 @@ export async function GET() {
       .neq('cover_image_url', '')
       .order('featured', { ascending: false })
       .order('raised_amount', { ascending: false })
-      .limit(20),
+      .limit(1000),
 
     // Platform-level stats for the "Live" badge
     supabaseAdmin
