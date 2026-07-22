@@ -106,13 +106,13 @@ export default function NotificationsPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Link href="/dashboard" style={{ color: 'var(--t3, #94a3b8)', fontSize: 13, textDecoration: 'none' }}>← Dashboard</Link>
+            <Link href="/dashboard" style={{ color: 'var(--t3, var(--t3))', fontSize: 13, textDecoration: 'none' }}>← Dashboard</Link>
           </div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#1a1a2e', margin: '8px 0 0' }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--t1)', margin: '8px 0 0' }}>
             Notifications
             {unreadCount > 0 && (
               <span style={{
-                marginLeft: 10, background: 'var(--violet, #6c35ff)', color: '#fff',
+                marginLeft: 10, background: 'var(--violet, var(--violet))', color: '#fff',
                 fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
                 verticalAlign: 'middle',
               }}>
@@ -125,8 +125,8 @@ export default function NotificationsPage() {
           <button
             onClick={markAllRead}
             style={{
-              background: 'none', border: '1.5px solid var(--violet, #6c35ff)',
-              color: 'var(--violet, #6c35ff)', fontWeight: 700, fontSize: 13,
+              background: 'none', border: '1.5px solid var(--violet, var(--violet))',
+              color: 'var(--violet, var(--violet))', fontWeight: 700, fontSize: 13,
               padding: '8px 16px', borderRadius: 8, cursor: 'pointer',
             }}
           >
@@ -136,7 +136,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Filter tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1.5px solid var(--b1, #f0f0f8)', paddingBottom: 0 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1.5px solid var(--b1, var(--s2))', paddingBottom: 0 }}>
         {(['all', 'unread'] as const).map(tab => (
           <button
             key={tab}
@@ -144,9 +144,9 @@ export default function NotificationsPage() {
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               fontWeight: filter === tab ? 800 : 500,
-              color: filter === tab ? 'var(--violet, #6c35ff)' : 'var(--t3, #64748b)',
+              color: filter === tab ? 'var(--violet, var(--violet))' : 'var(--t3, var(--t3))',
               fontSize: 14, padding: '8px 16px',
-              borderBottom: filter === tab ? '2px solid var(--violet, #6c35ff)' : '2px solid transparent',
+              borderBottom: filter === tab ? '2px solid var(--violet, var(--violet))' : '2px solid transparent',
               marginBottom: -1.5, transition: 'color .15s',
               textTransform: 'capitalize',
             }}
@@ -158,16 +158,16 @@ export default function NotificationsPage() {
 
       {/* List */}
       {loading && (
-        <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--t3, #94a3b8)' }}>Loading…</div>
+        <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--t3, var(--t3))' }}>Loading…</div>
       )}
 
       {!loading && displayed.length === 0 && (
         <div style={{ textAlign: 'center', padding: '64px 0' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
-          <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--t1, #1a1a2e)', marginBottom: 6 }}>
+          <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--t1, var(--t1))', marginBottom: 6 }}>
             {filter === 'unread' ? 'All caught up!' : 'No notifications yet'}
           </div>
-          <div style={{ fontSize: 14, color: 'var(--t3, #64748b)' }}>
+          <div style={{ fontSize: 14, color: 'var(--t3, var(--t3))' }}>
             {filter === 'unread'
               ? 'You have no unread notifications.'
               : 'Notifications about your campaigns will appear here.'}
@@ -184,15 +184,15 @@ export default function NotificationsPage() {
               style={{
                 display: 'flex', gap: 14, alignItems: 'flex-start',
                 padding: '16px 18px', borderRadius: 12, cursor: n.link ? 'pointer' : 'default',
-                background: n.read_at ? 'var(--s1, #fff)' : 'var(--s2, #f5f0ff)',
+                background: n.read_at ? 'var(--s1, #fff)' : 'var(--s2, rgba(109,53,255,.08))',
                 border: '1px solid',
-                borderColor: n.read_at ? 'var(--b1, #f0f0f8)' : 'var(--b2, #e0d4ff)',
+                borderColor: n.read_at ? 'var(--b1, var(--s2))' : 'var(--b2, var(--b2))',
                 transition: 'background .15s',
               }}
             >
               {/* Icon */}
               <div style={{
-                width: 40, height: 40, borderRadius: 12, background: 'var(--s3, #f5f0ff)',
+                width: 40, height: 40, borderRadius: 12, background: 'var(--s3, rgba(109,53,255,.08))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 18, flexShrink: 0,
               }}>
@@ -203,19 +203,19 @@ export default function NotificationsPage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                   <span style={{
-                    fontSize: 10, fontWeight: 700, color: 'var(--violet, #6c35ff)',
-                    background: 'var(--s3, #ede9ff)', padding: '2px 7px', borderRadius: 5, flexShrink: 0,
+                    fontSize: 10, fontWeight: 700, color: 'var(--violet, var(--violet))',
+                    background: 'var(--s3, rgba(109,53,255,.18))', padding: '2px 7px', borderRadius: 5, flexShrink: 0,
                     textTransform: 'uppercase', letterSpacing: '0.05em',
                   }}>
                     {KIND_LABEL[n.kind] ?? 'Info'}
                   </span>
-                  <span style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', flexShrink: 0 }}>{timeAgo(n.created_at)}</span>
+                  <span style={{ fontSize: 11, color: 'var(--t3, var(--t3))', flexShrink: 0 }}>{timeAgo(n.created_at)}</span>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: n.read_at ? 600 : 800, color: 'var(--t1, #1a1a2e)', lineHeight: 1.4 }}>
+                <div style={{ fontSize: 14, fontWeight: n.read_at ? 600 : 800, color: 'var(--t1, var(--t1))', lineHeight: 1.4 }}>
                   {n.title}
                 </div>
                 {n.body && (
-                  <div style={{ fontSize: 13, color: 'var(--t3, #64748b)', marginTop: 3, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 13, color: 'var(--t3, var(--t3))', marginTop: 3, lineHeight: 1.5 }}>
                     {n.body}
                   </div>
                 )}
@@ -224,14 +224,14 @@ export default function NotificationsPage() {
               {/* Right side */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
                 {!n.read_at && (
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--violet, #6c35ff)' }} />
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--violet, var(--violet))' }} />
                 )}
                 <button
                   onClick={e => void deleteNotif(n.id, e)}
                   aria-label="Dismiss"
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--t4, #cbd5e1)', fontSize: 16, padding: 0, lineHeight: 1,
+                    color: 'var(--t4, var(--b1))', fontSize: 16, padding: 0, lineHeight: 1,
                   }}
                 >
                   ×
