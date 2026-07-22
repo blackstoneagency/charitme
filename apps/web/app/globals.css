@@ -2111,7 +2111,7 @@ img, video, iframe { max-width: 100%; }
 .pub-breadcrumb b { color: #4015e8; }
 .pub-hero, .stories-hero, .pricing-hero, .simple-public > section:first-child { padding: 38px 6vw 54px; border-bottom: 1px solid #e8ebf4; }
 .pub-hero-grid { display: grid; grid-template-columns: .85fr 1.15fr; gap: 54px; align-items: center; margin-top: 58px; }
-.pub-hero-copy h1, .stories-hero h1, .pricing-hero h1, .simple-public h1 { margin: 26px 0 24px; font-size: clamp(42px, 5vw, 64px); line-height: 1.15; letter-spacing: -.045em; font-weight: 950; }
+.pub-hero-copy h1, .stories-hero h1, .pricing-hero h1, .simple-public h1 { margin: 26px 0 24px; font-size: clamp(34px, 5vw, 64px); line-height: 1.15; letter-spacing: -.045em; font-weight: 950; overflow-wrap: break-word; }
 .pub-hero-copy h1 em, .stories-hero h1 em, .pricing-hero h1 em { color: #4a1cff; font-style: normal; }
 .pub-hero-copy p, .stories-hero p, .pricing-hero p, .simple-public > section:first-child > p { max-width: 680px; color: #2d3a63; font-size: 21px; line-height: 1.65; }
 .pub-badge { display: inline-flex; align-items: center; gap: 10px; padding: 8px 13px; border-radius: 999px; color: #4b1af2; background: #efe8ff; font-size: 12px; font-weight: 950; text-transform: uppercase; }
@@ -2319,6 +2319,11 @@ img, video, iframe { max-width: 100%; }
 .fee-calc-bad { color: #e11d48; }
 [data-theme="dark"] .fee-calc-bad { color: #fb7185; }
 .fee-calc-note { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 16px; }
+/* Two fee boxes side-by-side overflow narrow phones — stack them. */
+@media (max-width: 640px) {
+  .fee-calc-grid { grid-template-columns: 1fr; }
+  .fee-calc-box { padding: 18px; }
+}
 .all-faqs { display: inline-flex; align-items: center; gap: 8px; color: #4015e8; font-weight: 950; }
 
 /* ── Success Stories page ── */
@@ -6191,7 +6196,9 @@ img, video, iframe { max-width: 100%; }
   animation: homeShimmer 1.6s ease-in-out infinite;
 }
 @keyframes homeShimmer { 0% { background-position: 180% 0; } 100% { background-position: -80% 0; } }
-.home-hc-media img, .home-cause-media img, .home-card-media img { position: relative; z-index: 1; }
+/* max-width guards against a broken/slow image rendering at its width attr and
+   overflowing the card (width:100% alone is ignored while the img is broken). */
+.home-hc-media img, .home-cause-media img, .home-card-media img { position: relative; z-index: 1; max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   .home-hc-media, .home-cause-media, .home-card-media { animation: none; background-image: none; background-color: var(--s2); }
 }
@@ -6344,7 +6351,7 @@ img, video, iframe { max-width: 100%; }
    in dark mode, so the page adapts. Green buttons (bg-emerald-600 + text-white)
    and intentionally-dark blocks (bg-slate-950) are left untouched.
    ========================================================================== */
-.mktg-page { background: #fff; }
+.mktg-page { background: #fff; overflow-x: clip; }
 [data-theme="dark"] .mktg-page { background: var(--bg); color: var(--t1); }
 
 /* surfaces */
