@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 import { safeJsonLd } from '../lib/json-ld';
 import { getPublishedAeoEntries, groupFaqsByTopic } from '../lib/aeo';
 
-export default async function AeoContent({ route, title = 'Answers from CharitMe' }: { route: string; title?: string }): Promise<ReactElement | null> {
+export default async function AeoContent({ route, title = 'Answers from CharitMe', visible = true }: { route: string; title?: string; visible?: boolean }): Promise<ReactElement | null> {
   const entries = await getPublishedAeoEntries(route);
   if (entries.length === 0) return null;
 
@@ -24,6 +24,8 @@ export default async function AeoContent({ route, title = 'Answers from CharitMe
       mainEntity: { '@type': 'Question', name: entry.question, acceptedAnswer: { '@type': 'Answer', text: entry.answer } },
     })),
   ];
+
+  if (!visible) return <>{jsonLd.map((schema, index) => <script key={index} type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(schema) }} />)}</>;
 
   return (
     <section className="border-t border-slate-100 py-16" aria-labelledby="published-aeo-answers">

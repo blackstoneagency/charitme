@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { seoMetadata } from '../lib/seo';
 import { safeJsonLd } from '../lib/json-ld';
 import AeoContent from '../components/AeoContent';
+import { getPublishedAeoEntries } from '../lib/aeo';
 import { getHomeData, getCategoryStats, getRecentDonations, profileName } from '../lib/home-data';
 import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
 import CampaignImage from '../components/CampaignImage';
@@ -154,11 +155,17 @@ function deadlineLabel(iso: string | null): string {
 }
 
 export default async function HomePage() {
-  const [{ metrics, featuredCampaigns, carouselCampaigns, heroCampaign }, categoryStats, recentDonations] = await Promise.all([
+  const [{ metrics, featuredCampaigns, carouselCampaigns, heroCampaign }, categoryStats, recentDonations, homepageAeo] = await Promise.all([
     getHomeData({}),
     getCategoryStats(),
     getRecentDonations(6),
+    getPublishedAeoEntries('/'),
   ]);
+
+  const publishedHomepageFaqs = homepageAeo
+    .filter((entry) => entry.schema_type === 'FAQPage')
+    .map((entry) => ({ q: entry.question, a: entry.answer }));
+  const homepageFaqs = publishedHomepageFaqs.length > 0 ? publishedHomepageFaqs : FAQS;
 
   // Live campaign spotlight for the hero — a real featured campaign from Supabase.
   const hc = heroCampaign;
@@ -183,10 +190,10 @@ export default async function HomePage() {
         '@type': 'WebSite', name: 'CharitMe', url: BASE,
         potentialAction: { '@type': 'SearchAction', target: `${BASE}/campaigns?q={search_term_string}`, 'query-input': 'required name=search_term_string' },
       },
-      {
+      ...(publishedHomepageFaqs.length === 0 ? [{
         '@type': 'FAQPage',
         mainEntity: FAQS.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
-      },
+      }] : []),
     ],
   };
 
@@ -487,7 +494,7 @@ export default async function HomePage() {
             <h2 id="home-faq-title">Everything you need to feel confident.</h2>
           </Reveal>
           <div className="home-faq-list">
-            {FAQS.map((f) => (
+            {homepageFaqs.map((f) => (
               <details key={f.q} className="home-faq-item">
                 <summary>{f.q}<span className="home-faq-plus" aria-hidden="true"><Icon name="arrow" className="hi" /></span></summary>
                 <p>{f.a}</p>
@@ -511,7 +518,7 @@ export default async function HomePage() {
           </Reveal>
         </div>
       </section>
-      <AeoContent route="/" title="CharitMe answers" />
+      <AeoContent route="/" title="CharitMe answers" visible={false} />
     </div>
   );
 }
