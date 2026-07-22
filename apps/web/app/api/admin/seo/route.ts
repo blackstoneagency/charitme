@@ -5,16 +5,26 @@ import { supabaseAdmin } from '../../../../lib/supabase';
 import { verifyAdmin } from '../users/_auth';
 
 // Per-route SEO overrides stored in public.seo_settings (RLS: service-role only).
+const PUBLIC_ROUTE = z.string().trim().min(1).max(300).regex(/^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|signup(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|donors(?:\/|$)|beneficiary(?:\/|$)|events\/manage(?:\/|$)|impact\/manage(?:\/|$)|matching\/manage(?:\/|$)|sponsor\/manage(?:\/|$))/);
+const CANONICAL_URL = z.string().trim().max(1000).refine((value) => {
+  if (value.startsWith('/')) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname === 'www.charitme.com';
+  } catch {
+    return false;
+  }
+}, 'Canonical URL must be a site-relative path or a CharitMe HTTPS URL');
 const SeoSchema = z.object({
   id: z.string().uuid().optional(),
-  route: z.string().min(1).max(300),
+  route: PUBLIC_ROUTE,
   title: z.string().max(200).optional().nullable(),
   metaDescription: z.string().max(500).optional().nullable(),
   keywords: z.string().max(500).optional().nullable(),
   ogTitle: z.string().max(200).optional().nullable(),
   ogDescription: z.string().max(500).optional().nullable(),
   ogImageUrl: z.string().max(1000).optional().nullable(),
-  canonicalUrl: z.string().max(1000).optional().nullable(),
+  canonicalUrl: CANONICAL_URL.optional().nullable(),
   noindex: z.boolean().optional(),
 });
 
