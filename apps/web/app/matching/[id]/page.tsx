@@ -7,6 +7,8 @@ import { getUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { getProgram, reservedMatchForEmployee } from '../../../lib/matching';
 import { isAcceptingClaims, remainingCap } from '../../../lib/matching-core';
+import { safeJsonLd } from '../../../lib/json-ld';
+import { CHARITME_ORIGIN } from '../../../lib/public-routes';
 import MatchClaimPanel from './MatchClaimPanel';
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -15,7 +17,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { id } = await params;
   const p = await getProgram(id);
   if (!p) return { title: 'Program not found' };
-  return { title: `${p.company_name} Matching Gifts`, description: p.description?.slice(0, 155) ?? undefined };
+  const description = p.description?.slice(0, 155) ?? `Claim matching gifts from ${p.company_name} on CharitMe.`;
+  return {
+    title: `${p.company_name} Matching Gifts`,
+    description,
+    alternates: { canonical: `/matching/${p.id}` },
+    openGraph: {
+      title: `${p.company_name} Matching Gifts`,
+      description,
+      url: `/matching/${p.id}`,
+      type: 'website',
+    },
+  };
 }
 
 export const dynamic = 'force-dynamic';
@@ -27,6 +40,20 @@ export default async function MatchingDetailPage({ params }: PageProps) {
 
   const user = await getUser();
   const isSponsor = user?.id === p.sponsor_id;
+  const programJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Offer',
+    name: `${p.company_name} Matching Gifts`,
+    description: p.description ?? `${p.company_name} matching gift program on CharitMe.`,
+    url: `${CHARITME_ORIGIN}/matching/${p.id}`,
+    availability: isAcceptingClaims(p) ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+    priceCurrency: p.currency,
+    eligibleCustomerType: 'Employee',
+    offeredBy: {
+      '@type': 'Organization',
+      name: p.company_name,
+    },
+  };
 
   let myClaims: { id: string; status: string; donation_amount_cents: number; match_amount_cents: number }[] = [];
   let remainingCapCents: number | null = null;
@@ -44,6 +71,8 @@ export default async function MatchingDetailPage({ params }: PageProps) {
   }
 
   return (
+    <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(programJsonLd) }} />
     <div className="container" style={{ padding: '40px 24px', maxWidth: 780 }}>
       <Link href="/matching" style={{ fontSize: 14, color: 'var(--t3)', textDecoration: 'none' }}>
         ← All matching programs
@@ -80,5 +109,6 @@ export default async function MatchingDetailPage({ params }: PageProps) {
         />
       </div>
     </div>
+    </>
   );
 }

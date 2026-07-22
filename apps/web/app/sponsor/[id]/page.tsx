@@ -7,6 +7,8 @@ import { getUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { getOpportunity } from '../../../lib/sponsorships';
 import { isAcceptingRequests, fundingProgress } from '../../../lib/sponsorships-core';
+import { safeJsonLd } from '../../../lib/json-ld';
+import { CHARITME_ORIGIN } from '../../../lib/public-routes';
 import SponsorPanel from './SponsorPanel';
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -15,7 +17,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { id } = await params;
   const o = await getOpportunity(id);
   if (!o) return { title: 'Opportunity not found' };
-  return { title: `${o.title} — Sponsorship`, description: o.description.slice(0, 155) };
+  const description = o.description.slice(0, 155);
+  return {
+    title: `${o.title} - Sponsorship`,
+    description,
+    alternates: { canonical: `/sponsor/${o.id}` },
+    openGraph: {
+      title: `${o.title} - CharitMe Sponsorship`,
+      description,
+      url: `/sponsor/${o.id}`,
+      type: 'website',
+    },
+  };
 }
 
 export const dynamic = 'force-dynamic';
@@ -41,8 +54,29 @@ export default async function SponsorDetailPage({ params }: PageProps) {
 
   const accepting = isAcceptingRequests(o);
   const progress = fundingProgress(o);
+  const sponsorJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Offer',
+    name: o.title,
+    description: o.description,
+    url: `${CHARITME_ORIGIN}/sponsor/${o.id}`,
+    category: o.category,
+    priceCurrency: o.currency,
+    priceSpecification: {
+      '@type': 'PriceSpecification',
+      minPrice: Math.round(o.min_amount_cents / 100),
+      priceCurrency: o.currency,
+    },
+    availability: accepting ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+    offeredBy: {
+      '@type': 'Organization',
+      name: o.organizer_name ?? 'CharitMe organizer',
+    },
+  };
 
   return (
+    <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(sponsorJsonLd) }} />
     <div className="container" style={{ padding: '40px 24px', maxWidth: 820 }}>
       <Link href="/sponsor" style={{ fontSize: 14, color: 'var(--t3)', textDecoration: 'none' }}>
         ← All opportunities
@@ -99,5 +133,6 @@ export default async function SponsorDetailPage({ params }: PageProps) {
         />
       </div>
     </div>
+    </>
   );
 }

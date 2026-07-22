@@ -5,6 +5,8 @@ import { Badge } from '../../../components/ui';
 import { getUser } from '../../../lib/auth';
 import { getEventBySlug, attendeeRegisteredQty } from '../../../lib/events';
 import { isRegistrationOpen, remainingCapacity } from '../../../lib/events-core';
+import { safeJsonLd } from '../../../lib/json-ld';
+import { CHARITME_ORIGIN } from '../../../lib/public-routes';
 import RsvpPanel from './RsvpPanel';
 
 type PageProps = { params: Promise<{ slug: string }> };
@@ -13,7 +15,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const e = await getEventBySlug(slug);
   if (!e) return { title: 'Event not found' };
-  return { title: `${e.title} — Event`, description: e.description?.slice(0, 155) ?? undefined };
+  const description = e.description?.slice(0, 155) ?? `Register for ${e.title} on CharitMe.`;
+  return {
+    title: `${e.title} - Event`,
+    description,
+    alternates: { canonical: `/events/${e.slug}` },
+    openGraph: {
+      title: `${e.title} - CharitMe Event`,
+      description,
+      url: `/events/${e.slug}`,
+      type: 'website',
+      images: e.cover_image_url ? [{ url: e.cover_image_url, alt: e.title }] : undefined,
+    },
+  };
 }
 
 export const dynamic = 'force-dynamic';
@@ -33,8 +47,30 @@ export default async function EventDetailPage({ params }: PageProps) {
 
   const remaining = remainingCapacity(e.capacity, e.registered_qty);
   const open = isRegistrationOpen(e, e.registered_qty);
+  const eventJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name: e.title,
+    description: e.description ?? `Fundraising event on CharitMe: ${e.title}`,
+    url: `${CHARITME_ORIGIN}/events/${e.slug}`,
+    startDate: e.starts_at,
+    endDate: e.ends_at ?? undefined,
+    eventStatus: e.status === 'completed' ? 'https://schema.org/EventCompleted' : 'https://schema.org/EventScheduled',
+    eventAttendanceMode: e.virtual_url ? 'https://schema.org/OnlineEventAttendanceMode' : 'https://schema.org/OfflineEventAttendanceMode',
+    image: e.cover_image_url ? [e.cover_image_url] : undefined,
+    location: e.virtual_url && open
+      ? { '@type': 'VirtualLocation', url: e.virtual_url }
+      : { '@type': 'Place', name: e.location ?? 'CharitMe fundraising event' },
+    organizer: {
+      '@type': 'Organization',
+      name: 'CharitMe',
+      url: CHARITME_ORIGIN,
+    },
+  };
 
   return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(eventJsonLd) }} />
     <div className="container" style={{ padding: '40px 24px', maxWidth: 780 }}>
       <Link href="/events" style={{ fontSize: 14, color: 'var(--t3)', textDecoration: 'none' }}>← All events</Link>
 
@@ -68,5 +104,6 @@ export default async function EventDetailPage({ params }: PageProps) {
         />
       </div>
     </div>
+    </>
   );
 }

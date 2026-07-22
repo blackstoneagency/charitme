@@ -6,6 +6,8 @@ import { Badge, ProgressBar } from '../../../components/ui';
 import { getUser } from '../../../lib/auth';
 import { getImpactBundle, userOwnsCampaign } from '../../../lib/impact';
 import { budgetProgress, metricProgress, sumSpent } from '../../../lib/impact-core';
+import { safeJsonLd } from '../../../lib/json-ld';
+import { CHARITME_ORIGIN } from '../../../lib/public-routes';
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -13,9 +15,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const bundle = await getImpactBundle(slug, false);
   if (!bundle) return { title: 'Impact not found' };
+  const description = `See exactly how ${bundle.campaign.title} is using funds, with a ${bundle.transparency.score}/100 transparency score.`;
   return {
-    title: `Impact — ${bundle.campaign.title}`,
-    description: `See exactly how ${bundle.campaign.title} is using funds, with a ${bundle.transparency.score}/100 transparency score.`,
+    title: `Impact - ${bundle.campaign.title}`,
+    description,
+    alternates: { canonical: `/impact/${bundle.campaign.slug}` },
+    openGraph: {
+      title: `Impact - ${bundle.campaign.title}`,
+      description,
+      url: `/impact/${bundle.campaign.slug}`,
+      type: 'website',
+    },
   };
 }
 
@@ -39,8 +49,29 @@ export default async function ImpactPage({ params }: PageProps) {
   const { campaign, plan, updates, metrics, transparency } = bundle;
   const currency = campaign.currency;
   const spent = plan ? sumSpent(plan.items) : 0;
+  const impactJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Report',
+    name: `Impact report for ${campaign.title}`,
+    description: plan?.summary ?? `Transparency and impact report for ${campaign.title} on CharitMe.`,
+    url: `${CHARITME_ORIGIN}/impact/${campaign.slug}`,
+    about: {
+      '@type': 'Project',
+      name: campaign.title,
+      url: `${CHARITME_ORIGIN}/campaigns/${campaign.slug}`,
+    },
+    dateModified: updates[0]?.created_at ?? plan?.updated_at,
+    measurementTechnique: metrics.map((metric) => metric.label),
+    publisher: {
+      '@type': 'Organization',
+      name: 'CharitMe',
+      url: CHARITME_ORIGIN,
+    },
+  };
 
   return (
+    <>
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(impactJsonLd) }} />
     <div className="container" style={{ padding: '40px 24px', maxWidth: 820 }}>
       <Link href={`/campaigns/${campaign.slug}`} style={{ fontSize: 14, color: 'var(--t3)', textDecoration: 'none' }}>
         ← {campaign.title}
@@ -158,5 +189,6 @@ export default async function ImpactPage({ params }: PageProps) {
         )}
       </section>
     </div>
+    </>
   );
 }
