@@ -34,6 +34,18 @@ interface PaymentMethods {
   sinch?: string;
 }
 
+function readPaymentMethods(value: unknown): PaymentMethods {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {};
+  const source = value as Record<string, unknown>;
+  return {
+    ...(typeof source.primary === 'string' ? { primary: source.primary } : {}),
+    ...(typeof source.paypal === 'string' ? { paypal: source.paypal } : {}),
+    ...(typeof source.venmo === 'string' ? { venmo: source.venmo } : {}),
+    ...(typeof source.googlepay === 'string' ? { googlepay: source.googlepay } : {}),
+    ...(typeof source.sinch === 'string' ? { sinch: source.sinch } : {}),
+  };
+}
+
 interface FormState {
   category: string;
   forSelf: string;      // 'true' | 'false'
@@ -301,15 +313,26 @@ export default function CreatePage() {
           .maybeSingle(),
         supabase
           .from('profiles')
-          .select('org_website')
+          .select('payment_methods, org_website')
           .eq('id', user.id)
           .single(),
-      ]).then(([{ data: acct }, { data: profile }]) => {
-        const orgSite = (profile as { org_website?: string | null } | null)?.org_website ?? '';
+      ]).then(async ([{ data: acct }, { data: profile, error: profileError }]) => {
+        let profileRow = profile as { payment_methods?: unknown; org_website?: string | null } | null;
+        if (profileError) {
+          const legacyProfile = await supabase
+            .from('profiles')
+            .select('org_website')
+            .eq('id', user.id)
+            .maybeSingle();
+          profileRow = legacyProfile.data as { org_website?: string | null } | null;
+        }
+        const orgSite = profileRow?.org_website ?? '';
         let methods: PaymentMethods = {};
         // Parse stored payment methods — supports new JSON format + legacy paypal: prefix
-        if (orgSite.startsWith('{')) {
-          try { methods = JSON.parse(orgSite) as PaymentMethods; } catch { /* ignore */ }
+        if (profileRow?.payment_methods) {
+          methods = readPaymentMethods(profileRow.payment_methods);
+        } else if (orgSite.startsWith('{')) {
+          try { methods = readPaymentMethods(JSON.parse(orgSite) as unknown); } catch { /* ignore */ }
         } else if (orgSite.startsWith('paypal:')) {
           methods = { primary: 'paypal', paypal: orgSite.replace('paypal:', '') };
         }
@@ -508,7 +531,7 @@ export default function CreatePage() {
     if (!user) throw new Error('Not authenticated');
     const { error: profileErr } = await supabase
       .from('profiles')
-      .update({ org_website: JSON.stringify(updated) } as Record<string, string>)
+      .update({ payment_methods: updated })
       .eq('id', user.id);
     if (profileErr) throw new Error('Failed to save payment method.');
     setPaymentMethods(updated);
