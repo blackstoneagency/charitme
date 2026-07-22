@@ -913,8 +913,10 @@ tests/build/live-HTTP are listed here.
      placeholder (`whsec_connect…`)** — the real Connect-endpoint signing secret is
      required or Connect webhooks won't verify.
   3. **Supabase keys rotated to new format** (`sb_publishable_…`/`sb_secret_…`) +
-     `SUPABASE_ACCESS_TOKEN` restored → **unblocks applying the pending unique-covers
-     migration** (CHAR-SM12) and future migrations via the Management API.
+     `SUPABASE_ACCESS_TOKEN` restored. **✅ APPLIED the unique-covers migration
+     (`20260724000000`) to production via the Management API** — `distinct_covers`
+     50→**500**, dup groups **0**, all 500 Picsum, galleries synced. The
+     "every image unique, 0 duplicates" goal item is met for campaign covers.
   4. **End-to-end donation verify** — now possible against LIVE, but only with a real
      tiny charge + immediate refund, or Stripe **test** keys; do NOT run live charges
      without explicit owner go-ahead (ADR-0003).
