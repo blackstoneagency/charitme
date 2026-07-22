@@ -1536,7 +1536,12 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
   };
 
   return (
-    <div className="guest-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div
+      className="guest-modal-overlay"
+      role="presentation"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+    >
       <div className="guest-modal-card">
         <button className="guest-modal-close" onClick={onClose} aria-label="Close">✕</button>
         <h2>{modalMode === 'login' ? 'Log in' : 'Sign up'}</h2>
