@@ -49,6 +49,15 @@ describe('campaign media metadata synchronization contract', () => {
     expect(migration).toContain('storage.foldername(name))[2]');
     expect(migration).toContain('campaigns.id::text = (storage.foldername(name))[2]');
   });
+
+  it('renders normalized campaign media before category fallbacks', async () => {
+    const source = await import('node:fs/promises');
+    const page = await source.readFile(new URL('../app/campaigns/[slug]/page.tsx', import.meta.url), 'utf8');
+    expect(page).toContain(".from('campaign_media')");
+    expect(page).toContain("getPublicUrl(row.storage_path).data.publicUrl");
+    expect(page).toContain('storedImages.length >= 4');
+    expect(page).toContain("[...storedImages, ...getPhotosForCategory(campaign.category, 4)]");
+  });
 });
 
 describe('campaign wizard recovery contract', () => {

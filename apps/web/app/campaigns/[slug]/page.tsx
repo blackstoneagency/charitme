@@ -61,6 +61,24 @@ async function getCampaign(slug: string) {
   return data;
 }
 
+async function getCampaignMediaUrls(campaignId: string): Promise<string[]> {
+  const { data, error } = await supabaseAdmin
+    .from('campaign_media')
+    .select('public_url, storage_path')
+    .eq('campaign_id', campaignId)
+    .eq('media_type', 'image')
+    .order('created_at', { ascending: true });
+  if (error) return [];
+
+  return (data ?? []).flatMap((row) => {
+    if (typeof row.public_url === 'string' && row.public_url) return [row.public_url];
+    if (typeof row.storage_path === 'string' && row.storage_path) {
+      return [supabaseAdmin.storage.from('campaign-media').getPublicUrl(row.storage_path).data.publicUrl];
+    }
+    return [];
+  });
+}
+
 async function getRecentDonations(campaignId: string) {
   const { data } = await supabaseAdmin
     .from('donations')
@@ -257,7 +275,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     referrerId,
   };
 
-  const [donations, updates, faqs, donorMessages, milestones, rewards, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
+  const [donations, updates, faqs, donorMessages, milestones, rewards, currency, payoutDestination, trustInput, similarCampaigns, normalizedMediaUrls] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
     getFAQs(campaign.id),
@@ -268,6 +286,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     resolvePayoutDestination(campaign),
     buildCampaignTrustInput(campaign),
     getSimilarCampaigns(campaign.id, campaign.category),
+    getCampaignMediaUrls(campaign.id),
   ]);
   const payoutReady = !!payoutDestination;
 
@@ -366,10 +385,10 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   });
 
   const rawImageUrls = (campaign as CampaignWithImages).image_urls ?? [];
-  const galleryImages: string[] =
-    rawImageUrls.length >= 4
-      ? rawImageUrls
-      : getPhotosForCategory(campaign.category, 4);
+  const storedImages = [...new Set([...rawImageUrls, ...normalizedMediaUrls].filter((url): url is string => typeof url === 'string' && url.length > 0))];
+  const galleryImages: string[] = storedImages.length >= 4
+    ? storedImages
+    : [...storedImages, ...getPhotosForCategory(campaign.category, 4)].slice(0, 4);
 
   // AI Donation Optimizer — campaign-tuned ask amounts + impact projection
   const campaignStats = {
