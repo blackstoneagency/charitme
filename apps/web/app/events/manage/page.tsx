@@ -7,6 +7,7 @@ import ManageEvents from './ManageEvents';
 export const metadata: Metadata = {
   title: 'Manage Events',
   description: 'Host fundraising events and check attendees in.',
+  robots: { index: false, follow: false },
 };
 export const dynamic = 'force-dynamic';
 

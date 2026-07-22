@@ -7,6 +7,7 @@ import ManageSponsorships from './ManageSponsorships';
 export const metadata: Metadata = {
   title: 'Manage Sponsorship Opportunities',
   description: 'Post sponsorship opportunities and review offers from sponsors.',
+  robots: { index: false, follow: false },
 };
 export const dynamic = 'force-dynamic';
 

@@ -6,6 +6,7 @@ import ManageMatching from './ManageMatching';
 export const metadata: Metadata = {
   title: 'Manage Matching Programs',
   description: 'Launch corporate matching-gift programs and review employee match claims.',
+  robots: { index: false, follow: false },
 };
 export const dynamic = 'force-dynamic';
 

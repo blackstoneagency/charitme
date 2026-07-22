@@ -6,6 +6,7 @@ import ManageImpact from './ManageImpact';
 export const metadata: Metadata = {
   title: 'Manage Impact',
   description: 'Publish your spending plan, post verified impact updates, and track outcomes.',
+  robots: { index: false, follow: false },
 };
 export const dynamic = 'force-dynamic';
 

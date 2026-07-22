@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import { EmptyState, Btn } from '../../components/ui';
 
-export const metadata = { title: "You're offline" };
+export const metadata = {
+  title: "You're offline",
+  robots: { index: false, follow: false },
+};
 
 export default function OfflinePage() {
   return (

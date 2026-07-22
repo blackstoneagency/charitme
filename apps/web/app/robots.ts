@@ -18,6 +18,8 @@ export default function robots(): MetadataRoute.Robots {
           '/forgot-password',
           '/profile',
           '/privacy-center',
+          '/offline',
+          '/go',
           '/donor',
           '/donors/',
           '/beneficiary',
