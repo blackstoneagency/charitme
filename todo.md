@@ -326,6 +326,17 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
     lint clean on those files, typecheck clean, `next build` compiles. **Remaining:**
     the bulk of the ~180 jsx-a11y warnings live in `/admin/*` internal tools (lower
     user impact); full axe/contrast/tap-target/320–1920px sweep still needs a browser.
+  - **Dark/light theme sweep — dashboard COMPLETE (2026-07-22):** every campaign
+    management panel (#43, #46: Updates/Settings/Supporters/FAQs/Ledger/ThankDonors/
+    CampaignControls/EditCampaign/TrustScore/Analytics) **plus all non-campaign
+    dashboard views** (payouts cards, notifications, new-update, refund, corporate,
+    team, integrations, analytics, settings + mfa, ai-coach, ai-growth-plan,
+    messages, home, recurring, rewards, milestones, payout-setup, plan-features,
+    donor) converted from hardcoded light palettes to design tokens + theme-aware
+    rgba tints. Intentional literals kept (integration brand colors, chart accents,
+    gradient ends, amber/orange status, white button text). Each batch: tsc + lint
+    clean, 863 tests pass. Remaining: public/marketing pages that still hardcode
+    (some use Tailwind slate/emerald utilities not wired to `[data-theme]`).
   - Commit: (in progress)
 
 - [ ] CHAR-0016
