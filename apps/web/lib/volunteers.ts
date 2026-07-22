@@ -145,6 +145,56 @@ export function rankVolunteerMatches(
     .slice(0, req.limit);
 }
 
+// ── Application status machine (CHAR-1101: org approves/declines) ─────────────
+// Who may move an application, and to where. Applicants withdraw; the
+// opportunity owner (org) accepts, declines, or marks completed. `declined`,
+// `withdrawn`, and `completed` are terminal.
+export type ApplicationActor = 'applicant' | 'org';
+
+const APPLICATION_TRANSITIONS: Record<
+  ApplicationActor,
+  Partial<Record<VolunteerApplicationStatus, VolunteerApplicationStatus[]>>
+> = {
+  applicant: {
+    applied: ['withdrawn'],
+    accepted: ['withdrawn'],
+  },
+  org: {
+    applied: ['accepted', 'declined'],
+    accepted: ['declined', 'completed'],
+  },
+};
+
+/** True when `actor` may move an application from `from` to `to`. */
+export function canTransitionApplication(
+  from: VolunteerApplicationStatus,
+  to: VolunteerApplicationStatus,
+  actor: ApplicationActor,
+): boolean {
+  if (from === to) return false;
+  return APPLICATION_TRANSITIONS[actor][from]?.includes(to) ?? false;
+}
+
+/** The org decisions available from a given status (for UI + validation). */
+export function orgDecisionsFrom(from: VolunteerApplicationStatus): VolunteerApplicationStatus[] {
+  return APPLICATION_TRANSITIONS.org[from] ?? [];
+}
+
+/**
+ * How `slots_filled` should change for a status transition: entering `accepted`
+ * fills a slot (+1); leaving `accepted` frees one (-1); otherwise no change.
+ */
+export function applicationSlotDelta(
+  from: VolunteerApplicationStatus,
+  to: VolunteerApplicationStatus,
+): number {
+  const wasAccepted = from === 'accepted';
+  const willBeAccepted = to === 'accepted';
+  if (!wasAccepted && willBeAccepted) return 1;
+  if (wasAccepted && !willBeAccepted) return -1;
+  return 0;
+}
+
 export function volunteerApplicationStatusLabel(status: VolunteerApplicationStatus): string {
   switch (status) {
     case 'applied':   return 'Applied';

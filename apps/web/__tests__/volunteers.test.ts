@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   scoreVolunteerMatch,
   rankVolunteerMatches,
+  canTransitionApplication,
+  orgDecisionsFrom,
+  applicationSlotDelta,
   volunteerApplicationStatusLabel,
   hasOpenSlots,
   OpportunitySearchSchema,
@@ -102,6 +105,44 @@ describe('volunteerApplicationStatusLabel', () => {
     expect(volunteerApplicationStatusLabel('applied')).toBe('Applied');
     expect(volunteerApplicationStatusLabel('declined')).toBe('Not selected');
     expect(volunteerApplicationStatusLabel('completed')).toBe('Completed');
+  });
+});
+
+describe('application status machine', () => {
+  it('lets an org accept or decline a new application', () => {
+    expect(canTransitionApplication('applied', 'accepted', 'org')).toBe(true);
+    expect(canTransitionApplication('applied', 'declined', 'org')).toBe(true);
+    expect(orgDecisionsFrom('applied').sort()).toEqual(['accepted', 'declined']);
+  });
+
+  it('lets an org decline or complete an accepted volunteer', () => {
+    expect(canTransitionApplication('accepted', 'completed', 'org')).toBe(true);
+    expect(canTransitionApplication('accepted', 'declined', 'org')).toBe(true);
+    expect(orgDecisionsFrom('accepted').sort()).toEqual(['completed', 'declined']);
+  });
+
+  it('lets an applicant withdraw before or after acceptance', () => {
+    expect(canTransitionApplication('applied', 'withdrawn', 'applicant')).toBe(true);
+    expect(canTransitionApplication('accepted', 'withdrawn', 'applicant')).toBe(true);
+  });
+
+  it('forbids cross-actor and illegal moves', () => {
+    expect(canTransitionApplication('applied', 'accepted', 'applicant')).toBe(false); // applicant can't self-accept
+    expect(canTransitionApplication('applied', 'withdrawn', 'org')).toBe(false);      // org can't withdraw
+    expect(canTransitionApplication('applied', 'completed', 'org')).toBe(false);      // must accept first
+    expect(canTransitionApplication('declined', 'accepted', 'org')).toBe(false);      // terminal
+    expect(canTransitionApplication('withdrawn', 'accepted', 'org')).toBe(false);     // terminal
+    expect(canTransitionApplication('applied', 'applied', 'org')).toBe(false);        // no-op
+    expect(orgDecisionsFrom('withdrawn')).toEqual([]);
+  });
+
+  it('computes slot deltas: fill on accept, free on leaving accepted', () => {
+    expect(applicationSlotDelta('applied', 'accepted')).toBe(1);
+    expect(applicationSlotDelta('accepted', 'declined')).toBe(-1);
+    expect(applicationSlotDelta('accepted', 'completed')).toBe(-1);
+    expect(applicationSlotDelta('accepted', 'withdrawn')).toBe(-1);
+    expect(applicationSlotDelta('applied', 'declined')).toBe(0);
+    expect(applicationSlotDelta('applied', 'withdrawn')).toBe(0);
   });
 });
 
