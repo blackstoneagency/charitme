@@ -73,6 +73,15 @@ describe('AEO route normalization', () => {
     }
   });
 
+  it('keeps the Supabase SEO seed aligned with every indexable route', () => {
+    const migrationPath = resolve(__dirname, '../../../supabase/migrations/20260722130000_seed_public_seo_settings.sql');
+    const migration = readFileSync(migrationPath, 'utf8');
+    const seededRoutes = [...migration.matchAll(/^\s+\('([^']+)',/gm)].map((match) => match[1]);
+    expect(new Set(seededRoutes)).toEqual(new Set(INDEXABLE_PUBLIC_ROUTES.map((route) => route.path)));
+    expect(migration).toContain('og_image_url');
+    expect(migration).toContain('canonical_url');
+  });
+
   it('keeps sitemap entries canonical, public, and unique', () => {
     expect(isIndexableSitemapUrl('https://www.charitme.com/campaigns')).toBe(true);
     expect(isIndexableSitemapUrl('https://www.charitme.com/campaigns?category=Medical')).toBe(false);
