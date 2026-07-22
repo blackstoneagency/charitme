@@ -26,6 +26,16 @@ export function getAeoFallbackRoute(route: string): string | null {
   return match ? `/${match[1]}` : null;
 }
 
+export function dedupeAeoEntries(entries: PublicAeoEntry[]): PublicAeoEntry[] {
+  const seen = new Set<string>();
+  return entries.filter((entry) => {
+    const key = `${entry.schema_type}:${entry.question.trim().toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 /** Published, route-specific entries used by public pages and their schema. */
 export async function getPublishedAeoEntries(route: string, schemaType?: PublicAeoEntry['schema_type'], limit = 100): Promise<PublicAeoEntry[]> {
   const normalizedRoute = normalizeAeoRoute(route);
@@ -42,7 +52,7 @@ export async function getPublishedAeoEntries(route: string, schemaType?: PublicA
       .limit(limit);
     if (schemaType) query = query.eq('schema_type', schemaType);
     const { data } = await query;
-    return (data ?? []) as PublicAeoEntry[];
+    return dedupeAeoEntries((data ?? []) as PublicAeoEntry[]);
   }
 
   const exactEntries = await readPublishedEntries(normalizedRoute);

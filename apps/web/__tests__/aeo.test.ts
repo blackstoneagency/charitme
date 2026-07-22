@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { getAeoFallbackRoute, normalizeAeoRoute } from '../lib/aeo';
+import { dedupeAeoEntries, getAeoFallbackRoute, normalizeAeoRoute } from '../lib/aeo';
 import robots from '../app/robots';
 import { isIndexableSitemapUrl, uniqueSitemapEntries } from '../app/sitemap';
 import { isPublicRoute, normalizePublicRoute } from '../lib/public-route-policy';
@@ -30,6 +30,15 @@ describe('AEO route normalization', () => {
     expect(getAeoFallbackRoute('/impact/clean-water')).toBe('/impact');
     expect(getAeoFallbackRoute('/campaigns')).toBeNull();
     expect(getAeoFallbackRoute('/dashboard/campaigns/clean-water')).toBeNull();
+  });
+
+  it('removes duplicate published questions before rendering AEO content', () => {
+    const entries = [
+      { question: 'What fees apply?', answer: 'A', topic: 'Fees', schema_type: 'FAQPage' as const, route: '/faq' },
+      { question: ' what fees apply? ', answer: 'B', topic: 'Fees', schema_type: 'FAQPage' as const, route: '/faq' },
+      { question: 'What fees apply?', answer: 'C', topic: 'Fees', schema_type: 'QAPage' as const, route: '/faq' },
+    ];
+    expect(dedupeAeoEntries(entries)).toHaveLength(2);
   });
 
   it('keeps private routes out of the indexable registry and crawler allowlist', () => {
