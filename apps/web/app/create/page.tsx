@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { CharitMeShell, KFIcon } from '../../components/CharitMeApp';
 import { createClient } from '../../lib/supabase-browser';
+import { isMissingPaymentMethodsColumn } from '../../lib/profile-payment-methods';
 
 // ─────────────────────────────────────────────
 // Types
@@ -514,7 +515,7 @@ export default function CreatePage() {
     }
   };
 
-  // ── Shared: persist payment methods JSON to profiles.org_website ──
+  // ── Shared: persist dedicated payment preferences with rollout fallback ──
   const persistPaymentMethods = async (updated: PaymentMethods) => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -523,7 +524,15 @@ export default function CreatePage() {
       .from('profiles')
       .update({ payment_methods: updated })
       .eq('id', user.id);
-    if (profileErr) throw new Error('Failed to save payment method.');
+    if (profileErr && isMissingPaymentMethodsColumn(profileErr)) {
+      const { error: legacyError } = await supabase
+        .from('profiles')
+        .update({ org_website: JSON.stringify(updated) })
+        .eq('id', user.id);
+      if (legacyError) throw new Error('Failed to save payment method.');
+    } else if (profileErr) {
+      throw new Error('Failed to save payment method.');
+    }
     setPaymentMethods(updated);
   };
 

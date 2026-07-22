@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { validateCampaignPublication } from '../lib/campaign-validation';
 import { parseCampaignLimit, parseCampaignPage, sanitizeCampaignSearchTerm } from '../lib/campaign-search';
+import { isMissingPaymentMethodsColumn } from '../lib/profile-payment-methods';
+
+describe('payment preference schema rollout', () => {
+  it('recognizes only missing-column/schema-cache errors for legacy fallback', () => {
+    expect(isMissingPaymentMethodsColumn({ code: 'PGRST204', message: 'Column not found' })).toBe(true);
+    expect(isMissingPaymentMethodsColumn({ code: '42703', message: 'payment_methods does not exist' })).toBe(true);
+    expect(isMissingPaymentMethodsColumn({ code: '42501', message: 'permission denied' })).toBe(false);
+    expect(isMissingPaymentMethodsColumn(null)).toBe(false);
+  });
+});
 
 describe('campaign discovery query contract', () => {
   it('normalizes invalid pagination values', () => {
