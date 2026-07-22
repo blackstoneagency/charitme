@@ -95,7 +95,7 @@ export default async function RecurringPage() {
         )}
 
         {/* 0% fee badge */}
-        <div style={{ padding: '14px 18px', background: '#f0fff8', border: '1px solid #bbf7d0', borderRadius: 12, fontSize: 13, color: '#065f46', fontWeight: 600 }}>
+        <div style={{ padding: '14px 18px', background: 'rgba(18,166,83,.12)', border: '1px solid rgba(18,166,83,.28)', borderRadius: 12, fontSize: 13, color: 'var(--green-dark)', fontWeight: 600 }}>
           💚 CharitMe charges <strong>0%</strong> on all recurring donations. GoFundMe charges 5%. You&apos;re maximizing impact.
         </div>
 
@@ -157,7 +157,7 @@ export default async function RecurringPage() {
                     {sub.status === 'active' && sub.stripe_subscription_id && (
                       <Link
                         href={`/dashboard/recurring/cancel?sub=${sub.stripe_subscription_id}`}
-                        style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', padding: '6px 14px', border: '1px solid var(--b2)', borderRadius: 8, textDecoration: 'none', background: '#fff', flexShrink: 0 }}>
+                        style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', padding: '6px 14px', border: '1px solid var(--b2)', borderRadius: 8, textDecoration: 'none', background: 'var(--s1)', flexShrink: 0 }}>
                         Cancel
                       </Link>
                     )}
