@@ -892,6 +892,28 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM20 · 🚨 CRITICAL — live Stripe webhook findings (OWNER ACTION REQUIRED)** —
+  Read-only audit of the live Stripe account (`acct_1TNul7…`; charges/payouts/
+  details_submitted all ✅; card_payments + transfers active).
+  1. **Prod webhook `www.charitme.com/api/stripe/webhook` subscribes to only 2 events**
+     (`checkout.session.completed`, `account.updated`). The handler processes many
+     more, so **one-time donations record, but recurring-donation renewals,
+     CharitMe Plus/Pro subscription lifecycle, and refunds/disputes are NEVER
+     delivered → those flows are broken in production.** Owner must add the events
+     the handler consumes (at minimum: `invoice.paid`/`invoice.payment_succeeded`,
+     `invoice.payment_failed`, `customer.subscription.created/updated/deleted`,
+     `charge.refunded`, `charge.dispute.created`, plus the async checkout variants),
+     and set the resulting **signing secret** as `STRIPE_WEBHOOK_SECRET` in Vercel.
+  2. **🔴 UNKNOWN webhook endpoint on the LIVE account:** `https://eli54u.com/api/stripe/webhook`
+     (created 2026-06-02) is subscribed to **8 sensitive events** — `checkout.session.completed`,
+     `customer.subscription.*`, `invoice.payment_*`, `customer.card.updated`,
+     `customer.bank_account.updated`. **Possible payment-data exfiltration.** Owner
+     should review in the Stripe Dashboard and **delete it** unless it is a known
+     first-party endpoint. (Not modified by me — deleting live webhook endpoints is
+     an owner decision.)
+  3. **`STRIPE_CONNECT_WEBHOOK_SECRET` still a placeholder** — Connect events won't
+     verify until the real Connect-endpoint secret is set.
+
 - **CHAR-SM19 · accessibility (real Lighthouse against live data)** — Ran Lighthouse
   (mobile) on the running app wired to live Supabase. **Home a11y = 100**, BP 96.
   **`/campaigns` a11y 91 → 95**: fixed real issues — added `aria-label` to the
