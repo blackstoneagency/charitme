@@ -8,6 +8,9 @@
   --line: #e8e4fb;
   --violet: #6d35ff;
   --violet-2: #a835f4;
+  /* Violet text accent that stays AA (≥4.5:1) on light surfaces (--s1/--s2/#fff)
+     and flips to a light violet on dark surfaces. Use for violet body/label text. */
+  --violet-ink: #5b21b6;
   --pink: #eb3fc6;
   --soft: #fbfaff;
   /* Page background token. Used as the base surface on many public pages via
@@ -2033,6 +2036,7 @@ img, video, iframe { max-width: 100%; }
 .about-timeline-item.right .about-timeline-dot { grid-column: 2; order: 2; }
 .about-timeline-item.right .about-timeline-content { grid-column: 1; padding-right: 28px; text-align: right; order: 1; }
 .about-timeline-year { font-size: 13px; font-weight: 900; color: #7c3aed; letter-spacing: .08em; text-transform: uppercase; padding-top: 8px; }
+[data-theme="dark"] .about-timeline-year { color: var(--violet-ink); } /* #7c3aed fails AA on the dark timeline bg */
 .about-timeline-dot { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed, #ec39c3); display: grid; place-items: center; position: relative; z-index: 2; box-shadow: 0 0 0 6px #fff, 0 0 0 8px rgba(124,58,237,.2); margin-top: 2px; }
 .about-timeline-dot::after { content: '✦'; color: #fff; font-size: 14px; }
 .about-timeline-content h3 { font-size: 18px; font-weight: 900; color: #1a0640; margin: 0 0 8px; }
@@ -4641,6 +4645,7 @@ img, video, iframe { max-width: 100%; }
   --t2: #b8c2de;
   --t3: #8090b5;
   --t4: #828cb1; /* WCAG AA: faintest text tier, ≥4.5:1 on s1–s3 (was #5a6898 @ 3.05:1) */
+  --violet-ink: #c4b5fd; /* light violet — AA on dark surfaces */
   --s1: #121530;
   --s2: #181c3c;
   --s3: #1e2348;
