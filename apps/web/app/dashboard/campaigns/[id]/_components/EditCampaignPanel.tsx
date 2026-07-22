@@ -33,6 +33,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
   const [success, setSuccess] = useState('');
   const [uploadState, setUploadState] = useState<UploadState>('idle');
   const [uploadError, setUploadError] = useState('');
+  const [campaignStatus, setCampaignStatus] = useState('draft');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
@@ -62,6 +63,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
       const c = await res.json() as Campaign;
       if (!active) return;
       setOriginalSlug(c.slug);
+      setCampaignStatus(c.status);
       setForm({
         title: c.title,
         tagline: c.tagline ?? '',
@@ -107,9 +109,11 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
 
   async function handleSave() {
     if (form.title.trim().length < 3) { setError('Title must be at least 3 characters.'); return; }
-    if (form.description.trim().length < 20) { setError('Story must be at least 20 characters.'); return; }
     const goalCents = Math.round(parseFloat(form.goal) * 100);
-    if (goalCents < 100) { setError('Goal must be at least $1.00.'); return; }
+    if (campaignStatus === 'active') {
+      if (form.description.trim().length < 20) { setError('Story must be at least 20 characters.'); return; }
+      if (goalCents < 100) { setError('Goal must be at least $1.00.'); return; }
+    }
 
     setSaving(true);
     setError('');

@@ -399,8 +399,8 @@ export default function CreatePage() {
     if (remaining <= 0) { setUploadError(`Maximum ${MAX_IMAGES} images allowed.`); return; }
     const validFiles = Array.from(files).filter(f => ALLOWED_IMG_TYPES.has(f.type) && f.size <= MAX_IMG_SIZE).slice(0, remaining);
     const skipped = files.length - validFiles.length;
-    if (validFiles.length === 0) { setUploadError('No valid images found. Use JPG, PNG, GIF, WebP, or AVIF under 10 MB.'); return; }
-    setUploadError(skipped > 0 ? `${skipped} file(s) skipped — invalid type or over 10 MB.` : '');
+    if (validFiles.length === 0) { setUploadError('No valid images found. Use JPG, PNG, GIF, WebP, or AVIF under 5 MB.'); return; }
+    setUploadError(skipped > 0 ? `${skipped} file(s) skipped — invalid type or over 5 MB.` : '');
     const newItems: UploadedImage[] = validFiles.map(f => {
       const blobUrl = URL.createObjectURL(f);
       blobUrlsRef.current.push(blobUrl);
