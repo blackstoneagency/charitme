@@ -269,7 +269,7 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Agent: Codex + Claude shared workstream
   - Priority: P0
   - Dependencies: live Supabase auth, storage, and Stripe Connect configuration
-  - Completion Evidence: server-authoritative active/draft state transitions with a shared title/story/goal publication gate, private draft enforcement, resumable draft editing without active-content blocking, authenticated UUID-named media uploads with ownership checks and 5 MB alignment, non-public campaign noindex/owner gating, private-list API protection, dedicated `profiles.payment_methods` persistence with legacy read compatibility, and Stripe Connect readiness required for publication; typecheck, focused campaign/schema/payout tests (53), and production build passed on 2026-07-22
+  - Completion Evidence: server-authoritative active/draft state transitions with a shared title/story/goal publication gate, private draft enforcement, resumable draft editing without active-content blocking, authenticated UUID-named media uploads with ownership checks and 5 MB alignment, filtered campaign search with safe pagination and totals, non-public campaign noindex/owner gating, private-list API protection, dedicated `profiles.payment_methods` persistence with legacy read compatibility, and Stripe Connect readiness required for publication; typecheck, focused campaign/schema/payout tests (55), and production build passed on 2026-07-22
   - Commit: in progress
 
 > Backlog continues: each remaining capability in Section B becomes CHAR-#### tasks

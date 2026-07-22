@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { validateCampaignPublication } from '../lib/campaign-validation';
+import { parseCampaignLimit, parseCampaignPage, sanitizeCampaignSearchTerm } from '../lib/campaign-search';
+
+describe('campaign discovery query contract', () => {
+  it('normalizes invalid pagination values', () => {
+    expect(parseCampaignPage('not-a-number')).toBe(1);
+    expect(parseCampaignPage('0')).toBe(1);
+    expect(parseCampaignLimit('999')).toBe(100);
+    expect(parseCampaignLimit('-1')).toBe(1);
+  });
+
+  it('removes PostgREST OR syntax characters from search terms', () => {
+    expect(sanitizeCampaignSearchTerm('medical,(urgent),help')).toBe('medical  urgent  help');
+  });
+});
 
 describe('campaign publication validation', () => {
   const valid = { title: 'Community recovery fund', description: 'A detailed story that explains the need and the plan.', goalAmount: 10000 };

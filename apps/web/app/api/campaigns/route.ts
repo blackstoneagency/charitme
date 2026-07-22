@@ -6,6 +6,7 @@ import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { checkRateLimit } from '../../../lib/rate-limit';
 import { resolvePayoutDestination } from '../../../lib/payout-destination';
 import { validateCampaignPublication } from '../../../lib/campaign-validation';
+import { parseCampaignLimit, parseCampaignPage, sanitizeCampaignSearchTerm } from '../../../lib/campaign-search';
 
 function slugify(text: string): string {
   return text
@@ -148,8 +149,8 @@ export async function GET(request: NextRequest) {
   const category = searchParams.get('category');
   const q = searchParams.get('q');
 
-  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
-  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '24', 10)));
+  const page = parseCampaignPage(searchParams.get('page'));
+  const limit = parseCampaignLimit(searchParams.get('limit'));
   const offset = (page - 1) * limit;
   const location = searchParams.get('location');
   const visibility = 'public';
@@ -168,21 +169,14 @@ export async function GET(request: NextRequest) {
   if (category) query = query.eq('category', category);
   if (location) query = query.ilike('location', `%${location}%`);
   // Full-text search on title using trigram index — ilike takes advantage of gin_trgm_ops
-  if (q) query = query.ilike('title', `%${q}%`);
+  const safeQ = q ? sanitizeCampaignSearchTerm(q) : '';
+  if (safeQ) query = query.or(`title.ilike.%${safeQ}%,tagline.ilike.%${safeQ}%,description.ilike.%${safeQ}%`);
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) {
     console.error('Campaign list failed', error);
     return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_SERVER_ERROR' }, { status: 500 });
   }
 
-  const { data: countResult } = await supabaseAdmin
-    .from('campaigns')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'active')
-    .eq('visibility', visibility)
-    .is('deleted_at', null);
-  void countResult;
-
-  return NextResponse.json({ campaigns: data ?? [], page, limit });
+  return NextResponse.json({ campaigns: data ?? [], page, limit, total: count ?? 0 });
 }
