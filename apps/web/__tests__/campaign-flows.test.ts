@@ -19,6 +19,17 @@ describe('campaign media path contract', () => {
   });
 });
 
+describe('campaign media metadata synchronization contract', () => {
+  it('records scoped uploads and removes metadata with storage files', async () => {
+    const source = await import('node:fs/promises');
+    const route = await source.readFile(new URL('../app/api/upload/campaign-image/route.ts', import.meta.url), 'utf8');
+    expect(route).toContain(".from('campaign_media').insert({");
+    expect(route).toContain(".from('campaign_media')\n    .delete()");
+    expect(route).toContain('The file uploaded, but its campaign media metadata could not be stored.');
+    expect(route).toContain('The file was removed, but its campaign media metadata could not be removed.');
+  });
+});
+
 describe('campaign wizard recovery contract', () => {
   it('persists the wizard in session storage and clears it after save', async () => {
     const source = await import('node:fs/promises');

@@ -98,7 +98,22 @@ export async function POST(req: NextRequest) {
     .from(BUCKET)
     .getPublicUrl(data.path);
 
-  return NextResponse.json({ url: publicUrl, path: data.path });
+  let warning: string | undefined;
+  if (campaignId) {
+    const { error: mediaError } = await supabaseAdmin.from('campaign_media').insert({
+      campaign_id: campaignId,
+      uploader_id: user.id,
+      media_type: 'image',
+      storage_path: data.path,
+      public_url: publicUrl,
+    });
+    if (mediaError) {
+      console.error('Campaign media metadata save failed', mediaError.code);
+      warning = 'The file uploaded, but its campaign media metadata could not be stored.';
+    }
+  }
+
+  return NextResponse.json(warning ? { url: publicUrl, path: data.path, warning } : { url: publicUrl, path: data.path });
 }
 
 // DELETE /api/upload/campaign-image
@@ -145,6 +160,15 @@ export async function DELETE(req: NextRequest) {
   if (removeError) {
     console.error('Campaign media removal failed');
     return NextResponse.json({ error: isBucketMissing(removeError.message) ? 'Campaign media storage is unavailable.' : 'Campaign media could not be removed.', code: 'MEDIA_REMOVE_FAILED' }, { status: 500 });
+  }
+
+  const { error: metadataError } = await supabaseAdmin
+    .from('campaign_media')
+    .delete()
+    .eq('storage_path', path);
+  if (metadataError) {
+    console.error('Campaign media metadata removal failed', metadataError.code);
+    return NextResponse.json({ ok: true, warning: 'The file was removed, but its campaign media metadata could not be removed.' });
   }
 
   return NextResponse.json({ ok: true });
