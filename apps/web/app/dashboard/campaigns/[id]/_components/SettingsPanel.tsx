@@ -185,7 +185,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
               }}
             >
               <div style={{
-                width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                width: 18, height: 18, borderRadius: '50%', background: '#fff', /* theme-keep: white toggle knob */
                 position: 'absolute', top: 3, transition: 'left .2s',
                 left: acceptDonations ? 23 : 3,
                 boxShadow: '0 1px 3px rgba(0,0,0,.2)',

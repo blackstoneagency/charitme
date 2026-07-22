@@ -256,7 +256,7 @@ function ProgressBar({ pct }: { pct: number }) {
       style={{
         height: '6px',
         borderRadius: '99px',
-        background: 'var(--b2, #eef0f7)',
+        background: 'var(--b2, var(--b1))',
         overflow: 'hidden',
         marginTop: '8px',
       }}
@@ -265,7 +265,7 @@ function ProgressBar({ pct }: { pct: number }) {
         style={{
           height: '100%',
           borderRadius: '99px',
-          background: 'var(--green, #19b86a)',
+          background: 'var(--green, var(--green))',
           width: `${Math.min(100, Math.max(0, pct))}%`,
           transition: 'width 0.4s ease',
         }}
@@ -282,7 +282,7 @@ function StepCircle({ index, status }: { index: number; status: RoadmapStep['sta
           width: '36px',
           height: '36px',
           borderRadius: '50%',
-          background: 'var(--green, #19b86a)',
+          background: 'var(--green, var(--green))',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -303,12 +303,12 @@ function StepCircle({ index, status }: { index: number; status: RoadmapStep['sta
           width: '36px',
           height: '36px',
           borderRadius: '50%',
-          border: '2.5px solid var(--violet, #6c35ff)',
+          border: '2.5px solid var(--violet, var(--violet))',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          color: 'var(--violet, #6c35ff)',
+          color: 'var(--violet, var(--violet))',
           fontWeight: 700,
           fontSize: '14px',
         }}
@@ -323,12 +323,12 @@ function StepCircle({ index, status }: { index: number; status: RoadmapStep['sta
         width: '36px',
         height: '36px',
         borderRadius: '50%',
-        border: '2.5px solid var(--b2, #d1d5e0)',
+        border: '2.5px solid var(--b2, var(--b1))',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
-        color: 'var(--t3, #9ca3af)',
+        color: 'var(--t3, var(--t3))',
         fontWeight: 700,
         fontSize: '14px',
       }}
@@ -341,10 +341,10 @@ function StepCircle({ index, status }: { index: number; status: RoadmapStep['sta
 function ImpactBadge({ impact }: { impact: RoadmapStep['impact'] }) {
   const color =
     impact === 'High'
-      ? { bg: 'rgba(25,184,106,0.10)', text: 'var(--green-dark, #16a34a)' }
+      ? { bg: 'rgba(25,184,106,0.10)', text: 'var(--green-dark, var(--green))' }
       : impact === 'Medium'
-      ? { bg: 'rgba(108,53,255,0.10)', text: 'var(--violet, #6c35ff)' }
-      : { bg: 'rgba(156,163,175,0.12)', text: 'var(--t3, #6b7280)' };
+      ? { bg: 'rgba(108,53,255,0.10)', text: 'var(--violet, var(--violet))' }
+      : { bg: 'rgba(156,163,175,0.12)', text: 'var(--t3, var(--t3))' };
   return (
     <span
       style={{
@@ -370,9 +370,9 @@ function StepActionBtn({ status, href }: { status: RoadmapStep['status']; href?:
         style={{
           padding: '6px 16px',
           borderRadius: '8px',
-          border: '1.5px solid var(--b2, #d1d5e0)',
+          border: '1.5px solid var(--b2, var(--b1))',
           background: 'transparent',
-          color: 'var(--t3, #9ca3af)',
+          color: 'var(--t3, var(--t3))',
           fontSize: '13px',
           fontWeight: 600,
           flexShrink: 0,
@@ -386,9 +386,9 @@ function StepActionBtn({ status, href }: { status: RoadmapStep['status']; href?:
     const style: React.CSSProperties = {
       padding: '6px 16px',
       borderRadius: '8px',
-      border: '1.5px solid var(--violet, #6c35ff)',
+      border: '1.5px solid var(--violet, var(--violet))',
       background: 'rgba(108,53,255,0.07)',
-      color: 'var(--violet, #6c35ff)',
+      color: 'var(--violet, var(--violet))',
       fontSize: '13px',
       fontWeight: 600,
       cursor: 'pointer',
@@ -402,7 +402,7 @@ function StepActionBtn({ status, href }: { status: RoadmapStep['status']; href?:
     padding: '6px 16px',
     borderRadius: '8px',
     border: 'none',
-    background: 'var(--green, #19b86a)',
+    background: 'var(--green, var(--green))',
     color: '#fff',
     fontSize: '13px',
     fontWeight: 600,
@@ -436,7 +436,7 @@ function CampaignThumb({ url }: { url: string | null }) {
         width: '80px',
         height: '80px',
         borderRadius: '12px',
-        background: 'linear-gradient(135deg, var(--s3, #e0f2fe), var(--violet, #7c3aed))',
+        background: 'linear-gradient(135deg, var(--s3, rgba(40,120,255,.1)), var(--violet, var(--violet)))',
         flexShrink: 0,
       }}
     />
@@ -614,7 +614,7 @@ export default async function AiGrowthPlanPage({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'var(--violet, #6c35ff)',
+                color: 'var(--violet, var(--violet))',
               }}
             >
               <KFIcon name="send" />
@@ -622,7 +622,7 @@ export default async function AiGrowthPlanPage({
             <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>
               Create your first campaign to unlock your AI Growth Plan
             </h2>
-            <p style={{ margin: 0, color: 'var(--t3, #9ca3af)', maxWidth: '480px', lineHeight: 1.6 }}>
+            <p style={{ margin: 0, color: 'var(--t3, var(--t3))', maxWidth: '480px', lineHeight: 1.6 }}>
               Once you launch a campaign, CharitMe AI will analyze your performance and generate a
               personalized 7-step roadmap to help you raise more — faster.
             </p>
@@ -634,7 +634,7 @@ export default async function AiGrowthPlanPage({
                 gap: '8px',
                 padding: '12px 24px',
                 borderRadius: '10px',
-                background: 'var(--green, #19b86a)',
+                background: 'var(--green, var(--green))',
                 color: '#fff',
                 fontWeight: 700,
                 fontSize: '15px',
@@ -667,8 +667,8 @@ export default async function AiGrowthPlanPage({
                   <span
                     style={{
                       fontSize: '12px',
-                      color: 'var(--t3, #9ca3af)',
-                      background: 'var(--s2, #f4f5fa)',
+                      color: 'var(--t3, var(--t3))',
+                      background: 'var(--s2, var(--s2))',
                       padding: '2px 8px',
                       borderRadius: '6px',
                     }}
@@ -691,7 +691,7 @@ export default async function AiGrowthPlanPage({
                 style={{
                   margin: '0 0 12px',
                   fontSize: '13px',
-                  color: 'var(--t3, #9ca3af)',
+                  color: 'var(--t3, var(--t3))',
                 }}
               >
                 {topMomentum >= 70
@@ -713,13 +713,13 @@ export default async function AiGrowthPlanPage({
                     <strong style={{ display: 'block', fontSize: '18px', fontWeight: 700, lineHeight: 1 }}>
                       {value}
                     </strong>
-                    <small style={{ fontSize: '12px', color: 'var(--t3, #9ca3af)' }}>{label}</small>
+                    <small style={{ fontSize: '12px', color: 'var(--t3, var(--t3))' }}>{label}</small>
                   </div>
                 ))}
               </div>
 
               <ProgressBar pct={topProgress} />
-              <small style={{ fontSize: '12px', color: 'var(--t3, #9ca3af)', marginTop: '4px', display: 'block' }}>
+              <small style={{ fontSize: '12px', color: 'var(--t3, var(--t3))', marginTop: '4px', display: 'block' }}>
                 {topProgress}% of goal reached
               </small>
             </div>
@@ -733,7 +733,7 @@ export default async function AiGrowthPlanPage({
                 padding: '10px 20px',
                 borderRadius: '10px',
                 background: 'rgba(108,53,255,0.08)',
-                color: 'var(--violet, #6c35ff)',
+                color: 'var(--violet, var(--violet))',
                 fontWeight: 600,
                 fontSize: '14px',
                 textDecoration: 'none',
@@ -769,7 +769,7 @@ export default async function AiGrowthPlanPage({
                   alignItems: 'flex-start',
                   gap: '16px',
                   padding: '18px 24px',
-                  borderTop: i > 0 ? '1px solid var(--b1, #f0f1f6)' : 'none',
+                  borderTop: i > 0 ? '1px solid var(--b1, var(--s2))' : 'none',
                   opacity: step.status === 'done' ? 0.65 : 1,
                 }}
               >
@@ -783,7 +783,7 @@ export default async function AiGrowthPlanPage({
                         fontSize: '15px',
                         fontWeight: 700,
                         textDecoration: step.status === 'done' ? 'line-through' : 'none',
-                        color: step.status === 'done' ? 'var(--t3, #9ca3af)' : 'inherit',
+                        color: step.status === 'done' ? 'var(--t3, var(--t3))' : 'inherit',
                       }}
                     >
                       {step.title}
@@ -793,7 +793,7 @@ export default async function AiGrowthPlanPage({
                     style={{
                       margin: 0,
                       fontSize: '13px',
-                      color: 'var(--t3, #9ca3af)',
+                      color: 'var(--t3, var(--t3))',
                       lineHeight: 1.55,
                     }}
                   >
@@ -830,7 +830,7 @@ export default async function AiGrowthPlanPage({
           <section className="kf-card" style={{ padding: '24px' }}>
             <div
               className="kf-card-head"
-              style={{ marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid var(--b1, #f0f1f6)' }}
+              style={{ marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid var(--b1, var(--s2))' }}
             >
               <h2 style={{ margin: 0, fontSize: '16px' }}>
                 <KFIcon name="chart" className="inline" /> Fundraising Insights
@@ -854,7 +854,7 @@ export default async function AiGrowthPlanPage({
                     gap: '10px',
                     fontSize: '13.5px',
                     lineHeight: 1.55,
-                    color: 'var(--t2, #4b5563)',
+                    color: 'var(--t2, var(--t2))',
                   }}
                 >
                   <span
@@ -868,7 +868,7 @@ export default async function AiGrowthPlanPage({
                       justifyContent: 'center',
                       flexShrink: 0,
                       marginTop: '2px',
-                      color: 'var(--green-dark, #16a34a)',
+                      color: 'var(--green-dark, var(--green))',
                       fontSize: '11px',
                       fontWeight: 700,
                     }}
@@ -885,7 +885,7 @@ export default async function AiGrowthPlanPage({
           <section className="kf-card" style={{ padding: '24px' }}>
             <div
               className="kf-card-head"
-              style={{ marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid var(--b1, #f0f1f6)' }}
+              style={{ marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid var(--b1, var(--s2))' }}
             >
               <h2 style={{ margin: 0, fontSize: '16px' }}>
                 <KFIcon name="send" className="inline" /> Next Best Actions
@@ -901,8 +901,8 @@ export default async function AiGrowthPlanPage({
                     alignItems: 'flex-start',
                     padding: '14px',
                     borderRadius: '10px',
-                    background: i === 0 ? 'rgba(108,53,255,0.05)' : 'var(--s1, #fafafe)',
-                    border: i === 0 ? '1.5px solid rgba(108,53,255,0.15)' : '1.5px solid var(--b1, #f0f1f6)',
+                    background: i === 0 ? 'rgba(108,53,255,0.05)' : 'var(--s1, var(--s2))',
+                    border: i === 0 ? '1.5px solid rgba(108,53,255,0.15)' : '1.5px solid var(--b1, var(--s2))',
                   }}
                 >
                   <div
@@ -910,7 +910,7 @@ export default async function AiGrowthPlanPage({
                       width: '28px',
                       height: '28px',
                       borderRadius: '8px',
-                      background: i === 0 ? 'var(--violet, #6c35ff)' : i === 1 ? 'var(--green, #19b86a)' : '#f59e0b',
+                      background: i === 0 ? 'var(--violet, var(--violet))' : i === 1 ? 'var(--green, var(--green))' : '#f59e0b',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -926,7 +926,7 @@ export default async function AiGrowthPlanPage({
                     <strong style={{ display: 'block', fontSize: '14px', fontWeight: 700, marginBottom: '3px' }}>
                       {action.title}
                     </strong>
-                    <small style={{ fontSize: '12.5px', color: 'var(--t3, #9ca3af)' }}>
+                    <small style={{ fontSize: '12.5px', color: 'var(--t3, var(--t3))' }}>
                       {action.description}
                     </small>
                   </div>
@@ -946,7 +946,7 @@ export default async function AiGrowthPlanPage({
                   marginTop: '16px',
                   padding: '12px',
                   borderRadius: '10px',
-                  background: 'var(--green, #19b86a)',
+                  background: 'var(--green, var(--green))',
                   color: '#fff',
                   fontWeight: 700,
                   fontSize: '14px',

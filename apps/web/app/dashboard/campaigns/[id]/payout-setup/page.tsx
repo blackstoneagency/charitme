@@ -79,10 +79,10 @@ export default function PayoutSetupPage({ params }: { params: Promise<{ id: stri
       />
 
       <div className="kf-admin-dash" style={{ maxWidth: 720 }}>
-        {error && <div style={{ padding: '12px 16px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 10, color: '#be123c', fontSize: 14, fontWeight: 600 }}>⚠ {error}</div>}
+        {error && <div style={{ padding: '12px 16px', background: 'rgba(255,59,95,.08)', border: '1px solid rgba(255,59,95,.28)', borderRadius: 10, color: 'var(--red)', fontSize: 14, fontWeight: 600 }}>⚠ {error}</div>}
 
         {/* Status banner */}
-        <section className="kf-card" style={{ padding: 24, borderLeft: `4px solid ${ready ? 'var(--green, #19b86a)' : '#f59e0b'}` }}>
+        <section className="kf-card" style={{ padding: 24, borderLeft: `4px solid ${ready ? 'var(--green, var(--green))' : '#f59e0b'}` }}>
           <h2 style={{ fontSize: 15, fontWeight: 800, margin: '0 0 8px' }}>
             {ready ? '✅ Donations are flowing directly to the recipient' : '⚠️ Donations are paused until payout setup completes'}
           </h2>
@@ -129,12 +129,12 @@ export default function PayoutSetupPage({ params }: { params: Promise<{ id: stri
           </p>
 
           {status?.pendingInvite && (
-            <div style={{ padding: '10px 14px', background: 'var(--s2, #f5f0ff)', borderRadius: 10, fontSize: 13, color: 'var(--t2)', marginBottom: 14 }}>
+            <div style={{ padding: '10px 14px', background: 'var(--s2, rgba(109,53,255,.08))', borderRadius: 10, fontSize: 13, color: 'var(--t2)', marginBottom: 14 }}>
               ✉️ Invite pending: <b>{status.pendingInvite.email}</b> — they&apos;ll appear here once they accept and connect their bank.
             </div>
           )}
           {sent && (
-            <div style={{ padding: '10px 14px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 10, fontSize: 13, color: '#047857', marginBottom: 14 }}>
+            <div style={{ padding: '10px 14px', background: 'rgba(18,166,83,.12)', border: '1px solid rgba(18,166,83,.28)', borderRadius: 10, fontSize: 13, color: 'var(--green-dark)', marginBottom: 14 }}>
               ✓ Invitation sent! It expires in 7 days.
             </div>
           )}

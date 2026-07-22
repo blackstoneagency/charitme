@@ -49,7 +49,7 @@ export function QrPosterPanel({ campaignId }: { campaignId: string }) {
       <iframe
         src={posterUrl}
         title="QR Poster preview"
-        style={{ width: '100%', height: 760, border: '1px solid var(--b2)', borderRadius: 14, background: '#fff' }}
+        style={{ width: '100%', height: 760, border: '1px solid var(--b2)', borderRadius: 14, background: 'var(--s1)' }}
       />
     </div>
   );

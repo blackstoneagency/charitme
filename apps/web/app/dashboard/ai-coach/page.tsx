@@ -144,7 +144,7 @@ export default function AiCoachPage() {
           {messages.length === 0 && (
             <div style={{ padding: '24px 0' }}>
               <div style={{ display: 'flex', gap: 14, marginBottom: 24, alignItems: 'flex-start' }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,#6c35ff,#ec3fb4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,var(--violet),#ec3fb4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
                   🤖
                 </div>
                 <div style={{ background: 'var(--s2)', border: '1px solid var(--b2)', borderRadius: '4px 14px 14px 14px', padding: '14px 18px', maxWidth: 480, fontSize: 14, lineHeight: 1.6, color: 'var(--t1)' }}>
@@ -169,14 +169,14 @@ export default function AiCoachPage() {
             <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row' }}>
               <div style={{
                 width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-                background: msg.role === 'user' ? '#6c35ff' : 'linear-gradient(135deg,#6c35ff,#ec3fb4)',
+                background: msg.role === 'user' ? 'var(--violet)' : 'linear-gradient(135deg,var(--violet),#ec3fb4)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 14, color: '#fff', fontWeight: 700,
               }}>
                 {msg.role === 'user' ? 'U' : '🤖'}
               </div>
               <div style={{
-                background: msg.role === 'user' ? 'var(--s2, #f0eaff)' : 'var(--s2)',
+                background: msg.role === 'user' ? 'var(--s2, rgba(109,53,255,.14))' : 'var(--s2)',
                 border: '1px solid var(--b2)',
                 borderRadius: msg.role === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
                 padding: '12px 16px', maxWidth: '72%', fontSize: 14, lineHeight: 1.65, color: 'var(--t1)',
@@ -213,7 +213,7 @@ export default function AiCoachPage() {
             <button type="button" onClick={() => void send(input)} disabled={loading || !input.trim()}
               style={{
                 height: 48, width: 48, border: 0, borderRadius: 12, flexShrink: 0,
-                background: loading || !input.trim() ? 'var(--b2)' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)',
+                background: loading || !input.trim() ? 'var(--b2)' : 'linear-gradient(135deg,var(--violet),#4d1ee0)',
                 color: '#fff', cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
               }}>

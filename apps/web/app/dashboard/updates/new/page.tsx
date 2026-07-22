@@ -87,7 +87,7 @@ export default function NewUpdatePage() {
           <div className="kf-setpanel">
             <div className="kf-setpanel-head">
               <div className="kf-setpanel-title">
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg,#e7f8ed,#19b86a)', display: 'grid', placeItems: 'center' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg,rgba(18,166,83,.14),var(--green))', display: 'grid', placeItems: 'center' }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" width={20} height={20} strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 </div>
                 <div><h2>Campaign Update</h2><p>Keep your donors informed about progress.</p></div>
@@ -95,7 +95,7 @@ export default function NewUpdatePage() {
             </div>
             <div className="kf-setpanel-body">
               {error && (
-                <div style={{ marginBottom: 16, padding: '12px 16px', background: '#fff0f3', border: '1px solid #ffc0cb', borderRadius: 10, color: '#c0003c', fontSize: 14, fontWeight: 600 }}>
+                <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(255,59,95,.08)', border: '1px solid rgba(255,59,95,.14)', borderRadius: 10, color: 'var(--red)', fontSize: 14, fontWeight: 600 }}>
                   {error}
                 </div>
               )}
@@ -109,13 +109,13 @@ export default function NewUpdatePage() {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: 16 }}>
-                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
+                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                     Campaign *
                     <select
                       value={campaignId}
                       onChange={e => setCampaignId(e.target.value)}
                       required
-                      style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}
+                      style={{ height: 44, border: '1px solid var(--b1)', borderRadius: 9, padding: '0 14px', fontSize: 14 }}
                     >
                       {campaigns.map(c => (
                         <option key={c.id} value={c.id}>{c.title}</option>
@@ -123,7 +123,7 @@ export default function NewUpdatePage() {
                     </select>
                   </label>
 
-                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
+                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                     Title <span style={{ color: 'var(--t3)', fontWeight: 400 }}>(optional)</span>
                     <input
                       type="text"
@@ -131,11 +131,11 @@ export default function NewUpdatePage() {
                       onChange={e => setTitle(e.target.value)}
                       maxLength={120}
                       placeholder="e.g. Surgery was a success! Thank you all"
-                      style={{ height: 44, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}
+                      style={{ height: 44, border: '1px solid var(--b1)', borderRadius: 9, padding: '0 14px', fontSize: 14 }}
                     />
                   </label>
 
-                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
+                  <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                     Update *
                     <textarea
                       value={body}
@@ -144,7 +144,7 @@ export default function NewUpdatePage() {
                       rows={8}
                       maxLength={5000}
                       placeholder="Share what's happening, how funds are being used, and a heartfelt thank-you to your donors…"
-                      style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '12px 14px', fontSize: 14, resize: 'vertical', minHeight: 180, lineHeight: 1.6 }}
+                      style={{ border: '1px solid var(--b1)', borderRadius: 9, padding: '12px 14px', fontSize: 14, resize: 'vertical', minHeight: 180, lineHeight: 1.6 }}
                     />
                     <span style={{ fontSize: 11, color: 'var(--t3)', textAlign: 'right' }}>{body.length}/5000</span>
                   </label>
@@ -161,7 +161,7 @@ export default function NewUpdatePage() {
                         value={scheduledAt}
                         onChange={e => setScheduledAt(e.target.value)}
                         required={scheduleMode}
-                        style={{ height: 38, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 10px', fontSize: 13 }}
+                        style={{ height: 38, border: '1px solid var(--b1)', borderRadius: 8, padding: '0 10px', fontSize: 13 }}
                       />
                     )}
                   </div>
@@ -172,7 +172,7 @@ export default function NewUpdatePage() {
                       disabled={saving || !body.trim() || (scheduleMode && !scheduledAt)}
                       style={{
                         height: 48, padding: '0 32px', border: 0, borderRadius: 11,
-                        background: saving || !body.trim() ? '#c0b8e8' : 'linear-gradient(135deg,#6c35ff,#551cf2)',
+                        background: saving || !body.trim() ? 'var(--b2)' : 'linear-gradient(135deg,var(--violet),var(--violet))',
                         color: '#fff', fontWeight: 700, fontSize: 15, cursor: saving ? 'wait' : 'pointer',
                       }}
                     >
@@ -181,7 +181,7 @@ export default function NewUpdatePage() {
                     <button
                       type="button"
                       onClick={() => router.back()}
-                      style={{ height: 48, padding: '0 24px', border: '1px solid #dfe3ee', borderRadius: 11, background: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
+                      style={{ height: 48, padding: '0 24px', border: '1px solid var(--b1)', borderRadius: 11, background: 'var(--s1)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
                     >
                       Cancel
                     </button>
