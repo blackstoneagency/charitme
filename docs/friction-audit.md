@@ -22,7 +22,7 @@ median donation, and progress (see `lib/donation-optimizer.ts`). Zero added late
 | 8-step wizard | 2/step | med | ✅ Progress sidebar + CharitMe Score gamifies completion |
 | Story writing | 4 | **high** | ✅ AI copilot generates story/title from notes |
 | Goal setting | 3 | med | ✅ AI goal recommendation + automated-goal toggle |
-| Payout connect | 3 | **high** | ✅ 5 methods (Stripe/Venmo/Google Pay/PayPal/Sinch); required-gate prevents broken launches |
+| Payout connect | 3 | **high** | ✅ Stripe Connect is the single live payout path; required-gate prevents broken launches while legacy preferences remain non-publishable |
 | Guest → signup | 3 | **high** | ✅ Deferred auth: full wizard as guest, login only at launch |
 | Launch | 1 | low | ✅ One-click launch + preview modal + Quick Share with QR |
 
