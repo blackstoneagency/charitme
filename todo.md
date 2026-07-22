@@ -364,13 +364,21 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
        the server. `ReadinessChecklist.tsx` renders a live %-bar + checklist on the
        review step; each unfinished item is a **Fix →** button that jumps to its exact
        wizard step. Verified: typecheck/lint clean, `next build` compiles, 804 tests pass.
-    5. 🟡 **Partial (2026-07-21)** — Story quality signals done: `lib/story-analysis.ts`
+    5. ✅ **DONE (2026-07-22)** — Story quality signals done: `lib/story-analysis.ts`
        (`analyzeStory`, 5 unit tests) computes real length/structure/specificity/
        clear-ask/**unsupported-claim** signals; wired into the story step's "Strengthen
        your story" box, **replacing the previously-hardcoded fake badges** with live,
        actionable ones (tooltips explain each). AI rewrite already exists (the
-       "Enhance" button → `runAi`). **Still to do:** structured story *sections*
-       (intro/problem/solution/ask) editor + tone presets.
+       "Enhance" button → `runAi`). **✅ Structured sections + tone presets DONE
+       (2026-07-22):** `lib/story-scaffold.ts` (`composeStory`/`sectionsFromText`/
+       `sectionsFilled`/`TONE_PRESETS`, 7 unit tests) + `StorySectionsEditor.tsx`
+       give the story step a "Guide me" mode — four sections (intro/problem/
+       solution/ask) that compose into the SAME `description` field (no schema
+       change, seeds from existing text so switching modes never clobbers) — plus
+       tone presets (Heartfelt/Urgent/Hopeful/Straightforward) that drive an AI
+       rewrite via the endpoint's existing `tone` param (`runAi` gained tone +
+       forceStory overrides). Verified: typecheck/lint clean, `next build`
+       compiles, unit tests pass. **Gap #5 now complete.**
     6. 🟡 **Partial (2026-07-22)** — Fee/net-proceeds breakdown done:
        `lib/goal-proceeds.ts` (`goalProceeds`, 5 unit tests) computes CharitMe's
        0% platform fee + illustrative single-transaction processing estimate,
