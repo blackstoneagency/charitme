@@ -10,12 +10,16 @@ export type SeoRow = {
 
 /** Fetch the SEO override row for a route, or null. `seo_settings` is service-role only. */
 export async function getSeoForRoute(route: string): Promise<SeoRow | null> {
-  const { data } = await supabaseAdmin
-    .from('seo_settings')
-    .select('route, title, meta_description, keywords, og_title, og_description, og_image_url, canonical_url, noindex')
-    .eq('route', route)
-    .maybeSingle();
-  return (data as SeoRow | null) ?? null;
+  try {
+    const { data } = await supabaseAdmin
+      .from('seo_settings')
+      .select('route, title, meta_description, keywords, og_title, og_description, og_image_url, canonical_url, noindex')
+      .eq('route', route)
+      .maybeSingle();
+    return (data as SeoRow | null) ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /**

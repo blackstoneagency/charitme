@@ -77,17 +77,21 @@ export async function getPublishedAeoEntries(route: string, schemaType?: PublicA
   const fallbackRoute = getAeoFallbackRoute(normalizedRoute);
 
   async function readPublishedEntries(entryRoute: string): Promise<PublicAeoEntry[]> {
-    let query = supabaseAdmin
-      .from('aeo_entries')
-      .select('question, answer, topic, schema_type, route')
-      .eq('published', true)
-      .eq('route', entryRoute)
-      .order('priority', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    if (schemaType) query = query.eq('schema_type', schemaType);
-    const { data } = await query;
-    return dedupeAeoEntries((data ?? []) as PublicAeoEntry[]);
+    try {
+      let query = supabaseAdmin
+        .from('aeo_entries')
+        .select('question, answer, topic, schema_type, route')
+        .eq('published', true)
+        .eq('route', entryRoute)
+        .order('priority', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (schemaType) query = query.eq('schema_type', schemaType);
+      const { data } = await query;
+      return dedupeAeoEntries((data ?? []) as PublicAeoEntry[]);
+    } catch {
+      return [];
+    }
   }
 
   const exactEntries = await readPublishedEntries(normalizedRoute);

@@ -113,4 +113,11 @@ describe('AEO route normalization', () => {
     expect(isStaleSeoContent('2026-07-01T00:00:00.000Z', now)).toBe(false);
     expect(countStaleSeoContent([{ updated_at: '2026-01-01T00:00:00.000Z' }, { updated_at: null }], now)).toBe(1);
   });
+
+  it('keeps public rendering fail-open when SEO/AEO storage is unavailable', () => {
+    const seoSource = readFileSync(resolve(__dirname, '../lib/seo.ts'), 'utf8');
+    const aeoSource = readFileSync(resolve(__dirname, '../lib/aeo.ts'), 'utf8');
+    expect(seoSource).toContain('catch {\n    return null;');
+    expect(aeoSource).toContain('catch {\n      return [];');
+  });
 });
