@@ -25,6 +25,7 @@ import SaveCampaignButton from './SaveCampaignButton';
 import CampaignAssistant from './CampaignAssistant';
 import { getPhotosForCategory, getCoverForCampaign } from '../../../lib/photo-catalog';
 import { optimizeAsks, computeImpact } from '../../../lib/donation-optimizer';
+import { seoMetadata } from '../../../lib/seo';
 
 export const dynamic = 'force-dynamic';
 
@@ -200,7 +201,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = campaign.tagline ?? campaign.description?.slice(0, 160) ?? '';
   const image = campaign.cover_image_url ?? getCoverForCampaign(campaign.category, campaign.slug);
 
-  return {
+  return seoMetadata(`/campaigns/${campaign.slug}`, {
     title: campaign.title,
     description,
     openGraph: {
@@ -218,7 +219,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       images: [image],
     },
     alternates: { canonical: campaignUrl },
-  };
+  });
 }
 
 export default async function CampaignPage({ params, searchParams }: Props) {

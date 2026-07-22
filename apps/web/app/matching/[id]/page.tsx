@@ -9,6 +9,7 @@ import { getProgram, reservedMatchForEmployee } from '../../../lib/matching';
 import { isAcceptingClaims, remainingCap } from '../../../lib/matching-core';
 import { safeJsonLd } from '../../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../../lib/public-routes';
+import { seoMetadata } from '../../../lib/seo';
 import MatchClaimPanel from './MatchClaimPanel';
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -18,7 +19,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const p = await getProgram(id);
   if (!p) return { title: 'Program not found' };
   const description = p.description?.slice(0, 155) ?? `Claim matching gifts from ${p.company_name} on CharitMe.`;
-  return {
+  return seoMetadata(`/matching/${p.id}`, {
     title: `${p.company_name} Matching Gifts`,
     description,
     alternates: { canonical: `/matching/${p.id}` },
@@ -28,7 +29,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       url: `/matching/${p.id}`,
       type: 'website',
     },
-  };
+  });
 }
 
 export const dynamic = 'force-dynamic';

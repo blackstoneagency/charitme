@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PublicIcon } from '../../../components/PublicIcon';
 import { BLOG_POSTS, getBlogPost, getAllBlogSlugs, type BlogBlock } from '../../../lib/blog-posts';
+import { seoMetadata } from '../../../lib/seo';
 
 const BASE = 'https://www.charitme.com';
 const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const post = getBlogPost(slug);
   if (!post) return { title: 'Article not found' };
-  return {
+  return seoMetadata(`/blog/${post.slug}`, {
     title: post.title,
     description: post.excerpt,
     alternates: { canonical: `${BASE}/blog/${post.slug}` },
@@ -28,7 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       publishedTime: post.publishedAt,
     },
     twitter: { card: 'summary_large_image', title: post.title, description: post.excerpt },
-  };
+  });
 }
 
 function Block({ block }: { block: BlogBlock }) {

@@ -5,6 +5,7 @@ import { formatCents } from '../../../lib/stripe';
 import { DONOR_BADGES, computeMonthlyStreak, getGivingLevel, type DonorStats } from '../../../lib/gamification';
 import { getCoverForCampaign } from '../../../lib/photo-catalog';
 import type { Metadata } from 'next';
+import { seoMetadata } from '../../../lib/seo';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,11 +36,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!profile || profile.show_public_profile === false) {
     return { title: `${name} · Donor Profile`, robots: { index: false, follow: false } };
   }
-  return {
+  return seoMetadata(`/donors/${id}`, {
     title: `${name} · Donor Profile`,
     description: `See ${name}'s giving activity, badges, and supported campaigns on CharitMe.`,
     alternates: { canonical: `https://www.charitme.com/donors/${id}` },
-  };
+  });
 }
 
 export default async function PublicDonorProfilePage({ params }: { params: Promise<{ id: string }> }) {

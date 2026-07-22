@@ -8,13 +8,16 @@ import { calculateTrustScore, getTrustLabel } from '../../lib/ai-platform';
 import { getCoverForCampaign } from '../../lib/photo-catalog';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
+import { seoMetadata } from '../../lib/seo';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/campaigns', {
   title: 'Browse Campaigns',
   description: 'Discover verified fundraising campaigns across medical, emergency, education, community, and more.',
   alternates: { canonical: 'https://www.charitme.com/campaigns' },
-};
+  });
+}
 export const dynamic = 'force-dynamic';
 
 type SortOption = 'raised' | 'latest' | 'donors' | 'ending' | 'trust';

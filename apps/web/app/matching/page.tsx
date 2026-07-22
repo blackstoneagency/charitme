@@ -5,13 +5,16 @@ import { Badge, EmptyState } from '../../components/ui';
 import { listActivePrograms } from '../../lib/matching';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
+import { seoMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/matching', {
   title: 'Corporate Matching Gifts — Double Your Impact',
   description:
     'Find your employer’s matching-gift program on CharitMe and claim a match for your donations. Companies can launch a program in minutes.',
   alternates: { canonical: 'https://www.charitme.com/matching' },
-};
+  });
+}
 export const dynamic = 'force-dynamic';
 
 export default async function MatchingPage() {

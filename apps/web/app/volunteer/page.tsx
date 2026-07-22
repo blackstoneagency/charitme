@@ -2,9 +2,11 @@ import type { Metadata } from 'next';
 import { getPublicOpportunities, getVolunteerCategories } from '../../lib/volunteers-server';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
+import { seoMetadata } from '../../lib/seo';
 import VolunteerClient from './VolunteerClient';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/volunteer', {
   title: 'Volunteer Opportunities — Give Your Time',
   description:
     'Find volunteer opportunities that match your skills on CharitMe. Search by cause, filter remote roles, and apply in one click.',
@@ -15,7 +17,8 @@ export const metadata: Metadata = {
     url: 'https://www.charitme.com/volunteer',
     type: 'website',
   },
-};
+  });
+}
 
 export const dynamic = 'force-dynamic';
 

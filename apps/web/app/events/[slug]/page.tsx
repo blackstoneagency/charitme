@@ -7,6 +7,7 @@ import { getEventBySlug, attendeeRegisteredQty } from '../../../lib/events';
 import { isRegistrationOpen, remainingCapacity } from '../../../lib/events-core';
 import { safeJsonLd } from '../../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../../lib/public-routes';
+import { seoMetadata } from '../../../lib/seo';
 import RsvpPanel from './RsvpPanel';
 
 type PageProps = { params: Promise<{ slug: string }> };
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const e = await getEventBySlug(slug);
   if (!e) return { title: 'Event not found' };
   const description = e.description?.slice(0, 155) ?? `Register for ${e.title} on CharitMe.`;
-  return {
+  return seoMetadata(`/events/${e.slug}`, {
     title: `${e.title} - Event`,
     description,
     alternates: { canonical: `/events/${e.slug}` },
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       type: 'website',
       images: e.cover_image_url ? [{ url: e.cover_image_url, alt: e.title }] : undefined,
     },
-  };
+  });
 }
 
 export const dynamic = 'force-dynamic';

@@ -3,9 +3,11 @@ import Link from 'next/link';
 import { getPublicGrants, getGrantCategories } from '../../lib/grants-server';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
+import { seoMetadata } from '../../lib/seo';
 import GrantsClient from './GrantsClient';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/grants', {
   title: 'Grant Discovery — Find Funding for Your Cause',
   description:
     'Discover foundation, government, corporate, and community grants on CharitMe. Search by cause, filter by category, and apply with AI-assisted matching.',
@@ -16,7 +18,8 @@ export const metadata: Metadata = {
     url: 'https://www.charitme.com/grants',
     type: 'website',
   },
-};
+  });
+}
 
 export const dynamic = 'force-dynamic';
 

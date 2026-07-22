@@ -6,6 +6,7 @@ import { hasOpenSlots } from '../../../lib/volunteers';
 import { Badge } from '../../../components/ui';
 import { safeJsonLd } from '../../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../../lib/public-routes';
+import { seoMetadata } from '../../../lib/seo';
 import VolunteerApplyButton from './VolunteerApplyButton';
 
 export const dynamic = 'force-dynamic';
@@ -14,11 +15,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const opp = await getOpportunityBySlug(slug);
   if (!opp) return { title: 'Opportunity not found' };
-  return {
+  return seoMetadata(`/volunteer/${opp.slug}`, {
     title: `${opp.title} — ${opp.org_name}`,
     description: opp.summary ?? `Volunteer opportunity with ${opp.org_name} on CharitMe.`,
     alternates: { canonical: `https://www.charitme.com/volunteer/${opp.slug}` },
-  };
+  });
 }
 
 export default async function OpportunityDetailPage({ params }: { params: Promise<{ slug: string }> }) {

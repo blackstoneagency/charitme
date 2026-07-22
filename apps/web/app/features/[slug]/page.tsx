@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { safeJsonLd } from "../../../lib/json-ld";
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getPlatformModule, PLATFORM_MODULES } from '../../../lib/feature-catalog';
+import { seoMetadata } from '../../../lib/seo';
 
 const BASE = 'https://www.charitme.com';
 
@@ -13,15 +15,15 @@ type FeaturePageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export async function generateMetadata({ params }: FeaturePageProps) {
+export async function generateMetadata({ params }: FeaturePageProps): Promise<Metadata> {
   const { slug } = await params;
   const platformModule = getPlatformModule(slug);
   if (!platformModule) return { title: 'Features' };
-  return {
+  return seoMetadata(`/features/${platformModule.slug}`, {
     title: `${platformModule.title} — Features`,
     description: platformModule.summary,
     alternates: { canonical: `${BASE}/features/${platformModule.slug}` },
-  };
+  });
 }
 
 export default async function FeatureDetailPage({ params }: FeaturePageProps) {

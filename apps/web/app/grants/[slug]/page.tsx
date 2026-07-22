@@ -5,6 +5,7 @@ import { getGrantBySlug, getGrantDeadlines } from '../../../lib/grants-server';
 import { Badge } from '../../../components/ui';
 import { safeJsonLd } from '../../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../../lib/public-routes';
+import { seoMetadata } from '../../../lib/seo';
 import ApplyButton from './ApplyButton';
 
 export const dynamic = 'force-dynamic';
@@ -25,11 +26,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const grant = await getGrantBySlug(slug);
   if (!grant) return { title: 'Grant not found' };
-  return {
+  return seoMetadata(`/grants/${grant.slug}`, {
     title: `${grant.title} — ${grant.funder_name}`,
     description: grant.summary ?? `Grant opportunity from ${grant.funder_name} on CharitMe.`,
     alternates: { canonical: `https://www.charitme.com/grants/${grant.slug}` },
-  };
+  });
 }
 
 export default async function GrantDetailPage({ params }: { params: Promise<{ slug: string }> }) {

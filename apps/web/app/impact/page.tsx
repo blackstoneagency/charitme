@@ -5,8 +5,10 @@ import { Badge, EmptyState, ProgressBar } from '../../components/ui';
 import { listPublishedImpactSummaries } from '../../lib/impact';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
+import { seoMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/impact', {
   title: 'Impact Reports - Donation Transparency',
   description:
     'Explore published CharitMe impact reports with spending plans, progress updates, outcome metrics, and transparency scores.',
@@ -18,7 +20,8 @@ export const metadata: Metadata = {
     url: 'https://www.charitme.com/impact',
     type: 'website',
   },
-};
+  });
+}
 
 export const dynamic = 'force-dynamic';
 

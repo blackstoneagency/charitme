@@ -5,12 +5,15 @@ import { listPublishedEvents } from '../../lib/events';
 import { remainingCapacity } from '../../lib/events-core';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
+import { seoMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/events', {
   title: 'Events — Fundraising Events & Galas',
   description: 'Discover upcoming fundraising events, galas, and giving days on CharitMe. RSVP in one click.',
   alternates: { canonical: 'https://www.charitme.com/events' },
-};
+  });
+}
 export const dynamic = 'force-dynamic';
 
 function dateLabel(iso: string): string {

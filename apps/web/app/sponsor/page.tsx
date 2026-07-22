@@ -3,14 +3,17 @@ import { listOpenOpportunities } from '../../lib/sponsorships';
 import { SPONSORSHIP_CATEGORIES } from '../../lib/sponsorships-core';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
+import { seoMetadata } from '../../lib/seo';
 import SponsorMarketplace from './SponsorMarketplace';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/sponsor', {
   title: 'Sponsorship Marketplace — Sponsor a Cause',
   description:
     'Businesses and individuals: discover campaigns and community projects seeking sponsors on CharitMe, and send a sponsorship offer in minutes.',
   alternates: { canonical: 'https://www.charitme.com/sponsor' },
-};
+  });
+}
 export const dynamic = 'force-dynamic';
 
 export default async function SponsorPage() {

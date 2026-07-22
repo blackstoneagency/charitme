@@ -8,6 +8,7 @@ import { getImpactBundle, userOwnsCampaign } from '../../../lib/impact';
 import { budgetProgress, metricProgress, sumSpent } from '../../../lib/impact-core';
 import { safeJsonLd } from '../../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../../lib/public-routes';
+import { seoMetadata } from '../../../lib/seo';
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const bundle = await getImpactBundle(slug, false);
   if (!bundle) return { title: 'Impact not found' };
   const description = `See exactly how ${bundle.campaign.title} is using funds, with a ${bundle.transparency.score}/100 transparency score.`;
-  return {
+  return seoMetadata(`/impact/${bundle.campaign.slug}`, {
     title: `Impact - ${bundle.campaign.title}`,
     description,
     alternates: { canonical: `/impact/${bundle.campaign.slug}` },
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       url: `/impact/${bundle.campaign.slug}`,
       type: 'website',
     },
-  };
+  });
 }
 
 export const dynamic = 'force-dynamic';

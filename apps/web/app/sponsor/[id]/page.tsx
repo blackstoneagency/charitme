@@ -9,6 +9,7 @@ import { getOpportunity } from '../../../lib/sponsorships';
 import { isAcceptingRequests, fundingProgress } from '../../../lib/sponsorships-core';
 import { safeJsonLd } from '../../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../../lib/public-routes';
+import { seoMetadata } from '../../../lib/seo';
 import SponsorPanel from './SponsorPanel';
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -18,7 +19,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const o = await getOpportunity(id);
   if (!o) return { title: 'Opportunity not found' };
   const description = o.description.slice(0, 155);
-  return {
+  return seoMetadata(`/sponsor/${o.id}`, {
     title: `${o.title} - Sponsorship`,
     description,
     alternates: { canonical: `/sponsor/${o.id}` },
@@ -28,7 +29,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       url: `/sponsor/${o.id}`,
       type: 'website',
     },
-  };
+  });
 }
 
 export const dynamic = 'force-dynamic';
