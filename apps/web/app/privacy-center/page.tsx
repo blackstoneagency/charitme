@@ -6,6 +6,7 @@ import PrivacyCenter from './PrivacyCenter';
 export const metadata: Metadata = {
   title: 'Privacy Center — Your Data',
   description: 'Download a copy of your CharitMe data or request account deletion.',
+  robots: { index: false, follow: false },
 };
 export const dynamic = 'force-dynamic';
 

@@ -1,6 +1,9 @@
-import { requireUser } from '../../lib/auth';
+import type { Metadata } from 'next';
 
-export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  await requireUser();
-  return <>{children}</>;
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return children;
 }

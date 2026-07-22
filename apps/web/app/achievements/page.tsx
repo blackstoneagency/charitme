@@ -9,6 +9,7 @@ import JoinChallengeButton from './JoinChallengeButton';
 export const metadata: Metadata = {
   title: 'Achievements — Badges & Challenges',
   description: 'Track your giving badges, streaks, and community challenges on CharitMe.',
+  robots: { index: false, follow: false },
 };
 export const dynamic = 'force-dynamic';
 
