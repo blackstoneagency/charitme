@@ -2,6 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { validateCampaignPublication } from '../lib/campaign-validation';
 import { parseCampaignLimit, parseCampaignPage, sanitizeCampaignSearchTerm } from '../lib/campaign-search';
 import { isMissingPaymentMethodsColumn } from '../lib/profile-payment-methods';
+import { parseCampaignMediaPath } from '../lib/campaign-media';
+
+describe('campaign media path contract', () => {
+  it('accepts only UUID-scoped campaign media paths', () => {
+    expect(parseCampaignMediaPath('campaigns/11111111-1111-4111-8111-111111111111/cover/22222222-2222-4222-8222-222222222222.jpg')).toMatchObject({
+      ownerId: '11111111-1111-4111-8111-111111111111',
+      slot: 'cover',
+    });
+  });
+
+  it('rejects traversal, arbitrary prefixes, and unsupported extensions', () => {
+    expect(parseCampaignMediaPath('campaigns/11111111-1111-4111-8111-111111111111/cover/../../other.jpg')).toBeNull();
+    expect(parseCampaignMediaPath('campaigns/not-a-uuid/cover/file.jpg')).toBeNull();
+    expect(parseCampaignMediaPath('campaigns/11111111-1111-4111-8111-111111111111/cover/22222222-2222-4222-8222-222222222222.svg')).toBeNull();
+  });
+});
 
 describe('payment preference schema rollout', () => {
   it('recognizes only missing-column/schema-cache errors for legacy fallback', () => {

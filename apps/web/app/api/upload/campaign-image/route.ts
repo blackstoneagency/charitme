@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { canManageCampaign } from '../../../../lib/auth';
+import { parseCampaignMediaPath } from '../../../../lib/campaign-media';
 
 const BUCKET = 'campaign-media';
 const MAX_SIZE_BYTES = 5 * 1024 * 1024;
@@ -120,16 +121,20 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Missing path' }, { status: 400 });
   }
 
-  const path = (body as { path: string }).path;
+  const path = (body as { path: string }).path.trim();
+  const parsedPath = parseCampaignMediaPath(path);
+  if (!parsedPath) {
+    return NextResponse.json({ error: 'Invalid campaign media path' }, { status: 400 });
+  }
 
   // Security: path must belong to this user or a campaign they own
-  if (!path.startsWith(`campaigns/${user.id}/`)) {
+  if (parsedPath.ownerId !== user.id) {
     // Also allow paths scoped to a campaign the user owns
     const { data: campaign } = await supabaseAdmin
       .from('campaigns')
       .select('id')
       .eq('user_id', user.id)
-      .filter('id', 'eq', path.split('/')[1] ?? '')
+      .eq('id', parsedPath.ownerId)
       .maybeSingle();
     if (!campaign) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
