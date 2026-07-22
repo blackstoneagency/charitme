@@ -86,6 +86,20 @@ describe('AEO route normalization', () => {
     }
   });
 
+  it('requires every dynamic public detail family to wire SEO and AEO', () => {
+    const detailRoutes = [
+      'campaigns/[slug]', 'blog/[slug]', 'events/[slug]', 'features/[slug]',
+      'grants/[slug]', 'impact/[slug]', 'matching/[id]', 'sponsor/[id]', 'volunteer/[slug]',
+    ];
+    for (const route of detailRoutes) {
+      const sourcePath = resolve(__dirname, '../app', ...route.split('/'), 'page.tsx');
+      expect(existsSync(sourcePath), `Missing detail page for ${route}`).toBe(true);
+      const source = readFileSync(sourcePath, 'utf8');
+      expect(source, `Missing SEO metadata integration for ${route}`).toMatch(/seoMetadata/);
+      expect(source, `Missing AEO surface for ${route}`).toMatch(/AeoContent/);
+    }
+  });
+
   it('keeps the Supabase SEO seed aligned with every indexable route', () => {
     const migrationPath = resolve(__dirname, '../../../supabase/migrations/20260722130000_seed_public_seo_settings.sql');
     const migration = readFileSync(migrationPath, 'utf8');
