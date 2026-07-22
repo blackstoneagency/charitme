@@ -48,7 +48,7 @@ interface Props {
   fallbackImageUrl?: string;
 }
 
-export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero-child-crop.png' }: Props) {
+export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero-child-crop.webp' }: Props) {
   const [campaigns, setCampaigns]         = useState<RotatorCampaign[]>(seed);
   const [loading, setLoading]             = useState(seed.length === 0);
   const [lastDonationAt, setLastDonation] = useState<string | null>(null);

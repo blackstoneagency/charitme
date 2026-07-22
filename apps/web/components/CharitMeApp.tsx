@@ -89,7 +89,7 @@ const adminNav = [
 ] as const;
 
 export const sampleImages = {
-  mia: '/hero-child-crop.png',
+  mia: '/hero-child-crop.webp',
   water: 'linear-gradient(135deg,#c7e8ff,#48769f)',
   family: 'linear-gradient(135deg,#dbeafe,#f9a8d4)',
   dog: 'linear-gradient(135deg,#fef3c7,#92400e)',

@@ -920,6 +920,13 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM22 · performance — hero image WebP** — `/hero-child-crop.png` was a 310×278
+  photo weighing **211KB as PNG** (homepage hero fallback + demo avatars). Converted
+  to **WebP → 12.2KB (94% smaller)**, updated its 3 references, removed the old PNG
+  (now 404s). Prod home perf **89**, a11y 100. Combined with the logo fix, ~480KB
+  less on the homepage. (Also noted: `CharitMe_Logo.png` 195KB is unreferenced — not
+  served, kept as an owner source; no runtime cost.)
+
 - **CHAR-SM21 · performance — oversized logo (sitewide)** — `/logo.png` was a **292KB
   512×512 PNG rendered at ≤42px** in the header on every page (Lighthouse: 288KB
   wasted, the top "responsive-images" offender). Resized with `sharp` to a crisp
