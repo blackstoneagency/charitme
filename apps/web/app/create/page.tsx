@@ -354,6 +354,33 @@ export default function CreatePage() {
     }, 600);
     return () => clearTimeout(t);
   }, [form, step, storyMode, uploadedImages, recoverableDraft]);
+
+  // ── Builder funnel analytics (drop-off / abandonment / completion) ──────────
+  const builderSession = useRef<string>('');
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let sid = localStorage.getItem('charitme-builder-session');
+    if (!sid) { sid = (crypto.randomUUID?.() ?? `s-${Date.now()}-${Math.random().toString(36).slice(2)}`); localStorage.setItem('charitme-builder-session', sid); }
+    builderSession.current = sid;
+  }, []);
+
+  const trackBuilder = useCallback((event: string, stepKey: string) => {
+    if (typeof window === 'undefined' || !builderSession.current) return;
+    const body = JSON.stringify({ sessionId: builderSession.current, path: 'guided', step: stepKey, event });
+    try {
+      if (navigator.sendBeacon) navigator.sendBeacon('/api/analytics/builder', new Blob([body], { type: 'application/json' }));
+      else void fetch('/api/analytics/builder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true });
+    } catch { /* analytics is best-effort */ }
+  }, []);
+
+  // Fire an "enter" per step (the funnel), and "abandon" if the tab closes before publishing.
+  useEffect(() => { if (builderSession.current) trackBuilder('enter', step); }, [step, trackBuilder]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onLeave = () => { if (step !== 'live') trackBuilder('abandon', step); };
+    window.addEventListener('beforeunload', onLeave);
+    return () => window.removeEventListener('beforeunload', onLeave);
+  }, [step, trackBuilder]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const blobUrlsRef  = useRef<string[]>([]);
 
@@ -577,7 +604,9 @@ export default function CreatePage() {
       if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : `Failed to ${status === 'draft' ? 'save draft' : 'publish'}.`);
       // Persisted to Supabase — the local recovery copy is no longer needed.
       clearDraft();
+      trackBuilder(status === 'draft' ? 'save_draft' : 'publish', step);
       if (status === 'draft') { setError(''); window.location.href = '/dashboard/campaigns'; return; }
+      if (typeof window !== 'undefined') localStorage.removeItem('charitme-builder-session');
       setPublishedSlug(typeof data.slug === 'string' ? data.slug : '');
       setStep('live');
     } catch (e: unknown) {

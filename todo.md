@@ -892,6 +892,19 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM18 · security + builder analytics (goal: security resolved, track every step)** —
+  (a) **RLS verified live:** all **143** public tables have RLS enabled, **0 without**.
+  (b) **Campaign-builder funnel analytics** (was invisible → now measurable):
+  migration `20260725000000_campaign_builder_events.sql` (append-only table, anon
+  INSERT + service-role-only SELECT, event/path CHECK enums, indexes) **applied
+  live** (RLS verified, self-cleaning insert→delete smoke passed). `POST
+  /api/analytics/builder` (validated, best-effort 204, captures user id when
+  logged in) + `lib/builder-analytics.ts` (`parseBuilderEvent` — tight enum/size
+  validation, tested). Wired `/create` to emit `enter` per step, `save_draft`/
+  `publish` on completion, and **`abandon` on tab close** — giving real drop-off /
+  abandonment / completion-time signal. _Evidence: `__tests__/builder-analytics.test.ts`
+  8/8; full suite **880/880**; typecheck + lint clean; `next build` green._
+
 - **CHAR-SM17 · seed coverage audit (goal: ≥100 records/feature)** — Live audit: **73
   non-empty tables**, every real feature table ≥100 rows (campaigns 500, donations
   620, recurring_donations 620, payouts 620, refunds 620, updates/milestones 620,
