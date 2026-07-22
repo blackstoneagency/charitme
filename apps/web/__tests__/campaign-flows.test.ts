@@ -38,6 +38,16 @@ describe('campaign creation partial-success contract', () => {
     expect(route).toContain('return NextResponse.json(warning ? { ...data, warning } : data, { status: 201 });');
     expect(route).not.toContain("code: 'EVIDENCE_SAVE_FAILED'");
   });
+
+  it('persists uploaded storage paths as normalized campaign media', async () => {
+    const source = await import('node:fs/promises');
+    const page = await source.readFile(new URL('../app/create/page.tsx', import.meta.url), 'utf8');
+    const route = await source.readFile(new URL('../app/api/campaigns/route.ts', import.meta.url), 'utf8');
+    expect(page).toContain('imagePaths: uploadedImages.filter(img => img.status === \'done\').map(img => img.id)');
+    expect(route).toContain(".from('campaign_media').insert(mediaRows)");
+    expect(route).toContain('parsedPath.ownerId !== user.id');
+    expect(route).toContain('Campaign media metadata save failed');
+  });
 });
 
 describe('campaign creation warning contract', () => {

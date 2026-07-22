@@ -7,6 +7,7 @@ import { checkRateLimit } from '../../../lib/rate-limit';
 import { resolvePayoutDestination } from '../../../lib/payout-destination';
 import { validateCampaignPublication } from '../../../lib/campaign-validation';
 import { parseCampaignLimit, parseCampaignPage, sanitizeCampaignSearchTerm } from '../../../lib/campaign-search';
+import { parseCampaignMediaPath } from '../../../lib/campaign-media';
 
 function slugify(text: string): string {
   return text
@@ -26,6 +27,7 @@ const CreateSchema = z.object({
   category: z.enum(CAMPAIGN_CATEGORIES),
   coverImageUrl: z.string().url().nullable().optional(),
   imageUrls: z.array(z.string().url()).max(10).optional(),
+  imagePaths: z.array(z.string().max(300)).max(10).optional(),
   beneficiaryName: z.string().max(120).optional(),
   beneficiaryRelationship: z.string().max(120).optional(),
   evidenceNote: z.string().max(1000).optional(),
@@ -65,7 +67,7 @@ export async function POST(request: NextRequest) {
   }
   const idempotencyKey = parsedIdempotencyKey?.success ? parsedIdempotencyKey.data : crypto.randomUUID();
 
-  const { title, tagline, description, goalAmount, deadline, category, coverImageUrl, imageUrls, beneficiaryName, beneficiaryRelationship, evidenceNote, location, videoUrl, status } = parsed.data;
+  const { title, tagline, description, goalAmount, deadline, category, coverImageUrl, imageUrls, imagePaths, beneficiaryName, beneficiaryRelationship, evidenceNote, location, videoUrl, status } = parsed.data;
 
   if (status === 'active') {
     const payoutDestination = await resolvePayoutDestination({ user_id: user.id });
@@ -161,6 +163,28 @@ export async function POST(request: NextRequest) {
   if (statusLogError) console.error('Campaign creation status history write failed');
 
   let warning: string | undefined;
+  const mediaRows = (imagePaths ?? [])
+    .map((path, index) => {
+      const parsedPath = parseCampaignMediaPath(path);
+      if (!parsedPath || parsedPath.ownerId !== user.id) return null;
+      return {
+        campaign_id: data.id,
+        uploader_id: user.id,
+        media_type: 'image' as const,
+        storage_path: path,
+        public_url: imageUrls?.[index] ?? null,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
+
+  if (mediaRows.length > 0) {
+    const { error: mediaError } = await supabaseAdmin.from('campaign_media').insert(mediaRows);
+    if (mediaError) {
+      console.error('Campaign media metadata save failed', mediaError.code);
+      warning = 'Campaign saved, but uploaded media metadata could not be stored. You can manage the media from the campaign dashboard.';
+    }
+  }
+
   if (evidenceNote?.trim()) {
     const { error: ledgerError } = await supabaseAdmin
       .from('transparency_ledger_items')
@@ -175,7 +199,7 @@ export async function POST(request: NextRequest) {
 
     if (ledgerError) {
       console.error('Campaign evidence save failed', ledgerError);
-      warning = 'Campaign saved, but the evidence note could not be stored. You can add it from the campaign dashboard.';
+      if (!warning) warning = 'Campaign saved, but the evidence note could not be stored. You can add it from the campaign dashboard.';
     }
   }
 

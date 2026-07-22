@@ -496,6 +496,7 @@ export default function CreatePage() {
           category: form.category,
           coverImageUrl: form.coverImageUrl || null,
           imageUrls: uploadedImages.filter(img => img.status === 'done').map(img => img.url),
+          imagePaths: uploadedImages.filter(img => img.status === 'done').map(img => img.id),
           beneficiaryName: form.beneficiaryName.trim() || undefined,
           beneficiaryRelationship: form.beneficiaryRelationship.trim() || undefined,
           location,
