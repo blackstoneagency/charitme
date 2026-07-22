@@ -93,13 +93,13 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
   if (success) {
     return (
       <div style={{ maxWidth: 560 }}>
-        <div style={{ background: '#f0fff8', border: '1.5px solid #bbf7d0', borderRadius: 14, padding: '32px 28px', textAlign: 'center' }}>
+        <div style={{ background: 'rgba(18,166,83,.12)', border: '1.5px solid rgba(18,166,83,.28)', borderRadius: 14, padding: '32px 28px', textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>💌</div>
-          <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 700, color: '#064e3b' }}>Thank-you emails sent!</h2>
-          <p style={{ fontSize: 14, color: '#065f46', margin: '0 0 8px' }}><strong>{success.sent}</strong> email{success.sent !== 1 ? 's' : ''} sent successfully.</p>
+          <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 700, color: 'var(--green-dark)' }}>Thank-you emails sent!</h2>
+          <p style={{ fontSize: 14, color: 'var(--green-dark)', margin: '0 0 8px' }}><strong>{success.sent}</strong> email{success.sent !== 1 ? 's' : ''} sent successfully.</p>
           {success.failed > 0 && <p style={{ fontSize: 13, color: '#c2410c', margin: '0 0 20px' }}>{success.failed} could not be delivered (missing email).</p>}
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 20 }}>
-            <button onClick={() => setSuccess(null)} style={{ padding: '10px 24px', border: '1px solid var(--b2)', borderRadius: 10, background: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Send Another</button>
+            <button onClick={() => setSuccess(null)} style={{ padding: '10px 24px', border: '1px solid var(--b2)', borderRadius: 10, background: 'var(--s1)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Send Another</button>
           </div>
         </div>
       </div>
@@ -115,7 +115,7 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
         </p>
       </div>
 
-      {error && <div style={{ padding: '12px 16px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 10, color: '#be123c', fontSize: 14, fontWeight: 600 }}>⚠ {error}</div>}
+      {error && <div style={{ padding: '12px 16px', background: 'rgba(255,59,95,.08)', border: '1px solid rgba(255,59,95,.28)', borderRadius: 10, color: 'var(--red)', fontSize: 14, fontWeight: 600 }}>⚠ {error}</div>}
 
       {donations.length === 0 ? (
         <div style={{ padding: '48px 24px', textAlign: 'center', background: 'var(--s2)', borderRadius: 14, border: '1px solid var(--b2)' }}>
@@ -131,7 +131,7 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
             <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
               {TEMPLATES.map(t => (
                 <button key={t.label} type="button" onClick={() => setMessage(t.text)}
-                  style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid var(--b2)', background: message === t.text ? '#f0eaff' : '#fff', color: message === t.text ? '#551cf2' : 'var(--t2)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid var(--b2)', background: message === t.text ? 'rgba(109,53,255,.14)' : 'var(--s1)', color: message === t.text ? 'var(--violet)' : 'var(--t2)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                   {t.label}
                 </button>
               ))}
@@ -152,7 +152,7 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
             </div>
             <div style={{ display: 'grid', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
               {donations.map(d => (
-                <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: `1px solid ${selected.has(d.id) ? 'var(--green)' : 'var(--b2)'}`, borderRadius: 10, cursor: 'pointer', background: selected.has(d.id) ? '#f0fff8' : '#fff', transition: 'border-color .1s' }}>
+                <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: `1px solid ${selected.has(d.id) ? 'var(--green)' : 'var(--b2)'}`, borderRadius: 10, cursor: 'pointer', background: selected.has(d.id) ? 'rgba(18,166,83,.12)' : 'var(--s1)', transition: 'border-color .1s' }}>
                   <input type="checkbox" checked={selected.has(d.id)} onChange={e => {
                     const next = new Set(selected);
                     if (e.target.checked) next.add(d.id); else next.delete(d.id);
