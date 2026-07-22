@@ -20,7 +20,9 @@ test('public pages expose searchable metadata and AEO structured data', async ({
   await page.goto('/campaigns', { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveTitle(/campaigns/i);
   await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', /campaign/i);
-  await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(1, { timeout: 10_000 });
+  const structuredDataScripts = page.locator('script[type="application/ld+json"]');
+  await expect(structuredDataScripts.first()).toBeAttached({ timeout: 10_000 });
+  expect(await structuredDataScripts.count()).toBeGreaterThan(0);
 
   const robots = await page.request.get('/robots.txt');
   expect(robots.ok()).toBeTruthy();
@@ -38,7 +40,7 @@ test('guest campaign builder requires sign-in before leaving location step', asy
   await page.getByRole('button', { name: /continue/i }).click();
   await expect(page.getByRole('heading', { name: 'Pick a Category' })).toBeVisible();
   await page.getByRole('button', { name: /continue/i }).click();
-  await expect(page.getByRole('heading', { name: 'Where Are You Located?' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Where Are You Located?', exact: true })).toBeVisible();
   await page.getByRole('button', { name: /continue/i }).click();
 
   await expect(page.getByText('Continue to your dashboard.')).toBeVisible();

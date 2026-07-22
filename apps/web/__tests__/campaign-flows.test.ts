@@ -68,6 +68,16 @@ describe('campaign wizard recovery contract', () => {
     expect(page).toContain('sessionStorage.setItem(WIZARD_STORAGE_KEY');
     expect(page).toContain('sessionStorage.removeItem(WIZARD_STORAGE_KEY)');
   });
+
+  it('keeps the guest-first builder reachable while APIs remain authenticated', async () => {
+    const source = await import('node:fs/promises');
+    const middleware = await source.readFile(new URL('../middleware.ts', import.meta.url), 'utf8');
+    const createPage = await source.readFile(new URL('../app/create/page.tsx', import.meta.url), 'utf8');
+    expect(middleware).toContain("const PROTECTED = ['/dashboard', '/profile', '/admin'];");
+    expect(middleware).not.toContain("const PROTECTED = ['/create'");
+    expect(createPage).toContain("if (step === 'location' && isGuest === true)");
+    expect(createPage).toContain('setShowLoginModal(true)');
+  });
 });
 
 describe('campaign builder media failure contract', () => {
