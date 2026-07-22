@@ -124,7 +124,7 @@ export default function FeaturesPage() {
             <p style={{ color: '#64748b', fontSize: 16, maxWidth: 500, margin: '0 auto' }}>Each module is production-ready and connected to a shared ledger, donor graph, and trust layer.</p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 24 }}>
             {PLATFORM_MODULES.map((module) => (
               <Link
                 key={module.slug}
