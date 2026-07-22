@@ -96,6 +96,7 @@ const ALLOWED_IMG_TYPES = new Set([
 const MAX_IMG_SIZE = 5 * 1024 * 1024;
 const MAX_IMAGES   = 10;
 const WIZARD_STORAGE_KEY = 'cm_wizard';
+const REQUEST_KEY_STORAGE_KEY = 'cm_campaign_request_id';
 
 const COUNTRIES = [
   'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France',
@@ -228,6 +229,7 @@ export default function CreatePage() {
   const [isGuest, setIsGuest]         = useState<boolean | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const requestKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -472,9 +474,19 @@ export default function CreatePage() {
     setLoading(true); setError(''); setWarning('');
     try {
       const location = form.zipCode ? `${form.zipCode} - ${form.country}` : form.country;
+      if (!requestKeyRef.current) {
+        try {
+          requestKeyRef.current = sessionStorage.getItem(REQUEST_KEY_STORAGE_KEY) ?? crypto.randomUUID();
+          sessionStorage.setItem(REQUEST_KEY_STORAGE_KEY, requestKeyRef.current);
+        } catch {
+          requestKeyRef.current = crypto.randomUUID();
+        }
+      }
+      const requestKey = requestKeyRef.current;
+      if (!requestKey) throw new Error('Could not prepare campaign request.');
       const res = await fetch('/api/campaigns', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': requestKey },
         body: JSON.stringify({
           title: form.title.trim(),
           tagline: form.tagline.trim() || undefined,
@@ -492,7 +504,10 @@ export default function CreatePage() {
       });
       const data = await res.json() as { slug?: unknown; warning?: unknown; error?: unknown };
       if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : `Failed to ${status === 'draft' ? 'save draft' : 'publish'}.`);
-      try { sessionStorage.removeItem(WIZARD_STORAGE_KEY); } catch { /* ignore storage cleanup failure */ }
+      try {
+        sessionStorage.removeItem(WIZARD_STORAGE_KEY);
+        sessionStorage.removeItem(REQUEST_KEY_STORAGE_KEY);
+      } catch { /* ignore storage cleanup failure */ }
       if (status === 'draft') { setError(''); window.location.href = '/dashboard/campaigns'; return; }
       if (typeof data.warning === 'string') setWarning(data.warning);
       setPublishedSlug(typeof data.slug === 'string' ? data.slug : '');

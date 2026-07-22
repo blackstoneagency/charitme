@@ -58,6 +58,13 @@ export async function POST(request: NextRequest) {
   const parsed = CreateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid campaign input', code: 'INVALID_INPUT', details: parsed.error.flatten() }, { status: 400 });
 
+  const rawIdempotencyKey = request.headers.get('idempotency-key');
+  const parsedIdempotencyKey = rawIdempotencyKey ? z.string().uuid().safeParse(rawIdempotencyKey) : null;
+  if (rawIdempotencyKey && !parsedIdempotencyKey?.success) {
+    return NextResponse.json({ error: 'Invalid idempotency key', code: 'INVALID_IDEMPOTENCY_KEY' }, { status: 400 });
+  }
+  const idempotencyKey = parsedIdempotencyKey?.success ? parsedIdempotencyKey.data : crypto.randomUUID();
+
   const { title, tagline, description, goalAmount, deadline, category, coverImageUrl, imageUrls, beneficiaryName, beneficiaryRelationship, evidenceNote, location, videoUrl, status } = parsed.data;
 
   if (status === 'active') {
@@ -67,8 +74,20 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const baseSlug = slugify(title);
-  const slug = `${baseSlug}-${Date.now().toString(36)}`;
+  const baseSlug = slugify(title) || 'fundraiser';
+  const slug = `${baseSlug}-${idempotencyKey.slice(0, 8)}`;
+
+  const { data: existingCampaign, error: existingCampaignError } = await supabaseAdmin
+    .from('campaigns')
+    .select('id, slug')
+    .eq('user_id', user.id)
+    .eq('slug', slug)
+    .maybeSingle();
+  if (existingCampaignError) {
+    console.error('Campaign idempotency lookup failed');
+    return NextResponse.json({ error: 'Campaign could not be saved.', code: 'CAMPAIGN_CREATE_FAILED' }, { status: 503 });
+  }
+  if (existingCampaign) return NextResponse.json(existingCampaign, { status: 200 });
 
   const baseInsert = {
     user_id: user.id,
@@ -116,6 +135,15 @@ export async function POST(request: NextRequest) {
   const { data, error } = result;
 
   if (error) {
+    if (error.code === '23505') {
+      const { data: retriedCampaign } = await supabaseAdmin
+        .from('campaigns')
+        .select('id, slug')
+        .eq('user_id', user.id)
+        .eq('slug', slug)
+        .maybeSingle();
+      if (retriedCampaign) return NextResponse.json(retriedCampaign, { status: 200 });
+    }
     console.error('Campaign create failed', error.code, error.message);
     return NextResponse.json(
       { error: 'Campaign could not be saved.', code: 'CAMPAIGN_CREATE_FAILED' },

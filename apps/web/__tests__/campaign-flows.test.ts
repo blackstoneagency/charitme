@@ -50,6 +50,19 @@ describe('campaign creation warning contract', () => {
   });
 });
 
+describe('campaign creation idempotency contract', () => {
+  it('sends and validates a persistent UUID idempotency key', async () => {
+    const source = await import('node:fs/promises');
+    const page = await source.readFile(new URL('../app/create/page.tsx', import.meta.url), 'utf8');
+    const route = await source.readFile(new URL('../app/api/campaigns/route.ts', import.meta.url), 'utf8');
+    expect(page).toContain("const REQUEST_KEY_STORAGE_KEY = 'cm_campaign_request_id';");
+    expect(page).toContain("'Idempotency-Key': requestKey");
+    expect(route).toContain("z.string().uuid().safeParse(rawIdempotencyKey)");
+    expect(route).toContain("if (existingCampaign) return NextResponse.json(existingCampaign, { status: 200 });");
+    expect(route).toContain("if (error.code === '23505')");
+  });
+});
+
 describe('payment preference schema rollout', () => {
   it('recognizes only missing-column/schema-cache errors for legacy fallback', () => {
     expect(isMissingPaymentMethodsColumn({ code: 'PGRST204', message: 'Column not found' })).toBe(true);
