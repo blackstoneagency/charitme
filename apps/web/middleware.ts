@@ -22,6 +22,26 @@ function toSessionCookie(options: CookieOptions): CookieOptions {
   return rest;
 }
 
+function contentSecurityPolicy(nonce: string, isEmbed: boolean): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    "style-src 'self' 'unsafe-inline'",
+    "style-src-attr 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data: https:",
+    "connect-src 'self' https://*.supabase.co https://api.stripe.com https://*.stripe.com",
+    "frame-src 'self' https://checkout.stripe.com https://*.stripe.com https://www.youtube.com https://player.vimeo.com",
+    "media-src 'self' blob: https:",
+    "worker-src 'self' blob:",
+    "manifest-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self' https://checkout.stripe.com https://*.stripe.com",
+    `frame-ancestors ${isEmbed ? '*' : "'self'"}`,
+  ].join('; ');
+}
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
@@ -40,7 +60,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // ── Session refresh + protected-route guard ───────────────────────────
-  let response = NextResponse.next({ request });
+  const nonce = btoa(crypto.randomUUID());
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
@@ -50,7 +73,7 @@ export async function middleware(request: NextRequest) {
         getAll() { return request.cookies.getAll(); },
         setAll(cookiesToSet: CookieToSet[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          response = NextResponse.next({ request: { headers: requestHeaders } });
           cookiesToSet.forEach(({ name, value, options }) =>
             // Use session cookies so auth is cleared when the browser closes
             response.cookies.set(name, value, toSessionCookie(options))
@@ -83,12 +106,11 @@ export async function middleware(request: NextRequest) {
   // keep X-Frame-Options only for non-embed routes as a legacy fallback.
   const isEmbed = /^\/campaigns\/[^/]+\/embed\/?$/.test(path);
   if (isEmbed) {
-    response.headers.set('Content-Security-Policy', 'frame-ancestors *');
     response.headers.delete('X-Frame-Options');
   } else {
-    response.headers.set('Content-Security-Policy', "frame-ancestors 'self'");
     response.headers.set('X-Frame-Options', 'SAMEORIGIN');
   }
+  response.headers.set('Content-Security-Policy', contentSecurityPolicy(nonce, isEmbed));
   // Strict-Transport-Security (HSTS) — only set in production to avoid
   // locking out local dev environments
   if (process.env.NODE_ENV === 'production') {

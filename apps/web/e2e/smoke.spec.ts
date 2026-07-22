@@ -9,6 +9,9 @@ test('homepage presents CharitMe trust positioning', async ({ page }) => {
   await expect(page.getByText('CharitMe').first()).toBeVisible();
   await expect(page.getByText('0%').first()).toBeVisible();
   await expect(page.getByText('Create My Fundraiser With AI').first()).toBeVisible();
+  const csp = (await page.request.get('/')).headers()['content-security-policy'] ?? '';
+  expect(csp).toContain("script-src 'self' 'nonce-");
+  expect(csp).toContain("object-src 'none'");
 });
 
 test('pricing page shows transparent fee model', async ({ page }) => {

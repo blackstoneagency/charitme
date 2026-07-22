@@ -268,8 +268,8 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Feature: Production-ready campaign creation, AI assistance, media upload, draft privacy, and payout handoff
   - Description: Make the `/create` journey reliable from first field through Supabase persistence and publication, with server-authoritative validation, private drafts, authenticated AI generation, secure media handling, and resilient user feedback.
   - Agent: Codex + Claude shared workstream
-  - Current verification: 52 web test files, 792 tests passing after restoring guest-first campaign builder access and adding privacy-aware public donor profile structured data; production build remains green.
-  - Browser verification: production build smoke suite passed locally on desktop and mobile (10/10), covering public SEO/AEO, guest builder sign-in gating, and unauthenticated campaign mutation rejection. Live deployment verification remains pending.
+  - Current verification: 53 web test files, 795 tests passing after restoring guest-first campaign builder access, adding privacy-aware public donor profile structured data, and adding CSP regression coverage; production build remains green.
+  - Browser verification: production build smoke suite passed locally on desktop and mobile (10/10), covering nonce CSP headers, public SEO/AEO, guest builder sign-in gating, and unauthenticated campaign mutation rejection. Live deployment verification remains pending.
   - SEO route audit: all 33 static indexable public routes returned HTTP 200 with a title, meta description, and JSON-LD; the Playwright smoke suite now enforces this route-wide contract.
   - Priority: P0
   - Dependencies: live Supabase auth, storage, and Stripe Connect configuration
@@ -697,7 +697,7 @@ Verified · Production Ready. These are grounded in the current codebase
 
 ### Platform hardening (from open items)
 
-- [ ] **CHAR-1401**
+- [~] **CHAR-1401** — Code complete; live deployment verification pending
   - Area: Security
   - Feature: Full Content-Security-Policy with nonces (CHAR-O004)
   - Description: Add script-src/style-src CSP using a per-request nonce injected
@@ -708,6 +708,7 @@ Verified · Production Ready. These are grounded in the current codebase
   - Dependencies: middleware.ts; root layout.
   - Security: eliminates inline-script/style injection surface.
   - Tests: middleware header test; live-HTTP verification per CHAR-F004.
+  - Current Evidence: request-scoped nonce CSP emitted by middleware; nonce propagated to Next/root/AEO inline scripts; Supabase/Stripe/media/frame sources allowlisted; embed route preserves `frame-ancestors *`; production HTTP headers inspected locally and desktop/mobile smoke suite passes 10/10. Live deployment verification remains pending.
   - Completion Evidence: —
   - Commit: —
 
