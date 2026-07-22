@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from 'next';
+import { Suspense } from 'react';
 import './globals.css';
 import { AppShell } from '../components/AppShell';
 import SessionWatcher from '../components/SessionWatcher';
 import { ThemeProvider } from '../components/ThemeProvider';
 import PWARegister from '../components/PWARegister';
 import InstallPrompt from '../components/InstallPrompt';
+import MarketingTracker from '../components/MarketingTracker';
 import { safeJsonLd } from '../lib/json-ld';
 import { CHARITME_ORIGIN } from '../lib/public-routes';
 
@@ -130,6 +132,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SessionWatcher />
           <PWARegister />
           <InstallPrompt />
+          <Suspense fallback={null}>
+            <MarketingTracker />
+          </Suspense>
           <AppShell>{children}</AppShell>
         </ThemeProvider>
       </body>

@@ -5,7 +5,7 @@ import { supabaseAdmin } from '../../../../lib/supabase';
 import { canManageCampaign } from '../../../../lib/auth';
 
 const BUCKET = 'campaign-media';
-const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif']);
 const ALLOWED_SLOT_TYPES = new Set(['cover', 'gallery', 'video']);
 
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     );
   }
   if (file.size > MAX_SIZE_BYTES) {
-    return NextResponse.json({ error: 'File too large. Max size is 10MB.' }, { status: 400 });
+    return NextResponse.json({ error: 'File too large. Max size is 5MB.', code: 'FILE_TOO_LARGE' }, { status: 400 });
   }
 
   // Optional: campaignId scopes the path under the campaign folder
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   }
 
   const ext      = (file.name.split('.').pop() ?? 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const safeName = `${crypto.randomUUID()}.${ext}`;
 
   // Path: campaigns/{campaignId}/{type}/{file}  OR  campaigns/{userId}/{type}/{file}
   const folder      = campaignId ? `campaigns/${campaignId}` : `campaigns/${user.id}`;
@@ -76,8 +76,6 @@ export async function POST(req: NextRequest) {
 
   const arrayBuffer = await file.arrayBuffer();
   const buffer      = new Uint8Array(arrayBuffer);
-
-  console.log(`[upload] bucket="${BUCKET}" path="${storagePath}"`);
 
   const { data, error: uploadError } = await supabaseAdmin.storage
     .from(BUCKET)
@@ -88,11 +86,11 @@ export async function POST(req: NextRequest) {
     });
 
   if (uploadError) {
-    const msg = isBucketMissing(uploadError.message)
-      ? `Storage bucket "${BUCKET}" was not found. Please create it in the Supabase dashboard.`
-      : uploadError.message;
-    console.error(`[upload] error: ${uploadError.message}`);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error('Campaign media upload failed');
+    return NextResponse.json(
+      { error: isBucketMissing(uploadError.message) ? 'Campaign media storage is unavailable.' : 'Campaign media could not be uploaded.', code: 'MEDIA_UPLOAD_FAILED' },
+      { status: 500 },
+    );
   }
 
   const { data: { publicUrl } } = supabaseAdmin.storage
@@ -140,10 +138,8 @@ export async function DELETE(req: NextRequest) {
 
   const { error: removeError } = await supabaseAdmin.storage.from(BUCKET).remove([path]);
   if (removeError) {
-    const msg = isBucketMissing(removeError.message)
-      ? `Storage bucket "${BUCKET}" was not found.`
-      : removeError.message;
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error('Campaign media removal failed');
+    return NextResponse.json({ error: isBucketMissing(removeError.message) ? 'Campaign media storage is unavailable.' : 'Campaign media could not be removed.', code: 'MEDIA_REMOVE_FAILED' }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true });

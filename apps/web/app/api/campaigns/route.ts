@@ -30,6 +30,13 @@ const CreateSchema = z.object({
   videoUrl: z.string().url().nullable().optional(),
   // 'draft' saves without publishing; 'active' publishes immediately (default)
   status: z.enum(['draft', 'active']).default('active'),
+}).superRefine((value, ctx) => {
+  if (value.status === 'active' && value.description.trim().length < 20) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['description'], message: 'Active campaigns need a story of at least 20 characters.' });
+  }
+  if (value.status === 'active' && value.goalAmount < 100) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['goalAmount'], message: 'Active campaigns need a goal of at least 100 cents.' });
+  }
 });
 
 export async function POST(request: NextRequest) {
@@ -45,7 +52,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => null);
   const parsed = CreateSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid campaign input', code: 'INVALID_INPUT', details: parsed.error.flatten() }, { status: 400 });
 
   const { title, tagline, description, goalAmount, deadline, category, coverImageUrl, imageUrls, beneficiaryName, beneficiaryRelationship, evidenceNote, location, videoUrl, status } = parsed.data;
 
@@ -69,8 +76,8 @@ export async function POST(request: NextRequest) {
     location: location ?? null,
     video_url: videoUrl ?? null,
     status: status ?? 'active',
-    accept_donations: true,
-    visibility: 'public',
+    accept_donations: status === 'active',
+    visibility: status === 'active' ? 'public' : 'private',
   };
 
   // Try inserting with image_urls; fall back gracefully if column doesn't exist yet
@@ -100,7 +107,7 @@ export async function POST(request: NextRequest) {
   if (error) {
     console.error('Campaign create failed', error.code, error.message);
     return NextResponse.json(
-      { error: `Campaign could not be saved: ${error.message}`, code: error.code },
+      { error: 'Campaign could not be saved.', code: 'CAMPAIGN_CREATE_FAILED' },
       { status: 500 },
     );
   }

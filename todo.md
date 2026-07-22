@@ -47,6 +47,10 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   the whole gated verification set. See `docs/PAYMENT_READINESS.md`.
 - **Live-gated verification** (needs Connect + staging): end-to-end money flow,
   refund/dispute lifecycles, recurring-renewal observability, per-persona RLS matrix.
+- [~] **MKT-ANON-ATTR â€” In Progress** â€” add global public page-view tracking with
+  first-touch UTM/referrer capture, anonymous visitor identity stitching, and
+  authenticated contact handoff. Keep private routes excluded and verify live
+  event and identity rows in Supabase.
 - **Far-future / out-of-scope** (from §2 comparison, not priorities): NFC tap-to-give,
   crypto, stock/DAF/estate giving, native livestream, native mobile apps, white-label.
 - **Payment hardening pass: COMPLETE** — 11 defects fixed + schema-contract CI guard
@@ -255,6 +259,16 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Dependencies: user provides staging credentials
   - Completion Evidence: —
   - Commit: —
+
+- [~] CHAR-0017 - **Campaign Builder hardening in progress**
+  - Area: Fundraising / growth conversion
+  - Feature: Production-ready campaign creation, AI assistance, media upload, draft privacy, and payout handoff
+  - Description: Make the `/create` journey reliable from first field through Supabase persistence and publication, with server-authoritative validation, private drafts, authenticated AI generation, secure media handling, and resilient user feedback.
+  - Agent: Codex + Claude shared workstream
+  - Priority: P0
+  - Dependencies: live Supabase auth, storage, and Stripe Connect configuration
+  - Completion Evidence: builder contract fixes and verification pending
+  - Commit: in progress
 
 > Backlog continues: each remaining capability in Section B becomes CHAR-#### tasks
 > as its slice is scheduled. Completed tasks move to **Section C — Completed** with evidence.

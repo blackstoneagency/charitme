@@ -79,7 +79,7 @@ const JOURNEY_STEPS = ['Plan', 'Create', 'Launch', 'Manage', 'Celebrate', 'Impac
 const ALLOWED_IMG_TYPES = new Set([
   'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif',
 ]);
-const MAX_IMG_SIZE = 10 * 1024 * 1024;
+const MAX_IMG_SIZE = 5 * 1024 * 1024;
 const MAX_IMAGES   = 10;
 
 const COUNTRIES = [
@@ -1456,7 +1456,7 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
   const [err, setErr]       = useState('');
   const [ok, setOk]         = useState('');
 
-  const handleOAuth = (provider: 'google') => {
+  const handleOAuth = (provider: 'google' | 'apple') => {
     sessionStorage.setItem('cm_wizard', JSON.stringify({ savedForm, savedStep }));
     window.location.href = `/api/auth/signin?provider=${provider}&next=/create`;
   };
@@ -1491,7 +1491,7 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
         <button className="guest-oauth-btn" onClick={() => handleOAuth('google')} disabled={busy} type="button">
           <GoogleMark /> Continue with Google
         </button>
-        <button className="guest-oauth-btn guest-oauth-apple" onClick={() => handleOAuth('google')} disabled={busy} type="button" style={{ background: '#000', color: '#fff', marginTop: 8 }}>
+        <button className="guest-oauth-btn guest-oauth-apple" onClick={() => handleOAuth('apple')} disabled={busy} type="button" style={{ background: '#000', color: '#fff', marginTop: 8 }}>
           <AppleMark /> Continue with Apple
         </button>
         <div className="guest-modal-sep"><span>OR</span></div>

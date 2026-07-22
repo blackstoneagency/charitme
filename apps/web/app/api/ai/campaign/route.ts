@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { fallbackAiCampaign, openai, OPENAI_MODEL, type AiCampaignResponse } from '../../../../lib/openai';
 import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import { createClient } from '../../../../lib/supabase-server';
 
 const AiCampaignSchema = z.object({
   category: z.string().min(2).max(80),
@@ -13,6 +14,10 @@ const AiCampaignSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Authentication required', code: 'UNAUTHORIZED' }, { status: 401 });
+
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
   // Durable, cross-instance limit for this expensive OpenAI-backed endpoint.
   if (!(await checkRateLimitDurable(`ai:${ip}`, 12, 60_000))) {
@@ -48,6 +53,7 @@ export async function POST(request: NextRequest) {
   }
 
   await supabaseAdmin.from('ai_generations').insert({
+    user_id: user.id,
     generation_type: 'campaign_copilot',
     prompt: parsed.data,
     output,

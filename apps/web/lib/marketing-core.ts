@@ -16,6 +16,7 @@ export interface ContactInput {
   email?: string;
   phone?: string;
   userId?: string;
+  anonymousId?: string;
   firstName?: string;
   lastName?: string;
   clientType?: ClientType;
@@ -151,4 +152,3 @@ function compare(a: number, op: SegmentCondition['op'], b: number): boolean {
   if (op === 'lte') return a <= b;
   return false;
 }
-

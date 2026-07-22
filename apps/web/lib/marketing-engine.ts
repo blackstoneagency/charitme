@@ -32,7 +32,8 @@ export * from './marketing-core';
 export async function resolveContact(input: ContactInput): Promise<string | null> {
   const email = input.email?.trim().toLowerCase() || null;
   const phone = input.phone?.trim() || null;
-  if (!email && !phone && !input.userId) return null;
+  const anonymousId = input.anonymousId?.trim() || null;
+  if (!email && !phone && !input.userId && !anonymousId) return null;
 
   async function findDirectContactId(): Promise<string | null> {
     const directLookups: { column: 'email' | 'phone' | 'user_id'; value: string }[] = [];
@@ -56,6 +57,7 @@ export async function resolveContact(input: ContactInput): Promise<string | null
   // 1. Look up by any known identity
   let contactId: string | null = null;
   const lookups: { kind: string; value: string }[] = [];
+  if (anonymousId) lookups.push({ kind: 'cookie_id', value: anonymousId });
   if (email) lookups.push({ kind: 'email', value: email });
   if (phone) lookups.push({ kind: 'phone', value: phone });
   if (input.userId) lookups.push({ kind: 'user_id', value: input.userId });
@@ -146,11 +148,11 @@ export async function trackEvent(args: {
   campaignId?: string;
   marketingCampaignId?: string;
   amountCents?: number;
-  utmSource?: string; utmMedium?: string; utmCampaign?: string;
+  utmSource?: string; utmMedium?: string; utmCampaign?: string; utmTerm?: string; utmContent?: string;
   url?: string;
   metadata?: Record<string, unknown>;
-}): Promise<void> {
-  await supabaseAdmin.from('marketing_events').insert({
+}): Promise<boolean> {
+  const { error } = await supabaseAdmin.from('marketing_events').insert({
     contact_id: args.contactId ?? null,
     event_type: args.eventType,
     campaign_id: args.campaignId ?? null,
@@ -159,15 +161,19 @@ export async function trackEvent(args: {
     utm_source: args.utmSource ?? null,
     utm_medium: args.utmMedium ?? null,
     utm_campaign: args.utmCampaign ?? null,
+    utm_term: args.utmTerm ?? null,
+    utm_content: args.utmContent ?? null,
     url: args.url ?? null,
     metadata: args.metadata ?? {},
   });
+  if (error) return false;
   if (args.contactId) {
     await supabaseAdmin
       .from('marketing_contacts')
       .update({ last_active_at: new Date().toISOString() })
       .eq('id', args.contactId);
   }
+  return true;
 }
 
 /**

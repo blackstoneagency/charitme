@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { openai, OPENAI_MODEL } from '../../../../lib/openai';
 import { checkRateLimit } from '../../../../lib/rate-limit';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import { createClient } from '../../../../lib/supabase-server';
 
 const Schema = z.object({
   category: z.string().min(2).max(80),
@@ -27,6 +28,10 @@ const CATEGORY_RANGES: Record<string, { min: number; typical: number; max: numbe
 };
 
 export async function POST(request: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Authentication required', code: 'UNAUTHORIZED' }, { status: 401 });
+
   const ip = request.headers.get('x-forwarded-for') ?? 'local';
   if (!checkRateLimit(`ai-goal:${ip}`, 15, 60_000)) {
     return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
