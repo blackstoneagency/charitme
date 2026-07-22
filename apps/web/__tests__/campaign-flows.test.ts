@@ -39,6 +39,16 @@ describe('campaign media metadata synchronization contract', () => {
     expect(migration).toContain("campaigns.visibility = 'public'");
     expect(migration).toContain('campaigns.user_id = auth.uid()');
   });
+
+  it('keeps Storage policy limits and path authorization aligned with uploads', async () => {
+    const source = await import('node:fs/promises');
+    const migration = await source.readFile(new URL('../../../supabase/migrations/20260725040000_campaign_media_storage_policy.sql', import.meta.url), 'utf8');
+    expect(migration).toContain('file_size_limit = 5242880');
+    expect(migration).toContain("'image/gif'");
+    expect(migration).toContain("'image/avif'");
+    expect(migration).toContain('storage.foldername(name))[2]');
+    expect(migration).toContain('campaigns.id::text = (storage.foldername(name))[2]');
+  });
 });
 
 describe('campaign wizard recovery contract', () => {
