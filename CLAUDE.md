@@ -78,7 +78,7 @@ NEXT_PUBLIC_APP_URL
 ```
 
 ### Deployment
-- Vercel (auto-deploy from `main`) — primary
+- Vercel (auto-deploy from protected `master`) — primary
 - Render fallback (`render.yaml`, rootDir: apps/web)
 - Node 20 pinned via `.node-version`
 - Health check: `GET /api/health` → `{"status":"ok","ts":...}`
