@@ -37,11 +37,24 @@ export function uniqueSitemapEntries(entries: MetadataRoute.Sitemap): MetadataRo
 }
 
 function modifiedAt(value: string | null | undefined): Date {
-  return value ? new Date(value) : new Date();
+  const date = value ? new Date(value) : new Date();
+  return Number.isNaN(date.getTime()) ? new Date() : date;
+}
+
+function detailUrl(prefix: string, value: string): string {
+  return `${CHARITME_ORIGIN}${prefix}/${encodeURIComponent(value)}`;
 }
 
 function hasCampaignId(plan: ImpactPlanRow): plan is ImpactPlanRow & { campaign_id: string } {
   return typeof plan.campaign_id === 'string' && plan.campaign_id.length > 0;
+}
+
+function hasSlug<T extends { slug: string | null }>(row: T): row is T & { slug: string } {
+  return typeof row.slug === 'string' && row.slug.length > 0;
+}
+
+function hasId<T extends { id: string | null }>(row: T): row is T & { id: string } {
+  return typeof row.id === 'string' && row.id.length > 0;
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -75,8 +88,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .limit(5000);
 
   const campaignRows = (campaigns ?? []) as CampaignRouteRow[];
-  const campaignRoutes = campaignRows.filter((c) => c.slug).map(c => ({
-    url: `${CHARITME_ORIGIN}/campaigns/${c.slug}`,
+  const campaignRoutes = campaignRows.filter(hasSlug).map(c => ({
+    url: detailUrl('/campaigns', c.slug),
     priority: 0.7,
     changeFrequency: 'daily' as const,
     lastModified: modifiedAt(c.updated_at),
@@ -89,8 +102,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .order('starts_at', { ascending: true })
     .limit(5000);
 
-  const eventRoutes = ((events ?? []) as SlugRouteRow[]).filter((event) => event.slug).map((event) => ({
-    url: `${CHARITME_ORIGIN}/events/${event.slug}`,
+  const eventRoutes = ((events ?? []) as SlugRouteRow[]).filter(hasSlug).map((event) => ({
+    url: detailUrl('/events', event.slug),
     priority: 0.64,
     changeFrequency: 'weekly' as const,
     lastModified: modifiedAt(event.updated_at ?? event.created_at),
@@ -104,8 +117,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .order('created_at', { ascending: false })
     .limit(5000);
 
-  const grantRoutes = ((grants ?? []) as SlugRouteRow[]).filter((grant) => grant.slug).map((grant) => ({
-    url: `${CHARITME_ORIGIN}/grants/${grant.slug}`,
+  const grantRoutes = ((grants ?? []) as SlugRouteRow[]).filter(hasSlug).map((grant) => ({
+    url: detailUrl('/grants', grant.slug),
     priority: 0.64,
     changeFrequency: 'daily' as const,
     lastModified: modifiedAt(grant.updated_at ?? grant.created_at),
@@ -118,8 +131,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .order('created_at', { ascending: false })
     .limit(5000);
 
-  const matchingRoutes = ((matchingPrograms ?? []) as IdRouteRow[]).filter((program) => program.id).map((program) => ({
-    url: `${CHARITME_ORIGIN}/matching/${program.id}`,
+  const matchingRoutes = ((matchingPrograms ?? []) as IdRouteRow[]).filter(hasId).map((program) => ({
+    url: detailUrl('/matching', program.id),
     priority: 0.58,
     changeFrequency: 'weekly' as const,
     lastModified: modifiedAt(program.updated_at ?? program.created_at),
@@ -134,9 +147,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .limit(5000);
 
   const volunteerRoutes = ((volunteerOpportunities ?? []) as SlugRouteRow[])
-    .filter((opportunity) => opportunity.slug)
+    .filter(hasSlug)
     .map((opportunity) => ({
-      url: `${CHARITME_ORIGIN}/volunteer/${opportunity.slug}`,
+      url: detailUrl('/volunteer', opportunity.slug),
       priority: 0.58,
       changeFrequency: 'weekly' as const,
       lastModified: modifiedAt(opportunity.updated_at ?? opportunity.created_at),
@@ -150,9 +163,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .limit(5000);
 
   const sponsorRoutes = ((sponsorshipOpportunities ?? []) as IdRouteRow[])
-    .filter((opportunity) => opportunity.id)
+    .filter(hasId)
     .map((opportunity) => ({
-      url: `${CHARITME_ORIGIN}/sponsor/${opportunity.id}`,
+    url: detailUrl('/sponsor', opportunity.id),
       priority: 0.56,
       changeFrequency: 'weekly' as const,
       lastModified: modifiedAt(opportunity.updated_at ?? opportunity.created_at),
@@ -176,8 +189,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const planUpdatedByCampaignId = new Map(
     impactPlanRows.map((plan) => [plan.campaign_id, plan.updated_at]),
   );
-  const impactRoutes = ((impactCampaigns ?? []) as CampaignRouteRow[]).filter((campaign) => campaign.slug).map((campaign) => ({
-    url: `${CHARITME_ORIGIN}/impact/${campaign.slug}`,
+  const impactRoutes = ((impactCampaigns ?? []) as CampaignRouteRow[]).filter(hasSlug).map((campaign) => ({
+    url: detailUrl('/impact', campaign.slug),
     priority: 0.56,
     changeFrequency: 'weekly' as const,
     lastModified: modifiedAt(planUpdatedByCampaignId.get(campaign.id ?? '') ?? campaign.updated_at),
