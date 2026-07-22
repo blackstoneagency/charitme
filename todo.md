@@ -892,6 +892,16 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM17 · seed coverage audit (goal: ≥100 records/feature)** — Live audit: **73
+  non-empty tables**, every real feature table ≥100 rows (campaigns 500, donations
+  620, recurring_donations 620, payouts 620, refunds 620, updates/milestones 620,
+  volunteer/grants/events/impact/matching/sponsorship all 120, badges 120,
+  notifications 120, tax_receipts 120, etc.). Sub-100 tables are **config/lookup**
+  (`platform_settings=1`, `payment_processors=2`, `admin_settings=7`,
+  `feature_flags=12`, `marketing_automations=24`) where 100 rows is meaningless, or
+  low-volume real data (`sponsors=50`, `share_events=6`). **Goal item met** — no
+  fake padding of config tables. _Verified read-only via Management API._
+
 - **CHAR-SM16 · OPEN ITEMS — owner credentials provided (Stripe/Supabase live)** — Owner
   supplied real credentials (LIVE). **⚠️ SECURITY: every value was shared in chat/file
   and MUST be rotated after use; nothing secret is committed (`.env.local` gitignored).**
