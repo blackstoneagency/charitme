@@ -3,13 +3,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireAdmin } from '../../../../lib/auth';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import { normalizeEin, canTransitionVerification } from '../../../../lib/nonprofit-core';
 
 const UpdateSchema = z.object({
   id: z.string().uuid(),
   verification_status: z.enum(['unverified', 'pending', 'verified', 'rejected']).optional(),
   tax_receipt_enabled: z.boolean().optional(),
   verified: z.boolean().optional(),
-  ein: z.string().optional(),
+  // Server-side EIN format validation (CHAR-1001): reject anything that isn't a
+  // valid US EIN, and store it in canonical XX-XXXXXXX form. Empty string clears.
+  ein: z
+    .string()
+    .trim()
+    .transform((v) => (v === '' ? '' : normalizeEin(v)))
+    .refine((v) => v !== null, { message: 'Invalid EIN — expected a valid 9-digit US EIN (e.g. 12-3456789).' })
+    .optional(),
   name: z.string().min(1).optional(),
   mission: z.string().optional(),
   address: z.string().optional(),
@@ -49,6 +57,26 @@ export async function PUT(request: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const { id, ...updates } = parsed.data;
+
+  // Guard the verification status machine (CHAR-1002): an admin cannot skip
+  // review to jump straight to verified. Fetch the current status and validate
+  // the transition before writing.
+  if (updates.verification_status !== undefined) {
+    const { data: current, error: readErr } = await supabaseAdmin
+      .from('nonprofit_profiles')
+      .select('verification_status')
+      .eq('id', id)
+      .single();
+    if (readErr) return NextResponse.json({ error: readErr.message }, { status: 500 });
+    const from = (current?.verification_status ?? 'unverified') as
+      Parameters<typeof canTransitionVerification>[0];
+    if (!canTransitionVerification(from, updates.verification_status)) {
+      return NextResponse.json(
+        { error: `Illegal verification transition: ${from} → ${updates.verification_status}.` },
+        { status: 409 },
+      );
+    }
+  }
 
   const { data, error } = await supabaseAdmin
     .from('nonprofit_profiles')
