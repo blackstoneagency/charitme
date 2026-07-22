@@ -933,7 +933,17 @@ Verified · Production Ready. These are grounded in the current codebase
 
 ### Nonprofit onboarding & verification
 
-- [ ] **CHAR-1001**
+- [~] **CHAR-1001** — **EIN validation core shipped (2026-07-22)**; onboarding
+      wizard + public profile + `nonprofit_profiles` schema extension remain (live-gated)
+  - **DONE (non-gated slice):** `lib/nonprofit-core.ts` `isValidEin`/`normalizeEin`
+    (9 digits, assigned IRS campus prefix, all-zero-body reject, canonical
+    XX-XXXXXXX) wired into `/api/admin/nonprofits` — the route accepted `ein` as
+    any string; invalid EINs now return 400 and stored values are normalized.
+    5 EIN unit tests (in `__tests__/nonprofit-core.test.ts`). Verified:
+    typecheck/lint/schema-contract clean, `next build` compiles, 798 tests pass.
+  - **REMAINING (live-gated):** org self-onboarding wizard `/dashboard/nonprofit`,
+    public `/nonprofits/[slug]`, `nonprofit_profiles` column additions (ein was
+    already a column) + owner-scoped RLS — needs live Supabase.
   - Area: Nonprofits
   - Feature: Nonprofit registration & profile
   - Description: Let an org register as a nonprofit (legal name, EIN/registration
@@ -954,7 +964,17 @@ Verified · Production Ready. These are grounded in the current codebase
   - Completion Evidence: —
   - Commit: —
 
-- [ ] **CHAR-1002**
+- [~] **CHAR-1002** — **Verification status machine shipped (2026-07-22)**;
+      document upload + admin review UI remain (live/storage-gated)
+  - **DONE (non-gated slice):** `lib/nonprofit-core.ts` `canTransitionVerification`
+    (unverified→pending→verified/rejected, revoke verified→pending/rejected,
+    idempotent same-status; forbids skipping review straight to verified) wired
+    into `/api/admin/nonprofits` PUT — illegal transitions now return 409, checked
+    against the row's current status. 5 status-machine unit tests. Verified with
+    the EIN slice above.
+  - **REMAINING (live/storage-gated):** private document upload (501(c)(3) letter)
+    via signed URLs, `nonprofit_verifications` table + audit entries, admin review
+    UI under `admin/trust-safety` — needs live Supabase + private Storage bucket.
   - Area: Nonprofits / Trust
   - Feature: Nonprofit verification workflow
   - Description: Document upload (501(c)(3) letter, registration proof), admin
