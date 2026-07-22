@@ -64,6 +64,15 @@ describe('campaign payout UI contract', () => {
   });
 });
 
+describe('campaign lifecycle copy contract', () => {
+  it('does not claim paused campaigns are publicly visible', async () => {
+    const source = await import('node:fs/promises');
+    const controls = await source.readFile(new URL('../app/dashboard/campaigns/[id]/_components/CampaignControls.tsx', import.meta.url), 'utf8');
+    expect(controls).toContain('public page is unavailable until you resume');
+    expect(controls).not.toContain('The page is still visible.');
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Campaign creation validation
 // ─────────────────────────────────────────────────────────────────────────────

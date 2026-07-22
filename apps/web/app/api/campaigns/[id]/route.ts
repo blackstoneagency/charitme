@@ -127,6 +127,16 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   // Audit log for status changes
   if (d.status) {
+    if (d.status !== check.campaign?.status) {
+      const { error: statusLogError } = await supabaseAdmin.from('campaign_status_log').insert({
+        campaign_id: id,
+        changed_by: user.id,
+        from_status: check.campaign?.status,
+        to_status: d.status,
+        reason: 'Owner status transition',
+      });
+      if (statusLogError) console.error('Campaign status history write failed');
+    }
     try {
       await supabaseAdmin.from('audit_logs').insert({
         actor_id: user.id,

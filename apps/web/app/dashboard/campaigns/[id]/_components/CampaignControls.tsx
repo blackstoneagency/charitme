@@ -83,7 +83,7 @@ export default function CampaignControls({
         </span>
         <span style={{ fontSize: 13, color: 'var(--t3)' }}>
           {status === 'active'    && 'Your campaign is live and accepting donations.'}
-          {status === 'paused'    && 'Donations are paused. The page is still visible.'}
+          {status === 'paused'    && 'Donations are paused. The public page is unavailable until you resume the campaign.'}
           {status === 'draft'     && 'Not yet published. Publish to start accepting donations.'}
           {status === 'completed' && 'Campaign is closed. No new donations accepted.'}
           {status === 'frozen'    && 'Campaign frozen by admin. Contact support.'}
