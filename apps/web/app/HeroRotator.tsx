@@ -184,6 +184,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
   return (
     <div
       className="kind-hero-art"
+      role="presentation"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >

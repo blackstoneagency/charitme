@@ -1587,6 +1587,12 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
   savedStep: WizardStep;
 }) {
   const supabase = React.useMemo(() => createClient(), []);
+  // Keyboard parity for the backdrop click-to-close: Escape closes the modal.
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
   const [modalMode, setModalMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail]   = useState('');
   const [password, setPassword] = useState('');
@@ -1622,8 +1628,8 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
   };
 
   return (
-    <div className="guest-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="guest-modal-card">
+    <div className="guest-modal-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="guest-modal-card" role="dialog" aria-modal="true">
         <button className="guest-modal-close" onClick={onClose} aria-label="Close">✕</button>
         <h2>{modalMode === 'login' ? 'Log in' : 'Sign up'}</h2>
         <p className="guest-modal-sub">{modalMode === 'login' ? 'Continue to your dashboard.' : 'Create your free account to launch.'}</p>

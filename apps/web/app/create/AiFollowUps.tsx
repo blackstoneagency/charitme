@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { followUpPlan, type FollowUpForm } from '../../lib/campaign-followups';
 
 // One-question-at-a-time follow-ups shown after the AI drafts a campaign, filling
@@ -17,9 +17,15 @@ export default function AiFollowUps({
 }) {
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [draft, setDraft] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const remaining = followUpPlan(form).filter((q) => !skipped.has(q.id));
   const current = remaining[0] ?? null;
+
+  // Move focus to each new question's field as it appears — the same guidance
+  // autoFocus gave, done accessibly (no autoFocus prop, focus follows the flow).
+  const currentId = current?.id;
+  useEffect(() => { inputRef.current?.focus(); }, [currentId]);
 
   const answer = (value: string) => {
     if (!current) return;
@@ -98,7 +104,7 @@ export default function AiFollowUps({
 
         {current.kind === 'text' && (
           <div>
-            <input type="text" value={draft} onChange={(e) => setDraft(e.target.value.slice(0, 120))} placeholder="Type your answer…" style={inputStyle} autoFocus />
+            <input ref={inputRef} type="text" value={draft} onChange={(e) => setDraft(e.target.value.slice(0, 120))} placeholder="Type your answer…" style={inputStyle} />
             {continueBtn(draft.trim().length === 0)}
           </div>
         )}
@@ -107,7 +113,7 @@ export default function AiFollowUps({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--t3, #64748b)' }}>$</span>
-              <input type="number" min="1" step="1" inputMode="numeric" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="5000" style={inputStyle} autoFocus />
+              <input ref={inputRef} type="number" min="1" step="1" inputMode="numeric" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="5000" style={inputStyle} />
             </div>
             {continueBtn(!(Number.parseFloat(draft) > 0))}
           </div>
