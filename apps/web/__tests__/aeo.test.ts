@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeAeoRoute } from '../lib/aeo';
+import { getAeoFallbackRoute, normalizeAeoRoute } from '../lib/aeo';
 import robots from '../app/robots';
 import { INDEXABLE_PUBLIC_ROUTES } from '../lib/public-routes';
 import { countStaleSeoContent, isStaleSeoContent } from '../lib/seo-audit';
@@ -14,6 +14,15 @@ describe('AEO route normalization', () => {
     expect(normalizeAeoRoute('/admin/users')).toBe('/faq');
     expect(normalizeAeoRoute('/dashboard?tab=campaigns')).toBe('/faq');
     expect(normalizeAeoRoute('/pricing?plan=pro')).toBe('/faq');
+    expect(normalizeAeoRoute('/privacy-center')).toBe('/faq');
+  });
+
+  it('maps supported detail pages to their Supabase-backed collection answers', () => {
+    expect(getAeoFallbackRoute('/campaigns/clean-water')).toBe('/campaigns');
+    expect(getAeoFallbackRoute('/blog/fundraising-guide')).toBe('/blog');
+    expect(getAeoFallbackRoute('/impact/clean-water')).toBe('/impact');
+    expect(getAeoFallbackRoute('/campaigns')).toBeNull();
+    expect(getAeoFallbackRoute('/dashboard/campaigns/clean-water')).toBeNull();
   });
 
   it('keeps private routes out of the indexable registry and crawler allowlist', () => {

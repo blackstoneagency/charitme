@@ -13,7 +13,8 @@ export interface PublicFaq extends PublicAeoEntry {
   schema_type: 'FAQPage';
 }
 
-const PUBLIC_ROUTE = /^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|beneficiary(?:\/|$))/;
+const PUBLIC_ROUTE = /^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|beneficiary(?:\/|$)|achievements(?:\/|$)|privacy-center(?:\/|$))/;
+const DYNAMIC_PARENT_ROUTE = /^\/(campaigns|blog|events|features|grants|impact|matching|sponsor|volunteer)\/[^/]+$/;
 
 export function normalizeAeoRoute(route: string | null | undefined): string {
   const value = (route ?? '/faq').trim().replace(/\/{2,}/g, '/');
@@ -21,19 +22,35 @@ export function normalizeAeoRoute(route: string | null | undefined): string {
   return value === '/' ? '/' : value.replace(/\/$/, '');
 }
 
+/** Return the public collection route whose published answers apply to a detail page. */
+export function getAeoFallbackRoute(route: string): string | null {
+  const match = DYNAMIC_PARENT_ROUTE.exec(normalizeAeoRoute(route));
+  return match ? `/${match[1]}` : null;
+}
+
 /** Published, route-specific entries used by public pages and their schema. */
 export async function getPublishedAeoEntries(route: string, schemaType?: PublicAeoEntry['schema_type'], limit = 100): Promise<PublicAeoEntry[]> {
-  let query = supabaseAdmin
-    .from('aeo_entries')
-    .select('question, answer, topic, schema_type, route')
-    .eq('published', true)
-    .eq('route', normalizeAeoRoute(route))
-    .order('priority', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(limit);
-  if (schemaType) query = query.eq('schema_type', schemaType);
-  const { data } = await query;
-  return (data ?? []) as PublicAeoEntry[];
+  const normalizedRoute = normalizeAeoRoute(route);
+  const fallbackRoute = getAeoFallbackRoute(normalizedRoute);
+
+  async function readPublishedEntries(entryRoute: string): Promise<PublicAeoEntry[]> {
+    let query = supabaseAdmin
+      .from('aeo_entries')
+      .select('question, answer, topic, schema_type, route')
+      .eq('published', true)
+      .eq('route', entryRoute)
+      .order('priority', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (schemaType) query = query.eq('schema_type', schemaType);
+    const { data } = await query;
+    return (data ?? []) as PublicAeoEntry[];
+  }
+
+  const exactEntries = await readPublishedEntries(normalizedRoute);
+  return exactEntries.length > 0 || !fallbackRoute
+    ? exactEntries
+    : readPublishedEntries(fallbackRoute);
 }
 
 /**
