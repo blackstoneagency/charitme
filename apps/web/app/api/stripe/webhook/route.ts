@@ -173,7 +173,9 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
     const { error } = await supabaseAdmin
       .from('campaigns')
       .update({ featured: true })
-      .eq('id', meta.campaignId);
+      .eq('id', meta.campaignId)
+      .eq('user_id', meta.userId ?? '')
+      .eq('featured', false);
     if (error) console.error('[webhook] feature_campaign update failed:', error.message);
     return;
   }

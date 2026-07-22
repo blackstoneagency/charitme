@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   resolveFeaturePriceCents,
   selectRotatorCampaigns,
@@ -52,5 +54,35 @@ describe('selectRotatorCampaigns', () => {
   it('treats missing/null featured as not-featured', () => {
     const list = [{ id: 'a' }, { id: 'b', featured: null }, { id: 'c', featured: true }];
     expect(selectRotatorCampaigns(list).map((x) => x.id)).toEqual(['c']);
+  });
+});
+
+describe('featured campaign production contracts', () => {
+  const readSource = (path: string): string => readFileSync(resolve(process.cwd(), path), 'utf8').replace(/\r\n/g, '\n');
+  const routeSource = readSource('app/api/campaigns/[id]/feature/route.ts');
+  const webhookSource = readSource('app/api/stripe/webhook/route.ts');
+  const buttonSource = readSource('app/dashboard/campaigns/[id]/_components/FeatureCampaignButton.tsx');
+
+  it('requires auth, ownership, and idempotent Stripe checkout metadata', () => {
+    expect(routeSource).toContain("if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })");
+    expect(routeSource).toContain('canManageCampaign(user, campaign.user_id)');
+    expect(routeSource).toContain("metadata: {\n      type: 'feature_campaign'");
+    expect(routeSource).toContain('`feature_${campaign.id}_${user.id}`');
+    expect(routeSource).toContain("if (!session.url)");
+    expect(routeSource).toContain("{ error: 'Could not start checkout' }");
+  });
+
+  it('binds paid webhook activation to the campaign owner and one-time state', () => {
+    expect(webhookSource).toContain("meta.type === 'feature_campaign'");
+    expect(webhookSource).toContain("session.payment_status === 'paid'");
+    expect(webhookSource).toContain(".eq('user_id', meta.userId ?? '')");
+    expect(webhookSource).toContain(".eq('featured', false)");
+  });
+
+  it('keeps the organizer control honest before and after payment', () => {
+    expect(buttonSource).toContain('if (featured)');
+    expect(buttonSource).toContain('Feature this campaign');
+    expect(buttonSource).toContain("method: 'POST'");
+    expect(buttonSource).toContain('window.location.assign(json.url)');
   });
 });

@@ -30,7 +30,10 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     .eq('id', id)
     .maybeSingle();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('[feature] Campaign lookup failed:', error.message);
+    return NextResponse.json({ error: 'Could not load campaign' }, { status: 500 });
+  }
   if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
   if (!(await canManageCampaign(user, campaign.user_id))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -81,10 +84,13 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
       sessionParams,
       `feature_${campaign.id}_${user.id}`,
     );
+    if (!session.url) {
+      return NextResponse.json({ error: 'Could not start checkout' }, { status: 502 });
+    }
     return NextResponse.json({ url: session.url });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Stripe error';
     console.error('[feature] Stripe error:', msg);
-    return NextResponse.json({ error: msg }, { status: 502 });
+    return NextResponse.json({ error: 'Could not start checkout' }, { status: 502 });
   }
 }

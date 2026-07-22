@@ -75,8 +75,9 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Database: reads/writes `campaigns.featured`, reads `platform_settings.config.payment.featuredCampaignPriceCents`
   - API: `POST /api/campaigns/[id]/feature`, `GET /api/campaigns/rotator`, `stripe/webhook`
   - UI: `/dashboard/campaigns/[id]` (Feature button), `/admin/settings` (price), homepage `HeroRotator`
-  - Tests: `__tests__/featured.test.ts` 8/8 pass (price resolution + rotator selection). **Pending manual/staging:** Stripe checkout → webhook → featured flip; rotator featured-only cycling; 403 ownership; 400 double-purchase.
+  - Tests: `__tests__/featured.test.ts` 11/11 pass (price resolution, rotator selection, auth/ownership/idempotency metadata, webhook owner binding, paid-state guard, and organizer UI contract). **Pending manual/staging:** Stripe checkout → webhook → featured flip; rotator featured-only cycling; 403 ownership; 400 double-purchase.
   - Completion Evidence: (to fill in during QA — Stripe test session id, webhook event id, `campaigns.featured` DB record, homepage rotator screenshot)
+  - Code Evidence: `__tests__/featured.test.ts` 11/11 pass, covering auth/ownership/idempotency metadata, missing Checkout URL/error redaction, webhook owner binding plus paid-state/one-time guards, and organizer UI state. Live Stripe checkout/webhook/database proof remains pending staging access.
   - Commit: 586fc3a (feature merged via #27)
 
 - [x] CHAR-0001 — **Verified in production** (schema + RLS applied to live Supabase 2026-07-19)
