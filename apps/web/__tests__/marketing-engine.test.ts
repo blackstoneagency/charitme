@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { readFile } from 'node:fs/promises';
 import {
   computeLeadScore,
   computeEngagementScore,
@@ -39,6 +40,13 @@ describe('marketing identity stitching', () => {
     expect(buildIdentityLookupOrder({ anonymousId: 'visitor-1' })).toEqual([
       { kind: 'cookie_id', value: 'visitor-1' },
     ]);
+  });
+
+  it('enforces one marketing contact per authenticated user in Supabase', async () => {
+    const migration = await readFile(new URL('../../../supabase/migrations/20260725050000_marketing_contact_user_uniqueness.sql', import.meta.url), 'utf8');
+    expect(migration).toContain('marketing_contacts_user_id_uq');
+    expect(migration).toContain('on public.marketing_contacts (user_id)');
+    expect(migration).toContain('where user_id is not null');
   });
 });
 
