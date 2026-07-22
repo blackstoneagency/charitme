@@ -996,9 +996,25 @@ Verified · Production Ready. These are grounded in the current codebase
 
 ### Volunteer system
 
-- [ ] **CHAR-1101**
+- [~] **CHAR-1101** — **Mostly built; org accept/decline shipped (2026-07-22)**
   - Area: Volunteers
   - Feature: Volunteer profiles, opportunities & applications
+  - **Already built:** opportunities/apply/withdraw routes + deterministic
+    skill-match scorer (`scoreVolunteerMatch`/`rankVolunteerMatches`) + `/volunteer`
+    marketplace + dashboards, all on live `volunteer_*` tables.
+  - **DONE this session (2026-07-22):** the org approve/decline half was missing —
+    `accepted`/`declined`/`completed` statuses existed but no route set them, and
+    `slots_filled` was never incremented (capacity enforcement was inert). Added a
+    pure application status machine (`canTransitionApplication` w/ applicant|org
+    actors, `orgDecisionsFrom`, `applicationSlotDelta`) + `POST
+    /api/volunteers/applications/[id]/decision` (owner/admin authz, server-side
+    transition validation → 409, capacity enforced on accept, slots_filled ±1 with
+    an optimistic status guard against double-apply). 5 unit tests. Verified:
+    typecheck/lint/schema-contract clean, `next build` compiles (route registered),
+    818 tests pass.
+  - **Remaining (live-gated):** org-side dashboard UI to surface the decision
+    buttons; `volunteer_profiles` self-profile; atomic slot RPC (current
+    read-modify-write matches the apply route's model).
   - Description: Volunteer profile (skills, interests, availability, location);
     orgs post opportunities; volunteers apply; org approves/declines.
   - Agent: 5
