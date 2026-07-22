@@ -118,7 +118,7 @@ export default function MfaPage() {
       />
       <div className="kf-admin-dash" style={{ maxWidth: 560 }}>
         {error && (
-          <div style={{ marginBottom: 16, padding: '12px 16px', background: '#fff0f3', border: '1px solid #ffc0cb', borderRadius: 10, color: '#c0003c', fontSize: 14, fontWeight: 600 }}>
+          <div style={{ marginBottom: 16, padding: '12px 16px', background: 'rgba(255,59,95,.08)', border: '1px solid rgba(255,59,95,.14)', borderRadius: 10, color: 'var(--red)', fontSize: 14, fontWeight: 600 }}>
             {error}
           </div>
         )}
@@ -129,7 +129,7 @@ export default function MfaPage() {
           <div className="kf-setpanel">
             <div className="kf-setpanel-head">
               <div className="kf-setpanel-title">
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg,rgba(109,53,255,.14),var(--violet))', display: 'grid', placeItems: 'center' }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" width={20} height={20} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 </div>
                 <div>
@@ -142,7 +142,7 @@ export default function MfaPage() {
               {factors.length > 0 ? (
                 <div style={{ display: 'grid', gap: 12 }}>
                   {factors.map(f => (
-                    <div key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', border: '1px solid var(--b2)', borderRadius: 10, background: '#f8f9fc' }}>
+                    <div key={f.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', border: '1px solid var(--b2)', borderRadius: 10, background: 'var(--s2)' }}>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 14 }}>{f.friendly_name ?? 'Authenticator'}</div>
                         <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>
@@ -153,7 +153,7 @@ export default function MfaPage() {
                         type="button"
                         disabled={removing === f.id}
                         onClick={() => removeFactor(f.id)}
-                        style={{ height: 34, padding: '0 14px', border: '1px solid #ffc0cb', borderRadius: 8, background: '#fff', color: '#c0003c', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                        style={{ height: 34, padding: '0 14px', border: '1px solid rgba(255,59,95,.14)', borderRadius: 8, background: 'var(--s1)', color: 'var(--red)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
                       >
                         {removing === f.id ? 'Removing…' : 'Remove'}
                       </button>
@@ -167,7 +167,7 @@ export default function MfaPage() {
                   </p>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={qrCode} alt="QR code for authenticator app" style={{ width: 200, height: 200, border: '1px solid var(--b2)', borderRadius: 10, padding: 8 }} />
-                  <div style={{ fontFamily: 'monospace', fontSize: 13, background: '#f8f9fc', padding: '10px 14px', borderRadius: 8, wordBreak: 'break-all', color: 'var(--t2)' }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 13, background: 'var(--s2)', padding: '10px 14px', borderRadius: 8, wordBreak: 'break-all', color: 'var(--t2)' }}>
                     Manual code: <strong>{secret}</strong>
                   </div>
                   <div style={{ display: 'flex', gap: 10 }}>
@@ -184,7 +184,7 @@ export default function MfaPage() {
                       type="button"
                       disabled={verifying}
                       onClick={verifyFactor}
-                      style={{ height: 44, padding: '0 20px', border: 0, borderRadius: 9, background: '#6c35ff', color: '#fff', fontWeight: 650, fontSize: 14, cursor: 'pointer' }}
+                      style={{ height: 44, padding: '0 20px', border: 0, borderRadius: 9, background: 'var(--violet)', color: '#fff', fontWeight: 650, fontSize: 14, cursor: 'pointer' }}
                     >
                       {verifying ? 'Verifying…' : 'Verify'}
                     </button>
@@ -203,7 +203,7 @@ export default function MfaPage() {
                     type="button"
                     disabled={enrolling}
                     onClick={startEnroll}
-                    style={{ height: 44, border: 0, borderRadius: 9, background: 'linear-gradient(135deg,#6c35ff,#551cf2)', color: '#fff', fontWeight: 650, fontSize: 14, cursor: 'pointer', opacity: enrolling ? 0.6 : 1 }}
+                    style={{ height: 44, border: 0, borderRadius: 9, background: 'linear-gradient(135deg,var(--violet),var(--violet))', color: '#fff', fontWeight: 650, fontSize: 14, cursor: 'pointer', opacity: enrolling ? 0.6 : 1 }}
                   >
                     {enrolling ? 'Setting up…' : 'Set Up Authenticator App'}
                   </button>
