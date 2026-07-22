@@ -4,6 +4,30 @@
 > production-readiness program. Section A is the actionable engineering backlog.
 > Section B (further down) is the competitive product vision it serves.
 
+## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
+
+| Goal item | Status | Evidence / blocker |
+|-----------|--------|--------------------|
+| Images unique, 0 duplicates | ✅ done | covers 50→**500 distinct**, 0 dup groups (migration applied live) |
+| ≥100 seed records/feature | ✅ done | 73 non-empty tables, every feature ≥100 |
+| Security (RLS) | ✅ verified | **143/143** public tables RLS-on; **fixed live Stripe webhook + disabled rogue endpoint** |
+| Payment webhooks | ✅ fixed | prod webhook 2→**20 events**; recurring/subs/refunds now delivered |
+| Everything wired to Supabase | 🟢 mostly | core flows + new analytics table verified live |
+| Tests pass / Build succeeds | ✅ | **880/880**, `next build` green, typecheck clean |
+| Accessibility | 🟢 strong | home **100**, how-it-works **100**, campaigns 91→95 (fixed); token contrast AA by design (dev-Lighthouse can't resolve `var()` → false contrast flags; needs prod build to certify) |
+| Frictionless UX | 🟢 improving | draft autosave/recovery + funnel analytics shipped; builder roadmap continues |
+| Mobile | 🟢 | mobile Lighthouse on public pages good; ongoing |
+| Performance | 🟡 needs prod build | dev perf unrepresentative; home was 93 in an earlier prod run |
+| Payment methods end-to-end | 🟡 owner/test-keys | live account charges-enabled, 15+ methods active, price ids resolved; a real paid flow needs Stripe **test** keys or owner go-ahead (ADR-0003) |
+| Every page audited / every feature works | 🟡 ongoing | unbounded; audited builder + discovery + payments deeply |
+
+**Owner actions still blocking full production-readiness:** (1) set Stripe env in
+**Vercel** (`STRIPE_SECRET_KEY`, publishable, `STRIPE_WEBHOOK_SECRET`, 4 price ids,
+tip%); (2) real **`STRIPE_CONNECT_WEBHOOK_SECRET`**; (3) permanently **delete** the
+disabled `eli54u.com` webhook after confirming it's not yours; (4) **rotate all
+shared secrets**; (5) provide **OpenAI** + **Unsplash** keys; (6) decide
+**publish-before-payout** (biggest builder drop-off lever).
+
 > **Payment Workflow Hardening pass (2026-07-21)** — see **Section D** at the end
 > of this file and the companion **`payment-audit.md`** for the exhaustive
 > per-workflow audit + fixes.
