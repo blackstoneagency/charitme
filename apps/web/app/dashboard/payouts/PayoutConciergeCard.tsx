@@ -20,9 +20,9 @@ type ConciergeResult = {
 };
 
 const READINESS_STYLE: Record<Readiness, { label: string; color: string; bg: string }> = {
-  ready:         { label: 'Ready for payout', color: '#079447', bg: '#def7e7' },
-  action_needed: { label: 'Action needed', color: '#f97316', bg: '#fff0dc' },
-  blocked:       { label: 'On hold', color: '#ef4444', bg: '#fee2e2' },
+  ready:         { label: 'Ready for payout', color: 'var(--green-dark)', bg: 'rgba(18,166,83,.14)' },
+  action_needed: { label: 'Action needed', color: '#f97316', bg: 'rgba(245,158,11,.14)' },
+  blocked:       { label: 'On hold', color: 'var(--red)', bg: 'rgba(255,59,95,.1)' },
 };
 
 export default function PayoutConciergeCard({ campaigns }: Props) {
@@ -59,18 +59,18 @@ export default function PayoutConciergeCard({ campaigns }: Props) {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {campaigns.length > 1 && (
             <select value={campaignId} onChange={e => { setCampaignId(e.target.value); setResult(null); }}
-              style={{ height: 36, border: '1px solid var(--b2)', borderRadius: 8, padding: '0 10px', fontSize: 13, background: '#fff' }}>
+              style={{ height: 36, border: '1px solid var(--b2)', borderRadius: 8, padding: '0 10px', fontSize: 13, background: 'var(--s1)' }}>
               {campaigns.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
           )}
           <button type="button" onClick={() => void handleCheck()} disabled={loading}
-            style={{ height: 36, padding: '0 16px', borderRadius: 8, border: 'none', background: loading ? 'var(--b2)' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: loading ? 'wait' : 'pointer' }}>
+            style={{ height: 36, padding: '0 16px', borderRadius: 8, border: 'none', background: loading ? 'var(--b2)' : 'linear-gradient(135deg,var(--violet),#4d1ee0)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: loading ? 'wait' : 'pointer' }}>
             {loading ? 'Checking…' : 'Check payout status'}
           </button>
         </div>
       </div>
 
-      {error && <div style={{ padding: '10px 14px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 8, color: '#be123c', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>⚠ {error}</div>}
+      {error && <div style={{ padding: '10px 14px', background: 'rgba(255,59,95,.08)', border: '1px solid rgba(255,59,95,.28)', borderRadius: 8, color: 'var(--red)', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>⚠ {error}</div>}
 
       {!result && !error && (
         <p style={{ fontSize: 13, color: 'var(--t3)', margin: 0 }}>
@@ -87,7 +87,7 @@ export default function PayoutConciergeCard({ campaigns }: Props) {
             <span style={{ fontSize: 13, color: 'var(--t3)' }}>Available balance: <strong style={{ color: 'var(--t1)' }}>{fmt(result.availableCents)}</strong></span>
           </div>
 
-          <div style={{ fontSize: 13.5, color: '#4338ca', background: '#f5f3ff', border: '1px solid #ede9fe', borderRadius: 8, padding: '10px 14px', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 13.5, color: 'var(--violet)', background: 'rgba(109,53,255,.08)', border: '1px solid rgba(109,53,255,.18)', borderRadius: 8, padding: '10px 14px', lineHeight: 1.5 }}>
             {result.message}
           </div>
 
@@ -99,7 +99,7 @@ export default function PayoutConciergeCard({ campaigns }: Props) {
                   <Link key={b.code} href={b.actionUrl}
                     style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--b1)', textDecoration: 'none', color: 'var(--t1)' }}>
                     {b.label}
-                    <span style={{ color: '#6c35ff', fontWeight: 700, fontSize: 12 }}>Resolve →</span>
+                    <span style={{ color: 'var(--violet)', fontWeight: 700, fontSize: 12 }}>Resolve →</span>
                   </Link>
                 ))}
               </div>

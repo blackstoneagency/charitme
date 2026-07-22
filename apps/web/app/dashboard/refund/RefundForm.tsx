@@ -89,8 +89,8 @@ export default function RefundForm({
     return (
       <div
         style={{
-          background: 'var(--green-light, #f0fff8)',
-          border: '1.5px solid var(--b1, #bbf7d0)',
+          background: 'var(--green-light, rgba(18,166,83,.12))',
+          border: '1.5px solid var(--b1, rgba(18,166,83,.28))',
           borderRadius: 14,
           padding: '32px 28px',
           textAlign: 'center',
@@ -98,10 +98,10 @@ export default function RefundForm({
         }}
       >
         <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
-        <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 650, color: '#064e3b' }}>
+        <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 650, color: 'var(--green-dark)' }}>
           Refund request submitted
         </h2>
-        <p style={{ fontSize: 14, color: 'var(--green-dark, #065f46)', margin: '0 0 24px', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 14, color: 'var(--green-dark, var(--green-dark))', margin: '0 0 24px', lineHeight: 1.6 }}>
           Our team will review your request and respond within 3–5 business days.
           You&apos;ll receive an email when there&apos;s an update.
         </p>
@@ -111,7 +111,7 @@ export default function RefundForm({
             style={{
               padding: '10px 22px',
               borderRadius: 9,
-              background: '#19b86a',
+              background: 'var(--green)',
               color: '#fff',
               fontSize: 13,
               fontWeight: 700,
@@ -202,7 +202,7 @@ export default function RefundForm({
                   border: `1.5px solid ${isSelected && !disabled ? 'var(--green)' : 'var(--b2)'}`,
                   borderRadius: 10,
                   cursor: disabled ? 'not-allowed' : 'pointer',
-                  background: isSelected && !disabled ? 'var(--green-light, #f0fff8)' : 'var(--s1)',
+                  background: isSelected && !disabled ? 'var(--green-light, rgba(18,166,83,.12))' : 'var(--s1)',
                   opacity: disabled ? 0.55 : 1,
                   transition: 'border-color .15s, background .15s',
                 }}
@@ -265,7 +265,7 @@ export default function RefundForm({
                       <span
                         style={{
                           background: 'rgba(190,18,60,.08)',
-                          color: 'var(--red, #b91c1c)',
+                          color: 'var(--red, var(--red))',
                           padding: '1px 8px',
                           borderRadius: 6,
                           fontWeight: 700,
@@ -327,7 +327,7 @@ export default function RefundForm({
             borderRadius: 10,
             padding: '12px 16px',
             fontSize: 13,
-            color: 'var(--red, #991b1b)',
+            color: 'var(--red, var(--red))',
             fontWeight: 600,
           }}
         >
@@ -344,7 +344,7 @@ export default function RefundForm({
             borderRadius: 10,
             padding: '12px 16px',
             fontSize: 13,
-            color: 'var(--red, #be123c)',
+            color: 'var(--red, var(--red))',
             fontWeight: 600,
           }}
         >
@@ -373,7 +373,7 @@ export default function RefundForm({
             background:
               submitting || !eligible || !reason.trim() || overLimit
                 ? 'rgba(108,53,255,.4)'
-                : 'linear-gradient(135deg, var(--violet, #6c35ff), #4d1ee0)',
+                : 'linear-gradient(135deg, var(--violet, var(--violet)), #4d1ee0)',
             color: '#fff',
             fontWeight: 650,
             fontSize: 14,

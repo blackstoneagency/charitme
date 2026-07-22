@@ -43,13 +43,13 @@ export default function CancelRecurringPage() {
       <CharitMeShell active="Recurring">
         <TopBar title="Subscription Cancelled" subtitle="" />
         <div className="kf-admin-dash" style={{ maxWidth: 500 }}>
-          <div style={{ background: '#f0fff8', border: '1.5px solid #bbf7d0', borderRadius: 14, padding: '32px 28px', textAlign: 'center' }}>
+          <div style={{ background: 'rgba(18,166,83,.12)', border: '1.5px solid rgba(18,166,83,.28)', borderRadius: 14, padding: '32px 28px', textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
-            <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: '#064e3b' }}>Cancellation confirmed</h2>
-            <p style={{ fontSize: 14, color: '#065f46', margin: '0 0 20px', lineHeight: 1.6 }}>
+            <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: 'var(--green-dark)' }}>Cancellation confirmed</h2>
+            <p style={{ fontSize: 14, color: 'var(--green-dark)', margin: '0 0 20px', lineHeight: 1.6 }}>
               Your recurring donation has been cancelled. You won&apos;t be charged again. Your final billing period access continues until its end date.
             </p>
-            <button onClick={() => router.push('/dashboard/recurring')} style={{ padding: '10px 28px', background: '#19b86a', color: '#fff', border: 0, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            <button onClick={() => router.push('/dashboard/recurring')} style={{ padding: '10px 28px', background: 'var(--green)', color: '#fff', border: 0, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
               Back to Recurring
             </button>
           </div>
@@ -69,13 +69,13 @@ export default function CancelRecurringPage() {
             You will not be charged again. Your current billing period continues until its end date.
             The campaign organiser will no longer receive your monthly support.
           </p>
-          {error && <p style={{ color: '#be123c', fontSize: 13, fontWeight: 600, marginBottom: 16 }}>⚠ {error}</p>}
+          {error && <p style={{ color: 'var(--red)', fontSize: 13, fontWeight: 600, marginBottom: 16 }}>⚠ {error}</p>}
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={() => void handleCancel()} disabled={loading}
-              style={{ padding: '12px 28px', background: loading ? 'var(--b2)' : '#ef4444', color: '#fff', border: 0, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: loading ? 'wait' : 'pointer' }}>
+              style={{ padding: '12px 28px', background: loading ? 'var(--b2)' : 'var(--red)', color: '#fff', border: 0, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: loading ? 'wait' : 'pointer' }}>
               {loading ? 'Cancelling…' : 'Yes, cancel subscription'}
             </button>
-            <Link href="/dashboard/recurring" style={{ padding: '12px 28px', border: '1px solid var(--b2)', borderRadius: 10, background: '#fff', color: 'var(--t1)', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
+            <Link href="/dashboard/recurring" style={{ padding: '12px 28px', border: '1px solid var(--b2)', borderRadius: 10, background: 'var(--s1)', color: 'var(--t1)', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
               Keep subscription
             </Link>
           </div>

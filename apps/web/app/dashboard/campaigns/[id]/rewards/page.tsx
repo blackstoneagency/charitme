@@ -102,7 +102,7 @@ export default function CampaignRewardsPage({ params }: { params: Promise<{ id: 
       />
 
       <div className="kf-admin-dash" style={{ maxWidth: 720 }}>
-        {error && <div style={{ padding: '12px 16px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 10, color: '#be123c', fontSize: 14, fontWeight: 600 }}>⚠ {error}</div>}
+        {error && <div style={{ padding: '12px 16px', background: 'rgba(255,59,95,.08)', border: '1px solid rgba(255,59,95,.28)', borderRadius: 10, color: 'var(--red)', fontSize: 14, fontWeight: 600 }}>⚠ {error}</div>}
 
         {/* Existing rewards */}
         {rewards.length > 0 && (
@@ -140,12 +140,12 @@ export default function CampaignRewardsPage({ params }: { params: Promise<{ id: 
         <section className="kf-card" style={{ padding: 24 }}>
           <h2 style={{ fontSize: 14, fontWeight: 800, margin: '0 0 16px' }}>Add a Reward Tier</h2>
           <div style={{ display: 'grid', gap: 14 }}>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: '#26335c' }}>
+            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
               Title
               <input value={newTitle} onChange={e => setNewTitle(e.target.value)} maxLength={200}
                 placeholder="e.g. Hand-written thank-you card" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
             </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: '#26335c' }}>
+            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
               Minimum pledge amount
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: 12, top: 0, bottom: 0, display: 'flex', alignItems: 'center', color: 'var(--t3)', fontWeight: 800 }}>{currencySymbol(currency)}</span>
@@ -153,25 +153,25 @@ export default function CampaignRewardsPage({ params }: { params: Promise<{ id: 
                   placeholder="25" style={{ width: '100%', boxSizing: 'border-box', height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px 0 26px', fontSize: 14 }} />
               </div>
             </label>
-            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: '#26335c' }}>
+            <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
               Description (optional)
               <textarea value={newDescription} onChange={e => setNewDescription(e.target.value)} rows={3} maxLength={1000}
                 placeholder="What does the donor get for this pledge?" style={{ border: '1px solid var(--b2)', borderRadius: 9, padding: '10px 12px', fontSize: 14, resize: 'vertical', lineHeight: 1.6 }} />
             </label>
             <div className="kf-two-col" style={{ gap: 14 }}>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: '#26335c' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
                 Estimated delivery (optional)
                 <input value={newDelivery} onChange={e => setNewDelivery(e.target.value)} maxLength={100}
                   placeholder="e.g. August 2026" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: '#26335c' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>
                 Quantity available (optional)
                 <input value={newLimit} onChange={e => setNewLimit(e.target.value)} type="number" min="1" step="1"
                   placeholder="Unlimited" style={{ height: 42, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14 }} />
               </label>
             </div>
             <button type="button" onClick={() => void addReward()} disabled={saving || !newTitle.trim()}
-              style={{ height: 44, border: 0, borderRadius: 10, background: saving ? 'var(--b2)' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)', color: '#fff', fontWeight: 800, fontSize: 14, cursor: saving ? 'wait' : 'pointer' }}>
+              style={{ height: 44, border: 0, borderRadius: 10, background: saving ? 'var(--b2)' : 'linear-gradient(135deg,var(--violet),#4d1ee0)', color: '#fff', fontWeight: 800, fontSize: 14, cursor: saving ? 'wait' : 'pointer' }}>
               {saving ? 'Adding…' : 'Add Reward Tier'}
             </button>
           </div>

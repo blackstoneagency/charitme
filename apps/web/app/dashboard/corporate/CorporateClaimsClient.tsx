@@ -14,10 +14,10 @@ export interface ClaimRow {
 }
 
 const STATUS_TONE: Record<ClaimRow['status'], { bg: string; fg: string; label: string }> = {
-  pending:  { bg: '#fff7ed', fg: '#c2410c', label: 'Pending' },
-  approved: { bg: '#eff6ff', fg: '#1d4ed8', label: 'Approved' },
-  paid:     { bg: '#f0fdf4', fg: '#15803d', label: 'Paid' },
-  declined: { bg: '#fef2f2', fg: '#b91c1c', label: 'Declined' },
+  pending:  { bg: 'rgba(245,158,11,.1)', fg: '#c2410c', label: 'Pending' },
+  approved: { bg: 'rgba(40,120,255,.1)', fg: 'var(--blue)', label: 'Approved' },
+  paid:     { bg: 'rgba(18,166,83,.12)', fg: 'var(--green-dark)', label: 'Paid' },
+  declined: { bg: 'rgba(255,59,95,.08)', fg: 'var(--red)', label: 'Declined' },
 };
 
 // Sponsor-side review of matching-gift claims. Uses the existing
@@ -51,13 +51,13 @@ export default function CorporateClaimsClient({ claims, currency }: { claims: Cl
   };
 
   if (rows.length === 0) {
-    return <p style={{ padding: '16px 0', color: 'var(--t3, #64748b)', fontSize: 14 }}>No match claims yet.</p>;
+    return <p style={{ padding: '16px 0', color: 'var(--t3, var(--t3))', fontSize: 14 }}>No match claims yet.</p>;
   }
 
   return (
     <div>
       {error && (
-        <div style={{ padding: '10px 14px', borderRadius: 8, marginBottom: 12, fontSize: 13, fontWeight: 600, background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
+        <div style={{ padding: '10px 14px', borderRadius: 8, marginBottom: 12, fontSize: 13, fontWeight: 600, background: 'rgba(255,59,95,.08)', color: 'var(--red)', border: '1px solid rgba(255,59,95,.28)' }}>
           {error}
         </div>
       )}
@@ -65,18 +65,18 @@ export default function CorporateClaimsClient({ claims, currency }: { claims: Cl
         {rows.map((r) => {
           const tone = STATUS_TONE[r.status];
           return (
-            <div key={r.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, padding: '12px 14px', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 12, background: 'var(--s1, #fff)' }}>
+            <div key={r.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, padding: '12px 14px', border: '1px solid var(--b1, var(--b1))', borderRadius: 12, background: 'var(--s1, #fff)' }}>
               <div style={{ flex: '1 1 180px', minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1, #1a1a2e)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1, var(--t1))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {r.employee_name || r.employee_email || 'Employee'}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--t3, #64748b)' }}>
+                <div style={{ fontSize: 12, color: 'var(--t3, var(--t3))' }}>
                   {new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </div>
               </div>
               <div style={{ textAlign: 'right', minWidth: 92 }}>
-                <div style={{ fontSize: 12, color: 'var(--t3, #64748b)' }}>Donation {fmt(r.donation_amount_cents)}</div>
-                <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--green-text, #15803d)' }}>Match {fmt(r.match_amount_cents)}</div>
+                <div style={{ fontSize: 12, color: 'var(--t3, var(--t3))' }}>Donation {fmt(r.donation_amount_cents)}</div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--green-text, var(--green-dark))' }}>Match {fmt(r.match_amount_cents)}</div>
               </div>
               <span style={{ fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: tone.bg, color: tone.fg }}>
                 {tone.label}
@@ -85,18 +85,18 @@ export default function CorporateClaimsClient({ claims, currency }: { claims: Cl
                 {r.status === 'pending' && (
                   <>
                     <button type="button" disabled={busy === r.id} onClick={() => act(r.id, 'approved')}
-                      style={{ padding: '8px 14px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: busy === r.id ? 'not-allowed' : 'pointer', opacity: busy === r.id ? 0.6 : 1 }}>
+                      style={{ padding: '8px 14px', borderRadius: 9, border: 'none', background: 'var(--green)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: busy === r.id ? 'not-allowed' : 'pointer', opacity: busy === r.id ? 0.6 : 1 }}>
                       Approve
                     </button>
                     <button type="button" disabled={busy === r.id} onClick={() => act(r.id, 'declined')}
-                      style={{ padding: '8px 14px', borderRadius: 9, border: '1.5px solid var(--b1, #e8ecf4)', background: 'var(--s1, #fff)', color: 'var(--t2, #334064)', fontWeight: 700, fontSize: 13, cursor: busy === r.id ? 'not-allowed' : 'pointer', opacity: busy === r.id ? 0.6 : 1 }}>
+                      style={{ padding: '8px 14px', borderRadius: 9, border: '1.5px solid var(--b1, var(--b1))', background: 'var(--s1, #fff)', color: 'var(--t2, var(--t2))', fontWeight: 700, fontSize: 13, cursor: busy === r.id ? 'not-allowed' : 'pointer', opacity: busy === r.id ? 0.6 : 1 }}>
                       Decline
                     </button>
                   </>
                 )}
                 {r.status === 'approved' && (
                   <button type="button" disabled={busy === r.id} onClick={() => act(r.id, 'paid')}
-                    style={{ padding: '8px 14px', borderRadius: 9, border: 'none', background: '#6c35ff', color: '#fff', fontWeight: 700, fontSize: 13, cursor: busy === r.id ? 'not-allowed' : 'pointer', opacity: busy === r.id ? 0.6 : 1 }}>
+                    style={{ padding: '8px 14px', borderRadius: 9, border: 'none', background: 'var(--violet)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: busy === r.id ? 'not-allowed' : 'pointer', opacity: busy === r.id ? 0.6 : 1 }}>
                     Mark paid
                   </button>
                 )}

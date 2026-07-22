@@ -41,7 +41,7 @@ function fmtDate(iso: string): string {
   });
 }
 
-const AVATAR_COLORS = ['#6c35ff', '#19b86a', '#2f80ed', '#ec3fb4', '#f59e0b'];
+const AVATAR_COLORS = ['var(--violet)', 'var(--green)', 'var(--blue)', '#ec3fb4', '#f59e0b'];
 
 function initials(name: string): string {
   return name
@@ -316,9 +316,9 @@ export default async function DonorsPage({
                       href={isActive ? `?tab=${activeTab}` : `?tab=${activeTab}&tag=${encodeURIComponent(tag)}`}
                       style={{
                         fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 12, textDecoration: 'none',
-                        background: isActive ? '#6c35ff' : 'var(--s2)',
+                        background: isActive ? 'var(--violet)' : 'var(--s2)',
                         color: isActive ? '#fff' : 'var(--t2)',
-                        border: isActive ? '1px solid #6c35ff' : '1px solid var(--b1)',
+                        border: isActive ? '1px solid var(--violet)' : '1px solid var(--b1)',
                       }}
                     >
                       {tag}{isActive ? ' ×' : ''}

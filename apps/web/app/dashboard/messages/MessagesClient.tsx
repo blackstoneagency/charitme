@@ -58,7 +58,7 @@ function isUnread(thread: Thread, state?: ThreadState): boolean {
   return new Date(latest.created_at).getTime() > new Date(state.lastReadAt).getTime();
 }
 
-const COLORS = ['#6c35ff', '#19b86a', '#2f80ed', '#ec3fb4', '#f59e0b'];
+const COLORS = ['var(--violet)', 'var(--green)', 'var(--blue)', '#ec3fb4', '#f59e0b'];
 
 function Avatar({ name, idx }: { name: string; idx: number }) {
   return (
@@ -274,7 +274,7 @@ export default function MessagesClient({ threads, campaignMap, replies, threadSt
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <strong style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     {thread.donorName}
-                    {unread && <span aria-label="Unread" style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--violet, #6c35ff)', flexShrink: 0 }} />}
+                    {unread && <span aria-label="Unread" style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--violet, var(--violet))', flexShrink: 0 }} />}
                   </strong>
                   {latest && (
                     <p style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180, fontSize: 13, color: 'var(--t3)' }}>
@@ -350,7 +350,7 @@ export default function MessagesClient({ threads, campaignMap, replies, threadSt
                     {r.message}
                     <small>{fmtDate(r.created_at)}</small>
                   </p>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#6c35ff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--violet)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
                     Me
                   </div>
                 </div>
@@ -360,7 +360,7 @@ export default function MessagesClient({ threads, campaignMap, replies, threadSt
 
             {/* Composer */}
             {sendError && (
-              <div style={{ padding: '6px 20px', fontSize: 12, color: '#c0003c', fontWeight: 600 }}>
+              <div style={{ padding: '6px 20px', fontSize: 12, color: 'var(--red)', fontWeight: 600 }}>
                 {sendError}
               </div>
             )}

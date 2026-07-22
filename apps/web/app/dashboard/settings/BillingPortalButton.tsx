@@ -35,7 +35,7 @@ export default function BillingPortalButton() {
           fontSize: 13,
           fontWeight: 700,
           border: '1px solid var(--b2)',
-          background: '#fff',
+          background: 'var(--s1)',
           color: 'var(--t1)',
           borderRadius: 'var(--r)',
           padding: '10px 20px',

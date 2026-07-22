@@ -482,9 +482,9 @@ export default async function DashboardPage({
   const db = data.donorBreakdown;
   const pct = (n: number) => (db.total > 0 ? Math.round((n / db.total) * 100) : 0);
   const donorSegments = [
-    { name: 'Returning Donors', count: db.returningCount, percent: pct(db.returningCount), color: '#6c35ff' },
+    { name: 'Returning Donors', count: db.returningCount, percent: pct(db.returningCount), color: 'var(--violet)' },
     { name: 'New Donors',       count: db.newCount,       percent: pct(db.newCount),       color: '#ec3fb4' },
-    { name: 'Anonymous',        count: db.anonymousCount, percent: pct(db.anonymousCount), color: '#a9afc2' },
+    { name: 'Anonymous',        count: db.anonymousCount, percent: pct(db.anonymousCount), color: 'var(--t3)' },
   ];
   let cursor = 0;
   const donutStops = donorSegments
@@ -494,7 +494,7 @@ export default async function DashboardPage({
       return `${seg.color} ${start}% ${cursor}%`;
     })
     .join(', ');
-  const donutBackground = db.total > 0 ? `conic-gradient(${donutStops})` : '#eee9ff';
+  const donutBackground = db.total > 0 ? `conic-gradient(${donutStops})` : 'rgba(109,53,255,.14)';
 
   // Growth strip values
   const g = data.growthCounts;
@@ -506,7 +506,7 @@ export default async function DashboardPage({
           <div>
             <h1>
               Welcome back, {data.firstName}!{' '}
-              <span aria-hidden="true">&#128075;</span>
+              <span aria-hidden="true">&var(--green-dark);</span>
             </h1>
             <p>Here&apos;s what&apos;s happening with your campaigns.</p>
           </div>
@@ -561,15 +561,15 @@ export default async function DashboardPage({
                           y1="0"
                           y2="1"
                         >
-                          <stop stopColor="#6c35ff" stopOpacity=".18" />
-                          <stop offset="1" stopColor="#6c35ff" stopOpacity="0" />
+                          <stop stopColor="var(--violet)" stopOpacity=".18" />
+                          <stop offset="1" stopColor="var(--violet)" stopOpacity="0" />
                         </linearGradient>
                       </defs>
                       <path d={chart.areaPath} fill="url(#dashPerf)" />
                       <path
                         d={chart.linePath}
                         fill="none"
-                        stroke="#7035ff"
+                        stroke="var(--violet)"
                         strokeWidth="5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -580,7 +580,7 @@ export default async function DashboardPage({
                           cx={pt.x}
                           cy={pt.y}
                           r="7"
-                          fill="#7035ff"
+                          fill="var(--violet)"
                           stroke="#fff"
                           strokeWidth="4"
                         />

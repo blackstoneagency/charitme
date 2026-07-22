@@ -59,7 +59,7 @@ export default async function CorporateDashboardPage() {
             <p style={{ marginTop: 12, fontWeight: 700, color: 'var(--t1)' }}>
               You don&apos;t run a matching-gift program yet.
             </p>
-            <p style={{ marginTop: 4, fontSize: 14, color: 'var(--t3, #64748b)' }}>
+            <p style={{ marginTop: 4, fontSize: 14, color: 'var(--t3, var(--t3))' }}>
               Companies that sponsor a matching program appear here to review and
               approve employee match claims.
             </p>
@@ -106,9 +106,9 @@ function ProgramSection({
   claims: ClaimRow[];
 }) {
   const statusTone =
-    status === 'active' ? { bg: '#f0fdf4', fg: '#15803d' } :
-    status === 'paused' ? { bg: '#fff7ed', fg: '#c2410c' } :
-    { bg: '#f1f5f9', fg: '#475569' };
+    status === 'active' ? { bg: 'rgba(18,166,83,.12)', fg: 'var(--green-dark)' } :
+    status === 'paused' ? { bg: 'rgba(245,158,11,.1)', fg: '#c2410c' } :
+    { bg: 'var(--s2)', fg: 'var(--t3)' };
 
   return (
     <section className="kf-card">
@@ -117,13 +117,13 @@ function ProgramSection({
         <span style={{ fontSize: 12, fontWeight: 800, padding: '3px 10px', borderRadius: 999, background: statusTone.bg, color: statusTone.fg, textTransform: 'capitalize' }}>
           {status}
         </span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3, #64748b)' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3, var(--t3))' }}>
           {matchRatio}× match
         </span>
       </div>
 
       {description && (
-        <p style={{ margin: '0 0 12px', fontSize: 13.5, color: 'var(--t2, #334064)', lineHeight: 1.5 }}>{description}</p>
+        <p style={{ margin: '0 0 12px', fontSize: 13.5, color: 'var(--t2, var(--t2))', lineHeight: 1.5 }}>{description}</p>
       )}
 
       <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', margin: '4px 0 16px', fontSize: 13 }}>
@@ -141,8 +141,8 @@ function ProgramSection({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3, #94a3b8)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
-      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1, #1a1a2e)' }}>{value}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3, var(--t3))', textTransform: 'uppercase', letterSpacing: '.05em' }}>{label}</div>
+      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1, var(--t1))' }}>{value}</div>
     </div>
   );
 }

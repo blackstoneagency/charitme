@@ -205,8 +205,8 @@ export default async function AnalyticsPage({
             >
               <defs>
                 <linearGradient id="analyticsFill" x1="0" x2="0" y1="0" y2="1">
-                  <stop stopColor="#6c35ff" stopOpacity="0.2" />
-                  <stop offset="1" stopColor="#6c35ff" stopOpacity="0" />
+                  <stop stopColor="var(--violet)" stopOpacity="0.2" />
+                  <stop offset="1" stopColor="var(--violet)" stopOpacity="0" />
                 </linearGradient>
               </defs>
               {/* Grid lines */}
@@ -219,7 +219,7 @@ export default async function AnalyticsPage({
                     y1={y}
                     x2={SVG_W - CHART_PADDING_X}
                     y2={y}
-                    stroke="#eef0f7"
+                    stroke="var(--b1)"
                     strokeWidth="1"
                   />
                 );
@@ -230,7 +230,7 @@ export default async function AnalyticsPage({
               <polyline
                 points={polylinePoints}
                 fill="none"
-                stroke="#6c35ff"
+                stroke="var(--violet)"
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -242,7 +242,7 @@ export default async function AnalyticsPage({
                   cx={p.x}
                   cy={p.y}
                   r="6"
-                  fill="#6c35ff"
+                  fill="var(--violet)"
                   stroke="#fff"
                   strokeWidth="3"
                 />
@@ -255,7 +255,7 @@ export default async function AnalyticsPage({
                   y={SVG_H + 32}
                   textAnchor="middle"
                   fontSize="11"
-                  fill="#a9afc2"
+                  fill="var(--t3)"
                 >
                   {p.label}
                 </text>
@@ -372,7 +372,7 @@ export default async function AnalyticsPage({
                     }))
                     .sort((a, b) => b.total - a.total);
                   const maxTotal = Math.max(...bycamp.map(c => c.total), 1);
-                  const colors = ['#6c35ff', '#19b86a', '#2f80ed', '#f59e0b', '#ec3fb4'];
+                  const colors = ['var(--violet)', 'var(--green)', 'var(--blue)', '#f59e0b', '#ec3fb4'];
                   return bycamp.slice(0, 5).map((c, idx) => {
                     const barPct = (c.total / maxTotal) * 100;
                     return (
@@ -404,7 +404,7 @@ export default async function AnalyticsPage({
                 .slice(0, 5)
                 .map((b, idx) => {
                   const barPct = maxVal > 0 ? (b.total / maxVal) * 100 : 0;
-                  const colors = ['#6c35ff', '#19b86a', '#2f80ed', '#f59e0b', '#ec3fb4'];
+                  const colors = ['var(--violet)', 'var(--green)', 'var(--blue)', '#f59e0b', '#ec3fb4'];
                   return (
                     <div
                       key={b.day}
@@ -426,7 +426,7 @@ export default async function AnalyticsPage({
                           style={{
                             height: '100%',
                             width: `${barPct}%`,
-                            background: colors[idx] ?? '#6c35ff',
+                            background: colors[idx] ?? 'var(--violet)',
                             borderRadius: 4,
                           }}
                         />
