@@ -5,6 +5,8 @@ import { supabaseAdmin } from '../../lib/supabase';
 import { getCoverForCampaign, unsplash } from '../../lib/photo-catalog';
 import { attachCampaignCurrencies } from '../../lib/home-data';
 import { currencySymbol } from '@shared/currencies';
+import { safeJsonLd } from '../../lib/json-ld';
+import { CHARITME_ORIGIN } from '../../lib/public-routes';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,9 +85,23 @@ export default async function SuccessStoriesPage() {
 
   const featured = stories[0] ?? null;
   const gridStories = stories.slice(featured ? 1 : 0);
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'CharitMe fundraising success stories',
+    url: `${CHARITME_ORIGIN}/success-stories`,
+    itemListElement: stories.map((story, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: `${CHARITME_ORIGIN}/campaigns/${story.slug}`,
+      name: story.title,
+    })),
+  };
 
   return (
-    <div style={{ background: 'var(--bg, #f8f7ff)', minHeight: '100vh' }}>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListJsonLd) }} />
+      <div style={{ background: 'var(--bg, #f8f7ff)', minHeight: '100vh' }}>
 
       {/* ── Dark Hero ── */}
       <section style={{
@@ -341,6 +357,7 @@ export default async function SuccessStoriesPage() {
         </div>
       </section>
 
-    </div>
+      </div>
+    </>
   );
 }

@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { getOpportunityBySlug } from '../../../lib/volunteers-server';
 import { hasOpenSlots } from '../../../lib/volunteers';
 import { Badge } from '../../../components/ui';
+import { safeJsonLd } from '../../../lib/json-ld';
+import { CHARITME_ORIGIN } from '../../../lib/public-routes';
 import VolunteerApplyButton from './VolunteerApplyButton';
 
 export const dynamic = 'force-dynamic';
@@ -25,9 +27,31 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
   if (!opp) notFound();
 
   const full = !hasOpenSlots(opp);
+  const volunteerJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'VolunteerAction',
+    name: opp.title,
+    description: opp.description ?? opp.summary ?? `Volunteer with ${opp.org_name}.`,
+    url: `${CHARITME_ORIGIN}/volunteer/${opp.slug}`,
+    actionStatus: full ? 'https://schema.org/CompletedActionStatus' : 'https://schema.org/PotentialActionStatus',
+    startTime: opp.starts_at ?? undefined,
+    endTime: opp.ends_at ?? undefined,
+    location: opp.is_remote
+      ? { '@type': 'VirtualLocation', name: 'Remote' }
+      : opp.location || opp.country
+        ? { '@type': 'Place', name: opp.location ?? opp.country }
+        : undefined,
+    organizer: {
+      '@type': 'Organization',
+      name: opp.org_name,
+    },
+    skills: opp.skills.length > 0 ? opp.skills : undefined,
+  };
 
   return (
-    <div className="container" style={{ padding: '32px 24px', maxWidth: 980 }}>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(volunteerJsonLd) }} />
+      <div className="container" style={{ padding: '32px 24px', maxWidth: 980 }}>
       <Link href="/volunteer" style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)' }}>← All opportunities</Link>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start', marginTop: 16 }}>
@@ -101,6 +125,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
           </p>
         </aside>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

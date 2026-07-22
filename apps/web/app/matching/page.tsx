@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { formatMoneyShort } from '@shared/currencies';
 import { Badge, EmptyState } from '../../components/ui';
 import { listActivePrograms } from '../../lib/matching';
+import { safeJsonLd } from '../../lib/json-ld';
+import { CHARITME_ORIGIN } from '../../lib/public-routes';
 
 export const metadata: Metadata = {
   title: 'Corporate Matching Gifts — Double Your Impact',
@@ -14,9 +16,23 @@ export const dynamic = 'force-dynamic';
 
 export default async function MatchingPage() {
   const programs = await listActivePrograms();
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Corporate matching gift programs on CharitMe',
+    url: `${CHARITME_ORIGIN}/matching`,
+    itemListElement: programs.map((program, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: `${CHARITME_ORIGIN}/matching/${program.id}`,
+      name: `${program.company_name} matching gifts`,
+    })),
+  };
 
   return (
-    <div className="container" style={{ padding: '40px 24px' }}>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListJsonLd) }} />
+      <div className="container" style={{ padding: '40px 24px' }}>
       <div style={{ marginBottom: '28px' }}>
         <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px' }}>🏢 Matching Gifts</h1>
         <p style={{ color: 'var(--t3)', fontSize: '15px', maxWidth: 640 }}>
@@ -73,6 +89,7 @@ export default async function MatchingPage() {
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

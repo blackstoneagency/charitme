@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getGrantBySlug, getGrantDeadlines } from '../../../lib/grants-server';
 import { Badge } from '../../../components/ui';
+import { safeJsonLd } from '../../../lib/json-ld';
+import { CHARITME_ORIGIN } from '../../../lib/public-routes';
 import ApplyButton from './ApplyButton';
 
 export const dynamic = 'force-dynamic';
@@ -36,9 +38,37 @@ export default async function GrantDetailPage({ params }: { params: Promise<{ sl
   if (!grant) notFound();
 
   const deadlines = await getGrantDeadlines(grant.id);
+  const grantJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Offer',
+    name: grant.title,
+    description: grant.description ?? grant.summary ?? `Grant opportunity from ${grant.funder_name}.`,
+    url: `${CHARITME_ORIGIN}/grants/${grant.slug}`,
+    category: grant.category ?? undefined,
+    availability: 'https://schema.org/InStock',
+    priceCurrency: grant.currency,
+    priceSpecification: {
+      '@type': 'PriceSpecification',
+      minPrice: grant.amount_min == null ? undefined : Math.round(grant.amount_min / 100),
+      maxPrice: grant.amount_max == null ? undefined : Math.round(grant.amount_max / 100),
+      priceCurrency: grant.currency,
+    },
+    validThrough: grant.deadline_at ?? undefined,
+    areaServed: grant.country || grant.location || undefined,
+    eligibleCustomerType: grant.eligible_entity_types.length > 0 ? grant.eligible_entity_types : undefined,
+    offeredBy: {
+      '@type': 'Organization',
+      name: grant.funder_name,
+    },
+    potentialAction: grant.application_url
+      ? { '@type': 'ApplyAction', target: grant.application_url }
+      : undefined,
+  };
 
   return (
-    <div className="container" style={{ padding: '32px 24px', maxWidth: 980 }}>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(grantJsonLd) }} />
+      <div className="container" style={{ padding: '32px 24px', maxWidth: 980 }}>
       <Link href="/grants" style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)' }}>← All grants</Link>
 
       <div style={{ marginTop: 16 }}>
@@ -140,6 +170,7 @@ export default async function GrantDetailPage({ params }: { params: Promise<{ sl
           </aside>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

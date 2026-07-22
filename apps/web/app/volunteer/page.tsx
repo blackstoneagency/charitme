@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { getPublicOpportunities, getVolunteerCategories } from '../../lib/volunteers-server';
+import { safeJsonLd } from '../../lib/json-ld';
+import { CHARITME_ORIGIN } from '../../lib/public-routes';
 import VolunteerClient from './VolunteerClient';
 
 export const metadata: Metadata = {
@@ -22,9 +24,23 @@ export default async function VolunteerPage() {
     getPublicOpportunities(48),
     getVolunteerCategories(),
   ]);
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Volunteer opportunities on CharitMe',
+    url: `${CHARITME_ORIGIN}/volunteer`,
+    itemListElement: opportunities.map((opportunity, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: `${CHARITME_ORIGIN}/volunteer/${opportunity.slug}`,
+      name: opportunity.title,
+    })),
+  };
 
   return (
-    <div className="container" style={{ padding: '40px 24px', maxWidth: 1200 }}>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListJsonLd) }} />
+      <div className="container" style={{ padding: '40px 24px', maxWidth: 1200 }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 'clamp(24px, 5vw, 32px)', fontWeight: 900, margin: 0, color: 'var(--t1)' }}>
           Volunteer Opportunities
@@ -35,6 +51,7 @@ export default async function VolunteerPage() {
         </p>
       </div>
       <VolunteerClient initialOpportunities={opportunities} categories={categories} />
-    </div>
+      </div>
+    </>
   );
 }

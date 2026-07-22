@@ -6,6 +6,8 @@ import { formatCents } from '../../lib/stripe';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { calculateTrustScore, getTrustLabel } from '../../lib/ai-platform';
 import { getCoverForCampaign } from '../../lib/photo-catalog';
+import { safeJsonLd } from '../../lib/json-ld';
+import { CHARITME_ORIGIN } from '../../lib/public-routes';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -132,8 +134,24 @@ export default async function CampaignsPage({ searchParams }: Props) {
     return `/campaigns${qs ? `?${qs}` : ''}`;
   }
 
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Active fundraising campaigns on CharitMe',
+    url: `${CHARITME_ORIGIN}${pageHref(page)}`,
+    numberOfItems: campaigns.length,
+    itemListElement: campaigns.map((campaign, index) => ({
+      '@type': 'ListItem',
+      position: (page - 1) * PAGE_SIZE + index + 1,
+      url: `${CHARITME_ORIGIN}/campaigns/${campaign.slug}`,
+      name: campaign.title,
+    })),
+  };
+
   return (
-    <div className="container" style={{ padding: '40px 24px' }}>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListJsonLd) }} />
+      <div className="container" style={{ padding: '40px 24px' }}>
       <div style={{ marginBottom: '28px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 650, marginBottom: '8px' }}>Browse trusted campaigns</h1>
@@ -320,6 +338,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

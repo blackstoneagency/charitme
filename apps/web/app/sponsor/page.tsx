@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { listOpenOpportunities } from '../../lib/sponsorships';
 import { SPONSORSHIP_CATEGORIES } from '../../lib/sponsorships-core';
+import { safeJsonLd } from '../../lib/json-ld';
+import { CHARITME_ORIGIN } from '../../lib/public-routes';
 import SponsorMarketplace from './SponsorMarketplace';
 
 export const metadata: Metadata = {
@@ -13,9 +15,23 @@ export const dynamic = 'force-dynamic';
 
 export default async function SponsorPage() {
   const opportunities = await listOpenOpportunities({ limit: 60 });
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Open campaign sponsorship opportunities on CharitMe',
+    url: `${CHARITME_ORIGIN}/sponsor`,
+    itemListElement: opportunities.map((opportunity, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: `${CHARITME_ORIGIN}/sponsor/${opportunity.id}`,
+      name: opportunity.title,
+    })),
+  };
 
   return (
-    <div className="container" style={{ padding: '40px 24px' }}>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListJsonLd) }} />
+      <div className="container" style={{ padding: '40px 24px' }}>
       <div style={{ marginBottom: '28px' }}>
         <h1 style={{ fontSize: '28px', fontWeight: 800, marginBottom: '8px' }}>🤝 Sponsor a Cause</h1>
         <p style={{ color: 'var(--t3)', fontSize: '15px', maxWidth: 640 }}>
@@ -29,6 +45,7 @@ export default async function SponsorPage() {
         initialOpportunities={opportunities}
         categories={[...SPONSORSHIP_CATEGORIES]}
       />
-    </div>
+      </div>
+    </>
   );
 }

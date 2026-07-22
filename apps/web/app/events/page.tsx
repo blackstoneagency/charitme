@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { Badge, EmptyState } from '../../components/ui';
 import { listPublishedEvents } from '../../lib/events';
 import { remainingCapacity } from '../../lib/events-core';
+import { safeJsonLd } from '../../lib/json-ld';
+import { CHARITME_ORIGIN } from '../../lib/public-routes';
 
 export const metadata: Metadata = {
   title: 'Events — Fundraising Events & Galas',
@@ -17,9 +19,23 @@ function dateLabel(iso: string): string {
 
 export default async function EventsPage() {
   const events = await listPublishedEvents(60);
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Upcoming fundraising events on CharitMe',
+    url: `${CHARITME_ORIGIN}/events`,
+    itemListElement: events.map((event, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: `${CHARITME_ORIGIN}/events/${event.slug}`,
+      name: event.title,
+    })),
+  };
 
   return (
-    <div className="container" style={{ padding: '40px 24px' }}>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListJsonLd) }} />
+      <div className="container" style={{ padding: '40px 24px' }}>
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>📅 Events</h1>
         <p style={{ color: 'var(--t3)', fontSize: 15, maxWidth: 640 }}>
@@ -58,6 +74,7 @@ export default async function EventsPage() {
           })}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

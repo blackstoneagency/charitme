@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getPublicGrants, getGrantCategories } from '../../lib/grants-server';
+import { safeJsonLd } from '../../lib/json-ld';
+import { CHARITME_ORIGIN } from '../../lib/public-routes';
 import GrantsClient from './GrantsClient';
 
 export const metadata: Metadata = {
@@ -23,9 +25,23 @@ export default async function GrantsPage() {
     getPublicGrants(48),
     getGrantCategories(),
   ]);
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Open grant opportunities on CharitMe',
+    url: `${CHARITME_ORIGIN}/grants`,
+    itemListElement: grants.map((grant, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: `${CHARITME_ORIGIN}/grants/${grant.slug}`,
+      name: grant.title,
+    })),
+  };
 
   return (
-    <div className="container" style={{ padding: '40px 24px', maxWidth: 1200 }}>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListJsonLd) }} />
+      <div className="container" style={{ padding: '40px 24px', maxWidth: 1200 }}>
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
@@ -50,6 +66,7 @@ export default async function GrantsPage() {
       </div>
 
       <GrantsClient initialGrants={grants} categories={categories} />
-    </div>
+      </div>
+    </>
   );
 }
