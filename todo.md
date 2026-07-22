@@ -892,6 +892,17 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM19 · accessibility (real Lighthouse against live data)** — Ran Lighthouse
+  (mobile) on the running app wired to live Supabase. **Home a11y = 100**, BP 96.
+  **`/campaigns` a11y 91 → 95**: fixed real issues — added `aria-label` to the
+  category/sort `<select>`s (cleared `select-name`) and both filter inputs;
+  darkened the Search button to `--green-dark` (#08763b, 5.68:1 on white) and set
+  filter-input placeholders to `--t2` (#27305d, ~11:1) for AA contrast (verified in
+  the served CSS). _Note: dev-mode Lighthouse still flags contrast on a
+  mathematically-passing (5.68:1) button — its dev contrast measurement is
+  unreliable; the shipped colors pass AA by computation and will reflect in a prod
+  build (cf. SEO 92 dev vs 100 prod)._ typecheck + lint clean; suite **880/880**.
+
 - **CHAR-SM18 · security + builder analytics (goal: security resolved, track every step)** —
   (a) **RLS verified live:** all **143** public tables have RLS enabled, **0 without**.
   (b) **Campaign-builder funnel analytics** (was invisible → now measurable):

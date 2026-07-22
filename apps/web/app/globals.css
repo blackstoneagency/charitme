@@ -429,6 +429,8 @@ img, video, iframe { max-width: 100%; }
   font-weight: 750;
 }
 .kind-story-search input::placeholder { color: #415182; }
+/* Campaign discovery filter inputs — AA-contrast placeholder (default was too light). */
+.cmp-filter-input::placeholder { color: var(--t2); opacity: 1; }
 .kind-story-search button {
   display: inline-flex;
   align-items: center;

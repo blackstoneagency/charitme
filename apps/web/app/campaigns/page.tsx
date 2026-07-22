@@ -162,27 +162,31 @@ export default async function CampaignsPage({ searchParams }: Props) {
           <input
             name="q"
             defaultValue={q}
+            aria-label="Search campaigns"
             placeholder="Search campaigns…"
+            className="cmp-filter-input"
             style={{ flex: '1 1 220px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', outline: 'none' }}
           />
           <input
             name="location"
             defaultValue={location}
+            aria-label="Filter by location"
             placeholder="Location…"
+            className="cmp-filter-input"
             style={{ flex: '0 1 140px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', outline: 'none' }}
           />
-          <select name="category" defaultValue={category ?? ''}
+          <select name="category" defaultValue={category ?? ''} aria-label="Filter by category"
             style={{ padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', background: 'var(--s1, #fff)', color: 'var(--t1)', cursor: 'pointer' }}>
             <option value="">All categories</option>
             {CAMPAIGN_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          <select name="sort" defaultValue={sort}
+          <select name="sort" defaultValue={sort} aria-label="Sort campaigns"
             style={{ padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', background: 'var(--s1, #fff)', color: 'var(--t1)', cursor: 'pointer' }}>
             {(Object.entries(SORT_LABELS) as [SortOption, string][]).map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
             ))}
           </select>
-          <button type="submit" style={{ padding: '10px 20px', background: 'var(--green)', color: '#fff', borderRadius: 'var(--r)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: 'none' }}>
+          <button type="submit" style={{ padding: '10px 20px', background: 'var(--green-dark)', color: '#fff', borderRadius: 'var(--r)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: 'none' }}>
             Search
           </button>
         </div>
