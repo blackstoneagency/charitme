@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') ?? '24', 10)));
   const offset = (page - 1) * limit;
   const location = searchParams.get('location');
-  const visibility = searchParams.get('visibility') ?? 'public';
+  const visibility = 'public';
   const sort = searchParams.get('sort') ?? 'raised';
   const sortCol = sort === 'newest' ? 'created_at' : sort === 'backers' ? 'backer_count' : 'raised_amount';
 

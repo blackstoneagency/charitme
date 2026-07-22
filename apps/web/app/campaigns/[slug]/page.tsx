@@ -203,7 +203,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = campaign.tagline ?? campaign.description?.slice(0, 160) ?? '';
   const image = campaign.cover_image_url ?? getCoverForCampaign(campaign.category, campaign.slug);
 
-  const isPublicCampaign = campaign.status === 'active' && campaign.visibility !== 'private';
+  const isPublicCampaign = campaign.status === 'active' && campaign.visibility === 'public';
   return seoMetadata(`/campaigns/${campaign.slug}`, {
     title: campaign.title,
     description,
