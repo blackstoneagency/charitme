@@ -1,6 +1,15 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  CAMPAIGN_DRAFT_KEY,
+  buildDraft,
+  serializeDraft,
+  parseDraft,
+  draftHasContent,
+  draftAgeLabel,
+  type CampaignDraft,
+} from '../../lib/campaign-draft';
 import Link from 'next/link';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { extractCampaignFields } from '../../lib/campaign-intake';
@@ -282,6 +291,69 @@ export default function CreatePage() {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [dragging, setDragging]             = useState(false);
   const [uploadError, setUploadError]       = useState('');
+
+  // ── Draft autosave / recovery ──────────────────────────────────────────────
+  // Persist wizard progress to localStorage so an interrupted user (refresh,
+  // closed tab, dead battery) can resume exactly where they left off. We hold the
+  // recovered draft until the user decides (resume vs start fresh) so autosave
+  // never overwrites it with the empty initial form.
+  const [recoverableDraft, setRecoverableDraft] = useState<CampaignDraft<FormState> | null>(null);
+  const draftDecided = useRef(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    // A pending login-bounce restore (cm_wizard) takes precedence — don't also
+    // offer the localStorage recovery banner in that case.
+    if (typeof window === 'undefined') return;
+    if (sessionStorage.getItem('cm_wizard')) { draftDecided.current = true; return; }
+    const draft = parseDraft<FormState>(localStorage.getItem(CAMPAIGN_DRAFT_KEY));
+    if (draft && draftHasContent(draft.form, draft.images.length)) {
+      setRecoverableDraft(draft);
+    } else {
+      draftDecided.current = true; // nothing to recover → safe to start autosaving
+    }
+  }, []);
+
+  const clearDraft = useCallback(() => {
+    if (typeof window !== 'undefined') localStorage.removeItem(CAMPAIGN_DRAFT_KEY);
+    setSavedAt(null);
+  }, []);
+
+  const resumeDraft = useCallback(() => {
+    const d = recoverableDraft;
+    if (!d) return;
+    setForm(d.form);
+    if (d.storyMode === 'freeform' || d.storyMode === 'guided') setStoryMode(d.storyMode);
+    setUploadedImages(d.images.map((i, idx) => ({ id: `restored-${idx}-${i.url}`, url: i.url, name: i.name, status: 'done' as const })));
+    if (WIZARD_STEPS.some(s => s.key === d.step)) setStep(d.step as WizardStep);
+    setSavedAt(d.ts);
+    draftDecided.current = true;
+    setRecoverableDraft(null);
+  }, [recoverableDraft]);
+
+  const dismissDraft = useCallback(() => {
+    clearDraft();
+    draftDecided.current = true;
+    setRecoverableDraft(null);
+  }, [clearDraft]);
+
+  useEffect(() => {
+    // Autosave once the recovery decision is made and there's real content.
+    if (!draftDecided.current || recoverableDraft) return;
+    if (typeof window === 'undefined') return;
+    if (!draftHasContent(form, uploadedImages.filter(i => i.status === 'done').length)) return;
+    const t = setTimeout(() => {
+      const draft = buildDraft({
+        step,
+        storyMode,
+        form,
+        images: uploadedImages.filter(i => i.status === 'done').map(i => ({ url: i.url, name: i.name })),
+      });
+      localStorage.setItem(CAMPAIGN_DRAFT_KEY, serializeDraft(draft));
+      setSavedAt(draft.ts);
+    }, 600);
+    return () => clearTimeout(t);
+  }, [form, step, storyMode, uploadedImages, recoverableDraft]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const blobUrlsRef  = useRef<string[]>([]);
 
@@ -503,6 +575,8 @@ export default function CreatePage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : `Failed to ${status === 'draft' ? 'save draft' : 'publish'}.`);
+      // Persisted to Supabase — the local recovery copy is no longer needed.
+      clearDraft();
       if (status === 'draft') { setError(''); window.location.href = '/dashboard/campaigns'; return; }
       setPublishedSlug(typeof data.slug === 'string' ? data.slug : '');
       setStep('live');
@@ -643,6 +717,25 @@ export default function CreatePage() {
   return (
     <CharitMeShell active="My Campaigns" userName={userName} userEmail={userEmail} userAvatarUrl={userAvatarUrl} guestMode={isGuest !== false} hideSidebar>
 
+      {/* ── Draft recovery banner ── */}
+      {recoverableDraft && step !== 'live' && (
+        <div role="region" aria-label="Resume unfinished campaign" style={{ background: 'linear-gradient(135deg, var(--violet), var(--violet-2))', color: '#fff', padding: '14px 18px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
+          <span style={{ fontSize: 20 }} aria-hidden>↩️</span>
+          <span style={{ fontWeight: 700, fontSize: 15 }}>
+            Welcome back — pick up where you left off?
+          </span>
+          <span style={{ fontSize: 13, opacity: .9 }}>Saved {draftAgeLabel(recoverableDraft.ts)}</span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" onClick={resumeDraft} style={{ background: '#fff', color: 'var(--violet)', border: 0, borderRadius: 999, padding: '8px 18px', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Resume
+            </button>
+            <button type="button" onClick={dismissDraft} style={{ background: 'rgba(255,255,255,.18)', color: '#fff', border: '1px solid rgba(255,255,255,.4)', borderRadius: 999, padding: '8px 16px', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Start fresh
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Preview Modal ── */}
       {showPreviewModal && (
         <CampaignPreviewModal
@@ -665,7 +758,14 @@ export default function CreatePage() {
           <div className="cr2-hero-inner">
             <div className="cr2-hero-top">
               <Link href="/dashboard/campaigns" className="cr2-back-link">← My Campaigns</Link>
-              <div className="cr2-step-badge">Step {stepIdx + 1} / {WIZARD_STEPS.length}</div>
+              <div className="cr2-step-badge">
+                Step {stepIdx + 1} / {WIZARD_STEPS.length}
+                {savedAt && (
+                  <span title="Your progress is saved on this device" style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, opacity: .85 }}>
+                    · ✓ Saved
+                  </span>
+                )}
+              </div>
               <Link href="/ai-campaign" className="cr2-ai-hero-cta">
                 <KFIcon name="send" /> Use AI Instead
               </Link>

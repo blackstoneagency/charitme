@@ -892,6 +892,28 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM15 · campaign builder · audit + draft autosave/recovery (slice 1)** — Began
+  the world-class rebuild of the **two** existing campaign paths (AI creator at
+  `/ai-campaign`; guided 9-step wizard at `/create`). Full audit in
+  **`docs/campaign-builder-audit.md`** (friction inventory ranked by impact + a
+  realistic roadmap; honest about which wishlist items — AI image/video gen,
+  background removal, voice, transcription — need external services/keys and
+  won't be faked). **Shipped the #1 abandonment fix: draft autosave + recovery.**
+  The wizard previously wrote to Supabase only on final submit, so any
+  interruption lost everything. New `lib/campaign-draft.ts` (pure, tested:
+  build/serialize/parse with 7-day TTL + version + defensive validation,
+  `draftHasContent`, `draftAgeLabel`) persists wizard state to localStorage on
+  every change (debounced); `/create` shows a "Welcome back — resume?" banner with
+  saved-age + Resume/Start-fresh, a "✓ Saved" indicator, and clears the local copy
+  on successful Supabase submit. Coexists with the existing login-bounce
+  `sessionStorage` restore (that takes precedence). Rationale: in-progress form
+  state belongs in localStorage (instant, offline-safe, no half-built DB rows);
+  committed drafts still go to Supabase via "Save draft". _Evidence:
+  `__tests__/campaign-draft.test.ts` 9/9; full suite **872/872**; typecheck + lint
+  clean; `next build` green._ **Next slices (roadmap):** publish-before-payout,
+  step-count reduction + AI-default prefill, per-step drop-off analytics, in-flow
+  image suggestions (Unsplash), live multi-device preview.
+
 - **CHAR-F014 · comments/bugfix** — `POST /api/campaigns/[id]/messages` inserted a
   non-existent `visibility` column into `donor_messages` → every comment 500'd.
   Removed the stray field. _Evidence: verified live vs schema; commit `20d1597`._
