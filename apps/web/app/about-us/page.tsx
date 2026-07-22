@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
+import { seoMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
-  title: 'About Us',
-  description: 'CharitMe combines compassionate design, AI-powered guidance, and radical transparency to help every cause reach its full potential.',
-  alternates: { canonical: 'https://www.charitme.com/about-us' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/about-us', {
+    title: 'About Us',
+    description: 'CharitMe combines compassionate design, AI-powered guidance, and radical transparency to help every cause reach its full potential.',
+    alternates: { canonical: 'https://www.charitme.com/about-us' },
+  });
+}
 
 export const dynamic = 'force-dynamic';
 

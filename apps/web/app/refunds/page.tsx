@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { seoMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/refunds', {
   title: 'Refund Policy | CharitMe',
   description:
     'How refunds, chargebacks, and recurring-donation cancellations work on CharitMe, and how they are reflected in our auditable ledger.',
@@ -12,7 +14,8 @@ export const metadata: Metadata = {
     url: 'https://www.charitme.com/refunds',
     type: 'website',
   },
-};
+  });
+}
 
 const LAST_UPDATED = 'July 2026';
 

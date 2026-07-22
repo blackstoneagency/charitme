@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { safeJsonLd } from '../../lib/json-ld';
+import { seoMetadata } from '../../lib/seo';
 import MoneyCalculator from './MoneyCalculator';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/transparency', {
   title: 'Transparency Center — Where Your Money Goes | CharitMe',
   description:
     'See exactly where every dollar goes. CharitMe charges organizers a 0% platform fee, donor support is always optional, and funds flow directly to verified recipients via Stripe — never held by CharitMe.',
@@ -15,7 +17,8 @@ export const metadata: Metadata = {
     url: 'https://www.charitme.com/transparency',
     type: 'website',
   },
-};
+  });
+}
 
 const FAQ: { q: string; a: string }[] = [
   {

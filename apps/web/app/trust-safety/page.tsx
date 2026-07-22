@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { TRUST_PILLARS } from '../../lib/ai-platform';
+import { seoMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Trust & Safety',
-  description: 'How CharitMe uses AI trust scores, identity verification, fraud screening, and transparent moderation to protect donors and fundraisers.',
-  alternates: { canonical: 'https://www.charitme.com/trust-safety' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/trust-safety', {
+    title: 'Trust & Safety',
+    description: 'How CharitMe uses AI trust scores, identity verification, fraud screening, and transparent moderation to protect donors and fundraisers.',
+    alternates: { canonical: 'https://www.charitme.com/trust-safety' },
+  });
+}
 
 const TRUST_SIGNALS = [
   { label: 'Identity verification', detail: 'Organizer identity confirmed via Stripe KYC — name, address, and government ID matched.', icon: '🪪' },

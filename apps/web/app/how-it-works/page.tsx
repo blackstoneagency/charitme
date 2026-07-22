@@ -1,12 +1,15 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { PublicIcon } from '../../components/PublicIcon';
+import { seoMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
-  title: 'How It Works',
-  description: 'Learn how CharitMe makes fundraising simple, trusted, and effective — from campaign creation to verified payouts.',
-  alternates: { canonical: 'https://www.charitme.com/how-it-works' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/how-it-works', {
+    title: 'How It Works',
+    description: 'Learn how CharitMe makes fundraising simple, trusted, and effective — from campaign creation to verified payouts.',
+    alternates: { canonical: 'https://www.charitme.com/how-it-works' },
+  });
+}
 
 const STATS = [
   { value: '< 5 min', label: 'To launch a campaign' },

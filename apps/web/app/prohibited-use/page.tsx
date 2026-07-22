@@ -1,10 +1,13 @@
 import type { Metadata } from 'next';
+import { seoMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Prohibited Use Policy',
-  description: 'Activities and campaigns that are not permitted on the CharitMe platform.',
-  alternates: { canonical: 'https://www.charitme.com/prohibited-use' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/prohibited-use', {
+    title: 'Prohibited Use Policy',
+    description: 'Activities and campaigns that are not permitted on the CharitMe platform.',
+    alternates: { canonical: 'https://www.charitme.com/prohibited-use' },
+  });
+}
 
 export default function ProhibitedUsePage() {
   return (

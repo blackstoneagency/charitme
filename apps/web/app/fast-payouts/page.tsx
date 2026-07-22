@@ -1,11 +1,14 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { seoMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Fast Payouts — Stripe Verified Payouts',
-  description: 'CharitMe uses Stripe Connect Express to deliver donations to fundraisers. Standard payouts are free. Same-day and instant payouts are available for eligible verified users.',
-  alternates: { canonical: 'https://www.charitme.com/fast-payouts' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/fast-payouts', {
+    title: 'Fast Payouts — Stripe Verified Payouts',
+    description: 'CharitMe uses Stripe Connect Express to deliver donations to fundraisers. Standard payouts are free. Same-day and instant payouts are available for eligible verified users.',
+    alternates: { canonical: 'https://www.charitme.com/fast-payouts' },
+  });
+}
 
 const STATS = [
   { value: 'Free', label: 'Standard payout' },

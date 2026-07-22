@@ -1,12 +1,15 @@
 import type { Metadata } from 'next';
 import { getTopCampaigns, getTopDonors } from '../../lib/leaderboard';
 import LeaderboardClient from './LeaderboardClient';
+import { seoMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Leaderboard — Top Campaigns & Donors',
-  description: 'See the top fundraising campaigns and the most generous donors in the CharitMe community.',
-  alternates: { canonical: 'https://www.charitme.com/leaderboard' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/leaderboard', {
+    title: 'Leaderboard — Top Campaigns & Donors',
+    description: 'See the top fundraising campaigns and the most generous donors in the CharitMe community.',
+    alternates: { canonical: 'https://www.charitme.com/leaderboard' },
+  });
+}
 export const dynamic = 'force-dynamic';
 
 export default async function LeaderboardPage() {

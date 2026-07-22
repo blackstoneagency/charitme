@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { seoMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/fees', {
   title: 'Fee Policy — 0% Platform Fee | CharitMe',
   description:
     'CharitMe charges organizers a 0% platform fee. Donor support is optional and reducible to 0%. Payment processing fees go to the processor, never to CharitMe. Full breakdown.',
@@ -12,7 +14,8 @@ export const metadata: Metadata = {
     url: 'https://www.charitme.com/fees',
     type: 'website',
   },
-};
+  });
+}
 
 const LAST_UPDATED = 'July 2026';
 

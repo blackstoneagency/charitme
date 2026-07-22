@@ -2,13 +2,16 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import type React from 'react';
 import { supabaseAdmin } from '../../lib/supabase';
+import { seoMetadata } from '../../lib/seo';
 import ContactForm from './ContactForm';
 
-export const metadata: Metadata = {
-  title: 'Contact Us',
-  description: "Reach the CharitMe team — we're here to help with campaigns, donations, AI fundraising, billing, and more.",
-  alternates: { canonical: 'https://www.charitme.com/contact' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/contact', {
+    title: 'Contact Us',
+    description: "Reach the CharitMe team — we're here to help with campaigns, donations, AI fundraising, billing, and more.",
+    alternates: { canonical: 'https://www.charitme.com/contact' },
+  });
+}
 
 export const dynamic = 'force-dynamic';
 

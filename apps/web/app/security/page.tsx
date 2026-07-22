@@ -1,10 +1,13 @@
 import type { Metadata } from 'next';
+import { seoMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Security',
-  description: 'How CharitMe protects your data, payments, and account using industry-standard security controls.',
-  alternates: { canonical: 'https://www.charitme.com/security' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/security', {
+    title: 'Security',
+    description: 'How CharitMe protects your data, payments, and account using industry-standard security controls.',
+    alternates: { canonical: 'https://www.charitme.com/security' },
+  });
+}
 
 export default function SecurityPage() {
   return (

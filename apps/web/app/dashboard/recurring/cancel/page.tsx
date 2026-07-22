@@ -6,6 +6,14 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar } from '../../../../components/CharitMeApp';
 
 export default function CancelRecurringPage() {
+  return (
+    <React.Suspense fallback={<div style={{ padding: 32, color: 'var(--t3)' }}>Loading...</div>}>
+      <CancelRecurringContent />
+    </React.Suspense>
+  );
+}
+
+function CancelRecurringContent() {
   const params = useSearchParams();
   const router = useRouter();
   const subscriptionId = params.get('sub') ?? '';

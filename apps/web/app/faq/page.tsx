@@ -1,13 +1,16 @@
 import Link from 'next/link';
 import { safeJsonLd } from "../../lib/json-ld";
 import { getPublishedFaqs, groupFaqsByTopic } from '../../lib/aeo';
+import { seoMetadata } from '../../lib/seo';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/faq', {
   title: 'FAQ',
   description: 'Answers to the most common questions about CharitMe — fees, payouts, AI tools, trust scores, and donor safety.',
   alternates: { canonical: 'https://www.charitme.com/faq' },
-};
+  });
+}
 
 // Refresh every 5 minutes to pick up newly-published AEO answers.
 export const revalidate = 300;

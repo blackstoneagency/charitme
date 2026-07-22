@@ -7,14 +7,17 @@ import { attachCampaignCurrencies } from '../../lib/home-data';
 import { currencySymbol } from '@shared/currencies';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
+import { seoMetadata } from '../../lib/seo';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/success-stories', {
   title: 'Success Stories',
   description: 'Real CharitMe success stories from fundraisers and communities creating impact.',
   alternates: { canonical: 'https://www.charitme.com/success-stories' },
-};
+  });
+}
 
 type StoryCampaign = {
   id: string;

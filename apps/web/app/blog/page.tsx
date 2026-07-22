@@ -2,12 +2,15 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { PublicIcon } from '../../components/PublicIcon';
 import { BLOG_POSTS } from '../../lib/blog-posts';
+import { seoMetadata } from '../../lib/seo';
 
-export const metadata: Metadata = {
-  title: 'Blog',
-  description: 'CharitMe fundraising guides, AI tips, donor trust insights, and campaign growth playbooks.',
-  alternates: { canonical: 'https://www.charitme.com/blog' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/blog', {
+    title: 'Blog',
+    description: 'CharitMe fundraising guides, AI tips, donor trust insights, and campaign growth playbooks.',
+    alternates: { canonical: 'https://www.charitme.com/blog' },
+  });
+}
 
 const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 

@@ -4,14 +4,17 @@ import type { Metadata } from 'next';
 import { PublicIcon } from '../../components/PublicIcon';
 import { supabaseAdmin } from '../../lib/supabase';
 import { formatHomeCents } from '../../lib/home-utils';
+import { seoMetadata } from '../../lib/seo';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  title: 'AI Fundraising',
-  description: 'CharitMe AI tools help fundraisers create campaigns, connect with donors, and optimize results.',
-  alternates: { canonical: 'https://www.charitme.com/ai-fundraising' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return seoMetadata('/ai-fundraising', {
+    title: 'AI Fundraising',
+    description: 'CharitMe AI tools help fundraisers create campaigns, connect with donors, and optimize results.',
+    alternates: { canonical: 'https://www.charitme.com/ai-fundraising' },
+  });
+}
 
 // ── Live data from Supabase ───────────────────────────────────────────────────
 async function getAIPageData() {
