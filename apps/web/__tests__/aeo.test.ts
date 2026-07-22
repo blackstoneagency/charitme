@@ -73,6 +73,27 @@ describe('AEO route normalization', () => {
     expect(disallowed).toContain('/sponsor/manage');
   });
 
+  it('keeps authenticated route surfaces explicitly noindex', () => {
+    const privateEntries = [
+      ['dashboard/layout.tsx', 'index: false'],
+      ['admin/layout.tsx', 'index: false'],
+      ['create/layout.tsx', 'index: false'],
+      ['login/layout.tsx', 'index: false'],
+      ['forgot-password/layout.tsx', 'index: false'],
+      ['achievements/page.tsx', 'index: false'],
+      ['privacy-center/page.tsx', 'index: false'],
+      ['events/manage/page.tsx', 'index: false'],
+      ['impact/manage/page.tsx', 'index: false'],
+      ['matching/manage/page.tsx', 'index: false'],
+      ['sponsor/manage/page.tsx', 'index: false'],
+    ];
+    for (const [relativePath, marker] of privateEntries) {
+      const sourcePath = resolve(__dirname, '../app', ...relativePath.split('/'));
+      expect(existsSync(sourcePath), `Missing private route entry ${relativePath}`).toBe(true);
+      expect(readFileSync(sourcePath, 'utf8'), `Missing noindex metadata for ${relativePath}`).toContain(marker);
+    }
+  });
+
   it('requires every indexable route to wire SEO metadata and visible AEO content', () => {
     for (const route of INDEXABLE_PUBLIC_ROUTES) {
       const segments = route.path === '/' ? [] : route.path.slice(1).split('/');
