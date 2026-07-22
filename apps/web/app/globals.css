@@ -2317,6 +2317,7 @@ img, video, iframe { max-width: 100%; }
 /* Dark surfaces need a lighter rose for AA contrast (rose-400 ≈ 6:1 on the dark card). */
 [data-theme="dark"] .fee-calc-warning { color: #fb7185; }
 .fee-calc-bad { color: #e11d48; }
+[data-theme="dark"] .fee-calc-bad { color: #fb7185; }
 .fee-calc-note { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 16px; }
 .all-faqs { display: inline-flex; align-items: center; gap: 8px; color: #4015e8; font-weight: 950; }
 
@@ -6351,6 +6352,16 @@ img, video, iframe { max-width: 100%; }
 [data-theme="dark"] .mktg-page .bg-slate-50,
 [data-theme="dark"] .mktg-page .bg-slate-100 { background: var(--s2) !important; }
 [data-theme="dark"] .mktg-page .bg-emerald-50 { background: rgba(18, 166, 83, .10) !important; }
+/* Colored tint surfaces must go dark too, else remapped light text sits on a
+   light tint (e.g. bg-blue-50 #eff6ff) and fails AA. Translucent accent over the
+   dark page = a dark, readable surface. */
+[data-theme="dark"] .mktg-page .bg-blue-50,
+[data-theme="dark"] .mktg-page .bg-sky-50,
+[data-theme="dark"] .mktg-page .bg-indigo-50 { background: rgba(59, 130, 246, .10) !important; }
+[data-theme="dark"] .mktg-page .bg-purple-50,
+[data-theme="dark"] .mktg-page .bg-violet-50 { background: rgba(168, 85, 247, .10) !important; }
+[data-theme="dark"] .mktg-page .bg-amber-50,
+[data-theme="dark"] .mktg-page .bg-yellow-50 { background: rgba(245, 158, 11, .10) !important; }
 [data-theme="dark"] .mktg-page .bg-emerald-100 { background: rgba(18, 166, 83, .16) !important; }
 
 /* borders */
@@ -6370,6 +6381,12 @@ img, video, iframe { max-width: 100%; }
 [data-theme="dark"] .mktg-page .text-emerald-800,
 [data-theme="dark"] .mktg-page .text-emerald-700,
 [data-theme="dark"] .mktg-page .text-emerald-600 { color: #4cce86 !important; }
+/* Blue/purple accents (stat numbers, badges, links) — lighten on dark for AA
+   contrast (the fixed 700 shades sat on the remapped dark surface at ~2.7:1). */
+[data-theme="dark"] .mktg-page .text-blue-700,
+[data-theme="dark"] .mktg-page .text-blue-600 { color: #60a5fa !important; }
+[data-theme="dark"] .mktg-page .text-purple-700,
+[data-theme="dark"] .mktg-page .text-purple-600 { color: #c084fc !important; }
 
 /* status tints (e.g. auth form messages) */
 [data-theme="dark"] .mktg-page .bg-red-50 { background: rgba(255, 59, 95, .12) !important; }

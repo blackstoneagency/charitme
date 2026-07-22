@@ -14,7 +14,7 @@
 | Payment webhooks | ✅ fixed | prod webhook 2→**20 events**; recurring/subs/refunds now delivered |
 | Everything wired to Supabase | 🟢 mostly | core flows + new analytics table verified live |
 | Tests pass / Build succeeds | ✅ | **880/880**, `next build` green, typecheck clean |
-| Accessibility | ✅ strong | **prod Lighthouse**: home **100**, how-it-works **100**, campaigns 91→**100** (real fix). SEO 100, BP 96 |
+| Accessibility | ✅ strong | **prod Lighthouse — 7 key pages all 100**: home, how-it-works, campaigns, faq, for-donors, for-nonprofits, pricing. SEO 100, BP 96 |
 | Frictionless UX | 🟢 improving | draft autosave/recovery + funnel analytics shipped; builder roadmap continues |
 | Mobile | 🟢 | mobile Lighthouse on public pages good; ongoing |
 | Performance | 🟡 needs prod build | dev perf unrepresentative; home was 93 in an earlier prod run |
@@ -975,6 +975,13 @@ tests/build/live-HTTP are listed here.
   (logged): `/for-donors` + `/for-nonprofits` aren't dark-mode-aware — fixed
   `text-blue-700`/`text-purple-700` stats sit on the dark bg (2.66:1); needs a
   per-page dark-mode color treatment (a larger slice)._
+  **✅ RESOLVED:** root cause was the `.mktg-page` dark theme remapping `bg-white`/
+  `bg-slate` + text but leaving **colored tint surfaces** (`bg-blue-50` #eff6ff)
+  light while their text went light → light-on-light. Extended the `.mktg-page`
+  dark block to remap `bg-{blue,sky,indigo,purple,violet,amber,yellow}-50` to dark
+  accent tints, lightened `text-{blue,purple}-{600,700}` accents on dark, and added
+  `[data-theme=dark] .fee-calc-bad`. **Prod Lighthouse: for-donors, for-nonprofits,
+  pricing all 91/95→100.** 7 key pages now a11y 100.
 
 - **CHAR-SM18 · security + builder analytics (goal: security resolved, track every step)** —
   (a) **RLS verified live:** all **143** public tables have RLS enabled, **0 without**.
