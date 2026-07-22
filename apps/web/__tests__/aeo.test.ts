@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { getAeoFallbackRoute, normalizeAeoRoute } from '../lib/aeo';
 import robots from '../app/robots';
 import { INDEXABLE_PUBLIC_ROUTES } from '../lib/public-routes';
@@ -40,6 +42,19 @@ describe('AEO route normalization', () => {
     expect(disallowed).toContain('/impact/manage');
     expect(disallowed).toContain('/matching/manage');
     expect(disallowed).toContain('/sponsor/manage');
+  });
+
+  it('requires every indexable route to wire SEO metadata and visible AEO content', () => {
+    for (const route of INDEXABLE_PUBLIC_ROUTES) {
+      const segments = route.path === '/' ? [] : route.path.slice(1).split('/');
+      const routeDirectory = resolve(__dirname, '../app', ...segments);
+      const candidates = [resolve(routeDirectory, 'page.tsx'), resolve(routeDirectory, 'layout.tsx')];
+      const sourcePaths = candidates.filter((candidate) => existsSync(candidate));
+      expect(sourcePaths.length, `Missing app entry for ${route.path}`).toBeGreaterThan(0);
+      const source = sourcePaths.map((sourcePath) => readFileSync(sourcePath, 'utf8')).join('\n');
+      expect(source, `Missing Supabase SEO metadata integration for ${route.path}`).toMatch(/seoMetadata/);
+      expect(source, `Missing AEO surface for ${route.path}`).toMatch(/AeoContent/);
+    }
   });
 
   it('flags content older than the freshness window deterministically', () => {
