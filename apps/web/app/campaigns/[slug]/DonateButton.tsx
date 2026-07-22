@@ -11,6 +11,7 @@ import {
 } from '@shared/fees';
 import { createClient } from '../../../lib/supabase-browser';
 import { formatMoney, formatMoneyShort, currencySymbol, DEFAULT_CURRENCY } from '@shared/currencies';
+import EmployerMatchWidget from './EmployerMatchWidget';
 
 /* ── Design tokens (CSS-variable-aware for dark mode) ──── */
 const V   = 'var(--violet, #6c35ff)';
@@ -688,6 +689,10 @@ export default function DonateButton({
           </div>
         </div>
       </div>
+
+      {/* Employer matching-gift estimator — optional, additive; reads the current
+          amount and never alters the donation or checkout. */}
+      {!isMonthly && <EmployerMatchWidget amountCents={amountCents} />}
 
       {error && (
         <p style={{ margin: 0, padding: '10px 14px', borderRadius: 10, background: '#fff0f3', color: '#ef4444', fontSize: 13, fontWeight: 700, border: '1px solid #fecdd3' }}>

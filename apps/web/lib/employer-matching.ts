@@ -96,3 +96,76 @@ export function searchEmployerMatch(query: string, limit = 8): EmployerMatchEntr
     .filter((e) => normalize(e.name).includes(q))
     .slice(0, limit);
 }
+
+// ── Match calculation (pure, unit-testable) ──────────────────────────────────
+// The directory's `typicalRatio` strings ("Up to 1:1", "Up to 3:1") are
+// human-readable indicators. These helpers parse them into a numeric multiplier
+// so we can show a donor what their gift could become — always framed as an
+// estimate ("up to"), never a promise, since real terms/caps live with the
+// employer. Used by the donor-facing employer-match widget in the donate flow.
+
+export interface MatchRatio {
+  /** Matched dollars per donated dollar (e.g. 2 for "2:1"). */
+  multiplier: number;
+  /** True when the source says "up to" — i.e. the multiplier is a ceiling. */
+  isCeiling: boolean;
+  /** Original label, e.g. "Up to 2:1". */
+  label: string;
+}
+
+/** Parse a ratio string like "Up to 2:1" → { multiplier: 2, isCeiling: true }. */
+export function parseMatchRatio(ratio: string): MatchRatio | null {
+  if (!ratio) return null;
+  const m = ratio.match(/(\d+(?:\.\d+)?)\s*:\s*(\d+(?:\.\d+)?)/);
+  if (!m) return null;
+  const num = parseFloat(m[1]);
+  const den = parseFloat(m[2]);
+  if (!den || !Number.isFinite(num) || !Number.isFinite(den)) return null;
+  return {
+    multiplier: num / den,
+    isCeiling: /up\s*[-\s]?\s*to/i.test(ratio),
+    label: ratio.trim(),
+  };
+}
+
+export interface EmployerMatchEstimate {
+  donationCents: number;
+  multiplier: number;
+  isCeiling: boolean;
+  /** Estimated employer-matched amount, after any cap. */
+  matchedCents: number;
+  /** Donation + matched — the total the campaign could see from this gift. */
+  totalImpactCents: number;
+  /** True when an employer cap reduced the raw matched amount. */
+  capped: boolean;
+  ratioLabel: string;
+}
+
+/**
+ * Estimate an employer match for a donation. `capCents`, when provided, is the
+ * employer's per-donation (or remaining annual) matching cap. Returns null when
+ * the entry's ratio can't be parsed. Never negative; rounds to whole cents.
+ */
+export function estimateEmployerMatch(
+  donationCents: number,
+  entry: Pick<EmployerMatchEntry, 'typicalRatio'>,
+  capCents?: number,
+): EmployerMatchEstimate | null {
+  const ratio = parseMatchRatio(entry.typicalRatio);
+  if (!ratio) return null;
+
+  const donation = Math.max(0, Math.round(donationCents || 0));
+  const raw = Math.max(0, Math.round(donation * ratio.multiplier));
+  const cap = capCents != null ? Math.max(0, Math.round(capCents)) : null;
+  const matched = cap != null ? Math.min(raw, cap) : raw;
+
+  return {
+    donationCents: donation,
+    multiplier: ratio.multiplier,
+    isCeiling: ratio.isCeiling,
+    matchedCents: matched,
+    totalImpactCents: donation + matched,
+    capped: cap != null && raw > matched,
+    ratioLabel: ratio.label,
+  };
+}
