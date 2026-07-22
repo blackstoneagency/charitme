@@ -53,6 +53,22 @@ begin
       values (new.id, new.email, display_name, 'donor', 'subscriber', 'active')
       on conflict do nothing;
     end if;
+
+    insert into public.marketing_identities (contact_id, kind, value)
+    select c.id, 'email', lower(new.email)
+    from public.marketing_contacts c
+    where lower(c.email) = lower(new.email)
+    order by c.created_at
+    limit 1
+    on conflict (kind, value) do nothing;
+
+    insert into public.marketing_identities (contact_id, kind, value)
+    select c.id, 'user_id', new.id::text
+    from public.marketing_contacts c
+    where c.user_id = new.id
+    order by c.created_at
+    limit 1
+    on conflict (kind, value) do nothing;
   end if;
 
   return new;
@@ -98,3 +114,15 @@ where u.email is not null
        or c.user_id = u.id
   )
 on conflict do nothing;
+
+insert into public.marketing_identities (contact_id, kind, value)
+select c.id, 'email', lower(c.email)
+from public.marketing_contacts c
+where c.email is not null
+on conflict (kind, value) do nothing;
+
+insert into public.marketing_identities (contact_id, kind, value)
+select c.id, 'user_id', c.user_id::text
+from public.marketing_contacts c
+where c.user_id is not null
+on conflict (kind, value) do nothing;

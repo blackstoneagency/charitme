@@ -34,6 +34,25 @@ export async function resolveContact(input: ContactInput): Promise<string | null
   const phone = input.phone?.trim() || null;
   if (!email && !phone && !input.userId) return null;
 
+  async function findDirectContactId(): Promise<string | null> {
+    const directLookups: { column: 'email' | 'phone' | 'user_id'; value: string }[] = [];
+    if (email) directLookups.push({ column: 'email', value: email });
+    if (phone) directLookups.push({ column: 'phone', value: phone });
+    if (input.userId) directLookups.push({ column: 'user_id', value: input.userId });
+
+    for (const lookup of directLookups) {
+      const query = supabaseAdmin
+        .from('marketing_contacts')
+        .select('id')
+        .eq(lookup.column, lookup.value);
+      const result = lookup.column === 'email'
+        ? await query.ilike('email', lookup.value).maybeSingle()
+        : await query.maybeSingle();
+      if (result.data?.id) return result.data.id;
+    }
+    return null;
+  }
+
   // 1. Look up by any known identity
   let contactId: string | null = null;
   const lookups: { kind: string; value: string }[] = [];
@@ -50,6 +69,11 @@ export async function resolveContact(input: ContactInput): Promise<string | null
       .maybeSingle();
     if (data?.contact_id) { contactId = data.contact_id; break; }
   }
+
+  // Bootstrap-created users may have a contact before their identity rows are
+  // present. Direct lookup prevents a unique-email race from turning capture
+  // into a 500 and repairs the identity trail below.
+  if (!contactId) contactId = await findDirectContactId();
 
   if (!contactId) {
     const { data: created, error } = await supabaseAdmin
@@ -72,8 +96,14 @@ export async function resolveContact(input: ContactInput): Promise<string | null
       })
       .select('id')
       .single();
-    if (error || !created) return null;
-    contactId = created.id;
+    if (error || !created) {
+      // A concurrent capture may have won the unique email/phone insert.
+      // Resolve that winner and continue stitching instead of dropping the event.
+      contactId = await findDirectContactId();
+      if (!contactId) return null;
+    } else {
+      contactId = created.id;
+    }
   } else {
     // Merge new info + update last-touch
     const updates: Record<string, unknown> = { last_active_at: new Date().toISOString() };
