@@ -932,6 +932,20 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM24 · UX — AI-default prefill (never an empty title field)** — Per the brief
+  ("if AI can do it, never ask"), the guided builder no longer shows a blank title.
+  New `lib/campaign-title.ts#suggestCampaignTitle` (pure, tested) derives a smart
+  title from what's entered (beneficiary / self / category → e.g. "Help Sarah with
+  medical expenses"); an effect seeds it once on reaching the Title step if empty,
+  and a new **"✨ AI improve"** button calls `/api/ai/campaign` to overwrite with a
+  polished version. Deterministic seed = instant + reliable (the app's AI-fallback
+  pattern), fully editable. _Note on "fewer steps": physically merging steps was
+  assessed but deferred — the steps carry entangled fields (e.g. the Location step
+  also captures beneficiary name/relationship for non-self campaigns), so a blind
+  merge risks regressions I can't verify headlessly; the prefill removes the actual
+  friction (blank fields) instead._ _Evidence: `__tests__/campaign-title.test.ts`
+  6/6; full suite **889/889**; typecheck + lint clean._
+
 - **CHAR-SM23 · UX — publish-before-payout (biggest builder drop-off lever)** — The
   wizard hard-**blocked publishing** until a payout method was linked (step 8 of 9) —
   the #1 abandonment point. Made payout **optional to publish**: removed the

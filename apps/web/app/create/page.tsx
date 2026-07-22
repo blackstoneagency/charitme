@@ -10,6 +10,7 @@ import {
   draftAgeLabel,
   type CampaignDraft,
 } from '../../lib/campaign-draft';
+import { suggestCampaignTitle } from '../../lib/campaign-title';
 import Link from 'next/link';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { extractCampaignFields } from '../../lib/campaign-intake';
@@ -381,6 +382,17 @@ export default function CreatePage() {
     window.addEventListener('beforeunload', onLeave);
     return () => window.removeEventListener('beforeunload', onLeave);
   }, [step, trackBuilder]);
+
+  // AI-default prefill: never show an empty title field. When the creator reaches
+  // the Title step with no title yet, seed a smart suggestion from what they've
+  // already entered (category / beneficiary / self). Instant + editable; they can
+  // also hit "AI improve". Seeds once so it never fights the user's edits.
+  const titleSeededRef = useRef(false);
+  useEffect(() => {
+    if (step !== 'title' || titleSeededRef.current) return;
+    titleSeededRef.current = true;
+    setForm(prev => (prev.title.trim() ? prev : { ...prev, title: suggestCampaignTitle(prev) }));
+  }, [step]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const blobUrlsRef  = useRef<string[]>([]);
 
@@ -1069,7 +1081,28 @@ export default function CreatePage() {
               {/* ── Step: Title ── */}
               {step === 'title' && (
                 <div className="cr2-title-panel">
-                  <h2 className="cr2-step-q" style={{ padding: 0, marginBottom: 22 }}>Give your fundraiser a Title</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 22, flexWrap: 'wrap' }}>
+                    <h2 className="cr2-step-q" style={{ padding: 0, margin: 0 }}>Give your fundraiser a Title</h2>
+                    <button
+                      type="button"
+                      className="cr2-ai-suggest"
+                      onClick={async () => {
+                        setAiLoading(true);
+                        try {
+                          const res = await fetch('/api/ai/campaign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ category: form.category, goalAmount: goalCents || 500000, beneficiary: form.beneficiaryName || 'the beneficiary', notes: form.description?.trim() || 'Help us write a compelling fundraiser.', tone: 'authentic' }) });
+                          const data = await res.json();
+                          if (res.ok && typeof data.title === 'string' && data.title.trim()) upd('title', data.title.slice(0, 80));
+                        } catch { /* silent */ } finally { setAiLoading(false); }
+                      }}
+                      disabled={aiLoading}
+                    >
+                      {aiLoading ? '✨ Thinking…' : '✨ AI improve'}
+                    </button>
+                  </div>
+
+                  <p style={{ margin: '0 0 16px', fontSize: 13.5, color: 'var(--t3)', lineHeight: 1.5 }}>
+                    We&rsquo;ve suggested a title from your story — edit it, or tap <strong>AI improve</strong> for a polished version.
+                  </p>
 
                   <div className="cr2-title-input-wrap">
                     <input
