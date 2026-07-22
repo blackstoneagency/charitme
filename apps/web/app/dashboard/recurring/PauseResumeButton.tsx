@@ -43,7 +43,7 @@ export default function PauseResumeButton({
         disabled={loading}
         style={{
           fontSize: 12, fontWeight: 700, color: 'var(--t3)', padding: '6px 14px',
-          border: '1px solid var(--b2)', borderRadius: 8, background: '#fff',
+          border: '1px solid var(--b2)', borderRadius: 8, background: 'var(--s1)',
           flexShrink: 0, cursor: loading ? 'wait' : 'pointer',
         }}
       >
