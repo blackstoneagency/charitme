@@ -6,6 +6,7 @@ import { DONOR_BADGES, computeMonthlyStreak, getGivingLevel, type DonorStats } f
 import { getCoverForCampaign } from '../../../lib/photo-catalog';
 import type { Metadata } from 'next';
 import { seoMetadata } from '../../../lib/seo';
+import { safeJsonLd } from '../../../lib/json-ld';
 
 export const dynamic = 'force-dynamic';
 
@@ -98,6 +99,22 @@ export default async function PublicDonorProfilePage({ params }: { params: Promi
 
   const monthStreak = computeMonthlyStreak(donationDates);
   const level = getGivingLevel(totalDonated);
+  const memberSince = new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+  const name = profile.full_name || 'Generous Donor';
+  const profileUrl = `https://www.charitme.com/donors/${encodeURIComponent(id)}`;
+  const profileJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ProfilePage',
+    url: profileUrl,
+    name: `${name} · Donor Profile`,
+    mainEntity: {
+      '@type': 'Person',
+      name,
+      url: profileUrl,
+      ...(profile.avatar_url ? { image: profile.avatar_url } : {}),
+      ...(profile.bio ? { description: profile.bio } : {}),
+    },
+  };
   const gamificationStats: DonorStats = {
     donationCount: donations.length,
     totalCents: totalDonated,
@@ -107,11 +124,9 @@ export default async function PublicDonorProfilePage({ params }: { params: Promi
   };
   const earnedBadgeIds = new Set(DONOR_BADGES.filter((b) => b.earned(gamificationStats)).map((b) => b.id));
 
-  const memberSince = new Date(profile.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-  const name = profile.full_name || 'Generous Donor';
-
   return (
     <div className="mktg-page min-h-screen">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(profileJsonLd) }} />
       {/* Header */}
       <section className="border-b border-slate-100 bg-slate-50 py-10">
         <div className="container">

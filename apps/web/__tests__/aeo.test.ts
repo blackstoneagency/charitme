@@ -121,6 +121,15 @@ describe('AEO route normalization', () => {
     }
   });
 
+  it('adds privacy-aware profile structured data for public donor pages', () => {
+    const sourcePath = resolve(__dirname, '../app/donors/[id]/page.tsx');
+    const source = readFileSync(sourcePath, 'utf8');
+    expect(source).toContain("robots: { index: false, follow: false }");
+    expect(source).toContain("'@type': 'ProfilePage'");
+    expect(source).toContain("'@type': 'Person'");
+    expect(source).toContain('safeJsonLd(profileJsonLd)');
+  });
+
   it('keeps the Supabase SEO seed aligned with every indexable route', () => {
     const migrationPath = resolve(__dirname, '../../../supabase/migrations/20260722130000_seed_public_seo_settings.sql');
     const migration = readFileSync(migrationPath, 'utf8');
