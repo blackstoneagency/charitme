@@ -166,12 +166,12 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
       </div>
 
       {error && (
-        <div style={{ padding: '12px 16px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 10, color: '#be123c', fontSize: 14, fontWeight: 600 }}>
+        <div style={{ padding: '12px 16px', background: 'rgba(255,59,95,.08)', border: '1px solid rgba(255,59,95,.28)', borderRadius: 10, color: 'var(--red)', fontSize: 14, fontWeight: 600 }}>
           ⚠ {error}
         </div>
       )}
       {success && (
-        <div style={{ padding: '12px 16px', background: '#f0fff8', border: '1px solid #bbf7d0', borderRadius: 10, color: '#065f46', fontSize: 14, fontWeight: 600 }}>
+        <div style={{ padding: '12px 16px', background: 'rgba(18,166,83,.12)', border: '1px solid rgba(18,166,83,.28)', borderRadius: 10, color: 'var(--green-dark)', fontSize: 14, fontWeight: 600 }}>
           ✓ {success}
         </div>
       )}
@@ -250,7 +250,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
                   className="kf-outline" style={{ height: 36, padding: '0 16px', fontSize: 13 }}>
                   {uploadState === 'uploading' ? 'Uploading…' : form.coverImageUrl ? 'Replace Image' : 'Upload Image'}
                 </button>
-                {uploadError && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#be123c' }}>{uploadError}</p>}
+                {uploadError && <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--red)' }}>{uploadError}</p>}
               </div>
             </div>
           </Field>
@@ -270,7 +270,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
         <button type="button" onClick={handleSave} disabled={saving}
           style={{
             height: 48, padding: '0 32px', border: 0, borderRadius: 10,
-            background: saving ? '#c0b8e8' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)',
+            background: saving ? 'var(--b2)' : 'linear-gradient(135deg,#6c35ff,#4d1ee0)',
             color: '#fff', fontWeight: 650, fontSize: 14, cursor: saving ? 'wait' : 'pointer',
           }}>
           {saving ? 'Saving…' : 'Save Changes'}
@@ -282,7 +282,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
+    <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
       {label}
       {children}
     </label>
@@ -301,7 +301,7 @@ function BeneficiaryInviteButton({ campaignId }: { campaignId: string }) {
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)}
-        style={{ fontSize: 12, fontWeight: 700, color: 'var(--green-text)', padding: '6px 14px', border: '1px solid var(--green)', borderRadius: 8, background: '#f0fff8', cursor: 'pointer' }}>
+        style={{ fontSize: 12, fontWeight: 700, color: 'var(--green-text)', padding: '6px 14px', border: '1px solid var(--green)', borderRadius: 8, background: 'rgba(18,166,83,.12)', cursor: 'pointer' }}>
         + Invite Beneficiary
       </button>
     );
@@ -309,30 +309,30 @@ function BeneficiaryInviteButton({ campaignId }: { campaignId: string }) {
 
   if (done) {
     return (
-      <div style={{ fontSize: 13, color: '#065f46', fontWeight: 700, padding: '6px 14px', background: '#f0fff8', borderRadius: 8 }}>
+      <div style={{ fontSize: 13, color: 'var(--green-dark)', fontWeight: 700, padding: '6px 14px', background: 'rgba(18,166,83,.12)', borderRadius: 8 }}>
         ✓ {done}
       </div>
     );
   }
 
   return (
-    <div style={{ position: 'absolute', right: 0, top: 0, zIndex: 50, background: '#fff', border: '1.5px solid #e0d5ff', borderRadius: 12, padding: 18, boxShadow: '0 8px 32px rgba(108,53,255,.15)', width: 320 }}>
-      <p style={{ fontWeight: 650, fontSize: 14, margin: '0 0 12px', color: '#1a1a2e' }}>Invite Beneficiary</p>
-      {err && <p style={{ fontSize: 12, color: '#be123c', margin: '0 0 8px' }}>{err}</p>}
+    <div style={{ position: 'absolute', right: 0, top: 0, zIndex: 50, background: 'var(--s1)', border: '1.5px solid var(--b2)', borderRadius: 12, padding: 18, boxShadow: '0 8px 32px rgba(108,53,255,.15)', width: 320 }}>
+      <p style={{ fontWeight: 650, fontSize: 14, margin: '0 0 12px', color: 'var(--t1)' }}>Invite Beneficiary</p>
+      {err && <p style={{ fontSize: 12, color: 'var(--red)', margin: '0 0 8px' }}>{err}</p>}
       <label style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
         Name *
         <input value={name} onChange={e => setName(e.target.value)} placeholder="Jane Smith"
-          style={{ height: 38, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 10px', fontSize: 13 }} />
+          style={{ height: 38, border: '1px solid var(--b1)', borderRadius: 8, padding: '0 10px', fontSize: 13 }} />
       </label>
       <label style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
         Email *
         <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jane@example.com"
-          style={{ height: 38, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 10px', fontSize: 13 }} />
+          style={{ height: 38, border: '1px solid var(--b1)', borderRadius: 8, padding: '0 10px', fontSize: 13 }} />
       </label>
       <label style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>
         Personal message (optional)
         <textarea value={msg} onChange={e => setMsg(e.target.value)} rows={2} maxLength={500}
-          style={{ border: '1px solid #dfe3ee', borderRadius: 8, padding: '8px 10px', fontSize: 13, resize: 'none' }} />
+          style={{ border: '1px solid var(--b1)', borderRadius: 8, padding: '8px 10px', fontSize: 13, resize: 'none' }} />
       </label>
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="button" disabled={sending || !email || !name}
@@ -349,7 +349,7 @@ function BeneficiaryInviteButton({ campaignId }: { campaignId: string }) {
           {sending ? 'Sending…' : 'Send Invite'}
         </button>
         <button type="button" onClick={() => setOpen(false)}
-          style={{ height: 36, padding: '0 14px', border: '1px solid #dfe3ee', borderRadius: 8, background: '#fff', fontSize: 13, cursor: 'pointer' }}>
+          style={{ height: 36, padding: '0 14px', border: '1px solid var(--b1)', borderRadius: 8, background: 'var(--s1)', fontSize: 13, cursor: 'pointer' }}>
           Cancel
         </button>
       </div>

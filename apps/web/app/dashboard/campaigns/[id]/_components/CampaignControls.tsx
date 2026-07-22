@@ -92,7 +92,7 @@ export default function CampaignControls({
       </div>
 
       {error && (
-        <div style={{ padding: '10px 14px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 9, color: '#be123c', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
+        <div style={{ padding: '10px 14px', background: 'rgba(255,59,95,.08)', border: '1px solid rgba(255,59,95,.28)', borderRadius: 9, color: 'var(--red)', fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
           ⚠ {error}
         </div>
       )}
@@ -120,7 +120,7 @@ export default function CampaignControls({
             type="button"
             disabled={loading}
             onClick={() => setShowDelete(true)}
-            style={{ height: 38, padding: '0 18px', border: '1px solid #fca5a5', borderRadius: 9, background: '#fff0f3', color: '#be123c', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            style={{ height: 38, padding: '0 18px', border: '1px solid rgba(255,59,95,.35)', borderRadius: 9, background: 'rgba(255,59,95,.08)', color: 'var(--red)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
           >
             Delete Campaign
           </button>
@@ -128,20 +128,20 @@ export default function CampaignControls({
       </div>
 
       {showDelete && (
-        <div style={{ marginTop: 16, padding: '16px 18px', background: '#fff0f3', border: '1.5px solid #fca5a5', borderRadius: 12 }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: '#be123c', margin: '0 0 12px' }}>
+        <div style={{ marginTop: 16, padding: '16px 18px', background: 'rgba(255,59,95,.08)', border: '1.5px solid rgba(255,59,95,.35)', borderRadius: 12 }}>
+          <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)', margin: '0 0 12px' }}>
             ⚠ Delete this campaign? This cannot be undone.
           </p>
-          <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 14px', lineHeight: 1.6 }}>
+          <p style={{ fontSize: 13, color: 'var(--t3)', margin: '0 0 14px', lineHeight: 1.6 }}>
             All campaign data, updates, and media will be permanently removed. Donation records are retained for compliance.
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
             <button type="button" onClick={() => void deleteCampaign()} disabled={loading}
-              style={{ padding: '8px 20px', border: 0, borderRadius: 8, background: '#be123c', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              style={{ padding: '8px 20px', border: 0, borderRadius: 8, background: 'var(--red)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               {loading ? 'Deleting…' : 'Yes, permanently delete'}
             </button>
             <button type="button" onClick={() => setShowDelete(false)}
-              style={{ padding: '8px 20px', border: '1px solid var(--b2)', borderRadius: 8, background: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              style={{ padding: '8px 20px', border: '1px solid var(--b2)', borderRadius: 8, background: 'var(--s1)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               Cancel
             </button>
           </div>
@@ -149,9 +149,9 @@ export default function CampaignControls({
       )}
 
       {status === 'frozen' && (
-        <p style={{ fontSize: 13, color: '#be123c', margin: '12px 0 0' }}>
+        <p style={{ fontSize: 13, color: 'var(--red)', margin: '12px 0 0' }}>
           This campaign has been frozen by our trust & safety team.{' '}
-          <a href="/contact" style={{ color: '#6c35ff', fontWeight: 700 }}>Contact support</a> to appeal.
+          <a href="/contact" style={{ color: 'var(--violet)', fontWeight: 700 }}>Contact support</a> to appeal.
         </p>
       )}
     </section>
