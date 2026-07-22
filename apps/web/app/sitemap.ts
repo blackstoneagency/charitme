@@ -11,6 +11,30 @@ type SlugRouteRow = { slug: string | null; updated_at: string | null; created_at
 type IdRouteRow = { id: string | null; updated_at: string | null; created_at?: string | null };
 type ImpactPlanRow = { campaign_id: string | null; updated_at: string | null };
 type CampaignRouteRow = { id?: string | null; slug: string | null; updated_at: string | null };
+const NON_INDEXABLE_PREFIXES = [
+  '/dashboard', '/admin', '/api', '/create', '/login', '/signup', '/forgot-password',
+  '/profile', '/donor', '/donors', '/beneficiary', '/achievements', '/privacy-center',
+  '/offline', '/go', '/events/manage', '/impact/manage', '/matching/manage', '/sponsor/manage',
+];
+
+export function isIndexableSitemapUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    if (url.origin !== CHARITME_ORIGIN || url.search || url.hash) return false;
+    return !NON_INDEXABLE_PREFIXES.some((prefix) => url.pathname === prefix || url.pathname.startsWith(`${prefix}/`));
+  } catch {
+    return false;
+  }
+}
+
+export function uniqueSitemapEntries(entries: MetadataRoute.Sitemap): MetadataRoute.Sitemap {
+  const seen = new Set<string>();
+  return entries.filter((entry) => {
+    if (!isIndexableSitemapUrl(entry.url) || seen.has(entry.url)) return false;
+    seen.add(entry.url);
+    return true;
+  });
+}
 
 function modifiedAt(value: string | null | undefined): Date {
   return value ? new Date(value) : new Date();
@@ -159,7 +183,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: modifiedAt(planUpdatedByCampaignId.get(campaign.id ?? '') ?? campaign.updated_at),
   }));
 
-  return [
+  return uniqueSitemapEntries([
     ...staticRoutes,
     ...blogRoutes,
     ...featureRoutes,
@@ -170,5 +194,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...volunteerRoutes,
     ...sponsorRoutes,
     ...impactRoutes,
-  ];
+  ]);
 }

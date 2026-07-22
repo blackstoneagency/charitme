@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { getAeoFallbackRoute, normalizeAeoRoute } from '../lib/aeo';
 import robots from '../app/robots';
+import { isIndexableSitemapUrl, uniqueSitemapEntries } from '../app/sitemap';
 import { INDEXABLE_PUBLIC_ROUTES } from '../lib/public-routes';
 import { countStaleSeoContent, isStaleSeoContent } from '../lib/seo-audit';
 
@@ -55,6 +56,18 @@ describe('AEO route normalization', () => {
       expect(source, `Missing Supabase SEO metadata integration for ${route.path}`).toMatch(/seoMetadata/);
       expect(source, `Missing AEO surface for ${route.path}`).toMatch(/AeoContent/);
     }
+  });
+
+  it('keeps sitemap entries canonical, public, and unique', () => {
+    expect(isIndexableSitemapUrl('https://www.charitme.com/campaigns')).toBe(true);
+    expect(isIndexableSitemapUrl('https://www.charitme.com/campaigns?category=Medical')).toBe(false);
+    expect(isIndexableSitemapUrl('https://www.charitme.com/dashboard')).toBe(false);
+    expect(isIndexableSitemapUrl('https://example.com/campaigns')).toBe(false);
+    expect(uniqueSitemapEntries([
+      { url: 'https://www.charitme.com/faq' },
+      { url: 'https://www.charitme.com/faq' },
+      { url: 'https://www.charitme.com/faq?topic=fees' },
+    ])).toHaveLength(1);
   });
 
   it('flags content older than the freshness window deterministically', () => {
