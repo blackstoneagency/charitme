@@ -1442,6 +1442,26 @@ img, video, iframe { max-width: 100%; }
 .pc-left { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .pc-right { display: flex; flex-direction: column; gap: 0; position: sticky; top: 20px; min-width: 0; }
 
+/* ── Mobile-first overflow guard for content+sidebar grids ─────────────────────
+   These all pair a narrow/fixed column with a wide content column and collapse
+   to a single stacked column on mobile. Grid items default to min-width:auto, so
+   a wide child (chart, table, long text) in one stacked cell can stretch the
+   shared track and drag the sibling (a card/sidebar) past the viewport — the same
+   class of bug fixed for .pc-grid above. min-width:0 caps the track's floor so
+   items shrink to the viewport instead. Safe: it only permits shrinking. */
+.auth-panel > *,
+.kf-create-layout > *,
+.kf-grid-aside > *,
+.kf-grid-main-aside > *,
+.users-overview-grid > *,
+.users-detail-layout > *,
+.ac-overview > *,
+.admin-campaigns > *,
+.kind-trust-grid > *,
+.contact-hero-grid > *,
+.sys-layout > *,
+.kf-settings-v2 > * { min-width: 0; }
+
 /* Loading skeleton */
 .pc-skeleton-block { background: linear-gradient(90deg, var(--s2, #f1f5f9) 25%, var(--s1, #f8fafc) 37%, var(--s2, #f1f5f9) 63%); background-size: 400% 100%; animation: pc-skeleton-shimmer 1.4s ease infinite; border-radius: 12px; }
 @keyframes pc-skeleton-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
