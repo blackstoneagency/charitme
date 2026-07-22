@@ -463,10 +463,11 @@ export default function CreatePage() {
       setError('Please enter a campaign title (min 3 characters).');
       return;
     }
-    if (step === 'payout' && !payoutLinked) {
-      setError('A payout method is required to continue. Please connect at least one account above.');
-      return;
-    }
+    // Payout is intentionally OPTIONAL to publish — the campaign can go live and be
+    // shared immediately, and the organizer finishes payout to start receiving
+    // donations (the donation API already blocks charges until the recipient is
+    // payout-ready, so nothing is lost by publishing first). This removes the
+    // single biggest drop-off point in the builder.
     const next = WIZARD_STEPS[stepIdx + 1];
     if (next) setStep(next.key);
   };
@@ -1230,6 +1231,15 @@ export default function CreatePage() {
                     )}
                   </div>
 
+                  {!payoutLoading && !payoutLinked && (
+                    <div style={{ margin: '0 0 16px', padding: '12px 14px', borderRadius: 12, background: 'rgba(16,185,129,.10)', border: '1px solid rgba(16,185,129,.3)', display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13.5, lineHeight: 1.5, color: 'var(--t2)' }}>
+                      <span aria-hidden style={{ fontSize: 17 }}>✅</span>
+                      <span>
+                        <strong>This is optional right now.</strong> You can publish your campaign and start sharing it in the next step — set up payouts here or later from your dashboard. You&rsquo;ll be able to <em>receive</em> donations once payouts are connected.
+                      </span>
+                    </div>
+                  )}
+
                   {payoutLoading ? (
                     <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--t3)', fontSize: 14 }}>Checking your payout account…</div>
 
@@ -1499,6 +1509,17 @@ export default function CreatePage() {
                     />
                   </div>
 
+                  {!payoutLinked && (
+                    <div style={{ margin: '4px 0 14px', padding: '12px 14px', borderRadius: 12, background: 'rgba(245,158,11,.10)', border: '1px solid rgba(245,158,11,.35)', fontSize: 13.5, lineHeight: 1.5, color: 'var(--t2)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                      <span aria-hidden style={{ fontSize: 17 }}>💡</span>
+                      <span>
+                        <strong>You can launch now.</strong> Your campaign goes live and is shareable immediately. To start <em>receiving</em> donations, connect a payout method — you can{' '}
+                        <button type="button" onClick={() => setStep('payout')} style={{ background: 'none', border: 0, padding: 0, color: 'var(--violet)', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>do it now</button>{' '}
+                        or anytime from your dashboard.
+                      </span>
+                    </div>
+                  )}
+
                   <div className="cr2-launch-btns">
                     <button
                       type="button"
@@ -1593,7 +1614,9 @@ export default function CreatePage() {
                     </button>
                   )}
                   {step !== 'summary' && (
-                    <button type="button" className="cr2-nav-next" onClick={goNext}>Continue →</button>
+                    <button type="button" className="cr2-nav-next" onClick={goNext}>
+                      {step === 'payout' && !payoutLinked ? 'Skip — set up later →' : 'Continue →'}
+                    </button>
                   )}
                 </div>
               </div>
@@ -1631,7 +1654,22 @@ export default function CreatePage() {
           <div className="cr2-success">
             <div className="cr2-success-icon"><KFIcon name="check" /></div>
             <h2>🎉 Your Campaign is Live!</h2>
-            <p>Congratulations! Your fundraiser is now live and ready to receive donations. Share it everywhere to reach your goal faster.</p>
+            <p>
+              {payoutLinked
+                ? 'Congratulations! Your fundraiser is now live and ready to receive donations. Share it everywhere to reach your goal faster.'
+                : 'Congratulations! Your fundraiser is now live and shareable. One last step to start receiving donations: connect a payout method.'}
+            </p>
+            {!payoutLinked && (
+              <div style={{ margin: '0 auto 22px', maxWidth: 460, padding: '16px 18px', borderRadius: 14, background: 'rgba(245,158,11,.10)', border: '1px solid rgba(245,158,11,.35)', textAlign: 'left' }}>
+                <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4, color: 'var(--t1)' }}>🏦 Finish payout setup to get paid</div>
+                <p style={{ fontSize: 13.5, lineHeight: 1.5, color: 'var(--t2)', margin: '0 0 12px' }}>
+                  Your campaign is visible and shareable now. Donations can be collected once your payout account is connected — it takes about 2 minutes.
+                </p>
+                <button type="button" className="cr2-btn-launch" style={{ width: '100%' }} onClick={() => void connectStripe()} disabled={connectingStripe}>
+                  {connectingStripe ? 'Redirecting…' : 'Set up payouts →'}
+                </button>
+              </div>
+            )}
             <div className="cr2-launch-actions">
               {publishedSlug && (
                 <Link href={`/campaigns/${publishedSlug}`} className="cr2-launch-view" style={{ textDecoration: 'none' }}>

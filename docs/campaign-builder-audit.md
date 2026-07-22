@@ -25,12 +25,12 @@ alt rails (`/api/stripe/connect`).
    (localStorage autosave, 7-day TTL, versioned, defensive parse) + a "Welcome
    back — resume?" banner + "✓ Saved" indicator, cleared on successful
    Supabase submit. (CHAR-SM15)
-2. **Payout required before publish (Step 8 of 9).** Forcing Stripe/PayPal setup
-   before the campaign can go live is the single biggest drop-off point on every
-   competitor benchmarked. Recommended: let users **publish first, collect payout
-   before first withdrawal** (the recipient-first architecture already blocks
-   *donations* until payout-ready, so publishing early is safe). Needs product +
-   payments sign-off.
+2. **✅ FIXED — Payout required before publish (Step 8 of 9).** Was the single
+   biggest drop-off point. Payout is now **optional to publish** (CHAR-SM23): the
+   creator launches + shares immediately and finishes payout later; the donation
+   API still 409s `PAYOUT_NOT_READY` until the recipient is payout-ready, so no
+   funds path is compromised. Messaging added on the payout/review/success steps
+   and the public page already shows donors "Donations open soon".
 3. **9 steps is long.** Merge/auto-infer: `location` (infer country from
    locale/IP; ZIP optional), `type`+`category` (one screen), `title` (AI-derived
    from story — never ask). Target: ≤5 screens, one primary action each.

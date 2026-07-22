@@ -932,6 +932,21 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM23 · UX — publish-before-payout (biggest builder drop-off lever)** — The
+  wizard hard-**blocked publishing** until a payout method was linked (step 8 of 9) —
+  the #1 abandonment point. Made payout **optional to publish**: removed the
+  `goNext` gate, so a creator can launch and share immediately and finish payout
+  later. Safe by design — the donation API already 409s `PAYOUT_NOT_READY` until the
+  recipient is payout-ready (destination charges), so nothing is lost by publishing
+  first. Added clear, honest messaging throughout: payout step shows an "optional
+  right now" note + the nav button becomes **"Skip — set up later →"**; the review
+  step shows "you can launch now… connect a payout method to receive donations
+  (do it now / from your dashboard)"; the success screen swaps its copy when unlinked
+  and shows a prominent **"Set up payouts →"** CTA (starts Stripe onboarding). The
+  public campaign page already handles the unlinked state gracefully for donors
+  ("💜 Donations open soon — payout setup is being completed"). _typecheck + lint
+  clean; build green._
+
 - **CHAR-SM22 · performance — hero image WebP** — `/hero-child-crop.png` was a 310×278
   photo weighing **211KB as PNG** (homepage hero fallback + demo avatars). Converted
   to **WebP → 12.2KB (94% smaller)**, updated its 3 references, removed the old PNG
