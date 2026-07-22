@@ -4,6 +4,17 @@
 > production-readiness program. Section A is the actionable engineering backlog.
 > Section B (further down) is the competitive product vision it serves.
 
+## 🚨 SECURITY — exposed keys STILL LIVE (rotation NOT effective as of this check)
+Owner reported secrets rotated, but a read-only check shows the **exposed** keys
+still work: **old Stripe `sk_live` → 200**, **old Supabase access token → 201**,
+**old service-role key → 200**. Setting new values in Vercel does not revoke the
+old ones. **Must actually REVOKE/ROLL:** Stripe → Developers → API keys → *roll*
+the secret key + delete the exposed restricted key (then update `STRIPE_SECRET_KEY`
+in Vercel with the rolled value); Supabase → Settings → API keys → rotate anon +
+service-role (update Vercel); Supabase account → Access Tokens → **revoke** the
+`sbp_…`; Supabase → Database → reset password; rotate Google OAuth secret, Resend,
+CRON. #1 (Vercel Stripe env) IS verified live via `/api/health`.
+
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
