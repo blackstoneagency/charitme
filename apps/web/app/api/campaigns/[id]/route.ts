@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
 import { canManageCampaign } from '../../../../lib/auth';
+import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 
 const VALID_STATUSES = ['draft', 'active', 'paused', 'completed', 'frozen', 'archived'] as const;
 
@@ -15,21 +16,20 @@ const UpdateSchema = z.object({
   status:                  z.enum(VALID_STATUSES).optional(),
   coverImageUrl:           z.string().url().nullable().optional(),
   goalAmount:              z.number().int().min(1).optional(),
-  deadline:                z.string().nullable().optional(),
-  category:                z.string().optional(),
+  deadline:                z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  category:                z.enum(CAMPAIGN_CATEGORIES).optional(),
   beneficiaryName:         z.string().max(120).nullable().optional(),
   beneficiaryRelationship: z.string().max(120).nullable().optional(),
   videoUrl:                z.string().url().nullable().optional(),
   location:                z.string().max(120).nullable().optional(),
   visibility:              z.enum(VALID_VISIBILITY).optional(),
   donationsEnabled:        z.boolean().optional(),
-  goalHistory:             z.any().optional(),
 });
 
 async function verifyOwnership(campaignId: string, user: { id: string; email?: string | null }) {
   const { data } = await supabaseAdmin
     .from('campaigns')
-    .select('id, user_id, status, goal_amount')
+    .select('id, user_id, status, goal_amount, description, accept_donations, visibility')
     .eq('id', campaignId)
     .single();
   if (!data) return { ok: false, error: 'Campaign not found', status: 404 };
@@ -49,9 +49,18 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const body = await request.json().catch(() => null);
   const parsed = UpdateSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid campaign input', code: 'INVALID_INPUT' }, { status: 400 });
 
   const d = parsed.data;
+  const nextStatus = d.status ?? check.campaign!.status;
+  const nextDescription = d.description ?? check.campaign!.description;
+  const nextGoal = d.goalAmount ?? check.campaign!.goal_amount;
+  if (nextStatus === 'active' && nextDescription.trim().length < 20) {
+    return NextResponse.json({ error: 'Active campaigns need a story of at least 20 characters.', code: 'INVALID_CAMPAIGN_STATE' }, { status: 400 });
+  }
+  if (nextStatus === 'active' && nextGoal < 100) {
+    return NextResponse.json({ error: 'Active campaigns need a goal of at least 100 cents.', code: 'INVALID_CAMPAIGN_STATE' }, { status: 400 });
+  }
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
   if (d.title !== undefined)                     updates.title = d.title;
@@ -66,6 +75,17 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   if (d.videoUrl !== undefined)                  updates.video_url = d.videoUrl;
   if (d.location !== undefined)                  updates.location = d.location;
   if (d.visibility !== undefined)                updates.visibility = d.visibility;
+  if (d.donationsEnabled !== undefined)          updates.accept_donations = d.donationsEnabled;
+
+  if (nextStatus === 'active') {
+    updates.accept_donations = d.donationsEnabled ?? true;
+    updates.visibility = d.visibility ?? 'public';
+  } else if (nextStatus === 'paused') {
+    updates.accept_donations = false;
+  } else if (nextStatus === 'draft' || nextStatus === 'archived' || nextStatus === 'completed' || nextStatus === 'frozen') {
+    updates.accept_donations = false;
+    if (nextStatus === 'draft' || nextStatus === 'archived') updates.visibility = 'private';
+  }
 
   // Goal change: record history, freeze donations during review if big change
   if (d.goalAmount !== undefined) {
@@ -93,7 +113,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   if (error) {
     console.error('Campaign update failed', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Campaign could not be updated.', code: 'CAMPAIGN_UPDATE_FAILED' }, { status: 500 });
   }
 
   // Audit log for status changes
@@ -137,7 +157,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     .update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq('id', id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Campaign could not be deleted.', code: 'CAMPAIGN_DELETE_FAILED' }, { status: 500 });
 
   // Write campaign_status_log
   void supabaseAdmin.from('campaign_status_log').insert({

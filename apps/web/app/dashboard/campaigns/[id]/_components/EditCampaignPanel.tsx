@@ -87,7 +87,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
     if (!files || files.length === 0) return;
     const file = files[0]!;
     if (!file.type.startsWith('image/')) { setUploadError('Please upload an image file.'); return; }
-    if (file.size > 10 * 1024 * 1024) { setUploadError('Image must be under 10 MB.'); return; }
+    if (file.size > 5 * 1024 * 1024) { setUploadError('Image must be under 5 MB.'); return; }
 
     setUploadState('uploading');
     setUploadError('');

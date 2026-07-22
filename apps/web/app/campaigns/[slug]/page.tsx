@@ -56,6 +56,7 @@ async function getCampaign(slug: string) {
     .from('campaigns')
     .select('*, profiles:user_id (full_name, avatar_url)')
     .eq('slug', slug)
+    .is('deleted_at', null)
     .single();
   return data;
 }
@@ -195,13 +196,14 @@ function toWallDonation(d: DonationRow): WallDonation {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const campaign = await getCampaign(slug);
-  if (!campaign) return { title: 'Campaign not found' };
+  if (!campaign) return { title: 'Campaign not found', robots: { index: false, follow: false } };
 
   const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
   const campaignUrl = `${ORIGIN}/campaigns/${slug}`;
   const description = campaign.tagline ?? campaign.description?.slice(0, 160) ?? '';
   const image = campaign.cover_image_url ?? getCoverForCampaign(campaign.category, campaign.slug);
 
+  const isPublicCampaign = campaign.status === 'active' && campaign.visibility !== 'private';
   return seoMetadata(`/campaigns/${campaign.slug}`, {
     title: campaign.title,
     description,
@@ -220,6 +222,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       images: [image],
     },
     alternates: { canonical: campaignUrl },
+    ...(isPublicCampaign ? {} : { robots: { index: false, follow: false } }),
   });
 }
 
@@ -237,8 +240,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
   // Private campaigns are only visible to the owner and admins
   const visibility = (campaign as { visibility?: string }).visibility ?? 'public';
-  if (visibility === 'private') {
-    if (!user || user.id !== campaign.user_id) notFound();
+  const isOwner = !!user && user.id === campaign.user_id;
+  if (visibility === 'private' || campaign.status !== 'active') {
+    if (!isOwner) notFound();
   }
 
   // Personal referral link attribution (?ref=<userId>) — ignore self-referrals
