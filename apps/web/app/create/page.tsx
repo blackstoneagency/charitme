@@ -8,6 +8,7 @@ import { createClient } from '../../lib/supabase-browser';
 import AiFollowUps from './AiFollowUps';
 import ReadinessChecklist from './ReadinessChecklist';
 import GoalProceedsBreakdown from './GoalProceedsBreakdown';
+import StorySectionsEditor from './StorySectionsEditor';
 import { publishReadiness } from '../../lib/campaign-readiness';
 import { analyzeStory } from '../../lib/story-analysis';
 
@@ -198,6 +199,7 @@ export default function CreatePage() {
   const [step, setStep]               = useState<WizardStep>('type');
   const [loading, setLoading]         = useState(false);
   const [aiLoading, setAiLoading]     = useState(false);
+  const [storyMode, setStoryMode]     = useState<'freeform' | 'guided'>('freeform');
   const [error, setError]             = useState('');
   const [publishedSlug, setPublishedSlug] = useState('');
   const [userName, setUserName]       = useState<string | null>(null);
@@ -418,7 +420,7 @@ export default function CreatePage() {
     setUploadedImages(prev => prev.filter(i => i.id !== img.id));
   }, []);
 
-  const runAi = async (notesOverride?: string) => {
+  const runAi = async (notesOverride?: string, toneOverride?: string, forceStory = false) => {
     setAiLoading(true);
     setError('');
     try {
@@ -426,7 +428,7 @@ export default function CreatePage() {
       const res = await fetch('/api/ai/campaign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category: form.category, goalAmount: goalCents || 500000, beneficiary: form.beneficiaryName || 'the beneficiary', notes, tone: 'authentic' }),
+        body: JSON.stringify({ category: form.category, goalAmount: goalCents || 500000, beneficiary: form.beneficiaryName || 'the beneficiary', notes, tone: toneOverride || 'authentic' }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'AI generation failed');
@@ -434,7 +436,7 @@ export default function CreatePage() {
         ...prev,
         title: prev.title || (typeof data.title === 'string' ? data.title : prev.title),
         tagline: prev.tagline || (typeof data.socialCaption === 'string' ? data.socialCaption : prev.tagline),
-        description: prev.description.length > 80 ? prev.description : (typeof data.story === 'string' ? data.story : prev.description),
+        description: (!forceStory && prev.description.length > 80) ? prev.description : (typeof data.story === 'string' ? data.story : prev.description),
       }));
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'AI generation failed');
@@ -837,16 +839,49 @@ export default function CreatePage() {
                 <div className="cr2-form-panel">
                   <h2 className="cr2-step-q" style={{ padding: 0, marginBottom: 8 }}>Tell Donors Your Story.</h2>
 
-                  <div className="cr2-field">
-                    <label htmlFor="cr-story">Campaign Story * <span className="cr2-optional">— min. 20 characters</span></label>
-                    <textarea
-                      id="cr-story"
-                      value={form.description}
-                      onChange={e => upd('description', e.target.value)}
-                      placeholder="Introduce yourself and what you're raising funds for..."
-                      style={{ minHeight: 220 }}
-                    />
+                  {/* Mode toggle: one open textarea, or a guided four-section builder.
+                      Both write the SAME `description` field. */}
+                  <div role="tablist" aria-label="Story writing mode" style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 999, background: 'var(--s3, #eef2f7)', marginBottom: 14 }}>
+                    {(['freeform', 'guided'] as const).map(mode => (
+                      <button
+                        key={mode}
+                        type="button"
+                        role="tab"
+                        aria-selected={storyMode === mode}
+                        onClick={() => setStoryMode(mode)}
+                        style={{
+                          padding: '7px 16px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                          fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+                          background: storyMode === mode ? 'var(--s1, #fff)' : 'transparent',
+                          color: storyMode === mode ? 'var(--t1, #1a1a2e)' : 'var(--t3, #64748b)',
+                          boxShadow: storyMode === mode ? 'var(--shadow, 0 1px 2px rgba(0,0,0,0.06))' : 'none',
+                        }}
+                      >
+                        {mode === 'freeform' ? 'Write freely' : 'Guide me'}
+                      </button>
+                    ))}
                   </div>
+
+                  {storyMode === 'freeform' ? (
+                    <div className="cr2-field">
+                      <label htmlFor="cr-story">Campaign Story * <span className="cr2-optional">— min. 20 characters</span></label>
+                      <textarea
+                        id="cr-story"
+                        value={form.description}
+                        onChange={e => upd('description', e.target.value)}
+                        placeholder="Introduce yourself and what you're raising funds for..."
+                        style={{ minHeight: 220 }}
+                      />
+                    </div>
+                  ) : (
+                    <StorySectionsEditor
+                      key="guided"
+                      initialStory={form.description}
+                      onCompose={(story) => upd('description', story)}
+                      onPickTone={(tone) => void runAi(form.description, tone, true)}
+                      aiBusy={aiLoading}
+                    />
+                  )}
 
                   {/* Strengthen your story box */}
                   <div className="cr2-strengthen-box">
