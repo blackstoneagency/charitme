@@ -77,8 +77,10 @@ describe('campaign creation partial-success contract', () => {
     const route = await source.readFile(new URL('../app/api/campaigns/route.ts', import.meta.url), 'utf8');
     expect(page).toContain('imagePaths: uploadedImages.filter(img => img.status === \'done\').map(img => img.id)');
     expect(route).toContain(".from('campaign_media').insert(mediaRows)");
-    expect(route).toContain('parsedPath.ownerId !== user.id');
+    expect(route).toContain('parsedPath?.ownerId === user.id');
     expect(route).toContain('Campaign media metadata save failed');
+    expect(route).toContain("getPublicUrl(path).data.publicUrl");
+    expect(route).toContain('const persistedImageUrls = normalizedMediaPaths.length > 0 ? normalizedImageUrls');
   });
 });
 

@@ -69,6 +69,15 @@ export async function POST(request: NextRequest) {
 
   const { title, tagline, description, goalAmount, deadline, category, coverImageUrl, imageUrls, imagePaths, beneficiaryName, beneficiaryRelationship, evidenceNote, location, videoUrl, status } = parsed.data;
 
+  const normalizedMediaPaths = (imagePaths ?? []).filter((path) => {
+    const parsedPath = parseCampaignMediaPath(path);
+    return parsedPath?.ownerId === user.id;
+  });
+  const normalizedImageUrls = normalizedMediaPaths.map((path) =>
+    supabaseAdmin.storage.from('campaign-media').getPublicUrl(path).data.publicUrl,
+  );
+  const persistedImageUrls = normalizedMediaPaths.length > 0 ? normalizedImageUrls : (imageUrls ?? []);
+
   if (status === 'active') {
     const payoutDestination = await resolvePayoutDestination({ user_id: user.id });
     if (!payoutDestination) {
@@ -121,7 +130,7 @@ export async function POST(request: NextRequest) {
 
   let result = await supabaseAdmin
     .from('campaigns')
-    .insert({ ...baseInsert, image_urls: imageUrls ?? [] } as typeof baseInsert)
+    .insert({ ...baseInsert, image_urls: persistedImageUrls } as typeof baseInsert)
     .select('id, slug')
     .single();
 
@@ -163,19 +172,13 @@ export async function POST(request: NextRequest) {
   if (statusLogError) console.error('Campaign creation status history write failed');
 
   let warning: string | undefined;
-  const mediaRows = (imagePaths ?? [])
-    .map((path, index) => {
-      const parsedPath = parseCampaignMediaPath(path);
-      if (!parsedPath || parsedPath.ownerId !== user.id) return null;
-      return {
-        campaign_id: data.id,
-        uploader_id: user.id,
-        media_type: 'image' as const,
-        storage_path: path,
-        public_url: imageUrls?.[index] ?? null,
-      };
-    })
-    .filter((row): row is NonNullable<typeof row> => row !== null);
+  const mediaRows = normalizedMediaPaths.map((path, index) => ({
+    campaign_id: data.id,
+    uploader_id: user.id,
+    media_type: 'image' as const,
+    storage_path: path,
+    public_url: normalizedImageUrls[index] ?? null,
+  }));
 
   if (mediaRows.length > 0) {
     const { error: mediaError } = await supabaseAdmin.from('campaign_media').insert(mediaRows);
