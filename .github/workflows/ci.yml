@@ -2,7 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches:
+      - master
+      - 'agent/**'
+      - 'codex/**'
   pull_request:
     branches: [master]
 
