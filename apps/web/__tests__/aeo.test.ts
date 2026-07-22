@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { dedupeAeoEntries, getAeoFallbackRoute, normalizeAeoRoute } from '../lib/aeo';
+import { buildAeoJsonLd, dedupeAeoEntries, getAeoFallbackRoute, normalizeAeoRoute } from '../lib/aeo';
 import robots from '../app/robots';
 import { isIndexableSitemapUrl, uniqueSitemapEntries } from '../app/sitemap';
 import { isPublicRoute, normalizePublicRoute } from '../lib/public-route-policy';
@@ -39,6 +39,19 @@ describe('AEO route normalization', () => {
       { question: 'What fees apply?', answer: 'C', topic: 'Fees', schema_type: 'QAPage' as const, route: '/faq' },
     ];
     expect(dedupeAeoEntries(entries)).toHaveLength(2);
+  });
+
+  it('emits FAQ, Q&A, and HowTo structured data from published entries', () => {
+    const schemas = buildAeoJsonLd([
+      { question: 'FAQ question', answer: 'FAQ answer', topic: null, schema_type: 'FAQPage', route: '/faq' },
+      { question: 'Q&A question', answer: 'Q&A answer', topic: null, schema_type: 'QAPage', route: '/faq' },
+      { question: 'How do I start?', answer: 'Follow these steps.', topic: null, schema_type: 'HowTo', route: '/how-it-works' },
+    ]);
+    expect(schemas.map((schema) => schema['@type'])).toEqual(['FAQPage', 'QAPage', 'HowTo']);
+    expect(schemas[2]).toMatchObject({
+      name: 'How do I start?',
+      step: [{ '@type': 'HowToStep', text: 'Follow these steps.' }],
+    });
   });
 
   it('keeps private routes out of the indexable registry and crawler allowlist', () => {

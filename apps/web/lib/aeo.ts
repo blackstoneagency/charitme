@@ -14,6 +14,8 @@ export interface PublicFaq extends PublicAeoEntry {
   schema_type: 'FAQPage';
 }
 
+export type AeoJsonLd = Record<string, unknown>;
+
 const DYNAMIC_PARENT_ROUTE = /^\/(campaigns|blog|events|features|grants|impact|matching|sponsor|volunteer)\/[^/]+$/;
 
 export function normalizeAeoRoute(route: string | null | undefined): string {
@@ -34,6 +36,39 @@ export function dedupeAeoEntries(entries: PublicAeoEntry[]): PublicAeoEntry[] {
     seen.add(key);
     return true;
   });
+}
+
+export function buildAeoJsonLd(entries: PublicAeoEntry[]): AeoJsonLd[] {
+  const faqEntries = entries.filter((entry) => entry.schema_type === 'FAQPage');
+  const qaEntries = entries.filter((entry) => entry.schema_type === 'QAPage');
+  const howToEntries = entries.filter((entry) => entry.schema_type === 'HowTo');
+
+  return [
+    ...(faqEntries.length > 0 ? [{
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqEntries.map((entry) => ({
+        '@type': 'Question',
+        name: entry.question,
+        acceptedAnswer: { '@type': 'Answer', text: entry.answer },
+      })),
+    }] : []),
+    ...qaEntries.map((entry) => ({
+      '@context': 'https://schema.org',
+      '@type': 'QAPage',
+      mainEntity: {
+        '@type': 'Question',
+        name: entry.question,
+        acceptedAnswer: { '@type': 'Answer', text: entry.answer },
+      },
+    })),
+    ...howToEntries.map((entry) => ({
+      '@context': 'https://schema.org',
+      '@type': 'HowTo',
+      name: entry.question,
+      step: [{ '@type': 'HowToStep', name: entry.question, text: entry.answer }],
+    })),
+  ];
 }
 
 /** Published, route-specific entries used by public pages and their schema. */
