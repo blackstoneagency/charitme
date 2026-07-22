@@ -44,6 +44,16 @@ describe('campaign media contract', () => {
   });
 });
 
+describe('campaign payout UI contract', () => {
+  it('does not present legacy payout preferences as publish-ready', async () => {
+    const source = await import('node:fs/promises');
+    const page = await source.readFile(new URL('../app/create/page.tsx', import.meta.url), 'utf8');
+    expect(page).toContain('Stripe Connect is the only live payout method.');
+    expect(page).toContain('Venmo <span className="cr2-payout-recommended">NOT AVAILABLE</span>');
+    expect(page).toContain('PayPal <span className="cr2-payout-recommended">NOT AVAILABLE</span>');
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Campaign creation validation
 // ─────────────────────────────────────────────────────────────────────────────

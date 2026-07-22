@@ -338,17 +338,7 @@ export default function CreatePage() {
         }
         setPaymentMethods(methods);
         // Set payout account based on what's connected
-        if (acct && (acct as { payouts_enabled: boolean }).payouts_enabled) {
-          setPayoutAccount(acct as PayoutAccount);
-        } else if (methods.primary === 'venmo' && methods.venmo) {
-          setPayoutAccount({ id: 'venmo', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'venmo', venmo_handle: methods.venmo });
-        } else if (methods.primary === 'googlepay' && methods.googlepay) {
-          setPayoutAccount({ id: 'googlepay', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'googlepay', googlepay_email: methods.googlepay });
-        } else if (methods.primary === 'paypal' && methods.paypal) {
-          setPayoutAccount({ id: 'paypal', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'paypal', paypal_email: methods.paypal });
-        } else if (methods.primary === 'sinch' && methods.sinch) {
-          setPayoutAccount({ id: 'sinch', stripe_account_id: '', payouts_enabled: true, details_submitted: true, verification_status: 'verified', payout_type: 'sinch', sinch_ref: methods.sinch });
-        } else if (acct) {
+        if (acct) {
           setPayoutAccount(acct as PayoutAccount);
         }
         setPayoutLoading(false);
@@ -1185,10 +1175,10 @@ export default function CreatePage() {
                       </button>
 
                       {/* Venmo */}
-                      <button type="button" className="cr2-payout-option" onClick={() => { setVenmoHandle(paymentMethods.venmo?.replace('@','') ?? ''); setPayoutMethod('venmo'); }}>
+                      <button type="button" className="cr2-payout-option" disabled style={{ opacity: 0.55, cursor: 'not-allowed' }}>
                         <span className="cr2-payout-option-icon">💚</span>
                         <div className="cr2-payout-option-body">
-                          <strong>Venmo</strong>
+                          <strong>Venmo <span className="cr2-payout-recommended">NOT AVAILABLE</span></strong>
                           <span>{paymentMethods.venmo ? `Connected: ${paymentMethods.venmo}` : 'Send directly to your Venmo account'}</span>
                         </div>
                         {paymentMethods.venmo
@@ -1197,10 +1187,10 @@ export default function CreatePage() {
                       </button>
 
                       {/* Google Pay */}
-                      <button type="button" className="cr2-payout-option" onClick={() => { setGooglePayEmail(paymentMethods.googlepay ?? ''); setPayoutMethod('googlepay'); }}>
+                      <button type="button" className="cr2-payout-option" disabled style={{ opacity: 0.55, cursor: 'not-allowed' }}>
                         <span className="cr2-payout-option-icon">🔵</span>
                         <div className="cr2-payout-option-body">
-                          <strong>Google Pay</strong>
+                          <strong>Google Pay <span className="cr2-payout-recommended">NOT AVAILABLE</span></strong>
                           <span>{paymentMethods.googlepay ? `Connected: ${paymentMethods.googlepay}` : 'Receive via your Google account'}</span>
                         </div>
                         {paymentMethods.googlepay
@@ -1209,10 +1199,10 @@ export default function CreatePage() {
                       </button>
 
                       {/* PayPal */}
-                      <button type="button" className="cr2-payout-option" onClick={() => { setPaypalEmail(paymentMethods.paypal ?? ''); setPayoutMethod('paypal'); }}>
+                      <button type="button" className="cr2-payout-option" disabled style={{ opacity: 0.55, cursor: 'not-allowed' }}>
                         <span className="cr2-payout-option-icon">💙</span>
                         <div className="cr2-payout-option-body">
-                          <strong>PayPal</strong>
+                          <strong>PayPal <span className="cr2-payout-recommended">NOT AVAILABLE</span></strong>
                           <span>{paymentMethods.paypal ? `Connected: ${paymentMethods.paypal}` : 'Send to your PayPal account · PayPal fees apply'}</span>
                         </div>
                         {paymentMethods.paypal
@@ -1221,16 +1211,20 @@ export default function CreatePage() {
                       </button>
 
                       {/* Sinch */}
-                      <button type="button" className="cr2-payout-option" onClick={() => setPayoutMethod('sinch')}>
+                      <button type="button" className="cr2-payout-option" disabled style={{ opacity: 0.55, cursor: 'not-allowed' }}>
                         <span className="cr2-payout-option-icon">🏛</span>
                         <div className="cr2-payout-option-body">
-                          <strong>Sinch Bank Link</strong>
+                          <strong>Sinch Bank Link <span className="cr2-payout-recommended">NOT AVAILABLE</span></strong>
                           <span>{paymentMethods.sinch ? `Connected: ••••${paymentMethods.sinch.slice(-4)}` : 'Instant ACH bank connection · No manual routing numbers'}</span>
                         </div>
                         {paymentMethods.sinch
                           ? <span className="cr2-payout-option-connected">✓</span>
                           : <span className="cr2-payout-option-arrow">›</span>}
                       </button>
+
+                      <div className="cr2-payout-important">
+                        <strong>Stripe Connect is the only live payout method.</strong> Legacy preferences are retained for records only and cannot receive donations or publish a campaign.
+                      </div>
 
                       {/* Important notice */}
                       <div className="cr2-payout-important">
