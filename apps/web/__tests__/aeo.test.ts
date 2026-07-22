@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { getAeoFallbackRoute, normalizeAeoRoute } from '../lib/aeo';
 import robots from '../app/robots';
 import { isIndexableSitemapUrl, uniqueSitemapEntries } from '../app/sitemap';
+import { isPublicRoute, normalizePublicRoute } from '../lib/public-route-policy';
 import { INDEXABLE_PUBLIC_ROUTES } from '../lib/public-routes';
 import { countStaleSeoContent, isStaleSeoContent } from '../lib/seo-audit';
 
@@ -11,6 +12,9 @@ describe('AEO route normalization', () => {
   it('normalizes public paths and trailing slashes', () => {
     expect(normalizeAeoRoute(' /pricing/ ')).toBe('/pricing');
     expect(normalizeAeoRoute('//trust-safety')).toBe('/trust-safety');
+    expect(normalizePublicRoute('/pricing/')).toBe('/pricing');
+    expect(isPublicRoute('/pricing?plan=pro')).toBe(false);
+    expect(isPublicRoute('/dashboard')).toBe(false);
   });
 
   it('falls back safely for private or query-bearing paths', () => {

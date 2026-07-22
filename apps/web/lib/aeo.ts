@@ -1,5 +1,6 @@
 import 'server-only';
 import { supabaseAdmin } from './supabase';
+import { normalizePublicRoute } from './public-route-policy';
 
 export interface PublicAeoEntry {
   question: string;
@@ -13,13 +14,10 @@ export interface PublicFaq extends PublicAeoEntry {
   schema_type: 'FAQPage';
 }
 
-const PUBLIC_ROUTE = /^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|beneficiary(?:\/|$)|achievements(?:\/|$)|privacy-center(?:\/|$)|offline(?:\/|$)|go(?:\/|$)|events\/manage(?:\/|$)|impact\/manage(?:\/|$)|matching\/manage(?:\/|$)|sponsor\/manage(?:\/|$))/;
 const DYNAMIC_PARENT_ROUTE = /^\/(campaigns|blog|events|features|grants|impact|matching|sponsor|volunteer)\/[^/]+$/;
 
 export function normalizeAeoRoute(route: string | null | undefined): string {
-  const value = (route ?? '/faq').trim().replace(/\/{2,}/g, '/');
-  if (!PUBLIC_ROUTE.test(value) || value.length > 200 || value.includes('?') || value.includes('#')) return '/faq';
-  return value === '/' ? '/' : value.replace(/\/$/, '');
+  return normalizePublicRoute(route) ?? '/faq';
 }
 
 /** Return the public collection route whose published answers apply to a detail page. */

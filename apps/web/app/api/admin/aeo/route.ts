@@ -2,12 +2,13 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../lib/supabase';
+import { isPublicRoute, normalizePublicRoute } from '../../../../lib/public-route-policy';
 import { verifyAdmin } from '../users/_auth';
 
 // Answer-Engine-Optimization Q&A entries stored in public.aeo_entries
 // (RLS: service-role only). Published entries power the public AEO/FAQ surface.
 const SCHEMA_TYPES = ['FAQPage', 'QAPage', 'HowTo'] as const;
-const PUBLIC_ROUTE = z.string().trim().min(1).max(200).regex(/^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|beneficiary(?:\/|$)|achievements(?:\/|$)|privacy-center(?:\/|$)|offline(?:\/|$)|go(?:\/|$)|events\/manage(?:\/|$)|impact\/manage(?:\/|$)|matching\/manage(?:\/|$)|sponsor\/manage(?:\/|$))/);
+const PUBLIC_ROUTE = z.string().trim().min(1).max(200).refine(isPublicRoute, 'Route must be a public path without query or hash parameters');
 
 const AeoSchema = z.object({
   id: z.string().uuid().optional(),
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
     schema_type: d.schemaType ?? 'FAQPage',
     priority: d.priority ?? 0,
     published: d.published ?? true,
-    route: d.route ?? '/faq',
+    route: normalizePublicRoute(d.route) ?? '/faq',
     updated_by: admin.id,
     updated_at: new Date().toISOString(),
   };

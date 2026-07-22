@@ -2,6 +2,7 @@ import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../../lib/supabase';
+import { isPublicRoute, normalizePublicRoute } from '../../../../../lib/public-route-policy';
 import { guardSuperAdmin, logSuperAdminAction } from '../../../../../lib/super-admin';
 
 const CreateSchema = z.object({
@@ -11,7 +12,7 @@ const CreateSchema = z.object({
   schema_type: z.enum(['FAQPage', 'QAPage', 'HowTo']).default('FAQPage'),
   priority: z.number().int().min(0).max(1000).default(0),
   published: z.boolean().default(true),
-  route: z.string().trim().min(1).max(200).regex(/^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|beneficiary(?:\/|$)|achievements(?:\/|$)|privacy-center(?:\/|$)|offline(?:\/|$)|go(?:\/|$)|events\/manage(?:\/|$)|impact\/manage(?:\/|$)|matching\/manage(?:\/|$)|sponsor\/manage(?:\/|$))/).default('/faq'),
+  route: z.string().trim().min(1).max(200).refine(isPublicRoute, 'Route must be a public path without query or hash parameters').transform((value) => normalizePublicRoute(value) ?? '/faq').default('/faq'),
 });
 const UpdateSchema = CreateSchema.partial().extend({ id: z.string().uuid() });
 
