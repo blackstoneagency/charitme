@@ -100,7 +100,7 @@ export default function HelpPage() {
         {/* Search */}
         <div style={{ marginTop: 24, position: 'relative', maxWidth: 520 }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width={18} height={18}
-            style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
+            style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--t3)' }}>
             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
           </svg>
           <input
@@ -122,9 +122,9 @@ export default function HelpPage() {
         <button onClick={() => setActiveCategory('all')}
           style={{
             padding: '7px 16px', borderRadius: 20, border: '1.5px solid',
-            borderColor: activeCategory === 'all' ? '#6c35ff' : 'var(--b2)',
-            background: activeCategory === 'all' ? '#f0eaff' : '#fff',
-            color: activeCategory === 'all' ? '#551cf2' : 'var(--t2)',
+            borderColor: activeCategory === 'all' ? 'var(--violet)' : 'var(--b2)',
+            background: activeCategory === 'all' ? 'rgba(109,53,255,.14)' : '#fff',
+            color: activeCategory === 'all' ? 'var(--violet)' : 'var(--t2)',
             fontSize: 13, fontWeight: 700, cursor: 'pointer',
           }}>
           All ({ARTICLES.length})
@@ -133,9 +133,9 @@ export default function HelpPage() {
           <button key={cat.id} onClick={() => setActiveCategory(cat.id)}
             style={{
               padding: '7px 16px', borderRadius: 20, border: '1.5px solid',
-              borderColor: activeCategory === cat.id ? '#6c35ff' : 'var(--b2)',
-              background: activeCategory === cat.id ? '#f0eaff' : '#fff',
-              color: activeCategory === cat.id ? '#551cf2' : 'var(--t2)',
+              borderColor: activeCategory === cat.id ? 'var(--violet)' : 'var(--b2)',
+              background: activeCategory === cat.id ? 'rgba(109,53,255,.14)' : '#fff',
+              color: activeCategory === cat.id ? 'var(--violet)' : 'var(--t2)',
               fontSize: 13, fontWeight: 700, cursor: 'pointer',
             }}>
             {cat.icon} {cat.label}
@@ -148,7 +148,7 @@ export default function HelpPage() {
         <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--t3)' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
           <p style={{ fontWeight: 700 }}>No articles match your search.</p>
-          <p style={{ fontSize: 13, marginTop: 6 }}>Try different keywords or <a href="/contact" style={{ color: '#6c35ff', fontWeight: 700 }}>contact support</a>.</p>
+          <p style={{ fontSize: 13, marginTop: 6 }}>Try different keywords or <a href="/contact" style={{ color: 'var(--violet)', fontWeight: 700 }}>contact support</a>.</p>
         </div>
       ) : (
         <div style={{ display: 'grid', gap: 4 }}>
@@ -160,15 +160,15 @@ export default function HelpPage() {
                 onClick={() => setOpenId(openId === article.id ? null : article.id)}
                 style={{
                   width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '16px 20px', background: openId === article.id ? '#faf8ff' : '#fff',
+                  padding: '16px 20px', background: openId === article.id ? 'var(--s2)' : 'var(--s1)',
                   border: 0, cursor: 'pointer', fontSize: 15, fontWeight: 700, textAlign: 'left', color: 'var(--t1)',
                   gap: 16,
                 }}>
                 <span>{article.question}</span>
-                <span style={{ fontSize: 20, flexShrink: 0, color: '#6c35ff', transform: openId === article.id ? 'rotate(45deg)' : 'none', transition: 'transform .2s' }}>+</span>
+                <span style={{ fontSize: 20, flexShrink: 0, color: 'var(--violet)', transform: openId === article.id ? 'rotate(45deg)' : 'none', transition: 'transform .2s' }}>+</span>
               </button>
               {openId === article.id && (
-                <div style={{ padding: '4px 20px 20px', fontSize: 14, color: 'var(--t2)', lineHeight: 1.7, background: '#faf8ff' }}>
+                <div style={{ padding: '4px 20px 20px', fontSize: 14, color: 'var(--t2)', lineHeight: 1.7, background: 'var(--s2)' }}>
                   {article.answer}
                 </div>
               )}
@@ -178,11 +178,11 @@ export default function HelpPage() {
       )}
 
       {/* Contact support CTA */}
-      <div style={{ marginTop: 48, padding: 28, background: 'linear-gradient(135deg,#f0eaff,#fff)', borderRadius: 16, border: '1px solid #e0d5ff', textAlign: 'center' }}>
+      <div style={{ marginTop: 48, padding: 28, background: 'linear-gradient(135deg,rgba(109,53,255,.14),#fff)', borderRadius: 16, border: '1px solid var(--b2)', textAlign: 'center' }}>
         <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
         <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800 }}>Still need help?</h2>
         <p style={{ color: 'var(--t3)', fontSize: 14, margin: '0 0 20px' }}>Our support team typically replies within 24 hours.</p>
-        <Link href="/contact" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 28px', background: '#6c35ff', color: '#fff', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
+        <Link href="/contact" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 28px', background: 'var(--violet)', color: '#fff', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
           Contact Support →
         </Link>
       </div>
