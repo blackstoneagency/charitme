@@ -5,6 +5,7 @@ import { createClient } from '../../../../lib/supabase-server';
 import { canManageCampaign } from '../../../../lib/auth';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { resolvePayoutDestination } from '../../../../lib/payout-destination';
+import { validateCampaignPublication } from '../../../../lib/campaign-validation';
 
 const VALID_STATUSES = ['draft', 'active', 'paused', 'completed', 'frozen', 'archived'] as const;
 
@@ -30,7 +31,7 @@ const UpdateSchema = z.object({
 async function verifyOwnership(campaignId: string, user: { id: string; email?: string | null }) {
   const { data } = await supabaseAdmin
     .from('campaigns')
-    .select('id, user_id, status, goal_amount, description, accept_donations, visibility')
+    .select('id, user_id, title, status, goal_amount, description, accept_donations, visibility')
     .eq('id', campaignId)
     .single();
   if (!data) return { ok: false, error: 'Campaign not found', status: 404 };
@@ -54,13 +55,14 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const d = parsed.data;
   const nextStatus = d.status ?? check.campaign!.status;
+  const nextTitle = d.title ?? check.campaign!.title;
   const nextDescription = d.description ?? check.campaign!.description;
   const nextGoal = d.goalAmount ?? check.campaign!.goal_amount;
-  if (nextStatus === 'active' && nextDescription.trim().length < 20) {
-    return NextResponse.json({ error: 'Active campaigns need a story of at least 20 characters.', code: 'INVALID_CAMPAIGN_STATE' }, { status: 400 });
-  }
-  if (nextStatus === 'active' && nextGoal < 100) {
-    return NextResponse.json({ error: 'Active campaigns need a goal of at least 100 cents.', code: 'INVALID_CAMPAIGN_STATE' }, { status: 400 });
+  if (nextStatus === 'active') {
+    const publicationError = validateCampaignPublication({ title: nextTitle, description: nextDescription, goalAmount: nextGoal });
+    if (publicationError) {
+      return NextResponse.json({ error: publicationError, code: 'INVALID_CAMPAIGN_STATE' }, { status: 400 });
+    }
   }
   if (nextStatus === 'active' && check.campaign!.status !== 'active') {
     const payoutDestination = await resolvePayoutDestination({ user_id: user.id });

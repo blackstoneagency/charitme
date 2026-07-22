@@ -5,6 +5,7 @@ import { createClient } from '../../../lib/supabase-server';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { checkRateLimit } from '../../../lib/rate-limit';
 import { resolvePayoutDestination } from '../../../lib/payout-destination';
+import { validateCampaignPublication } from '../../../lib/campaign-validation';
 
 function slugify(text: string): string {
   return text
@@ -32,11 +33,12 @@ const CreateSchema = z.object({
   // 'draft' saves without publishing; 'active' publishes immediately (default)
   status: z.enum(['draft', 'active']).default('active'),
 }).superRefine((value, ctx) => {
-  if (value.status === 'active' && value.description.trim().length < 20) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['description'], message: 'Active campaigns need a story of at least 20 characters.' });
-  }
-  if (value.status === 'active' && value.goalAmount < 100) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['goalAmount'], message: 'Active campaigns need a goal of at least 100 cents.' });
+  if (value.status === 'active') {
+    const publicationError = validateCampaignPublication({ title: value.title, description: value.description, goalAmount: value.goalAmount });
+    if (publicationError) {
+      const path = publicationError.includes('title') ? 'title' : publicationError.includes('story') ? 'description' : 'goalAmount';
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message: publicationError });
+    }
   }
 });
 

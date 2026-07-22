@@ -1,4 +1,25 @@
 import { describe, expect, it } from 'vitest';
+import { validateCampaignPublication } from '../lib/campaign-validation';
+
+describe('campaign publication validation', () => {
+  const valid = { title: 'Community recovery fund', description: 'A detailed story that explains the need and the plan.', goalAmount: 10000 };
+
+  it('accepts a publishable campaign', () => {
+    expect(validateCampaignPublication(valid)).toBeNull();
+  });
+
+  it('rejects an incomplete title', () => {
+    expect(validateCampaignPublication({ ...valid, title: 'No' })).toContain('title');
+  });
+
+  it('rejects a short story', () => {
+    expect(validateCampaignPublication({ ...valid, description: 'Too short' })).toContain('story');
+  });
+
+  it('rejects a sub-dollar goal', () => {
+    expect(validateCampaignPublication({ ...valid, goalAmount: 99 })).toContain('goal');
+  });
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Campaign creation validation
