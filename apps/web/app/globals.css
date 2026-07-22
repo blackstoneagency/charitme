@@ -2303,7 +2303,7 @@ img, video, iframe { max-width: 100%; }
 .fee-calc-box--neutral { background: #faf8ff; border: 1px solid #e0d5ff; }
 .fee-calc-box-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-weight: 900; font-size: 16px; color: #065f46; }
 .fee-calc-box--neutral .fee-calc-box-head { color: #334064; }
-.fee-calc-badge { background: #19b86a; color: #fff; font-size: 11px; font-weight: 900; padding: 3px 10px; border-radius: 20px; }
+.fee-calc-badge { background: #08763b; color: #fff; font-size: 11px; font-weight: 900; padding: 3px 10px; border-radius: 20px; }
 .fee-calc-amount { font-size: 28px; font-weight: 900; margin-bottom: 4px; }
 .fee-calc-amount--green { color: #047857; }
 .fee-calc-amount--neutral { color: #4b5676; }
@@ -2314,6 +2314,8 @@ img, video, iframe { max-width: 100%; }
 .fee-calc-breakdown--neutral { color: #4b5676; }
 .fee-calc-recurring { margin-top: 8px; font-weight: 900; }
 .fee-calc-warning { color: #e11d48; font-weight: 700; }
+/* Dark surfaces need a lighter rose for AA contrast (rose-400 ≈ 6:1 on the dark card). */
+[data-theme="dark"] .fee-calc-warning { color: #fb7185; }
 .fee-calc-bad { color: #e11d48; }
 .fee-calc-note { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 16px; }
 .all-faqs { display: inline-flex; align-items: center; gap: 8px; color: #4015e8; font-weight: 950; }

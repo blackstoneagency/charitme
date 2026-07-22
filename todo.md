@@ -968,6 +968,13 @@ tests/build/live-HTTP are listed here.
   placeholder `var(--t2)` contrasts in both), and the Search button uses a **fixed**
   dark green `#08763b` (5.68:1 with white in either theme). **Prod Lighthouse:
   `/campaigns` a11y 91 → 100, 0 issues.** typecheck + lint clean; suite **880/880**.
+  **Prod-Lighthouse contrast sweep** (exact ratios extracted): fixed **faq** CTA
+  `emerald-600`→`emerald-700` (white-on-#059669 was 3.76); **pricing**
+  `.fee-calc-badge` #19b86a→#08763b (white was 2.59) + dark-mode override
+  `.fee-calc-warning`→#fb7185 (rose was 3.8 on the dark card). _Remaining a11y
+  (logged): `/for-donors` + `/for-nonprofits` aren't dark-mode-aware — fixed
+  `text-blue-700`/`text-purple-700` stats sit on the dark bg (2.66:1); needs a
+  per-page dark-mode color treatment (a larger slice)._
 
 - **CHAR-SM18 · security + builder analytics (goal: security resolved, track every step)** —
   (a) **RLS verified live:** all **143** public tables have RLS enabled, **0 without**.

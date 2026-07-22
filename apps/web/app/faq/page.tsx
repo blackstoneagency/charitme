@@ -111,7 +111,7 @@ export default async function FaqPage() {
               Everything you need to know about fees, payouts, trust scores, verification, AI tools, and donor safety.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/create/choose-path" className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-soft">
+              <Link href="/create/choose-path" className="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-soft">
                 Start a campaign
               </Link>
               <Link href="/contact" className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-900">
@@ -192,7 +192,7 @@ export default async function FaqPage() {
           <h2 className="text-3xl font-black text-slate-950">Still have questions?</h2>
           <p className="mx-auto mt-4 max-w-lg text-slate-600">Our team is here to help with fundraising questions, nonprofit onboarding, enterprise giving, or trust and safety reviews.</p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link href="/contact" className="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white shadow-soft">
+            <Link href="/contact" className="rounded-xl bg-emerald-700 px-6 py-3 text-sm font-black text-white shadow-soft">
               Contact support
             </Link>
             <Link href="/create/choose-path" className="rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-900">
