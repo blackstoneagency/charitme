@@ -371,7 +371,15 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
        actionable ones (tooltips explain each). AI rewrite already exists (the
        "Enhance" button → `runAi`). **Still to do:** structured story *sections*
        (intro/problem/solution/ask) editor + tone presets.
-    6. Goal + line-item use-of-funds builder with fee/net-proceeds breakdown.
+    6. 🟡 **Partial (2026-07-22)** — Fee/net-proceeds breakdown done:
+       `lib/goal-proceeds.ts` (`goalProceeds`, 5 unit tests) computes CharitMe's
+       0% platform fee + illustrative single-transaction processing estimate,
+       reusing `@shared/fees` constants so figures never drift from checkout;
+       `GoalProceedsBreakdown.tsx` renders "Where your $X goes → you keep ~$N"
+       on the goal step once a valid goal is entered (themed, mobile-first).
+       Verified: typecheck/lint clean, `next build` compiles, unit tests pass.
+       **Still to do:** line-item use-of-funds builder (needs a richer form
+       model / schema — not in current `FormState`; owner/staging-gated).
     7. Admin observability: `/admin/campaign-builder{,/funnels,/ai,/verification,/errors}`.
 
   - **Owner/staging-gated (CANNOT be certified from sandbox — see CHAR-0016):**
