@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { checkRateLimit } from '../../../lib/rate-limit';
+import { resolvePayoutDestination } from '../../../lib/payout-destination';
 
 function slugify(text: string): string {
   return text
@@ -55,6 +56,13 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid campaign input', code: 'INVALID_INPUT', details: parsed.error.flatten() }, { status: 400 });
 
   const { title, tagline, description, goalAmount, deadline, category, coverImageUrl, imageUrls, beneficiaryName, beneficiaryRelationship, evidenceNote, location, videoUrl, status } = parsed.data;
+
+  if (status === 'active') {
+    const payoutDestination = await resolvePayoutDestination({ user_id: user.id });
+    if (!payoutDestination) {
+      return NextResponse.json({ error: 'Finish Stripe Connect payout setup before publishing.', code: 'PAYOUT_NOT_READY' }, { status: 409 });
+    }
+  }
 
   const baseSlug = slugify(title);
   const slug = `${baseSlug}-${Date.now().toString(36)}`;

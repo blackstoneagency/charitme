@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
 import { canManageCampaign } from '../../../../lib/auth';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
+import { resolvePayoutDestination } from '../../../../lib/payout-destination';
 
 const VALID_STATUSES = ['draft', 'active', 'paused', 'completed', 'frozen', 'archived'] as const;
 
@@ -60,6 +61,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
   if (nextStatus === 'active' && nextGoal < 100) {
     return NextResponse.json({ error: 'Active campaigns need a goal of at least 100 cents.', code: 'INVALID_CAMPAIGN_STATE' }, { status: 400 });
+  }
+  if (nextStatus === 'active' && check.campaign!.status !== 'active') {
+    const payoutDestination = await resolvePayoutDestination({ user_id: user.id });
+    if (!payoutDestination) {
+      return NextResponse.json({ error: 'Finish Stripe Connect payout setup before publishing.', code: 'PAYOUT_NOT_READY' }, { status: 409 });
+    }
   }
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 

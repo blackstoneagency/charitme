@@ -17,6 +17,7 @@ type PayoutAccount = {
   stripe_account_id: string;
   payouts_enabled: boolean;
   details_submitted: boolean;
+  charges_enabled?: boolean;
   verification_status: string;
   payout_type?: string;
   paypal_email?: string;
@@ -295,7 +296,7 @@ export default function CreatePage() {
       Promise.all([
         supabase
           .from('connected_accounts')
-          .select('id, stripe_account_id, payouts_enabled, details_submitted, verification_status')
+          .select('id, stripe_account_id, payouts_enabled, details_submitted, charges_enabled, verification_status')
           .eq('user_id', user.id)
           .maybeSingle(),
         supabase
@@ -356,7 +357,7 @@ export default function CreatePage() {
       return;
     }
     if (step === 'payout' && !payoutLinked) {
-      setError('A payout method is required to continue. Please connect at least one account above.');
+      setError('A verified Stripe Connect account is required to continue. Please finish bank verification above.');
       return;
     }
     const next = WIZARD_STEPS[stepIdx + 1];
@@ -480,13 +481,10 @@ export default function CreatePage() {
   const saveDraft = () => submitCampaign('draft');
 
   const payoutLinked = Boolean(
-    payoutAccount && (
-      (payoutAccount.payout_type === 'paypal'     && payoutAccount.paypal_email)    ||
-      (payoutAccount.payout_type === 'venmo'      && payoutAccount.venmo_handle)    ||
-      (payoutAccount.payout_type === 'googlepay'  && payoutAccount.googlepay_email) ||
-      (payoutAccount.payout_type === 'sinch'      && payoutAccount.sinch_ref)       ||
-      (payoutAccount.payouts_enabled && payoutAccount.details_submitted)
-    )
+    payoutAccount?.stripe_account_id &&
+    payoutAccount.payouts_enabled &&
+    payoutAccount.details_submitted &&
+    payoutAccount.charges_enabled,
   );
 
   const connectStripe = async () => {
@@ -1142,12 +1140,12 @@ export default function CreatePage() {
                       )}
 
                       <div className="cr2-payout-also-label">
-                        {payoutLinked ? 'Also accept via:' : 'How do you want to receive donations?'}
+                        {payoutLinked ? 'Stripe Connect is ready:' : 'Connect Stripe Connect to publish'}
                       </div>
                       {!payoutLinked && (
                         <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 18, lineHeight: 1.55 }}>
                           CharitMe charges 0% platform fees. Connect once — donations go directly to you.
-                          <strong style={{ color: '#dc2626' }}> This step is required to continue.</strong>
+                          <strong style={{ color: '#dc2626' }}> Finish verification to publish.</strong>
                         </p>
                       )}
 
