@@ -23,10 +23,14 @@
 
 **Owner actions still blocking full production-readiness** (step-by-step in
 **`docs/DEPLOY_STRIPE.md`**): (1) set Stripe env in **Vercel** (`STRIPE_SECRET_KEY`,
-publishable, `STRIPE_WEBHOOK_SECRET`, 4 price ids, tip%) + redeploy; (2) permanently
-**delete** the disabled `eli54u.com` webhook after confirming it's not yours;
-(3) **rotate all shared secrets**; (4) provide **OpenAI** + **Unsplash** keys;
-(5) decide **publish-before-payout** (biggest builder drop-off lever).
+publishable, `STRIPE_WEBHOOK_SECRET`, 4 price ids, tip%) + redeploy — **needs Vercel
+access I don't have** (no token/CLI in this env; paste a scoped `VERCEL_TOKEN` and I
+can set them via the Vercel API); (2) ✅ **eli54u.com webhook DELETED** (Stripe API,
+`deleted:true`; only the legit charitme endpoint w/ 20 events remains);
+(3) **rotate all shared secrets** — **must be owner-done**: most are dashboard-only
+rotations, and rotating anything without simultaneously updating Vercel would take
+production down; (4) provide **OpenAI** + **Unsplash** keys; (5) decide
+**publish-before-payout** (biggest builder drop-off lever).
 **Resolved:** `STRIPE_CONNECT_WEBHOOK_SECRET` is **NOT needed** — verified in the
 webhook handler (tries `STRIPE_WEBHOOK_SECRET` first, filters unset secrets); the
 single endpoint receives all Connect events signed with the main secret. Leave unset.
