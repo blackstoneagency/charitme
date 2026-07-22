@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { normalizeAeoRoute } from '../lib/aeo';
 import robots from '../app/robots';
 import { INDEXABLE_PUBLIC_ROUTES } from '../lib/public-routes';
+import { countStaleSeoContent, isStaleSeoContent } from '../lib/seo-audit';
 
 describe('AEO route normalization', () => {
   it('normalizes public paths and trailing slashes', () => {
@@ -26,5 +27,12 @@ describe('AEO route normalization', () => {
     expect(disallowed).toContain('/impact/manage');
     expect(disallowed).toContain('/matching/manage');
     expect(disallowed).toContain('/sponsor/manage');
+  });
+
+  it('flags content older than the freshness window deterministically', () => {
+    const now = Date.parse('2026-07-22T00:00:00.000Z');
+    expect(isStaleSeoContent('2026-04-22T00:00:00.000Z', now)).toBe(true);
+    expect(isStaleSeoContent('2026-07-01T00:00:00.000Z', now)).toBe(false);
+    expect(countStaleSeoContent([{ updated_at: '2026-01-01T00:00:00.000Z' }, { updated_at: null }], now)).toBe(1);
   });
 });

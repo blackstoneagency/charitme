@@ -29,6 +29,15 @@ export interface AeoRow {
   updated_at: string;
 }
 
+export interface SeoAeoCoverage {
+  publicRoutes: number;
+  seoConfigured: number;
+  aeoCovered: number;
+  staleSeo: number;
+  staleAeo: number;
+  missingAeoRoutes: string[];
+}
+
 const box: React.CSSProperties = { background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 14, padding: 18 };
 const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', height: 40, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 12px', fontSize: 14, background: 'var(--s2)', color: 'var(--t1)' };
 const area: React.CSSProperties = { ...input, height: 'auto', minHeight: 72, padding: '10px 12px', resize: 'vertical', lineHeight: 1.5 };
@@ -40,7 +49,7 @@ const h2: React.CSSProperties = { fontSize: 18, fontWeight: 900, color: 'var(--t
 const EMPTY_SEO = { id: '', route: '', title: '', meta_description: '', keywords: '', og_title: '', og_description: '', og_image_url: '', canonical_url: '', noindex: false };
 const EMPTY_AEO = { id: '', question: '', answer: '', topic: '', route: '/faq', schema_type: 'FAQPage', priority: 0, published: true };
 
-export default function SeoAeoClient({ initialSeo, initialAeo }: { initialSeo: SeoRow[]; initialAeo: AeoRow[] }) {
+export default function SeoAeoClient({ initialSeo, initialAeo, coverage }: { initialSeo: SeoRow[]; initialAeo: AeoRow[]; coverage: SeoAeoCoverage }) {
   const router = useRouter();
   const [tab, setTab] = useState<'seo' | 'aeo'>('seo');
   const [seoForm, setSeoForm] = useState<typeof EMPTY_SEO>(EMPTY_SEO);
@@ -91,6 +100,20 @@ export default function SeoAeoClient({ initialSeo, initialAeo }: { initialSeo: S
 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
+      <div style={{ ...box, display: 'grid', gap: 12 }}>
+        <div>
+          <h2 style={h2}>Search coverage</h2>
+          <p style={{ fontSize: 13, color: 'var(--t3)', margin: '0' }}>Live coverage calculated from the public route registry and Supabase content.</p>
+        </div>
+        <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))' }}>
+          <CoverageMetric label="Public routes" value={`${coverage.publicRoutes}`} />
+          <CoverageMetric label="SEO configured" value={`${coverage.seoConfigured}/${coverage.publicRoutes}`} tone={coverage.seoConfigured === coverage.publicRoutes ? 'good' : 'warn'} />
+          <CoverageMetric label="AEO covered" value={`${coverage.aeoCovered}/${coverage.publicRoutes}`} tone={coverage.aeoCovered === coverage.publicRoutes ? 'good' : 'warn'} />
+          <CoverageMetric label="Stale SEO" value={`${coverage.staleSeo}`} tone={coverage.staleSeo === 0 ? 'good' : 'warn'} />
+          <CoverageMetric label="Stale AEO" value={`${coverage.staleAeo}`} tone={coverage.staleAeo === 0 ? 'good' : 'warn'} />
+        </div>
+        {coverage.missingAeoRoutes.length > 0 && <p style={{ fontSize: 12, color: 'var(--t3)', margin: 0 }}>Missing published AEO: {coverage.missingAeoRoutes.join(', ')}</p>}
+      </div>
       {msg && (
         <div role="status" style={{ padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: 14, color: '#fff', background: msg.kind === 'ok' ? 'var(--green)' : 'var(--red)' }}>{msg.text}</div>
       )}
@@ -201,4 +224,9 @@ export default function SeoAeoClient({ initialSeo, initialAeo }: { initialSeo: S
       )}
     </div>
   );
+}
+
+function CoverageMetric({ label, value, tone = 'neutral' }: { label: string; value: string; tone?: 'neutral' | 'good' | 'warn' }) {
+  const color = tone === 'good' ? 'var(--green)' : tone === 'warn' ? 'var(--orange)' : 'var(--t1)';
+  return <div style={{ border: '1px solid var(--b1)', borderRadius: 10, padding: '12px 14px', background: 'var(--s2)' }}><div style={{ fontSize: 22, fontWeight: 900, color }}>{value}</div><div style={{ marginTop: 2, fontSize: 11.5, color: 'var(--t3)' }}>{label}</div></div>;
 }
