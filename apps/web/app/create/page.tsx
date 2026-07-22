@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
+import { extractCampaignFields } from '../../lib/campaign-intake';
 import { CharitMeShell, KFIcon } from '../../components/CharitMeApp';
 import { createClient } from '../../lib/supabase-browser';
 import AiFollowUps from './AiFollowUps';
@@ -458,7 +459,16 @@ export default function CreatePage() {
     if (!prompt || !prompt.trim()) return;
     aiSeededRef.current = true;
     const seed = prompt.trim().slice(0, 4000);
-    setForm(prev => ({ ...prev, description: prev.description.trim().length > seed.length ? prev.description : seed }));
+    // Pre-fill the structured fields we can infer from the prompt so the AI path
+    // asks fewer questions (category + goal); the wizard still lets the organizer
+    // change anything. Never infers beneficiary identity.
+    const fields = extractCampaignFields(seed);
+    setForm(prev => ({
+      ...prev,
+      description: prev.description.trim().length > seed.length ? prev.description : seed,
+      category: fields.category ?? prev.category,
+      goal: prev.goal.trim() || (fields.goalCents ? String(Math.round(fields.goalCents / 100)) : prev.goal),
+    }));
     setStep('story');
     void runAi(seed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
