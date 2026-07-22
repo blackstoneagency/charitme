@@ -364,8 +364,13 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
        the server. `ReadinessChecklist.tsx` renders a live %-bar + checklist on the
        review step; each unfinished item is a **Fix →** button that jumps to its exact
        wizard step. Verified: typecheck/lint clean, `next build` compiles, 804 tests pass.
-    5. Structured story editor sections + AI rewrite/tone/readability + unsupported-
-       claim warnings.
+    5. 🟡 **Partial (2026-07-21)** — Story quality signals done: `lib/story-analysis.ts`
+       (`analyzeStory`, 5 unit tests) computes real length/structure/specificity/
+       clear-ask/**unsupported-claim** signals; wired into the story step's "Strengthen
+       your story" box, **replacing the previously-hardcoded fake badges** with live,
+       actionable ones (tooltips explain each). AI rewrite already exists (the
+       "Enhance" button → `runAi`). **Still to do:** structured story *sections*
+       (intro/problem/solution/ask) editor + tone presets.
     6. Goal + line-item use-of-funds builder with fee/net-proceeds breakdown.
     7. Admin observability: `/admin/campaign-builder{,/funnels,/ai,/verification,/errors}`.
 

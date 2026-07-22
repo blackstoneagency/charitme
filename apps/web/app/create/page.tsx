@@ -8,6 +8,7 @@ import { createClient } from '../../lib/supabase-browser';
 import AiFollowUps from './AiFollowUps';
 import ReadinessChecklist from './ReadinessChecklist';
 import { publishReadiness } from '../../lib/campaign-readiness';
+import { analyzeStory } from '../../lib/story-analysis';
 
 // ─────────────────────────────────────────────
 // Types
@@ -857,10 +858,23 @@ export default function CreatePage() {
                       </span>
                     </div>
                     <div className="cr2-strengthen-tags">
-                      <span className="cr2-strengthen-tag" style={{ background: '#d1fae5', color: '#065f46' }}>✅ Spelling and grammar</span>
-                      <span className="cr2-strengthen-tag" style={{ background: '#d1fae5', color: '#065f46' }}>🟢 Tone</span>
-                      <span className="cr2-strengthen-tag" style={{ background: '#fef9c3', color: '#713f12' }}>🟡 Word choice</span>
-                      <span className="cr2-strengthen-tag" style={{ background: '#ffedd5', color: '#7c2d12' }}>🟠 Paragraph structure</span>
+                      {analyzeStory(form.description).signals.map((s) => {
+                        const style = s.tone === 'good'
+                          ? { bg: '#d1fae5', fg: '#065f46', dot: '✅' }
+                          : s.tone === 'ok'
+                            ? { bg: '#fef9c3', fg: '#713f12', dot: '🟡' }
+                            : { bg: '#ffedd5', fg: '#7c2d12', dot: '🟠' };
+                        return (
+                          <span
+                            key={s.id}
+                            className="cr2-strengthen-tag"
+                            style={{ background: style.bg, color: style.fg }}
+                            title={s.detail ?? s.label}
+                          >
+                            {style.dot} {s.label}
+                          </span>
+                        );
+                      })}
                     </div>
                     <button type="button" className="cr2-strengthen-btn" onClick={() => void runAi()} disabled={aiLoading}>
                       {aiLoading ? 'Enhancing…' : 'Enhance'}
