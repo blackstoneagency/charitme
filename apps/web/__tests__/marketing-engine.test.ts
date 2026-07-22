@@ -6,6 +6,7 @@ import {
   classifyClientType,
   computeLifecycleStage,
   matchesSegment,
+  buildIdentityLookupOrder,
   type ContactSignals,
   type SegmentableContact,
   type SegmentRules,
@@ -20,6 +21,26 @@ const base: ContactSignals = {
   eventsLast30d: 0,
   daysSinceLastActive: null,
 };
+
+describe('marketing identity stitching', () => {
+  it('prioritizes authenticated identities before anonymous cookies', () => {
+    expect(buildIdentityLookupOrder({
+      userId: 'user-1',
+      email: ' Person@Example.com ',
+      anonymousId: 'visitor-1',
+    })).toEqual([
+      { kind: 'user_id', value: 'user-1' },
+      { kind: 'email', value: 'person@example.com' },
+      { kind: 'cookie_id', value: 'visitor-1' },
+    ]);
+  });
+
+  it('uses the anonymous cookie when no known identity exists', () => {
+    expect(buildIdentityLookupOrder({ anonymousId: 'visitor-1' })).toEqual([
+      { kind: 'cookie_id', value: 'visitor-1' },
+    ]);
+  });
+});
 
 describe('computeLeadScore', () => {
   it('scores a brand-new contact at 0', () => {

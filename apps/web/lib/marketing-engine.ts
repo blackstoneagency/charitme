@@ -16,6 +16,7 @@ import {
   type ContactSignals,
   type SegmentRules,
   type SegmentableContact,
+  buildIdentityLookupOrder,
 } from './marketing-core';
 
 export * from './marketing-core';
@@ -36,10 +37,9 @@ export async function resolveContact(input: ContactInput): Promise<string | null
   if (!email && !phone && !input.userId && !anonymousId) return null;
 
   async function findDirectContactId(): Promise<string | null> {
-    const directLookups: { column: 'email' | 'phone' | 'user_id'; value: string }[] = [];
-    if (email) directLookups.push({ column: 'email', value: email });
-    if (phone) directLookups.push({ column: 'phone', value: phone });
-    if (input.userId) directLookups.push({ column: 'user_id', value: input.userId });
+    const directLookups = buildIdentityLookupOrder(input)
+      .filter((lookup): lookup is { kind: 'email' | 'phone' | 'user_id'; value: string } => lookup.kind !== 'cookie_id')
+      .map((lookup) => ({ column: lookup.kind, value: lookup.value }));
 
     for (const lookup of directLookups) {
       const query = supabaseAdmin
@@ -56,11 +56,7 @@ export async function resolveContact(input: ContactInput): Promise<string | null
 
   // 1. Look up by any known identity
   let contactId: string | null = null;
-  const lookups: { kind: string; value: string }[] = [];
-  if (anonymousId) lookups.push({ kind: 'cookie_id', value: anonymousId });
-  if (email) lookups.push({ kind: 'email', value: email });
-  if (phone) lookups.push({ kind: 'phone', value: phone });
-  if (input.userId) lookups.push({ kind: 'user_id', value: input.userId });
+  const lookups = buildIdentityLookupOrder(input);
 
   for (const l of lookups) {
     const { data } = await supabaseAdmin
@@ -125,7 +121,7 @@ export async function resolveContact(input: ContactInput): Promise<string | null
   for (const l of lookups) {
     await supabaseAdmin
       .from('marketing_identities')
-      .upsert({ contact_id: contactId, kind: l.kind, value: l.value }, { onConflict: 'kind,value', ignoreDuplicates: true });
+      .upsert({ contact_id: contactId, kind: l.kind, value: l.value }, { onConflict: 'kind,value' });
   }
 
   // 3. Consent log

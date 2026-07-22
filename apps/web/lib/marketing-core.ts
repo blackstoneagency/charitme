@@ -29,6 +29,24 @@ export interface ContactInput {
   consentSource?: string;
 }
 
+export type MarketingIdentityLookup = {
+  kind: 'user_id' | 'email' | 'phone' | 'cookie_id';
+  value: string;
+};
+
+/** Prefer authenticated identities when stitching an anonymous visitor. */
+export function buildIdentityLookupOrder(input: ContactInput): MarketingIdentityLookup[] {
+  const email = input.email?.trim().toLowerCase();
+  const phone = input.phone?.trim();
+  const anonymousId = input.anonymousId?.trim();
+  const lookups: MarketingIdentityLookup[] = [];
+  if (input.userId) lookups.push({ kind: 'user_id', value: input.userId });
+  if (email) lookups.push({ kind: 'email', value: email });
+  if (phone) lookups.push({ kind: 'phone', value: phone });
+  if (anonymousId) lookups.push({ kind: 'cookie_id', value: anonymousId });
+  return lookups;
+}
+
 export interface ContactSignals {
   donationCount: number;
   donorValueCents: number;

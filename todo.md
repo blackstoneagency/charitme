@@ -49,7 +49,7 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   refund/dispute lifecycles, recurring-renewal observability, per-persona RLS matrix.
 - [~] **MKT-ANON-ATTR â€” In Progress** â€” global public page-view tracking now
   captures first-touch UTM/referrer data, stitches anonymous visitors to
-  authenticated contacts, excludes private routes, honors the `/privacy`
+  authenticated contacts with authenticated-identity precedence, excludes private routes, honors the `/privacy`
   opt-out control, and reconciles authenticated users into marketing contacts
   from profile sync as a trigger-recovery path. Live event and identity-row
   verification remains pending.
