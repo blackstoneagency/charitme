@@ -95,11 +95,14 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
     setUploadError('');
     const fd = new FormData();
     fd.append('file', file);
+    fd.append('campaignId', campaignId);
+    fd.append('type', 'cover');
     try {
       const res = await fetch('/api/upload/campaign-image', { method: 'POST', body: fd });
-      const data = await res.json() as { url?: string; error?: string };
+      const data = await res.json() as { url?: string; warning?: string; error?: string };
       if (!res.ok) throw new Error(data.error ?? 'Upload failed');
       upd('coverImageUrl', data.url!);
+      if (data.warning) setUploadError(data.warning);
       setUploadState('done');
     } catch (e: unknown) {
       setUploadError(e instanceof Error ? e.message : 'Upload failed');

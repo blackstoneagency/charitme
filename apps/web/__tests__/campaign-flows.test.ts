@@ -61,6 +61,17 @@ describe('campaign wizard recovery contract', () => {
   });
 });
 
+describe('dashboard campaign edit media contract', () => {
+  it('scopes cover uploads to the edited campaign and surfaces metadata warnings', async () => {
+    const source = await import('node:fs/promises');
+    const panel = await source.readFile(new URL('../app/dashboard/campaigns/[id]/_components/EditCampaignPanel.tsx', import.meta.url), 'utf8');
+    expect(panel).toContain("fd.append('campaignId', campaignId)");
+    expect(panel).toContain("fd.append('type', 'cover')");
+    expect(panel).toContain('warning?: string');
+    expect(panel).toContain('if (data.warning) setUploadError(data.warning);');
+  });
+});
+
 describe('campaign creation partial-success contract', () => {
   it('keeps the campaign successful when optional evidence storage fails', async () => {
     const source = await import('node:fs/promises');
