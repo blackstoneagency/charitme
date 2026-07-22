@@ -3,6 +3,7 @@ import type { User } from '@supabase/supabase-js';
 
 const upsert = vi.hoisted(() => vi.fn());
 const maybeSingle = vi.hoisted(() => vi.fn());
+const resolveContact = vi.hoisted(() => vi.fn());
 
 vi.mock('server-only', () => ({}));
 
@@ -14,6 +15,8 @@ vi.mock('../lib/supabase', () => ({
     })),
   },
 }));
+
+vi.mock('../lib/marketing-engine', () => ({ resolveContact }));
 
 import { ensureUserProfile } from '../lib/profile-sync';
 
@@ -29,6 +32,7 @@ function userFixture(metadata: Record<string, unknown>): User {
 beforeEach(() => {
   upsert.mockReset();
   maybeSingle.mockReset();
+  resolveContact.mockReset();
 });
 
 describe('ensureUserProfile', () => {
@@ -49,6 +53,7 @@ describe('ensureUserProfile', () => {
       avatar_url: 'https://example.com/avatar.png',
       roles: ['organizer'],
     }, { onConflict: 'id', ignoreDuplicates: true });
+    expect(resolveContact).toHaveBeenCalledWith({ email: 'newworldventurellc@google.com', userId: 'user-123' });
   });
 
   it('leaves an existing profile untouched', async () => {
@@ -60,6 +65,7 @@ describe('ensureUserProfile', () => {
     }));
 
     expect(upsert).not.toHaveBeenCalled();
+    expect(resolveContact).toHaveBeenCalledWith({ email: 'newworldventurellc@google.com', userId: 'user-123' });
   });
 
   it('falls back to donor role and ignores invalid metadata', async () => {

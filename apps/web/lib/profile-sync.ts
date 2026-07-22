@@ -2,6 +2,7 @@ import 'server-only';
 import type { User } from '@supabase/supabase-js';
 import { supabaseAdmin } from './supabase';
 import { parseRoles } from './roles';
+import { resolveContact } from './marketing-engine';
 
 function metadataText(metadata: User['user_metadata'], key: string): string | null {
   const value = metadata[key];
@@ -25,25 +26,31 @@ export async function ensureUserProfile(user: User): Promise<void> {
     .eq('id', user.id)
     .maybeSingle();
 
-  if (existing) return;
-  if (selectError) {
+  if (!existing && selectError) {
     console.error('[profile-sync] could not check profile:', selectError.message);
-    return;
+  } else if (!existing) {
+    const metadata = user.user_metadata;
+    const { error: insertError } = await supabaseAdmin
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        email: user.email ?? null,
+        full_name: metadataText(metadata, 'full_name') ?? metadataText(metadata, 'name'),
+        avatar_url: metadataText(metadata, 'avatar_url'),
+        roles: parseRoles(metadata.roles),
+      }, { onConflict: 'id', ignoreDuplicates: true });
+
+    if (insertError) {
+      console.error('[profile-sync] could not create profile:', insertError.message);
+    }
   }
 
-  const metadata = user.user_metadata;
-  const { error: insertError } = await supabaseAdmin
-    .from('profiles')
-    .upsert({
-      id: user.id,
-      email: user.email ?? null,
-      full_name: metadataText(metadata, 'full_name') ?? metadataText(metadata, 'name'),
-      avatar_url: metadataText(metadata, 'avatar_url'),
-      roles: parseRoles(metadata.roles),
-    }, { onConflict: 'id', ignoreDuplicates: true });
-
-  if (insertError) {
-    console.error('[profile-sync] could not create profile:', insertError.message);
+  // The auth trigger normally creates this row. Reconcile here as a second,
+  // idempotent path so delayed or legacy trigger execution cannot lose a user.
+  try {
+    await resolveContact({ email: user.email ?? undefined, userId: user.id });
+  } catch {
+    // Marketing capture must never block authentication or profile access.
   }
 }
 
