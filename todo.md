@@ -17,7 +17,7 @@
 | Accessibility | ✅ strong | **prod Lighthouse — 7 key pages all 100**: home, how-it-works, campaigns, faq, for-donors, for-nonprofits, pricing. SEO 100, BP 96 |
 | Frictionless UX | 🟢 improving | draft autosave/recovery + funnel analytics shipped; builder roadmap continues |
 | Mobile | 🟢 | mobile Lighthouse on public pages good; ongoing |
-| Performance | 🟡 needs prod build | dev perf unrepresentative; home was 93 in an earlier prod run |
+| Performance | 🟢 improving | prod home **63→88** (LCP 4.1→3.1s, TBT 640→100ms) by fixing the 292KB→6.7KB oversized logo served sitewide. Remaining: unused CSS/JS (lower value) |
 | Payment methods end-to-end | 🟡 owner/test-keys | live account charges-enabled, 15+ methods active, price ids resolved; a real paid flow needs Stripe **test** keys or owner go-ahead (ADR-0003) |
 | Every page audited / every feature works | 🟡 ongoing | unbounded; audited builder + discovery + payments deeply |
 
@@ -919,6 +919,15 @@ tests/build/live-HTTP are listed here.
     `marketing_consent.granted` all present (HTTP 200). `marketingStatusForOptIn`
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
+
+- **CHAR-SM21 · performance — oversized logo (sitewide)** — `/logo.png` was a **292KB
+  512×512 PNG rendered at ≤42px** in the header on every page (Lighthouse: 288KB
+  wasted, the top "responsive-images" offender). Resized with `sharp` to a crisp
+  128px (3× the max display) → **6.7KB (98% smaller)**, transparent bg preserved,
+  logo verified intact. No code change (all 5 usages are ≤42px `<img>`; not used
+  large anywhere — checked OG/manifest/icons). **Prod Lighthouse home: perf 63 →
+  88** (LCP 4.1→3.1s, TBT 640→100ms; the image opportunities dropped off). Benefits
+  every page since the logo loads in the shared header.
 
 - **CHAR-SM20b · ✅ RESOLVED (owner-authorized) — live Stripe webhook config fixed** —
   With explicit owner authorization, modified the live Stripe webhook config:
