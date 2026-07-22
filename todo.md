@@ -357,9 +357,13 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
        payout-recipient/consent/anonymity fields (not in the current `FormState`).
     3. Guided path: one primary question per screen (progressive disclosure for
        advanced settings) instead of the current multi-field steps.
-    4. Publish-readiness engine: real-time score across story/goal/use-of-funds/
-       media/organizer/beneficiary/payout/verification, each missing item linking
-       to the exact step. (A "CharitMe Score" sidebar already exists to build on.)
+    4. ✅ **DONE (2026-07-21)** — Publish-readiness engine. `lib/campaign-readiness.ts`
+       (`publishReadiness`, 7 unit tests) scores title/story/goal/category/location/
+       media/payout (+ beneficiary when for someone else); `required` items mirror the
+       publish API EXACTLY (title/story/goal) so `readyToPublish` never disagrees with
+       the server. `ReadinessChecklist.tsx` renders a live %-bar + checklist on the
+       review step; each unfinished item is a **Fix →** button that jumps to its exact
+       wizard step. Verified: typecheck/lint clean, `next build` compiles, 804 tests pass.
     5. Structured story editor sections + AI rewrite/tone/readability + unsupported-
        claim warnings.
     6. Goal + line-item use-of-funds builder with fee/net-proceeds breakdown.

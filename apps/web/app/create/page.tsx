@@ -6,6 +6,8 @@ import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { CharitMeShell, KFIcon } from '../../components/CharitMeApp';
 import { createClient } from '../../lib/supabase-browser';
 import AiFollowUps from './AiFollowUps';
+import ReadinessChecklist from './ReadinessChecklist';
+import { publishReadiness } from '../../lib/campaign-readiness';
 
 // ─────────────────────────────────────────────
 // Types
@@ -1256,6 +1258,24 @@ export default function CreatePage() {
 
                   {/* Score bar */}
                   <ScoreBar score={computeScore(form, step, payoutLinked, isGuest)} />
+
+                  {/* Publish-readiness checklist — each item jumps to its step */}
+                  <div style={{ margin: '14px 0' }}>
+                    <ReadinessChecklist
+                      readiness={publishReadiness({
+                        title: form.title,
+                        description: form.description,
+                        goalCents,
+                        category: form.category,
+                        country: form.country,
+                        coverImageUrl: form.coverImageUrl,
+                        forSelf: form.forSelf,
+                        beneficiaryName: form.beneficiaryName,
+                        payoutLinked,
+                      })}
+                      onGoToStep={(s) => setStep(s)}
+                    />
+                  </div>
 
                   <div className="cr2-launch-btns">
                     <button
