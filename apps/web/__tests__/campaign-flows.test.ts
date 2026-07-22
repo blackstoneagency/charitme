@@ -19,6 +19,16 @@ describe('campaign media path contract', () => {
   });
 });
 
+describe('campaign wizard recovery contract', () => {
+  it('persists the wizard in session storage and clears it after save', async () => {
+    const source = await import('node:fs/promises');
+    const page = await source.readFile(new URL('../app/create/page.tsx', import.meta.url), 'utf8');
+    expect(page).toContain("const WIZARD_STORAGE_KEY = 'cm_wizard';");
+    expect(page).toContain('sessionStorage.setItem(WIZARD_STORAGE_KEY');
+    expect(page).toContain('sessionStorage.removeItem(WIZARD_STORAGE_KEY)');
+  });
+});
+
 describe('payment preference schema rollout', () => {
   it('recognizes only missing-column/schema-cache errors for legacy fallback', () => {
     expect(isMissingPaymentMethodsColumn({ code: 'PGRST204', message: 'Column not found' })).toBe(true);

@@ -95,6 +95,7 @@ const ALLOWED_IMG_TYPES = new Set([
 ]);
 const MAX_IMG_SIZE = 5 * 1024 * 1024;
 const MAX_IMAGES   = 10;
+const WIZARD_STORAGE_KEY = 'cm_wizard';
 
 const COUNTRIES = [
   'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France',
@@ -232,27 +233,27 @@ export default function CreatePage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) {
         setIsGuest(true);
-        const saved = sessionStorage.getItem('cm_wizard');
+        const saved = sessionStorage.getItem(WIZARD_STORAGE_KEY);
         if (saved) {
           try {
             const { savedForm, savedStep } = JSON.parse(saved) as { savedForm: FormState; savedStep: WizardStep };
             setForm(savedForm);
             setStep(savedStep);
           } catch { /* ignore */ }
-          sessionStorage.removeItem('cm_wizard');
+          sessionStorage.removeItem(WIZARD_STORAGE_KEY);
         }
         return;
       }
       setIsGuest(false);
       setUserEmail(user.email ?? undefined);
-      const saved = sessionStorage.getItem('cm_wizard');
+      const saved = sessionStorage.getItem(WIZARD_STORAGE_KEY);
       if (saved) {
         try {
           const { savedForm, savedStep } = JSON.parse(saved) as { savedForm: FormState; savedStep: WizardStep };
           setForm(savedForm);
           setStep(savedStep);
         } catch { /* ignore */ }
-        sessionStorage.removeItem('cm_wizard');
+        sessionStorage.removeItem(WIZARD_STORAGE_KEY);
       }
       void supabase
         .from('profiles')
@@ -283,6 +284,15 @@ export default function CreatePage() {
     description: '',
     coverImageUrl: '',
   });
+
+  useEffect(() => {
+    if (isGuest === null) return;
+    try {
+      sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify({ savedForm: form, savedStep: step }));
+    } catch {
+      // Session storage can be unavailable in privacy-restricted browsers.
+    }
+  }, [form, isGuest, step]);
 
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [dragging, setDragging]             = useState(false);
@@ -481,6 +491,7 @@ export default function CreatePage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : `Failed to ${status === 'draft' ? 'save draft' : 'publish'}.`);
+      try { sessionStorage.removeItem(WIZARD_STORAGE_KEY); } catch { /* ignore storage cleanup failure */ }
       if (status === 'draft') { setError(''); window.location.href = '/dashboard/campaigns'; return; }
       setPublishedSlug(typeof data.slug === 'string' ? data.slug : '');
       setStep('live');
@@ -1481,7 +1492,7 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
   const [ok, setOk]         = useState('');
 
   const handleOAuth = (provider: 'google' | 'apple') => {
-    sessionStorage.setItem('cm_wizard', JSON.stringify({ savedForm, savedStep }));
+    sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify({ savedForm, savedStep }));
     window.location.href = `/api/auth/signin?provider=${provider}&next=/create`;
   };
 
