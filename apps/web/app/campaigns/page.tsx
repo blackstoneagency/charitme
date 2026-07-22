@@ -165,7 +165,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
             aria-label="Search campaigns"
             placeholder="Search campaigns…"
             className="cmp-filter-input"
-            style={{ flex: '1 1 220px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', outline: 'none' }}
+            style={{ flex: '1 1 220px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', outline: 'none', background: 'var(--s1, #fff)', color: 'var(--t1)' }}
           />
           <input
             name="location"
@@ -173,7 +173,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
             aria-label="Filter by location"
             placeholder="Location…"
             className="cmp-filter-input"
-            style={{ flex: '0 1 140px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', outline: 'none' }}
+            style={{ flex: '0 1 140px', padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', outline: 'none', background: 'var(--s1, #fff)', color: 'var(--t1)' }}
           />
           <select name="category" defaultValue={category ?? ''} aria-label="Filter by category"
             style={{ padding: '10px 14px', border: '1px solid var(--b1)', borderRadius: 'var(--r)', fontSize: '14px', background: 'var(--s1, #fff)', color: 'var(--t1)', cursor: 'pointer' }}>
@@ -186,7 +186,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
               <option key={k} value={k}>{v}</option>
             ))}
           </select>
-          <button type="submit" style={{ padding: '10px 20px', background: 'var(--green-dark)', color: '#fff', borderRadius: 'var(--r)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: 'none' }}>
+          <button type="submit" style={{ padding: '10px 20px', background: '#08763b', color: '#fff', borderRadius: 'var(--r)', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: 'none' }}>
             Search
           </button>
         </div>

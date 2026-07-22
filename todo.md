@@ -14,7 +14,7 @@
 | Payment webhooks | ✅ fixed | prod webhook 2→**20 events**; recurring/subs/refunds now delivered |
 | Everything wired to Supabase | 🟢 mostly | core flows + new analytics table verified live |
 | Tests pass / Build succeeds | ✅ | **880/880**, `next build` green, typecheck clean |
-| Accessibility | 🟢 strong | home **100**, how-it-works **100**, campaigns 91→95 (fixed); token contrast AA by design (dev-Lighthouse can't resolve `var()` → false contrast flags; needs prod build to certify) |
+| Accessibility | ✅ strong | **prod Lighthouse**: home **100**, how-it-works **100**, campaigns 91→**100** (real fix). SEO 100, BP 96 |
 | Frictionless UX | 🟢 improving | draft autosave/recovery + funnel analytics shipped; builder roadmap continues |
 | Mobile | 🟢 | mobile Lighthouse on public pages good; ongoing |
 | Performance | 🟡 needs prod build | dev perf unrepresentative; home was 93 in an earlier prod run |
@@ -959,11 +959,15 @@ tests/build/live-HTTP are listed here.
   **`/campaigns` a11y 91 → 95**: fixed real issues — added `aria-label` to the
   category/sort `<select>`s (cleared `select-name`) and both filter inputs;
   darkened the Search button to `--green-dark` (#08763b, 5.68:1 on white) and set
-  filter-input placeholders to `--t2` (#27305d, ~11:1) for AA contrast (verified in
-  the served CSS). _Note: dev-mode Lighthouse still flags contrast on a
-  mathematically-passing (5.68:1) button — its dev contrast measurement is
-  unreliable; the shipped colors pass AA by computation and will reflect in a prod
-  build (cf. SEO 92 dev vs 100 prod)._ typecheck + lint clean; suite **880/880**.
+  filter-input placeholders. **A prod build then exposed the REAL root cause** (dev
+  Lighthouse was noisy but the issue was genuine): the page renders in dark mode,
+  where `--green-dark` flips to light-green (#4cce86 → white button text 2:1) and
+  the filter inputs had **no explicit background**, so dark-mode light text tokens
+  sat on the browser-default white input surface. Fixed properly: inputs get
+  `background: var(--s1); color: var(--t1)` (text+bg track the theme together, so
+  placeholder `var(--t2)` contrasts in both), and the Search button uses a **fixed**
+  dark green `#08763b` (5.68:1 with white in either theme). **Prod Lighthouse:
+  `/campaigns` a11y 91 → 100, 0 issues.** typecheck + lint clean; suite **880/880**.
 
 - **CHAR-SM18 · security + builder analytics (goal: security resolved, track every step)** —
   (a) **RLS verified live:** all **143** public tables have RLS enabled, **0 without**.
