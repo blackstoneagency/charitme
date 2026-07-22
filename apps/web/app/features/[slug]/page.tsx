@@ -4,6 +4,8 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getPlatformModule, PLATFORM_MODULES } from '../../../lib/feature-catalog';
 import { seoMetadata } from '../../../lib/seo';
+import AeoContent from '../../../components/AeoContent';
+export const revalidate = 300;
 
 const BASE = 'https://www.charitme.com';
 
@@ -101,6 +103,7 @@ export default async function FeatureDetailPage({ params }: FeaturePageProps) {
           </div>
         </div>
       </section>
+      <AeoContent route={`/features/${platformModule.slug}`} title="Feature questions answered" />
     </div>
   );
 }

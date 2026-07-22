@@ -3,6 +3,8 @@ import type { Metadata } from 'next';
 import { PublicIcon } from '../../components/PublicIcon';
 import { BLOG_POSTS } from '../../lib/blog-posts';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/blog', {
@@ -14,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-export default function BlogPage() {
+export default async function BlogPage() {
   return (
     <div className="pub-page simple-public">
       <section>
@@ -33,6 +35,7 @@ export default function BlogPage() {
           </article>
         ))}
       </section>
+      <AeoContent route="/blog" title="Fundraising answers from the CharitMe team" />
     </div>
   );
 }

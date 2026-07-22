@@ -7,12 +7,13 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- ── AEO entries (answer-engine Q&A) ──────────────────────────────────────────
-insert into aeo_entries (question, answer, topic, schema_type, priority, published)
+insert into aeo_entries (question, answer, topic, schema_type, priority, published, route)
 select
   (array['How do I start a fundraiser on CharitMe?','Are my donations tax-deductible?','What fees does CharitMe charge?','How fast are payouts?','Can I fundraise for someone else?','How do recurring donations work?','Is my donation secure?','How do I withdraw funds?','Can nonprofits use CharitMe?','How does AI help my campaign?','What payment methods are accepted?','Can I get a refund?','How do matching gifts work?','How do I verify my identity?','Can I run a fundraising event?'])[1+(n%15)] || ' (topic ' || n || ')',
   (array['Click Start a CharitMe, describe your cause, set a goal, and our AI drafts your story in seconds.','Tax-deductibility depends on the recipient organization; verified nonprofits can issue receipts.','CharitMe keeps a small platform fee plus standard payment processing; the exact amount is shown before you give.','Payouts arrive quickly to your connected bank once your account is verified.','Yes — you can fundraise on behalf of a beneficiary and route funds directly to them.','Set an amount and cadence at checkout; you can pause or cancel any time from your dashboard.','Every payment is processed securely through Stripe with bank-grade encryption.','Connect a payout account, verify it, and funds transfer automatically as donations arrive.','Absolutely — nonprofits get verification badges, receipts, and grant tools.','Our AI writes copy, recommends goals, finds donors, and drafts updates while you stay in control.'])[1+(n%10)],
   (array['Getting started','Payments','Fees','Payouts','Nonprofits','Trust & Safety','Recurring','Events'])[1+(n%8)],
-  'FAQPage', (110 - n), (n % 7 <> 0)
+  'FAQPage', (110 - n), (n % 7 <> 0),
+  (array['/faq','/pricing','/how-it-works','/for-donors','/for-nonprofits','/fees','/trust-safety','/ai-fundraising'])[1+(n%8)]
 from generate_series(1,105) n;
 
 -- ── SEO settings — real app routes ───────────────────────────────────────────
@@ -20,7 +21,7 @@ insert into seo_settings (route, title, meta_description, keywords, noindex)
 select r, initcap(trim(replace(replace(r,'/',' '),'-',' '))) || ' | CharitMe',
   'CharitMe — intelligent, AI-powered fundraising. Learn more on the ' || r || ' page.',
   'fundraising, donate, charity, nonprofit, crowdfunding', false
-from unnest(array['/','/pricing','/how-it-works','/about-us','/blog','/contact','/success-stories','/ai-fundraising','/features','/grants','/events','/volunteer','/sponsor','/matching','/impact/manage','/leaderboard','/help','/faq','/privacy','/terms','/security','/trust-safety','/supported-countries','/for-nonprofits','/for-individuals','/for-donors','/fast-payouts','/prohibited-use','/privacy-center','/achievements']) r
+from unnest(array['/','/pricing','/how-it-works','/about-us','/blog','/contact','/success-stories','/ai-fundraising','/ai-campaign','/features','/grants','/events','/volunteer','/sponsor','/matching','/impact','/leaderboard','/help','/faq','/privacy','/terms','/security','/trust-safety','/supported-countries','/for-nonprofits','/for-individuals','/for-donors','/fast-payouts','/prohibited-use','/refunds','/fees']) r
 on conflict (route) do nothing;
 -- SEO settings — generated blog routes (pad to 100+)
 insert into seo_settings (route, title, meta_description, keywords, noindex)

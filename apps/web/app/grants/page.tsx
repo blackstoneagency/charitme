@@ -4,6 +4,7 @@ import { getPublicGrants, getGrantCategories } from '../../lib/grants-server';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
 import GrantsClient from './GrantsClient';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -70,6 +71,7 @@ export default async function GrantsPage() {
 
       <GrantsClient initialGrants={grants} categories={categories} />
       </div>
+      <AeoContent route="/grants" title="Grant search answers" />
     </>
   );
 }

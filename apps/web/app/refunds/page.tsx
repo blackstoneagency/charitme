@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/refunds', {
@@ -19,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const LAST_UPDATED = 'July 2026';
 
-export default function RefundPolicyPage() {
+export default async function RefundPolicyPage() {
   return (
     <div className="pub-page simple-public legal-page">
       <section>
@@ -93,6 +95,7 @@ export default function RefundPolicyPage() {
           <Link href="/fees">Fee Policy</Link> and <Link href="/transparency">Transparency Center</Link>.
         </p>
       </article>
+      <AeoContent route="/refunds" title="Refund questions answered" />
     </div>
   );
 }

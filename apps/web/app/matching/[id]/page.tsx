@@ -8,6 +8,7 @@ import { supabaseAdmin } from '../../../lib/supabase';
 import { getProgram, reservedMatchForEmployee } from '../../../lib/matching';
 import { isAcceptingClaims, remainingCap } from '../../../lib/matching-core';
 import { safeJsonLd } from '../../../lib/json-ld';
+import AeoContent from '../../../components/AeoContent';
 import { CHARITME_ORIGIN } from '../../../lib/public-routes';
 import { seoMetadata } from '../../../lib/seo';
 import MatchClaimPanel from './MatchClaimPanel';
@@ -110,6 +111,7 @@ export default async function MatchingDetailPage({ params }: PageProps) {
         />
       </div>
     </div>
+    <AeoContent route={`/matching/${p.id}`} title="Matching program answers" />
     </>
   );
 }

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
 
 export const dynamic = 'force-dynamic';
 
@@ -167,6 +168,7 @@ export default async function SupportedCountriesPage() {
         </section>
 
       </div>
+      <AeoContent route="/supported-countries" title="Supported countries answers" />
     </div>
   );
 }

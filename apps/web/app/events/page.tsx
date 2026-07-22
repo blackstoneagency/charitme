@@ -6,6 +6,7 @@ import { remainingCapacity } from '../../lib/events-core';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/events', {
@@ -78,6 +79,7 @@ export default async function EventsPage() {
         </div>
       )}
       </div>
+      <AeoContent route="/events" title="Fundraising event answers" />
     </>
   );
 }

@@ -4,6 +4,7 @@ import { safeJsonLd } from '../../lib/json-ld';
 import { seoMetadata } from '../../lib/seo';
 import MoneyCalculator from './MoneyCalculator';
 import AeoContent from '../../components/AeoContent';
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/transparency', {

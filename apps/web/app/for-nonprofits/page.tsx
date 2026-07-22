@@ -2,6 +2,8 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { PRICING_TIERS } from '../../lib/pricing';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/for-nonprofits', {
@@ -56,7 +58,7 @@ const NONPROFIT_FEATURES = [
 
 const NONPROFIT_PLANS = PRICING_TIERS.filter((t) => t.name.startsWith('Nonprofit') || t.name === 'Enterprise');
 
-export default function ForNonprofitsPage() {
+export default async function ForNonprofitsPage() {
   return (
     <div className="mktg-page">
       {/* Hero */}
@@ -241,6 +243,7 @@ export default function ForNonprofitsPage() {
           </div>
         </div>
       </section>
+      <AeoContent route="/for-nonprofits" title="Nonprofit fundraising answers" />
     </div>
   );
 }

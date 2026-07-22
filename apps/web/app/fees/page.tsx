@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { seoMetadata } from '../../lib/seo';
 import AeoContent from '../../components/AeoContent';
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/fees', {

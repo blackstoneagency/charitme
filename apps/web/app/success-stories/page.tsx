@@ -8,6 +8,7 @@ import { currencySymbol } from '@shared/currencies';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
 
 export const dynamic = 'force-dynamic';
 
@@ -359,6 +360,7 @@ export default async function SuccessStoriesPage() {
           </div>
         </div>
       </section>
+      <AeoContent route="/success-stories" title="Success story answers" />
 
       </div>
     </>

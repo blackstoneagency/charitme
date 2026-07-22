@@ -9,6 +9,7 @@ import { getCoverForCampaign } from '../../lib/photo-catalog';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
 import type { Metadata } from 'next';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -342,6 +343,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
         </div>
       )}
       </div>
+      <AeoContent route="/campaigns" title="Campaign browsing answers" />
     </>
   );
 }

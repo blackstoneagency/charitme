@@ -4,6 +4,7 @@ import { SPONSORSHIP_CATEGORIES } from '../../lib/sponsorships-core';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
 import SponsorMarketplace from './SponsorMarketplace';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -49,6 +50,7 @@ export default async function SponsorPage() {
         categories={[...SPONSORSHIP_CATEGORIES]}
       />
       </div>
+      <AeoContent route="/sponsor" title="Sponsorship answers" />
     </>
   );
 }

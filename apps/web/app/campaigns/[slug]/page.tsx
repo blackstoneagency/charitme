@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { safeJsonLd } from "../../../lib/json-ld";
+import AeoContent from '../../../components/AeoContent';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -831,6 +832,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         <div><b>No mandatory platform fee</b><span>Optional tips keep CharitMe running.</span></div>
         <div><b>24/7 Support</b><span>Trust and safety tools protect every campaign.</span></div>
       </section>
+      <AeoContent route={`/campaigns/${campaign.slug}`} title="Campaign questions answered" />
     </main>
   );
 }

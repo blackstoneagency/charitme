@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/for-individuals', {
@@ -69,7 +71,7 @@ const INDIVIDUAL_FAQS = [
   },
 ];
 
-export default function ForIndividualsPage() {
+export default async function ForIndividualsPage() {
   return (
     <div className="mktg-page">
       {/* Hero */}
@@ -249,6 +251,7 @@ export default function ForIndividualsPage() {
           </div>
         </div>
       </section>
+      <AeoContent route="/for-individuals" title="Personal fundraising answers" />
     </div>
   );
 }

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { PublicIcon } from '../../components/PublicIcon';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/how-it-works', {
@@ -99,7 +101,7 @@ const TONE_MAP: Record<string, string> = {
   pink: 'kind-icon kind-icon-pink',
 };
 
-export default function HowItWorksPage() {
+export default async function HowItWorksPage() {
   return (
     <div className="pub-page hiw-page">
 
@@ -210,6 +212,7 @@ export default function HowItWorksPage() {
           <Link href="/pricing" className="pub-btn secondary">See pricing</Link>
         </div>
       </section>
+      <AeoContent route="/how-it-works" title="How CharitMe works: answers" />
 
     </div>
   );

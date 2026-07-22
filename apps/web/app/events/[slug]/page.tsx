@@ -8,6 +8,7 @@ import { isRegistrationOpen, remainingCapacity } from '../../../lib/events-core'
 import { safeJsonLd } from '../../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../../lib/public-routes';
 import { seoMetadata } from '../../../lib/seo';
+import AeoContent from '../../../components/AeoContent';
 import RsvpPanel from './RsvpPanel';
 
 type PageProps = { params: Promise<{ slug: string }> };
@@ -105,6 +106,7 @@ export default async function EventDetailPage({ params }: PageProps) {
         />
       </div>
     </div>
+    <AeoContent route={`/events/${e.slug}`} title="Event questions answered" />
     </>
   );
 }

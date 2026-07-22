@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getTopCampaigns, getTopDonors } from '../../lib/leaderboard';
 import LeaderboardClient from './LeaderboardClient';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/leaderboard', {
@@ -28,6 +29,7 @@ export default async function LeaderboardPage() {
       </div>
 
       <LeaderboardClient initialCampaigns={campaigns} initialDonors={donors} />
+      <AeoContent route="/leaderboard" title="Leaderboard questions answered" />
     </div>
   );
 }

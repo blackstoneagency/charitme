@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/fast-payouts', {
@@ -52,7 +54,7 @@ const PAYOUT_FAQS = [
   { q: 'Does CharitMe ever hold my money?', a: 'CharitMe is not a money transmitter and does not hold campaign funds. Donations are processed by Stripe and held in your Stripe Connect balance until payout. CharitMe instructs Stripe to transfer funds on the schedule you choose.' },
 ];
 
-export default function FastPayoutsPage() {
+export default async function FastPayoutsPage() {
   return (
     <div className="fp">
       {/* Hero */}
@@ -215,6 +217,7 @@ export default function FastPayoutsPage() {
           </div>
         </div>
       </section>
+      <AeoContent route="/fast-payouts" title="Payout questions answered" />
     </div>
   );
 }

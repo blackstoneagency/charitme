@@ -3,6 +3,7 @@ import { getPublicOpportunities, getVolunteerCategories } from '../../lib/volunt
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
 import VolunteerClient from './VolunteerClient';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -55,6 +56,7 @@ export default async function VolunteerPage() {
       </div>
       <VolunteerClient initialOpportunities={opportunities} categories={categories} />
       </div>
+      <AeoContent route="/volunteer" title="Volunteer opportunity answers" />
     </>
   );
 }

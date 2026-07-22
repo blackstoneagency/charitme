@@ -5,6 +5,8 @@ import { notFound } from 'next/navigation';
 import { PublicIcon } from '../../../components/PublicIcon';
 import { BLOG_POSTS, getBlogPost, getAllBlogSlugs, type BlogBlock } from '../../../lib/blog-posts';
 import { seoMetadata } from '../../../lib/seo';
+import AeoContent from '../../../components/AeoContent';
+export const revalidate = 300;
 
 const BASE = 'https://www.charitme.com';
 const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -106,6 +108,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           ))}
         </div>
       </section>
+      <AeoContent route={`/blog/${post.slug}`} title="This story: answers from CharitMe" />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { supabaseAdmin } from '../../../lib/supabase';
 import { getOpportunity } from '../../../lib/sponsorships';
 import { isAcceptingRequests, fundingProgress } from '../../../lib/sponsorships-core';
 import { safeJsonLd } from '../../../lib/json-ld';
+import AeoContent from '../../../components/AeoContent';
 import { CHARITME_ORIGIN } from '../../../lib/public-routes';
 import { seoMetadata } from '../../../lib/seo';
 import SponsorPanel from './SponsorPanel';
@@ -134,6 +135,7 @@ export default async function SponsorDetailPage({ params }: PageProps) {
         />
       </div>
     </div>
+    <AeoContent route={`/sponsor/${o.id}`} title="Sponsorship opportunity answers" />
     </>
   );
 }

@@ -7,6 +7,7 @@ import { getUser } from '../../../lib/auth';
 import { getImpactBundle, userOwnsCampaign } from '../../../lib/impact';
 import { budgetProgress, metricProgress, sumSpent } from '../../../lib/impact-core';
 import { safeJsonLd } from '../../../lib/json-ld';
+import AeoContent from '../../../components/AeoContent';
 import { CHARITME_ORIGIN } from '../../../lib/public-routes';
 import { seoMetadata } from '../../../lib/seo';
 
@@ -190,6 +191,7 @@ export default async function ImpactPage({ params }: PageProps) {
         )}
       </section>
     </div>
+    <AeoContent route={`/impact/${slug}`} title="Impact report answers" />
     </>
   );
 }

@@ -7,6 +7,7 @@ import { Badge } from '../../../components/ui';
 import { safeJsonLd } from '../../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../../lib/public-routes';
 import { seoMetadata } from '../../../lib/seo';
+import AeoContent from '../../../components/AeoContent';
 import VolunteerApplyButton from './VolunteerApplyButton';
 
 export const dynamic = 'force-dynamic';
@@ -127,6 +128,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
         </aside>
       </div>
       </div>
+      <AeoContent route={`/volunteer/${opp.slug}`} title="Volunteer opportunity answers" />
     </>
   );
 }

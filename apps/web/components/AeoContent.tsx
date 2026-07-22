@@ -8,6 +8,7 @@ export default async function AeoContent({ route, title = 'Answers from CharitMe
 
   const faqEntries = entries.filter((entry) => entry.schema_type === 'FAQPage');
   const qaEntries = entries.filter((entry) => entry.schema_type === 'QAPage');
+  if (faqEntries.length === 0 && qaEntries.length === 0) return null;
   const sections = groupFaqsByTopic(faqEntries);
   const jsonLd = [
     ...(faqEntries.length > 0 ? [{
@@ -44,4 +45,3 @@ export default async function AeoContent({ route, title = 'Answers from CharitMe
     </section>
   );
 }
-import type { ReactNode } from 'react';

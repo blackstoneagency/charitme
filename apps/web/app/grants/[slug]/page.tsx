@@ -6,6 +6,7 @@ import { Badge } from '../../../components/ui';
 import { safeJsonLd } from '../../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../../lib/public-routes';
 import { seoMetadata } from '../../../lib/seo';
+import AeoContent from '../../../components/AeoContent';
 import ApplyButton from './ApplyButton';
 
 export const dynamic = 'force-dynamic';
@@ -172,6 +173,7 @@ export default async function GrantDetailPage({ params }: { params: Promise<{ sl
         </div>
       </div>
       </div>
+      <AeoContent route={`/grants/${grant.slug}`} title="Grant opportunity answers" />
     </>
   );
 }

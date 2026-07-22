@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/for-donors', {
@@ -52,7 +54,7 @@ const TRUST_INDICATORS = [
   { icon: '📈', label: 'Donor momentum', description: 'Consistent giving from multiple donors' },
 ];
 
-export default function ForDonorsPage() {
+export default async function ForDonorsPage() {
   return (
     <div className="mktg-page">
       {/* Hero */}
@@ -235,6 +237,7 @@ export default function ForDonorsPage() {
           </div>
         </div>
       </section>
+      <AeoContent route="/for-donors" title="Donor questions answered" />
     </div>
   );
 }

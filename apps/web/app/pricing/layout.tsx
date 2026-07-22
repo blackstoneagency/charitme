@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/pricing', {
@@ -10,5 +12,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function PricingLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return <>{children}<AeoContent route="/pricing" title="Pricing questions answered" /></>;
 }

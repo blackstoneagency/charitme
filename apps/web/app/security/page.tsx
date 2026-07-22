@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/security', {
@@ -9,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-export default function SecurityPage() {
+export default async function SecurityPage() {
   return (
     <div className="pub-page simple-public legal-page">
       <section>
@@ -67,6 +69,7 @@ export default function SecurityPage() {
         <h2>Updates</h2>
         <p>This page is updated when security controls change. Last reviewed: May 2025.</p>
       </article>
+      <AeoContent route="/security" title="Security questions answered" />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import type React from 'react';
 import { supabaseAdmin } from '../../lib/supabase';
 import { seoMetadata } from '../../lib/seo';
 import ContactForm from './ContactForm';
+import AeoContent from '../../components/AeoContent';
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/contact', {
@@ -291,6 +292,7 @@ export default async function ContactPage() {
         </div>
       </section>
 
+      <AeoContent route="/contact" title="Contact and support answers" />
     </div>
   );
 }

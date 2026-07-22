@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/privacy', {
@@ -11,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const LAST_UPDATED = 'May 2025';
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
   return (
     <div className="pub-page simple-public legal-page">
       <section>
@@ -85,6 +87,7 @@ export default function PrivacyPage() {
           Questions? Email us at <a href="mailto:privacy@charitme.com">privacy@charitme.com</a>.
         </p>
       </article>
+      <AeoContent route="/privacy" title="Privacy questions answered" />
     </div>
   );
 }

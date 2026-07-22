@@ -3,6 +3,7 @@ import type React from 'react';
 import type { Metadata } from 'next';
 import { seoMetadata } from '../lib/seo';
 import { safeJsonLd } from '../lib/json-ld';
+import AeoContent from '../components/AeoContent';
 import { getHomeData, getCategoryStats, getRecentDonations, profileName } from '../lib/home-data';
 import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
 import CampaignImage from '../components/CampaignImage';
@@ -510,6 +511,7 @@ export default async function HomePage() {
           </Reveal>
         </div>
       </section>
+      <AeoContent route="/" title="CharitMe answers" />
     </div>
   );
 }

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { getFeatureCoverage, PLATFORM_MODULES } from '../../lib/feature-catalog';
 import type { Metadata } from 'next';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/features', {
@@ -32,7 +34,7 @@ const COMPETITOR_COLORS: Record<string, string> = {
   Shopify:    '#96bf48',
 };
 
-export default function FeaturesPage() {
+export default async function FeaturesPage() {
   const coverage = getFeatureCoverage();
 
   return (
@@ -229,6 +231,7 @@ export default function FeaturesPage() {
           </div>
         </div>
       </section>
+      <AeoContent route="/features" title="Feature questions answered" />
 
     </div>
   );

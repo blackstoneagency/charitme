@@ -6,6 +6,7 @@ import { listPublishedImpactSummaries } from '../../lib/impact';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/impact', {
@@ -145,6 +146,7 @@ export default async function ImpactIndexPage() {
           </div>
         )}
       </div>
+      <AeoContent route="/impact" title="Impact reporting answers" />
     </>
   );
 }

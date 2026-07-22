@@ -152,13 +152,6 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: 'weekly',
   },
   {
-    path: '/achievements',
-    title: 'Fundraising Achievements',
-    description: 'Celebrate campaign milestones, badges, and giving achievements across CharitMe.',
-    priority: 0.62,
-    changeFrequency: 'weekly',
-  },
-  {
     path: '/fast-payouts',
     title: 'Fast Fundraising Payouts',
     description: 'Understand CharitMe payout timing, payment processing, and organizer fund access.',
@@ -220,13 +213,6 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     description: 'See where CharitMe fundraising, donations, and payouts are supported.',
     priority: 0.52,
     changeFrequency: 'monthly',
-  },
-  {
-    path: '/privacy-center',
-    title: 'Privacy Center',
-    description: 'Manage privacy questions and learn how CharitMe protects personal information.',
-    priority: 0.45,
-    changeFrequency: 'yearly',
   },
   {
     path: '/privacy',

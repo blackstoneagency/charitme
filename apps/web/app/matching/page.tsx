@@ -6,6 +6,7 @@ import { listActivePrograms } from '../../lib/matching';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/matching', {
@@ -93,6 +94,7 @@ export default async function MatchingPage() {
         </div>
       )}
       </div>
+      <AeoContent route="/matching" title="Donation matching answers" />
     </>
   );
 }

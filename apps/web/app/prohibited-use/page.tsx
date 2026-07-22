@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/prohibited-use', {
@@ -9,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-export default function ProhibitedUsePage() {
+export default async function ProhibitedUsePage() {
   return (
     <div className="pub-page simple-public legal-page">
       <section>
@@ -79,6 +81,7 @@ export default function ProhibitedUsePage() {
           We review all appeals within 5 business days.
         </p>
       </article>
+      <AeoContent route="/prohibited-use" title="Platform policy answers" />
     </div>
   );
 }

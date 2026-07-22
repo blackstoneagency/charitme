@@ -5,6 +5,7 @@ import { PublicIcon } from '../../components/PublicIcon';
 import { supabaseAdmin } from '../../lib/supabase';
 import { formatHomeCents } from '../../lib/home-utils';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
 
 export const dynamic = 'force-dynamic';
 
@@ -269,6 +270,7 @@ export default async function AiFundraisingPage() {
           </div>
         </div>
       </section>
+      <AeoContent route="/ai-fundraising" title="AI fundraising answers" />
 
     </div>
   );
