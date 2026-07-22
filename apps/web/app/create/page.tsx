@@ -421,9 +421,12 @@ export default function CreatePage() {
         const res = await fetch('/api/upload/campaign-image', { method: 'POST', body: fd });
         const data = await res.json() as { url?: string; path?: string; error?: string };
         if (!res.ok) throw new Error(data.error ?? 'Upload failed');
+        if (typeof data.url !== 'string' || typeof data.path !== 'string') throw new Error('Upload response was invalid. Please try again.');
+        const uploadedUrl = data.url;
+        const uploadedPath = data.path;
         URL.revokeObjectURL(blobUrl);
         blobUrlsRef.current = blobUrlsRef.current.filter(u => u !== blobUrl);
-        setUploadedImages(prev => prev.map(img => img.id === pendingId ? { id: data.path!, url: data.url!, name: file.name, status: 'done' } : img));
+        setUploadedImages(prev => prev.map(img => img.id === pendingId ? { id: uploadedPath, url: uploadedUrl, name: file.name, status: 'done' } : img));
       } catch (e: unknown) {
         setUploadedImages(prev => prev.map(img => img.id === pendingId ? { ...img, status: 'error', errorMsg: e instanceof Error ? e.message : 'Upload failed' } : img));
       }
@@ -436,7 +439,15 @@ export default function CreatePage() {
       blobUrlsRef.current = blobUrlsRef.current.filter(u => u !== img.url);
     }
     if (img.status === 'done') {
-      fetch('/api/upload/campaign-image', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: img.id }) }).catch(() => undefined);
+      try {
+        const res = await fetch('/api/upload/campaign-image', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: img.id }) });
+        const data = await res.json().catch(() => null) as { error?: unknown; warning?: unknown } | null;
+        if (!res.ok) throw new Error(typeof data?.error === 'string' ? data.error : 'Image could not be removed.');
+        if (typeof data?.warning === 'string') setUploadError(data.warning);
+      } catch (e: unknown) {
+        setUploadError(e instanceof Error ? e.message : 'Image could not be removed.');
+        return;
+      }
     }
     setUploadedImages(prev => prev.filter(i => i.id !== img.id));
   }, []);

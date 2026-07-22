@@ -61,6 +61,16 @@ describe('campaign wizard recovery contract', () => {
   });
 });
 
+describe('campaign builder media failure contract', () => {
+  it('validates upload responses and preserves an image when deletion fails', async () => {
+    const source = await import('node:fs/promises');
+    const page = await source.readFile(new URL('../app/create/page.tsx', import.meta.url), 'utf8');
+    expect(page).toContain("if (typeof data.url !== 'string' || typeof data.path !== 'string')");
+    expect(page).toContain("if (!res.ok) throw new Error(typeof data?.error === 'string' ? data.error : 'Image could not be removed.')");
+    expect(page).toContain('return;\n      }\n    }\n    setUploadedImages');
+  });
+});
+
 describe('dashboard campaign edit media contract', () => {
   it('scopes cover uploads to the edited campaign and surfaces metadata warnings', async () => {
     const source = await import('node:fs/promises');
