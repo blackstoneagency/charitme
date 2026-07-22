@@ -1036,9 +1036,24 @@ Verified · Production Ready. These are grounded in the current codebase
 
 ### Corporate giving & matching gifts
 
-- [ ] **CHAR-1301**
+- [~] **CHAR-1301** — **Donor-facing estimator + match calc shipped (2026-07-22)**;
+      pending-match persistence + corporate approval remain (schema/live-gated)
   - Area: Corporate giving
   - Feature: Employer matching gifts
+  - **DONE (non-gated slice):** the previously-orphaned `lib/employer-matching.ts`
+    now has the match calculation this task specified — `parseMatchRatio`
+    ("Up to 3:1" → 3× ceiling) + `estimateEmployerMatch` (ratio + optional cap →
+    matched/total, rounded, non-negative), **12 new unit tests** (21 total in
+    `__tests__/employer-matching.test.ts`). A donor-facing
+    `app/campaigns/[slug]/EmployerMatchWidget.tsx` under the donation breakdown
+    lets a donor search their employer and see what their gift could become
+    ("your $50 could become up to $100") — an estimate only, additive, never
+    alters the donation/checkout, hidden for monthly gifts. Verified:
+    typecheck/lint clean, `next build` compiles, 788 tests pass.
+  - **REMAINING (schema/live-gated, per ADR-0003):** persisting a pending match
+    on donation, corporate-admin approval workflow, budget caps enforced
+    server-side, audit log — needs `matching_rules`/`matching_gifts` tables +
+    RLS applied to live Supabase (no Management API access this session).
   - Description: Donor selects employer at checkout; matching rules
     (ratio, cap) create a pending match; corporate admin approves; matched funds
     recorded against the campaign. Builds on existing `lib/employer-matching.ts`.
