@@ -972,7 +972,7 @@ export default function CreatePage() {
                       <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/avif" multiple style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files)} onClick={e => { (e.target as HTMLInputElement).value = ''; }} />
                       <div className="cr2-upload-icon"><KFIcon name="upload" /></div>
                       <strong>{dragging ? 'Release to upload' : 'Drop images here or click to browse'}</strong>
-                      <span>JPG, PNG, GIF, WebP, AVIF · up to {MAX_IMAGES} images · 10 MB each</span>
+                      <span>JPG, PNG, GIF, WebP, AVIF · up to {MAX_IMAGES} images · 5 MB each</span>
                     </div>
                     {uploadError && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#ef4444', fontWeight: 700 }}>{uploadError}</p>}
                   </div>

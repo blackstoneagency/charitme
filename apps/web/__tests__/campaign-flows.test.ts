@@ -21,6 +21,15 @@ describe('campaign publication validation', () => {
   });
 });
 
+describe('campaign media contract', () => {
+  it('uses the documented 5 MB upload ceiling', async () => {
+    const source = await import('node:fs/promises');
+    const page = await source.readFile(new URL('../app/create/page.tsx', import.meta.url), 'utf8');
+    expect(page).toContain('5 MB each');
+    expect(page).not.toContain('10 MB each');
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Campaign creation validation
 // ─────────────────────────────────────────────────────────────────────────────
