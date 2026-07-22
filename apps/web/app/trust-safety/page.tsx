@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { TRUST_PILLARS } from '../../lib/ai-platform';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/trust-safety', {
@@ -199,6 +200,7 @@ export default function TrustSafetyPage() {
           </div>
         </div>
       </section>
+      <AeoContent route="/trust-safety" title="Trust and safety answers" />
     </div>
   );
 }

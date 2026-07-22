@@ -9,7 +9,7 @@ export type SeoRow = {
 };
 export type AeoRow = {
   id: string; question: string; answer: string; topic: string | null;
-  schema_type: string; priority: number; published: boolean;
+  route: string; schema_type: string; priority: number; published: boolean;
 };
 export type CampaignRow = {
   id: string; name: string; campaign_type: string | null; status: string;
@@ -118,7 +118,7 @@ function SeoTab({ rows: initial, flash }: { rows: SeoRow[]; flash: (m: string) =
 // ── AEO ───────────────────────────────────────────────────────────────────────
 function AeoTab({ rows: initial, flash }: { rows: AeoRow[]; flash: (m: string) => void }) {
   const [rows, setRows] = useState(initial);
-  const blank: AeoRow = { id: '', question: '', answer: '', topic: '', schema_type: 'FAQPage', priority: 0, published: true };
+  const blank: AeoRow = { id: '', question: '', answer: '', topic: '', route: '/faq', schema_type: 'FAQPage', priority: 0, published: true };
   const [draft, setDraft] = useState<AeoRow>(blank);
   const [busy, setBusy] = useState(false);
 
@@ -170,6 +170,7 @@ function AeoTab({ rows: initial, flash }: { rows: AeoRow[]; flash: (m: string) =
         <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
           <label style={{ fontSize: 12, color: 'var(--t3)' }}>Question<input style={input} value={draft.question} onChange={(e) => setDraft({ ...draft, question: e.target.value })} /></label>
           <label style={{ fontSize: 12, color: 'var(--t3)' }}>Answer<textarea style={{ ...input, minHeight: 90 }} value={draft.answer} onChange={(e) => setDraft({ ...draft, answer: e.target.value })} /></label>
+          <label style={{ fontSize: 12, color: 'var(--t3)' }}>Public route<input style={input} value={draft.route} onChange={(e) => setDraft({ ...draft, route: e.target.value })} placeholder="/faq" /></label>
           <label style={{ fontSize: 12, color: 'var(--t3)' }}>Topic<input style={input} value={draft.topic ?? ''} onChange={(e) => setDraft({ ...draft, topic: e.target.value })} /></label>
           <div style={{ display: 'flex', gap: 8 }}>
             <label style={{ fontSize: 12, color: 'var(--t3)', flex: 1 }}>Schema<select style={input} value={draft.schema_type} onChange={(e) => setDraft({ ...draft, schema_type: e.target.value })}><option>FAQPage</option><option>QAPage</option><option>HowTo</option></select></label>

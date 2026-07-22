@@ -22,6 +22,7 @@ export interface AeoRow {
   question: string;
   answer: string;
   topic: string | null;
+  route: string;
   schema_type: string;
   priority: number;
   published: boolean;
@@ -37,7 +38,7 @@ const btnGhost: React.CSSProperties = { height: 36, padding: '0 14px', borderRad
 const h2: React.CSSProperties = { fontSize: 18, fontWeight: 900, color: 'var(--t1)', margin: '0 0 4px' };
 
 const EMPTY_SEO = { id: '', route: '', title: '', meta_description: '', keywords: '', og_title: '', og_description: '', og_image_url: '', canonical_url: '', noindex: false };
-const EMPTY_AEO = { id: '', question: '', answer: '', topic: '', schema_type: 'FAQPage', priority: 0, published: true };
+const EMPTY_AEO = { id: '', question: '', answer: '', topic: '', route: '/faq', schema_type: 'FAQPage', priority: 0, published: true };
 
 export default function SeoAeoClient({ initialSeo, initialAeo }: { initialSeo: SeoRow[]; initialAeo: AeoRow[] }) {
   const router = useRouter();
@@ -74,7 +75,7 @@ export default function SeoAeoClient({ initialSeo, initialAeo }: { initialSeo: S
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         id: aeoForm.id || undefined, question: aeoForm.question, answer: aeoForm.answer, topic: aeoForm.topic,
-        schemaType: aeoForm.schema_type, priority: Number(aeoForm.priority) || 0, published: aeoForm.published,
+        route: aeoForm.route, schemaType: aeoForm.schema_type, priority: Number(aeoForm.priority) || 0, published: aeoForm.published,
       }),
     });
     setBusy(false);
@@ -158,6 +159,8 @@ export default function SeoAeoClient({ initialSeo, initialAeo }: { initialSeo: S
             <input style={input} value={aeoForm.question} onChange={e => setAeoForm({ ...aeoForm, question: e.target.value })} maxLength={300} placeholder="How much does CharitMe charge to start a fundraiser?" />
             <label style={label}>Answer</label>
             <textarea style={area} value={aeoForm.answer} onChange={e => setAeoForm({ ...aeoForm, answer: e.target.value })} maxLength={4000} placeholder="Starting a fundraiser on CharitMe is free — there is no mandatory platform fee…" />
+            <label style={label}>Public route</label>
+            <input style={input} value={aeoForm.route} onChange={e => setAeoForm({ ...aeoForm, route: e.target.value })} maxLength={200} placeholder="/faq" />
             <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))' }}>
               <div><label style={label}>Topic</label><input style={input} value={aeoForm.topic ?? ''} onChange={e => setAeoForm({ ...aeoForm, topic: e.target.value })} placeholder="Fees" /></div>
               <div><label style={label}>Schema type</label>

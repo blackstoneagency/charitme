@@ -1,10 +1,39 @@
 import 'server-only';
 import { supabaseAdmin } from './supabase';
 
-export interface PublicFaq {
+export interface PublicAeoEntry {
   question: string;
   answer: string;
   topic: string | null;
+  schema_type: 'FAQPage' | 'QAPage' | 'HowTo';
+  route: string;
+}
+
+export interface PublicFaq extends PublicAeoEntry {
+  schema_type: 'FAQPage';
+}
+
+const PUBLIC_ROUTE = /^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|beneficiary(?:\/|$))/;
+
+export function normalizeAeoRoute(route: string | null | undefined): string {
+  const value = (route ?? '/faq').trim().replace(/\/{2,}/g, '/');
+  if (!PUBLIC_ROUTE.test(value) || value.length > 200 || value.includes('?') || value.includes('#')) return '/faq';
+  return value === '/' ? '/' : value.replace(/\/$/, '');
+}
+
+/** Published, route-specific entries used by public pages and their schema. */
+export async function getPublishedAeoEntries(route: string, schemaType?: PublicAeoEntry['schema_type'], limit = 100): Promise<PublicAeoEntry[]> {
+  let query = supabaseAdmin
+    .from('aeo_entries')
+    .select('question, answer, topic, schema_type, route')
+    .eq('published', true)
+    .eq('route', normalizeAeoRoute(route))
+    .order('priority', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (schemaType) query = query.eq('schema_type', schemaType);
+  const { data } = await query;
+  return (data ?? []) as PublicAeoEntry[];
 }
 
 /**
@@ -15,21 +44,14 @@ export interface PublicFaq {
  * matches on-page content (never hidden markup).
  */
 export async function getPublishedFaqs(schemaType = 'FAQPage', limit = 100): Promise<PublicFaq[]> {
-  const { data } = await supabaseAdmin
-    .from('aeo_entries')
-    .select('question, answer, topic')
-    .eq('published', true)
-    .eq('schema_type', schemaType)
-    .order('priority', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(limit);
-  return (data ?? []) as PublicFaq[];
+  if (schemaType !== 'FAQPage') return [];
+  return (await getPublishedAeoEntries('/faq', 'FAQPage', limit)) as PublicFaq[];
 }
 
 /** Group FAQs by topic for sectioned display; null/empty topics fall under `fallback`. */
-export function groupFaqsByTopic(faqs: PublicFaq[], fallback = 'More answers'): { topic: string; items: PublicFaq[] }[] {
+export function groupFaqsByTopic(faqs: PublicAeoEntry[], fallback = 'More answers'): { topic: string; items: PublicAeoEntry[] }[] {
   const order: string[] = [];
-  const map = new Map<string, PublicFaq[]>();
+  const map = new Map<string, PublicAeoEntry[]>();
   for (const f of faqs) {
     const key = (f.topic ?? '').trim() || fallback;
     if (!map.has(key)) { map.set(key, []); order.push(key); }

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/fees', {
@@ -104,6 +105,7 @@ export default function FeePolicyPage() {
           <Link href="/terms">Terms of Service</Link>.
         </p>
       </article>
+      <AeoContent route="/fees" title="Fee questions answered" />
     </div>
   );
 }

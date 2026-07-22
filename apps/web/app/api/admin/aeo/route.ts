@@ -7,6 +7,7 @@ import { verifyAdmin } from '../users/_auth';
 // Answer-Engine-Optimization Q&A entries stored in public.aeo_entries
 // (RLS: service-role only). Published entries power the public AEO/FAQ surface.
 const SCHEMA_TYPES = ['FAQPage', 'QAPage', 'HowTo'] as const;
+const PUBLIC_ROUTE = z.string().trim().min(1).max(200).regex(/^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|beneficiary(?:\/|$))/);
 
 const AeoSchema = z.object({
   id: z.string().uuid().optional(),
@@ -16,6 +17,7 @@ const AeoSchema = z.object({
   schemaType: z.enum(SCHEMA_TYPES).optional(),
   priority: z.number().int().min(0).max(1000).optional(),
   published: z.boolean().optional(),
+  route: PUBLIC_ROUTE.optional(),
 });
 
 export async function GET() {
@@ -46,6 +48,7 @@ export async function POST(request: NextRequest) {
     schema_type: d.schemaType ?? 'FAQPage',
     priority: d.priority ?? 0,
     published: d.published ?? true,
+    route: d.route ?? '/faq',
     updated_by: admin.id,
     updated_at: new Date().toISOString(),
   };

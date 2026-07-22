@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { safeJsonLd } from "../../lib/json-ld";
-import { getPublishedFaqs, groupFaqsByTopic } from '../../lib/aeo';
+import AeoContent from '../../components/AeoContent';
 import { seoMetadata } from '../../lib/seo';
 import type { Metadata } from 'next';
 
@@ -74,11 +74,6 @@ const FAQ_SECTIONS = [
 ];
 
 export default async function FaqPage() {
-  // Admin-managed answer-engine entries (published only), surfaced both visibly
-  // and in the FAQPage schema below so the markup always matches page content.
-  const aeoFaqs = await getPublishedFaqs('FAQPage');
-  const aeoSections = groupFaqsByTopic(aeoFaqs);
-
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -88,12 +83,6 @@ export default async function FaqPage() {
         name: item.q,
         acceptedAnswer: { '@type': 'Answer', text: item.a },
       }))),
-      // Every AEO entry here is also rendered visibly in the section below.
-      ...aeoFaqs.map((f) => ({
-        '@type': 'Question',
-        name: f.question,
-        acceptedAnswer: { '@type': 'Answer', text: f.answer },
-      })),
     ],
   };
 
@@ -167,27 +156,7 @@ export default async function FaqPage() {
       </section>
 
       {/* Published AEO answers (admin-managed, Supabase-backed) */}
-      {aeoSections.length > 0 && (
-        <section className="border-t border-slate-100 py-16">
-          <div className="container">
-            <div className="mx-auto max-w-3xl space-y-14">
-              {aeoSections.map((section) => (
-                <div key={section.topic}>
-                  <h2 className="mb-6 text-2xl font-black text-slate-950">{section.topic}</h2>
-                  <div className="space-y-4">
-                    {section.items.map((item) => (
-                      <div key={item.question} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h3 className="font-black text-slate-950">{item.question}</h3>
-                        <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-600">{item.answer}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+      <AeoContent route="/faq" title="Published answers" />
 
       {/* CTA */}
       <section className="bg-slate-50 py-16">

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
 import { seoMetadata } from '../../lib/seo';
+import AeoContent from '../../components/AeoContent';
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/about-us', {
@@ -331,6 +332,7 @@ export default async function AboutUsPage() {
         </div>
       </section>
 
+      <AeoContent route="/about-us" title="About CharitMe" />
     </div>
   );
 }

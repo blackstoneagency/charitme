@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { safeJsonLd } from '../../lib/json-ld';
 import { seoMetadata } from '../../lib/seo';
 import MoneyCalculator from './MoneyCalculator';
+import AeoContent from '../../components/AeoContent';
 
 export async function generateMetadata(): Promise<Metadata> {
   return seoMetadata('/transparency', {
@@ -157,6 +158,7 @@ export default function TransparencyPage() {
           <Link href="/how-it-works">how it works</Link> and our <Link href="/pricing">pricing</Link>.
         </p>
       </article>
+      <AeoContent route="/transparency" title="Transparency answers" />
     </div>
   );
 }
