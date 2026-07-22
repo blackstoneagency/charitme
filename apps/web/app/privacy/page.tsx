@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { seoMetadata } from '../../lib/seo';
 import AeoContent from '../../components/AeoContent';
+import PrivacyPreferences from '../../components/PrivacyPreferences';
 export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -42,8 +43,14 @@ export default async function PrivacyPage() {
           Donation amounts, timestamps, and optional messages are stored in our database. All payment processing is handled by Stripe — we never receive, store, or process your credit card, bank account, or payment credentials directly.
         </p>
 
-        <h3>Usage data</h3>
-        <p>We collect standard web server logs (IP address, browser type, pages visited) for security and analytics purposes. We do not sell this data.</p>
+        <h3>Usage and marketing data</h3>
+        <p>
+          We collect standard web server logs (such as IP address, browser type, and pages visited) for security
+          and service analytics. On public pages, CharitMe may also record anonymous page-view and campaign-view
+          events, the page URL, referring page, and UTM campaign parameters. These records help us measure which
+          fundraising content is useful and improve the platform. We do not sell this data or use it for targeted
+          advertising.
+        </p>
 
         <h2>3. How We Use Your Information</h2>
         <ul>
@@ -64,8 +71,15 @@ export default async function PrivacyPage() {
         </ul>
         <p>We do not sell your personal information to advertisers or data brokers.</p>
 
-        <h2>5. Cookies</h2>
-        <p>We use session cookies required for authentication. We do not use advertising or tracking cookies.</p>
+        <h2>5. Cookies and local storage</h2>
+        <p>
+          We use session cookies required for authentication. On public pages, we may store a first-party visitor
+          identifier in your browser&rsquo;s local storage so anonymous visits can be grouped for aggregate analytics.
+          You can disable this anonymous analytics identifier below. We do not use advertising or third-party
+          tracking cookies.
+        </p>
+
+        <PrivacyPreferences />
 
         <h2>6. Data Retention</h2>
         <p>We retain your account data as long as your account is active. Donation records are retained for tax and legal compliance purposes (minimum 7 years). You may request account deletion by contacting us.</p>

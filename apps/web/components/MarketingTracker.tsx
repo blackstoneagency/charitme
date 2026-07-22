@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { MARKETING_OPT_OUT_STORAGE_KEY } from '../lib/marketing-consent';
 
 const VISITOR_STORAGE_KEY = 'charitme-visitor-id';
 const PRIVATE_PREFIXES = [
@@ -32,6 +33,7 @@ export default function MarketingTracker(): null {
 
   useEffect(() => {
     if (!isTrackablePath(pathname)) return;
+    if (window.localStorage.getItem(MARKETING_OPT_OUT_STORAGE_KEY) === 'true') return;
 
     const params = new URLSearchParams(query);
     const payload = {

@@ -47,10 +47,10 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   the whole gated verification set. See `docs/PAYMENT_READINESS.md`.
 - **Live-gated verification** (needs Connect + staging): end-to-end money flow,
   refund/dispute lifecycles, recurring-renewal observability, per-persona RLS matrix.
-- [~] **MKT-ANON-ATTR â€” In Progress** â€” add global public page-view tracking with
-  first-touch UTM/referrer capture, anonymous visitor identity stitching, and
-  authenticated contact handoff. Keep private routes excluded and verify live
-  event and identity rows in Supabase.
+- [~] **MKT-ANON-ATTR â€” In Progress** â€” global public page-view tracking now
+  captures first-touch UTM/referrer data, stitches anonymous visitors to
+  authenticated contacts, excludes private routes, and honors the `/privacy`
+  opt-out control. Live event and identity-row verification remains pending.
 - **Far-future / out-of-scope** (from §2 comparison, not priorities): NFC tap-to-give,
   crypto, stock/DAF/estate giving, native livestream, native mobile apps, white-label.
 - **Payment hardening pass: COMPLETE** — 11 defects fixed + schema-contract CI guard
