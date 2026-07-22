@@ -41,7 +41,7 @@ export default function ManagePayoutsButton({ campaigns }: Props) {
       <button
         onClick={() => setOpen(true)}
         style={{
-          background: '#6c35ff', color: '#fff', border: 'none',
+          background: 'var(--violet)', color: '#fff', border: 'none',
           borderRadius: 10, padding: '10px 20px', fontWeight: 650,
           fontSize: 14, cursor: 'pointer',
         }}
@@ -60,10 +60,10 @@ export default function ManagePayoutsButton({ campaigns }: Props) {
             width: '100%', maxWidth: 460,
             boxShadow: '0 24px 60px rgba(0,0,0,.2)',
           }}>
-            <h2 style={{ margin: '0 0 12px', fontSize: 20, fontWeight: 700, color: 'var(--t1, #1a1a2e)' }}>
+            <h2 style={{ margin: '0 0 12px', fontSize: 20, fontWeight: 700, color: 'var(--t1, var(--t1))' }}>
               Payouts are automatic
             </h2>
-            <p style={{ margin: '0 0 20px', fontSize: 14, lineHeight: 1.6, color: 'var(--t2, #334064)' }}>
+            <p style={{ margin: '0 0 20px', fontSize: 14, lineHeight: 1.6, color: 'var(--t2, var(--t2))' }}>
               Donations go straight to your connected Stripe account and are paid out
               to your bank automatically on your payout schedule — CharitMe never holds
               your funds. Open your Stripe dashboard to see your balance, change your
@@ -73,7 +73,7 @@ export default function ManagePayoutsButton({ campaigns }: Props) {
             {error && (
               <div style={{
                 padding: '10px 14px', borderRadius: 8, marginBottom: 14, fontSize: 13, fontWeight: 600,
-                background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca',
+                background: 'rgba(255,59,95,.08)', color: 'var(--red)', border: '1px solid rgba(255,59,95,.28)',
               }}>
                 {error}
               </div>
@@ -83,7 +83,7 @@ export default function ManagePayoutsButton({ campaigns }: Props) {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                style={{ flex: 1, padding: '11px 0', borderRadius: 10, border: '1.5px solid var(--b1, #e8ecf4)', background: 'var(--s1, #fff)', fontWeight: 700, fontSize: 14, cursor: 'pointer', color: 'var(--t3, #64748b)' }}
+                style={{ flex: 1, padding: '11px 0', borderRadius: 10, border: '1.5px solid var(--b1, var(--b1))', background: 'var(--s1, #fff)', fontWeight: 700, fontSize: 14, cursor: 'pointer', color: 'var(--t3, var(--t3))' }}
               >
                 Close
               </button>
@@ -91,7 +91,7 @@ export default function ManagePayoutsButton({ campaigns }: Props) {
                 type="button"
                 onClick={openDashboard}
                 disabled={loading}
-                style={{ flex: 2, padding: '11px 0', borderRadius: 10, border: 'none', background: '#6c35ff', color: '#fff', fontWeight: 650, fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
+                style={{ flex: 2, padding: '11px 0', borderRadius: 10, border: 'none', background: 'var(--violet)', color: '#fff', fontWeight: 650, fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}
               >
                 {loading ? 'Opening…' : 'Open Stripe Dashboard'}
               </button>
