@@ -29,6 +29,17 @@ describe('campaign wizard recovery contract', () => {
   });
 });
 
+describe('campaign creation partial-success contract', () => {
+  it('keeps the campaign successful when optional evidence storage fails', async () => {
+    const source = await import('node:fs/promises');
+    const route = await source.readFile(new URL('../app/api/campaigns/route.ts', import.meta.url), 'utf8');
+    expect(route).toContain("reason: 'Campaign created'");
+    expect(route).toContain("warning = 'Campaign saved, but the evidence note could not be stored.");
+    expect(route).toContain('return NextResponse.json(warning ? { ...data, warning } : data, { status: 201 });');
+    expect(route).not.toContain("code: 'EVIDENCE_SAVE_FAILED'");
+  });
+});
+
 describe('payment preference schema rollout', () => {
   it('recognizes only missing-column/schema-cache errors for legacy fallback', () => {
     expect(isMissingPaymentMethodsColumn({ code: 'PGRST204', message: 'Column not found' })).toBe(true);

@@ -123,6 +123,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const { error: statusLogError } = await supabaseAdmin.from('campaign_status_log').insert({
+    campaign_id: data.id,
+    changed_by: user.id,
+    from_status: null,
+    to_status: status,
+    reason: 'Campaign created',
+  });
+  if (statusLogError) console.error('Campaign creation status history write failed');
+
+  let warning: string | undefined;
   if (evidenceNote?.trim()) {
     const { error: ledgerError } = await supabaseAdmin
       .from('transparency_ledger_items')
@@ -137,11 +147,11 @@ export async function POST(request: NextRequest) {
 
     if (ledgerError) {
       console.error('Campaign evidence save failed', ledgerError);
-      return NextResponse.json({ error: 'Campaign created, but evidence note could not be saved.', code: 'EVIDENCE_SAVE_FAILED', slug: data.slug }, { status: 500 });
+      warning = 'Campaign saved, but the evidence note could not be stored. You can add it from the campaign dashboard.';
     }
   }
 
-  return NextResponse.json(data, { status: 201 });
+  return NextResponse.json(warning ? { ...data, warning } : data, { status: 201 });
 }
 
 export async function GET(request: NextRequest) {
