@@ -13,7 +13,7 @@ export interface PublicFaq extends PublicAeoEntry {
   schema_type: 'FAQPage';
 }
 
-const PUBLIC_ROUTE = /^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|beneficiary(?:\/|$)|achievements(?:\/|$)|privacy-center(?:\/|$))/;
+const PUBLIC_ROUTE = /^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|beneficiary(?:\/|$)|achievements(?:\/|$)|privacy-center(?:\/|$)|offline(?:\/|$)|go(?:\/|$)|events\/manage(?:\/|$)|impact\/manage(?:\/|$)|matching\/manage(?:\/|$)|sponsor\/manage(?:\/|$))/;
 const DYNAMIC_PARENT_ROUTE = /^\/(campaigns|blog|events|features|grants|impact|matching|sponsor|volunteer)\/[^/]+$/;
 
 export function normalizeAeoRoute(route: string | null | undefined): string {

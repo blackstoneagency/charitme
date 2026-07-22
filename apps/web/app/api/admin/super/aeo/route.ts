@@ -11,7 +11,7 @@ const CreateSchema = z.object({
   schema_type: z.enum(['FAQPage', 'QAPage', 'HowTo']).default('FAQPage'),
   priority: z.number().int().min(0).max(1000).default(0),
   published: z.boolean().default(true),
-  route: z.string().trim().min(1).max(200).regex(/^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|beneficiary(?:\/|$))/).default('/faq'),
+  route: z.string().trim().min(1).max(200).regex(/^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|beneficiary(?:\/|$)|achievements(?:\/|$)|privacy-center(?:\/|$)|offline(?:\/|$)|go(?:\/|$)|events\/manage(?:\/|$)|impact\/manage(?:\/|$)|matching\/manage(?:\/|$)|sponsor\/manage(?:\/|$))/).default('/faq'),
 });
 const UpdateSchema = CreateSchema.partial().extend({ id: z.string().uuid() });
 

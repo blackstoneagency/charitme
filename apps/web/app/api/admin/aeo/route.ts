@@ -7,7 +7,7 @@ import { verifyAdmin } from '../users/_auth';
 // Answer-Engine-Optimization Q&A entries stored in public.aeo_entries
 // (RLS: service-role only). Published entries power the public AEO/FAQ surface.
 const SCHEMA_TYPES = ['FAQPage', 'QAPage', 'HowTo'] as const;
-const PUBLIC_ROUTE = z.string().trim().min(1).max(200).regex(/^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|beneficiary(?:\/|$))/);
+const PUBLIC_ROUTE = z.string().trim().min(1).max(200).regex(/^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|beneficiary(?:\/|$)|achievements(?:\/|$)|privacy-center(?:\/|$)|offline(?:\/|$)|go(?:\/|$)|events\/manage(?:\/|$)|impact\/manage(?:\/|$)|matching\/manage(?:\/|$)|sponsor\/manage(?:\/|$))/);
 
 const AeoSchema = z.object({
   id: z.string().uuid().optional(),
