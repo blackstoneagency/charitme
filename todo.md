@@ -290,6 +290,14 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Priority: P1
   - Dependencies: none
   - Completion Evidence: dark-mode default (commit d32bb02); hero card nudge (commit 1f5a6fe)
+  - **Keyboard/semantics pass on public-facing components (2026-07-22):** cleared
+    jsx-a11y warnings on NotificationBell (click-only <div> items → <button>),
+    create GuestLoginModal (backdrop role=presentation, card role=dialog/aria-modal,
+    Escape-to-close), create AiFollowUps (autoFocus → focus-follows-question via
+    ref/effect), HeroRotator (decorative hover-pause → role=presentation). Verified:
+    lint clean on those files, typecheck clean, `next build` compiles. **Remaining:**
+    the bulk of the ~180 jsx-a11y warnings live in `/admin/*` internal tools (lower
+    user impact); full axe/contrast/tap-target/320–1920px sweep still needs a browser.
   - Commit: (in progress)
 
 - [ ] CHAR-0016
