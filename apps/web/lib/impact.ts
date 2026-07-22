@@ -13,6 +13,7 @@ import {
   type ImpactMetric,
   type TransparencyResult,
 } from './impact-core';
+import { applyLiveFilters, campaignColumns } from './campaign-visibility';
 
 export interface ImpactBundle {
   campaign: { id: string; slug: string; title: string; currency: string; raised_amount: number };
@@ -21,6 +22,25 @@ export interface ImpactBundle {
   metrics: ImpactMetric[];
   transparency: TransparencyResult;
 }
+
+export interface PublicImpactSummary {
+  campaign: { id: string; slug: string; title: string; currency: string; raised_amount: number };
+  plan: Pick<ImpactPlan, 'id' | 'title' | 'summary' | 'total_budget_cents' | 'updated_at'>;
+  publishedUpdateCount: number;
+  metricCount: number;
+  transparency: TransparencyResult;
+}
+
+type PublishedImpactPlanRow = Pick<
+  ImpactPlan,
+  'id' | 'campaign_id' | 'title' | 'summary' | 'total_budget_cents' | 'updated_at'
+>;
+type CampaignSummaryRow = { id: string; slug: string; title: string; raised_amount: number };
+type LaunchCurrencyRow = { campaign_id: string; currency: string | null };
+type UpdateSummaryRow = { id: string; campaign_id: string };
+type EvidenceSummaryRow = { update_id: string };
+type MetricSummaryRow = { campaign_id: string };
+type PlanItemSpendRow = { plan_id: string; spent_amount_cents: number };
 
 async function resolveCampaign(idOrSlug: string) {
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
@@ -123,6 +143,106 @@ export async function getImpactBundle(idOrSlug: string, viewerOwns = false): Pro
     metrics,
     transparency,
   };
+}
+
+export async function listPublishedImpactSummaries(limit = 24): Promise<PublicImpactSummary[]> {
+  const { data: planData } = await supabaseAdmin
+    .from('impact_plans')
+    .select('id, campaign_id, title, summary, total_budget_cents, updated_at')
+    .eq('status', 'published')
+    .order('updated_at', { ascending: false })
+    .limit(Math.min(limit, 100));
+
+  const plans = (planData ?? []) as PublishedImpactPlanRow[];
+  if (plans.length === 0) return [];
+
+  const campaignIds = [...new Set(plans.map((plan) => plan.campaign_id))];
+  const cols = await campaignColumns();
+  const { data: campaignData } = await applyLiveFilters(
+    supabaseAdmin.from('campaigns').select('id, slug, title, raised_amount').in('id', campaignIds),
+    cols,
+  );
+  const campaigns = (campaignData ?? []) as CampaignSummaryRow[];
+  if (campaigns.length === 0) return [];
+
+  const visibleCampaignIds = new Set(campaigns.map((campaign) => campaign.id));
+  const visiblePlans = plans.filter((plan) => visibleCampaignIds.has(plan.campaign_id));
+  const visiblePlanIds = visiblePlans.map((plan) => plan.id);
+
+  const [{ data: launchData }, { data: updateData }, { data: metricData }, { data: itemData }] = await Promise.all([
+    supabaseAdmin.from('campaign_launch_settings').select('campaign_id, currency').in('campaign_id', [...visibleCampaignIds]),
+    supabaseAdmin
+      .from('impact_updates')
+      .select('id, campaign_id')
+      .eq('status', 'published')
+      .in('campaign_id', [...visibleCampaignIds]),
+    supabaseAdmin.from('impact_metrics').select('campaign_id').in('campaign_id', [...visibleCampaignIds]),
+    supabaseAdmin.from('impact_plan_items').select('plan_id, spent_amount_cents').in('plan_id', visiblePlanIds),
+  ]);
+
+  const updates = (updateData ?? []) as UpdateSummaryRow[];
+  const updateIds = updates.map((update) => update.id);
+  const { data: evidenceData } = updateIds.length
+    ? await supabaseAdmin.from('impact_evidence').select('update_id').in('update_id', updateIds)
+    : { data: [] as EvidenceSummaryRow[] };
+
+  const currencyByCampaignId = new Map(
+    ((launchData ?? []) as LaunchCurrencyRow[]).map((row) => [row.campaign_id, (row.currency ?? 'usd').toLowerCase()]),
+  );
+  const campaignById = new Map(campaigns.map((campaign) => [campaign.id, campaign]));
+  const updateCountByCampaignId = new Map<string, number>();
+  const metricCountByCampaignId = new Map<string, number>();
+  const spentByPlanId = new Map<string, number>();
+  const updateCampaignById = new Map(updates.map((update) => [update.id, update.campaign_id]));
+  const evidenceUpdateIds = new Set(((evidenceData ?? []) as EvidenceSummaryRow[]).map((evidence) => evidence.update_id));
+  const updatesWithEvidenceByCampaignId = new Map<string, Set<string>>();
+
+  for (const update of updates) {
+    updateCountByCampaignId.set(update.campaign_id, (updateCountByCampaignId.get(update.campaign_id) ?? 0) + 1);
+  }
+  for (const metric of (metricData ?? []) as MetricSummaryRow[]) {
+    metricCountByCampaignId.set(metric.campaign_id, (metricCountByCampaignId.get(metric.campaign_id) ?? 0) + 1);
+  }
+  for (const item of (itemData ?? []) as PlanItemSpendRow[]) {
+    spentByPlanId.set(item.plan_id, (spentByPlanId.get(item.plan_id) ?? 0) + item.spent_amount_cents);
+  }
+  for (const updateId of evidenceUpdateIds) {
+    const campaignId = updateCampaignById.get(updateId);
+    if (!campaignId) continue;
+    const existing = updatesWithEvidenceByCampaignId.get(campaignId) ?? new Set<string>();
+    existing.add(updateId);
+    updatesWithEvidenceByCampaignId.set(campaignId, existing);
+  }
+
+  return visiblePlans.flatMap((plan) => {
+    const campaign = campaignById.get(plan.campaign_id);
+    if (!campaign) return [];
+    const publishedUpdateCount = updateCountByCampaignId.get(campaign.id) ?? 0;
+    const metricCount = metricCountByCampaignId.get(campaign.id) ?? 0;
+    return [{
+      campaign: {
+        ...campaign,
+        currency: currencyByCampaignId.get(campaign.id) ?? 'usd',
+      },
+      plan: {
+        id: plan.id,
+        title: plan.title,
+        summary: plan.summary,
+        total_budget_cents: plan.total_budget_cents,
+        updated_at: plan.updated_at,
+      },
+      publishedUpdateCount,
+      metricCount,
+      transparency: transparencyScore({
+        hasPublishedPlan: true,
+        totalBudgetCents: plan.total_budget_cents,
+        totalSpentCents: spentByPlanId.get(plan.id) ?? 0,
+        publishedUpdateCount,
+        updatesWithEvidenceCount: updatesWithEvidenceByCampaignId.get(campaign.id)?.size ?? 0,
+        metricCount,
+      }),
+    }];
+  });
 }
 
 /** Campaigns owned by a user (for the impact management picker). */

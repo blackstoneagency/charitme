@@ -1,8 +1,6 @@
-const path = require('path');
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  outputFileTracingRoot: path.join(__dirname, '../..'),
+  outputFileTracingRoot: `${__dirname}/../..`,
   // ssh2 (via ssh2-sftp-client, used by the FL Sunbiz connector) ships a
   // native .node binary that webpack can't bundle — keep it external so
   // it's loaded via require() at runtime in the serverless function.
