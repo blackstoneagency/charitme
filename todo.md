@@ -892,6 +892,22 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM20b · ✅ RESOLVED (owner-authorized) — live Stripe webhook config fixed** —
+  With explicit owner authorization, modified the live Stripe webhook config:
+  1. **Prod webhook `www.charitme.com/api/stripe/webhook` expanded 2 → 20 events** —
+     the full set the handler processes (checkout.session.completed, invoice.payment_
+     succeeded/failed, payment_intent.*, charge.succeeded/updated/refunded,
+     charge.dispute.created/closed, customer.subscription.created/updated/deleted,
+     account.updated, transfer.created/failed, application_fee.created, payout.*).
+     **Recurring renewals, subscriptions, refunds, and disputes will now be
+     delivered.** Signing secret unchanged (event-only edit) — existing
+     `STRIPE_WEBHOOK_SECRET` stays valid.
+  2. **Unknown `eli54u.com` endpoint DISABLED** (reversible; not deleted, in case
+     it's a first-party service) — it no longer receives live payment events, closing
+     the data-exposure risk. Owner should **delete** it permanently after confirming
+     it's not theirs.
+  3. Still open: real `STRIPE_CONNECT_WEBHOOK_SECRET`; set Stripe env in Vercel.
+
 - **CHAR-SM20 · 🚨 CRITICAL — live Stripe webhook findings (OWNER ACTION REQUIRED)** —
   Read-only audit of the live Stripe account (`acct_1TNul7…`; charges/payouts/
   details_submitted all ✅; card_payments + transfers active).
