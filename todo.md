@@ -892,6 +892,37 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM16 · OPEN ITEMS — owner credentials provided (Stripe/Supabase live)** — Owner
+  supplied real credentials (LIVE). **⚠️ SECURITY: every value was shared in chat/file
+  and MUST be rotated after use; nothing secret is committed (`.env.local` gitignored).**
+  Numbered open items, Stripe-first per owner request ("do what is needed starting at #1"):
+  1. **Stripe subscription price wiring — ✅ DONE (local); owner must set in Vercel.**
+     Checkout (`/api/stripe/checkout`) reads `STRIPE_{STARTER,PRO}_{MONTHLY,YEARLY}_PRICE_ID`;
+     owner gave **product** ids only. Verified the live account read-only
+     (`acct_1TNul7…`, charges_enabled, US) and resolved each product → its active
+     **price** id (non-secret), wired into `.env.local`:
+     - `STRIPE_STARTER_MONTHLY_PRICE_ID=price_1TbRHnBrwQtGmNLkGHtm2BrD` ($19/mo)
+     - `STRIPE_STARTER_YEARLY_PRICE_ID=price_1TbRI5BrwQtGmNLk6BdLGetC` ($228/yr)
+     - `STRIPE_PRO_MONTHLY_PRICE_ID=price_1TbRIKBrwQtGmNLknRFNkTZ5` ($59/mo)
+     - `STRIPE_PRO_YEARLY_PRICE_ID=price_1TbRIWBrwQtGmNLkkh0b32KR` ($708/yr)
+     **Owner action:** set these four (+ `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`,
+     `STRIPE_WEBHOOK_SECRET`) in Vercel so production subscription checkout works.
+  2. **Stripe env in production (Vercel, owner-side)** — set `STRIPE_SECRET_KEY`,
+     `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, the four price ids,
+     `DEFAULT_DONOR_TIP_PERCENT=15`. **`STRIPE_CONNECT_WEBHOOK_SECRET` is still a
+     placeholder (`whsec_connect…`)** — the real Connect-endpoint signing secret is
+     required or Connect webhooks won't verify.
+  3. **Supabase keys rotated to new format** (`sb_publishable_…`/`sb_secret_…`) +
+     `SUPABASE_ACCESS_TOKEN` restored → **unblocks applying the pending unique-covers
+     migration** (CHAR-SM12) and future migrations via the Management API.
+  4. **End-to-end donation verify** — now possible against LIVE, but only with a real
+     tiny charge + immediate refund, or Stripe **test** keys; do NOT run live charges
+     without explicit owner go-ahead (ADR-0003).
+  5. **Still missing:** real `OPENAI_API_KEY` (file has `sk-...` placeholder → AI uses
+     deterministic fallbacks) and `UNSPLASH_ACCESS_KEY` (CHAR-SM13 themed covers).
+  6. **Campaign-builder roadmap** (CHAR-SM15): publish-before-payout, fewer steps +
+     AI-default prefill, per-step drop-off analytics, in-flow image suggestions, live preview.
+
 - **CHAR-SM15 · campaign builder · audit + draft autosave/recovery (slice 1)** — Began
   the world-class rebuild of the **two** existing campaign paths (AI creator at
   `/ai-campaign`; guided 9-step wizard at `/create`). Full audit in
