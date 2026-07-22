@@ -21,12 +21,15 @@
 | Payment methods end-to-end | 🟡 owner/test-keys | live account charges-enabled, 15+ methods active, price ids resolved; a real paid flow needs Stripe **test** keys or owner go-ahead (ADR-0003) |
 | Every page audited / every feature works | 🟡 ongoing | unbounded; audited builder + discovery + payments deeply |
 
-**Owner actions still blocking full production-readiness:** (1) set Stripe env in
-**Vercel** (`STRIPE_SECRET_KEY`, publishable, `STRIPE_WEBHOOK_SECRET`, 4 price ids,
-tip%); (2) real **`STRIPE_CONNECT_WEBHOOK_SECRET`**; (3) permanently **delete** the
-disabled `eli54u.com` webhook after confirming it's not yours; (4) **rotate all
-shared secrets**; (5) provide **OpenAI** + **Unsplash** keys; (6) decide
-**publish-before-payout** (biggest builder drop-off lever).
+**Owner actions still blocking full production-readiness** (step-by-step in
+**`docs/DEPLOY_STRIPE.md`**): (1) set Stripe env in **Vercel** (`STRIPE_SECRET_KEY`,
+publishable, `STRIPE_WEBHOOK_SECRET`, 4 price ids, tip%) + redeploy; (2) permanently
+**delete** the disabled `eli54u.com` webhook after confirming it's not yours;
+(3) **rotate all shared secrets**; (4) provide **OpenAI** + **Unsplash** keys;
+(5) decide **publish-before-payout** (biggest builder drop-off lever).
+**Resolved:** `STRIPE_CONNECT_WEBHOOK_SECRET` is **NOT needed** — verified in the
+webhook handler (tries `STRIPE_WEBHOOK_SECRET` first, filters unset secrets); the
+single endpoint receives all Connect events signed with the main secret. Leave unset.
 
 > **Payment Workflow Hardening pass (2026-07-21)** — see **Section D** at the end
 > of this file and the companion **`payment-audit.md`** for the exhaustive
