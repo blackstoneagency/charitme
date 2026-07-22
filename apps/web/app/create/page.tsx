@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { CharitMeShell, KFIcon } from '../../components/CharitMeApp';
 import { createClient } from '../../lib/supabase-browser';
+import AiFollowUps from './AiFollowUps';
 
 // ─────────────────────────────────────────────
 // Types
@@ -863,6 +864,12 @@ export default function CreatePage() {
                       {aiLoading ? 'Enhancing…' : 'Enhance'}
                     </button>
                   </div>
+
+                  {/* AI follow-ups — fill the human facts the AI can't infer, one at
+                      a time. Shown once there's a story to build on. */}
+                  {form.description.trim().length >= 20 && !aiLoading && (
+                    <AiFollowUps form={form} onAnswer={(field, value) => upd(field, value)} />
+                  )}
                 </div>
               )}
 

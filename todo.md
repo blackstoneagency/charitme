@@ -344,10 +344,17 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
        `/create` wizard stays login-gated). Verified: typecheck/lint clean, `next build`
        prerenders the route, live server returns **200 unauthenticated**, Playwright
        screenshot confirms the rendered design.
-    2. AI follow-up question flow: after the first generation, ask only missing/
-       ambiguous fields ONE at a time (beneficiary, relationship, timing, use-of-
-       funds, payout recipient, consent, anonymity); never repeat answered/known
-       (profile) fields; allow "I'm not sure"; save each answer; update draft live.
+    2. ✅ **DONE (2026-07-21)** — AI follow-up question flow. After the AI drafts a
+       campaign, the story step now asks only the human facts the AI can't infer,
+       ONE at a time — who it's for, beneficiary name, relationship, category, goal,
+       deadline — skipping anything the AI or profile already filled; each answer
+       writes straight to the wizard form (draft updates live) so the next question
+       is re-derived; skippable questions offer "I'm not sure". Pure logic
+       `lib/campaign-followups.ts` (`followUpPlan`/`nextFollowUp`, 7 unit tests) +
+       `app/create/AiFollowUps.tsx` (themed, mobile-first) wired into the story step.
+       Verified: typecheck/lint clean, `next build` compiles, 797 tests pass.
+       Follow-up (needs richer form model): use-of-funds line items, explicit
+       payout-recipient/consent/anonymity fields (not in the current `FormState`).
     3. Guided path: one primary question per screen (progressive disclosure for
        advanced settings) instead of the current multi-field steps.
     4. Publish-readiness engine: real-time score across story/goal/use-of-funds/
