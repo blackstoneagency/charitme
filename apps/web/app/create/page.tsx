@@ -209,6 +209,7 @@ export default function CreatePage() {
   const [loading, setLoading]         = useState(false);
   const [aiLoading, setAiLoading]     = useState(false);
   const [error, setError]             = useState('');
+  const [warning, setWarning]         = useState('');
   const [publishedSlug, setPublishedSlug] = useState('');
   const [userName, setUserName]       = useState<string | null>(null);
   const [userEmail, setUserEmail]     = useState<string | undefined>(undefined);
@@ -468,7 +469,7 @@ export default function CreatePage() {
       if (form.description.trim().length < 20) { setError('Campaign story must be at least 20 characters.'); return; }
       if (goalCents < 100) { setError('Fundraising goal must be at least $1.00.'); return; }
     }
-    setLoading(true); setError('');
+    setLoading(true); setError(''); setWarning('');
     try {
       const location = form.zipCode ? `${form.zipCode} - ${form.country}` : form.country;
       const res = await fetch('/api/campaigns', {
@@ -489,10 +490,11 @@ export default function CreatePage() {
           status,
         }),
       });
-      const data = await res.json();
+      const data = await res.json() as { slug?: unknown; warning?: unknown; error?: unknown };
       if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : `Failed to ${status === 'draft' ? 'save draft' : 'publish'}.`);
       try { sessionStorage.removeItem(WIZARD_STORAGE_KEY); } catch { /* ignore storage cleanup failure */ }
       if (status === 'draft') { setError(''); window.location.href = '/dashboard/campaigns'; return; }
+      if (typeof data.warning === 'string') setWarning(data.warning);
       setPublishedSlug(typeof data.slug === 'string' ? data.slug : '');
       setStep('live');
     } catch (e: unknown) {
@@ -1399,6 +1401,7 @@ export default function CreatePage() {
             <div className="cr2-success-icon"><KFIcon name="check" /></div>
             <h2>🎉 Your Campaign is Live!</h2>
             <p>Congratulations! Your fundraiser is now live and ready to receive donations. Share it everywhere to reach your goal faster.</p>
+            {warning && <p role="status" style={{ maxWidth: 620, margin: '14px auto 0', padding: '12px 16px', border: '1px solid #fcd34d', borderRadius: 10, background: '#fffbeb', color: '#92400e', fontSize: 13, fontWeight: 650 }}>{warning}</p>}
             <div className="cr2-launch-actions">
               {publishedSlug && (
                 <Link href={`/campaigns/${publishedSlug}`} className="cr2-launch-view" style={{ textDecoration: 'none' }}>
