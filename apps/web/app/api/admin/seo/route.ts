@@ -5,7 +5,7 @@ import { supabaseAdmin } from '../../../../lib/supabase';
 import { verifyAdmin } from '../users/_auth';
 
 // Per-route SEO overrides stored in public.seo_settings (RLS: service-role only).
-const PUBLIC_ROUTE = z.string().trim().min(1).max(300).regex(/^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|signup(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|donors(?:\/|$)|beneficiary(?:\/|$)|events\/manage(?:\/|$)|impact\/manage(?:\/|$)|matching\/manage(?:\/|$)|sponsor\/manage(?:\/|$))/);
+const PUBLIC_ROUTE = z.string().trim().min(1).max(300).regex(/^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|signup(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|donors(?:\/|$)|beneficiary(?:\/|$)|achievements(?:\/|$)|privacy-center(?:\/|$)|offline(?:\/|$)|go(?:\/|$)|events\/manage(?:\/|$)|impact\/manage(?:\/|$)|matching\/manage(?:\/|$)|sponsor\/manage(?:\/|$))/);
 const CANONICAL_URL = z.string().trim().max(1000).refine((value) => {
   if (value.startsWith('/')) return true;
   try {

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { guardSuperAdmin, logSuperAdminAction } from '../../../../../lib/super-admin';
 
-const PUBLIC_ROUTE = z.string().trim().min(1).max(200).regex(/^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|signup(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|donors(?:\/|$)|beneficiary(?:\/|$)|events\/manage(?:\/|$)|impact\/manage(?:\/|$)|matching\/manage(?:\/|$)|sponsor\/manage(?:\/|$))/);
+const PUBLIC_ROUTE = z.string().trim().min(1).max(200).regex(/^\/(?!admin(?:\/|$)|dashboard(?:\/|$)|create(?:\/|$)|login(?:\/|$)|signup(?:\/|$)|forgot-password(?:\/|$)|profile(?:\/|$)|donor(?:\/|$)|donors(?:\/|$)|beneficiary(?:\/|$)|achievements(?:\/|$)|privacy-center(?:\/|$)|offline(?:\/|$)|go(?:\/|$)|events\/manage(?:\/|$)|impact\/manage(?:\/|$)|matching\/manage(?:\/|$)|sponsor\/manage(?:\/|$))/);
 const CANONICAL_URL = z.string().trim().max(500).refine((value) => {
   if (value.startsWith('/')) return true;
   try {
