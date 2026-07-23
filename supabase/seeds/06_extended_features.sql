@@ -11,6 +11,13 @@
 -- idempotent and inert on databases that don't have the newer feature tables.
 -- =============================================================================
 do $$
+begin
+  if current_setting('app.charitme_allow_demo_seed', true) <> 'true' then
+    raise exception 'Demo seed blocked. Set app.charitme_allow_demo_seed = true only on a disposable staging/demo project.';
+  end if;
+end $$;
+
+do $$
 declare
   v_users uuid[]; v_camps uuid[]; v_nonprofits uuid[]; v_events uuid[];
   n_users int;    n_camps int;    n_nonprofits int;    n_events int;

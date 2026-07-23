@@ -1626,6 +1626,7 @@ Verified · Production Ready. These are grounded in the current codebase
   - Dependencies: schema.sql seed block; admin approval (owner decision).
   - Security: never auto-delete production rows without explicit confirmation.
   - Tests: seed idempotency; guard prevents seed in production env.
+  - Evidence update: JavaScript seeders fail closed without `CHARITME_ALLOW_DEMO_SEED=true` and reject `NODE_ENV=production`; mutating SQL fixtures require `app.charitme_allow_demo_seed=true` in the current database session. Regression coverage: `npm run test:seed-guard`.
   - Completion Evidence: —
   - Commit: —
 

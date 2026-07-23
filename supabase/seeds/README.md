@@ -7,6 +7,17 @@ admin consoles) against realistic volume.
 They are written for the **Supabase SQL editor** (or `psql`). They use the
 service/`postgres` role, so RLS does not block the inserts.
 
+These are demo fixtures, not production data. Before running any SQL seed file,
+set the guard in the same database session:
+
+```sql
+set app.charitme_allow_demo_seed = 'true';
+```
+
+The mutating SQL files fail closed when that setting is absent. The JavaScript
+marketing seeders additionally require `CHARITME_ALLOW_DEMO_SEED=true` and
+refuse to run with `NODE_ENV=production`.
+
 ## One-command run (psql)
 
 If you have a Postgres connection string (Supabase → Project Settings →

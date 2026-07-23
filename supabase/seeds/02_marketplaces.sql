@@ -7,6 +7,13 @@
 -- Requires: profiles (00) and campaigns (01).
 -- =============================================================================
 do $$
+begin
+  if current_setting('app.charitme_allow_demo_seed', true) <> 'true' then
+    raise exception 'Demo seed blocked. Set app.charitme_allow_demo_seed = true only on a disposable staging/demo project.';
+  end if;
+end $$;
+
+do $$
 declare
   v_users uuid[]; v_camps uuid[];
   n_users int;    n_camps int;

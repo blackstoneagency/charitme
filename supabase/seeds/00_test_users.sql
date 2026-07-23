@@ -15,6 +15,13 @@
 -- won't reach 100 rows on the strictly per-user tables until you have 100 users.
 -- =============================================================================
 
+do $$
+begin
+  if current_setting('app.charitme_allow_demo_seed', true) <> 'true' then
+    raise exception 'Demo seed blocked. Set app.charitme_allow_demo_seed = true only on a disposable staging/demo project.';
+  end if;
+end $$;
+
 insert into auth.users (
   instance_id,
   id,
