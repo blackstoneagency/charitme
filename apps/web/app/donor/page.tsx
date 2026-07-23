@@ -47,18 +47,22 @@ export default async function DonorPortalPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/donor');
 
-  const { data: donationData, count: donationCount } = await supabaseAdmin
-    .from('donations')
-    .select('id, amount_cents, tip_cents, currency, status, anonymous, message, created_at, campaign_id', { count: 'exact' })
-    .eq('donor_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(100);
-
-  const { data: recurringData } = await supabaseAdmin
-    .from('recurring_donations')
-    .select('id, amount_cents, cadence, status, stripe_subscription_id, next_bill_at, created_at, campaign_id')
-    .eq('donor_id', user.id)
-    .order('created_at', { ascending: false });
+  // Independent queries — run in parallel (avoids a serial round-trip waterfall).
+  const [donationRes, recurringRes] = await Promise.all([
+    supabaseAdmin
+      .from('donations')
+      .select('id, amount_cents, tip_cents, currency, status, anonymous, message, created_at, campaign_id', { count: 'exact' })
+      .eq('donor_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(100),
+    supabaseAdmin
+      .from('recurring_donations')
+      .select('id, amount_cents, cadence, status, stripe_subscription_id, next_bill_at, created_at, campaign_id')
+      .eq('donor_id', user.id)
+      .order('created_at', { ascending: false }),
+  ]);
+  const { data: donationData, count: donationCount } = donationRes;
+  const { data: recurringData } = recurringRes;
 
   const donations  = (donationData  ?? []) as DonationRow[];
   const recurring  = (recurringData ?? []) as RecurringRow[];
@@ -69,21 +73,15 @@ export default async function DonorPortalPage() {
   ])].filter(Boolean);
 
   const campaignMap = new Map<string, CampaignRow>();
-  if (cids.length > 0) {
-    const { data: camps } = await supabaseAdmin
-      .from('campaigns')
-      .select('id, title, slug, cover_image_url')
-      .in('id', cids);
-    for (const c of (camps ?? []) as CampaignRow[]) campaignMap.set(c.id, c);
-  }
-
   const currencyMap = new Map<string, string>();
   if (cids.length > 0) {
-    const { data: launchSettings } = await supabaseAdmin
-      .from('campaign_launch_settings')
-      .select('campaign_id, currency')
-      .in('campaign_id', cids);
-    for (const ls of launchSettings ?? []) {
+    // Both keyed off the same campaign-id set but independent of each other.
+    const [campsRes, launchRes] = await Promise.all([
+      supabaseAdmin.from('campaigns').select('id, title, slug, cover_image_url').in('id', cids),
+      supabaseAdmin.from('campaign_launch_settings').select('campaign_id, currency').in('campaign_id', cids),
+    ]);
+    for (const c of (campsRes.data ?? []) as CampaignRow[]) campaignMap.set(c.id, c);
+    for (const ls of launchRes.data ?? []) {
       if (ls.currency) currencyMap.set(ls.campaign_id, ls.currency);
     }
   }
