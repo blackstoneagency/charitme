@@ -233,7 +233,15 @@ export default async function CampaignsPage({ searchParams }: Props) {
             return (
               <Link key={c.id} href={`/campaigns/${c.slug}`} style={{ textDecoration: 'none' }}>
                 <Card style={{ cursor: 'pointer', transition: 'box-shadow .2s', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ height: '190px', background: `url(${c.cover_image_url || getCoverForCampaign(c.category, c.slug)}) center/cover`, position: 'relative', flexShrink: 0 }}>
+                  <div style={{ height: '190px', position: 'relative', flexShrink: 0, overflow: 'hidden', background: 'var(--s3)' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={c.cover_image_url || getCoverForCampaign(c.category, c.slug)}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                     <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       <Badge color="gray">{c.category}</Badge>
                       {isVerified && <Badge color="green">✓ Verified</Badge>}
