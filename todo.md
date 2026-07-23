@@ -2000,3 +2000,7 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — super-admin users accessibility)
 - Made recent super-admin user rows keyboard-operable and added Escape plus
   target-aware backdrop dismissal to the export users dialog. Focused ESLint is clean.
+
+## Session 2026-07-23 (Codex — Open Graph image lint hygiene)
+- Documented the required raw image element for the edge-rendered `ImageResponse`
+  tree. Focused ESLint is clean.
