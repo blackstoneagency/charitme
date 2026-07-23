@@ -48,6 +48,21 @@ describe('marketing identity stitching', () => {
     expect(migration).toContain('on public.marketing_contacts (user_id)');
     expect(migration).toContain('where user_id is not null');
   });
+
+  it('keeps every marketing table explicitly admin-scoped in RLS', async () => {
+    const migration = await readFile(new URL('../../../supabase/migrations/20260723010000_marketing_admin_policies.sql', import.meta.url), 'utf8');
+    const tables = [
+      'marketing_contacts', 'marketing_identities', 'marketing_events', 'marketing_segments',
+      'marketing_segment_members', 'marketing_campaigns', 'marketing_campaign_recipients',
+      'marketing_automations', 'marketing_automation_runs', 'marketing_email_templates',
+      'marketing_utm_links', 'marketing_referrals', 'marketing_forms', 'marketing_form_submissions',
+      'marketing_consent', 'marketing_suppression_list', 'marketing_audit_logs',
+    ];
+
+    for (const table of tables) expect(migration).toContain(`'${table}'`);
+    expect(migration).toContain('public.is_admin()');
+    expect(migration).toContain("for all using (public.is_admin()) with check (public.is_admin())");
+  });
 });
 
 describe('computeLeadScore', () => {
