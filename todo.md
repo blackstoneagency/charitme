@@ -596,6 +596,28 @@ tests/build/live-HTTP are listed here.
   render/prerender with no guard; a missing env var or DB blip 500'd the page
   (and broke a no-env build). Wrapped in try/catch → graceful fallback to the
   hardcoded on-page FAQ content. _Evidence: `next build` green; 889 tests._
+- **CHAR-F053 · admin/exports** — Two admin CSV export buttons were broken:
+  `admin/finance` linked to a POST-only route with the wrong param shape
+  (405), and `admin/donations` used the *user-scoped* export (admin's own
+  campaigns → empty file) instead of the platform ledger. Both repointed to
+  the working admin GET ledger export `/api/admin/payments/export`.
+- **CHAR-F054 · a11y/sponsors** — The public sponsors marquee duplicates its
+  list for a seamless CSS loop but exposed both copies to assistive tech —
+  screen-reader users heard every sponsor twice and keyboard users tabbed
+  through phantom duplicate links. Clone half now `aria-hidden` + `tabIndex=-1`.
+
+**Audit verifications this session (no regressions found):**
+- **Navigation integrity** — all **58** static internal `<Link>`/`href`
+  targets resolve to real routes (0 dead links); dynamic hrefs hit existing
+  `[slug]`/`[id]` routes.
+- **Image uniqueness** — `audit:campaign-images` PASSED (45 catalog IDs = 45
+  SQL migration IDs, 0 duplicates).
+- **Broken-method sweep** — audited client `fetch` DELETE/PUT calls, native
+  `<form action>` POSTs, and GET-vs-POST link mismatches: all remaining ones
+  are correct (e.g. trust-flag resolve form POSTs and server-redirects back).
+- **Dashboard sign-out** — confirmed the shell TopBar renders working account
+  controls (`ShellAccountControls`) on every dashboard page.
+- **Baseline** — 889/889 tests, typecheck clean, `next build` green, lint 0 errors.
 
 - **CHAR-F001 · trust/data** — Removed auto-seeding of 50 fabricated corporate
   sponsors and 500 fabricated support tickets into the live DB on admin page
