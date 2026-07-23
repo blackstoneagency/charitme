@@ -6091,6 +6091,7 @@ img, video, iframe { max-width: 100%; }
   .home-spot-stats { position: static; right: 0; flex-direction: row; flex-wrap: wrap; margin-top: 14px; }
   .home-spot-stat { flex: 1 1 42%; min-width: 0; }
   .home-spot-card { margin: 14px 0 0; }
+  .home-spot-nav { margin: 14px 0 0; }
 }
 
 /* Dark-mode: lighten accent foregrounds + shadows for AA contrast on the dark
@@ -6108,6 +6109,22 @@ img, video, iframe { max-width: 100%; }
 [data-theme="dark"] .home-spot-active i { background: #34d399; }
 [data-theme="dark"] .home-spot-progress { background: rgba(255, 255, 255, .08); }
 [data-theme="dark"] .home-spot-verified { background: #3b82f6; }
+
+/* Featured-campaign carousel controls (rotating hero spotlight) */
+.home-spot-nav { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 16px 56px 0 10px; }
+.home-spot-nav-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; flex: none; border-radius: 50%; border: 1px solid var(--h-card-brd, rgba(15, 23, 42, .12)); background: var(--h-card, #fff); color: #7c3aed; cursor: pointer; box-shadow: 0 4px 12px rgba(2, 6, 23, .12); transition: filter .15s ease, transform .15s ease; }
+.home-spot-nav-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+.home-spot-nav-btn .hi { width: 16px; height: 16px; }
+.home-spot-nav-prev { transform: rotate(180deg); }
+.home-spot-dots { display: flex; align-items: center; gap: 7px; }
+.home-spot-dot { width: 8px; height: 8px; padding: 0; border: none; border-radius: 999px; background: rgba(124, 58, 237, .28); cursor: pointer; transition: width .2s ease, background .2s ease; }
+.home-spot-dot.is-active { width: 22px; background: linear-gradient(90deg, #7c3aed, #a855f7); }
+[data-theme="dark"] .home-spot-nav-btn { color: #c4b5fd; }
+[data-theme="dark"] .home-spot-dot { background: rgba(196, 181, 253, .32); }
+[data-theme="dark"] .home-spot-dot.is-active { background: linear-gradient(90deg, #a855f7, #c4b5fd); }
+
+/* Screen-reader-only utility (visually hidden, still announced). */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 /* progress bar */
 .home-progress { height: 8px; border-radius: 999px; background: var(--s3); overflow: hidden; }

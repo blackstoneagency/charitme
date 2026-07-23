@@ -8,6 +8,7 @@ import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
 import CampaignImage from '../components/CampaignImage';
 import { formatMoneyCompact } from '@shared/currencies';
 import { AiSearch, CountUp, Reveal } from './home-parts';
+import HeroSpotlightCarousel, { type HeroSpotItem } from './HeroSpotlightCarousel';
 
 // Cache the rendered homepage and revalidate every 2 minutes. The page has no
 // per-request/per-user inputs, so ISR removes ~8 Supabase round-trips from the
@@ -153,21 +154,51 @@ function deadlineLabel(iso: string | null): string {
 }
 
 export default async function HomePage() {
-  const [{ metrics, featuredCampaigns, carouselCampaigns, heroCampaign }, categoryStats, recentDonations] = await Promise.all([
+  const [{ metrics, featuredCampaigns, carouselCampaigns, rotatorCampaigns }, categoryStats, recentDonations] = await Promise.all([
     getHomeData({}),
     getCategoryStats(),
     getRecentDonations(6),
   ]);
 
-  // Live campaign spotlight for the hero — a real featured campaign from Supabase.
-  const hc = heroCampaign;
-  const hcCurrency = hc?.currency ?? 'usd';
-  const hcTrust = hc?.campaign_health_score ?? 0;
-  const hcFunded = hc ? pct(hc.raised_amount, hc.goal_amount) : 0;
-  const hcLastDonation = hc ? recentDonations.find((d) => d.campaignSlug === hc.slug) : undefined;
-  const hcLastLabel = hcLastDonation ? timeAgo(hcLastDonation.createdAt) : '—';
-  const hcCover = hc?.cover_image_url || getCoverForCampaign(hc?.category ?? null, hc?.slug ?? null);
-  const hcHref = hc ? `/campaigns/${hc.slug}` : '/create';
+  // Live featured-campaign spotlight — a rotating carousel of real campaigns from
+  // Supabase. Prefer the purpose-built rotator set (organizer names + live covers),
+  // then fall back to the top featured campaigns; the component itself shows a
+  // static invitation card if nothing is live yet. ISR (revalidate=120) keeps the
+  // seed fresh; the client rotates through the slides.
+  const lastLabelFor = (slug: string): string => {
+    const d = recentDonations.find((x) => x.campaignSlug === slug);
+    return d ? timeAgo(d.createdAt) : '—';
+  };
+  const toHeroItem = (c: {
+    slug: string; title: string; category: string | null; cover_image_url: string | null;
+    goal_amount: number; raised_amount: number; backer_count: number; deadline: string | null;
+    trust_status?: string | null; campaign_health_score?: number | null; currency?: string | null;
+  }, organizer: string): HeroSpotItem => ({
+    slug: c.slug,
+    title: c.title,
+    organizer,
+    cover: c.cover_image_url || getCoverForCampaign(c.category, c.slug),
+    fallbackCover: getCoverForCategory(c.category ?? 'Community'),
+    currency: c.currency ?? 'usd',
+    trust: c.campaign_health_score ?? 0,
+    funded: pct(c.raised_amount, c.goal_amount),
+    raised: c.raised_amount,
+    goal: c.goal_amount,
+    backers: c.backer_count ?? 0,
+    lastLabel: lastLabelFor(c.slug),
+    deadlineLabel: deadlineLabel(c.deadline),
+    verified: c.trust_status === 'Verified',
+    href: `/campaigns/${c.slug}`,
+  });
+
+  const heroCandidates: HeroSpotItem[] = [
+    ...rotatorCampaigns.map((c) => toHeroItem(c, c.organizer_name ?? 'CharitMe Organizer')),
+    ...featuredCampaigns.map((c) => toHeroItem(c, profileName(c.profiles))),
+  ];
+  const seenHeroSlugs = new Set<string>();
+  const heroItems: HeroSpotItem[] = heroCandidates
+    .filter((it) => (seenHeroSlugs.has(it.slug) ? false : (seenHeroSlugs.add(it.slug), true)))
+    .slice(0, 6);
 
   const featured = (carouselCampaigns.length ? carouselCampaigns : featuredCampaigns).slice(0, 6);
   const causes = categoryStats
@@ -219,54 +250,10 @@ export default async function HomePage() {
             </p>
           </div>
 
-          {/* Live campaign spotlight — real featured campaign from Supabase */}
-          <Reveal className="home-spot" as="article" aria-label="Featured campaign">
-            <div className="home-spot-frame">
-              <div className="home-spot-media">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={hcCover} alt={hc ? `Cover for ${hc.title}` : 'Start a trusted campaign on CharitMe'} loading="eager" fetchPriority="high" decoding="async" width={640} height={460} />
-              </div>
-
-              <ul className="home-spot-stats" aria-label="Campaign stats">
-                <li className="home-spot-stat">
-                  <span className="home-spot-ic home-spot-ic--green"><Icon name="shield" className="hi" /></span>
-                  <div><b>{hcTrust}</b><small>Trust Score</small><em>Live</em></div>
-                </li>
-                <li className="home-spot-stat">
-                  <span className="home-spot-ic home-spot-ic--blue"><Icon name="users" className="hi" /></span>
-                  <div><b>{(hc?.backer_count ?? 0).toLocaleString()}</b><small>Donors</small></div>
-                </li>
-                <li className="home-spot-stat">
-                  <span className="home-spot-ic home-spot-ic--amber"><Icon name="chart" className="hi" /></span>
-                  <div><b>{hcFunded}%</b><small>Funded</small></div>
-                </li>
-                <li className="home-spot-stat">
-                  <span className="home-spot-ic home-spot-ic--violet"><Icon name="heart" className="hi" /></span>
-                  <div><b>{hcLastLabel}</b><small>Donations Last Recently</small></div>
-                </li>
-              </ul>
-
-              <div className="home-spot-card">
-                <span className="home-spot-active"><i aria-hidden="true" /> ACTIVE CAMPAIGN</span>
-                <h2 className="home-spot-title">{hc ? hc.title : 'Start a trusted campaign on CharitMe'}</h2>
-                <p className="home-spot-org">
-                  Organized by {hc ? profileName(hc.profiles) : 'CharitMe Organizer'}
-                  <span className="home-spot-verified" role="img" aria-label="Verified organizer"><Icon name="check" className="hi" /></span>
-                </p>
-                <div className="home-spot-amounts">
-                  <strong>{formatMoneyCompact(hc?.raised_amount ?? 0, hcCurrency)}</strong> <span>raised</span>
-                  <em>{formatMoneyCompact(hc?.goal_amount ?? 0, hcCurrency)} goal</em>
-                </div>
-                <div className="home-spot-progress" role="progressbar" aria-valuenow={hcFunded} aria-valuemin={0} aria-valuemax={100} aria-label={`${hcFunded}% funded`}>
-                  <span style={{ width: `${hcFunded}%` }} />
-                </div>
-                <div className="home-spot-meta">
-                  <span>{(hc?.backer_count ?? 0).toLocaleString()} donations</span>
-                  <span>{deadlineLabel(hc?.deadline ?? null)}</span>
-                </div>
-                <Link href={hcHref} className="home-spot-donate"><Icon name="heart" className="hi" /> Donate Now</Link>
-              </div>
-            </div>
+          {/* Live featured-campaign spotlight — a rotating carousel of real
+              campaigns from Supabase (auto-advances, pause on hover, dots + arrows). */}
+          <Reveal className="home-spot" as="article" aria-label="Featured campaigns">
+            <HeroSpotlightCarousel items={heroItems} />
           </Reveal>
         </div>
 
