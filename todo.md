@@ -1964,3 +1964,7 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — admin marketing accessibility)
 - Added Escape handling to the contact profile and outreach drawers and made
   backdrop dismissal target-aware without nested click traps. Focused ESLint is clean.
+
+## Session 2026-07-23 (Codex — admin payouts accessibility)
+- Made recent and tabular payout rows keyboard-operable and added Escape handling
+  to the payout detail panel. Focused ESLint is clean.

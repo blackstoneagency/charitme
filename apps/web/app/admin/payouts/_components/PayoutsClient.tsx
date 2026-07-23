@@ -1,6 +1,16 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+
+function useEscape(onClose: () => void): void {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+}
 
 // ─────────────────────────────────────────────
 // Types
@@ -139,6 +149,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
   const [actionMode, setActionMode] = useState('approve');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  useEscape(onClose);
 
   async function handleAction() {
     setSaving(true);
@@ -157,6 +168,8 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
   }
 
   return (
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ marginLeft: 'auto', width: 500, maxWidth: '100vw', background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
@@ -420,8 +433,9 @@ export default function PayoutsClient({
       <section className="kf-card" style={{ marginBottom: 24 }}>
         <div className="kf-card-head"><h2>Recent Payouts</h2></div>
         {payouts.slice(0, 5).map(p => (
-          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer' }}
+          <div key={p.id} role="button" tabIndex={0} aria-label={`View payout for ${p.recipient_name}`} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer' }}
             onClick={() => setSelected(p)}
+            onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(p); } }}
             onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
             <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#fdeaf6,#ec3fb4)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
@@ -478,8 +492,9 @@ export default function PayoutsClient({
 
             {currentPage.map(p => (
               <div key={p.id}
-                style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+                role="button" tabIndex={0} aria-label={`View payout for ${p.recipient_name}`} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => setSelected(p)}
+                onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(p); } }}
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
