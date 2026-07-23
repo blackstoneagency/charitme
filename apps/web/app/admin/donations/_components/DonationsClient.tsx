@@ -110,6 +110,16 @@ function fmtDateTime(iso: string): string {
   });
 }
 
+function useEscape(onClose: () => void): void {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+}
+
 function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
@@ -283,7 +293,10 @@ interface MoreActionsPanelProps {
 function MoreActionsPanel({
   detail, onClose, onRefund, onNote, onSpam, onReceipt, spamLoading, receiptLoading,
 }: MoreActionsPanelProps) {
+  useEscape(onClose);
   return (
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
@@ -362,6 +375,7 @@ function RefundModal({
   const [reason, setReason] = useState('Donor request');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
+  useEscape(onClose);
 
   async function handleRefund() {
     const parsed = parseFloat(amount);
@@ -387,6 +401,8 @@ function RefundModal({
   }
 
   return (
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div className="ado-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="ado-modal">
         <div className="ado-modal-head">
@@ -450,6 +466,7 @@ function NoteModal({
   const [note, setNote] = useState(detail.notes ?? '');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
+  useEscape(onClose);
 
   async function handleSave() {
     if (!note.trim()) { setErr('Note cannot be empty.'); return; }
@@ -472,6 +489,8 @@ function NoteModal({
   }
 
   return (
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div className="ado-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="ado-modal">
         <div className="ado-modal-head">
@@ -488,7 +507,6 @@ function NoteModal({
               value={note}
               onChange={e => setNote(e.target.value)}
               placeholder="Enter internal note visible only to admins…"
-              autoFocus
             />
           </div>
           {err && <div className="ado-error">{err}</div>}
@@ -1029,6 +1047,14 @@ export default function DonationsClient({
               key={d.id}
               style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer' }}
               onClick={() => { fetchDetail(d.id); }}
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  fetchDetail(d.id);
+                }
+              }}
+              role="button"
+              tabIndex={0}
               onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
@@ -1146,6 +1172,14 @@ export default function DonationsClient({
                 key={d.id}
                 style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => { fetchDetail(d.id); }}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    fetchDetail(d.id);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
@@ -1287,6 +1321,14 @@ export default function DonationsClient({
                   <div key={d.id}
                     style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 130px', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < arr.length - 1 ? '1px solid #f0f2f8' : 'none', background: '#fff', cursor: 'pointer' }}
                     onClick={() => { fetchDetail(d.id); }}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        fetchDetail(d.id);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                     onMouseEnter={e => (e.currentTarget.style.background = '#fff5f7')}
                     onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
                     <div style={{ fontSize: 13, fontWeight: 650, color: '#101944' }}>{d.donor_name}</div>

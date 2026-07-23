@@ -1949,6 +1949,11 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
   delete, detail, and create modals, and retained pointer backdrop dismissal with
   visible keyboard controls. Focused ESLint is clean.
 
+## Session 2026-07-23 (Codex — admin donations accessibility)
+- Made recent, tabular, and refunded donation rows keyboard-operable; added Escape
+  handling to the actions/refund/note modals and removed note autofocus. Financial
+  admin interaction surface is focused-ESLint clean.
+
 ## Session 2026-07-23 (Codex — accessibility warning cleanup)
 - Cleared the remaining user-facing lint warnings in the sponsor marquee, campaign
   image fallback, integrations modal, payouts modal, team invite modal, and donor
