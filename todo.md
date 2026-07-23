@@ -2029,3 +2029,7 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 - Clarified the donation form's payment selector as a processing-fee estimate and
   explained that Stripe Checkout determines the final eligible method by device,
   currency, and account configuration.
+
+## Session 2026-07-23 (Codex — live campaign image audit)
+- Live HTTP audit passed for all 45 campaign image URLs; static catalog and SQL
+  migration IDs remain unique across 18 categories.
