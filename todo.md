@@ -2014,3 +2014,9 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 - Aligned the local preflight with Next by loading `apps/web/.env.local` only in
   non-production mode; `--production` still requires injected deployment variables.
   Local preflight passes and production-mode failure gating was verified.
+
+## Session 2026-07-23 (Codex — public route browser coverage)
+- Added Desktop Chrome and Pixel 5 smoke coverage for 26 public routes, asserting
+  successful responses and visible document bodies. Existing homepage/pricing smoke also passes.
+- Configured the E2E runner to use one worker against the shared local Next server,
+  preventing concurrent navigation aborts during the complete smoke run.
