@@ -389,7 +389,7 @@ export default function AdminUsersClient({
               <span>User</span><span>Role</span><span>Joined</span>
             </div>
             {recentUsers.map((u) => (
-              <div className="users-recent-row" key={u.id} style={{ cursor: 'pointer' }} onClick={() => goDetail(u)}>
+              <button type="button" className="users-recent-row" key={u.id} style={{ cursor: 'pointer', width: '100%', border: 0, background: 'transparent', textAlign: 'left' }} onClick={() => goDetail(u)}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Avatar name={u.name} imageUrl={u.avatarUrl} />
                   <span>
@@ -399,7 +399,7 @@ export default function AdminUsersClient({
                 </span>
                 <span style={rolePillColor(u.role)}>{u.role}</span>
                 <span style={{ color: 'var(--t3, #66708d)', fontSize: 12 }}>{fmtDate(u.joinedAt)}</span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -1063,22 +1063,23 @@ function SettingsTab({
       <div style={{ maxWidth: 480, display: 'grid', gap: 18 }}>
 
         <div className="users-add-field">
-          <label>Full Name</label>
-          <input className="users-add-input" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" />
+          <label htmlFor="admin-user-full-name">Full Name</label>
+          <input id="admin-user-full-name" className="users-add-input" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" />
         </div>
 
         <div className="users-add-field">
-          <label>Email Address</label>
-          <input className="users-add-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
+          <label htmlFor="admin-user-email">Email Address</label>
+          <input id="admin-user-email" className="users-add-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
         </div>
 
         <div className="users-add-field">
-          <label>
+          <label htmlFor="admin-user-password">
             New Password
             <span style={{ fontWeight: 600, color: 'var(--t3, #8c9ab5)', marginLeft: 6, fontSize: 11 }}>(leave blank to keep current)</span>
           </label>
           <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
             <input
+              id="admin-user-password"
               className="users-add-input"
               type={showPw ? 'text' : 'password'}
               value={newPassword}
@@ -1105,14 +1106,14 @@ function SettingsTab({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div className="users-add-field">
-            <label>Role</label>
-            <select className="users-add-select" value={role} onChange={(e) => setRole(e.target.value)}>
+            <label htmlFor="admin-user-role">Role</label>
+            <select id="admin-user-role" className="users-add-select" value={role} onChange={(e) => setRole(e.target.value)}>
               {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </div>
           <div className="users-add-field">
-            <label>Status</label>
-            <select className="users-add-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <label htmlFor="admin-user-status">Status</label>
+            <select id="admin-user-status" className="users-add-select" value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
               <option value="Suspended">Suspended</option>
@@ -1122,8 +1123,8 @@ function SettingsTab({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div className="users-add-field">
-            <label>Plan</label>
-            <select className="users-add-select" value={plan} onChange={(e) => setPlan(e.target.value)}>
+            <label htmlFor="admin-user-plan">Plan</label>
+            <select id="admin-user-plan" className="users-add-select" value={plan} onChange={(e) => setPlan(e.target.value)}>
               <option value="free">Free</option>
               <option value="starter">Plus</option>
               <option value="pro">Pro</option>
@@ -1131,16 +1132,16 @@ function SettingsTab({
             </select>
           </div>
           <div className="users-add-field">
-            <label>Currency</label>
-            <select className="users-add-select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            <label htmlFor="admin-user-currency">Currency</label>
+            <select id="admin-user-currency" className="users-add-select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {['USD', 'EUR', 'GBP', 'CAD', 'AUD'].map((c) => <option key={c}>{c}</option>)}
             </select>
           </div>
         </div>
 
         <div className="users-add-field">
-          <label>Timezone</label>
-          <select className="users-add-select" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+          <label htmlFor="admin-user-timezone">Timezone</label>
+          <select id="admin-user-timezone" className="users-add-select" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
             {[
               'America/New_York', 'America/Chicago', 'America/Denver',
               'America/Los_Angeles', 'America/Phoenix', 'America/Anchorage',
@@ -1325,11 +1326,13 @@ function ExportOverlay({
   onExport: () => void;
 }) {
   return (
-    <div className="users-export-overlay" onClick={onClose}>
-      <div className="users-export-panel" onClick={(e) => e.stopPropagation()}>
+    <div className="users-export-overlay" role="dialog" aria-modal="true" aria-label="Export users">
+      <div className="users-export-panel">
         <div className="users-export-header">
           <span style={{ fontSize: 16, fontWeight: 700, color: '#0f1238' }}>Export Users</span>
           <button
+            type="button"
+            aria-label="Close export dialog"
             style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: 'var(--t3, #66708d)' }}
             onClick={onClose}
           >
@@ -1338,23 +1341,23 @@ function ExportOverlay({
         </div>
         <div className="users-export-body">
           <div className="users-export-field">
-            <label>File Format</label>
-            <select className="users-export-select" value={exportFormat} onChange={(e) => setExportFormat(e.target.value)}>
+            <label htmlFor="admin-users-export-format">File Format</label>
+            <select id="admin-users-export-format" className="users-export-select" value={exportFormat} onChange={(e) => setExportFormat(e.target.value)}>
               <option>CSV</option>
             </select>
           </div>
           <div className="users-export-field">
-            <label>Include Fields</label>
-            <select className="users-export-select">
+            <label htmlFor="admin-users-export-fields">Include Fields</label>
+            <select id="admin-users-export-fields" className="users-export-select">
               <option>All Fields</option>
             </select>
           </div>
           <div className="users-export-field">
-            <label>Filters (Optional)</label>
-            <select className="users-export-select">
+            <label htmlFor="admin-users-export-role">Filters (Optional)</label>
+            <select id="admin-users-export-role" className="users-export-select">
               <option>All Roles</option>
             </select>
-            <select className="users-export-select" style={{ marginTop: 8 }}>
+            <select aria-label="Filter by status" className="users-export-select" style={{ marginTop: 8 }}>
               <option>All Status</option>
             </select>
           </div>
