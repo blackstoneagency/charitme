@@ -32,7 +32,7 @@ export * from './marketing-core';
 export async function resolveContact(input: ContactInput): Promise<string | null> {
   const email = input.email?.trim().toLowerCase() || null;
   const phone = input.phone?.trim() || null;
-  if (!email && !phone && !input.userId) return null;
+  if (!email && !phone && !input.userId && !input.anonymousId) return null;
 
   // 1. Look up by any known identity
   let contactId: string | null = null;
@@ -40,6 +40,7 @@ export async function resolveContact(input: ContactInput): Promise<string | null
   if (email) lookups.push({ kind: 'email', value: email });
   if (phone) lookups.push({ kind: 'phone', value: phone });
   if (input.userId) lookups.push({ kind: 'user_id', value: input.userId });
+  if (input.anonymousId) lookups.push({ kind: 'anonymous_id', value: input.anonymousId });
 
   for (const l of lookups) {
     const { data } = await supabaseAdmin
@@ -124,11 +125,11 @@ export async function trackEvent(args: {
   campaignId?: string;
   marketingCampaignId?: string;
   amountCents?: number;
-  utmSource?: string; utmMedium?: string; utmCampaign?: string;
+  utmSource?: string; utmMedium?: string; utmCampaign?: string; utmTerm?: string; utmContent?: string;
   url?: string;
   metadata?: Record<string, unknown>;
-}): Promise<void> {
-  await supabaseAdmin.from('marketing_events').insert({
+}): Promise<boolean> {
+  const { error: eventError } = await supabaseAdmin.from('marketing_events').insert({
     contact_id: args.contactId ?? null,
     event_type: args.eventType,
     campaign_id: args.campaignId ?? null,
@@ -137,15 +138,20 @@ export async function trackEvent(args: {
     utm_source: args.utmSource ?? null,
     utm_medium: args.utmMedium ?? null,
     utm_campaign: args.utmCampaign ?? null,
+    utm_term: args.utmTerm ?? null,
+    utm_content: args.utmContent ?? null,
     url: args.url ?? null,
     metadata: args.metadata ?? {},
   });
+  if (eventError) return false;
   if (args.contactId) {
-    await supabaseAdmin
+    const { error: contactError } = await supabaseAdmin
       .from('marketing_contacts')
       .update({ last_active_at: new Date().toISOString() })
       .eq('id', args.contactId);
+    if (contactError) return false;
   }
+  return true;
 }
 
 /**

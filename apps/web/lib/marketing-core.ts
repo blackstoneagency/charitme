@@ -22,6 +22,7 @@ export function marketingStatusForOptIn(subscribed: boolean): 'active' | 'unsubs
 }
 
 export interface ContactInput {
+  anonymousId?: string;
   email?: string;
   phone?: string;
   userId?: string;

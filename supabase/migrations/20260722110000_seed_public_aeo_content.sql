@@ -1,0 +1,43 @@
+-- Curated, route-specific answers for the public marketing engine.
+-- Keep this idempotent so a staging refresh or controlled re-run is safe.
+with entries(question, answer, topic, route, priority) as (
+  values
+    ('What is CharitMe?', 'CharitMe is an AI-powered fundraising platform for individuals, nonprofits, teams, donors, events, grants, matching gifts, sponsorships, and transparent impact reporting.', 'Getting started', '/', 100),
+    ('What does the AI campaign builder create?', 'The AI campaign builder turns a plain-language description into a campaign title, story draft, fundraising goal guidance, donation tiers, and launch-ready content that you can review and edit.', 'AI fundraising', '/ai-campaign', 100),
+    ('How does AI help fundraisers?', 'CharitMe AI helps organizers write stronger campaign stories, identify missing trust signals, plan donor outreach, draft updates, and find practical opportunities to improve campaign performance.', 'AI fundraising', '/ai-fundraising', 100),
+    ('Why was CharitMe created?', 'CharitMe was created to make fundraising simpler, more transparent, and more trustworthy by combining compassionate product design, clear money flows, and practical AI guidance.', 'About CharitMe', '/about-us', 100),
+    ('What can I learn from the CharitMe blog?', 'The CharitMe blog shares fundraising strategy, donor communication guidance, AI playbooks, nonprofit ideas, trust and safety education, and practical campaign growth advice.', 'Resources', '/blog', 100),
+    ('How do I find a campaign to support?', 'Browse active campaigns on CharitMe, then compare their story, trust signals, verification details, updates, and donation information before choosing how to give.', 'Donations', '/campaigns', 100),
+    ('How can I contact CharitMe?', 'Use the CharitMe contact page for campaign support, donation questions, nonprofit partnerships, press requests, billing help, and trust and safety concerns.', 'Support', '/contact', 100),
+    ('What can I do on a CharitMe fundraising event page?', 'Fundraising event pages can share event details, connect an event to a campaign, explain registration or attendance, and provide a clear path for supporters to participate.', 'Events', '/events', 100),
+    ('How fast can I receive a CharitMe payout?', 'After Stripe verification is complete, standard payouts are generally available on the normal processor schedule. Eligible organizers can choose faster payout options where available, with the exact timing and fee shown before confirmation.', 'Payouts', '/fast-payouts', 100),
+    ('What tools are included on CharitMe?', 'CharitMe includes campaign creation, donation checkout, donor management, trust signals, payouts, updates, AI guidance, nonprofit tools, events, grants, matching, sponsorships, and impact reporting.', 'Features', '/features', 100),
+    ('Does CharitMe charge a platform fee?', 'CharitMe does not charge organizers a mandatory platform fee. Payment processing costs and any optional donor support are shown transparently before a donation is completed.', 'Fees', '/fees', 100),
+    ('Can donors give anonymously on CharitMe?', 'Yes. Donors can choose anonymous giving at checkout. The public campaign page will not display the donor name when that option is selected.', 'For donors', '/for-donors', 100),
+    ('What can I raise money for as an individual?', 'Individuals can use CharitMe for eligible medical, emergency, memorial, education, community, pet, and other personal fundraising needs, subject to platform policies.', 'Personal fundraising', '/for-individuals', 100),
+    ('How does CharitMe help nonprofits?', 'CharitMe gives nonprofits campaign tools, donor management, recurring giving, receipts, team workflows, events, grants, impact reporting, and AI-assisted outreach.', 'Nonprofits', '/for-nonprofits', 100),
+    ('How do I apply for a grant on CharitMe?', 'Review a grant opportunity’s eligibility, deadline, amount, and application requirements, then begin an application from the grant page. Draft applications remain private in your dashboard.', 'Grants', '/grants', 100),
+    ('Where can I get help with CharitMe?', 'The CharitMe Help Center covers campaign setup, donations, payouts, account management, trust and safety, and billing. Contact support when you need help with a specific case.', 'Support', '/help', 100),
+    ('How does fundraising work on CharitMe?', 'Create a campaign, explain the cause, set a goal, add trust-building details, share the campaign, receive donations through secure checkout, and follow progress through updates and impact reporting.', 'Getting started', '/how-it-works', 100),
+    ('What is impact reporting?', 'Impact reporting shows how a campaign plans to use funds, records progress through updates and metrics, and gives supporters clearer evidence of what their donations made possible.', 'Impact', '/impact', 100),
+    ('How is the fundraising leaderboard calculated?', 'The leaderboard highlights leading campaign and donor activity using platform data and clearly labeled time ranges. It is intended for recognition and discovery, not as a guarantee of campaign quality.', 'Community', '/leaderboard', 100),
+    ('How do donation matching programs work?', 'A matching program lets an eligible sponsor or employer match qualifying donations according to the program’s ratio, limits, categories, and claim rules shown on its detail page.', 'Matching gifts', '/matching', 100),
+    ('What are CharitMe pricing plans?', 'CharitMe offers a free starting plan plus optional paid plans with additional AI, campaign, donor, nonprofit, creator, or community capabilities. Current plan details are shown on the pricing page.', 'Pricing', '/pricing', 100),
+    ('Are CharitMe donations secure?', 'Donations are processed through Stripe’s secure payment infrastructure. CharitMe does not store raw card numbers or CVV data, and campaign trust information is presented to help donors make informed decisions.', 'Security', '/security', 100),
+    ('How does CharitMe handle refunds?', 'Refund and chargeback handling depends on the donation and campaign circumstances. Start with the refund policy and contact support when a donation needs review.', 'Refunds', '/refunds', 100),
+    ('How can a company sponsor a campaign?', 'Companies can review sponsorship opportunities, compare requested support and benefits, and submit a sponsorship request from the opportunity page.', 'Sponsorships', '/sponsor', 100),
+    ('Where can I read CharitMe success stories?', 'Success stories share campaign outcomes, fundraising patterns, and practical examples that can help organizers learn how to communicate their cause and build supporter momentum.', 'Resources', '/success-stories', 100),
+    ('Which countries does CharitMe support?', 'Fundraising and payout availability depends on country, currency, and Stripe Connect eligibility. The supported countries page lists current availability and relevant restrictions.', 'Availability', '/supported-countries', 100),
+    ('How does CharitMe protect trust and safety?', 'CharitMe combines identity and payout verification, campaign trust signals, fraud screening, reporting tools, moderation, and transparent donor information to support safer giving.', 'Trust and safety', '/trust-safety', 100),
+    ('How can I volunteer through CharitMe?', 'Browse volunteer opportunities by cause, location, remote availability, skills, or time commitment, then review the opportunity details and apply when a role fits.', 'Volunteering', '/volunteer', 100),
+    ('How does CharitMe protect privacy?', 'CharitMe explains what information it collects, how it is used, how payment data is handled, and which privacy choices are available in its privacy policy and privacy controls.', 'Privacy', '/privacy', 100),
+    ('How does CharitMe keep its money flows transparent?', 'CharitMe shows donation breakdowns, processor costs, optional support, payout status, campaign updates, and impact information so supporters can better understand where money goes.', 'Transparency', '/transparency', 100),
+    ('How do I manage my CharitMe account terms?', 'The Terms of Service explain the rules for using CharitMe, creating campaigns, donating, receiving payouts, communicating with supporters, and maintaining platform safety.', 'Policies', '/terms', 100)
+)
+insert into aeo_entries (question, answer, topic, schema_type, priority, published, route)
+select e.question, e.answer, e.topic, 'FAQPage', e.priority, true, e.route
+from entries e
+where not exists (
+  select 1 from aeo_entries existing
+  where existing.route = e.route and existing.question = e.question
+);

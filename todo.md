@@ -2108,3 +2108,8 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ### Session 2026-07-23 (Codex — public route quality gate)
 - [x] Added desktop and mobile browser coverage for all 26 public routes, checking document language, named buttons/links, image alt text, and horizontal overflow.
 - [x] Expanded the same audit to 35 verified public product routes, including AI, events, matching, sponsor, leaderboard, feature detail, and campaign embed surfaces; desktop and mobile runs pass.
+
+## Session 2026-07-23 (Codex - SEO/AEO Supabase integration)
+- [x] Wired public marketing event capture to Supabase contacts, identities, events, consent, and UTM attribution with stable failure responses.
+- [x] Added route-aware AEO and SEO migrations, public metadata endpoints, sitemap/robots coverage, privacy preferences, and the public impact route.
+- [x] Verified production build, typecheck, lint, 936 Vitest tests, campaign image audit, and seed guard.
