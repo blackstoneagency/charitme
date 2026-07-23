@@ -1608,7 +1608,7 @@ Verified · Production Ready. These are grounded in the current codebase
 
 ### Platform hardening (from open items)
 
-- [ ] **CHAR-1401**
+- [x] **CHAR-1401** — **Nonce-based CSP shipped (2026-07-23)**; production build and browser tests verify the policy, embed exception, and nonce-protected JSON-LD on public pages. Commit `8faa777` on `codex/seed-guard`.
   - Area: Security
   - Feature: Full Content-Security-Policy with nonces (CHAR-O004)
   - Description: Add script-src/style-src CSP using a per-request nonce injected
@@ -2068,3 +2068,5 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ### Session 2026-07-23 (Codex — nonce CSP hardening)
 - [x] Added per-request CSP nonces through middleware, nonce-protected theme/JSON-LD scripts, strict script policy, style-attribute compatibility, and preserved third-party embed framing. Browser header assertions now verify the nonce policy.
 - [x] Playwright now starts the production server itself, making the CSP browser verification reproducible without manual process setup.
+### Session 2026-07-23 (Codex — public route quality gate)
+- [x] Added desktop and mobile browser coverage for all 26 public routes, checking document language, named buttons/links, image alt text, and horizontal overflow.
