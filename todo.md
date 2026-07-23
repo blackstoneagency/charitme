@@ -20,7 +20,7 @@
 | Mobile | 🟢 | mobile Lighthouse on public pages good; **browser audit (320/390px × 19 public routes) → 0 horizontal overflow** after fixing pricing fee-calc grid stacking, public hero word-wrap, `.mktg-page` overflow-x clip, and home cover `max-width` (PR #49); ongoing |
 | Performance | 🟢 improving | prod home **63→88** (LCP 4.1→3.1s, TBT 640→100ms) by fixing the 292KB→6.7KB oversized logo served sitewide. Remaining: unused CSS/JS (lower value) |
 | Payment methods end-to-end | 🟡 owner/test-keys | live account charges-enabled, 15+ methods active, price ids resolved; a real paid flow needs Stripe **test** keys or owner go-ahead (ADR-0003) |
-| Every page audited / every feature works | 🟡 ongoing | unbounded; audited builder + discovery + payments deeply |
+| Every page audited / every feature works | 🟡 ongoing | unbounded; audited builder + discovery + payments deeply. **~30 public routes now browser-audited (axe WCAG A/AA + 320/390px overflow) → all clean**; remaining unaudited surfaces are auth-gated (dashboard/admin/create) or dynamic `[slug]` pages owned by parallel bots |
 
 **Owner actions still blocking full production-readiness** (step-by-step in
 **`docs/DEPLOY_STRIPE.md`**): (1) set Stripe env in **Vercel** (`STRIPE_SECRET_KEY`,
