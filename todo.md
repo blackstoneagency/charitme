@@ -703,6 +703,13 @@ tests/build/live-HTTP are listed here.
   via pure `lib/matching-core`, and notifies the sponsor. Backed by **45 unit
   tests** (`matching.test.ts` + `employer-matching.test.ts`). Verified sound.
 
+### Session 2026-07-23 (Claude — secret-scan + env hygiene)
+- **No committed secrets (verified)** — `git grep` for live-key patterns
+  (`sk_live_`/`sk_test_`/`whsec_`/JWT/`AKIA`/PEM) across `apps/**` + `packages/**`
+  found only prefix *string literals* in `api/health` (key-type detection, not
+  keys). No `.env` files tracked (`.env.local` gitignored, confirmed via
+  `git check-ignore`). No secret leakage in the repo.
+
 ### Session 2026-07-23 (Claude — request-wiring correctness audit)
 - **Every feature works (request-wiring layer)** — scripted a codebase-wide
   audit of client→API wiring, the exact bug class behind this session's earlier
