@@ -15,15 +15,22 @@ export interface PublicFaq {
  * matches on-page content (never hidden markup).
  */
 export async function getPublishedFaqs(schemaType = 'FAQPage', limit = 100): Promise<PublicFaq[]> {
-  const { data } = await supabaseAdmin
-    .from('aeo_entries')
-    .select('question, answer, topic')
-    .eq('published', true)
-    .eq('schema_type', schemaType)
-    .order('priority', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(limit);
-  return (data ?? []) as PublicFaq[];
+  // Public surface: never let a missing env var or an unreachable DB hard-fail
+  // the page render (or a static/ISR build). Degrade gracefully to the
+  // hardcoded on-page FAQ content by returning an empty AEO set.
+  try {
+    const { data } = await supabaseAdmin
+      .from('aeo_entries')
+      .select('question, answer, topic')
+      .eq('published', true)
+      .eq('schema_type', schemaType)
+      .order('priority', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    return (data ?? []) as PublicFaq[];
+  } catch {
+    return [];
+  }
 }
 
 /** Group FAQs by topic for sectioned display; null/empty topics fall under `fallback`. */
