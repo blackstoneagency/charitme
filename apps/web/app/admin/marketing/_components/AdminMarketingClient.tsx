@@ -10,6 +10,16 @@ const input: React.CSSProperties = { padding: '9px 14px', borderRadius: 9, borde
 const th: React.CSSProperties = { textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid #eef0f7' };
 const td: React.CSSProperties = { padding: '12px 14px', fontSize: 13, color: '#374151', borderBottom: '1px solid #f5f6fa' };
 
+function useEscape(onClose: () => void): void {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+}
+
 const TABS = [
   { key: 'overview',    label: 'Overview' },
   { key: 'audience',    label: 'Audience' },
@@ -236,9 +246,12 @@ function AudienceTab({ flash }: { flash: (m: string) => void }) {
 
 function ProfileDrawer({ profile, onClose }: { profile: ContactProfile; onClose: () => void }) {
   const c = profile.contact;
+  useEscape(onClose);
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: 'min(480px, 92vw)', background: '#fff', height: '100%', overflowY: 'auto', padding: '28px 28px 48px' }}>
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+    <div onClick={event => { if (event.target === event.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ width: 'min(480px, 92vw)', background: '#fff', height: '100%', overflowY: 'auto', padding: '28px 28px 48px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1a1a2e' }}>{[c.first_name, c.last_name].filter(Boolean).join(' ') || c.email}</h3>
           <button onClick={onClose} style={{ ...btnGhost, padding: '4px 12px' }}>✕</button>
@@ -763,6 +776,7 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
   const [body, setBody] = useState(o?.body || OUTREACH_BODY);
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  useEscape(onClose);
 
   const call = async (init: RequestInit, key: string): Promise<OutreachState | null> => {
     setBusy(key);
@@ -804,8 +818,10 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
   const st = o?.status ?? 'new';
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: 'min(560px, 96vw)', background: '#fff', height: '100%', overflowY: 'auto', padding: '26px 28px 56px' }}>
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+    <div onClick={event => { if (event.target === event.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ width: 'min(560px, 96vw)', background: '#fff', height: '100%', overflowY: 'auto', padding: '26px 28px 56px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
           <div>
             <h3 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: '#1a1a2e' }}>{lead.business_name}</h3>

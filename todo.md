@@ -1960,3 +1960,7 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
   tag editor. Image fallback handlers and pointer-only modal backdrop dismissal are
   documented exceptions with keyboard alternatives. Focused ESLint is clean across
   all six surfaces.
+
+## Session 2026-07-23 (Codex — admin marketing accessibility)
+- Added Escape handling to the contact profile and outreach drawers and made
+  backdrop dismissal target-aware without nested click traps. Focused ESLint is clean.
