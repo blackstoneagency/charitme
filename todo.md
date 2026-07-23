@@ -607,6 +607,19 @@ tests/build/live-HTTP are listed here.
   (auth-guarded) + a **Year-End Tax Summary** CSV link on the dashboard
   donations page. _Evidence: 900/900 tests, typecheck clean, build green, lint clean._
 
+### Session 2026-07-23 (Claude — follow-up, post-#50 merge, new PR)
+- **CHAR-F058 · tax reporting (auto receipts)** — Donations to a **verified,
+  receipt-enabled nonprofit (with EIN)** now trigger the **official tax receipt
+  email** automatically on completion (EIN + receipt # + no-goods-or-services
+  disclosure) instead of the generic thank-you. Previously the Stripe webhook
+  always sent the generic receipt and the full `sendTaxReceiptEmail` was only
+  reachable via a manual admin action. Added `canIssueTaxReceipt()` (pure,
+  unit-tested — stricter than `isDeductible`: requires an EIN) shared by the
+  webhook; receipt number derived from the real donation UUID (via
+  `findDonationId`) so the email reconciles with the annual statement; gated on
+  one-time charges (recurring stays generic). _Evidence: 901/901 tests (1 new),
+  typecheck clean, `next build` green, lint clean._
+
 - **CHAR-F050 · auth/ux** — Repaired broken **Sign Out** on the Settings and
   Profile pages: both linked to `/api/auth/signout` (POST-only) via a plain
   `<Link>`/`<a>` GET nav → 405, so sign-out did nothing. Converted to
