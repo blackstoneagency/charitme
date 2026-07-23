@@ -287,12 +287,13 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Completion Evidence: —
   - Commit: —
 
-- [~] CHAR-0012 — **Audit done + RLS-contract CI guard shipped**; live per-persona anon-key certification still needs sessions
+- [~] CHAR-0012 — **Audit done + RLS-contract CI guard shipped**; repeatable read-only live smoke harness added, full persona matrix still needs staging sessions
   - Area: Security / hardening
   - Feature: RLS coverage audit + automated RLS tests
   - **Guard shipped (2026-07-21):** `apps/web/__tests__/schema-rls.test.ts` pins the live RLS posture (`fixtures/schema-rls.json`) and fails CI if any public table loses RLS or any sensitive financial/PII table gains a public `USING(true)` read policy (the LB-006 class). Proven to catch injected regressions. Refresh via `npm run schema:snapshot`.
   - Audit result (refreshed 2026-07-21, live prod, 143 tables): **0 with RLS disabled**; 24 legitimately-public display tables; **0 sensitive tables publicly readable** (financial-table policies verified — see `payment-audit.md`).
   - Follow-up: full per-persona (donor/organizer/nonprofit/corporate/T&S/finance/support/admin) live certification with real anon/authenticated sessions (needs staging auth).
+  - **New verification tool (2026-07-23):** `npm run test:rls-live` checks anonymous isolation and, when `CHARITME_RLS_TEST_USERS_JSON` is supplied, authenticated own-vs-other profile isolation using real access tokens. It is read-only and does not use the service-role key; run against staging before promoting evidence.
   - Description: Enumerate every user-accessible table, confirm RLS enabled + policies, add automated per-persona RLS tests (unauth, donor, organizer, nonprofit admin, corporate admin, T&S, finance, support, super admin).
   - Agent: 1 (+7)
   - Priority: P0
