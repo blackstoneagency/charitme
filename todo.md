@@ -621,10 +621,11 @@ tests/build/live-HTTP are listed here.
 - **A11y admin label associations (in progress)** — resolving the genuine
   sibling-`<label>`/input WCAG gaps in admin forms with `htmlFor`/`id`. Done:
   **SEO/AEO overrides** (13), **AdminGrantsClient** (14), **AdminCountriesClient**
-  (7), **DonationsClient** (7). Progress **81 → 38** warnings. Remaining admin
-  files (P3, incremental): AdminCampaignsClient (22), AdminUsersClient (11),
-  PayoutsClient (2), +3 singletons (UsersClient, SystemClient, ContentClient).
-  _Evidence: 901/901 tests, typecheck clean per file._
+  (7), **DonationsClient** (7), **AdminUsersClient** (11), **PayoutsClient** (2),
+  **UsersClient** (1), **ContentClient** (1). Progress **81 → 23** warnings.
+  Remaining: **AdminCampaignsClient** (22, large file — next) + 1 SystemClient
+  toggle (needs a label threaded through ~10 callers). _Evidence: 901/901 tests,
+  typecheck clean per file._
 
 ### Session 2026-07-23 (Claude — performance + feature-logic verification)
 - **Performance (bundle audit)** — reviewed `next build` route sizes: shared
