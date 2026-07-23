@@ -620,11 +620,11 @@ tests/build/live-HTTP are listed here.
   _Evidence: 901/901 tests, typecheck clean._
 - **A11y admin label associations (in progress)** — resolving the genuine
   sibling-`<label>`/input WCAG gaps in admin forms with `htmlFor`/`id`. Done:
-  **SEO/AEO overrides** (`SeoAeoClient`, 13 fields). Progress **81 → 66**
-  warnings. Remaining admin files (P3, incremental): AdminCampaignsClient (22),
-  AdminGrantsClient (14), AdminUsersClient (11), DonationsClient (7),
-  AdminCountriesClient (7), PayoutsClient (2), +3 singletons. _Evidence:
-  901/901 tests, typecheck clean per file._
+  **SEO/AEO overrides** (13), **AdminGrantsClient** (14), **AdminCountriesClient**
+  (7), **DonationsClient** (7). Progress **81 → 38** warnings. Remaining admin
+  files (P3, incremental): AdminCampaignsClient (22), AdminUsersClient (11),
+  PayoutsClient (2), +3 singletons (UsersClient, SystemClient, ContentClient).
+  _Evidence: 901/901 tests, typecheck clean per file._
 
 ### Session 2026-07-23 (Claude — performance + feature-logic verification)
 - **Performance (bundle audit)** — reviewed `next build` route sizes: shared
