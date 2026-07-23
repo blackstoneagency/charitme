@@ -63,6 +63,14 @@ describe('marketing identity stitching', () => {
     expect(migration).toContain('public.is_admin()');
     expect(migration).toContain("for all using (public.is_admin()) with check (public.is_admin())");
   });
+
+  it('keeps the admin one-click schema flow aligned with tax and marketing migrations', async () => {
+    const route = await readFile(new URL('../app/api/admin/apply-schema/route.ts', import.meta.url), 'utf8');
+    expect(route).toContain("name: 'Tax reporting (receipts + nonprofit eligibility)'");
+    expect(route).toContain('sync_tax_receipt_for_donation');
+    expect(route).toContain("name: 'Marketing admin-only RLS policies'");
+    expect(route).toContain('marketing_audit_logs');
+  });
 });
 
 describe('computeLeadScore', () => {
