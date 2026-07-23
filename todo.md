@@ -1992,3 +1992,7 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — AI route lint hygiene)
 - Marked unused route request parameters as intentionally unused in the fraud
   monitor and matching finder handlers. Focused ESLint is clean.
+
+## Session 2026-07-23 (Codex — admin users accessibility)
+- Made recent and tabular user rows keyboard-operable and added Escape handling
+  to the user detail and add-user panels. Focused ESLint is clean.
