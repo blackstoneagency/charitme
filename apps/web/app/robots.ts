@@ -16,6 +16,8 @@ export default function robots(): MetadataRoute.Robots {
           '/signup',
           '/forgot-password',
           '/profile',
+          '/achievements',
+          '/privacy-center',
           '/donor$',
           '/beneficiary/',
         ],

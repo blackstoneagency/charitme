@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -5,7 +6,10 @@ import { formatMoneyShort } from '@shared/currencies';
 import { Badge } from '../../../components/ui';
 import { getUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
-import { getProgram, reservedMatchForEmployee } from '../../../lib/matching';
+import { getProgram as _getProgram, reservedMatchForEmployee } from '../../../lib/matching';
+
+// Dedupe the program lookup across generateMetadata + the page (one query/request).
+const getProgram = cache(_getProgram);
 import { isAcceptingClaims, remainingCap } from '../../../lib/matching-core';
 import MatchClaimPanel from './MatchClaimPanel';
 

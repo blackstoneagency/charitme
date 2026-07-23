@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { supabaseAdmin } from '../../../lib/supabase';
@@ -19,14 +20,16 @@ type ProfileRow = {
 
 type CampaignRow = { id: string; title: string; slug: string; cover_image_url: string | null; category: string };
 
-async function getProfile(id: string): Promise<ProfileRow | null> {
+// Memoized per-request so generateMetadata + the page share one profile query
+// (React cache dedupes within a single request; Supabase calls aren't otherwise).
+const getProfile = cache(async (id: string): Promise<ProfileRow | null> => {
   const { data } = await supabaseAdmin
     .from('profiles')
     .select('id, full_name, avatar_url, bio, show_public_profile, created_at')
     .eq('id', id)
     .maybeSingle();
   return data as ProfileRow | null;
-}
+});
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -62,25 +65,28 @@ export default async function PublicDonorProfilePage({ params }: { params: Promi
     );
   }
 
-  const { data: donationData } = await supabaseAdmin
-    .from('donations')
-    .select('amount_cents, campaign_id, created_at')
-    .eq('donor_id', id)
-    .eq('status', 'completed')
-    .eq('anonymous', false)
-    .order('created_at', { ascending: false })
-    .limit(200);
+  // Independent — run in parallel (donations for stats, recurring count for the badge).
+  const [donationRes, recurringRes] = await Promise.all([
+    supabaseAdmin
+      .from('donations')
+      .select('amount_cents, campaign_id, created_at')
+      .eq('donor_id', id)
+      .eq('status', 'completed')
+      .eq('anonymous', false)
+      .order('created_at', { ascending: false })
+      .limit(200),
+    supabaseAdmin
+      .from('recurring_donations')
+      .select('id', { count: 'exact', head: true })
+      .eq('donor_id', id)
+      .eq('status', 'active'),
+  ]);
 
-  const donations = donationData ?? [];
+  const donations = donationRes.data ?? [];
   const totalDonated = donations.reduce((s, d) => s + (d.amount_cents ?? 0), 0);
   const campaignIds = [...new Set(donations.map((d) => d.campaign_id).filter(Boolean) as string[])];
   const donationDates = donations.map((d) => d.created_at as string);
-
-  const { count: activeRecurringCount } = await supabaseAdmin
-    .from('recurring_donations')
-    .select('id', { count: 'exact', head: true })
-    .eq('donor_id', id)
-    .eq('status', 'active');
+  const activeRecurringCount = recurringRes.count;
 
   const campaignMap = new Map<string, CampaignRow>();
   if (campaignIds.length > 0) {

@@ -217,6 +217,7 @@ export default function RefundForm({
                     setSelectedId(d.id);
                     setError('');
                   }}
+                  aria-label={`${d.campaign_title} — ${formatCents(d.amount_cents, d.currency ?? 'usd')}`}
                   style={{ accentColor: 'var(--green)', width: 16, height: 16, flexShrink: 0 }}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>

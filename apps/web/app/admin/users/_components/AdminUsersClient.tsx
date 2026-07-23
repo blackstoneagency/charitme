@@ -1063,22 +1063,23 @@ function SettingsTab({
       <div style={{ maxWidth: 480, display: 'grid', gap: 18 }}>
 
         <div className="users-add-field">
-          <label>Full Name</label>
-          <input className="users-add-input" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" />
+          <label htmlFor="au-fullname">Full Name</label>
+          <input id="au-fullname" className="users-add-input" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" />
         </div>
 
         <div className="users-add-field">
-          <label>Email Address</label>
-          <input className="users-add-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
+          <label htmlFor="au-email">Email Address</label>
+          <input id="au-email" className="users-add-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
         </div>
 
         <div className="users-add-field">
-          <label>
+          <label htmlFor="au-password">
             New Password
             <span style={{ fontWeight: 600, color: 'var(--t3, #8c9ab5)', marginLeft: 6, fontSize: 11 }}>(leave blank to keep current)</span>
           </label>
           <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
             <input
+              id="au-password"
               className="users-add-input"
               type={showPw ? 'text' : 'password'}
               value={newPassword}
@@ -1105,14 +1106,14 @@ function SettingsTab({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div className="users-add-field">
-            <label>Role</label>
-            <select className="users-add-select" value={role} onChange={(e) => setRole(e.target.value)}>
+            <label htmlFor="au-role">Role</label>
+            <select id="au-role" className="users-add-select" value={role} onChange={(e) => setRole(e.target.value)}>
               {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </div>
           <div className="users-add-field">
-            <label>Status</label>
-            <select className="users-add-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <label htmlFor="au-status">Status</label>
+            <select id="au-status" className="users-add-select" value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
               <option value="Suspended">Suspended</option>
@@ -1122,8 +1123,8 @@ function SettingsTab({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div className="users-add-field">
-            <label>Plan</label>
-            <select className="users-add-select" value={plan} onChange={(e) => setPlan(e.target.value)}>
+            <label htmlFor="au-plan">Plan</label>
+            <select id="au-plan" className="users-add-select" value={plan} onChange={(e) => setPlan(e.target.value)}>
               <option value="free">Free</option>
               <option value="starter">Plus</option>
               <option value="pro">Pro</option>
@@ -1131,16 +1132,16 @@ function SettingsTab({
             </select>
           </div>
           <div className="users-add-field">
-            <label>Currency</label>
-            <select className="users-add-select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            <label htmlFor="au-currency">Currency</label>
+            <select id="au-currency" className="users-add-select" value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {['USD', 'EUR', 'GBP', 'CAD', 'AUD'].map((c) => <option key={c}>{c}</option>)}
             </select>
           </div>
         </div>
 
         <div className="users-add-field">
-          <label>Timezone</label>
-          <select className="users-add-select" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+          <label htmlFor="au-timezone">Timezone</label>
+          <select id="au-timezone" className="users-add-select" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
             {[
               'America/New_York', 'America/Chicago', 'America/Denver',
               'America/Los_Angeles', 'America/Phoenix', 'America/Anchorage',
@@ -1338,23 +1339,23 @@ function ExportOverlay({
         </div>
         <div className="users-export-body">
           <div className="users-export-field">
-            <label>File Format</label>
-            <select className="users-export-select" value={exportFormat} onChange={(e) => setExportFormat(e.target.value)}>
+            <label htmlFor="ux-format">File Format</label>
+            <select id="ux-format" className="users-export-select" value={exportFormat} onChange={(e) => setExportFormat(e.target.value)}>
               <option>CSV</option>
             </select>
           </div>
           <div className="users-export-field">
-            <label>Include Fields</label>
-            <select className="users-export-select">
+            <label htmlFor="ux-fields">Include Fields</label>
+            <select id="ux-fields" className="users-export-select">
               <option>All Fields</option>
             </select>
           </div>
           <div className="users-export-field">
-            <label>Filters (Optional)</label>
-            <select className="users-export-select">
+            <label htmlFor="ux-filter-role">Filters (Optional)</label>
+            <select id="ux-filter-role" className="users-export-select" aria-label="Filter by role">
               <option>All Roles</option>
             </select>
-            <select className="users-export-select" style={{ marginTop: 8 }}>
+            <select className="users-export-select" style={{ marginTop: 8 }} aria-label="Filter by status">
               <option>All Status</option>
             </select>
           </div>

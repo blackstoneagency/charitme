@@ -55,10 +55,10 @@ type Props = {
 
 // ─── Reusable sub-components ──────────────────────────────────────────────────
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label?: string }) {
   return (
     <label className="sys-toggle">
-      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} aria-label={label} />
       <span className="sys-toggle-track" />
       <span className="sys-toggle-thumb" />
     </label>
@@ -504,7 +504,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                   {Boolean(s.stripeLive) ? 'Live' : 'Test'}
                 </span>
               </div>
-              <Toggle checked={Boolean(s.stripeLive)} onChange={v => setField('payment', 'stripeLive', v)} />
+              <Toggle label="Enable Stripe live payments" checked={Boolean(s.stripeLive)} onChange={v => setField('payment', 'stripeLive', v)} />
             </div>
             {/* PayPal */}
             <div className={`sys-toggle-card${Boolean(s.paypalEnabled) ? ' active' : ''}`}>
@@ -518,7 +518,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                   {Boolean(s.paypalEnabled) ? 'Enabled' : 'Disabled'}
                 </span>
               </div>
-              <Toggle checked={Boolean(s.paypalEnabled)} onChange={v => setField('payment', 'paypalEnabled', v)} />
+              <Toggle label="Enable PayPal" checked={Boolean(s.paypalEnabled)} onChange={v => setField('payment', 'paypalEnabled', v)} />
             </div>
             {/* Bank Transfer */}
             <div className={`sys-toggle-card${Boolean(s.bankTransferEnabled) ? ' active' : ''}`}>
@@ -532,7 +532,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                   {Boolean(s.bankTransferEnabled) ? 'Enabled' : 'Disabled'}
                 </span>
               </div>
-              <Toggle checked={Boolean(s.bankTransferEnabled)} onChange={v => setField('payment', 'bankTransferEnabled', v)} />
+              <Toggle label="Enable bank transfer" checked={Boolean(s.bankTransferEnabled)} onChange={v => setField('payment', 'bankTransferEnabled', v)} />
             </div>
           </div>
         </div>
@@ -569,7 +569,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                   <input className="sys-input" type="text" value={String(s.gaId ?? '')} onChange={e => setField('integrations', 'gaId', e.target.value)} placeholder="G-XXXXXXXXXX" style={{ marginTop: 10, maxWidth: 240 }} />
                 )}
               </div>
-              <Toggle checked={Boolean(s.googleAnalyticsEnabled)} onChange={v => setField('integrations', 'googleAnalyticsEnabled', v)} />
+              <Toggle label="Enable Google Analytics" checked={Boolean(s.googleAnalyticsEnabled)} onChange={v => setField('integrations', 'googleAnalyticsEnabled', v)} />
             </div>
             {/* Mailchimp */}
             <div className={`sys-toggle-card${Boolean(s.mailchimpEnabled) ? ' active' : ''}`}>
@@ -580,7 +580,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                   <input className="sys-input" type="text" value={String(s.mailchimpKey ?? '')} onChange={e => setField('integrations', 'mailchimpKey', e.target.value)} placeholder="Mailchimp API Key" style={{ marginTop: 10, maxWidth: 300 }} />
                 )}
               </div>
-              <Toggle checked={Boolean(s.mailchimpEnabled)} onChange={v => setField('integrations', 'mailchimpEnabled', v)} />
+              <Toggle label="Enable Mailchimp" checked={Boolean(s.mailchimpEnabled)} onChange={v => setField('integrations', 'mailchimpEnabled', v)} />
             </div>
             {/* Slack */}
             <div className={`sys-toggle-card${Boolean(s.slackEnabled) ? ' active' : ''}`}>
@@ -591,7 +591,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                   <input className="sys-input" type="text" value={String(s.slackWebhook ?? '')} onChange={e => setField('integrations', 'slackWebhook', e.target.value)} placeholder="https://hooks.slack.com/services/..." style={{ marginTop: 10, maxWidth: 340 }} />
                 )}
               </div>
-              <Toggle checked={Boolean(s.slackEnabled)} onChange={v => setField('integrations', 'slackEnabled', v)} />
+              <Toggle label="Enable Slack" checked={Boolean(s.slackEnabled)} onChange={v => setField('integrations', 'slackEnabled', v)} />
             </div>
             {/* Zapier */}
             <div className={`sys-toggle-card${Boolean(s.zapierEnabled) ? ' active' : ''}`}>
@@ -599,7 +599,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                 <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>Zapier</strong>
                 <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>Automate workflows with 5,000+ apps</small>
               </div>
-              <Toggle checked={Boolean(s.zapierEnabled)} onChange={v => setField('integrations', 'zapierEnabled', v)} />
+              <Toggle label="Enable Zapier" checked={Boolean(s.zapierEnabled)} onChange={v => setField('integrations', 'zapierEnabled', v)} />
             </div>
           </div>
         </div>
@@ -636,7 +636,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                     <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>{desc}</small>
                   </div>
                 </div>
-                <Toggle checked={Boolean(s[key])} onChange={v => setField('notifications', key, v)} />
+                <Toggle label={label} checked={Boolean(s[key])} onChange={v => setField('notifications', key, v)} />
               </div>
             ))}
           </div>
@@ -702,7 +702,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
               <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>Automated Backup</strong>
               <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>Automatically back up your database on a schedule</small>
             </div>
-            <Toggle checked={backupEnabled} onChange={v => setField('maintenance', 'automatedBackup', v)} />
+            <Toggle label="Enable automated backup" checked={backupEnabled} onChange={v => setField('maintenance', 'automatedBackup', v)} />
           </div>
           <div className="sys-fields">
             <Field label="Backup Frequency">
@@ -735,7 +735,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                 {maintenanceOn ? 'Site is currently in maintenance mode' : 'Enable to temporarily take down the site'}
               </small>
             </div>
-            <Toggle checked={maintenanceOn} onChange={v => setField('maintenance', 'maintenanceMode', v)} />
+            <Toggle label="Enable maintenance mode" checked={maintenanceOn} onChange={v => setField('maintenance', 'maintenanceMode', v)} />
           </div>
         </div>
       </div>

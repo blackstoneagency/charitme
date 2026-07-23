@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -5,7 +6,10 @@ import { formatMoneyShort } from '@shared/currencies';
 import { Badge, ProgressBar } from '../../../components/ui';
 import { getUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
-import { getOpportunity } from '../../../lib/sponsorships';
+import { getOpportunity as _getOpportunity } from '../../../lib/sponsorships';
+
+// Dedupe the opportunity lookup across generateMetadata + the page.
+const getOpportunity = cache(_getOpportunity);
 import { isAcceptingRequests, fundingProgress } from '../../../lib/sponsorships-core';
 import SponsorPanel from './SponsorPanel';
 

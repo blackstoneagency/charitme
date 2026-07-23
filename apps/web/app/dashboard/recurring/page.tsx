@@ -42,26 +42,19 @@ export default async function RecurringPage() {
 
   const recurringList = (subs ?? []) as RecurringRow[];
 
-  // Resolve campaign titles
+  // Resolve campaign titles + currencies — independent of each other, run in parallel.
   const campaignIds = [...new Set(recurringList.map(r => r.campaign_id))];
   const campaignMap = new Map<string, CampaignRef>();
-  if (campaignIds.length > 0) {
-    const { data: campaigns } = await supabaseAdmin
-      .from('campaigns')
-      .select('id, title, slug')
-      .in('id', campaignIds);
-    for (const c of (campaigns ?? []) as CampaignRef[]) {
-      campaignMap.set(c.id, c);
-    }
-  }
-
   const currencyMap = new Map<string, string>();
   if (campaignIds.length > 0) {
-    const { data: launchSettings } = await supabaseAdmin
-      .from('campaign_launch_settings')
-      .select('campaign_id, currency')
-      .in('campaign_id', campaignIds);
-    for (const ls of launchSettings ?? []) {
+    const [campaignsRes, launchRes] = await Promise.all([
+      supabaseAdmin.from('campaigns').select('id, title, slug').in('id', campaignIds),
+      supabaseAdmin.from('campaign_launch_settings').select('campaign_id, currency').in('campaign_id', campaignIds),
+    ]);
+    for (const c of (campaignsRes.data ?? []) as CampaignRef[]) {
+      campaignMap.set(c.id, c);
+    }
+    for (const ls of launchRes.data ?? []) {
       if (ls.currency) currencyMap.set(ls.campaign_id, ls.currency);
     }
   }

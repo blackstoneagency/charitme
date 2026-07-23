@@ -7,6 +7,24 @@ admin consoles) against realistic volume.
 They are written for the **Supabase SQL editor** (or `psql`). They use the
 service/`postgres` role, so RLS does not block the inserts.
 
+## One-command run (psql)
+
+If you have a Postgres connection string (Supabase → Project Settings →
+Database → Connection string, "URI"), run the whole suite in order with:
+
+```bash
+# from the repo root; runs 00→06 then the 99 verifier, stopping on first error
+export DATABASE_URL='postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres'
+for f in 00 01 02 03 04 05 06 99; do
+  echo "── running ${f} ──"
+  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "supabase/seeds/${f}"_*.sql || break
+done
+```
+
+The final `99` step prints a row-count table with an `ok` (≥100) flag per
+feature — that is your proof the ≥100-rows-per-feature bar is met. **Run once**
+(see caveats below). Or paste each file into the Supabase SQL editor in order.
+
 ## Run order
 
 Run these **in order**, once each, top to bottom:

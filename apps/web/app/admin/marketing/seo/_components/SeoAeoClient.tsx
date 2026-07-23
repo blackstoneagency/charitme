@@ -104,22 +104,22 @@ export default function SeoAeoClient({ initialSeo, initialAeo }: { initialSeo: S
           <form style={box} onSubmit={saveSeo}>
             <h2 style={h2}>{seoForm.id ? 'Edit' : 'Add'} route SEO override</h2>
             <p style={{ fontSize: 13, color: 'var(--t3)', margin: '0 0 6px' }}>Overrides title/description/OG/canonical/noindex for a specific route.</p>
-            <label style={label}>Route (path)</label>
-            <input style={input} value={seoForm.route} onChange={e => setSeoForm({ ...seoForm, route: e.target.value })} placeholder="/pricing" />
-            <label style={label}>Title</label>
-            <input style={input} value={seoForm.title ?? ''} onChange={e => setSeoForm({ ...seoForm, title: e.target.value })} maxLength={200} placeholder="Transparent Fundraising Fees | CharitMe" />
-            <label style={label}>Meta description</label>
-            <textarea style={area} value={seoForm.meta_description ?? ''} onChange={e => setSeoForm({ ...seoForm, meta_description: e.target.value })} maxLength={500} />
-            <label style={label}>Keywords</label>
-            <input style={input} value={seoForm.keywords ?? ''} onChange={e => setSeoForm({ ...seoForm, keywords: e.target.value })} placeholder="fundraising fees, gofundme alternative" />
+            <label style={label} htmlFor="seo-route">Route (path)</label>
+            <input id="seo-route" style={input} value={seoForm.route} onChange={e => setSeoForm({ ...seoForm, route: e.target.value })} placeholder="/pricing" />
+            <label style={label} htmlFor="seo-title">Title</label>
+            <input id="seo-title" style={input} value={seoForm.title ?? ''} onChange={e => setSeoForm({ ...seoForm, title: e.target.value })} maxLength={200} placeholder="Transparent Fundraising Fees | CharitMe" />
+            <label style={label} htmlFor="seo-meta">Meta description</label>
+            <textarea id="seo-meta" style={area} value={seoForm.meta_description ?? ''} onChange={e => setSeoForm({ ...seoForm, meta_description: e.target.value })} maxLength={500} />
+            <label style={label} htmlFor="seo-keywords">Keywords</label>
+            <input id="seo-keywords" style={input} value={seoForm.keywords ?? ''} onChange={e => setSeoForm({ ...seoForm, keywords: e.target.value })} placeholder="fundraising fees, gofundme alternative" />
             <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))' }}>
-              <div><label style={label}>OG title</label><input style={input} value={seoForm.og_title ?? ''} onChange={e => setSeoForm({ ...seoForm, og_title: e.target.value })} /></div>
-              <div><label style={label}>OG image URL</label><input style={input} value={seoForm.og_image_url ?? ''} onChange={e => setSeoForm({ ...seoForm, og_image_url: e.target.value })} /></div>
+              <div><label style={label} htmlFor="seo-og-title">OG title</label><input id="seo-og-title" style={input} value={seoForm.og_title ?? ''} onChange={e => setSeoForm({ ...seoForm, og_title: e.target.value })} /></div>
+              <div><label style={label} htmlFor="seo-og-image">OG image URL</label><input id="seo-og-image" style={input} value={seoForm.og_image_url ?? ''} onChange={e => setSeoForm({ ...seoForm, og_image_url: e.target.value })} /></div>
             </div>
-            <label style={label}>OG description</label>
-            <textarea style={area} value={seoForm.og_description ?? ''} onChange={e => setSeoForm({ ...seoForm, og_description: e.target.value })} maxLength={500} />
-            <label style={label}>Canonical URL</label>
-            <input style={input} value={seoForm.canonical_url ?? ''} onChange={e => setSeoForm({ ...seoForm, canonical_url: e.target.value })} placeholder="https://www.charitme.com/pricing" />
+            <label style={label} htmlFor="seo-og-desc">OG description</label>
+            <textarea id="seo-og-desc" style={area} value={seoForm.og_description ?? ''} onChange={e => setSeoForm({ ...seoForm, og_description: e.target.value })} maxLength={500} />
+            <label style={label} htmlFor="seo-canonical">Canonical URL</label>
+            <input id="seo-canonical" style={input} value={seoForm.canonical_url ?? ''} onChange={e => setSeoForm({ ...seoForm, canonical_url: e.target.value })} placeholder="https://www.charitme.com/pricing" />
             <label style={{ ...label, display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <input type="checkbox" checked={seoForm.noindex} onChange={e => setSeoForm({ ...seoForm, noindex: e.target.checked })} /> noindex (hide from search engines)
             </label>
@@ -154,18 +154,18 @@ export default function SeoAeoClient({ initialSeo, initialAeo }: { initialSeo: S
           <form style={box} onSubmit={saveAeo}>
             <h2 style={h2}>{aeoForm.id ? 'Edit' : 'Add'} AEO answer</h2>
             <p style={{ fontSize: 13, color: 'var(--t3)', margin: '0 0 6px' }}>Concise, factual Q&A that AI search engines and FAQ rich results can cite. Published entries are the source of truth for the public AEO surface.</p>
-            <label style={label}>Question</label>
-            <input style={input} value={aeoForm.question} onChange={e => setAeoForm({ ...aeoForm, question: e.target.value })} maxLength={300} placeholder="How much does CharitMe charge to start a fundraiser?" />
-            <label style={label}>Answer</label>
-            <textarea style={area} value={aeoForm.answer} onChange={e => setAeoForm({ ...aeoForm, answer: e.target.value })} maxLength={4000} placeholder="Starting a fundraiser on CharitMe is free — there is no mandatory platform fee…" />
+            <label style={label} htmlFor="aeo-question">Question</label>
+            <input id="aeo-question" style={input} value={aeoForm.question} onChange={e => setAeoForm({ ...aeoForm, question: e.target.value })} maxLength={300} placeholder="How much does CharitMe charge to start a fundraiser?" />
+            <label style={label} htmlFor="aeo-answer">Answer</label>
+            <textarea id="aeo-answer" style={area} value={aeoForm.answer} onChange={e => setAeoForm({ ...aeoForm, answer: e.target.value })} maxLength={4000} placeholder="Starting a fundraiser on CharitMe is free — there is no mandatory platform fee…" />
             <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))' }}>
-              <div><label style={label}>Topic</label><input style={input} value={aeoForm.topic ?? ''} onChange={e => setAeoForm({ ...aeoForm, topic: e.target.value })} placeholder="Fees" /></div>
-              <div><label style={label}>Schema type</label>
-                <select style={input} value={aeoForm.schema_type} onChange={e => setAeoForm({ ...aeoForm, schema_type: e.target.value })}>
+              <div><label style={label} htmlFor="aeo-topic">Topic</label><input id="aeo-topic" style={input} value={aeoForm.topic ?? ''} onChange={e => setAeoForm({ ...aeoForm, topic: e.target.value })} placeholder="Fees" /></div>
+              <div><label style={label} htmlFor="aeo-schema">Schema type</label>
+                <select id="aeo-schema" style={input} value={aeoForm.schema_type} onChange={e => setAeoForm({ ...aeoForm, schema_type: e.target.value })}>
                   <option value="FAQPage">FAQPage</option><option value="QAPage">QAPage</option><option value="HowTo">HowTo</option>
                 </select>
               </div>
-              <div><label style={label}>Priority</label><input style={input} type="number" value={aeoForm.priority} onChange={e => setAeoForm({ ...aeoForm, priority: Number(e.target.value) })} min={0} max={1000} /></div>
+              <div><label style={label} htmlFor="aeo-priority">Priority</label><input id="aeo-priority" style={input} type="number" value={aeoForm.priority} onChange={e => setAeoForm({ ...aeoForm, priority: Number(e.target.value) })} min={0} max={1000} /></div>
             </div>
             <label style={{ ...label, display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <input type="checkbox" checked={aeoForm.published} onChange={e => setAeoForm({ ...aeoForm, published: e.target.checked })} /> Published

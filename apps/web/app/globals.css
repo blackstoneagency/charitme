@@ -1073,6 +1073,31 @@ img, video, iframe { max-width: 100%; }
 .kf-back-to-dashboard:hover { opacity: .88; }
 .kf-back-to-dashboard svg { width: 16px; height: 16px; flex-shrink: 0; }
 
+.kf-user-chip {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border: 1px solid #e8ebf4;
+  border-radius: 13px;
+  background: #fbfaff;
+  min-width: 0;
+}
+.kf-user-chip .kf-avatar { width: 38px; height: 38px; font-size: 12px; }
+.kf-user-chip-meta { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.kf-user-chip-meta strong {
+  color: #0b1037;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+.kf-user-chip-meta small { color: #6b7492; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+
 .kf-profile {
   display: flex;
   flex-wrap: wrap;
@@ -1312,11 +1337,11 @@ img, video, iframe { max-width: 100%; }
 .kf-messages { display: grid; grid-template-columns: 370px minmax(0,1fr) 330px; gap: 20px; padding: 0 32px 32px; }
 .kf-inbox { overflow: hidden; }
 .kf-inbox .kf-search { width: calc(100% - 32px); margin: 16px; }
-.kf-inbox article { display: flex; align-items: center; gap: 14px; min-height: 82px; padding: 12px 18px; border-top: 1px solid #eef0f7; }
-.kf-inbox article.active { background: #f7f2ff; }
+.kf-inbox .kf-inbox-row { display: flex; align-items: center; gap: 14px; min-height: 82px; padding: 12px 18px; border-top: 1px solid #eef0f7; }
+.kf-inbox .kf-inbox-row.active { background: #f7f2ff; }
 .kf-inbox strong, .kf-inbox p { display: block; margin: 0; }
 .kf-inbox p { margin-top: 5px; color: #334064; font-size: 13px; }
-.kf-inbox article > span { margin-left: auto; min-width: 24px; height: 24px; display: grid; place-items: center; border-radius: 999px; background: #551cf2; color: #fff; font-size: 12px; font-weight: 700; }
+.kf-inbox .kf-inbox-row > span { margin-left: auto; min-width: 24px; height: 24px; display: grid; place-items: center; border-radius: 999px; background: #551cf2; color: #fff; font-size: 12px; font-weight: 700; }
 .kf-thread { display: flex; flex-direction: column; padding: 20px; }
 .kf-thread-head { display: flex; align-items: center; gap: 14px; padding-bottom: 20px; border-bottom: 1px solid #eef0f7; }
 .kf-thread-head h2 { margin: 0; font-size: 20px; }
@@ -3701,7 +3726,7 @@ img, video, iframe { max-width: 100%; }
 .ac-health.good { background: #d1fae5; color: #065f46; }
 .ac-health.warn { background: #fff7ed; color: #c2410c; }
 .ac-health.bad { background: #fee2e2; color: #b91c1c; }
-.ac-desc-block label { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #8c9ab5; }
+.ac-desc-block label, .ac-desc-block .ac-desc-label { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #8c9ab5; }
 .ac-desc-block p { margin: 8px 0 0; font-size: 13px; color: #3a4166; line-height: 1.6; }
 .ac-tab-pane { display: flex; flex-direction: column; gap: 16px; }
 .ac-update-compose { background: #f8f9ff; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
@@ -4794,6 +4819,9 @@ img, video, iframe { max-width: 100%; }
 }
 [data-theme="dark"] .kf-logo strong { color: var(--t1); }
 [data-theme="dark"] .kf-logo small { color: var(--t3); }
+[data-theme="dark"] .kf-user-chip { background: var(--s2); border-color: var(--b1); }
+[data-theme="dark"] .kf-user-chip-meta strong { color: var(--t1); }
+[data-theme="dark"] .kf-user-chip-meta small { color: var(--t3); }
 [data-theme="dark"] .kf-section-label { color: var(--t3); }
 [data-theme="dark"] .kf-nav a { color: var(--t2); }
 [data-theme="dark"] .kf-nav a:hover { background: var(--s2); color: var(--t1); }
@@ -5801,6 +5829,7 @@ img, video, iframe { max-width: 100%; }
   }
   [data-theme="dark"] .kf-sidebar { border-top-color: var(--line); }
   .kf-logo { display: none; }
+  .kf-user-chip { display: none; }
   .kf-section-label { display: none; }
   .kf-create { order: -1; width: 40px; height: 40px; padding: 0; border-radius: 12px; font-size: 0; }
   .kf-nav { flex-direction: row; gap: 4px; }

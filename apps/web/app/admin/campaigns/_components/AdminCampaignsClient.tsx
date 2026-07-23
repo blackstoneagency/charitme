@@ -892,7 +892,7 @@ export default function AdminCampaignsClient({
                 </div>
                 {selected.description && (
                   <div className="ac-desc-block">
-                    <label>Description</label>
+                    <div className="ac-desc-label">Description</div>
                     <p>{selected.description}</p>
                   </div>
                 )}
@@ -1010,6 +1010,7 @@ export default function AdminCampaignsClient({
                   type="checkbox"
                   checked={selected.featured}
                   onChange={e => patchCampaign({ featured: e.target.checked }, { featured: e.target.checked })}
+                  aria-label="Feature campaign"
                 />
                 <span />
               </label>
@@ -1021,6 +1022,7 @@ export default function AdminCampaignsClient({
                   type="checkbox"
                   checked={selected.pinned}
                   onChange={e => patchCampaign({ pinned: e.target.checked }, { pinned: e.target.checked })}
+                  aria-label="Pin to homepage"
                 />
                 <span />
               </label>
@@ -1103,28 +1105,28 @@ export default function AdminCampaignsClient({
         {createStep === 1 && (
           <div className="ac-form-grid">
             <div className="ac-field full">
-              <label>Campaign Title *</label>
-              <input className="ac-input" value={createDraft.title} onChange={e => upd('title', e.target.value)} placeholder="e.g. Help Sarah cover emergency medical bills" maxLength={100} />
+              <label htmlFor="cc-title">Campaign Title *</label>
+              <input id="cc-title" className="ac-input" value={createDraft.title} onChange={e => upd('title', e.target.value)} placeholder="e.g. Help Sarah cover emergency medical bills" maxLength={100} />
             </div>
             <div className="ac-field">
-              <label>Category</label>
-              <select className="ac-input" value={createDraft.category} onChange={e => upd('category', e.target.value)}>
+              <label htmlFor="cc-category">Category</label>
+              <select id="cc-category" className="ac-input" value={createDraft.category} onChange={e => upd('category', e.target.value)}>
                 {CAMPAIGN_CATEGORIES.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div className="ac-field">
-              <label>Campaign Type</label>
-              <select className="ac-input" value={createDraft.campaignType} onChange={e => upd('campaignType', e.target.value)}>
+              <label htmlFor="cc-type">Campaign Type</label>
+              <select id="cc-type" className="ac-input" value={createDraft.campaignType} onChange={e => upd('campaignType', e.target.value)}>
                 {CAMPAIGN_TYPES.map(t => <option key={t}>{t}</option>)}
               </select>
             </div>
             <div className="ac-field">
-              <label>Goal Amount (USD) *</label>
-              <input className="ac-input" type="number" min="1" value={createDraft.goal} onChange={e => upd('goal', e.target.value)} placeholder="25000" />
+              <label htmlFor="cc-goal">Goal Amount (USD) *</label>
+              <input id="cc-goal" className="ac-input" type="number" min="1" value={createDraft.goal} onChange={e => upd('goal', e.target.value)} placeholder="25000" />
             </div>
             <div className="ac-field">
-              <label>Beneficiary Name</label>
-              <input className="ac-input" value={createDraft.beneficiaryName} onChange={e => upd('beneficiaryName', e.target.value)} placeholder="Jane Smith" />
+              <label htmlFor="cc-beneficiary">Beneficiary Name</label>
+              <input id="cc-beneficiary" className="ac-input" value={createDraft.beneficiaryName} onChange={e => upd('beneficiaryName', e.target.value)} placeholder="Jane Smith" />
             </div>
             <div className="ac-create-nav">
               <button className="ac-btn-outline" onClick={backToList}>Cancel</button>
@@ -1144,16 +1146,16 @@ export default function AdminCampaignsClient({
         {createStep === 2 && (
           <div className="ac-form-grid">
             <div className="ac-field full">
-              <label>Short Tagline</label>
-              <input className="ac-input" value={createDraft.tagline} onChange={e => upd('tagline', e.target.value)} placeholder="A clear, emotional summary of your need" maxLength={160} />
+              <label htmlFor="cc-tagline">Short Tagline</label>
+              <input id="cc-tagline" className="ac-input" value={createDraft.tagline} onChange={e => upd('tagline', e.target.value)} placeholder="A clear, emotional summary of your need" maxLength={160} />
             </div>
             <div className="ac-field full">
-              <label>Full Story *</label>
-              <textarea className="ac-textarea" rows={8} value={createDraft.description} onChange={e => upd('description', e.target.value)} placeholder={'Who needs help? What happened? Why now?\nHow will the funds be used?'} />
+              <label htmlFor="cc-story">Full Story *</label>
+              <textarea id="cc-story" className="ac-textarea" rows={8} value={createDraft.description} onChange={e => upd('description', e.target.value)} placeholder={'Who needs help? What happened? Why now?\nHow will the funds be used?'} />
             </div>
             <div className="ac-field">
-              <label>End Date (optional)</label>
-              <input className="ac-input" type="date" value={createDraft.deadline} onChange={e => upd('deadline', e.target.value)} />
+              <label htmlFor="cc-deadline">End Date (optional)</label>
+              <input id="cc-deadline" className="ac-input" type="date" value={createDraft.deadline} onChange={e => upd('deadline', e.target.value)} />
             </div>
             <div className="ac-create-nav">
               <button className="ac-btn-ghost" onClick={() => setCreateStep(1)}>Back</button>
@@ -1169,8 +1171,9 @@ export default function AdminCampaignsClient({
         {createStep === 3 && (
           <div className="ac-form-grid">
             <div className="ac-field full">
-              <label>Cover Image URL</label>
+              <label htmlFor="cc-cover">Cover Image URL</label>
               <input
+                id="cc-cover"
                 className="ac-input"
                 value={createDraft.coverImageUrl}
                 onChange={e => upd('coverImageUrl', e.target.value)}
@@ -1217,15 +1220,15 @@ export default function AdminCampaignsClient({
         {createStep === 4 && (
           <div className="ac-form-grid">
             <div className="ac-field">
-              <label>Visibility</label>
-              <select className="ac-input" value={createDraft.visibility} onChange={e => upd('visibility', e.target.value)}>
+              <label htmlFor="cc-visibility">Visibility</label>
+              <select id="cc-visibility" className="ac-input" value={createDraft.visibility} onChange={e => upd('visibility', e.target.value)}>
                 <option>Public</option>
                 <option>Private</option>
               </select>
             </div>
             <div className="ac-field">
-              <label>Payout Account</label>
-              <select className="ac-input">
+              <label htmlFor="cc-payout">Payout Account</label>
+              <select id="cc-payout" className="ac-input">
                 <option>Default (Admin)</option>
               </select>
             </div>
@@ -1440,25 +1443,25 @@ function EditForm({
     <div className="ac-form-grid">
 
       {/* ── Core fields ── */}
-      <div className="ac-field full"><label>Title</label><input className="ac-input" value={draft.title} onChange={e => upd('title', e.target.value)} /></div>
-      <div className="ac-field"><label>Category</label><input className="ac-input" value={draft.category} onChange={e => upd('category', e.target.value)} /></div>
-      <div className="ac-field"><label>Status</label>
-        <select className="ac-input" value={draft.status} onChange={e => upd('status', e.target.value)}>
+      <div className="ac-field full"><label htmlFor="ec-title">Title</label><input id="ec-title" className="ac-input" value={draft.title} onChange={e => upd('title', e.target.value)} /></div>
+      <div className="ac-field"><label htmlFor="ec-category">Category</label><input id="ec-category" className="ac-input" value={draft.category} onChange={e => upd('category', e.target.value)} /></div>
+      <div className="ac-field"><label htmlFor="ec-status">Status</label>
+        <select id="ec-status" className="ac-input" value={draft.status} onChange={e => upd('status', e.target.value)}>
           {['draft','active','paused','completed','rejected','frozen'].map(s => <option key={s} value={s}>{STATUS_LABEL[s] ?? s}</option>)}
         </select>
       </div>
-      <div className="ac-field"><label>Trust Status</label>
-        <select className="ac-input" value={draft.trustStatus} onChange={e => upd('trustStatus', e.target.value)}>
+      <div className="ac-field"><label htmlFor="ec-trust">Trust Status</label>
+        <select id="ec-trust" className="ac-input" value={draft.trustStatus} onChange={e => upd('trustStatus', e.target.value)}>
           {['Needs More Info','Under Review','Trusted','Verified','Flagged'].map(s => <option key={s}>{s}</option>)}
         </select>
       </div>
-      <div className="ac-field"><label>Goal Amount ($)</label><input className="ac-input" type="number" min={0} value={Math.round(draft.goalAmount / 100)} onChange={e => upd('goalAmount', Number(e.target.value) * 100)} /></div>
-      <div className="ac-field"><label>Health Score (0–100)</label><input className="ac-input" type="number" min={0} max={100} value={draft.healthScore} onChange={e => upd('healthScore', Number(e.target.value))} /></div>
+      <div className="ac-field"><label htmlFor="ec-goal">Goal Amount ($)</label><input id="ec-goal" className="ac-input" type="number" min={0} value={Math.round(draft.goalAmount / 100)} onChange={e => upd('goalAmount', Number(e.target.value) * 100)} /></div>
+      <div className="ac-field"><label htmlFor="ec-health">Health Score (0–100)</label><input id="ec-health" className="ac-input" type="number" min={0} max={100} value={draft.healthScore} onChange={e => upd('healthScore', Number(e.target.value))} /></div>
       <div className="ac-field full">
         <label className="ac-check-label"><input type="checkbox" checked={draft.payoutFrozen} onChange={e => upd('payoutFrozen', e.target.checked)} /> Freeze payouts for review</label>
       </div>
-      <div className="ac-field full"><label>Tagline</label><input className="ac-input" value={draft.tagline} onChange={e => upd('tagline', e.target.value)} /></div>
-      <div className="ac-field full"><label>Description</label><textarea className="ac-textarea" rows={5} value={draft.description} onChange={e => upd('description', e.target.value)} /></div>
+      <div className="ac-field full"><label htmlFor="ec-tagline">Tagline</label><input id="ec-tagline" className="ac-input" value={draft.tagline} onChange={e => upd('tagline', e.target.value)} /></div>
+      <div className="ac-field full"><label htmlFor="ec-description">Description</label><textarea id="ec-description" className="ac-textarea" rows={5} value={draft.description} onChange={e => upd('description', e.target.value)} /></div>
 
       {/* ── MEDIA MANAGEMENT ── */}
       <div className="ac-field full" style={{ borderTop: '1px solid #eef0f7', paddingTop: 20, marginTop: 4 }}>

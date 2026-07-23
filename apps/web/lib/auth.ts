@@ -1,14 +1,18 @@
 import 'server-only';
+import { cache } from 'react';
 import { createClient } from './supabase-server';
 import { redirect } from 'next/navigation';
 import { isAdmin, isSuperAdmin } from './roles';
 import { ensureUserProfile } from './profile-sync';
 
-export async function getUser() {
+// Per-request memoized: layout + page + shell all resolve the session user, and
+// supabase.auth.getUser() is a network JWT validation. React cache() collapses
+// those to a single auth round-trip per request (no-op outside a request scope).
+export const getUser = cache(async () => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   return user;
-}
+});
 
 export async function requireUser() {
   const user = await getUser();

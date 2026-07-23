@@ -112,11 +112,11 @@ export default async function TaxStatementPage({ params }: { params: Promise<{ y
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--b1, #e8ecf4)' }}>
-                    <th style={th}>Date</th>
-                    <th style={th}>Receipt #</th>
-                    <th style={th}>Campaign / Organization</th>
-                    <th style={{ ...th, textAlign: 'right' }}>Amount</th>
-                    <th style={{ ...th, textAlign: 'center' }}>Deductible</th>
+                    <th scope="col" style={th}>Date</th>
+                    <th scope="col" style={th}>Receipt #</th>
+                    <th scope="col" style={th}>Campaign / Organization</th>
+                    <th scope="col" style={{ ...th, textAlign: 'right' }}>Amount</th>
+                    <th scope="col" style={{ ...th, textAlign: 'center' }}>Deductible</th>
                   </tr>
                 </thead>
                 <tbody>

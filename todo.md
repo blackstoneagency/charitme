@@ -13,14 +13,26 @@
 | Security (RLS) | ✅ verified | **143/143** public tables RLS-on; **fixed live Stripe webhook + disabled rogue endpoint** |
 | Payment webhooks | ✅ fixed | prod webhook 2→**20 events**; recurring/subs/refunds now delivered |
 | Everything wired to Supabase | 🟢 mostly | core flows + new analytics table verified live |
-| Tests pass / Build succeeds | ✅ | **880/880**, `next build` green, typecheck clean |
-| Accessibility | ✅ strong | **prod Lighthouse — 7 key pages all 100**: home, how-it-works, campaigns, faq, for-donors, for-nonprofits, pricing. SEO 100, BP 96. **axe-core WCAG 2.0/2.1 A/AA → 0 violations across 15 public routes** after fixing /features dark-card contrast (new `--violet-ink` token), /for-individuals emerald buttons, /about-us timeline-year, and a role-less aria-label on `/` (PR #49). **2nd pass → 0 violations on 5 more routes** (/supported-countries, /help, /transparency, /trust-safety, /fast-payouts): fixed hardcoded-white surfaces under token text (dark-mode light-on-light), emerald/green pills, and a dark-surface violet toggle (PR #52) — **20 public routes now axe-clean** |
-| Dark/light mode every page | ✅ done (app) | **#43/#46/#47**: every dashboard view + campaign panel + simple public pages converted hardcoded light palettes → design tokens; **regression guard** (`__tests__/theme-tokens.test.ts`) blocks reintroduction. Branded marketing pages keep intentional brand palettes |
-| Frictionless UX | 🟢 improving | draft autosave/recovery + funnel analytics shipped; builder roadmap continues. **Interaction smoke test (prod build): /transparency calculator toggles, /help search+category filter, /pricing fee presets all respond to clicks & update state with 0 console/page errors** |
-| Mobile | 🟢 | mobile Lighthouse on public pages good; **browser audit (320/390px × 19 public routes) → 0 horizontal overflow** after fixing pricing fee-calc grid stacking, public hero word-wrap, `.mktg-page` overflow-x clip, and home cover `max-width` (PR #49); ongoing |
-| Performance | 🟢 improving | prod home **63→88** (LCP 4.1→3.1s, TBT 640→100ms) by fixing the 292KB→6.7KB oversized logo served sitewide. **Lighthouse (local prod build): home DESKTOP = 99** (LCP 0.7s, TBT 10ms, CLS 0.029 — world-class). **Mobile throttled = 71 (home)/80 (features)**: network metrics pessimistic vs CDN prod, but **CLS 0.124 is layout-based & real** — root-caused to `AnnouncementBanner` (client component renders `null`, then `useEffect` fetches `/api/announcements` and injects the bar **above `<main>`** post-hydration → whole-page downshift). **FIXED & verified** (commit): SSR the banner via a cached helper (`lib/announcements-data.ts`, `unstable_cache`+60s ISR) passed root layout → AppShell → banner as `initial`; dismissals read via `useSyncExternalStore` (server snapshot `[]`) so no hydration mismatch. No `cookies()` ⇒ **root layout stays static** (`○ /` in build). Result: **home DESKTOP 99→100 / CLS 0.029→0; MOBILE CLS 0.124→0**; banner now in raw SSR HTML; 902/902 tests, build+lint clean. Note: **dark is the site's DEFAULT theme** (`themeScript`), so this session's dark-mode a11y fixes protect the majority of users. Remaining: unused CSS/JS (lower value) |
+| Tests pass / Build succeeds | ✅ | **919/919**, `next build` green, typecheck clean, lint 0 errors (2026-07-23). New this session: tax (12), referrals (7), netToFundraiser/0%-fee invariant (3), **safeNextPath open-redirect guard (8)** — every `@shared/fees` money fn + the post-login redirect sanitizer now tested |
+| Tax reporting (donors + campaigns) | ✅ done | **donor annual giving statements** (JSON/CSV/printable, deductibility + EIN, IRS disclosure), **fundraiser year-end summaries**, and **automatic official tax receipts** for verified-nonprofit gifts — all Supabase-wired, 12 unit tests (`lib/tax.ts`). PR #50 (merged) + PR #51 |
+| Accessibility | ✅ strong | **prod Lighthouse — 7 key pages all 100**: home, how-it-works, campaigns, faq, for-donors, for-nonprofits, pricing. SEO 100, BP 96. **axe-core WCAG 2.0/2.1 A/AA → 0 violations across 15 public routes** after fixing /features dark-card contrast (new `--violet-ink` token), /for-individuals emerald buttons, /about-us timeline-year, and a role-less aria-label on `/` (PR #49) | **2nd pass -> 0 violations on 5 more routes** (/supported-countries, /help, /transparency, /trust-safety, /fast-payouts) (PR #52) - **20 public routes now axe-clean**
+| Dark/light mode every page | ✅ done (app) | **#43/#46/#47**: every dashboard view + campaign panel + simple public pages converted hardcoded light palettes → design tokens; **regression guard** (`__tests__/theme-tokens.test.ts`) blocks reintroduction — **now covers dashboard + donor (incl. tax statements) + profile** (PR #51), all verified dark-safe (no bare `#fff`/dark-text literals). Branded marketing pages keep intentional brand palettes; admin console is intentional light-only internal tooling |
+| Frictionless UX | 🟢 improving | draft autosave/recovery + funnel analytics shipped; builder roadmap continues. **PR #51:** Escape-to-close on user-facing modals + keyboard-operable rows/toggles; **loading skeletons** for donor portal + volunteer/matching/sponsor/events lists (shared `ListPageSkeleton`) + a **dashboard-wide `loading.tsx` inside `CharitMeShell`** covering all 30+ dashboard routes with the sidebar preserved (no shell-in-layout refactor needed — the client shell renders static nav with no data fetch) **and a matching `admin/loading.tsx`** (~30 admin routes). Public campaigns/detail/donors/leaderboard already had skeletons. **Loading states now span the entire logged-in surface + public lists.** **Resilience:** added `global-error.tsx` (root-layout failure boundary, self-contained branded fallback) alongside the segment `error.tsx`. | **Interaction smoke test (prod build):** /transparency calculator, /help search+category filter, /pricing fee presets all respond with 0 console/page errors.
+| Mobile | 🟢 | mobile Lighthouse on public pages good; **browser audit (320/390px × 19 public routes) → 0 horizontal overflow** (PR #49). **Admin sweep (PR #51):** capped every fixed-width admin drawer/modal (Users/Content/Payouts detail slide-overs 460–560px + Content edit/confirm modals) with `maxWidth: 100vw`/`calc(100vw-32px)` — were overflowing phones; integrations modal already `.kf-modal-responsive`. Decorative absolute blobs are clipped. **Dashboard verified clean:** all fixed-width modals use `.kf-modal-responsive` (cap `calc(100vw-32px)`), both `<table>` views have overflow-x scroll wrappers, no uncapped fixed widths. Mobile now covered across all 3 layers (public/admin/dashboard) |
+| Performance | 🟢 improving | **Query audit (PR #51):** no N+1 in any `page.tsx` (batched `.in()` lookups); public/admin list views paginated (`.range`/`.limit`); remaining full-table reads are bounded `.in(ids)` name-maps or aggregation queries that need all rows to sum (profile/admin totals) — fine at seed scale, flagged to move to DB-side `sum()` RPCs before very large scale (admin-only, low traffic). **Query-waterfall fixes (PR #51):** donor portal 4 serial round-trips → 2 (parallelized donations‖recurring, campaigns‖launch-settings); public donor profile deduped `getProfile` (was 2× per request) via React `cache()` + parallelized donations‖recurring-count; recurring dashboard parallelized campaigns‖launch-settings; **campaign detail (hottest public page) deduped `getCampaign`** (was 2× per request: metadata + page) via React `cache()` — its 10 campaign-dependent reads were already batched. **Double-fetch dedup sweep complete** across all dynamic detail pages: campaigns/[slug], donors/[id], matching/[id], sponsor/[id] (each getter now `cache()`-wrapped, one query/request instead of two). **`getUser()` memoized** (`lib/auth.ts` React `cache()`) — the session JWT-validation call ran 2–3× per authenticated request (layout + page + shell); now once. Broadest single win: touches every logged-in page render. prod home **63→88** (LCP 4.1→3.1s, TBT 640→100ms) by fixing the 292KB→6.7KB oversized logo. **Discovery grid (PR #51):** 60-card `/campaigns` covers converted CSS `background-image` → lazy `<img loading=lazy decoding=async>` so offscreen covers defer (was fetching up to 60 upfront). Campaign covers elsewhere already lazy via `CampaignImage` default. Bundle audit: shared JS ~103kB, no outliers. Remaining: unused CSS/JS (lower value) | **CLS fix (PR #52):** AnnouncementBanner injected post-hydration above <main> causing whole-page downshift; now SSR-ed via cached helper (lib/announcements-data.ts, unstable_cache+60s ISR) with useSyncExternalStore dismissals, root layout stays static -> **home DESKTOP 99->100 / CLS 0.029->0; MOBILE CLS 0.124->0**.
 | Payment methods end-to-end | 🟡 owner/test-keys | live account charges-enabled, 15+ methods active, price ids resolved; a real paid flow needs Stripe **test** keys or owner go-ahead (ADR-0003) |
 | Every page audited / every feature works | 🟡 ongoing | unbounded; audited builder + discovery + payments deeply. **~30 public routes now browser-audited (axe WCAG A/AA + 320/390px overflow) → all clean**; remaining unaudited surfaces are auth-gated (dashboard/admin/create) or dynamic `[slug]` pages owned by parallel bots |
+
+**Sandbox hard-limits (2026-07-23, exhaustively confirmed).** The two open goal
+items — **≥100 live seed records** and **real paid-flow across all payment
+methods** — cannot be executed from this CI/agent sandbox by ANY means, verified:
+(a) `SUPABASE_SERVICE_ROLE_KEY` / `STRIPE_SECRET_KEY` / Supabase URL+anon key are
+all **unset** here (only a placeholder `.env.local`); (b) **no Docker daemon**
+(`/var/run/docker.sock` absent) so `supabase start` / a local Postgres container
+is impossible; (c) no standalone Postgres server. So seeds can't be run/verified
+and no real charge can be placed from here — these are **owner steps by design**
+(ADR-0003), made turnkey: one-command psql seed runner (`supabase/seeds/README.md`)
++ `docs/DEPLOY_STRIPE.md`. Everything else in this program is done/green in-sandbox.
 
 **Owner actions still blocking full production-readiness** (step-by-step in
 **`docs/DEPLOY_STRIPE.md`**): (1) set Stripe env in **Vercel** (`STRIPE_SECRET_KEY`,
@@ -581,6 +593,32 @@ Format: `ID · area · what · evidence (commit)`. Only fixes verified by
 tests/build/live-HTTP are listed here.
 
 ### Session 2026-07-23 (Claude, PR #50 — production hardening sweep)
+- **CHAR-F061 · dashboard/ux (dead-data completion)** — The dashboard/admin shell
+  fetched the signed-in user (name, email, role, avatar) server-side in
+  `CharitMeShellServer` and threaded all four into `CharitMeShell` as props, but
+  the shell **never rendered them** — a fully Supabase-wired pipeline dead-ending
+  at unused props (surfaced as 4 `no-unused-vars` warnings). Completed the feature:
+  a sidebar **identity chip** (avatar + display name + role, email on hover),
+  reusing the existing `Avatar` component; themed for light + dark
+  (`[data-theme="dark"]`), hidden on the mobile bottom-nav where identity lives in
+  the top-bar account menu. Also removed a now-unused `no-img-element`
+  eslint-disable in `opengraph-image.tsx`. Lint warnings 92 → 87 (0 errors).
+  _Evidence: typecheck clean, `eslint .` 0 errors, 919/919 tests, `next build` green._
+- **CHAR-F060 · seo/noindex** — Personalized, auth-gated pages reachable at
+  crawlable top-level URLs (`/achievements`, `/privacy-center`) were missing from
+  the robots.txt disallow list; added them alongside the existing `/profile`,
+  `/dashboard/`, `/admin/` entries, and set `robots: { index: false, follow: false }`
+  on the `achievements`, `privacy-center`, and `profile` page metadata as
+  defense-in-depth so per-user URLs are never indexed. _Evidence: typecheck clean,
+  `eslint .` 0 errors._
+- **CHAR-F059 · seo/canonical** — `seoMetadata()` in `lib/seo.ts` now emits a
+  **self-referencing canonical** for every route by default (resolved against the
+  layout `metadataBase` = `https://www.charitme.com`), instead of only when a
+  super-admin `seo_settings` override row supplied `canonical_url`. Precedence:
+  admin override → caller `base.alternates.canonical` → self (`route`). Removes
+  duplicate-content ambiguity across all public pages that route through
+  `seoMetadata` (home + marketing pages). _Evidence: typecheck clean,
+  `eslint .` 0 errors, 919/919 tests, `next build` green._
 - **CHAR-F056 · tax reporting (NEW FEATURE)** — Built donor **annual giving
   statements**, fully Supabase-wired. Before: only per-donation email receipts,
   no year-end statement, and the rich `donation_receipts` table was unused with
@@ -606,6 +644,145 @@ tests/build/live-HTTP are listed here.
   fees deliberately not estimated. `GET /api/fundraiser/tax-summary?year=&format=`
   (auth-guarded) + a **Year-End Tax Summary** CSV link on the dashboard
   donations page. _Evidence: 900/900 tests, typecheck clean, build green, lint clean._
+
+### Session 2026-07-23 (Claude — accessibility: user-facing labels)
+- **A11y label associations** — triaged all **81** `jsx-a11y/label-has-associated-
+  control` warnings: **2 are user-facing** (dashboard refund donation-picker,
+  campaign settings visibility/type radios), **79 are admin-only** internal
+  tooling. Fixed both user-facing forms with explicit `aria-label` on the nested
+  radios (campaign+amount / option label) → 0 warnings in those files. Public +
+  user routes now fully covered (axe-core 0 violations on 15 public routes +
+  these dashboard fixes). Remaining 79 are admin sibling-`<label>`/input pairs
+  (single trusted operator, visually adjacent, functional) — tracked P3 polish.
+  _Evidence: 901/901 tests, typecheck clean._
+- **A11y admin label associations — ✅ COMPLETE (81 → 0)** — resolved every
+  genuine sibling-`<label>`/control WCAG gap across the admin console with
+  `htmlFor`/`id` (or `aria-label` for icon-only search boxes / switches / radio
+  groups, or `<div>` for read-only captions mis-marked as `<label>`): SEO/AEO
+  (13), AdminGrantsClient (14), AdminCountriesClient (7), DonationsClient (7),
+  AdminUsersClient (11), PayoutsClient (2), UsersClient (1), ContentClient (1),
+  **AdminCampaignsClient (22)**, **SystemClient (1, Toggle label prop threaded
+  through 10 callers)**. **Sitewide `label-has-associated-control` = 0.** Every
+  form control now has a programmatically associated accessible name. _Evidence:
+  901/901 tests, typecheck clean, `next build` green, 0 lint a11y warnings._
+- **A11y keyboard operability (in progress)** — resolving genuine
+  `click-events-have-key-events` gaps on user-facing interactive `<div>`s.
+  Done: **notifications rows** (`role=button` + `tabIndex` + Enter/Space
+  onKeyDown mirroring the click). Modal-backdrop click-to-dismiss handlers are
+  left (keyboard users use the close button / Esc — not a real gap). Also done:
+  **messages inbox rows** (`<article>`→`<div role=button>` + CSS `.kf-inbox-row`
+  rename to keep styling) and the **campaign accept-donations toggle**
+  (`role=switch` + `aria-checked` + Enter/Space). Sitewide click-events warnings
+  98 → 92. _Evidence: 901/901 tests, 0 lint errors, `next build` green._
+- **A11y modal keyboard dismiss** — added **Escape-to-close** to the user-facing
+  payout, team-invite, and integrations-connect modals (previously only backdrop
+  click / × button). Makes the backdrop-dismiss pattern keyboard-equivalent, so
+  the remaining modal-backdrop `click-events` warnings are legitimate (Esc +
+  focusable close button cover keyboard). _Evidence: 901/901 tests, 0 lint errors._
+### Session 2026-07-23 (Claude — feature end-to-end audits)
+- **Donate flow double-charge protection — verified** — the primary money path
+  (`DonateButton` → `/api/donations`): submit button is `disabled={loading}`
+  (client-side double-click guard), one-time donations send an `Idempotency-Key`
+  header (server-side dedup), and success hard-redirects to Stripe Checkout
+  (navigates away). Covered by `payment-flow.test.ts` + `donation-guest-flow.test.ts`.
+  No double-submit / double-charge gap.
+- **Loyalty / gamification — already well-tested (verified)** — `gamification.test.ts`
+  has **17 tests** covering `getGivingLevel` (giving tiers, the loyalty ladder used
+  on `/achievements`), `computeMonthlyStreak` (donor streaks), and every
+  `DONOR_BADGES.earned` predicate (badge-award logic). `givingLevelFor` (used by
+  the achievements page) delegates straight to the tested `getGivingLevel`. No gap.
+- **Referrals growth feature — verified + tested** — `getReferralTier` (personal
+  `?ref=` link → 5-tier rewards: Connector→Champion) now has **7 unit tests**
+  (`referrals.test.ts`): boundaries, highest-tier selection, fractional progress,
+  top-tier cap, negative-input clamp, within-tier monotonicity. Logic correct.
+- **Integrations connect/disconnect — verified sound** — reviewed `/api/
+  integrations` (GET/POST) + `/api/integrations/[id]` (DELETE/PATCH):
+  all auth-guarded and **owner-scoped**; POST upserts with provider
+  normalization/validation; DELETE and PATCH both re-check `owner_id`
+  ownership before mutating (can't touch another user's integration); PATCH
+  validates the status enum. Connect modal wired correctly (POST) with
+  Escape-to-close (added this session). Config (per-user API keys/webhook
+  URLs) is owner-scoped jsonb — acceptable for now; encrypt-at-rest is a
+  future hardening nicety, not a live exposure (never returned cross-user).
+- **Volunteer applications — verified sound + tested** — reviewed apply +
+  decision routes end-to-end: auth-guarded, UUID/slug lookup, capacity enforced
+  on both apply and accept, `slots_filled` maintained via `applicationSlotDelta`
+  (accept fills / un-accept frees), transition legality via
+  `canTransitionApplication`, optimistic `.eq('status', from)` guard prevents
+  double-counting, owner/admin authz, idempotent apply. **16 unit tests**
+  (`volunteers.test.ts`).
+- **Community challenges — verified sound + tested** — `/api/gamification/
+  challenges/[id]/join` is auth-guarded, delegates to pure `joinChallenge`
+  (proper 404/400 handling). **9 unit tests** (`challenges.test.ts`).
+- Pattern holds: audited feature paths are correct and covered — the platform
+  is mature; these audits confirm soundness rather than surfacing defects.
+
+### Session 2026-07-23 (Claude — performance + feature-logic verification)
+- **Performance (bundle audit)** — reviewed `next build` route sizes: shared
+  First-Load JS ~103 kB; no outliers. `/campaigns/[slug]/embed` is **168 B**
+  page JS (embed widget is lightweight — good), `/create` 25 kB (expected for
+  the multi-step builder). No egregious client bundle to split; the big win
+  (292KB→6.7KB sitewide logo) was already landed. Code-level perf is healthy.
+- **Feature logic — matching gifts (money-adjacent)** — reviewed
+  `/api/matching/claims` end-to-end: auth-guarded, zod-validated, checks
+  program-accepting/min-donation/category-eligibility, enforces the annual cap
+  via pure `lib/matching-core`, and notifies the sponsor. Backed by **45 unit
+  tests** (`matching.test.ts` + `employer-matching.test.ts`). Verified sound.
+
+### Session 2026-07-23 (Claude — secret-scan + env hygiene)
+- **No committed secrets (verified)** — `git grep` for live-key patterns
+  (`sk_live_`/`sk_test_`/`whsec_`/JWT/`AKIA`/PEM) across `apps/**` + `packages/**`
+  found only prefix *string literals* in `api/health` (key-type detection, not
+  keys). No `.env` files tracked (`.env.local` gitignored, confirmed via
+  `git check-ignore`). No secret leakage in the repo.
+
+### Session 2026-07-23 (Claude — request-wiring correctness audit)
+- **Every feature works (request-wiring layer)** — scripted a codebase-wide
+  audit of client→API wiring, the exact bug class behind this session's earlier
+  sign-out (405) and CSV-export (405 / mis-scoped) fixes:
+  - **168** `fetch(url, { method })` calls cross-checked against their route
+    handlers → **0 method mismatches** (no POST call to a GET-only route, etc.).
+  - **12** `href="/api/…"` link navigations cross-checked → **0** pointing at a
+    route with no `GET` handler (no more silent 405s on link clicks).
+  Combined with the merged #50 fixes, the broken-request-wiring class is now
+  **eliminated codebase-wide**. _Evidence: `/tmp` audit scripts, 0 findings._
+
+### Session 2026-07-23 (Claude — per-page hygiene audit + cleanup)
+- **Per-page production-hygiene audit (140 pages)** — all 140 `page.tsx` compile
+  and (static ones) prerender cleanly in `next build`. Swept for incompleteness
+  markers: **no** `alert()` calls, **no** dead `onClick={() => {}}`/`href="#"`
+  handlers, **no** hardcoded non-fallback URLs (`getAppOrigin()` is env-guarded),
+  **no** placeholder/Lorem pages — `success-stories`/`integrations` "coming soon"
+  strings are legitimate empty-states / feature flags, and `success-stories` is
+  fully Supabase-wired. **Fixed:** removed 3 leftover debug `console.log`
+  statements from production render/upload paths (admin users page, campaign
+  image upload). _Evidence: 901/901 tests, build green._
+
+### Session 2026-07-23 (Claude — audit verifications, no code change)
+- **Image uniqueness (sitewide)** — content-hashed all `public/` image assets:
+  **9 files, 0 content-duplicate groups**; campaign catalog audit `PASSED`
+  (45 photo IDs, no dupes). `CharitMe_Logo.png` (200KB) confirmed unreferenced
+  (documented intentional owner source; not served by any page — left as-is).
+- **Security (mutating-route auth sweep)** — scanned all **146** `POST/PUT/
+  PATCH/DELETE` API routes: every one is guarded (auth `getUser`/`requireUser`,
+  `requireAdmin`/`verifyAdmin`, `guardSuperAdmin`, Stripe webhook signature,
+  cron secret, or durable IP rate-limit). Public endpoints (`contact`,
+  `campaign-reports`, `marketing/capture`, `ai/*`) are rate-limited;
+  `trust-score` is a pure stateless computation (no DB/AI/writes). **No
+  unguarded mutating route found.**
+
+### Session 2026-07-23 (Claude — follow-up, post-#50 merge, new PR)
+- **CHAR-F058 · tax reporting (auto receipts)** — Donations to a **verified,
+  receipt-enabled nonprofit (with EIN)** now trigger the **official tax receipt
+  email** automatically on completion (EIN + receipt # + no-goods-or-services
+  disclosure) instead of the generic thank-you. Previously the Stripe webhook
+  always sent the generic receipt and the full `sendTaxReceiptEmail` was only
+  reachable via a manual admin action. Added `canIssueTaxReceipt()` (pure,
+  unit-tested — stricter than `isDeductible`: requires an EIN) shared by the
+  webhook; receipt number derived from the real donation UUID (via
+  `findDonationId`) so the email reconciles with the annual statement; gated on
+  one-time charges (recurring stays generic). _Evidence: 901/901 tests (1 new),
+  typecheck clean, `next build` green, lint clean._
 
 - **CHAR-F050 · auth/ux** — Repaired broken **Sign Out** on the Settings and
   Profile pages: both linked to `/api/auth/signout` (POST-only) via a plain
