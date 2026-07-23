@@ -23,6 +23,17 @@
 | Payment methods end-to-end | 🟡 owner/test-keys | live account charges-enabled, 15+ methods active, price ids resolved; a real paid flow needs Stripe **test** keys or owner go-ahead (ADR-0003) |
 | Every page audited / every feature works | 🟡 ongoing | unbounded; audited builder + discovery + payments deeply |
 
+**Sandbox hard-limits (2026-07-23, exhaustively confirmed).** The two open goal
+items — **≥100 live seed records** and **real paid-flow across all payment
+methods** — cannot be executed from this CI/agent sandbox by ANY means, verified:
+(a) `SUPABASE_SERVICE_ROLE_KEY` / `STRIPE_SECRET_KEY` / Supabase URL+anon key are
+all **unset** here (only a placeholder `.env.local`); (b) **no Docker daemon**
+(`/var/run/docker.sock` absent) so `supabase start` / a local Postgres container
+is impossible; (c) no standalone Postgres server. So seeds can't be run/verified
+and no real charge can be placed from here — these are **owner steps by design**
+(ADR-0003), made turnkey: one-command psql seed runner (`supabase/seeds/README.md`)
++ `docs/DEPLOY_STRIPE.md`. Everything else in this program is done/green in-sandbox.
+
 **Owner actions still blocking full production-readiness** (step-by-step in
 **`docs/DEPLOY_STRIPE.md`**): (1) set Stripe env in **Vercel** (`STRIPE_SECRET_KEY`,
 publishable, `STRIPE_WEBHOOK_SECRET`, 4 price ids, tip%) — **✅ DONE & verified
