@@ -112,6 +112,7 @@ export default function HelpPage() {
               width: '100%', paddingLeft: 44, paddingRight: 16, height: 48,
               border: '1.5px solid var(--b2)', borderRadius: 12, fontSize: 15,
               outline: 'none', fontFamily: 'inherit',
+              background: 'var(--s1)', color: 'var(--t1)',
             }}
           />
         </div>
@@ -123,7 +124,7 @@ export default function HelpPage() {
           style={{
             padding: '7px 16px', borderRadius: 20, border: '1.5px solid',
             borderColor: activeCategory === 'all' ? 'var(--violet)' : 'var(--b2)',
-            background: activeCategory === 'all' ? 'rgba(109,53,255,.14)' : '#fff',
+            background: activeCategory === 'all' ? 'rgba(109,53,255,.14)' : 'var(--s1)',
             color: activeCategory === 'all' ? 'var(--violet)' : 'var(--t2)',
             fontSize: 13, fontWeight: 700, cursor: 'pointer',
           }}>
@@ -134,7 +135,7 @@ export default function HelpPage() {
             style={{
               padding: '7px 16px', borderRadius: 20, border: '1.5px solid',
               borderColor: activeCategory === cat.id ? 'var(--violet)' : 'var(--b2)',
-              background: activeCategory === cat.id ? 'rgba(109,53,255,.14)' : '#fff',
+              background: activeCategory === cat.id ? 'rgba(109,53,255,.14)' : 'var(--s1)',
               color: activeCategory === cat.id ? 'var(--violet)' : 'var(--t2)',
               fontSize: 13, fontWeight: 700, cursor: 'pointer',
             }}>
