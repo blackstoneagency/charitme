@@ -162,64 +162,64 @@ export default function AdminGrantsClient() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
           <div style={{ gridColumn: '1 / -1' }}>
-            <label style={label}>Title *</label>
-            <input style={input} value={form.title} onChange={(e) => set('title', e.target.value)} required minLength={3} placeholder="e.g. Community Health Innovation Grant" />
+            <label style={label} htmlFor="grant-title">Title *</label>
+            <input id="grant-title" style={input} value={form.title} onChange={(e) => set('title', e.target.value)} required minLength={3} placeholder="e.g. Community Health Innovation Grant" />
           </div>
           <div>
-            <label style={label}>Funder name *</label>
-            <input style={input} value={form.funderName} onChange={(e) => set('funderName', e.target.value)} required placeholder="e.g. Robert Wood Johnson Foundation" />
+            <label style={label} htmlFor="grant-funderName">Funder name *</label>
+            <input id="grant-funderName" style={input} value={form.funderName} onChange={(e) => set('funderName', e.target.value)} required placeholder="e.g. Robert Wood Johnson Foundation" />
           </div>
           <div>
-            <label style={label}>Funder type</label>
-            <select style={input} value={form.funderType} onChange={(e) => set('funderType', e.target.value)}>
+            <label style={label} htmlFor="grant-funderType">Funder type</label>
+            <select id="grant-funderType" style={input} value={form.funderType} onChange={(e) => set('funderType', e.target.value)}>
               {FUNDER_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
           <div>
-            <label style={label}>Category</label>
-            <input style={input} value={form.category} onChange={(e) => set('category', e.target.value)} placeholder="e.g. health" />
+            <label style={label} htmlFor="grant-category">Category</label>
+            <input id="grant-category" style={input} value={form.category} onChange={(e) => set('category', e.target.value)} placeholder="e.g. health" />
           </div>
           <div>
-            <label style={label}>Status</label>
-            <select style={input} value={form.status} onChange={(e) => set('status', e.target.value)}>
+            <label style={label} htmlFor="grant-status">Status</label>
+            <select id="grant-status" style={input} value={form.status} onChange={(e) => set('status', e.target.value)}>
               {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
           <div>
-            <label style={label}>Min award (USD)</label>
-            <input style={input} value={form.amountMin} onChange={(e) => set('amountMin', e.target.value)} inputMode="numeric" placeholder="5000" />
+            <label style={label} htmlFor="grant-amountMin">Min award (USD)</label>
+            <input id="grant-amountMin" style={input} value={form.amountMin} onChange={(e) => set('amountMin', e.target.value)} inputMode="numeric" placeholder="5000" />
           </div>
           <div>
-            <label style={label}>Max award (USD)</label>
-            <input style={input} value={form.amountMax} onChange={(e) => set('amountMax', e.target.value)} inputMode="numeric" placeholder="50000" />
+            <label style={label} htmlFor="grant-amountMax">Max award (USD)</label>
+            <input id="grant-amountMax" style={input} value={form.amountMax} onChange={(e) => set('amountMax', e.target.value)} inputMode="numeric" placeholder="50000" />
           </div>
           <div>
-            <label style={label}>Deadline</label>
-            <input style={input} type="date" value={form.deadlineAt} onChange={(e) => set('deadlineAt', e.target.value)} />
+            <label style={label} htmlFor="grant-deadlineAt">Deadline</label>
+            <input id="grant-deadlineAt" style={input} type="date" value={form.deadlineAt} onChange={(e) => set('deadlineAt', e.target.value)} />
           </div>
           <div>
-            <label style={label}>Country</label>
-            <input style={input} value={form.country} onChange={(e) => set('country', e.target.value)} placeholder="US" />
+            <label style={label} htmlFor="grant-country">Country</label>
+            <input id="grant-country" style={input} value={form.country} onChange={(e) => set('country', e.target.value)} placeholder="US" />
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
-            <label style={label}>Application URL</label>
-            <input style={input} value={form.applicationUrl} onChange={(e) => set('applicationUrl', e.target.value)} placeholder="https://funder.org/apply" />
+            <label style={label} htmlFor="grant-applicationUrl">Application URL</label>
+            <input id="grant-applicationUrl" style={input} value={form.applicationUrl} onChange={(e) => set('applicationUrl', e.target.value)} placeholder="https://funder.org/apply" />
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
-            <label style={label}>Focus areas (comma-separated)</label>
-            <input style={input} value={form.focusAreas} onChange={(e) => set('focusAreas', e.target.value)} placeholder="health, community, youth" />
+            <label style={label} htmlFor="grant-focusAreas">Focus areas (comma-separated)</label>
+            <input id="grant-focusAreas" style={input} value={form.focusAreas} onChange={(e) => set('focusAreas', e.target.value)} placeholder="health, community, youth" />
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
-            <label style={label}>Eligible entity types (comma-separated)</label>
-            <input style={input} value={form.eligibleEntityTypes} onChange={(e) => set('eligibleEntityTypes', e.target.value)} placeholder="nonprofit, school, individual" />
+            <label style={label} htmlFor="grant-eligibleEntityTypes">Eligible entity types (comma-separated)</label>
+            <input id="grant-eligibleEntityTypes" style={input} value={form.eligibleEntityTypes} onChange={(e) => set('eligibleEntityTypes', e.target.value)} placeholder="nonprofit, school, individual" />
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
-            <label style={label}>Summary</label>
-            <textarea style={{ ...input, minHeight: 60, resize: 'vertical' }} value={form.summary} onChange={(e) => set('summary', e.target.value)} maxLength={1000} placeholder="One or two sentences shown on the grant card." />
+            <label style={label} htmlFor="grant-summary">Summary</label>
+            <textarea id="grant-summary" style={{ ...input, minHeight: 60, resize: 'vertical' }} value={form.summary} onChange={(e) => set('summary', e.target.value)} maxLength={1000} placeholder="One or two sentences shown on the grant card." />
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
-            <label style={label}>Full description / eligibility details</label>
-            <textarea style={{ ...input, minHeight: 90, resize: 'vertical' }} value={form.description} onChange={(e) => set('description', e.target.value)} maxLength={20000} placeholder="Full grant details shown on the detail page." />
+            <label style={label} htmlFor="grant-description">Full description / eligibility details</label>
+            <textarea id="grant-description" style={{ ...input, minHeight: 90, resize: 'vertical' }} value={form.description} onChange={(e) => set('description', e.target.value)} maxLength={20000} placeholder="Full grant details shown on the detail page." />
           </div>
         </div>
 

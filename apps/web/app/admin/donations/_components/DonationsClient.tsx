@@ -399,8 +399,9 @@ function RefundModal({
             <strong>{detail.donorName}</strong>. This action will be logged.
           </p>
           <div className="ado-field">
-            <label>Refund Amount ($)</label>
+            <label htmlFor="ref-amount">Refund Amount ($)</label>
             <input
+              id="ref-amount"
               className="ac-input"
               type="number"
               step="0.01"
@@ -412,8 +413,8 @@ function RefundModal({
             <small style={{ color: '#8c9ab5', fontSize: 11 }}>Max: {fmtCents(detail.amountCents)}</small>
           </div>
           <div className="ado-field">
-            <label>Reason</label>
-            <select className="ac-input" value={reason} onChange={e => setReason(e.target.value)}>
+            <label htmlFor="ref-reason">Reason</label>
+            <select id="ref-reason" className="ac-input" value={reason} onChange={e => setReason(e.target.value)}>
               <option>Donor request</option>
               <option>Duplicate charge</option>
               <option>Fraudulent</option>
@@ -479,8 +480,9 @@ function NoteModal({
         </div>
         <div className="ado-modal-body">
           <div className="ado-field">
-            <label>Internal Note</label>
+            <label htmlFor="ref-note">Internal Note</label>
             <textarea
+              id="ref-note"
               className="ac-textarea"
               rows={5}
               value={note}
@@ -1092,15 +1094,16 @@ export default function DonationsClient({
         {panelTab === 'Donations' && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: '#fff' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={16} height={16}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: '#fff' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={16} height={16} aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
                 <input
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(0); }}
                   placeholder="Search by donor, email, or campaign…"
+                  aria-label="Search donations by donor, email, or campaign"
                   style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }}
                 />
-              </label>
+              </div>
               <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(0); }}
                 style={{ height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', fontSize: 13, background: '#fff' }}>
                 <option value="all">All Status</option>
@@ -1328,8 +1331,8 @@ export default function DonationsClient({
             <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700, color: '#0f1238' }}>Export Data</h3>
             <div style={{ maxWidth: 460, display: 'grid', gap: 18 }}>
               <div className="ado-field">
-                <label>Data Type</label>
-                <select className="ac-input">
+                <label htmlFor="exp-datatype">Data Type</label>
+                <select id="exp-datatype" className="ac-input">
                   <option>All Donations</option>
                   <option>Completed Only</option>
                   <option>Refunded Only</option>
@@ -1337,16 +1340,16 @@ export default function DonationsClient({
                 </select>
               </div>
               <div className="ado-field">
-                <label>Format</label>
-                <select className="ac-input" value={exportFormat} onChange={e => setExportFormat(e.target.value)}>
+                <label htmlFor="exp-format">Format</label>
+                <select id="exp-format" className="ac-input" value={exportFormat} onChange={e => setExportFormat(e.target.value)}>
                   <option value="csv">CSV</option>
                   <option value="excel">Excel</option>
                   <option value="pdf">PDF</option>
                 </select>
               </div>
               <div className="ado-field">
-                <label>Date Range</label>
-                <select className="ac-input">
+                <label htmlFor="exp-daterange">Date Range</label>
+                <select id="exp-daterange" className="ac-input">
                   <option>All time</option>
                   <option>Last 30 days</option>
                   <option>Last 90 days</option>
