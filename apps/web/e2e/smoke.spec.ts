@@ -7,7 +7,7 @@ test('homepage presents CharitMe trust positioning', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.getByText('CharitMe').first()).toBeVisible();
   await expect(page.getByText('0%').first()).toBeVisible();
-  await expect(page.getByText('Create My Fundraiser With AI').first()).toBeVisible();
+  await expect(page.getByText('Create My Fundraiser Now!').first()).toBeVisible();
 });
 
 test('pricing page shows transparent fee model', async ({ page }) => {

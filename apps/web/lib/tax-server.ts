@@ -15,12 +15,18 @@ import {
  * printable statement page so deductibility is computed identically in both.
  */
 export async function loadDonorTaxInputs(donorId: string): Promise<TaxDonationInput[]> {
-  const { data: rawDonations } = await supabaseAdmin
-    .from('donations')
-    .select('id, amount_cents, tip_cents, currency, status, created_at, campaign_id, campaigns:campaign_id(title, user_id)')
-    .eq('donor_id', donorId)
-    .eq('status', 'completed')
-    .order('created_at', { ascending: false });
+  const [{ data: rawDonations }, { data: rawReceipts }] = await Promise.all([
+    supabaseAdmin
+      .from('donations')
+      .select('id, amount_cents, tip_cents, currency, status, created_at, campaign_id, campaigns:campaign_id(title, user_id)')
+      .eq('donor_id', donorId)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false }),
+    supabaseAdmin
+      .from('tax_receipts')
+      .select('donation_id, receipt_number')
+      .eq('donor_id', donorId),
+  ]);
 
   type DonRow = {
     id: string;
@@ -33,6 +39,11 @@ export async function loadDonorTaxInputs(donorId: string): Promise<TaxDonationIn
     campaigns: { title: string; user_id: string } | null;
   };
   const donations = (rawDonations ?? []) as unknown as DonRow[];
+  const receiptByDonation = new Map(
+    ((rawReceipts ?? []) as { donation_id: string | null; receipt_number: string }[])
+      .filter((receipt) => Boolean(receipt.donation_id))
+      .map((receipt) => [receipt.donation_id as string, receipt.receipt_number]),
+  );
 
   const ownerIds = [...new Set(donations.map((d) => d.campaigns?.user_id).filter(Boolean) as string[])];
   const nonprofitByOwner = new Map<string, NonprofitTaxInfo>();
@@ -68,7 +79,7 @@ export async function loadDonorTaxInputs(donorId: string): Promise<TaxDonationIn
       createdAt: d.created_at,
       campaignId: d.campaign_id,
       campaignTitle: d.campaigns?.title ?? 'CharitMe campaign',
-      receiptNumber: `RCP-${y}-${d.id.slice(0, 8).toUpperCase()}`,
+      receiptNumber: receiptByDonation.get(d.id) ?? `RCP-${y}-${d.id.slice(0, 8).toUpperCase()}`,
       nonprofit,
     };
   });
