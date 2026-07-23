@@ -53,3 +53,13 @@ sponsors have existing seed migrations. Ask if you want any of these added.
 After running 00–04, run `99_verify_counts.sql`. Every row should show `ok = true`
 (≥100). Anything showing `false` on a per-user table means you need more profiles —
 run `00_test_users.sql`.
+
+For a repeatable CI/deployment check against a configured Supabase project, run the
+read-only service-role audit from the repository root:
+
+```bash
+node --env-file=apps/web/.env.local scripts/audit-seed-coverage.mjs --json
+```
+
+It exits non-zero when a target table is missing or below 100 rows and never prints
+row contents or credentials.
