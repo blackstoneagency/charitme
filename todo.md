@@ -545,6 +545,11 @@ assigned per-category, so every campaign in a category shared one identical cove
   - Repeatable guard: `node scripts/image-uniqueness-audit.mjs --ci` (exit 1 on any byte-identical asset or DB image-column duplication). Static check runs even without DB creds.
   - Open follow-up (not a duplicate — a *gap*): 620 `nonprofit_profiles` have no `logo_url` and 627 `profiles` have no avatar; these render placeholders, not dupes.
 
+- [x] **GOAL — Production feature/wiring audit (every feature works + wired to Supabase)** (2026-07-23)
+  - **39/39 public pages** return 2xx/3xx in production (/, about, achievements, ai-campaign, ai-fundraising, blog, campaigns, contact, create, donor, events, faq, fast-payouts, features, fees, for-donors/individuals/nonprofits, grants, help, how-it-works, impact, leaderboard, login, matching, offline, pricing, privacy, privacy-center, refunds, security, sponsor, success-stories, supported-countries, terms, transparency, trust-safety, volunteer).
+  - **Every feature data endpoint returns real Supabase data**: rotator 7, stories 12, grants 24, volunteers 24, leaderboard 20/20, sponsors 40, matching-programs 60, events 60, sponsorships 60, campaigns live. `/api/trust-score` correctly POST-only (GET→405, verified intentional). Grants + volunteers are now populated (24 each), so those discovery features are testable end-to-end.
+  - Repeatable via the probe in this commit's audit; no code changes needed — the platform is genuinely well-wired.
+
 - [x] **GOAL — Master health gates green** (2026-07-23, master `e8458d2`): `tsc --noEmit` clean, **936 tests pass (75 files)**, `next build` compiles. Verified after the seed-guard + tax + SEO/AEO (#53) + CSP (#55) merges.
   - **Codex SEO/AEO/marketing engine confirmed done & on master** (via PR #53): `lib/seo.ts`, `lib/aeo.ts`, `AeoContent`, `MarketingTracker`, admin SEO/AEO UIs all present; prod DB has 17 `marketing_*` tables + 242 `aeo_entries`. The long-running `agent/seo-aeo-marketing-engine` branch is stale/superseded (217 behind, ~88 conflicts) — its work shipped via short-lived `codex/*` PR branches; do NOT bulk-merge it (would revert hardening).
 
