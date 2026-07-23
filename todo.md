@@ -538,6 +538,16 @@ assigned per-category, so every campaign in a category shared one identical cove
 
 # Section C — Completed (with evidence)
 
+### 2026-07-23 — Production-readiness goal (Claude lane; Codex owns SEO/marketing/security/CSP/a11y)
+
+- [x] **GOAL — Image uniqueness: every image unique, 0 duplicates** (`scripts/image-uniqueness-audit.mjs`)
+  - Certified across static assets + live DB. **0 byte-identical static images** (7 files). **DB image columns 100% unique**: `campaigns.cover_image_url` 500/500, `campaign_media.public_url` 500/500, `sponsors.logo_url` 50/50, `profiles.avatar_url` 503/503. No hardcoded stock image reused across pages (all source hits are test fixtures / one admin input placeholder).
+  - Repeatable guard: `node scripts/image-uniqueness-audit.mjs --ci` (exit 1 on any byte-identical asset or DB image-column duplication). Static check runs even without DB creds.
+  - Open follow-up (not a duplicate — a *gap*): 620 `nonprofit_profiles` have no `logo_url` and 627 `profiles` have no avatar; these render placeholders, not dupes.
+
+- [x] **GOAL — Master health gates green** (2026-07-23, master `e8458d2`): `tsc --noEmit` clean, **936 tests pass (75 files)**, `next build` compiles. Verified after the seed-guard + tax + SEO/AEO (#53) + CSP (#55) merges.
+  - **Codex SEO/AEO/marketing engine confirmed done & on master** (via PR #53): `lib/seo.ts`, `lib/aeo.ts`, `AeoContent`, `MarketingTracker`, admin SEO/AEO UIs all present; prod DB has 17 `marketing_*` tables + 242 `aeo_entries`. The long-running `agent/seo-aeo-marketing-engine` branch is stale/superseded (217 behind, ~88 conflicts) — its work shipped via short-lived `codex/*` PR branches; do NOT bulk-merge it (would revert hardening).
+
 ### 2026-07-23 — Branch integration, security certification, and parity backfill
 
 - [x] **CHAR-0018 — Integrate all outstanding branch work** (`46fa5e4 → 4ba081b`)
