@@ -2065,3 +2065,6 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ### Session 2026-07-23 (Codex — mixed-currency tax integrity)
 - [x] Tax statement and fundraiser summary builders now reject mixed-currency totals instead of adding incompatible minor units; APIs return a clear `422 MIXED_CURRENCY` response.
 - [x] Added `currency=` filtering and printable statement links so donors can complete separate, accurate reports for each currency.
+### Session 2026-07-23 (Codex — nonce CSP hardening)
+- [x] Added per-request CSP nonces through middleware, nonce-protected theme/JSON-LD scripts, strict script policy, style-attribute compatibility, and preserved third-party embed framing. Browser header assertions now verify the nonce policy.
+- [x] Playwright now starts the production server itself, making the CSP browser verification reproducible without manual process setup.

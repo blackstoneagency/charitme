@@ -12,6 +12,7 @@ import { attachCampaignCurrencies } from '../../../lib/home-data';
 import { calculateTrustScore, getTrustSignals } from '../../../lib/ai-platform';
 import { buildCampaignTrustInput } from '../../../lib/trust-signals';
 import DonateButton from './DonateButton';
+import JsonLd from '../../../components/JsonLd';
 import ReportButton from './ReportButton';
 import ShareButtons from './ShareButtons';
 import DonationSuccess from './DonationSuccess';
@@ -399,9 +400,9 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
   return (
     <main className="public-campaign">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(campaignJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }} />
-      {faqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }} />}
+      <JsonLd json={safeJsonLd(campaignJsonLd)} />
+      <JsonLd json={safeJsonLd(breadcrumbJsonLd)} />
+      {faqJsonLd && <JsonLd json={safeJsonLd(faqJsonLd)} />}
       {justDonated && (
         <DonationSuccess
           campaignId={campaign.id}
