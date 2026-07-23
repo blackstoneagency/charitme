@@ -90,6 +90,14 @@ export default async function DonorPortalPage() {
 
   const totalGiven   = donations.filter(d => d.status === 'completed').reduce((s, d) => s + d.amount_cents, 0);
   const totalTips    = donations.filter(d => d.status === 'completed').reduce((s, d) => s + (d.tip_cents ?? 0), 0);
+  const currentYear  = new Date().getUTCFullYear();
+  const taxYears = [...new Set(
+    donations
+      .filter(d => d.status === 'completed')
+      .map(d => new Date(d.created_at).getUTCFullYear()),
+  )].sort((a, b) => b - a);
+  // Always offer the current tax year even before the first gift lands.
+  if (!taxYears.includes(currentYear)) taxYears.unshift(currentYear);
   const activeRecurring = recurring.filter(r => r.status === 'active');
   const monthlyTotal = activeRecurring.reduce((s, r) => s + (r.cadence === 'monthly' ? r.amount_cents : 0), 0);
 
@@ -122,6 +130,33 @@ export default async function DonorPortalPage() {
             <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4, fontWeight: 700 }}>{s.label}</div>
           </div>
         ))}
+      </div>
+
+      {/* Tax statements — consolidated annual giving statements for filing */}
+      <div style={{ ...cardStyle, marginBottom: 28 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
+          <h2 style={{ fontSize: 16, fontWeight: 650, margin: 0 }}>Tax Statements</h2>
+        </div>
+        <p style={{ color: '#64748b', fontSize: 13, margin: '0 0 14px' }}>
+          Download a consolidated annual giving statement for your records, with a clear
+          tax-deductible vs. non-deductible breakdown.
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          {taxYears.map(y => (
+            <div key={y} style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--b1, #e8ecf4)', borderRadius: 'var(--r, 10px)', padding: '8px 12px' }}>
+              <Link href={`/donor/tax-statement/${y}`} style={{ fontSize: 13, fontWeight: 700, color: 'var(--violet, #6c35ff)', textDecoration: 'none' }}>
+                {y} statement
+              </Link>
+              <a
+                href={`/api/donor/tax-statement?year=${y}&format=csv`}
+                aria-label={`Download ${y} giving statement as CSV`}
+                style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3, #64748b)', textDecoration: 'none' }}
+              >
+                CSV ↓
+              </a>
+            </div>
+          ))}
+        </div>
       </div>
 
       <SavedCampaigns />

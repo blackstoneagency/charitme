@@ -1,0 +1,164 @@
+import Link from 'next/link';
+import { redirect, notFound } from 'next/navigation';
+import type { Metadata } from 'next';
+import { createClient } from '../../../../lib/supabase-server';
+import { supabaseAdmin } from '../../../../lib/supabase';
+import { formatCents } from '@shared/currencies';
+import { getDonorTaxStatement } from '../../../../lib/tax-server';
+import PrintButton from './PrintButton';
+
+export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Annual Giving Statement',
+  robots: { index: false, follow: false },
+};
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+export default async function TaxStatementPage({ params }: { params: Promise<{ year: string }> }) {
+  const { year: yearStr } = await params;
+  const year = parseInt(yearStr, 10);
+  if (!Number.isFinite(year) || year < 2000 || year > 2100) notFound();
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect(`/login?next=/donor/tax-statement/${yearStr}`);
+
+  const [{ statement }, profileRes] = await Promise.all([
+    getDonorTaxStatement(user.id, year),
+    supabaseAdmin.from('profiles').select('full_name').eq('id', user.id).single(),
+  ]);
+  const donorName = (profileRes.data as { full_name: string | null } | null)?.full_name ?? user.email ?? 'Donor';
+  const { totals, lines, organizations, currency } = statement;
+
+  const line: React.CSSProperties = { borderBottom: '1px solid var(--b1, #e8ecf4)' };
+  const th: React.CSSProperties = { textAlign: 'left', padding: '8px 10px', fontSize: 11, fontWeight: 800, color: 'var(--t3, #64748b)', textTransform: 'uppercase', letterSpacing: '.04em' };
+  const td: React.CSSProperties = { padding: '9px 10px', fontSize: 13, color: 'var(--t1, #0e0520)', verticalAlign: 'top' };
+
+  return (
+    <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 24px' }}>
+      {/* Toolbar (not printed) */}
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        <Link href="/donor" style={{ fontSize: 13, fontWeight: 700, color: 'var(--violet, #6c35ff)', textDecoration: 'none' }}>← Back to giving history</Link>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <a
+            href={`/api/donor/tax-statement?year=${year}&format=csv`}
+            style={{ fontSize: 13, fontWeight: 700, color: 'var(--violet, #6c35ff)', textDecoration: 'none', border: '1px solid var(--b2, #d7ddea)', borderRadius: 'var(--r, 10px)', padding: '8px 16px' }}
+          >
+            Download CSV
+          </a>
+          <PrintButton />
+        </div>
+      </div>
+
+      {/* Statement */}
+      <div style={{ background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 16, padding: 32 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--t1, #0e0520)' }}>CharitMe</div>
+            <div style={{ fontSize: 13, color: 'var(--t3, #64748b)' }}>Annual Giving Statement</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--violet, #6c35ff)' }}>{year}</div>
+            <div style={{ fontSize: 12, color: 'var(--t3, #64748b)' }}>Tax year (Jan 1 – Dec 31)</div>
+          </div>
+        </div>
+
+        <div style={{ fontSize: 13, color: 'var(--t2, #334155)', marginBottom: 24 }}>
+          Prepared for <strong>{donorName}</strong>
+        </div>
+
+        {/* Summary cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 28 }}>
+          {[
+            { label: 'Total given', value: formatCents(totals.totalGiftCents, currency), color: 'var(--t1, #0e0520)' },
+            { label: 'Tax-deductible', value: formatCents(totals.deductibleCents, currency), color: 'var(--green, #12a653)' },
+            { label: 'Non-deductible', value: formatCents(totals.nonDeductibleCents, currency), color: 'var(--t3, #64748b)' },
+          ].map((s) => (
+            <div key={s.label} style={{ border: '1px solid var(--b1, #e8ecf4)', borderRadius: 12, padding: '14px 16px', textAlign: 'center' }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3, #94a3b8)', marginTop: 3 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {totals.donationCount === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--t3, #64748b)', fontSize: 14 }}>
+            No completed donations recorded for {year}.
+          </div>
+        ) : (
+          <>
+            {/* Deductible-by-organization block */}
+            {organizations.length > 0 && (
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t3, #64748b)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 8 }}>Tax-deductible gifts by organization</div>
+                {organizations.map((o) => (
+                  <div key={`${o.name}-${o.ein ?? ''}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', ...line }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1, #0e0520)' }}>{o.name}</div>
+                      {o.ein && <div style={{ fontSize: 11, color: 'var(--t3, #64748b)' }}>EIN {o.ein}</div>}
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--green, #12a653)' }}>{formatCents(o.deductibleCents, currency)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Itemized donations */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--b1, #e8ecf4)' }}>
+                    <th style={th}>Date</th>
+                    <th style={th}>Receipt #</th>
+                    <th style={th}>Campaign / Organization</th>
+                    <th style={{ ...th, textAlign: 'right' }}>Amount</th>
+                    <th style={{ ...th, textAlign: 'center' }}>Deductible</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lines.map((l) => (
+                    <tr key={l.id} style={line}>
+                      <td style={{ ...td, whiteSpace: 'nowrap' }}>{fmtDate(l.date)}</td>
+                      <td style={{ ...td, fontFamily: 'var(--mono, monospace)', fontSize: 11, color: 'var(--t3, #64748b)' }}>{l.receiptNumber}</td>
+                      <td style={td}>
+                        <div style={{ fontWeight: 600 }}>{l.campaignTitle}</div>
+                        {l.organization && <div style={{ fontSize: 11, color: 'var(--t3, #64748b)' }}>{l.organization}{l.ein ? ` · EIN ${l.ein}` : ''}</div>}
+                      </td>
+                      <td style={{ ...td, textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>{formatCents(l.amountCents, l.currency)}</td>
+                      <td style={{ ...td, textAlign: 'center' }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: l.deductible ? 'var(--green, #12a653)' : 'var(--t3, #94a3b8)' }}>{l.deductible ? 'Yes' : 'No'}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* Legal disclosure */}
+        <div style={{ marginTop: 28, paddingTop: 18, borderTop: '1px solid var(--b1, #e8ecf4)', fontSize: 11, lineHeight: 1.6, color: 'var(--t3, #64748b)' }}>
+          <p style={{ margin: '0 0 8px' }}>
+            <strong>Tax-deductibility:</strong> Only gifts to campaigns operated by a registered, verified
+            nonprofit with tax receipts enabled are marked deductible above; the organization&apos;s legal
+            name and EIN are shown for those gifts. Contributions to personal fundraisers are personal
+            gifts and are <strong>not</strong> tax-deductible.
+          </p>
+          <p style={{ margin: '0 0 8px' }}>
+            No goods or services were provided in exchange for the contributions listed, except as may be
+            noted by the receiving organization. Platform tips to CharitMe are not charitable contributions
+            and are excluded from the deductible total.
+          </p>
+          <p style={{ margin: 0 }}>
+            This statement is provided for your records and is not tax advice. Consult a qualified tax
+            professional and retain your own records. Generated {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
