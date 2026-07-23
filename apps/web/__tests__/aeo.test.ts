@@ -161,7 +161,7 @@ describe('AEO route normalization', () => {
   it('keeps public rendering fail-open when SEO/AEO storage is unavailable', () => {
     const seoSource = readFileSync(resolve(__dirname, '../lib/seo.ts'), 'utf8');
     const aeoSource = readFileSync(resolve(__dirname, '../lib/aeo.ts'), 'utf8');
-    expect(seoSource).toContain('catch {\n    return null;');
-    expect(aeoSource).toContain('catch {\n      return [];');
+    expect(seoSource).toMatch(/catch\s*\{\s*return null;/);
+    expect(aeoSource).toMatch(/catch\s*\{\s*return \[\];/);
   });
 });

@@ -24,7 +24,7 @@ describe('campaign media metadata synchronization contract', () => {
     const source = await import('node:fs/promises');
     const route = await source.readFile(new URL('../app/api/upload/campaign-image/route.ts', import.meta.url), 'utf8');
     expect(route).toContain(".from('campaign_media').insert({");
-    expect(route).toContain(".from('campaign_media')\n    .delete()");
+    expect(route).toMatch(/\.from\('campaign_media'\)\s*\.delete\(\)/);
     expect(route).toContain('The file uploaded, but its campaign media metadata could not be stored.');
     expect(route).toContain('The file was removed, but its campaign media metadata could not be removed.');
   });
@@ -86,7 +86,8 @@ describe('campaign builder media failure contract', () => {
     const page = await source.readFile(new URL('../app/create/page.tsx', import.meta.url), 'utf8');
     expect(page).toContain("if (typeof data.url !== 'string' || typeof data.path !== 'string')");
     expect(page).toContain("if (!res.ok) throw new Error(typeof data?.error === 'string' ? data.error : 'Image could not be removed.')");
-    expect(page).toContain('return;\n      }\n    }\n    setUploadedImages');
+    expect(page).toMatch(/setUploadError\(e instanceof Error \? e\.message : 'Image could not be removed\.'\);\s*return;/s);
+    expect(page).toContain('setUploadedImages(prev => prev.filter(i => i.id !== img.id));');
   });
 });
 
