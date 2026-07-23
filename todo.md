@@ -654,6 +654,12 @@ tests/build/live-HTTP are listed here.
   the remaining modal-backdrop `click-events` warnings are legitimate (Esc +
   focusable close button cover keyboard). _Evidence: 901/901 tests, 0 lint errors._
 ### Session 2026-07-23 (Claude — feature end-to-end audits)
+- **Donate flow double-charge protection — verified** — the primary money path
+  (`DonateButton` → `/api/donations`): submit button is `disabled={loading}`
+  (client-side double-click guard), one-time donations send an `Idempotency-Key`
+  header (server-side dedup), and success hard-redirects to Stripe Checkout
+  (navigates away). Covered by `payment-flow.test.ts` + `donation-guest-flow.test.ts`.
+  No double-submit / double-charge gap.
 - **Loyalty / gamification — already well-tested (verified)** — `gamification.test.ts`
   has **17 tests** covering `getGivingLevel` (giving tiers, the loyalty ladder used
   on `/achievements`), `computeMonthlyStreak` (donor streaks), and every
