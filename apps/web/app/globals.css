@@ -1312,11 +1312,11 @@ img, video, iframe { max-width: 100%; }
 .kf-messages { display: grid; grid-template-columns: 370px minmax(0,1fr) 330px; gap: 20px; padding: 0 32px 32px; }
 .kf-inbox { overflow: hidden; }
 .kf-inbox .kf-search { width: calc(100% - 32px); margin: 16px; }
-.kf-inbox article { display: flex; align-items: center; gap: 14px; min-height: 82px; padding: 12px 18px; border-top: 1px solid #eef0f7; }
-.kf-inbox article.active { background: #f7f2ff; }
+.kf-inbox .kf-inbox-row { display: flex; align-items: center; gap: 14px; min-height: 82px; padding: 12px 18px; border-top: 1px solid #eef0f7; }
+.kf-inbox .kf-inbox-row.active { background: #f7f2ff; }
 .kf-inbox strong, .kf-inbox p { display: block; margin: 0; }
 .kf-inbox p { margin-top: 5px; color: #334064; font-size: 13px; }
-.kf-inbox article > span { margin-left: auto; min-width: 24px; height: 24px; display: grid; place-items: center; border-radius: 999px; background: #551cf2; color: #fff; font-size: 12px; font-weight: 700; }
+.kf-inbox .kf-inbox-row > span { margin-left: auto; min-width: 24px; height: 24px; display: grid; place-items: center; border-radius: 999px; background: #551cf2; color: #fff; font-size: 12px; font-weight: 700; }
 .kf-thread { display: flex; flex-direction: column; padding: 20px; }
 .kf-thread-head { display: flex; align-items: center; gap: 14px; padding-bottom: 20px; border-bottom: 1px solid #eef0f7; }
 .kf-thread-head h2 { margin: 0; font-size: 20px; }

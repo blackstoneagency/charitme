@@ -176,9 +176,14 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
         )}
 
         {field('Accept donations', 'Pause or resume donations without taking the campaign offline.',
-          <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div
+              role="switch"
+              tabIndex={0}
+              aria-checked={acceptDonations}
+              aria-label="Accept donations"
               onClick={() => setAcceptDonations(v => !v)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAcceptDonations(v => !v); } }}
               style={{
                 width: 44, height: 24, borderRadius: 99, cursor: 'pointer',
                 background: acceptDonations ? 'var(--violet)' : 'var(--b2)',
@@ -195,7 +200,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
               {acceptDonations ? 'Accepting donations' : 'Donations paused'}
             </span>
-          </label>,
+          </div>,
         )}
 
         <button
