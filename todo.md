@@ -2055,3 +2055,5 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
   environment diagnostics now require an admin session plus `?details=1`.
 ### Session 2026-07-23 (Codex — health diagnostic privacy)
 - [x] Removed raw Supabase error messages from admin health diagnostics and schema-reload responses; operators receive stable error codes without exposing backend details.
+### Session 2026-07-23 (Codex — profile persistence correctness)
+- [x] Fixed silent auth profile-sync failures: Supabase profile lookup/write errors now fail the sync request and OAuth callback instead of reporting a successful login with no `profiles` row.

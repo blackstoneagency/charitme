@@ -80,7 +80,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  await ensureUserProfile(user);
+  try {
+    await ensureUserProfile(user);
+  } catch {
+    const loginUrl = new URL('/login', origin);
+    loginUrl.searchParams.set('error', 'Your account could not be prepared. Please try again.');
+    return NextResponse.redirect(loginUrl);
+  }
 
   return redirectResponse;
 }
