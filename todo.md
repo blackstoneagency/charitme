@@ -643,6 +643,10 @@ tests/build/live-HTTP are listed here.
   the remaining modal-backdrop `click-events` warnings are legitimate (Esc +
   focusable close button cover keyboard). _Evidence: 901/901 tests, 0 lint errors._
 ### Session 2026-07-23 (Claude — feature end-to-end audits)
+- **Referrals growth feature — verified + tested** — `getReferralTier` (personal
+  `?ref=` link → 5-tier rewards: Connector→Champion) now has **7 unit tests**
+  (`referrals.test.ts`): boundaries, highest-tier selection, fractional progress,
+  top-tier cap, negative-input clamp, within-tier monotonicity. Logic correct.
 - **Integrations connect/disconnect — verified sound** — reviewed `/api/
   integrations` (GET/POST) + `/api/integrations/[id]` (DELETE/PATCH):
   all auth-guarded and **owner-scoped**; POST upserts with provider
