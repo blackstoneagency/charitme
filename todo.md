@@ -1980,3 +1980,7 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — admin AI triage accessibility)
 - Added Escape handling, explicit dialog semantics, and target-aware backdrop
   dismissal to the AI complaint resolver modal. Focused ESLint is clean.
+
+## Session 2026-07-23 (Codex — fraud scan accessibility)
+- Added Escape handling and explicit dialog semantics to the AI fraud and misuse
+  monitor modal. Focused ESLint is clean.

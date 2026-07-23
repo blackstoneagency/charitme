@@ -1,6 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+
+function useEscape(onClose: () => void): void {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+}
 
 type FlaggedCampaign = {
   campaignId: string;
@@ -28,6 +38,7 @@ export default function RunFraudScanButton() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<ScanResult | null>(null);
+  useEscape(() => setOpen(false));
 
   async function handleClick() {
     setOpen(true);
@@ -60,11 +71,13 @@ export default function RunFraudScanButton() {
       </button>
 
       {open && (
+        // Backdrop dismissal is supplementary; Escape and the close button remain available.
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
         >
-          <div style={{ background: '#fff', borderRadius: 20, padding: 28, width: '100%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,.2)' }}>
+          <div role="dialog" aria-modal="true" aria-label="AI Fraud and Misuse Monitor" style={{ background: '#fff', borderRadius: 20, padding: 28, width: '100%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#1a1a2e' }}>✨ AI Fraud & Misuse Monitor</h2>
               <button type="button" onClick={() => setOpen(false)} style={{ border: 'none', background: 'transparent', fontSize: 18, cursor: 'pointer', color: '#94a3b8' }}>✕</button>
