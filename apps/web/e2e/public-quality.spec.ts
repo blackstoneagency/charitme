@@ -1,11 +1,14 @@
 import { expect, test } from '@playwright/test';
 
 const PUBLIC_ROUTES = [
-  '/', '/about-us', '/achievements', '/blog', '/campaigns', '/contact', '/faq',
-  '/features', '/fees', '/for-donors', '/for-individuals', '/for-nonprofits',
-  '/grants', '/help', '/how-it-works', '/offline', '/pricing', '/privacy',
-  '/refunds', '/security', '/success-stories', '/supported-countries', '/terms',
-  '/transparency', '/trust-safety', '/volunteer',
+  '/', '/about-us', '/achievements', '/ai-campaign', '/ai-fundraising', '/blog',
+  '/campaigns', '/campaigns/security-header-fixture/embed', '/contact', '/events',
+  '/faq', '/features', '/features/fundraising-core', '/fees', '/fast-payouts',
+  '/for-donors', '/for-individuals', '/for-nonprofits', '/grants', '/help',
+  '/how-it-works', '/leaderboard', '/matching', '/offline', '/pricing', '/privacy',
+  '/privacy-center', '/prohibited-use', '/refunds', '/security', '/sponsor',
+  '/success-stories', '/supported-countries', '/terms', '/transparency',
+  '/trust-safety', '/volunteer',
 ] as const;
 
 test('public routes meet baseline document accessibility', async ({ page }) => {

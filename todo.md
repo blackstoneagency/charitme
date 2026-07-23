@@ -2070,3 +2070,4 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 - [x] Playwright now starts the production server itself, making the CSP browser verification reproducible without manual process setup.
 ### Session 2026-07-23 (Codex — public route quality gate)
 - [x] Added desktop and mobile browser coverage for all 26 public routes, checking document language, named buttons/links, image alt text, and horizontal overflow.
+- [x] Expanded the same audit to 35 verified public product routes, including AI, events, matching, sponsor, leaderboard, feature detail, and campaign embed surfaces; desktop and mobile runs pass.
