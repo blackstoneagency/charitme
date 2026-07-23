@@ -4,6 +4,18 @@ These files populate every major **user-facing feature** with **120 rows each** 
 you can fully exercise the platform (lists, filters, pagination, dashboards,
 admin consoles) against realistic volume.
 
+## Safety gate
+
+These are demo/staging fixtures, not production data. Before running them, set an
+explicit session flag in the SQL editor or `psql` connection:
+
+```sql
+set app.charitme_allow_demo_seed = 'true';
+```
+
+Run them only against a disposable staging/demo project. The JavaScript seed
+scripts require `CHARITME_ALLOW_DEMO_SEED=true` and refuse `NODE_ENV=production`.
+
 They are written for the **Supabase SQL editor** (or `psql`). They use the
 service/`postgres` role, so RLS does not block the inserts.
 

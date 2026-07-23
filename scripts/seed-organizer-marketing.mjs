@@ -6,6 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
+import { assertDemoSeedAllowed } from './seed-guard.mjs';
 
 const root = process.cwd();
 function loadEnvLocal() {
@@ -18,6 +19,7 @@ function loadEnvLocal() {
   return env;
 }
 const env = loadEnvLocal();
+assertDemoSeedAllowed({ ...env, ...process.env });
 const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 const rand = (n) => Math.floor(Math.random() * n);

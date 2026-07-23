@@ -11,6 +11,7 @@
     "build": "npm run build --workspace=apps/web",
     "typecheck": "npm run typecheck --workspace=apps/web",
     "db:audit:seed": "node scripts/audit-seed-coverage.mjs",
+    "test:seed-guard": "node --test scripts/seed-guard.test.mjs",
     "schema:snapshot": "node scripts/schema-snapshot.mjs",
     "provision": "node scripts/provision-supabase-vercel.mjs"
   },
