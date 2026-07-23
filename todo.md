@@ -618,14 +618,16 @@ tests/build/live-HTTP are listed here.
   these dashboard fixes). Remaining 79 are admin sibling-`<label>`/input pairs
   (single trusted operator, visually adjacent, functional) — tracked P3 polish.
   _Evidence: 901/901 tests, typecheck clean._
-- **A11y admin label associations (in progress)** — resolving the genuine
-  sibling-`<label>`/input WCAG gaps in admin forms with `htmlFor`/`id`. Done:
-  **SEO/AEO overrides** (13), **AdminGrantsClient** (14), **AdminCountriesClient**
-  (7), **DonationsClient** (7), **AdminUsersClient** (11), **PayoutsClient** (2),
-  **UsersClient** (1), **ContentClient** (1). Progress **81 → 23** warnings.
-  Remaining: **AdminCampaignsClient** (22, large file — next) + 1 SystemClient
-  toggle (needs a label threaded through ~10 callers). _Evidence: 901/901 tests,
-  typecheck clean per file._
+- **A11y admin label associations — ✅ COMPLETE (81 → 0)** — resolved every
+  genuine sibling-`<label>`/control WCAG gap across the admin console with
+  `htmlFor`/`id` (or `aria-label` for icon-only search boxes / switches / radio
+  groups, or `<div>` for read-only captions mis-marked as `<label>`): SEO/AEO
+  (13), AdminGrantsClient (14), AdminCountriesClient (7), DonationsClient (7),
+  AdminUsersClient (11), PayoutsClient (2), UsersClient (1), ContentClient (1),
+  **AdminCampaignsClient (22)**, **SystemClient (1, Toggle label prop threaded
+  through 10 callers)**. **Sitewide `label-has-associated-control` = 0.** Every
+  form control now has a programmatically associated accessible name. _Evidence:
+  901/901 tests, typecheck clean, `next build` green, 0 lint a11y warnings._
 
 ### Session 2026-07-23 (Claude — performance + feature-logic verification)
 - **Performance (bundle audit)** — reviewed `next build` route sizes: shared
