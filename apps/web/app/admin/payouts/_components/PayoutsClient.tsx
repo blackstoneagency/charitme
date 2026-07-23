@@ -159,7 +159,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ marginLeft: 'auto', width: 500, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginLeft: 'auto', width: 500, maxWidth: '100vw', background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 17, fontWeight: 700, color: '#0f0f30' }}>{payout.recipient_name}</div>

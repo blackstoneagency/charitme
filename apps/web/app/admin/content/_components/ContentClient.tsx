@@ -131,7 +131,7 @@ function EditModal({ item, onClose, onSaved }: { item: ContentRecord; onClose: (
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ width: 560, background: '#fff', borderRadius: 16, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
+      <div style={{ width: 560, maxWidth: 'calc(100vw - 32px)', background: '#fff', borderRadius: 16, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Edit Content</h2>
           <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5' }}>×</button>
@@ -182,7 +182,7 @@ function DeleteModal({ item, onClose, onDeleted }: { item: ContentRecord; onClos
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ width: 420, background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 24px 80px rgba(20,20,80,.18)' }}>
+      <div style={{ width: 420, maxWidth: 'calc(100vw - 32px)', background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 24px 80px rgba(20,20,80,.18)' }}>
         <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: '#0f0f30' }}>Delete Content?</h2>
         <p style={{ margin: '0 0 4px', color: '#26335c', fontSize: 14 }}>
           <strong>&ldquo;{item.title || 'Untitled'}&rdquo;</strong>
@@ -217,7 +217,7 @@ function ContentDetailPanel({
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ marginLeft: 'auto', width: 520, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginLeft: 'auto', width: 520, maxWidth: '100vw', background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -343,7 +343,7 @@ function CreateContentWizard({
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ width: 520, background: '#fff', borderRadius: 18, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
+      <div style={{ width: 520, maxWidth: 'calc(100vw - 32px)', background: '#fff', borderRadius: 18, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#0f0f30' }}>Create Campaign Update</div>
