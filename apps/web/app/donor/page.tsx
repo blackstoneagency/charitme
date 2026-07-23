@@ -6,6 +6,8 @@ import { formatCents } from '../../lib/stripe';
 import RecommendedCampaigns from './RecommendedCampaigns';
 import SavedCampaigns from './SavedCampaigns';
 import DonationHistoryList from './DonationHistoryList';
+import TaxReportPanel from './TaxReportPanel';
+import { buildTaxReportRecords, type TaxDonationSource } from '../../lib/tax-report';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,8 +62,23 @@ export default async function DonorPortalPage() {
     .eq('donor_id', user.id)
     .order('created_at', { ascending: false });
 
+  const currentTaxYear = new Date().getUTCFullYear();
+  const { data: taxDonationData } = await supabaseAdmin
+    .from('donations')
+    .select('id, amount_cents, tip_cents, processing_fee_cents, currency, status, created_at, campaign_id, campaigns(title, nonprofit_verified)')
+    .eq('donor_id', user.id)
+    .in('status', ['completed', 'refunded'])
+    .gte('created_at', `${currentTaxYear}-01-01T00:00:00.000Z`)
+    .lt('created_at', `${currentTaxYear + 1}-01-01T00:00:00.000Z`)
+    .order('created_at', { ascending: false });
+
   const donations  = (donationData  ?? []) as DonationRow[];
   const recurring  = (recurringData ?? []) as RecurringRow[];
+  const taxRecords = buildTaxReportRecords((taxDonationData ?? []) as unknown as TaxDonationSource[], []);
+  const deductibleByCurrency = taxRecords.reduce<Record<string, number>>((totals, receipt) => {
+    totals[receipt.currency] = (totals[receipt.currency] ?? 0) + receipt.tax_deductible_amount_cents;
+    return totals;
+  }, {});
 
   const cids = [...new Set([
     ...donations.map(d => d.campaign_id),
@@ -126,6 +143,12 @@ export default async function DonorPortalPage() {
 
       <SavedCampaigns />
       <RecommendedCampaigns />
+
+      <TaxReportPanel
+        currentYear={currentTaxYear}
+        receiptCount={taxRecords.length}
+        deductibleByCurrency={deductibleByCurrency}
+      />
 
       {/* Recurring donations */}
       {recurring.length > 0 && (

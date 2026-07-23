@@ -97,6 +97,11 @@ export async function POST(req: NextRequest) {
     donationDate,
   });
 
+  await supabaseAdmin
+    .from('tax_receipts')
+    .update({ emailed_at: new Date().toISOString() })
+    .eq('donation_id', donationId);
+
   // Audit log
   try {
     await supabaseAdmin.from('audit_logs').insert({

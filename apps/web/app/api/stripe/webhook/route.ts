@@ -1411,6 +1411,12 @@ async function sendDonorReceipt(
         amountFormatted,
         donationId,
       });
+      if (donationId) {
+        await supabaseAdmin
+          .from('tax_receipts')
+          .update({ emailed_at: new Date().toISOString() })
+          .eq('donation_id', donationId);
+      }
     }
   } catch {
     // Non-fatal — receipt failure must not fail webhook

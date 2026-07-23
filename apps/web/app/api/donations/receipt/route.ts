@@ -58,5 +58,10 @@ export async function POST(request: NextRequest) {
     donationId: don.id,
   });
 
+  await supabaseAdmin
+    .from('tax_receipts')
+    .update({ emailed_at: new Date().toISOString() })
+    .eq('donation_id', don.id);
+
   return NextResponse.json({ ok: true });
 }
