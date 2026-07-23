@@ -33,7 +33,7 @@ export async function PATCH(request: NextRequest) {
   const { error } = existing
     ? await supabaseAdmin.from('platform_settings').update({ config: nextConfig }).eq('id', 1)
     : await supabaseAdmin.from('platform_settings').insert({ id: 1, config: nextConfig });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   await logSuperAdminAction(guard.user.id, 'settings.update', 'platform_settings', null, { keys: Object.keys(parsed.data) });
   return NextResponse.json({ ok: true, config: nextConfig });

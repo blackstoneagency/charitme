@@ -29,7 +29,7 @@ export async function GET(
 
   if (error) {
     return NextResponse.json(
-      { error: error.message },
+      { error: 'Internal server error', code: 'INTERNAL_ERROR' },
       { status: error.code === 'PGRST116' ? 404 : 500 },
     );
   }
@@ -147,7 +147,7 @@ export async function PATCH(
     .select('id, status, notes, is_spam, receipt_sent_at, refunded_at, refund_reason')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   await supabaseAdmin
     .from('audit_logs')

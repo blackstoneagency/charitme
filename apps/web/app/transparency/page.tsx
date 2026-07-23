@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { safeJsonLd } from '../../lib/json-ld';
 import MoneyCalculator from './MoneyCalculator';
+import JsonLd from '../../components/JsonLd';
 
 export const metadata: Metadata = {
   title: 'Transparency Center — Where Your Money Goes | CharitMe',
@@ -53,7 +54,7 @@ export default function TransparencyPage() {
 
   return (
     <div className="pub-page simple-public legal-page">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqLd) }} />
+      <JsonLd json={safeJsonLd(faqLd)} />
 
       <section>
         <div className="pub-breadcrumb">

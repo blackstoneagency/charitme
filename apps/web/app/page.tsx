@@ -6,6 +6,7 @@ import { safeJsonLd } from '../lib/json-ld';
 import { getHomeData, getCategoryStats, getRecentDonations, profileName } from '../lib/home-data';
 import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
 import CampaignImage from '../components/CampaignImage';
+import JsonLd from '../components/JsonLd';
 import { formatMoneyCompact } from '@shared/currencies';
 import { AiSearch, CountUp, Reveal } from './home-parts';
 
@@ -191,7 +192,7 @@ export default async function HomePage() {
 
   return (
     <div className="home">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
+      <JsonLd json={safeJsonLd(jsonLd)} />
 
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
       <section className="home-hero" aria-labelledby="home-hero-title">

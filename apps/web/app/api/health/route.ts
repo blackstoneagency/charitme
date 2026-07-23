@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyAdmin } from '../admin/users/_auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 
-// GET /api/health — connectivity + table counts
-export async function GET() {
+// GET /api/health — public liveness; append ?details=1 for admin diagnostics.
+export async function GET(request: NextRequest) {
+  const details = new URL(request.url).searchParams.get('details') === '1';
+  if (!details) return NextResponse.json({ status: 'ok', ts: Date.now() });
+
+  const user = await verifyAdmin();
+  if (!user) return NextResponse.json({ error: 'Forbidden', code: 'ADMIN_REQUIRED' }, { status: 403 });
+
   const checks: Record<string, unknown> = { ts: Date.now(), status: 'ok' };
 
   try {
@@ -17,9 +24,9 @@ export async function GET() {
     ]);
 
     checks.supabase  = 'connected';
-    checks.profiles  = e1 ? `error: ${e1.code ?? ''} ${e1.message ?? ''}`.trim() : profileCount;
-    checks.campaigns = e2 ? `error: ${e2.code ?? ''} ${e2.message ?? ''}`.trim() : campaignCount;
-    checks.donations = e3 ? `error: ${e3.code ?? ''} ${e3.message ?? ''}`.trim() : donationCount;
+    checks.profiles  = e1 ? { status: 'error', code: e1.code ?? 'QUERY_FAILED' } : profileCount;
+    checks.campaigns = e2 ? { status: 'error', code: e2.code ?? 'QUERY_FAILED' } : campaignCount;
+    checks.donations = e3 ? { status: 'error', code: e3.code ?? 'QUERY_FAILED' } : donationCount;
 
     // Diagnose PostgREST schema cache issue:
     // tables exist in DB but PostgREST can't see them → PGRST error or empty message
@@ -59,8 +66,9 @@ export async function GET() {
       resendKey:           process.env.RESEND_API_KEY ? 'set (optional)' : 'not set (optional)',
       appUrl:              process.env.NEXT_PUBLIC_APP_URL ?? 'not set (using fallback)',
     };
-  } catch (err) {
-    checks.supabase = `error: ${err instanceof Error ? err.message : String(err)}`;
+  } catch {
+    checks.supabase = 'error';
+    checks.errorCode = 'SUPABASE_UNAVAILABLE';
   }
 
   const isHealthy = checks.supabase === 'connected';
@@ -70,6 +78,9 @@ export async function GET() {
 // POST /api/health — force PostgREST schema cache reload
 // This fixes the "tables exist but queries fail" issue after schema migrations.
 export async function POST(_req: NextRequest) {
+  const user = await verifyAdmin();
+  if (!user) return NextResponse.json({ error: 'Forbidden', code: 'ADMIN_REQUIRED' }, { status: 403 });
+
   const ref   = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').match(/https?:\/\/([^.]+)\.supabase\.co/)?.[1];
   const token = process.env.SUPABASE_ACCESS_TOKEN;
 
@@ -127,9 +138,9 @@ export async function POST(_req: NextRequest) {
     message: (!e1 && !e2 && !e3)
       ? 'PostgREST schema cache reloaded. All tables now accessible.'
       : 'Cache reload attempted. Tables may need another moment.',
-    profiles:  e1 ? `error: ${e1.code} ${e1.message}` : profileCount,
-    campaigns: e2 ? `error: ${e2.code} ${e2.message}` : campaignCount,
-    donations: e3 ? `error: ${e3.code} ${e3.message}` : donationCount,
+    profiles:  e1 ? { status: 'error', code: e1.code ?? 'QUERY_FAILED' } : profileCount,
+    campaigns: e2 ? { status: 'error', code: e2.code ?? 'QUERY_FAILED' } : campaignCount,
+    donations: e3 ? { status: 'error', code: e3.code ?? 'QUERY_FAILED' } : donationCount,
     ts: Date.now(),
   });
 }

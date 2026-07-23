@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 import './globals.css';
 import { AppShell } from '../components/AppShell';
 import { getActiveAnnouncements } from '../lib/announcements-data';
@@ -38,9 +39,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Cached (ISR) fetch — keeps the layout statically generated while putting the
   // banner in the initial HTML so it never injects post-hydration (no layout shift).
   const initialAnnouncements = await getActiveAnnouncements();
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
   return (
     <html lang="en" suppressHydrationWarning>
-      <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
+      <head><script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
       <body>
         <ThemeProvider>
           {/* Watches for session expiry and signs out when the browser closes */}

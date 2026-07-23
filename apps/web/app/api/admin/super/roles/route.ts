@@ -29,7 +29,7 @@ export async function PATCH(request: NextRequest) {
     .from('profiles')
     .update({ roles: finalRoles })
     .eq('id', userId);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   await logSuperAdminAction(guard.user.id, 'roles.update', 'profile', userId, { roles: finalRoles });
   return NextResponse.json({ ok: true, roles: finalRoles });

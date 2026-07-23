@@ -1621,7 +1621,7 @@ Verified · Production Ready. These are grounded in the current codebase
 
 ### Platform hardening (from open items)
 
-- [ ] **CHAR-1401**
+- [x] **CHAR-1401** — **Nonce-based CSP shipped (2026-07-23)**; production build and browser tests verify the policy, embed exception, and nonce-protected JSON-LD on public pages. Commit `8faa777` on `codex/seed-guard`.
   - Area: Security
   - Feature: Full Content-Security-Policy with nonces (CHAR-O004)
   - Description: Add script-src/style-src CSP using a per-request nonce injected
@@ -2053,3 +2053,34 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — live campaign image audit)
 - Live HTTP audit passed for all 45 campaign image URLs; static catalog and SQL
   migration IDs remain unique across 18 categories.
+
+## Session 2026-07-23 (Codex — public mutation error hygiene)
+- Public mutation coverage now verifies rate limiting and blocks raw backend
+  error text; `/api/share-events` returns a stable generic error contract.
+
+## Session 2026-07-23 (Codex — API error contract)
+- Normalized raw Supabase errors across API route responses to stable generic
+  500 contracts and added a repository-wide regression test.
+- Also sanitized OAuth redirect errors and support-seed batch diagnostics.
+
+## Session 2026-07-23 (Codex — health endpoint privacy)
+- Kept `/api/health` publicly liveness-only; exact database counts and
+  environment diagnostics now require an admin session plus `?details=1`.
+### Session 2026-07-23 (Codex — health diagnostic privacy)
+- [x] Removed raw Supabase error messages from admin health diagnostics and schema-reload responses; operators receive stable error codes without exposing backend details.
+### Session 2026-07-23 (Codex — profile persistence correctness)
+- [x] Fixed silent auth profile-sync failures: Supabase profile lookup/write errors now fail the sync request and OAuth callback instead of reporting a successful login with no `profiles` row.
+- [x] Live Supabase verification: `newworldventurellc@gmail.com` exists in `auth.users` and has one linked `profiles` row; the previously reported `@google.com` and misspelled `newwolrdventuresllc@gmail.com` addresses do not exist in Auth.
+### Session 2026-07-23 (Codex — tax receipt integrity)
+- [x] Removed fabricated receipt numbers from annual donor statements; only official numbers persisted in `tax_receipts` are displayed or exported.
+### Session 2026-07-23 (Codex — tax export failure integrity)
+- [x] Tax exports now reject unsupported formats and return an explicit unavailable error when Supabase campaign, donation, receipt, or nonprofit queries fail instead of presenting incomplete reports.
+### Session 2026-07-23 (Codex — mixed-currency tax integrity)
+- [x] Tax statement and fundraiser summary builders now reject mixed-currency totals instead of adding incompatible minor units; APIs return a clear `422 MIXED_CURRENCY` response.
+- [x] Added `currency=` filtering and printable statement links so donors can complete separate, accurate reports for each currency.
+### Session 2026-07-23 (Codex — nonce CSP hardening)
+- [x] Added per-request CSP nonces through middleware, nonce-protected theme/JSON-LD scripts, strict script policy, style-attribute compatibility, and preserved third-party embed framing. Browser header assertions now verify the nonce policy.
+- [x] Playwright now starts the production server itself, making the CSP browser verification reproducible without manual process setup.
+### Session 2026-07-23 (Codex — public route quality gate)
+- [x] Added desktop and mobile browser coverage for all 26 public routes, checking document language, named buttons/links, image alt text, and horizontal overflow.
+- [x] Expanded the same audit to 35 verified public product routes, including AI, events, matching, sponsor, leaderboard, feature detail, and campaign embed surfaces; desktop and mobile runs pass.

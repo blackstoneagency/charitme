@@ -3,6 +3,7 @@ import { safeJsonLd } from "../../../lib/json-ld";
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PublicIcon } from '../../../components/PublicIcon';
+import JsonLd from '../../../components/JsonLd';
 import { BLOG_POSTS, getBlogPost, getAllBlogSlugs, type BlogBlock } from '../../../lib/blog-posts';
 
 const BASE = 'https://www.charitme.com';
@@ -72,8 +73,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   return (
     <div className="pub-page simple-public blog-post">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }} />
+      <JsonLd json={safeJsonLd(jsonLd)} />
+      <JsonLd json={safeJsonLd(breadcrumbJsonLd)} />
       <section className="blog-post-header">
         <div className="pub-breadcrumb">
           <Link href="/">Home</Link> <span>&gt;</span> <Link href="/blog">Blog</Link> <span>&gt;</span> <b>{post.title}</b>

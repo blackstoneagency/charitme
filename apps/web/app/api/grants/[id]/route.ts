@@ -22,7 +22,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     : query.eq('slug', id)
   ).maybeSingle();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   if (!data) return NextResponse.json({ error: 'Grant not found' }, { status: 404 });
 
   // Additional deadlines are public info about a public grant.

@@ -37,13 +37,13 @@ export async function POST(_request: NextRequest, { params }: Ctx) {
 
   if (existing) {
     const { error } = await supabaseAdmin.from('event_checkins').delete().eq('id', existing.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
     return NextResponse.json({ checked_in: false });
   }
 
   const { error } = await supabaseAdmin
     .from('event_checkins')
     .insert({ registration_id: id, event_id: reg.event_id, checked_in_by: user.id });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ checked_in: true });
 }

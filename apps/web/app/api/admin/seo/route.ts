@@ -22,7 +22,7 @@ export async function GET() {
   const admin = await verifyAdmin();
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { data, error } = await supabaseAdmin.from('seo_settings').select('*').order('route');
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json(data ?? []);
 }
 
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     ? await supabaseAdmin.from('seo_settings').update(row).eq('id', targetId).select().single()
     : await supabaseAdmin.from('seo_settings').insert(row).select().single();
 
-  if (result.error) return NextResponse.json({ error: result.error.message }, { status: 500 });
+  if (result.error) return NextResponse.json({ error: 'Unable to save SEO settings', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json(result.data);
 }
 
@@ -66,6 +66,6 @@ export async function DELETE(request: NextRequest) {
   const id = request.nextUrl.searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
   const { error } = await supabaseAdmin.from('seo_settings').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

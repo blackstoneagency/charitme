@@ -31,7 +31,7 @@ export async function PATCH(
 
   if (error) {
     if (error.code === 'PGRST116') return NextResponse.json({ error: 'Content not found.' }, { status: 404 });
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   }
 
   try {
@@ -63,7 +63,7 @@ export async function DELETE(
     .delete()
     .eq('id', id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   try {
     await supabaseAdmin.from('audit_logs').insert({

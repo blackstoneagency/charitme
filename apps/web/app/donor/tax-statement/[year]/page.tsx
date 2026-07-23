@@ -5,6 +5,7 @@ import { createClient } from '../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { formatCents } from '@shared/currencies';
 import { getDonorTaxStatement } from '../../../../lib/tax-server';
+import { MixedCurrencyError, type TaxStatement } from '../../../../lib/tax';
 import PrintButton from './PrintButton';
 
 export const dynamic = 'force-dynamic';
@@ -18,8 +19,9 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default async function TaxStatementPage({ params }: { params: Promise<{ year: string }> }) {
+export default async function TaxStatementPage({ params, searchParams }: { params: Promise<{ year: string }>; searchParams: Promise<{ currency?: string }> }) {
   const { year: yearStr } = await params;
+  const { currency: requestedCurrency } = await searchParams;
   const year = parseInt(yearStr, 10);
   if (!Number.isFinite(year) || year < 2000 || year > 2100) notFound();
 
@@ -27,11 +29,36 @@ export default async function TaxStatementPage({ params }: { params: Promise<{ y
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/donor/tax-statement/${yearStr}`);
 
-  const [{ statement }, profileRes] = await Promise.all([
-    getDonorTaxStatement(user.id, year),
-    supabaseAdmin.from('profiles').select('full_name').eq('id', user.id).single(),
-  ]);
-  const donorName = (profileRes.data as { full_name: string | null } | null)?.full_name ?? user.email ?? 'Donor';
+  let statement: TaxStatement;
+  let profileName: string | null = null;
+  try {
+    const [{ statement: loadedStatement }, profileRes] = await Promise.all([
+      getDonorTaxStatement(user.id, year, requestedCurrency),
+      supabaseAdmin.from('profiles').select('full_name').eq('id', user.id).single(),
+    ]);
+    statement = loadedStatement;
+    profileName = (profileRes.data as { full_name: string | null } | null)?.full_name ?? null;
+  } catch (error) {
+    if (error instanceof MixedCurrencyError) {
+      return (
+        <div style={{ maxWidth: 640, margin: '0 auto', padding: '64px 24px' }}>
+          <h1 style={{ fontSize: 24, margin: '0 0 10px' }}>Statement needs separate currencies</h1>
+          <p style={{ color: 'var(--t2, #334155)', lineHeight: 1.6, margin: 0 }}>
+            This year includes donations in more than one currency. CharitMe keeps those totals separate so your records stay accurate. Choose a currency to view its statement.
+          </p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
+            {error.currencies.map((code) => (
+              <Link key={code} href={`/donor/tax-statement/${year}?currency=${encodeURIComponent(code)}`} style={{ color: 'var(--violet, #6c35ff)', fontWeight: 700, textDecoration: 'none' }}>
+                View {code.toUpperCase()} statement
+              </Link>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    throw error;
+  }
+  const donorName = profileName ?? user.email ?? 'Donor';
   const { totals, lines, organizations, currency } = statement;
 
   const line: React.CSSProperties = { borderBottom: '1px solid var(--b1, #e8ecf4)' };

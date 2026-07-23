@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     .upsert(row, { onConflict: 'route' })
     .select('*')
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   await logSuperAdminAction(guard.user.id, 'seo.upsert', 'seo_settings', data.id, { route: parsed.data.route });
   return NextResponse.json({ ok: true, row: data });
@@ -43,7 +43,7 @@ export async function DELETE(request: NextRequest) {
   const id = new URL(request.url).searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
   const { error } = await supabaseAdmin.from('seo_settings').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   await logSuperAdminAction(guard.user.id, 'seo.delete', 'seo_settings', id, {});
   return NextResponse.json({ ok: true });
 }

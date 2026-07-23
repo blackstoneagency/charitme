@@ -15,7 +15,7 @@ import {
  * printable statement page so deductibility is computed identically in both.
  */
 export async function loadDonorTaxInputs(donorId: string): Promise<TaxDonationInput[]> {
-  const [{ data: rawDonations }, { data: rawReceipts }] = await Promise.all([
+  const [donationResult, receiptResult] = await Promise.all([
     supabaseAdmin
       .from('donations')
       .select('id, amount_cents, tip_cents, currency, status, created_at, campaign_id, campaigns:campaign_id(title, user_id)')
@@ -27,6 +27,9 @@ export async function loadDonorTaxInputs(donorId: string): Promise<TaxDonationIn
       .select('donation_id, receipt_number')
       .eq('donor_id', donorId),
   ]);
+  if (donationResult.error || receiptResult.error) throw new Error('TAX_DATA_UNAVAILABLE');
+  const { data: rawDonations } = donationResult;
+  const { data: rawReceipts } = receiptResult;
 
   type DonRow = {
     id: string;
@@ -48,10 +51,11 @@ export async function loadDonorTaxInputs(donorId: string): Promise<TaxDonationIn
   const ownerIds = [...new Set(donations.map((d) => d.campaigns?.user_id).filter(Boolean) as string[])];
   const nonprofitByOwner = new Map<string, NonprofitTaxInfo>();
   if (ownerIds.length > 0) {
-    const { data: nps } = await supabaseAdmin
+    const { data: nps, error: nonprofitError } = await supabaseAdmin
       .from('nonprofit_profiles')
       .select('owner_id, name, tax_id, verified, verification_status, tax_receipt_enabled')
       .in('owner_id', ownerIds);
+    if (nonprofitError) throw new Error('TAX_DATA_UNAVAILABLE');
     for (const np of (nps ?? []) as {
       owner_id: string; name: string; tax_id: string | null;
       verified: boolean; verification_status: string; tax_receipt_enabled: boolean;
@@ -69,7 +73,6 @@ export async function loadDonorTaxInputs(donorId: string): Promise<TaxDonationIn
   return donations.map((d) => {
     const ownerId = d.campaigns?.user_id;
     const nonprofit = ownerId ? nonprofitByOwner.get(ownerId) ?? null : null;
-    const y = new Date(d.created_at).getUTCFullYear();
     return {
       id: d.id,
       amountCents: d.amount_cents,
@@ -79,7 +82,7 @@ export async function loadDonorTaxInputs(donorId: string): Promise<TaxDonationIn
       createdAt: d.created_at,
       campaignId: d.campaign_id,
       campaignTitle: d.campaigns?.title ?? 'CharitMe campaign',
-      receiptNumber: receiptByDonation.get(d.id) ?? `RCP-${y}-${d.id.slice(0, 8).toUpperCase()}`,
+      receiptNumber: receiptByDonation.get(d.id) ?? null,
       nonprofit,
     };
   });
@@ -88,7 +91,11 @@ export async function loadDonorTaxInputs(donorId: string): Promise<TaxDonationIn
 export async function getDonorTaxStatement(
   donorId: string,
   year: number,
+  currency?: string,
 ): Promise<{ statement: TaxStatement; availableYears: number[] }> {
   const inputs = await loadDonorTaxInputs(donorId);
-  return { statement: buildTaxStatement(inputs, year), availableYears: donationYears(inputs) };
+  const selected = currency
+    ? inputs.filter((input) => (input.currency ?? 'usd').toLowerCase() === currency.toLowerCase())
+    : inputs;
+  return { statement: buildTaxStatement(selected, year), availableYears: donationYears(inputs) };
 }

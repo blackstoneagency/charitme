@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 
   if (error ?? !data.url) {
     const loginUrl = new URL('/login', origin);
-    loginUrl.searchParams.set('error', error?.message ?? `Could not initiate ${provider} sign-in`);
+    loginUrl.searchParams.set('error', `Could not initiate ${provider} sign-in`);
     return NextResponse.redirect(loginUrl);
   }
 

@@ -14,9 +14,8 @@ function metadataText(metadata: User['user_metadata'], key: string): string | nu
  *
  * Existing rows are never modified — profiles is the canonical store for
  * roles (admin suspend/promote writes there) and for user-edited fields
- * like full_name, so auth metadata must not overwrite it. Best-effort:
- * failures are logged, never thrown, so a profiles hiccup cannot break
- * login or every protected page.
+ * like full_name, so auth metadata must not overwrite it. Profile persistence
+ * is required, so failures are surfaced instead of reporting false success.
  */
 export async function ensureUserProfile(user: User): Promise<void> {
   const { data: existing, error: selectError } = await supabaseAdmin
@@ -27,8 +26,7 @@ export async function ensureUserProfile(user: User): Promise<void> {
 
   if (existing) return;
   if (selectError) {
-    console.error('[profile-sync] could not check profile:', selectError.message);
-    return;
+    throw new Error('PROFILE_SYNC_FAILED');
   }
 
   const metadata = user.user_metadata;
@@ -43,7 +41,7 @@ export async function ensureUserProfile(user: User): Promise<void> {
     }, { onConflict: 'id', ignoreDuplicates: true });
 
   if (insertError) {
-    console.error('[profile-sync] could not create profile:', insertError.message);
+    throw new Error('PROFILE_SYNC_FAILED');
   }
 }
 

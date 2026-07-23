@@ -4,6 +4,7 @@ import { createClient } from '../../../../lib/supabase-server';
 import { rowsToCsv } from '../../../../lib/csv';
 import { formatCents } from '@shared/currencies';
 import { getDonorTaxStatement } from '../../../../lib/tax-server';
+import { MixedCurrencyError } from '../../../../lib/tax';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,11 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url);
   const format = (url.searchParams.get('format') ?? 'json').toLowerCase();
+  if (format !== 'json' && format !== 'csv') {
+    return NextResponse.json({ error: 'Unsupported format', code: 'INVALID_FORMAT' }, { status: 400 });
+  }
   const yearParam = url.searchParams.get('year');
+  const currency = url.searchParams.get('currency')?.trim().toLowerCase() || undefined;
   const year = yearParam ? parseInt(yearParam, 10) : new Date().getUTCFullYear();
   if (!Number.isFinite(year) || year < 2000 || year > 2100) {
     return NextResponse.json({ error: 'Invalid year' }, { status: 400 });
@@ -28,8 +33,11 @@ export async function GET(req: NextRequest) {
 
   let statement, availableYears;
   try {
-    ({ statement, availableYears } = await getDonorTaxStatement(user.id, year));
-  } catch {
+    ({ statement, availableYears } = await getDonorTaxStatement(user.id, year, currency));
+  } catch (error) {
+    if (error instanceof MixedCurrencyError) {
+      return NextResponse.json({ error: 'This report contains multiple currencies. Select one currency and try again.', code: error.code, availableCurrencies: error.currencies }, { status: 422 });
+    }
     return NextResponse.json({ error: 'Failed to build statement' }, { status: 500 });
   }
 

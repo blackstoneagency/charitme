@@ -58,6 +58,6 @@ export async function POST(request: NextRequest) {
     .select('id, slug')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ id: data.id, slug: data.slug }, { status: 201 });
 }

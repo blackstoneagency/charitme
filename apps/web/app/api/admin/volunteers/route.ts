@@ -21,7 +21,7 @@ export async function GET() {
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ opportunities: data ?? [] });
 }
 
@@ -90,6 +90,6 @@ export async function POST(req: NextRequest) {
     .select(ADMIN_COLUMNS)
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ opportunity: data }, { status: 201 });
 }

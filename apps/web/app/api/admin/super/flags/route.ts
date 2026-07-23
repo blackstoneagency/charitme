@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     .single();
   if (error) {
     if (error.code === '23505') return NextResponse.json({ error: 'A flag with that key already exists.' }, { status: 409 });
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   }
   await logSuperAdminAction(guard.user.id, 'flag.create', 'feature_flags', data.id, { key: parsed.data.key });
   return NextResponse.json({ ok: true, row: data }, { status: 201 });
@@ -47,7 +47,7 @@ export async function PATCH(request: NextRequest) {
     .eq('id', id)
     .select('*')
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   await logSuperAdminAction(guard.user.id, 'flag.update', 'feature_flags', id, patch);
   return NextResponse.json({ ok: true, row: data });
 }
