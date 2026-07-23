@@ -561,6 +561,8 @@ Live-verified status of each goal criterion (master `9dc84c9`; two-bot split —
 | Frictionless UX | 🟢 Codex | draft autosave, loading skeletons, error boundaries, publish-before-payout |
 | todo.md updated / commit per feature | ✅ | this scorecard + per-audit commits |
 
+**Live client-side audit (browser, prod, 2026-07-23):** `/` and `/grants` → **0 console errors**; dark mode is the default (`data-theme=dark`, light text `rgb(226,232,248)` on dark — clearly readable); mobile 375px → **no horizontal overflow** (docScroll==vw, 0 offenders); grants feature renders real data (48 card links). Confirms Codex's dark-mode + mobile sweeps hold in production.
+
 **Owner action items (cannot be done from code):** (1) activate PayPal + Affirm in Stripe Dashboard; (2) provide Stripe **test-mode** keys to enable live transactional payment/payout/webhook verification; (3) optionally seed real nonprofit logos (620 lack one) + more user avatars (627 lack one) — these render placeholders, not duplicates.
 **Not merged:** `agent/seo-aeo-marketing-engine` (stale, 217 behind) — its work already shipped via PRs; do not bulk-merge.
 
