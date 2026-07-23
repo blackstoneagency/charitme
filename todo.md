@@ -1972,3 +1972,7 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — admin reports accessibility)
 - Added Escape handling and explicit dialog semantics to the report export modal;
   backdrop dismissal is target-aware without nested click traps. Focused ESLint is clean.
+
+## Session 2026-07-23 (Codex — admin sponsor image fallback)
+- Documented the intentional noninteractive image `onError` fallback exception;
+  focused ESLint is clean.
