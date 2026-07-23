@@ -209,7 +209,7 @@ export default async function HomePage() {
             </p>
 
             <div className="home-hero-cta">
-              <Link href="/ai-campaign" className="home-btn home-btn-primary">Create My Fundraiser Now!</Link>
+              <Link href="/create/choose-path" className="home-btn home-btn-primary">Create My Fundraiser Now!</Link>
               <Link href="/campaigns" className="home-btn home-btn-ghost">Donate Now <Icon name="arrow" className="hi" /></Link>
             </div>
 
