@@ -179,9 +179,11 @@ export default function ReportsClient({ reports, categories, totalReports, sched
 
           {/* Search + category filter */}
           <div style={{ padding: '0 20px 14px', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-            <label className="kf-search" style={{ width: 260, height: 44 }}>
+            <label htmlFor="reports-search" className="kf-search" style={{ width: 260, height: 44 }}>
+              <span className="sr-only">Search reports</span>
               <KFIcon name="search" />
               <input
+                id="reports-search"
                 placeholder="Search reports..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -250,9 +252,9 @@ export default function ReportsClient({ reports, categories, totalReports, sched
 
       {/* Export Modal */}
       {exportReport && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999 }} onClick={() => setExportReport(null)}>
-          <div style={{ width: 380, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800 }}>Export Report</h2>
+        <div role="dialog" aria-modal="true" aria-labelledby="reports-export-title" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999 }}>
+          <div style={{ width: 380, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }}>
+            <h2 id="reports-export-title" style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800 }}>Export Report</h2>
             <p style={{ margin: '0 0 20px', color: '#67718e', fontSize: 13 }}>{exportReport.name}</p>
             <div style={{ display: 'grid', gap: 10 }}>
               {(['CSV', 'Excel', 'PDF'] as const).map(fmt => (
