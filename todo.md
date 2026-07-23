@@ -604,6 +604,22 @@ tests/build/live-HTTP are listed here.
   the top-bar account menu. Also removed a now-unused `no-img-element`
   eslint-disable in `opengraph-image.tsx`. Lint warnings 92 → 87 (0 errors).
   _Evidence: typecheck clean, `eslint .` 0 errors, 919/919 tests, `next build` green._
+- **CHAR-F062 · home/hero (dynamic carousel + image bug)** — The homepage hero
+  spotlight rendered a **single static campaign** (`heroCampaign`) and its raw
+  `<img>` had **no fallback**, so a broken DB `cover_image_url` showed alt text
+  instead of the image (reported on the live site). Replaced it with a
+  **rotating "Featured Campaign" carousel** (`app/HeroSpotlightCarousel.tsx`)
+  that keeps the exact `home-spot` design and cycles through real Supabase
+  campaigns: auto-advance (6.5s) with crossfade, **pause on hover + keyboard
+  focus**, honors `prefers-reduced-motion`, prev/next + `role="tab"` dots, and an
+  `aria-live` slide announcement. Slides are built server-side from the
+  purpose-built rotator set (organizer names + live covers), falling back to the
+  top featured campaigns, de-duped and capped at 6; relative-time labels/funded%
+  precomputed server-side (no hydration drift). Cover `onError` falls back to the
+  deterministic category image — **fixes the broken-cover blank state**. New
+  light/dark carousel-control CSS + reusable `.sr-only`. ISR (revalidate=120)
+  keeps the seed fresh. _Evidence: typecheck clean, `eslint .` 0 errors, 921/921
+  tests, `next build` green. PR #56._
 - **CHAR-F060 · seo/noindex** — Personalized, auth-gated pages reachable at
   crawlable top-level URLs (`/achievements`, `/privacy-center`) were missing from
   the robots.txt disallow list; added them alongside the existing `/profile`,
