@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { formatMoneyShort } from '@shared/currencies';
@@ -20,6 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CampaignEmbedPage({ params }: Props) {
   const { slug } = await params;
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
   const { data: campaign } = await supabaseAdmin
     .from('campaigns')
     .select('id, slug, title, tagline, cover_image_url, raised_amount, goal_amount, backer_count, status, accept_donations, visibility')
@@ -48,7 +50,7 @@ export default async function CampaignEmbedPage({ params }: Props) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <style>{`
+        <style nonce={nonce}>{`
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; color: #1a1a2e; }
         `}</style>
