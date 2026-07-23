@@ -42,6 +42,11 @@ const ALLOWLIST = new Set([
   //   grant_deadlines             : gated on parent grant being visible
   'impact_plans', 'impact_plan_items', 'impact_updates', 'impact_evidence',
   'impact_metrics', 'matching_programs', 'grant_deadlines',
+  // Backfilled 2026-07-23 and gated by migration 20260728010000 to campaigns
+  // that are status='active' AND visibility='public' AND not deleted — i.e. the
+  // same gate as campaigns_public_read, so they expose nothing the public
+  // campaign page does not already show. (Verified: anon sees 350 of 500 rows.)
+  'creator_profiles', 'campaign_launch_settings',
 ]);
 
 function loadEnv() {

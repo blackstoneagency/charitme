@@ -538,6 +538,30 @@ assigned per-category, so every campaign in a category shared one identical cove
 
 # Section C — Completed (with evidence)
 
+### 2026-07-23 — Branch integration, security certification, and parity backfill
+
+- [x] **CHAR-0018 — Integrate all outstanding branch work** (`46fa5e4 → 4ba081b`)
+  - GitHub reported **0 open PRs** (52 closed / 49 merged) — earlier merges had already closed #51/#52. Remaining work lived on unmerged branches, so those were integrated instead.
+  - Merged `codex/seed-guard` (**21 commits**): nonce-based CSP, fail-closed tax exports, sanitized API error responses, hardened public-mutation rate limits, restricted health diagnostics, fail-closed on missing auth profiles, schema-drift reconcile, live RLS smoke harness, production security-header tests.
+  - **5 merge conflicts resolved in favour of the security-correct side.** Two were material financial fixes: (a) `tax-server.ts` previously destructured query results without checking `error`, so a failed query would still emit a tax statement from partial data — now throws `TAX_DATA_UNAVAILABLE`; (b) receipt numbers were fabricated (`RCP-2026-ABC…`) when absent — now `null`, since inventing a receipt number on a tax document is a compliance problem. Also kept the new nonce-CSP assertions in `security-headers.spec.ts`, since the pre-existing `toBe("frame-ancestors 'self'")` would have failed against the CSP shipping in the same merge.
+  - Gates: typecheck ✓, **935 tests** ✓ (from 921), `next build` ✓.
+  - **Verified live:** production CSP is now `default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'nonce-…'`; 200 on health, `/`, `/campaigns`, `/pricing`, `/grants`, `/volunteer`, volunteers API.
+  - **Not merged:** `agent/seo-aeo-marketing-engine` (102 ahead / 188 behind) — another session's actively-worked branch; needs its owner to rebase before it can be safely integrated.
+
+- [x] **CHAR-0019 — Fix admin-config data exposure + latent RLS recursion** (`34db04b`, migration `20260727000000_lock_down_admin_config_rls.sql`)
+  - `platform_settings` + `feature_flags` had `using (true)` public-read policies. Since the anon key ships to every browser, any visitor could read fee configuration, support contacts, `stripeLiveMode`, `maintenanceMode`, `allowNewRegistrations`, and **every feature flag including unreleased ones**. No credentials exposed. All 12 referencing files use `supabaseAdmin`, so lockdown was a no-op for the app.
+  - **Latent infinite RLS recursion:** `is_admin()` selects from `profiles`, whose SELECT policy is `(auth.uid() = id) OR is_admin()` → recursion → Postgres `54001`. Masked wherever a `using (true)` policy short-circuited the OR; it meant *any* table whose only applicable policy is `is_admin()` **errored instead of denying cleanly**. Fixed with `SECURITY DEFINER` + pinned `search_path`; predicate unchanged, so no privilege widened.
+  - **Bonus:** the recursion fix un-broke the public transparency surface — published `impact_plans`/`impact_updates` (+ items/evidence/metrics) previously errored for anonymous visitors, so donors could not see how funds were used.
+
+- [x] **CHAR-0020 — Anonymous-exposure certification + repeatable guard** (`46fa5e4`)
+  - `scripts/rls-anon-audit.mjs --ci` probes **all 144 public tables** with the browser anon key and fails on any table returning rows without a justified allowlist entry, or any table that errors instead of denying. Complements the existing `schema-rls.test.ts` (which checks policy *shape*) by checking actual **row visibility** — that guard missed the two tables above because it only classified financial/PII tables as sensitive.
+  - **Result: 144 tables probed, 0 unexpected exposure.** Every allowlist entry is annotated with the status/parent gate verified in `pg_policies`.
+
+- [x] **CHAR-0021 — Backfill `creator_profiles` + `campaign_launch_settings`** (migrations `20260728000000_backfill_parity_tables.sql`, `20260728010000_gate_parity_public_reads.sql`)
+  - Both tables were created with public-read policies but **0 rows**, while `campaign_launch_settings` is read by 10+ live routes (donations, recurring, analytics, settings, rewards, qr-poster, AI assistant) — every real campaign was falling back to implicit defaults.
+  - **Backfilled 1,000 records from real data, not fabricated seed data:** 500 `campaign_launch_settings` (one per live campaign, schema defaults since `campaigns` carries no currency/country column) and 500 `creator_profiles` (one per profile that actually owns a campaign, using real `full_name` / `avatar_url`). **`bio` deliberately left NULL rather than invented**, because `creator_profiles` is publicly readable on a live fundraising site. Verified: 500 distinct handles (zero collisions), 0 empty display names, and re-running the migration leaves counts at 500/500 (idempotent via unique indexes + `ON CONFLICT DO NOTHING`).
+  - **Security fix found while backfilling:** both tables carried blanket `using (true)` reads, inconsistent with `campaigns_public_read` (`status='active' AND visibility='public' AND deleted_at IS NULL`). Of 500 campaigns only 350 are publicly visible, so **150 rows — including 50 drafts — were anonymously readable**, letting anyone enumerate unpublished campaigns and their funding model / launch type / product stage. Now gated to the same predicate as `campaigns_public_read`. **Verified: anon 500 → 350; service role still 500/500** (owner/admin dashboards unaffected via the existing `*_owner_write` ALL policies). Re-audit: 0 unexpected exposure.
+
 - [x] Dark mode as default theme — commits `d32bb02`, `8267f29`; verified: `data-theme=dark` with no stored pref, light toggle preserved, no mobile overflow.
 - [x] Hero floating stat-card visibility nudge — commit `1f5a6fe`; verified: cards 78px inside viewport at 1360px, reset to `right:0` on mobile.
 - [x] Product TODO/roadmap from competitive audit — commit `54efa25`.
