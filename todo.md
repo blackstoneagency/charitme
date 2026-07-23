@@ -617,6 +617,12 @@ tests/build/live-HTTP are listed here.
   are correct (e.g. trust-flag resolve form POSTs and server-redirects back).
 - **Dashboard sign-out** — confirmed the shell TopBar renders working account
   controls (`ShellAccountControls`) on every dashboard page.
+- **Security — mutating-route auth sweep** — scanned every API route
+  exporting POST/PATCH/PUT/DELETE for an auth/admin/webhook/cron guard.
+  **Every mutating route is guarded**; the only two without a guard are
+  correct by design: `/api/auth/signout` (only clears cookies) and
+  `/api/trust-score` (a stateless score calculator, no DB access). Super-admin
+  routes verified using `guardSuperAdmin()`.
 - **Baseline** — 889/889 tests, typecheck clean, `next build` green, lint 0 errors.
 
 - **CHAR-F001 · trust/data** — Removed auto-seeding of 50 fabricated corporate
