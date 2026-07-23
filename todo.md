@@ -1976,3 +1976,7 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — admin sponsor image fallback)
 - Documented the intentional noninteractive image `onError` fallback exception;
   focused ESLint is clean.
+
+## Session 2026-07-23 (Codex — admin AI triage accessibility)
+- Added Escape handling, explicit dialog semantics, and target-aware backdrop
+  dismissal to the AI complaint resolver modal. Focused ESLint is clean.
