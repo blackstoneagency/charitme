@@ -580,6 +580,23 @@ Legend: **Built** = real page/route wired to Supabase exists and compiles;
 Format: `ID · area · what · evidence (commit)`. Only fixes verified by
 tests/build/live-HTTP are listed here.
 
+### Session 2026-07-23 (Claude, PR #50 — production hardening sweep)
+- **CHAR-F050 · auth/ux** — Repaired broken **Sign Out** on the Settings and
+  Profile pages: both linked to `/api/auth/signout` (POST-only) via a plain
+  `<Link>`/`<a>` GET nav → 405, so sign-out did nothing. Converted to
+  client-side POST buttons that hard-navigate to `/login` (making the route
+  GET-able was rejected — Next.js `<Link>` prefetch could sign users out
+  silently). _Evidence: 889 tests pass, typecheck clean; commit on PR #50._
+- **CHAR-F051 · settings/ux** — Wired the Notifications panel toggles to
+  persisted state. The email toggle used `NotifRow` (isolated local state) so
+  Save Changes always wrote the *initial* value; marketing had no UI toggle at
+  all despite `notification_marketing` column + API support. Now controlled +
+  persisted, with an accessible name on the switch. _Evidence: 889 tests pass._
+- **CHAR-F052 · faq/resilience** — Public FAQ called `supabaseAdmin` at
+  render/prerender with no guard; a missing env var or DB blip 500'd the page
+  (and broke a no-env build). Wrapped in try/catch → graceful fallback to the
+  hardcoded on-page FAQ content. _Evidence: `next build` green; 889 tests._
+
 - **CHAR-F001 · trust/data** — Removed auto-seeding of 50 fabricated corporate
   sponsors and 500 fabricated support tickets into the live DB on admin page
   visit (fake social proof on public homepage). Empty states + public sponsor
