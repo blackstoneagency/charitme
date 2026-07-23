@@ -2053,3 +2053,5 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — health endpoint privacy)
 - Kept `/api/health` publicly liveness-only; exact database counts and
   environment diagnostics now require an admin session plus `?details=1`.
+### Session 2026-07-23 (Codex — health diagnostic privacy)
+- [x] Removed raw Supabase error messages from admin health diagnostics and schema-reload responses; operators receive stable error codes without exposing backend details.

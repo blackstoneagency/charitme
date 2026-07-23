@@ -17,4 +17,11 @@ describe('health endpoint contract', () => {
   it('only exposes detailed diagnostics through the explicit details flag', () => {
     expect(source).toContain("searchParams.get('details') === '1'");
   });
+
+  it('does not return raw database error messages', () => {
+    expect(source).not.toMatch(/e[123]\? `error: \$\{e[123].*message/);
+    expect(source).toContain("{ status: 'error', code: e1.code ?? 'QUERY_FAILED' }");
+    expect(source).toContain("{ status: 'error', code: e2.code ?? 'QUERY_FAILED' }");
+    expect(source).toContain("{ status: 'error', code: e3.code ?? 'QUERY_FAILED' }");
+  });
 });

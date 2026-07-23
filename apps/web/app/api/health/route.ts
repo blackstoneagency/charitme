@@ -24,9 +24,9 @@ export async function GET(request: NextRequest) {
     ]);
 
     checks.supabase  = 'connected';
-    checks.profiles  = e1 ? `error: ${e1.code ?? ''} ${e1.message ?? ''}`.trim() : profileCount;
-    checks.campaigns = e2 ? `error: ${e2.code ?? ''} ${e2.message ?? ''}`.trim() : campaignCount;
-    checks.donations = e3 ? `error: ${e3.code ?? ''} ${e3.message ?? ''}`.trim() : donationCount;
+    checks.profiles  = e1 ? { status: 'error', code: e1.code ?? 'QUERY_FAILED' } : profileCount;
+    checks.campaigns = e2 ? { status: 'error', code: e2.code ?? 'QUERY_FAILED' } : campaignCount;
+    checks.donations = e3 ? { status: 'error', code: e3.code ?? 'QUERY_FAILED' } : donationCount;
 
     // Diagnose PostgREST schema cache issue:
     // tables exist in DB but PostgREST can't see them → PGRST error or empty message
@@ -138,9 +138,9 @@ export async function POST(_req: NextRequest) {
     message: (!e1 && !e2 && !e3)
       ? 'PostgREST schema cache reloaded. All tables now accessible.'
       : 'Cache reload attempted. Tables may need another moment.',
-    profiles:  e1 ? `error: ${e1.code} ${e1.message}` : profileCount,
-    campaigns: e2 ? `error: ${e2.code} ${e2.message}` : campaignCount,
-    donations: e3 ? `error: ${e3.code} ${e3.message}` : donationCount,
+    profiles:  e1 ? { status: 'error', code: e1.code ?? 'QUERY_FAILED' } : profileCount,
+    campaigns: e2 ? { status: 'error', code: e2.code ?? 'QUERY_FAILED' } : campaignCount,
+    donations: e3 ? { status: 'error', code: e3.code ?? 'QUERY_FAILED' } : donationCount,
     ts: Date.now(),
   });
 }
