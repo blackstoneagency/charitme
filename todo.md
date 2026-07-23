@@ -2062,3 +2062,5 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 - [x] Removed fabricated receipt numbers from annual donor statements; only official numbers persisted in `tax_receipts` are displayed or exported.
 ### Session 2026-07-23 (Codex — tax export failure integrity)
 - [x] Tax exports now reject unsupported formats and return an explicit unavailable error when Supabase campaign, donation, receipt, or nonprofit queries fail instead of presenting incomplete reports.
+### Session 2026-07-23 (Codex — mixed-currency tax integrity)
+- [x] Tax statement and fundraiser summary builders now reject mixed-currency totals instead of adding incompatible minor units; APIs return a clear `422 MIXED_CURRENCY` response.

@@ -8,6 +8,7 @@ import {
   type TaxDonationInput,
   type NonprofitTaxInfo,
   type FundraiserDonationInput,
+  MixedCurrencyError,
 } from '../lib/tax';
 
 const verifiedNonprofit: NonprofitTaxInfo = { name: 'Helping Hands Inc', taxId: '12-3456789', verified: true, taxReceiptEnabled: true };
@@ -133,6 +134,13 @@ describe('buildTaxStatement', () => {
     const s = buildTaxStatement([don({ id: 'unreceipted', receiptNumber: null })], 2026);
     expect(s.lines[0]?.receiptNumber).toBeNull();
   });
+
+  it('rejects mixed currencies instead of adding incompatible cents', () => {
+    expect(() => buildTaxStatement([
+      don({ currency: 'usd' }),
+      don({ id: 'eur-gift', currency: 'eur' }),
+    ], 2026)).toThrowError(MixedCurrencyError);
+  });
 });
 
 describe('buildFundraiserTaxSummary', () => {
@@ -166,6 +174,13 @@ describe('buildFundraiserTaxSummary', () => {
     const s = buildFundraiserTaxSummary([], 2026);
     expect(s.campaigns).toEqual([]);
     expect(s.totals).toEqual({ donationCount: 0, grossCents: 0, tipCents: 0 });
+  });
+
+  it('rejects mixed currencies instead of adding incompatible cents', () => {
+    expect(() => buildFundraiserTaxSummary([
+      fdon({ currency: 'usd' }),
+      fdon({ currency: 'eur' }),
+    ], 2026)).toThrowError(MixedCurrencyError);
   });
 });
 

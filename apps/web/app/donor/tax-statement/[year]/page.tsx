@@ -5,6 +5,7 @@ import { createClient } from '../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { formatCents } from '@shared/currencies';
 import { getDonorTaxStatement } from '../../../../lib/tax-server';
+import { MixedCurrencyError, type TaxStatement } from '../../../../lib/tax';
 import PrintButton from './PrintButton';
 
 export const dynamic = 'force-dynamic';
@@ -27,11 +28,29 @@ export default async function TaxStatementPage({ params }: { params: Promise<{ y
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/donor/tax-statement/${yearStr}`);
 
-  const [{ statement }, profileRes] = await Promise.all([
-    getDonorTaxStatement(user.id, year),
-    supabaseAdmin.from('profiles').select('full_name').eq('id', user.id).single(),
-  ]);
-  const donorName = (profileRes.data as { full_name: string | null } | null)?.full_name ?? user.email ?? 'Donor';
+  let statement: TaxStatement;
+  let profileName: string | null = null;
+  try {
+    const [{ statement: loadedStatement }, profileRes] = await Promise.all([
+      getDonorTaxStatement(user.id, year),
+      supabaseAdmin.from('profiles').select('full_name').eq('id', user.id).single(),
+    ]);
+    statement = loadedStatement;
+    profileName = (profileRes.data as { full_name: string | null } | null)?.full_name ?? null;
+  } catch (error) {
+    if (error instanceof MixedCurrencyError) {
+      return (
+        <div style={{ maxWidth: 640, margin: '0 auto', padding: '64px 24px' }}>
+          <h1 style={{ fontSize: 24, margin: '0 0 10px' }}>Statement needs separate currencies</h1>
+          <p style={{ color: 'var(--t2, #334155)', lineHeight: 1.6, margin: 0 }}>
+            This year includes donations in more than one currency. CharitMe keeps those totals separate so your records stay accurate. Download each currency separately from your giving history.
+          </p>
+        </div>
+      );
+    }
+    throw error;
+  }
+  const donorName = profileName ?? user.email ?? 'Donor';
   const { totals, lines, organizations, currency } = statement;
 
   const line: React.CSSProperties = { borderBottom: '1px solid var(--b1, #e8ecf4)' };

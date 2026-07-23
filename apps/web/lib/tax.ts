@@ -70,6 +70,15 @@ export interface TaxStatement {
   organizations: { name: string; ein: string | null; deductibleCents: number }[];
 }
 
+export class MixedCurrencyError extends Error {
+  readonly code = 'MIXED_CURRENCY';
+
+  constructor() {
+    super('A tax report cannot combine donations in different currencies.');
+    this.name = 'MixedCurrencyError';
+  }
+}
+
 /** True only for a verified nonprofit that has enabled tax receipts. */
 export function isDeductible(nonprofit: NonprofitTaxInfo | null | undefined): boolean {
   return Boolean(nonprofit && nonprofit.verified && nonprofit.taxReceiptEnabled);
@@ -105,6 +114,9 @@ export function buildTaxStatement(donations: TaxDonationInput[], year: number): 
   });
 
   inYear.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const currencies = new Set(inYear.map((d) => (d.currency ?? 'usd').toLowerCase()));
+  if (currencies.size > 1) throw new MixedCurrencyError();
 
   const currency = (inYear[0]?.currency ?? 'usd').toLowerCase();
 
@@ -196,6 +208,9 @@ export function buildFundraiserTaxSummary(
     const t = new Date(d.createdAt);
     return !Number.isNaN(t.getTime()) && t.getUTCFullYear() === year;
   });
+
+  const currencies = new Set(inYear.map((d) => (d.currency ?? 'usd').toLowerCase()));
+  if (currencies.size > 1) throw new MixedCurrencyError();
 
   const currency = (inYear[0]?.currency ?? 'usd').toLowerCase();
 

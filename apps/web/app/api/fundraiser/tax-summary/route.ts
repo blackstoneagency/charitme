@@ -4,7 +4,7 @@ import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
 import { rowsToCsv } from '../../../../lib/csv';
 import { formatCents } from '@shared/currencies';
-import { buildFundraiserTaxSummary, type FundraiserDonationInput } from '../../../../lib/tax';
+import { buildFundraiserTaxSummary, MixedCurrencyError, type FundraiserDonationInput } from '../../../../lib/tax';
 
 export const dynamic = 'force-dynamic';
 
@@ -65,7 +65,15 @@ export async function GET(req: NextRequest) {
     }));
   }
 
-  const summary = buildFundraiserTaxSummary(inputs, year);
+  let summary;
+  try {
+    summary = buildFundraiserTaxSummary(inputs, year);
+  } catch (error) {
+    if (error instanceof MixedCurrencyError) {
+      return NextResponse.json({ error: 'This report contains multiple currencies. Export each currency separately.', code: error.code }, { status: 422 });
+    }
+    return NextResponse.json({ error: 'Failed to build summary', code: 'TAX_SUMMARY_FAILED' }, { status: 500 });
+  }
 
   if (format === 'csv') {
     const header = ['Campaign', 'Donations', 'Gross Raised', 'Donor Tips'];
