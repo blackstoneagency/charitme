@@ -554,9 +554,9 @@ Live-verified status of each goal criterion (master `9dc84c9`; two-bot split —
 | Security resolved | ✅ | RLS anon-exposure certified (144 tables, 0 leaks); admin-config leak + is_admin recursion fixed; nonce CSP live; error responses sanitized |
 | Tests pass | ✅ | 945 tests / 76 files |
 | Build succeeds | ✅ | `next build` clean |
-| Dark/light every page | 🟢 Codex | theme sweep + `theme-tokens.test.ts` guard; dark is default |
-| Mobile responsive | 🟢 Codex | 320/390px sweeps, 0 horizontal overflow across public+admin+dashboard |
-| Accessibility passes | 🟢 Codex | axe 0 violations across 20 public routes; keyboard/ARIA sweeps |
+| Dark/light every page | ✅ (Claude-verified) | Codex theme sweep + guard; **independently verified in prod (browser, dark default, alpha-composited WCAG contrast):** home, /campaigns, /grants, /for-nonprofits (Tailwind marketing), /events → **0 real contrast failures**. /for-nonprofits' 13 initial flags were all alpha-composite false positives (10%-opacity purple over dark base). |
+| Mobile responsive | ✅ (Claude-verified) | Codex sweeps; **independently verified at 375px in prod:** home/campaigns/grants/for-nonprofits/events → **0 horizontal page overflow** on every template. |
+| Accessibility passes | ✅ (Claude-verified) | Codex axe 0/20; **independently verified:** static sweep 19/20 pages clean (1 was a valid wrapping-label false positive, now also given explicit `aria-label`); browser probe on /grants 0 unlabeled controls; images 0 missing alt across probed pages. |
 | Performance optimized | 🟢 mostly | logo 292KB→6.7KB, CLS→0, query-waterfall dedup; remaining: unused CSS/JS (low value) |
 | Frictionless UX | 🟢 Codex | draft autosave, loading skeletons, error boundaries, publish-before-payout |
 | todo.md updated / commit per feature | ✅ | this scorecard + per-audit commits |

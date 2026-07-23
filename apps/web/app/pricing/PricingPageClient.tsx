@@ -100,7 +100,7 @@ function FeeCalculator() {
           <div className="fee-calc-input-row">
             <span className="fee-calc-dollar">$</span>
             <input type="number" value={amount} onChange={e => setAmount(Math.max(1, Number(e.target.value)))}
-              min="1" className="fee-calc-input" />
+              min="1" className="fee-calc-input" aria-label="Donation amount in dollars" />
           </div>
         </label>
         <div className="fee-calc-presets">
