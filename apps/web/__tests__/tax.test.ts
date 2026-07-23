@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   isDeductible,
+  canIssueTaxReceipt,
   buildTaxStatement,
   buildFundraiserTaxSummary,
   donationYears,
@@ -35,6 +36,19 @@ describe('isDeductible', () => {
     expect(isDeductible(receiptsOffNonprofit)).toBe(false);
     expect(isDeductible(null)).toBe(false);
     expect(isDeductible(undefined)).toBe(false);
+  });
+});
+
+describe('canIssueTaxReceipt', () => {
+  it('requires deductibility AND a non-empty EIN', () => {
+    expect(canIssueTaxReceipt(verifiedNonprofit)).toBe(true);
+    // deductible but no EIN on file → cannot email an official receipt
+    expect(canIssueTaxReceipt({ ...verifiedNonprofit, taxId: null })).toBe(false);
+    expect(canIssueTaxReceipt({ ...verifiedNonprofit, taxId: '   ' })).toBe(false);
+    // has EIN but not verified / receipts off → not deductible at all
+    expect(canIssueTaxReceipt(unverifiedNonprofit)).toBe(false);
+    expect(canIssueTaxReceipt(receiptsOffNonprofit)).toBe(false);
+    expect(canIssueTaxReceipt(null)).toBe(false);
   });
 });
 

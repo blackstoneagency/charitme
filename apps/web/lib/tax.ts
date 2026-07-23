@@ -75,6 +75,16 @@ export function isDeductible(nonprofit: NonprofitTaxInfo | null | undefined): bo
   return Boolean(nonprofit && nonprofit.verified && nonprofit.taxReceiptEnabled);
 }
 
+/**
+ * Whether an OFFICIAL emailed tax receipt can be auto-issued for a gift. Stricter
+ * than {@link isDeductible}: an emailed receipt must carry the organization's EIN,
+ * so an EIN is required (a deductible gift to a verified org with no EIN on file
+ * still shows on the statement, but we don't email a receipt that omits the EIN).
+ */
+export function canIssueTaxReceipt(nonprofit: NonprofitTaxInfo | null | undefined): boolean {
+  return isDeductible(nonprofit) && Boolean(nonprofit && nonprofit.taxId && nonprofit.taxId.trim());
+}
+
 function isoDateOnly(iso: string): string {
   // Keep the calendar date in UTC to match how the year filter is applied.
   const d = new Date(iso);
