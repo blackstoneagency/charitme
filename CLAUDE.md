@@ -79,7 +79,8 @@ UNSPLASH_ACCESS_KEY   # optional — themed live campaign covers; falls back to 
 ```
 
 **Unsplash covers**: `lib/unsplash.ts` (API client, day-cached, key-gated) + `lib/covers.ts`
-(`resolveCampaignCover`: stored cover → live themed Unsplash → deterministic Picsum). Only
+(`resolveCampaignCover`: real uploaded cover → live themed Unsplash → stored/deterministic Picsum
+placeholder — Picsum URLs are treated as overridable placeholders so live Unsplash can replace them). Only
 the **Access Key** is used (public read) and only from `UNSPLASH_ACCESS_KEY` — set it in Vercel;
 never commit it. The Secret Key is not used anywhere. Without the key everything falls back
 cleanly, so builds/tests never touch the network.
