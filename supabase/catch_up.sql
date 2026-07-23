@@ -5,9 +5,8 @@
 -- NO demo/seed data. Generated from supabase/migrations/ (excludes *seed*).
 --
 -- HOW TO USE: paste this whole file into the Supabase SQL editor and Run once.
---   Validated idempotent on Postgres 16 against BOTH a fresh DB and a
---   schema.sql-drifted DB. Adds missing tables AND missing columns on existing
---   tables before anything references them. No drops, no data loss.
+--   Validated idempotent on Postgres 16 against both fresh and drifted schemas.
+--   Adds missing tables and columns without dropping data.
 -- =============================================================================
 set check_function_bodies = off;
 
@@ -3329,12 +3328,12 @@ UPDATE campaigns SET
     'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1631815589968-fdb09a223b1e?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1504813184591-a058ada88eca?auto=format&fit=crop&w=800&q=80'
+    'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Medical';
 
 UPDATE campaigns SET
-  cover_image_url = 'https://images.unsplash.com/photo-1588776814546-1ffbb172ef8c?auto=format&fit=crop&w=1200&q=85',
+  cover_image_url = 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
     'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
@@ -3347,8 +3346,8 @@ WHERE category = 'Emergency';
 UPDATE campaigns SET
   cover_image_url = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
-    'https://images.unsplash.com/photo-1487700160041-9253caa4b8de?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1541804060688-9d8a5f44c0b8?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80'
@@ -3362,7 +3361,7 @@ UPDATE campaigns SET
     'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1607748851687-ba9a45146cd4?auto=format&fit=crop&w=800&q=80'
+    'https://images.unsplash.com/photo-1567521464027-f127ff144326?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Nonprofit';
 
@@ -3370,20 +3369,20 @@ UPDATE campaigns SET
   cover_image_url = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
     'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1488190211105-8fb0d4d54f0b?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1631815589968-fdb09a223b1e?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1513258496099-ee67191f698a?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Education';
 
 UPDATE campaigns SET
-  cover_image_url = 'https://images.unsplash.com/photo-1450778869180-b6cd2c73b7e4?auto=format&fit=crop&w=1200&q=85',
+  cover_image_url = 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
     'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1518155317743-a8ff43ea6a5f?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1548199973-ec2cb9df83fd?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1561037393-60df89cbff99?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Animal';
@@ -3391,9 +3390,9 @@ WHERE category = 'Animal';
 UPDATE campaigns SET
   cover_image_url = 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
-    'https://images.unsplash.com/photo-1500534314209-a157a0f250c5?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1573167243872-43c6433b9d40?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1521335629791-ee9686c6bcb6?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1567521464027-f127ff144326?auto=format&fit=crop&w=800&q=80'
   ]
@@ -3416,7 +3415,7 @@ UPDATE campaigns SET
     'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1607748851687-ba9a45146cd4?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1567521464027-f127ff144326?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Community';
@@ -3427,8 +3426,8 @@ UPDATE campaigns SET
     'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1543326727-cf6c39bbae7c?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1560272564-d940dfc96483?auto=format&fit=crop&w=800&q=80'
+    'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1518155317743-a8ff43ea6a5f?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Competition';
 
@@ -3444,12 +3443,12 @@ UPDATE campaigns SET
 WHERE category = 'Creative';
 
 UPDATE campaigns SET
-  cover_image_url = 'https://images.unsplash.com/photo-1540575467537-65e2f10b68fc?auto=format&fit=crop&w=1200&q=85',
+  cover_image_url = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
     'https://images.unsplash.com/photo-1529543544282-ea669407fca3?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1511632765153-9b08cf6f0f1a?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1501281668745-f7f57925be31?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1593113630400-ea4288922497?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Event';
@@ -3457,8 +3456,8 @@ WHERE category = 'Event';
 UPDATE campaigns SET
   cover_image_url = 'https://images.unsplash.com/photo-1545987796-200677ee1011?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
-    'https://images.unsplash.com/photo-1541804060688-9d8a5f44c0b8?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1577083288073-40da2c536a75?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1573167243872-43c6433b9d40?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80'
@@ -3466,12 +3465,12 @@ UPDATE campaigns SET
 WHERE category = 'Faith';
 
 UPDATE campaigns SET
-  cover_image_url = 'https://images.unsplash.com/photo-1511895426328-dc8714191011?auto=format&fit=crop&w=1200&q=85',
+  cover_image_url = 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
-    'https://images.unsplash.com/photo-1531983372617-9b612d2110c4?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1476703993599-0035dd2b1397?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1609220361534-ebbe05e08d04?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Family';
@@ -3482,13 +3481,13 @@ UPDATE campaigns SET
     'https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1543326727-cf6c39bbae7c?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1560272564-d940dfc96483?auto=format&fit=crop&w=800&q=80'
+    'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1518155317743-a8ff43ea6a5f?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Sports';
 
 UPDATE campaigns SET
-  cover_image_url = 'https://images.unsplash.com/photo-1488085061851-1e7cf5c3b1e2?auto=format&fit=crop&w=1200&q=85',
+  cover_image_url = 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
     'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
@@ -3504,7 +3503,7 @@ UPDATE campaigns SET
     'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1607748851687-ba9a45146cd4?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1567521464027-f127ff144326?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Volunteer';
@@ -3512,11 +3511,11 @@ WHERE category = 'Volunteer';
 UPDATE campaigns SET
   cover_image_url = 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
-    'https://images.unsplash.com/photo-1511895426328-dc8714191011?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1607748851687-ba9a45146cd4?auto=format&fit=crop&w=800&q=80'
+    'https://images.unsplash.com/photo-1567521464027-f127ff144326?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Wishes';
 
@@ -3528,7 +3527,7 @@ UPDATE campaigns SET
     'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1607748851687-ba9a45146cd4?auto=format&fit=crop&w=800&q=80'
+    'https://images.unsplash.com/photo-1567521464027-f127ff144326?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE (cover_image_url IS NULL OR cover_image_url = '' OR cover_image_url LIKE '%1500000%')
   AND (image_urls IS NULL OR array_length(image_urls, 1) IS NULL OR array_length(image_urls, 1) = 0);
@@ -6170,9 +6169,11 @@ begin
     'completed', p_anonymous, p_message, p_stripe_payment_intent_id, p_stripe_checkout_session_id
   );
 
-  -- NOTE: campaign raised_amount / backer_count are incremented by the AFTER
-  -- INSERT trigger donations_increment_campaign_stats. Do NOT increment here —
-  -- that double-counts (see migration 20260721000000).
+  update campaigns
+  set raised_amount = raised_amount + p_amount_cents,
+      backer_count  = backer_count  + 1,
+      updated_at    = now()
+  where id = p_campaign_id;
 
   insert into webhook_events (stripe_event_id, event_type, payload, processed_at)
   values (p_stripe_event_id, 'checkout.session.completed', '{}'::jsonb, now())
@@ -6381,6 +6382,197 @@ create policy campaigns_public_read on campaigns for select
   );
 
 
+-- ============ 20260720140000_super_admin_console.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Super-Admin Console — role grant + backing tables for the super-admin-only
+-- area (Roles, Users, Marketing[SEO/AEO/Campaigns], Feature Flags, Platform
+-- Settings, Announcements). Gated in-app by the `super_admin` role; all writes
+-- go through the service role (supabaseAdmin) behind a super-admin check.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- ── Grant super_admin (implies admin) to the owner account ───────────────────
+update profiles
+set roles = (
+  select jsonb_agg(distinct r)
+  from jsonb_array_elements(coalesce(roles, '["donor"]'::jsonb) || '["admin","super_admin"]'::jsonb) r
+)
+where lower(email) = 'daniel.hughen@gmail.com';
+
+-- ── seo_settings — per-route SEO metadata (rendered server-side) ─────────────
+create table if not exists seo_settings (
+  id               uuid primary key default uuid_generate_v4(),
+  route            text not null unique,
+  title            text,
+  meta_description text,
+  keywords         text,
+  og_title         text,
+  og_description   text,
+  og_image_url     text,
+  canonical_url    text,
+  noindex          boolean not null default false,
+  updated_by       uuid references profiles(id) on delete set null,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+create index if not exists seo_settings_route_idx on seo_settings(route);
+
+-- ── aeo_entries — Answer-Engine-Optimization Q&A (public structured data) ─────
+create table if not exists aeo_entries (
+  id           uuid primary key default uuid_generate_v4(),
+  question     text not null,
+  answer       text not null,
+  topic        text,
+  schema_type  text not null default 'FAQPage'
+                 check (schema_type in ('FAQPage','QAPage','HowTo')),
+  priority     integer not null default 0,
+  published    boolean not null default true,
+  updated_by   uuid references profiles(id) on delete set null,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+create index if not exists aeo_entries_pub_idx on aeo_entries(published, priority desc);
+
+-- ── announcements — site-wide banners ────────────────────────────────────────
+create table if not exists announcements (
+  id          uuid primary key default uuid_generate_v4(),
+  title       text not null,
+  body        text,
+  level       text not null default 'info' check (level in ('info','success','warning','critical')),
+  link_url    text,
+  link_label  text,
+  active      boolean not null default false,
+  starts_at   timestamptz,
+  ends_at     timestamptz,
+  created_by  uuid references profiles(id) on delete set null,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create index if not exists announcements_active_idx on announcements(active);
+
+-- ── updated_at triggers ──────────────────────────────────────────────────────
+drop trigger if exists seo_settings_updated_at on seo_settings;
+drop trigger if exists seo_settings_updated_at on seo_settings;
+create trigger seo_settings_updated_at before update on seo_settings
+  for each row execute function public.set_updated_at();
+drop trigger if exists aeo_entries_updated_at on aeo_entries;
+drop trigger if exists aeo_entries_updated_at on aeo_entries;
+create trigger aeo_entries_updated_at before update on aeo_entries
+  for each row execute function public.set_updated_at();
+drop trigger if exists announcements_updated_at on announcements;
+drop trigger if exists announcements_updated_at on announcements;
+create trigger announcements_updated_at before update on announcements
+  for each row execute function public.set_updated_at();
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ROW LEVEL SECURITY
+--   seo_settings   — service-role only (read server-side for metadata)
+--   aeo_entries    — public read of published (renders as public FAQ schema)
+--   announcements  — public read of active (renders in the site banner)
+--   Writes on all three: service role only, behind an app-layer super-admin gate.
+-- ─────────────────────────────────────────────────────────────────────────────
+alter table seo_settings  enable row level security;
+alter table aeo_entries   enable row level security;
+alter table announcements enable row level security;
+
+drop policy if exists aeo_public_read on aeo_entries;
+drop policy if exists aeo_public_read on aeo_entries;
+create policy aeo_public_read on aeo_entries for select using (published = true);
+
+drop policy if exists announcements_public_read on announcements;
+drop policy if exists announcements_public_read on announcements;
+create policy announcements_public_read on announcements for select
+  using (active = true and (starts_at is null or starts_at <= now()) and (ends_at is null or ends_at >= now()));
+
+
+-- ============ 20260721000000_fix_record_donation_double_count.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- FIX (CRITICAL, financial accuracy): record_donation double-counted campaign
+-- totals.
+--
+-- The original schema (20260525000000_initial_schema) defines an AFTER INSERT
+-- trigger on `donations` — `donations_increment_campaign_stats` →
+-- `increment_campaign_stats_after_donation()` — which already increments
+-- `campaigns.raised_amount` (+ amount_cents) and `campaigns.backer_count` (+1)
+-- for every row inserted with status = 'completed'.
+--
+-- A later change (20260719120000_record_donation_idempotency_lock) ADDED a manual
+-- `update campaigns set raised_amount = raised_amount + p_amount_cents,
+-- backer_count = backer_count + 1` inside record_donation — not realizing the
+-- trigger already does this. Net effect, proven live: one record_donation call
+-- inserts ONE donation row but increments raised_amount by 2× the amount and
+-- backer_count by 2. Every webhook donation (one-time + recurring) was inflated.
+--
+-- Fix: recreate record_donation WITHOUT the manual campaign update. The trigger
+-- remains the single source of truth for stat increments (it fires on the INSERT
+-- below). Idempotency advisory lock, duplicate check, donation insert, and the
+-- webhook_events bookkeeping are unchanged.
+--
+-- Non-destructive: CREATE OR REPLACE FUNCTION only — no data is modified. Existing
+-- rows are untouched; this only corrects go-forward accounting.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create or replace function public.record_donation(
+  p_stripe_event_id          text,
+  p_campaign_id              uuid,
+  p_donor_id                 uuid,
+  p_amount_cents             bigint,
+  p_tip_cents                bigint,
+  p_processing_fee_cents     bigint,
+  p_message                  text,
+  p_anonymous                boolean,
+  p_stripe_payment_intent_id text,
+  p_stripe_checkout_session_id text
+) returns jsonb language plpgsql security definer as $$
+declare
+  v_existing uuid;
+  v_lock_key text;
+begin
+  -- Serialize concurrent processing of the SAME donation. Prefer the payment
+  -- intent id, then the checkout session id, then the event id as the lock key
+  -- so retried/duplicate deliveries collide while distinct donations do not.
+  v_lock_key := coalesce(
+    nullif(p_stripe_payment_intent_id, ''),
+    nullif(p_stripe_checkout_session_id, ''),
+    p_stripe_event_id
+  );
+  if v_lock_key is not null then
+    perform pg_advisory_xact_lock(hashtextextended(v_lock_key, 0));
+  end if;
+
+  -- Idempotency check (race-safe under the advisory lock above)
+  select id into v_existing from donations
+  where stripe_checkout_session_id = p_stripe_checkout_session_id
+     or (stripe_payment_intent_id = p_stripe_payment_intent_id and p_stripe_payment_intent_id is not null)
+  limit 1;
+
+  if v_existing is not null then
+    return jsonb_build_object('status','already_processed','id', v_existing);
+  end if;
+
+  -- The AFTER INSERT trigger donations_increment_campaign_stats increments
+  -- campaigns.raised_amount / backer_count for this 'completed' row. Do NOT
+  -- increment again here — that double-counts (see migration header).
+  insert into donations (
+    campaign_id, donor_id, amount_cents, tip_cents, processing_fee_cents,
+    status, anonymous, message, stripe_payment_intent_id, stripe_checkout_session_id
+  ) values (
+    p_campaign_id, p_donor_id, p_amount_cents, p_tip_cents, p_processing_fee_cents,
+    'completed', p_anonymous, p_message, p_stripe_payment_intent_id, p_stripe_checkout_session_id
+  );
+
+  insert into webhook_events (stripe_event_id, event_type, payload, processed_at)
+  values (p_stripe_event_id, 'checkout.session.completed', '{}'::jsonb, now())
+  on conflict (stripe_event_id) do nothing;
+
+  return jsonb_build_object('status','recorded');
+exception when others then
+  insert into webhook_events (stripe_event_id, event_type, payload, processing_error)
+  values (p_stripe_event_id, 'checkout.session.completed', '{}'::jsonb, sqlerrm)
+  on conflict (stripe_event_id) do nothing;
+  raise;
+end; $$;
+
+
 -- ============ 20260721000000_impact_tracking.sql ============
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Impact tracking — how each campaign spends funds and the outcomes it delivers.
@@ -6541,6 +6733,52 @@ create policy impact_metrics_write on impact_metrics for all
   with check (owns_campaign(campaign_id) or is_admin());
 
 
+-- ============ 20260721010000_claim_reward_limit_guard.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Harden claim_campaign_reward against over-claiming a limited reward.
+--
+-- The donations route pre-checks `claimed_count < item_limit` before creating the
+-- Checkout Session, but that is a check-then-act: two donors can both pass the
+-- check, both complete payment, and the webhook's unconditional
+-- `claimed_count = claimed_count + 1` then pushes claimed_count past item_limit.
+--
+-- Fix: the increment now only applies while the reward is under its limit (or
+-- has no limit). The single-statement UPDATE is atomic, so concurrent claims
+-- cannot exceed item_limit. A claim that arrives after the reward is exhausted
+-- simply matches 0 rows (the donation itself still stands — the perk is just no
+-- longer available, which the fulfillment UI already reflects via claimed_count).
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create or replace function public.claim_campaign_reward(p_reward_id uuid)
+returns void language sql security definer set search_path to 'public' as $$
+  update public.campaign_rewards
+  set claimed_count = claimed_count + 1
+  where id = p_reward_id
+    and (item_limit is null or claimed_count < item_limit);
+$$;
+
+
+-- ============ 20260721020000_refunds_review_columns.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Add the reviewer-tracking columns the refund-request workflow assumes.
+--
+-- `GET /api/admin/refunds` selects `reviewed_by, updated_at` and the PATCH handler
+-- writes both, but neither column ever existed on `refunds` (the status enum has
+-- under_review/approved/declined states, so a reviewer + updated_at were clearly
+-- intended — the migration adding them was just never written). Selecting a
+-- non-existent column makes PostgREST error the whole query, so the admin refunds
+-- list returned nothing and status updates failed.
+--
+-- Purely additive (add column if not exists) — no data loss.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+alter table if exists public.refunds
+  add column if not exists reviewed_by uuid references public.profiles(id) on delete set null;
+
+alter table if exists public.refunds
+  add column if not exists updated_at timestamptz not null default now();
+
+
 -- ============ 20260722000000_gamification.sql ============
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Gamification persistence — earned badges + community challenges.
@@ -6639,6 +6877,538 @@ values
   ('hundred-dollar-hero', '$100 Hero', 'Donate $100 in total across the community.', 'total_cents', 10000, 'active'),
   ('three-cause-champion', 'Three-Cause Champion', 'Support three different campaigns.', 'campaign_count', 3, 'active')
 on conflict (slug) do nothing;
+
+
+-- ============ 20260722000000_tax_reporting.sql ============
+-- Tax reporting foundation for every completed donation.
+-- A receipt record is created for registered, guest, anonymous, and offline
+-- donations. Only verified nonprofit gifts are marked tax deductible.
+
+alter table if exists public.campaigns
+  add column if not exists nonprofit_id uuid references public.nonprofit_profiles(id) on delete set null;
+
+alter table if exists public.nonprofit_profiles
+  add column if not exists ein text,
+  add column if not exists verification_status text not null default 'unverified',
+  add column if not exists tax_receipt_enabled boolean not null default false;
+
+alter table if exists public.donations
+  add column if not exists tip_cents bigint not null default 0,
+  add column if not exists processing_fee_cents bigint not null default 0,
+  add column if not exists offline boolean not null default false,
+  add column if not exists offline_method text,
+  add column if not exists offline_donor_name text,
+  add column if not exists offline_donor_email text,
+  add column if not exists stripe_checkout_session_id text;
+
+alter table if exists public.tax_receipts
+  add column if not exists campaign_id uuid references public.campaigns(id) on delete set null,
+  add column if not exists campaign_title text,
+  add column if not exists recipient_name text,
+  add column if not exists recipient_ein text,
+  add column if not exists currency text not null default 'usd',
+  add column if not exists tip_cents bigint not null default 0,
+  add column if not exists processing_fee_cents bigint not null default 0,
+  add column if not exists tax_deductible boolean not null default false,
+  add column if not exists tax_deductible_amount_cents bigint not null default 0,
+  add column if not exists tax_year integer,
+  add column if not exists donor_name text,
+  add column if not exists donor_email text,
+  add column if not exists donation_date timestamptz,
+  add column if not exists status text not null default 'issued',
+  add column if not exists refunded_at timestamptz;
+
+create unique index if not exists tax_receipts_donation_id_uidx
+  on public.tax_receipts(donation_id) where donation_id is not null;
+create index if not exists tax_receipts_donor_year_idx
+  on public.tax_receipts(donor_id, tax_year, created_at desc);
+create index if not exists tax_receipts_campaign_year_idx
+  on public.tax_receipts(campaign_id, tax_year, created_at desc);
+
+create or replace function public.sync_tax_receipt_for_donation()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_campaign campaigns%rowtype;
+  v_nonprofit nonprofit_profiles%rowtype;
+  v_tax_deductible boolean := false;
+  v_recipient_name text;
+  v_recipient_ein text;
+  v_donor_name text;
+  v_donor_email text;
+  v_receipt_number text;
+begin
+  if new.status not in ('completed', 'refunded') then
+    return new;
+  end if;
+
+  select * into v_campaign from campaigns where id = new.campaign_id;
+  if v_campaign.nonprofit_id is not null then
+    select * into v_nonprofit from nonprofit_profiles where id = v_campaign.nonprofit_id;
+  elsif v_campaign.user_id is not null then
+    select * into v_nonprofit from nonprofit_profiles where owner_id = v_campaign.user_id order by created_at asc limit 1;
+  end if;
+
+  v_recipient_name := nullif(v_nonprofit.name, '');
+  v_recipient_ein := coalesce(nullif(v_nonprofit.ein, ''), nullif(v_nonprofit.tax_id, ''));
+  v_tax_deductible := coalesce(v_nonprofit.verified, false)
+    and coalesce(v_nonprofit.tax_receipt_enabled, false)
+    and coalesce(v_nonprofit.verification_status, 'unverified') in ('verified', 'approved');
+
+  if new.donor_id is not null then
+    select full_name, email into v_donor_name, v_donor_email from profiles where id = new.donor_id;
+  else
+    v_donor_name := new.offline_donor_name;
+    v_donor_email := new.offline_donor_email;
+  end if;
+
+  v_receipt_number := 'CHM-' || replace(new.id::text, '-', '');
+
+  insert into tax_receipts (
+    donation_id, donor_id, nonprofit_id, campaign_id, receipt_number,
+    amount_cents, tip_cents, processing_fee_cents, currency,
+    is_tax_deductible, tax_deductible, tax_deductible_amount_cents,
+    tax_year, campaign_title, recipient_name, recipient_ein,
+    donor_name, donor_email, donation_date, status, refunded_at, emailed_at
+  ) values (
+    new.id, new.donor_id, nullif(v_nonprofit.id, '00000000-0000-0000-0000-000000000000'),
+    new.campaign_id, v_receipt_number, new.amount_cents,
+    coalesce(new.tip_cents, 0), coalesce(new.processing_fee_cents, 0),
+    coalesce(new.currency, 'usd'), v_tax_deductible, v_tax_deductible,
+    case when v_tax_deductible and new.status = 'completed' then new.amount_cents else 0 end,
+    extract(year from new.created_at)::integer, v_campaign.title,
+    v_recipient_name, v_recipient_ein, v_donor_name, v_donor_email,
+    new.created_at,
+    case when new.status = 'refunded' then 'refunded' else 'issued' end,
+    case when new.status = 'refunded' then coalesce(new.refunded_at, now()) else null end,
+    null
+  )
+  on conflict (donation_id) do update set
+    donor_id = excluded.donor_id,
+    nonprofit_id = excluded.nonprofit_id,
+    campaign_id = excluded.campaign_id,
+    amount_cents = excluded.amount_cents,
+    tip_cents = excluded.tip_cents,
+    processing_fee_cents = excluded.processing_fee_cents,
+    currency = excluded.currency,
+    is_tax_deductible = excluded.is_tax_deductible,
+    tax_deductible = excluded.tax_deductible,
+    tax_deductible_amount_cents = excluded.tax_deductible_amount_cents,
+    tax_year = excluded.tax_year,
+    campaign_title = excluded.campaign_title,
+    recipient_name = excluded.recipient_name,
+    recipient_ein = excluded.recipient_ein,
+    donor_name = excluded.donor_name,
+    donor_email = excluded.donor_email,
+    donation_date = excluded.donation_date,
+    status = excluded.status,
+    refunded_at = excluded.refunded_at;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists donations_tax_receipt_sync on public.donations;
+drop trigger if exists donations_tax_receipt_sync on public.donations;
+create trigger donations_tax_receipt_sync
+after insert or update of status, refunded_at on public.donations
+for each row execute function public.sync_tax_receipt_for_donation();
+
+-- Backfill historical completed/refunded donations without changing donation
+-- totals or payment state. The unique donation index makes this idempotent.
+insert into public.tax_receipts (
+  donation_id, donor_id, nonprofit_id, campaign_id, receipt_number,
+  amount_cents, tip_cents, processing_fee_cents, currency,
+  is_tax_deductible, tax_deductible, tax_deductible_amount_cents,
+  tax_year, campaign_title, recipient_name, recipient_ein,
+  donor_name, donor_email, donation_date, status, refunded_at
+)
+select
+  d.id, d.donor_id, np.id, d.campaign_id,
+  'CHM-' || replace(d.id::text, '-', ''), d.amount_cents,
+  coalesce(d.tip_cents, 0), coalesce(d.processing_fee_cents, 0),
+  coalesce(d.currency, 'usd'),
+  coalesce(np.verified, false) and coalesce(np.tax_receipt_enabled, false)
+    and coalesce(np.verification_status, 'unverified') in ('verified', 'approved'),
+  coalesce(np.verified, false) and coalesce(np.tax_receipt_enabled, false)
+    and coalesce(np.verification_status, 'unverified') in ('verified', 'approved'),
+  case when coalesce(np.verified, false) and coalesce(np.tax_receipt_enabled, false)
+    and coalesce(np.verification_status, 'unverified') in ('verified', 'approved')
+    and d.status = 'completed' then d.amount_cents else 0 end,
+  extract(year from d.created_at)::integer, c.title, np.name,
+  coalesce(nullif(np.ein, ''), nullif(np.tax_id, '')),
+  coalesce(p.full_name, d.offline_donor_name), coalesce(p.email, d.offline_donor_email),
+  d.created_at,
+  case when d.status = 'refunded' then 'refunded' else 'issued' end,
+  d.refunded_at
+from public.donations d
+join public.campaigns c on c.id = d.campaign_id
+left join lateral (
+  select np.*
+  from public.nonprofit_profiles np
+  where np.id = c.nonprofit_id
+     or (c.nonprofit_id is null and np.owner_id = c.user_id)
+  order by case when np.id = c.nonprofit_id then 0 else 1 end, np.created_at asc
+  limit 1
+) np on true
+left join public.profiles p on p.id = d.donor_id
+where d.status in ('completed', 'refunded')
+on conflict (donation_id) do nothing;
+
+comment on table public.tax_receipts is
+  'One auditable tax record per completed/refunded donation. Tax deductibility is explicit and requires a verified nonprofit receipt setting.';
+
+
+-- ============ 20260722100000_route_aware_aeo_entries.sql ============
+-- Route-aware AEO content lets each published answer support the page it describes.
+alter table aeo_entries
+  add column if not exists route text not null default '/faq';
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'aeo_entries_public_route_check'
+      and conrelid = 'aeo_entries'::regclass
+  ) then
+    alter table aeo_entries drop constraint if exists aeo_entries_public_route_check;
+alter table aeo_entries add constraint aeo_entries_public_route_check check (
+        route like '/%'
+        and route not like '%?%'
+        and route not like '%#%'
+        and route not like '/admin%'
+        and route not like '/dashboard%'
+        and route not like '/create%'
+        and route not like '/login%'
+        and route not like '/forgot-password%'
+        and route not like '/profile%'
+        and route not like '/donor%'
+        and route not like '/beneficiary%'
+      );
+  end if;
+end $$;
+
+create index if not exists aeo_entries_route_pub_idx
+  on aeo_entries(route, published, priority desc, created_at desc);
+
+
+-- ============ 20260722110000_seed_public_aeo_content.sql ============
+-- Curated, route-specific answers for the public marketing engine.
+-- Keep this idempotent so a staging refresh or controlled re-run is safe.
+with entries(question, answer, topic, route, priority) as (
+  values
+    ('What is CharitMe?', 'CharitMe is an AI-powered fundraising platform for individuals, nonprofits, teams, donors, events, grants, matching gifts, sponsorships, and transparent impact reporting.', 'Getting started', '/', 100),
+    ('What does the AI campaign builder create?', 'The AI campaign builder turns a plain-language description into a campaign title, story draft, fundraising goal guidance, donation tiers, and launch-ready content that you can review and edit.', 'AI fundraising', '/ai-campaign', 100),
+    ('How does AI help fundraisers?', 'CharitMe AI helps organizers write stronger campaign stories, identify missing trust signals, plan donor outreach, draft updates, and find practical opportunities to improve campaign performance.', 'AI fundraising', '/ai-fundraising', 100),
+    ('Why was CharitMe created?', 'CharitMe was created to make fundraising simpler, more transparent, and more trustworthy by combining compassionate product design, clear money flows, and practical AI guidance.', 'About CharitMe', '/about-us', 100),
+    ('What can I learn from the CharitMe blog?', 'The CharitMe blog shares fundraising strategy, donor communication guidance, AI playbooks, nonprofit ideas, trust and safety education, and practical campaign growth advice.', 'Resources', '/blog', 100),
+    ('How do I find a campaign to support?', 'Browse active campaigns on CharitMe, then compare their story, trust signals, verification details, updates, and donation information before choosing how to give.', 'Donations', '/campaigns', 100),
+    ('How can I contact CharitMe?', 'Use the CharitMe contact page for campaign support, donation questions, nonprofit partnerships, press requests, billing help, and trust and safety concerns.', 'Support', '/contact', 100),
+    ('What can I do on a CharitMe fundraising event page?', 'Fundraising event pages can share event details, connect an event to a campaign, explain registration or attendance, and provide a clear path for supporters to participate.', 'Events', '/events', 100),
+    ('How fast can I receive a CharitMe payout?', 'After Stripe verification is complete, standard payouts are generally available on the normal processor schedule. Eligible organizers can choose faster payout options where available, with the exact timing and fee shown before confirmation.', 'Payouts', '/fast-payouts', 100),
+    ('What tools are included on CharitMe?', 'CharitMe includes campaign creation, donation checkout, donor management, trust signals, payouts, updates, AI guidance, nonprofit tools, events, grants, matching, sponsorships, and impact reporting.', 'Features', '/features', 100),
+    ('Does CharitMe charge a platform fee?', 'CharitMe does not charge organizers a mandatory platform fee. Payment processing costs and any optional donor support are shown transparently before a donation is completed.', 'Fees', '/fees', 100),
+    ('Can donors give anonymously on CharitMe?', 'Yes. Donors can choose anonymous giving at checkout. The public campaign page will not display the donor name when that option is selected.', 'For donors', '/for-donors', 100),
+    ('What can I raise money for as an individual?', 'Individuals can use CharitMe for eligible medical, emergency, memorial, education, community, pet, and other personal fundraising needs, subject to platform policies.', 'Personal fundraising', '/for-individuals', 100),
+    ('How does CharitMe help nonprofits?', 'CharitMe gives nonprofits campaign tools, donor management, recurring giving, receipts, team workflows, events, grants, impact reporting, and AI-assisted outreach.', 'Nonprofits', '/for-nonprofits', 100),
+    ('How do I apply for a grant on CharitMe?', 'Review a grant opportunity’s eligibility, deadline, amount, and application requirements, then begin an application from the grant page. Draft applications remain private in your dashboard.', 'Grants', '/grants', 100),
+    ('Where can I get help with CharitMe?', 'The CharitMe Help Center covers campaign setup, donations, payouts, account management, trust and safety, and billing. Contact support when you need help with a specific case.', 'Support', '/help', 100),
+    ('How does fundraising work on CharitMe?', 'Create a campaign, explain the cause, set a goal, add trust-building details, share the campaign, receive donations through secure checkout, and follow progress through updates and impact reporting.', 'Getting started', '/how-it-works', 100),
+    ('What is impact reporting?', 'Impact reporting shows how a campaign plans to use funds, records progress through updates and metrics, and gives supporters clearer evidence of what their donations made possible.', 'Impact', '/impact', 100),
+    ('How is the fundraising leaderboard calculated?', 'The leaderboard highlights leading campaign and donor activity using platform data and clearly labeled time ranges. It is intended for recognition and discovery, not as a guarantee of campaign quality.', 'Community', '/leaderboard', 100),
+    ('How do donation matching programs work?', 'A matching program lets an eligible sponsor or employer match qualifying donations according to the program’s ratio, limits, categories, and claim rules shown on its detail page.', 'Matching gifts', '/matching', 100),
+    ('What are CharitMe pricing plans?', 'CharitMe offers a free starting plan plus optional paid plans with additional AI, campaign, donor, nonprofit, creator, or community capabilities. Current plan details are shown on the pricing page.', 'Pricing', '/pricing', 100),
+    ('Are CharitMe donations secure?', 'Donations are processed through Stripe’s secure payment infrastructure. CharitMe does not store raw card numbers or CVV data, and campaign trust information is presented to help donors make informed decisions.', 'Security', '/security', 100),
+    ('How does CharitMe handle refunds?', 'Refund and chargeback handling depends on the donation and campaign circumstances. Start with the refund policy and contact support when a donation needs review.', 'Refunds', '/refunds', 100),
+    ('How can a company sponsor a campaign?', 'Companies can review sponsorship opportunities, compare requested support and benefits, and submit a sponsorship request from the opportunity page.', 'Sponsorships', '/sponsor', 100),
+    ('Where can I read CharitMe success stories?', 'Success stories share campaign outcomes, fundraising patterns, and practical examples that can help organizers learn how to communicate their cause and build supporter momentum.', 'Resources', '/success-stories', 100),
+    ('Which countries does CharitMe support?', 'Fundraising and payout availability depends on country, currency, and Stripe Connect eligibility. The supported countries page lists current availability and relevant restrictions.', 'Availability', '/supported-countries', 100),
+    ('How does CharitMe protect trust and safety?', 'CharitMe combines identity and payout verification, campaign trust signals, fraud screening, reporting tools, moderation, and transparent donor information to support safer giving.', 'Trust and safety', '/trust-safety', 100),
+    ('How can I volunteer through CharitMe?', 'Browse volunteer opportunities by cause, location, remote availability, skills, or time commitment, then review the opportunity details and apply when a role fits.', 'Volunteering', '/volunteer', 100),
+    ('How does CharitMe protect privacy?', 'CharitMe explains what information it collects, how it is used, how payment data is handled, and which privacy choices are available in its privacy policy and privacy controls.', 'Privacy', '/privacy', 100),
+    ('How does CharitMe keep its money flows transparent?', 'CharitMe shows donation breakdowns, processor costs, optional support, payout status, campaign updates, and impact information so supporters can better understand where money goes.', 'Transparency', '/transparency', 100),
+    ('How do I manage my CharitMe account terms?', 'The Terms of Service explain the rules for using CharitMe, creating campaigns, donating, receiving payouts, communicating with supporters, and maintaining platform safety.', 'Policies', '/terms', 100)
+)
+insert into aeo_entries (question, answer, topic, schema_type, priority, published, route)
+select e.question, e.answer, e.topic, 'FAQPage', e.priority, true, e.route
+from entries e
+where not exists (
+  select 1 from aeo_entries existing
+  where existing.route = e.route and existing.question = e.question
+);
+
+
+-- ============ 20260722120000_protect_private_seo_overrides.sql ============
+-- Existing SEO seed rows for private surfaces must never make those routes indexable.
+update seo_settings
+set noindex = true,
+    updated_at = now()
+where route in ('/achievements', '/privacy-center', '/impact/manage')
+   or route like '/events/manage%'
+   or route like '/matching/manage%'
+   or route like '/sponsor/manage%';
+
+
+-- ============ 20260722130000_seed_public_seo_settings.sql ============
+-- Seed the canonical SEO control plane for every public marketing route.
+-- Only missing routes are inserted so administrator overrides remain intact.
+with routes(route, title, meta_description) as (
+  values
+    ('/', 'CharitMe | AI Fundraising Platform', 'Launch trusted fundraising campaigns, accept donations, and grow with AI fundraising tools.'),
+    ('/campaigns', 'Browse Fundraising Campaigns', 'Discover active CharitMe campaigns and support verified people, nonprofits, and causes.'),
+    ('/pricing', 'CharitMe Pricing', 'Review simple fundraising pricing, payment processing details, and AI growth options.'),
+    ('/features', 'Fundraising Platform Features', 'Explore CharitMe tools for campaigns, donations, donor growth, AI coaching, and payouts.'),
+    ('/how-it-works', 'How CharitMe Works', 'Learn how to start a fundraiser, share it, collect donations, and receive payouts.'),
+    ('/for-nonprofits', 'Fundraising For Nonprofits', 'AI-powered donation pages, donor insights, events, grants, and reporting for nonprofits.'),
+    ('/for-donors', 'Giving For Donors', 'Find trusted campaigns, give quickly, and follow the impact of your donations.'),
+    ('/for-individuals', 'Personal Fundraising', 'Raise money for medical bills, emergencies, education, memorials, and community needs.'),
+    ('/ai-fundraising', 'AI Fundraising', 'Use AI to write campaign stories, find growth opportunities, and improve donor outreach.'),
+    ('/ai-campaign', 'AI Campaign Builder', 'Create high-converting fundraising campaigns with AI-guided copy, media, and launch tools.'),
+    ('/events', 'Fundraising Events', 'Create, promote, and discover fundraising events connected to CharitMe campaigns.'),
+    ('/grants', 'Fundraising Grants', 'Find grant opportunities and manage applications for nonprofit and community fundraising.'),
+    ('/matching', 'Donation Matching', 'Connect campaigns with corporate matching gifts and sponsor-funded donation matches.'),
+    ('/volunteer', 'Volunteer Opportunities', 'Discover volunteer opportunities connected to causes and nonprofit fundraising campaigns.'),
+    ('/sponsor', 'Campaign Sponsorships', 'Find sponsorship opportunities and fund campaigns with clear benefits and impact.'),
+    ('/impact', 'Impact Reporting', 'See how campaigns use donations through transparent plans, updates, and outcomes.'),
+    ('/leaderboard', 'Fundraising Leaderboard', 'Track leading CharitMe campaigns and donors by fundraising momentum and impact.'),
+    ('/blog', 'Fundraising Blog', 'Read fundraising strategy, donor growth guidance, nonprofit tips, and CharitMe updates.'),
+    ('/success-stories', 'Fundraising Success Stories', 'Learn from successful campaigns and real fundraising playbooks on CharitMe.'),
+    ('/fast-payouts', 'Fast Fundraising Payouts', 'Understand CharitMe payout timing, payment processing, and organizer fund access.'),
+    ('/fees', 'Fundraising Fees', 'Compare CharitMe platform fees, processing fees, and donor-supported fundraising costs.'),
+    ('/transparency', 'Fundraising Transparency', 'Review CharitMe trust signals, campaign transparency, donations, and accountability tools.'),
+    ('/trust-safety', 'Trust And Safety', 'Learn how CharitMe protects donors, organizers, campaigns, and platform integrity.'),
+    ('/help', 'CharitMe Help Center', 'Get answers about fundraising, donations, payouts, campaign setup, and account support.'),
+    ('/faq', 'CharitMe FAQ', 'Find quick answers to common CharitMe fundraising, donation, and payout questions.'),
+    ('/contact', 'Contact CharitMe', 'Contact CharitMe for fundraising support, partnerships, press, and platform questions.'),
+    ('/about-us', 'About CharitMe', 'Learn about CharitMe and the mission to make fundraising faster, trusted, and more accessible.'),
+    ('/supported-countries', 'Supported Countries', 'See where CharitMe fundraising, donations, and payouts are supported.'),
+    ('/privacy', 'Privacy Policy', 'Read the CharitMe privacy policy for donors, organizers, nonprofits, and visitors.'),
+    ('/terms', 'Terms Of Service', 'Read the CharitMe terms that govern fundraising, donations, campaigns, and platform use.'),
+    ('/security', 'Security', 'Review CharitMe security practices for fundraising accounts, donations, and platform data.'),
+    ('/refunds', 'Refund Policy', 'Understand CharitMe donation refund policy, eligibility, and support process.'),
+    ('/prohibited-use', 'Prohibited Use Policy', 'Review prohibited fundraising categories and platform integrity rules for CharitMe.')
+), missing as (
+  select r.route, r.title, r.meta_description
+  from routes r
+  where not exists (select 1 from seo_settings s where s.route = r.route)
+)
+insert into seo_settings (
+  route, title, meta_description, og_title, og_description, og_image_url,
+  canonical_url, noindex
+)
+select
+  route,
+  title,
+  meta_description,
+  title,
+  meta_description,
+  'https://www.charitme.com/opengraph-image',
+  case when route = '/' then 'https://www.charitme.com' else 'https://www.charitme.com' || route end,
+  false
+from missing;
+
+
+-- ============ 20260722150000_auth_marketing_contact_bootstrap.sql ============
+-- Keep auth, profiles, and the marketing engine synchronized.
+-- The trigger handles new users; the idempotent backfills repair users created
+-- before the trigger or marketing tables were deployed.
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  requested_roles jsonb;
+  display_name text;
+begin
+  requested_roles := coalesce(new.raw_user_meta_data -> 'roles', '["donor"]'::jsonb);
+  if jsonb_typeof(requested_roles) <> 'array' then
+    requested_roles := '["donor"]'::jsonb;
+  end if;
+
+  display_name := coalesce(
+    nullif(new.raw_user_meta_data ->> 'full_name', ''),
+    nullif(new.raw_user_meta_data ->> 'name', '')
+  );
+
+  insert into public.profiles (id, email, full_name, avatar_url, roles)
+  values (
+    new.id,
+    new.email,
+    display_name,
+    nullif(new.raw_user_meta_data ->> 'avatar_url', ''),
+    requested_roles
+  )
+  on conflict (id) do update
+  set
+    email = excluded.email,
+    full_name = coalesce(public.profiles.full_name, excluded.full_name),
+    avatar_url = coalesce(public.profiles.avatar_url, excluded.avatar_url),
+    updated_at = now();
+
+  if new.email is not null then
+    update public.marketing_contacts
+    set
+      user_id = new.id,
+      first_name = coalesce(first_name, display_name),
+      last_active_at = now()
+    where lower(email) = lower(new.email)
+      and user_id is null;
+
+    if not found then
+      insert into public.marketing_contacts (
+        user_id, email, first_name, client_type, lifecycle_stage, status
+      )
+      values (new.id, new.email, display_name, 'donor', 'subscriber', 'active')
+      on conflict do nothing;
+    end if;
+
+    insert into public.marketing_identities (contact_id, kind, value)
+    select c.id, 'email', lower(new.email)
+    from public.marketing_contacts c
+    where lower(c.email) = lower(new.email)
+    order by c.created_at
+    limit 1
+    on conflict (kind, value) do nothing;
+
+    insert into public.marketing_identities (contact_id, kind, value)
+    select c.id, 'user_id', new.id::text
+    from public.marketing_contacts c
+    where c.user_id = new.id
+    order by c.created_at
+    limit 1
+    on conflict (kind, value) do nothing;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+insert into public.profiles (id, email, full_name, avatar_url, roles)
+select
+  u.id,
+  u.email,
+  coalesce(nullif(u.raw_user_meta_data ->> 'full_name', ''), nullif(u.raw_user_meta_data ->> 'name', '')),
+  nullif(u.raw_user_meta_data ->> 'avatar_url', ''),
+  case
+    when jsonb_typeof(coalesce(u.raw_user_meta_data -> 'roles', '["donor"]'::jsonb)) = 'array'
+      then coalesce(u.raw_user_meta_data -> 'roles', '["donor"]'::jsonb)
+    else '["donor"]'::jsonb
+  end
+from auth.users u
+where not exists (select 1 from public.profiles p where p.id = u.id)
+on conflict (id) do nothing;
+
+insert into public.marketing_contacts (
+  user_id, email, first_name, client_type, lifecycle_stage, status
+)
+select
+  u.id,
+  u.email,
+  coalesce(nullif(u.raw_user_meta_data ->> 'full_name', ''), nullif(u.raw_user_meta_data ->> 'name', '')),
+  'donor',
+  'subscriber',
+  'active'
+from auth.users u
+where u.email is not null
+  and not exists (
+    select 1
+    from public.marketing_contacts c
+    where lower(c.email) = lower(u.email)
+       or c.user_id = u.id
+  )
+on conflict do nothing;
+
+insert into public.marketing_identities (contact_id, kind, value)
+select c.id, 'email', lower(c.email)
+from public.marketing_contacts c
+where c.email is not null
+on conflict (kind, value) do nothing;
+
+insert into public.marketing_identities (contact_id, kind, value)
+select c.id, 'user_id', c.user_id::text
+from public.marketing_contacts c
+where c.user_id is not null
+on conflict (kind, value) do nothing;
+
+
+-- ============ 20260723000000_campaign_cover_per_campaign.sql ============
+-- =============================================================================
+-- Per-campaign cover distribution
+-- =============================================================================
+-- Prior migrations (20260608010000_campaign_photos.sql / _fix) assigned ONE
+-- identical cover per category, so every Medical campaign (etc.) looked the
+-- same. This migration spreads campaigns deterministically across each
+-- category's verified photo pool, keyed by a stable hash of the slug, so
+-- campaigns in the same category get different covers and galleries.
+--
+-- SAFETY: only campaigns whose cover is NULL or a seed/placeholder Unsplash URL
+-- are touched. A real user-uploaded cover (e.g. a Supabase Storage URL) is left
+-- untouched, so genuine campaign imagery is never overwritten.
+--
+-- All photo IDs referenced here are Unsplash-licensed (free for commercial use,
+-- no attribution required — https://unsplash.com/license) and were verified to
+-- return HTTP 200 by scripts/audit-campaign-images.mjs --live. The pool below is
+-- kept in sync with apps/web/lib/photo-catalog.ts (getCoverForCampaign).
+-- =============================================================================
+
+do $$
+declare
+  v_pools jsonb := '{"Medical":["https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1631815589968-fdb09a223b1e?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80"],"Emergency":["https://images.unsplash.com/photo-1593113630400-ea4288922497?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80"],"Memorial":["https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80"],"Nonprofit":["https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80"],"Education":["https://images.unsplash.com/photo-1497486751825-1233686d5d80?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80"],"Animal":["https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1518155317743-a8ff43ea6a5f?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80"],"Environment":["https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1573167243872-43c6433b9d40?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1567521464027-f127ff144326?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80"],"Business":["https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&q=80"],"Community":["https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80"],"Competition":["https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80"],"Creative":["https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1517697471339-4aa32003c11a?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1503694978374-8a2fa686963a?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80"],"Event":["https://images.unsplash.com/photo-1529543544282-ea669407fca3?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80"],"Faith":["https://images.unsplash.com/photo-1545987796-200677ee1011?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80"],"Family":["https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80"],"Sports":["https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80"],"Travel":["https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80"],"Volunteer":["https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80"],"Wishes":["https://images.unsplash.com/photo-1533230408708-8f9f91d1235a?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80"]}'::jsonb;
+  v_fallback jsonb := '["https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80"]'::jsonb;
+  r          record;
+  v_pool     jsonb;
+  v_len      int;
+  v_idx      int;
+  v_gallery  text[];
+  v_touched  int := 0;
+  i          int;
+begin
+  for r in select id, slug, category, cover_image_url from public.campaigns loop
+    -- Preserve genuine user-uploaded covers: only replace NULL/empty covers or
+    -- prior seed/placeholder Unsplash covers.
+    if r.cover_image_url is not null
+       and r.cover_image_url <> ''
+       and r.cover_image_url not like '%images.unsplash.com%' then
+      continue;
+    end if;
+
+    v_pool := coalesce(v_pools -> r.category, v_fallback);
+    v_len  := jsonb_array_length(v_pool);
+    if v_len is null or v_len = 0 then
+      continue;
+    end if;
+
+    -- Deterministic per-campaign index from a stable key (slug, else id).
+    v_idx := (abs(hashtext(coalesce(nullif(r.slug, ''), r.id::text))) % v_len);
+
+    -- Gallery: the rest of the pool, rotated to start just after the cover.
+    v_gallery := array[]::text[];
+    for i in 0 .. least(v_len, 6) - 1 loop
+      v_gallery := array_append(v_gallery, v_pool ->> ((v_idx + 1 + i) % v_len));
+    end loop;
+
+    update public.campaigns
+       set cover_image_url = v_pool ->> v_idx,
+           image_urls      = v_gallery
+     where id = r.id;
+
+    v_touched := v_touched + 1;
+  end loop;
+
+  raise notice 'Per-campaign covers distributed across % campaigns.', v_touched;
+end $$;
 
 
 -- ============ 20260723000000_financial_ledger.sql ============
@@ -6852,3 +7622,216 @@ alter table if exists public.donor_crm_contacts
 
 alter table if exists public.recurring_donations
   add column if not exists nonprofit_id uuid references public.nonprofit_profiles(id) on delete cascade;
+
+
+-- ============ 20260725000000_protect_private_seo_routes.sql ============
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'seo_settings_private_routes_noindex_check'
+      and conrelid = 'seo_settings'::regclass
+  ) then
+    alter table seo_settings drop constraint if exists seo_settings_private_routes_noindex_check;
+alter table seo_settings add constraint seo_settings_private_routes_noindex_check check (
+        noindex = true
+        or not (
+          route in ('/achievements', '/privacy-center', '/offline')
+          or route = '/go'
+          or route like '/go/%'
+          or route like '/events/manage%'
+          or route like '/impact/manage%'
+          or route like '/matching/manage%'
+          or route like '/sponsor/manage%'
+        )
+      );
+  end if;
+end $$;
+
+
+-- ============ 20260725010000_seed_prohibited_use_aeo.sql ============
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'aeo_entries_private_routes_published_check'
+      and conrelid = 'aeo_entries'::regclass
+  ) then
+    alter table aeo_entries drop constraint if exists aeo_entries_private_routes_published_check;
+alter table aeo_entries add constraint aeo_entries_private_routes_published_check check (
+        published = false
+        or not (
+          route in ('/achievements', '/privacy-center', '/offline')
+          or route = '/go'
+          or route like '/go/%'
+          or route like '/events/manage%'
+          or route like '/impact/manage%'
+          or route like '/matching/manage%'
+          or route like '/sponsor/manage%'
+        )
+      );
+  end if;
+end $$;
+
+insert into aeo_entries (question, answer, topic, schema_type, priority, published, route)
+select
+  'What fundraising activities are prohibited on CharitMe?',
+  'CharitMe prohibits illegal activity, fraud, hate or abuse, regulated goods, deceptive fundraising, and campaigns that violate our trust and safety rules. Review the full policy before launching a campaign.',
+  'Trust and safety',
+  'FAQPage',
+  80,
+  true,
+  '/prohibited-use'
+where not exists (
+  select 1 from aeo_entries where route = '/prohibited-use' and published = true
+);
+
+
+-- ============ 20260725020000_add_profile_payment_methods.sql ============
+-- Keep payout preferences separate from the organizer's public website URL.
+-- Existing legacy JSON remains readable through the builder's compatibility path.
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS payment_methods jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+COMMENT ON COLUMN public.profiles.payment_methods IS
+  'Organizer payout preference metadata; secrets and bank credentials must never be stored here.';
+
+
+-- ============ 20260725030000_campaign_media_rls.sql ============
+-- Keep normalized campaign media metadata aligned with campaign visibility and ownership.
+alter table if exists public.campaign_media enable row level security;
+
+drop policy if exists campaign_media_public_read on public.campaign_media;
+drop policy if exists campaign_media_public_read on public.campaign_media;
+create policy campaign_media_public_read on public.campaign_media for select
+  using (
+    is_admin()
+    or uploader_id = auth.uid()
+    or exists (
+      select 1
+      from public.campaigns
+      where campaigns.id = campaign_media.campaign_id
+        and campaigns.status = 'active'
+        and campaigns.visibility = 'public'
+        and campaigns.deleted_at is null
+    )
+  );
+
+drop policy if exists campaign_media_owner_insert on public.campaign_media;
+drop policy if exists campaign_media_owner_insert on public.campaign_media;
+create policy campaign_media_owner_insert on public.campaign_media for insert
+  with check (
+    is_admin()
+    or (
+      auth.uid() = uploader_id
+      and exists (
+        select 1
+        from public.campaigns
+        where campaigns.id = campaign_media.campaign_id
+          and campaigns.user_id = auth.uid()
+      )
+    )
+  );
+
+drop policy if exists campaign_media_owner_update on public.campaign_media;
+drop policy if exists campaign_media_owner_update on public.campaign_media;
+create policy campaign_media_owner_update on public.campaign_media for update
+  using (is_admin() or exists (
+    select 1 from public.campaigns
+    where campaigns.id = campaign_media.campaign_id
+      and campaigns.user_id = auth.uid()
+  ))
+  with check (is_admin() or exists (
+    select 1 from public.campaigns
+    where campaigns.id = campaign_media.campaign_id
+      and campaigns.user_id = auth.uid()
+  ));
+
+drop policy if exists campaign_media_owner_delete on public.campaign_media;
+drop policy if exists campaign_media_owner_delete on public.campaign_media;
+create policy campaign_media_owner_delete on public.campaign_media for delete
+  using (is_admin() or exists (
+    select 1 from public.campaigns
+    where campaigns.id = campaign_media.campaign_id
+      and campaigns.user_id = auth.uid()
+  ));
+
+
+-- ============ 20260725040000_campaign_media_storage_policy.sql ============
+-- Align Storage policy checks with campaigns/{owner-or-campaign}/{slot}/{file} paths.
+update storage.buckets
+set file_size_limit = 5242880,
+    allowed_mime_types = array[
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif', 'video/mp4'
+    ]
+where id = 'campaign-media';
+
+drop policy if exists "campaign media owner upload" on storage.objects;
+drop policy if exists "campaign media owner upload" on storage.objects;
+create policy "campaign media owner upload" on storage.objects for insert
+with check (
+  bucket_id = 'campaign-media'
+  and (
+    auth.uid()::text = (storage.foldername(name))[2]
+    or exists (
+      select 1
+      from public.campaigns
+      where campaigns.id::text = (storage.foldername(name))[2]
+        and campaigns.user_id = auth.uid()
+    )
+  )
+);
+
+drop policy if exists "campaign media owner update" on storage.objects;
+drop policy if exists "campaign media owner update" on storage.objects;
+create policy "campaign media owner update" on storage.objects for update
+using (
+  bucket_id = 'campaign-media'
+  and (
+    auth.uid()::text = (storage.foldername(name))[2]
+    or exists (
+      select 1
+      from public.campaigns
+      where campaigns.id::text = (storage.foldername(name))[2]
+        and campaigns.user_id = auth.uid()
+    )
+  )
+)
+with check (
+  bucket_id = 'campaign-media'
+  and (
+    auth.uid()::text = (storage.foldername(name))[2]
+    or exists (
+      select 1
+      from public.campaigns
+      where campaigns.id::text = (storage.foldername(name))[2]
+        and campaigns.user_id = auth.uid()
+    )
+  )
+);
+
+drop policy if exists "campaign media owner delete" on storage.objects;
+drop policy if exists "campaign media owner delete" on storage.objects;
+create policy "campaign media owner delete" on storage.objects for delete
+using (
+  bucket_id = 'campaign-media'
+  and (
+    auth.uid()::text = (storage.foldername(name))[2]
+    or exists (
+      select 1
+      from public.campaigns
+      where campaigns.id::text = (storage.foldername(name))[2]
+        and campaigns.user_id = auth.uid()
+    )
+  )
+);
+
+
+-- ============ 20260725050000_marketing_contact_user_uniqueness.sql ============
+-- One authenticated user must resolve to one marketing contact.
+-- The live duplicate audit was clean before adding this constraint.
+create unique index if not exists marketing_contacts_user_id_uq
+  on public.marketing_contacts (user_id)
+  where user_id is not null;
