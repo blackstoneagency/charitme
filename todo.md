@@ -1933,3 +1933,10 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
   fee math, webhook idempotency (`record_donation` + unique-index upsert), recurring
   subscription state machine + donor-scoped ownership. Evidence in `payment-audit.md`
   and `docs/AUDIT_PROGRESS.md`.
+
+## Session 2026-07-23 (Codex — accessibility warning cleanup)
+- Cleared the remaining user-facing lint warnings in the sponsor marquee, campaign
+  image fallback, integrations modal, payouts modal, team invite modal, and donor
+  tag editor. Image fallback handlers and pointer-only modal backdrop dismissal are
+  documented exceptions with keyboard alternatives. Focused ESLint is clean across
+  all six surfaces.

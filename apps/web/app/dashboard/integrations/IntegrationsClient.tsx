@@ -82,6 +82,9 @@ function ConnectModal({
   }
 
   return (
+    // Modal backdrop dismissal intentionally listens for pointer clicks only;
+    // Escape and the visible close button provide the keyboard path.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}

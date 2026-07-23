@@ -58,6 +58,8 @@ export default function ManagePayoutsButton({ campaigns }: Props) {
       </button>
 
       {open && (
+        // Backdrop dismissal is supplementary; Escape and Close remain available.
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',

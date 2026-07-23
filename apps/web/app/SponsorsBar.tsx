@@ -30,7 +30,8 @@ function SponsorImg({ src, website, name }: { src: string | null; website: strin
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
+    // Sponsor image fallback is handled by the onError event below.
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/no-noninteractive-element-interactions
     <img src={imgSrc} alt={name} onError={() => setErrorCount(c => c + 1)} />
   );
 }
