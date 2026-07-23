@@ -52,7 +52,7 @@ function fallbackSummary(scanned: number, newFlagsCount: number, flaggedCampaign
   return `Scanned ${scanned} active campaign${scanned === 1 ? '' : 's'} and flagged ${newFlagsCount} new risk signal${newFlagsCount === 1 ? '' : 's'} across ${flaggedCampaigns.length} campaign${flaggedCampaigns.length === 1 ? '' : 's'}, including ${names}. Review the Trust & Safety queue for details.`;
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

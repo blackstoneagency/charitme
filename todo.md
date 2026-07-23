@@ -1988,3 +1988,7 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — admin system accessibility)
 - Added Escape handling and explicit dialog semantics to the system settings
   review overlay. Focused ESLint is clean.
+
+## Session 2026-07-23 (Codex — AI route lint hygiene)
+- Marked unused route request parameters as intentionally unused in the fraud
+  monitor and matching finder handlers. Focused ESLint is clean.
