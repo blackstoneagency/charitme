@@ -628,7 +628,12 @@ tests/build/live-HTTP are listed here.
   through 10 callers)**. **Sitewide `label-has-associated-control` = 0.** Every
   form control now has a programmatically associated accessible name. _Evidence:
   901/901 tests, typecheck clean, `next build` green, 0 lint a11y warnings._
-
+- **A11y keyboard operability (in progress)** — resolving genuine
+  `click-events-have-key-events` gaps on user-facing interactive `<div>`s.
+  Done: **notifications rows** (`role=button` + `tabIndex` + Enter/Space
+  onKeyDown mirroring the click). Modal-backdrop click-to-dismiss handlers are
+  left (keyboard users use the close button / Esc — not a real gap). Sitewide
+  click-events warnings 98 → 96. _Evidence: 901/901 tests, 0 lint errors._
 ### Session 2026-07-23 (Claude — feature end-to-end audits)
 - **Volunteer applications — verified sound + tested** — reviewed apply +
   decision routes end-to-end: auth-guarded, UUID/slug lookup, capacity enforced
