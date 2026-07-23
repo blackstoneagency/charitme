@@ -14,10 +14,10 @@
 | Payment webhooks | ✅ fixed | prod webhook 2→**20 events**; recurring/subs/refunds now delivered |
 | Everything wired to Supabase | 🟢 mostly | core flows + new analytics table verified live |
 | Tests pass / Build succeeds | ✅ | **880/880**, `next build` green, typecheck clean |
-| Accessibility | ✅ strong | **prod Lighthouse — 7 key pages all 100**: home, how-it-works, campaigns, faq, for-donors, for-nonprofits, pricing. SEO 100, BP 96 |
+| Accessibility | ✅ strong | **prod Lighthouse — 7 key pages all 100**: home, how-it-works, campaigns, faq, for-donors, for-nonprofits, pricing. SEO 100, BP 96. **axe-core WCAG 2.0/2.1 A/AA → 0 violations across 15 public routes** after fixing /features dark-card contrast (new `--violet-ink` token), /for-individuals emerald buttons, /about-us timeline-year, and a role-less aria-label on `/` (PR #49) |
 | Dark/light mode every page | ✅ done (app) | **#43/#46/#47**: every dashboard view + campaign panel + simple public pages converted hardcoded light palettes → design tokens; **regression guard** (`__tests__/theme-tokens.test.ts`) blocks reintroduction. Branded marketing pages keep intentional brand palettes |
 | Frictionless UX | 🟢 improving | draft autosave/recovery + funnel analytics shipped; builder roadmap continues |
-| Mobile | 🟢 | mobile Lighthouse on public pages good; ongoing |
+| Mobile | 🟢 | mobile Lighthouse on public pages good; **browser audit (320/390px × 19 public routes) → 0 horizontal overflow** after fixing pricing fee-calc grid stacking, public hero word-wrap, `.mktg-page` overflow-x clip, and home cover `max-width` (PR #49); ongoing |
 | Performance | 🟢 improving | prod home **63→88** (LCP 4.1→3.1s, TBT 640→100ms) by fixing the 292KB→6.7KB oversized logo served sitewide. Remaining: unused CSS/JS (lower value) |
 | Payment methods end-to-end | 🟡 owner/test-keys | live account charges-enabled, 15+ methods active, price ids resolved; a real paid flow needs Stripe **test** keys or owner go-ahead (ADR-0003) |
 | Every page audited / every feature works | 🟡 ongoing | unbounded; audited builder + discovery + payments deeply |

@@ -251,7 +251,7 @@ export default async function HomePage() {
                 <h2 className="home-spot-title">{hc ? hc.title : 'Start a trusted campaign on CharitMe'}</h2>
                 <p className="home-spot-org">
                   Organized by {hc ? profileName(hc.profiles) : 'CharitMe Organizer'}
-                  <span className="home-spot-verified" aria-label="Verified organizer"><Icon name="check" className="hi" /></span>
+                  <span className="home-spot-verified" role="img" aria-label="Verified organizer"><Icon name="check" className="hi" /></span>
                 </p>
                 <div className="home-spot-amounts">
                   <strong>{formatMoneyCompact(hc?.raised_amount ?? 0, hcCurrency)}</strong> <span>raised</span>

@@ -8,6 +8,9 @@
   --line: #e8e4fb;
   --violet: #6d35ff;
   --violet-2: #a835f4;
+  /* Violet text accent that stays AA (≥4.5:1) on light surfaces (--s1/--s2/#fff)
+     and flips to a light violet on dark surfaces. Use for violet body/label text. */
+  --violet-ink: #5b21b6;
   --pink: #eb3fc6;
   --soft: #fbfaff;
   /* Page background token. Used as the base surface on many public pages via
@@ -2076,6 +2079,7 @@ img, video, iframe { max-width: 100%; }
 .about-timeline-item.right .about-timeline-dot { grid-column: 2; order: 2; }
 .about-timeline-item.right .about-timeline-content { grid-column: 1; padding-right: 28px; text-align: right; order: 1; }
 .about-timeline-year { font-size: 13px; font-weight: 900; color: #7c3aed; letter-spacing: .08em; text-transform: uppercase; padding-top: 8px; }
+[data-theme="dark"] .about-timeline-year { color: var(--violet-ink); } /* #7c3aed fails AA on the dark timeline bg */
 .about-timeline-dot { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed, #ec39c3); display: grid; place-items: center; position: relative; z-index: 2; box-shadow: 0 0 0 6px #fff, 0 0 0 8px rgba(124,58,237,.2); margin-top: 2px; }
 .about-timeline-dot::after { content: '✦'; color: #fff; font-size: 14px; }
 .about-timeline-content h3 { font-size: 18px; font-weight: 900; color: #1a0640; margin: 0 0 8px; }
@@ -2154,7 +2158,7 @@ img, video, iframe { max-width: 100%; }
 .pub-breadcrumb b { color: #4015e8; }
 .pub-hero, .stories-hero, .pricing-hero, .simple-public > section:first-child { padding: 38px 6vw 54px; border-bottom: 1px solid #e8ebf4; }
 .pub-hero-grid { display: grid; grid-template-columns: .85fr 1.15fr; gap: 54px; align-items: center; margin-top: 58px; }
-.pub-hero-copy h1, .stories-hero h1, .pricing-hero h1, .simple-public h1 { margin: 26px 0 24px; font-size: clamp(42px, 5vw, 64px); line-height: 1.15; letter-spacing: -.045em; font-weight: 950; }
+.pub-hero-copy h1, .stories-hero h1, .pricing-hero h1, .simple-public h1 { margin: 26px 0 24px; font-size: clamp(34px, 5vw, 64px); line-height: 1.15; letter-spacing: -.045em; font-weight: 950; overflow-wrap: break-word; }
 .pub-hero-copy h1 em, .stories-hero h1 em, .pricing-hero h1 em { color: #4a1cff; font-style: normal; }
 .pub-hero-copy p, .stories-hero p, .pricing-hero p, .simple-public > section:first-child > p { max-width: 680px; color: #2d3a63; font-size: 21px; line-height: 1.65; }
 .pub-badge { display: inline-flex; align-items: center; gap: 10px; padding: 8px 13px; border-radius: 999px; color: #4b1af2; background: #efe8ff; font-size: 12px; font-weight: 950; text-transform: uppercase; }
@@ -2362,6 +2366,11 @@ img, video, iframe { max-width: 100%; }
 .fee-calc-bad { color: #e11d48; }
 [data-theme="dark"] .fee-calc-bad { color: #fb7185; }
 .fee-calc-note { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 16px; }
+/* Two fee boxes side-by-side overflow narrow phones — stack them. */
+@media (max-width: 640px) {
+  .fee-calc-grid { grid-template-columns: 1fr; }
+  .fee-calc-box { padding: 18px; }
+}
 .all-faqs { display: inline-flex; align-items: center; gap: 8px; color: #4015e8; font-weight: 950; }
 
 /* ── Success Stories page ── */
@@ -4679,6 +4688,7 @@ img, video, iframe { max-width: 100%; }
   --t2: #b8c2de;
   --t3: #8090b5;
   --t4: #828cb1; /* WCAG AA: faintest text tier, ≥4.5:1 on s1–s3 (was #5a6898 @ 3.05:1) */
+  --violet-ink: #c4b5fd; /* light violet — AA on dark surfaces */
   --s1: #121530;
   --s2: #181c3c;
   --s3: #1e2348;
@@ -6234,7 +6244,9 @@ img, video, iframe { max-width: 100%; }
   animation: homeShimmer 1.6s ease-in-out infinite;
 }
 @keyframes homeShimmer { 0% { background-position: 180% 0; } 100% { background-position: -80% 0; } }
-.home-hc-media img, .home-cause-media img, .home-card-media img { position: relative; z-index: 1; }
+/* max-width guards against a broken/slow image rendering at its width attr and
+   overflowing the card (width:100% alone is ignored while the img is broken). */
+.home-hc-media img, .home-cause-media img, .home-card-media img { position: relative; z-index: 1; max-width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   .home-hc-media, .home-cause-media, .home-card-media { animation: none; background-image: none; background-color: var(--s2); }
 }
@@ -6387,7 +6399,7 @@ img, video, iframe { max-width: 100%; }
    in dark mode, so the page adapts. Green buttons (bg-emerald-600 + text-white)
    and intentionally-dark blocks (bg-slate-950) are left untouched.
    ========================================================================== */
-.mktg-page { background: #fff; }
+.mktg-page { background: #fff; overflow-x: clip; }
 [data-theme="dark"] .mktg-page { background: var(--bg); color: var(--t1); }
 
 /* surfaces */

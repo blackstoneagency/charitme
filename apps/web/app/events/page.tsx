@@ -31,7 +31,7 @@ export default async function EventsPage() {
       {events.length === 0 ? (
         <EmptyState icon="📅" title="No upcoming events yet" body="Check back soon, or host the first event from the manage page." />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 18 }}>
           {events.map((e) => {
             const remaining = remainingCapacity(e.capacity, e.registered_qty);
             const full = Number.isFinite(remaining) && remaining <= 0;

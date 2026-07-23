@@ -121,10 +121,10 @@ export default function FeaturesPage() {
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <span style={{ fontSize: 12, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: '.12em' }}>Platform Modules</span>
             <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: '#0e0520', margin: '10px 0 14px' }}>Everything in one platform</h2>
-            <p style={{ color: '#64748b', fontSize: 16, maxWidth: 500, margin: '0 auto' }}>Each module is production-ready and connected to a shared ledger, donor graph, and trust layer.</p>
+            <p style={{ color: '#475569', fontSize: 16, maxWidth: 500, margin: '0 auto' }}>Each module is production-ready and connected to a shared ledger, donor graph, and trust layer.</p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 24 }}>
             {PLATFORM_MODULES.map((module) => (
               <Link
                 key={module.slug}
@@ -141,9 +141,9 @@ export default function FeaturesPage() {
                     </span>
                   </div>
 
-                  <p style={{ fontSize: 11, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>{module.eyebrow}</p>
-                  <h3 style={{ fontSize: 18, fontWeight: 900, color: '#0e0520', margin: '0 0 10px', lineHeight: 1.3 }}>{module.title}</h3>
-                  <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.65, margin: '0 0 18px', flex: 1 }}>{module.summary}</p>
+                  <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--violet-ink, #5b21b6)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>{module.eyebrow}</p>
+                  <h3 style={{ fontSize: 18, fontWeight: 900, color: 'var(--t1, #0e0520)', margin: '0 0 10px', lineHeight: 1.3 }}>{module.title}</h3>
+                  <p style={{ fontSize: 13, color: 'var(--t2, #475569)', lineHeight: 1.65, margin: '0 0 18px', flex: 1 }}>{module.summary}</p>
 
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
                     {module.features.slice(0, 5).map((feature) => (
@@ -152,13 +152,13 @@ export default function FeaturesPage() {
                       </span>
                     ))}
                     {module.features.length > 5 && (
-                      <span style={{ background: '#f8f7ff', border: '1px solid #ede9fe', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: '#94a3b8' }}>
+                      <span style={{ background: '#f8f7ff', border: '1px solid #ede9fe', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: '#4b5563' }}>
                         +{module.features.length - 5} more
                       </span>
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 800, color: '#6c35ff' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 800, color: 'var(--violet-ink, #5b21b6)' }}>
                     Open module
                     <span style={{ fontSize: 16 }}>→</span>
                   </div>
@@ -189,8 +189,8 @@ export default function FeaturesPage() {
                     <span style={{ fontSize: 15, fontWeight: 900, color: '#0e0520' }}>{competitor.name}</span>
                   </div>
                   <div style={{ fontSize: 26, fontWeight: 950, color: '#0e0520', lineHeight: 1 }}>{competitor.count}</div>
-                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4, fontWeight: 600 }}>required features covered</div>
-                  <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#19b86a' }}>
+                  <div style={{ fontSize: 12, color: '#475569', marginTop: 4, fontWeight: 600 }}>required features covered</div>
+                  <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#15803d' }}>
                     <span>✓</span> Full parity
                   </div>
                 </div>

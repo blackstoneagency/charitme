@@ -84,7 +84,7 @@ export default function ForIndividualsPage() {
               with built-in trust signals so donors give with confidence and you get your money faster.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/create/choose-path" className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-soft">
+              <Link href="/create/choose-path" className="rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-soft">
                 Start a free campaign
               </Link>
               <Link href="/how-it-works" className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-900">
@@ -161,7 +161,7 @@ export default function ForIndividualsPage() {
             ))}
           </div>
           <div className="mt-10 text-center">
-            <Link href="/create/choose-path" className="inline-block rounded-xl bg-emerald-600 px-8 py-4 text-sm font-black text-white shadow-soft">
+            <Link href="/create/choose-path" className="inline-block rounded-xl bg-emerald-700 px-8 py-4 text-sm font-black text-white shadow-soft">
               Start your campaign →
             </Link>
           </div>
@@ -194,7 +194,7 @@ export default function ForIndividualsPage() {
               ].map((item) => (
                 <div key={item.label} className={`flex items-center justify-between rounded-2xl border p-4 ${item.done ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
                   <div className="flex items-center gap-3">
-                    <span className={`shrink-0 text-lg font-black ${item.done ? 'text-emerald-600' : 'text-slate-300'}`}>
+                    <span className={`shrink-0 text-lg font-black ${item.done ? 'text-emerald-700' : 'text-slate-300'}`}>
                       {item.done ? '✓' : '○'}
                     </span>
                     <span className="text-sm font-bold text-slate-800">{item.label}</span>
@@ -230,10 +230,10 @@ export default function ForIndividualsPage() {
       </section>
 
       {/* CTA */}
-      <section className="bg-emerald-600 py-16">
+      <section className="bg-emerald-700 py-16">
         <div className="container text-center">
           <h2 className="text-3xl font-black text-white">Start raising in under 5 minutes</h2>
-          <p className="mx-auto mt-4 max-w-xl text-emerald-100">
+          <p className="mx-auto mt-4 max-w-xl text-emerald-50">
             Free to create. Free to run. AI Copilot included. No credit card required.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
