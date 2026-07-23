@@ -6487,3 +6487,11 @@ img, video, iframe { max-width: 100%; }
 /* Campaign path chooser (/create/choose-path) — hover affordance */
 .cm-choose-card:hover { border-color: var(--violet, #6c35ff); transform: translateY(-2px); }
 @media (max-width: 720px) { .cm-choose-card { flex-basis: 100% !important; } }
+
+/* ── Print styles — used by the donor annual giving statement ── */
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff !important; }
+  /* Ensure the statement prints crisply regardless of viewer theme. */
+  :root { color-scheme: light; }
+}

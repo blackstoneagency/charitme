@@ -580,6 +580,86 @@ Legend: **Built** = real page/route wired to Supabase exists and compiles;
 Format: `ID · area · what · evidence (commit)`. Only fixes verified by
 tests/build/live-HTTP are listed here.
 
+### Session 2026-07-23 (Claude, PR #50 — production hardening sweep)
+- **CHAR-F056 · tax reporting (NEW FEATURE)** — Built donor **annual giving
+  statements**, fully Supabase-wired. Before: only per-donation email receipts,
+  no year-end statement, and the rich `donation_receipts` table was unused with
+  no deductibility logic anywhere. Now:
+  - `lib/tax.ts` (pure, 9 unit tests) — deductibility rule: deductible **only**
+    when the campaign owner has a **verified** `nonprofit_profile` with
+    `tax_receipt_enabled` (shows legal name + EIN); personal fundraisers are
+    non-deductible gifts, stated explicitly. Tips excluded; completed-only.
+  - `lib/tax-server.ts` — shared Supabase loader (donations → campaign owner →
+    `nonprofit_profiles`) used by both API + page (identical deductibility).
+  - `GET /api/donor/tax-statement?year=&format=json|csv` — donor-scoped,
+    auth-guarded consolidated statement + CSV export.
+  - `/donor/tax-statement/[year]` — printable (print-to-PDF) statement:
+    per-org deductible breakdown, itemized lines w/ receipt #s, IRS-style
+    disclosure; print styles added to `globals.css`.
+  - Donor portal **Tax Statements** card (per-year statement + CSV links).
+  _Evidence: 898/898 tests (9 new), typecheck clean, `next build` green
+  (both routes registered), lint clean; **CI run 29970669919 → success**._
+- **CHAR-F057 · tax reporting (fundraiser side)** — Complements the donor
+  statement with the **campaign-owner** view: `buildFundraiserTaxSummary`
+  (pure, 2 new tests) → per-campaign gross raised + count (+ tips separately)
+  for a tax year; gross is authoritative (0% platform fee), Stripe processing
+  fees deliberately not estimated. `GET /api/fundraiser/tax-summary?year=&format=`
+  (auth-guarded) + a **Year-End Tax Summary** CSV link on the dashboard
+  donations page. _Evidence: 900/900 tests, typecheck clean, build green, lint clean._
+
+- **CHAR-F050 · auth/ux** — Repaired broken **Sign Out** on the Settings and
+  Profile pages: both linked to `/api/auth/signout` (POST-only) via a plain
+  `<Link>`/`<a>` GET nav → 405, so sign-out did nothing. Converted to
+  client-side POST buttons that hard-navigate to `/login` (making the route
+  GET-able was rejected — Next.js `<Link>` prefetch could sign users out
+  silently). _Evidence: 889 tests pass, typecheck clean; commit on PR #50._
+- **CHAR-F051 · settings/ux** — Wired the Notifications panel toggles to
+  persisted state. The email toggle used `NotifRow` (isolated local state) so
+  Save Changes always wrote the *initial* value; marketing had no UI toggle at
+  all despite `notification_marketing` column + API support. Now controlled +
+  persisted, with an accessible name on the switch. _Evidence: 889 tests pass._
+- **CHAR-F052 · faq/resilience** — Public FAQ called `supabaseAdmin` at
+  render/prerender with no guard; a missing env var or DB blip 500'd the page
+  (and broke a no-env build). Wrapped in try/catch → graceful fallback to the
+  hardcoded on-page FAQ content. _Evidence: `next build` green; 889 tests._
+- **CHAR-F053 · admin/exports** — Two admin CSV export buttons were broken:
+  `admin/finance` linked to a POST-only route with the wrong param shape
+  (405), and `admin/donations` used the *user-scoped* export (admin's own
+  campaigns → empty file) instead of the platform ledger. Both repointed to
+  the working admin GET ledger export `/api/admin/payments/export`.
+- **CHAR-F054 · a11y/sponsors** — The public sponsors marquee duplicates its
+  list for a seamless CSS loop but exposed both copies to assistive tech —
+  screen-reader users heard every sponsor twice and keyboard users tabbed
+  through phantom duplicate links. Clone half now `aria-hidden` + `tabIndex=-1`.
+
+**Audit verifications this session (no regressions found):**
+- **Navigation integrity** — all **58** static internal `<Link>`/`href`
+  targets resolve to real routes (0 dead links); dynamic hrefs hit existing
+  `[slug]`/`[id]` routes.
+- **Image uniqueness** — `audit:campaign-images` PASSED (45 catalog IDs = 45
+  SQL migration IDs, 0 duplicates).
+- **Broken-method sweep** — audited client `fetch` DELETE/PUT calls, native
+  `<form action>` POSTs, and GET-vs-POST link mismatches: all remaining ones
+  are correct (e.g. trust-flag resolve form POSTs and server-redirects back).
+- **Dashboard sign-out** — confirmed the shell TopBar renders working account
+  controls (`ShellAccountControls`) on every dashboard page.
+- **CHAR-F055 · mobile** — The user-facing **Invite Team Member** modal used a
+  fixed `width: 460` that overflows phones (< ~375px). Added the existing
+  `kf-modal-responsive` helper (`max-width: calc(100vw - 32px)`).
+- **Mobile responsiveness audit (no other user-facing overflow found):**
+  viewport meta present; decorative hero blobs all sit in `overflow:hidden`
+  sections (clipped, no horizontal scroll); user data tables use
+  `.kf-table-scroll` (`overflow-x:auto`, children scroll within the wrapper);
+  campaign/donate/create flows have no fixed-width modals. Remaining fixed-width
+  modals are **admin-only** (internal tooling) — lower priority.
+- **Security — mutating-route auth sweep** — scanned every API route
+  exporting POST/PATCH/PUT/DELETE for an auth/admin/webhook/cron guard.
+  **Every mutating route is guarded**; the only two without a guard are
+  correct by design: `/api/auth/signout` (only clears cookies) and
+  `/api/trust-score` (a stateless score calculator, no DB access). Super-admin
+  routes verified using `guardSuperAdmin()`.
+- **Baseline** — 889/889 tests, typecheck clean, `next build` green, lint 0 errors.
+
 - **CHAR-F001 · trust/data** — Removed auto-seeding of 50 fabricated corporate
   sponsors and 500 fabricated support tickets into the live DB on admin page
   visit (fake social proof on public homepage). Empty states + public sponsor
