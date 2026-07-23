@@ -140,6 +140,85 @@ function sum(xs: number[]): number {
   return xs.reduce((a, b) => a + b, 0);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Fundraiser (campaign-owner) year-end summary.
+//
+// What a fundraiser needs for their own records/income reporting is the GROSS
+// they raised — the authoritative sum of completed donations to their
+// campaigns. CharitMe's platform fee is 0%, so gross ≈ what they received,
+// minus Stripe's processing fees which Stripe deducts and reports separately
+// (we do NOT estimate those here — presenting an estimate as authoritative for
+// taxes would mislead). Tips are the donor's support of CharitMe, not the
+// fundraiser's revenue, and are reported separately.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface FundraiserDonationInput {
+  amountCents: number;
+  tipCents?: number | null;
+  currency: string | null;
+  status: string;
+  createdAt: string; // ISO
+  campaignId: string;
+  campaignTitle: string;
+}
+
+export interface FundraiserCampaignSummary {
+  campaignId: string;
+  campaignTitle: string;
+  donationCount: number;
+  grossCents: number;
+  tipCents: number;
+}
+
+export interface FundraiserTaxSummary {
+  year: number;
+  currency: string;
+  campaigns: FundraiserCampaignSummary[];
+  totals: { donationCount: number; grossCents: number; tipCents: number };
+}
+
+export function buildFundraiserTaxSummary(
+  donations: FundraiserDonationInput[],
+  year: number,
+): FundraiserTaxSummary {
+  const inYear = donations.filter((d) => {
+    if (d.status !== 'completed') return false;
+    const t = new Date(d.createdAt);
+    return !Number.isNaN(t.getTime()) && t.getUTCFullYear() === year;
+  });
+
+  const currency = (inYear[0]?.currency ?? 'usd').toLowerCase();
+
+  const byCampaign = new Map<string, FundraiserCampaignSummary>();
+  for (const d of inYear) {
+    const existing = byCampaign.get(d.campaignId);
+    const gross = Math.max(0, Math.round(d.amountCents));
+    const tip = Math.max(0, Math.round(d.tipCents ?? 0));
+    if (existing) {
+      existing.donationCount += 1;
+      existing.grossCents += gross;
+      existing.tipCents += tip;
+    } else {
+      byCampaign.set(d.campaignId, {
+        campaignId: d.campaignId,
+        campaignTitle: d.campaignTitle,
+        donationCount: 1,
+        grossCents: gross,
+        tipCents: tip,
+      });
+    }
+  }
+
+  const campaigns = [...byCampaign.values()].sort((a, b) => b.grossCents - a.grossCents);
+  const totals = {
+    donationCount: sum(campaigns.map((c) => c.donationCount)),
+    grossCents: sum(campaigns.map((c) => c.grossCents)),
+    tipCents: sum(campaigns.map((c) => c.tipCents)),
+  };
+
+  return { year, currency, campaigns, totals };
+}
+
 /** Years (descending) for which the donor has at least one completed donation. */
 export function donationYears(donations: TaxDonationInput[]): number[] {
   const years = new Set<number>();

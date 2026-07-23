@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   isDeductible,
   buildTaxStatement,
+  buildFundraiserTaxSummary,
   donationYears,
   type TaxDonationInput,
   type NonprofitTaxInfo,
+  type FundraiserDonationInput,
 } from '../lib/tax';
 
 const verifiedNonprofit: NonprofitTaxInfo = { name: 'Helping Hands Inc', taxId: '12-3456789', verified: true, taxReceiptEnabled: true };
@@ -111,6 +113,40 @@ describe('buildTaxStatement', () => {
       don({ id: 'new', createdAt: '2026-12-01T00:00:00Z' }),
     ], 2026);
     expect(s.lines.map((l) => l.id)).toEqual(['new', 'old']);
+  });
+});
+
+describe('buildFundraiserTaxSummary', () => {
+  function fdon(o: Partial<FundraiserDonationInput>): FundraiserDonationInput {
+    return {
+      amountCents: 10_000, tipCents: 0, currency: 'usd', status: 'completed',
+      createdAt: '2026-04-01T00:00:00Z', campaignId: 'c1', campaignTitle: 'Camp 1', ...o,
+    };
+  }
+
+  it('groups gross + count by campaign for the year, excludes tips from gross', () => {
+    const s = buildFundraiserTaxSummary([
+      fdon({ campaignId: 'c1', campaignTitle: 'Camp 1', amountCents: 5_000, tipCents: 500 }),
+      fdon({ campaignId: 'c1', campaignTitle: 'Camp 1', amountCents: 3_000, tipCents: 300 }),
+      fdon({ campaignId: 'c2', campaignTitle: 'Camp 2', amountCents: 9_000 }),
+      fdon({ campaignId: 'c2', campaignTitle: 'Camp 2', amountCents: 1_000, status: 'refunded' }), // excluded
+      fdon({ campaignId: 'c1', campaignTitle: 'Camp 1', amountCents: 999, createdAt: '2025-12-31T00:00:00Z' }), // prior year
+    ], 2026);
+    // Sorted by gross desc: c1 (8000) then c2 (9000)? c2 gross 9000 > c1 8000 → c2 first
+    expect(s.campaigns.map((c) => c.campaignId)).toEqual(['c2', 'c1']);
+    const c1 = s.campaigns.find((c) => c.campaignId === 'c1')!;
+    expect(c1.donationCount).toBe(2);
+    expect(c1.grossCents).toBe(8_000);
+    expect(c1.tipCents).toBe(800);
+    expect(s.totals.grossCents).toBe(17_000);
+    expect(s.totals.donationCount).toBe(3);
+    expect(s.totals.tipCents).toBe(800);
+  });
+
+  it('returns empty totals when no donations match', () => {
+    const s = buildFundraiserTaxSummary([], 2026);
+    expect(s.campaigns).toEqual([]);
+    expect(s.totals).toEqual({ donationCount: 0, grossCents: 0, tipCents: 0 });
   });
 });
 
