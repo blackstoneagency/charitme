@@ -3701,7 +3701,7 @@ img, video, iframe { max-width: 100%; }
 .ac-health.good { background: #d1fae5; color: #065f46; }
 .ac-health.warn { background: #fff7ed; color: #c2410c; }
 .ac-health.bad { background: #fee2e2; color: #b91c1c; }
-.ac-desc-block label { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #8c9ab5; }
+.ac-desc-block label, .ac-desc-block .ac-desc-label { font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #8c9ab5; }
 .ac-desc-block p { margin: 8px 0 0; font-size: 13px; color: #3a4166; line-height: 1.6; }
 .ac-tab-pane { display: flex; flex-direction: column; gap: 16px; }
 .ac-update-compose { background: #f8f9ff; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
