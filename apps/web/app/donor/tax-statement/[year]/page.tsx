@@ -19,8 +19,9 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default async function TaxStatementPage({ params }: { params: Promise<{ year: string }> }) {
+export default async function TaxStatementPage({ params, searchParams }: { params: Promise<{ year: string }>; searchParams: Promise<{ currency?: string }> }) {
   const { year: yearStr } = await params;
+  const { currency: requestedCurrency } = await searchParams;
   const year = parseInt(yearStr, 10);
   if (!Number.isFinite(year) || year < 2000 || year > 2100) notFound();
 
@@ -32,7 +33,7 @@ export default async function TaxStatementPage({ params }: { params: Promise<{ y
   let profileName: string | null = null;
   try {
     const [{ statement: loadedStatement }, profileRes] = await Promise.all([
-      getDonorTaxStatement(user.id, year),
+      getDonorTaxStatement(user.id, year, requestedCurrency),
       supabaseAdmin.from('profiles').select('full_name').eq('id', user.id).single(),
     ]);
     statement = loadedStatement;
@@ -43,8 +44,15 @@ export default async function TaxStatementPage({ params }: { params: Promise<{ y
         <div style={{ maxWidth: 640, margin: '0 auto', padding: '64px 24px' }}>
           <h1 style={{ fontSize: 24, margin: '0 0 10px' }}>Statement needs separate currencies</h1>
           <p style={{ color: 'var(--t2, #334155)', lineHeight: 1.6, margin: 0 }}>
-            This year includes donations in more than one currency. CharitMe keeps those totals separate so your records stay accurate. Download each currency separately from your giving history.
+            This year includes donations in more than one currency. CharitMe keeps those totals separate so your records stay accurate. Choose a currency to view its statement.
           </p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
+            {error.currencies.map((code) => (
+              <Link key={code} href={`/donor/tax-statement/${year}?currency=${encodeURIComponent(code)}`} style={{ color: 'var(--violet, #6c35ff)', fontWeight: 700, textDecoration: 'none' }}>
+                View {code.toUpperCase()} statement
+              </Link>
+            ))}
+          </div>
         </div>
       );
     }

@@ -91,7 +91,11 @@ export async function loadDonorTaxInputs(donorId: string): Promise<TaxDonationIn
 export async function getDonorTaxStatement(
   donorId: string,
   year: number,
+  currency?: string,
 ): Promise<{ statement: TaxStatement; availableYears: number[] }> {
   const inputs = await loadDonorTaxInputs(donorId);
-  return { statement: buildTaxStatement(inputs, year), availableYears: donationYears(inputs) };
+  const selected = currency
+    ? inputs.filter((input) => (input.currency ?? 'usd').toLowerCase() === currency.toLowerCase())
+    : inputs;
+  return { statement: buildTaxStatement(selected, year), availableYears: donationYears(inputs) };
 }

@@ -72,10 +72,12 @@ export interface TaxStatement {
 
 export class MixedCurrencyError extends Error {
   readonly code = 'MIXED_CURRENCY';
+  readonly currencies: string[];
 
-  constructor() {
+  constructor(currencies: string[]) {
     super('A tax report cannot combine donations in different currencies.');
     this.name = 'MixedCurrencyError';
+    this.currencies = currencies;
   }
 }
 
@@ -116,7 +118,7 @@ export function buildTaxStatement(donations: TaxDonationInput[], year: number): 
   inYear.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const currencies = new Set(inYear.map((d) => (d.currency ?? 'usd').toLowerCase()));
-  if (currencies.size > 1) throw new MixedCurrencyError();
+  if (currencies.size > 1) throw new MixedCurrencyError([...currencies].sort());
 
   const currency = (inYear[0]?.currency ?? 'usd').toLowerCase();
 
@@ -210,7 +212,7 @@ export function buildFundraiserTaxSummary(
   });
 
   const currencies = new Set(inYear.map((d) => (d.currency ?? 'usd').toLowerCase()));
-  if (currencies.size > 1) throw new MixedCurrencyError();
+  if (currencies.size > 1) throw new MixedCurrencyError([...currencies].sort());
 
   const currency = (inYear[0]?.currency ?? 'usd').toLowerCase();
 

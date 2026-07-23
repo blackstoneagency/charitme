@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unsupported format', code: 'INVALID_FORMAT' }, { status: 400 });
   }
   const yearParam = url.searchParams.get('year');
+  const currency = url.searchParams.get('currency')?.trim().toLowerCase() || undefined;
   const year = yearParam ? parseInt(yearParam, 10) : new Date().getUTCFullYear();
   if (!Number.isFinite(year) || year < 2000 || year > 2100) {
     return NextResponse.json({ error: 'Invalid year' }, { status: 400 });
@@ -65,12 +66,15 @@ export async function GET(req: NextRequest) {
     }));
   }
 
+  const selectedInputs = currency
+    ? inputs.filter((input) => (input.currency ?? 'usd').toLowerCase() === currency)
+    : inputs;
   let summary;
   try {
-    summary = buildFundraiserTaxSummary(inputs, year);
+    summary = buildFundraiserTaxSummary(selectedInputs, year);
   } catch (error) {
     if (error instanceof MixedCurrencyError) {
-      return NextResponse.json({ error: 'This report contains multiple currencies. Export each currency separately.', code: error.code }, { status: 422 });
+      return NextResponse.json({ error: 'This report contains multiple currencies. Select one currency and try again.', code: error.code, availableCurrencies: error.currencies }, { status: 422 });
     }
     return NextResponse.json({ error: 'Failed to build summary', code: 'TAX_SUMMARY_FAILED' }, { status: 500 });
   }

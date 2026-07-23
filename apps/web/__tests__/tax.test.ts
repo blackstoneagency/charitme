@@ -140,6 +140,11 @@ describe('buildTaxStatement', () => {
       don({ currency: 'usd' }),
       don({ id: 'eur-gift', currency: 'eur' }),
     ], 2026)).toThrowError(MixedCurrencyError);
+    try {
+      buildTaxStatement([don({ currency: 'usd' }), don({ id: 'eur-gift', currency: 'eur' })], 2026);
+    } catch (error) {
+      expect(error).toMatchObject({ currencies: ['eur', 'usd'] });
+    }
   });
 });
 

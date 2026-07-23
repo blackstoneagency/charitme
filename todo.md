@@ -2064,3 +2064,4 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 - [x] Tax exports now reject unsupported formats and return an explicit unavailable error when Supabase campaign, donation, receipt, or nonprofit queries fail instead of presenting incomplete reports.
 ### Session 2026-07-23 (Codex — mixed-currency tax integrity)
 - [x] Tax statement and fundraiser summary builders now reject mixed-currency totals instead of adding incompatible minor units; APIs return a clear `422 MIXED_CURRENCY` response.
+- [x] Added `currency=` filtering and printable statement links so donors can complete separate, accurate reports for each currency.
