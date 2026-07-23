@@ -129,11 +129,10 @@ function EditModal({ item, onClose, onSaved }: { item: ContentRecord; onClose: (
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div role="dialog" aria-modal="true" aria-labelledby="content-edit-title" style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ width: 560, background: '#fff', borderRadius: 16, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Edit Content</h2>
+          <h2 id="content-edit-title" style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Edit Content</h2>
           <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5' }}>×</button>
         </div>
         <div style={{ padding: '24px', display: 'grid', gap: 16 }}>
@@ -180,10 +179,9 @@ function DeleteModal({ item, onClose, onDeleted }: { item: ContentRecord; onClos
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div role="dialog" aria-modal="true" aria-labelledby="content-delete-title" style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ width: 420, background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 24px 80px rgba(20,20,80,.18)' }}>
-        <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: '#0f0f30' }}>Delete Content?</h2>
+        <h2 id="content-delete-title" style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: '#0f0f30' }}>Delete Content?</h2>
         <p style={{ margin: '0 0 4px', color: '#26335c', fontSize: 14 }}>
           <strong>&ldquo;{item.title || 'Untitled'}&rdquo;</strong>
         </p>
@@ -215,8 +213,7 @@ function ContentDetailPanel({
   const tabs = ['overview', 'content', 'history'];
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div role="dialog" aria-modal="true" aria-label="Content details" style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}>
       <div style={{ marginLeft: 'auto', width: 520, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -341,8 +338,7 @@ function CreateContentWizard({
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div role="dialog" aria-modal="true" aria-label="Create campaign update" style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}>
       <div style={{ width: 520, background: '#fff', borderRadius: 18, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
@@ -553,9 +549,10 @@ export default function ContentClient({
         {activeTab === 'content' && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: '#fff' }}>
+              <label htmlFor="content-search" style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: '#fff' }}>
+                <span className="sr-only">Search content</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={15} height={15}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
-                <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Search content…" style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }} />
+                <input id="content-search" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Search content…" style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }} />
               </label>
               <select value={filterType} onChange={e => { setFilterType(e.target.value); setPage(0); }} style={{ height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', fontSize: 13, background: '#fff' }}>
                 <option value="all">All Types</option>
@@ -568,8 +565,8 @@ export default function ContentClient({
             </div>
 
             {currentPage.map(c => (
-              <div key={c.id}
-                style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+              <button type="button" key={c.id}
+                style={{ display: 'grid', width: '100%', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '14px 20px', border: 0, borderBottom: '1px solid #f0f2f8', background: 'transparent', color: 'inherit', textAlign: 'left', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => setSelected(c)}
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
@@ -580,7 +577,7 @@ export default function ContentClient({
                 <span style={{ fontSize: 12, color: '#66708d', fontWeight: 700 }}>{c.type}</span>
                 <span style={{ fontSize: 12, color: '#66708d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campaign_title}</span>
                 <span style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(c.updated_at)}</span>
-              </div>
+              </button>
             ))}
 
             {currentPage.length === 0 && <div style={{ padding: '32px', textAlign: 'center', color: '#8c9ab5', fontSize: 14 }}>No content found</div>}
