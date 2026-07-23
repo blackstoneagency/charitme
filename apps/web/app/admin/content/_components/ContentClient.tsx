@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 
 // ─────────────────────────────────────────────
 // Types
@@ -36,6 +36,16 @@ function fmtDate(iso: string): string {
 }
 function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+}
+
+function useEscape(onClose: () => void): void {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
 }
 
 // ─────────────────────────────────────────────
@@ -108,6 +118,7 @@ function EditModal({ item, onClose, onSaved }: { item: ContentRecord; onClose: (
   const [body, setBody] = useState(item.body);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  useEscape(onClose);
 
   async function handleSave() {
     if (!body.trim()) { setError('Content body is required.'); return; }
@@ -129,6 +140,8 @@ function EditModal({ item, onClose, onSaved }: { item: ContentRecord; onClose: (
   }
 
   return (
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ width: 560, maxWidth: 'calc(100vw - 32px)', background: '#fff', borderRadius: 16, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
@@ -164,6 +177,7 @@ function EditModal({ item, onClose, onSaved }: { item: ContentRecord; onClose: (
 function DeleteModal({ item, onClose, onDeleted }: { item: ContentRecord; onClose: () => void; onDeleted: (id: string) => void }) {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
+  useEscape(onClose);
 
   async function handleDelete() {
     setDeleting(true);
@@ -180,6 +194,8 @@ function DeleteModal({ item, onClose, onDeleted }: { item: ContentRecord; onClos
   }
 
   return (
+    // Backdrop dismissal is supplementary; Escape and the visible buttons remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ width: 420, maxWidth: 'calc(100vw - 32px)', background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 24px 80px rgba(20,20,80,.18)' }}>
@@ -213,8 +229,11 @@ function ContentDetailPanel({
 }) {
   const [activeTab, setActiveTab] = useState('overview');
   const tabs = ['overview', 'content', 'history'];
+  useEscape(onClose);
 
   return (
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ marginLeft: 'auto', width: 520, maxWidth: '100vw', background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
@@ -307,6 +326,7 @@ function CreateContentWizard({
   const [body, setBody] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  useEscape(onClose);
 
   async function handleSubmit() {
     if (!body.trim()) { setError('Content body is required.'); return; }
@@ -341,6 +361,8 @@ function CreateContentWizard({
   }
 
   return (
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ width: 520, maxWidth: 'calc(100vw - 32px)', background: '#fff', borderRadius: 18, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
@@ -571,6 +593,14 @@ export default function ContentClient({
               <div key={c.id}
                 style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => setSelected(c)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setSelected(c);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 <div style={{ minWidth: 0 }}>

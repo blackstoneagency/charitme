@@ -1944,6 +1944,11 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
   nested click trap while preserving the visible close button and backdrop path.
   Focused ESLint is clean.
 
+## Session 2026-07-23 (Codex — admin content accessibility)
+- Made content-management rows keyboard-operable, added Escape handling to edit,
+  delete, detail, and create modals, and retained pointer backdrop dismissal with
+  visible keyboard controls. Focused ESLint is clean.
+
 ## Session 2026-07-23 (Codex — accessibility warning cleanup)
 - Cleared the remaining user-facing lint warnings in the sponsor marquee, campaign
   image fallback, integrations modal, payouts modal, team invite modal, and donor
