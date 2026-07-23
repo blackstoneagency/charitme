@@ -172,7 +172,7 @@ export default async function AdminDonationsPage() {
         subtitle="Manage donations, donors, and transactions from start to finish."
         actions={
           <Link
-            href="/api/exports/donations"
+            href="/api/admin/payments/export"
             download
             className="kf-primary"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 20px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
