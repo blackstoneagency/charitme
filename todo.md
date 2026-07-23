@@ -629,6 +629,20 @@ tests/build/live-HTTP are listed here.
   form control now has a programmatically associated accessible name. _Evidence:
   901/901 tests, typecheck clean, `next build` green, 0 lint a11y warnings._
 
+### Session 2026-07-23 (Claude — feature end-to-end audits)
+- **Volunteer applications — verified sound + tested** — reviewed apply +
+  decision routes end-to-end: auth-guarded, UUID/slug lookup, capacity enforced
+  on both apply and accept, `slots_filled` maintained via `applicationSlotDelta`
+  (accept fills / un-accept frees), transition legality via
+  `canTransitionApplication`, optimistic `.eq('status', from)` guard prevents
+  double-counting, owner/admin authz, idempotent apply. **16 unit tests**
+  (`volunteers.test.ts`).
+- **Community challenges — verified sound + tested** — `/api/gamification/
+  challenges/[id]/join` is auth-guarded, delegates to pure `joinChallenge`
+  (proper 404/400 handling). **9 unit tests** (`challenges.test.ts`).
+- Pattern holds: audited feature paths are correct and covered — the platform
+  is mature; these audits confirm soundness rather than surfacing defects.
+
 ### Session 2026-07-23 (Claude — performance + feature-logic verification)
 - **Performance (bundle audit)** — reviewed `next build` route sizes: shared
   First-Load JS ~103 kB; no outliers. `/campaigns/[slug]/embed` is **168 B**
