@@ -266,10 +266,18 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Completion Evidence: —
   - Commit: —
 
-- [ ] CHAR-0010
+- [~] CHAR-0010 — **Code is DONE; blocked only on 4 production env vars** (2026-07-23 audit)
   - Area: Monetization
   - Feature: Subscriptions + entitlements + billing portal
   - Description: `subscriptions`, `subscription_items`, `entitlements`, `invoices`; Stripe Billing; feature-flag/entitlement gating for premium analytics/CRM/marketing/AI.
+  - **Audit finding**: the whole revenue path already exists and is wired — `POST /api/stripe/checkout` (`mode:'subscription'`), `/api/stripe/portal`, `BillingPortalButton`, webhook handling for `customer.subscription.updated|deleted` + `invoice.payment_succeeded|failed`, `subscriptions` table in prod, and `lib/entitlements.ts` resolving tier from it. **It cannot take a single payment** because `PRICE_MAP` reads env vars that are unset in production, so every subscribe attempt returns 400 "Stripe price not configured".
+  - **Unblock (owner action — Vercel env, all 4, then redeploy):**
+    - `STRIPE_STARTER_MONTHLY_PRICE_ID=price_1TbRHnBrwQtGmNLkGHtm2BrD` ($19/mo)
+    - `STRIPE_STARTER_YEARLY_PRICE_ID=price_1TbRI5BrwQtGmNLk6BdLGetC` ($228/yr)
+    - `STRIPE_PRO_MONTHLY_PRICE_ID=price_1TbRIKBrwQtGmNLknRFNkTZ5` ($59/mo)
+    - `STRIPE_PRO_YEARLY_PRICE_ID=price_1TbRIWBrwQtGmNLkkh0b32KR` ($708/yr)
+  - Price IDs read live from Stripe (read-only) and confirmed against the CharitMe Starter/Pro products. Added to local `apps/web/.env.local` already. NOTE: the Stripe account also hosts unrelated products (FamilyOS, Trading Elite, Eli54U) — do not wire those.
+  - Remaining after unblock: verify a real subscribe → webhook → entitlement upgrade round-trip in **Stripe test mode** (never with the live keys), then dunning/invoice history UI.
   - Agent: 3 (+9)
   - Priority: P2
   - Dependencies: Stripe (needs-staging)
