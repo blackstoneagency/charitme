@@ -2058,3 +2058,5 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ### Session 2026-07-23 (Codex — profile persistence correctness)
 - [x] Fixed silent auth profile-sync failures: Supabase profile lookup/write errors now fail the sync request and OAuth callback instead of reporting a successful login with no `profiles` row.
 - [x] Live Supabase verification: `newworldventurellc@gmail.com` exists in `auth.users` and has one linked `profiles` row; the previously reported `@google.com` and misspelled `newwolrdventuresllc@gmail.com` addresses do not exist in Auth.
+### Session 2026-07-23 (Codex — tax receipt integrity)
+- [x] Removed fabricated receipt numbers from annual donor statements; only official numbers persisted in `tax_receipts` are displayed or exported.

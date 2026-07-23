@@ -128,6 +128,11 @@ describe('buildTaxStatement', () => {
     ], 2026);
     expect(s.lines.map((l) => l.id)).toEqual(['new', 'old']);
   });
+
+  it('does not invent an official receipt number', () => {
+    const s = buildTaxStatement([don({ id: 'unreceipted', receiptNumber: null })], 2026);
+    expect(s.lines[0]?.receiptNumber).toBeNull();
+  });
 });
 
 describe('buildFundraiserTaxSummary', () => {
