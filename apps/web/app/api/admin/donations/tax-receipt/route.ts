@@ -34,16 +34,12 @@ export async function POST(req: NextRequest) {
       amount_cents,
       currency,
       donor_id,
+      status,
       created_at,
       campaigns:campaign_id (
         title,
         slug,
-        nonprofit_profiles:nonprofit_id (
-          organization_name,
-          ein,
-          verification_status,
-          tax_receipt_enabled
-        )
+        user_id
       )
     `)
     .eq('id', donationId)
@@ -56,11 +52,23 @@ export async function POST(req: NextRequest) {
   type CampaignJoin = {
     title: string;
     slug: string;
-    nonprofit_profiles: { organization_name: string; ein: string; verification_status: string; tax_receipt_enabled: boolean } | null;
+    user_id: string;
   };
   const camp = donation.campaigns as unknown as CampaignJoin | null;
+  if (donation.status !== 'completed') {
+    return NextResponse.json({ error: 'Only completed donations can receive a tax receipt' }, { status: 400 });
+  }
 
-  if (!camp?.nonprofit_profiles?.tax_receipt_enabled) {
+  const { data: nonprofit } = camp?.user_id
+    ? await supabaseAdmin
+      .from('nonprofit_profiles')
+      .select('id, name, tax_id, verified, verification_status, tax_receipt_enabled')
+      .eq('owner_id', camp.user_id)
+      .maybeSingle()
+    : { data: null };
+
+  const nonprofitVerified = Boolean(nonprofit?.verified) || nonprofit?.verification_status === 'verified';
+  if (!camp || !nonprofit || !nonprofitVerified || !nonprofit.tax_receipt_enabled || !nonprofit.tax_id?.trim()) {
     return NextResponse.json({ error: 'This campaign is not eligible for tax receipts' }, { status: 400 });
   }
 
@@ -81,7 +89,7 @@ export async function POST(req: NextRequest) {
 
   const { formatCents } = await import('../../../../../lib/stripe');
   const amountFormatted = formatCents(donation.amount_cents as number, (donation.currency as string | null) ?? 'usd');
-  const receiptNumber = `CHM-${(donation.id as string).slice(0, 8).toUpperCase()}`;
+  const receiptNumber = `RCP-${new Date(donation.created_at as string).getUTCFullYear()}-${(donation.id as string).slice(0, 8).toUpperCase()}`;
   const donationDate = new Date(donation.created_at as string).toLocaleDateString('en-US', {
     year: 'numeric', month: 'long', day: 'numeric',
   });
@@ -89,13 +97,22 @@ export async function POST(req: NextRequest) {
   await sendTaxReceiptEmail({
     to: (profile as { email: string }).email,
     donorName: (profile as { full_name?: string }).full_name,
-    nonprofitName: camp.nonprofit_profiles.organization_name,
-    nonprofitEin: camp.nonprofit_profiles.ein,
+    nonprofitName: nonprofit.name,
+    nonprofitEin: nonprofit.tax_id,
     campaignTitle: camp.title,
     amountFormatted,
     receiptNumber,
     donationDate,
   });
+
+  await supabaseAdmin.from('tax_receipts').upsert({
+    donation_id: donation.id,
+    donor_id: donation.donor_id,
+    nonprofit_id: nonprofit.id,
+    receipt_number: receiptNumber,
+    amount_cents: donation.amount_cents,
+    emailed_at: new Date().toISOString(),
+  }, { onConflict: 'donation_id' });
 
   // Audit log
   try {

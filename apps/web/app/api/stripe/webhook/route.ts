@@ -1465,12 +1465,12 @@ async function sendDonorReceipt(
     // tax receipt — with EIN, receipt number, and the no-goods-or-services
     // disclosure — not the generic thank-you. This matches the deductibility
     // rule used by the annual giving statement (lib/tax.ts).
-    type NpRow = { name: string; tax_id: string | null; verified: boolean; verification_status: string; tax_receipt_enabled: boolean };
+    type NpRow = { id: string; name: string; tax_id: string | null; verified: boolean; verification_status: string; tax_receipt_enabled: boolean };
     let nonprofit: NpRow | null = null;
     if (camp.user_id) {
       const { data: np } = await supabaseAdmin
         .from('nonprofit_profiles')
-        .select('name, tax_id, verified, verification_status, tax_receipt_enabled')
+        .select('id, name, tax_id, verified, verification_status, tax_receipt_enabled')
         .eq('owner_id', camp.user_id)
         .maybeSingle();
       nonprofit = (np as NpRow | null) ?? null;
@@ -1501,6 +1501,23 @@ async function sendDonorReceipt(
         receiptNumber,
         donationDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
       });
+      const { data: donationRow } = await supabaseAdmin
+        .from('donations')
+        .select('amount_cents, currency')
+        .eq('id', donationId)
+        .maybeSingle();
+      await supabaseAdmin.from('tax_receipts').upsert({
+        donation_id: donationId,
+        donor_id: donorId,
+        nonprofit_id: nonprofit.id,
+        receipt_number: receiptNumber,
+        amount_cents: donationRow?.amount_cents ?? 0,
+        currency: donationRow?.currency ?? 'usd',
+        nonprofit_name: nonprofit.name,
+        nonprofit_ein: nonprofit.tax_id,
+        campaign_title: camp.title,
+        emailed_at: new Date().toISOString(),
+      }, { onConflict: 'donation_id' });
       return;
     }
 

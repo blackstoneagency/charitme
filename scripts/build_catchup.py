@@ -58,7 +58,7 @@ parts = ['-- ===================================================================
 
 def add(f, extra_after=None):
     parts.append(f'\n-- ============ {os.path.basename(f)} ============')
-    parts.append(idempotent(open(f).read()))
+    parts.append(idempotent(open(f, encoding='utf-8').read()))
     if extra_after:
         parts.append(extra_after)
 
@@ -68,7 +68,7 @@ if _os.path.exists(_ep):
     ENSURE = ('\n-- ---- column-drift reconciliation: add any missing column to existing\n'
               '-- ---- tables BEFORE indexes/policies reference them (add column if not\n'
               '-- ---- exists; no drops, no data loss). Generated from the target schema.\n'
-              + open(_ep).read())
+              + open(_ep, encoding='utf-8').read())
 
 if ENSURE:
     parts.append(ENSURE)
@@ -76,7 +76,7 @@ add(initial, extra_after=SUPP)
 for f in rest:
     add(f)
 
-open(f'{OUT}/catch_up.sql','w').write('\n'.join(parts))
+open(f'{OUT}/catch_up.sql','w', encoding='utf-8').write('\n'.join(parts))
 print('wrote catch_up.sql')
 print('policies guarded:', len(re.findall(r'drop policy if exists', '\n'.join(parts))))
 print('triggers guarded:', len(re.findall(r'drop trigger if exists', '\n'.join(parts))))
