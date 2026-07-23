@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppShell } from '../components/AppShell';
+import { getActiveAnnouncements } from '../lib/announcements-data';
 import SessionWatcher from '../components/SessionWatcher';
 import { ThemeProvider } from '../components/ThemeProvider';
 import PWARegister from '../components/PWARegister';
@@ -33,7 +34,10 @@ export const viewport: Viewport = {
 // Dark is the default: only an explicit stored 'light' choice yields light mode.
 const themeScript = `try{var t=localStorage.getItem('charitme-theme-v2');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark')}catch(e){document.documentElement.setAttribute('data-theme','dark')}`;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Cached (ISR) fetch — keeps the layout statically generated while putting the
+  // banner in the initial HTML so it never injects post-hydration (no layout shift).
+  const initialAnnouncements = await getActiveAnnouncements();
   return (
     <html lang="en" suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
@@ -43,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SessionWatcher />
           <PWARegister />
           <InstallPrompt />
-          <AppShell>{children}</AppShell>
+          <AppShell initialAnnouncements={initialAnnouncements}>{children}</AppShell>
         </ThemeProvider>
       </body>
     </html>

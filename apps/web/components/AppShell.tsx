@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '../lib/supabase-browser';
 import { ThemeToggle } from './ThemeProvider';
-import AnnouncementBanner from './AnnouncementBanner';
+import AnnouncementBanner, { type Announcement } from './AnnouncementBanner';
 
 const NAV = [
   ['Home', '/'],
@@ -95,7 +95,7 @@ function Logo() {
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, initialAnnouncements }: { children: React.ReactNode; initialAnnouncements?: Announcement[] }) {
   const path = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -146,7 +146,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <AnnouncementBanner />
+      <AnnouncementBanner initial={initialAnnouncements} />
       <header className="kind-header">
         <div className="container">
           <Logo />
