@@ -34,7 +34,7 @@ function LogoImg({ src, website, name, style }: { src: string | null; website: s
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/no-noninteractive-element-interactions -- image fallback requires onError to try the next source
     <img src={imgSrc} alt={name} style={style} onError={() => setErrorCount(c => c + 1)} />
   );
 }
