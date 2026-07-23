@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface Campaign { id: string; title: string; raised_amount: number; currency?: string | null }
 
@@ -14,6 +14,14 @@ export default function ManagePayoutsButton({ campaigns }: Props) {
   const [open, setOpen]       = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
+
+  // Escape closes the modal (keyboard users can't rely on backdrop click).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
 
   const openDashboard = async () => {
     setLoading(true);

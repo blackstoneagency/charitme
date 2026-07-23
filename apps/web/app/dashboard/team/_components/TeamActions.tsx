@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // ─────────────────────────────────────────────
 // Remove button — deletes a single team member
@@ -83,6 +83,14 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Escape closes the invite modal (keyboard-accessible dismiss).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
 
   async function handleInvite() {
     if (!email.trim()) { setError('Email is required.'); return; }

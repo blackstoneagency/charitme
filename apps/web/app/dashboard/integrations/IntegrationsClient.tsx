@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // ─────────────────────────────────────────────
 // Types
@@ -41,6 +41,13 @@ function ConnectModal({
   const [webhookUrl, setWebhookUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Escape closes the modal (keyboard-accessible dismiss).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   // Decide which field(s) to show based on integration type
   const needsWebhook = ['zapier', 'slack'].includes(item.name.toLowerCase());
