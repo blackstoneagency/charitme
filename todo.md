@@ -593,6 +593,13 @@ Format: `ID · area · what · evidence (commit)`. Only fixes verified by
 tests/build/live-HTTP are listed here.
 
 ### Session 2026-07-23 (Claude, PR #50 — production hardening sweep)
+- **CHAR-F060 · seo/noindex** — Personalized, auth-gated pages reachable at
+  crawlable top-level URLs (`/achievements`, `/privacy-center`) were missing from
+  the robots.txt disallow list; added them alongside the existing `/profile`,
+  `/dashboard/`, `/admin/` entries, and set `robots: { index: false, follow: false }`
+  on the `achievements`, `privacy-center`, and `profile` page metadata as
+  defense-in-depth so per-user URLs are never indexed. _Evidence: typecheck clean,
+  `eslint .` 0 errors._
 - **CHAR-F059 · seo/canonical** — `seoMetadata()` in `lib/seo.ts` now emits a
   **self-referencing canonical** for every route by default (resolved against the
   layout `metadataBase` = `https://www.charitme.com`), instead of only when a
