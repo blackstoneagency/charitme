@@ -20,6 +20,9 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url);
   const format = (url.searchParams.get('format') ?? 'json').toLowerCase();
+  if (format !== 'json' && format !== 'csv') {
+    return NextResponse.json({ error: 'Unsupported format', code: 'INVALID_FORMAT' }, { status: 400 });
+  }
   const yearParam = url.searchParams.get('year');
   const year = yearParam ? parseInt(yearParam, 10) : new Date().getUTCFullYear();
   if (!Number.isFinite(year) || year < 2000 || year > 2100) {

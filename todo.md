@@ -2060,3 +2060,5 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 - [x] Live Supabase verification: `newworldventurellc@gmail.com` exists in `auth.users` and has one linked `profiles` row; the previously reported `@google.com` and misspelled `newwolrdventuresllc@gmail.com` addresses do not exist in Auth.
 ### Session 2026-07-23 (Codex — tax receipt integrity)
 - [x] Removed fabricated receipt numbers from annual donor statements; only official numbers persisted in `tax_receipts` are displayed or exported.
+### Session 2026-07-23 (Codex — tax export failure integrity)
+- [x] Tax exports now reject unsupported formats and return an explicit unavailable error when Supabase campaign, donation, receipt, or nonprofit queries fail instead of presenting incomplete reports.

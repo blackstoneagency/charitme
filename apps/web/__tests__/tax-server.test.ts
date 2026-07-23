@@ -8,7 +8,7 @@ vi.mock('../lib/supabase', () => ({ supabaseAdmin: { from } }));
 import { loadDonorTaxInputs } from '../lib/tax-server';
 
 function resolvedBuilder(data: unknown, terminal: 'eq' | 'in' | 'order') {
-  const result = { data, error: null };
+  const result = { data, error: null as { message: string } | null };
   const builder = {
     select: vi.fn(),
     eq: vi.fn(),
@@ -20,6 +20,12 @@ function resolvedBuilder(data: unknown, terminal: 'eq' | 'in' | 'order') {
   builder.in.mockReturnValue(builder);
   builder.order.mockReturnValue(builder);
   builder[terminal].mockResolvedValue(result);
+  return builder;
+}
+
+function rejectedBuilder(terminal: 'eq' | 'in' | 'order') {
+  const builder = resolvedBuilder(null, terminal);
+  builder[terminal].mockResolvedValue({ data: null, error: { message: 'query failed' } });
   return builder;
 }
 
@@ -73,5 +79,15 @@ describe('loadDonorTaxInputs', () => {
     const [input] = await loadDonorTaxInputs('donor-1');
 
     expect(input?.receiptNumber).toBe('RCP-2026-ABC12345');
+  });
+
+  it('fails instead of returning an incomplete statement when donations cannot load', async () => {
+    from.mockImplementation((table: string) => {
+      if (table === 'donations') return rejectedBuilder('order');
+      if (table === 'tax_receipts') return resolvedBuilder([], 'eq');
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    await expect(loadDonorTaxInputs('donor-1')).rejects.toThrow('TAX_DATA_UNAVAILABLE');
   });
 });

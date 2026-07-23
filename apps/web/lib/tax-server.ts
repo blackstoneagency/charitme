@@ -15,7 +15,7 @@ import {
  * printable statement page so deductibility is computed identically in both.
  */
 export async function loadDonorTaxInputs(donorId: string): Promise<TaxDonationInput[]> {
-  const [{ data: rawDonations }, { data: rawReceipts }] = await Promise.all([
+  const [donationResult, receiptResult] = await Promise.all([
     supabaseAdmin
       .from('donations')
       .select('id, amount_cents, tip_cents, currency, status, created_at, campaign_id, campaigns:campaign_id(title, user_id)')
@@ -27,6 +27,9 @@ export async function loadDonorTaxInputs(donorId: string): Promise<TaxDonationIn
       .select('donation_id, receipt_number')
       .eq('donor_id', donorId),
   ]);
+  if (donationResult.error || receiptResult.error) throw new Error('TAX_DATA_UNAVAILABLE');
+  const { data: rawDonations } = donationResult;
+  const { data: rawReceipts } = receiptResult;
 
   type DonRow = {
     id: string;
@@ -48,10 +51,11 @@ export async function loadDonorTaxInputs(donorId: string): Promise<TaxDonationIn
   const ownerIds = [...new Set(donations.map((d) => d.campaigns?.user_id).filter(Boolean) as string[])];
   const nonprofitByOwner = new Map<string, NonprofitTaxInfo>();
   if (ownerIds.length > 0) {
-    const { data: nps } = await supabaseAdmin
+    const { data: nps, error: nonprofitError } = await supabaseAdmin
       .from('nonprofit_profiles')
       .select('owner_id, name, tax_id, verified, verification_status, tax_receipt_enabled')
       .in('owner_id', ownerIds);
+    if (nonprofitError) throw new Error('TAX_DATA_UNAVAILABLE');
     for (const np of (nps ?? []) as {
       owner_id: string; name: string; tax_id: string | null;
       verified: boolean; verification_status: string; tax_receipt_enabled: boolean;

@@ -21,6 +21,9 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url);
   const format = (url.searchParams.get('format') ?? 'json').toLowerCase();
+  if (format !== 'json' && format !== 'csv') {
+    return NextResponse.json({ error: 'Unsupported format', code: 'INVALID_FORMAT' }, { status: 400 });
+  }
   const yearParam = url.searchParams.get('year');
   const year = yearParam ? parseInt(yearParam, 10) : new Date().getUTCFullYear();
   if (!Number.isFinite(year) || year < 2000 || year > 2100) {
@@ -28,23 +31,25 @@ export async function GET(req: NextRequest) {
   }
 
   // Campaigns owned by this user.
-  const { data: camps } = await supabaseAdmin
+  const { data: camps, error: campaignsError } = await supabaseAdmin
     .from('campaigns')
     .select('id, title')
     .eq('user_id', user.id);
+  if (campaignsError) return NextResponse.json({ error: 'Tax data unavailable', code: 'TAX_DATA_UNAVAILABLE' }, { status: 503 });
   const campaigns = (camps ?? []) as { id: string; title: string }[];
   const titleById = new Map(campaigns.map((c) => [c.id, c.title]));
   const cids = campaigns.map((c) => c.id);
 
   let inputs: FundraiserDonationInput[] = [];
   if (cids.length > 0) {
-    const { data: donations } = await supabaseAdmin
+    const { data: donations, error: donationsError } = await supabaseAdmin
       .from('donations')
       .select('amount_cents, tip_cents, currency, status, created_at, campaign_id')
       .in('campaign_id', cids)
       .eq('status', 'completed')
       .gte('created_at', `${year}-01-01T00:00:00.000Z`)
       .lt('created_at', `${year + 1}-01-01T00:00:00.000Z`);
+    if (donationsError) return NextResponse.json({ error: 'Tax data unavailable', code: 'TAX_DATA_UNAVAILABLE' }, { status: 503 });
 
     inputs = ((donations ?? []) as {
       amount_cents: number; tip_cents: number | null; currency: string | null;
