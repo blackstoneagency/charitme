@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyAdmin } from '../admin/users/_auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 
 // GET /api/health — connectivity + table counts
@@ -70,6 +71,9 @@ export async function GET() {
 // POST /api/health — force PostgREST schema cache reload
 // This fixes the "tables exist but queries fail" issue after schema migrations.
 export async function POST(_req: NextRequest) {
+  const user = await verifyAdmin();
+  if (!user) return NextResponse.json({ error: 'Forbidden', code: 'ADMIN_REQUIRED' }, { status: 403 });
+
   const ref   = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').match(/https?:\/\/([^.]+)\.supabase\.co/)?.[1];
   const token = process.env.SUPABASE_ACCESS_TOKEN;
 
