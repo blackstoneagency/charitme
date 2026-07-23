@@ -77,8 +77,6 @@ export async function POST(req: NextRequest) {
   const arrayBuffer = await file.arrayBuffer();
   const buffer      = new Uint8Array(arrayBuffer);
 
-  console.log(`[upload] bucket="${BUCKET}" path="${storagePath}"`);
-
   const { data, error: uploadError } = await supabaseAdmin.storage
     .from(BUCKET)
     .upload(storagePath, buffer, {

@@ -140,7 +140,6 @@ export default async function AdminUsersPage() {
   const exactTotal    = countResult.count ?? 0;       // real total — never capped at 1000
   const exactNew30d   = newUsersCountResult.count ?? 0; // new in last 30 days
 
-  console.log('[AdminUsersPage] profiles fetched:', profileData?.length ?? 0, '| exact total:', exactTotal);
   if (profileError) {
     console.error('[AdminUsersPage] profiles query error:', profileError.code, profileError.message);
   }
@@ -215,7 +214,6 @@ export default async function AdminUsersPage() {
     };
   });
 
-  console.log('[AdminUsersPage] users built:', users.length);
 
   // ── 4. Metrics ────────────────────────────────────────────────────────────
   const thirtyDaysAgo = new Date();
