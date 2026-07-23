@@ -55,17 +55,23 @@ export default function SponsorsBar() {
       <span className="kind-sponsors-label">Our Sponsors</span>
       <div className="kind-sponsors-track-wrap">
         <div className="kind-sponsors-track">
-          {items.map((s, i) => (
-            s.website ? (
-              <a key={`${s.id}-${i}`} href={s.website} target="_blank" rel="noopener noreferrer" className="kind-sponsor-logo" title={s.name}>
+          {items.map((s, i) => {
+            // The list is duplicated so the CSS marquee loops seamlessly. The
+            // second copy is decorative — hide it from assistive tech and the
+            // tab order so screen-reader / keyboard users don't hit every
+            // sponsor twice.
+            const isClone = i >= sponsors.length;
+            const cloneProps = isClone ? { 'aria-hidden': true as const, tabIndex: -1 } : {};
+            return s.website ? (
+              <a key={`${s.id}-${i}`} href={s.website} target="_blank" rel="noopener noreferrer" className="kind-sponsor-logo" title={s.name} {...cloneProps}>
                 <SponsorImg key={`${s.logo_url ?? ''}-${i}`} src={s.logo_url} website={s.website} name={s.name} />
               </a>
             ) : (
-              <span key={`${s.id}-${i}`} className="kind-sponsor-logo" title={s.name}>
+              <span key={`${s.id}-${i}`} className="kind-sponsor-logo" title={s.name} {...cloneProps}>
                 <SponsorImg key={`${s.logo_url ?? ''}-${i}`} src={s.logo_url} website={s.website} name={s.name} />
               </span>
-            )
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
