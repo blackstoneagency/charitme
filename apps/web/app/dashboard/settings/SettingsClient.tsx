@@ -199,6 +199,15 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
     setTimeout(() => setToast(null), 3500);
   }
 
+  async function handleSignOut() {
+    // Sign-out is a POST (server revokes the refresh token + clears the
+    // HttpOnly cookies); a plain GET <Link> to the route 405s and would also
+    // be unsafe to prefetch. Hard-navigate to /login afterward so middleware
+    // sees the cleared session.
+    try { await fetch('/api/auth/signout', { method: 'POST' }); }
+    finally { window.location.href = '/login'; }
+  }
+
   async function saveProfile() {
     setSaving(true);
     try {
@@ -460,7 +469,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               </div>
               <div className="kf-setpref" style={{ borderBottom: 0 }}>
                 <div className="kf-setpref-info"><strong>Sign Out</strong><span>Sign out of this device</span></div>
-                <Link href="/api/auth/signout" style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)', textDecoration: 'none', border: '1px solid var(--b2)', borderRadius: 'var(--r)', padding: '7px 16px' }}>Sign Out</Link>
+                <button type="button" onClick={handleSignOut} style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)', cursor: 'pointer', background: 'transparent', border: '1px solid var(--b2)', borderRadius: 'var(--r)', padding: '7px 16px' }}>Sign Out</button>
               </div>
             </div>
           </div>

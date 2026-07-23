@@ -348,12 +348,19 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
                   <div className="text-sm font-black text-slate-950">Sign out</div>
                   <div className="text-xs text-slate-500">Sign out of all sessions on this device</div>
                 </div>
-                <a
-                  href="/api/auth/signout"
+                <button
+                  type="button"
+                  onClick={async () => {
+                    // POST (route is POST-only; a GET link 405s and is unsafe
+                    // to prefetch), then hard-navigate so middleware sees the
+                    // cleared session.
+                    try { await fetch('/api/auth/signout', { method: 'POST' }); }
+                    finally { window.location.href = '/login'; }
+                  }}
                   className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-black text-slate-700 hover:border-red-300 hover:text-red-700"
                 >
                   Sign out
-                </a>
+                </button>
               </div>
             </div>
           </div>
