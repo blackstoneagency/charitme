@@ -2020,3 +2020,7 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
   successful responses and visible document bodies. Existing homepage/pricing smoke also passes.
 - Configured the E2E runner to use one worker against the shared local Next server,
   preventing concurrent navigation aborts during the complete smoke run.
+
+## Session 2026-07-23 (Codex — security header browser coverage)
+- Added browser assertions for baseline security headers and the intentional
+  third-party framing exception on campaign embeds.
