@@ -593,6 +593,17 @@ Format: `ID · area · what · evidence (commit)`. Only fixes verified by
 tests/build/live-HTTP are listed here.
 
 ### Session 2026-07-23 (Claude, PR #50 — production hardening sweep)
+- **CHAR-F061 · dashboard/ux (dead-data completion)** — The dashboard/admin shell
+  fetched the signed-in user (name, email, role, avatar) server-side in
+  `CharitMeShellServer` and threaded all four into `CharitMeShell` as props, but
+  the shell **never rendered them** — a fully Supabase-wired pipeline dead-ending
+  at unused props (surfaced as 4 `no-unused-vars` warnings). Completed the feature:
+  a sidebar **identity chip** (avatar + display name + role, email on hover),
+  reusing the existing `Avatar` component; themed for light + dark
+  (`[data-theme="dark"]`), hidden on the mobile bottom-nav where identity lives in
+  the top-bar account menu. Also removed a now-unused `no-img-element`
+  eslint-disable in `opengraph-image.tsx`. Lint warnings 92 → 87 (0 errors).
+  _Evidence: typecheck clean, `eslint .` 0 errors, 919/919 tests, `next build` green._
 - **CHAR-F060 · seo/noindex** — Personalized, auth-gated pages reachable at
   crawlable top-level URLs (`/achievements`, `/privacy-center`) were missing from
   the robots.txt disallow list; added them alongside the existing `/profile`,
