@@ -1,7 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KFIcon, StatusPill } from '../../../../components/CharitMeApp';
+
+function useEscape(onClose: () => void): void {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+}
 
 export type SystemCategory = {
   key: string;
@@ -183,6 +193,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveError, setSaveError] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
+  useEscape(() => setShowReview(false));
 
   function setField(category: string, key: string, value: unknown) {
     setDraft(prev => ({
@@ -1024,8 +1035,10 @@ export default function SystemClient({ categories, overview, recentActivity, res
 
       {/* Review overlay */}
       {showReview && activeCategory && (
+        // Backdrop dismissal is supplementary; Escape and the visible back/cancel actions remain available.
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div className="sys-review-overlay" onClick={e => { if (e.target === e.currentTarget) setShowReview(false); }}>
-          <div className="sys-review-panel">
+          <div className="sys-review-panel" role="dialog" aria-modal="true" aria-label="Review system setting changes">
             <div className="sys-review-header">
               <button
                 type="button"
