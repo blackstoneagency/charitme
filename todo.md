@@ -1996,3 +1996,7 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — admin users accessibility)
 - Made recent and tabular user rows keyboard-operable and added Escape handling
   to the user detail and add-user panels. Focused ESLint is clean.
+
+## Session 2026-07-23 (Codex — super-admin users accessibility)
+- Made recent super-admin user rows keyboard-operable and added Escape plus
+  target-aware backdrop dismissal to the export users dialog. Focused ESLint is clean.

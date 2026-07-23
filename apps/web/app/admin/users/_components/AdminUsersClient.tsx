@@ -4,6 +4,16 @@ import type React from 'react';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { KFIcon, StatusPill, Avatar } from '../../../../components/CharitMeApp';
 
+function useEscape(onClose: () => void): void {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+}
+
 // ─── Exported Types ───────────────────────────────────────────────────────────
 
 export type AdminUser = {
@@ -389,7 +399,7 @@ export default function AdminUsersClient({
               <span>User</span><span>Role</span><span>Joined</span>
             </div>
             {recentUsers.map((u) => (
-              <div className="users-recent-row" key={u.id} style={{ cursor: 'pointer' }} onClick={() => goDetail(u)}>
+              <div className="users-recent-row" key={u.id} role="button" tabIndex={0} aria-label={`View user ${u.name}`} style={{ cursor: 'pointer' }} onClick={() => goDetail(u)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); goDetail(u); } }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Avatar name={u.name} imageUrl={u.avatarUrl} />
                   <span>
@@ -1325,9 +1335,13 @@ function ExportOverlay({
   onClose: () => void;
   onExport: () => void;
 }) {
+  useEscape(onClose);
+
   return (
-    <div className="users-export-overlay" onClick={onClose}>
-      <div className="users-export-panel" onClick={(e) => e.stopPropagation()}>
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+    <div className="users-export-overlay" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div className="users-export-panel" role="dialog" aria-modal="true" aria-label="Export users">
         <div className="users-export-header">
           <span style={{ fontSize: 16, fontWeight: 700, color: '#0f1238' }}>Export Users</span>
           <button
