@@ -47,6 +47,40 @@ describe('tax report summaries', () => {
     ])).toEqual({ usd: 7500, eur: 1200 });
   });
 
+  it('requires an enabled verified nonprofit when enriched nonprofit data is available', () => {
+    const records = buildTaxReportRecords([
+      {
+        id: 'donation-enriched', amount_cents: 8000, tip_cents: 0, processing_fee_cents: 0,
+        currency: 'usd', status: 'completed', created_at: '2026-03-01T00:00:00.000Z', campaign_id: 'campaign-enriched',
+        campaigns: {
+          title: 'Community foundation', nonprofit_verified: true,
+          nonprofit_profiles: {
+            name: 'Community Foundation', ein: '98-7654321', tax_id: null,
+            verified: true, verification_status: 'approved', tax_receipt_enabled: true,
+          },
+        },
+      },
+      {
+        id: 'donation-disabled', amount_cents: 9000, tip_cents: 0, processing_fee_cents: 0,
+        currency: 'usd', status: 'completed', created_at: '2026-03-02T00:00:00.000Z', campaign_id: 'campaign-disabled',
+        campaigns: {
+          title: 'Disabled receipt campaign', nonprofit_verified: true,
+          nonprofit_profiles: {
+            name: 'Unconfigured nonprofit', ein: '11-1111111', tax_id: null,
+            verified: true, verification_status: 'approved', tax_receipt_enabled: false,
+          },
+        },
+      },
+    ], []);
+
+    expect(records[0]).toMatchObject({
+      recipient_name: 'Community Foundation',
+      recipient_ein: '98-7654321',
+      tax_deductible_amount_cents: 8000,
+    });
+    expect(records[1]?.tax_deductible_amount_cents).toBe(0);
+  });
+
   it('excludes non-deductible records from the summary label', () => {
     expect(taxSummaryLabel([record({ tax_deductible_amount_cents: 0 })])).toBe('No tax-deductible gifts recorded');
     expect(taxSummaryLabel([record({ tax_deductible_amount_cents: 5000 })])).toContain('$50.00');

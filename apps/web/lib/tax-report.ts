@@ -23,7 +23,20 @@ export type TaxDonationSource = {
   status: string;
   created_at: string;
   campaign_id: string;
-  campaigns: { title: string; nonprofit_verified: boolean | null } | null;
+  campaigns: {
+    title: string;
+    nonprofit_verified: boolean | null;
+    nonprofit_profiles?: TaxNonprofitSource | TaxNonprofitSource[] | null;
+  } | null;
+};
+
+export type TaxNonprofitSource = {
+  name: string | null;
+  ein: string | null;
+  tax_id: string | null;
+  verified: boolean | null;
+  verification_status: string | null;
+  tax_receipt_enabled: boolean | null;
 };
 
 export type TaxReceiptReference = {
@@ -37,15 +50,21 @@ export function buildTaxReportRecords(
 ): TaxReportRecord[] {
   const receiptMap = new Map(receiptReferences.map((receipt) => [receipt.donation_id, receipt.receipt_number]));
   return donations.map((donation) => {
-    const taxDeductible = donation.campaigns?.nonprofit_verified === true && donation.status === 'completed';
+    const nonprofit = donation.campaigns?.nonprofit_profiles;
+    const nonprofitProfile = Array.isArray(nonprofit) ? nonprofit[0] ?? null : nonprofit ?? null;
+    const taxDeductible = donation.status === 'completed' && (nonprofitProfile
+      ? nonprofitProfile.verified === true
+        && nonprofitProfile.tax_receipt_enabled === true
+        && ['verified', 'approved'].includes(nonprofitProfile.verification_status ?? '')
+      : donation.campaigns?.nonprofit_verified === true);
     return {
       tax_year: new Date(donation.created_at).getUTCFullYear(),
       receipt_number: receiptMap.get(donation.id) ?? `CHM-${donation.id.replaceAll('-', '')}`,
       donation_date: donation.created_at,
       created_at: donation.created_at,
       campaign_title: donation.campaigns?.title ?? null,
-      recipient_name: null,
-      recipient_ein: null,
+      recipient_name: nonprofitProfile?.name ?? null,
+      recipient_ein: nonprofitProfile?.ein || nonprofitProfile?.tax_id || null,
       amount_cents: donation.amount_cents,
       tip_cents: donation.tip_cents ?? 0,
       processing_fee_cents: donation.processing_fee_cents ?? 0,

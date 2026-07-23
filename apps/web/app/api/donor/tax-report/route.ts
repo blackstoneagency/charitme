@@ -6,6 +6,7 @@ import { createClient } from '../../../../lib/supabase-server';
 import { formatCents } from '@shared/currencies';
 import { toCsv } from '../../../../lib/csv';
 import { buildTaxReportRecords, type TaxDonationSource } from '../../../../lib/tax-report';
+import { getTaxDonationSources } from '../../../../lib/tax-report-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,25 +29,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Invalid tax year', code: 'INVALID_INPUT' }, { status: 400 });
   }
 
-  let query = supabaseAdmin
-    .from('donations')
-    .select('id, amount_cents, tip_cents, processing_fee_cents, currency, status, created_at, campaign_id, campaigns(title, nonprofit_verified)')
-    .eq('donor_id', user.id)
-    .order('created_at', { ascending: false });
-
-  query = query.in('status', ['completed', 'refunded']);
-  if (yearResult.data !== 'all') {
-    query = query
-      .gte('created_at', `${yearResult.data}-01-01T00:00:00.000Z`)
-      .lt('created_at', `${yearResult.data + 1}-01-01T00:00:00.000Z`);
-  }
-
-  const { data, error } = await query;
+  const { data, error } = await getTaxDonationSources({ donorId: user.id, year: yearResult.data });
   if (error) {
     return NextResponse.json({ error: 'Tax reporting is temporarily unavailable', code: 'REPORT_UNAVAILABLE' }, { status: 503 });
   }
 
-  const donations = (data ?? []) as unknown as TaxDonationSource[];
+  const donations = data as TaxDonationSource[];
   const donationIds = donations.map((donation) => donation.id);
   let receiptReferences: { donation_id: string; receipt_number: string }[] = [];
   if (donationIds.length > 0) {
