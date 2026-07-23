@@ -538,6 +538,32 @@ assigned per-category, so every campaign in a category shared one identical cove
 
 # Section C — Completed (with evidence)
 
+### 2026-07-23 — PRODUCTION-READINESS GOAL SCORECARD (verified this session)
+
+Live-verified status of each goal criterion (master `9dc84c9`; two-bot split — Claude = data/security/audits, Codex = SEO/marketing/CSP/a11y/mobile/perf):
+
+| Goal criterion | Status | Evidence |
+|---|---|---|
+| Every page audited | ✅ | 39/39 public pages return 2xx/3xx in prod |
+| Every feature works | ✅ | all feature data endpoints return real rows (rotator/stories/grants/volunteers/leaderboard/sponsors/matching/events/sponsorships) |
+| Wired to Supabase | ✅ | 144 tables; every probed endpoint reads live Supabase |
+| ≥100 seed records | ✅ | campaigns 500, matching 60, events 60, sponsorships 60, grants 24, volunteers 24, sponsors 50, profiles 1130 (well over 100) |
+| Every image unique, 0 dupes | ✅ | `scripts/image-uniqueness-audit.mjs`: 0 dupe assets; DB cols 500/500, 500/500, 50/50, 503/503 |
+| Fast page loads | ✅ | prod avg 442ms warm; all pages <1.2s; slowest /campaigns 1148ms/460kB (covers lazy-loaded) |
+| All payment methods | 🟡 | 7/9 live-active; **PayPal + Affirm need Stripe Dashboard activation (owner)**; code degrades gracefully |
+| Security resolved | ✅ | RLS anon-exposure certified (144 tables, 0 leaks); admin-config leak + is_admin recursion fixed; nonce CSP live; error responses sanitized |
+| Tests pass | ✅ | 936 tests / 75 files |
+| Build succeeds | ✅ | `next build` clean |
+| Dark/light every page | 🟢 Codex | theme sweep + `theme-tokens.test.ts` guard; dark is default |
+| Mobile responsive | 🟢 Codex | 320/390px sweeps, 0 horizontal overflow across public+admin+dashboard |
+| Accessibility passes | 🟢 Codex | axe 0 violations across 20 public routes; keyboard/ARIA sweeps |
+| Performance optimized | 🟢 mostly | logo 292KB→6.7KB, CLS→0, query-waterfall dedup; remaining: unused CSS/JS (low value) |
+| Frictionless UX | 🟢 Codex | draft autosave, loading skeletons, error boundaries, publish-before-payout |
+| todo.md updated / commit per feature | ✅ | this scorecard + per-audit commits |
+
+**Owner action items (cannot be done from code):** (1) activate PayPal + Affirm in Stripe Dashboard; (2) provide Stripe **test-mode** keys to enable live transactional payment/payout/webhook verification; (3) optionally seed real nonprofit logos (620 lack one) + more user avatars (627 lack one) — these render placeholders, not duplicates.
+**Not merged:** `agent/seo-aeo-marketing-engine` (stale, 217 behind) — its work already shipped via PRs; do not bulk-merge.
+
 ### 2026-07-23 — Production-readiness goal (Claude lane; Codex owns SEO/marketing/security/CSP/a11y)
 
 - [x] **GOAL — Image uniqueness: every image unique, 0 duplicates** (`scripts/image-uniqueness-audit.mjs`)
