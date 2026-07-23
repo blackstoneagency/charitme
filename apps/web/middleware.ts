@@ -58,7 +58,7 @@ export async function middleware(request: NextRequest) {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://checkout.stripe.com`,
     "style-src 'self'",
     "style-src-attr 'unsafe-inline'",
-    "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://loremflickr.com https://picsum.photos",
+    "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://loremflickr.com https://picsum.photos https://fastly.picsum.photos",
     "font-src 'self' data:",
     `connect-src 'self' ${supabaseOrigin} https://*.supabase.co https://api.stripe.com https://*.stripe.com wss://*.supabase.co`,
     "frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://hooks.stripe.com",

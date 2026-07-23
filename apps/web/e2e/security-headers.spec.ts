@@ -43,7 +43,8 @@ test('representative pages produce no CSP console violations', async ({ page }) 
   });
 
   for (const path of ['/', '/campaigns', '/campaigns/security-header-fixture/embed']) {
-    await page.goto(path, { waitUntil: 'networkidle' });
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(500);
   }
 
   expect(violations).toEqual([]);

@@ -204,6 +204,13 @@ img, video, iframe { max-width: 100%; }
 @keyframes heroProgress { from { width: 0 } to { width: 100% } }
 @keyframes spin { to { transform: rotate(360deg) } }
 
+.cb-filter-pill { position: relative; display: inline-flex; cursor: pointer; }
+.cb-filter-pill input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.cb-filter-pill span { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; border: 1.5px solid var(--b2); background: var(--s1, #fff); color: var(--t2); transition: border-color .15s, background .15s, color .15s; }
+.cb-filter-pill input:focus-visible + span { outline: 2px solid var(--violet); outline-offset: 2px; }
+.cb-filter-pill.verified input:checked + span { border-color: #6c35ff; background: #f0eaff; color: #551cf2; }
+.cb-filter-pill.tax input:checked + span { border-color: #19b86a; background: #f0fff8; color: #065f46; }
+
 /* ── Sponsors bar ── */
 @keyframes sponsorScroll { from { transform: translateX(0) } to { transform: translateX(-50%) } }
 .kind-sponsors-wrap {

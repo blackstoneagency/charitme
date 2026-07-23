@@ -149,14 +149,6 @@ export default async function CampaignsPage({ searchParams }: Props) {
       </div>
 
       {/* ── Search + filter bar ── */}
-      <style>{`
-        .cb-filter-pill { position: relative; display: inline-flex; cursor: pointer; }
-        .cb-filter-pill input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
-        .cb-filter-pill span { display: inline-flex; align-items: center; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; border: 1.5px solid var(--b2); background: var(--s1, #fff); color: var(--t2); transition: border-color .15s, background .15s, color .15s; }
-        .cb-filter-pill input:focus-visible + span { outline: 2px solid var(--violet); outline-offset: 2px; }
-        .cb-filter-pill.verified input:checked + span { border-color: #6c35ff; background: #f0eaff; color: #551cf2; }
-        .cb-filter-pill.tax input:checked + span { border-color: #19b86a; background: #f0fff8; color: #065f46; }
-      `}</style>
       <form method="GET" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
           <input
