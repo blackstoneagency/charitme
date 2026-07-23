@@ -608,6 +608,17 @@ tests/build/live-HTTP are listed here.
   (auth-guarded) + a **Year-End Tax Summary** CSV link on the dashboard
   donations page. _Evidence: 900/900 tests, typecheck clean, build green, lint clean._
 
+### Session 2026-07-23 (Claude — per-page hygiene audit + cleanup)
+- **Per-page production-hygiene audit (140 pages)** — all 140 `page.tsx` compile
+  and (static ones) prerender cleanly in `next build`. Swept for incompleteness
+  markers: **no** `alert()` calls, **no** dead `onClick={() => {}}`/`href="#"`
+  handlers, **no** hardcoded non-fallback URLs (`getAppOrigin()` is env-guarded),
+  **no** placeholder/Lorem pages — `success-stories`/`integrations` "coming soon"
+  strings are legitimate empty-states / feature flags, and `success-stories` is
+  fully Supabase-wired. **Fixed:** removed 3 leftover debug `console.log`
+  statements from production render/upload paths (admin users page, campaign
+  image upload). _Evidence: 901/901 tests, build green._
+
 ### Session 2026-07-23 (Claude — audit verifications, no code change)
 - **Image uniqueness (sitewide)** — content-hashed all `public/` image assets:
   **9 files, 0 content-duplicate groups**; campaign catalog audit `PASSED`
