@@ -32,3 +32,10 @@ test('all mutating SQL seed files require the database session guard', () => {
     assert.match(sql, /Demo seed blocked/, file);
   }
 });
+
+test('seed coverage verification fails when any expected table is incomplete', () => {
+  const sql = readFileSync(new URL('../supabase/seeds/99_verify_counts.sql', import.meta.url), 'utf8');
+  assert.match(sql, /if n_missing > 0 or n_ok <> n_total then/);
+  assert.match(sql, /raise exception 'CharitMe seed coverage failed/);
+  assert.match(sql, /all expected tables have >= 100 rows/);
+});

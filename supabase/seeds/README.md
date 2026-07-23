@@ -36,6 +36,10 @@ The final `99` step prints a row-count table with an `ok` (≥100) flag per
 feature — that is your proof the ≥100-rows-per-feature bar is met. **Run once**
 (see caveats below). Or paste each file into the Supabase SQL editor in order.
 
+The `99_verify_counts.sql` verifier is strict: it raises an exception when any
+expected feature table is missing or below 100 rows. A successful completion is
+the authoritative seed-coverage check.
+
 ## Run order
 
 Run these **in order**, once each, top to bottom:
