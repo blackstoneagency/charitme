@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useTransition, useCallback, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useTransition, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { KFIcon } from '../../../../components/CharitMeApp';
 import SupportersPanel from '../../../dashboard/campaigns/[id]/_components/SupportersPanel';
@@ -216,6 +216,15 @@ export default function AdminCampaignsClient({
   });
   const [createError, setCreateError] = useState('');
   const [createdCampaign, setCreatedCampaign] = useState<AdminCampaign | null>(null);
+
+  useEffect(() => {
+    if (!confirmAction) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setConfirmAction(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [confirmAction]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Derived counts for tabs
@@ -1048,8 +1057,10 @@ export default function AdminCampaignsClient({
 
         {/* Confirm modal */}
         {confirmAction && (
-          <div className="ac-modal-overlay" onClick={() => setConfirmAction(null)}>
-            <div className="ac-modal" onClick={e => e.stopPropagation()}>
+          // Backdrop dismissal is supplementary; Escape and the close button remain available.
+          // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+          <div className="ac-modal-overlay" onClick={event => { if (event.target === event.currentTarget) setConfirmAction(null); }}>
+            <div className="ac-modal">
               <button className="ac-modal-close" onClick={() => setConfirmAction(null)}>✕</button>
               <div className={`ac-modal-icon ${confirmAction.danger ? 'danger' : 'primary'}`}>
                 <KFIcon name={confirmAction.icon} />

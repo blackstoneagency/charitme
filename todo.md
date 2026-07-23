@@ -1939,6 +1939,11 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
   added Escape handling for both audit-log modals, and retained pointer backdrop
   dismissal without nested click traps. Focused ESLint is clean.
 
+## Session 2026-07-23 (Codex — admin campaign modal accessibility)
+- Added Escape handling to the admin campaign confirmation modal and removed its
+  nested click trap while preserving the visible close button and backdrop path.
+  Focused ESLint is clean.
+
 ## Session 2026-07-23 (Codex — accessibility warning cleanup)
 - Cleared the remaining user-facing lint warnings in the sponsor marquee, campaign
   image fallback, integrations modal, payouts modal, team invite modal, and donor
