@@ -632,8 +632,11 @@ tests/build/live-HTTP are listed here.
   `click-events-have-key-events` gaps on user-facing interactive `<div>`s.
   Done: **notifications rows** (`role=button` + `tabIndex` + Enter/Space
   onKeyDown mirroring the click). Modal-backdrop click-to-dismiss handlers are
-  left (keyboard users use the close button / Esc — not a real gap). Sitewide
-  click-events warnings 98 → 96. _Evidence: 901/901 tests, 0 lint errors._
+  left (keyboard users use the close button / Esc — not a real gap). Also done:
+  **messages inbox rows** (`<article>`→`<div role=button>` + CSS `.kf-inbox-row`
+  rename to keep styling) and the **campaign accept-donations toggle**
+  (`role=switch` + `aria-checked` + Enter/Space). Sitewide click-events warnings
+  98 → 92. _Evidence: 901/901 tests, 0 lint errors, `next build` green._
 ### Session 2026-07-23 (Claude — feature end-to-end audits)
 - **Volunteer applications — verified sound + tested** — reviewed apply +
   decision routes end-to-end: auth-guarded, UUID/slug lookup, capacity enforced
