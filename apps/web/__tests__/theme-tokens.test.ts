@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Theme regression guard.
@@ -45,7 +45,7 @@ function offendingLines(files: string[], re: RegExp): string[] {
     const lines = readFileSync(f, 'utf8').split('\n');
     lines.forEach((line, i) => {
       if (re.test(line) && !ALLOW.test(line)) {
-        const idx = f.indexOf(`app${require('node:path').sep}`);
+        const idx = f.indexOf(`app${sep}`);
         hits.push(`${idx >= 0 ? f.slice(idx) : f}:${i + 1}`);
       }
     });
