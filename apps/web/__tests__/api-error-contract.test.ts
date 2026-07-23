@@ -26,6 +26,9 @@ describe('API error contract', () => {
       if (/checks\.supabase\s*=\s*`error:/u.test(source)) {
         leaks.push(path.relative(API_DIR, file).replaceAll('\\', '/') + ' (health diagnostic)');
       }
+      if (/searchParams\.set\(\s*['"]error['"]\s*,\s*(?:error|userError)\??\.message/u.test(source)) {
+        leaks.push(path.relative(API_DIR, file).replaceAll('\\', '/') + ' (redirect diagnostic)');
+      }
     }
     expect(leaks, `Routes exposing backend error text: ${leaks.join(', ')}`).toEqual([]);
   });

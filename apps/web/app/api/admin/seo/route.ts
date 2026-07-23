@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     ? await supabaseAdmin.from('seo_settings').update(row).eq('id', targetId).select().single()
     : await supabaseAdmin.from('seo_settings').insert(row).select().single();
 
-  if (result.error) return NextResponse.json({ error: result.error.message }, { status: 500 });
+  if (result.error) return NextResponse.json({ error: 'Unable to save SEO settings', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json(result.data);
 }
 

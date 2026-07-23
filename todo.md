@@ -2048,3 +2048,4 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — API error contract)
 - Normalized raw Supabase errors across API route responses to stable generic
   500 contracts and added a repository-wide regression test.
+- Also sanitized OAuth redirect errors and support-seed batch diagnostics.
