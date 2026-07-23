@@ -57,8 +57,8 @@ type Props = {
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="sys-toggle">
-      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
+    <label className="sys-toggle" aria-label="Toggle setting">
+      <input aria-label="Toggle setting" type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} />
       <span className="sys-toggle-track" />
       <span className="sys-toggle-thumb" />
     </label>
@@ -78,7 +78,7 @@ function Field({
 }) {
   return (
     <div className={`sys-field${full ? ' full' : ''}`}>
-      <label>{label}</label>
+      <span className="sys-field-label">{label}</span>
       {children}
       {hint && <small>{hint}</small>}
     </div>
@@ -1024,7 +1024,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
 
       {/* Review overlay */}
       {showReview && activeCategory && (
-        <div className="sys-review-overlay" onClick={e => { if (e.target === e.currentTarget) setShowReview(false); }}>
+        <div className="sys-review-overlay" role="dialog" aria-modal="true" aria-label="Review system changes">
           <div className="sys-review-panel">
             <div className="sys-review-header">
               <button

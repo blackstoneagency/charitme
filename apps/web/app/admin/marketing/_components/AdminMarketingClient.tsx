@@ -237,8 +237,8 @@ function AudienceTab({ flash }: { flash: (m: string) => void }) {
 function ProfileDrawer({ profile, onClose }: { profile: ContactProfile; onClose: () => void }) {
   const c = profile.contact;
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: 'min(480px, 92vw)', background: '#fff', height: '100%', overflowY: 'auto', padding: '28px 28px 48px' }}>
+    <div role="dialog" aria-modal="true" aria-label="Marketing contact profile" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ width: 'min(480px, 92vw)', background: '#fff', height: '100%', overflowY: 'auto', padding: '28px 28px 48px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
           <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1a1a2e' }}>{[c.first_name, c.last_name].filter(Boolean).join(' ') || c.email}</h3>
           <button onClick={onClose} style={{ ...btnGhost, padding: '4px 12px' }}>✕</button>
@@ -804,8 +804,8 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
   const st = o?.status ?? 'new';
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: 'min(560px, 96vw)', background: '#fff', height: '100%', overflowY: 'auto', padding: '26px 28px 56px' }}>
+    <div role="dialog" aria-modal="true" aria-label="Business lead profile" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
+      <div style={{ width: 'min(560px, 96vw)', background: '#fff', height: '100%', overflowY: 'auto', padding: '26px 28px 56px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
           <div>
             <h3 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: '#1a1a2e' }}>{lead.business_name}</h3>
