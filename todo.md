@@ -598,7 +598,14 @@ tests/build/live-HTTP are listed here.
     disclosure; print styles added to `globals.css`.
   - Donor portal **Tax Statements** card (per-year statement + CSV links).
   _Evidence: 898/898 tests (9 new), typecheck clean, `next build` green
-  (both routes registered), lint clean._
+  (both routes registered), lint clean; **CI run 29970669919 → success**._
+- **CHAR-F057 · tax reporting (fundraiser side)** — Complements the donor
+  statement with the **campaign-owner** view: `buildFundraiserTaxSummary`
+  (pure, 2 new tests) → per-campaign gross raised + count (+ tips separately)
+  for a tax year; gross is authoritative (0% platform fee), Stripe processing
+  fees deliberately not estimated. `GET /api/fundraiser/tax-summary?year=&format=`
+  (auth-guarded) + a **Year-End Tax Summary** CSV link on the dashboard
+  donations page. _Evidence: 900/900 tests, typecheck clean, build green, lint clean._
 
 - **CHAR-F050 · auth/ux** — Repaired broken **Sign Out** on the Settings and
   Profile pages: both linked to `/api/auth/signout` (POST-only) via a plain
