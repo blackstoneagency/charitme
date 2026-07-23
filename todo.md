@@ -643,6 +643,15 @@ tests/build/live-HTTP are listed here.
   the remaining modal-backdrop `click-events` warnings are legitimate (Esc +
   focusable close button cover keyboard). _Evidence: 901/901 tests, 0 lint errors._
 ### Session 2026-07-23 (Claude — feature end-to-end audits)
+- **Integrations connect/disconnect — verified sound** — reviewed `/api/
+  integrations` (GET/POST) + `/api/integrations/[id]` (DELETE/PATCH):
+  all auth-guarded and **owner-scoped**; POST upserts with provider
+  normalization/validation; DELETE and PATCH both re-check `owner_id`
+  ownership before mutating (can't touch another user's integration); PATCH
+  validates the status enum. Connect modal wired correctly (POST) with
+  Escape-to-close (added this session). Config (per-user API keys/webhook
+  URLs) is owner-scoped jsonb — acceptable for now; encrypt-at-rest is a
+  future hardening nicety, not a live exposure (never returned cross-user).
 - **Volunteer applications — verified sound + tested** — reviewed apply +
   decision routes end-to-end: auth-guarded, UUID/slug lookup, capacity enforced
   on both apply and accept, `slots_filled` maintained via `applicationSlotDelta`
