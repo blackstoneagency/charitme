@@ -608,6 +608,17 @@ tests/build/live-HTTP are listed here.
   (auth-guarded) + a **Year-End Tax Summary** CSV link on the dashboard
   donations page. _Evidence: 900/900 tests, typecheck clean, build green, lint clean._
 
+### Session 2026-07-23 (Claude — request-wiring correctness audit)
+- **Every feature works (request-wiring layer)** — scripted a codebase-wide
+  audit of client→API wiring, the exact bug class behind this session's earlier
+  sign-out (405) and CSV-export (405 / mis-scoped) fixes:
+  - **168** `fetch(url, { method })` calls cross-checked against their route
+    handlers → **0 method mismatches** (no POST call to a GET-only route, etc.).
+  - **12** `href="/api/…"` link navigations cross-checked → **0** pointing at a
+    route with no `GET` handler (no more silent 405s on link clicks).
+  Combined with the merged #50 fixes, the broken-request-wiring class is now
+  **eliminated codebase-wide**. _Evidence: `/tmp` audit scripts, 0 findings._
+
 ### Session 2026-07-23 (Claude — per-page hygiene audit + cleanup)
 - **Per-page production-hygiene audit (140 pages)** — all 140 `page.tsx` compile
   and (static ones) prerender cleanly in `next build`. Swept for incompleteness
