@@ -1,7 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KFIcon, StatusPill } from '../../../../components/CharitMeApp';
+
+function useEscape(onClose: () => void): void {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+}
 
 export type ReportItem = {
   id: string;
@@ -45,6 +55,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
   const [exportFmt, setExportFmt] = useState<'CSV' | 'Excel' | 'PDF'>('CSV');
   const [exportLoading, setExportLoading] = useState(false);
   const [exportError, setExportError] = useState('');
+  useEscape(() => setExportReport(null));
 
   async function downloadReport() {
     if (!exportReport) return;
@@ -250,9 +261,11 @@ export default function ReportsClient({ reports, categories, totalReports, sched
 
       {/* Export Modal */}
       {exportReport && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999 }} onClick={() => setExportReport(null)}>
-          <div style={{ width: 380, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800 }}>Export Report</h2>
+        // Backdrop dismissal is supplementary; Escape and the close action remain available.
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999 }} onClick={event => { if (event.target === event.currentTarget) setExportReport(null); }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="export-report-title" style={{ width: 380, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }}>
+            <h2 id="export-report-title" style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800 }}>Export Report</h2>
             <p style={{ margin: '0 0 20px', color: '#67718e', fontSize: 13 }}>{exportReport.name}</p>
             <div style={{ display: 'grid', gap: 10 }}>
               {(['CSV', 'Excel', 'PDF'] as const).map(fmt => (

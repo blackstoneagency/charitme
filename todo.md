@@ -1968,3 +1968,7 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — admin payouts accessibility)
 - Made recent and tabular payout rows keyboard-operable and added Escape handling
   to the payout detail panel. Focused ESLint is clean.
+
+## Session 2026-07-23 (Codex — admin reports accessibility)
+- Added Escape handling and explicit dialog semantics to the report export modal;
+  backdrop dismissal is target-aware without nested click traps. Focused ESLint is clean.
