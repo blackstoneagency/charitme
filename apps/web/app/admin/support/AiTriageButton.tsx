@@ -85,8 +85,10 @@ export default function AiTriageButton({ caseId, subject }: Props) {
 
       {open && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="AI Complaint Resolver"
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}
-          onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
         >
           <div style={{ background: '#fff', borderRadius: 20, padding: 28, width: '100%', maxWidth: 520, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
