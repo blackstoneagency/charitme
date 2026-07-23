@@ -67,4 +67,12 @@ describe('API mutation rate-limit coverage', () => {
       'Every unauthenticated POST must be rate-limited or explicitly classified as signature/session traffic',
     ).toEqual([]);
   });
+
+  it('does not expose backend error details from public mutation routes', () => {
+    const leaking = routes
+      .filter(({ route }) => PUBLIC_MUTATION_ROUTES.has(route))
+      .filter(({ source }) => /error:\s*error\.message/u.test(source))
+      .map(({ route }) => route);
+    expect(leaking, `Public mutation routes exposing backend error text: ${leaking.join(', ')}`).toEqual([]);
+  });
 });

@@ -2040,3 +2040,7 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — live campaign image audit)
 - Live HTTP audit passed for all 45 campaign image URLs; static catalog and SQL
   migration IDs remain unique across 18 categories.
+
+## Session 2026-07-23 (Codex — public mutation error hygiene)
+- Public mutation coverage now verifies rate limiting and blocks raw backend
+  error text; `/api/share-events` returns a stable generic error contract.

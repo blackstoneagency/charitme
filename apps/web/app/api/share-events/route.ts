@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     .select('id')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Unable to record share event', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   return NextResponse.json({ ok: true, shareEventId: data.id });
 }
