@@ -2004,3 +2004,8 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — Open Graph image lint hygiene)
 - Documented the required raw image element for the edge-rendered `ImageResponse`
   tree. Focused ESLint is clean.
+
+## Session 2026-07-23 (Codex — strict seed coverage)
+- Made `99_verify_counts.sql` fail when any expected feature table is missing or
+  below 100 rows, documented the successful-exit contract, and added a regression test.
+  Seed guard tests pass 5/5.
