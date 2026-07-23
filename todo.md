@@ -308,6 +308,11 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Audit result (refreshed 2026-07-21, live prod, 143 tables): **0 with RLS disabled**; 24 legitimately-public display tables; **0 sensitive tables publicly readable** (financial-table policies verified — see `payment-audit.md`).
   - Follow-up: full per-persona (donor/organizer/nonprofit/corporate/T&S/finance/support/admin) live certification with real anon/authenticated sessions (needs staging auth).
   - **New verification tool (2026-07-23):** `npm run test:rls-live` checks anonymous isolation and, when `CHARITME_RLS_TEST_USERS_JSON` is supplied, authenticated own-vs-other profile isolation using real access tokens. It is read-only and does not use the service-role key; run against staging before promoting evidence.
+  - **Anonymous persona CERTIFIED CLEAN (2026-07-23, commit `34db04b`):** live probe of **all 144 public tables** with the browser anon key → **0 unexpected exposure**. Repeatable: `node scripts/rls-anon-audit.mjs --ci` (exit 1 on any new leak *or* any table that errors instead of denying). Complements the schema-contract test above by probing actual row visibility rather than policy shape.
+  - **Two production issues found & fixed** (migration `20260727000000_lock_down_admin_config_rls.sql`). These were missed by the earlier sweep because it classified only financial/PII tables as sensitive:
+    1. *Information disclosure* — `platform_settings` + `feature_flags` carried `using (true)` public-read policies, exposing fee config, support contacts, `stripeLiveMode`, `maintenanceMode`, `allowNewRegistrations`, and every feature flag including unreleased ones (the unshipped roadmap). No credentials leaked. All 12 app references use `supabaseAdmin`, so the lockdown is a no-op for the app.
+    2. *Latent infinite RLS recursion* — `is_admin()` selects from `profiles`, whose SELECT policy is `(auth.uid() = id) OR is_admin()` → recursion → Postgres `54001`. Masked wherever a `using (true)` policy short-circuited the OR; it meant **any** table whose only applicable policy is `is_admin()` errored instead of denying cleanly. Fixed with `SECURITY DEFINER` + pinned `search_path`; predicate unchanged, so no privilege is widened.
+  - **Bonus fix:** the recursion repair un-broke the public transparency surface — published `impact_plans`/`impact_updates` (+ items/evidence/metrics) previously errored for anonymous visitors, so donors could not see how funds were used. Now correctly visible and confirmed status-gated.
   - Description: Enumerate every user-accessible table, confirm RLS enabled + policies, add automated per-persona RLS tests (unauth, donor, organizer, nonprofit admin, corporate admin, T&S, finance, support, super admin).
   - Agent: 1 (+7)
   - Priority: P0
@@ -317,7 +322,7 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Completion Evidence: —
   - Commit: —
 
-- [~] CHAR-0013 — **Env validation + secret-exposure guard DONE**; full script-src CSP deferred (needs browser)
+- [~] CHAR-0013 — **Env validation + secret-exposure guard DONE**; public mutation rate-limit coverage added; full script-src CSP deferred (needs browser)
   - Area: Security / hardening
   - Feature: Env validation + secret-exposure audit + security headers/CSP
   - Description: Zod-validated env schema at boot; audit that no service-role/Stripe/AI secrets reach client bundles; add CSP + security headers; confirm rate-limiting coverage (`lib/rate-limit.ts`).
@@ -325,7 +330,7 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Priority: P0
   - Dependencies: none
   - Completion Evidence: `lib/env.ts` (zod schema, non-throwing `validateEnv`) + `npm run check:env` preflight; `__tests__/env.test.ts` (8) + `__tests__/secret-exposure.test.ts` (4) — the guard caught 4 client files pulling the Stripe server SDK for `formatCents`, fixed by moving it to `@shared/currencies`. Security headers (CSP frame-ancestors, HSTS, X-Frame-Options, Permissions-Policy, nosniff) already present in `middleware.ts`/`next.config.js`. Docs: `docs/security/env-and-secret-exposure.md`. 674 tests pass, type-clean, build 132 pages.
-  - Remaining: full `script-src`/`style-src` CSP (needs a browser to verify it doesn't break the inline-style design system); automated rate-limit coverage assertions.
+  - Remaining: full `script-src`/`style-src` CSP (needs a browser to verify it doesn't break the inline-style design system).
   - Commit: (this PR)
 
 - [ ] CHAR-0014
