@@ -26,7 +26,7 @@ export async function GET() {
     .select('*')
     .order('priority', { ascending: false })
     .order('created_at', { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json(data ?? []);
 }
 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     ? await supabaseAdmin.from('aeo_entries').update(row).eq('id', d.id).select().single()
     : await supabaseAdmin.from('aeo_entries').insert(row).select().single();
 
-  if (result.error) return NextResponse.json({ error: result.error.message }, { status: 500 });
+  if (result.error) return NextResponse.json({ error: 'Unable to save AEO entry', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json(result.data);
 }
 
@@ -64,6 +64,6 @@ export async function DELETE(request: NextRequest) {
   const id = request.nextUrl.searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
   const { error } = await supabaseAdmin.from('aeo_entries').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

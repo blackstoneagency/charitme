@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     .range(offset, offset + limit - 1);
 
   const { data, error, count } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ opportunities: data ?? [], total: count ?? 0, limit, offset });
 }
 
@@ -105,6 +105,6 @@ export async function POST(request: NextRequest) {
     .select('id, slug')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ opportunity: data }, { status: 201 });
 }

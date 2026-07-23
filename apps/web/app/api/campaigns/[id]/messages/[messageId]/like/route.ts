@@ -32,12 +32,12 @@ export async function POST(
 
   if (existing) {
     const { error } = await supabaseAdmin.from('donor_message_likes').delete().eq('id', existing.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   } else {
     const { error } = await supabaseAdmin
       .from('donor_message_likes')
       .insert({ donor_message_id: messageId, user_id: user.id });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   }
 
   const { count } = await supabaseAdmin

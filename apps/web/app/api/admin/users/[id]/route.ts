@@ -53,7 +53,7 @@ export async function PATCH(
     const { error } = await supabaseAdmin.auth.resetPasswordForEmail(current.email, {
       redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com'}/login`,
     });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
     return NextResponse.json({ ok: true });
   }
 
@@ -154,6 +154,6 @@ export async function DELETE(
 
   const { id } = await params;
   const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

@@ -48,6 +48,6 @@ export async function PATCH(request: NextRequest, { params }: Ctx) {
   }
 
   const { error } = await supabaseAdmin.from('fundraising_events').update(patch).eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

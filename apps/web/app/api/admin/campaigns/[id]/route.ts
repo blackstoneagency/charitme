@@ -127,7 +127,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       void (async () => { try { await supabaseAdmin.from('audit_logs').insert({ actor_id: admin.id, action: 'campaign.updated', target_type: 'campaign', target_id: id, metadata: update, created_at: new Date().toISOString() }); } catch { /* non-fatal */ } })();
       return NextResponse.json({ ok: true, campaign: data2, warning: 'image_urls/video_url not saved — run schema migration' });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   }
 
   // Audit log (non-blocking — don't fail the request if audit table is missing)
@@ -151,7 +151,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
   const { id } = await params;
 
   const { error } = await supabaseAdmin.from('campaigns').delete().eq('id', id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   void (async () => { try { await supabaseAdmin.from('audit_logs').insert({ actor_id: admin.id, action: 'campaign.deleted', target_type: 'campaign', target_id: id, metadata: {}, created_at: new Date().toISOString() }); } catch { /* non-fatal */ } })();
 

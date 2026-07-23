@@ -16,7 +16,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     .order('created_at', { ascending: false })
     .limit(50);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   const updates = (data ?? []).map((u) => {
     const profile = Array.isArray(u.profiles) ? u.profiles[0] : u.profiles;
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .select('id, title, body, ai_generated, created_at')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   return NextResponse.json({ ok: true, update: data }, { status: 201 });
 }

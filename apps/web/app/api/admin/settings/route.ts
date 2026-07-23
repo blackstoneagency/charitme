@@ -25,7 +25,7 @@ export async function GET() {
     .maybeSingle();
 
   if (error && error.code !== '42P01') {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   }
 
   const raw = (data?.config && typeof data.config === 'object' && !Array.isArray(data.config))

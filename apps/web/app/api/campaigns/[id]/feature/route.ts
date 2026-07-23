@@ -30,7 +30,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     .eq('id', id)
     .maybeSingle();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
   if (!(await canManageCampaign(user, campaign.user_id))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

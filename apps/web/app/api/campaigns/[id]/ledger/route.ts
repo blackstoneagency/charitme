@@ -45,7 +45,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .eq('campaign_id', id)
     .order('created_at', { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ campaign: auth.campaign, items: data ?? [] });
 }
 
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     .select('id, item_type, title, amount_cents, category, status, created_at')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ item: data }, { status: 201 });
 }
 
@@ -94,6 +94,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     .eq('id', itemId)
     .eq('campaign_id', id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

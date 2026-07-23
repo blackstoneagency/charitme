@@ -24,7 +24,7 @@ export async function GET() {
     .from('marketing_segments')
     .select('*')
     .order('created_at', { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ segments: data ?? [] });
 }
 
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     .insert({ ...parsed.data, created_by: admin.id })
     .select('*')
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   const { matched } = await evaluateSegment(data.id);
   await supabaseAdmin.from('marketing_audit_logs').insert({

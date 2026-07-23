@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   if (targetId) query = query.eq('target_id', targetId);
 
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   // Resolve actor names
   const actorIds = [

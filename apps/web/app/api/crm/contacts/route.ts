@@ -22,7 +22,7 @@ export async function GET() {
     .eq('owner_id', user.id)
     .is('nonprofit_id', null);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ contacts: data ?? [] });
 }
 
@@ -64,7 +64,7 @@ export async function PATCH(request: NextRequest) {
       .eq('id', existing.id)
       .select('id, email, full_name, tags, lifetime_value_cents, last_donated_at')
       .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
     return NextResponse.json({ contact: data });
   }
 
@@ -81,6 +81,6 @@ export async function PATCH(request: NextRequest) {
     .select('id, email, full_name, tags, lifetime_value_cents, last_donated_at')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ contact: data });
 }

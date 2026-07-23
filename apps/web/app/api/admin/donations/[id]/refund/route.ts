@@ -121,7 +121,7 @@ export async function POST(
     .select('id, status, refunded_at, refund_reason, amount_cents')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   // Insert refund record
   await supabaseAdmin.from('refunds').insert({

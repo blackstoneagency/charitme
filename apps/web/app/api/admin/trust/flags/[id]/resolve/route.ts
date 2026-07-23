@@ -18,7 +18,7 @@ export async function POST(
     .update({ resolved: true, resolved_by: admin.id, resolved_at: now })
     .eq('id', id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   await supabaseAdmin.from('audit_logs').insert({
     actor_id: admin.id,

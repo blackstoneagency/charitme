@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
   if (error) {
     console.error('Campaign create failed', error.code, error.message);
     return NextResponse.json(
-      { error: `Campaign could not be saved: ${error.message}`, code: error.code },
+      { error: 'Campaign could not be saved', code: 'INTERNAL_ERROR' },
       { status: 500 },
     );
   }

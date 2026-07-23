@@ -28,7 +28,7 @@ export async function PATCH(request: NextRequest) {
   if (action === 'set_plan') {
     if (!plan) return NextResponse.json({ error: 'plan required' }, { status: 400 });
     const { error } = await supabaseAdmin.from('profiles').update({ plan }).eq('id', userId);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
     await logSuperAdminAction(guard.user.id, 'user.set_plan', 'profile', userId, { plan });
     return NextResponse.json({ ok: true, plan });
   }
@@ -36,7 +36,7 @@ export async function PATCH(request: NextRequest) {
   const roles = parseRoles(profile.roles).filter((r) => r !== 'suspended' as never);
   const next = action === 'suspend' ? [...roles, 'suspended'] : roles;
   const { error } = await supabaseAdmin.from('profiles').update({ roles: Array.from(new Set(next)) }).eq('id', userId);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   await logSuperAdminAction(guard.user.id, `user.${action}`, 'profile', userId, {});
   return NextResponse.json({ ok: true, suspended: action === 'suspend' });
 }

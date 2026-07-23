@@ -2044,3 +2044,7 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — public mutation error hygiene)
 - Public mutation coverage now verifies rate limiting and blocks raw backend
   error text; `/api/share-events` returns a stable generic error contract.
+
+## Session 2026-07-23 (Codex — API error contract)
+- Normalized raw Supabase errors across API route responses to stable generic
+  500 contracts and added a repository-wide regression test.

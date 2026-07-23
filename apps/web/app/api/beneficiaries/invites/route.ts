@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     .select('id, token')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   const inviteRow = invite as { id: string; token: string };
 

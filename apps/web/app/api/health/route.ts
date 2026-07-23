@@ -60,8 +60,9 @@ export async function GET() {
       resendKey:           process.env.RESEND_API_KEY ? 'set (optional)' : 'not set (optional)',
       appUrl:              process.env.NEXT_PUBLIC_APP_URL ?? 'not set (using fallback)',
     };
-  } catch (err) {
-    checks.supabase = `error: ${err instanceof Error ? err.message : String(err)}`;
+  } catch {
+    checks.supabase = 'error';
+    checks.errorCode = 'SUPABASE_UNAVAILABLE';
   }
 
   const isHealthy = checks.supabase === 'connected';

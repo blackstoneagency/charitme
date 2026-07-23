@@ -76,7 +76,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .select('id, status')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   if (!data) return NextResponse.json({ error: 'Application changed concurrently — retry.' }, { status: 409 });
 
   // Reflect the slot change on the opportunity. Best-effort read-modify-write,
