@@ -593,6 +593,14 @@ Format: `ID · area · what · evidence (commit)`. Only fixes verified by
 tests/build/live-HTTP are listed here.
 
 ### Session 2026-07-23 (Claude, PR #50 — production hardening sweep)
+- **CHAR-F059 · seo/canonical** — `seoMetadata()` in `lib/seo.ts` now emits a
+  **self-referencing canonical** for every route by default (resolved against the
+  layout `metadataBase` = `https://www.charitme.com`), instead of only when a
+  super-admin `seo_settings` override row supplied `canonical_url`. Precedence:
+  admin override → caller `base.alternates.canonical` → self (`route`). Removes
+  duplicate-content ambiguity across all public pages that route through
+  `seoMetadata` (home + marketing pages). _Evidence: typecheck clean,
+  `eslint .` 0 errors, 919/919 tests, `next build` green._
 - **CHAR-F056 · tax reporting (NEW FEATURE)** — Built donor **annual giving
   statements**, fully Supabase-wired. Before: only per-donation email receipts,
   no year-end statement, and the rich `donation_receipts` table was unused with
