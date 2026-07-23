@@ -608,6 +608,18 @@ tests/build/live-HTTP are listed here.
   (auth-guarded) + a **Year-End Tax Summary** CSV link on the dashboard
   donations page. _Evidence: 900/900 tests, typecheck clean, build green, lint clean._
 
+### Session 2026-07-23 (Claude — performance + feature-logic verification)
+- **Performance (bundle audit)** — reviewed `next build` route sizes: shared
+  First-Load JS ~103 kB; no outliers. `/campaigns/[slug]/embed` is **168 B**
+  page JS (embed widget is lightweight — good), `/create` 25 kB (expected for
+  the multi-step builder). No egregious client bundle to split; the big win
+  (292KB→6.7KB sitewide logo) was already landed. Code-level perf is healthy.
+- **Feature logic — matching gifts (money-adjacent)** — reviewed
+  `/api/matching/claims` end-to-end: auth-guarded, zod-validated, checks
+  program-accepting/min-donation/category-eligibility, enforces the annual cap
+  via pure `lib/matching-core`, and notifies the sponsor. Backed by **45 unit
+  tests** (`matching.test.ts` + `employer-matching.test.ts`). Verified sound.
+
 ### Session 2026-07-23 (Claude — request-wiring correctness audit)
 - **Every feature works (request-wiring layer)** — scripted a codebase-wide
   audit of client→API wiring, the exact bug class behind this session's earlier
