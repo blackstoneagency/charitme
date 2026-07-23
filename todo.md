@@ -1934,6 +1934,11 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
   subscription state machine + donor-scoped ownership. Evidence in `payment-audit.md`
   and `docs/AUDIT_PROGRESS.md`.
 
+## Session 2026-07-23 (Codex — admin audit-log accessibility)
+- Made recent audit events keyboard-operable (`role="button"`, focus, Enter/Space),
+  added Escape handling for both audit-log modals, and retained pointer backdrop
+  dismissal without nested click traps. Focused ESLint is clean.
+
 ## Session 2026-07-23 (Codex — accessibility warning cleanup)
 - Cleared the remaining user-facing lint warnings in the sponsor marquee, campaign
   image fallback, integrations modal, payouts modal, team invite modal, and donor

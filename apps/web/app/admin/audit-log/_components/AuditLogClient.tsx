@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KFIcon, StatusPill } from '../../../../components/CharitMeApp';
 
 export type AuditEvent = {
@@ -137,6 +137,17 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
+
+  useEffect(() => {
+    if (!selectedEvent && !showExportModal) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setSelectedEvent(null);
+      setShowExportModal(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedEvent, showExportModal]);
   const [exportFmt, setExportFmt] = useState<'CSV' | 'Excel' | 'PDF'>('CSV');
 
   const categoryNames = ['All', ...categories.map(c => c.label)];
@@ -195,6 +206,14 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
             <div
               key={e.id}
               onClick={() => setSelectedEvent(e)}
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  setSelectedEvent(e);
+                }
+              }}
+              role="button"
+              tabIndex={0}
               style={{ padding: '10px 16px', borderBottom: '1px solid #eef0f7', cursor: 'pointer' }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, marginBottom: 2 }}>
@@ -289,13 +308,14 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
 
       {/* Log details slide-in */}
       {selectedEvent && (
+        // Backdrop dismissal is supplementary; Escape and the close button remain available.
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 9999, display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end' }}
-          onClick={() => setSelectedEvent(null)}
+          onClick={event => { if (event.target === event.currentTarget) setSelectedEvent(null); }}
         >
           <div
             style={{ width: 420, background: '#fff', overflowY: 'auto', padding: 28, display: 'grid', alignContent: 'start', gap: 18 }}
-            onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Event Details</h2>
@@ -363,8 +383,10 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
 
       {/* Export modal */}
       {showExportModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999 }} onClick={() => setShowExportModal(false)}>
-          <div style={{ width: 380, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }} onClick={e => e.stopPropagation()}>
+        // Backdrop dismissal is supplementary; Escape and the visible buttons remain available.
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999 }} onClick={event => { if (event.target === event.currentTarget) setShowExportModal(false); }}>
+          <div style={{ width: 380, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }}>
             <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800 }}>Export Audit Logs</h2>
             <p style={{ margin: '0 0 20px', color: '#67718e', fontSize: 13 }}>Choose the format to export {totalEvents.toLocaleString()} events.</p>
             <div style={{ display: 'grid', gap: 10 }}>
