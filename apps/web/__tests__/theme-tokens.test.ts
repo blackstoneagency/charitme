@@ -14,7 +14,10 @@ import { join } from 'node:path';
 // amber/orange status) are allowed — only surfaces and dark text are policed.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const DASHBOARD_DIR = join(__dirname, '..', 'app', 'dashboard');
+// User-facing app areas that must render correctly in dark AND light mode.
+// (Admin console is intentional light-only internal tooling; branded marketing
+// pages keep their brand palettes — both are out of scope for this guard.)
+const GUARDED_DIRS = ['dashboard', 'donor', 'profile'].map((d) => join(__dirname, '..', 'app', d));
 
 function walk(dir: string): string[] {
   const out: string[] = [];
@@ -42,17 +45,18 @@ function offendingLines(files: string[], re: RegExp): string[] {
     const lines = readFileSync(f, 'utf8').split('\n');
     lines.forEach((line, i) => {
       if (re.test(line) && !ALLOW.test(line)) {
-        hits.push(`${f.slice(f.indexOf('app/dashboard'))}:${i + 1}`);
+        const idx = f.indexOf(`app${require('node:path').sep}`);
+        hits.push(`${idx >= 0 ? f.slice(idx) : f}:${i + 1}`);
       }
     });
   }
   return hits;
 }
 
-describe('dashboard theme tokens (dark-mode regression guard)', () => {
-  const files = walk(DASHBOARD_DIR);
+describe('user-facing theme tokens (dark-mode regression guard)', () => {
+  const files = GUARDED_DIRS.flatMap(walk);
 
-  it('finds dashboard component files to check', () => {
+  it('finds user-facing component files to check', () => {
     expect(files.length).toBeGreaterThan(20);
   });
 
