@@ -192,10 +192,11 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
         <section className="kf-card" style={{ overflow: 'hidden' }}>
           <div className="kf-card-head"><h2>Recent Activity</h2></div>
           {events.slice(0, 8).map(e => (
-            <div
+            <button
+              type="button"
               key={e.id}
               onClick={() => setSelectedEvent(e)}
-              style={{ padding: '10px 16px', borderBottom: '1px solid #eef0f7', cursor: 'pointer' }}
+              style={{ display: 'block', width: '100%', padding: '10px 16px', border: 'none', borderBottom: '1px solid #eef0f7', background: 'transparent', color: 'inherit', textAlign: 'left', cursor: 'pointer' }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                 <span style={{ fontSize: 11, fontWeight: 650, color: CATEGORY_COLORS[e.category] ?? '#551cf2' }}>{e.category}</span>
@@ -203,7 +204,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
               </div>
               <strong style={{ display: 'block', fontSize: 12, fontWeight: 650, marginBottom: 2 }}>{e.action}</strong>
               <small style={{ color: '#8c95b2', fontSize: 10 }}>{e.dateTime}</small>
-            </div>
+            </button>
           ))}
         </section>
 
@@ -290,15 +291,16 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
       {/* Log details slide-in */}
       {selectedEvent && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="audit-event-details-title"
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 9999, display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end' }}
-          onClick={() => setSelectedEvent(null)}
         >
           <div
             style={{ width: 420, background: '#fff', overflowY: 'auto', padding: 28, display: 'grid', alignContent: 'start', gap: 18 }}
-            onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Event Details</h2>
+              <h2 id="audit-event-details-title" style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Event Details</h2>
               <button onClick={() => setSelectedEvent(null)} style={{ border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer', color: '#67718e' }}>×</button>
             </div>
 
@@ -363,9 +365,14 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
 
       {/* Export modal */}
       {showExportModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999 }} onClick={() => setShowExportModal(false)}>
-          <div style={{ width: 380, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }} onClick={e => e.stopPropagation()}>
-            <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800 }}>Export Audit Logs</h2>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="audit-export-title"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999 }}
+        >
+          <div style={{ width: 380, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }}>
+            <h2 id="audit-export-title" style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800 }}>Export Audit Logs</h2>
             <p style={{ margin: '0 0 20px', color: '#67718e', fontSize: 13 }}>Choose the format to export {totalEvents.toLocaleString()} events.</p>
             <div style={{ display: 'grid', gap: 10 }}>
               {(['CSV', 'Excel', 'PDF'] as const).map(fmt => (
