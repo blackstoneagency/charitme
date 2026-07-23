@@ -2009,3 +2009,8 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 - Made `99_verify_counts.sql` fail when any expected feature table is missing or
   below 100 rows, documented the successful-exit contract, and added a regression test.
   Seed guard tests pass 5/5.
+
+## Session 2026-07-23 (Codex — environment preflight)
+- Aligned the local preflight with Next by loading `apps/web/.env.local` only in
+  non-production mode; `--production` still requires injected deployment variables.
+  Local preflight passes and production-mode failure gating was verified.
