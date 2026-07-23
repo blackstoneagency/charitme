@@ -141,6 +141,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
           <input
             type="radio" name={name} value={opt.value} checked={value === opt.value}
             onChange={() => onChange(opt.value as T)}
+            aria-label={opt.label}
             style={{ marginTop: 3, accentColor: 'var(--violet)' }}
           />
           <div>
