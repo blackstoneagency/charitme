@@ -1362,6 +1362,13 @@ img, video, iframe { max-width: 100%; }
 .kf-metrics.mini small { display: block; margin-top: 4px; color: #4b5676; font-size: 12px; font-weight: 700; }
 .kf-roadmap { overflow: hidden; }
 .kf-roadmap article { display: grid; grid-template-columns: 44px 1fr 140px 110px; align-items: center; gap: 18px; padding: 17px 22px; border-top: 1px solid #eef0f7; }
+/* Mobile: keep the icon + title on the first row; the two trailing cells wrap
+   beneath the title instead of forcing a ~430px-wide row off-screen. */
+@media (max-width: 640px) {
+  .kf-roadmap article { grid-template-columns: 44px 1fr; row-gap: 8px; }
+  .kf-roadmap article > :nth-child(3),
+  .kf-roadmap article > :nth-child(4) { grid-column: 2; }
+}
 .kf-roadmap article > span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; border: 2px solid #d8def0; color: #8a94ae; font-weight: 700; }
 .kf-roadmap article > span.done { background: #19b86a; border-color: #19b86a; color: #fff; }
 .kf-roadmap strong, .kf-roadmap p { display: block; margin: 0; }
@@ -1852,6 +1859,34 @@ img, video, iframe { max-width: 100%; }
 .campaign-menu-dropdown button:disabled { opacity: .6; cursor: default; }
 .campaign-menu-error { margin: 4px 8px 2px; color: #ff3158; font-size: 11.5px; font-weight: 750; }
 .campaign-footer { height: 46px; display: flex; align-items: center; justify-content: center; gap: 8px; color: #551cf2; font-size: 13px; font-weight: 600; }
+
+/* Mobile: the 7-column campaign row (img · copy · 3 stats · detail · menu) would
+   overflow a phone. Stack it — image+title+menu on the first row, then each stat
+   as an inline "label → value" line, then a full-width action. */
+@media (max-width: 640px) {
+  .campaign-item {
+    grid-template-columns: 72px 1fr auto;
+    gap: 12px;
+    row-gap: 12px;
+    padding: 14px 16px;
+    min-height: 0;
+  }
+  .campaign-img { grid-column: 1; grid-row: 1; width: 72px; height: 64px; }
+  .campaign-copy { grid-column: 2; grid-row: 1; }
+  .campaign-menu-wrap { grid-column: 3; grid-row: 1; }
+  .campaign-stat {
+    grid-column: 1 / -1;
+    border-left: 0;
+    padding-left: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .campaign-stat strong, .campaign-stat span { display: inline; margin-top: 0; }
+  .campaign-detail { grid-column: 1 / -1; width: 100%; }
+}
+
 .dash-analytics { display: grid; grid-template-columns: 1.17fr .83fr; gap: 20px; }
 .performance-card { min-height: 350px; }
 .performance-body { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 16px; padding: 0 20px 22px; }
@@ -1924,6 +1959,14 @@ img, video, iframe { max-width: 100%; }
 .recent-row b { color: #131a3d; font-size: 13px; font-weight: 600; line-height: 1.35; }
 .recent-row small { margin-top: 3px; color: #8a92ac; font-weight: 500; }
 .growth-strip { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(260px, 1.5fr) repeat(4, minmax(130px, 1fr)) 190px; align-items: center; gap: 22px; min-height: 88px; padding: 18px 22px; background: #fff; }
+/* Mobile: the six-column metrics strip (min ~970px) can't fit a phone — stack it. */
+@media (max-width: 760px) {
+  .growth-strip { grid-template-columns: 1fr 1fr; row-gap: 16px; min-height: 0; }
+  .growth-strip > * { min-width: 0; }
+}
+@media (max-width: 460px) {
+  .growth-strip { grid-template-columns: 1fr; }
+}
 .growth-brand { display: flex; align-items: center; gap: 14px; }
 .growth-brand > span { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; color: #fff; background: linear-gradient(135deg, #6c35ff, #b43bef); }
 .growth-brand h2 { margin: 0; font-size: 16px; font-weight: 700; color: #0f1535; }
