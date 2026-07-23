@@ -150,6 +150,12 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - Completion Evidence: (to fill in during QA — Stripe test session id, webhook event id, `campaigns.featured` DB record, homepage rotator screenshot)
   - Commit: 586fc3a (feature merged via #27)
 
+- [x] **Migration reconciliation — competitor-parity dependency drift fixed (2026-07-23)**
+  - Added legacy-column reconciliation before competitor-parity indexes and a
+    forward migration that restores the five dependent tables with RLS/policies
+    when the earlier transaction rolled back. Static RLS coverage and schema
+    contract tests pass. Live application remains owner/staging-gated.
+
 - [x] CHAR-0001 — **Verified in production** (schema + RLS applied to live Supabase 2026-07-19)
   - Area: Grants
   - Feature: Grants data model + RLS

@@ -423,6 +423,16 @@ create table if not exists outbound_webhook_endpoints (
   updated_at timestamptz not null default now()
 );
 
+-- Some legacy databases already have these tables from an earlier schema. The
+-- create-if-missing statements above do not add columns to those tables, so
+-- reconcile the columns used by this migration before creating indexes/policies.
+alter table if exists donation_forms
+  add column if not exists nonprofit_id uuid references nonprofit_profiles(id) on delete cascade;
+alter table if exists donor_crm_contacts
+  add column if not exists nonprofit_id uuid references nonprofit_profiles(id) on delete cascade;
+alter table if exists fundraising_events
+  add column if not exists nonprofit_id uuid references nonprofit_profiles(id) on delete cascade;
+
 create index if not exists creator_profiles_user_id_idx on creator_profiles(user_id);
 create index if not exists reward_tiers_campaign_id_idx on reward_tiers(campaign_id);
 create index if not exists nonprofit_profiles_owner_id_idx on nonprofit_profiles(owner_id);
