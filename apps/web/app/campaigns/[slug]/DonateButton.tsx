@@ -521,7 +521,10 @@ export default function DonateButton({
       {/* ── Payment method & processing fee — labeled dropdown ── */}
       <div>
         <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: MU, textTransform: 'uppercase', letterSpacing: '.06em' }}>
-          Payment method &amp; processing fee
+          Payment method &amp; processing fee estimate
+        </p>
+        <p style={{ margin: '0 0 8px', fontSize: 11.5, lineHeight: 1.45, color: MU }}>
+          Stripe Checkout confirms the payment methods available for your currency and device. This selection estimates processing fees; you choose the final method securely on Stripe&apos;s checkout page.
         </p>
         {(() => {
           const sel = PAY_OPTIONS.find((o) => o.id === preferredMethod) ?? PAY_OPTIONS[0];

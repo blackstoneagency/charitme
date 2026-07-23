@@ -2024,3 +2024,8 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Session 2026-07-23 (Codex — security header browser coverage)
 - Added browser assertions for baseline security headers and the intentional
   third-party framing exception on campaign embeds.
+
+## Session 2026-07-23 (Codex — checkout method disclosure)
+- Clarified the donation form's payment selector as a processing-fee estimate and
+  explained that Stripe Checkout determines the final eligible method by device,
+  currency, and account configuration.
