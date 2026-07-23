@@ -608,6 +608,17 @@ tests/build/live-HTTP are listed here.
   (auth-guarded) + a **Year-End Tax Summary** CSV link on the dashboard
   donations page. _Evidence: 900/900 tests, typecheck clean, build green, lint clean._
 
+### Session 2026-07-23 (Claude — accessibility: user-facing labels)
+- **A11y label associations** — triaged all **81** `jsx-a11y/label-has-associated-
+  control` warnings: **2 are user-facing** (dashboard refund donation-picker,
+  campaign settings visibility/type radios), **79 are admin-only** internal
+  tooling. Fixed both user-facing forms with explicit `aria-label` on the nested
+  radios (campaign+amount / option label) → 0 warnings in those files. Public +
+  user routes now fully covered (axe-core 0 violations on 15 public routes +
+  these dashboard fixes). Remaining 79 are admin sibling-`<label>`/input pairs
+  (single trusted operator, visually adjacent, functional) — tracked P3 polish.
+  _Evidence: 901/901 tests, typecheck clean._
+
 ### Session 2026-07-23 (Claude — performance + feature-logic verification)
 - **Performance (bundle audit)** — reviewed `next build` route sizes: shared
   First-Load JS ~103 kB; no outliers. `/campaigns/[slug]/embed` is **168 B**
