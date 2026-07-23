@@ -643,6 +643,11 @@ tests/build/live-HTTP are listed here.
   the remaining modal-backdrop `click-events` warnings are legitimate (Esc +
   focusable close button cover keyboard). _Evidence: 901/901 tests, 0 lint errors._
 ### Session 2026-07-23 (Claude — feature end-to-end audits)
+- **Loyalty / gamification — already well-tested (verified)** — `gamification.test.ts`
+  has **17 tests** covering `getGivingLevel` (giving tiers, the loyalty ladder used
+  on `/achievements`), `computeMonthlyStreak` (donor streaks), and every
+  `DONOR_BADGES.earned` predicate (badge-award logic). `givingLevelFor` (used by
+  the achievements page) delegates straight to the tested `getGivingLevel`. No gap.
 - **Referrals growth feature — verified + tested** — `getReferralTier` (personal
   `?ref=` link → 5-tier rewards: Connector→Champion) now has **7 unit tests**
   (`referrals.test.ts`): boundaries, highest-tier selection, fractional progress,
