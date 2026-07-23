@@ -617,6 +617,15 @@ tests/build/live-HTTP are listed here.
   are correct (e.g. trust-flag resolve form POSTs and server-redirects back).
 - **Dashboard sign-out** — confirmed the shell TopBar renders working account
   controls (`ShellAccountControls`) on every dashboard page.
+- **CHAR-F055 · mobile** — The user-facing **Invite Team Member** modal used a
+  fixed `width: 460` that overflows phones (< ~375px). Added the existing
+  `kf-modal-responsive` helper (`max-width: calc(100vw - 32px)`).
+- **Mobile responsiveness audit (no other user-facing overflow found):**
+  viewport meta present; decorative hero blobs all sit in `overflow:hidden`
+  sections (clipped, no horizontal scroll); user data tables use
+  `.kf-table-scroll` (`overflow-x:auto`, children scroll within the wrapper);
+  campaign/donate/create flows have no fixed-width modals. Remaining fixed-width
+  modals are **admin-only** (internal tooling) — lower priority.
 - **Security — mutating-route auth sweep** — scanned every API route
   exporting POST/PATCH/PUT/DELETE for an auth/admin/webhook/cron guard.
   **Every mutating route is guarded**; the only two without a guard are
