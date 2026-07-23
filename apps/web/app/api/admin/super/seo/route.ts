@@ -2,17 +2,28 @@ import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../../lib/supabase';
+import { isPublicRoute, normalizePublicRoute } from '../../../../../lib/public-route-policy';
 import { guardSuperAdmin, logSuperAdminAction } from '../../../../../lib/super-admin';
 
+const PUBLIC_ROUTE = z.string().trim().min(1).max(200).refine(isPublicRoute, 'Route must be a public path without query or hash parameters').transform((value) => normalizePublicRoute(value) ?? '/');
+const CANONICAL_URL = z.string().trim().max(500).refine((value) => {
+  if (value.startsWith('/')) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname === 'www.charitme.com';
+  } catch {
+    return false;
+  }
+}, 'Canonical URL must be a site-relative path or a CharitMe HTTPS URL');
 const Schema = z.object({
-  route: z.string().trim().min(1).max(200).regex(/^\//, 'Route must start with /'),
+  route: PUBLIC_ROUTE,
   title: z.string().trim().max(200).optional().nullable(),
   meta_description: z.string().trim().max(500).optional().nullable(),
   keywords: z.string().trim().max(500).optional().nullable(),
   og_title: z.string().trim().max(200).optional().nullable(),
   og_description: z.string().trim().max(500).optional().nullable(),
   og_image_url: z.string().trim().max(500).optional().nullable(),
-  canonical_url: z.string().trim().max(500).optional().nullable(),
+  canonical_url: CANONICAL_URL.optional().nullable(),
   noindex: z.boolean().optional(),
 });
 

@@ -1,10 +1,103 @@
 import 'server-only';
 import { supabaseAdmin } from './supabase';
+import { normalizePublicRoute } from './public-route-policy';
 
-export interface PublicFaq {
+export interface PublicAeoEntry {
   question: string;
   answer: string;
   topic: string | null;
+  schema_type: 'FAQPage' | 'QAPage' | 'HowTo';
+  route: string;
+}
+
+export interface PublicFaq extends PublicAeoEntry {
+  schema_type: 'FAQPage';
+}
+
+export type AeoJsonLd = Record<string, unknown>;
+
+const DYNAMIC_PARENT_ROUTE = /^\/(campaigns|blog|events|features|grants|impact|matching|sponsor|volunteer)\/[^/]+$/;
+
+export function normalizeAeoRoute(route: string | null | undefined): string {
+  return normalizePublicRoute(route) ?? '/faq';
+}
+
+/** Return the public collection route whose published answers apply to a detail page. */
+export function getAeoFallbackRoute(route: string): string | null {
+  const match = DYNAMIC_PARENT_ROUTE.exec(normalizeAeoRoute(route));
+  return match ? `/${match[1]}` : null;
+}
+
+export function dedupeAeoEntries(entries: PublicAeoEntry[]): PublicAeoEntry[] {
+  const seen = new Set<string>();
+  return entries.filter((entry) => {
+    const key = `${entry.schema_type}:${entry.question.trim().toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export function buildAeoJsonLd(entries: PublicAeoEntry[]): AeoJsonLd[] {
+  const faqEntries = entries.filter((entry) => entry.schema_type === 'FAQPage');
+  const qaEntries = entries.filter((entry) => entry.schema_type === 'QAPage');
+  const howToEntries = entries.filter((entry) => entry.schema_type === 'HowTo');
+
+  return [
+    ...(faqEntries.length > 0 ? [{
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqEntries.map((entry) => ({
+        '@type': 'Question',
+        name: entry.question,
+        acceptedAnswer: { '@type': 'Answer', text: entry.answer },
+      })),
+    }] : []),
+    ...qaEntries.map((entry) => ({
+      '@context': 'https://schema.org',
+      '@type': 'QAPage',
+      mainEntity: {
+        '@type': 'Question',
+        name: entry.question,
+        acceptedAnswer: { '@type': 'Answer', text: entry.answer },
+      },
+    })),
+    ...howToEntries.map((entry) => ({
+      '@context': 'https://schema.org',
+      '@type': 'HowTo',
+      name: entry.question,
+      step: [{ '@type': 'HowToStep', name: entry.question, text: entry.answer }],
+    })),
+  ];
+}
+
+/** Published, route-specific entries used by public pages and their schema. */
+export async function getPublishedAeoEntries(route: string, schemaType?: PublicAeoEntry['schema_type'], limit = 100): Promise<PublicAeoEntry[]> {
+  const normalizedRoute = normalizeAeoRoute(route);
+  const fallbackRoute = getAeoFallbackRoute(normalizedRoute);
+
+  async function readPublishedEntries(entryRoute: string): Promise<PublicAeoEntry[]> {
+    try {
+      let query = supabaseAdmin
+        .from('aeo_entries')
+        .select('question, answer, topic, schema_type, route')
+        .eq('published', true)
+        .eq('route', entryRoute)
+        .order('priority', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      if (schemaType) query = query.eq('schema_type', schemaType);
+      const { data } = await query;
+      return dedupeAeoEntries((data ?? []) as PublicAeoEntry[]);
+    } catch {
+      return [];
+    }
+  }
+
+  const exactEntries = await readPublishedEntries(normalizedRoute);
+  return exactEntries.length > 0 || !fallbackRoute
+    ? exactEntries
+    : readPublishedEntries(fallbackRoute);
 }
 
 /**
@@ -15,28 +108,14 @@ export interface PublicFaq {
  * matches on-page content (never hidden markup).
  */
 export async function getPublishedFaqs(schemaType = 'FAQPage', limit = 100): Promise<PublicFaq[]> {
-  // Public surface: never let a missing env var or an unreachable DB hard-fail
-  // the page render (or a static/ISR build). Degrade gracefully to the
-  // hardcoded on-page FAQ content by returning an empty AEO set.
-  try {
-    const { data } = await supabaseAdmin
-      .from('aeo_entries')
-      .select('question, answer, topic')
-      .eq('published', true)
-      .eq('schema_type', schemaType)
-      .order('priority', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    return (data ?? []) as PublicFaq[];
-  } catch {
-    return [];
-  }
+  if (schemaType !== 'FAQPage') return [];
+  return (await getPublishedAeoEntries('/faq', 'FAQPage', limit)) as PublicFaq[];
 }
 
 /** Group FAQs by topic for sectioned display; null/empty topics fall under `fallback`. */
-export function groupFaqsByTopic(faqs: PublicFaq[], fallback = 'More answers'): { topic: string; items: PublicFaq[] }[] {
+export function groupFaqsByTopic(faqs: PublicAeoEntry[], fallback = 'More answers'): { topic: string; items: PublicAeoEntry[] }[] {
   const order: string[] = [];
-  const map = new Map<string, PublicFaq[]>();
+  const map = new Map<string, PublicAeoEntry[]>();
   for (const f of faqs) {
     const key = (f.topic ?? '').trim() || fallback;
     if (!map.has(key)) { map.set(key, []); order.push(key); }

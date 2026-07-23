@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   });
   if (!contactId) return NextResponse.json({ error: 'Could not create contact' }, { status: 500 });
 
-  await trackEvent({
+  const recorded = await trackEvent({
     contactId,
     eventType: input.event ?? 'form_submitted',
     campaignId: input.campaignId,
@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
     url: input.url,
     metadata: input.data ?? {},
   });
+  if (!recorded) return NextResponse.json({ error: 'Could not record event', code: 'EVENT_WRITE_FAILED' }, { status: 500 });
 
   if (input.formId) {
     await supabaseAdmin.from('marketing_form_submissions').insert({
