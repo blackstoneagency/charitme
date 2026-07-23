@@ -608,6 +608,19 @@ tests/build/live-HTTP are listed here.
   (auth-guarded) + a **Year-End Tax Summary** CSV link on the dashboard
   donations page. _Evidence: 900/900 tests, typecheck clean, build green, lint clean._
 
+### Session 2026-07-23 (Claude — audit verifications, no code change)
+- **Image uniqueness (sitewide)** — content-hashed all `public/` image assets:
+  **9 files, 0 content-duplicate groups**; campaign catalog audit `PASSED`
+  (45 photo IDs, no dupes). `CharitMe_Logo.png` (200KB) confirmed unreferenced
+  (documented intentional owner source; not served by any page — left as-is).
+- **Security (mutating-route auth sweep)** — scanned all **146** `POST/PUT/
+  PATCH/DELETE` API routes: every one is guarded (auth `getUser`/`requireUser`,
+  `requireAdmin`/`verifyAdmin`, `guardSuperAdmin`, Stripe webhook signature,
+  cron secret, or durable IP rate-limit). Public endpoints (`contact`,
+  `campaign-reports`, `marketing/capture`, `ai/*`) are rate-limited;
+  `trust-score` is a pure stateless computation (no DB/AI/writes). **No
+  unguarded mutating route found.**
+
 ### Session 2026-07-23 (Claude — follow-up, post-#50 merge, new PR)
 - **CHAR-F058 · tax reporting (auto receipts)** — Donations to a **verified,
   receipt-enabled nonprofit (with EIN)** now trigger the **official tax receipt
