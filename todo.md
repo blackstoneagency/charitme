@@ -637,6 +637,11 @@ tests/build/live-HTTP are listed here.
   rename to keep styling) and the **campaign accept-donations toggle**
   (`role=switch` + `aria-checked` + Enter/Space). Sitewide click-events warnings
   98 → 92. _Evidence: 901/901 tests, 0 lint errors, `next build` green._
+- **A11y modal keyboard dismiss** — added **Escape-to-close** to the user-facing
+  payout, team-invite, and integrations-connect modals (previously only backdrop
+  click / × button). Makes the backdrop-dismiss pattern keyboard-equivalent, so
+  the remaining modal-backdrop `click-events` warnings are legitimate (Esc +
+  focusable close button cover keyboard). _Evidence: 901/901 tests, 0 lint errors._
 ### Session 2026-07-23 (Claude — feature end-to-end audits)
 - **Volunteer applications — verified sound + tested** — reviewed apply +
   decision routes end-to-end: auth-guarded, UUID/slug lookup, capacity enforced
