@@ -3,8 +3,30 @@ import {
   donationTotal, donorTip, platformFee, processingFee,
   methodProcessingFee, METHOD_FEES, MIN_DONATION_CENTS,
   donationBreakdown, SUPPORT_TIER_PERCENTS, SUGGESTED_SUPPORT_PERCENT,
-  TIP_OPTIONS, DEFAULT_DONOR_TIP_PERCENT,
+  TIP_OPTIONS, DEFAULT_DONOR_TIP_PERCENT, netToFundraiser,
 } from '@shared/fees';
+
+describe('netToFundraiser (0% platform fee promise)', () => {
+  it('returns the full donation amount — fundraiser keeps 100%', () => {
+    for (const cents of [100, 2_500, 10_000, 99_999, 1_000_000_00]) {
+      expect(netToFundraiser(cents)).toBe(cents);
+    }
+  });
+
+  it('always equals amount minus platformFee (invariant survives fee changes)', () => {
+    for (const cents of [100, 5_000, 250_000]) {
+      expect(netToFundraiser(cents)).toBe(cents - platformFee(cents));
+    }
+  });
+
+  it('never exceeds the donation and is non-negative', () => {
+    for (const cents of [0, 1, 100, 50_000]) {
+      const net = netToFundraiser(cents);
+      expect(net).toBeLessThanOrEqual(cents);
+      expect(net).toBeGreaterThanOrEqual(0);
+    }
+  });
+});
 
 describe('donor support model', () => {
   it('suggests 15% support and always allows opting down to 0', () => {
