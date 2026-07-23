@@ -581,6 +581,25 @@ Format: `ID · area · what · evidence (commit)`. Only fixes verified by
 tests/build/live-HTTP are listed here.
 
 ### Session 2026-07-23 (Claude, PR #50 — production hardening sweep)
+- **CHAR-F056 · tax reporting (NEW FEATURE)** — Built donor **annual giving
+  statements**, fully Supabase-wired. Before: only per-donation email receipts,
+  no year-end statement, and the rich `donation_receipts` table was unused with
+  no deductibility logic anywhere. Now:
+  - `lib/tax.ts` (pure, 9 unit tests) — deductibility rule: deductible **only**
+    when the campaign owner has a **verified** `nonprofit_profile` with
+    `tax_receipt_enabled` (shows legal name + EIN); personal fundraisers are
+    non-deductible gifts, stated explicitly. Tips excluded; completed-only.
+  - `lib/tax-server.ts` — shared Supabase loader (donations → campaign owner →
+    `nonprofit_profiles`) used by both API + page (identical deductibility).
+  - `GET /api/donor/tax-statement?year=&format=json|csv` — donor-scoped,
+    auth-guarded consolidated statement + CSV export.
+  - `/donor/tax-statement/[year]` — printable (print-to-PDF) statement:
+    per-org deductible breakdown, itemized lines w/ receipt #s, IRS-style
+    disclosure; print styles added to `globals.css`.
+  - Donor portal **Tax Statements** card (per-year statement + CSV links).
+  _Evidence: 898/898 tests (9 new), typecheck clean, `next build` green
+  (both routes registered), lint clean._
+
 - **CHAR-F050 · auth/ux** — Repaired broken **Sign Out** on the Settings and
   Profile pages: both linked to `/api/auth/signout` (POST-only) via a plain
   `<Link>`/`<a>` GET nav → 405, so sign-out did nothing. Converted to
