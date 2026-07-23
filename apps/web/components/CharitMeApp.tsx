@@ -223,6 +223,19 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
             View Public Site
           </Link>
         )}
+
+        {/* Signed-in identity chip — data is fetched server-side in
+            CharitMeShellServer and threaded through as props. Hidden for guests
+            and on the mobile bottom-nav (identity stays in the top-bar menu). */}
+        {!guestMode && (userName || userEmail) && (
+          <div className="kf-user-chip" title={userEmail || undefined}>
+            <Avatar name={userName || userEmail || '?'} imageUrl={userAvatarUrl} />
+            <div className="kf-user-chip-meta">
+              <strong>{userName || userEmail}</strong>
+              {userRole && <small>{userRole}</small>}
+            </div>
+          </div>
+        )}
       </aside>
       <main className="kf-main">{children}</main>
     </div>
