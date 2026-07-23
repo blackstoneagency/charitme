@@ -148,8 +148,10 @@ function UserDetailPanel({ user, onClose }: { user: UserRecord; onClose: () => v
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="User details"
       style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div style={{ marginLeft: 'auto', width: 480, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '22px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -298,8 +300,7 @@ function AddUserPanel({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div role="dialog" aria-modal="true" aria-label="Add new user" style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}>
       <div style={{ marginLeft: 'auto', width: 460, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '22px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: 17, fontWeight: 700, color: '#0f0f30' }}>Add New User</div>
@@ -308,32 +309,32 @@ function AddUserPanel({ onClose }: { onClose: () => void }) {
         <div style={{ padding: '24px', display: 'grid', gap: 16, flex: 1 }}>
           {error && <div style={{ padding: '10px 14px', background: '#fff0f3', borderRadius: 9, color: 'var(--red-text)', fontSize: 13, fontWeight: 700 }}>{error}</div>}
           {[
-            { label: 'Full Name', value: newName, onChange: setNewName, type: 'text', placeholder: 'Jane Smith' },
-            { label: 'Email Address', value: newEmail, onChange: setNewEmail, type: 'email', placeholder: 'jane@example.com' },
+            { id: 'new-user-name', label: 'Full Name', value: newName, onChange: setNewName, type: 'text', placeholder: 'Jane Smith' },
+            { id: 'new-user-email', label: 'Email Address', value: newEmail, onChange: setNewEmail, type: 'email', placeholder: 'jane@example.com' },
           ].map(f => (
-            <label key={f.label} style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
+            <label htmlFor={f.id} key={f.label} style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
               {f.label}
-              <input type={f.type} value={f.value} onChange={e => f.onChange(e.target.value)} placeholder={f.placeholder}
+              <input id={f.id} type={f.type} value={f.value} onChange={e => f.onChange(e.target.value)} placeholder={f.placeholder}
                 style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14, outline: 'none' }} />
             </label>
           ))}
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
+          <label htmlFor="new-user-role" style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
             Role
-            <select value={newRole} onChange={e => setNewRole(e.target.value)} style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
+            <select id="new-user-role" value={newRole} onChange={e => setNewRole(e.target.value)} style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
               <option value="donor">Donor</option>
               <option value="organizer">Organizer</option>
               <option value="admin">Admin</option>
             </select>
           </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
+          <label htmlFor="new-user-status" style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
             Status
-            <select value={newStatus} onChange={e => setNewStatus(e.target.value)} style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
+            <select id="new-user-status" value={newStatus} onChange={e => setNewStatus(e.target.value)} style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }}>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
           </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#26335c' }}>
-            <input type="checkbox" checked={sendWelcome} onChange={e => setSendWelcome(e.target.checked)} />
+          <label htmlFor="new-user-welcome" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#26335c' }}>
+            <input id="new-user-welcome" type="checkbox" checked={sendWelcome} onChange={e => setSendWelcome(e.target.checked)} />
             Send welcome email
           </label>
         </div>
@@ -426,7 +427,7 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
         <section className="kf-card">
           <div className="kf-card-head"><h2>Recent Users</h2></div>
           {users.slice(0, 5).map(u => (
-            <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer' }}
+            <button type="button" key={u.id} style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 12, padding: '11px 20px', border: 0, borderBottom: '1px solid #f0f2f8', background: 'transparent', color: 'inherit', textAlign: 'left', cursor: 'pointer' }}
               onClick={() => setSelectedUser(u)}
               onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
@@ -441,7 +442,7 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
                 <span className="kf-pill violet" style={{ fontSize: 10 }}>{getPrimaryRole(u.roles)}</span>
                 <div style={{ fontSize: 11, color: '#8c9ab5', marginTop: 3 }}>{fmtDate(u.created_at)}</div>
               </div>
-            </div>
+            </button>
           ))}
         </section>
       </div>
@@ -468,9 +469,10 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
           <div>
             {/* Search + filters */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: '#fff' }}>
+              <label htmlFor="users-search" style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: '#fff' }}>
+                <span className="sr-only">Search users</span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={15} height={15}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
-                <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }}
+                <input id="users-search" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }}
                   placeholder="Search by name or email…"
                   style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }} />
               </label>
@@ -493,8 +495,8 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
 
             {/* Table rows */}
             {currentPage.map(u => (
-              <div key={u.id}
-                style={{ display: 'grid', gridTemplateColumns: '1fr 140px 130px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+              <button type="button" key={u.id}
+                style={{ display: 'grid', width: '100%', gridTemplateColumns: '1fr 140px 130px 130px', gap: 12, padding: '14px 20px', border: 0, borderBottom: '1px solid #f0f2f8', background: 'transparent', color: 'inherit', textAlign: 'left', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => setSelectedUser(u)}
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
@@ -510,7 +512,7 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
                 <span className="kf-pill violet" style={{ fontSize: 11 }}>{getPrimaryRole(u.roles)}</span>
                 <span className="kf-pill green" style={{ fontSize: 11 }}>Active</span>
                 <div style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(u.created_at)}</div>
-              </div>
+              </button>
             ))}
 
             {currentPage.length === 0 && (
