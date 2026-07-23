@@ -98,7 +98,7 @@ export default async function AdminDashboardPage() {
                 <li>If the database is not set up yet, run <code>supabase/catch_up.sql</code> in the Supabase SQL Editor (idempotent — safe on a fresh or existing database)</li>
               </ol>
             </div>
-            <a href="/api/health" target="_blank" style={{ display: 'inline-block', marginTop: 12, padding: '10px 22px', background: '#6c35ff', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+            <a href="/api/health?details=1" target="_blank" style={{ display: 'inline-block', marginTop: 12, padding: '10px 22px', background: '#6c35ff', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
               Run Diagnostic → /api/health
             </a>
           </div>

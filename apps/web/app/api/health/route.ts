@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdmin } from '../admin/users/_auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 
-// GET /api/health — connectivity + table counts
-export async function GET() {
+// GET /api/health — public liveness; append ?details=1 for admin diagnostics.
+export async function GET(request: NextRequest) {
+  const details = new URL(request.url).searchParams.get('details') === '1';
+  if (!details) return NextResponse.json({ status: 'ok', ts: Date.now() });
+
+  const user = await verifyAdmin();
+  if (!user) return NextResponse.json({ error: 'Forbidden', code: 'ADMIN_REQUIRED' }, { status: 403 });
+
   const checks: Record<string, unknown> = { ts: Date.now(), status: 'ok' };
 
   try {

@@ -2049,3 +2049,7 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 - Normalized raw Supabase errors across API route responses to stable generic
   500 contracts and added a repository-wide regression test.
 - Also sanitized OAuth redirect errors and support-seed batch diagnostics.
+
+## Session 2026-07-23 (Codex — health endpoint privacy)
+- Kept `/api/health` publicly liveness-only; exact database counts and
+  environment diagnostics now require an admin session plus `?details=1`.
