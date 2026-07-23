@@ -118,7 +118,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
 
   const field = (label: string, hint: string, children: React.ReactNode) => (
     <div style={{ marginBottom: 20 }}>
-      <label style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#334064', marginBottom: 6 }}>{label}</label>
+      <span style={{ display: 'block', fontWeight: 700, fontSize: 13, color: '#334064', marginBottom: 6 }}>{label}</span>
       {hint && <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>{hint}</div>}
       {children}
     </div>
@@ -132,14 +132,14 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
   ) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {options.map(opt => (
-        <label key={opt.value} style={{
+        <label key={opt.value} htmlFor={`${name}-${opt.value}`} aria-label={opt.label} style={{
           display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 14px',
           borderRadius: 10, cursor: 'pointer', border: '1.5px solid',
           borderColor: value === opt.value ? '#6c35ff' : '#e8ecf4',
           background: value === opt.value ? '#f5f0ff' : '#fff',
         }}>
           <input
-            type="radio" name={name} value={opt.value} checked={value === opt.value}
+            id={`${name}-${opt.value}`} type="radio" name={name} value={opt.value} checked={value === opt.value}
             onChange={() => onChange(opt.value as T)}
             style={{ marginTop: 3, accentColor: '#6c35ff' }}
           />
@@ -175,13 +175,16 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
         )}
 
         {field('Accept donations', 'Pause or resume donations without taking the campaign offline.',
-          <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-            <div
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              type="button"
+              aria-pressed={acceptDonations}
+              aria-label="Accept donations"
               onClick={() => setAcceptDonations(v => !v)}
               style={{
                 width: 44, height: 24, borderRadius: 99, cursor: 'pointer',
                 background: acceptDonations ? '#6c35ff' : '#e2e8f0',
-                transition: 'background .2s', position: 'relative', flexShrink: 0,
+                transition: 'background .2s', position: 'relative', flexShrink: 0, border: 0, padding: 0,
               }}
             >
               <div style={{
@@ -190,11 +193,11 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
                 left: acceptDonations ? 23 : 3,
                 boxShadow: '0 1px 3px rgba(0,0,0,.2)',
               }} />
-            </div>
+            </button>
             <span style={{ fontSize: 13, fontWeight: 600, color: '#334064' }}>
               {acceptDonations ? 'Accepting donations' : 'Donations paused'}
             </span>
-          </label>,
+          </div>,
         )}
 
         <button

@@ -137,7 +137,7 @@ export function Logo() {
   );
 }
 
-export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAccess: _hasAdminAccess = false, userName, userEmail, userRole, userAvatarUrl, guestMode = false, hideSidebar = false, sidebarCampaigns = [], sidebarCampaignsHasMore = false }: ShellProps) {
+export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAccess: _hasAdminAccess = false, userName: _userName, userEmail: _userEmail, userRole: _userRole, userAvatarUrl: _userAvatarUrl, guestMode = false, hideSidebar = false, sidebarCampaigns = [], sidebarCampaignsHasMore = false }: ShellProps) {
   const _nav = mode === 'admin' ? adminNav : dashboardNav; void _nav;
 
   if (hideSidebar) {

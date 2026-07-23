@@ -120,8 +120,10 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
 
       {open && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Invite team member"
           style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
-          onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}
         >
           <div style={{ width: 460, background: '#fff', borderRadius: 16, boxShadow: '0 20px 60px rgba(20,20,80,.18)', overflow: 'hidden' }}>
             <div style={{ padding: '22px 24px 18px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

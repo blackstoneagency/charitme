@@ -264,10 +264,10 @@ export default function MessagesClient({ threads, campaignMap, replies, threadSt
             const latest = thread.messages[0];
             const unread = isUnread(thread, localState[thread.donorId]);
             return (
-              <article
+              <button
                 key={thread.donorId}
-                className={thread.donorId === activeThread?.donorId ? 'active' : ''}
-                style={{ cursor: 'pointer' }}
+                aria-label={`Open conversation with ${thread.donorName}`}
+                className={`kf-inbox-row${thread.donorId === activeThread?.donorId ? ' active' : ''}`}
                 onClick={() => selectThread(thread.donorId)}
               >
                 <Avatar name={thread.donorName} idx={threads.findIndex(t => t.donorId === thread.donorId)} />
@@ -287,7 +287,7 @@ export default function MessagesClient({ threads, campaignMap, replies, threadSt
                     {fmtDate(latest.created_at)}
                   </span>
                 )}
-              </article>
+              </button>
             );
           })
         )}

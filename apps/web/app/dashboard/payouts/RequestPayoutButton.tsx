@@ -54,7 +54,7 @@ export default function ManagePayoutsButton({ campaigns }: Props) {
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 9999, padding: 16,
-        }} onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}>
+        }} role="dialog" aria-modal="true" aria-label="Manage payouts">
           <div style={{
             background: 'var(--s1, #fff)', borderRadius: 20, padding: 32,
             width: '100%', maxWidth: 460,

@@ -194,6 +194,8 @@ export default function RefundForm({
             return (
               <label
                 key={d.id}
+                htmlFor={`refund-donation-${d.id}`}
+                aria-label={`Select donation ${d.campaign_title}`}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -209,6 +211,7 @@ export default function RefundForm({
               >
                 <input
                   type="radio"
+                  id={`refund-donation-${d.id}`}
                   name="donation"
                   value={d.id}
                   checked={isSelected}

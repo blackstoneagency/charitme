@@ -39,7 +39,7 @@ export default function CampaignImage({
   const [stage, setStage] = useState<0 | 1 | 2>(initial === fallback ? 1 : 0);
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/no-noninteractive-element-interactions
     <img
       src={current}
       alt={alt}

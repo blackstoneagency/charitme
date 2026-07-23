@@ -76,8 +76,10 @@ function ConnectModal({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Connect ${item.name}`}
       style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="kf-modal-responsive" style={{ width: 440, background: 'var(--s1, #fff)', borderRadius: 16, boxShadow: '0 20px 60px rgba(20,20,80,.18)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--b1, #eef0f7)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

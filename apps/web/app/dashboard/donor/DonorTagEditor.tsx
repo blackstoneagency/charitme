@@ -82,7 +82,6 @@ export default function DonorTagEditor({ email, fullName, initialTags, lifetimeV
       })}
       {editing ? (
         <input
-          autoFocus
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {

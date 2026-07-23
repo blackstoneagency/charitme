@@ -66,8 +66,8 @@ const PLAN_LABELS: Record<string, { label: string; chipClass: string; price: str
 // ─────────────────────────────────────────────
 function Toggle({ checked, onChange, id }: { checked: boolean; onChange: (v: boolean) => void; id: string }) {
   return (
-    <label className="kf-toggle-wrap" htmlFor={id} style={{ cursor: 'pointer' }}>
-      <input id={id} type="checkbox" className="kf-toggle-input" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    <label className="kf-toggle-wrap" htmlFor={id} aria-label="Toggle setting" style={{ cursor: 'pointer' }}>
+      <input id={id} aria-label="Toggle setting" type="checkbox" className="kf-toggle-input" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span className="kf-toggle-track" />
     </label>
   );
@@ -165,8 +165,8 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
   const [language, setLanguage] = useState(initialProfile.language ?? 'en');
   const [showPublicProfile, setShowPublicProfile] = useState(initialProfile.show_public_profile ?? true);
   const [campaignRecs, setCampaignRecs] = useState(initialProfile.campaign_recommendations ?? true);
-  const [notifyEmail, setNotifyEmail] = useState(initialProfile.notification_email ?? true);
-  const [notifyMarketing, setNotifyMarketing] = useState(initialProfile.notification_marketing ?? false);
+  const [notifyEmail] = useState(initialProfile.notification_email ?? true);
+  const [notifyMarketing] = useState(initialProfile.notification_marketing ?? false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarFileRef = useRef<HTMLInputElement>(null);
 

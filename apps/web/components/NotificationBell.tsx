@@ -159,12 +159,16 @@ export default function NotificationBell() {
               </div>
             )}
             {!loading && notifications.map(n => (
-              <div
+              <button
+                type="button"
                 key={n.id}
+                aria-label={`${n.read_at ? '' : 'Unread: '}${n.title}`}
                 onClick={() => { void markRead(n.id); if (n.link) window.location.href = n.link; setOpen(false); }}
                 style={{
                   display: 'flex', gap: 12, alignItems: 'flex-start',
                   padding: '12px 16px', cursor: 'pointer',
+                  width: '100%', textAlign: 'left', font: 'inherit',
+                  border: 0,
                   background: n.read_at ? 'var(--s1, #fff)' : 'var(--s2, #f5f0ff)',
                   borderBottom: '1px solid var(--b1, #f5f5fa)',
                   transition: 'background .1s',
@@ -179,7 +183,7 @@ export default function NotificationBell() {
                 {!n.read_at && (
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--violet, #6c35ff)', flexShrink: 0, marginTop: 6 }} />
                 )}
-              </div>
+              </button>
             ))}
           </div>
         </div>
