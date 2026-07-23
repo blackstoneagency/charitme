@@ -51,8 +51,11 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   captures first-touch UTM/referrer data, stitches anonymous visitors to
   authenticated contacts with authenticated-identity precedence, excludes private routes, honors the `/privacy`
   opt-out control, and reconciles authenticated users into marketing contacts
-  from profile sync as a trigger-recovery path. Live event and identity-row
-  live Supabase audit passed with 630 contacts mapped one-to-one to authenticated users and zero duplicate identity keys; live event-write verification remains pending.
+  from profile sync as a trigger-recovery path. Live identity-row audit passed
+  with 630 contacts mapped one-to-one to authenticated users and zero duplicate
+  identity keys. The live smoke POST to `/api/marketing/event` currently returns
+  404 on `www.charitme.com` even though the route exists on this branch, so event
+  write verification is deployment-gated.
 - **Far-future / out-of-scope** (from §2 comparison, not priorities): NFC tap-to-give,
   crypto, stock/DAF/estate giving, native livestream, native mobile apps, white-label.
 - **Payment hardening pass: COMPLETE** — 11 defects fixed + schema-contract CI guard
@@ -273,6 +276,8 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
   - SEO route audit: all 33 static indexable public routes returned HTTP 200 with a title, meta description, and JSON-LD; the Playwright smoke suite now enforces this route-wide contract.
   - Featured placement verification: homepage rotator now consumes the complete public featured result set, pauses its fill clock on hover, and campaign launch can open owner-scoped Stripe checkout using the live Admin Settings price (default $5.00); focused featured/settings tests, typecheck, and touched-file lint pass.
   - Live seed verification: service-role read-only count audit found 43/43 required feature tables at 100+ rows (1,130 profiles, 500 campaigns, and 120+ rows across the remaining seeded feature tables); the profile lookup finds `newworldventurellc@gmail.com`. The repeatable `npm run db:audit:seed` command now enforces the same 100-row contract without returning row contents. Supabase Auth admin listUsers still returns `Database error finding users` and needs a separate Auth-service investigation.
+  - Auth/profile verification: the target `newworldventurellc@gmail.com` profile exists and `auth.admin.getUserById` returns the matching Auth user; paginated `auth.admin.listUsers` works through page 1 but the live Auth service returns `Database error finding users` on page 2, so the admin page remains intentionally profile-backed while the external Auth issue is investigated.
+  - Image verification: `npm run audit:campaign-images:live --workspace=apps/web` passed with 45/45 live HTTP checks and the catalog/SQL uniqueness audit.
   - Accessibility slice: admin audit-log activity rows are native keyboard buttons and detail/export overlays expose dialog semantics; the touched component now lint-checks cleanly.
   - Accessibility follow-up: admin content edit/delete/detail/create overlays now expose dialog semantics, content rows are native buttons, and the search control has an explicit accessible label; the touched component lint-checks cleanly.
   - Accessibility follow-up: admin Countries add-form inputs and checkbox groups now have explicit label/control associations; the touched component lint-checks cleanly.
