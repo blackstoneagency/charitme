@@ -730,6 +730,14 @@ tests/build/live-HTTP are listed here.
      screen — deceptive, and a dead end for anyone who only has an Apple ID.
      `/login` already passes `provider=apple` correctly and the signin route supports
      it, so this was purely a builder-side copy/paste bug. Now passes `'apple'`.
+  3a. **✅ FIXED (partial) — builder errors were never announced.** All four error
+     surfaces in the wizard (both step-level `cr2-error` banners, the media
+     `uploadError`, and the guest-modal `err`) rendered as plain divs with no
+     `role="alert"`/`aria-live`. A screen-reader user who pressed Continue and was
+     blocked got **no feedback at all** — the copy appeared visually and was never
+     spoken. All four now carry `role="alert"` (implies `aria-live="assertive"`).
+     _Still open from #3:_ per-field `aria-invalid`/`aria-describedby` and moving
+     focus to the first invalid field — needs the inline field-error refactor.
   3. **No inline field-level errors.** All errors render in one banner at the panel
      level; fields aren't marked invalid, and the banner isn't focus-managed or
      `aria-live`, so screen-reader users may not hear it. Needs `aria-invalid` +

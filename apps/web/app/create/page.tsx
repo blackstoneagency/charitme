@@ -1239,7 +1239,7 @@ export default function CreatePage() {
                       {form.title.length}/80
                     </span>
                   </div>
-                  {error && <div className="cr2-error" style={{ margin: '14px 0 0' }}>{error}</div>}
+                  {error && <div className="cr2-error" role="alert" style={{ margin: '14px 0 0' }}>{error}</div>}
                 </div>
               )}
 
@@ -1355,7 +1355,7 @@ export default function CreatePage() {
                       <strong>{dragging ? 'Release to upload' : 'Drop images here or click to browse'}</strong>
                       <span>JPG, PNG, GIF, WebP, AVIF · up to {MAX_IMAGES} images · 10 MB each</span>
                     </div>
-                    {uploadError && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#ef4444', fontWeight: 700 }}>{uploadError}</p>}
+                    {uploadError && <p role="alert" style={{ margin: '6px 0 0', fontSize: 12, color: '#ef4444', fontWeight: 700 }}>{uploadError}</p>}
                   </div>
 
                   {uploadedImages.length > 0 && (
@@ -1783,7 +1783,7 @@ export default function CreatePage() {
               )}
 
               {/* Error (global, not shown inside title step which has inline) */}
-              {error && step !== 'title' && <div className="cr2-error">{error}</div>}
+              {error && step !== 'title' && <div className="cr2-error" role="alert">{error}</div>}
 
               {/* Navigation */}
               <div className="cr2-nav">
@@ -2014,7 +2014,7 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep, savedImages
           )}
           <label className="guest-modal-label">Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email" /></label>
           <label className="guest-modal-label">Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required minLength={6} autoComplete={modalMode === 'login' ? 'current-password' : 'new-password'} /></label>
-          {err && <p style={{ margin: 0, color: '#be123c', fontSize: 13, fontWeight: 700 }}>{err}</p>}
+          {err && <p role="alert" style={{ margin: 0, color: '#be123c', fontSize: 13, fontWeight: 700 }}>{err}</p>}
           {ok  && <p style={{ margin: 0, color: '#15803d', fontSize: 13, fontWeight: 700 }}>{ok}</p>}
           <button className="guest-modal-submit" type="submit" disabled={busy}>
             {busy ? 'Working…' : modalMode === 'login' ? 'Log in' : 'Create account'}
