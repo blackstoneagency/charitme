@@ -2270,14 +2270,20 @@ IMPLEMENTATION_STATUS, KNOWN_LIMITATIONS, CHANGELOG).
 
 ## 🔒 CLAIM — Session 2026-07-24 (Claude — campaign creation journey friction audit)
 
-> **AREA CLAIMED — other bots please avoid concurrent edits to these files.**
-> Owner: Claude (branch `claude/campaign-journey-friction`). Started 2026-07-24.
-> Scope: the **public fundraiser creation journey** end-to-end —
-> `apps/web/app/create/**`, `lib/campaign-draft.ts`, `lib/campaign-intake.ts`,
-> `lib/campaign-readiness.ts`, `lib/builder-analytics.ts`, and
-> `app/api/campaigns` create-path handlers.
-> NOT claimed / free for others: marketing OS (`app/admin/marketing/**`,
-> `lib/marketing-*.ts`), payments, tax, a11y sweeps, SEO/AEO.
+> **✅ CLAIM RELEASED 2026-07-24 — all work merged to `master`. Area is FREE.**
+> Was: the public fundraiser creation journey (`apps/web/app/create/**`,
+> `lib/campaign-draft.ts`, `lib/campaign-readiness.ts`, `lib/wizard-steps.ts`,
+> `app/api/campaigns` create-path handlers).
+> Nothing is in flight; no open branches or PRs from this session. Anyone may
+> pick up the remaining F8/F10 items below.
+>
+> ⚠️ **Collision worth learning from:** a parallel agent independently shipped
+> the same story/goal step-validation fix (`a42c8b0`) that this session shipped
+> in PR #61 — duplicated effort despite the claim. The two turned out to
+> *compose* rather than conflict (early friendly validation in `goNext` + a
+> jump-to-the-owning-step backstop in `submitCampaign`), and master is green,
+> but the claim was clearly not seen. **Claim earlier and louder, or check
+> `git log origin/master` before starting.**
 > Findings + fixes are appended under this heading as they land.
 
 ### Deep-dive findings (in progress)
@@ -2316,7 +2322,14 @@ funnel analytics, guest gate, and payout linkage.
    ("…or leave it empty for now and finish it later"), preserving the
    skip-and-return-later flow.
 
-#### ✅ F5–F7, F9 SHIPPED (second pass)
+#### ✅ F4–F7, F9 SHIPPED (second pass — PR #62)
+- [x] **F4 — SHIPPED (PR #62).** `type`/`category`/`location` were 3 near-empty
+  taps before the organizer wrote a word; merged into one **Basics** screen →
+  guided path is now **7 steps, not 9**, with "about N min left" in the header.
+  Step model extracted to `lib/wizard-steps.ts` (pure + tested).
+  `normalizeStep()` maps retired keys forward so **drafts saved mid-flight before
+  the merge still resume** instead of landing on an empty screen.
+  `ReadinessStep` deep-links updated to match.
 - **F5 — goal set with no reference point.** New `/api/campaigns/goal-guidance`
   derives an honest suggested range from **real comparable campaigns** in the
   category (interquartile band of live goals + actual goal-hit rate), read
@@ -2333,23 +2346,46 @@ funnel analytics, guest gate, and payout linkage.
   maps failures to plain language + a next action, flags retryable vs terminal,
   and always reassures that work is saved.
 
-#### 🟡 STILL OPEN — friction backlog (ranked)
-- **F4. 9 steps is long for "≈10 minutes".** (next up — restructures a 2,000-line
-  file, so deliberately kept out of the F5–F9 batch) `type`/`category`/`location` are 3
-  taps that could collapse into one screen; consider merging + a visible
-  "2 min left" estimate. Highest expected conversion win.
-- **F5. No inline "why this helps" on goal.** `GoalProceedsBreakdown` exists but
-  the goal step lacks a recommended-range nudge from comparable live campaigns
-  (data is available — `campaigns` by category).
-- **F6. Guest gate at step 3 is unexplained.** The modal appears with no
-  "why" copy; add one line ("we save your progress to your account") — trust +
-  completion.
-- **F7. `abandon` fires on every tab close, incl. normal navigation** →
-  inflates the abandonment metric; should exclude same-origin navigations.
+#### 🟡 STILL OPEN — unclaimed (only F8 and F10 remain)
 - **F8. No draft list / multi-draft.** One wizard draft per user by design;
   organizers running several campaigns can only have one in flight.
-- **F9. Publish errors are raw API strings** surfaced verbatim; map to
-  human copy with a retry affordance.
 - **F10. No preview-as-donor before publish** beyond `showPreviewModal`; a
   true donor-view preview would raise first-donation confidence.
 
+
+
+### 📌 STATUS as of 2026-07-24 end of session (Claude)
+
+**All work merged to `master` and deployed to production.** Four PRs:
+
+| PR | Shipped | Merge |
+|----|---------|-------|
+| #59 | Marketing OS: goal-based marketing, Command Center, Opportunity engine | `ac385e0` |
+| #60 | Goal → multichannel campaign generation | `34aacfd` |
+| #61 | Sign-in image data-loss fix, Supabase cross-device drafts, per-step validation | `dfe069e` |
+| #62 | 7-step wizard (F4), goal guidance (F5), gate copy (F6), funnel accuracy (F7), publish copy (F9) | `b86cf55` |
+
+**Master health at handoff:** typecheck clean · lint clean ·
+**1022 tests / 85 files passing** · `next build` compiles · CI green on every merge.
+
+**New Supabase tables this session** (all with migrations + RLS):
+`marketing_goals`, `marketing_opportunities`, `marketing_campaign_plans`,
+`marketing_campaign_plan_assets` (service-role only — admin data);
+`campaign_wizard_drafts` (**owner-scoped policies** — user data, read/written via
+the anon+cookies client so Postgres enforces ownership).
+
+#### ⚠️ Two things the next person must know
+1. **Funnel discontinuity.** Builder `abandon` counts recorded *before* F7 are
+   inflated by ordinary in-app navigation. Do **not** compare pre/post F7 numbers
+   as a like-for-like baseline — some of the improvement is the bug fix.
+2. **F4 changed what organizers see** (9→7 steps) and shipped without human
+   review of the preview. It is an isolated commit in PR #62 and can be reverted
+   cleanly if the reshaped flow is not wanted.
+
+#### Remaining, unclaimed
+- **F8** — multi-draft support (one wizard draft per user by design today).
+- **F10** — donor-view preview before publish (**higher value of the two**: it is
+  the last confidence gap before an organizer commits).
+- Marketing OS backlog is untouched and still ranked in
+  `docs/marketing-os/MASTER_SPEC.md` (multi-tenant scoping, approval engine,
+  brand constitution, AI agents, external connectors, experiments/attribution).
