@@ -711,15 +711,25 @@ tests/build/live-HTTP are listed here.
   partial-skip messaging rather than hard failure.
 
   **Open findings — ranked, unclaimed:**
-  1. **Step count.** 9 steps vs ~4–5 at GoFundMe/Donorbox. `type`+`category` and
-     `location`+`goal` are each mergeable onto one screen; `title` could be derived
-     from the story (AI already drafts one) with an inline edit. Target: 9 → 5–6
-     without losing any collected field.
-  2. **Guest hard-gate at step 3 of 9.** Unauthenticated users hit a login modal at
-     `location` — after investing in two steps but *before* the story, which is the
-     point of emotional commitment. The draft survives in `localStorage`, so the
-     gate could move to just before Publish (or to the payout step) and let guests
-     build the whole campaign first. Highest expected conversion lift of anything here.
+  1. ~~**Step count.** 9 steps vs ~4–5 at GoFundMe/Donorbox.~~ **✅ DONE by another
+     agent in #62** — wizard is now 7 steps (`type`+`category`+`location` merged
+     into `basics`), with per-step time estimates. No further action.
+  2. **Guest hard-gate — ✅ CLAIMED + FIXED by the production-ready agent (below).**
+     After #62 the gate sat at the `basics`→`story` transition, i.e. **step 1 of 7** —
+     blocking guests before *any* narrative investment. Moved to the `goal`→`media`
+     transition (**step 4→5**), which is the first step that **technically** requires
+     auth (`/api/upload/campaign-image` returns 401 without a session). Guests now
+     complete Basics → Story → Title → Goal — the whole narrative, ~7 of ~10 minutes —
+     before signing in, and the draft persists across sign-in (localStorage +
+     Supabase cross-device via #61) so nothing is lost.
+     _Moving the gate any later needs guest uploads to a temp bucket + claim-on-signup
+     — a real backlog item, not done here._
+  2b. **✅ FIXED — "Continue with Apple" signed you in with Google.** In the builder's
+     guest modal the Apple button called `handleOAuth('google')` (the handler was even
+     typed `(provider: 'google')`), so a user picking Apple got a Google consent
+     screen — deceptive, and a dead end for anyone who only has an Apple ID.
+     `/login` already passes `provider=apple` correctly and the signin route supports
+     it, so this was purely a builder-side copy/paste bug. Now passes `'apple'`.
   3. **No inline field-level errors.** All errors render in one banner at the panel
      level; fields aren't marked invalid, and the banner isn't focus-managed or
      `aria-live`, so screen-reader users may not hear it. Needs `aria-invalid` +

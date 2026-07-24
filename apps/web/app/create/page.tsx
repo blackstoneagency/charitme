@@ -85,6 +85,19 @@ interface UploadedImage {
 
 const JOURNEY_STEPS = ['Plan', 'Create', 'Launch', 'Manage', 'Celebrate', 'Impact'];
 
+/**
+ * Where an unauthenticated organizer is asked to sign in — deliberately the FIRST
+ * step that technically requires a session: the next step (media) uploads to
+ * /api/upload/campaign-image, which 401s without one. Everything before it
+ * (Basics → Story → Title → Goal) is narrative work a guest can do freely, so they
+ * build the whole campaign and only sign in when the product genuinely cannot
+ * proceed. The draft survives sign-in (localStorage + Supabase cross-device), so
+ * nothing is lost at the gate.
+ *
+ * Moving this later requires guest uploads to a temp bucket + claim-on-signup.
+ */
+const GUEST_GATE_STEP: WizardStep = 'goal';
+
 const ALLOWED_IMG_TYPES = new Set([
   'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif',
 ]);
@@ -549,7 +562,7 @@ export default function CreatePage() {
 
   const goNext = () => {
     setError('');
-    if (step === 'basics' && isGuest === true) {
+    if (step === GUEST_GATE_STEP && isGuest === true) {
       setShowLoginModal(true);
       return;
     }
@@ -1879,9 +1892,13 @@ export default function CreatePage() {
           onSuccess={() => {
             setIsGuest(false);
             setShowLoginModal(false);
-            if (step === 'basics') {
-              // advance to story after login
-              setStep('story');
+            // Two callers open this modal: the mid-wizard sign-in gate (continue
+            // where they left off) and the Publish button (publish once signed in).
+            // Derived from the step list rather than a hardcoded key so moving the
+            // gate again doesn't silently strand the user here.
+            if (step === GUEST_GATE_STEP) {
+              const next = WIZARD_STEPS[WIZARD_STEPS.findIndex(s => s.key === step) + 1];
+              if (next) setStep(next.key);
             } else {
               void publish();
             }
@@ -1940,7 +1957,7 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep, savedImages
   const [err, setErr]       = useState('');
   const [ok, setOk]         = useState('');
 
-  const handleOAuth = (provider: 'google') => {
+  const handleOAuth = (provider: 'google' | 'apple') => {
     // Carry images + story mode through the OAuth bounce too — restoring only the
     // text used to drop every upload (and then blank coverImageUrl on return).
     sessionStorage.setItem('cm_wizard', JSON.stringify({ savedForm, savedStep, savedImages, savedStoryMode }));
@@ -1984,7 +2001,7 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep, savedImages
         <button className="guest-oauth-btn" onClick={() => handleOAuth('google')} disabled={busy} type="button">
           <GoogleMark /> Continue with Google
         </button>
-        <button className="guest-oauth-btn guest-oauth-apple" onClick={() => handleOAuth('google')} disabled={busy} type="button" style={{ background: '#000', color: '#fff', marginTop: 8 }}>
+        <button className="guest-oauth-btn guest-oauth-apple" onClick={() => handleOAuth('apple')} disabled={busy} type="button" style={{ background: '#000', color: '#fff', marginTop: 8 }}>
           <AppleMark /> Continue with Apple
         </button>
         <div className="guest-modal-sep"><span>OR</span></div>
