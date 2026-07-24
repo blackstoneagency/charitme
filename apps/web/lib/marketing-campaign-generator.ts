@@ -38,6 +38,27 @@ function who(goal: GoalLike): string {
   return goal.audience || 'organizers and donors';
 }
 
+/** Search-result limits the generated SEO metadata is composed to respect. */
+export const SEO_TITLE_MAX = 60;
+export const SEO_DESCRIPTION_MAX = 160;
+
+/**
+ * Pick the first candidate that fits `max`, progressively shedding optional
+ * detail (region, audience). If even the shortest candidate is too long — a very
+ * long category name — it is clamped at a word boundary with an ellipsis so the
+ * limit always holds.
+ */
+export function fitSeo(candidates: string[], max: number): string {
+  for (const c of candidates) {
+    if (c.length <= max) return c;
+  }
+  const last = candidates[candidates.length - 1] ?? '';
+  if (last.length <= max) return last;
+  const cut = last.slice(0, max - 1);
+  const space = cut.lastIndexOf(' ');
+  return `${(space > max * 0.6 ? cut.slice(0, space) : cut).trimEnd()}…`;
+}
+
 export function generateCampaignPlan(goal: GoalLike): GeneratedPlan {
   const theme = focus(goal);
   const region = place(goal);
@@ -85,9 +106,22 @@ export function generateCampaignPlan(goal: GoalLike): GeneratedPlan {
     `Q: What happens after I reach my goal?\nA: You can keep raising, post a final update, and start a new campaign whenever you’re ready.`,
   ].join('\n\n');
 
-  const seoTitle = `Start a ${cat} fundraiser${region} | CharitMe`;
-  const seoDescription =
-    `Create a ${cat.toLowerCase()} fundraiser${region} on CharitMe. Set a goal, share your story, and reach donors — for ${audience}.`;
+  // Search engines truncate around 60 chars (title) and 160 (description), so the
+  // generated metadata is composed to fit: the region/audience tail is dropped
+  // before the core message, and a hard clamp guarantees the limit is never
+  // exceeded no matter how long a goal's category/geography/audience is.
+  const seoTitle = fitSeo(
+    [`Start a ${cat} fundraiser${region} | CharitMe`, `Start a ${cat} fundraiser | CharitMe`, `${cat} fundraising | CharitMe`],
+    SEO_TITLE_MAX,
+  );
+  const seoDescription = fitSeo(
+    [
+      `Create a ${cat.toLowerCase()} fundraiser${region} on CharitMe. Set a goal, share your story, and reach donors — for ${audience}.`,
+      `Create a ${cat.toLowerCase()} fundraiser${region} on CharitMe. Set a goal, share your story, and reach donors.`,
+      `Create a ${cat.toLowerCase()} fundraiser on CharitMe. Set a goal, share your story, and reach donors.`,
+    ],
+    SEO_DESCRIPTION_MAX,
+  );
 
   const assets: AssetDraft[] = [
     { asset_type: 'landing_page', channel: 'web', title: `${cat} campaign landing page`, body: landingBody, meta: { cta }, sort_order: 0 },
