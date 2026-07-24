@@ -2203,7 +2203,7 @@ IMPLEMENTATION_STATUS, KNOWN_LIMITATIONS, CHANGELOG).
       view aggregating live goals + marketing + campaign/donation metrics, recent
       autonomous/human actions (from `marketing_audit_logs`), data freshness. *(in progress this session)*
 - [x] **Opportunity engine** (§20) — SHIPPED: live-data generator + deterministic scoring + convert-to-goal — scored opportunity feed → convert to goal/campaign.
-- [ ] **Goal → multichannel campaign generation** (§15) — one goal produces a
+- [x] **Goal → multichannel campaign generation** (§15) — SHIPPED: one goal generates a connected landing page + email + social + SEO + FAQ, editable & approvable, all linked to the goal.
       connected campaign (landing page, email, social, SEO/AEO) linked to the goal.
 - [ ] Multi-tenant `organizations`/`brands` scoping on marketing tables (§7).
 - [ ] Expanded marketing roles (Brand/Legal/Finance reviewers, analyst, viewer) (§9).

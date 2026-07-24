@@ -242,8 +242,25 @@ function GoalCard({ g, onPatch }: { g: Goal; onPatch: (id: string, body: Record<
         {g.status === 'active' && <button onClick={() => onPatch(g.id, { status: 'paused' })} style={btnGhost}>Pause</button>}
         {g.status === 'paused' && <button onClick={() => onPatch(g.id, { status: 'active' })} style={btnGhost}>Resume</button>}
         {(g.status === 'active' || g.status === 'paused') && <button onClick={() => onPatch(g.id, { status: 'achieved' })} style={btnGhost}>Mark achieved</button>}
+        <GenerateCampaignButton goalId={g.id} />
         <button onClick={() => onPatch(g.id, { status: 'archived' })} style={{ ...btnGhost, color: '#94a3b8', marginLeft: 'auto' }}>Archive</button>
       </div>
     </div>
   );
+}
+
+function GenerateCampaignButton({ goalId }: { goalId: string }) {
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch('/api/admin/marketing/campaign-plans', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ goal_id: goalId }),
+      });
+      if (!r.ok) throw new Error();
+      const j = await r.json();
+      window.location.href = `/admin/marketing/campaign-plans?id=${j.plan.id}`;
+    } catch { setBusy(false); }
+  };
+  return <button onClick={go} disabled={busy} style={{ ...btnGhost, color: '#6c35ff', borderColor: '#e9deff', opacity: busy ? 0.6 : 1 }}>{busy ? 'Generating…' : 'Generate campaign →'}</button>;
 }
