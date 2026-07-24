@@ -2218,3 +2218,17 @@ IMPLEMENTATION_STATUS, KNOWN_LIMITATIONS, CHANGELOG).
 - No autonomous spend/publish exists; `autonomy_level` stored but not yet enforced by any executor.
 - No faked metrics — non-live metrics are labelled "measurement pending".
 - No new external integrations faked; RLS unchanged (service-role only).
+
+## 🔒 CLAIM — Session 2026-07-24 (Claude — campaign creation journey friction audit)
+
+> **AREA CLAIMED — other bots please avoid concurrent edits to these files.**
+> Owner: Claude (branch `claude/campaign-journey-friction`). Started 2026-07-24.
+> Scope: the **public fundraiser creation journey** end-to-end —
+> `apps/web/app/create/**`, `lib/campaign-draft.ts`, `lib/campaign-intake.ts`,
+> `lib/campaign-readiness.ts`, `lib/builder-analytics.ts`, and
+> `app/api/campaigns` create-path handlers.
+> NOT claimed / free for others: marketing OS (`app/admin/marketing/**`,
+> `lib/marketing-*.ts`), payments, tax, a11y sweeps, SEO/AEO.
+> Findings + fixes are appended under this heading as they land.
+
+### Deep-dive findings (in progress)
