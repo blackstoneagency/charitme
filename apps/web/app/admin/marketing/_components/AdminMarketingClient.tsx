@@ -107,11 +107,18 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
   ];
   return (
     <div>
-      <a href="/admin/marketing/goals" style={{ ...card, display: 'block', textDecoration: 'none', background: 'linear-gradient(135deg,#7035ff,#ec39c3)', borderColor: 'transparent', marginBottom: 20 }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,.75)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Marketing OS</div>
-        <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginTop: 4 }}>Goals — tell CharitMe the outcome you want →</div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,.85)', marginTop: 4 }}>Enter a business objective in plain English; the OS turns it into a measurable goal tracked against live data.</div>
-      </a>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 14, marginBottom: 20 }}>
+        <a href="/admin/marketing/command-center" style={{ ...card, display: 'block', textDecoration: 'none', background: 'linear-gradient(135deg,#7035ff,#ec39c3)', borderColor: 'transparent', marginBottom: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,.75)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Marketing OS</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginTop: 4 }}>Command Center →</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,.85)', marginTop: 4 }}>What changed overnight, active goals, and what needs attention — live.</div>
+        </a>
+        <a href="/admin/marketing/goals" style={{ ...card, display: 'block', textDecoration: 'none', background: '#faf7ff', borderColor: '#e9deff', marginBottom: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '.05em' }}>Goals</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: '#4d1ee0', marginTop: 4 }}>Set an outcome →</div>
+          <div style={{ fontSize: 13, color: '#6b5b95', marginTop: 4 }}>Describe a business objective in plain English; the OS turns it into a measurable goal.</div>
+        </a>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 20 }}>
         {kpis.map(k => (
           <button key={k.label} onClick={() => go(k.tab)} style={{ ...card, marginBottom: 0, textAlign: 'left', cursor: 'pointer' }}>
