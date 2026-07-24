@@ -9,8 +9,10 @@
 // Sibling UI: rendered in the wizard's review step.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Mirrors the wizard's step keys. 'type', 'category' and 'location' were merged
+// into a single 'basics' screen, so readiness items for those now deep-link there.
 export type ReadinessStep =
-  | 'type' | 'category' | 'location' | 'story' | 'title' | 'goal' | 'media' | 'payout';
+  | 'basics' | 'story' | 'title' | 'goal' | 'media' | 'payout';
 
 export interface ReadinessInput {
   title: string;
@@ -66,12 +68,12 @@ export function publishReadiness(input: ReadinessInput): ReadinessResult {
       hint: 'Set a goal of at least $1.',
     },
     {
-      id: 'category', label: 'Category', step: 'category', required: false,
+      id: 'category', label: 'Category', step: 'basics', required: false,
       done: has(input.category),
       hint: 'Pick a category so donors can find your campaign.',
     },
     {
-      id: 'location', label: 'Location', step: 'location', required: false,
+      id: 'location', label: 'Location', step: 'basics', required: false,
       done: has(input.country),
       hint: 'Add your country to build trust.',
     },
