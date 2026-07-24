@@ -8,6 +8,8 @@ import {
   parseDraft,
   draftHasContent,
   draftAgeLabel,
+  fromRemoteDraft,
+  pickFreshestDraft,
   type CampaignDraft,
 } from '../../lib/campaign-draft';
 import { suggestCampaignTitle } from '../../lib/campaign-title';
@@ -232,33 +234,39 @@ export default function CreatePage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
+  // Restore wizard state parked in sessionStorage across an OAuth sign-in bounce.
+  // Restores images and story mode as well as the text — text-only restores used
+  // to silently drop every upload and blank the cover image on return.
+  const restoreBounce = useCallback((saved: string | null) => {
+    if (!saved) return;
+    try {
+      const { savedForm, savedStep, savedImages, savedStoryMode } = JSON.parse(saved) as {
+        savedForm: FormState; savedStep: WizardStep;
+        savedImages?: { url: string; name: string }[]; savedStoryMode?: string;
+      };
+      if (Array.isArray(savedImages) && savedImages.length > 0) {
+        setUploadedImages(savedImages.map((i, idx) => ({
+          id: `bounce-${idx}-${i.url}`, url: i.url, name: i.name ?? '', status: 'done' as const,
+        })));
+      }
+      if (savedStoryMode === 'freeform' || savedStoryMode === 'guided') setStoryMode(savedStoryMode);
+      setForm(savedForm);
+      setStep(savedStep);
+    } catch { /* ignore */ }
+    sessionStorage.removeItem('cm_wizard');
+  }, []);
+
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) {
         setIsGuest(true);
-        const saved = sessionStorage.getItem('cm_wizard');
-        if (saved) {
-          try {
-            const { savedForm, savedStep } = JSON.parse(saved) as { savedForm: FormState; savedStep: WizardStep };
-            setForm(savedForm);
-            setStep(savedStep);
-          } catch { /* ignore */ }
-          sessionStorage.removeItem('cm_wizard');
-        }
+        restoreBounce(sessionStorage.getItem('cm_wizard'));
         return;
       }
       setIsGuest(false);
       setUserEmail(user.email ?? undefined);
-      const saved = sessionStorage.getItem('cm_wizard');
-      if (saved) {
-        try {
-          const { savedForm, savedStep } = JSON.parse(saved) as { savedForm: FormState; savedStep: WizardStep };
-          setForm(savedForm);
-          setStep(savedStep);
-        } catch { /* ignore */ }
-        sessionStorage.removeItem('cm_wizard');
-      }
+      restoreBounce(sessionStorage.getItem('cm_wizard'));
       void supabase
         .from('profiles')
         .select('full_name, avatar_url')
@@ -271,7 +279,7 @@ export default function CreatePage() {
           }
         });
     });
-  }, []);
+  }, [restoreBounce]);
 
   const [form, setForm] = useState<FormState>({
     category: 'Medical',
@@ -318,6 +326,9 @@ export default function CreatePage() {
   const clearDraft = useCallback(() => {
     if (typeof window !== 'undefined') localStorage.removeItem(CAMPAIGN_DRAFT_KEY);
     setSavedAt(null);
+    // Drop the cross-device copy too, so a published campaign never resurfaces as
+    // a "resume your draft" prompt on the organizer's other devices.
+    void fetch('/api/campaigns/draft', { method: 'DELETE' }).catch(() => { /* best-effort */ });
   }, []);
 
   const resumeDraft = useCallback(() => {
@@ -352,9 +363,44 @@ export default function CreatePage() {
       });
       localStorage.setItem(CAMPAIGN_DRAFT_KEY, serializeDraft(draft));
       setSavedAt(draft.ts);
+      // Signed-in organizers also get the draft mirrored to Supabase so they can
+      // resume on another device. Best-effort: localStorage remains the source of
+      // truth for this tab, so a failed sync never blocks or interrupts the user.
+      if (isGuest === false) {
+        void fetch('/api/campaigns/draft', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ step, storyMode, form, images: draft.images, ts: draft.ts }),
+        }).catch(() => { /* offline or transient — local copy still holds the work */ });
+      }
     }, 600);
     return () => clearTimeout(t);
-  }, [form, step, storyMode, uploadedImages, recoverableDraft]);
+  }, [form, step, storyMode, uploadedImages, recoverableDraft, isGuest]);
+
+  // Cross-device resume: once we know the user is signed in, look for a draft
+  // saved on another device and offer it when it is fresher than anything local.
+  const remoteDraftChecked = useRef(false);
+  useEffect(() => {
+    if (isGuest !== false || remoteDraftChecked.current) return;
+    remoteDraftChecked.current = true;
+    if (typeof window === 'undefined') return;
+    if (sessionStorage.getItem('cm_wizard')) return; // a login bounce owns this restore
+    void (async () => {
+      try {
+        const res = await fetch('/api/campaigns/draft', { cache: 'no-store' });
+        if (res.status !== 200) return;
+        const { draft: row } = await res.json();
+        const remote = fromRemoteDraft<FormState>(row);
+        if (!remote || !draftHasContent(remote.form, remote.images.length)) return;
+        const local = parseDraft<FormState>(localStorage.getItem(CAMPAIGN_DRAFT_KEY));
+        const freshest = pickFreshestDraft(local, remote);
+        // Only interrupt when the winner is the remote copy the user can't see yet.
+        if (freshest !== remote) return;
+        if (draftDecided.current && !recoverableDraft) return; // already resumed/dismissed
+        setRecoverableDraft(remote);
+      } catch { /* best-effort */ }
+    })();
+  }, [isGuest, recoverableDraft]);
 
   // ── Builder funnel analytics (drop-off / abandonment / completion) ──────────
   const builderSession = useRef<string>('');
@@ -474,6 +520,20 @@ export default function CreatePage() {
     if (step === 'title' && form.title.trim().length < 3) {
       setError('Please enter a campaign title (min 3 characters).');
       return;
+    }
+    // Catch the publish-time requirements at the step that owns them. These used
+    // to surface only on the final Publish click, bouncing the organizer back
+    // several steps to fix something they thought was already done.
+    if (step === 'story' && form.description.trim().length > 0 && form.description.trim().length < 20) {
+      setError('Please add a bit more to your story (at least 20 characters) — or leave it empty for now and finish it later.');
+      return;
+    }
+    if (step === 'goal') {
+      const entered = form.goal.trim();
+      if (entered.length > 0 && goalCents < 100) {
+        setError('Please set a fundraising goal of at least $1.');
+        return;
+      }
     }
     // Payout is intentionally OPTIONAL to publish — the campaign can go live and be
     // shared immediately, and the organizer finishes payout to start receiving
@@ -1741,6 +1801,8 @@ export default function CreatePage() {
         <GuestLoginModal
           savedForm={form}
           savedStep={step}
+          savedImages={uploadedImages.filter(i => i.status === 'done').map(i => ({ url: i.url, name: i.name }))}
+          savedStoryMode={storyMode}
           onClose={() => setShowLoginModal(false)}
           onSuccess={() => {
             setIsGuest(false);
@@ -1780,11 +1842,13 @@ function AppleMark() {
   );
 }
 
-function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
+function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep, savedImages, savedStoryMode }: {
   onClose: () => void;
   onSuccess: () => void;
   savedForm: FormState;
   savedStep: WizardStep;
+  savedImages: { url: string; name: string }[];
+  savedStoryMode: string;
 }) {
   const supabase = React.useMemo(() => createClient(), []);
   // Keyboard parity for the backdrop click-to-close: Escape closes the modal.
@@ -1802,7 +1866,9 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
   const [ok, setOk]         = useState('');
 
   const handleOAuth = (provider: 'google') => {
-    sessionStorage.setItem('cm_wizard', JSON.stringify({ savedForm, savedStep }));
+    // Carry images + story mode through the OAuth bounce too — restoring only the
+    // text used to drop every upload (and then blank coverImageUrl on return).
+    sessionStorage.setItem('cm_wizard', JSON.stringify({ savedForm, savedStep, savedImages, savedStoryMode }));
     window.location.href = `/api/auth/signin?provider=${provider}&next=/create`;
   };
 

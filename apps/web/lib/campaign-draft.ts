@@ -101,3 +101,59 @@ export function draftAgeLabel(ts: number, now: number = Date.now()): string {
   const d = Math.floor(h / 24);
   return `${d} day${d === 1 ? '' : 's'} ago`;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cross-device resume (Supabase-backed).
+//
+// Signed-in organizers get their draft mirrored to `campaign_wizard_drafts`, so
+// starting on a phone and finishing on a laptop no longer loses work. Local and
+// remote copies are interchangeable; on restore the NEWER of the two wins, and a
+// remote copy carrying images beats an otherwise-equal local copy that lost them
+// (the OAuth bounce used to drop uploads).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Shape returned by GET /api/campaigns/draft (snake_case straight from the row). */
+export interface RemoteDraftRow {
+  step?: string | null;
+  story_mode?: string | null;
+  form?: unknown;
+  images?: unknown;
+  client_ts?: number | null;
+}
+
+/** Normalise a Supabase draft row into the same shape as a localStorage draft. */
+export function fromRemoteDraft<F = Record<string, string>>(
+  row: RemoteDraftRow | null | undefined,
+): CampaignDraft<F> | null {
+  if (!row || !row.form || typeof row.form !== 'object') return null;
+  const ts = typeof row.client_ts === 'number' && Number.isFinite(row.client_ts) ? row.client_ts : 0;
+  return {
+    v: 1,
+    ts,
+    step: typeof row.step === 'string' ? row.step : '',
+    storyMode: typeof row.story_mode === 'string' ? row.story_mode : 'freeform',
+    form: row.form as F,
+    images: Array.isArray(row.images)
+      ? (row.images as { url?: unknown; name?: unknown }[])
+          .filter((i) => i && typeof i.url === 'string')
+          .map((i) => ({ url: i.url as string, name: typeof i.name === 'string' ? i.name : '' }))
+      : [],
+  };
+}
+
+/**
+ * Pick the draft to restore. Newest timestamp wins; on a tie (or when one side
+ * has no usable timestamp) prefer the copy that still has images, since losing
+ * uploads is the most expensive kind of loss for the organizer.
+ */
+export function pickFreshestDraft<F>(
+  local: CampaignDraft<F> | null,
+  remote: CampaignDraft<F> | null,
+): CampaignDraft<F> | null {
+  if (!local) return remote;
+  if (!remote) return local;
+  if (remote.ts > local.ts) return remote;
+  if (local.ts > remote.ts) return local;
+  if (remote.images.length > local.images.length) return remote;
+  return local;
+}

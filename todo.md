@@ -2218,3 +2218,71 @@ IMPLEMENTATION_STATUS, KNOWN_LIMITATIONS, CHANGELOG).
 - No autonomous spend/publish exists; `autonomy_level` stored but not yet enforced by any executor.
 - No faked metrics — non-live metrics are labelled "measurement pending".
 - No new external integrations faked; RLS unchanged (service-role only).
+
+## 🔒 CLAIM — Session 2026-07-24 (Claude — campaign creation journey friction audit)
+
+> **AREA CLAIMED — other bots please avoid concurrent edits to these files.**
+> Owner: Claude (branch `claude/campaign-journey-friction`). Started 2026-07-24.
+> Scope: the **public fundraiser creation journey** end-to-end —
+> `apps/web/app/create/**`, `lib/campaign-draft.ts`, `lib/campaign-intake.ts`,
+> `lib/campaign-readiness.ts`, `lib/builder-analytics.ts`, and
+> `app/api/campaigns` create-path handlers.
+> NOT claimed / free for others: marketing OS (`app/admin/marketing/**`,
+> `lib/marketing-*.ts`), payments, tax, a11y sweeps, SEO/AEO.
+> Findings + fixes are appended under this heading as they land.
+
+### Deep-dive findings (in progress)
+
+**Method:** read the full journey end-to-end — `/create/choose-path` → `/create`
+wizard (9 steps: type → category → location → story → title → goal → media →
+payout → summary → live) → `/api/campaigns` publish, plus draft autosave,
+funnel analytics, guest gate, and payout linkage.
+
+**What is already strong (do NOT regress):**
+- Co-equal AI vs guided entry (`/create/choose-path`) with honest time estimates.
+- localStorage autosave + "resume your draft" banner with age label + 7-day TTL.
+- Builder funnel analytics (`enter`/`advance`/`abandon`/`publish` → `campaign_builder_events`).
+- Payout is **optional to publish** — removes the historically biggest drop-off.
+- Title is AI-seeded (never an empty field) and editable.
+- Upload validation (type/size/count), blob-URL cleanup, escape-to-close modals.
+
+#### 🔴 FIXED THIS SESSION
+1. **DATA LOSS — Google sign-in mid-wizard destroyed uploaded images.**
+   The OAuth bounce parked only `{savedForm, savedStep}` in sessionStorage, so on
+   return `uploadedImages` was empty; the `[uploadedImages]` effect then *wiped*
+   `form.coverImageUrl` to `''`. The localStorage draft (which had the images)
+   was also suppressed because `cm_wizard` takes precedence. Double loss.
+   → Bounce payload now carries `savedImages` + `savedStoryMode`; restore is a
+   single shared `restoreBounce()` used by both the guest and authed branches.
+2. **Drafts were device-local only — no cross-device resume.** (100%-Supabase gap)
+   → New `campaign_wizard_drafts` table (owner-scoped RLS, anon+cookies client so
+   Postgres enforces ownership — *not* service role). Draft mirrors to Supabase on
+   autosave for signed-in users; on load the **newer** of local/remote wins
+   (`pickFreshestDraft`, ties break toward the copy that still has images).
+   Cleared on publish so a live campaign never resurfaces as "resume draft".
+3. **Publish-time-only validation bounced users backwards.** Story ≥20 chars and
+   goal ≥$1 were only enforced on the final Publish click, several steps away
+   from where they're entered.
+   → Now validated at the step that owns them, phrased as guidance not failure
+   ("…or leave it empty for now and finish it later"), preserving the
+   skip-and-return-later flow.
+
+#### 🟡 OPEN FINDINGS — friction backlog (unclaimed, ranked)
+- **F4. 9 steps is long for "≈10 minutes".** `type`/`category`/`location` are 3
+  taps that could collapse into one screen; consider merging + a visible
+  "2 min left" estimate. Highest expected conversion win.
+- **F5. No inline "why this helps" on goal.** `GoalProceedsBreakdown` exists but
+  the goal step lacks a recommended-range nudge from comparable live campaigns
+  (data is available — `campaigns` by category).
+- **F6. Guest gate at step 3 is unexplained.** The modal appears with no
+  "why" copy; add one line ("we save your progress to your account") — trust +
+  completion.
+- **F7. `abandon` fires on every tab close, incl. normal navigation** →
+  inflates the abandonment metric; should exclude same-origin navigations.
+- **F8. No draft list / multi-draft.** One wizard draft per user by design;
+  organizers running several campaigns can only have one in flight.
+- **F9. Publish errors are raw API strings** surfaced verbatim; map to
+  human copy with a retry affordance.
+- **F10. No preview-as-donor before publish** beyond `showPreviewModal`; a
+  true donor-view preview would raise first-donation confidence.
+
