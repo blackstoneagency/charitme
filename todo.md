@@ -2178,3 +2178,43 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 - [x] Wired public marketing event capture to Supabase contacts, identities, events, consent, and UTM attribution with stable failure responses.
 - [x] Added route-aware AEO and SEO migrations, public metadata endpoints, sitemap/robots coverage, privacy preferences, and the public impact route.
 - [x] Verified production build, typecheck, lint, 936 Vitest tests, campaign image audit, and seed guard.
+
+## Session 2026-07-24 (Marketing OS — goal-based marketing foundation)
+
+Full detail in `docs/marketing-os/` (MASTER_SPEC, ARCHITECTURE, DATA_MODEL,
+IMPLEMENTATION_STATUS, KNOWN_LIMITATIONS, CHANGELOG).
+
+### ✅ Shipped (PR #59)
+- [x] Audited the existing marketing subsystem (contacts/segments/campaigns/
+      automations/copilot/SEO-AEO/outreach on `marketing_*` tables, service-role RLS).
+- [x] **Goal-Based Marketing vertical slice** — the "tell CharitMe the outcome you want"
+      entry point, wired UI → API → Supabase → audit log:
+  - `marketing_goals` table (migration `20260729000000`), CHECK-enums, indexes,
+    `updated_at` trigger, RLS service-role only.
+  - `lib/marketing-goals.ts`: deterministic NL→structured-draft parser +
+    **live** progress measurement (campaigns / donations).
+  - `/api/admin/marketing/goals` GET/POST/PATCH (verifyAdmin + zod + audit).
+  - `/admin/marketing/goals` UI (NL composer, editable draft, progress bars,
+    lifecycle controls; loading/empty/error/retry; mobile).
+  - 6 unit tests; RLS/schema suites green; typecheck + lint clean; `next build` compiles.
+
+### ⬜ Remaining Marketing OS backlog (ordered by dependency/value)
+- [ ] **Command Center dashboard** (brief §4, top priority) — executive read-only
+      view aggregating live goals + marketing + campaign/donation metrics, recent
+      autonomous/human actions (from `marketing_audit_logs`), data freshness. *(in progress this session)*
+- [x] **Opportunity engine** (§20) — SHIPPED: live-data generator + deterministic scoring + convert-to-goal — scored opportunity feed → convert to goal/campaign.
+- [ ] **Goal → multichannel campaign generation** (§15) — one goal produces a
+      connected campaign (landing page, email, social, SEO/AEO) linked to the goal.
+- [ ] Multi-tenant `organizations`/`brands` scoping on marketing tables (§7).
+- [ ] Expanded marketing roles (Brand/Legal/Finance reviewers, analyst, viewer) (§9).
+- [ ] Approval engine (`approval_requests`/`_steps`/`_decisions`) (§30).
+- [ ] Brand Constitution ingestion + per-asset scoring (§10).
+- [ ] AI agent framework + orchestrator + governance (§12–13, §38).
+- [ ] External connectors: GA4, Search Console, then Ads/social/email (§32) — read-only first.
+- [ ] Experiments, attribution models, forecasting, automation-rule builder UI,
+      cost governance, monitoring dashboard (§19, §28, §29, §31, §39, §40).
+
+### Guardrails held
+- No autonomous spend/publish exists; `autonomy_level` stored but not yet enforced by any executor.
+- No faked metrics — non-live metrics are labelled "measurement pending".
+- No new external integrations faked; RLS unchanged (service-role only).
