@@ -157,3 +157,48 @@ export function pickFreshestDraft<F>(
   if (remote.images.length > local.images.length) return remote;
   return local;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Publish-failure copy.
+//
+// The builder surfaced raw API strings ("duplicate key value violates unique
+// constraint …") straight to organizers at the most fragile moment in the
+// journey. This maps what the API can actually return to plain language plus a
+// clear next action, and always leaves the user something to do.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface PublishFailure {
+  message: string;
+  /** True when simply pressing publish again is a reasonable next step. */
+  retryable: boolean;
+}
+
+export function describePublishFailure(raw: unknown, httpStatus?: number): PublishFailure {
+  const text = (typeof raw === 'string' ? raw : '').toLowerCase();
+
+  if (httpStatus === 401 || httpStatus === 403 || text.includes('unauthor') || text.includes('forbidden')) {
+    return { message: 'Your session expired. Sign in again and your campaign will still be here.', retryable: false };
+  }
+  if (httpStatus === 429 || text.includes('rate limit') || text.includes('too many')) {
+    return { message: 'Too many attempts in a short time. Wait a moment, then try again.', retryable: true };
+  }
+  if (text.includes('duplicate') || text.includes('already exists') || text.includes('unique constraint')) {
+    return { message: 'A campaign with this title already exists. Try a slightly different title.', retryable: false };
+  }
+  if (text.includes('title')) {
+    return { message: 'Your campaign title needs a small fix before publishing — check the Title step.', retryable: false };
+  }
+  if (text.includes('goal') || text.includes('amount')) {
+    return { message: 'Your fundraising goal needs a small fix before publishing — check the Goal step.', retryable: false };
+  }
+  if (text.includes('image') || text.includes('upload')) {
+    return { message: 'One of your images could not be saved. Remove it on the Media step and try again.', retryable: false };
+  }
+  if (httpStatus === 413 || text.includes('too large') || text.includes('payload')) {
+    return { message: 'Your campaign is a little too large to save — try removing an image.', retryable: false };
+  }
+  if (text.includes('network') || text.includes('fetch') || text.includes('timeout') || (httpStatus ?? 0) >= 500) {
+    return { message: 'We could not reach CharitMe just now. Your work is saved — check your connection and try again.', retryable: true };
+  }
+  return { message: 'Something went wrong publishing your campaign. Your work is saved — please try again.', retryable: true };
+}

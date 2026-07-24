@@ -10,8 +10,10 @@ import {
   draftAgeLabel,
   fromRemoteDraft,
   pickFreshestDraft,
+  describePublishFailure,
   type CampaignDraft,
 } from '../../lib/campaign-draft';
+import { WIZARD_STEPS, normalizeStep, minutesRemaining, type WizardStep } from '../../lib/wizard-steps';
 import { suggestCampaignTitle } from '../../lib/campaign-title';
 import Link from 'next/link';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
@@ -28,7 +30,6 @@ import { analyzeStory } from '../../lib/story-analysis';
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
-type WizardStep = 'type' | 'category' | 'location' | 'story' | 'title' | 'goal' | 'media' | 'payout' | 'summary' | 'live';
 
 type PayoutMethod = 'stripe' | 'paypal' | 'venmo' | 'googlepay' | 'sinch';
 type PayoutAccount = {
@@ -81,17 +82,6 @@ interface UploadedImage {
 // ─────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────
-const WIZARD_STEPS: { key: WizardStep; label: string; num: number }[] = [
-  { key: 'type',     label: 'Campaign Type', num: 1 },
-  { key: 'category', label: 'Category',      num: 2 },
-  { key: 'location', label: 'Location',      num: 3 },
-  { key: 'story',    label: 'Your Story',    num: 4 },
-  { key: 'title',    label: 'Title',         num: 5 },
-  { key: 'goal',     label: 'Goal',          num: 6 },
-  { key: 'media',    label: 'Media',         num: 7 },
-  { key: 'payout',   label: 'Get Paid',      num: 8 },
-  { key: 'summary',  label: 'Review',        num: 9 },
-];
 
 const JOURNEY_STEPS = ['Plan', 'Create', 'Launch', 'Manage', 'Celebrate', 'Impact'];
 
@@ -209,7 +199,7 @@ function CampaignPreviewModal({
 // Page
 // ─────────────────────────────────────────────
 export default function CreatePage() {
-  const [step, setStep]               = useState<WizardStep>('type');
+  const [step, setStep]               = useState<WizardStep>('basics');
   const [loading, setLoading]         = useState(false);
   const [aiLoading, setAiLoading]     = useState(false);
   const [storyMode, setStoryMode]     = useState<'freeform' | 'guided'>('freeform');
@@ -251,7 +241,8 @@ export default function CreatePage() {
       }
       if (savedStoryMode === 'freeform' || savedStoryMode === 'guided') setStoryMode(savedStoryMode);
       setForm(savedForm);
-      setStep(savedStep);
+      const restoredStep = normalizeStep(savedStep);
+      if (restoredStep) setStep(restoredStep);
     } catch { /* ignore */ }
     sessionStorage.removeItem('cm_wizard');
   }, []);
@@ -337,7 +328,8 @@ export default function CreatePage() {
     setForm(d.form);
     if (d.storyMode === 'freeform' || d.storyMode === 'guided') setStoryMode(d.storyMode);
     setUploadedImages(d.images.map((i, idx) => ({ id: `restored-${idx}-${i.url}`, url: i.url, name: i.name, status: 'done' as const })));
-    if (WIZARD_STEPS.some(s => s.key === d.step)) setStep(d.step as WizardStep);
+    const draftStep = normalizeStep(d.step);
+    if (draftStep) setStep(draftStep);
     setSavedAt(d.ts);
     draftDecided.current = true;
     setRecoverableDraft(null);
@@ -404,6 +396,15 @@ export default function CreatePage() {
 
   // ── Builder funnel analytics (drop-off / abandonment / completion) ──────────
   const builderSession = useRef<string>('');
+  // Set when the user clicks an in-app link, so the resulting unload is not
+  // miscounted as abandoning the builder.
+  const internalNavRef = useRef(false);
+
+  // ── Goal guidance: what comparable campaigns in this category actually set ──
+  const [goalGuidance, setGoalGuidance] = useState<{
+    available: boolean; sampleSize: number; lowCents: number | null; highCents: number | null;
+    medianRaisedCents: number | null; goalHitRate: number | null; note: string;
+  } | null>(null);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     let sid = localStorage.getItem('charitme-builder-session');
@@ -424,9 +425,31 @@ export default function CreatePage() {
   useEffect(() => { if (builderSession.current) trackBuilder('enter', step); }, [step, trackBuilder]);
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const onLeave = () => { if (step !== 'live') trackBuilder('abandon', step); };
+    // Only count a real abandonment. `beforeunload` also fires on ordinary
+    // same-origin navigation (e.g. clicking through to /login or the dashboard),
+    // which was inflating the abandon rate and making the funnel look far worse
+    // than it is. Clicking any in-app link marks the unload as intentional.
+    const onNavigate = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement | null)?.closest?.('a');
+      const href = anchor?.getAttribute('href');
+      if (!href) return;
+      if (href.startsWith('/') || href.startsWith(window.location.origin)) {
+        internalNavRef.current = true;
+        // Reset shortly after: if the navigation never actually happens, a later
+        // genuine close should still be recorded as an abandon.
+        window.setTimeout(() => { internalNavRef.current = false; }, 2000);
+      }
+    };
+    const onLeave = () => {
+      if (step === 'live' || internalNavRef.current) return;
+      trackBuilder('abandon', step);
+    };
+    document.addEventListener('click', onNavigate, true);
     window.addEventListener('beforeunload', onLeave);
-    return () => window.removeEventListener('beforeunload', onLeave);
+    return () => {
+      document.removeEventListener('click', onNavigate, true);
+      window.removeEventListener('beforeunload', onLeave);
+    };
   }, [step, trackBuilder]);
 
   // AI-default prefill: never show an empty title field. When the creator reaches
@@ -498,6 +521,23 @@ export default function CreatePage() {
     });
   }, [step]);
 
+  // Fetch guidance when the organizer reaches the Goal step. Best-effort: if it
+  // is unavailable or the category has too few comparables, the step simply
+  // renders as it did before rather than showing a made-up range.
+  useEffect(() => {
+    if (step !== 'goal' || !form.category) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/campaigns/goal-guidance?category=${encodeURIComponent(form.category)}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const { guidance } = await res.json();
+        if (!cancelled && guidance?.available) setGoalGuidance(guidance);
+      } catch { /* guidance is a nicety, never a blocker */ }
+    })();
+    return () => { cancelled = true; };
+  }, [step, form.category]);
+
   const upd = (k: keyof FormState, v: string) =>
     setForm(prev => ({ ...prev, [k]: v }));
 
@@ -509,7 +549,7 @@ export default function CreatePage() {
 
   const goNext = () => {
     setError('');
-    if (step === 'location' && isGuest === true) {
+    if (step === 'basics' && isGuest === true) {
       setShowLoginModal(true);
       return;
     }
@@ -688,7 +728,11 @@ export default function CreatePage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : `Failed to ${status === 'draft' ? 'save draft' : 'publish'}.`);
+      if (!res.ok) {
+        // Never surface a raw API/database string to an organizer mid-publish.
+        setError(describePublishFailure(data?.error, res.status).message);
+        return;
+      }
       // Persisted to Supabase — the local recovery copy is no longer needed.
       clearDraft();
       trackBuilder(status === 'draft' ? 'save_draft' : 'publish', step);
@@ -697,7 +741,8 @@ export default function CreatePage() {
       setPublishedSlug(typeof data.slug === 'string' ? data.slug : '');
       setStep('live');
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed. Please try again.');
+      // Network/transport failure — the draft is still saved locally and remotely.
+      setError(describePublishFailure(e instanceof Error ? e.message : '').message);
     } finally {
       setLoading(false);
     }
@@ -876,6 +921,13 @@ export default function CreatePage() {
               <Link href="/dashboard/campaigns" className="cr2-back-link">← My Campaigns</Link>
               <div className="cr2-step-badge">
                 Step {stepIdx + 1} / {WIZARD_STEPS.length}
+                {stepIdx >= 0 && (
+                  // Answer "how much longer?" up front — an unknown remaining
+                  // cost is its own reason to abandon.
+                  <span style={{ marginLeft: 8, opacity: 0.75, fontWeight: 600 }}>
+                    · about {minutesRemaining(step)} min left
+                  </span>
+                )}
                 {savedAt && (
                   <span title="Your progress is saved on this device" style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, opacity: .85 }}>
                     · ✓ Saved
@@ -942,7 +994,7 @@ export default function CreatePage() {
               )}
 
               {/* ── Step: Type ── */}
-              {step === 'type' && (
+              {step === 'basics' && (
                 <div className="cr2-type-panel">
                   <h2 className="cr2-step-q">Let&apos;s get started, who are you fundraising for?</h2>
 
@@ -967,17 +1019,7 @@ export default function CreatePage() {
                     </button>
                   </div>
 
-                  <div className="cr2-proof-line">
-                    <span>🌍</span>
-                    Every hour, around 6,000 people choose to give on CharitMe.
-                  </div>
-                </div>
-              )}
-
-              {/* ── Step: Category ── */}
-              {step === 'category' && (
-                <div className="cr2-type-panel">
-                  <h2 className="cr2-step-q">What best describes your cause?</h2>
+                  <h2 className="cr2-step-q" style={{ marginTop: 26 }}>What best describes your cause?</h2>
 
                   <div className="cr2-divider-label">Choose a category</div>
                   <div className="cr2-cat-chips">
@@ -993,17 +1035,7 @@ export default function CreatePage() {
                     ))}
                   </div>
 
-                  <div className="cr2-proof-line">
-                    <span>🌍</span>
-                    Every hour, around 6,000 people choose to give on CharitMe.
-                  </div>
-                </div>
-              )}
-
-              {/* ── Step: Location ── */}
-              {step === 'location' && (
-                <div className="cr2-form-panel">
-                  <h2 className="cr2-step-q" style={{ padding: '0', marginBottom: 22 }}>Where are you located?</h2>
+                  <h2 className="cr2-step-q" style={{ marginTop: 26, marginBottom: 22 }}>Where are you located?</h2>
 
                   <div className="cr2-field">
                     <label htmlFor="cr-country">Country</label>
@@ -1199,6 +1231,32 @@ export default function CreatePage() {
               {step === 'goal' && (
                 <div className="cr2-form-panel">
                   <h2 className="cr2-step-q" style={{ padding: 0, marginBottom: 8 }}>How much would you like to raise?</h2>
+
+                  {goalGuidance?.available && goalGuidance.lowCents != null && goalGuidance.highCents != null && (
+                    <div style={{ margin: '0 0 14px', padding: '12px 14px', borderRadius: 12, background: 'var(--s2, #f5f7fb)', border: '1px solid var(--b1, #e8ecf4)' }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--t1, #1a1a2e)' }}>
+                        Most {form.category.toLowerCase()} campaigns set{' '}
+                        ${Math.round(goalGuidance.lowCents / 100).toLocaleString('en-US')}–${Math.round(goalGuidance.highCents / 100).toLocaleString('en-US')}
+                      </div>
+                      <div style={{ fontSize: 12.5, color: 'var(--t3, #64748b)', marginTop: 4, lineHeight: 1.5 }}>
+                        {goalGuidance.note}
+                        {goalGuidance.goalHitRate != null && ` About ${Math.round(goalGuidance.goalHitRate * 100)}% reach their goal.`}
+                        {' '}A goal you can realistically pass builds momentum — you can raise it later.
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                        {[goalGuidance.lowCents, goalGuidance.highCents].map((c, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => upd('goal', String(Math.round((c as number) / 100)))}
+                            style={{ padding: '6px 12px', borderRadius: 999, border: '1px solid var(--b2, #d7dced)', background: 'var(--s1, #fff)', color: 'var(--t2, #334064)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Use ${Math.round((c as number) / 100).toLocaleString('en-US')}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="cr2-field">
                     <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1684,7 +1742,7 @@ export default function CreatePage() {
                       <span className="cr2-review-val">
                         {form.zipCode ? `${form.zipCode}, ${form.country}` : form.country}
                       </span>
-                      <button type="button" className="cr2-review-edit" onClick={() => setStep('location')}>Edit</button>
+                      <button type="button" className="cr2-review-edit" onClick={() => setStep('basics')}>Edit</button>
                     </div>
 
                     {/* Story */}
@@ -1821,7 +1879,7 @@ export default function CreatePage() {
           onSuccess={() => {
             setIsGuest(false);
             setShowLoginModal(false);
-            if (step === 'location') {
+            if (step === 'basics') {
               // advance to story after login
               setStep('story');
             } else {
@@ -1865,6 +1923,9 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep, savedImages
   savedStoryMode: string;
 }) {
   const supabase = React.useMemo(() => createClient(), []);
+  // The gate that interrupts the builder (Location step) needs different copy
+  // from the ordinary sign-in entry point.
+  const midWizard = savedStep === 'basics';
   // Keyboard parity for the backdrop click-to-close: Escape closes the modal.
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -1911,8 +1972,15 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep, savedImages
     <div className="guest-modal-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="guest-modal-card" role="dialog" aria-modal="true">
         <button className="guest-modal-close" onClick={onClose} aria-label="Close">✕</button>
-        <h2>{modalMode === 'login' ? 'Log in' : 'Sign up'}</h2>
-        <p className="guest-modal-sub">{modalMode === 'login' ? 'Continue to your dashboard.' : 'Create your free account to launch.'}</p>
+        <h2>{midWizard ? 'Save your progress' : modalMode === 'login' ? 'Log in' : 'Sign up'}</h2>
+        <p className="guest-modal-sub">
+          {midWizard
+            // Explain the interruption. An unexplained gate mid-flow reads as a
+            // paywall; naming the benefit (work is kept, campaign is yours) and
+            // the cost (free, nothing published yet) is what keeps people going.
+            ? 'Your campaign is saved to your account so you can finish it on any device. It stays private until you choose to publish — creating an account is free.'
+            : modalMode === 'login' ? 'Continue to your dashboard.' : 'Create your free account to launch.'}
+        </p>
         <button className="guest-oauth-btn" onClick={() => handleOAuth('google')} disabled={busy} type="button">
           <GoogleMark /> Continue with Google
         </button>
@@ -1958,7 +2026,7 @@ interface ScoreResult {
 }
 
 function computeScore(form: FormState, step: WizardStep, payoutLinked: boolean, isGuest: boolean | null): ScoreResult {
-  const stepOrder: WizardStep[] = ['type','category','location','story','title','goal','media','payout','summary','live'];
+  const stepOrder: WizardStep[] = ['basics','story','title','goal','media','payout','summary','live'];
   const si = stepOrder.indexOf(step);
 
   const identity: ScoreState   = isGuest === false ? 'verified' : (si >= 3 ? 'watch' : 'pending');

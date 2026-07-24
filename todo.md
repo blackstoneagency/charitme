@@ -2316,8 +2316,26 @@ funnel analytics, guest gate, and payout linkage.
    ("…or leave it empty for now and finish it later"), preserving the
    skip-and-return-later flow.
 
-#### 🟡 OPEN FINDINGS — friction backlog (unclaimed, ranked)
-- **F4. 9 steps is long for "≈10 minutes".** `type`/`category`/`location` are 3
+#### ✅ F5–F7, F9 SHIPPED (second pass)
+- **F5 — goal set with no reference point.** New `/api/campaigns/goal-guidance`
+  derives an honest suggested range from **real comparable campaigns** in the
+  category (interquartile band of live goals + actual goal-hit rate), read
+  through the anon+cookies client so RLS decides visibility. Withheld entirely
+  below 5 comparables — no invented ranges. Goal step shows the band, the hit
+  rate, and one-tap "Use $X" chips.
+- **F6 — guest gate was unexplained.** Mid-wizard the modal now reads "Save your
+  progress" and names the benefit (kept across devices, stays private until you
+  publish, free) instead of the wrong "Continue to your dashboard".
+- **F7 — `abandon` over-counted.** `beforeunload` also fires on ordinary
+  same-origin navigation, inflating the abandon rate; in-app link clicks now mark
+  the unload intentional. **Funnel abandon numbers before this fix are overstated.**
+- **F9 — raw API/database strings shown mid-publish.** `describePublishFailure`
+  maps failures to plain language + a next action, flags retryable vs terminal,
+  and always reassures that work is saved.
+
+#### 🟡 STILL OPEN — friction backlog (ranked)
+- **F4. 9 steps is long for "≈10 minutes".** (next up — restructures a 2,000-line
+  file, so deliberately kept out of the F5–F9 batch) `type`/`category`/`location` are 3
   taps that could collapse into one screen; consider merging + a visible
   "2 min left" estimate. Highest expected conversion win.
 - **F5. No inline "why this helps" on goal.** `GoalProceedsBreakdown` exists but
