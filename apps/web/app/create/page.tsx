@@ -647,10 +647,24 @@ export default function CreatePage() {
   }, []);
 
   const submitCampaign = async (status: 'draft' | 'active') => {
-    if (form.title.trim().length < 3) { setError('Campaign title must be at least 3 characters.'); return; }
+    // Any requirement that fails here also sends the organizer back to the step
+    // that owns it — an error on the Review screen is otherwise a dead end.
+    if (form.title.trim().length < 3) {
+      setError('Campaign title must be at least 3 characters.');
+      setStep('title');
+      return;
+    }
     if (status === 'active') {
-      if (form.description.trim().length < 20) { setError('Campaign story must be at least 20 characters.'); return; }
-      if (goalCents < 100) { setError('Fundraising goal must be at least $1.00.'); return; }
+      if (form.description.trim().length < 20) {
+        setError('Campaign story must be at least 20 characters.');
+        setStep('story');
+        return;
+      }
+      if (goalCents < 100) {
+        setError('Fundraising goal must be at least $1.00.');
+        setStep('goal');
+        return;
+      }
     }
     setLoading(true); setError('');
     try {

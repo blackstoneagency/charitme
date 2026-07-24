@@ -686,6 +686,55 @@ Format: `ID · area · what · evidence (commit)`. Only fixes verified by
 tests/build/live-HTTP are listed here.
 
 ### Session 2026-07-23 (Claude, PR #50 — production hardening sweep)
+- **CHAR-F063 · create-journey deep dive (audit + first fix)** — End-to-end review
+  of the new-campaign builder (`app/create/page.tsx`, 2041 lines, 9-step wizard).
+  _Scope note for other agents: this entry is owned by the production-ready agent;
+  the fix below touches ONLY `goNext`/`submitCampaign` validation in
+  `app/create/page.tsx`. Everything else is findings, not yet claimed — take any
+  item and mark it here so we don't collide._
+
+  **✅ FIXED this session — late validation (highest-impact friction).**
+  Publishing enforces a 20-char story and a $1 minimum goal, but both were checked
+  **only in `submitCampaign` at step 9 (Review)** — the story is collected at step 4
+  and the goal at step 6. An organizer could complete all nine steps, hit Publish,
+  and be rejected with no pointer to the offending step. `goNext` validated only
+  the title and in-flight uploads. Now: (a) story + goal are validated **at their
+  own step** (empty is still allowed — you can finish later; only a *too-short*
+  entry is blocked), and (b) any failure that still reaches Publish **jumps the
+  user to the step that owns it** instead of dead-ending on Review.
+
+  **Confirmed already-good (do not "fix"):** payout is deliberately optional to
+  publish (removes the biggest drop-off; the donation API blocks charges until the
+  recipient is payout-ready); draft autosave/recovery to `localStorage` with an
+  explicit resume-vs-start-fresh banner; per-step funnel analytics (`trackBuilder`);
+  AI goal suggestion + AI story follow-ups; image type/size/count guards with
+  partial-skip messaging rather than hard failure.
+
+  **Open findings — ranked, unclaimed:**
+  1. **Step count.** 9 steps vs ~4–5 at GoFundMe/Donorbox. `type`+`category` and
+     `location`+`goal` are each mergeable onto one screen; `title` could be derived
+     from the story (AI already drafts one) with an inline edit. Target: 9 → 5–6
+     without losing any collected field.
+  2. **Guest hard-gate at step 3 of 9.** Unauthenticated users hit a login modal at
+     `location` — after investing in two steps but *before* the story, which is the
+     point of emotional commitment. The draft survives in `localStorage`, so the
+     gate could move to just before Publish (or to the payout step) and let guests
+     build the whole campaign first. Highest expected conversion lift of anything here.
+  3. **No inline field-level errors.** All errors render in one banner at the panel
+     level; fields aren't marked invalid, and the banner isn't focus-managed or
+     `aria-live`, so screen-reader users may not hear it. Needs `aria-invalid` +
+     `aria-describedby` per field and a focus move to the first error.
+  4. **`goalCents || 100` fallback on submit** silently publishes a $1 goal if the
+     field is empty on the draft path — should be an explicit prompt, not a coerced
+     default.
+  5. **2041-line client component.** Whole wizard ships in one bundle; steps are
+     inline JSX branches. Extracting per-step components would cut first-load JS
+     and make each step independently testable (there is currently **no test file
+     for the builder at all** — the largest untested surface in the app).
+  6. **No server-side mirror of the step rules.** `/api/campaigns` should enforce
+     the same story/goal minimums so a crafted request can't create a campaign the
+     wizard would reject.
+
 - **CHAR-F061 · dashboard/ux (dead-data completion)** — The dashboard/admin shell
   fetched the signed-in user (name, email, role, avatar) server-side in
   `CharitMeShellServer` and threaded all four into `CharitMeShell` as props, but
