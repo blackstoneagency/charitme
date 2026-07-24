@@ -22,3 +22,24 @@ connected vertical slice.
 
 Docs added: `MASTER_SPEC`, `ARCHITECTURE`, `DATA_MODEL`, `IMPLEMENTATION_STATUS`,
 `KNOWN_LIMITATIONS`, this changelog.
+
+## 2026-07-24 — Opportunity engine (second slice)
+
+The "Prioritize" hop of the loop. Data-derived, scored opportunities that convert
+straight into goals.
+
+- **DB**: `marketing_opportunities` (migration `20260730000000`) — evidence jsonb,
+  estimates, deterministic `score` (0–100), status lifecycle, `dedupe_key` unique
+  index for idempotent re-generation, `linked_goal_id`, RLS service-role only.
+- **Domain**: `lib/marketing-opportunities.ts` — `scoreOpportunity` (pure, tested)
+  + `generateOpportunities()` deriving opportunities from real campaign category
+  momentum (rising / declining / high-value) with the actual numbers in `evidence`.
+- **API**: `/api/admin/marketing/opportunities` — GET (ranked), POST generate
+  (idempotent upsert preserving human decisions), PATCH (status + **convert to
+  goal**, which inserts a linked `marketing_goals` row). All audited.
+- **UI**: `/admin/marketing/opportunities` — ranked cards with score, labelled
+  estimates, accept/defer/reject, and one-click convert-to-goal; loading/empty/
+  error/retry. Linked from the Command Center.
+- **Tests**: `__tests__/marketing-opportunities.test.ts` (5 passing).
+
+Estimates are always labelled as estimates; nothing is presented as fact.

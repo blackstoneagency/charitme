@@ -2202,7 +2202,7 @@ IMPLEMENTATION_STATUS, KNOWN_LIMITATIONS, CHANGELOG).
 - [ ] **Command Center dashboard** (brief §4, top priority) — executive read-only
       view aggregating live goals + marketing + campaign/donation metrics, recent
       autonomous/human actions (from `marketing_audit_logs`), data freshness. *(in progress this session)*
-- [ ] **Opportunity engine** (§20) — scored opportunity feed → convert to goal/campaign.
+- [x] **Opportunity engine** (§20) — SHIPPED: live-data generator + deterministic scoring + convert-to-goal — scored opportunity feed → convert to goal/campaign.
 - [ ] **Goal → multichannel campaign generation** (§15) — one goal produces a
       connected campaign (landing page, email, social, SEO/AEO) linked to the goal.
 - [ ] Multi-tenant `organizations`/`brands` scoping on marketing tables (§7).
