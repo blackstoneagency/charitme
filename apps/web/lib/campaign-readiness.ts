@@ -14,6 +14,15 @@
 export type ReadinessStep =
   | 'basics' | 'story' | 'title' | 'goal' | 'media' | 'payout';
 
+// ── Publish minimums — the SINGLE source of truth ────────────────────────────
+// Imported by both the readiness checklist below and the zod schema in
+// POST /api/campaigns, so the client checklist and the server gate can never
+// drift apart. Drafts are deliberately exempt: a draft may be saved at any
+// completeness, and is not public.
+export const PUBLISH_MIN_TITLE_CHARS = 3;
+export const PUBLISH_MIN_STORY_CHARS = 20;
+export const PUBLISH_MIN_GOAL_CENTS = 100;
+
 export interface ReadinessInput {
   title: string;
   description: string;
@@ -54,17 +63,17 @@ export function publishReadiness(input: ReadinessInput): ReadinessResult {
   const items: ReadinessItem[] = [
     {
       id: 'title', label: 'Campaign title', step: 'title', required: true,
-      done: input.title.trim().length >= 3,
+      done: input.title.trim().length >= PUBLISH_MIN_TITLE_CHARS,
       hint: 'Add a clear title (at least 3 characters).',
     },
     {
       id: 'story', label: 'Your story', step: 'story', required: true,
-      done: input.description.trim().length >= 20,
+      done: input.description.trim().length >= PUBLISH_MIN_STORY_CHARS,
       hint: 'Write at least a couple of sentences about your cause.',
     },
     {
       id: 'goal', label: 'Fundraising goal', step: 'goal', required: true,
-      done: input.goalCents >= 100,
+      done: input.goalCents >= PUBLISH_MIN_GOAL_CENTS,
       hint: 'Set a goal of at least $1.',
     },
     {

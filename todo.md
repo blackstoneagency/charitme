@@ -734,7 +734,26 @@ tests/build/live-HTTP are listed here.
      level; fields aren't marked invalid, and the banner isn't focus-managed or
      `aria-live`, so screen-reader users may not hear it. Needs `aria-invalid` +
      `aria-describedby` per field and a focus move to the first error.
-  4. **`goalCents || 100` fallback on submit** silently publishes a $1 goal if the
+  4b. **✅ FIXED (#4 + #6 together) — the publish gate existed only in the client.**
+     `campaign-readiness.ts` claimed in its header that its required items "mirror
+     EXACTLY what POST /api/campaigns enforces… so `readyToPublish` never disagrees
+     with the server." **That claim was false.** The API schema allowed
+     `description.min(1)` and `goalAmount.min(1)` for `status:'active'`, so a crafted
+     request could publish a **live, publicly-indexed, donatable** campaign with a
+     1-character story and a **$0.01 goal**, bypassing the builder entirely.
+     Fixes: (a) publish minimums extracted to `PUBLISH_MIN_{TITLE_CHARS,STORY_CHARS,
+     GOAL_CENTS}` in `campaign-readiness.ts` as the single source of truth, imported
+     by both sides so they cannot drift; (b) a `superRefine` on the API schema
+     enforces story ≥ 20 and goal ≥ $1 **only when `status==='active'`** — drafts stay
+     permissive since they're private and resumable; (c) `goalAmount` now accepts 0 so
+     a draft honestly records "no goal set yet" instead of the client's
+     `goalCents || 100` fabricating a $1 goal the organizer never chose (which then
+     rode along if they later published from the dashboard).
+     Tests: `__tests__/publish-gate-parity.test.ts` (6) — boundary cases both sides,
+     plus source-level assertions that the route imports the shared constants and
+     keeps the `status==='active'` gate. **Verified the suite fails if the gate is
+     removed** (not a vacuous test).
+  4. ~~**`goalCents || 100` fallback on submit**~~ — folded into 4b above. Was: silently publishes a $1 goal if the
      field is empty on the draft path — should be an explicit prompt, not a coerced
      default.
   5. **2041-line client component.** Whole wizard ships in one bundle; steps are

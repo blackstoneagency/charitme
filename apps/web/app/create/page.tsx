@@ -729,7 +729,10 @@ export default function CreatePage() {
           title: form.title.trim(),
           tagline: form.tagline.trim() || undefined,
           description: form.description.trim() || 'Draft — story coming soon.',
-          goalAmount: goalCents || 100,
+          // Send the real figure. A draft may legitimately have no goal yet (0);
+          // coercing it to $1 wrote a number the organizer never chose, which then
+          // rode along if they later published from the dashboard.
+          goalAmount: goalCents,
           deadline: form.deadline || null,
           category: form.category,
           coverImageUrl: form.coverImageUrl || null,
