@@ -43,3 +43,33 @@ straight into goals.
 - **Tests**: `__tests__/marketing-opportunities.test.ts` (5 passing).
 
 Estimates are always labelled as estimates; nothing is presented as fact.
+
+## 2026-07-24 — Goal → multichannel campaign generation (third slice)
+
+The "Create" hop of the loop. One goal becomes a connected, reviewable campaign.
+
+- **DB**: `marketing_campaign_plans` + `marketing_campaign_plan_assets`
+  (migration `20260731000000`) — plan linked to a goal; assets typed by
+  channel; status lifecycles (plan: draft→in_review→approved; asset:
+  draft→approved); cascade delete; RLS service-role only.
+- **Domain**: `lib/marketing-campaign-generator.ts` — deterministic,
+  brand-safe assembly of a landing page, outreach email, 3 social posts, SEO
+  metadata, and an FAQ from a goal's context (category/geography/audience).
+  No external AI required; unit-tested for connectedness + brand safety.
+- **API**: `/api/admin/marketing/campaign-plans` (GET list/detail, POST
+  generate-from-goal with orphan-rollback, PATCH plan status) and
+  `.../campaign-plans/assets` (PATCH edit/approve). All audited.
+- **UI**: `/admin/marketing/campaign-plans` — generate from a goal, list, and a
+  detail view with per-asset inline edit + approve and plan-level review/approve;
+  loading/empty/error/retry. "Generate campaign →" added to each goal card;
+  linked from the Command Center.
+- **Tests**: `__tests__/marketing-campaign-generator.test.ts` (5 passing).
+
+Honest limit surfaced in the UI: external publishing needs connected channels
+(none exist yet), so status stops at "approved" — no simulated publishing.
+
+### Marketing OS status after three slices
+Shipped & production-merged (PR #59): Goals, Command Center, Opportunity engine.
+This branch adds Campaign generation. Remaining backlog unchanged (multi-tenant
+scoping, approval engine, brand constitution, agents, external connectors,
+experiments/attribution/forecasting) — see MASTER_SPEC.md.
