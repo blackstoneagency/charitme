@@ -789,10 +789,19 @@ tests/build/live-HTTP are listed here.
      spoken. All four now carry `role="alert"` (implies `aria-live="assertive"`).
      _Still open from #3:_ per-field `aria-invalid`/`aria-describedby` and moving
      focus to the first invalid field — needs the inline field-error refactor.
-  3. **No inline field-level errors.** All errors render in one banner at the panel
-     level; fields aren't marked invalid, and the banner isn't focus-managed or
-     `aria-live`, so screen-reader users may not hear it. Needs `aria-invalid` +
-     `aria-describedby` per field and a focus move to the first error.
+  3. **✅ DONE — inline field-level errors.** Was: every error rendered in one
+     panel-level banner, so a keyboard/AT user who pressed Continue learned that
+     *something* was wrong but not *which* field, with focus left on the button —
+     friction on the primary conversion path. Now each failure carries the field it
+     belongs to: that input gets `aria-invalid` + `aria-describedby` pointing at the
+     banner, and **focus moves to it** (after a frame, so the `role="alert"` is
+     announced first, then the user lands on what to fix).
+     _Verification note:_ the wizard can't be driven in CI — `/create` is auth-gated
+     (307) and there is no database — so the rules and their **field mapping** were
+     extracted to `lib/builder-validation.ts` and unit-tested (11 tests). Confirmed
+     non-vacuous: mis-targeting a field fails 2 tests, and re-introducing the
+     "nag on an empty story" friction fails 1. Empty story/goal still pass through
+     deliberately — someone deferring them can keep moving.
   4b. **✅ FIXED (#4 + #6 together) — the publish gate existed only in the client.**
      `campaign-readiness.ts` claimed in its header that its required items "mirror
      EXACTLY what POST /api/campaigns enforces… so `readyToPublish` never disagrees
@@ -2773,7 +2782,14 @@ against the real production DB works and has already settled real questions
   real charge across payment methods, rotating the exposed keys.
 
 
-### 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
+### 🔓 CLAIM RELEASED (Claude/tbaz3i — builder inline field errors, finding #3) ✅
+
+> **DONE — area is FREE.** Finding #3's remaining half is implemented: per-field
+> `aria-invalid` + `aria-describedby` and **focus moves to the first invalid field**.
+> Touched `app/create/page.tsx`, new `lib/builder-validation.ts`, new test. Did not
+> touch step structure, drafts, the guest gate, the publish gate, or any API.
+
+## 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
 
 Checked the live `sitemap.xml` because the soft-404 fix makes stale entries *visible*
 to crawlers (a listed URL that 404s is now a real 404, not a silent 200).
