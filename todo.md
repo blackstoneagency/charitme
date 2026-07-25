@@ -2806,27 +2806,33 @@ against the real production DB works and has already settled real questions
 > Touched `app/create/page.tsx`, new `lib/builder-validation.ts`, new test. Did not
 > touch step structure, drafts, the guest gate, the publish gate, or any API.
 
-## 🔒 CLAIM — ACTIVE (Claude/tbaz3i — beneficiary role has no dashboard)
+## 🔓 CLAIM RELEASED — beneficiary role now has a dashboard ✅
 
-> **🚧 IN FLIGHT — do not start this.** Building the missing **beneficiary** surface.
+> **DONE — area is FREE.** `beneficiary` is one of six roles in `lib/roles.ts`, has a
+> full invite flow (`beneficiary_invites` → `/beneficiary/accept`), and
+> `campaigns.beneficiary_profile_id` links a campaign to the person it benefits — but
+> **nothing read that column**, and `/beneficiary/accept` sent the accepted user to
+> `/dashboard/payouts`, which scopes every query by `.eq('user_id', …)` (the campaign
+> **owner**). So accepting an invite landed on an **empty dashboard**: no campaigns, no
+> payouts, no explanation. A modelled, invitable role dead-ended at onboarding.
 >
-> **The gap (verified in code):** `beneficiary` is one of six roles in
-> `lib/roles.ts` and has a full invite flow (`beneficiary_invites`,
-> `/beneficiary/accept`), and `campaigns.beneficiary_profile_id` links a campaign to
-> the person it benefits. But **no dashboard anywhere reads
-> `beneficiary_profile_id`** (`grep` across `app/dashboard/**` and `app/donor/**`
-> returns nothing), and `/beneficiary/accept` redirects the accepted user to
-> `/dashboard/payouts`, which scopes every query by `.eq('user_id', userId)` — the
-> campaign **owner**. So someone who accepts a beneficiary invite lands on an
-> **empty dashboard** with no campaigns, no payouts and no explanation. A modelled,
-> invitable role dead-ends immediately after onboarding.
+> **Shipped:** `/dashboard/beneficiary` — the campaigns you're the named beneficiary
+> of, with raised/goal progress, organizer, supporter count, and **payout state split
+> into "paid out" (delivered) vs "on the way" (requested/approved)**. Deliberately
+> read-only: these campaigns belong to someone else, so it answers "how is the
+> fundraiser for me doing, and has money actually reached me?" without owner-only
+> controls. Plus a plain-language explainer of how payouts reach them.
+> `/beneficiary/accept` now points here instead of the owner dashboard.
 >
-> **Scope:** a `/dashboard/beneficiary` view listing the campaigns the signed-in user
-> is the beneficiary of (progress, status, organizer, payout state), wired to
-> Supabase; redirect `/beneficiary/accept` there; data layer unit-tested (the page
-> itself is auth-gated so it can't be walked in this sandbox).
-> **Not touching:** the create wizard, `/dashboard/payouts` owner queries, admin, or
-> any existing role's dashboard. Branch: `claude/charitme-github-integration-tbaz3i`.
+> **Wiring:** `lib/beneficiary-data.ts` — one query for campaigns by
+> `beneficiary_profile_id`, then **batched** payout + organizer lookups (no N+1).
+> **Verification:** the page is auth-gated and there's no DB here, so the shaping and
+> money math are unit-tested (9 tests) — including that `failed` payouts inflate
+> neither bucket, that another campaign's payouts aren't attributed, and that null
+> money columns become 0 rather than NaN. Telling a beneficiary money arrived when it
+> bounced would be worse than showing nothing.
+>
+> _1101/1101 tests, lint clean, build green._
 
 ## 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
 
