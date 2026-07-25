@@ -6650,3 +6650,20 @@ summary:focus-visible,
   outline: none !important;
   box-shadow: 0 0 0 3px var(--violet-ink), 0 0 0 5px var(--s1) !important;
 }
+
+/* ----------------------------------------------------------------------------
+   Reduced motion. The stylesheet defines ~16 animations and ~120 transitions,
+   but only two spots honoured `prefers-reduced-motion`. Users who ask their OS
+   to reduce motion (often for vestibular disorders / migraine) were still shown
+   nearly all of it. Neutralise motion globally rather than per-component so new
+   animations are covered by default. Durations are near-zero rather than 0 so
+   `transitionend`/`animationend` handlers still fire.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
