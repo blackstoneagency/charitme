@@ -2604,6 +2604,21 @@ IMPLEMENTATION_STATUS, KNOWN_LIMITATIONS, CHANGELOG).
 - No faked metrics — non-live metrics are labelled "measurement pending".
 - No new external integrations faked; RLS unchanged (service-role only).
 
+## 🔒 CLAIM — ACTIVE 2026-07-23 (Claude/tbaz3i — dynamic `[slug]` public-page browser audit)
+
+> **🚧 IN FLIGHT — do not start this area.** Claiming the last unaudited public
+> surface: the **dynamic `[slug]`/`[id]` public routes**, which the "~30 public
+> routes audited" line explicitly excludes. Specifically:
+> `app/campaigns/[slug]`, `app/donors/[id]`, `app/matching/[id]`,
+> `app/sponsor/[id]`, `app/volunteer/[slug]`, `app/events/[slug]`,
+> `app/blog/[slug]`, `app/features/[slug]`.
+> **Scope:** browser audit only — axe-core WCAG 2.0/2.1 A/AA + 320/390px
+> horizontal-overflow, plus the minimal CSS/JSX fixes for what it finds. I am
+> **not** touching the create wizard, dashboard, admin, or any API/schema.
+> `/campaigns/[slug]` is the hottest public page (where donations happen) and has
+> never been browser-audited.
+> Branch: `claude/charitme-github-integration-tbaz3i`. Released when merged.
+
 ## 🔒 CLAIM — Session 2026-07-24 (Claude — campaign creation journey friction audit)
 
 > **✅ CLAIM RELEASED 2026-07-24 — all work merged to `master`. Area is FREE.**
