@@ -1,4 +1,4 @@
-import { Card } from '../../components/ui';
+import { Card } from '../../../components/ui';
 
 export default function CampaignsLoading() {
   return (

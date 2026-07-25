@@ -2772,7 +2772,137 @@ against the real production DB works and has already settled real questions
 - ❌ Genuinely blocked (needs writes or secrets): running the seed suite, placing a
   real charge across payment methods, rotating the exposed keys.
 
-## ✅ ROOT-CAUSED + 4/6 FIXED — soft-404 (merged #63); 1 real route left, 1 non-issue
+
+### 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
+
+Checked the live `sitemap.xml` because the soft-404 fix makes stale entries *visible*
+to crawlers (a listed URL that 404s is now a real 404, not a silent 200).
+
+**Sitemap is healthy — 1258 URLs, no stale entries found.** 12 randomly sampled campaign
+URLs all returned 200, and one URL from each other section resolved too (volunteer,
+grants, events, sponsor, matching, impact). Nothing listed is dead.
+
+**Useful side effect — the sitemap is generated from the database, so its per-section
+counts are independent evidence for the "≥100 seed records" goal item** (these are *live,
+public* rows, which is the meaningful bar for "enough data to exercise every feature" —
+drafts and deleted rows are excluded, so true table counts are ≥ these):
+
+| section | live rows in sitemap | ≥100? |
+|---|---|---|
+| campaigns | **351** | ✅ |
+| volunteer | **181** | ✅ |
+| grants | **181** | ✅ |
+| events | **181** | ✅ |
+| sponsor | **145** | ✅ |
+| matching | **121** | ✅ |
+| impact | 58 | n/a — see below, **not a gap** |
+| blog / features | 9 / 7 | n/a — static catalogues, not seeded tables |
+
+So six feature domains are confirmed ≥100 **from production**, without needing DB access.
+
+**Correction — `impact` at 58 is NOT a seed gap; I initially flagged it as one and was
+wrong.** `/impact/[slug]` takes a **campaign slug**, not an impact-table id
+(`getImpactBundle(slug)`; the sitemap entry is `/impact/campaign-351-b7e076c5` and the
+title renders as "Impact — {campaign.title}"). So those 58 URLs are *campaigns that have
+a published impact plan* — a derived product metric, not a row count. The underlying
+tables are seeded properly: `04_impact_gamification.sql` loads **120 rows**
+(`generate_series(1, 120)`) into `impact_plans`, `impact_metrics`, `impact_evidence`,
+`impact_updates` and `impact_plan_items`, all five covered by `99_verify_counts.sql`.
+**No top-up needed.**
+
+_Method, for reuse: `curl -s https://www.charitme.com/sitemap.xml | grep -oE '<loc>[^<]+</loc>'`
+then bucket by path segment._
+
+
+## 🟠 PARTLY DIAGNOSED — HTML is never CDN-cached (homepage cause still unknown)
+
+**Symptom (production):** the homepage answers **`x-vercel-cache: MISS`, `age: 0` on
+every single request** — 6/6 consecutive runs — so its `export const revalidate = 120`
+never takes effect and each visit re-runs the page's ~8 Supabase queries. TTFB is
+**~800–1500ms vs 229–572ms** for every other public page (proxy overhead is in all of
+these equally, so the ~5× gap is the real signal, not the absolute numbers).
+
+**Blast radius — it is not just the homepage.** In the build, **353 routes are `ƒ`
+(per-request)**; only 2 are SSG (`/blog/[slug]`, `/features/[slug]`, via
+`generateStaticParams`) and the 4 "static" entries are `icon.png`, `apple-icon.png`,
+`manifest.webmanifest` and `robots.txt` — not pages. **No page in the app is
+statically cached.** Even pure marketing pages with no per-user content re-render on
+every hit.
+
+**Cause — PARTIAL, and my first write-up of this overstated it. Corrected by experiment:**
+
+`app/layout.tsx:77` — `const nonce = (await headers()).get('x-nonce')` — is *a* cause but
+**not the whole story**. Measured by removing that line and rebuilding:
+
+| build | static | dynamic |
+|---|---|---|
+| as-is | 4 (all non-pages: icons/manifest/robots) | **353** |
+| without `headers()` | **26** | 331 |
+
+So the nonce accounts for **22 routes** — and they are exactly the pure marketing pages
+(`/how-it-works`, `/fees`, `/for-donors`, `/trust-safety`, `/terms`, `/privacy`, …), which
+is a real and worthwhile win. **But `/` stays `ƒ` without it**, so the nonce does *not*
+explain the homepage MISS I measured — the very page the investigation started from.
+
+**Also disproven (don't repeat):** wrapping the homepage's three Supabase fetchers
+(`getHomeData`, `getCategoryStats`, `getRecentDonations`) in `unstable_cache` — the same
+pattern that works for announcements/banner-settings — changed **nothing**: still `ƒ`,
+static count still 26 with the nonce also removed. The theory was that Next 15's uncached
+`fetch` default was opting the route in; that is not it, or not only it.
+
+**Third candidate also eliminated:** stubbing `generateMetadata` to a literal
+(`return { title: 'CharitMe' }`, removing the `seoMetadata('/')` DB read) *with*
+`headers()` also removed — homepage **still `ƒ`**. So it is not the SEO-override lookup.
+
+**Homepage dynamic cause: still unidentified after 3 eliminations** (`headers()` nonce,
+`unstable_cache` on the data fetchers, `seoMetadata`). Remaining untested: the
+`AppShell`/provider tree in the root layout (it may read auth/cookies), or something in
+the page body itself. Note the puzzle for whoever continues — **26 other routes DID go
+static** once `headers()` was removed, and they render the same root layout and AppShell,
+so a blanket "the layout is dynamic" explanation does not fit either.
+
+**I stopped here deliberately.** Three wrong hypotheses on this one question is enough
+signal that I was guessing rather than converging, and each cut costs a full rebuild.
+Everything above is measured, and every experiment was reverted — the tree carries none
+of it. The eliminations are the deliverable: they are the expensive part, and they narrow
+the search for whoever picks it up. The nonce comes from `middleware.ts:47` and protects exactly two
+inline scripts (layout.tsx:81–82): the theme script and the JSON-LD blob.
+
+This is a genuine tension, not a mistake: a CSP nonce is per-request **by design** (that
+is what makes it unguessable), and static generation requires no per-request input. The
+CSP work (see the nonce entry earlier in this file) is a real security improvement — it
+just silently cost the entire site's caching. Note this also **regressed the PR #52
+finding** that the root layout "stays statically generated (verified `○ /` in the build)";
+that is no longer true.
+
+**Not fixed here — it is a security/perf trade-off in someone else's lane.** Options,
+best first:
+1. **Hash-based CSP for the two inline scripts.** Both are effectively static per deploy,
+   so `'sha256-…'` source expressions can replace `'nonce-…'`, `headers()` leaves the
+   root layout, and static/ISR is restored **with the same CSP strictness**. Caveat:
+   `'strict-dynamic'` currently pairs with the nonce and would need re-checking, and the
+   theme script's hash must be regenerated whenever its content changes (a build step).
+2. **Keep the nonce, scope the dynamic read.** Move the nonce-consuming scripts out of the
+   root layout so only the subtree that needs them is dynamic.
+3. **Accept it** — if per-request CSP is judged worth ~5× TTFB on every page.
+
+**Corroborating detail — there is only ONE cause here, not two.** Every HTML response
+carries `cache-control: private, no-cache, no-store, max-age=0, must-revalidate`, which
+would defeat CDN caching even for a static page. That header is **not set anywhere in the
+codebase** (no `no-store` in `middleware.ts` or `next.config`) — it is Next's *default for
+dynamically-rendered routes*. So it is a symptom of the same root cause and will clear
+itself once routes render statically again; do not go hunting for a separate
+header-setting bug.
+
+**Also verified healthy while measuring, so these need no work:** brotli (`content-encoding: br`)
+is on for HTML and JS, hashed static assets carry `public,max-age=31536000,immutable`
+(correct), and HSTS is present. Asset delivery is fine — **HTML caching is the whole
+problem.**
+
+**Verify after any change** with `curl -sI https://www.charitme.com/ | grep -i x-vercel-cache`
+(want `HIT`) and by confirming `○ /` reappears in the build output.
+
+## ✅ FULLY RESOLVED — soft-404 (4 in #63, /campaigns/[slug] here, /donors a non-issue)
 
 **Root cause (proven):** a `loading.tsx` at or above a detail route creates an implicit
 Suspense boundary; Next streams the shell and **commits HTTP 200 before the page body
@@ -2799,23 +2929,68 @@ they are not equivalent:
   `sitemap.ts` and are the primary indexed content, so soft-404s here really do let search
   engines index unlimited non-existent campaign URLs.
 
-### `/campaigns/[slug]` — what it needs, and why I did not do it
+### ✅ `/campaigns/[slug]` — FIXED (2026-07-23), skeleton kept
 
-It has **two** boundaries: `app/campaigns/loading.tsx` (parent, also covers the detail
-route) and `app/campaigns/[slug]/loading.tsx` (its own full-page skeleton). Options:
+**Solved with a third option neither of the two written up here considered.** A
+segment `layout.tsx` renders *outside* the Suspense boundary that `loading.tsx`
+creates for the page, so an existence check there runs **before the response
+commits** — correct 404s **and** the donation-path skeleton survives.
 
-1. **Route-group the list + delete the detail skeleton** — correct 404s, but the hottest
-   page loses its navigation placeholder.
-2. **Proper fix:** delete `loading.tsx`, keep `getCampaign` + `notFound()` at the top
-   (already the first statements), then wrap the heavy sections — donations, updates,
-   faqs, milestones, rewards — in in-page `<Suspense>`. This gives correct 404s *and*
-   better perceived performance than today, since the real header paints before the
-   sub-sections stream, instead of a whole-page grey skeleton.
+**Two parts, both required** (verified — neither works alone):
+1. `app/campaigns/[slug]/layout.tsx` awaits `getCampaign(slug)` → `notFound()`.
+   *On its own this still returned 200*, because the parent
+   `app/campaigns/loading.tsx` wraps the whole subtree including the layout.
+2. List page moved to `app/campaigns/(list)/` (page + loading), removing that
+   outer boundary from the detail route. URL unchanged.
 
-**Option 2 is the right answer and is deliberately left undone.** It restructures the
-donation page, and this sandbox has no database, so `/campaigns/[slug]` cannot be rendered
-here at all — the refactor would be shipped entirely unverified on the single most
-important page in the product. It needs an environment where the page actually renders.
+**Verified on a local prod build:** `/campaigns/missing` → **404** (was 200);
+`/campaigns` and `?category=` filters → 200; `/grants` → 404 (control);
+`[slug]/loading.tsx` **still present**. 1075/1075 tests, lint clean, build green.
+
+**Safety (it is the donation path):** `getCampaign` extracted to a shared React
+`cache()`d module imported by layout + `generateMetadata` + page → still **one
+query per request**, no added round-trip. The page keeps its own
+`if (!campaign) notFound()`, so real campaigns are untouched — the layout only
+changes *when* the identical check runs, never what it decides.
+
+**Bonus — a 7th route nobody had catalogued.** `/campaigns/[slug]/embed` was also
+soft-404ing in production (200 for a missing campaign); it was never in the original
+sweep. It inherits the same parent `app/campaigns/loading.tsx` boundary, and
+`[slug]/layout.tsx` wraps `embed/` too — so this fix resolves it as a side effect,
+**verified 200 → 404 on the local prod build**. Correct behaviour: an embed iframe for
+a deleted campaign should 404, not render an empty widget.
+
+Also checked and clean: `/impact/[slug]` → 404 already (no `loading.tsx`, consistent
+with the root cause).
+
+### Complete soft-404 sweep — all 12 public dynamic routes, checked on production
+
+Enumerated every public dynamic route (`find app -name page.tsx -path "*[*"`, minus
+dashboard/admin/api) rather than sampling, because the embed route showed the original
+sweep had missed nested ones. Status against `www.charitme.com`:
+
+| verdict | routes |
+|---|---|
+| ✅ correct 404 (8) | `/blog/[slug]`, `/events/[slug]`, `/features/[slug]`, `/grants/[slug]`, `/impact/[slug]`, `/matching/[id]`, `/sponsor/[id]`, `/volunteer/[slug]` |
+| 🔧 200 → fixed in #66 (2) | `/campaigns/[slug]`, `/campaigns/[slug]/embed` |
+| ⚪ 200, not a bug (2) | `/donors/[id]`, `/donor/tax-statement/[year]` |
+
+**#63's fixes are confirmed live:** `/events`, `/matching`, `/sponsor`, `/volunteer` now
+404 in production — they returned 200 before that merge. The root-cause theory also holds
+on a route that wasn't used to derive it: `/impact/[slug]` has no `loading.tsx` and 404s.
+
+**Why the two remaining 200s are not bugs:**
+- `/donors/[id]` — `robots.ts` disallows `/donors/` *and* the page emits `noindex`. No
+  crawler sees it, so no SEO impact; its skeleton should stay.
+- `/donor/tax-statement/[year]` — not a missing resource but an **auth state**: it serves
+  a *sign-in prompt* (verified: no tax data in the unauthenticated response), and `/donor`
+  is robots-disallowed. A 200 for "route exists, you're signed out" is correct. An
+  authenticated year with no donations legitimately renders an empty statement.
+
+**So the soft-404 topic is closed** — nothing outstanding once #66 merges.
+
+**All 7 soft-404 routes are now resolved** (4 in #63, this one here, `/donors/[id]`
+a documented non-issue — crawler-blocked by `robots.ts` + `noindex`).
 
 ## 🔓 CLAIM RELEASED 2026-07-23 (Claude/tbaz3i — dynamic `[slug]` public-page audit)
 
