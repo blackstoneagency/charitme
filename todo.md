@@ -558,8 +558,19 @@ assigned per-category, so every campaign in a category shared one identical cove
 - [ ] IMG-05 — `needs-staging`. Download → optimize (WebP/AVIF) → upload to
   Supabase Storage; repoint records at stable storage paths (drop Unsplash
   hotlink). Requires Storage write + binary pipeline.
-- [ ] IMG-06 — `needs-staging`. Perceptual/dHash near-duplicate detection over
-  image **binaries** (current audit is exact ID-level dedup only). Wire into CI.
+- [x] IMG-06 — **Done (2026-07-25).** Perceptual/dHash near-duplicate detection over
+  image **binaries** — it did not need staging after all. `scripts/audit-image-dupes.mjs`
+  downloads every cover, reduces to a 9x8 greyscale, computes a 64-bit dHash and
+  flags any pair within a Hamming threshold (exits 1, so it can gate CI).
+  **It immediately caught what URL-level dedup could not:** different Lorem Picsum
+  ids that resolve to *visually identical* photos — 1 exact-identical pair
+  (`id/128` == `id/456`) plus 20 near-duplicate pairs, i.e. the "0 duplicates" goal
+  was **not actually met** despite 500 distinct URLs.
+  Fixed with `scripts/fix-image-dupes.mjs`: hashes all covers, keeps the first of
+  each conflicting cluster, and reassigns the other 9 campaigns to replacement
+  Picsum ids whose hash is **verified distinct from every kept image before it is
+  written** (dry-run by default, `--apply` to commit). Applied to production.
+  **Re-audit: 500 covers, 0 exact-identical groups, 0 near-duplicate pairs.**
 - [ ] IMG-07 — `needs-browser`. Per-image visual relevance + quality grading and
   responsive visual regression (320–1920px, light/dark).
 - [ ] IMG-08 — `needs-staging`. Storage-bucket RLS/MIME/traversal/SSRF hardening
