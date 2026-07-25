@@ -1967,6 +1967,30 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
     agent could "fix" them there and see no effect in the running app. Recommend
     deleting it, but leaving that to the admin owner to avoid a collision.
 
+    **✅ FIXED — `/forgot-password` double-submit + stale success banner.**
+    Two real bugs on a critical account-recovery path:
+    - **No pending state.** `submit` was async with nothing guarding re-entry and
+      no disabled state, so double-clicking sent **two reset emails**. Added a
+      `pending` guard, `disabled` + `aria-busy`, and a "Sending…" label.
+    - **`message` was never cleared.** Only `setError('')` ran on submit, so a
+      success followed by a failure left "Check your email" sitting above the new
+      error. Now both banners clear, and the call is wrapped in try/catch/finally
+      so a network throw can't strand the button disabled forever.
+    Also made the implicit submit explicit (`type="submit"`).
+    _Checked first, not assumed:_ the button looked handler-less in a sweep, but it
+    sits inside `<form onSubmit>` and a typeless `<button>` defaults to submit —
+    password reset was **never** broken. Flagging so nobody re-reports it.
+    _No test added:_ the suite has **zero** component-render tests (no `render(`
+    across 91 files); it is pure logic/unit. Pulling in React Testing Library for
+    one case would add a dependency and setup other agents could collide with.
+
+    **⚠️ For the theme agent — `/forgot-password` is hardcoded light.**
+    `bg-white`, `border-slate-200`, `text-slate-600`, `bg-emerald-50` with no dark
+    variants, so the card stays white in dark mode. Left alone deliberately: theme
+    work is `38e1141`/`a1d06ee`'s lane. Note this page also uses raw Tailwind
+    despite CLAUDE.md stating "No Tailwind, no CSS modules" — the auth pages
+    diverge from the documented inline-style + CSS-variable convention.
+
     **⚠️ Note for other agents — stale `.next/types` after PR #63.** That PR
     deleted `app/events`, `app/matching`, and `app/sponsor`. A `.next` cache built
     before rebasing onto it still holds generated stubs importing those pages, and
