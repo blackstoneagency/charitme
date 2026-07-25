@@ -2834,27 +2834,50 @@ against the real production DB works and has already settled real questions
 >
 > _1101/1101 tests, lint clean, build green._
 
-## 🔒 CLAIM — ACTIVE (Claude/tbaz3i — nonprofit role has no dashboard)
+## 🔓 CLAIM RELEASED — nonprofit role now has a dashboard ✅
 
-> **🚧 IN FLIGHT — do not start this.** Second role gap, same shape as the
-> beneficiary one just shipped.
+> **DONE — area is FREE.** `nonprofit_profiles` (620 rows) was read by the admin
+> console, the Stripe webhook and `lib/tax-server.ts` — **but by no user-facing page**,
+> so the organization owning the record could not see it.
 >
-> **The gap (verified):** `nonprofit_profiles` holds **620 rows** with `name`, `slug`,
-> `mission`, `tax_id`, `verified`, `verification_status`, `tax_receipt_enabled`,
-> `public_profile_enabled`. It is read by `app/api/admin/nonprofits`, the Stripe
-> webhook and `lib/tax-server.ts` — **but by no user-facing page at all**. So the
-> nonprofit that owns the record cannot see it.
+> The sharp edge was **tax receipts**: `tax-server.ts` issues a donor a deductible
+> receipt only when `(verified || verification_status === 'verified')` **AND**
+> `tax_receipt_enabled`. A nonprofit had no way to know whether its donors were
+> getting receipts — or which of the two conditions was missing.
 >
-> That matters most for **tax receipts**: `lib/tax-server.ts` gives donors
-> deductible receipts only when `(verified || verification_status === 'verified')`
-> **and** `tax_receipt_enabled`. A nonprofit currently has **no way to know** whether
-> its donors are receiving official receipts, or why not.
+> **Shipped `/dashboard/nonprofit`:** organization details (legal name, EIN, country,
+> address, website, mission), verification state with plain-language copy per status,
+> the org's campaigns — and a dedicated **"Are your donors getting tax receipts?"**
+> card that answers yes/no and, when no, names *which* condition is unmet.
 >
-> **Scope:** `/dashboard/nonprofit` — organization profile, verification state, and an
-> explicit "are your donors getting tax receipts?" answer that mirrors tax-server's
-> rule exactly, plus the org's campaigns. Data layer unit-tested (page is auth-gated,
-> no DB here). **Not touching:** admin nonprofit routes, tax-server itself, the Stripe
-> webhook, or other roles' dashboards. Branch: `claude/charitme-github-integration-tbaz3i`.
+> **`lib/nonprofit-data.ts` mirrors tax-server's rule exactly** (`isNonprofitVerified`
+> handles the legacy `verified` bool OR the `verification_status` column — both exist
+> because the bool predates the column). **14 tests** pin it, including the dangerous
+> direction: receipts switched on while *unverified* must still read "no", because
+> tax-server refuses. Showing "yes" there would be a tax-consequential lie.
+>
+> **Three signature bugs caught before merge** (worth noting — I guessed APIs instead
+> of checking): `kf-btn-primary` **does not exist** (no `.kf-btn*` class in the CSS at
+> all) so both buttons would have rendered unstyled — the real pattern is
+> `<Link><Btn>…</Btn></Link>`; `EmptyState` takes `body` not `message`; and `shield`
+> is not a valid `KFIcon` name.
+>
+> _1115/1115 tests, lint clean, build green._
+
+### Role → dashboard → landing coverage (2026-07-23)
+
+| role | dashboard | landing |
+|---|---|---|
+| donor | `/donor` ✓ | `/for-donors` ✓ |
+| organizer | `/dashboard` ✓ | `/for-individuals` ✓ |
+| **beneficiary** | **`/dashboard/beneficiary` ✓ (new, #68)** | none — *and that's correct*: beneficiaries arrive by invite link, never by search, so a marketing page would serve no one |
+| **nonprofit** | **`/dashboard/nonprofit` ✓ (new)** | `/for-nonprofits` ✓ |
+| admin / super_admin | `/admin` ✓ | n/a (internal) |
+
+**Every modelled role now has a dashboard.** Remaining nonprofit gap, not built here:
+`nonprofit_profiles` has `slug` + `public_profile_enabled` columns that imply a
+**public** org page (`/nonprofits/[slug]`) which does not exist — a separate feature
+(SEO surface, indexing, RLS review), not a role-dashboard gap.
 
 ## 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
 
