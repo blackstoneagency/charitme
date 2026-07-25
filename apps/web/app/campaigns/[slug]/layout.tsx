@@ -1,5 +1,4 @@
-import { notFound } from 'next/navigation';
-import { getCampaign } from './get-campaign';
+import { assertCampaignExists } from './get-campaign';
 
 /**
  * Existence gate for the campaign detail route — this is what makes a missing
@@ -12,8 +11,8 @@ import { getCampaign } from './get-campaign';
  * boundary, so the check happens before the response is committed.
  *
  * This keeps `[slug]/loading.tsx` — the skeleton on the donation path — while
- * still serving correct 404s to crawlers. `getCampaign` is React-cache()d, so
- * this shares its single query with generateMetadata and the page.
+ * still serving correct 404s to crawlers. The gate reuses the React-cache()d
+ * `getCampaign`, so it shares one query with generateMetadata and the page.
  */
 export default async function CampaignDetailLayout({
   children,
@@ -23,6 +22,6 @@ export default async function CampaignDetailLayout({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  if (!(await getCampaign(slug))) notFound();
+  await assertCampaignExists(slug);
   return <>{children}</>;
 }
