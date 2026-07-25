@@ -16,7 +16,7 @@
 
 | Goal item | Status | Evidence / blocker |
 |-----------|--------|--------------------|
-| Images unique, 0 duplicates | ✅ done | covers 50→**500 distinct**, 0 dup groups (migration applied live). **Re-verified this session: `photo-catalog.ts` fallback pool has 0 within-category duplicates** (every category's list is all-distinct); only intentional cross-category community/sports fallbacks overlap. New Unsplash IDs not added — they can't be HTTP-200-verified from the sandbox, and unverified IDs would risk broken images |
+| Images unique, 0 duplicates | ✅ done — **now verified at BINARY level** | covers 50→**500 distinct** URLs (migration applied live). **URL-uniqueness was NOT sufficient:** a dHash audit of the actual image binaries (IMG-06) found different Picsum ids resolving to identical photos — 1 exact pair + 20 near-dupes. 9 campaigns reassigned to hash-verified-distinct images; **re-audit: 0 exact, 0 near-duplicate across all 500.** `scripts/audit-image-dupes.mjs` gates this in CI. **Re-verified this session: `photo-catalog.ts` fallback pool has 0 within-category duplicates** (every category's list is all-distinct); only intentional cross-category community/sports fallbacks overlap. New Unsplash IDs not added — they can't be HTTP-200-verified from the sandbox, and unverified IDs would risk broken images |
 | ≥100 seed records/feature | ✅ done | 73 non-empty tables, every feature ≥100 |
 | Security (RLS) | ✅ verified | **143/143** public tables RLS-on; **fixed live Stripe webhook + disabled rogue endpoint** |
 | Payment webhooks | ✅ fixed | prod webhook 2→**20 events**; recurring/subs/refunds now delivered |
