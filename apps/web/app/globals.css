@@ -6508,6 +6508,19 @@ img, video, iframe { max-width: 100%; }
 /* text tiers (light-surface text only; light-on-dark utils left alone) */
 [data-theme="dark"] .mktg-page .text-slate-950,
 [data-theme="dark"] .mktg-page .text-slate-900 { color: var(--t1) !important; }
+/* …except when the dark ink sits ON a saturated brand background (a bright CTA,
+   e.g. the emerald button on /features/[slug]). That is intentional dark-on-bright:
+   the remap above would flip it to light --t1 and drop it to ~2:1. Keep it dark
+   (slate-950 on emerald-500 ≈ 7.9:1). */
+[data-theme="dark"] .mktg-page .bg-emerald-300.text-slate-950,
+[data-theme="dark"] .mktg-page .bg-emerald-400.text-slate-950,
+[data-theme="dark"] .mktg-page .bg-emerald-500.text-slate-950,
+[data-theme="dark"] .mktg-page .bg-emerald-300.text-slate-900,
+[data-theme="dark"] .mktg-page .bg-emerald-400.text-slate-900,
+[data-theme="dark"] .mktg-page .bg-emerald-500.text-slate-900,
+[data-theme="dark"] .mktg-page .bg-lime-400.text-slate-950,
+[data-theme="dark"] .mktg-page .bg-amber-400.text-slate-950,
+[data-theme="dark"] .mktg-page .bg-yellow-400.text-slate-950 { color: #020617 !important; }
 [data-theme="dark"] .mktg-page .text-slate-800,
 [data-theme="dark"] .mktg-page .text-slate-700 { color: var(--t2) !important; }
 [data-theme="dark"] .mktg-page .text-slate-600,
@@ -6573,4 +6586,84 @@ img, video, iframe { max-width: 100%; }
   body { background: #fff !important; }
   /* Ensure the statement prints crisply regardless of viewer theme. */
   :root { color-scheme: light; }
+}
+
+/* ============================================================================
+   Keyboard accessibility — added after a keyboard/focus audit (2026-07-23).
+   axe-core reported 0 violations on these pages because neither issue below is
+   auto-detectable: "bypass blocks" needs a manual check, and a stripped focus
+   ring only shows up when you actually Tab through the page.
+   ========================================================================== */
+
+/* WCAG 2.4.1 Bypass Blocks. Off-screen until focused, then pinned top-left. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 1000;
+  padding: 12px 18px;
+  border-radius: 0 0 10px 0;
+  background: var(--violet);
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  text-decoration: none;
+}
+.skip-link:focus {
+  left: 0;
+  outline: 3px solid #fff;
+  outline-offset: -3px;
+}
+/* The skip target must not draw its own ring when focused programmatically. */
+#main-content:focus { outline: none; }
+
+/* WCAG 2.4.7 Focus Visible. ~25 rules across this file clear `outline` on
+   inputs/textareas for styling, which leaves keyboard users with no focus
+   indicator at all. Restore an unmistakable ring for keyboard/AT focus only —
+   `:focus-visible` keeps it off mouse clicks. `!important` is required to beat
+   the class-level `outline: none` declarations those components rely on. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--violet) !important;
+  outline-offset: 2px;
+}
+/* On the dark brand bands the violet ring is low-contrast — use white there. */
+[data-theme="dark"] a:focus-visible,
+[data-theme="dark"] button:focus-visible,
+[data-theme="dark"] input:focus-visible,
+[data-theme="dark"] select:focus-visible,
+[data-theme="dark"] textarea:focus-visible,
+[data-theme="dark"] [role="button"]:focus-visible {
+  outline-color: #c4b5fd !important;
+}
+
+/* The transparency calculator's tier/method buttons are inline-styled and did
+   not pick up the global focus ring above, so they carry an explicit one. Uses
+   box-shadow (not outline) because it renders reliably over their own border. */
+.mc-choice:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 3px var(--violet-ink), 0 0 0 5px var(--s1) !important;
+}
+
+/* ----------------------------------------------------------------------------
+   Reduced motion. The stylesheet defines ~16 animations and ~120 transitions,
+   but only two spots honoured `prefers-reduced-motion`. Users who ask their OS
+   to reduce motion (often for vestibular disorders / migraine) were still shown
+   nearly all of it. Neutralise motion globally rather than per-component so new
+   animations are covered by default. Durations are near-zero rather than 0 so
+   `transitionend`/`animationend` handlers still fire.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

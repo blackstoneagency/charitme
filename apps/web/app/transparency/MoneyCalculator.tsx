@@ -117,6 +117,7 @@ export default function MoneyCalculator() {
             <button
               key={p}
               type="button"
+              className="mc-choice"
               onClick={() => setSupportPercent(p)}
               aria-pressed={active}
               style={{
@@ -149,6 +150,7 @@ export default function MoneyCalculator() {
               <button
                 key={m.id}
                 type="button"
+                className="mc-choice"
                 onClick={() => setMethod(m.id)}
                 aria-pressed={active}
                 style={{

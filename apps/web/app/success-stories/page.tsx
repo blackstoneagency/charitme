@@ -203,7 +203,7 @@ export default async function SuccessStoriesPage() {
           </div>
 
           {gridStories.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 24 }}>
               {gridStories.map((story) => {
                 const cover = optimizedCoverUrl(story.cover_image_url || getCoverForCampaign(story.category, story.slug), 700);
                 const progress = pct(story.raised_amount, story.goal_amount);
@@ -270,7 +270,7 @@ export default async function SuccessStoriesPage() {
               <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet-ink)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Community Voices</span>
               <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 14px' }}>What our fundraisers say</h2>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 24 }}>
               {stories.slice(0, 3).map((story, i) => (
                 <div key={story.slug} style={{ background: 'linear-gradient(145deg, var(--s1, #faf8ff), var(--s2, #f3f0ff))', border: '1.5px solid var(--b1, #ede9fe)', borderRadius: 20, padding: '28px', position: 'relative' }}>
                   <div style={{ fontSize: 48, fontWeight: 950, color: 'var(--b1, #ede9fe)', lineHeight: 1, position: 'absolute', top: 16, right: 24, userSelect: 'none' }}>&ldquo;</div>

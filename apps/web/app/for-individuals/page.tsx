@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'For Individuals — Personal Fundraising',
-  description: 'CharitMe makes personal fundraising for medical bills, emergencies, memorials, and family needs simple, trusted, and fast — with a free AI Copilot and 0% platform fee.',
+  description: 'Personal fundraising for medical bills, emergencies, memorials, and family needs — simple, trusted and fast, with a free AI Copilot and 0% platform fee.',
   alternates: { canonical: 'https://www.charitme.com/for-individuals' },
 };
 

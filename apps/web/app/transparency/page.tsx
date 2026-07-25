@@ -7,7 +7,7 @@ import JsonLd from '../../components/JsonLd';
 export const metadata: Metadata = {
   title: 'Transparency Center — Where Your Money Goes | CharitMe',
   description:
-    'See exactly where every dollar goes. CharitMe charges organizers a 0% platform fee, donor support is always optional, and funds flow directly to verified recipients via Stripe — never held by CharitMe.',
+    'See exactly where every dollar goes: a 0% platform fee for organizers, always-optional donor support, and funds paid directly to verified recipients via Stripe.',
   alternates: { canonical: 'https://www.charitme.com/transparency' },
   openGraph: {
     title: 'Transparency Center — Where Your Money Goes | CharitMe',

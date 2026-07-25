@@ -17,7 +17,13 @@ import { join, sep } from 'node:path';
 // User-facing app areas that must render correctly in dark AND light mode.
 // (Admin console is intentional light-only internal tooling; branded marketing
 // pages keep their brand palettes — both are out of scope for this guard.)
-const GUARDED_DIRS = ['dashboard', 'donor', 'profile'].map((d) => join(__dirname, '..', 'app', d));
+// Public dynamic [slug]/[id] routes are included too: they are Supabase-backed,
+// so they cannot be browser-audited from the sandbox (no DB) — this static guard
+// is the regression protection they'd otherwise lack.
+const GUARDED_DIRS = [
+  'dashboard', 'donor', 'profile',
+  'campaigns', 'donors', 'matching', 'sponsor', 'volunteer', 'events', 'grants', 'impact',
+].map((d) => join(__dirname, '..', 'app', d));
 
 function walk(dir: string): string[] {
   const out: string[] = [];

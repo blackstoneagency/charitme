@@ -1,6 +1,10 @@
 // CharitMe service worker — enables PWA install + offline fallback.
 // Bump CACHE_VERSION whenever precached assets change so old caches get cleaned up.
-const CACHE_VERSION = 'v1';
+// v2 (2026-07-23): the sitewide logo was re-encoded 292KB -> 6.7KB (commit
+// 175ec23) and the hero PNG -> WebP, but `/logo.png` and friends are NOT
+// content-hashed, so the cache-first rule below kept serving the old heavy
+// copies to every returning visitor. Bumping the version drops those caches.
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `charitme-${CACHE_VERSION}`;
 const OFFLINE_URL = '/offline';
 
