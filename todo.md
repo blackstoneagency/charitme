@@ -2845,6 +2845,19 @@ best first:
    root layout so only the subtree that needs them is dynamic.
 3. **Accept it** — if per-request CSP is judged worth ~5× TTFB on every page.
 
+**Corroborating detail — there is only ONE cause here, not two.** Every HTML response
+carries `cache-control: private, no-cache, no-store, max-age=0, must-revalidate`, which
+would defeat CDN caching even for a static page. That header is **not set anywhere in the
+codebase** (no `no-store` in `middleware.ts` or `next.config`) — it is Next's *default for
+dynamically-rendered routes*. So it is a symptom of the same root cause and will clear
+itself once routes render statically again; do not go hunting for a separate
+header-setting bug.
+
+**Also verified healthy while measuring, so these need no work:** brotli (`content-encoding: br`)
+is on for HTML and JS, hashed static assets carry `public,max-age=31536000,immutable`
+(correct), and HSTS is present. Asset delivery is fine — **HTML caching is the whole
+problem.**
+
 **Verify after any change** with `curl -sI https://www.charitme.com/ | grep -i x-vercel-cache`
 (want `HIT`) and by confirming `○ /` reappears in the build output.
 
