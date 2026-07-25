@@ -2806,6 +2806,28 @@ against the real production DB works and has already settled real questions
 > Touched `app/create/page.tsx`, new `lib/builder-validation.ts`, new test. Did not
 > touch step structure, drafts, the guest gate, the publish gate, or any API.
 
+## 🔒 CLAIM — ACTIVE (Claude/tbaz3i — beneficiary role has no dashboard)
+
+> **🚧 IN FLIGHT — do not start this.** Building the missing **beneficiary** surface.
+>
+> **The gap (verified in code):** `beneficiary` is one of six roles in
+> `lib/roles.ts` and has a full invite flow (`beneficiary_invites`,
+> `/beneficiary/accept`), and `campaigns.beneficiary_profile_id` links a campaign to
+> the person it benefits. But **no dashboard anywhere reads
+> `beneficiary_profile_id`** (`grep` across `app/dashboard/**` and `app/donor/**`
+> returns nothing), and `/beneficiary/accept` redirects the accepted user to
+> `/dashboard/payouts`, which scopes every query by `.eq('user_id', userId)` — the
+> campaign **owner**. So someone who accepts a beneficiary invite lands on an
+> **empty dashboard** with no campaigns, no payouts and no explanation. A modelled,
+> invitable role dead-ends immediately after onboarding.
+>
+> **Scope:** a `/dashboard/beneficiary` view listing the campaigns the signed-in user
+> is the beneficiary of (progress, status, organizer, payout state), wired to
+> Supabase; redirect `/beneficiary/accept` there; data layer unit-tested (the page
+> itself is auth-gated so it can't be walked in this sandbox).
+> **Not touching:** the create wizard, `/dashboard/payouts` owner queries, admin, or
+> any existing role's dashboard. Branch: `claude/charitme-github-integration-tbaz3i`.
+
 ## 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
 
 Checked the live `sitemap.xml` because the soft-404 fix makes stale entries *visible*
