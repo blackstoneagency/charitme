@@ -1939,6 +1939,34 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
     the literals against the schema, so the round-trip cannot 400.
     _Net for this page: 4 dead controls removed, 2 real ones added._
 
+    **⚠️ HANDOFF — 4 dead controls in the LIVE admin user drawer (not fixed here).**
+    `app/admin/users/_components/AdminUsersClient.tsx`, all verified as having no
+    `onClick` and no enclosing form:
+    - **L658 `Edit ✏️`** — no handler.
+    - **L766 sub-tab strip** (`Login History` / `Actions` / `Sessions`) — no handler,
+      and `active` is hardcoded to `'Login History'`, so the selection can never
+      move. The panel below renders `selectedActivities` regardless of tab, so the
+      tabs are decorative over a single dataset.
+    - **L820 `View Public Profile`** — no handler, and **nowhere to point**:
+      `app/profile` has no dynamic segment, so no public per-user profile route
+      exists.
+    - **L793 `View all activity →`** — no handler.
+    Not oversight-by-me: the button at L822 immediately below has a working
+    `onClick`, so these four are genuinely unfinished. **I did not fix them** —
+    each needs a feature that does not exist yet (a public profile route, a
+    sessions/actions view, an admin edit flow), and the file is hot (3 recent
+    commits from other agents: `a70587b`, `8a68d2d`, `679c294`). Whoever owns
+    admin should take it with this evidence.
+
+    **⚠️ COORDINATION HAZARD — `_components/UsersClient.tsx` is orphaned dead code.**
+    623 lines that duplicate the live `AdminUsersClient.tsx` (1391 lines), and
+    **nothing imports it** — verified with an exact-import regex, not a substring
+    grep (a plain `grep UsersClient` gives false hits because it also matches
+    `AdminUsersClient` and `SuperUsersClient`). `app/admin/users/page.tsx` imports
+    `AdminUsersClient`. It carries its own copies of the same dead controls, so an
+    agent could "fix" them there and see no effect in the running app. Recommend
+    deleting it, but leaving that to the admin owner to avoid a collision.
+
     **⚠️ Note for other agents — stale `.next/types` after PR #63.** That PR
     deleted `app/events`, `app/matching`, and `app/sponsor`. A `.next` cache built
     before rebasing onto it still holds generated stubs importing those pages, and
