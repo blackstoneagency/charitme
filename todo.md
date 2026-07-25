@@ -2605,6 +2605,25 @@ IMPLEMENTATION_STATUS, KNOWN_LIMITATIONS, CHANGELOG).
 - No new external integrations faked; RLS unchanged (service-role only).
 
 
+
+### 🔧 Sandbox capability note (2026-07-23) — what CAN and cannot be checked from here
+
+Correcting a wrong assumption that cost several cycles: **"no database in the sandbox"
+is not a blanket blocker.** `www.charitme.com` is public, so read-only verification
+against the real production DB works and has already settled real questions
+(the soft-404 above, Supabase wiring, cover-image uniqueness).
+
+- ✅ **`curl` against production works.** Use it for status codes, headers, rendered
+  HTML, record counts, metadata, robots/sitemap.
+- ❌ **Playwright/Chromium against external hosts does NOT work** — every navigation
+  dies with `net::ERR_CONNECTION_RESET` through the agent proxy, with or without
+  `proxy:{server:HTTPS_PROXY}`, `--ignore-certificate-errors`, or QUIC/HTTP2 disabled.
+  So axe/CWV/overflow sweeps must run against a **local prod build**, not production.
+- ❌ The **Vercel preview** URL is behind deployment protection (302), so it is not a
+  substitute for production.
+- ❌ Genuinely blocked (needs writes or secrets): running the seed suite, placing a
+  real charge across payment methods, rotating the exposed keys.
+
 ## 🔴 CONFIRMED BUG — soft-404 on 6 Supabase-backed detail routes (2026-07-23)
 
 **Verified against LIVE PRODUCTION** (`www.charitme.com`, real DB — not a sandbox
