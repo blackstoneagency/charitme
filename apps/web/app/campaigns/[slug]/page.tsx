@@ -26,6 +26,7 @@ import CommentsList, { type WallComment } from './CommentsList';
 import SaveCampaignButton from './SaveCampaignButton';
 import CampaignAssistant from './CampaignAssistant';
 import { getPhotosForCategory, getCoverForCampaign } from '../../../lib/photo-catalog';
+import { optimizedCoverUrl } from '../../../lib/img-optimize';
 import { optimizeAsks, computeImpact } from '../../../lib/donation-optimizer';
 
 export const dynamic = 'force-dynamic';
@@ -779,7 +780,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                 <Link key={c.id} href={`/campaigns/${c.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div style={{ border: '1px solid var(--b1, #f1f5f9)', borderRadius: 12, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--s1, #fff)' }}>
                     <div style={{
-                      height: 130, background: `url(${c.cover_image_url || getCoverForCampaign(c.category, c.slug)}) center/cover`,
+                      height: 130, background: `url(${optimizedCoverUrl(c.cover_image_url || getCoverForCampaign(c.category, c.slug), 420)}) center/cover`,
                     }} />
                     <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
                       {c.category && <span style={{ fontSize: 11, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: 0.4 }}>{c.category}</span>}

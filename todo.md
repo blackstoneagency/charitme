@@ -1392,6 +1392,22 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM26 · performance — WebP covers across ALL remaining surfaces** — Extended
+  `optimizedCoverUrl` to every other place a cover renders, each sized to its actual
+  render box: `/success-stories` featured hero (900) + story cards (700),
+  `/donors/[id]` campaign tiles (480), campaign-detail **similar-campaigns** rail
+  (420), and `/leaderboard` rows (320). Deliberately **left the OG/social-share
+  image full-size** (`campaigns/[slug]` metadata) — social scrapers need the large
+  asset. Every cover on every page is now right-sized WebP from known hosts, with
+  uploads untouched. _typecheck + lint clean; suite **1035/1035**; build green._
+
+- **CHAR-SM25b · merge note (Claude ⇄ Codex)** — Codex converted the `/campaigns`
+  card cover from a CSS background to a **lazy-loaded `<img>`** while Claude added
+  **WebP right-sizing**; resolved by combining both (their `<img loading="lazy">`
+  with `optimizedCoverUrl(...)` as the `src`). Codex also extended
+  `lib/campaign-draft.ts` with **cross-device (Supabase) resume** + publish-failure
+  copy on top of Claude's autosave module. Suite after merge: **1035/1035**.
+
 - **CHAR-SM25 · performance — right-sized WebP campaign covers** — Discovery cards
   render ~190–350px tall but loaded full **800×600 JPEG** covers (45.7KB each ×
   60 cards). New `lib/img-optimize.ts#optimizedCoverUrl` (pure, 7/7 tested)
