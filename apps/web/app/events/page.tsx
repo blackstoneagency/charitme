@@ -46,7 +46,7 @@ export default async function EventsPage() {
                   {e.virtual_url ? <Badge color="green">Virtual</Badge> : e.location ? <Badge color="gray">{e.location}</Badge> : null}
                   {full ? <Badge color="red">Full</Badge> : Number.isFinite(remaining) ? <Badge color="green">{remaining} spots left</Badge> : null}
                 </div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>{e.title}</h3>
+                <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>{e.title}</h2>
                 <div style={{ fontSize: 13, color: 'var(--t4)', marginBottom: 8 }}>{dateLabel(e.starts_at)}</div>
                 {e.description && (
                   <p style={{ color: 'var(--t3)', fontSize: 14, lineHeight: 1.5, margin: 0 }}>

@@ -28,7 +28,7 @@ function OpportunityCard({ o }: { o: OpportunityWithOrganizer }) {
           <Badge color="gray">From {formatMoneyShort(o.min_amount_cents, o.currency)}</Badge>
         )}
       </div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>{o.title}</h3>
+      <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>{o.title}</h2>
       <p style={{ color: 'var(--t3)', fontSize: 14, lineHeight: 1.5, margin: 0 }}>
         {o.description.length > 150 ? `${o.description.slice(0, 150)}…` : o.description}
       </p>

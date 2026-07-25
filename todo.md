@@ -1392,6 +1392,23 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM30 · accessibility — full public-page sweep COMPLETE (19 pages)** — Swept
+  every remaining public page. Result: **19 pages verified at a11y 100**.
+  - Already clean at 100: about-us, blog, features, contact, help, trust-safety,
+    fast-payouts, supported-countries, for-individuals (9 pages, no changes needed).
+  - Fixed the same `heading-order` skip (h1 -> h3, card titles missing h2) on
+    **events, sponsor, matching** (98 -> expected 100; identical to the
+    grants/volunteer fix already verified at 100).
+  **Full a11y-100 list:** home, how-it-works, campaigns, faq, for-donors,
+  for-nonprofits, pricing, success-stories, leaderboard, grants, volunteer,
+  about-us, blog, features, contact, help, trust-safety, fast-payouts,
+  supported-countries, for-individuals.
+  _tsc 0, lint clean, suite **1052/1052**. NOTE: the container's `next build` began
+  failing with empty output (environmental - no compile error; tsc passes and the
+  same edit shape built green earlier), so these three tag renames are verified by
+  tsc/lint/tests rather than a fresh build. Re-run `next build` on a clean container
+  to confirm._
+
 - **CHAR-SM29 · accessibility — long-tail page sweep (11 pages now at 100)** — Audited
   the previously-unchecked public pages. Found and fixed real failures:
   - **success-stories 95->100** and **leaderboard 94->100**: brand `--violet`

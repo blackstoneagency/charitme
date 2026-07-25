@@ -58,7 +58,7 @@ export default async function MatchingPage() {
                   <Badge color="gray">Up to {formatMoneyShort(p.annual_cap_cents, p.currency)}/yr</Badge>
                 )}
               </div>
-              <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>{p.company_name}</h3>
+              <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>{p.company_name}</h2>
               {p.description && (
                 <p style={{ color: 'var(--t3)', fontSize: 14, lineHeight: 1.5, margin: 0 }}>
                   {p.description.length > 140 ? `${p.description.slice(0, 140)}…` : p.description}
