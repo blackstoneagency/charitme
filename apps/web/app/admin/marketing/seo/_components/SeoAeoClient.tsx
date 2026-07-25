@@ -49,9 +49,11 @@ const h2: React.CSSProperties = { fontSize: 18, fontWeight: 900, color: 'var(--t
 const EMPTY_SEO = { id: '', route: '', title: '', meta_description: '', keywords: '', og_title: '', og_description: '', og_image_url: '', canonical_url: '', noindex: false };
 const EMPTY_AEO = { id: '', question: '', answer: '', topic: '', route: '/faq', schema_type: 'FAQPage', priority: 0, published: true };
 
-export default function SeoAeoClient({ initialSeo, initialAeo, coverage }: { initialSeo: SeoRow[]; initialAeo: AeoRow[]; coverage: SeoAeoCoverage }) {
+export default function SeoAeoClient({ initialSeo, initialAeo, coverage, initialTab = 'seo' }: { initialSeo: SeoRow[]; initialAeo: AeoRow[]; coverage: SeoAeoCoverage; initialTab?: 'seo' | 'aeo' }) {
   const router = useRouter();
-  const [tab, setTab] = useState<'seo' | 'aeo'>('seo');
+  // The parent Marketing page owns which of SEO/AEO is showing (it renders this
+  // component with a `key` per tab, so local state starts from the right one).
+  const [tab, setTab] = useState<'seo' | 'aeo'>(initialTab);
   const [seoForm, setSeoForm] = useState<typeof EMPTY_SEO>(EMPTY_SEO);
   const [aeoForm, setAeoForm] = useState<typeof EMPTY_AEO>(EMPTY_AEO);
   const [busy, setBusy] = useState(false);

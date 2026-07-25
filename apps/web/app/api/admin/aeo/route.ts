@@ -59,6 +59,15 @@ export async function POST(request: NextRequest) {
     : await supabaseAdmin.from('aeo_entries').insert(row).select().single();
 
   if (result.error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
+  // Audit trail: preserved from the retired /api/admin/super/aeo route, which
+  // logged every mutation via logSuperAdminAction.
+  await supabaseAdmin.from('marketing_audit_logs').insert({
+    actor_id: admin.id,
+    action: d.id ? 'aeo_updated' : 'aeo_created',
+    entity: 'aeo_entries',
+    entity_id: result.data.id,
+    detail: { route: row.route, published: row.published, schema_type: row.schema_type },
+  });
   return NextResponse.json(result.data);
 }
 
@@ -69,5 +78,8 @@ export async function DELETE(request: NextRequest) {
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
   const { error } = await supabaseAdmin.from('aeo_entries').delete().eq('id', id);
   if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
+  await supabaseAdmin.from('marketing_audit_logs').insert({
+    actor_id: admin.id, action: 'aeo_deleted', entity: 'aeo_entries', entity_id: id, detail: {},
+  });
   return NextResponse.json({ ok: true });
 }

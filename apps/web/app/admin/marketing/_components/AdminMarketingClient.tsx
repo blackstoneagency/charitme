@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import SeoAeoClient, { type SeoRow, type AeoRow, type SeoAeoCoverage } from '../seo/_components/SeoAeoClient';
 
 /* ── shared styles ── */
 const card: React.CSSProperties = { background: '#fff', border: '1px solid #eef0f7', borderRadius: 14, padding: '20px 24px', marginBottom: 16 };
@@ -28,6 +29,8 @@ const TABS = [
   { key: 'automations', label: 'Automations' },
   { key: 'copilot',     label: 'AI Copilot' },
   { key: 'outreach',    label: 'Outreach' },
+  { key: 'seo',         label: 'SEO' },
+  { key: 'aeo',         label: 'AEO' },
 ] as const;
 type TabKey = typeof TABS[number]['key'];
 
@@ -62,9 +65,12 @@ interface OutreachStats { total: number; validated: number; deliverable: number;
 const money = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 const dt = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
-export default function AdminMarketingClient({ initialTab = 'overview', overview }: {
+export default function AdminMarketingClient({ initialTab = 'overview', overview, seo, aeo, seoCoverage }: {
   initialTab?: TabKey;
   overview: { contacts: number; byType: Record<string, number>; events7d: number; campaignsSent: number; topSegments: { name: string; member_count: number }[]; unsubscribed: number };
+  seo: SeoRow[];
+  aeo: AeoRow[];
+  seoCoverage: SeoAeoCoverage;
 }) {
   const [tab, setTab] = useState<TabKey>(initialTab);
   const [notice, setNotice] = useState('');
@@ -93,6 +99,11 @@ export default function AdminMarketingClient({ initialTab = 'overview', overview
       {tab === 'automations' && <AutomationsTab flash={flash} />}
       {tab === 'copilot'     && <CopilotTab flash={flash} />}
       {tab === 'outreach'    && <OutreachTab flash={flash} />}
+      {/* SEO + AEO were a separate page (and a duplicate page at
+          /admin/super/marketing); they live here now so Marketing is one surface. */}
+      {(tab === 'seo' || tab === 'aeo') && (
+        <SeoAeoClient key={tab} initialSeo={seo} initialAeo={aeo} coverage={seoCoverage} initialTab={tab} />
+      )}
     </div>
   );
 }

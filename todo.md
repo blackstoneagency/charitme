@@ -1392,6 +1392,28 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM28 · admin — merged the two Marketing pages into one** (owner request).
+  `/admin/marketing` and `/admin/super/marketing` were **two parallel UIs over the
+  SAME tables** (`seo_settings`, `aeo_entries`, `marketing_campaigns`) with their
+  own duplicate API routes — an admin could edit the same record in two places with
+  different field sets and different validation. Now **one Marketing page**:
+  - **SEO** and **AEO** are first-class tabs on `/admin/marketing` (data loaded
+    server-side alongside the overview; coverage metrics preserved).
+  - `/admin/super/marketing` → **redirects** to `/admin/marketing`; its orphaned
+    `MarketingClient.tsx` deleted; SuperAdminNav points at the merged page.
+  - The six sibling pages that were just the hub with a preset tab (audience,
+    segments, campaigns, automations, copilot, outreach) → **redirects** to
+    `?tab=…`, so old links/bookmarks still work (build: 656 B stubs vs the 12.9 kB
+    real page). `/admin/marketing/seo` also redirects to `?tab=seo`.
+  - **Duplicate API routes removed** (`/api/admin/super/{seo,aeo}`, no callers left).
+  - **⚠️ Caught a governance regression in the merge:** the retired super routes used
+    `guardSuperAdmin` + `logSuperAdminAction`, while the surviving admin routes had
+    **no audit trail**. Added `marketing_audit_logs` writes to
+    `/api/admin/{seo,aeo}` for create/update/delete so auditability is preserved.
+  _typecheck + lint clean; suite **1040/1040**; build green (routes verified in the
+  build output). Note: admin routes are auth-gated, so redirect targets could not be
+  followed headlessly — verified by build/type/lint rather than a logged-in click-through._
+
 - **CHAR-SM27 · payments BUG — donor payment methods that Checkout can't fulfil** —
   The donate form offered **PayPal** and **Venmo** with their own processing-fee
   rates, but `ONE_TIME_PAYMENT_METHOD_TYPES` only enables card/link/cashapp/
