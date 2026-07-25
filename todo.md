@@ -1784,7 +1784,21 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
    Fundraiser`, `Why We Beat GoFundMe`) — two of which are near-duplicates. Choice
    overload at the highest-intent moment on the site.
 10. **Locale + language switcher** in the footer (`United States · English`).
-    `lib/i18n.ts` exists but is not surfaced to visitors.
+    **✅ PARTIALLY FIXED — two dead controls found in `/dashboard/settings` while
+    checking this.** Both were user-facing lies, now corrected:
+    - **"Default Date Range" was a dead control.** It had no `value`/`onChange`
+      binding and was **absent from the `savePreferences` payload** — so a user
+      changed it, got a green *"Preferences saved!"* toast, and nothing persisted.
+      No consumer exists anywhere in the codebase. Removed rather than faked.
+      _Verified: not in the PATCH body; `grep default_date_range` → 0 hits._
+    - **"Language" saves but does nothing.** It correctly persists
+      `profiles.language` to Supabase, but `t()` in `lib/i18n.ts` is imported by
+      **zero rendering components**, so selecting *Español* leaves the entire site
+      in English. Added honest hint copy ("Translated pages are still rolling
+      out — the interface currently displays in English") instead of implying it
+      works. _Verified: only 2 importers of `lib/i18n`, neither renders UI._
+    _Still open:_ real translation coverage (a genuine multi-quarter effort — every
+    user-facing string), and the public footer locale switcher.
 11. **Account deactivate vs. permanently delete** as distinct, documented actions.
     CharitMe's `/privacy-center` does deletion requests only; deactivation (hide,
     reversible) is not offered.
