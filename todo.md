@@ -2850,10 +2850,22 @@ pattern that works for announcements/banner-settings — changed **nothing**: st
 static count still 26 with the nonce also removed. The theory was that Next 15's uncached
 `fetch` default was opting the route in; that is not it, or not only it.
 
-**So the homepage's dynamic cause is still unidentified.** Untested candidates:
-`seoMetadata('/')` in `generateMetadata` (reads SEO overrides from the DB), or something
-in the `AppShell`/provider tree. Next step: bisect by stubbing `generateMetadata` first —
-that is the cheapest remaining cut. The nonce comes from `middleware.ts:47` and protects exactly two
+**Third candidate also eliminated:** stubbing `generateMetadata` to a literal
+(`return { title: 'CharitMe' }`, removing the `seoMetadata('/')` DB read) *with*
+`headers()` also removed — homepage **still `ƒ`**. So it is not the SEO-override lookup.
+
+**Homepage dynamic cause: still unidentified after 3 eliminations** (`headers()` nonce,
+`unstable_cache` on the data fetchers, `seoMetadata`). Remaining untested: the
+`AppShell`/provider tree in the root layout (it may read auth/cookies), or something in
+the page body itself. Note the puzzle for whoever continues — **26 other routes DID go
+static** once `headers()` was removed, and they render the same root layout and AppShell,
+so a blanket "the layout is dynamic" explanation does not fit either.
+
+**I stopped here deliberately.** Three wrong hypotheses on this one question is enough
+signal that I was guessing rather than converging, and each cut costs a full rebuild.
+Everything above is measured, and every experiment was reverted — the tree carries none
+of it. The eliminations are the deliverable: they are the expensive part, and they narrow
+the search for whoever picks it up. The nonce comes from `middleware.ts:47` and protects exactly two
 inline scripts (layout.tsx:81–82): the theme script and the JSON-LD blob.
 
 This is a genuine tension, not a mistake: a CSP nonce is per-request **by design** (that
