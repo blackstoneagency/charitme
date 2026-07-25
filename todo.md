@@ -1764,6 +1764,94 @@ tests/build/live-HTTP are listed here.
 
 ---
 
+## 0.1b GoFundMe competitive teardown — verified feature gaps (2026-07-25)
+
+_Source: 18-slide screenshot deck of gofundme.com (ingested by rendering the
+embedded images — the deck carries no extractable text). Every "MISSING" below
+was checked against this repo, not assumed; the check used is noted. Owned by the
+production-ready agent — **claim an item here before starting it** so we don't
+collide._
+
+**Already at parity (do NOT rebuild):** `/impact`, `/help`, `/supported-countries`,
+`/pricing`, `/for-nonprofits`, `/volunteer`, `/matching`, `/sponsor`, `/grants`,
+`/events`, `/leaderboard`, `/donor`, `/blog`, plus `lib/i18n.ts`. CharitMe also
+ships several things GoFundMe does not surface at all (AI campaign builder, AI
+growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform fee).
+
+### P0 — strategic gaps (biggest competitive delta)
+
+1. **Giving Funds / donor balance wallet** — GoFundMe's flagship new product
+   ("All your giving. All in one place."): a donor adds money to a balance, then
+   grants from it to nonprofits over time, with `Total contributed` / `Total
+   donated` counters and a `Your Giving Fund` entry in the account menu. It is a
+   donor-advised-fund pattern — it captures money *before* a specific campaign is
+   chosen, which structurally raises lifetime donation volume.
+   _CharitMe has a donor portal but no funded balance._ **Note:** holding donor
+   funds has real regulatory weight (money transmission, DAF rules) — this needs a
+   product/legal decision before any build, and must not be started as a pure
+   engineering task. _Verified: no `giving-funds` route._
+2. **Proximity discovery ("15 miles away")** — GoFundMe's discovery rail ranks
+   fundraisers by distance from the visitor and labels each card with the mileage.
+   Local relevance is one of the strongest donation drivers in crowdfunding.
+   _CharitMe has only a free-text `Location…` filter on `/campaigns`; nothing
+   geo-aware._ Needs lat/long on campaigns (or geocoded location), a distance sort,
+   and consent-gated coarse geolocation. _Verified: 0 matches for
+   `miles away|nearby|distance` across all `.tsx`._
+3. **Donor protection guarantee** — GoFundMe leads with the "Giving Guarantee" as
+   a top-level trust page. _CharitMe mentions guarantees only inside `/terms` and
+   the refund form — there is no donor-facing guarantee page._ Highest
+   trust-per-effort item on this list, and mostly content + policy rather than
+   engineering. _Verified: `grep -rln guarantee app/` → terms + RefundForm only._
+
+### P1 — product surfaces GoFundMe has and CharitMe doesn't
+
+4. **True peer-to-peer fundraising** — a headline GoFundMe surface. **Partial
+   parity:** `/dashboard/team` exists and genuinely supports inviting
+   co-organizers, so the home FAQ's "invite co-organizers" claim is accurate.
+   What's missing is real P2P: each supporter getting their **own sub-fundraiser
+   page** that rolls up into a parent campaign total (the classic
+   walk/run/team-page model). The FAQ's phrase "peer-to-peer **and** team
+   fundraising" reads as promising both, so either build the sub-page rollup or
+   tighten that sentence to the co-organizer capability that actually ships.
+   _Verified: `/dashboard/team` present with invite flow; no sub-campaign/rollup
+   model anywhere._
+5. **Crisis relief hub** — curated emergency/disaster landing surface. CharitMe has
+   an `Emergency` category but no hub.
+6. **Social Impact Funds** — donate to a curated multi-charity fund rather than one
+   campaign.
+7. **Supporter Space** — a dedicated donor-community surface.
+8. **Tiered nonprofit product** ("GoFundMe Pro for nonprofits") — CharitMe has
+   `/for-nonprofits` marketing but no tiered/paid nonprofit offering.
+
+### P2 — UX and polish deltas
+
+9. **Hero has one CTA.** GoFundMe's hero is a single "Start a GoFundMe". CharitMe's
+   renders **four** CTAs (`Create My Fundraiser With AI`, `Donate Now`, `Create My
+   Fundraiser`, `Why We Beat GoFundMe`) — two of which are near-duplicates. Choice
+   overload at the highest-intent moment on the site.
+10. **Locale + language switcher** in the footer (`United States · English`).
+    **✅ PARTIALLY FIXED — two dead controls found in `/dashboard/settings` while
+    checking this.** Both were user-facing lies, now corrected:
+    - **"Default Date Range" was a dead control.** It had no `value`/`onChange`
+      binding and was **absent from the `savePreferences` payload** — so a user
+      changed it, got a green *"Preferences saved!"* toast, and nothing persisted.
+      No consumer exists anywhere in the codebase. Removed rather than faked.
+      _Verified: not in the PATCH body; `grep default_date_range` → 0 hits._
+    - **"Language" saves but does nothing.** It correctly persists
+      `profiles.language` to Supabase, but `t()` in `lib/i18n.ts` is imported by
+      **zero rendering components**, so selecting *Español* leaves the entire site
+      in English. Added honest hint copy ("Translated pages are still rolling
+      out — the interface currently displays in English") instead of implying it
+      works. _Verified: only 2 importers of `lib/i18n`, neither renders UI._
+    _Still open:_ real translation coverage (a genuine multi-quarter effort — every
+    user-facing string), and the public footer locale switcher.
+11. **Account deactivate vs. permanently delete** as distinct, documented actions.
+    CharitMe's `/privacy-center` does deletion requests only; deactivation (hide,
+    reversible) is not offered.
+12. **Help Center structure** — GoFundMe's has search, breadcrumbs, per-article
+    "Related articles", and a "Not seeing what you need? → Contact us" card.
+    CharitMe's `/help` should be compared against that shape.
+
 ## 0.2 Highest-Value Backlog (prioritized, next up)
 
 1. ~~Stripe webhook idempotency + signature hardening~~ — **DONE** (CHAR-F005

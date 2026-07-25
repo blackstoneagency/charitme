@@ -368,12 +368,9 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                   <SetField label="Default Dashboard View">
                     <select defaultValue="overview"><option value="overview">Overview</option><option value="analytics">Analytics</option><option value="campaigns">Campaigns</option></select>
                   </SetField>
-                  <SetField label="Default Date Range">
-                    <select defaultValue="month"><option value="week">This Week</option><option value="month">This Month</option><option value="quarter">This Quarter</option></select>
-                  </SetField>
                 </div>
                 <div className="kf-setrow triple">
-                  <SetField label="Language">
+                  <SetField label="Language" hint="Saved to your profile. Translated pages are still rolling out — the interface currently displays in English.">
                     <select value={language} onChange={e => setLanguage(e.target.value)}>
                       {SUPPORTED_LOCALES.map(l => (
                         <option key={l.code} value={l.code}>{l.name} ({l.nativeName})</option>
