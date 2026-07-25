@@ -2806,6 +2806,48 @@ independently).
 _Method, for reuse: `curl -s https://www.charitme.com/sitemap.xml | grep -oE '<loc>[^<]+</loc>'`
 then bucket by path segment._
 
+
+## 🔴 MEASURED REGRESSION — the CSP nonce disabled static rendering site-wide
+
+**Symptom (production):** the homepage answers **`x-vercel-cache: MISS`, `age: 0` on
+every single request** — 6/6 consecutive runs — so its `export const revalidate = 120`
+never takes effect and each visit re-runs the page's ~8 Supabase queries. TTFB is
+**~800–1500ms vs 229–572ms** for every other public page (proxy overhead is in all of
+these equally, so the ~5× gap is the real signal, not the absolute numbers).
+
+**Blast radius — it is not just the homepage.** In the build, **353 routes are `ƒ`
+(per-request)**; only 2 are SSG (`/blog/[slug]`, `/features/[slug]`, via
+`generateStaticParams`) and the 4 "static" entries are `icon.png`, `apple-icon.png`,
+`manifest.webmanifest` and `robots.txt` — not pages. **No page in the app is
+statically cached.** Even pure marketing pages with no per-user content re-render on
+every hit.
+
+**Cause:** `app/layout.tsx:77` — `const nonce = (await headers()).get('x-nonce')`.
+`headers()` is a dynamic API, and calling it in the *root layout* opts **every route**
+into dynamic rendering. The nonce comes from `middleware.ts:47` and protects exactly two
+inline scripts (layout.tsx:81–82): the theme script and the JSON-LD blob.
+
+This is a genuine tension, not a mistake: a CSP nonce is per-request **by design** (that
+is what makes it unguessable), and static generation requires no per-request input. The
+CSP work (see the nonce entry earlier in this file) is a real security improvement — it
+just silently cost the entire site's caching. Note this also **regressed the PR #52
+finding** that the root layout "stays statically generated (verified `○ /` in the build)";
+that is no longer true.
+
+**Not fixed here — it is a security/perf trade-off in someone else's lane.** Options,
+best first:
+1. **Hash-based CSP for the two inline scripts.** Both are effectively static per deploy,
+   so `'sha256-…'` source expressions can replace `'nonce-…'`, `headers()` leaves the
+   root layout, and static/ISR is restored **with the same CSP strictness**. Caveat:
+   `'strict-dynamic'` currently pairs with the nonce and would need re-checking, and the
+   theme script's hash must be regenerated whenever its content changes (a build step).
+2. **Keep the nonce, scope the dynamic read.** Move the nonce-consuming scripts out of the
+   root layout so only the subtree that needs them is dynamic.
+3. **Accept it** — if per-request CSP is judged worth ~5× TTFB on every page.
+
+**Verify after any change** with `curl -sI https://www.charitme.com/ | grep -i x-vercel-cache`
+(want `HIT`) and by confirming `○ /` reappears in the build output.
+
 ## ✅ FULLY RESOLVED — soft-404 (4 in #63, /campaigns/[slug] here, /donors a non-issue)
 
 **Root cause (proven):** a `loading.tsx` at or above a detail route creates an implicit
