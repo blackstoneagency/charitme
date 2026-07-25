@@ -64,7 +64,7 @@ begin
        application_url, deadline_at, rolling_deadline, status, source, created_by, verified)
     select 'seed-grant-' || v_suffix || '-' || g,
            'Seed Grant ' || g || ' for ' || (array['Education','Health','Environment','Arts'])[1 + (g % 4)],
-           (array['Ford Foundation','Gates Foundation','City of Austin','Acme Corp Giving'])[1 + (g % 4)],
+           (array['Cedar Grove Foundation','Northwind Charitable Trust','City of Springfield','Acme Corp Giving'])[1 + (g % 4)],
            (array['foundation','government','corporate','community'])[1 + (g % 4)],
            'A grant opportunity for mission-driven organizations. Seed #' || g || '.',
            'Full description of grant #' || g || ', including priorities and review criteria.',
@@ -76,7 +76,10 @@ begin
            now() + (((g % 60) + 5) || ' days')::interval,
            (g % 5 = 0),
            (array['open','open','upcoming','closed'])[1 + (g % 4)],
-           'seed', v_users[1 + (g % n_users)], (g % 2 = 0)
+           -- verified stays FALSE for demo rows: it renders as a public "Verified"
+           -- badge, and a fabricated trust signal is the one thing seed data must
+           -- never fake. See the seed-data risk note in todo.md.
+           'seed', v_users[1 + (g % n_users)], false
     from generate_series(1, 120) g
     returning id
   ) select array_agg(id) into v_grant from ins;
@@ -148,7 +151,8 @@ begin
            (array['Austin, TX','Remote','Denver, CO','Miami, FL'])[1 + (g % 4)], 'US',
            (g % 3 = 0), ((g % 10) + 5), (2 + (g % 8)) || ' hrs/week',
            v_camps[1 + (g % n_camps)],
-           (array['open','open','upcoming','closed'])[1 + (g % 4)], (g % 2 = 0),
+           -- verified stays FALSE for demo rows (public trust badge — see todo.md).
+           (array['open','open','upcoming','closed'])[1 + (g % 4)], false,
            v_users[1 + (g % n_users)]
     from generate_series(1, 120) g
     returning id
@@ -176,7 +180,9 @@ begin
   select v_users[1 + (g % n_users)], 'Seed Nonprofit ' || g,
          'seed-nonprofit-' || v_suffix || '-' || g,
          'Our mission is to serve the community. Seed #' || g || '.',
-         '00-' || lpad(g::text, 7, '0'), 'https://example.org/np/' || g, (g % 2 = 0)
+         -- verified stays FALSE: a fabricated EIN presented as a *verified*
+         -- charity is the exact claim donors rely on. See todo.md.
+         '00-' || lpad(g::text, 7, '0'), 'https://example.org/np/' || g, false
   from generate_series(1, 120) g
   on conflict do nothing;
 
