@@ -6587,3 +6587,66 @@ img, video, iframe { max-width: 100%; }
   /* Ensure the statement prints crisply regardless of viewer theme. */
   :root { color-scheme: light; }
 }
+
+/* ============================================================================
+   Keyboard accessibility — added after a keyboard/focus audit (2026-07-23).
+   axe-core reported 0 violations on these pages because neither issue below is
+   auto-detectable: "bypass blocks" needs a manual check, and a stripped focus
+   ring only shows up when you actually Tab through the page.
+   ========================================================================== */
+
+/* WCAG 2.4.1 Bypass Blocks. Off-screen until focused, then pinned top-left. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 1000;
+  padding: 12px 18px;
+  border-radius: 0 0 10px 0;
+  background: var(--violet);
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  text-decoration: none;
+}
+.skip-link:focus {
+  left: 0;
+  outline: 3px solid #fff;
+  outline-offset: -3px;
+}
+/* The skip target must not draw its own ring when focused programmatically. */
+#main-content:focus { outline: none; }
+
+/* WCAG 2.4.7 Focus Visible. ~25 rules across this file clear `outline` on
+   inputs/textareas for styling, which leaves keyboard users with no focus
+   indicator at all. Restore an unmistakable ring for keyboard/AT focus only —
+   `:focus-visible` keeps it off mouse clicks. `!important` is required to beat
+   the class-level `outline: none` declarations those components rely on. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--violet) !important;
+  outline-offset: 2px;
+}
+/* On the dark brand bands the violet ring is low-contrast — use white there. */
+[data-theme="dark"] a:focus-visible,
+[data-theme="dark"] button:focus-visible,
+[data-theme="dark"] input:focus-visible,
+[data-theme="dark"] select:focus-visible,
+[data-theme="dark"] textarea:focus-visible,
+[data-theme="dark"] [role="button"]:focus-visible {
+  outline-color: #c4b5fd !important;
+}
+
+/* The transparency calculator's tier/method buttons are inline-styled and did
+   not pick up the global focus ring above, so they carry an explicit one. Uses
+   box-shadow (not outline) because it renders reliably over their own border. */
+.mc-choice:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 3px var(--violet-ink), 0 0 0 5px var(--s1) !important;
+}
