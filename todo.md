@@ -2772,6 +2772,40 @@ against the real production DB works and has already settled real questions
 - ❌ Genuinely blocked (needs writes or secrets): running the seed suite, placing a
   real charge across payment methods, rotating the exposed keys.
 
+
+### 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
+
+Checked the live `sitemap.xml` because the soft-404 fix makes stale entries *visible*
+to crawlers (a listed URL that 404s is now a real 404, not a silent 200).
+
+**Sitemap is healthy — 1258 URLs, no stale entries found.** 12 randomly sampled campaign
+URLs all returned 200, and one URL from each other section resolved too (volunteer,
+grants, events, sponsor, matching, impact). Nothing listed is dead.
+
+**Useful side effect — the sitemap is generated from the database, so its per-section
+counts are independent evidence for the "≥100 seed records" goal item** (these are *live,
+public* rows, which is the meaningful bar for "enough data to exercise every feature" —
+drafts and deleted rows are excluded, so true table counts are ≥ these):
+
+| section | live rows in sitemap | ≥100? |
+|---|---|---|
+| campaigns | **351** | ✅ |
+| volunteer | **181** | ✅ |
+| grants | **181** | ✅ |
+| events | **181** | ✅ |
+| sponsor | **145** | ✅ |
+| matching | **121** | ✅ |
+| impact | **58** | ❌ below target |
+| blog / features | 9 / 7 | n/a — static catalogues, not seeded tables |
+
+So six feature domains are confirmed ≥100 **from production**, without needing DB access.
+**`impact` at 58 is the one genuine gap** — worth a top-up if the ≥100 bar is meant to
+apply to it (it may not: impact entries are derived from campaigns rather than seeded
+independently).
+
+_Method, for reuse: `curl -s https://www.charitme.com/sitemap.xml | grep -oE '<loc>[^<]+</loc>'`
+then bucket by path segment._
+
 ## ✅ FULLY RESOLVED — soft-404 (4 in #63, /campaigns/[slug] here, /donors a non-issue)
 
 **Root cause (proven):** a `loading.tsx` at or above a detail route creates an implicit
