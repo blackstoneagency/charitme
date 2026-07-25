@@ -1888,6 +1888,34 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
       works. _Verified: only 2 importers of `lib/i18n`, neither renders UI._
     _Still open:_ real translation coverage (a genuine multi-quarter effort — every
     user-facing string), and the public footer locale switcher.
+
+    **✅ Follow-up sweep — 3 MORE dead controls removed from `/dashboard/settings`.**
+    Same signature as the Date Range one (`defaultValue` with no `onChange`, absent
+    from every save payload, no consumer anywhere): **Country**, **Default Dashboard
+    View**, and **Email Frequency**. All three sat beside working controls and were
+    covered by the same green success toast, so the page reported saving four
+    settings it never sent. Four dead controls total on one page.
+    _Verified per control: not in `saveProfile`/`savePreferences`/`saveNotifications`
+    bodies; not in the `/api/settings` zod schema._
+
+    **⚠️ NEW — `supabase/schema.sql` + `catch_up.sql` are STALE for `profiles`.**
+    Both generated mirrors list `profiles` with **12 columns** and no
+    `language`/`timezone`/`currency`/`date_format`/`time_format`/
+    `show_public_profile`/`campaign_recommendations` — yet `/api/settings` writes
+    and selects exactly those, and the schema-contract test (which asserts every
+    selected column exists in `__tests__/fixtures/schema-columns.json`, regenerated
+    from the live DB) **passes**. So the live DB has them and the two committed
+    mirrors do not. **Anyone provisioning a fresh database from `schema.sql` gets a
+    broken Settings page**, and `catch_up.sql` won't repair it. Fix: re-run
+    `scripts/regen_schema.sh` against the live DB and commit the refreshed mirrors.
+    _Owner-gated — regeneration needs live DB credentials this sandbox doesn't have._
+    _(This nearly read as a production-breaking bug; the schema-contract test is what
+    proved the columns really are live. Recording the reasoning so the next agent
+    doesn't re-raise it as a runtime defect.)_
+
+    **Inverse gap, unclaimed:** `/api/settings` accepts `date_format` and
+    `time_format`, but the Settings UI exposes neither — supported and persisted,
+    just never surfaced. Small, real win for whoever picks it up.
 11. **Account deactivate vs. permanently delete** as distinct, documented actions.
     CharitMe's `/privacy-center` does deletion requests only; deactivation (hide,
     reversible) is not offered.

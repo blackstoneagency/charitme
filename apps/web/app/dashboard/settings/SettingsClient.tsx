@@ -344,9 +344,6 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 <SetField label="Tagline" className="full">
                   <input value={orgTagline} onChange={e => setOrgTagline(e.target.value)} placeholder="A short mission statement…" maxLength={200} />
                 </SetField>
-                <SetField label="Country" className="full">
-                  <select defaultValue="us"><option value="us">United States</option><option value="gb">United Kingdom</option><option value="ca">Canada</option><option value="au">Australia</option></select>
-                </SetField>
               </div>
             </div>
           </>
@@ -364,11 +361,6 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 <button type="button" className="kf-setpanel-save" onClick={savePreferences} disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
               </div>
               <div className="kf-setpanel-body">
-                <div className="kf-setrow">
-                  <SetField label="Default Dashboard View">
-                    <select defaultValue="overview"><option value="overview">Overview</option><option value="analytics">Analytics</option><option value="campaigns">Campaigns</option></select>
-                  </SetField>
-                </div>
                 <div className="kf-setrow triple">
                   <SetField label="Language" hint="Saved to your profile. Translated pages are still rolling out — the interface currently displays in English.">
                     <select value={language} onChange={e => setLanguage(e.target.value)}>
@@ -424,9 +416,6 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', margin: '18px 0 8px' }}>Email Notifications</div>
               <PrefRow id={`${uid}-ne1`} label="Receive email notifications" desc="Get notified by email for important events" checked={notifyEmail} onChange={setNotifyEmail} />
               <PrefRow id={`${uid}-ne2`} label="Product news & tips" desc="Occasional marketing emails about new features and fundraising tips" checked={notifyMarketing} onChange={setNotifyMarketing} />
-              <SetField label="Email Frequency">
-                <select defaultValue="instant"><option value="instant">Instant</option><option value="daily">Daily Digest</option><option value="weekly">Weekly</option></select>
-              </SetField>
             </div>
           </div>
         );
