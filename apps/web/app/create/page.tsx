@@ -14,6 +14,35 @@ import {
   type CampaignDraft,
 } from '../../lib/campaign-draft';
 import { WIZARD_STEPS, normalizeStep, minutesRemaining, type WizardStep } from '../../lib/wizard-steps';
+import { evaluateDonorView } from '../../lib/donor-preview';
+
+/** A pristine wizard form — also what "start another campaign" resets to (F8). */
+const EMPTY_FORM: FormState = {
+  category: 'Medical',
+  forSelf: 'true',
+  country: 'United States',
+  zipCode: '',
+  autoGoal: 'false',
+  title: '',
+  tagline: '',
+  goal: '',
+  deadline: '',
+  beneficiaryName: '',
+  beneficiaryRelationship: '',
+  description: '',
+  coverImageUrl: '',
+};
+
+/** Which of the organizer's drafts this browser is currently editing (F8). */
+const ACTIVE_DRAFT_KEY = 'charitme-active-draft-id';
+
+interface DraftSummary {
+  id: string;
+  title: string | null;
+  step: string;
+  updated_at: string;
+  imageCount: number;
+}
 import { suggestCampaignTitle } from '../../lib/campaign-title';
 import Link from 'next/link';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
@@ -147,6 +176,9 @@ function CampaignPreviewModal({
   form,
   coverImageUrl,
   goalDisplay,
+  imageCount,
+  goalCents,
+  onGoToStep,
   onClose,
   onLaunch,
   launching,
@@ -154,23 +186,49 @@ function CampaignPreviewModal({
   form: FormState;
   coverImageUrl: string;
   goalDisplay: string;
+  imageCount: number;
+  goalCents: number;
+  onGoToStep: (step: WizardStep) => void;
   onClose: () => void;
   onLaunch: () => void;
   launching: boolean;
 }) {
   const beneficiary = form.forSelf === 'true' ? 'you' : (form.beneficiaryName || 'someone in need');
+  // Most donors arrive on a phone, so the preview defaults to the phone frame —
+  // previewing only the desktop layout hid the view most donors actually get.
+  const [viewport, setViewport] = React.useState<'mobile' | 'desktop'>('mobile');
+  const donorView = evaluateDonorView({
+    title: form.title, description: form.description, goalCents,
+    coverImageUrl, imageCount, forSelf: form.forSelf,
+    beneficiaryName: form.beneficiaryName, category: form.category, country: form.country,
+  });
+  const unmet = donorView.checks.filter((c) => !c.passed);
   return (
     <div className="cr2-preview-overlay">
       <div className="cr2-preview-topbar">
         <span className="cr2-preview-badge">PREVIEW MODE</span>
         <p className="cr2-preview-topbar-title">{form.title || 'Untitled Campaign'}</p>
         <button type="button" className="cr2-preview-topbar-back" onClick={onClose}>← Back</button>
+        <div role="group" aria-label="Preview device" style={{ display: 'inline-flex', gap: 4, background: 'rgba(0,0,0,.18)', borderRadius: 999, padding: 3, marginLeft: 8 }}>
+          {(['mobile', 'desktop'] as const).map((v) => (
+            <button key={v} type="button" onClick={() => setViewport(v)} aria-pressed={viewport === v}
+              style={{ padding: '5px 12px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 800,
+                background: viewport === v ? '#fff' : 'transparent', color: viewport === v ? '#1a1a2e' : '#fff' }}>
+              {v === 'mobile' ? '📱 Phone' : '🖥 Desktop'}
+            </button>
+          ))}
+        </div>
         <button type="button" className="cr2-preview-topbar-launch" onClick={onLaunch} disabled={launching}>
           {launching ? 'Launching…' : '🚀 Launch Campaign'}
         </button>
       </div>
       <div className="cr2-preview-scroll">
-        <div className="cr2-preview-page">
+        <div
+          className="cr2-preview-page"
+          style={viewport === 'mobile'
+            ? { maxWidth: 420, margin: '0 auto', boxShadow: '0 0 0 8px rgba(0,0,0,.25)', borderRadius: 18, overflow: 'hidden' }
+            : undefined}
+        >
           <div className="cr2-preview-hero">
             {coverImageUrl
               // eslint-disable-next-line @next/next/no-img-element
@@ -198,7 +256,50 @@ function CampaignPreviewModal({
                   <span><strong>$0</strong> raised</span>
                   <span><strong>0</strong> donors</span>
                 </div>
-                <button type="button" className="cr2-donate-btn">Donate Now</button>
+                {/* Inert on purpose — say so, rather than letting it look broken. */}
+                <button type="button" className="cr2-donate-btn" disabled title="Donations are disabled in preview">
+                  Donate Now
+                </button>
+                <p style={{ margin: '8px 0 0', fontSize: 11.5, color: 'var(--t3, #64748b)', textAlign: 'center' }}>
+                  Preview only — donations are disabled until you publish.
+                </p>
+              </div>
+
+              {/* F10: what a donor looks for, from the donor's point of view. */}
+              <div style={{ marginTop: 14, background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 14, padding: '14px 16px' }}>
+                <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--t1, #1a1a2e)' }}>
+                  How this looks to a donor
+                </div>
+                <div style={{ fontSize: 12.5, color: 'var(--t3, #64748b)', margin: '2px 0 10px' }}>
+                  {donorView.passedCount} of {donorView.total} things donors look for
+                  {unmet.length === 0 ? ' — you are ready to publish.' : ''}
+                </div>
+                <div style={{ height: 7, background: 'var(--s2, #eef0f7)', borderRadius: 6, overflow: 'hidden', marginBottom: 12 }}>
+                  <div style={{ height: '100%', width: `${donorView.confidence}%`, background: 'linear-gradient(90deg,#7035ff,#ec39c3)' }} />
+                </div>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                  {donorView.checks.map((c) => (
+                    <li key={c.id} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+                      <span aria-hidden style={{ color: c.passed ? 'var(--green, #059669)' : 'var(--t4, #94a3b8)', fontWeight: 800, lineHeight: 1.4 }}>
+                        {c.passed ? '✓' : '○'}
+                      </span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: 13, fontWeight: c.passed ? 600 : 700, color: c.passed ? 'var(--t3, #64748b)' : 'var(--t1, #1a1a2e)' }}>
+                          {c.label}
+                        </span>
+                        {!c.passed && (
+                          <>
+                            <span style={{ display: 'block', fontSize: 12, color: 'var(--t3, #64748b)', lineHeight: 1.45, marginTop: 2 }}>{c.why}</span>
+                            <button type="button" onClick={() => { onClose(); onGoToStep(c.step); }}
+                              style={{ marginTop: 4, padding: 0, border: 'none', background: 'none', color: 'var(--violet, #6c35ff)', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
+                              Fix this →
+                            </button>
+                          </>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>
@@ -285,21 +386,7 @@ export default function CreatePage() {
     });
   }, [restoreBounce]);
 
-  const [form, setForm] = useState<FormState>({
-    category: 'Medical',
-    forSelf: 'true',
-    country: 'United States',
-    zipCode: '',
-    autoGoal: 'false',
-    title: '',
-    tagline: '',
-    goal: '',
-    deadline: '',
-    beneficiaryName: '',
-    beneficiaryRelationship: '',
-    description: '',
-    coverImageUrl: '',
-  });
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [dragging, setDragging]             = useState(false);
@@ -311,6 +398,11 @@ export default function CreatePage() {
   // recovered draft until the user decides (resume vs start fresh) so autosave
   // never overwrites it with the empty initial form.
   const [recoverableDraft, setRecoverableDraft] = useState<CampaignDraft<FormState> | null>(null);
+  // Every draft the organizer has in flight (F8) plus the id of the newest, so
+  // the picker can offer "resume this one" / "start another".
+  const [draftList, setDraftList] = useState<DraftSummary[]>([]);
+  const [showDraftPicker, setShowDraftPicker] = useState(false);
+  const remoteLatestIdRef = useRef<string | null>(null);
   const draftDecided = useRef(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
@@ -327,13 +419,32 @@ export default function CreatePage() {
     }
   }, []);
 
+  // Which server-side draft this tab is editing. Organizers may keep several in
+  // flight (F8), so autosave has to update the right one rather than a single
+  // per-user row. Persisted so a refresh keeps editing the same draft.
+  const draftIdRef = useRef<string | null>(
+    typeof window === 'undefined' ? null : localStorage.getItem(ACTIVE_DRAFT_KEY),
+  );
+  const setActiveDraftId = useCallback((id: string | null) => {
+    draftIdRef.current = id;
+    if (typeof window === 'undefined') return;
+    if (id) localStorage.setItem(ACTIVE_DRAFT_KEY, id);
+    else localStorage.removeItem(ACTIVE_DRAFT_KEY);
+  }, []);
+
   const clearDraft = useCallback(() => {
     if (typeof window !== 'undefined') localStorage.removeItem(CAMPAIGN_DRAFT_KEY);
     setSavedAt(null);
     // Drop the cross-device copy too, so a published campaign never resurfaces as
-    // a "resume your draft" prompt on the organizer's other devices.
-    void fetch('/api/campaigns/draft', { method: 'DELETE' }).catch(() => { /* best-effort */ });
-  }, []);
+    // a "resume your draft" prompt on the organizer's other devices. Only this
+    // draft is removed — the organizer's other drafts must survive.
+    const id = draftIdRef.current;
+    if (id) {
+      void fetch(`/api/campaigns/draft?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+        .catch(() => { /* best-effort */ });
+    }
+    setActiveDraftId(null);
+  }, [setActiveDraftId]);
 
   const resumeDraft = useCallback(() => {
     const d = recoverableDraft;
@@ -347,6 +458,48 @@ export default function CreatePage() {
     draftDecided.current = true;
     setRecoverableDraft(null);
   }, [recoverableDraft]);
+
+  /** Load one of the organizer's other drafts into the wizard (F8). */
+  const openDraft = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/campaigns/draft?id=${encodeURIComponent(id)}`, { cache: 'no-store' });
+      if (res.status !== 200) return;
+      const { draft: row } = await res.json();
+      const d = fromRemoteDraft<FormState>(row);
+      if (!d) return;
+      setForm(d.form);
+      if (d.storyMode === 'freeform' || d.storyMode === 'guided') setStoryMode(d.storyMode);
+      setUploadedImages(d.images.map((i, idx) => ({ id: `remote-${idx}-${i.url}`, url: i.url, name: i.name, status: 'done' as const })));
+      const st = normalizeStep(d.step);
+      if (st) setStep(st);
+      setActiveDraftId(id);
+      draftDecided.current = true;
+      setRecoverableDraft(null);
+      setShowDraftPicker(false);
+    } catch { /* best-effort */ }
+  }, [setActiveDraftId]);
+
+  /** Discard one draft permanently. */
+  const deleteDraft = useCallback(async (id: string) => {
+    try {
+      await fetch(`/api/campaigns/draft?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      setDraftList((list) => list.filter((d) => d.id !== id));
+      if (draftIdRef.current === id) setActiveDraftId(null);
+    } catch { /* best-effort */ }
+  }, [setActiveDraftId]);
+
+  /** Begin a fresh campaign, leaving existing drafts untouched. */
+  const startNewDraft = useCallback(() => {
+    setActiveDraftId(null);
+    if (typeof window !== 'undefined') localStorage.removeItem(CAMPAIGN_DRAFT_KEY);
+    setForm(EMPTY_FORM);
+    setUploadedImages([]);
+    setStep('basics');
+    setSavedAt(null);
+    draftDecided.current = true;
+    setRecoverableDraft(null);
+    setShowDraftPicker(false);
+  }, [setActiveDraftId]);
 
   const dismissDraft = useCallback(() => {
     clearDraft();
@@ -372,15 +525,25 @@ export default function CreatePage() {
       // resume on another device. Best-effort: localStorage remains the source of
       // truth for this tab, so a failed sync never blocks or interrupts the user.
       if (isGuest === false) {
-        void fetch('/api/campaigns/draft', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ step, storyMode, form, images: draft.images, ts: draft.ts }),
-        }).catch(() => { /* offline or transient — local copy still holds the work */ });
+        void (async () => {
+          try {
+            const res = await fetch('/api/campaigns/draft', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: draftIdRef.current ?? undefined,
+                step, storyMode, form, images: draft.images, ts: draft.ts,
+              }),
+            });
+            if (!res.ok) return; // incl. the draft-limit 409 — local copy still holds the work
+            const { id } = await res.json();
+            if (typeof id === 'string') setActiveDraftId(id);
+          } catch { /* offline or transient */ }
+        })();
       }
     }, 600);
     return () => clearTimeout(t);
-  }, [form, step, storyMode, uploadedImages, recoverableDraft, isGuest]);
+  }, [form, step, storyMode, uploadedImages, recoverableDraft, isGuest, setActiveDraftId]);
 
   // Cross-device resume: once we know the user is signed in, look for a draft
   // saved on another device and offer it when it is fresher than anything local.
@@ -394,8 +557,10 @@ export default function CreatePage() {
       try {
         const res = await fetch('/api/campaigns/draft', { cache: 'no-store' });
         if (res.status !== 200) return;
-        const { draft: row } = await res.json();
-        const remote = fromRemoteDraft<FormState>(row);
+        const { drafts, latest } = await res.json();
+        setDraftList(Array.isArray(drafts) ? drafts : []);
+        const remote = fromRemoteDraft<FormState>(latest);
+        if (latest?.id) remoteLatestIdRef.current = latest.id as string;
         if (!remote || !draftHasContent(remote.form, remote.images.length)) return;
         const local = parseDraft<FormState>(localStorage.getItem(CAMPAIGN_DRAFT_KEY));
         const freshest = pickFreshestDraft(local, remote);
@@ -403,6 +568,9 @@ export default function CreatePage() {
         if (freshest !== remote) return;
         if (draftDecided.current && !recoverableDraft) return; // already resumed/dismissed
         setRecoverableDraft(remote);
+        // More than one in flight → let the organizer choose rather than assuming
+        // the newest is the one they meant to continue.
+        if (Array.isArray(drafts) && drafts.length > 1) setShowDraftPicker(true);
       } catch { /* best-effort */ }
     })();
   }, [isGuest, recoverableDraft]);
@@ -894,6 +1062,54 @@ export default function CreatePage() {
   return (
     <CharitMeShell active="My Campaigns" userName={userName} userEmail={userEmail} userAvatarUrl={userAvatarUrl} guestMode={isGuest !== false} hideSidebar>
 
+      {/* ── F8: choose among several in-flight drafts ── */}
+      {showDraftPicker && draftList.length > 1 && step !== 'live' && (
+        <div role="region" aria-label="Choose a draft to continue" style={{ background: 'var(--s2, #f5f7fb)', borderBottom: '1px solid var(--b1, #e8ecf4)', padding: '16px 18px' }}>
+          <div style={{ maxWidth: 720, margin: '0 auto' }}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--t1, #1a1a2e)', marginBottom: 2 }}>
+              You have {draftList.length} campaigns in progress
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--t3, #64748b)', marginBottom: 12 }}>
+              Pick up where you left off, or start something new. Nothing is published until you say so.
+            </div>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {draftList.map((d) => (
+                <li key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 12, padding: '10px 14px' }}>
+                  <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1, #1a1a2e)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {d.title?.trim() || 'Untitled campaign'}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--t3, #64748b)' }}>
+                      {WIZARD_STEPS.find((w) => w.key === normalizeStep(d.step))?.label ?? 'In progress'}
+                      {d.imageCount > 0 && ` · ${d.imageCount} photo${d.imageCount === 1 ? '' : 's'}`}
+                      {` · saved ${draftAgeLabel(new Date(d.updated_at).getTime())}`}
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => void openDraft(d.id)}
+                    style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: 'var(--violet, #6c35ff)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                    Continue
+                  </button>
+                  <button type="button" onClick={() => void deleteDraft(d.id)} aria-label={`Delete draft ${d.title?.trim() || 'Untitled campaign'}`}
+                    style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid var(--b2, #d7dced)', background: 'transparent', color: 'var(--t3, #64748b)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+              <button type="button" onClick={startNewDraft}
+                style={{ padding: '8px 14px', borderRadius: 10, border: '1.5px solid var(--violet, #6c35ff)', background: 'transparent', color: 'var(--violet, #6c35ff)', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
+                + Start another campaign
+              </button>
+              <button type="button" onClick={() => setShowDraftPicker(false)}
+                style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: 'transparent', color: 'var(--t3, #64748b)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Draft recovery banner ── */}
       {recoverableDraft && step !== 'live' && (
         <div role="region" aria-label="Resume unfinished campaign" style={{ background: 'linear-gradient(135deg, var(--violet), var(--violet-2))', color: '#fff', padding: '14px 18px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
@@ -919,6 +1135,9 @@ export default function CreatePage() {
           form={form}
           coverImageUrl={form.coverImageUrl}
           goalDisplay={goalDisplay}
+          imageCount={uploadedImages.filter(i => i.status === 'done').length}
+          goalCents={goalCents}
+          onGoToStep={(s) => setStep(s)}
           onClose={() => setShowPreviewModal(false)}
           onLaunch={() => {
             setShowPreviewModal(false);

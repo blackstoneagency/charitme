@@ -202,3 +202,9 @@ export function describePublishFailure(raw: unknown, httpStatus?: number): Publi
   }
   return { message: 'Something went wrong publishing your campaign. Your work is saved — please try again.', retryable: true };
 }
+
+/**
+ * Upper bound on in-flight drafts per organizer (F8). Keeps a misbehaving client
+ * from filling the table while still being far more than anyone runs by hand.
+ */
+export const MAX_DRAFTS_PER_USER = 20;
