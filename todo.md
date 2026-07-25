@@ -1929,9 +1929,22 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
     proved the columns really are live. Recording the reasoning so the next agent
     doesn't re-raise it as a runtime defect.)_
 
-    **Inverse gap, unclaimed:** `/api/settings` accepts `date_format` and
-    `time_format`, but the Settings UI exposes neither — supported and persisted,
-    just never surfaced. Small, real win for whoever picks it up.
+    **✅ FIXED — inverse gap: `date_format` + `time_format` now surfaced.**
+    `/api/settings` already accepted both (zod enums), `page.tsx` already selected
+    them and the client type already declared them — only `useState`, the
+    `savePreferences` payload, and the UI were missing, so the fields could never
+    be changed from the app. Added two bound selects in the Preferences panel with
+    worked examples (`03/14/2026` / `2:30 PM`). Option values match the zod enums
+    exactly (`MM/DD/YYYY|DD/MM/YYYY|YYYY-MM-DD`, `12h|24h`), verified by diffing
+    the literals against the schema, so the round-trip cannot 400.
+    _Net for this page: 4 dead controls removed, 2 real ones added._
+
+    **⚠️ Note for other agents — stale `.next/types` after PR #63.** That PR
+    deleted `app/events`, `app/matching`, and `app/sponsor`. A `.next` cache built
+    before rebasing onto it still holds generated stubs importing those pages, and
+    `tsc` reports phantom TS2307s that are **not** in your diff. Fix:
+    `rm -rf apps/web/.next/types` and re-run. Also beware `tsc … | head` — the pipe
+    reports `head`'s exit status, not the compiler's; redirect to a file instead.
 11. **Account deactivate vs. permanently delete** as distinct, documented actions.
     CharitMe's `/privacy-center` does deletion requests only; deactivation (hide,
     reversible) is not offered.

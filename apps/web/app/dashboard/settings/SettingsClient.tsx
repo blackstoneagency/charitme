@@ -163,6 +163,8 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
   const [timezone, setTimezone] = useState(initialProfile.timezone ?? 'America/New_York');
   const [currency, setCurrency] = useState(initialProfile.currency ?? 'usd');
   const [language, setLanguage] = useState(initialProfile.language ?? 'en');
+  const [dateFormat, setDateFormat] = useState(initialProfile.date_format ?? 'MM/DD/YYYY');
+  const [timeFormat, setTimeFormat] = useState(initialProfile.time_format ?? '12h');
   const [showPublicProfile, setShowPublicProfile] = useState(initialProfile.show_public_profile ?? true);
   const [campaignRecs, setCampaignRecs] = useState(initialProfile.campaign_recommendations ?? true);
   const [notifyEmail, setNotifyEmail] = useState(initialProfile.notification_email ?? true);
@@ -231,7 +233,8 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          timezone, currency, language, show_public_profile: showPublicProfile,
+          timezone, currency, language, date_format: dateFormat, time_format: timeFormat,
+          show_public_profile: showPublicProfile,
           campaign_recommendations: campaignRecs, notification_marketing: notifyMarketing,
         }),
       });
@@ -382,6 +385,21 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                       {SUPPORTED_CURRENCIES.map(c => (
                         <option key={c.code} value={c.code.toLowerCase()}>{c.code} — {c.name}</option>
                       ))}
+                    </select>
+                  </SetField>
+                </div>
+                <div className="kf-setrow">
+                  <SetField label="Date Format">
+                    <select value={dateFormat} onChange={e => setDateFormat(e.target.value)}>
+                      <option value="MM/DD/YYYY">MM/DD/YYYY — 03/14/2026</option>
+                      <option value="DD/MM/YYYY">DD/MM/YYYY — 14/03/2026</option>
+                      <option value="YYYY-MM-DD">YYYY-MM-DD — 2026-03-14</option>
+                    </select>
+                  </SetField>
+                  <SetField label="Time Format">
+                    <select value={timeFormat} onChange={e => setTimeFormat(e.target.value)}>
+                      <option value="12h">12-hour — 2:30 PM</option>
+                      <option value="24h">24-hour — 14:30</option>
                     </select>
                   </SetField>
                 </div>
