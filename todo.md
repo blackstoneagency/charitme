@@ -2604,6 +2604,39 @@ IMPLEMENTATION_STATUS, KNOWN_LIMITATIONS, CHANGELOG).
 - No faked metrics — non-live metrics are labelled "measurement pending".
 - No new external integrations faked; RLS unchanged (service-role only).
 
+
+## ⚠️ NEEDS-STAGING — possible soft-404 on Supabase-backed detail routes (found 2026-07-23)
+
+**Symptom (sandbox, no DB):** requesting a non-existent detail page returns HTTP
+**200** instead of 404 on `/campaigns/[slug]`, `/donors/[id]`, `/matching/[id]`,
+`/sponsor/[id]`, `/volunteer/[slug]`, `/events/[slug]`. The correct not-found UI
+*does* render ("Page not found", "Back to home") and `generateMetadata` returns
+the right title — only the status code is wrong. Soft-404s get indexed by search
+engines as real pages.
+
+**Why this is NOT yet actionable — the evidence contradicts the obvious cause:**
+- SSG detail routes (`/blog/[slug]`, `/features/[slug]`) correctly return **404**.
+- But `/grants/[slug]` is *also* `force-dynamic` and **also returns 404**, and its
+  code is structurally identical to the failing ones (`await params` → fetch →
+  `if (!x) notFound()` as the first statements). So "force-dynamic + streaming
+  commits a 200 before notFound()" does **not** explain it.
+- The remaining difference is how each data helper reacts to the **absent database
+  in this sandbox** (clean `null` → notFound → 404, versus throwing/hanging → a
+  different path). That is an artifact of having no DB, not necessarily a
+  production defect.
+
+**Verification (2 minutes, needs any environment with Supabase configured):**
+```bash
+for u in /campaigns/definitely-missing /donors/00000000-0000-0000-0000-000000000000 \
+         /matching/missing /sponsor/missing /volunteer/missing /events/missing; do
+  echo "$u -> $(curl -s -o /dev/null -w '%{http_code}' https://www.charitme.com$u)"
+done   # expect 404 for every one
+```
+If any return 200 against a real DB, it is a genuine soft-404 and worth fixing;
+if all return 404, this entry can simply be deleted. **Deliberately not "fixed"
+blind** — the affected file set includes `/campaigns/[slug]`, the hottest public
+page, and a speculative restructure there is not worth the risk.
+
 ## 🔓 CLAIM RELEASED 2026-07-23 (Claude/tbaz3i — dynamic `[slug]` public-page audit)
 
 > **✅ DONE — area is FREE.** Audited the last unaudited public surface: the
