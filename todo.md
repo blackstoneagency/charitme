@@ -2833,6 +2833,32 @@ a deleted campaign should 404, not render an empty widget.
 Also checked and clean: `/impact/[slug]` → 404 already (no `loading.tsx`, consistent
 with the root cause).
 
+### Complete soft-404 sweep — all 12 public dynamic routes, checked on production
+
+Enumerated every public dynamic route (`find app -name page.tsx -path "*[*"`, minus
+dashboard/admin/api) rather than sampling, because the embed route showed the original
+sweep had missed nested ones. Status against `www.charitme.com`:
+
+| verdict | routes |
+|---|---|
+| ✅ correct 404 (8) | `/blog/[slug]`, `/events/[slug]`, `/features/[slug]`, `/grants/[slug]`, `/impact/[slug]`, `/matching/[id]`, `/sponsor/[id]`, `/volunteer/[slug]` |
+| 🔧 200 → fixed in #66 (2) | `/campaigns/[slug]`, `/campaigns/[slug]/embed` |
+| ⚪ 200, not a bug (2) | `/donors/[id]`, `/donor/tax-statement/[year]` |
+
+**#63's fixes are confirmed live:** `/events`, `/matching`, `/sponsor`, `/volunteer` now
+404 in production — they returned 200 before that merge. The root-cause theory also holds
+on a route that wasn't used to derive it: `/impact/[slug]` has no `loading.tsx` and 404s.
+
+**Why the two remaining 200s are not bugs:**
+- `/donors/[id]` — `robots.ts` disallows `/donors/` *and* the page emits `noindex`. No
+  crawler sees it, so no SEO impact; its skeleton should stay.
+- `/donor/tax-statement/[year]` — not a missing resource but an **auth state**: it serves
+  a *sign-in prompt* (verified: no tax data in the unauthenticated response), and `/donor`
+  is robots-disallowed. A 200 for "route exists, you're signed out" is correct. An
+  authenticated year with no donations legitimately renders an empty statement.
+
+**So the soft-404 topic is closed** — nothing outstanding once #66 merges.
+
 **All 7 soft-404 routes are now resolved** (4 in #63, this one here, `/donors/[id]`
 a documented non-issue — crawler-blocked by `robots.ts` + `noindex`).
 
