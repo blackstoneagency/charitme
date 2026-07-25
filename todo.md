@@ -2814,7 +2814,7 @@ _Method, for reuse: `curl -s https://www.charitme.com/sitemap.xml | grep -oE '<l
 then bucket by path segment._
 
 
-## 🔴 MEASURED REGRESSION — the CSP nonce disabled static rendering site-wide
+## 🟠 PARTLY DIAGNOSED — HTML is never CDN-cached (homepage cause still unknown)
 
 **Symptom (production):** the homepage answers **`x-vercel-cache: MISS`, `age: 0` on
 every single request** — 6/6 consecutive runs — so its `export const revalidate = 120`
@@ -2829,9 +2829,31 @@ these equally, so the ~5× gap is the real signal, not the absolute numbers).
 statically cached.** Even pure marketing pages with no per-user content re-render on
 every hit.
 
-**Cause:** `app/layout.tsx:77` — `const nonce = (await headers()).get('x-nonce')`.
-`headers()` is a dynamic API, and calling it in the *root layout* opts **every route**
-into dynamic rendering. The nonce comes from `middleware.ts:47` and protects exactly two
+**Cause — PARTIAL, and my first write-up of this overstated it. Corrected by experiment:**
+
+`app/layout.tsx:77` — `const nonce = (await headers()).get('x-nonce')` — is *a* cause but
+**not the whole story**. Measured by removing that line and rebuilding:
+
+| build | static | dynamic |
+|---|---|---|
+| as-is | 4 (all non-pages: icons/manifest/robots) | **353** |
+| without `headers()` | **26** | 331 |
+
+So the nonce accounts for **22 routes** — and they are exactly the pure marketing pages
+(`/how-it-works`, `/fees`, `/for-donors`, `/trust-safety`, `/terms`, `/privacy`, …), which
+is a real and worthwhile win. **But `/` stays `ƒ` without it**, so the nonce does *not*
+explain the homepage MISS I measured — the very page the investigation started from.
+
+**Also disproven (don't repeat):** wrapping the homepage's three Supabase fetchers
+(`getHomeData`, `getCategoryStats`, `getRecentDonations`) in `unstable_cache` — the same
+pattern that works for announcements/banner-settings — changed **nothing**: still `ƒ`,
+static count still 26 with the nonce also removed. The theory was that Next 15's uncached
+`fetch` default was opting the route in; that is not it, or not only it.
+
+**So the homepage's dynamic cause is still unidentified.** Untested candidates:
+`seoMetadata('/')` in `generateMetadata` (reads SEO overrides from the DB), or something
+in the `AppShell`/provider tree. Next step: bisect by stubbing `generateMetadata` first —
+that is the cheapest remaining cut. The nonce comes from `middleware.ts:47` and protects exactly two
 inline scripts (layout.tsx:81–82): the theme script and the JSON-LD blob.
 
 This is a genuine tension, not a mistake: a CSP nonce is per-request **by design** (that
