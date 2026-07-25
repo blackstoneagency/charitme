@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     .select('id, accept_donations')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   // Audit log
   await supabaseAdmin.from('audit_logs').insert({

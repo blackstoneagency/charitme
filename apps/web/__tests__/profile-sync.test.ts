@@ -79,13 +79,16 @@ describe('ensureUserProfile', () => {
     }), expect.anything());
   });
 
-  it('does not throw when the profile write fails', async () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  it('fails when the profile write fails', async () => {
     maybeSingle.mockResolvedValueOnce({ data: null, error: null });
     upsert.mockResolvedValueOnce({ error: { message: 'connection refused' } });
 
-    await expect(ensureUserProfile(userFixture({}))).resolves.toBeUndefined();
+    await expect(ensureUserProfile(userFixture({}))).rejects.toThrow('PROFILE_SYNC_FAILED');
+  });
 
-    errorSpy.mockRestore();
+  it('fails when the profile lookup fails', async () => {
+    maybeSingle.mockResolvedValueOnce({ data: null, error: { message: 'connection refused' } });
+
+    await expect(ensureUserProfile(userFixture({}))).rejects.toThrow('PROFILE_SYNC_FAILED');
   });
 });

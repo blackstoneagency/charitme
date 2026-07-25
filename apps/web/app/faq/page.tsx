@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { safeJsonLd } from "../../lib/json-ld";
 import { getPublishedFaqs, groupFaqsByTopic } from '../../lib/aeo';
 import type { Metadata } from 'next';
+import JsonLd from '../../components/JsonLd';
 
 export const metadata: Metadata = {
   title: 'FAQ',
@@ -96,7 +97,7 @@ export default async function FaqPage() {
 
   return (
     <div className="mktg-page">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
+      <JsonLd json={safeJsonLd(jsonLd)} />
       {/* Hero */}
       <section className="hero-mesh border-b border-slate-200 py-16 sm:py-20">
         <div className="container">

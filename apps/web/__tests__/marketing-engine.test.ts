@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import {
   computeLeadScore,
   computeEngagementScore,
@@ -176,5 +178,17 @@ describe('matchesSegment', () => {
 
   it('empty rules match nothing', () => {
     expect(matchesSegment(contact, { logic: 'and', conditions: [] })).toBe(false);
+  });
+});
+
+describe('marketing event persistence contract', () => {
+  it('returns a durable write result and exposes failures to the capture route', async () => {
+    const engine = await readFile(resolve(__dirname, '../lib/marketing-engine.ts'), 'utf8');
+    const route = await readFile(resolve(__dirname, '../app/api/marketing/capture/route.ts'), 'utf8');
+    expect(engine).toMatch(/export async function trackEvent[\s\S]*\): Promise<boolean>/);
+    expect(engine).toContain('if (eventError) return false;');
+    expect(engine).toContain('if (contactError) return false;');
+    expect(engine).toContain('return true;');
+    expect(route).toContain("code: 'EVENT_WRITE_FAILED'");
   });
 });

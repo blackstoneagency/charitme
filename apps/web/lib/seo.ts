@@ -25,7 +25,14 @@ export async function getSeoForRoute(route: string): Promise<SeoRow | null> {
  */
 export async function seoMetadata(route: string, base: Metadata = {}): Promise<Metadata> {
   const row = await getSeoForRoute(route);
-  if (!row) return base;
+
+  // Every route gets a self-referencing canonical by default (resolved against
+  // the layout's metadataBase) to avoid duplicate-content ambiguity — unless the
+  // caller's base or a super-admin override supplies a specific one.
+  const canonical = row?.canonical_url || base.alternates?.canonical || route;
+  const alternates = { ...(base.alternates ?? {}), canonical };
+
+  if (!row) return { ...base, alternates };
 
   const title = row.title || undefined;
   const description = row.meta_description || undefined;
@@ -38,7 +45,7 @@ export async function seoMetadata(route: string, base: Metadata = {}): Promise<M
     ...(description ? { description } : {}),
     ...(row.keywords ? { keywords: row.keywords } : {}),
     ...(row.noindex ? { robots: { index: false, follow: false } } : {}),
-    ...(row.canonical_url ? { alternates: { ...(base.alternates ?? {}), canonical: row.canonical_url } } : {}),
+    alternates,
     openGraph: {
       ...(base.openGraph ?? {}),
       ...(ogTitle ? { title: ogTitle } : {}),

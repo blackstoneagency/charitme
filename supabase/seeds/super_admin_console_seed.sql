@@ -7,6 +7,13 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- ── AEO entries (answer-engine Q&A) ──────────────────────────────────────────
+do $$
+begin
+  if current_setting('app.charitme_allow_demo_seed', true) <> 'true' then
+    raise exception 'Demo seed blocked. Set app.charitme_allow_demo_seed = true only on a disposable staging/demo project.';
+  end if;
+end $$;
+
 insert into aeo_entries (question, answer, topic, schema_type, priority, published)
 select
   (array['How do I start a fundraiser on CharitMe?','Are my donations tax-deductible?','What fees does CharitMe charge?','How fast are payouts?','Can I fundraise for someone else?','How do recurring donations work?','Is my donation secure?','How do I withdraw funds?','Can nonprofits use CharitMe?','How does AI help my campaign?','What payment methods are accepted?','Can I get a refund?','How do matching gifts work?','How do I verify my identity?','Can I run a fundraising event?'])[1+(n%15)] || ' (topic ' || n || ')',

@@ -25,6 +25,7 @@ export default function Image() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          {/* next/og ImageResponse requires a raw image element in its edge-rendered tree. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={LOGO} width={104} height={104} alt="" style={{ display: 'flex' }} />
           <div style={{ fontSize: 76, fontWeight: 900, letterSpacing: '-0.02em', display: 'flex' }}>CharitMe</div>

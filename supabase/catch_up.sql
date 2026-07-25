@@ -3,11 +3,6 @@
 -- an existing database: creates only what is missing (create ... if not exists,
 -- drop policy/trigger if exists + create, create or replace function). Contains
 -- NO demo/seed data. Generated from supabase/migrations/ (excludes *seed*).
---
--- HOW TO USE: paste this whole file into the Supabase SQL editor and Run once.
---   Validated idempotent on Postgres 16 against BOTH a fresh DB and a
---   schema.sql-drifted DB. Adds missing tables AND missing columns on existing
---   tables before anything references them. No drops, no data loss.
 -- =============================================================================
 set check_function_bodies = off;
 
@@ -3329,12 +3324,12 @@ UPDATE campaigns SET
     'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1631815589968-fdb09a223b1e?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1504813184591-a058ada88eca?auto=format&fit=crop&w=800&q=80'
+    'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Medical';
 
 UPDATE campaigns SET
-  cover_image_url = 'https://images.unsplash.com/photo-1588776814546-1ffbb172ef8c?auto=format&fit=crop&w=1200&q=85',
+  cover_image_url = 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
     'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
@@ -3347,8 +3342,8 @@ WHERE category = 'Emergency';
 UPDATE campaigns SET
   cover_image_url = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
-    'https://images.unsplash.com/photo-1487700160041-9253caa4b8de?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1541804060688-9d8a5f44c0b8?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80'
@@ -3362,7 +3357,7 @@ UPDATE campaigns SET
     'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1607748851687-ba9a45146cd4?auto=format&fit=crop&w=800&q=80'
+    'https://images.unsplash.com/photo-1567521464027-f127ff144326?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Nonprofit';
 
@@ -3370,20 +3365,20 @@ UPDATE campaigns SET
   cover_image_url = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
     'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1488190211105-8fb0d4d54f0b?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1631815589968-fdb09a223b1e?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1513258496099-ee67191f698a?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Education';
 
 UPDATE campaigns SET
-  cover_image_url = 'https://images.unsplash.com/photo-1450778869180-b6cd2c73b7e4?auto=format&fit=crop&w=1200&q=85',
+  cover_image_url = 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
     'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1518155317743-a8ff43ea6a5f?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1548199973-ec2cb9df83fd?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1561037393-60df89cbff99?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Animal';
@@ -3391,9 +3386,9 @@ WHERE category = 'Animal';
 UPDATE campaigns SET
   cover_image_url = 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
-    'https://images.unsplash.com/photo-1500534314209-a157a0f250c5?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1573167243872-43c6433b9d40?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1521335629791-ee9686c6bcb6?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1567521464027-f127ff144326?auto=format&fit=crop&w=800&q=80'
   ]
@@ -3416,7 +3411,7 @@ UPDATE campaigns SET
     'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1607748851687-ba9a45146cd4?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1567521464027-f127ff144326?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Community';
@@ -3427,8 +3422,8 @@ UPDATE campaigns SET
     'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1543326727-cf6c39bbae7c?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1560272564-d940dfc96483?auto=format&fit=crop&w=800&q=80'
+    'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1518155317743-a8ff43ea6a5f?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Competition';
 
@@ -3444,12 +3439,12 @@ UPDATE campaigns SET
 WHERE category = 'Creative';
 
 UPDATE campaigns SET
-  cover_image_url = 'https://images.unsplash.com/photo-1540575467537-65e2f10b68fc?auto=format&fit=crop&w=1200&q=85',
+  cover_image_url = 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
     'https://images.unsplash.com/photo-1529543544282-ea669407fca3?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1511632765153-9b08cf6f0f1a?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1501281668745-f7f57925be31?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1593113630400-ea4288922497?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Event';
@@ -3457,8 +3452,8 @@ WHERE category = 'Event';
 UPDATE campaigns SET
   cover_image_url = 'https://images.unsplash.com/photo-1545987796-200677ee1011?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
-    'https://images.unsplash.com/photo-1541804060688-9d8a5f44c0b8?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1577083288073-40da2c536a75?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1573167243872-43c6433b9d40?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80'
@@ -3466,12 +3461,12 @@ UPDATE campaigns SET
 WHERE category = 'Faith';
 
 UPDATE campaigns SET
-  cover_image_url = 'https://images.unsplash.com/photo-1511895426328-dc8714191011?auto=format&fit=crop&w=1200&q=85',
+  cover_image_url = 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
-    'https://images.unsplash.com/photo-1531983372617-9b612d2110c4?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1476703993599-0035dd2b1397?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1609220361534-ebbe05e08d04?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Family';
@@ -3482,13 +3477,13 @@ UPDATE campaigns SET
     'https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1543326727-cf6c39bbae7c?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1560272564-d940dfc96483?auto=format&fit=crop&w=800&q=80'
+    'https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1518155317743-a8ff43ea6a5f?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Sports';
 
 UPDATE campaigns SET
-  cover_image_url = 'https://images.unsplash.com/photo-1488085061851-1e7cf5c3b1e2?auto=format&fit=crop&w=1200&q=85',
+  cover_image_url = 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
     'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
@@ -3504,7 +3499,7 @@ UPDATE campaigns SET
     'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1607748851687-ba9a45146cd4?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1567521464027-f127ff144326?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Volunteer';
@@ -3512,11 +3507,11 @@ WHERE category = 'Volunteer';
 UPDATE campaigns SET
   cover_image_url = 'https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1200&q=85',
   image_urls = ARRAY[
-    'https://images.unsplash.com/photo-1511895426328-dc8714191011?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1607748851687-ba9a45146cd4?auto=format&fit=crop&w=800&q=80'
+    'https://images.unsplash.com/photo-1567521464027-f127ff144326?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE category = 'Wishes';
 
@@ -3528,7 +3523,7 @@ UPDATE campaigns SET
     'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80',
     'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1607748851687-ba9a45146cd4?auto=format&fit=crop&w=800&q=80'
+    'https://images.unsplash.com/photo-1567521464027-f127ff144326?auto=format&fit=crop&w=800&q=80'
   ]
 WHERE (cover_image_url IS NULL OR cover_image_url = '' OR cover_image_url LIKE '%1500000%')
   AND (image_urls IS NULL OR array_length(image_urls, 1) IS NULL OR array_length(image_urls, 1) = 0);
@@ -6170,9 +6165,11 @@ begin
     'completed', p_anonymous, p_message, p_stripe_payment_intent_id, p_stripe_checkout_session_id
   );
 
-  -- NOTE: campaign raised_amount / backer_count are incremented by the AFTER
-  -- INSERT trigger donations_increment_campaign_stats. Do NOT increment here —
-  -- that double-counts (see migration 20260721000000).
+  update campaigns
+  set raised_amount = raised_amount + p_amount_cents,
+      backer_count  = backer_count  + 1,
+      updated_at    = now()
+  where id = p_campaign_id;
 
   insert into webhook_events (stripe_event_id, event_type, payload, processed_at)
   values (p_stripe_event_id, 'checkout.session.completed', '{}'::jsonb, now())
@@ -6381,6 +6378,197 @@ create policy campaigns_public_read on campaigns for select
   );
 
 
+-- ============ 20260720140000_super_admin_console.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Super-Admin Console — role grant + backing tables for the super-admin-only
+-- area (Roles, Users, Marketing[SEO/AEO/Campaigns], Feature Flags, Platform
+-- Settings, Announcements). Gated in-app by the `super_admin` role; all writes
+-- go through the service role (supabaseAdmin) behind a super-admin check.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- ── Grant super_admin (implies admin) to the owner account ───────────────────
+update profiles
+set roles = (
+  select jsonb_agg(distinct r)
+  from jsonb_array_elements(coalesce(roles, '["donor"]'::jsonb) || '["admin","super_admin"]'::jsonb) r
+)
+where lower(email) = 'daniel.hughen@gmail.com';
+
+-- ── seo_settings — per-route SEO metadata (rendered server-side) ─────────────
+create table if not exists seo_settings (
+  id               uuid primary key default uuid_generate_v4(),
+  route            text not null unique,
+  title            text,
+  meta_description text,
+  keywords         text,
+  og_title         text,
+  og_description   text,
+  og_image_url     text,
+  canonical_url    text,
+  noindex          boolean not null default false,
+  updated_by       uuid references profiles(id) on delete set null,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+create index if not exists seo_settings_route_idx on seo_settings(route);
+
+-- ── aeo_entries — Answer-Engine-Optimization Q&A (public structured data) ─────
+create table if not exists aeo_entries (
+  id           uuid primary key default uuid_generate_v4(),
+  question     text not null,
+  answer       text not null,
+  topic        text,
+  schema_type  text not null default 'FAQPage'
+                 check (schema_type in ('FAQPage','QAPage','HowTo')),
+  priority     integer not null default 0,
+  published    boolean not null default true,
+  updated_by   uuid references profiles(id) on delete set null,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+create index if not exists aeo_entries_pub_idx on aeo_entries(published, priority desc);
+
+-- ── announcements — site-wide banners ────────────────────────────────────────
+create table if not exists announcements (
+  id          uuid primary key default uuid_generate_v4(),
+  title       text not null,
+  body        text,
+  level       text not null default 'info' check (level in ('info','success','warning','critical')),
+  link_url    text,
+  link_label  text,
+  active      boolean not null default false,
+  starts_at   timestamptz,
+  ends_at     timestamptz,
+  created_by  uuid references profiles(id) on delete set null,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create index if not exists announcements_active_idx on announcements(active);
+
+-- ── updated_at triggers ──────────────────────────────────────────────────────
+drop trigger if exists seo_settings_updated_at on seo_settings;
+drop trigger if exists seo_settings_updated_at on seo_settings;
+create trigger seo_settings_updated_at before update on seo_settings
+  for each row execute function public.set_updated_at();
+drop trigger if exists aeo_entries_updated_at on aeo_entries;
+drop trigger if exists aeo_entries_updated_at on aeo_entries;
+create trigger aeo_entries_updated_at before update on aeo_entries
+  for each row execute function public.set_updated_at();
+drop trigger if exists announcements_updated_at on announcements;
+drop trigger if exists announcements_updated_at on announcements;
+create trigger announcements_updated_at before update on announcements
+  for each row execute function public.set_updated_at();
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- ROW LEVEL SECURITY
+--   seo_settings   — service-role only (read server-side for metadata)
+--   aeo_entries    — public read of published (renders as public FAQ schema)
+--   announcements  — public read of active (renders in the site banner)
+--   Writes on all three: service role only, behind an app-layer super-admin gate.
+-- ─────────────────────────────────────────────────────────────────────────────
+alter table seo_settings  enable row level security;
+alter table aeo_entries   enable row level security;
+alter table announcements enable row level security;
+
+drop policy if exists aeo_public_read on aeo_entries;
+drop policy if exists aeo_public_read on aeo_entries;
+create policy aeo_public_read on aeo_entries for select using (published = true);
+
+drop policy if exists announcements_public_read on announcements;
+drop policy if exists announcements_public_read on announcements;
+create policy announcements_public_read on announcements for select
+  using (active = true and (starts_at is null or starts_at <= now()) and (ends_at is null or ends_at >= now()));
+
+
+-- ============ 20260721000000_fix_record_donation_double_count.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- FIX (CRITICAL, financial accuracy): record_donation double-counted campaign
+-- totals.
+--
+-- The original schema (20260525000000_initial_schema) defines an AFTER INSERT
+-- trigger on `donations` — `donations_increment_campaign_stats` →
+-- `increment_campaign_stats_after_donation()` — which already increments
+-- `campaigns.raised_amount` (+ amount_cents) and `campaigns.backer_count` (+1)
+-- for every row inserted with status = 'completed'.
+--
+-- A later change (20260719120000_record_donation_idempotency_lock) ADDED a manual
+-- `update campaigns set raised_amount = raised_amount + p_amount_cents,
+-- backer_count = backer_count + 1` inside record_donation — not realizing the
+-- trigger already does this. Net effect, proven live: one record_donation call
+-- inserts ONE donation row but increments raised_amount by 2× the amount and
+-- backer_count by 2. Every webhook donation (one-time + recurring) was inflated.
+--
+-- Fix: recreate record_donation WITHOUT the manual campaign update. The trigger
+-- remains the single source of truth for stat increments (it fires on the INSERT
+-- below). Idempotency advisory lock, duplicate check, donation insert, and the
+-- webhook_events bookkeeping are unchanged.
+--
+-- Non-destructive: CREATE OR REPLACE FUNCTION only — no data is modified. Existing
+-- rows are untouched; this only corrects go-forward accounting.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create or replace function public.record_donation(
+  p_stripe_event_id          text,
+  p_campaign_id              uuid,
+  p_donor_id                 uuid,
+  p_amount_cents             bigint,
+  p_tip_cents                bigint,
+  p_processing_fee_cents     bigint,
+  p_message                  text,
+  p_anonymous                boolean,
+  p_stripe_payment_intent_id text,
+  p_stripe_checkout_session_id text
+) returns jsonb language plpgsql security definer as $$
+declare
+  v_existing uuid;
+  v_lock_key text;
+begin
+  -- Serialize concurrent processing of the SAME donation. Prefer the payment
+  -- intent id, then the checkout session id, then the event id as the lock key
+  -- so retried/duplicate deliveries collide while distinct donations do not.
+  v_lock_key := coalesce(
+    nullif(p_stripe_payment_intent_id, ''),
+    nullif(p_stripe_checkout_session_id, ''),
+    p_stripe_event_id
+  );
+  if v_lock_key is not null then
+    perform pg_advisory_xact_lock(hashtextextended(v_lock_key, 0));
+  end if;
+
+  -- Idempotency check (race-safe under the advisory lock above)
+  select id into v_existing from donations
+  where stripe_checkout_session_id = p_stripe_checkout_session_id
+     or (stripe_payment_intent_id = p_stripe_payment_intent_id and p_stripe_payment_intent_id is not null)
+  limit 1;
+
+  if v_existing is not null then
+    return jsonb_build_object('status','already_processed','id', v_existing);
+  end if;
+
+  -- The AFTER INSERT trigger donations_increment_campaign_stats increments
+  -- campaigns.raised_amount / backer_count for this 'completed' row. Do NOT
+  -- increment again here — that double-counts (see migration header).
+  insert into donations (
+    campaign_id, donor_id, amount_cents, tip_cents, processing_fee_cents,
+    status, anonymous, message, stripe_payment_intent_id, stripe_checkout_session_id
+  ) values (
+    p_campaign_id, p_donor_id, p_amount_cents, p_tip_cents, p_processing_fee_cents,
+    'completed', p_anonymous, p_message, p_stripe_payment_intent_id, p_stripe_checkout_session_id
+  );
+
+  insert into webhook_events (stripe_event_id, event_type, payload, processed_at)
+  values (p_stripe_event_id, 'checkout.session.completed', '{}'::jsonb, now())
+  on conflict (stripe_event_id) do nothing;
+
+  return jsonb_build_object('status','recorded');
+exception when others then
+  insert into webhook_events (stripe_event_id, event_type, payload, processing_error)
+  values (p_stripe_event_id, 'checkout.session.completed', '{}'::jsonb, sqlerrm)
+  on conflict (stripe_event_id) do nothing;
+  raise;
+end; $$;
+
+
 -- ============ 20260721000000_impact_tracking.sql ============
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Impact tracking — how each campaign spends funds and the outcomes it delivers.
@@ -6541,6 +6729,52 @@ create policy impact_metrics_write on impact_metrics for all
   with check (owns_campaign(campaign_id) or is_admin());
 
 
+-- ============ 20260721010000_claim_reward_limit_guard.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Harden claim_campaign_reward against over-claiming a limited reward.
+--
+-- The donations route pre-checks `claimed_count < item_limit` before creating the
+-- Checkout Session, but that is a check-then-act: two donors can both pass the
+-- check, both complete payment, and the webhook's unconditional
+-- `claimed_count = claimed_count + 1` then pushes claimed_count past item_limit.
+--
+-- Fix: the increment now only applies while the reward is under its limit (or
+-- has no limit). The single-statement UPDATE is atomic, so concurrent claims
+-- cannot exceed item_limit. A claim that arrives after the reward is exhausted
+-- simply matches 0 rows (the donation itself still stands — the perk is just no
+-- longer available, which the fulfillment UI already reflects via claimed_count).
+-- ─────────────────────────────────────────────────────────────────────────────
+
+create or replace function public.claim_campaign_reward(p_reward_id uuid)
+returns void language sql security definer set search_path to 'public' as $$
+  update public.campaign_rewards
+  set claimed_count = claimed_count + 1
+  where id = p_reward_id
+    and (item_limit is null or claimed_count < item_limit);
+$$;
+
+
+-- ============ 20260721020000_refunds_review_columns.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Add the reviewer-tracking columns the refund-request workflow assumes.
+--
+-- `GET /api/admin/refunds` selects `reviewed_by, updated_at` and the PATCH handler
+-- writes both, but neither column ever existed on `refunds` (the status enum has
+-- under_review/approved/declined states, so a reviewer + updated_at were clearly
+-- intended — the migration adding them was just never written). Selecting a
+-- non-existent column makes PostgREST error the whole query, so the admin refunds
+-- list returned nothing and status updates failed.
+--
+-- Purely additive (add column if not exists) — no data loss.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+alter table if exists public.refunds
+  add column if not exists reviewed_by uuid references public.profiles(id) on delete set null;
+
+alter table if exists public.refunds
+  add column if not exists updated_at timestamptz not null default now();
+
+
 -- ============ 20260722000000_gamification.sql ============
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Gamification persistence — earned badges + community challenges.
@@ -6639,6 +6873,74 @@ values
   ('hundred-dollar-hero', '$100 Hero', 'Donate $100 in total across the community.', 'total_cents', 10000, 'active'),
   ('three-cause-champion', 'Three-Cause Champion', 'Support three different campaigns.', 'campaign_count', 3, 'active')
 on conflict (slug) do nothing;
+
+
+-- ============ 20260723000000_campaign_cover_per_campaign.sql ============
+-- =============================================================================
+-- Per-campaign cover distribution
+-- =============================================================================
+-- Prior migrations (20260608010000_campaign_photos.sql / _fix) assigned ONE
+-- identical cover per category, so every Medical campaign (etc.) looked the
+-- same. This migration spreads campaigns deterministically across each
+-- category's verified photo pool, keyed by a stable hash of the slug, so
+-- campaigns in the same category get different covers and galleries.
+--
+-- SAFETY: only campaigns whose cover is NULL or a seed/placeholder Unsplash URL
+-- are touched. A real user-uploaded cover (e.g. a Supabase Storage URL) is left
+-- untouched, so genuine campaign imagery is never overwritten.
+--
+-- All photo IDs referenced here are Unsplash-licensed (free for commercial use,
+-- no attribution required — https://unsplash.com/license) and were verified to
+-- return HTTP 200 by scripts/audit-campaign-images.mjs --live. The pool below is
+-- kept in sync with apps/web/lib/photo-catalog.ts (getCoverForCampaign).
+-- =============================================================================
+
+do $$
+declare
+  v_pools jsonb := '{"Medical":["https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1631815589968-fdb09a223b1e?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80"],"Emergency":["https://images.unsplash.com/photo-1593113630400-ea4288922497?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80"],"Memorial":["https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80"],"Nonprofit":["https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80"],"Education":["https://images.unsplash.com/photo-1497486751825-1233686d5d80?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1516627145497-ae6968895b74?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80"],"Animal":["https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1518155317743-a8ff43ea6a5f?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80"],"Environment":["https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1573167243872-43c6433b9d40?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1567521464027-f127ff144326?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80"],"Business":["https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&q=80"],"Community":["https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80"],"Competition":["https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80"],"Creative":["https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1517697471339-4aa32003c11a?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1503694978374-8a2fa686963a?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80"],"Event":["https://images.unsplash.com/photo-1529543544282-ea669407fca3?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80"],"Faith":["https://images.unsplash.com/photo-1545987796-200677ee1011?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80"],"Family":["https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80"],"Sports":["https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1530549387789-4c1017266635?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80"],"Travel":["https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80"],"Volunteer":["https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80"],"Wishes":["https://images.unsplash.com/photo-1533230408708-8f9f91d1235a?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80"]}'::jsonb;
+  v_fallback jsonb := '["https://images.unsplash.com/photo-1509099836639-18ba1795216d?auto=format&fit=crop&w=1200&q=85","https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=800&q=80","https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&w=800&q=80"]'::jsonb;
+  r          record;
+  v_pool     jsonb;
+  v_len      int;
+  v_idx      int;
+  v_gallery  text[];
+  v_touched  int := 0;
+  i          int;
+begin
+  for r in select id, slug, category, cover_image_url from public.campaigns loop
+    -- Preserve genuine user-uploaded covers: only replace NULL/empty covers or
+    -- prior seed/placeholder Unsplash covers.
+    if r.cover_image_url is not null
+       and r.cover_image_url <> ''
+       and r.cover_image_url not like '%images.unsplash.com%' then
+      continue;
+    end if;
+
+    v_pool := coalesce(v_pools -> r.category, v_fallback);
+    v_len  := jsonb_array_length(v_pool);
+    if v_len is null or v_len = 0 then
+      continue;
+    end if;
+
+    -- Deterministic per-campaign index from a stable key (slug, else id).
+    v_idx := (abs(hashtext(coalesce(nullif(r.slug, ''), r.id::text))) % v_len);
+
+    -- Gallery: the rest of the pool, rotated to start just after the cover.
+    v_gallery := array[]::text[];
+    for i in 0 .. least(v_len, 6) - 1 loop
+      v_gallery := array_append(v_gallery, v_pool ->> ((v_idx + 1 + i) % v_len));
+    end loop;
+
+    update public.campaigns
+       set cover_image_url = v_pool ->> v_idx,
+           image_urls      = v_gallery
+     where id = r.id;
+
+    v_touched := v_touched + 1;
+  end loop;
+
+  raise notice 'Per-campaign covers distributed across % campaigns.', v_touched;
+end $$;
 
 
 -- ============ 20260723000000_financial_ledger.sql ============
@@ -6832,6 +7134,71 @@ end $$;
 -- access to any of these, add an explicit, scoped policy in a new migration.
 
 
+-- ============ 20260724000000_campaign_cover_unique_picsum.sql ============
+-- =============================================================================
+-- Unique per-campaign cover images (no duplicates)
+-- =============================================================================
+-- Supersedes 20260723000000_campaign_cover_per_campaign.sql, whose small,
+-- cross-category-overlapping Unsplash pools (6-7 photos each) + hash-mod
+-- assignment could only ever yield ~50 distinct covers across 500 campaigns
+-- (every listing showed the same handful of photos).
+--
+-- Here each campaign gets a GLOBALLY UNIQUE professional photo: a distinct
+-- Lorem Picsum image id (https://picsum.photos, free, no attribution, no API
+-- key) assigned by row_number() over a stable order, so no image is ever used
+-- by more than one campaign. cover + single-image gallery are kept in sync.
+--
+-- SAFETY: only NULL/empty covers or known placeholder hosts (Unsplash / Picsum
+-- / LoremFlickr seed images) are touched. A genuine user-uploaded cover (e.g. a
+-- Supabase Storage URL) is preserved. Idempotent: re-running reassigns the same
+-- deterministic ids.
+--
+-- The id pool below (800 valid ids) was captured from
+-- picsum.photos/v2/list and every id resolves to a real 800x600 photo.
+-- =============================================================================
+
+do $$
+declare
+  v_ids   int[] := array[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,87,88,89,90,91,92,93,94,95,96,98,99,100,101,102,103,104,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,139,140,141,142,143,144,145,146,147,149,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,203,204,206,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,225,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,247,248,249,250,251,252,253,254,255,256,257,258,259,260,261,263,264,265,266,267,268,269,270,271,272,273,274,275,276,277,278,279,280,281,282,283,284,287,288,289,290,291,292,293,294,295,296,297,299,300,301,302,304,305,306,307,308,309,310,311,312,313,314,315,316,317,318,319,320,321,322,323,324,325,326,327,328,329,330,331,334,335,336,337,338,339,340,341,342,343,344,345,347,348,349,350,351,352,353,354,355,356,357,358,360,361,362,363,364,365,366,367,368,369,370,371,372,373,374,375,376,377,378,379,380,381,382,383,384,385,386,387,388,389,390,391,392,393,395,396,397,398,399,400,401,402,403,404,405,406,407,408,409,410,411,412,413,415,416,417,418,419,420,421,423,424,425,426,427,428,429,430,431,432,433,434,435,436,437,439,440,441,442,443,444,445,446,447,448,449,450,451,452,453,454,455,456,457,458,459,460,461,464,465,466,467,468,469,471,472,473,474,475,476,477,478,479,480,481,482,483,484,485,486,487,488,490,491,492,493,494,495,496,497,498,499,500,501,502,503,504,505,506,507,508,509,510,511,512,513,514,515,516,517,518,519,520,521,522,523,524,525,526,527,528,529,530,531,532,533,534,535,536,537,538,539,541,542,543,544,545,546,547,548,549,550,551,552,553,554,555,556,557,558,559,560,562,563,564,565,566,567,568,569,570,571,572,573,574,575,576,577,579,580,581,582,583,584,585,586,588,590,591,593,594,596,598,599,600,602,603,604,605,606,607,608,609,610,611,612,613,614,615,616,617,618,619,620,621,622,623,625,626,627,628,629,630,631,633,634,635,637,638,639,640,641,642,643,645,646,648,649,650,651,652,653,654,655,656,657,658,659,660,661,662,663,664,665,666,667,668,669,670,671,672,674,675,676,677,678,679,680,681,682,683,684,685,686,687,688,689,690,691,692,693,694,695,696,698,699,700,701,702,703,704,705,715,716,717,718,719,721,722,723,724,726,727,728,729,730,731,732,733,735,736,737,738,739,740,741,742,743,744,755,756,757,758,760,764,765,766,767,768,769,770,772,773,774,775,776,777,778,779,780,781,782,783,784,785,786,787,788,789,790,791,793,794,795,796,797,798,799,800,802,803,804,805,806,807,808,809,810,811,813,814,815,816,817,818,819,820,821,822,823,824,825,826,827,828,829,830,831,832,833,834,835,836,837,838,839,840,841,842,844,845,846,847,848,849,851,852,853,855,856,857,858,859,860,861,862,863,864,865,866,867,868,869,870,871,872,873,874,875,876,877];
+  v_len   int   := array_length(array[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,87,88,89,90,91,92,93,94,95,96,98,99,100,101,102,103,104,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,139,140,141,142,143,144,145,146,147,149,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,203,204,206,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,225,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,247,248,249,250,251,252,253,254,255,256,257,258,259,260,261,263,264,265,266,267,268,269,270,271,272,273,274,275,276,277,278,279,280,281,282,283,284,287,288,289,290,291,292,293,294,295,296,297,299,300,301,302,304,305,306,307,308,309,310,311,312,313,314,315,316,317,318,319,320,321,322,323,324,325,326,327,328,329,330,331,334,335,336,337,338,339,340,341,342,343,344,345,347,348,349,350,351,352,353,354,355,356,357,358,360,361,362,363,364,365,366,367,368,369,370,371,372,373,374,375,376,377,378,379,380,381,382,383,384,385,386,387,388,389,390,391,392,393,395,396,397,398,399,400,401,402,403,404,405,406,407,408,409,410,411,412,413,415,416,417,418,419,420,421,423,424,425,426,427,428,429,430,431,432,433,434,435,436,437,439,440,441,442,443,444,445,446,447,448,449,450,451,452,453,454,455,456,457,458,459,460,461,464,465,466,467,468,469,471,472,473,474,475,476,477,478,479,480,481,482,483,484,485,486,487,488,490,491,492,493,494,495,496,497,498,499,500,501,502,503,504,505,506,507,508,509,510,511,512,513,514,515,516,517,518,519,520,521,522,523,524,525,526,527,528,529,530,531,532,533,534,535,536,537,538,539,541,542,543,544,545,546,547,548,549,550,551,552,553,554,555,556,557,558,559,560,562,563,564,565,566,567,568,569,570,571,572,573,574,575,576,577,579,580,581,582,583,584,585,586,588,590,591,593,594,596,598,599,600,602,603,604,605,606,607,608,609,610,611,612,613,614,615,616,617,618,619,620,621,622,623,625,626,627,628,629,630,631,633,634,635,637,638,639,640,641,642,643,645,646,648,649,650,651,652,653,654,655,656,657,658,659,660,661,662,663,664,665,666,667,668,669,670,671,672,674,675,676,677,678,679,680,681,682,683,684,685,686,687,688,689,690,691,692,693,694,695,696,698,699,700,701,702,703,704,705,715,716,717,718,719,721,722,723,724,726,727,728,729,730,731,732,733,735,736,737,738,739,740,741,742,743,744,755,756,757,758,760,764,765,766,767,768,769,770,772,773,774,775,776,777,778,779,780,781,782,783,784,785,786,787,788,789,790,791,793,794,795,796,797,798,799,800,802,803,804,805,806,807,808,809,810,811,813,814,815,816,817,818,819,820,821,822,823,824,825,826,827,828,829,830,831,832,833,834,835,836,837,838,839,840,841,842,844,845,846,847,848,849,851,852,853,855,856,857,858,859,860,861,862,863,864,865,866,867,868,869,870,871,872,873,874,875,876,877], 1);
+  r       record;
+  v_rn    bigint;
+  v_url   text;
+begin
+  v_rn := 0;
+  for r in
+    select id, cover_image_url
+      from public.campaigns
+     order by created_at asc, id asc
+  loop
+    -- Preserve real uploaded covers; only replace placeholders / nulls.
+    if r.cover_image_url is not null
+       and r.cover_image_url <> ''
+       and r.cover_image_url not like '%images.unsplash.com%'
+       and r.cover_image_url not like '%picsum.photos%'
+       and r.cover_image_url not like '%loremflickr.com%' then
+      continue;
+    end if;
+
+    -- Distinct id per campaign; wrap only if campaigns exceed the pool (adds a
+    -- +offset so wrapped ids stay valid), keeping assignment deterministic.
+    if v_rn < v_len then
+      v_url := 'https://picsum.photos/id/' || v_ids[v_rn + 1] || '/800/600';
+    else
+      -- Fallback for very large datasets: deterministic unique seed per campaign.
+      v_url := 'https://picsum.photos/seed/cm-' || r.id || '/800/600';
+    end if;
+
+    update public.campaigns
+       set cover_image_url = v_url,
+           image_urls      = array[v_url]
+     where id = r.id;
+
+    v_rn := v_rn + 1;
+  end loop;
+end $$;
+
+
 -- ============ 20260724000000_reconcile_legacy_column_drift.sql ============
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Legacy column-drift reconciliation (LB-001)
@@ -6852,3 +7219,68 @@ alter table if exists public.donor_crm_contacts
 
 alter table if exists public.recurring_donations
   add column if not exists nonprofit_id uuid references public.nonprofit_profiles(id) on delete cascade;
+
+
+-- ============ 20260725000000_campaign_builder_events.sql ============
+-- =============================================================================
+-- Campaign-builder funnel analytics
+-- =============================================================================
+-- Captures per-step events for the /create wizard (and AI builder) so drop-off,
+-- abandonment, and completion time are measurable — previously invisible. Rows
+-- are tiny and append-only. Guests must be captured too (many creators start
+-- logged-out), so INSERT is open to anon/authenticated with a tight enum on
+-- `event`; SELECT is service-role only (admin dashboards read via supabaseAdmin).
+-- =============================================================================
+
+create table if not exists public.campaign_builder_events (
+  id           uuid primary key default gen_random_uuid(),
+  session_id   text not null,                     -- client-generated anon funnel id
+  user_id      uuid references auth.users(id) on delete set null,
+  path         text not null default 'guided',    -- 'guided' | 'ai'
+  step         text not null,
+  event        text not null,                      -- 'enter' | 'advance' | 'back' | 'publish' | 'save_draft' | 'abandon'
+  meta         jsonb not null default '{}'::jsonb,
+  created_at   timestamptz not null default now(),
+  constraint campaign_builder_events_event_chk
+    check (event in ('enter','advance','back','publish','save_draft','abandon')),
+  constraint campaign_builder_events_path_chk
+    check (path in ('guided','ai'))
+);
+
+create index if not exists idx_cbe_session on public.campaign_builder_events (session_id, created_at);
+create index if not exists idx_cbe_step    on public.campaign_builder_events (step, created_at);
+create index if not exists idx_cbe_created on public.campaign_builder_events (created_at);
+
+alter table public.campaign_builder_events enable row level security;
+
+-- Anyone (incl. anonymous creators) may append their own funnel events.
+drop policy if exists cbe_insert_any on public.campaign_builder_events;
+drop policy if exists cbe_insert_any on public.campaign_builder_events;
+create policy cbe_insert_any on public.campaign_builder_events
+  for insert to anon, authenticated with check (true);
+
+-- Reads are admin-only (service role bypasses RLS; no anon/authenticated SELECT policy).
+
+
+-- ============ 20260726000000_tax_receipt_reconciliation.sql ============
+-- Keep one official tax receipt per completed donation so email delivery,
+-- annual donor statements, and admin re-sends reconcile to the same record.
+alter table if exists public.tax_receipts
+  add column if not exists currency text not null default 'usd',
+  add column if not exists nonprofit_name text,
+  add column if not exists nonprofit_ein text,
+  add column if not exists campaign_title text,
+  add column if not exists no_goods_or_services boolean not null default true;
+
+delete from public.tax_receipts older
+using public.tax_receipts newer
+where older.donation_id is not null
+  and older.donation_id = newer.donation_id
+  and (older.created_at, older.id) < (newer.created_at, newer.id);
+
+create unique index if not exists tax_receipts_donation_id_unique
+  on public.tax_receipts (donation_id)
+  where donation_id is not null;
+
+create index if not exists tax_receipts_donor_created_at_idx
+  on public.tax_receipts (donor_id, created_at desc);

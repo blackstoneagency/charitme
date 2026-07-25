@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // ─────────────────────────────────────────────
 // Types
@@ -42,6 +42,13 @@ function ConnectModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  // Escape closes the modal (keyboard-accessible dismiss).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   // Decide which field(s) to show based on integration type
   const needsWebhook = ['zapier', 'slack'].includes(item.name.toLowerCase());
 
@@ -75,6 +82,9 @@ function ConnectModal({
   }
 
   return (
+    // Modal backdrop dismissal intentionally listens for pointer clicks only;
+    // Escape and the visible close button provide the keyboard path.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}

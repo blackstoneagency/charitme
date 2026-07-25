@@ -34,7 +34,7 @@ export async function GET(
       .maybeSingle(),
   ]);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ rewards: data ?? [], currency: launchSettings?.currency ?? 'usd' });
 }
 
@@ -84,6 +84,6 @@ export async function POST(
     .select('id, title, description, amount_cents, estimated_delivery, item_limit, claimed_count, sort_order, created_at')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ reward }, { status: 201 });
 }

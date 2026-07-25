@@ -51,6 +51,22 @@ marketing_events, marketing_form_submissions, marketing_forms,
 marketing_identities, marketing_referrals, marketing_segment_members,
 marketing_segments, marketing_suppression_list, marketing_utm_links.
 
+## Repeatable live smoke check
+
+`npm run test:rls-live` runs a read-only PostgREST check using the public anon
+key. It verifies that anonymous callers cannot read `profiles`, `donations`, or
+`privacy_requests`. To add authenticated isolation checks, provide a JSON array
+of real staging test users through `CHARITME_RLS_TEST_USERS_JSON`:
+
+```json
+[{"name":"donor-a","accessToken":"<access token>","userId":"<uuid>"},{"name":"donor-b","accessToken":"<access token>","userId":"<uuid>"}]
+```
+
+The harness verifies each user's own profile is readable and another supplied
+persona's profile is not. It never writes data, uses the service-role key, or
+prints access tokens. Run it only against a staging project with dedicated test
+users before recording a new certification.
+
 ## Remaining (gated on live DB access)
 
 - Apply this migration to the live project and confirm `relrowsecurity=true` on

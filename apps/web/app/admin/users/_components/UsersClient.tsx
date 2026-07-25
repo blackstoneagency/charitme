@@ -1,6 +1,16 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+
+function useEscape(onClose: () => void): void {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+}
 
 // ─────────────────────────────────────────────
 // Types
@@ -108,6 +118,7 @@ function GrowthChart({ points }: { points: WeekPoint[] }) {
 // User detail slide-in panel
 // ─────────────────────────────────────────────
 function UserDetailPanel({ user, onClose }: { user: UserRecord; onClose: () => void }) {
+  useEscape(onClose);
   const [activeTab, setActiveTab] = useState('overview');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState('');
@@ -147,11 +158,13 @@ function UserDetailPanel({ user, onClose }: { user: UserRecord; onClose: () => v
   }
 
   return (
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ marginLeft: 'auto', width: 480, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginLeft: 'auto', width: 480, maxWidth: '100vw', background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '22px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
             {getInitials(user.full_name, user.email)}
@@ -274,6 +287,7 @@ function AddUserPanel({ onClose }: { onClose: () => void }) {
   const [sendWelcome, setSendWelcome] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  useEscape(onClose);
 
   async function handleCreate() {
     if (!newEmail.trim() || !newName.trim()) { setError('Name and email are required.'); return; }
@@ -298,9 +312,11 @@ function AddUserPanel({ onClose }: { onClose: () => void }) {
   }
 
   return (
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ marginLeft: 'auto', width: 460, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginLeft: 'auto', width: 460, maxWidth: '100vw', background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '22px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: 17, fontWeight: 700, color: '#0f0f30' }}>Add New User</div>
           <button type="button" onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5', lineHeight: 1 }}>×</button>
@@ -425,9 +441,10 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
 
         <section className="kf-card">
           <div className="kf-card-head"><h2>Recent Users</h2></div>
-          {users.slice(0, 5).map(u => (
-            <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer' }}
+        {users.slice(0, 5).map(u => (
+            <div key={u.id} role="button" tabIndex={0} aria-label={`View user ${getDisplayName(u)}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer' }}
               onClick={() => setSelectedUser(u)}
+              onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedUser(u); } }}
               onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
               <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#e7f8ed,#19b86a)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
@@ -468,12 +485,13 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
           <div>
             {/* Search + filters */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: '#fff' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={15} height={15}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: '#fff' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={15} height={15} aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
                 <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }}
                   placeholder="Search by name or email…"
+                  aria-label="Search users by name or email"
                   style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }} />
-              </label>
+              </div>
               <select value={filterRole} onChange={e => { setFilterRole(e.target.value); setPage(0); }}
                 style={{ height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', fontSize: 13, background: '#fff' }}>
                 <option value="all">All Roles</option>
@@ -494,8 +512,9 @@ export default function UsersClient({ totalUsers, activeUsers, newUsersThisMonth
             {/* Table rows */}
             {currentPage.map(u => (
               <div key={u.id}
-                style={{ display: 'grid', gridTemplateColumns: '1fr 140px 130px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+                role="button" tabIndex={0} aria-label={`View user ${getDisplayName(u)}`} style={{ display: 'grid', gridTemplateColumns: '1fr 140px 130px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => setSelectedUser(u)}
+                onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedUser(u); } }}
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

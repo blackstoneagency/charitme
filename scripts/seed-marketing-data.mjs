@@ -10,6 +10,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createClient } from '@supabase/supabase-js';
+import { assertDemoSeedAllowed } from './seed-guard.mjs';
 
 const root = process.cwd();
 
@@ -25,6 +26,7 @@ function loadEnvLocal() {
 }
 
 const env = loadEnvLocal();
+assertDemoSeedAllowed({ ...env, ...process.env });
 const url = env.NEXT_PUBLIC_SUPABASE_URL;
 const key = env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) { console.error('Missing Supabase env in apps/web/.env.local'); process.exit(1); }

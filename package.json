@@ -11,6 +11,8 @@
     "build": "npm run build --workspace=apps/web",
     "typecheck": "npm run typecheck --workspace=apps/web",
     "schema:snapshot": "node scripts/schema-snapshot.mjs",
+    "test:seed-guard": "node --test scripts/seed-guard.test.mjs",
+    "test:rls-live": "node scripts/rls-live-smoke.mjs",
     "provision": "node scripts/provision-supabase-vercel.mjs"
   },
   "devDependencies": {

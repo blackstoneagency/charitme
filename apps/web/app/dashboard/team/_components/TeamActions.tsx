@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // ─────────────────────────────────────────────
 // Remove button — deletes a single team member
@@ -84,6 +84,14 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Escape closes the invite modal (keyboard-accessible dismiss).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
   async function handleInvite() {
     if (!email.trim()) { setError('Email is required.'); return; }
     if (!campaignId) { setError('Please select a campaign.'); return; }
@@ -119,11 +127,13 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
       </button>
 
       {open && (
+        // Backdrop dismissal is supplementary; Escape and the close button remain available.
+        // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
           onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}
         >
-          <div style={{ width: 460, background: 'var(--s1)', borderRadius: 16, boxShadow: '0 20px 60px rgba(20,20,80,.18)', overflow: 'hidden' }}>
+          <div className="kf-modal-responsive" style={{ width: 460, background: 'var(--s1)', borderRadius: 16, boxShadow: '0 20px 60px rgba(20,20,80,.18)', overflow: 'hidden' }}>
             <div style={{ padding: '22px 24px 18px', borderBottom: '1px solid var(--b1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--t1)' }}>Invite Team Member</div>
               <button type="button" onClick={() => setOpen(false)} style={{ width: 32, height: 32, border: '1px solid var(--b1)', borderRadius: '50%', background: 'var(--s1)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3)' }}>×</button>

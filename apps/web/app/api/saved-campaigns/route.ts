@@ -22,7 +22,7 @@ export async function GET() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   const campaignIds = (saved ?? []).map((s) => s.campaign_id as string);
   if (campaignIds.length === 0) return NextResponse.json({ campaigns: [] });
@@ -65,13 +65,13 @@ export async function POST(request: NextRequest) {
 
   if (existing) {
     const { error } = await supabaseAdmin.from('saved_campaigns').delete().eq('id', existing.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
     return NextResponse.json({ saved: false });
   }
 
   const { error } = await supabaseAdmin
     .from('saved_campaigns')
     .insert({ user_id: user.id, campaign_id: campaignId });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ saved: true });
 }

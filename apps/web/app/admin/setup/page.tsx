@@ -173,7 +173,7 @@ export default async function AdminSetupPage() {
 
         {/* Quick actions */}
         <div style={{ marginTop: 22, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <a href="/api/health" target="_blank" style={{ padding: '9px 20px', background: '#6c35ff', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+          <a href="/api/health?details=1" target="_blank" style={{ padding: '9px 20px', background: '#6c35ff', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
             /api/health →
           </a>
           <a href="https://supabase.com/dashboard/project/yanexccimwooursawynm/editor" target="_blank" rel="noopener noreferrer" style={{ padding: '9px 20px', background: 'var(--s3)', border: '1px solid var(--b2)', color: 'var(--t1)', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>

@@ -110,6 +110,16 @@ function fmtDateTime(iso: string): string {
   });
 }
 
+function useEscape(onClose: () => void): void {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+}
+
 function capitalize(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
 }
@@ -283,7 +293,10 @@ interface MoreActionsPanelProps {
 function MoreActionsPanel({
   detail, onClose, onRefund, onNote, onSpam, onReceipt, spamLoading, receiptLoading,
 }: MoreActionsPanelProps) {
+  useEscape(onClose);
   return (
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
@@ -362,6 +375,7 @@ function RefundModal({
   const [reason, setReason] = useState('Donor request');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
+  useEscape(onClose);
 
   async function handleRefund() {
     const parsed = parseFloat(amount);
@@ -387,6 +401,8 @@ function RefundModal({
   }
 
   return (
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div className="ado-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="ado-modal">
         <div className="ado-modal-head">
@@ -399,8 +415,9 @@ function RefundModal({
             <strong>{detail.donorName}</strong>. This action will be logged.
           </p>
           <div className="ado-field">
-            <label>Refund Amount ($)</label>
+            <label htmlFor="ref-amount">Refund Amount ($)</label>
             <input
+              id="ref-amount"
               className="ac-input"
               type="number"
               step="0.01"
@@ -412,8 +429,8 @@ function RefundModal({
             <small style={{ color: '#8c9ab5', fontSize: 11 }}>Max: {fmtCents(detail.amountCents)}</small>
           </div>
           <div className="ado-field">
-            <label>Reason</label>
-            <select className="ac-input" value={reason} onChange={e => setReason(e.target.value)}>
+            <label htmlFor="ref-reason">Reason</label>
+            <select id="ref-reason" className="ac-input" value={reason} onChange={e => setReason(e.target.value)}>
               <option>Donor request</option>
               <option>Duplicate charge</option>
               <option>Fraudulent</option>
@@ -449,6 +466,7 @@ function NoteModal({
   const [note, setNote] = useState(detail.notes ?? '');
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
+  useEscape(onClose);
 
   async function handleSave() {
     if (!note.trim()) { setErr('Note cannot be empty.'); return; }
@@ -471,6 +489,8 @@ function NoteModal({
   }
 
   return (
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div className="ado-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="ado-modal">
         <div className="ado-modal-head">
@@ -479,14 +499,14 @@ function NoteModal({
         </div>
         <div className="ado-modal-body">
           <div className="ado-field">
-            <label>Internal Note</label>
+            <label htmlFor="ref-note">Internal Note</label>
             <textarea
+              id="ref-note"
               className="ac-textarea"
               rows={5}
               value={note}
               onChange={e => setNote(e.target.value)}
               placeholder="Enter internal note visible only to admins…"
-              autoFocus
             />
           </div>
           {err && <div className="ado-error">{err}</div>}
@@ -1027,6 +1047,14 @@ export default function DonationsClient({
               key={d.id}
               style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer' }}
               onClick={() => { fetchDetail(d.id); }}
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  fetchDetail(d.id);
+                }
+              }}
+              role="button"
+              tabIndex={0}
               onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
@@ -1092,15 +1120,16 @@ export default function DonationsClient({
         {panelTab === 'Donations' && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: '#fff' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={16} height={16}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: '#fff' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={16} height={16} aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
                 <input
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(0); }}
                   placeholder="Search by donor, email, or campaign…"
+                  aria-label="Search donations by donor, email, or campaign"
                   style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }}
                 />
-              </label>
+              </div>
               <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(0); }}
                 style={{ height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', fontSize: 13, background: '#fff' }}>
                 <option value="all">All Status</option>
@@ -1143,6 +1172,14 @@ export default function DonationsClient({
                 key={d.id}
                 style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => { fetchDetail(d.id); }}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    fetchDetail(d.id);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
@@ -1284,6 +1321,14 @@ export default function DonationsClient({
                   <div key={d.id}
                     style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 130px', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < arr.length - 1 ? '1px solid #f0f2f8' : 'none', background: '#fff', cursor: 'pointer' }}
                     onClick={() => { fetchDetail(d.id); }}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        fetchDetail(d.id);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                     onMouseEnter={e => (e.currentTarget.style.background = '#fff5f7')}
                     onMouseLeave={e => (e.currentTarget.style.background = '#fff')}>
                     <div style={{ fontSize: 13, fontWeight: 650, color: '#101944' }}>{d.donor_name}</div>
@@ -1328,8 +1373,8 @@ export default function DonationsClient({
             <h3 style={{ margin: '0 0 20px', fontSize: 16, fontWeight: 700, color: '#0f1238' }}>Export Data</h3>
             <div style={{ maxWidth: 460, display: 'grid', gap: 18 }}>
               <div className="ado-field">
-                <label>Data Type</label>
-                <select className="ac-input">
+                <label htmlFor="exp-datatype">Data Type</label>
+                <select id="exp-datatype" className="ac-input">
                   <option>All Donations</option>
                   <option>Completed Only</option>
                   <option>Refunded Only</option>
@@ -1337,16 +1382,16 @@ export default function DonationsClient({
                 </select>
               </div>
               <div className="ado-field">
-                <label>Format</label>
-                <select className="ac-input" value={exportFormat} onChange={e => setExportFormat(e.target.value)}>
+                <label htmlFor="exp-format">Format</label>
+                <select id="exp-format" className="ac-input" value={exportFormat} onChange={e => setExportFormat(e.target.value)}>
                   <option value="csv">CSV</option>
                   <option value="excel">Excel</option>
                   <option value="pdf">PDF</option>
                 </select>
               </div>
               <div className="ado-field">
-                <label>Date Range</label>
-                <select className="ac-input">
+                <label htmlFor="exp-daterange">Date Range</label>
+                <select id="exp-daterange" className="ac-input">
                   <option>All time</option>
                   <option>Last 30 days</option>
                   <option>Last 90 days</option>

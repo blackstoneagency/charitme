@@ -7,6 +7,13 @@
 -- Run once. Re-running appends more rows (not idempotent for child tables).
 -- =============================================================================
 do $$
+begin
+  if current_setting('app.charitme_allow_demo_seed', true) <> 'true' then
+    raise exception 'Demo seed blocked. Set app.charitme_allow_demo_seed = true only on a disposable staging/demo project.';
+  end if;
+end $$;
+
+do $$
 declare
   v_users   uuid[];
   v_camps   uuid[];

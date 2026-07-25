@@ -37,7 +37,7 @@ export default async function MatchingPage() {
           body="Check back soon, or if you run a company, launch the first matching program."
         />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 18 }}>
           {programs.map((p) => (
             <Link
               key={p.id}

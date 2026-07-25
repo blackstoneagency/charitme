@@ -30,7 +30,7 @@ export async function GET(
       .maybeSingle(),
   ]);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ milestones: data ?? [], currency: launchSettings?.currency ?? 'usd' });
 }
 
@@ -78,6 +78,6 @@ export async function POST(
     .select('id, title, description, target_amount, reached_at, sort_order, created_at')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ milestone }, { status: 201 });
 }

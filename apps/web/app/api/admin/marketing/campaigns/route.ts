@@ -27,7 +27,7 @@ export async function GET() {
     .from('marketing_campaigns')
     .select('*, marketing_segments(name, member_count)')
     .order('created_at', { ascending: false });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ campaigns: data ?? [] });
 }
 
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     .insert({ ...parsed.data, created_by: admin.id, status: parsed.data.scheduled_at ? 'scheduled' : 'draft' })
     .select('*')
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   await supabaseAdmin.from('marketing_audit_logs').insert({
     actor_id: admin.id, action: 'campaign_created', entity: 'marketing_campaigns', entity_id: data.id,
     detail: { name: data.name, type: data.campaign_type },

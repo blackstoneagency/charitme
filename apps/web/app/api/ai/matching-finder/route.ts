@@ -62,7 +62,7 @@ function fallbackMessage(topCategories: string[], hasHistory: boolean): string {
   return `Because you've supported ${topCategories.slice(0, -1).join(', ')} and ${topCategories[topCategories.length - 1]} causes before, here are campaigns you might care about.`;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

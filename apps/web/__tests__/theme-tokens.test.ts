@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Theme regression guard.
@@ -14,7 +14,10 @@ import { join } from 'node:path';
 // amber/orange status) are allowed — only surfaces and dark text are policed.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const DASHBOARD_DIR = join(__dirname, '..', 'app', 'dashboard');
+// User-facing app areas that must render correctly in dark AND light mode.
+// (Admin console is intentional light-only internal tooling; branded marketing
+// pages keep their brand palettes — both are out of scope for this guard.)
+const GUARDED_DIRS = ['dashboard', 'donor', 'profile'].map((d) => join(__dirname, '..', 'app', d));
 
 function walk(dir: string): string[] {
   const out: string[] = [];
@@ -42,17 +45,18 @@ function offendingLines(files: string[], re: RegExp): string[] {
     const lines = readFileSync(f, 'utf8').split('\n');
     lines.forEach((line, i) => {
       if (re.test(line) && !ALLOW.test(line)) {
-        hits.push(`${f.slice(f.indexOf('app/dashboard'))}:${i + 1}`);
+        const idx = f.indexOf(`app${sep}`);
+        hits.push(`${idx >= 0 ? f.slice(idx) : f}:${i + 1}`);
       }
     });
   }
   return hits;
 }
 
-describe('dashboard theme tokens (dark-mode regression guard)', () => {
-  const files = walk(DASHBOARD_DIR);
+describe('user-facing theme tokens (dark-mode regression guard)', () => {
+  const files = GUARDED_DIRS.flatMap(walk);
 
-  it('finds dashboard component files to check', () => {
+  it('finds user-facing component files to check', () => {
     expect(files.length).toBeGreaterThan(20);
   });
 
@@ -64,5 +68,29 @@ describe('dashboard theme tokens (dark-mode regression guard)', () => {
   it('no component uses a hardcoded dark text color (use var(--t1)/--t2)', () => {
     const offenders = offendingLines(files, HARDCODED_DARK_TEXT);
     expect(offenders, `Hardcoded dark text — replace with a text token:\n${offenders.join('\n')}`).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// --violet-ink is the adaptive violet-text token introduced to fix WCAG AA
+// contrast on public pages: it must stay AA on light surfaces AND flip to a
+// light violet on dark surfaces. Several fixes (/features, /supported-countries,
+// /transparency labels) rely on it being defined in BOTH themes — if either
+// definition is dropped, those pages silently regress to failing contrast.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('--violet-ink adaptive token', () => {
+  const css = readFileSync(join(__dirname, '..', 'app', 'globals.css'), 'utf8');
+
+  it('is defined in the light (:root) palette', () => {
+    // A --violet-ink declaration that appears before the dark-theme block.
+    const darkIdx = css.indexOf('[data-theme="dark"]');
+    const lightScope = darkIdx > 0 ? css.slice(0, darkIdx) : css;
+    expect(/--violet-ink:\s*#[0-9a-fA-F]{3,8}/.test(lightScope), 'globals.css :root must define --violet-ink (light value)').toBe(true);
+  });
+
+  it('is overridden in the dark palette', () => {
+    // At least two declarations total (light + dark override).
+    const count = (css.match(/--violet-ink:\s*#[0-9a-fA-F]{3,8}/g) || []).length;
+    expect(count, 'globals.css must define --violet-ink in both :root and [data-theme="dark"]').toBeGreaterThanOrEqual(2);
   });
 });

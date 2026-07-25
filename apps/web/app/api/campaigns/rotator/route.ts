@@ -32,7 +32,7 @@ export async function GET() {
   ]);
 
   if (campaignsResult.error) {
-    return NextResponse.json({ error: campaignsResult.error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Unable to load featured campaigns', code: 'INTERNAL_ERROR' }, { status: 500 });
   }
 
   type Raw = {

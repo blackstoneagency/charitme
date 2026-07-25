@@ -60,7 +60,7 @@ export async function PATCH(
     .select('id, title, description, amount_cents, estimated_delivery, item_limit, claimed_count, sort_order, created_at')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ reward: data });
 }
 
@@ -90,6 +90,6 @@ export async function DELETE(
     .eq('id', rewardId)
     .eq('campaign_id', id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

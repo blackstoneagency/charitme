@@ -67,9 +67,8 @@ export async function GET(request: NextRequest) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    // Redirect to login and surface the error so the user knows what happened
     const loginUrl = new URL('/login', origin);
-    loginUrl.searchParams.set('error', error.message);
+    loginUrl.searchParams.set('error', 'Authentication could not be completed');
     return NextResponse.redirect(loginUrl);
   }
 
@@ -77,11 +76,17 @@ export async function GET(request: NextRequest) {
 
   if (userError || !user) {
     const loginUrl = new URL('/login', origin);
-    loginUrl.searchParams.set('error', userError?.message ?? 'Could not confirm your signed-in user');
+    loginUrl.searchParams.set('error', 'Could not confirm your signed-in user');
     return NextResponse.redirect(loginUrl);
   }
 
-  await ensureUserProfile(user);
+  try {
+    await ensureUserProfile(user);
+  } catch {
+    const loginUrl = new URL('/login', origin);
+    loginUrl.searchParams.set('error', 'Your account could not be prepared. Please try again.');
+    return NextResponse.redirect(loginUrl);
+  }
 
   return redirectResponse;
 }

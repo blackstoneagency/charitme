@@ -6,6 +6,7 @@ import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { checkRateLimit } from '../../../lib/rate-limit';
 import { applyCampaignSearch } from '../../../lib/campaign-search';
 import { totalPages } from '../../../lib/pagination';
+import { PUBLISH_MIN_STORY_CHARS, PUBLISH_MIN_GOAL_CENTS } from '../../../lib/campaign-readiness';
 
 function slugify(text: string): string {
   return text
@@ -20,7 +21,10 @@ const CreateSchema = z.object({
   title: z.string().min(3).max(100),
   tagline: z.string().max(160).optional(),
   description: z.string().min(1),    // allow short description for drafts
-  goalAmount: z.number().int().min(1),
+  // 0 is allowed so a DRAFT can honestly record "no goal set yet" instead of the
+  // client fabricating a $1 placeholder. Publishing is gated at
+  // PUBLISH_MIN_GOAL_CENTS by the superRefine below.
+  goalAmount: z.number().int().min(0),
   deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   category: z.enum(CAMPAIGN_CATEGORIES),
   coverImageUrl: z.string().url().nullable().optional(),
@@ -32,6 +36,25 @@ const CreateSchema = z.object({
   videoUrl: z.string().url().nullable().optional(),
   // 'draft' saves without publishing; 'active' publishes immediately (default)
   status: z.enum(['draft', 'active']).default('active'),
+}).superRefine((v, ctx) => {
+  // Publishing must clear the same bar the wizard enforces. Without this the
+  // base schema (description ≥ 1 char, goalAmount ≥ 1 cent) let a crafted
+  // request publish a live, publicly-indexed, donatable campaign with a
+  // one-character story and a $0.01 goal — bypassing the builder entirely.
+  // Drafts stay deliberately permissive: they are private and resumable.
+  if (v.status !== 'active') return;
+  if (v.description.trim().length < PUBLISH_MIN_STORY_CHARS) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom, path: ['description'],
+      message: `Story must be at least ${PUBLISH_MIN_STORY_CHARS} characters to publish.`,
+    });
+  }
+  if (v.goalAmount < PUBLISH_MIN_GOAL_CENTS) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom, path: ['goalAmount'],
+      message: `Goal must be at least $${(PUBLISH_MIN_GOAL_CENTS / 100).toFixed(2)} to publish.`,
+    });
+  }
 });
 
 export async function POST(request: NextRequest) {
@@ -102,7 +125,7 @@ export async function POST(request: NextRequest) {
   if (error) {
     console.error('Campaign create failed', error.code, error.message);
     return NextResponse.json(
-      { error: `Campaign could not be saved: ${error.message}`, code: error.code },
+      { error: 'Campaign could not be saved', code: 'INTERNAL_ERROR' },
       { status: 500 },
     );
   }

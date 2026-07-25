@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { data, count, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   return NextResponse.json({ refunds: data ?? [], total: count ?? 0, page, limit });
 }
@@ -86,7 +86,7 @@ export async function PATCH(request: NextRequest) {
     .in('id', ids)
     .select('id, status, notes, updated_at');
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   // Audit log for each status change
   if (parsed.data.status) {

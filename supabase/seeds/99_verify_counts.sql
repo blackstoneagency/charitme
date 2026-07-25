@@ -28,11 +28,13 @@ declare
   c bigint;
   n_ok int := 0;
   n_total int := 0;
+  n_missing int := 0;
 begin
   raise notice '--- CharitMe seed coverage (target >= 100) ---';
   foreach t in array tbls loop
     if to_regclass('public.' || t) is null then
       raise notice '  %  (not present)', rpad(t, 28);
+      n_missing := n_missing + 1;
       continue;
     end if;
     execute format('select count(*) from public.%I', t) into c;
@@ -41,4 +43,8 @@ begin
     raise notice '  % % %', rpad(t, 28), lpad(c::text, 7), case when c >= 100 then 'OK' else '<100' end;
   end loop;
   raise notice '--- % of % present tables have >= 100 rows ---', n_ok, n_total;
+  if n_missing > 0 or n_ok <> n_total then
+    raise exception 'CharitMe seed coverage failed: % of % present tables have >= 100 rows; % expected tables are missing.', n_ok, n_total, n_missing;
+  end if;
+  raise notice '--- CharitMe seed coverage verified: all expected tables have >= 100 rows. ---';
 end $$;

@@ -75,7 +75,7 @@ export default async function AdminCampaignsPage() {
               <br />2. The database schema has not been applied — run <code>supabase/catch_up.sql</code> in the Supabase SQL Editor (idempotent)
               <br />3. The &ldquo;campaigns&rdquo; table does not exist — verify in Supabase → Table Editor
             </p>
-            <a href="/api/health" target="_blank" style={{ display: 'inline-block', marginTop: 16, padding: '8px 20px', background: '#6c35ff', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+          <a href="/api/health?details=1" target="_blank" style={{ display: 'inline-block', marginTop: 16, padding: '8px 20px', background: '#6c35ff', color: '#fff', borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
               Run Diagnostic → /api/health
             </a>
           </div>

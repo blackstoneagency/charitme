@@ -1,6 +1,16 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+
+function useEscape(onClose: () => void): void {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+}
 
 // ─────────────────────────────────────────────
 // Types
@@ -139,6 +149,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
   const [actionMode, setActionMode] = useState('approve');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  useEscape(onClose);
 
   async function handleAction() {
     setSaving(true);
@@ -157,9 +168,11 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
   }
 
   return (
+    // Backdrop dismissal is supplementary; Escape and the close button remain available.
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ marginLeft: 'auto', width: 500, background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginLeft: 'auto', width: 500, maxWidth: '100vw', background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 17, fontWeight: 700, color: '#0f0f30' }}>{payout.recipient_name}</div>
@@ -239,7 +252,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
                 { value: 'cancel', label: 'Cancel Payout', desc: 'Cancel without processing' },
               ].map(a => (
                 <label key={a.value} style={{ display: 'flex', gap: 10, cursor: 'pointer', padding: '12px', border: `1px solid ${actionMode === a.value ? '#6c35ff' : '#e6e9f2'}`, borderRadius: 10, background: actionMode === a.value ? '#f3ecff' : '#fff' }}>
-                  <input type="radio" name="action" value={a.value} checked={actionMode === a.value} onChange={e => setActionMode(e.target.value)} style={{ flexShrink: 0 }} />
+                  <input type="radio" name="action" value={a.value} checked={actionMode === a.value} onChange={e => setActionMode(e.target.value)} aria-label={a.label} style={{ flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 650, color: '#101944' }}>{a.label}</div>
                     <div style={{ fontSize: 12, color: '#66708d', marginTop: 2 }}>{a.desc}</div>
@@ -420,8 +433,9 @@ export default function PayoutsClient({
       <section className="kf-card" style={{ marginBottom: 24 }}>
         <div className="kf-card-head"><h2>Recent Payouts</h2></div>
         {payouts.slice(0, 5).map(p => (
-          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer' }}
+          <div key={p.id} role="button" tabIndex={0} aria-label={`View payout for ${p.recipient_name}`} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer' }}
             onClick={() => setSelected(p)}
+            onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(p); } }}
             onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
             <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#fdeaf6,#ec3fb4)', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
@@ -454,10 +468,10 @@ export default function PayoutsClient({
         {activeTab === 'payouts' && (
           <div>
             <div style={{ display: 'flex', gap: 12, padding: '14px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: '#fff' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={15} height={15}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
-                <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Search payouts…" style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }} />
-              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: '#fff' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={15} height={15} aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+                <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Search payouts…" aria-label="Search payouts" style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }} />
+              </div>
               <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(0); }} style={{ height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', fontSize: 13, background: '#fff' }}>
                 <option value="all">All Status</option>
                 <option value="paid">Completed</option>
@@ -478,8 +492,9 @@ export default function PayoutsClient({
 
             {currentPage.map(p => (
               <div key={p.id}
-                style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
+                role="button" tabIndex={0} aria-label={`View payout for ${p.recipient_name}`} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 120px 120px 130px', gap: 12, padding: '14px 20px', borderBottom: '1px solid #f0f2f8', cursor: 'pointer', alignItems: 'center' }}
                 onClick={() => setSelected(p)}
+                onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(p); } }}
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

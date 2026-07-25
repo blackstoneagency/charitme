@@ -248,38 +248,38 @@ export default function AdminCountriesClient() {
         <div style={{ fontWeight: 650, fontSize: 14, color: '#1a1a2e', marginBottom: 14 }}>+ Add Country</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={lStyle}>Flag</label>
-            <input value={newForm.flag_emoji} onChange={e => updNew('flag_emoji', e.target.value)} style={{ ...iStyle, width: 64 }} placeholder="🇺🇸" maxLength={4} />
+            <label style={lStyle} htmlFor="ctry-flag">Flag</label>
+            <input id="ctry-flag" value={newForm.flag_emoji} onChange={e => updNew('flag_emoji', e.target.value)} style={{ ...iStyle, width: 64 }} placeholder="🇺🇸" maxLength={4} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: '2 1 160px' }}>
-            <label style={lStyle}>Country Name *</label>
-            <input value={newForm.name} onChange={e => updNew('name', e.target.value)} style={iStyle} placeholder="United States" onKeyDown={e => e.key === 'Enter' && void addCountry()} />
+            <label style={lStyle} htmlFor="ctry-name">Country Name *</label>
+            <input id="ctry-name" value={newForm.name} onChange={e => updNew('name', e.target.value)} style={iStyle} placeholder="United States" onKeyDown={e => e.key === 'Enter' && void addCountry()} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={lStyle}>ISO Code</label>
-            <input value={newForm.iso_code} onChange={e => updNew('iso_code', e.target.value.toUpperCase())} style={{ ...iStyle, width: 64 }} placeholder="US" maxLength={2} />
+            <label style={lStyle} htmlFor="ctry-iso">ISO Code</label>
+            <input id="ctry-iso" value={newForm.iso_code} onChange={e => updNew('iso_code', e.target.value.toUpperCase())} style={{ ...iStyle, width: 64 }} placeholder="US" maxLength={2} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={lStyle}>Currency</label>
-            <input value={newForm.currency_code} onChange={e => updNew('currency_code', e.target.value.toUpperCase())} style={{ ...iStyle, width: 72 }} placeholder="USD" maxLength={3} />
+            <label style={lStyle} htmlFor="ctry-currency">Currency</label>
+            <input id="ctry-currency" value={newForm.currency_code} onChange={e => updNew('currency_code', e.target.value.toUpperCase())} style={{ ...iStyle, width: 72 }} placeholder="USD" maxLength={3} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={lStyle}>Fundraise?</label>
+            <span style={lStyle}>Fundraise?</span>
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_fundraise ? '#15803d' : '#94a3b8' }}>
               <input type="checkbox" checked={newForm.can_fundraise} onChange={e => updNew('can_fundraise', e.target.checked)} style={{ accentColor: '#6c35ff', width: 16, height: 16 }} />
               {newForm.can_fundraise ? 'Yes' : 'No'}
             </label>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={lStyle}>Donate?</label>
+            <span style={lStyle}>Donate?</span>
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_donate ? '#1d4ed8' : '#94a3b8' }}>
               <input type="checkbox" checked={newForm.can_donate} onChange={e => updNew('can_donate', e.target.checked)} style={{ accentColor: '#6c35ff', width: 16, height: 16 }} />
               {newForm.can_donate ? 'Yes' : 'No'}
             </label>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: '3 1 200px' }}>
-            <label style={lStyle}>Notes (optional)</label>
-            <input value={newForm.notes ?? ''} onChange={e => updNew('notes', e.target.value)} style={iStyle} placeholder="e.g. Payout via Stripe Connect" />
+            <label style={lStyle} htmlFor="ctry-notes">Notes (optional)</label>
+            <input id="ctry-notes" value={newForm.notes ?? ''} onChange={e => updNew('notes', e.target.value)} style={iStyle} placeholder="e.g. Payout via Stripe Connect" />
           </div>
           <button
             onClick={() => void addCountry()}

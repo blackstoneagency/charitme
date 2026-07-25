@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
-type Announcement = {
+export type Announcement = {
   id: string; title: string; body: string | null; level: 'info' | 'success' | 'warning' | 'critical';
   link_url: string | null; link_label: string | null;
 };
@@ -15,16 +15,33 @@ const BG: Record<string, string> = {
 };
 const DISMISS_KEY = 'cm_dismissed_announcements';
 
-function dismissed(): string[] {
-  try { return JSON.parse(localStorage.getItem(DISMISS_KEY) || '[]'); } catch { return []; }
+// Dismissals live in localStorage (client-only). Read them via useSyncExternalStore
+// so the server snapshot is empty ([]) — matching the SSR'd banner — and the client
+// reconciles to the real dismissed set after hydration with no mismatch warning and
+// no setState-in-effect. A module-level listener set lets a same-tab dismiss notify.
+const listeners = new Set<() => void>();
+function subscribeDismissed(cb: () => void): () => void {
+  listeners.add(cb);
+  const onStorage = (e: StorageEvent) => { if (e.key === DISMISS_KEY) cb(); };
+  window.addEventListener('storage', onStorage);
+  return () => { listeners.delete(cb); window.removeEventListener('storage', onStorage); };
+}
+function readDismissedRaw(): string {
+  try { return localStorage.getItem(DISMISS_KEY) || '[]'; } catch { return '[]'; }
+}
+function writeDismissed(ids: string[]): void {
+  try { localStorage.setItem(DISMISS_KEY, JSON.stringify(ids)); } catch { /* ignore */ }
+  listeners.forEach((l) => l());
 }
 
 // Site-wide banner driven by the super-admin Announcements console. Shows the most
 // recent active announcement the user hasn't dismissed.
-export default function AnnouncementBanner() {
-  const [items, setItems] = useState<Announcement[]>([]);
-  // Lazy initializer reads localStorage once; dismissed() is SSR-safe (try/catch).
-  const [seen, setSeen] = useState<string[]>(dismissed);
+export default function AnnouncementBanner({ initial }: { initial?: Announcement[] }) {
+  // Seeded from the server (SSR) so the bar is in the initial HTML and never
+  // injects post-hydration — eliminating the layout shift it used to cause.
+  const [items, setItems] = useState<Announcement[]>(initial ?? []);
+  const seenRaw = useSyncExternalStore(subscribeDismissed, readDismissedRaw, () => '[]');
+  const seen = useMemo<string[]>(() => { try { return JSON.parse(seenRaw); } catch { return []; } }, [seenRaw]);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,9 +57,7 @@ export default function AnnouncementBanner() {
   if (!current) return null;
 
   const dismiss = () => {
-    const next = [...seen, current.id];
-    try { localStorage.setItem(DISMISS_KEY, JSON.stringify(next)); } catch { /* ignore */ }
-    setSeen(next);
+    writeDismissed([...seen, current.id]);
   };
 
   return (

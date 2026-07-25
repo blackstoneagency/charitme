@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   if (req.country) query = query.eq('country', req.country);
 
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   const grants = (data ?? []) as unknown as Grant[];
   const ranked = rankGrantMatches(grants, req);

@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 /**
  * Deploy/CI preflight: validate environment variables and print a readable
  * report. Exits non-zero when there are blocking errors so it can gate a
@@ -11,7 +13,25 @@
  * app + unit tests use.
  */
 
-const PROD = process.argv.includes('--production') || process.env.NODE_ENV === 'production';
+const FORCE_PROD = process.argv.includes('--production') || process.env.NODE_ENV === 'production';
+
+function loadLocalEnvForDevelopment() {
+  if (FORCE_PROD) return;
+  const file = resolve(process.cwd(), '.env.local');
+  if (!existsSync(file)) return;
+
+  for (const line of readFileSync(file, 'utf8').split(/\r?\n/u)) {
+    const match = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/u);
+    if (!match || process.env[match[1]]) continue;
+    const rawValue = match[2];
+    const quoted = rawValue.length >= 2 && ((rawValue.startsWith('"') && rawValue.endsWith('"')) || (rawValue.startsWith("'") && rawValue.endsWith("'")));
+    process.env[match[1]] = quoted ? rawValue.slice(1, -1) : rawValue;
+  }
+}
+
+loadLocalEnvForDevelopment();
+
+const PROD = FORCE_PROD;
 
 const HARD_REQUIRED = [
   ['NEXT_PUBLIC_SUPABASE_URL', 'url'],

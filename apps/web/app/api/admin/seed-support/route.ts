@@ -131,12 +131,12 @@ export async function GET() {
 
   // Insert in batches of 100 to stay within payload limits
   let inserted = 0;
-  const errors: string[] = [];
+  let failedBatches = 0;
   for (let i = 0; i < rows.length; i += 100) {
     const batch = rows.slice(i, i + 100);
     const { error } = await supabaseAdmin.from('support_cases').insert(batch);
     if (error) {
-      errors.push(error.message);
+      failedBatches += 1;
     } else {
       inserted += batch.length;
     }
@@ -147,9 +147,9 @@ export async function GET() {
     .select('id', { count: 'exact', head: true });
 
   return NextResponse.json({
-    ok: errors.length === 0,
+    ok: failedBatches === 0,
     inserted,
     total: finalCount,
-    errors: errors.length > 0 ? errors : undefined,
+    failedBatches: failedBatches > 0 ? failedBatches : undefined,
   });
 }

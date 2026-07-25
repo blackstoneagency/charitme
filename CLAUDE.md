@@ -75,7 +75,15 @@ STRIPE_SECRET_KEY
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 STRIPE_WEBHOOK_SECRET
 NEXT_PUBLIC_APP_URL
+UNSPLASH_ACCESS_KEY   # optional — themed live campaign covers; falls back to Picsum when unset
 ```
+
+**Unsplash covers**: `lib/unsplash.ts` (API client, day-cached, key-gated) + `lib/covers.ts`
+(`resolveCampaignCover`: real uploaded cover → live themed Unsplash → stored/deterministic Picsum
+placeholder — Picsum URLs are treated as overridable placeholders so live Unsplash can replace them). Only
+the **Access Key** is used (public read) and only from `UNSPLASH_ACCESS_KEY` — set it in Vercel;
+never commit it. The Secret Key is not used anywhere. Without the key everything falls back
+cleanly, so builds/tests never touch the network.
 
 ### Deployment
 - Vercel (auto-deploy from `main`) — primary

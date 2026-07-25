@@ -34,33 +34,21 @@ export const stripe: Stripe = stripeSecretKey
 // without this, Checkout silently defaults to cards only. Methods the account
 // hasn't activated (or that the session currency doesn't support) are stripped
 // automatically by createCheckoutSession's retry logic.
-export const ONE_TIME_PAYMENT_METHOD_TYPES: Stripe.Checkout.SessionCreateParams.PaymentMethodType[] = [
-  'card',
-  'link',
-  'cashapp',
-  'us_bank_account',
-  'amazon_pay',
-  'paypal',
-  'klarna',
-  'afterpay_clearpay',
-  'affirm',
-];
-
-// Subscription-mode Checkout only supports payment methods that can be saved
-// for off-session recurring charges.
-export const RECURRING_PAYMENT_METHOD_TYPES: Stripe.Checkout.SessionCreateParams.PaymentMethodType[] = [
-  'card',
-  'link',
-  'us_bank_account',
-  'paypal',
-];
+// Payment-method lists + retry-recovery logic live in an SDK-free module so the
+// recovery logic can be unit tested without loading the Stripe SDK. Re-exported
+// here so existing `import { ... } from './stripe'` call sites keep working.
+export {
+  ONE_TIME_PAYMENT_METHOD_TYPES,
+  RECURRING_PAYMENT_METHOD_TYPES,
+  nextPaymentMethodTypes,
+} from './stripe-payment-methods';
+import { nextPaymentMethodTypes } from './stripe-payment-methods';
 
 /**
  * Create a Checkout Session, progressively stripping payment methods the
  * connected/platform Stripe account hasn't activated (or that the session's
- * currency/country doesn't support). Stripe reports the offending entry as
- * `payment_method_types[N]` — we remove just that method and retry, falling
- * back to card-only as a last resort so checkout never breaks.
+ * currency/country doesn't support), falling back to card-only as a last resort
+ * so checkout never breaks. See nextPaymentMethodTypes for the strip logic.
  */
 export async function createCheckoutSession(
   params: Stripe.Checkout.SessionCreateParams,
@@ -73,16 +61,12 @@ export async function createCheckoutSession(
     try {
       return await stripe.checkout.sessions.create(attempt, { idempotencyKey: i === 0 ? idempotencyKey : `${idempotencyKey}_r${i}` });
     } catch (err: unknown) {
-      const param = (err as Stripe.errors.StripeError | undefined)?.param;
+      const stripeErr = err as Stripe.errors.StripeError | undefined;
+      const param = stripeErr?.param;
       const types = attempt.payment_method_types;
       if (!param?.startsWith('payment_method_types') || !types?.length) throw err;
 
-      const idxMatch = param.match(/^payment_method_types\[(\d+)\]/);
-      const idx = idxMatch ? Number(idxMatch[1]) : -1;
-      const remaining = idx >= 0 && idx < types.length && types[idx] !== 'card'
-        ? types.filter((_, n) => n !== idx)
-        : (['card'] as Stripe.Checkout.SessionCreateParams.PaymentMethodType[]);
-
+      const remaining = nextPaymentMethodTypes(types, param, stripeErr?.message);
       console.warn(`[stripe] Payment method rejected (${param}), retrying with: ${remaining.join(', ')}`);
       attempt = { ...attempt, payment_method_types: remaining };
     }

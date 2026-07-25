@@ -66,6 +66,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .select('id, status, created_at')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ application: data, resumed: false }, { status: 201 });
 }

@@ -47,18 +47,22 @@ export default async function DonorPortalPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/donor');
 
-  const { data: donationData, count: donationCount } = await supabaseAdmin
-    .from('donations')
-    .select('id, amount_cents, tip_cents, currency, status, anonymous, message, created_at, campaign_id', { count: 'exact' })
-    .eq('donor_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(100);
-
-  const { data: recurringData } = await supabaseAdmin
-    .from('recurring_donations')
-    .select('id, amount_cents, cadence, status, stripe_subscription_id, next_bill_at, created_at, campaign_id')
-    .eq('donor_id', user.id)
-    .order('created_at', { ascending: false });
+  // Independent queries — run in parallel (avoids a serial round-trip waterfall).
+  const [donationRes, recurringRes] = await Promise.all([
+    supabaseAdmin
+      .from('donations')
+      .select('id, amount_cents, tip_cents, currency, status, anonymous, message, created_at, campaign_id', { count: 'exact' })
+      .eq('donor_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(100),
+    supabaseAdmin
+      .from('recurring_donations')
+      .select('id, amount_cents, cadence, status, stripe_subscription_id, next_bill_at, created_at, campaign_id')
+      .eq('donor_id', user.id)
+      .order('created_at', { ascending: false }),
+  ]);
+  const { data: donationData, count: donationCount } = donationRes;
+  const { data: recurringData } = recurringRes;
 
   const donations  = (donationData  ?? []) as DonationRow[];
   const recurring  = (recurringData ?? []) as RecurringRow[];
@@ -69,27 +73,29 @@ export default async function DonorPortalPage() {
   ])].filter(Boolean);
 
   const campaignMap = new Map<string, CampaignRow>();
-  if (cids.length > 0) {
-    const { data: camps } = await supabaseAdmin
-      .from('campaigns')
-      .select('id, title, slug, cover_image_url')
-      .in('id', cids);
-    for (const c of (camps ?? []) as CampaignRow[]) campaignMap.set(c.id, c);
-  }
-
   const currencyMap = new Map<string, string>();
   if (cids.length > 0) {
-    const { data: launchSettings } = await supabaseAdmin
-      .from('campaign_launch_settings')
-      .select('campaign_id, currency')
-      .in('campaign_id', cids);
-    for (const ls of launchSettings ?? []) {
+    // Both keyed off the same campaign-id set but independent of each other.
+    const [campsRes, launchRes] = await Promise.all([
+      supabaseAdmin.from('campaigns').select('id, title, slug, cover_image_url').in('id', cids),
+      supabaseAdmin.from('campaign_launch_settings').select('campaign_id, currency').in('campaign_id', cids),
+    ]);
+    for (const c of (campsRes.data ?? []) as CampaignRow[]) campaignMap.set(c.id, c);
+    for (const ls of launchRes.data ?? []) {
       if (ls.currency) currencyMap.set(ls.campaign_id, ls.currency);
     }
   }
 
   const totalGiven   = donations.filter(d => d.status === 'completed').reduce((s, d) => s + d.amount_cents, 0);
   const totalTips    = donations.filter(d => d.status === 'completed').reduce((s, d) => s + (d.tip_cents ?? 0), 0);
+  const currentYear  = new Date().getUTCFullYear();
+  const taxYears = [...new Set(
+    donations
+      .filter(d => d.status === 'completed')
+      .map(d => new Date(d.created_at).getUTCFullYear()),
+  )].sort((a, b) => b - a);
+  // Always offer the current tax year even before the first gift lands.
+  if (!taxYears.includes(currentYear)) taxYears.unshift(currentYear);
   const activeRecurring = recurring.filter(r => r.status === 'active');
   const monthlyTotal = activeRecurring.reduce((s, r) => s + (r.cadence === 'monthly' ? r.amount_cents : 0), 0);
 
@@ -122,6 +128,33 @@ export default async function DonorPortalPage() {
             <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4, fontWeight: 700 }}>{s.label}</div>
           </div>
         ))}
+      </div>
+
+      {/* Tax statements — consolidated annual giving statements for filing */}
+      <div style={{ ...cardStyle, marginBottom: 28 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
+          <h2 style={{ fontSize: 16, fontWeight: 650, margin: 0 }}>Tax Statements</h2>
+        </div>
+        <p style={{ color: '#64748b', fontSize: 13, margin: '0 0 14px' }}>
+          Download a consolidated annual giving statement for your records, with a clear
+          tax-deductible vs. non-deductible breakdown.
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          {taxYears.map(y => (
+            <div key={y} style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--b1, #e8ecf4)', borderRadius: 'var(--r, 10px)', padding: '8px 12px' }}>
+              <Link href={`/donor/tax-statement/${y}`} style={{ fontSize: 13, fontWeight: 700, color: 'var(--violet, #6c35ff)', textDecoration: 'none' }}>
+                {y} statement
+              </Link>
+              <a
+                href={`/api/donor/tax-statement?year=${y}&format=csv`}
+                aria-label={`Download ${y} giving statement as CSV`}
+                style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3, #64748b)', textDecoration: 'none' }}
+              >
+                CSV ↓
+              </a>
+            </div>
+          ))}
+        </div>
       </div>
 
       <SavedCampaigns />

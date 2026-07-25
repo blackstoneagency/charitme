@@ -16,6 +16,8 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const V = 'var(--violet, #6c35ff)';
+// Violet TEXT that stays AA on both light and dark surfaces (V is too light on --s2 in dark).
+const VINK = 'var(--violet-ink, #5b21b6)';
 const GR = 'var(--green, #059669)';
 const BD = 'var(--b2, #e2d9ff)';
 const MU = 'var(--t3, #64748b)';
@@ -124,7 +126,7 @@ export default function MoneyCalculator() {
                 borderRadius: 10,
                 border: `1.5px solid ${active ? V : BD}`,
                 background: active ? SURF2 : SURF,
-                color: active ? V : INK,
+                color: active ? VINK : INK,
                 fontSize: 14,
                 fontWeight: active ? 800 : 600,
                 cursor: 'pointer',
@@ -154,7 +156,7 @@ export default function MoneyCalculator() {
                   borderRadius: 9,
                   border: `1.5px solid ${active ? V : BD}`,
                   background: active ? SURF2 : SURF,
-                  color: active ? V : INK,
+                  color: active ? VINK : INK,
                   fontSize: 13,
                   fontWeight: active ? 800 : 600,
                   cursor: 'pointer',

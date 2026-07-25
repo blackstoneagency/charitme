@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type Stripe from 'stripe';
 import { stripe, formatCents } from '../../../../lib/stripe';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import { sendReceiptEmail, sendOrganizerDonationAlert, sendPayoutEmail, sendRefundEmail } from '../../../../lib/email';
+import { sendReceiptEmail, sendTaxReceiptEmail, sendOrganizerDonationAlert, sendPayoutEmail, sendRefundEmail } from '../../../../lib/email';
+import { canIssueTaxReceipt } from '../../../../lib/tax';
 import { recordCampaignPayment, recordPaymentEvent } from '../../../../lib/payment-flow';
 import { resolvePayoutDestination } from '../../../../lib/payout-destination';
 import { resolveContact, trackEvent, refreshContactScores } from '../../../../lib/marketing-engine';
@@ -532,7 +533,10 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
     }
 
     if (!alreadyDone && meta.donorId && amountCents > 0) {
-      await sendDonorReceipt(meta.donorId, meta.campaignId, formatCents(amountCents, currency), eventId);
+      // Prefer the real donation UUID so an auto-issued tax receipt number
+      // reconciles with the annual giving statement; fall back to the event id.
+      const realDonationId = await findDonationId({ paymentIntentId, checkoutSessionId: session.id });
+      await sendDonorReceipt(meta.donorId, meta.campaignId, formatCents(amountCents, currency), realDonationId ?? eventId);
     }
 
     // ── Notify organizer of new donation (non-blocking) ────────────────────
@@ -1452,18 +1456,79 @@ async function sendDonorReceipt(
   try {
     const [{ data: profile }, { data: camp }] = await Promise.all([
       supabaseAdmin.from('profiles').select('full_name, email, notification_email').eq('id', donorId).single(),
-      supabaseAdmin.from('campaigns').select('title, slug').eq('id', campaignId).single(),
+      supabaseAdmin.from('campaigns').select('title, slug, user_id').eq('id', campaignId).single(),
     ]);
-    if (profile?.email && camp && profile.notification_email !== false) {
-      await sendReceiptEmail({
+    if (!profile?.email || !camp || profile.notification_email === false) return;
+
+    // If the campaign is run by a verified nonprofit that issues tax receipts
+    // (and has an EIN), the donor's automatic receipt should be the OFFICIAL
+    // tax receipt — with EIN, receipt number, and the no-goods-or-services
+    // disclosure — not the generic thank-you. This matches the deductibility
+    // rule used by the annual giving statement (lib/tax.ts).
+    type NpRow = { id: string; name: string; tax_id: string | null; verified: boolean; verification_status: string; tax_receipt_enabled: boolean };
+    let nonprofit: NpRow | null = null;
+    if (camp.user_id) {
+      const { data: np } = await supabaseAdmin
+        .from('nonprofit_profiles')
+        .select('id, name, tax_id, verified, verification_status, tax_receipt_enabled')
+        .eq('owner_id', camp.user_id)
+        .maybeSingle();
+      nonprofit = (np as NpRow | null) ?? null;
+    }
+
+    // Gate on donationId so only discrete one-time charges become tax receipts;
+    // recurring receipts ("$X/month") stay on the generic path (each recurring
+    // charge is receipted separately elsewhere, not as a "/month" tax receipt).
+    const deductible = Boolean(donationId) && nonprofit !== null && canIssueTaxReceipt({
+      name: nonprofit.name,
+      taxId: nonprofit.tax_id,
+      verified: nonprofit.verified || nonprofit.verification_status === 'verified',
+      taxReceiptEnabled: nonprofit.tax_receipt_enabled,
+    });
+
+    if (deductible && nonprofit) {
+      const year = new Date().getUTCFullYear();
+      // Receipt number derived identically to the annual statement so the
+      // emailed receipt and the year-end statement reconcile.
+      const receiptNumber = `RCP-${year}-${donationId!.slice(0, 8).toUpperCase()}`;
+      await sendTaxReceiptEmail({
         to: profile.email,
         donorName: profile.full_name,
+        nonprofitName: nonprofit.name,
+        nonprofitEin: nonprofit.tax_id!,
         campaignTitle: camp.title,
-        campaignSlug: camp.slug,
         amountFormatted,
-        donationId,
+        receiptNumber,
+        donationDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
       });
+      const { data: donationRow } = await supabaseAdmin
+        .from('donations')
+        .select('amount_cents, currency')
+        .eq('id', donationId)
+        .maybeSingle();
+      await supabaseAdmin.from('tax_receipts').upsert({
+        donation_id: donationId,
+        donor_id: donorId,
+        nonprofit_id: nonprofit.id,
+        receipt_number: receiptNumber,
+        amount_cents: donationRow?.amount_cents ?? 0,
+        currency: donationRow?.currency ?? 'usd',
+        nonprofit_name: nonprofit.name,
+        nonprofit_ein: nonprofit.tax_id,
+        campaign_title: camp.title,
+        emailed_at: new Date().toISOString(),
+      }, { onConflict: 'donation_id' });
+      return;
     }
+
+    await sendReceiptEmail({
+      to: profile.email,
+      donorName: profile.full_name,
+      campaignTitle: camp.title,
+      campaignSlug: camp.slug,
+      amountFormatted,
+      donationId,
+    });
   } catch {
     // Non-fatal — receipt failure must not fail webhook
   }

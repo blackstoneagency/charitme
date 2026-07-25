@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
   if (action)     query = query.eq('action', action);
 
   const { data, count, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   return NextResponse.json({ reviews: data ?? [], total: count ?? 0, page, limit });
 }
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     .select('id, campaign_id, action, notes, created_at')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   // Propagate action to campaign status where applicable
   const campaignStatusMap: Partial<Record<typeof action, string>> = {

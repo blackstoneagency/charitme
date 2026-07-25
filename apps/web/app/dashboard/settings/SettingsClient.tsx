@@ -64,10 +64,10 @@ const PLAN_LABELS: Record<string, { label: string; chipClass: string; price: str
 // ─────────────────────────────────────────────
 // Toggle
 // ─────────────────────────────────────────────
-function Toggle({ checked, onChange, id }: { checked: boolean; onChange: (v: boolean) => void; id: string }) {
+function Toggle({ checked, onChange, id, label }: { checked: boolean; onChange: (v: boolean) => void; id: string; label?: string }) {
   return (
     <label className="kf-toggle-wrap" htmlFor={id} style={{ cursor: 'pointer' }}>
-      <input id={id} type="checkbox" className="kf-toggle-input" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <input id={id} type="checkbox" className="kf-toggle-input" checked={checked} onChange={(e) => onChange(e.target.checked)} aria-label={label} />
       <span className="kf-toggle-track" />
     </label>
   );
@@ -126,7 +126,7 @@ function PrefRow({ id, label, desc, checked, onChange }: { id: string; label: st
   return (
     <div className="kf-setpref">
       <div className="kf-setpref-info"><strong>{label}</strong><span>{desc}</span></div>
-      <Toggle id={id} checked={checked} onChange={onChange} />
+      <Toggle id={id} checked={checked} onChange={onChange} label={label} />
     </div>
   );
 }
@@ -139,7 +139,7 @@ function NotifRow({ id, label, desc, defaultOn }: { id: string; label: string; d
   return (
     <div className="kf-setpref">
       <div className="kf-setpref-info"><strong>{label}</strong><span>{desc}</span></div>
-      <Toggle id={id} checked={on} onChange={setOn} />
+      <Toggle id={id} checked={on} onChange={setOn} label={label} />
     </div>
   );
 }
@@ -199,6 +199,15 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
     setTimeout(() => setToast(null), 3500);
   }
 
+  async function handleSignOut() {
+    // Sign-out is a POST (server revokes the refresh token + clears the
+    // HttpOnly cookies); a plain GET <Link> to the route 405s and would also
+    // be unsafe to prefetch. Hard-navigate to /login afterward so middleware
+    // sees the cleared session.
+    try { await fetch('/api/auth/signout', { method: 'POST' }); }
+    finally { window.location.href = '/login'; }
+  }
+
   async function saveProfile() {
     setSaving(true);
     try {
@@ -237,7 +246,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
       const res = await fetch('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notification_email: notifyEmail }),
+        body: JSON.stringify({ notification_email: notifyEmail, notification_marketing: notifyMarketing }),
       });
       if (!res.ok) { const e = await res.json().catch(() => ({})); showToast('error', (e as { error?: string }).error ?? 'Failed to save.'); return; }
       showToast('success', 'Notification settings saved!');
@@ -416,7 +425,8 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               <NotifRow id={`${uid}-n4`} label="Payouts and transfers" desc="When payouts are processed or transferred" defaultOn={true} />
               <NotifRow id={`${uid}-n5`} label="Mentions and comments" desc="When someone mentions you or comments" defaultOn={false} />
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', margin: '18px 0 8px' }}>Email Notifications</div>
-              <NotifRow id={`${uid}-ne1`} label="Receive email notifications" desc="Get notified by email for important events" defaultOn={true} />
+              <PrefRow id={`${uid}-ne1`} label="Receive email notifications" desc="Get notified by email for important events" checked={notifyEmail} onChange={setNotifyEmail} />
+              <PrefRow id={`${uid}-ne2`} label="Product news & tips" desc="Occasional marketing emails about new features and fundraising tips" checked={notifyMarketing} onChange={setNotifyMarketing} />
               <SetField label="Email Frequency">
                 <select defaultValue="instant"><option value="instant">Instant</option><option value="daily">Daily Digest</option><option value="weekly">Weekly</option></select>
               </SetField>
@@ -459,7 +469,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
               </div>
               <div className="kf-setpref" style={{ borderBottom: 0 }}>
                 <div className="kf-setpref-info"><strong>Sign Out</strong><span>Sign out of this device</span></div>
-                <Link href="/api/auth/signout" style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)', textDecoration: 'none', border: '1px solid var(--b2)', borderRadius: 'var(--r)', padding: '7px 16px' }}>Sign Out</Link>
+                <button type="button" onClick={handleSignOut} style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)', cursor: 'pointer', background: 'transparent', border: '1px solid var(--b2)', borderRadius: 'var(--r)', padding: '7px 16px' }}>Sign Out</button>
               </div>
             </div>
           </div>

@@ -43,7 +43,7 @@ export async function GET(
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   const messages = data ?? [];
   const messageIds = messages.map((m) => m.id);
@@ -136,6 +136,6 @@ export async function POST(
     .select('id, message, anonymous, created_at')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ comment: data });
 }

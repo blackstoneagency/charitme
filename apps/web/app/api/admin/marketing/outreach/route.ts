@@ -79,7 +79,7 @@ export async function GET() {
     .order('created_at', { ascending: false })
     .limit(300);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
   const origin = getAppOrigin();
   const leads = (data ?? []).map((l) => {
@@ -233,7 +233,7 @@ export async function PATCH(req: NextRequest) {
       }, { onConflict: 'business_lead_id' })
       .select('*')
       .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
     return NextResponse.json({ outreach, validation });
   }
 
@@ -245,7 +245,7 @@ export async function PATCH(req: NextRequest) {
       .eq('business_lead_id', lead.id)
       .select('*')
       .maybeSingle();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
     if (!outreach) return NextResponse.json({ error: 'Prepare the outreach first' }, { status: 400 });
     await supabaseAdmin.from('business_leads').update({ status: 'converted' }).eq('id', lead.id);
     return NextResponse.json({ outreach });

@@ -180,7 +180,10 @@ export default function NotificationsPage() {
           {displayed.map(n => (
             <div
               key={n.id}
+              role="button"
+              tabIndex={0}
               onClick={() => { void markRead(n.id); if (n.link) window.location.href = n.link; }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); void markRead(n.id); if (n.link) window.location.href = n.link; } }}
               style={{
                 display: 'flex', gap: 14, alignItems: 'flex-start',
                 padding: '16px 18px', borderRadius: 12, cursor: n.link ? 'pointer' : 'default',

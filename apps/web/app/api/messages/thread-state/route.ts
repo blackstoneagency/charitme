@@ -22,7 +22,7 @@ export async function GET() {
     .select('donor_id, archived, last_read_at')
     .eq('owner_id', user.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ threadState: data ?? [] });
 }
 
@@ -54,6 +54,6 @@ export async function POST(request: NextRequest) {
     .select('donor_id, archived, last_read_at')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ ok: true, threadState: data });
 }

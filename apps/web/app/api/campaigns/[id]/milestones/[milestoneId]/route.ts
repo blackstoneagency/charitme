@@ -57,7 +57,7 @@ export async function PATCH(
     .select('id, title, description, target_amount, reached_at, sort_order, created_at')
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ milestone: data });
 }
 
@@ -87,6 +87,6 @@ export async function DELETE(
     .eq('id', milestoneId)
     .eq('campaign_id', id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

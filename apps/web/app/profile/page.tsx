@@ -7,7 +7,7 @@ import ProfileForm from './ProfileForm';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
-export const metadata: Metadata = { title: 'Profile' };
+export const metadata: Metadata = { title: 'Profile', robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
 
 async function getProfile(userId: string) {
