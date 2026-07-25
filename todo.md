@@ -1435,6 +1435,22 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM34 · every public page audited (32 at a11y 100)** — Enumerated **all**
+  public `page.tsx` routes rather than the ones already on my list, and found **14
+  never audited**. Swept them: `/ai-campaign`, `/ai-fundraising`, `/fees`, `/impact`,
+  `/privacy`, `/terms`, `/security`, `/refunds`, `/transparency`, `/prohibited-use`,
+  `/login`, `/offline` were already **100 CLEAN**; `/privacy-center` correctly 307s
+  (auth-gated). **`/create/choose-path` was 95** — the campaign-creation entry point,
+  i.e. the highest-intent page on the site — from the same `--violet`-as-text-on-dark
+  pattern (2.83:1 / 3.06:1). Swapped the two *text* usages to `--violet-ink` (kept the
+  solid CTA background and border on brand `--violet`, so the accent is unchanged) →
+  **100 CLEAN**.
+  **Also verified end-to-end wiring in PRODUCTION:** every vertical renders real
+  Supabase records (grants 49, volunteer 48, events 60, sponsor 61, matching 121
+  item links) and their **detail pages all return 200** with real slugs/ids — no
+  second `/supported-countries`-style empty page anywhere.
+  _Total: **32 public pages at Lighthouse a11y 100**. tsc 0, build green._
+
 - **CHAR-SM33 · mobile — tap targets, a broken leaderboard layout, and a sitewide
   a11y regression** — Ran real device-emulated (390x844) checks Lighthouse does not
   cover.
