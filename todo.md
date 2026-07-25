@@ -571,8 +571,17 @@ assigned per-category, so every campaign in a category shared one identical cove
   Picsum ids whose hash is **verified distinct from every kept image before it is
   written** (dry-run by default, `--apply` to commit). Applied to production.
   **Re-audit: 500 covers, 0 exact-identical groups, 0 near-duplicate pairs.**
-- [ ] IMG-07 — `needs-browser`. Per-image visual relevance + quality grading and
-  responsive visual regression (320–1920px, light/dark).
+- [~] IMG-07 — **Responsive/theme half DONE (2026-07-25); visual-relevance grading
+  still open.** The sandbox does have a browser (Playwright + Chromium), so the
+  responsive regression sweep no longer needs staging:
+  `scripts/audit-responsive.mjs` loads **every public page at 320px and 1920px in
+  BOTH light and dark**, pinning the app's own `charitme-theme-v2` (not just the OS
+  `prefers-color-scheme`), and fails on horizontal overflow, any element wider than
+  the viewport, or images that fail to decode. Exits 1 so it can gate CI.
+  **Result: 17 pages × 2 viewports × 2 themes = 68 renders, 0 findings.**
+  **Still open:** per-image *visual relevance / aesthetic quality* grading — that
+  needs a vision model to judge whether a photo suits its campaign, which is a
+  judgement call rather than a measurable regression.
 - [ ] IMG-08 — `needs-staging`. Storage-bucket RLS/MIME/traversal/SSRF hardening
   for a server-side image ingestion path (depends on IMG-05).
 
