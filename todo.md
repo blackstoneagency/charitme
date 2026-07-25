@@ -2922,11 +2922,23 @@ funnel analytics, guest gate, and payout linkage.
   maps failures to plain language + a next action, flags retryable vs terminal,
   and always reassures that work is saved.
 
-#### 🟡 STILL OPEN — unclaimed (only F8 and F10 remain)
-- **F8. No draft list / multi-draft.** One wizard draft per user by design;
-  organizers running several campaigns can only have one in flight.
-- **F10. No preview-as-donor before publish** beyond `showPreviewModal`; a
-  true donor-view preview would raise first-donation confidence.
+#### ✅ F8 + F10 SHIPPED — the friction backlog is now COMPLETE
+- [x] **F8 — multi-draft.** `campaign_wizard_drafts` was keyed on `user_id`, so
+  starting a second campaign silently overwrote the first. Re-keyed onto a
+  surrogate `id` (existing rows preserved and backfilled with a title), giving
+  each organizer up to `MAX_DRAFTS_PER_USER` (20) in flight. New picker lists
+  every draft with its step/photo count/age and offers Continue, Delete, and
+  "Start another campaign". Autosave now targets the active draft id, and
+  publishing deletes **only that draft** — the others survive. RLS unchanged and
+  still owner-scoped; the API also filters on `user_id` explicitly so a wrong id
+  can never touch another user's row.
+- [x] **F10 — donor-view preview.** The old preview was desktop-only and told
+  organizers nothing about whether the page was *convincing*. Now defaults to a
+  **phone frame** (where most donors actually land), the donate button is
+  visibly disabled and labelled, and a "How this looks to a donor" panel scores
+  six things donors really evaluate (cover photo, specific title, complete
+  story, set goal, named beneficiary, more than one photo) — each failing item
+  explains *why a donor cares* and deep-links to the step that fixes it.
 
 
 
