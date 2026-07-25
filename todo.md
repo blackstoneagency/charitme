@@ -2985,6 +2985,30 @@ made the audit report exactly 1 broken link; restoring returned it to 0. Script 
 `scratchpad/links.py` — re-runnable in seconds, worth repeating after any route rename,
 since this class of breakage is invisible until a user clicks.
 
+
+### 🔴→✅ Both new role dashboards shipped ORPHANED — caught and fixed (2026-07-23)
+
+Self-audit after #68/#69: `dashboardNav` in `components/CharitMeApp.tsx` had 18 entries
+and **neither `/dashboard/beneficiary` nor `/dashboard/nonprofit` was among them**. Both
+pages were complete, wired and tested — and reachable only by typing the URL. The
+nonprofit one had **no entry point at all**, so the organizations it was built for would
+never have found their own verification and tax-receipt status.
+
+Nothing catches this: the build is green, the routes exist, the tests pass. A page can be
+perfectly correct and still be invisible.
+
+**Fix — role-scoped nav.** `profiles.roles` was already being fetched by the shell but
+collapsed into a display label (`Admin`/`Moderator`/`Organizer`), discarding
+`beneficiary`/`nonprofit`. Now passed through as `navRoles` and used to append entries
+only for users holding that role — so an organizer's sidebar is unchanged, while a
+beneficiary sees "Campaigns for you" and a nonprofit sees "Your organization".
+
+**Guarded** by `__tests__/dashboard-nav-reachable.test.ts` (4 tests), including that the
+role entries are *spread into the rendered list* rather than merely declared — verified
+non-vacuous by removing the spread, which fails the suite.
+
+_1119/1119 tests, lint clean, build green._
+
 ## 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
 
 Checked the live `sitemap.xml` because the soft-404 fix makes stale entries *visible*
