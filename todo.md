@@ -2879,6 +2879,48 @@ against the real production DB works and has already settled real questions
 **public** org page (`/nonprofits/[slug]`) which does not exist — a separate feature
 (SEO surface, indexing, RLS review), not a role-dashboard gap.
 
+
+## ⚠️ SEED-DATA RISK — ~half of seeded nonprofits are flagged `verified` with fabricated EINs
+
+**Found while scoping a public `/nonprofits/[slug]` page (2026-07-23). Not currently
+harmful — but it gates that feature, and one plausible admin action makes it harmful.**
+
+`supabase/seeds/02_marketplaces.sql` inserts 120 nonprofit_profiles per run as:
+
+```sql
+'Seed Nonprofit ' || g,  'seed-nonprofit-' || v_suffix || '-' || g,
+'00-' || lpad(g::text, 7, '0'),          -- fabricated EIN, e.g. 00-0000001
+'https://example.org/np/' || g,          -- fake website
+(g % 2 = 0)                              -- verified = TRUE for half of them
+```
+
+So roughly **half the ~620 nonprofit_profiles rows are marked `verified = true`, each
+carrying an invented tax ID** and an example.org URL.
+
+**Why it is safe today:** `lib/tax-server.ts` issues a deductible receipt only when
+the org is verified **AND** `tax_receipt_enabled`. The seed does not set that column,
+so it takes the schema default `false`. **No fabricated org is issuing tax receipts.**
+
+**Two ways it stops being safe:**
+1. **A public nonprofit page.** `nonprofit_profiles` has `slug` +
+   `public_profile_enabled` (default **true**), which clearly anticipate
+   `/nonprofits/[slug]`. Shipping that against current data would publish **hundreds
+   of fabricated charities showing fake EINs and "Verified" badges**, indexed by
+   search engines. Seeded *campaigns* are already public, but a fake **charity with an
+   invented tax ID presented as verified** is a different risk class — that is the
+   kind of claim people rely on when giving.
+2. **Bulk-enabling receipts.** Any admin action that switches `tax_receipt_enabled` on
+   across orgs would immediately have fake charities issuing "official tax receipts".
+
+**Recommended before either:** clear `verified`/`verification_status` on seeded rows
+(or scope the public page to `verified AND NOT seeded`), and add a `is_demo` marker —
+this is the same "production seed guard" already tracked as CHAR-1402. **The public
+`/nonprofits/[slug]` page is deliberately NOT built until then**; the missing page is a
+smaller problem than a directory of fabricated verified charities.
+
+_Verified: seed SQL read directly; `tax_receipt_enabled` default confirmed `false` in
+`supabase/schema.sql`; receipt rule confirmed in `lib/tax-server.ts`._
+
 ## 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
 
 Checked the live `sitemap.xml` because the soft-404 fix makes stale entries *visible*
