@@ -36,7 +36,26 @@ function writeDismissed(ids: string[]): void {
 
 // Site-wide banner driven by the super-admin Announcements console. Shows the most
 // recent active announcement the user hasn't dismissed.
-export default function AnnouncementBanner({ initial }: { initial?: Announcement[] }) {
+/** Appearance controlled by super admins (see lib/banner-settings.ts). */
+export type BannerAppearance = {
+  enabled: boolean;
+  backgroundColor: string;
+  textColor: string;
+  linkColor: string;
+  fontFamily: string;
+  fontSizePx: number;
+  titleFontSizePx: number;
+  fontWeight: number;
+  titleFontWeight: number;
+  textAlign: 'left' | 'center' | 'right';
+  letterSpacingEm: number;
+  uppercase: boolean;
+  paddingYPx: number;
+  dismissible: boolean;
+  useLevelColors: boolean;
+};
+
+export default function AnnouncementBanner({ initial, appearance }: { initial?: Announcement[]; appearance?: BannerAppearance }) {
   // Seeded from the server (SSR) so the bar is in the initial HTML and never
   // injects post-hydration — eliminating the layout shift it used to cause.
   const [items, setItems] = useState<Announcement[]>(initial ?? []);
@@ -54,30 +73,52 @@ export default function AnnouncementBanner({ initial }: { initial?: Announcement
 
   const current = useMemo(() => items.find((a) => !seen.includes(a.id)) ?? null, [items, seen]);
 
+  // Global kill switch — super admins can hide the banner site-wide regardless
+  // of how many announcements are active.
+  if (appearance && !appearance.enabled) return null;
   if (!current) return null;
+
+  const a = appearance;
+  // Values are validated server-side on both write and read (lib/banner-settings.ts)
+  // before reaching these inline styles.
+  const background = a && !a.useLevelColors ? a.backgroundColor : (BG[current.level] ?? BG.info);
+  const fg         = a ? a.textColor : '#fff';
+  const linkFg     = a ? a.linkColor : '#fff';
 
   const dismiss = () => {
     writeDismissed([...seen, current.id]);
   };
 
   return (
-    <div role="status" style={{ background: BG[current.level] ?? BG.info, color: '#fff' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 12, fontSize: 14 }}>
-        <strong style={{ fontWeight: 700 }}>{current.title}</strong>
+    <div role="status" style={{ background, color: fg }}>
+      <div style={{
+        maxWidth: 1200, margin: '0 auto',
+        padding: `${a ? a.paddingYPx : 9}px 16px`,
+        display: 'flex', alignItems: 'center', gap: 12,
+        justifyContent: a?.textAlign === 'center' ? 'center' : a?.textAlign === 'right' ? 'flex-end' : 'flex-start',
+        fontSize: a ? a.fontSizePx : 14,
+        fontFamily: a ? a.fontFamily : 'inherit',
+        fontWeight: a ? a.fontWeight : 400,
+        letterSpacing: a && a.letterSpacingEm ? `${a.letterSpacingEm}em` : undefined,
+        textTransform: a?.uppercase ? 'uppercase' : undefined,
+      }}>
+        <strong style={{ fontWeight: a ? a.titleFontWeight : 700, fontSize: a ? a.titleFontSizePx : undefined }}>{current.title}</strong>
         {current.body && <span style={{ opacity: 0.92, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{current.body}</span>}
         {current.link_url && (
-          <a href={current.link_url} style={{ color: '#fff', fontWeight: 700, textDecoration: 'underline', whiteSpace: 'nowrap' }}>
+          <a href={current.link_url} style={{ color: linkFg, fontWeight: 700, textDecoration: 'underline', whiteSpace: 'nowrap' }}>
             {current.link_label || 'Learn more'} →
           </a>
         )}
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label="Dismiss announcement"
-          style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 18, lineHeight: 1, opacity: 0.85, flexShrink: 0 }}
-        >
-          ×
-        </button>
+        {(!a || a.dismissible) && (
+          <button
+            type="button"
+            onClick={dismiss}
+            aria-label="Dismiss announcement"
+            style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: fg, cursor: 'pointer', fontSize: 18, lineHeight: 1, opacity: 0.85, flexShrink: 0 }}
+          >
+            ×
+          </button>
+        )}
       </div>
     </div>
   );
