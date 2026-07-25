@@ -214,7 +214,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
           action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Clear filters</Link>}
         />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: '24px' }}>
           {campaigns.map((c) => {
             const pct  = Math.min(100, Math.round(((c.raised_amount ?? 0) / c.goal_amount) * 100));
             const days = daysLeft(c.deadline);
