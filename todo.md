@@ -2966,6 +2966,49 @@ update public.grants set funder_name = 'City of Springfield'      where funder_n
 _(Verify the `source`/`slug` predicates match real seeded rows before running.)_
 
 
+
+### ✅ Broken-link audit extended to the AUTH-GATED surfaces (2026-07-23)
+
+The earlier crawl ("464 distinct internal links across 31 public pages, 0 broken") could
+only reach **public** pages — everything behind auth was unverified, which is exactly the
+surface "build the dashboards out completely" refers to.
+
+Audited statically instead of by crawling: enumerated **354 real routes** from the
+filesystem (normalising `(group)` segments, which don't affect URLs, and accepting
+`[param]` matches), then extracted every internal `href` in `app/dashboard/**`,
+`app/admin/**`, `app/donor/**` and `components/**` and checked each against that set.
+
+**Result: 0 broken internal links.** Navigation across the logged-in surface is sound.
+
+_Confirmed non-vacuous:_ planting `href="/this-route-does-not-exist"` in a dashboard page
+made the audit report exactly 1 broken link; restoring returned it to 0. Script kept at
+`scratchpad/links.py` — re-runnable in seconds, worth repeating after any route rename,
+since this class of breakage is invisible until a user clicks.
+
+
+### 🔴→✅ Both new role dashboards shipped ORPHANED — caught and fixed (2026-07-23)
+
+Self-audit after #68/#69: `dashboardNav` in `components/CharitMeApp.tsx` had 18 entries
+and **neither `/dashboard/beneficiary` nor `/dashboard/nonprofit` was among them**. Both
+pages were complete, wired and tested — and reachable only by typing the URL. The
+nonprofit one had **no entry point at all**, so the organizations it was built for would
+never have found their own verification and tax-receipt status.
+
+Nothing catches this: the build is green, the routes exist, the tests pass. A page can be
+perfectly correct and still be invisible.
+
+**Fix — role-scoped nav.** `profiles.roles` was already being fetched by the shell but
+collapsed into a display label (`Admin`/`Moderator`/`Organizer`), discarding
+`beneficiary`/`nonprofit`. Now passed through as `navRoles` and used to append entries
+only for users holding that role — so an organizer's sidebar is unchanged, while a
+beneficiary sees "Campaigns for you" and a nonprofit sees "Your organization".
+
+**Guarded** by `__tests__/dashboard-nav-reachable.test.ts` (4 tests), including that the
+role entries are *spread into the rendered list* rather than merely declared — verified
+non-vacuous by removing the spread, which fails the suite.
+
+_1119/1119 tests, lint clean, build green._
+
 ## 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
 
 Checked the live `sitemap.xml` because the soft-404 fix makes stale entries *visible*
@@ -3054,8 +3097,27 @@ the page body itself. Note the puzzle for whoever continues — **26 other route
 static** once `headers()` was removed, and they render the same root layout and AppShell,
 so a blanket "the layout is dynamic" explanation does not fit either.
 
-**I stopped here deliberately.** Three wrong hypotheses on this one question is enough
-signal that I was guessing rather than converging, and each cut costs a full rebuild.
+**Three further candidates eliminated (2026-07-23), by inspection rather than rebuilds:**
+4. ~~`searchParams`~~ — `HomePage()` takes **no props** and calls `getHomeData({})`. It
+   never reads searchParams, so the classic dynamic opt-in doesn't apply.
+5. ~~the Unsplash cover fetch~~ — `lib/unsplash.ts:106` uses
+   `fetch(url, { next: { revalidate: SEARCH_TTL_SECONDS } })`, i.e. **explicitly
+   cached**. It was a good suspect (the 26 routes that go static make no network calls;
+   the homepage does) but it is not an uncached fetch.
+6. ~~`unstable_noStore()` / `connection()`~~ — absent from the entire homepage import
+   tree (`home-data`, `covers`, `unsplash`, `photo-catalog`, `seo`, `supabase`,
+   `CampaignImage`, `home-parts`, `HeroSpotlightCarousel`).
+
+**Six eliminated; cause still unknown.** The one structural difference left between the
+homepage and the 26 pages that DO go static is that the homepage makes **Supabase reads
+in the page body** — but wrapping those in `unstable_cache` (candidate 2) changed
+nothing, so if that is the mechanism it is not fixed the obvious way. A likely next step
+is checking whether supabase-js issues its fetches with `cache: 'no-store'` internally
+and whether `unstable_cache` actually isolates that.
+
+**I stopped here deliberately.** Six wrong hypotheses on one question is well past the
+point where I was guessing rather than converging, and each *rebuild-based* cut costs a
+full build.
 Everything above is measured, and every experiment was reverted — the tree carries none
 of it. The eliminations are the deliverable: they are the expensive part, and they narrow
 the search for whoever picks it up. The nonce comes from `middleware.ts:47` and protects exactly two
