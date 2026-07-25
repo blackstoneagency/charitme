@@ -2605,37 +2605,47 @@ IMPLEMENTATION_STATUS, KNOWN_LIMITATIONS, CHANGELOG).
 - No new external integrations faked; RLS unchanged (service-role only).
 
 
-## ⚠️ NEEDS-STAGING — possible soft-404 on Supabase-backed detail routes (found 2026-07-23)
+## 🔴 CONFIRMED BUG — soft-404 on 6 Supabase-backed detail routes (2026-07-23)
 
-**Symptom (sandbox, no DB):** requesting a non-existent detail page returns HTTP
-**200** instead of 404 on `/campaigns/[slug]`, `/donors/[id]`, `/matching/[id]`,
-`/sponsor/[id]`, `/volunteer/[slug]`, `/events/[slug]`. The correct not-found UI
-*does* render ("Page not found", "Back to home") and `generateMetadata` returns
-the right title — only the status code is wrong. Soft-404s get indexed by search
-engines as real pages.
+**Verified against LIVE PRODUCTION** (`www.charitme.com`, real DB — not a sandbox
+artifact). Requesting a non-existent detail page returns **HTTP 200** instead of 404:
 
-**Why this is NOT yet actionable — the evidence contradicts the obvious cause:**
-- SSG detail routes (`/blog/[slug]`, `/features/[slug]`) correctly return **404**.
-- But `/grants/[slug]` is *also* `force-dynamic` and **also returns 404**, and its
-  code is structurally identical to the failing ones (`await params` → fetch →
-  `if (!x) notFound()` as the first statements). So "force-dynamic + streaming
-  commits a 200 before notFound()" does **not** explain it.
-- The remaining difference is how each data helper reacts to the **absent database
-  in this sandbox** (clean `null` → notFound → 404, versus throwing/hanging → a
-  different path). That is an artifact of having no DB, not necessarily a
-  production defect.
+| route | prod status | | route | prod status |
+|---|---|---|---|---|
+| `/campaigns/<missing>` | **200** ❌ | | `/volunteer/<missing>` | **200** ❌ |
+| `/donors/<missing>` | **200** ❌ | | `/events/<missing>` | **200** ❌ |
+| `/matching/<missing>` | **200** ❌ | | `/grants/<missing>` | 404 ✅ |
+| `/sponsor/<missing>` | **200** ❌ | | `/blog/<missing>` | 404 ✅ |
 
-**Verification (2 minutes, needs any environment with Supabase configured):**
-```bash
-for u in /campaigns/definitely-missing /donors/00000000-0000-0000-0000-000000000000 \
-         /matching/missing /sponsor/missing /volunteer/missing /events/missing; do
-  echo "$u -> $(curl -s -o /dev/null -w '%{http_code}' https://www.charitme.com$u)"
-done   # expect 404 for every one
-```
-If any return 200 against a real DB, it is a genuine soft-404 and worth fixing;
-if all return 404, this entry can simply be deleted. **Deliberately not "fixed"
-blind** — the affected file set includes `/campaigns/[slug]`, the hottest public
-page, and a speculative restructure there is not worth the risk.
+**Impact:** search engines index unlimited non-existent campaign/donor/sponsor URLs
+as real pages. The *UI* is correct (the not-found page renders) — only the status
+code is wrong, which is precisely what makes a soft-404 hard to notice.
+
+**Diagnosis so far.** The local prod build reproduces production exactly (same 6 at
+200, grants at 404), so it is fully debuggable in-sandbox. On a missing campaign the
+served title is `<title>Campaign not found</title>` — i.e. `generateMetadata`'s
+fallback was applied and *then* `notFound()` rendered the UI without changing the
+already-committed status. On a missing grant the title is the global
+`<title>Page not found</title>`, i.e. `notFound()` propagated before metadata applied.
+
+**Hypotheses TESTED AND DISPROVEN** (do not repeat these):
+1. ~~"`force-dynamic` + streaming commits 200 before `notFound()`"~~ — `/grants` is
+   also `force-dynamic` (`ƒ` in the build) and returns 404 correctly.
+2. ~~"`generateMetadata` returning a metadata object instead of calling `notFound()`"~~ —
+   changed `/matching`'s `generateMetadata` to call `notFound()`, rebuilt: **still 200**.
+   (grants uses the identical `return { title: '… not found' }` pattern and 404s.)
+3. ~~"React `cache()` wrapping the fetcher"~~ — `/volunteer` and `/events` do **not**
+   use `cache()` and still return 200; grants does not use it and returns 404.
+
+All 7 routes are `ƒ` dynamic, none has `generateStaticParams`, none has a segment
+`not-found.tsx`. The remaining suspect is the data layer: whether each helper returns
+a clean `null` versus throwing/deferring, and how that interacts with when Next commits
+the response head. Next step for whoever picks this up: instrument `getCampaign` vs
+`getGrantBySlug` on a missing id and compare, rather than re-testing the three above.
+
+**Not fixed blind.** The blast radius includes `/campaigns/[slug]`, the hottest public
+page and where donations happen; three plausible fixes have already proven wrong, so
+shipping a fourth guess is worse than handing over an exact reproduction.
 
 ## 🔓 CLAIM RELEASED 2026-07-23 (Claude/tbaz3i — dynamic `[slug]` public-page audit)
 
