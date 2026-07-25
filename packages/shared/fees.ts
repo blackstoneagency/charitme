@@ -102,6 +102,14 @@ export interface DonationBreakdownInput {
   amountCents: number;
   /** Optional donor support percent (0–100). Defaults to the suggested tier. */
   supportPercent?: number;
+  /**
+   * An EXACT support amount in cents, chosen by the donor via "Enter custom
+   * amount". When present it wins over `supportPercent`, because a custom figure
+   * must be charged to the cent — deriving it from a rounded percentage would
+   * make the amount shown differ from the amount charged. `supportPercent` in
+   * the result is then the (possibly fractional) equivalent, for display only.
+   */
+  supportCentsOverride?: number;
   /** Payment method (drives the processor fee). Defaults to card/stripe. */
   method?: PaymentMethod;
   /** Whether the donor adds the processing fee on top (true = recipient gets 100%). */
@@ -122,13 +130,30 @@ export interface DonationBreakdown {
   recipientPercent: number;
 }
 
+/**
+ * The support percentage a custom cents amount represents, rounded to a tenth.
+ * Display-only: never feed this back into a charge, or rounding would make the
+ * amount charged drift from the amount the donor typed. Returns 0 for a zero
+ * gift (no divide-by-zero).
+ */
+export function supportPercentFromCents(donationCents: number, supportCents: number): number {
+  if (!donationCents || donationCents <= 0) return 0;
+  return Math.round((supportCents / donationCents) * 1000) / 10;
+}
+
 export function donationBreakdown(input: DonationBreakdownInput): DonationBreakdown {
   const donationCents = Math.max(0, Math.round(input.amountCents));
   const supportPercent = Math.max(0, Math.min(100, input.supportPercent ?? SUGGESTED_SUPPORT_PERCENT));
   const method = input.method ?? 'card';
   const coverProcessing = input.coverProcessing ?? true;
 
-  const supportCents = donorTip(donationCents, supportPercent);
+  // A donor-entered custom amount is authoritative to the cent; the tier
+  // percentage is only a shortcut for picking one.
+  const hasOverride =
+    input.supportCentsOverride != null && Number.isFinite(input.supportCentsOverride);
+  const supportCents = hasOverride
+    ? Math.max(0, Math.round(input.supportCentsOverride as number))
+    : donorTip(donationCents, supportPercent);
   const processingCents = methodProcessingFee(donationCents + supportCents, method);
 
   const totalChargedCents = donationCents + supportCents + (coverProcessing ? processingCents : 0);
@@ -138,7 +163,9 @@ export function donationBreakdown(input: DonationBreakdownInput): DonationBreakd
 
   return {
     donationCents,
-    supportPercent,
+    // With a custom amount, report the equivalent percentage (to a tenth) so the
+    // UI can label it honestly instead of echoing a tier the donor didn't pick.
+    supportPercent: hasOverride ? supportPercentFromCents(donationCents, supportCents) : supportPercent,
     supportCents,
     processingCents,
     donorCoversProcessing: coverProcessing,

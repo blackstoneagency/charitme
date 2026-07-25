@@ -6,6 +6,7 @@ import { createClient } from '../../../lib/supabase-server';
 import { createCheckoutSession, ONE_TIME_PAYMENT_METHOD_TYPES } from '../../../lib/stripe';
 import {
   donorTip,
+  supportPercentFromCents,
   methodProcessingFee,
   MIN_DONATION_CENTS,
   MAX_DONATION_CENTS,
@@ -29,6 +30,11 @@ const DonateSchema = z.object({
   anonymous:          z.boolean().optional(),
   coverProcessingFee: z.boolean().optional(),
   tipPercent:         z.number().min(0).max(100).optional(),
+  // Exact donor-entered support amount ("Enter custom amount"). Wins over
+  // tipPercent so the donor is charged the figure they typed, to the cent —
+  // round-tripping through a percentage would drift. Capped like a donation so a
+  // crafted request can't submit an absurd tip.
+  tipCents:           z.number().int().min(0).max(MAX_DONATION_CENTS).optional(),
   paymentMethod:      z.enum(['stripe','paypal','venmo','gpay','bank','card']).optional(),
   donorEmail:         z.string().email().optional(),
   // "Subscribe to receive emails" checkbox — opts the donor into campaign update emails
@@ -93,8 +99,18 @@ export async function POST(request: NextRequest) {
   } = parsed.data;
 
   const paymentMethod: PaymentMethod = parsed.data.paymentMethod ?? 'stripe';
-  const tipPercent    = parsed.data.tipPercent ?? Number(process.env.DEFAULT_DONOR_TIP_PERCENT ?? DEFAULT_DONOR_TIP_PERCENT);
-  const tipCents      = donorTip(amountCents, tipPercent);
+  // An exact custom support amount is authoritative; otherwise derive it from the
+  // chosen tier percentage. Either way the charge below is built from tipCents,
+  // so what the donor was shown is exactly what the card is charged.
+  const customTipCents = parsed.data.tipCents;
+  const usingCustomTip = customTipCents != null;
+  const tipCents = usingCustomTip
+    ? customTipCents
+    : donorTip(amountCents, parsed.data.tipPercent ?? Number(process.env.DEFAULT_DONOR_TIP_PERCENT ?? DEFAULT_DONOR_TIP_PERCENT));
+  // Display/metadata only — never used to recompute the charge.
+  const tipPercent = usingCustomTip
+    ? supportPercentFromCents(amountCents, tipCents)
+    : (parsed.data.tipPercent ?? Number(process.env.DEFAULT_DONOR_TIP_PERCENT ?? DEFAULT_DONOR_TIP_PERCENT));
 
   // Use per-method fee on (donation + tip) sub-total
   const subTotalCents      = amountCents + tipCents;
@@ -201,7 +217,12 @@ export async function POST(request: NextRequest) {
     lineItems.push({
       price_data: {
         currency,
-        product_data: { name: 'CharitMe platform tip', description: `${tipPercent}% optional tip to support CharitMe` },
+        product_data: {
+          name: 'CharitMe platform tip',
+          description: usingCustomTip
+            ? 'Custom optional tip to support CharitMe'
+            : `${tipPercent}% optional tip to support CharitMe`,
+        },
         unit_amount: tipCents,
       },
       quantity: 1,
