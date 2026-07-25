@@ -1392,6 +1392,23 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM31 · PROD BUG FIXED — /supported-countries was live with ZERO countries** —
+  Audited the 64 empty Supabase tables for ones that back real user-facing features.
+  Most are event/log tables that only fill on activity (correct), but
+  **`supported_countries` backs a PUBLIC page** that is fully Supabase-wired.
+  It was **empty in production**, so charitme.com/supported-countries was live
+  showing *"supports fundraisers in **0** countries and accepts donations from **0**
+  countries"* with both country grids empty and every stat at 0.
+  **Root cause:** the canonical country list was trapped inside
+  `/admin/countries` behind a lazy `maybeSeed()` that only runs when an admin
+  happens to open that admin page — which had never happened.
+  **Fix:** new migration `20260802000000_seed_supported_countries.sql` seeds the
+  canonical **69 countries** (20 can fundraise, 69 can donate) with a unique index
+  on `iso_code` + `ON CONFLICT DO NOTHING`, so it is idempotent and never
+  overwrites later admin edits. **Applied to production** and verified:
+  DB `total=69, fundraise=20, donate=69, active=69`, and the **live page now reads
+  "fundraisers in 20 countries … donations from 69 countries."**
+
 - **CHAR-SM30 · accessibility — full public-page sweep COMPLETE (19 pages)** — Swept
   every remaining public page. Result: **19 pages verified at a11y 100**.
   - Already clean at 100: about-us, blog, features, contact, help, trust-safety,
