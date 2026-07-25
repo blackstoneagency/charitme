@@ -2834,6 +2834,28 @@ against the real production DB works and has already settled real questions
 >
 > _1101/1101 tests, lint clean, build green._
 
+## 🔒 CLAIM — ACTIVE (Claude/tbaz3i — nonprofit role has no dashboard)
+
+> **🚧 IN FLIGHT — do not start this.** Second role gap, same shape as the
+> beneficiary one just shipped.
+>
+> **The gap (verified):** `nonprofit_profiles` holds **620 rows** with `name`, `slug`,
+> `mission`, `tax_id`, `verified`, `verification_status`, `tax_receipt_enabled`,
+> `public_profile_enabled`. It is read by `app/api/admin/nonprofits`, the Stripe
+> webhook and `lib/tax-server.ts` — **but by no user-facing page at all**. So the
+> nonprofit that owns the record cannot see it.
+>
+> That matters most for **tax receipts**: `lib/tax-server.ts` gives donors
+> deductible receipts only when `(verified || verification_status === 'verified')`
+> **and** `tax_receipt_enabled`. A nonprofit currently has **no way to know** whether
+> its donors are receiving official receipts, or why not.
+>
+> **Scope:** `/dashboard/nonprofit` — organization profile, verification state, and an
+> explicit "are your donors getting tax receipts?" answer that mirrors tax-server's
+> rule exactly, plus the org's campaigns. Data layer unit-tested (page is auth-gated,
+> no DB here). **Not touching:** admin nonprofit routes, tax-server itself, the Stripe
+> webhook, or other roles' dashboards. Branch: `claude/charitme-github-integration-tbaz3i`.
+
 ## 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
 
 Checked the live `sitemap.xml` because the soft-404 fix makes stale entries *visible*
