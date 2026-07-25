@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { validateBuilderStep, type BuilderField } from '../../lib/builder-validation';
 import {
   CAMPAIGN_DRAFT_KEY,
   buildDraft,
@@ -312,12 +313,24 @@ function CampaignPreviewModal({
 // ─────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────
+// The builder shows at most one error banner at a time (the title step has its
+// own; every other step shares the panel-level one), so a single id is unique in
+// the DOM and safe for aria-describedby.
+const BUILDER_ERROR_ID = 'cr2-builder-error';
+
 export default function CreatePage() {
   const [step, setStep]               = useState<WizardStep>('basics');
   const [loading, setLoading]         = useState(false);
   const [aiLoading, setAiLoading]     = useState(false);
   const [storyMode, setStoryMode]     = useState<'freeform' | 'guided'>('freeform');
   const [error, setError]             = useState('');
+  // Which field the current error belongs to, so it can be marked aria-invalid
+  // and focused. Panel-level banners alone told a keyboard/AT user that
+  // *something* was wrong but not *which* input, leaving focus on the button.
+  const [errorField, setErrorField]   = useState<BuilderField | null>(null);
+  const titleInputRef                 = useRef<HTMLInputElement>(null);
+  const storyInputRef                 = useRef<HTMLTextAreaElement>(null);
+  const goalInputRef                  = useRef<HTMLInputElement>(null);
   const [publishedSlug, setPublishedSlug] = useState('');
   const [userName, setUserName]       = useState<string | null>(null);
   const [userEmail, setUserEmail]     = useState<string | undefined>(undefined);
@@ -728,8 +741,21 @@ export default function CreatePage() {
 
   const autoGoalStart = Math.max(2400, Math.round((parseFloat(form.goal) || 0) * 0.4));
 
+  // Report a validation failure against a specific field: show the banner, mark
+  // the field invalid, and move focus to it so the user lands on what to fix.
+  const failField = (field: BuilderField, message: string) => {
+    setError(message);
+    setErrorField(field);
+    const ref = field === 'title' ? titleInputRef
+      : field === 'description' ? storyInputRef
+      : field === 'goal' ? goalInputRef
+      : null;
+    // Focus after the banner renders so AT announces the alert, then lands.
+    requestAnimationFrame(() => ref?.current?.focus());
+  };
+
   const goNext = () => {
-    setError('');
+    setError(''); setErrorField(null);
     if (step === GUEST_GATE_STEP && isGuest === true) {
       setShowLoginModal(true);
       return;
@@ -738,24 +764,17 @@ export default function CreatePage() {
       const stillUploading = uploadedImages.some(img => img.status === 'uploading');
       if (stillUploading) { setError('Please wait for all images to finish uploading.'); return; }
     }
-    if (step === 'title' && form.title.trim().length < 3) {
-      setError('Please enter a campaign title (min 3 characters).');
-      return;
-    }
-    // Catch the publish-time requirements at the step that owns them. These used
-    // to surface only on the final Publish click, bouncing the organizer back
-    // several steps to fix something they thought was already done.
-    if (step === 'story' && form.description.trim().length > 0 && form.description.trim().length < 20) {
-      setError('Please add a bit more to your story (at least 20 characters) — or leave it empty for now and finish it later.');
-      return;
-    }
-    if (step === 'goal') {
-      const entered = form.goal.trim();
-      if (entered.length > 0 && goalCents < 100) {
-        setError('Please set a fundraising goal of at least $1.');
-        return;
-      }
-    }
+    // Field-targeted validation lives in lib/builder-validation.ts so the rules
+    // and their field mapping are unit-tested — the builder itself can't be
+    // driven in CI (auth-gated, no database).
+    const stepError = validateBuilderStep({
+      step,
+      title: form.title,
+      description: form.description,
+      goalCents,
+      goalRaw: form.goal,
+    });
+    if (stepError) { failField(stepError.field, stepError.message); return; }
     // Payout is intentionally OPTIONAL to publish — the campaign can go live and be
     // shared immediately, and the organizer finishes payout to start receiving
     // donations (the donation API already blocks charges until the recipient is
@@ -1361,10 +1380,13 @@ export default function CreatePage() {
                       <label htmlFor="cr-story">Campaign Story * <span className="cr2-optional">— min. 20 characters</span></label>
                       <textarea
                         id="cr-story"
+                        ref={storyInputRef}
                         value={form.description}
                         onChange={e => upd('description', e.target.value)}
                         placeholder="Introduce yourself and what you're raising funds for..."
                         style={{ minHeight: 220 }}
+                        aria-invalid={errorField === 'description' || undefined}
+                        aria-describedby={errorField === 'description' ? BUILDER_ERROR_ID : undefined}
                       />
                     </div>
                   ) : (
@@ -1449,16 +1471,19 @@ export default function CreatePage() {
                     <input
                       type="text"
                       className="cr2-title-big"
+                      ref={titleInputRef}
                       value={form.title}
                       onChange={e => upd('title', e.target.value.slice(0, 80))}
                       placeholder="Donate to help..."
                       maxLength={80}
+                      aria-invalid={errorField === 'title' || undefined}
+                      aria-describedby={errorField === 'title' ? BUILDER_ERROR_ID : undefined}
                     />
                     <span className={`cr2-char-count${form.title.length > 70 ? ' warn' : ''}`}>
                       {form.title.length}/80
                     </span>
                   </div>
-                  {error && <div className="cr2-error" role="alert" style={{ margin: '14px 0 0' }}>{error}</div>}
+                  {error && <div id={BUILDER_ERROR_ID} className="cr2-error" role="alert" style={{ margin: '14px 0 0' }}>{error}</div>}
                 </div>
               )}
 
@@ -1517,11 +1542,14 @@ export default function CreatePage() {
                       <input
                         type="number"
                         className="cr2-goal-input"
+                        ref={goalInputRef}
                         value={form.goal}
                         onChange={e => upd('goal', e.target.value)}
                         placeholder="10,000"
                         min="1"
                         step="any"
+                        aria-invalid={errorField === 'goal' || undefined}
+                        aria-describedby={errorField === 'goal' ? BUILDER_ERROR_ID : undefined}
                       />
                       <span className="cr2-goal-suffix">USD</span>
                     </div>
@@ -2002,7 +2030,7 @@ export default function CreatePage() {
               )}
 
               {/* Error (global, not shown inside title step which has inline) */}
-              {error && step !== 'title' && <div className="cr2-error" role="alert">{error}</div>}
+              {error && step !== 'title' && <div id={BUILDER_ERROR_ID} className="cr2-error" role="alert">{error}</div>}
 
               {/* Navigation */}
               <div className="cr2-nav">
