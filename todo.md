@@ -2823,7 +2823,17 @@ query per request**, no added round-trip. The page keeps its own
 `if (!campaign) notFound()`, so real campaigns are untouched — the layout only
 changes *when* the identical check runs, never what it decides.
 
-**All 6 soft-404 routes are now resolved** (4 in #63, this one here, `/donors/[id]`
+**Bonus — a 7th route nobody had catalogued.** `/campaigns/[slug]/embed` was also
+soft-404ing in production (200 for a missing campaign); it was never in the original
+sweep. It inherits the same parent `app/campaigns/loading.tsx` boundary, and
+`[slug]/layout.tsx` wraps `embed/` too — so this fix resolves it as a side effect,
+**verified 200 → 404 on the local prod build**. Correct behaviour: an embed iframe for
+a deleted campaign should 404, not render an empty widget.
+
+Also checked and clean: `/impact/[slug]` → 404 already (no `loading.tsx`, consistent
+with the root cause).
+
+**All 7 soft-404 routes are now resolved** (4 in #63, this one here, `/donors/[id]`
 a documented non-issue — crawler-blocked by `robots.ts` + `noindex`).
 
 ## 🔓 CLAIM RELEASED 2026-07-23 (Claude/tbaz3i — dynamic `[slug]` public-page audit)
