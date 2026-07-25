@@ -1991,6 +1991,45 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
     despite CLAUDE.md stating "No Tailwind, no CSS modules" — the auth pages
     diverge from the documented inline-style + CSS-variable convention.
 
+    **✅ FIXED — Playwright was unrunnable in the sandbox; e2e now executes.**
+    `npx playwright test` died with *"Executable doesn't exist at
+    …chromium_headless_shell-1223…"*. The sandbox ships build **1194**
+    (`/opt/pw-browsers/chromium` → `chromium-1194/chrome-linux/chrome`) and
+    `playwright install` is explicitly disallowed here. Added an **opt-in**
+    `PLAYWRIGHT_CHROMIUM_PATH` override wired into both projects' `launchOptions`.
+    Unset it is a **no-op**, so CI and normal local dev are untouched; set, it
+    launches the provided binary. Run with:
+    `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test`
+    _Verified: browser launches and tests execute (they now fail on app behaviour,
+    not on a missing browser)._ This unblocks e2e for **every** agent, and is a
+    prerequisite for CHAR-0014.
+
+    **⚠️ NEW, MEASURED — every page blocks on a Supabase Auth round-trip.**
+    `middleware.ts:92` awaits `supabase.auth.getUser()` — a real network call —
+    and `matcher` (L131) covers every route except `_next/*`, `favicon.ico`, and
+    `api`. Measured against a production build with live Supabase creds:
+
+    | Request | Time |
+    |---|---|
+    | `/api/health` (matcher-excluded) | **0.014s** |
+    | `/` (warm, ×2) | **7.16s / 7.15s** |
+    | `/campaigns` (warm, ×2) | **7.08s / 7.09s** |
+
+    The server is fast; the entire cost is the middleware auth hop. Note how
+    *uniform* it is — 7.08–7.16s across pages with completely different queries —
+    which is the signature of one fixed serial stall, not query load.
+    **Caveat on magnitude:** ~7s is inflated by this sandbox's outbound proxy; on
+    Vercel co-located with Supabase expect ~50–200ms. **The architecture is the
+    finding, not the 7s** — every page, including fully public ones (`/about`,
+    `/terms`, `/campaigns`) that need no auth, serially waits on Auth before
+    rendering.
+    _Not fixed here deliberately:_ `getUser()` is the security-correct call
+    (validates the JWT server-side; `getSession()` trusts the cookie), so it must
+    **not** be naively swapped. The safe optimization is to skip the refresh on
+    routes that need no session, but that trades off how long sessions stay warm
+    sitewide — an auth/security decision, in a hot shared file, that shouldn't be
+    made unilaterally mid-sweep.
+
     **⚠️ Note for other agents — stale `.next/types` after PR #63.** That PR
     deleted `app/events`, `app/matching`, and `app/sponsor`. A `.next` cache built
     before rebasing onto it still holds generated stubs importing those pages, and

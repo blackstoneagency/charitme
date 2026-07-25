@@ -1,5 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Opt-in browser override for sandboxes that ship a Chromium build older than
+// the one this Playwright version expects. Unset (CI, local dev with a normal
+// `playwright install`) this is a no-op and Playwright resolves browsers as
+// usual; set, it launches the provided binary instead of downloading one.
+// Example: PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium
+const chromiumPath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+const launchOptions = chromiumPath ? { executablePath: chromiumPath } : {};
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
@@ -15,7 +23,7 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['Pixel 5'] } },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions } },
+    { name: 'mobile', use: { ...devices['Pixel 5'], launchOptions } },
   ],
 });
