@@ -1403,11 +1403,10 @@ tests/build/live-HTTP are listed here.
   for-nonprofits, pricing, success-stories, leaderboard, grants, volunteer,
   about-us, blog, features, contact, help, trust-safety, fast-payouts,
   supported-countries, for-individuals.
-  _tsc 0, lint clean, suite **1052/1052**. NOTE: the container's `next build` began
-  failing with empty output (environmental - no compile error; tsc passes and the
-  same edit shape built green earlier), so these three tag renames are verified by
-  tsc/lint/tests rather than a fresh build. Re-run `next build` on a clean container
-  to confirm._
+  _tsc 0, lint clean, suite **1052/1052**, `next build` green — and
+  **events / sponsor / matching re-verified at a11y 100 CLEAN in a real prod build**
+  (the earlier empty-output build failures were transient container flakiness, not a
+  compile error)._
 
 - **CHAR-SM29 · accessibility — long-tail page sweep (11 pages now at 100)** — Audited
   the previously-unchecked public pages. Found and fixed real failures:
