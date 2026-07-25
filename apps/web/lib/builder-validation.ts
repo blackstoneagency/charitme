@@ -6,10 +6,18 @@
  * test environment (`/create` is auth-gated and there's no database in CI), so
  * without this the field-targeting would ship unverified.
  *
+ * Thresholds come from `campaign-readiness.ts` (PUBLISH_MIN_*) — the same
+ * constants `/api/campaigns` enforces — rather than being re-hardcoded here. The
+ * builder previously *claimed* to mirror the server and didn't, which is how a
+ * crafted request could publish a 1-character story; `publish-gate-parity.test.ts`
+ * exists to stop that drift, so this file must not reintroduce a third copy.
+ *
  * The component maps the returned `field` to `aria-invalid`/`aria-describedby`
  * and moves focus to that input, so a keyboard or screen-reader user lands on
  * the thing to fix instead of hunting for it after a panel-level banner.
  */
+
+import { PUBLISH_MIN_STORY_CHARS, PUBLISH_MIN_GOAL_CENTS } from './campaign-readiness';
 
 /** Builder fields that can carry an inline validation error. */
 export type BuilderField = 'title' | 'description' | 'goal';
@@ -42,16 +50,19 @@ export function validateBuilderStep(input: BuilderValidationInput): BuilderStepE
 
   // Caught at the step that owns it rather than at Publish, which used to bounce
   // the organizer back several steps to fix something they thought was done.
-  if (step === 'story' && description.trim().length > 0 && description.trim().length < 20) {
+  if (step === 'story' && description.trim().length > 0 && description.trim().length < PUBLISH_MIN_STORY_CHARS) {
     return {
       field: 'description',
       message:
-        'Please add a bit more to your story (at least 20 characters) — or leave it empty for now and finish it later.',
+        `Please add a bit more to your story (at least ${PUBLISH_MIN_STORY_CHARS} characters) — or leave it empty for now and finish it later.`,
     };
   }
 
-  if (step === 'goal' && goalRaw.trim().length > 0 && goalCents < 100) {
-    return { field: 'goal', message: 'Please set a fundraising goal of at least $1.' };
+  if (step === 'goal' && goalRaw.trim().length > 0 && goalCents < PUBLISH_MIN_GOAL_CENTS) {
+    return {
+      field: 'goal',
+      message: `Please set a fundraising goal of at least $${(PUBLISH_MIN_GOAL_CENTS / 100).toFixed(0)}.`,
+    };
   }
 
   return null;

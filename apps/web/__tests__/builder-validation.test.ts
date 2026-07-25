@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { validateBuilderStep } from '../lib/builder-validation';
+import { PUBLISH_MIN_STORY_CHARS, PUBLISH_MIN_GOAL_CENTS } from '../lib/campaign-readiness';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Campaign builder — per-step validation and, crucially, WHICH field each
@@ -13,6 +16,32 @@ import { validateBuilderStep } from '../lib/builder-validation';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const base = { step: 'title', title: '', description: '', goalCents: 0, goalRaw: '' };
+
+// The builder once *claimed* to mirror the server's publish rules and did not —
+// that gap let a crafted request publish a 1-character story. These thresholds
+// must therefore come from the single shared source, never be re-hardcoded here.
+describe('thresholds come from the shared publish constants (no third copy)', () => {
+  it('imports PUBLISH_MIN_* rather than literal numbers', () => {
+    const src = readFileSync(join(__dirname, '..', 'lib', 'builder-validation.ts'), 'utf8');
+    expect(src).toMatch(/import\s*\{[^}]*PUBLISH_MIN_STORY_CHARS[^}]*\}\s*from\s*['"]\.\/campaign-readiness['"]/);
+    expect(src).toContain('PUBLISH_MIN_GOAL_CENTS');
+    // no bare 20/100 thresholds left in the comparisons
+    expect(src).not.toMatch(/length\s*<\s*20\b/);
+    expect(src).not.toMatch(/goalCents\s*<\s*100\b/);
+  });
+
+  it('enforces exactly the shared story minimum', () => {
+    const justUnder = 'x'.repeat(PUBLISH_MIN_STORY_CHARS - 1);
+    const exactly   = 'x'.repeat(PUBLISH_MIN_STORY_CHARS);
+    expect(validateBuilderStep({ ...base, step: 'story', description: justUnder })).toMatchObject({ field: 'description' });
+    expect(validateBuilderStep({ ...base, step: 'story', description: exactly })).toBeNull();
+  });
+
+  it('enforces exactly the shared goal minimum', () => {
+    expect(validateBuilderStep({ ...base, step: 'goal', goalRaw: 'x', goalCents: PUBLISH_MIN_GOAL_CENTS - 1 })).toMatchObject({ field: 'goal' });
+    expect(validateBuilderStep({ ...base, step: 'goal', goalRaw: 'x', goalCents: PUBLISH_MIN_GOAL_CENTS })).toBeNull();
+  });
+});
 
 describe('validateBuilderStep', () => {
   describe('title step', () => {
