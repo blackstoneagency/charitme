@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
+import { optimizedCoverUrl } from '../lib/img-optimize';
 
 /**
  * Campaign cover <img> that never renders broken. If the stored `src` fails to
@@ -31,10 +32,14 @@ export default function CampaignImage({
   loading?: 'lazy' | 'eager';
   fetchPriority?: 'high' | 'low' | 'auto';
 }) {
-  const fallback = campaignKey
+  // Request a card-sized WebP from known hosts (2× the CSS width for retina);
+  // genuine uploads pass through unchanged.
+  const targetW = width && width > 0 ? Math.min(1280, Math.round(width * 2)) : 640;
+  const rawFallback = campaignKey
     ? getCoverForCampaign(category, campaignKey)
     : getCoverForCategory(category);
-  const initial = src && src.startsWith('http') ? src : fallback;
+  const fallback = optimizedCoverUrl(rawFallback, targetW);
+  const initial = src && src.startsWith('http') ? optimizedCoverUrl(src, targetW) : fallback;
   const [current, setCurrent] = useState(initial);
   const [stage, setStage] = useState<0 | 1 | 2>(initial === fallback ? 1 : 0);
 

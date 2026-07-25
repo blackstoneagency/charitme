@@ -4,6 +4,14 @@
 > production-readiness program. Section A is the actionable engineering backlog.
 > Section B (further down) is the competitive product vision it serves.
 
+## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
+- **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
+  `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).
+  → Claude stays out of theme/globals.css color work.
+- **Claude** owns **performance (images/loading), payments/Stripe, image
+  uniqueness, feature-wiring, and non-theme accessibility (labels/roles/alt)**.
+  → Codex can rely on these not touching theme colors.
+
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
@@ -931,6 +939,18 @@ tests/build/live-HTTP are listed here.
     `marketing_consent.granted` all present (HTTP 200). `marketingStatusForOptIn`
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
+
+- **CHAR-SM25 · performance — right-sized WebP campaign covers** — Discovery cards
+  render ~190–350px tall but loaded full **800×600 JPEG** covers (45.7KB each ×
+  60 cards). New `lib/img-optimize.ts#optimizedCoverUrl` (pure, 7/7 tested)
+  rewrites **known hosts only** to a card-sized WebP — Picsum
+  `/id/<n>/700/525.webp` (45.7KB → **11.1KB, −76%**) and Unsplash (`w`/`fm=webp`/
+  `q=75`) — while **genuine user uploads (Supabase Storage), LoremFlickr, and data
+  URIs pass through untouched**. Wired into `<CampaignImage>` (2× CSS width for
+  retina) and the `/campaigns` card backgrounds. _Verified in the served HTML
+  (`picsum.photos/id/100/700/525.webp`); prod Lighthouse `/campaigns` **perf 85,
+  a11y 100**, total page weight 349KB. Full suite **896/896**; typecheck clean;
+  build green._
 
 - **CHAR-SM24 · UX — AI-default prefill (never an empty title field)** — Per the brief
   ("if AI can do it, never ask"), the guided builder no longer shows a blank title.
