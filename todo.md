@@ -2773,7 +2773,23 @@ against the real production DB works and has already settled real questions
   real charge across payment methods, rotating the exposed keys.
 
 
-### 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
+### 🔒 CLAIM — ACTIVE (Claude/tbaz3i — builder inline field errors, finding #3)
+
+> **🚧 IN FLIGHT — do not start this.** Implementing the still-open half of
+> **finding #3** in the create-flow section below: per-field `aria-invalid` +
+> `aria-describedby` and **moving focus to the first invalid field**. (The
+> `role="alert"` half was already done in #3a.)
+> **Files:** `apps/web/app/create/page.tsx` only (plus a test). I am **not**
+> touching the wizard's step structure, draft persistence, the guest gate, the
+> publish gate, or any API/schema — those are other agents' work and already
+> shipped in #61/#62/#65.
+> **Why:** today every builder error renders in one panel-level banner. A
+> keyboard or screen-reader user who presses Continue is told *something* is
+> wrong but not *which field*, and focus stays on the button — so they must hunt
+> for the offending input. That is friction on the primary conversion path.
+> Branch: `claude/charitme-github-integration-tbaz3i`. Released when merged.
+
+## 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
 
 Checked the live `sitemap.xml` because the soft-404 fix makes stale entries *visible*
 to crawlers (a listed URL that 404s is now a real 404, not a silent 200).
