@@ -1392,6 +1392,21 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM29 · accessibility — long-tail page sweep (11 pages now at 100)** — Audited
+  the previously-unchecked public pages. Found and fixed real failures:
+  - **success-stories 95->100** and **leaderboard 94->100**: brand `--violet`
+    (#6d35ff) used as *text* is only **3.06-3.28:1** on dark surfaces. Swapped the
+    10 text usages to the existing AA-safe **`--violet-ink`** token (#5b21b6 light /
+    #c4b5fd dark) - component-level, so it does not collide with Codex's theme work;
+    the one globals.css touch extends a dark override Codex already wrote for
+    `.lb-tabs button.active` (flagged here for visibility).
+  - **grants 98->100** and **volunteer 98->100**: `heading-order` - both pages jumped
+    **h1 -> h3** (card titles skipped h2). Card titles are now `h2`.
+  - **Load check across 16 public pages**: all HTTP 200, 0.013-0.84s server response.
+  **Pages verified at a11y 100:** home, how-it-works, campaigns, faq, for-donors,
+  for-nonprofits, pricing, success-stories, leaderboard, grants, volunteer.
+  _typecheck + lint clean; suite **1040/1040**; build green._
+
 - **CHAR-SM28 · admin — merged the two Marketing pages into one** (owner request).
   `/admin/marketing` and `/admin/super/marketing` were **two parallel UIs over the
   SAME tables** (`seo_settings`, `aeo_entries`, `marketing_campaigns`) with their

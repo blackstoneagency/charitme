@@ -5089,7 +5089,8 @@ img, video, iframe { max-width: 100%; }
 [data-theme="dark"] .pc-donor-wall-tabs button.active { background: var(--s1); }
 [data-theme="dark"] .pc-loadmore { background: var(--s2); border-color: var(--b1); }
 [data-theme="dark"] .lb-tabs { background: var(--s2); }
-[data-theme="dark"] .lb-tabs button.active { background: var(--s1); }
+/* --violet as text is 3.06:1 on the dark surface; --violet-ink is the AA-safe variant. */
+[data-theme="dark"] .lb-tabs button.active { background: var(--s1); color: var(--violet-ink); }
 [data-theme="dark"] .lb-period button { background: var(--s2); border-color: var(--b1); }
 [data-theme="dark"] .lb-period button.active { background: rgba(124,85,255,.16); }
 [data-theme="dark"] .lb-rank { background: var(--s2); }

@@ -41,7 +41,7 @@ function GrantCard({ grant }: { grant: Grant }) {
           </span>
           {grant.verified && <Badge color="green">Verified</Badge>}
         </div>
-        <h3 style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.3, color: 'var(--t1)', margin: 0 }}>{grant.title}</h3>
+        <h2 style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.3, color: 'var(--t1)', margin: 0 }}>{grant.title}</h2>
         {grant.summary && (
           <p style={{ fontSize: 13, color: 'var(--t3)', margin: 0, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             {grant.summary}

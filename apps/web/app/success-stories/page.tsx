@@ -152,7 +152,7 @@ export default async function SuccessStoriesPage() {
         <section style={{ background: 'var(--s1, #fff)', borderBottom: '1px solid var(--b1, #ede9fe)', padding: '64px 0' }}>
           <div className="container">
             <div style={{ textAlign: 'center', marginBottom: 40 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet, #6c35ff)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Featured Story</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet-ink)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Featured Story</span>
               <h2 style={{ fontSize: 'clamp(22px,3vw,36px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 0' }}>Community spotlight</h2>
             </div>
             <Link href={`/campaigns/${featured.slug}`} style={{ textDecoration: 'none', display: 'block' }}>
@@ -160,7 +160,7 @@ export default async function SuccessStoriesPage() {
                 <div style={{ borderRadius: 18, overflow: 'hidden', height: 340, backgroundImage: `url(${optimizedCoverUrl(featured.cover_image_url || getCoverForCampaign(featured.category, featured.slug), 900)})`, backgroundSize: 'cover', backgroundPosition: 'center', boxShadow: '0 16px 48px rgba(108,53,255,.18)' }} />
                 <div>
                   {featured.category && (
-                    <span style={{ display: 'inline-block', background: 'rgba(108,53,255,.1)', color: 'var(--violet, #6c35ff)', borderRadius: 999, padding: '4px 14px', fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 16 }}>
+                    <span style={{ display: 'inline-block', background: 'rgba(108,53,255,.1)', color: 'var(--violet-ink)', borderRadius: 999, padding: '4px 14px', fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 16 }}>
                       {featured.category}
                     </span>
                   )}
@@ -175,7 +175,7 @@ export default async function SuccessStoriesPage() {
                       { val: `${pct(featured.raised_amount, featured.goal_amount)}%`, lbl: 'Funded' },
                     ].map(s => (
                       <div key={s.lbl} style={{ textAlign: 'center', background: 'var(--s1, #fff)', borderRadius: 14, padding: '14px 10px', border: '1px solid var(--b1, #ede9fe)' }}>
-                        <div style={{ fontSize: 22, fontWeight: 950, color: 'var(--violet, #6c35ff)' }}>{s.val}</div>
+                        <div style={{ fontSize: 22, fontWeight: 950, color: 'var(--violet-ink)' }}>{s.val}</div>
                         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3, #94a3b8)', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: 4 }}>{s.lbl}</div>
                       </div>
                     ))}
@@ -197,7 +197,7 @@ export default async function SuccessStoriesPage() {
       <section id="stories" style={{ padding: '72px 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
-            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet, #6c35ff)', textTransform: 'uppercase', letterSpacing: '.12em' }}>All Stories</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet-ink)', textTransform: 'uppercase', letterSpacing: '.12em' }}>All Stories</span>
             <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 14px' }}>Every campaign tells a story</h2>
             <p style={{ color: 'var(--t3, #64748b)', fontSize: 16, maxWidth: 500, margin: '0 auto' }}>Browse verified fundraisers from real people and nonprofits making a difference.</p>
           </div>
@@ -230,10 +230,10 @@ export default async function SuccessStoriesPage() {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
-                            <div style={{ fontSize: 18, fontWeight: 950, color: 'var(--violet, #6c35ff)' }}>{formatCents(story.raised_amount, story.currency ?? 'usd')}</div>
+                            <div style={{ fontSize: 18, fontWeight: 950, color: 'var(--violet-ink)' }}>{formatCents(story.raised_amount, story.currency ?? 'usd')}</div>
                             <div style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', fontWeight: 600 }}>of {formatCents(story.goal_amount, story.currency ?? 'usd')} goal</div>
                           </div>
-                          <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--violet, #6c35ff)' }}>{progress}% funded &#8594;</span>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--violet-ink)' }}>{progress}% funded &#8594;</span>
                         </div>
                       </div>
                     </div>
@@ -254,7 +254,7 @@ export default async function SuccessStoriesPage() {
 
           {stories.length > 0 && (
             <div style={{ textAlign: 'center', marginTop: 48 }}>
-              <Link href="/campaigns" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 50, padding: '0 32px', borderRadius: 14, border: '2px solid var(--violet, #6c35ff)', color: 'var(--violet, #6c35ff)', fontWeight: 900, fontSize: 15, textDecoration: 'none', background: 'var(--s1, #fff)' }}>
+              <Link href="/campaigns" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 50, padding: '0 32px', borderRadius: 14, border: '2px solid var(--violet, #6c35ff)', color: 'var(--violet-ink)', fontWeight: 900, fontSize: 15, textDecoration: 'none', background: 'var(--s1, #fff)' }}>
                 View All Campaigns &#8594;
               </Link>
             </div>
@@ -267,7 +267,7 @@ export default async function SuccessStoriesPage() {
         <section style={{ background: 'var(--s1, #fff)', borderTop: '1px solid var(--b1, #ede9fe)', borderBottom: '1px solid var(--b1, #ede9fe)', padding: '72px 0' }}>
           <div className="container">
             <div style={{ textAlign: 'center', marginBottom: 52 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet, #6c35ff)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Community Voices</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet-ink)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Community Voices</span>
               <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 14px' }}>What our fundraisers say</h2>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
@@ -295,7 +295,7 @@ export default async function SuccessStoriesPage() {
       <section style={{ padding: '72px 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet, #6c35ff)', textTransform: 'uppercase', letterSpacing: '.12em' }}>By the Numbers</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet-ink)', textTransform: 'uppercase', letterSpacing: '.12em' }}>By the Numbers</span>
             <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 14px' }}>Community impact</h2>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 20, maxWidth: 800, margin: '0 auto' }}>
@@ -307,7 +307,7 @@ export default async function SuccessStoriesPage() {
             ].map(s => (
               <div key={s.label} style={{ textAlign: 'center', background: 'var(--s1, #fff)', border: '1.5px solid var(--b1, #ede9fe)', borderRadius: 20, padding: '32px 20px', boxShadow: '0 4px 20px rgba(108,53,255,.06)' }}>
                 <div style={{ fontSize: 36, marginBottom: 12 }} dangerouslySetInnerHTML={{ __html: s.icon }} />
-                <div style={{ fontSize: 32, fontWeight: 950, color: 'var(--violet, #6c35ff)', lineHeight: 1, marginBottom: 8 }}>{s.value}</div>
+                <div style={{ fontSize: 32, fontWeight: 950, color: 'var(--violet-ink)', lineHeight: 1, marginBottom: 8 }}>{s.value}</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3, #94a3b8)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{s.label}</div>
               </div>
             ))}
