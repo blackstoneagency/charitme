@@ -2636,6 +2636,13 @@ already-committed status. On a missing grant the title is the global
    (grants uses the identical `return { title: '… not found' }` pattern and 404s.)
 3. ~~"React `cache()` wrapping the fetcher"~~ — `/volunteer` and `/events` do **not**
    use `cache()` and still return 200; grants does not use it and returns 404.
+4. ~~"the data helper throws instead of returning null"~~ — both return `null` on a
+   miss. `getGrantBySlug` uses `.maybeSingle()` + `if (error || !data) return null`;
+   `getCampaign` uses `.single()` and returns `data` (null on 0 rows). Same outcome,
+   so the `if (!x) notFound()` branch is reached identically in both.
+5. ~~"middleware handles these paths differently"~~ — the matcher is uniform
+   (`/((?!_next/static|_next/image|favicon.ico|api).*)`) and there is no
+   route-specific 404/rewrite logic for any of them.
 
 All 7 routes are `ƒ` dynamic, none has `generateStaticParams`, none has a segment
 `not-found.tsx`. The remaining suspect is the data layer: whether each helper returns
