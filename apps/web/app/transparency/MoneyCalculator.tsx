@@ -19,6 +19,8 @@ const V = 'var(--violet, #6c35ff)';
 // Violet TEXT that stays AA on both light and dark surfaces (V is too light on --s2 in dark).
 const VINK = 'var(--violet-ink, #5b21b6)';
 const GR = 'var(--green, #059669)';
+// Green TEXT variant — the brand fill fails AA as small text on light surfaces.
+const GRT = 'var(--green-text, #0d783c)';
 const BD = 'var(--b2, #e2d9ff)';
 const MU = 'var(--t3, #64748b)';
 const INK = 'var(--t1, #1a1a2e)';
@@ -210,7 +212,7 @@ export default function MoneyCalculator() {
         <Row label={`CharitMe support (${supportPercent}%)`} value={supportPercent === 0 ? '$0.00' : money(b.supportCents)} muted={supportPercent === 0} />
         <Row label={`Processing fee (${METHOD_FEES[method].label})`} value={money(b.processingCents)} />
         <div style={{ borderTop: `1px solid ${BD}`, marginTop: 4, paddingTop: 12 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 800, color: GR }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 800, color: GRT }}>
             <span>Recipient receives</span>
             <span>{money(b.netToRecipientCents)}</span>
           </div>
@@ -224,7 +226,7 @@ export default function MoneyCalculator() {
       <p style={{ margin: '18px 0 0', fontSize: 13, lineHeight: 1.6, color: MU }}>
         {coverProcessing ? (
           <>
-            <strong style={{ color: GR }}>100% of your donation</strong> reaches the recipient — you&apos;ve
+            <strong style={{ color: GRT }}>100% of your donation</strong> reaches the recipient — you&apos;ve
             covered the {METHOD_FEES[method].label} processor fee. CharitMe&apos;s platform fee is{' '}
             <strong>always 0%</strong>.
           </>
