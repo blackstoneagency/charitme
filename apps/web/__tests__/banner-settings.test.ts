@@ -67,11 +67,30 @@ describe('normalizeBannerSettings', () => {
     expect(normalizeBannerSettings(undefined)).toEqual(DEFAULT_BANNER_SETTINGS);
   });
 
-  it('defaults reproduce the original green banner', () => {
-    expect(DEFAULT_BANNER_SETTINGS.backgroundColor).toBe('#12b76a');
+  it('defaults are the AA-safe green banner', () => {
+    // Was #12b76a, which gives white text only 2.62:1 — below WCAG AA (4.5:1).
+    // The banner renders on every page, so that default dropped sitewide
+    // Lighthouse accessibility from 100 to 94-96. #08763b is the app's AA-safe
+    // green (--green-dark).
+    expect(DEFAULT_BANNER_SETTINGS.backgroundColor).toBe('#08763b');
     expect(DEFAULT_BANNER_SETTINGS.textColor).toBe('#ffffff');
     expect(DEFAULT_BANNER_SETTINGS.enabled).toBe(true);
     expect(DEFAULT_BANNER_SETTINGS.dismissible).toBe(true);
+  });
+
+  it('default banner colours clear WCAG AA for normal text', () => {
+    // Guards the regression above: any future default must stay >= 4.5:1.
+    const lum = (hex: string) => {
+      const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+        .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+      return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+    };
+    const ratio = (a: string, b: string) => {
+      const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+      return (hi + 0.05) / (lo + 0.05);
+    };
+    expect(ratio(DEFAULT_BANNER_SETTINGS.textColor, DEFAULT_BANNER_SETTINGS.backgroundColor)).toBeGreaterThanOrEqual(4.5);
+    expect(ratio(DEFAULT_BANNER_SETTINGS.linkColor, DEFAULT_BANNER_SETTINGS.backgroundColor)).toBeGreaterThanOrEqual(4.5);
   });
 
   it('passes through a fully valid row', () => {

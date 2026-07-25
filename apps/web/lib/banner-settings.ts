@@ -31,10 +31,16 @@ export interface BannerSettings {
   useLevelColors: boolean;
 }
 
-/** Reproduces the banner exactly as it looked before it became configurable. */
+/**
+ * Reproduces the banner as it looked before it became configurable, with one
+ * correction: the background was `#12b76a`, which gives white banner text only
+ * **2.62:1** contrast (WCAG AA needs 4.5:1). Because the banner renders on every
+ * page, that single default dropped sitewide Lighthouse accessibility from 100 to
+ * 94-96. `#08763b` is the app's AA-safe green (`--green-dark`, 5.68:1 on white).
+ */
 export const DEFAULT_BANNER_SETTINGS: BannerSettings = {
   enabled: true,
-  backgroundColor: '#12b76a',
+  backgroundColor: '#08763b',
   textColor: '#ffffff',
   linkColor: '#ffffff',
   fontFamily: 'inherit',

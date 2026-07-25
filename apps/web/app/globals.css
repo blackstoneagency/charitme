@@ -738,7 +738,9 @@ img, video, iframe { max-width: 100%; }
 .kind-footer-brand p { margin: 18px 0 0; color: #65708f; font-size: 13px; line-height: 1.55; font-weight: 750; }
 .kind-footer h3 { margin: 0 0 12px; color: #14193b; font-size: 11px; font-weight: 950; }
 .kind-footer-links { display: grid; grid-template-columns: repeat(4, 1fr); gap: 38px; }
-.kind-footer-links a { display: block; margin: 8px 0; color: #65708f; font-size: 11px; font-weight: 700; }
+/* Half the vertical spacing is padding so the tap target is ~25px tall, not 17px
+   (margins are not tappable). Total flow height is essentially unchanged. */
+.kind-footer-links a { display: block; padding: 4px 0; margin: 4px 0; color: #65708f; font-size: 11px; font-weight: 700; }
 .kind-footer-apps { border-left: 1px solid #e6e1f3; padding-left: 28px; }
 .kind-footer-apps > div { display: flex; gap: 8px; }
 .kind-footer-apps a { border: 1px solid #d7d2e8; border-radius: 5px; padding: 5px 8px; color: #14193b; font-size: 10px; font-weight: 850; }
@@ -1806,6 +1808,16 @@ img, video, iframe { max-width: 100%; }
 .lb-campaign-amount { text-align: right; flex-shrink: 0; }
 .lb-campaign-amount b { display: block; color: var(--green-text); font-size: 15px; }
 .lb-campaign-amount span { font-size: 11px; color: var(--t3); white-space: nowrap; }
+/* Mobile: the 4-column row (rank + cover + info + amount) does not fit a ~292px
+   content width — the flexible info column was collapsing to 18px, wrapping the
+   campaign title to one character per line. Shrink the cover and let the amount
+   wrap onto its own line so the title always has room. */
+@media (max-width: 560px) {
+  .lb-campaign-row { flex-wrap: wrap; gap: 10px; }
+  .lb-campaign-cover { width: 48px; height: 48px; }
+  .lb-campaign-info { flex: 1 1 140px; }
+  .lb-campaign-amount { flex: 1 0 100%; text-align: left; }
+}
 
 /* Trust bar */
 .pc-safe { margin-top: 28px; padding: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(90deg, #f5f0ff, #fff); box-shadow: var(--shadow-sm); }
@@ -2186,6 +2198,9 @@ img, video, iframe { max-width: 100%; }
 .pub-page { width: min(1900px, 100%); margin: 0 auto; color: #090d35; background: linear-gradient(180deg, #fff 0%, #fbfaff 100%); }
 .pub-icon { width: 20px; height: 20px; }
 .pub-breadcrumb { color: #314064; font-size: 15px; font-weight: 700; }
+/* Breadcrumb links were an 18px-tall tap target; pad to >=24px (no layout shift:
+   inline-block padding sits inside the existing line box). */
+.pub-breadcrumb a { display: inline-block; padding: 4px 0; }
 .pub-breadcrumb span { margin: 0 10px; color: #7f88a5; }
 .pub-breadcrumb b { color: #4015e8; }
 .pub-hero, .stories-hero, .pricing-hero, .simple-public > section:first-child { padding: 38px 6vw 54px; border-bottom: 1px solid #e8ebf4; }
@@ -6124,12 +6139,22 @@ img, video, iframe { max-width: 100%; }
 .home-spot-nav-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
 .home-spot-nav-btn .hi { width: 16px; height: 16px; }
 .home-spot-nav-prev { transform: rotate(180deg); }
-.home-spot-dots { display: flex; align-items: center; gap: 7px; }
-.home-spot-dot { width: 8px; height: 8px; padding: 0; border: none; border-radius: 999px; background: rgba(124, 58, 237, .28); cursor: pointer; transition: width .2s ease, background .2s ease; }
+.home-spot-dots { display: flex; align-items: center; gap: 0; }
+/* The visual dot stays 8px, but the button itself is padded out to a >=24px tap
+   target (the bare dot was an 8x8 target on mobile). background-clip keeps the
+   colour in the 8px content box; the gap is folded into the padding so adjacent
+   hit areas sit side by side without overlapping. */
+.home-spot-dot { width: 8px; height: 8px; padding: 8px; box-sizing: content-box; background-clip: content-box; border: none; border-radius: 999px; background-color: rgba(124, 58, 237, .28); cursor: pointer; transition: width .2s ease, background .2s ease; }
 .home-spot-dot.is-active { width: 22px; background: linear-gradient(90deg, #7c3aed, #a855f7); }
 [data-theme="dark"] .home-spot-nav-btn { color: #c4b5fd; }
 [data-theme="dark"] .home-spot-dot { background: rgba(196, 181, 253, .32); }
 [data-theme="dark"] .home-spot-dot.is-active { background: linear-gradient(90deg, #a855f7, #c4b5fd); }
+/* The `background:` shorthands above reset background-clip, so re-assert it for
+   every dot state — the padded area must stay transparent (tap target only). */
+[data-theme="dark"] .home-spot-dot.is-active,
+[data-theme="dark"] .home-spot-dot,
+.home-spot-dot.is-active,
+.home-spot-dot { background-clip: content-box; }
 
 /* Screen-reader-only utility (visually hidden, still announced). */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

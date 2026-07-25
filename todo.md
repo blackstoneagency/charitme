@@ -1392,6 +1392,52 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM33 · mobile — tap targets, a broken leaderboard layout, and a sitewide
+  a11y regression** — Ran real device-emulated (390x844) checks Lighthouse does not
+  cover.
+  - **Horizontal overflow: 0 across all 17 public pages** at 390px.
+  - **Tap targets: 28 undersized -> 0.** Fixed: the sitewide announcement-banner
+    dismiss `x` (was **15x18** on every page -> 28x28 hit area); footer links (17px
+    tall -> ~25px by converting half the spacing from margin to padding, same flow
+    height); homepage carousel dots (**8x8** -> **24x24** hit area via padding +
+    `background-clip: content-box`, so the 8px visual dot is unchanged); pricing
+    breadcrumb links (18px -> 24px+).
+  - **BROKEN MOBILE LAYOUT on /leaderboard (real bug):** the 4-column row
+    (rank 36 + cover 64 + info + amount 132 + 42 gaps) does not fit the ~292px
+    content width, so the flexible title column **collapsed to 18px and wrapped
+    titles one character per line into a 714px-tall column**. Added a <=560px
+    breakpoint: smaller cover, amount wraps to its own line, title always has room.
+  - **Caught + fixed a sitewide accessibility REGRESSION** introduced with the new
+    configurable banner: default background `#12b76a` gives white text only
+    **2.62:1** (AA needs 4.5:1). Because the banner renders on every page with 4
+    active announcements — and `banner_settings` is not yet applied in prod, so the
+    code default is what ships — **every page dropped from a11y 100 to 94-96**.
+    Changed the default to the app's AA-safe `#08763b` (5.68:1) and darkened the
+    level-colour gradients (`#f59e0b` was ~2.1:1, `#19b86a` ~2.5:1). **Verified back
+    to 100 CLEAN.** Updated Codex's `banner-settings` test (it pinned the failing
+    colour) and **added a contrast-ratio assertion** so this cannot regress again.
+  _tsc 0, lint clean, suite **1063/1063**, build green._
+
+- **CHAR-SM32 · seed-gap audit — the 64 empty tables, triaged** — Checked every empty
+  Supabase table against the code to distinguish "feature can't be tested" from
+  "correctly empty". Three categories:
+  1. **Event / log / activity tables** (payment events, webhook events, audit logs,
+     `contact_messages`, `marketing_consent`, ledger entries, …) — correctly empty;
+     they populate only from real user activity. Seeding them would be fabricated
+     history. **No action.**
+  2. **Schema-only tables with ZERO code references** — `membership_tiers`,
+     `digital_products`, `auction_items`, `auction_bids`, `livestreams`,
+     `donation_forms`, `reward_tiers`, `giving_days`, `donor_segments`,
+     `exclusive_posts`, `sms_campaigns`, … These came from a competitor-parity
+     migration but **no UI or API reads them**, so there is no feature to test and
+     seeding them would be pure fake data. **No action** (flagged as unbuilt
+     features, not a seed gap).
+  3. **A genuinely broken wired feature** — `supported_countries` → fixed in
+     CHAR-SM31.
+  _Conclusion: the "≥100 seed records per feature" goal is met for every table that
+  actually backs a shipped feature; remaining emptiness is either real-activity data
+  or unbuilt features._
+
 - **CHAR-SM31 · PROD BUG FIXED — /supported-countries was live with ZERO countries** —
   Audited the 64 empty Supabase tables for ones that back real user-facing features.
   Most are event/log tables that only fill on activity (correct), but

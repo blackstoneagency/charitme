@@ -7,11 +7,14 @@ export type Announcement = {
   link_url: string | null; link_label: string | null;
 };
 
+// Banner text is white, so every stop must clear WCAG AA (4.5:1) against white —
+// the previous light ends did not (e.g. #f59e0b was ~2.1:1, #19b86a ~2.5:1),
+// which would fail accessibility sitewide whenever level colours are enabled.
 const BG: Record<string, string> = {
-  info: 'linear-gradient(90deg,#2f6fed,#5b8def)',
-  success: 'linear-gradient(90deg,#0f9d58,#19b86a)',
-  warning: 'linear-gradient(90deg,#d97706,#f59e0b)',
-  critical: 'linear-gradient(90deg,#c81e1e,#e5342f)',
+  info: 'linear-gradient(90deg,#1d4ed8,#2563eb)',
+  success: 'linear-gradient(90deg,#065f46,#08763b)',
+  warning: 'linear-gradient(90deg,#92400e,#b45309)',
+  critical: 'linear-gradient(90deg,#991b1b,#b91c1c)',
 };
 const DISMISS_KEY = 'cm_dismissed_announcements';
 
@@ -114,7 +117,9 @@ export default function AnnouncementBanner({ initial, appearance }: { initial?: 
             type="button"
             onClick={dismiss}
             aria-label="Dismiss announcement"
-            style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: fg, cursor: 'pointer', fontSize: 18, lineHeight: 1, opacity: 0.85, flexShrink: 0 }}
+            // min 28px hit area: the glyph alone was a 15x18 tap target on mobile,
+            // below the 24px minimum (WCAG 2.5.8) — and this banner is sitewide.
+            style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: fg, cursor: 'pointer', fontSize: 18, lineHeight: 1, opacity: 0.85, flexShrink: 0, minWidth: 28, minHeight: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, borderRadius: 6 }}
           >
             ×
           </button>
