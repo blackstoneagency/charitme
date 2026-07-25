@@ -2795,13 +2795,20 @@ drafts and deleted rows are excluded, so true table counts are ≥ these):
 | events | **181** | ✅ |
 | sponsor | **145** | ✅ |
 | matching | **121** | ✅ |
-| impact | **58** | ❌ below target |
+| impact | 58 | n/a — see below, **not a gap** |
 | blog / features | 9 / 7 | n/a — static catalogues, not seeded tables |
 
 So six feature domains are confirmed ≥100 **from production**, without needing DB access.
-**`impact` at 58 is the one genuine gap** — worth a top-up if the ≥100 bar is meant to
-apply to it (it may not: impact entries are derived from campaigns rather than seeded
-independently).
+
+**Correction — `impact` at 58 is NOT a seed gap; I initially flagged it as one and was
+wrong.** `/impact/[slug]` takes a **campaign slug**, not an impact-table id
+(`getImpactBundle(slug)`; the sitemap entry is `/impact/campaign-351-b7e076c5` and the
+title renders as "Impact — {campaign.title}"). So those 58 URLs are *campaigns that have
+a published impact plan* — a derived product metric, not a row count. The underlying
+tables are seeded properly: `04_impact_gamification.sql` loads **120 rows**
+(`generate_series(1, 120)`) into `impact_plans`, `impact_metrics`, `impact_evidence`,
+`impact_updates` and `impact_plan_items`, all five covered by `99_verify_counts.sql`.
+**No top-up needed.**
 
 _Method, for reuse: `curl -s https://www.charitme.com/sitemap.xml | grep -oE '<loc>[^<]+</loc>'`
 then bucket by path segment._
