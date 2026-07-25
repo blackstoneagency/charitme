@@ -824,13 +824,30 @@ tests/build/live-HTTP are listed here.
   4. ~~**`goalCents || 100` fallback on submit**~~ — folded into 4b above. Was: silently publishes a $1 goal if the
      field is empty on the draft path — should be an explicit prompt, not a coerced
      default.
-  5. **2041-line client component.** Whole wizard ships in one bundle; steps are
-     inline JSX branches. Extracting per-step components would cut first-load JS
-     and make each step independently testable (there is currently **no test file
-     for the builder at all** — the largest untested surface in the app).
-  6. **No server-side mirror of the step rules.** `/api/campaigns` should enforce
-     the same story/goal minimums so a crafted request can't create a campaign the
-     wizard would reject.
+  5. **2456-line client component — premise CONFIRMED, but the cheap fix is NOT worth it (measured).**
+     `/create` is indeed **the heaviest route in the app: 205 kB first load** (shared
+     baseline is 103 kB; next heaviest is `/campaigns/[slug]` at 189 kB). So the
+     concern is real.
+     **Tried and reverted:** `next/dynamic` on the four step-scoped panels
+     (`StorySectionsEditor`, `AiFollowUps`, `GoalProceedsBreakdown`,
+     `ReadinessChecklist`) → **205 kB → 203 kB, about 1%**. That requires
+     `ssr: false`, so those panels pop in after hydration when the user reaches the
+     step — trading a visible layout shift on the conversion path for ~2 kB, right
+     after #52 went to some trouble to eliminate CLS. Bad deal; reverted.
+     **What's actually left:** the weight is in `page.tsx` itself (2456 lines), so
+     only the real per-step extraction moves the needle. That is a large refactor of
+     the primary conversion path, and **it cannot be verified in this sandbox** —
+     `/create` is auth-gated (307) with no database to sign in against, so the wizard
+     can't be walked. It needs an environment where the builder actually renders.
+     _Partly addressed:_ the "no test file for the builder at all" half is no longer
+     true — `lib/builder-validation.ts` + `__tests__/builder-validation.test.ts` (14)
+     now cover the step rules and their field mapping.
+  6. **✅ DONE (verified this session).** `/api/campaigns` enforces the publish
+     minimums server-side: a `superRefine` rejects `status:'active'` unless the story
+     clears `PUBLISH_MIN_STORY_CHARS` and the goal clears `PUBLISH_MIN_GOAL_CENTS`,
+     both imported from `campaign-readiness.ts` — the single shared source the wizard
+     also uses, now including `builder-validation.ts`. Drafts stay permissive by
+     design. `publish-gate-parity.test.ts` guards the client/server agreement.
 
 - **CHAR-F061 · dashboard/ux (dead-data completion)** — The dashboard/admin shell
   fetched the signed-in user (name, email, role, avatar) server-side in
