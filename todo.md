@@ -1392,6 +1392,22 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM27 · payments BUG — donor payment methods that Checkout can't fulfil** —
+  The donate form offered **PayPal** and **Venmo** with their own processing-fee
+  rates, but `ONE_TIME_PAYMENT_METHOD_TYPES` only enables card/link/cashapp/
+  us_bank_account/amazon_pay/klarna/afterpay, and the live account has **no PayPal
+  or Venmo capability**. Real money impact both ways: a donor picking **Venmo** was
+  quoted **1.9% + $0.10** while the charge actually settled as **card 2.9% + $0.30**
+  → **~$0.78 under-collected per $50 donation, absorbed by the platform** (the
+  application fee is tip + processing); picking **PayPal** **over-charged** ~$0.53
+  for a method they could never use. Fixed by offering only fulfillable methods
+  (Stripe/card, Google Pay → card rail, Bank transfer → ACH), all of which quote
+  their true rate. Added **`__tests__/payment-method-parity.test.ts`** (5 tests)
+  that parses the real `PAY_OPTIONS`, asserts every option maps to an enabled
+  Checkout type, has a fee config, and that **card-rail methods quote the exact card
+  rate** — verified the guard fails loudly if PayPal/Venmo are reintroduced.
+  _typecheck + lint clean; suite **1040/1040**._
+
 - **CHAR-SM26 · performance — WebP covers across ALL remaining surfaces** — Extended
   `optimizedCoverUrl` to every other place a cover renders, each sized to its actual
   render box: `/success-stories` featured hero (900) + story cards (700),

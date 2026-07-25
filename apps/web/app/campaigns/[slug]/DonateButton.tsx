@@ -29,10 +29,14 @@ type FrequencyMode = 'once' | 'monthly';
 
 interface PayOption { id: PaymentMethod; label: string; icon: React.ReactNode }
 
+// Only methods Stripe Checkout can actually fulfil for this account are offered.
+// PayPal and Venmo were previously listed but are NOT in ONE_TIME_PAYMENT_METHOD_TYPES
+// (and the connected account has no such capability), so a donor picking them was
+// quoted a fee for a method they could never use — Venmo's lower rate also
+// under-collected the real card cost, which the platform then absorbed. Keep this
+// list in sync with lib/stripe-payment-methods.ts.
 const PAY_OPTIONS: PayOption[] = [
   { id: 'stripe',  label: 'Stripe',         icon: <span style={{ fontWeight: 700, fontSize: 13, color: '#635bff' }}>S</span> },
-  { id: 'paypal',  label: 'PayPal',         icon: <span style={{ fontWeight: 700, fontSize: 13, color: '#003087' }}>P</span> },
-  { id: 'venmo',   label: 'Venmo',          icon: <span style={{ fontWeight: 700, fontSize: 13, color: '#3D95CE' }}>V</span> },
   { id: 'gpay',    label: 'Google Pay',     icon: <span style={{ fontWeight: 700, fontSize: 13, color: '#4285F4' }}>G</span> },
   { id: 'bank',    label: 'Bank transfer',  icon: <span style={{ fontSize: 14 }}>🏛</span> },
   { id: 'card',    label: 'Credit or debit',icon: <span style={{ fontSize: 14 }}>💳</span> },
