@@ -2624,45 +2624,50 @@ against the real production DB works and has already settled real questions
 - ❌ Genuinely blocked (needs writes or secrets): running the seed suite, placing a
   real charge across payment methods, rotating the exposed keys.
 
-## ✅ ROOT-CAUSED + 4/6 FIXED — soft-404 on detail routes (2026-07-23)
+## ✅ ROOT-CAUSED + 4/6 FIXED — soft-404 (merged #63); 1 real route left, 1 non-issue
 
-**Root cause (proven by single-variable experiment):** a `loading.tsx` anywhere at or
-above a detail route creates an implicit Suspense boundary. Next streams the shell and
-**commits HTTP 200 before the page body runs**, so the later `notFound()` renders the
-correct not-found UI but can no longer change the status. Perfect correlation across all
-7 routes — every route with a `loading.tsx` (own segment *or* parent) soft-404'd;
-`/grants`, the only one with neither, returned 404. **Proof:** removing *only*
-`app/matching/loading.tsx` flipped `/matching/missing` 200 → 404 with every control
-unchanged.
+**Root cause (proven):** a `loading.tsx` at or above a detail route creates an implicit
+Suspense boundary; Next streams the shell and **commits HTTP 200 before the page body
+runs**, so the later `notFound()` renders the right UI but can't change the status.
+Perfect correlation across all 7 routes — `/grants`, the only one without a
+`loading.tsx`, was the only one returning 404. Proven by removing *only*
+`app/matching/loading.tsx`: `/matching/missing` flipped 200 → 404, all controls unchanged.
+*(Five earlier hypotheses — `generateMetadata`, React `cache()`, the data helpers,
+middleware, `force-dynamic` — were each tested and disproven. Don't repeat them.)*
 
-*(This is why the earlier five hypotheses all failed — `generateMetadata`, React
-`cache()`, the data helpers, middleware and `force-dynamic` were all irrelevant.)*
+**Fixed in #63:** `/matching`, `/sponsor`, `/volunteer`, `/events` — list page moved into
+a `(list)` route group so its skeleton stops wrapping the sibling detail route. URLs and
+skeletons unchanged, detail routes now 404.
 
-**Fixed (4/6)** — list page moved into a `(list)` route group so its skeleton no longer
-wraps the sibling detail route. Route groups don't affect URLs, so **no UX is lost**:
+### Correcting an earlier over-escalation
 
-| route | before | after | list page |
-|---|---|---|---|
-| `/matching/<missing>` | 200 | **404** ✅ | 200, 121 records, skeleton intact |
-| `/sponsor/<missing>` | 200 | **404** ✅ | 200, 61 records |
-| `/volunteer/<missing>` | 200 | **404** ✅ | 200, 48 records |
-| `/events/<missing>` | 200 | **404** ✅ | 200, 60 records |
+I previously logged the remaining two as one blocked "product decision". That was wrong —
+they are not equivalent:
 
-`/sponsor/manage`, `/events/manage`, `/matching/manage` still route (307 auth). Build
-green, 1031/1031 tests, lint clean.
+- **`/donors/[id]` — NOT AN ISSUE, no action needed.** `robots.ts` disallows `/donors/`
+  **and** the page emits `robots: {index:false, follow:false}` for private profiles. No
+  crawler ever sees it, so its 200 has **zero SEO impact**. Its skeleton should stay.
+- **`/campaigns/[slug]` — the only one that genuinely matters.** Campaign pages are in
+  `sitemap.ts` and are the primary indexed content, so soft-404s here really do let search
+  engines index unlimited non-existent campaign URLs.
 
-**Remaining 2 — needs a PRODUCT decision, not a code fix:**
-`/campaigns/[slug]` and `/donors/[id]` have their **own** `app/<route>/[param]/loading.tsx`,
-which wraps the detail page directly. A route group cannot escape it — the only way to
-get a real 404 is to **delete that detail-page skeleton**. So it is a genuine tradeoff:
+### `/campaigns/[slug]` — what it needs, and why I did not do it
 
-- **Keep the skeleton** → missing campaigns keep returning 200 and stay indexable.
-- **Delete it** → correct 404s, but the hottest public page (where donations happen)
-  loses its loading placeholder, right after CLS/perf work was done there.
+It has **two** boundaries: `app/campaigns/loading.tsx` (parent, also covers the detail
+route) and `app/campaigns/[slug]/loading.tsx` (its own full-page skeleton). Options:
 
-Campaigns additionally has a parent `app/campaigns/loading.tsx`; both would have to go.
-**Deliberately not decided unilaterally** — this trades SEO against perceived performance
-on the donation path, which is the owner's call. Everything needed to act is above.
+1. **Route-group the list + delete the detail skeleton** — correct 404s, but the hottest
+   page loses its navigation placeholder.
+2. **Proper fix:** delete `loading.tsx`, keep `getCampaign` + `notFound()` at the top
+   (already the first statements), then wrap the heavy sections — donations, updates,
+   faqs, milestones, rewards — in in-page `<Suspense>`. This gives correct 404s *and*
+   better perceived performance than today, since the real header paints before the
+   sub-sections stream, instead of a whole-page grey skeleton.
+
+**Option 2 is the right answer and is deliberately left undone.** It restructures the
+donation page, and this sandbox has no database, so `/campaigns/[slug]` cannot be rendered
+here at all — the refactor would be shipped entirely unverified on the single most
+important page in the product. It needs an environment where the page actually renders.
 
 ## 🔓 CLAIM RELEASED 2026-07-23 (Claude/tbaz3i — dynamic `[slug]` public-page audit)
 
