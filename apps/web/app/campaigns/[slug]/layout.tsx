@@ -1,0 +1,28 @@
+import { notFound } from 'next/navigation';
+import { getCampaign } from './get-campaign';
+
+/**
+ * Existence gate for the campaign detail route — this is what makes a missing
+ * campaign return a real 404 instead of a soft-404 (200).
+ *
+ * Why it lives in a layout rather than the page: `loading.tsx` wraps the *page*
+ * in a Suspense boundary, so Next streams the shell and commits HTTP 200 before
+ * the page body ever runs. A `notFound()` in the page then renders the correct
+ * UI but can no longer change the status. A layout renders *outside* that
+ * boundary, so the check happens before the response is committed.
+ *
+ * This keeps `[slug]/loading.tsx` — the skeleton on the donation path — while
+ * still serving correct 404s to crawlers. `getCampaign` is React-cache()d, so
+ * this shares its single query with generateMetadata and the page.
+ */
+export default async function CampaignDetailLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  if (!(await getCampaign(slug))) notFound();
+  return <>{children}</>;
+}

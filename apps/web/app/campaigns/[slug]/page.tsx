@@ -1,8 +1,8 @@
-import { cache } from 'react';
 import Link from 'next/link';
 import { safeJsonLd } from "../../../lib/json-ld";
 import { buildCampaignJsonLd } from "../../../lib/campaign-jsonld";
 import { notFound } from 'next/navigation';
+import { getCampaign } from './get-campaign';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
@@ -52,16 +52,6 @@ interface Props {
 type Profile = { full_name?: string | null; avatar_url?: string | null; show_public_profile?: boolean | null };
 type CampaignWithImages = { image_urls?: string[] | null };
 
-// Memoized per-request: generateMetadata + the page both call this, and React
-// cache() dedupes it to a single query on the highest-traffic public page.
-const getCampaign = cache(async (slug: string) => {
-  const { data } = await supabaseAdmin
-    .from('campaigns')
-    .select('*, profiles:user_id (full_name, avatar_url)')
-    .eq('slug', slug)
-    .single();
-  return data;
-});
 
 async function getRecentDonations(campaignId: string) {
   const { data } = await supabaseAdmin

@@ -1,13 +1,13 @@
 import Link from 'next/link';
-import { supabaseAdmin } from '../../lib/supabase';
-import { campaignColumns, applyLiveFilters } from '../../lib/campaign-visibility';
-import { applyCampaignSearch } from '../../lib/campaign-search';
-import { ProgressBar, Badge, Card, EmptyState } from '../../components/ui';
-import { formatCents } from '../../lib/stripe';
+import { supabaseAdmin } from '../../../lib/supabase';
+import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibility';
+import { applyCampaignSearch } from '../../../lib/campaign-search';
+import { ProgressBar, Badge, Card, EmptyState } from '../../../components/ui';
+import { formatCents } from '../../../lib/stripe';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
-import { calculateTrustScore, getTrustLabel } from '../../lib/ai-platform';
-import { getCoverForCampaign } from '../../lib/photo-catalog';
-import { optimizedCoverUrl } from '../../lib/img-optimize';
+import { calculateTrustScore, getTrustLabel } from '../../../lib/ai-platform';
+import { getCoverForCampaign } from '../../../lib/photo-catalog';
+import { optimizedCoverUrl } from '../../../lib/img-optimize';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
