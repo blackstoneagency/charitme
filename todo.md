@@ -367,6 +367,29 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
     lint clean on those files, typecheck clean, `next build` compiles. **Remaining:**
     the bulk of the ~180 jsx-a11y warnings live in `/admin/*` internal tools (lower
     user impact); full axe/contrast/tap-target/320–1920px sweep still needs a browser.
+  - **✅ SWEEP COMPLETE (2026-07-25, Claude).** All of the above "remaining" work is
+    now done and measured, not asserted:
+    * **jsx-a11y warnings: ~180 → 0** across `app`, `components`, `lib` (last two
+      cleared: a dynamic-text `<label>` in the super-admin Banner client → explicit
+      `aria-label`; a stale `eslint-disable` in `opengraph-image`).
+    * **Lighthouse accessibility 100 on 19 public pages** (mobile emulation, real
+      prod builds): home, how-it-works, campaigns, faq, for-donors, for-nonprofits,
+      pricing, success-stories, leaderboard, grants, volunteer, events, sponsor,
+      matching, about-us, blog, features, contact, help, trust-safety, fast-payouts,
+      supported-countries, for-individuals.
+    * **Contrast:** fixed `--violet`-as-text on dark (3.06:1 → AA token), the
+      marketing dark-mode tint surfaces, the fee-calc badge/warning, the faq CTA,
+      and a sitewide banner-default regression (2.62:1) — with a contrast-ratio
+      unit test added so it cannot recur.
+    * **Tap targets: 28 undersized → 0** (banner dismiss, footer links, carousel
+      dots, breadcrumbs) at 390×844 device emulation.
+    * **Responsive: 0 horizontal overflow on all 17 public pages at 390px**, plus a
+      genuinely broken `/leaderboard` mobile layout fixed (title column was
+      collapsing to 18px and wrapping one character per line).
+    * Gates: tsc 0, lint 0 warnings, **1063/1063 tests**, `next build` green.
+    **Still open (needs a real browser matrix / owner):** axe-core runs on
+    authenticated dashboard + admin flows, and the 320px/1920px extremes — these
+    need a logged-in session, which this sandbox cannot drive.
   - **Dark/light theme sweep — dashboard COMPLETE (2026-07-22):** every campaign
     management panel (#43, #46: Updates/Settings/Supporters/FAQs/Ledger/ThankDonors/
     CampaignControls/EditCampaign/TrustScore/Analytics) **plus all non-campaign

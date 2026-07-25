@@ -201,7 +201,9 @@ export default function BannerClient({
 function Toggle({ checked, onChange, title, hint }: { checked: boolean; onChange: (v: boolean) => void; title: string; hint: string }) {
   return (
     <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '9px 0', cursor: 'pointer' }}>
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ marginTop: 3, width: 16, height: 16, cursor: 'pointer' }} />
+      {/* aria-label mirrors the visible {title}: the label wraps the input, but the
+          text is nested/dynamic so it isn't statically detectable as the name. */}
+      <input type="checkbox" aria-label={title} checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ marginTop: 3, width: 16, height: 16, cursor: 'pointer' }} />
       <span>
         <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: '#1e293b' }}>{title}</span>
         <span style={{ display: 'block', fontSize: 12, color: '#64748b', marginTop: 2 }}>{hint}</span>
