@@ -824,13 +824,30 @@ tests/build/live-HTTP are listed here.
   4. ~~**`goalCents || 100` fallback on submit**~~ — folded into 4b above. Was: silently publishes a $1 goal if the
      field is empty on the draft path — should be an explicit prompt, not a coerced
      default.
-  5. **2041-line client component.** Whole wizard ships in one bundle; steps are
-     inline JSX branches. Extracting per-step components would cut first-load JS
-     and make each step independently testable (there is currently **no test file
-     for the builder at all** — the largest untested surface in the app).
-  6. **No server-side mirror of the step rules.** `/api/campaigns` should enforce
-     the same story/goal minimums so a crafted request can't create a campaign the
-     wizard would reject.
+  5. **2456-line client component — premise CONFIRMED, but the cheap fix is NOT worth it (measured).**
+     `/create` is indeed **the heaviest route in the app: 205 kB first load** (shared
+     baseline is 103 kB; next heaviest is `/campaigns/[slug]` at 189 kB). So the
+     concern is real.
+     **Tried and reverted:** `next/dynamic` on the four step-scoped panels
+     (`StorySectionsEditor`, `AiFollowUps`, `GoalProceedsBreakdown`,
+     `ReadinessChecklist`) → **205 kB → 203 kB, about 1%**. That requires
+     `ssr: false`, so those panels pop in after hydration when the user reaches the
+     step — trading a visible layout shift on the conversion path for ~2 kB, right
+     after #52 went to some trouble to eliminate CLS. Bad deal; reverted.
+     **What's actually left:** the weight is in `page.tsx` itself (2456 lines), so
+     only the real per-step extraction moves the needle. That is a large refactor of
+     the primary conversion path, and **it cannot be verified in this sandbox** —
+     `/create` is auth-gated (307) with no database to sign in against, so the wizard
+     can't be walked. It needs an environment where the builder actually renders.
+     _Partly addressed:_ the "no test file for the builder at all" half is no longer
+     true — `lib/builder-validation.ts` + `__tests__/builder-validation.test.ts` (14)
+     now cover the step rules and their field mapping.
+  6. **✅ DONE (verified this session).** `/api/campaigns` enforces the publish
+     minimums server-side: a `superRefine` rejects `status:'active'` unless the story
+     clears `PUBLISH_MIN_STORY_CHARS` and the goal clears `PUBLISH_MIN_GOAL_CENTS`,
+     both imported from `campaign-readiness.ts` — the single shared source the wizard
+     also uses, now including `builder-validation.ts`. Drafts stay permissive by
+     design. `publish-gate-parity.test.ts` guards the client/server agreement.
 
 - **CHAR-F061 · dashboard/ux (dead-data completion)** — The dashboard/admin shell
   fetched the signed-in user (name, email, role, avatar) server-side in
@@ -2788,6 +2805,34 @@ against the real production DB works and has already settled real questions
 > `aria-invalid` + `aria-describedby` and **focus moves to the first invalid field**.
 > Touched `app/create/page.tsx`, new `lib/builder-validation.ts`, new test. Did not
 > touch step structure, drafts, the guest gate, the publish gate, or any API.
+
+## 🔓 CLAIM RELEASED — beneficiary role now has a dashboard ✅
+
+> **DONE — area is FREE.** `beneficiary` is one of six roles in `lib/roles.ts`, has a
+> full invite flow (`beneficiary_invites` → `/beneficiary/accept`), and
+> `campaigns.beneficiary_profile_id` links a campaign to the person it benefits — but
+> **nothing read that column**, and `/beneficiary/accept` sent the accepted user to
+> `/dashboard/payouts`, which scopes every query by `.eq('user_id', …)` (the campaign
+> **owner**). So accepting an invite landed on an **empty dashboard**: no campaigns, no
+> payouts, no explanation. A modelled, invitable role dead-ended at onboarding.
+>
+> **Shipped:** `/dashboard/beneficiary` — the campaigns you're the named beneficiary
+> of, with raised/goal progress, organizer, supporter count, and **payout state split
+> into "paid out" (delivered) vs "on the way" (requested/approved)**. Deliberately
+> read-only: these campaigns belong to someone else, so it answers "how is the
+> fundraiser for me doing, and has money actually reached me?" without owner-only
+> controls. Plus a plain-language explainer of how payouts reach them.
+> `/beneficiary/accept` now points here instead of the owner dashboard.
+>
+> **Wiring:** `lib/beneficiary-data.ts` — one query for campaigns by
+> `beneficiary_profile_id`, then **batched** payout + organizer lookups (no N+1).
+> **Verification:** the page is auth-gated and there's no DB here, so the shaping and
+> money math are unit-tested (9 tests) — including that `failed` payouts inflate
+> neither bucket, that another campaign's payouts aren't attributed, and that null
+> money columns become 0 rather than NaN. Telling a beneficiary money arrived when it
+> bounced would be worse than showing nothing.
+>
+> _1101/1101 tests, lint clean, build green._
 
 ## 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
 

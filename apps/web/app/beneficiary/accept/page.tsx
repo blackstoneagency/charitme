@@ -72,10 +72,13 @@ function AcceptForm() {
         <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
         <h1 style={{ fontSize: 22, fontWeight: 900, margin: '0 0 10px', color: 'var(--t1)' }}>You&apos;re set as a beneficiary!</h1>
         <p style={{ color: 'var(--t3)', fontSize: 14, margin: '0 0 24px', lineHeight: 1.7 }}>
-          Next, connect your bank account to receive payouts.
+          You can now follow the fundraiser raising money for you — what&apos;s been raised, and
+          whether any funds have been paid out yet.
         </p>
-        <Link href="/dashboard/payouts" style={{ padding: '14px 28px', background: 'var(--violet)', color: '#fff', borderRadius: 12, fontSize: 15, fontWeight: 700, textDecoration: 'none' }}>
-          Set Up Payouts →
+        {/* Was /dashboard/payouts, which scopes every query by user_id (the campaign
+            OWNER) — a beneficiary landed there and saw an empty dashboard. */}
+        <Link href="/dashboard/beneficiary" style={{ padding: '14px 28px', background: 'var(--violet)', color: '#fff', borderRadius: 12, fontSize: 15, fontWeight: 700, textDecoration: 'none' }}>
+          View your campaigns →
         </Link>
       </div>
     );
