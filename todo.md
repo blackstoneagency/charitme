@@ -2772,7 +2772,7 @@ against the real production DB works and has already settled real questions
 - ❌ Genuinely blocked (needs writes or secrets): running the seed suite, placing a
   real charge across payment methods, rotating the exposed keys.
 
-## ✅ ROOT-CAUSED + 4/6 FIXED — soft-404 (merged #63); 1 real route left, 1 non-issue
+## ✅ FULLY RESOLVED — soft-404 (4 in #63, /campaigns/[slug] here, /donors a non-issue)
 
 **Root cause (proven):** a `loading.tsx` at or above a detail route creates an implicit
 Suspense boundary; Next streams the shell and **commits HTTP 200 before the page body
@@ -2799,23 +2799,32 @@ they are not equivalent:
   `sitemap.ts` and are the primary indexed content, so soft-404s here really do let search
   engines index unlimited non-existent campaign URLs.
 
-### `/campaigns/[slug]` — what it needs, and why I did not do it
+### ✅ `/campaigns/[slug]` — FIXED (2026-07-23), skeleton kept
 
-It has **two** boundaries: `app/campaigns/loading.tsx` (parent, also covers the detail
-route) and `app/campaigns/[slug]/loading.tsx` (its own full-page skeleton). Options:
+**Solved with a third option neither of the two written up here considered.** A
+segment `layout.tsx` renders *outside* the Suspense boundary that `loading.tsx`
+creates for the page, so an existence check there runs **before the response
+commits** — correct 404s **and** the donation-path skeleton survives.
 
-1. **Route-group the list + delete the detail skeleton** — correct 404s, but the hottest
-   page loses its navigation placeholder.
-2. **Proper fix:** delete `loading.tsx`, keep `getCampaign` + `notFound()` at the top
-   (already the first statements), then wrap the heavy sections — donations, updates,
-   faqs, milestones, rewards — in in-page `<Suspense>`. This gives correct 404s *and*
-   better perceived performance than today, since the real header paints before the
-   sub-sections stream, instead of a whole-page grey skeleton.
+**Two parts, both required** (verified — neither works alone):
+1. `app/campaigns/[slug]/layout.tsx` awaits `getCampaign(slug)` → `notFound()`.
+   *On its own this still returned 200*, because the parent
+   `app/campaigns/loading.tsx` wraps the whole subtree including the layout.
+2. List page moved to `app/campaigns/(list)/` (page + loading), removing that
+   outer boundary from the detail route. URL unchanged.
 
-**Option 2 is the right answer and is deliberately left undone.** It restructures the
-donation page, and this sandbox has no database, so `/campaigns/[slug]` cannot be rendered
-here at all — the refactor would be shipped entirely unverified on the single most
-important page in the product. It needs an environment where the page actually renders.
+**Verified on a local prod build:** `/campaigns/missing` → **404** (was 200);
+`/campaigns` and `?category=` filters → 200; `/grants` → 404 (control);
+`[slug]/loading.tsx` **still present**. 1075/1075 tests, lint clean, build green.
+
+**Safety (it is the donation path):** `getCampaign` extracted to a shared React
+`cache()`d module imported by layout + `generateMetadata` + page → still **one
+query per request**, no added round-trip. The page keeps its own
+`if (!campaign) notFound()`, so real campaigns are untouched — the layout only
+changes *when* the identical check runs, never what it decides.
+
+**All 6 soft-404 routes are now resolved** (4 in #63, this one here, `/donors/[id]`
+a documented non-issue — crawler-blocked by `robots.ts` + `noindex`).
 
 ## 🔓 CLAIM RELEASED 2026-07-23 (Claude/tbaz3i — dynamic `[slug]` public-page audit)
 
