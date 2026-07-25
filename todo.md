@@ -3073,8 +3073,27 @@ the page body itself. Note the puzzle for whoever continues — **26 other route
 static** once `headers()` was removed, and they render the same root layout and AppShell,
 so a blanket "the layout is dynamic" explanation does not fit either.
 
-**I stopped here deliberately.** Three wrong hypotheses on this one question is enough
-signal that I was guessing rather than converging, and each cut costs a full rebuild.
+**Three further candidates eliminated (2026-07-23), by inspection rather than rebuilds:**
+4. ~~`searchParams`~~ — `HomePage()` takes **no props** and calls `getHomeData({})`. It
+   never reads searchParams, so the classic dynamic opt-in doesn't apply.
+5. ~~the Unsplash cover fetch~~ — `lib/unsplash.ts:106` uses
+   `fetch(url, { next: { revalidate: SEARCH_TTL_SECONDS } })`, i.e. **explicitly
+   cached**. It was a good suspect (the 26 routes that go static make no network calls;
+   the homepage does) but it is not an uncached fetch.
+6. ~~`unstable_noStore()` / `connection()`~~ — absent from the entire homepage import
+   tree (`home-data`, `covers`, `unsplash`, `photo-catalog`, `seo`, `supabase`,
+   `CampaignImage`, `home-parts`, `HeroSpotlightCarousel`).
+
+**Six eliminated; cause still unknown.** The one structural difference left between the
+homepage and the 26 pages that DO go static is that the homepage makes **Supabase reads
+in the page body** — but wrapping those in `unstable_cache` (candidate 2) changed
+nothing, so if that is the mechanism it is not fixed the obvious way. A likely next step
+is checking whether supabase-js issues its fetches with `cache: 'no-store'` internally
+and whether `unstable_cache` actually isolates that.
+
+**I stopped here deliberately.** Six wrong hypotheses on one question is well past the
+point where I was guessing rather than converging, and each *rebuild-based* cut costs a
+full build.
 Everything above is measured, and every experiment was reverted — the tree carries none
 of it. The eliminations are the deliverable: they are the expensive part, and they narrow
 the search for whoever picks it up. The nonce comes from `middleware.ts:47` and protects exactly two
