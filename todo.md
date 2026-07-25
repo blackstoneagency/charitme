@@ -2880,7 +2880,7 @@ against the real production DB works and has already settled real questions
 (SEO surface, indexing, RLS review), not a role-dashboard gap.
 
 
-## ⚠️ SEED-DATA RISK — ~half of seeded nonprofits are flagged `verified` with fabricated EINs
+## 🔴 SEED-DATA — fabricated "Verified" badges, and real foundations named on fake grants (ONE IS LIVE)
 
 **Found while scoping a public `/nonprofits/[slug]` page (2026-07-23). Not currently
 harmful — but it gates that feature, and one plausible admin action makes it harmful.**
@@ -2920,6 +2920,51 @@ smaller problem than a directory of fabricated verified charities.
 
 _Verified: seed SQL read directly; `tax_receipt_enabled` default confirmed `false` in
 `supabase/schema.sql`; receipt rule confirmed in `lib/tax-server.ts`._
+
+### 🔴 The same pattern IS already live on `/grants` — and it names real organizations
+
+Scanning the rest of `02_marketplaces.sql` found the nonprofit case was not isolated.
+Seeded **grants** and **volunteer opportunities** also set `verified = (g % 2 = 0)`, and
+grants attributed fabricated programs to a hardcoded list of **real** funders.
+
+**Confirmed live on production** (`curl https://www.charitme.com/grants`):
+
+| appearing on the live page | count |
+|---|---|
+| "Ford Foundation" | **52** |
+| "City of Austin" | **44** |
+| "Verified" badges | **48** |
+| listings titled "Seed Grant *N*" | many |
+
+`/grants` is public **and in `sitemap.ts` (181 URLs)**, so these are being indexed.
+Unlike the nonprofit case — which is latent because no public page exists yet — this
+one is **already shipped**: fabricated grant programs are publicly attributed to real,
+named third-party organizations, roughly half wearing a "Verified" badge.
+
+**Fixed at the source (this change):** funder list → clearly fictional
+(`Cedar Grove Foundation`, `Northwind Charitable Trust`, `City of Springfield`,
+`Acme Corp Giving`), and **`verified` is now hardcoded `false`** for seeded grants,
+volunteer opportunities and nonprofits. `verified` renders as a public trust badge, and
+a fabricated trust signal is the one field demo data must never invent.
+
+**Still needs the owner — the live rows are already there.** Seeds only govern future
+runs; this does not touch existing production data, and per ADR-0003 I can't and
+shouldn't. Suggested cleanup, owner to review before running:
+
+```sql
+-- Drop the fabricated trust badges from demo rows.
+update public.grants                  set verified = false where source = 'seed';
+update public.volunteer_opportunities set verified = false where title like 'Seed %';
+update public.nonprofit_profiles      set verified = false, verification_status = 'unverified'
+  where slug like 'seed-nonprofit-%';
+
+-- Re-name grants that credit real organizations.
+update public.grants set funder_name = 'Cedar Grove Foundation'   where funder_name = 'Ford Foundation'   and source = 'seed';
+update public.grants set funder_name = 'Northwind Charitable Trust' where funder_name = 'Gates Foundation'  and source = 'seed';
+update public.grants set funder_name = 'City of Springfield'      where funder_name = 'City of Austin'    and source = 'seed';
+```
+_(Verify the `source`/`slug` predicates match real seeded rows before running.)_
+
 
 ## 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
 
