@@ -6508,6 +6508,19 @@ img, video, iframe { max-width: 100%; }
 /* text tiers (light-surface text only; light-on-dark utils left alone) */
 [data-theme="dark"] .mktg-page .text-slate-950,
 [data-theme="dark"] .mktg-page .text-slate-900 { color: var(--t1) !important; }
+/* …except when the dark ink sits ON a saturated brand background (a bright CTA,
+   e.g. the emerald button on /features/[slug]). That is intentional dark-on-bright:
+   the remap above would flip it to light --t1 and drop it to ~2:1. Keep it dark
+   (slate-950 on emerald-500 ≈ 7.9:1). */
+[data-theme="dark"] .mktg-page .bg-emerald-300.text-slate-950,
+[data-theme="dark"] .mktg-page .bg-emerald-400.text-slate-950,
+[data-theme="dark"] .mktg-page .bg-emerald-500.text-slate-950,
+[data-theme="dark"] .mktg-page .bg-emerald-300.text-slate-900,
+[data-theme="dark"] .mktg-page .bg-emerald-400.text-slate-900,
+[data-theme="dark"] .mktg-page .bg-emerald-500.text-slate-900,
+[data-theme="dark"] .mktg-page .bg-lime-400.text-slate-950,
+[data-theme="dark"] .mktg-page .bg-amber-400.text-slate-950,
+[data-theme="dark"] .mktg-page .bg-yellow-400.text-slate-950 { color: #020617 !important; }
 [data-theme="dark"] .mktg-page .text-slate-800,
 [data-theme="dark"] .mktg-page .text-slate-700 { color: var(--t2) !important; }
 [data-theme="dark"] .mktg-page .text-slate-600,

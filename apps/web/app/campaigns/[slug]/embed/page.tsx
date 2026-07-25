@@ -64,7 +64,10 @@ export default async function CampaignEmbedPage({ params }: Props) {
           />
         )}
 
-        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1a1a2e', marginBottom: 4, lineHeight: 1.3 }}>
+        {/* This route is a standalone embeddable widget: it renders its own
+            <html>/<body> and never inherits the app's data-theme, so it keeps a
+            fixed light palette for predictable rendering on third-party sites. */}
+        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1a1a2e', /* theme-keep: standalone embed widget */ marginBottom: 4, lineHeight: 1.3 }}>
           {campaign.title}
         </h2>
         {campaign.tagline && (

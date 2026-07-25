@@ -29,7 +29,7 @@
 | Mobile | 🟢 | mobile Lighthouse on public pages good; **browser audit (320/390px × 19 public routes) → 0 horizontal overflow** (PR #49). **Admin sweep (PR #51):** capped every fixed-width admin drawer/modal (Users/Content/Payouts detail slide-overs 460–560px + Content edit/confirm modals) with `maxWidth: 100vw`/`calc(100vw-32px)` — were overflowing phones; integrations modal already `.kf-modal-responsive`. Decorative absolute blobs are clipped. **Dashboard verified clean:** all fixed-width modals use `.kf-modal-responsive` (cap `calc(100vw-32px)`), both `<table>` views have overflow-x scroll wrappers, no uncapped fixed widths. Mobile now covered across all 3 layers (public/admin/dashboard) |
 | Performance | 🟢 improving | **Query audit (PR #51):** no N+1 in any `page.tsx` (batched `.in()` lookups); public/admin list views paginated (`.range`/`.limit`); remaining full-table reads are bounded `.in(ids)` name-maps or aggregation queries that need all rows to sum (profile/admin totals) — fine at seed scale, flagged to move to DB-side `sum()` RPCs before very large scale (admin-only, low traffic). **Query-waterfall fixes (PR #51):** donor portal 4 serial round-trips → 2 (parallelized donations‖recurring, campaigns‖launch-settings); public donor profile deduped `getProfile` (was 2× per request) via React `cache()` + parallelized donations‖recurring-count; recurring dashboard parallelized campaigns‖launch-settings; **campaign detail (hottest public page) deduped `getCampaign`** (was 2× per request: metadata + page) via React `cache()` — its 10 campaign-dependent reads were already batched. **Double-fetch dedup sweep complete** across all dynamic detail pages: campaigns/[slug], donors/[id], matching/[id], sponsor/[id] (each getter now `cache()`-wrapped, one query/request instead of two). **`getUser()` memoized** (`lib/auth.ts` React `cache()`) — the session JWT-validation call ran 2–3× per authenticated request (layout + page + shell); now once. Broadest single win: touches every logged-in page render. prod home **63→88** (LCP 4.1→3.1s, TBT 640→100ms) by fixing the 292KB→6.7KB oversized logo. **Discovery grid (PR #51):** 60-card `/campaigns` covers converted CSS `background-image` → lazy `<img loading=lazy decoding=async>` so offscreen covers defer (was fetching up to 60 upfront). Campaign covers elsewhere already lazy via `CampaignImage` default. Bundle audit: shared JS ~103kB, no outliers. Remaining: unused CSS/JS (lower value) | **CLS fix (PR #52):** AnnouncementBanner injected post-hydration above <main> causing whole-page downshift; now SSR-ed via cached helper (lib/announcements-data.ts, unstable_cache+60s ISR) with useSyncExternalStore dismissals, root layout stays static -> **home DESKTOP 99->100 / CLS 0.029->0; MOBILE CLS 0.124->0**. **Image-weight fixes (Claude):** sitewide logo 292KB->6.7KB, hero PNG->WebP 211KB->12KB, and ALL campaign covers right-sized WebP via `optimizedCoverUrl` (45.7KB->11.1KB per cover, -76%) across campaigns/success-stories/donors/leaderboard/similar-rail. **Prod Lighthouse mobile: home 92, campaigns 93** (were 63/85); server response 0.26-0.53s/page.
 | Payment methods end-to-end | 🟡 owner/test-keys | live account charges-enabled, 15+ methods active, price ids resolved; a real paid flow needs Stripe **test** keys or owner go-ahead (ADR-0003) |
-| Every page audited / every feature works | 🟡 ongoing | unbounded; audited builder + discovery + payments deeply. **~30 public routes now browser-audited (axe WCAG A/AA + 320/390px overflow) → all clean**; remaining unaudited surfaces are auth-gated (dashboard/admin/create) or dynamic `[slug]` pages owned by parallel bots |
+| Every page audited / every feature works | 🟡 ongoing | unbounded; audited builder + discovery + payments deeply. **~30 public routes now browser-audited (axe WCAG A/AA + 320/390px overflow) → all clean**. **Dynamic `[slug]` routes now covered too (2026-07-23):** the 8 SSG ones (`/features/[slug]`, `/blog/[slug]`) browser-audited → 0 violations / 0 overflow after fixing a dark-mode CTA contrast bug (light `--t1` ink forced onto the emerald button, 2.06:1 → 7.9:1); the Supabase-backed ones can't render in-sandbox (no DB) so they're covered statically — **theme regression guard extended to `campaigns`/`donors`/`matching`/`sponsor`/`volunteer`/`events`/`grants`/`impact`** (verified non-vacuous). **Every public surface is now audited by browser or guard.** Remaining unaudited: auth-gated dashboard/admin/create (owned by parallel bots) |
 
 **Sandbox hard-limits (2026-07-23, exhaustively confirmed).** The two open goal
 items — **≥100 live seed records** and **real paid-flow across all payment
@@ -2604,20 +2604,32 @@ IMPLEMENTATION_STATUS, KNOWN_LIMITATIONS, CHANGELOG).
 - No faked metrics — non-live metrics are labelled "measurement pending".
 - No new external integrations faked; RLS unchanged (service-role only).
 
-## 🔒 CLAIM — ACTIVE 2026-07-23 (Claude/tbaz3i — dynamic `[slug]` public-page browser audit)
+## 🔓 CLAIM RELEASED 2026-07-23 (Claude/tbaz3i — dynamic `[slug]` public-page audit)
 
-> **🚧 IN FLIGHT — do not start this area.** Claiming the last unaudited public
-> surface: the **dynamic `[slug]`/`[id]` public routes**, which the "~30 public
-> routes audited" line explicitly excludes. Specifically:
-> `app/campaigns/[slug]`, `app/donors/[id]`, `app/matching/[id]`,
-> `app/sponsor/[id]`, `app/volunteer/[slug]`, `app/events/[slug]`,
-> `app/blog/[slug]`, `app/features/[slug]`.
-> **Scope:** browser audit only — axe-core WCAG 2.0/2.1 A/AA + 320/390px
-> horizontal-overflow, plus the minimal CSS/JSX fixes for what it finds. I am
-> **not** touching the create wizard, dashboard, admin, or any API/schema.
-> `/campaigns/[slug]` is the hottest public page (where donations happen) and has
-> never been browser-audited.
-> Branch: `claude/charitme-github-integration-tbaz3i`. Released when merged.
+> **✅ DONE — area is FREE.** Audited the last unaudited public surface: the
+> dynamic `[slug]`/`[id]` routes that the "~30 public routes audited" line
+> excluded. No API/schema/create/dashboard/admin files touched.
+>
+> **Split by what the sandbox can actually verify:**
+> - **SSG routes (no Supabase) — browser-audited, now clean.** `/features/[slug]`
+>   ×4 and `/blog/[slug]` ×4: axe-core WCAG 2.0/2.1 A/AA + 320/390px overflow →
+>   **0 violations, 0 overflow**. Found + fixed **1 real bug**: the dark-mode
+>   `.mktg-page` remap `text-slate-950 → var(--t1)` also flipped the *emerald CTA*
+>   on every `/features/[slug]` page, putting light `#e2e8f8` ink on `#10b981`
+>   at **2.06:1**. Added a guard so dark ink ON a saturated brand background stays
+>   dark (slate-950 on emerald-500 ≈ **7.9:1**) — the remap still applies on page
+>   surfaces, where it's correct.
+> - **Supabase-backed routes — cannot be browser-audited here** (no DB in sandbox,
+>   per the hard-limits note above), so they got the *static* equivalent: the
+>   **theme regression guard now covers** `campaigns`, `donors`, `matching`,
+>   `sponsor`, `volunteer`, `events`, `grants`, `impact` (was dashboard/donor/
+>   profile only). Verified non-vacuous by planting a violation — the guard fails
+>   on it. These dirs were otherwise already literal-free; the one hit,
+>   `/campaigns/[slug]/embed`, is a **standalone iframe widget** that renders its
+>   own `<html>`/`<body>` and never inherits `data-theme`, so its fixed light
+>   palette is intentional → marked `theme-keep` with a rationale comment.
+>
+> _Evidence: 1028/1028 tests, `next build` green, browser audit 0/0._
 
 ## 🔒 CLAIM — Session 2026-07-24 (Claude — campaign creation journey friction audit)
 
