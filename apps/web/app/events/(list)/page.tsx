@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Badge, EmptyState } from '../../components/ui';
-import { listPublishedEvents } from '../../lib/events';
-import { remainingCapacity } from '../../lib/events-core';
+import { Badge, EmptyState } from '../../../components/ui';
+import { listPublishedEvents } from '../../../lib/events';
+import { remainingCapacity } from '../../../lib/events-core';
 
 export const metadata: Metadata = {
   title: 'Events — Fundraising Events & Galas',

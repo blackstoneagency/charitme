@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { getPublicOpportunities, getVolunteerCategories } from '../../lib/volunteers-server';
-import VolunteerClient from './VolunteerClient';
+import { getPublicOpportunities, getVolunteerCategories } from '../../../lib/volunteers-server';
+import VolunteerClient from '../VolunteerClient';
 
 export const metadata: Metadata = {
   title: 'Volunteer Opportunities — Give Your Time',

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import { listOpenOpportunities } from '../../lib/sponsorships';
-import { SPONSORSHIP_CATEGORIES } from '../../lib/sponsorships-core';
-import SponsorMarketplace from './SponsorMarketplace';
+import { listOpenOpportunities } from '../../../lib/sponsorships';
+import { SPONSORSHIP_CATEGORIES } from '../../../lib/sponsorships-core';
+import SponsorMarketplace from '../SponsorMarketplace';
 
 export const metadata: Metadata = {
   title: 'Sponsorship Marketplace — Sponsor a Cause',

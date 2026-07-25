@@ -2624,54 +2624,45 @@ against the real production DB works and has already settled real questions
 - ❌ Genuinely blocked (needs writes or secrets): running the seed suite, placing a
   real charge across payment methods, rotating the exposed keys.
 
-## 🔴 CONFIRMED BUG — soft-404 on 6 Supabase-backed detail routes (2026-07-23)
+## ✅ ROOT-CAUSED + 4/6 FIXED — soft-404 on detail routes (2026-07-23)
 
-**Verified against LIVE PRODUCTION** (`www.charitme.com`, real DB — not a sandbox
-artifact). Requesting a non-existent detail page returns **HTTP 200** instead of 404:
+**Root cause (proven by single-variable experiment):** a `loading.tsx` anywhere at or
+above a detail route creates an implicit Suspense boundary. Next streams the shell and
+**commits HTTP 200 before the page body runs**, so the later `notFound()` renders the
+correct not-found UI but can no longer change the status. Perfect correlation across all
+7 routes — every route with a `loading.tsx` (own segment *or* parent) soft-404'd;
+`/grants`, the only one with neither, returned 404. **Proof:** removing *only*
+`app/matching/loading.tsx` flipped `/matching/missing` 200 → 404 with every control
+unchanged.
 
-| route | prod status | | route | prod status |
-|---|---|---|---|---|
-| `/campaigns/<missing>` | **200** ❌ | | `/volunteer/<missing>` | **200** ❌ |
-| `/donors/<missing>` | **200** ❌ | | `/events/<missing>` | **200** ❌ |
-| `/matching/<missing>` | **200** ❌ | | `/grants/<missing>` | 404 ✅ |
-| `/sponsor/<missing>` | **200** ❌ | | `/blog/<missing>` | 404 ✅ |
+*(This is why the earlier five hypotheses all failed — `generateMetadata`, React
+`cache()`, the data helpers, middleware and `force-dynamic` were all irrelevant.)*
 
-**Impact:** search engines index unlimited non-existent campaign/donor/sponsor URLs
-as real pages. The *UI* is correct (the not-found page renders) — only the status
-code is wrong, which is precisely what makes a soft-404 hard to notice.
+**Fixed (4/6)** — list page moved into a `(list)` route group so its skeleton no longer
+wraps the sibling detail route. Route groups don't affect URLs, so **no UX is lost**:
 
-**Diagnosis so far.** The local prod build reproduces production exactly (same 6 at
-200, grants at 404), so it is fully debuggable in-sandbox. On a missing campaign the
-served title is `<title>Campaign not found</title>` — i.e. `generateMetadata`'s
-fallback was applied and *then* `notFound()` rendered the UI without changing the
-already-committed status. On a missing grant the title is the global
-`<title>Page not found</title>`, i.e. `notFound()` propagated before metadata applied.
+| route | before | after | list page |
+|---|---|---|---|
+| `/matching/<missing>` | 200 | **404** ✅ | 200, 121 records, skeleton intact |
+| `/sponsor/<missing>` | 200 | **404** ✅ | 200, 61 records |
+| `/volunteer/<missing>` | 200 | **404** ✅ | 200, 48 records |
+| `/events/<missing>` | 200 | **404** ✅ | 200, 60 records |
 
-**Hypotheses TESTED AND DISPROVEN** (do not repeat these):
-1. ~~"`force-dynamic` + streaming commits 200 before `notFound()`"~~ — `/grants` is
-   also `force-dynamic` (`ƒ` in the build) and returns 404 correctly.
-2. ~~"`generateMetadata` returning a metadata object instead of calling `notFound()`"~~ —
-   changed `/matching`'s `generateMetadata` to call `notFound()`, rebuilt: **still 200**.
-   (grants uses the identical `return { title: '… not found' }` pattern and 404s.)
-3. ~~"React `cache()` wrapping the fetcher"~~ — `/volunteer` and `/events` do **not**
-   use `cache()` and still return 200; grants does not use it and returns 404.
-4. ~~"the data helper throws instead of returning null"~~ — both return `null` on a
-   miss. `getGrantBySlug` uses `.maybeSingle()` + `if (error || !data) return null`;
-   `getCampaign` uses `.single()` and returns `data` (null on 0 rows). Same outcome,
-   so the `if (!x) notFound()` branch is reached identically in both.
-5. ~~"middleware handles these paths differently"~~ — the matcher is uniform
-   (`/((?!_next/static|_next/image|favicon.ico|api).*)`) and there is no
-   route-specific 404/rewrite logic for any of them.
+`/sponsor/manage`, `/events/manage`, `/matching/manage` still route (307 auth). Build
+green, 1031/1031 tests, lint clean.
 
-All 7 routes are `ƒ` dynamic, none has `generateStaticParams`, none has a segment
-`not-found.tsx`. The remaining suspect is the data layer: whether each helper returns
-a clean `null` versus throwing/deferring, and how that interacts with when Next commits
-the response head. Next step for whoever picks this up: instrument `getCampaign` vs
-`getGrantBySlug` on a missing id and compare, rather than re-testing the three above.
+**Remaining 2 — needs a PRODUCT decision, not a code fix:**
+`/campaigns/[slug]` and `/donors/[id]` have their **own** `app/<route>/[param]/loading.tsx`,
+which wraps the detail page directly. A route group cannot escape it — the only way to
+get a real 404 is to **delete that detail-page skeleton**. So it is a genuine tradeoff:
 
-**Not fixed blind.** The blast radius includes `/campaigns/[slug]`, the hottest public
-page and where donations happen; three plausible fixes have already proven wrong, so
-shipping a fourth guess is worse than handing over an exact reproduction.
+- **Keep the skeleton** → missing campaigns keep returning 200 and stay indexable.
+- **Delete it** → correct 404s, but the hottest public page (where donations happen)
+  loses its loading placeholder, right after CLS/perf work was done there.
+
+Campaigns additionally has a parent `app/campaigns/loading.tsx`; both would have to go.
+**Deliberately not decided unilaterally** — this trades SEO against perceived performance
+on the donation path, which is the owner's call. Everything needed to act is above.
 
 ## 🔓 CLAIM RELEASED 2026-07-23 (Claude/tbaz3i — dynamic `[slug]` public-page audit)
 
