@@ -35,7 +35,7 @@ function OppCard({ opp }: { opp: VolunteerOpportunity }) {
         )}
         <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, borderTop: '1px solid var(--b1)' }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)' }}>{whenLabel(opp.starts_at, opp.is_remote)}</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: full ? 'var(--red)' : 'var(--green)' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: full ? 'var(--red-text)' : 'var(--green-text)' }}>
             {full ? 'Full' : opp.time_commitment || 'Open'}
           </span>
         </div>

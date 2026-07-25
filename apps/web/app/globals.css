@@ -39,6 +39,9 @@
      (≥4.5:1) on light surfaces s1–s3. The base --green/--blue/--red/--orange
      above stay vivid for fills/badges; use these only for `color:`. */
   --green-text: #0d783c;
+  /* Solid green for filled buttons: white text on this is ~5:1 (the brand --green
+     is only 3.17:1). Fixed across themes so the CTA never drops below AA. */
+  --green-btn: #0b7a3e;
   --blue-text: #2164d5;
   --red-text: #c42d49;
   --orange-text: #a05712;
@@ -2407,7 +2410,7 @@ img, video, iframe { max-width: 100%; }
 .fee-calc-breakdown--green { color: #047857; }
 .fee-calc-breakdown--neutral { color: #4b5676; }
 .fee-calc-recurring { margin-top: 8px; font-weight: 900; }
-.fee-calc-warning { color: #e11d48; font-weight: 700; }
+.fee-calc-warning { color: var(--red-text); font-weight: 700; }
 /* Dark surfaces need a lighter rose for AA contrast (rose-400 ≈ 6:1 on the dark card). */
 [data-theme="dark"] .fee-calc-warning { color: #fb7185; }
 .fee-calc-bad { color: #e11d48; }
@@ -2520,7 +2523,7 @@ img, video, iframe { max-width: 100%; }
 .simple-grid span { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; color: #551cf2; background: #eee8ff; }
 .blog-grid article > span { display: inline-flex; padding: 7px 12px; border-radius: 999px; color: #4015e8; background: #eee8ff; font-size: 12px; font-weight: 950; }
 .blog-grid a { display: inline-flex; gap: 8px; align-items: center; color: #4015e8; font-weight: 950; }
-.blog-meta { color: #7f88a5; font-size: 13px; font-weight: 800; }
+.blog-meta { color: var(--t3); font-size: 13px; font-weight: 800; }
 
 /* ── Blog article page ──────────────────────────────────── */
 .blog-post-header { max-width: 860px; }
@@ -4019,14 +4022,14 @@ img, video, iframe { max-width: 100%; }
   transition: box-shadow .15s ease, transform .15s ease;
 }
 .aif-prompt-link:hover { box-shadow: 0 20px 52px rgba(108,53,255,.18); transform: translateY(-1px); }
-.aif-prompt-link > span:first-child { color: #9097b3; font-size: 15px; flex: 1; }
+.aif-prompt-link > span:first-child { color: var(--t3); font-size: 15px; flex: 1; }
 .aif-prompt-btn {
   width: 42px; height: 42px; flex-shrink: 0; display: grid; place-items: center;
   border-radius: 10px; color: #fff;
   background: linear-gradient(135deg, var(--aif-purple), var(--aif-pink));
   box-shadow: 0 8px 20px rgba(108,53,255,.3);
 }
-.aif-prompt-hint { margin: 8px 0 0; color: #9097b3; font-size: 12px; line-height: 1.6; max-width: 680px; }
+.aif-prompt-hint { margin: 8px 0 0; color: var(--t3); font-size: 12px; line-height: 1.6; max-width: 680px; }
 
 /* Chips inside concierge card */
 .aif-chips { max-width: 680px; }
@@ -4644,9 +4647,9 @@ img, video, iframe { max-width: 100%; }
 /* Country grids */
 .sc-country-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .sc-donors-grid  { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
-.sc-country-card { background: #fff; border: 1.5px solid #ede8fb; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 8px; transition: box-shadow .15s, border-color .15s; }
+.sc-country-card { background: var(--s1); border: 1.5px solid var(--b1); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 8px; transition: box-shadow .15s, border-color .15s; }
 .sc-country-card:hover { border-color: #c4b5fd; box-shadow: 0 4px 16px rgba(108,53,255,.08); }
-.sc-can-fundraise { border-color: #bbf7d0; }
+.sc-can-fundraise { border-color: rgba(18, 166, 83, .45); }
 .sc-can-fundraise:hover { border-color: #6ee7b7; }
 .sc-flag { font-size: 28px; line-height: 1; }
 .sc-country-info strong { display: block; font-size: 14px; font-weight: 700; color: var(--t1, #0f1238); }
@@ -6508,6 +6511,19 @@ img, video, iframe { max-width: 100%; }
 /* text tiers (light-surface text only; light-on-dark utils left alone) */
 [data-theme="dark"] .mktg-page .text-slate-950,
 [data-theme="dark"] .mktg-page .text-slate-900 { color: var(--t1) !important; }
+/* …except when the dark ink sits ON a saturated brand background (a bright CTA,
+   e.g. the emerald button on /features/[slug]). That is intentional dark-on-bright:
+   the remap above would flip it to light --t1 and drop it to ~2:1. Keep it dark
+   (slate-950 on emerald-500 ≈ 7.9:1). */
+[data-theme="dark"] .mktg-page .bg-emerald-300.text-slate-950,
+[data-theme="dark"] .mktg-page .bg-emerald-400.text-slate-950,
+[data-theme="dark"] .mktg-page .bg-emerald-500.text-slate-950,
+[data-theme="dark"] .mktg-page .bg-emerald-300.text-slate-900,
+[data-theme="dark"] .mktg-page .bg-emerald-400.text-slate-900,
+[data-theme="dark"] .mktg-page .bg-emerald-500.text-slate-900,
+[data-theme="dark"] .mktg-page .bg-lime-400.text-slate-950,
+[data-theme="dark"] .mktg-page .bg-amber-400.text-slate-950,
+[data-theme="dark"] .mktg-page .bg-yellow-400.text-slate-950 { color: #020617 !important; }
 [data-theme="dark"] .mktg-page .text-slate-800,
 [data-theme="dark"] .mktg-page .text-slate-700 { color: var(--t2) !important; }
 [data-theme="dark"] .mktg-page .text-slate-600,
@@ -6573,4 +6589,84 @@ img, video, iframe { max-width: 100%; }
   body { background: #fff !important; }
   /* Ensure the statement prints crisply regardless of viewer theme. */
   :root { color-scheme: light; }
+}
+
+/* ============================================================================
+   Keyboard accessibility — added after a keyboard/focus audit (2026-07-23).
+   axe-core reported 0 violations on these pages because neither issue below is
+   auto-detectable: "bypass blocks" needs a manual check, and a stripped focus
+   ring only shows up when you actually Tab through the page.
+   ========================================================================== */
+
+/* WCAG 2.4.1 Bypass Blocks. Off-screen until focused, then pinned top-left. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 1000;
+  padding: 12px 18px;
+  border-radius: 0 0 10px 0;
+  background: var(--violet);
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  text-decoration: none;
+}
+.skip-link:focus {
+  left: 0;
+  outline: 3px solid #fff;
+  outline-offset: -3px;
+}
+/* The skip target must not draw its own ring when focused programmatically. */
+#main-content:focus { outline: none; }
+
+/* WCAG 2.4.7 Focus Visible. ~25 rules across this file clear `outline` on
+   inputs/textareas for styling, which leaves keyboard users with no focus
+   indicator at all. Restore an unmistakable ring for keyboard/AT focus only —
+   `:focus-visible` keeps it off mouse clicks. `!important` is required to beat
+   the class-level `outline: none` declarations those components rely on. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--violet) !important;
+  outline-offset: 2px;
+}
+/* On the dark brand bands the violet ring is low-contrast — use white there. */
+[data-theme="dark"] a:focus-visible,
+[data-theme="dark"] button:focus-visible,
+[data-theme="dark"] input:focus-visible,
+[data-theme="dark"] select:focus-visible,
+[data-theme="dark"] textarea:focus-visible,
+[data-theme="dark"] [role="button"]:focus-visible {
+  outline-color: #c4b5fd !important;
+}
+
+/* The transparency calculator's tier/method buttons are inline-styled and did
+   not pick up the global focus ring above, so they carry an explicit one. Uses
+   box-shadow (not outline) because it renders reliably over their own border. */
+.mc-choice:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 3px var(--violet-ink), 0 0 0 5px var(--s1) !important;
+}
+
+/* ----------------------------------------------------------------------------
+   Reduced motion. The stylesheet defines ~16 animations and ~120 transitions,
+   but only two spots honoured `prefers-reduced-motion`. Users who ask their OS
+   to reduce motion (often for vestibular disorders / migraine) were still shown
+   nearly all of it. Neutralise motion globally rather than per-component so new
+   animations are covered by default. Durations are near-zero rather than 0 so
+   `transitionend`/`animationend` handlers still fire.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

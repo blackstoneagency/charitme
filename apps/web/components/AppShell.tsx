@@ -146,6 +146,10 @@ export function AppShell({ children, initialAnnouncements, bannerAppearance }: {
 
   return (
     <>
+      {/* WCAG 2.4.1 (Bypass Blocks): lets keyboard/AT users jump the header nav,
+          which is otherwise ~15 tab stops on every page. Visually hidden until
+          focused — it is the first thing Tab reaches. */}
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <AnnouncementBanner initial={initialAnnouncements} appearance={bannerAppearance} />
       <header className="kind-header">
         <div className="container">
@@ -249,7 +253,7 @@ export function AppShell({ children, initialAnnouncements, bannerAppearance }: {
         )}
       </header>
 
-      <main>{children}</main>
+      <main id="main-content" tabIndex={-1}>{children}</main>
 
       <footer className="kind-footer">
         <div className="container kind-footer-grid">

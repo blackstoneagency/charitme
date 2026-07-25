@@ -38,7 +38,11 @@ export default function AiCampaignPage() {
           <div className="ai-builder-orb-circle"><PublicIcon name="ai" /></div>
         </div>
 
-        <h2 className="ai-builder-greeting">Hi! I&apos;m your <em>AI Concierge.</em></h2>
+        {/* This is the page's primary heading — it was an <h2>, leaving the page
+            with no <h1> at all (bad for SEO and for AT users navigating by
+            heading). Styling is class-based, so the tag change is purely
+            semantic. */}
+        <h1 className="ai-builder-greeting">Hi! I&apos;m your <em>AI Concierge.</em></h1>
         <p className="ai-builder-sub">
           I&apos;ll help you build the perfect fundraising campaign for your cause.<br />
           Tell me about your cause and I&apos;ll recommend the best campaign setup for you.
@@ -62,7 +66,9 @@ export default function AiCampaignPage() {
           </button>
         </div>
 
-        <h3 className="ai-builder-popular">Popular requests</h3>
+        {/* h2, not h3: it sits directly under the page h1, and the shared footer
+            headings are h3 — an h1→h3 jump here would skip a level. */}
+        <h2 className="ai-builder-popular">Popular requests</h2>
         <div className="ai-builder-chips">
           {POPULAR_REQUESTS.map(([icon, title, sub]) => (
             <button key={title} type="button" onClick={() => setPrompt(`${title} ${sub}`)}>

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { formatMoneyShort } from '@shared/currencies';
-import { Badge, EmptyState } from '../../components/ui';
-import { listActivePrograms } from '../../lib/matching';
+import { Badge, EmptyState } from '../../../components/ui';
+import { listActivePrograms } from '../../../lib/matching';
 
 export const metadata: Metadata = {
   title: 'Corporate Matching Gifts — Double Your Impact',

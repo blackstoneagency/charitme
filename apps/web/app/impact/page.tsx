@@ -90,7 +90,7 @@ export default async function ImpactIndexPage() {
             body="Campaigns with published spending plans and updates will appear here as organizers add them."
           />
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 18 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 18 }}>
             {summaries.map((summary) => (
               <Link
                 key={summary.plan.id}

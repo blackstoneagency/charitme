@@ -122,8 +122,11 @@ function LoginForm() {
     setSuccess('');
   };
 
+  // Not <main>: AppShell already provides the page's single main landmark, and
+  // nesting a second one trips axe's landmark-no-duplicate-main /
+  // landmark-main-is-top-level. This is just the auth panel's wrapper.
   return (
-    <main className="auth-page">
+    <div className="auth-page">
       <section className="auth-panel">
         <div className="auth-copy">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -187,13 +190,13 @@ function LoginForm() {
           </p>
         </form>
       </section>
-    </main>
+    </div>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<main className="auth-page" />}>
+    <Suspense fallback={<div className="auth-page" />}>
       <LoginForm />
     </Suspense>
   );
