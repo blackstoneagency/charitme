@@ -65,7 +65,7 @@ export async function withQueryTimeout<T>(
  * supabase-js produces on failure — so a timeout takes the call site's existing
  * error branch and no downstream code has to change:
  *
- *   const { data, error } = await boundedQuery(supabaseAdmin.from('x').select());
+ *   const { data, error } = await boundedQuery(supabaseAdmin.from('campaigns').select());
  *
  * For reads only, and only where the existing error branch degrades sensibly.
  */

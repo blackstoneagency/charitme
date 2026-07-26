@@ -4820,10 +4820,20 @@ merge commit.
    `{ campaigns, failed }`, the query is bounded, metrics render `—`/"unavailable"
    instead of a confident zero we do not know, and a `role="alert"` banner says
    nothing happened to their campaigns or funds.
-   **Remaining dashboard/admin pages follow the same anti-pattern** — grep for
-   `return []` / `return null` in a catch on any page that renders totals. Each is
-   the same three-line fix; the pattern to copy is in
-   `app/dashboard/campaigns/page.tsx`.
+   **Correction to my earlier note:** the anti-pattern is mostly expressed as
+   `(data ?? [])`, **not** `catch → return []`, so grepping for `catch` misses it.
+   Grep for `?? []` on any page that derives totals.
+   - [x] `app/dashboard/page.tsx` (main dashboard) — DONE. Its catch-all fallback
+     was all-zeros, and a null campaign read hit the same path; now carries
+     `loadFailed`, renders `—`/"unavailable", and shows a `role="alert"` banner.
+   - [ ] `app/dashboard/donations/page.tsx` — 5 totals rendered, `(profileData ?? [])` at L143
+   - [ ] `app/dashboard/analytics/page.tsx` — 12 totals, `(campaignData ?? [])` L101, `(donationData ?? [])` L112
+   - [ ] `app/dashboard/donor/page.tsx` — 5 totals, `(profileData ?? [])` L113
+   Pattern to copy: `app/dashboard/campaigns/page.tsx` or `app/dashboard/page.tsx`.
+
+   **Gotcha for whoever continues:** `__tests__/migration-integrity.test.ts` scans
+   for `.from('<literal>')` **including inside comments**, so a JSDoc example using
+   a fake table name fails the suite. Use a real table name in examples.
 2. **Re-verify the ⚪ claimed rows.** Two audit ✅s were stale when spot-checked
    (dead `donation_receipts`; e2e "wired" but running in no workflow). Assume rot.
 3. **Signed-in e2e** the moment test credentials exist.

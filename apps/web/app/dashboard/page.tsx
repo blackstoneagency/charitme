@@ -54,6 +54,8 @@ type DashData = {
   userName: string | null;
   campaigns: CampaignRow[];
   totalRaised: number;
+  /** True when the reads failed, so the zeros below are unknown rather than real. */
+  loadFailed?: boolean;
   totalDonations: number;
   totalSupporters: number;
   avgDonation: number;
@@ -186,6 +188,8 @@ async function getDashboardData(userId: string, period: Period): Promise<DashDat
         .limit(5),
     ]);
 
+    // `campaignData` is null when the query errored — distinct from "no campaigns".
+    const campaignsUnavailable = campaignData == null;
     const campaigns = await attachCampaignCurrencies((campaignData ?? []) as CampaignRow[]);
     const totalRaised = campaigns.reduce((s, c) => s + (c.raised_amount ?? 0), 0);
     const totalDonations = campaigns.reduce((s, c) => s + (c.backer_count ?? 0), 0);
@@ -325,6 +329,7 @@ async function getDashboardData(userId: string, period: Period): Promise<DashDat
                 .slice(0, 2)
                 .toUpperCase();
         return {
+      loadFailed: campaignsUnavailable,
           title: `${donorName} donated ${formatMoneyShort(d.amount_cents, d.currency ?? 'usd')}`,
           time: timeAgo(d.created_at),
           initials: ini,
@@ -384,7 +389,9 @@ async function getDashboardData(userId: string, period: Period): Promise<DashDat
       growthCounts,
     };
   } catch {
-    return fallback;
+    // Every number in `fallback` is 0. Rendering those as fact tells an organizer
+    // their campaigns raised nothing — flag it so the UI can say "unavailable".
+    return { ...fallback, loadFailed: true };
   }
 }
 
@@ -412,12 +419,13 @@ export default async function DashboardPage({
   const data = await getDashboardData(user.id, period);
 
   const hasRealCampaigns = data.campaigns.length > 0;
+  const unavailable = data.loadFailed === true;
 
   const metrics = [
-    { label: 'Total Raised',     value: fmtCents(data.totalRaised),    change: hasRealCampaigns ? 'all time' : 'no campaigns yet', icon: 'gift',  tone: 'violet' },
-    { label: 'Total Donations',  value: String(data.totalDonations),   change: 'all campaigns', icon: 'users', tone: 'green' },
-    { label: 'Total Supporters', value: String(data.totalSupporters),  change: 'unique donors', icon: 'team',  tone: 'blue' },
-    { label: 'Avg. Donation',    value: fmtCents(data.avgDonation),    change: 'per transaction', icon: 'chart', tone: 'orange' },
+    { label: 'Total Raised',     value: unavailable ? '—' : fmtCents(data.totalRaised),  change: unavailable ? 'unavailable' : hasRealCampaigns ? 'all time' : 'no campaigns yet', icon: 'gift',  tone: 'violet' },
+    { label: 'Total Donations',  value: unavailable ? '—' : String(data.totalDonations),  change: unavailable ? 'unavailable' : 'all campaigns', icon: 'users', tone: 'green' },
+    { label: 'Total Supporters', value: unavailable ? '—' : String(data.totalSupporters), change: unavailable ? 'unavailable' : 'unique donors', icon: 'team',  tone: 'blue' },
+    { label: 'Avg. Donation',    value: unavailable ? '—' : fmtCents(data.avgDonation),   change: unavailable ? 'unavailable' : 'per transaction', icon: 'chart', tone: 'orange' },
   ];
 
   const displayCampaigns = data.campaigns.slice(0, 3).map(c => ({
@@ -517,6 +525,24 @@ export default async function DashboardPage({
 
         <section className="dash-grid">
           <main className="dash-main">
+            {unavailable && (
+              <div
+                role="alert"
+                style={{
+                  marginBottom: 16, padding: '14px 16px', borderRadius: 12,
+                  background: 'var(--s2, #fffbeb)', border: '1px solid var(--b2, #fde68a)',
+                  color: 'var(--t1, #92400e)',
+                }}
+              >
+                <strong style={{ display: 'block', marginBottom: 4 }}>
+                  We couldn&apos;t load your dashboard figures
+                </strong>
+                <span style={{ fontSize: 13.5, lineHeight: 1.5 }}>
+                  This is a temporary problem on our side — your campaigns and funds are
+                  unaffected. Reload the page to try again.
+                </span>
+              </div>
+            )}
             {/* ── Metric cards ── */}
             <div className="dash-metrics">
               {metrics.map(metric => (
