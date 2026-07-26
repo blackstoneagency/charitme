@@ -257,6 +257,21 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**✅ VERIFIED CLEAN — CSV export escaping and search-query handling.**
+Both are security-relevant and both were probed with adversarial input rather than
+read:
+- **`lib/csv.ts`** — formula/CSV injection. `=1+1`, `+1+1`, `-1+1`, `@SUM(A1)`,
+  `=cmd|' /C calc'!A0`, leading TAB and CR all receive the neutralizing leading
+  apostrophe; commas/quotes/newlines are quoted with `"` doubled; combined cases
+  (`=HYPERLINK("http://evil","x")`) get **both** treatments; plain values, `""`
+  and `"0"` pass through untouched. Textbook-correct.
+- **`lib/campaign-search.ts`** — PostgREST `.or()` filter injection. `a,b` has its
+  comma stripped, `x)or(1=1` loses its parens, `()` yields no terms, `%wildcard%`
+  has the `%` stripped so wildcards can't be injected, and `status.eq.draft`
+  survives only as *literal text* inside `ilike.%…%` rather than as a filter.
+  Unicode (`café niño`, curly quotes) is preserved.
+Neither needs work; recorded so the next audit doesn't repeat them.
+
 **❌ NEGATIVE RESULT — "unsent form state" cannot be found by scanning. Don't retry it.**
 Tried to automate the highest-value unguarded bug class (the Settings one: form
 state that never reaches its save payload, causing silent data loss). A scan of
