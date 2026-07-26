@@ -323,6 +323,40 @@ the API — applies both gates._
 _Lesson recorded: when a fix touches a mapping, grep for other copies of it before
 declaring it done. I verified the API route and stopped there._
 
+**🔴 TRUST & SAFETY — the public "7-day payout hold" claim contradicts the money architecture. NOT FIXED (owner's call).**
+`/trust-safety` tells donors, verbatim:
+> *"Payout holds — New accounts have a 7-day payout hold on their first campaign.
+> Campaigns under review have payouts frozen until resolved."*
+
+**CharitMe cannot do either of those things as described.** `lib/payout-destination.ts`
+documents the core design: *"Every donation is created as a Stripe **destination
+charge**, so the money transfers to the recipient's own Stripe account **at charge
+time** and never sits in CharitMe's platform balance."* If the platform never
+custodies the funds, it has nothing to hold for 7 days and nothing to freeze.
+
+Supporting evidence: **`first_payout_hold_until` exists as a column and is read by
+NOTHING** — the only occurrence in the entire codebase is the `create table` DDL in
+`app/api/admin/apply-schema/route.ts`. No writer, no reader. Someone started this
+and stopped.
+
+**Being fair to the current state:** donors are not necessarily unprotected. Stripe
+applies its own payout timing to connected accounts (new accounts typically wait
+days before funds leave their Stripe balance), and CharitMe *can* block **new
+donations** — that is resolution step 3 in `payout-destination.ts`, where a campaign
+with no verified account cannot receive money at all. What does **not** exist is a
+CharitMe-controlled hold or freeze over money already charged.
+
+**Two legitimate fixes; pick one:**
+1. **Implement it** via Stripe Connect controls on the recipient account (a manual
+   payout schedule, or toggling `payouts_enabled` during review) and wire
+   `first_payout_hold_until`. This is real work but genuinely possible.
+2. **Correct the copy** to describe what actually protects donors — donations
+   blocked until payout setup is verified, Stripe's own payout timing, and refund/
+   chargeback rights — instead of a custody-based hold the architecture rules out.
+
+Leaving a specific, checkable safety promise on the page that the code cannot keep
+is the worst of the three options, which is why this is flagged rather than left.
+
 **🔴 TRUST & SAFETY — "Suspend User" does not suspend anyone. NOT FIXED (needs a product call).**
 The most consequential promise-audit finding, and the only one I have not fixed —
 because fixing it wrong locks real people out of their accounts.
