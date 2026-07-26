@@ -3009,6 +3009,52 @@ non-vacuous by removing the spread, which fails the suite.
 
 _1119/1119 tests, lint clean, build green._
 
+
+### 🟠 Three AI endpoints are fully built and reachable by nobody (2026-07-23)
+
+Same failure mode as the orphaned dashboards in #71, one layer down. Audited every
+`/api/ai/*` route for callers — **not just `.tsx`, but any file in `app/`, `lib/` or
+`components/`**:
+
+| route | size | reads | callers |
+|---|---|---|---|
+| `ai/impact-summary` | 216 lines | `campaigns`, `transparency_ledger_items`, `risk_flags`, `ai_generations` | **0** |
+| `ai/viral-loop` | 173 lines | `campaigns`, `share_events`, `team_members`, `ai_generations` | **0** |
+| `ai/grant-match` | 73 lines | `grants`, `grant_matches` | ✅ **now wired** (below) |
+
+All three are **real implementations**, not stubs — auth-guarded, Supabase-wired,
+writing to `ai_generations`. Roughly **460 lines of working feature code that no user
+can invoke**. (The other 13 AI routes all have callers; verified individually.)
+
+**`impact-summary` is worse than unused — it's promised.** `/for-nonprofits` advertises
+"Generate personalized thank-you emails, **impact summaries**, and re-engagement
+sequences automatically." The endpoint exists and works; there is no path to it.
+
+**Why this is documented rather than built:** each needs a placement decision (which
+dashboard, what trigger, what the output looks like) that is a product call, not a
+guess — and dashboard UI can't be verified in this sandbox anyway (auth-gated, no DB).
+Plausible homes, for whoever picks it up: `impact-summary` → the campaign's impact/
+transparency tab; `viral-loop` → the share/referrals surface; `grant-match` →
+`/dashboard/grants`, which already exists and lists applications.
+
+**✅ One closed: `grant-match` is now reachable.** Added `GrantMatchClient` to
+`/dashboard/grants` — a small form (category / amount needed / free-text purpose) that
+posts to the endpoint and lists ranked matches. It shows **each match's `reasons`**, not
+just the score, which the endpoint already returns: the ranking is `rankGrantMatches`,
+a **deterministic rule-based model rather than an LLM**, so the explanation is real and
+stable. Field names were checked against `lib/grants.ts` (`grantId` / `score` 0..100 /
+`reasons`, and the `GRANT_PUBLIC_COLUMNS` set) rather than guessed — the mistake that
+produced an unstyled `kf-btn-primary` button earlier in this session.
+
+**Still orphaned: `impact-summary`, `viral-loop`** — both need a placement decision
+(which surface, what trigger) that is a product call. `impact-summary` remains the
+priority since `/for-nonprofits` advertises it.
+
+_Method: `grep -rn "ai/<route>" app/ lib/ components/` excluding the route's own
+directory; a re-runnable version is at `scratchpad/reach.py`. Worth running when adding
+an endpoint — a route with zero callers is invisible, and nothing in the build or test
+suite objects._
+
 ## 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
 
 Checked the live `sitemap.xml` because the soft-404 fix makes stale entries *visible*
