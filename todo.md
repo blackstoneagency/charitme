@@ -574,6 +574,26 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**🟠 FIXED — a dropped reward claim could oversell a limited perk, invisibly.**
+The reward flow is otherwise wired correctly: `POST /api/donations` validates the
+`rewardId` and checks `item_limit`/`claimed_count`; on completion the webhook sets
+`donations.reward_id` and calls the `claim_campaign_reward` RPC.
+
+Both webhook writes were bare **`void`** — unawaited, unchecked, marked
+*"(non-fatal)"*. The intent is right (a reward-tracking failure must never fail the
+webhook and lose the **donation**), but `void` makes a failure **vanish entirely**,
+and the consequence is concrete:
+- `claim_campaign_reward` dropped → `claimed_count` under-counts, and since new
+  claims are gated on `claimed_count >= item_limit`, a **limited reward can be
+  oversold** — donors promised a perk that no longer exists.
+- `reward_id` unset → the organizer doesn't know what to fulfil.
+
+Both now keep their non-blocking behaviour but **log on failure**, so the condition
+is discoverable. This matches the codebase's own convention elsewhere: the refund
+path is likewise "best-effort, never blocks", yet it opens a **reconciliation
+exception** rather than failing silently. *Non-fatal* and *invisible* are not the
+same thing, and only the former was intended here.
+
 **✅ AUDITED CLEAN (with one judgement call) — "Thank donors".**
 Well built where it counts:
 - **Respects anonymity** — both the send path and the "thankable donations" listing

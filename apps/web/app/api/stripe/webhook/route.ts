@@ -408,10 +408,24 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
       }
     }
 
-    // Record claimed reward tier (non-fatal)
+    // Record claimed reward tier. Deliberately non-blocking — a reward-tracking
+    // failure must never fail the webhook and lose the donation itself — but NOT
+    // silent. These were bare `void`s, so a failure vanished entirely, and the
+    // consequence is concrete: POST /api/donations gates new claims on
+    // `claimed_count >= item_limit`, so a dropped increment lets a limited reward
+    // be OVERSOLD, while an unset `reward_id` leaves the organizer not knowing what
+    // to fulfil. Errors are now logged so the condition is at least discoverable,
+    // matching how the refund path treats its own best-effort ledger write.
     if (!alreadyDone && donationId && meta.rewardId) {
-      void supabaseAdmin.from('donations').update({ reward_id: meta.rewardId }).eq('id', donationId);
-      void supabaseAdmin.rpc('claim_campaign_reward', { p_reward_id: meta.rewardId });
+      const rewardId = meta.rewardId;
+      void supabaseAdmin.from('donations').update({ reward_id: rewardId }).eq('id', donationId)
+        .then(({ error }) => {
+          if (error) console.error('[webhook] reward_id not recorded', { donationId, rewardId, code: error.code, message: error.message });
+        });
+      void supabaseAdmin.rpc('claim_campaign_reward', { p_reward_id: rewardId })
+        .then(({ error }) => {
+          if (error) console.error('[webhook] claim_campaign_reward failed — claimed_count may undercount, risking oversale', { rewardId, code: error.code, message: error.message });
+        });
     }
 
     // Record charge currency (non-fatal; column defaults to 'usd')
