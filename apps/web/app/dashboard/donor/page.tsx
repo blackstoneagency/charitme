@@ -1,6 +1,7 @@
 import 'server-only';
 import Link from 'next/link';
 import { CharitMeShell, TopBar, MetricGrid, KFIcon, type Metric } from '../../../components/CharitMeShellServer';
+import DegradedReadNotice from '../../../components/DegradedReadNotice';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import DonorTagEditor from './DonorTagEditor';
@@ -62,8 +63,11 @@ async function fetchDonorData(userId: string): Promise<{
   newLast30: number;
   avgDonationCents: number;
   allTags: string[];
+  /** True when a read failed: the zeros are then unknown, not measured. */
+  failed: boolean;
 }> {
-  const empty = { donors: [], totalCents: 0, totalUnique: 0, newLast30: 0, avgDonationCents: 0, allTags: [] };
+  const empty = { donors: [], totalCents: 0, totalUnique: 0, newLast30: 0, avgDonationCents: 0, allTags: [], failed: false };
+  const unread = { ...empty, failed: true };
 
   try {
     // Step 1: get user's campaign IDs
@@ -72,7 +76,9 @@ async function fetchDonorData(userId: string): Promise<{
       .select('id')
       .eq('user_id', userId);
 
-    if (campError || !campData || campData.length === 0) return empty;
+    // An errored read is not the same statement as "no campaigns yet".
+    if (campError || !campData) return unread;
+    if (campData.length === 0) return empty;
 
     const campaignIds = (campData as { id: string }[]).map(c => c.id);
 
@@ -84,7 +90,8 @@ async function fetchDonorData(userId: string): Promise<{
       .eq('status', 'completed')
       .order('created_at', { ascending: false });
 
-    if (donError || !donData || donData.length === 0) return empty;
+    if (donError || !donData) return unread;
+    if (donData.length === 0) return empty;
 
     type RawDon = {
       id: string;
@@ -181,9 +188,9 @@ async function fetchDonorData(userId: string): Promise<{
 
     const allTags = [...new Set(donors.flatMap((d) => d.tags))].sort((a, b) => a.localeCompare(b));
 
-    return { donors, totalCents, totalUnique, newLast30, avgDonationCents, allTags };
+    return { donors, totalCents, totalUnique, newLast30, avgDonationCents, allTags, failed: false };
   } catch {
-    return empty;
+    return unread;
   }
 }
 
@@ -196,7 +203,7 @@ export default async function DonorsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const user = await requireUser();
-  const [{ donors, totalCents, totalUnique, newLast30, avgDonationCents, allTags }, params] =
+  const [{ donors, totalCents, totalUnique, newLast30, avgDonationCents, allTags, failed: unavailable }, params] =
     await Promise.all([fetchDonorData(user.id), searchParams]);
 
   const activeTab = String(params.tab ?? 'all').toLowerCase();
@@ -205,29 +212,29 @@ export default async function DonorsPage({
   const metrics: Metric[] = [
     {
       label: 'Total Donors',
-      value: totalUnique.toLocaleString(),
-      change: 'all time',
+      value: unavailable ? '—' : totalUnique.toLocaleString(),
+      change: unavailable ? 'unavailable' : 'all time',
       icon: 'users',
       tone: 'violet',
     },
     {
       label: 'New Donors',
-      value: newLast30.toLocaleString(),
-      change: 'last 30 days',
+      value: unavailable ? '—' : newLast30.toLocaleString(),
+      change: unavailable ? 'unavailable' : 'last 30 days',
       icon: 'team',
       tone: 'green',
     },
     {
       label: 'Total Donated',
-      value: fmtCents(totalCents),
-      change: 'all campaigns',
+      value: unavailable ? '—' : fmtCents(totalCents),
+      change: unavailable ? 'unavailable' : 'all campaigns',
       icon: 'gift',
       tone: 'blue',
     },
     {
       label: 'Avg. Donation',
-      value: fmtCents(avgDonationCents),
-      change: 'per transaction',
+      value: unavailable ? '—' : fmtCents(avgDonationCents),
+      change: unavailable ? 'unavailable' : 'per transaction',
       icon: 'chart',
       tone: 'orange',
     },
@@ -265,6 +272,9 @@ export default async function DonorsPage({
 
       <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
         <div className="kf-content-main">
+          {unavailable && (
+            <DegradedReadNotice title={"We couldn't load your donors"} />
+          )}
           <MetricGrid metrics={metrics} />
 
           <section className="kf-card" style={{ overflow: 'hidden' }}>

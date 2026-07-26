@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/CharitMeShellServer';
+import DegradedReadNotice from '../../../components/DegradedReadNotice';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { attachCampaignCurrencies } from '../../../lib/home-data';
@@ -93,10 +94,13 @@ export default async function AnalyticsPage({
   const userId = user.id;
 
   // Step 1: get campaigns
-  const { data: campaignData } = await supabaseAdmin
+  // supabase-js resolves on a query error, so an unchecked read turns a timeout
+  // into `data: null` → an empty list → "$0 raised" stated as fact.
+  const { data: campaignData, error: campaignError } = await supabaseAdmin
     .from('campaigns')
     .select('id,title,slug,raised_amount,backer_count,goal_amount,status')
     .eq('user_id', userId);
+  let unavailable = Boolean(campaignError) || campaignData == null;
 
   const campaigns = await attachCampaignCurrencies((campaignData ?? []) as CampaignRow[]);
   const cids = campaigns.map((c) => c.id);
@@ -104,11 +108,12 @@ export default async function AnalyticsPage({
   // Step 2: get completed donations for these campaigns
   let donations: DonationRow[] = [];
   if (cids.length > 0) {
-    const { data: donationData } = await supabaseAdmin
+    const { data: donationData, error: donationError } = await supabaseAdmin
       .from('donations')
       .select('amount_cents,created_at,campaign_id')
       .in('campaign_id', cids)
       .eq('status', 'completed');
+    if (donationError || donationData == null) unavailable = true;
     donations = (donationData ?? []) as DonationRow[];
   }
 
@@ -137,10 +142,10 @@ export default async function AnalyticsPage({
       : null;
 
   const metrics = [
-    { label: 'Raised This Week', value: fmtCents(weeklyRaised), change: 'last 7 days', icon: 'gift', tone: 'violet' as const },
-    { label: 'Raised This Month', value: fmtCents(monthlyRaised), change: 'last 30 days', icon: 'chart', tone: 'green' as const },
-    { label: 'Total Backers', value: totalBackers.toLocaleString(), change: `avg ${fmtCents(avgDonation)} / donation`, icon: 'users', tone: 'orange' as const },
-    { label: 'Top Campaign', value: bestCampaign ? formatMoneyCompact(bestCampaign.raised_amount, bestCampaign.currency ?? 'usd') : '$0', change: bestCampaign ? bestCampaign.title.slice(0, 28) + (bestCampaign.title.length > 28 ? '…' : '') : 'No campaigns yet', icon: 'send', tone: 'blue' as const },
+    { label: 'Raised This Week', value: unavailable ? '—' : fmtCents(weeklyRaised), change: unavailable ? 'unavailable' : 'last 7 days', icon: 'gift', tone: 'violet' as const },
+    { label: 'Raised This Month', value: unavailable ? '—' : fmtCents(monthlyRaised), change: unavailable ? 'unavailable' : 'last 30 days', icon: 'chart', tone: 'green' as const },
+    { label: 'Total Backers', value: unavailable ? '—' : totalBackers.toLocaleString(), change: unavailable ? 'unavailable' : `avg ${fmtCents(avgDonation)} / donation`, icon: 'users', tone: 'orange' as const },
+    { label: 'Top Campaign', value: unavailable ? '—' : bestCampaign ? formatMoneyCompact(bestCampaign.raised_amount, bestCampaign.currency ?? 'usd') : '$0', change: unavailable ? 'unavailable' : bestCampaign ? bestCampaign.title.slice(0, 28) + (bestCampaign.title.length > 28 ? '…' : '') : 'No campaigns yet', icon: 'send', tone: 'blue' as const },
   ];
 
   // SVG line chart: 7-day rolling donations
@@ -187,6 +192,9 @@ export default async function AnalyticsPage({
       />
 
       <div className="kf-admin-dash">
+        {unavailable && (
+          <DegradedReadNotice title={"We couldn't load your analytics"} />
+        )}
         <MetricGrid metrics={metrics} />
 
         {/* Two-column: chart + campaign table */}

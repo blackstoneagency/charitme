@@ -4854,6 +4854,32 @@ merge commit.
      whole class (`&var(--` anywhere in app/components/lib) — verified non-vacuous,
      it caught my own comment on the first run.
    - Verified: typecheck 0, **1206 tests / 110 files pass**, `next build` green.
+
+   **Two bots fixed `/dashboard` concurrently** (this note and the one above were
+   written in parallel); the implementations were merged by hand into a single
+   required `failed` flag. **Also corrected:** the anti-pattern is mostly expressed
+   as `(data ?? [])`, **not** `catch → return []`, so grepping for `catch` misses
+   it — grep for `?? []` on any page that derives totals.
+   - [x] `app/dashboard/donations/page.tsx` — DONE. It *did* check `campError`, but
+     collapsed it into `campError || !campData || campData.length === 0` — i.e. a
+     failed read was indistinguishable from "no campaigns". Split apart: an error
+     returns `failed: true`, a genuinely empty list still returns honest zeros.
+   - [x] `app/dashboard/analytics/page.tsx` — DONE. Neither read checked `error`.
+     All 4 metric cards now render `—`/"unavailable".
+   - [x] `app/dashboard/donor/page.tsx` — DONE. Same conflation as donations
+     (`campError || !campData || campData.length === 0`), plus `catch → empty`.
+   - **Shared `components/DegradedReadNotice.tsx`** extracted rather than a 6th copy
+     of the banner JSX. **Gotcha it encodes:** `title="…&apos;…"` does NOT decode —
+     entities are only decoded in JSX *children*, not in string attributes, so the
+     title must be an expression or the apostrophe renders as literal `&apos;`.
+   - Guard extended: `__tests__/degraded-reads.test.ts` now pins all **6** totals
+     pages (16 tests) and accepts either an inline `role="alert"` or the component.
+   - Verified: typecheck 0, lint clean, **1214 tests / 110 files**, `next build` green.
+
+   **Gotcha, now fixed:** `__tests__/migration-integrity.test.ts` scanned for
+   `.from('<literal>')` **including inside comments**, so the JSDoc example in
+   `lib/query-timeout.ts` failed the suite. The scanner now strips block comments
+   (commit `7719702`) — JSDoc examples are safe again.
 2. **Re-verify the ⚪ claimed rows.** Two audit ✅s were stale when spot-checked
    (dead `donation_receipts`; e2e "wired" but running in no workflow). Assume rot.
 3. **Signed-in e2e** the moment test credentials exist.

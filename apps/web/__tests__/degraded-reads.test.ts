@@ -26,8 +26,17 @@ function read(path: string): string {
 const TOTALS_PAGES = [
   'app/dashboard/page.tsx',
   'app/dashboard/campaigns/page.tsx',
+  'app/dashboard/donations/page.tsx',
+  'app/dashboard/analytics/page.tsx',
+  'app/dashboard/donor/page.tsx',
   'app/admin/super/page.tsx',
 ];
+
+// The notice may be inline or the shared component; both must reach the DOM as a
+// live region, so the assertion accepts either.
+function hasAlert(src: string): boolean {
+  return src.includes('role="alert"') || src.includes('<DegradedReadNotice');
+}
 
 describe('pages that render totals degrade honestly', () => {
   it.each(TOTALS_PAGES)('%s checks the query error field', (path) => {
@@ -44,13 +53,24 @@ describe('pages that render totals degrade honestly', () => {
   it.each(TOTALS_PAGES)('%s renders unknown, not zero, and says so', (path) => {
     const src = read(path);
     expect(src, `${path} has no em-dash "unknown" rendering`).toContain('—');
-    expect(src, `${path} fails silently — no role="alert"`).toContain('role="alert"');
+    expect(hasAlert(src), `${path} fails silently — no alert region`).toBe(true);
   });
 
-  it('the dashboard alert does not imply the money is gone', () => {
-    const src = read('app/dashboard/page.tsx');
-    expect(src).toContain('nothing has happened to your');
+  it('the shared notice is a live region that reassures about funds', () => {
+    const src = read('components/DegradedReadNotice.tsx');
+    expect(src).toContain('role="alert"');
+    expect(src).toMatch(/funds are\s+unaffected/);
   });
+
+  // The wording is owned by whoever writes the copy; what must not change is that
+  // it reassures the organizer their money is intact. A blank "couldn't load"
+  // beside four zeros still reads as "your funds are gone".
+  it.each(['app/dashboard/page.tsx', 'app/dashboard/campaigns/page.tsx'])(
+    '%s tells the organizer their funds are unaffected',
+    (path) => {
+      expect(read(path)).toMatch(/funds are\s+unaffected|nothing has happened to your/);
+    },
+  );
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -195,10 +195,11 @@ async function getDashboardData(userId: string, period: Period): Promise<DashDat
 
     // supabase-js resolves rather than throws on a query error, so the try/catch
     // below never sees a timeout, an RLS denial, or a missing column — the error
-    // arrives as data:null, which reduces to "$0 raised". Check it explicitly.
-    // (The profile error is not fatal: `.single()` errors when a user simply has
-    // no profile row, and the only thing it feeds is the greeting name.)
-    if (campaignError) return fallback;
+    // arrives as data:null, which reduces to "$0 raised". Both signals are checked:
+    // an errored query is distinct from "this organizer has no campaigns", which
+    // returns an empty array. (A profile error is NOT fatal: `.single()` errors when
+    // a user simply has no profile row, and it only feeds the greeting name.)
+    if (campaignError || campaignData == null) return fallback;
 
     const campaigns = await attachCampaignCurrencies((campaignData ?? []) as CampaignRow[]);
     const totalRaised = campaigns.reduce((s, c) => s + (c.raised_amount ?? 0), 0);
@@ -399,6 +400,8 @@ async function getDashboardData(userId: string, period: Period): Promise<DashDat
       growthCounts,
     };
   } catch {
+    // Every number in `fallback` is 0. Rendering those as fact tells an organizer
+    // their campaigns raised nothing — `failed: true` makes the UI say "unavailable".
     return fallback;
   }
 }
@@ -429,13 +432,13 @@ export default async function DashboardPage({
   const hasRealCampaigns = data.campaigns.length > 0;
   // On a failed read every total is unknown, not zero — render '—' rather than a
   // number we did not measure.
-  const unknown = data.failed;
+  const unavailable = data.failed;
 
   const metrics = [
-    { label: 'Total Raised',     value: unknown ? '—' : fmtCents(data.totalRaised),   change: unknown ? 'unavailable' : hasRealCampaigns ? 'all time' : 'no campaigns yet', icon: 'gift',  tone: 'violet' },
-    { label: 'Total Donations',  value: unknown ? '—' : String(data.totalDonations),  change: unknown ? 'unavailable' : 'all campaigns',   icon: 'users', tone: 'green' },
-    { label: 'Total Supporters', value: unknown ? '—' : String(data.totalSupporters), change: unknown ? 'unavailable' : 'unique donors',   icon: 'team',  tone: 'blue' },
-    { label: 'Avg. Donation',    value: unknown ? '—' : fmtCents(data.avgDonation),   change: unknown ? 'unavailable' : 'per transaction', icon: 'chart', tone: 'orange' },
+    { label: 'Total Raised',     value: unavailable ? '—' : fmtCents(data.totalRaised),   change: unavailable ? 'unavailable' : hasRealCampaigns ? 'all time' : 'no campaigns yet', icon: 'gift',  tone: 'violet' },
+    { label: 'Total Donations',  value: unavailable ? '—' : String(data.totalDonations),  change: unavailable ? 'unavailable' : 'all campaigns',   icon: 'users', tone: 'green' },
+    { label: 'Total Supporters', value: unavailable ? '—' : String(data.totalSupporters), change: unavailable ? 'unavailable' : 'unique donors',   icon: 'team',  tone: 'blue' },
+    { label: 'Avg. Donation',    value: unavailable ? '—' : fmtCents(data.avgDonation),   change: unavailable ? 'unavailable' : 'per transaction', icon: 'chart', tone: 'orange' },
   ];
 
   const displayCampaigns = data.campaigns.slice(0, 3).map(c => ({
@@ -459,7 +462,7 @@ export default async function DashboardPage({
 
   // Generate dynamic tasks based on real state
   const tasks: string[][] = [];
-  if (unknown) {
+  if (unavailable) {
     // Neither task list is honest here: we don't know whether they have campaigns.
     tasks.push(['Reload to see your tasks', 'Data unavailable']);
   } else if (hasRealCampaigns) {
@@ -542,7 +545,7 @@ export default async function DashboardPage({
 
         <section className="dash-grid">
           <main className="dash-main">
-            {data.failed && (
+            {unavailable && (
               <div
                 role="alert"
                 style={{
@@ -552,11 +555,11 @@ export default async function DashboardPage({
                 }}
               >
                 <strong style={{ display: 'block', marginBottom: 4 }}>
-                  We couldn&apos;t load your dashboard just now
+                  We couldn&apos;t load your dashboard figures
                 </strong>
                 <span style={{ fontSize: 13.5, lineHeight: 1.5 }}>
-                  This is a temporary problem on our side — nothing has happened to your
-                  campaigns or your funds. Reload the page to try again.
+                  This is a temporary problem on our side — your campaigns and funds are
+                  unaffected. Reload the page to try again.
                 </span>
               </div>
             )}
@@ -643,24 +646,24 @@ export default async function DashboardPage({
                   </div>
                   <div className="perf-summary">
                     <PerfNumber
-                      value={unknown ? '—' : hasRealCampaigns ? fmtCents(periodRaised) : '$0'}
+                      value={unavailable ? '—' : hasRealCampaigns ? fmtCents(periodRaised) : '$0'}
                       label={`Raised this ${periodCfg.noun}`}
-                      change={unknown ? 'unavailable' : hasRealCampaigns ? periodCfg.change : 'no data yet'}
+                      change={unavailable ? 'unavailable' : hasRealCampaigns ? periodCfg.change : 'no data yet'}
                     />
                     <PerfNumber
-                      value={unknown ? '—' : String(data.totalDonations)}
+                      value={unavailable ? '—' : String(data.totalDonations)}
                       label="All-time Donations"
-                      change={unknown ? 'unavailable' : 'all campaigns'}
+                      change={unavailable ? 'unavailable' : 'all campaigns'}
                     />
                     <PerfNumber
-                      value={unknown ? '—' : String(g.engagement)}
+                      value={unavailable ? '—' : String(g.engagement)}
                       label="Donor Messages"
-                      change={unknown ? 'unavailable' : 'all time'}
+                      change={unavailable ? 'unavailable' : 'all time'}
                     />
                     <PerfNumber
-                      value={unknown ? '—' : String(g.newDonors)}
+                      value={unavailable ? '—' : String(g.newDonors)}
                       label="New Donors"
-                      change={unknown ? 'unavailable' : periodCfg.change}
+                      change={unavailable ? 'unavailable' : periodCfg.change}
                     />
                   </div>
                 </div>

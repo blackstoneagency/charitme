@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/CharitMeShellServer';
+import DegradedReadNotice from '../../../components/DegradedReadNotice';
 // Note: this page shows donations received by the organizer's campaigns.
 // Donors can request refunds for their own donations at /dashboard/refund.
 import { requireUser } from '../../../lib/auth';
@@ -87,9 +88,13 @@ function initials(name: string): string {
 // ─────────────────────────────────────────────
 // Data fetch
 // ─────────────────────────────────────────────
+// `failed` separates "this read did not happen" from "this organizer has had no
+// donations". Collapsing the two renders a confident $0 raised / 0 donors to
+// someone whose campaign is funded.
 async function fetchDonationsData(userId: string): Promise<{
   donations: EnrichedDonation[];
   campaignMap: Map<string, string>;
+  failed: boolean;
 }> {
   try {
     // Step 1: get user's campaigns
@@ -98,8 +103,12 @@ async function fetchDonationsData(userId: string): Promise<{
       .select('id,title')
       .eq('user_id', userId);
 
-    if (campError || !campData || campData.length === 0) {
-      return { donations: [], campaignMap: new Map() };
+    if (campError || !campData) {
+      return { donations: [], campaignMap: new Map(), failed: true };
+    }
+    if (campData.length === 0) {
+      // Genuinely no campaigns — zeros here are true.
+      return { donations: [], campaignMap: new Map(), failed: false };
     }
 
     const campaigns = campData as CampaignRef[];
@@ -118,7 +127,7 @@ async function fetchDonationsData(userId: string): Promise<{
       .limit(200);
 
     if (donError || !donData) {
-      return { donations: [], campaignMap };
+      return { donations: [], campaignMap, failed: true };
     }
 
     const rawDonations = donData as Donation[];
@@ -154,9 +163,9 @@ async function fetchDonationsData(userId: string): Promise<{
       campaignTitle: campaignMap.get(d.campaign_id) ?? 'Unknown Campaign',
     }));
 
-    return { donations, campaignMap };
+    return { donations, campaignMap, failed: false };
   } catch {
-    return { donations: [], campaignMap: new Map() };
+    return { donations: [], campaignMap: new Map(), failed: true };
   }
 }
 
@@ -169,7 +178,7 @@ export default async function DonationsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const user = await requireUser();
-  const [{ donations }, params] = await Promise.all([
+  const [{ donations, failed: unavailable }, params] = await Promise.all([
     fetchDonationsData(user.id),
     searchParams,
   ]);
@@ -187,29 +196,29 @@ export default async function DonationsPage({
   const metrics = [
     {
       label: 'Total Raised',
-      value: fmtCents(totalRaised),
-      change: 'all time',
+      value: unavailable ? '—' : fmtCents(totalRaised),
+      change: unavailable ? 'unavailable' : 'all time',
       icon: 'gift',
       tone: 'violet' as const,
     },
     {
       label: 'Donations',
-      value: donationCount.toLocaleString(),
-      change: 'completed',
+      value: unavailable ? '—' : donationCount.toLocaleString(),
+      change: unavailable ? 'unavailable' : 'completed',
       icon: 'stack',
       tone: 'green' as const,
     },
     {
       label: 'Unique Donors',
-      value: uniqueDonors.toLocaleString(),
-      change: 'identified donors',
+      value: unavailable ? '—' : uniqueDonors.toLocaleString(),
+      change: unavailable ? 'unavailable' : 'identified donors',
       icon: 'users',
       tone: 'blue' as const,
     },
     {
       label: 'Avg. Donation',
-      value: fmtCents(avgDonation),
-      change: 'per transaction',
+      value: unavailable ? '—' : fmtCents(avgDonation),
+      change: unavailable ? 'unavailable' : 'per transaction',
       icon: 'chart',
       tone: 'orange' as const,
     },
@@ -291,6 +300,11 @@ export default async function DonationsPage({
 
       <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
         <div className="kf-content-main">
+          {/* title is an expression, not "&apos;" — entities are not decoded
+              inside a JSX string attribute, they would render literally. */}
+          {unavailable && (
+            <DegradedReadNotice title={"We couldn't load your donations"} />
+          )}
           <MetricGrid metrics={metrics} />
 
           <section className="kf-card" style={{ overflow: 'hidden' }}>
