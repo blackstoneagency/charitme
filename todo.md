@@ -566,6 +566,12 @@ Live-verified status of each goal criterion (master `9dc84c9`; two-bot split —
 **Owner action items (cannot be done from code):** (1) *(optional)* activate PayPal + Affirm in Stripe Dashboard — they're now safely excluded from code so they no longer break checkout; re-add to the method lists once active; (2) provide Stripe **test-mode** keys to enable live transactional payment/payout/webhook verification; (3) optionally seed real nonprofit logos (620 lack one) + more user avatars (627 lack one) — these render placeholders, not duplicates.
 **Not merged:** `agent/seo-aeo-marketing-engine` (stale, 217 behind) — its work already shipped via PRs; do not bulk-merge.
 
+### 2026-07-26 — Public dark-mode utility bridge (Codex)
+
+- [x] **Public marketing dark-mode parity** — Added token-backed dark overrides for the shared Tailwind utility palette used by `/for-donors`, `/for-nonprofits`, `/trust-safety`, `/faq`, `/for-individuals`, and `/profile`. Existing light-mode layouts and brand accents remain unchanged.
+  - Evidence: `npm test --workspace=apps/web -- --run` (945/945), `npm run typecheck --workspace=apps/web`, `npm run lint --workspace=apps/web`, `npm run build --workspace=apps/web`, and Chromium public-route audit (39 routes, 1/1 passed; no unnamed controls, missing image alt text, or horizontal overflow).
+  - Commit: pending
+
 ### 2026-07-23 — Production-readiness goal (Claude lane; Codex owns SEO/marketing/security/CSP/a11y)
 
 - [x] **GOAL — Image uniqueness: every image unique, 0 duplicates** (`scripts/image-uniqueness-audit.mjs`)

@@ -4742,6 +4742,36 @@ img, video, iframe { max-width: 100%; }
   color: var(--ink);
 }
 
+/* Shared Tailwind marketing utilities need token-backed dark counterparts. */
+[data-theme="dark"] .bg-white { background-color: var(--s2); }
+[data-theme="dark"] .bg-slate-50 { background-color: var(--s1); }
+[data-theme="dark"] .bg-slate-100 { background-color: var(--s3); }
+[data-theme="dark"] .bg-emerald-50 { background-color: rgba(16, 185, 129, .10); }
+[data-theme="dark"] .bg-emerald-100 { background-color: rgba(16, 185, 129, .16); }
+[data-theme="dark"] .bg-purple-50 { background-color: rgba(124, 58, 237, .12); }
+[data-theme="dark"] .border-slate-100,
+[data-theme="dark"] .border-slate-200,
+[data-theme="dark"] .border-emerald-100,
+[data-theme="dark"] .border-emerald-200,
+[data-theme="dark"] .border-purple-200 { border-color: var(--b1); }
+[data-theme="dark"] .text-slate-950,
+[data-theme="dark"] .text-slate-900,
+[data-theme="dark"] .text-slate-800 { color: var(--t1); }
+[data-theme="dark"] .text-slate-700,
+[data-theme="dark"] .text-slate-600 { color: var(--t2); }
+[data-theme="dark"] .text-slate-500,
+[data-theme="dark"] .text-slate-400 { color: var(--t3); }
+[data-theme="dark"] .text-emerald-800,
+[data-theme="dark"] .text-emerald-700,
+[data-theme="dark"] .text-emerald-600 { color: var(--green-dark); }
+[data-theme="dark"] .text-purple-700,
+[data-theme="dark"] .text-purple-600 { color: var(--violet-ink); }
+[data-theme="dark"] .bg-emerald-700,
+[data-theme="dark"] .bg-emerald-600 { background-color: #08763b; }
+[data-theme="dark"] .bg-purple-700 { background-color: #6d35ff; }
+[data-theme="dark"] .text-emerald-300 { color: #86efac; }
+[data-theme="dark"] .text-slate-300 { color: var(--t2); }
+
 /* ── Marketing shell header ── */
 [data-theme="dark"] .kind-header {
   background: rgba(10,12,35,.92);
