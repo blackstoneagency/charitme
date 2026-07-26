@@ -418,6 +418,25 @@ correct, and notably well built:
 _No fix needed._ Recording it so the money path isn't re-audited: the promise-audit
 found 7 leaks elsewhere, but **this** control keeps its promise.
 
+**✅ AUDITED CLEAN — refund handling, including the partial-refund edge case.**
+Checked whether a refund brings `campaigns.raised_amount` back down; otherwise
+public totals would overstate reality (the "number that doesn't match its label"
+family, on money). It is handled, and handled thoughtfully:
+- **Full refund** → donation set to `refunded`, `decrement_campaign_stats` RPC
+  called, ledger payable reversed idempotently by charge id.
+- **Partial refund** → deliberately does *not* guess. The status stays `completed`
+  and the code opens a **reconciliation exception (`kind: 'amount_mismatch'`,
+  carrying `campaignId`)** for finance to reverse by hand, with a comment
+  explaining that the split across principal vs. fees is ambiguous from the charge
+  alone. Choosing a human process over a guessed ledger entry is the right call.
+- Ledger reversal is explicitly best-effort and **never blocks refund processing**.
+
+_One honest observation, not a defect:_ after a **partial** refund the campaign's
+`raised_amount` retains the full original amount until someone acts on the
+exception, so a public total can sit high in the interim. That is the accepted cost
+of not guessing the split, and the exception carries `campaignId` so the
+information needed is already routed. Worth knowing, not worth "fixing" blind.
+
 **📋 SYSTEMATIC SWEEP — all 6 admin-settable campaign flags checked for enforcement.**
 Prompted by three consecutive findings of the same shape (team roles, suspension,
 payout freeze: *an admin control that writes a flag nothing enforces*), I stopped
