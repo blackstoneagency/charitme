@@ -207,12 +207,32 @@ The second row matters: a profile whose `roles` landed as a JSON string would
 **render as "Admin" in the admin console while `isAdmin()` denies them**. It fails
 *safe* — the mismatch denies access rather than granting it — so this is a
 correctness/UI-honesty issue, not a privilege-escalation hole.
-_Not deduped here on purpose:_ the local copy is deliberately lenient, and
+**✅ NOW DEDUPED** (see below). _Original note, kept for the reasoning:_
+the local copy is deliberately lenient, and
 `deriveStatus()` depends on that leniency to read `'suspended'`/`'inactive'` out of
 the roles array (the shared whitelist would strip both). Collapsing them naively
 would silently break status badges. The clean fix is to stop encoding status in
 `roles` at all — `profiles.status` already exists and `deriveStatus()` already
 checks it — but that touches a file three other agents have recently committed to.
+
+**✅ RESOLVED — role parsing deduped, and a 4th drifted role list found.**
+The blocker was that `deriveStatus()` needs the *lenient* read to find legacy
+`'suspended'`/`'inactive'` markers in the roles array. Splitting the two concerns
+solves it cleanly:
+- **roles** now go through the shared, whitelisted `parseRoles` from `lib/roles`,
+  so admin badges and filters agree with `isAdmin()`.
+- **status** reads the raw strings via a renamed `rawRoleStrings()`, whose doc
+  comment states plainly that it is *not* role parsing and should disappear once
+  status lives only in `profiles.status` (which `deriveStatus` already prefers).
+
+Chasing the behaviour risk turned up a **fourth** hand-maintained role list:
+`ROLE_OPTIONS` in `AdminUsersClient.tsx`, already drifted in both directions — it
+offered a **`'user'`** option that is not a real role (so that filter could never
+match once roles are whitelisted) and **omitted `super_admin`**, leaving no way to
+filter super admins at all. Now derived from `ROLE_ORDER`/`ROLE_DEFINITIONS`, which
+gives the new capability map its first real consumer and fixes both directions of
+the drift.
+_Role-list copies found this session: 4. All now derive from one source._
 
 **⚠️ The e2e suite exists, works, and runs in NO CI workflow.** `e2e/` holds 4
 Playwright specs — `smoke`, `public-routes`, `public-quality`, `security-headers`

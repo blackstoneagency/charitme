@@ -1,4 +1,4 @@
-import { ASSIGNABLE_ROLES, type UserRole } from './roles';
+import { ASSIGNABLE_ROLES, type UserRole } from './roles-shared';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Role capability map — the single place that says what each role MEANS.
