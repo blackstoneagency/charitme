@@ -234,7 +234,212 @@ gives the new capability map its first real consumer and fixes both directions o
 the drift.
 _Role-list copies found this session: 4. All now derive from one source._
 
-**⚠️ The e2e suite exists, works, and runs in NO CI workflow.** `e2e/` holds 4
+**✅ NEW GUARD — `__tests__/no-server-only-in-client.test.ts` (4th structural guard).**
+Catches a class **no other gate can see**: a `'use client'` module reaching a
+`server-only` module *through its import graph*. This is not hypothetical — it
+happened in this session. Deriving the admin role filter from
+`role-capabilities.ts` → `roles.ts` → `supabase.ts` failed `next build` with
+*"You're importing a component that needs server-only"* while **typecheck, lint
+and 1159 unit tests all passed**. The chain was 3 hops, so reading the client
+file's own imports would not have revealed it either. The guard walks the graph
+and prints the full chain in milliseconds instead of failing a 5-minute build.
+
+**Its first draft was wrong and reported 9 false positives** — it counted
+`import type { X } from './server-module'`, which TypeScript erases at compile
+time so it never reaches webpack. The build was green the whole time it "found"
+those. Now value-imports only. A second assertion was also wrong: it matched the
+bare word `supabaseAdmin`, which appears in a *comment* in `roles-shared.ts`
+explaining the split, so it flagged prose. Both fixed, and non-vacuity is proven
+by planting the real regression and watching it report
+`AdminUsersClient.tsx → role-capabilities.ts → roles.ts → supabase.ts`.
+
+_That is now **twice** a guard's first draft would have gated CI on correct code
+(the constants guard flagged 7 files). Verifying a guard against known-good code
+matters as much as verifying it against the bug._
+
+**✅ 5th GUARD — `__tests__/feature-status-honesty.test.ts`.**
+Stops the module-status problem from returning. A module fails if it claims
+`Live`/`Production Ready` while **none** of its declared `databaseTables` is
+reachable from code. Deliberately weak — partial gaps pass, since a feature can
+legitimately be built without every table it was designed around; only a module
+with *nothing* wired fails.
+
+Reuses the corrected wiring detection: `.from()` **plus** tables written inside
+RPC function bodies (the fix that stopped `rate_limit_hits` being a false
+positive). Non-vacuity proven three ways — core tables (`campaigns`, `donations`,
+`profiles`) must register as wired, `auction_bids` must not, and flipping
+`memberships` back to *Production Ready* fails with
+`none of 5 declared tables reachable: creator_profiles, membership_tiers,
+member_subscriptions, exclusive_posts, direct_messages`.
+
+**🔴 FIXED — two ENTIRE modules advertised "Production Ready" with 0% built.**
+Following the unwired-table finding into the catalog's own `databaseTables`
+declarations:
+
+| module | declared tables unwired | route | badge was |
+|---|---|---|---|
+| **Memberships and Community** | **5 / 5** | none | Production Ready |
+| **Creator Commerce and Tips** | **6 / 6** | none | Production Ready |
+| projects-perks | 2 / 5 | yes | (left alone) |
+| nonprofit-suite | 2 / 7 | yes | (left alone) |
+| ai-trust-growth | 1 / 6 | yes | (left alone) |
+
+The two at 100% were the actionable ones, and the journey was worse than Auctions
+because each carries an **action CTA**: `/features` → "Memberships and Community"
+badged *Production Ready* → `/features/memberships` → button **"Create membership
+tiers"** → lands on **`/create/choose-path`**, the ordinary campaign wizard, where
+no membership functionality exists. Same for **"Build a creator page"**.
+
+Worse, **`/features/[slug]` never rendered status at all** — the detail page is
+where the CTA lives, so it gave the visitor no signal whatsoever.
+
+Fix: added **`'Planned'`** to the status union (it was `'Live' | 'Production
+Ready'`, with *no way to express "not built"* — the structural cause), marked
+those two modules, styled the badge on `/features`, and surfaced a **"Planned —
+not yet available"** marker beside the CTA on the detail page.
+
+_Deliberately conservative:_ only the two modules with **100%** unwired tables
+**and** no route were changed. The other three have partial gaps that may be
+legitimately implemented without those specific tables — flipping them would be
+positioning, not fact-checking.
+
+**🔴 SYSTEMIC — 36 of 143 tables (25%) have NO application code path.**
+Auctions was not a one-off. Cross-referencing the live-DB table snapshot against
+every `.from('…')` in `app`/`lib`/`components`, **plus** resolving the 6 `rpc()`
+functions called from code and the tables their bodies touch:
+
+`admin_notes, admin_settings, analytics_snapshots, api_keys, auction_bids,
+auction_items, campaign_analytics_events, campaign_payment_exports,
+campaign_payment_settings, coach_sessions, commission_requests, creator_profiles,
+creator_tips, digital_products, direct_messages, donation_forms,
+donation_receipts, donor_segment_members, donor_segments, donor_tips,
+embedded_buttons, event_tickets, exclusive_posts, giving_days, grant_documents,
+livestreams, marketing_referrals, member_subscriptions, membership_tiers,
+peer_fundraisers, platform_fees, processor_accounts, product_orders, reward_tiers,
+trust_scores, volunteer_profiles`
+
+**Directly answers "everything wired to Supabase": 75% is, 25% is not.** Several
+of these back features the `/features` page advertises as **Production Ready** —
+donation forms, CRM donor segments, peer-to-peer, memberships, digital products,
+livestreams — the same false-claim shape as Auctions, at scale.
+
+**Method was corrected twice before trusting it**, because the naive version lies:
+- A `.from()`-only scan said **37**. `rate_limit_hits` was a false positive — it is
+  written by the `check_rate_limit` **RPC**, so it *is* wired. Resolving RPC
+  function bodies against `schema.sql` fixed the count to **36**.
+- Spot-verified five more by hand (`donation_forms`, `peer_fundraisers`,
+  `donor_segments`, `membership_tiers`, `livestreams`) → **0** code references each.
+
+**Bonus finding: `reward_tiers` is a duplicate.** Rewards genuinely work, but the
+app reads **`campaign_rewards`**; `reward_tiers` is dead legacy schema.
+
+_Caveat, deliberately not overstated:_ a few entries (`admin_settings`,
+`platform_fees`, `analytics_snapshots`) may be written by SQL/cron rather than app
+code, so "no app code path" is not automatically "unused". The features-backing
+ones above are the actionable set.
+
+**🔴 FIXED — `/features` advertised Auctions as shipped; it does not exist.**
+`auction_items` and `auction_bids` exist in the schema, but there is **no route,
+API, component or bidding UI anywhere** in the app (verified by grepping for
+auction/bid/lot across `app`, `lib`, `components` — the only hits were the
+marketing page and the catalog itself), and **no commit is building one**. Yet
+`/features` renders it inside a module badged **"Production Ready"**, so visitors
+read it as available.
+
+**First fix was wrong.** I deleted the entry — and `feature-catalog.test.ts`
+failed, which revealed intent I did not have: `REQUIRED_COMPETITOR_FEATURES` is a
+**competitive parity checklist** (what rivals offer and CharitMe intends to
+match), and the test pins every entry. Deleting it destroyed tracking. The test
+encoded a purpose the code alone did not explain.
+Correct fix: added an optional **`planned?: boolean`** to `PlatformFeature`,
+marked Auctions with it, and rendered a `· planned` marker on the page. The parity
+checklist stays complete, and nothing unbuilt is presented as shipped.
+
+_Also unbacked:_ `membership_tiers` exists in the schema and is referenced **only**
+by `feature-catalog.ts` — no route, no UI. Not flagged `planned` here because it
+is not in the competitor list; worth an owner pass over the remaining modules.
+
+**❌ Related negative result:** a keyword scan of all **105** catalog claims
+reported 16 with "no implementation". **Unreliable — discard it.** Short first
+words broke the key (`"Tax Receipts"` → `tax` is under 4 chars → fell back to
+searching the literal `"tax-receipts"`), so `lib/tax.ts` and the AI trust-score /
+fraud-monitor routes were all flagged despite plainly existing. Auctions was
+confirmed by hand, not by that scan.
+
+**✅ VERIFIED CLEAN — money path end-to-end (cents/dollars).** The classic 100×
+bug class, checked in both directions across the app:
+- **Input→storage:** `goalCents = Math.round(parseFloat(form.goal) * 100)` and
+  `amountCents = Math.round(parseFloat(amount) * 100)` — both use `Math.round`
+  (so no float artifacts) with `|| 0` guards. No path sends dollars where cents
+  are expected.
+- **Storage→display:** grepped every `.tsx` for `raised_amount` / `goal_amount` /
+  `amount_cents` interpolated into JSX without a formatter → **zero hits**. Even
+  the aggregate that looked suspicious (`totalRaised` summing raw cents in
+  `ai-growth-plan`) is rendered through `fmtCents()`.
+Combined with the earlier fee-math probe (66 combinations, 0 invariant
+violations), the money path is verified at input, aggregation and display.
+
+**⚠️ Seed counts CANNOT be verified statically — use `99_verify_counts.sql`.**
+Tried to check the "≥100 seed records" criterion by counting rows in the seed SQL
+without a database. **The method is unreliable and produced a false finding**,
+which is worth recording so nobody repeats it:
+- A tuple-counting heuristic reported `seo_settings` at **75**, i.e. short of 100.
+- Verifying precisely: that table is populated by an `insert … select … from
+  generate_series` (not `insert … values`), so neither regex measures it. The
+  file header states **105 records per table, applied to the live DB 2026-07-20**.
+  No shortfall.
+Seed SQL resists static counting generally — `select`-based inserts,
+`generate_series`, and `ON CONFLICT` (which makes re-runs idempotent for some
+tables and appending for others). The suite already ships the right tool:
+**`supabase/seeds/99_verify_counts.sql`**, which answers this in one query against
+the live DB. That, not a scan, is what closes this criterion.
+_Suite covers 33 tables in `seeds/` plus `super_admin_console_seed.sql`,
+`seed.sql` and `seed_250.sql`._
+
+**✅ VERIFIED CLEAN — CSV export escaping and search-query handling.**
+Both are security-relevant and both were probed with adversarial input rather than
+read:
+- **`lib/csv.ts`** — formula/CSV injection. `=1+1`, `+1+1`, `-1+1`, `@SUM(A1)`,
+  `=cmd|' /C calc'!A0`, leading TAB and CR all receive the neutralizing leading
+  apostrophe; commas/quotes/newlines are quoted with `"` doubled; combined cases
+  (`=HYPERLINK("http://evil","x")`) get **both** treatments; plain values, `""`
+  and `"0"` pass through untouched. Textbook-correct.
+- **`lib/campaign-search.ts`** — PostgREST `.or()` filter injection. `a,b` has its
+  comma stripped, `x)or(1=1` loses its parens, `()` yields no terms, `%wildcard%`
+  has the `%` stripped so wildcards can't be injected, and `status.eq.draft`
+  survives only as *literal text* inside `ilike.%…%` rather than as a filter.
+  Unicode (`café niño`, curly quotes) is preserved.
+Neither needs work; recorded so the next audit doesn't repeat them.
+
+**❌ NEGATIVE RESULT — "unsent form state" cannot be found by scanning. Don't retry it.**
+Tried to automate the highest-value unguarded bug class (the Settings one: form
+state that never reaches its save payload, causing silent data loss). A scan of
+every `'use client'` file comparing `useState` names against `JSON.stringify`
+bodies reported **71 suspect files**. Essentially all are false positives, for
+three reasons worth knowing before anyone builds this again:
+1. **Renamed fields** — `DonateButton` sends `donorEmail: guestEmail.trim()` and
+   `paymentMethod: preferredMethod`, so the state name never appears in the body.
+2. **Computed keys** — `ProfileForm.updatePreference` sends
+   `JSON.stringify({ [key]: value })`. No state name is present at all.
+3. **Nested payloads** — a non-greedy `\{(.*?)\}` stops at the first `}`, so
+   anything after a nested object reads as "unsent".
+Spot-checked the top candidates by hand: `DonateButton`, `ProfileForm` (which has
+a proper optimistic-update-with-revert) — **all clean**. Unlike dead controls and
+list drift, this class needs real type/dataflow analysis, not regex. It stays a
+manual-review item.
+
+_Bonus corroboration from the check:_ `/api/profile` has always handled all three
+`notification_*` columns including `notification_updates` — the column
+`/api/settings` was missing until it was wired this session. The settings route
+was the outlier, not the column.
+
+**✅ CLOSED — the e2e suite now runs in CI and is CONFIRMED green there.**
+Wired `smoke` + `security-headers` into `ci.yml`, then verified in real CI rather
+than assuming: run `d51208e` completed **success**, and its duration jumped to
+**451s** against 292/308/344s for the three preceding successful runs. That
++110–160s is exactly the Playwright browser install plus the 6 specs (~1.3 min
+locally), so the step demonstrably executed rather than being skipped.
+_Original finding, kept for context:_ **⚠️ The e2e suite exists, works, and runs in NO CI workflow.** `e2e/` holds 4
 Playwright specs — `smoke`, `public-routes`, `public-quality`, `security-headers`
 — plus an `npm run e2e` script. **Neither `ci.yml` nor `image-links.yml` mentions
 Playwright or e2e**, so none of it has ever run automatically. `security-headers`
@@ -4070,3 +4275,69 @@ the anon+cookies client so Postgres enforces ownership).
 - [x] Ran the migration against the live schema inside a rollback-only transaction: show/hide, copy persistence, safe link, and revision increments passed; a post-rollback REST probe confirmed no production change remained.
 - [x] Verified focused banner tests 15/15, zero-warning lint, typecheck, all 1,163 tests, and the 149-page production build.
 - [ ] Merge through the protected-main PR, apply the verified migration in the release workflow, and confirm the production Save/show/hide/text flow.
+
+## 🔒 CLAIM — Session 2026-07-25 (Claude — production-readiness sweep)
+
+> **AREA CLAIMED:** `.github/workflows/ci.yml`, `apps/web/e2e/**`, `middleware.ts`.
+> Branch `claude/prod-readiness-sweep`. Other bots: please avoid these files.
+> Free for others: `app/create/**` (F4–F10 all shipped), marketing OS, payments, tax.
+
+### 🔴 FINDING 1 — the e2e suite gated nothing (FIXED)
+`playwright.config.ts` + 4 spec files exist and work, but **no CI workflow ran
+them**, so nothing verified the public surface before a production deploy.
+Root causes found by actually running the suite (not by reading it):
+1. **Two sweeps depended on seeded data.** `/campaigns/security-header-fixture/embed`
+   resolves a real `campaigns` row → 404s on a placeholder DB → failed the whole
+   sweep. Now probed once and skipped when absent (`e2e/data-routes.ts`), so a
+   seeded env still gets full coverage and CI gates on everything else.
+2. **Per-test timeout was far too tight.** Each sweep walks ~36 routes in ONE
+   test; Supabase-backed pages cost ~7s each against a placeholder host, so the
+   30s cap tripped on slowness, not on defects. Raised to 600s for the sweeps only.
+→ New `e2e` job in `ci.yml`: installs Chromium, builds with the same placeholder
+  Supabase env as the build job, runs both projects (chromium + mobile), and
+  uploads the Playwright report as an artifact on failure.
+
+### 🟡 FINDING 2 — page-level Supabase queries have no timeout
+Measured on a production build with an unreachable Supabase host:
+`/pricing` 89ms, `/security` 73ms, `/terms` 726ms (no DB) vs **`/faq` 7108ms**
+and **`/grants` 7106ms** (DB-backed). The stall is per-page data fetching, and it
+scales with how many DB-backed pages a visitor touches.
+**Severity: conditional.** With a healthy Supabase this never fires — it is not a
+live outage. But there is no ceiling, so a degraded Supabase degrades page loads
+without bound instead of falling back to an empty/error state.
+**Not fixed here** — a real fix means auditing every server-component query and
+deciding per-page fallback behaviour, which is its own reviewable change.
+
+### ⚠️ CORRECTION — recorded so nobody repeats the wrong diagnosis
+I first attributed the ~7s to `middleware.ts` awaiting `supabase.auth.getUser()`
+on every non-API request. **That was wrong.** Evidence: `/pricing` returns in
+89ms through the same middleware, and the `X-Auth-Refresh: timeout` header never
+appeared — middleware resolves fast even against a placeholder host.
+The `AUTH_REFRESH_TIMEOUT_MS` (3s) guard added to `middleware.ts` is **kept on its
+own merits** — an unbounded auth round-trip in the hot path of every page is worth
+capping, and it fails SAFE (a timeout is treated as "not signed in", so protected
+routes redirect to login rather than being served). It is **not** the fix for
+Finding 2 and must not be described as such.
+
+
+### ⚠️ Collision #2 (2026-07-25/26) — e2e-in-CI was solved twice, concurrently
+A parallel agent wired e2e into CI at the same time as this session, choosing a
+**narrower** scope: smoke + security-headers only, chromium only, as steps inside
+the `verify` job — on the stated assumption that `public-routes` and
+`public-quality` "hit Supabase-backed pages and need real credentials, so they'd
+be flaky against the placeholders."
+
+**That assumption was tested and is false.** Those sweeps failed for two fixable
+reasons, both now fixed: one route needed seeded data (probed and skipped via
+`e2e/data-routes.ts`) and each sweep walks ~36 routes inside ONE test so the 30s
+cap tripped on slowness, not defects (now 600s for the sweeps only).
+**All four specs pass against the placeholder env on chromium AND mobile: 16/16
+verified locally.** The merge keeps the superset as its own `e2e` job and removes
+the duplicated in-`verify` steps so the suite does not run twice.
+Please don't re-narrow it without re-running it first.
+
+**Process note:** master moved from `4a4b536` → `d51208ed` during a single
+session's work (agents pushing straight to master), and the resulting conflict
+left PR #73 `mergeable_state: dirty` — GitHub then ran **no** workflow at all,
+which looks exactly like "CI is slow". Check `mergeable_state` before assuming a
+queue delay.

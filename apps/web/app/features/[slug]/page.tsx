@@ -55,6 +55,15 @@ export default async function FeatureDetailPage({ params }: FeaturePageProps) {
             <div className="rounded-2xl border border-white/10 bg-white/10 p-6">
               <div className="text-sm font-black uppercase tracking-[0.18em] text-slate-300">Audience</div>
               <p className="mt-3 text-xl font-black">{platformModule.audience}</p>
+              {/* This page carries the module's action CTA but never showed its
+                  status, so a Planned module read as shippable: the visitor saw
+                  "Create membership tiers" and landed on the ordinary campaign
+                  wizard. Surfacing the badge qualifies the promise. */}
+              {platformModule.status === 'Planned' ? (
+                <p className="mt-6 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-black uppercase tracking-wider text-amber-900">
+                  Planned — not yet available
+                </p>
+              ) : null}
               <Link href="/create/choose-path" className="mt-6 inline-flex rounded-xl bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950">
                 {platformModule.primaryCta}
               </Link>

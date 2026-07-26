@@ -136,7 +136,7 @@ export default function FeaturesPage() {
                     <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg,#f3f0ff,#ede9fe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
                       {MODULE_ICONS[module.slug] ?? '✦'}
                     </div>
-                    <span style={{ background: module.status === 'Live' ? '#dcfce7' : '#f3f0ff', color: module.status === 'Live' ? '#15803d' : '#6c35ff', borderRadius: 999, padding: '4px 12px', fontSize: 11, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>
+                    <span style={{ background: module.status === 'Live' ? '#dcfce7' : module.status === 'Planned' ? '#fef3c7' : '#f3f0ff', color: module.status === 'Live' ? '#15803d' : module.status === 'Planned' ? '#92400e' : '#6c35ff', borderRadius: 999, padding: '4px 12px', fontSize: 11, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>
                       {module.status}
                     </span>
                   </div>
@@ -149,6 +149,10 @@ export default function FeaturesPage() {
                     {module.features.slice(0, 5).map((feature) => (
                       <span key={`${module.slug}-${feature.name}`} style={{ background: '#f8f7ff', border: '1px solid #ede9fe', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: '#5b21b6' }}>
                         {feature.name}
+                        {/* Tracked for competitive parity but not built yet — the
+                            module badge above says "Production Ready", so an
+                            unbuilt entry would otherwise read as shipped. */}
+                        {feature.planned ? <em style={{ fontStyle: 'normal', opacity: 0.75, marginLeft: 5 }}>· planned</em> : null}
                       </span>
                     ))}
                     {module.features.length > 5 && (
