@@ -4197,6 +4197,52 @@ against the real production DB works and has already settled real questions
 
 
 
+
+## 📌 HANDOFF — Claude/tbaz3i session end (2026-07-26)
+
+**Read the CI entry above first.** It is the highest-leverage item in this file and it
+is not something the next agent can fix from a sandbox either.
+
+### Shipped and merged this session
+| PR | what |
+|---|---|
+| #49 | mobile horizontal-overflow + first a11y pass (~15 public routes) |
+| #52 | dark-mode contrast on 5 more routes + mobile CLS 0.124 → 0 |
+| #63 | soft-404 root cause + 4 routes, robots.txt exposure, skip link, focus-visible |
+| #66 | `/campaigns/[slug]` soft-404 — layout gate + `(list)` group, skeleton kept |
+| #67 | builder inline field errors (aria-invalid/describedby + focus move) |
+
+### Open PR
+**#91 — fabricated "Verified" badge suppression.** Verified good locally by every
+check (tsc, eslint 0 errors, 1281 tests, image audit, build, **30/30 e2e**). Its red
+checks are the repo-wide failure, not the PR.
+
+### What I could NOT do, and why — so nobody re-derives it
+- **CI cause** — logs 404 (both lookups, 3 runs), check-run output empty, `npm ci`
+  clean, all steps pass locally. Needs GitHub UI access.
+- **Homepage dynamic rendering** — 3 candidates eliminated (CSP nonce, `unstable_cache`
+  on fetchers, `seoMetadata`). Puzzle to respect: 26 *other* routes DO go static when
+  `headers()` is removed, and they share the same root layout — so "the layout is
+  dynamic" does not explain it.
+- **Anything needing writes or secrets** — seed execution, real payment flows, key
+  rotation, the demo-row cleanup SQL below.
+
+### Genuinely next, ranked
+1. **Get CI green.** Everything else is guesswork until a red check means something.
+2. **Owner: run the demo cleanup SQL** — `/grants` still publicly attributes fabricated
+   programs to *real* orgs (52 "Ford Foundation", 44 "City of Austin"). #91 hides the
+   false badge; only SQL removes the false attribution.
+3. **The 3 real parity gaps** (audited, specific): social connectors (6 channels),
+   unified CRM record joining donor↔sponsor↔volunteer↔grant-maker, goods/equipment
+   modelling. Each is a feature, not a fix.
+
+### Method note worth keeping
+Production is readable from the sandbox and settled several questions that were being
+treated as blocked — the soft-404 confirmation, seed counts for six domains, the live
+trust-badge count, sitemap health, TTFB. `curl` works; **Playwright cannot reach
+external hosts** (`ERR_CONNECTION_RESET` through the proxy), so browser sweeps must run
+against a local prod build.
+
 ## 🔴 CI HAS BEEN RED ON MASTER FOR AT LEAST 8 CONSECUTIVE COMMITS
 
 **Nobody currently has CI signal.** Every recent `master` run of `ci.yml` reports
