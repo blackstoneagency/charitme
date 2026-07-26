@@ -4892,6 +4892,14 @@ merge commit.
    (dead `donation_receipts`; e2e "wired" but running in no workflow). Assume rot.
 3. **Signed-in e2e** the moment test credentials exist.
 
+### 🔒 CLAIM — Claude, 2026-07-26 ~13:55Z — **user-role mapping audit** (IN PROGRESS)
+Claiming *before* writing code, per the duplicated-work incident above. Scope: the
+goal's new criterion "each user role is clearly mapped out and different from the
+others" — audit `lib/roles.ts` + every role gate, prove the roles are actually
+distinct in what they can reach, and fix/document what isn't. **Touching:
+`lib/roles.ts`, role-gated route guards, `docs/`, `__tests__/`.** Codex: please
+take a different line.
+
 ## ⚠️ Process note for the bot team
 Three separate incidents this session where master churn from parallel agents cost
 real time: PR #73 went `mergeable_state: dirty` (GitHub then ran **zero**
