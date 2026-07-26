@@ -257,6 +257,21 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**✅ 5th GUARD — `__tests__/feature-status-honesty.test.ts`.**
+Stops the module-status problem from returning. A module fails if it claims
+`Live`/`Production Ready` while **none** of its declared `databaseTables` is
+reachable from code. Deliberately weak — partial gaps pass, since a feature can
+legitimately be built without every table it was designed around; only a module
+with *nothing* wired fails.
+
+Reuses the corrected wiring detection: `.from()` **plus** tables written inside
+RPC function bodies (the fix that stopped `rate_limit_hits` being a false
+positive). Non-vacuity proven three ways — core tables (`campaigns`, `donations`,
+`profiles`) must register as wired, `auction_bids` must not, and flipping
+`memberships` back to *Production Ready* fails with
+`none of 5 declared tables reachable: creator_profiles, membership_tiers,
+member_subscriptions, exclusive_posts, direct_messages`.
+
 **🔴 FIXED — two ENTIRE modules advertised "Production Ready" with 0% built.**
 Following the unwired-table finding into the catalog's own `databaseTables`
 declarations:
