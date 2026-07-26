@@ -4224,14 +4224,21 @@ Non-vacuity verified: removing one `aria-label` fails the guard with the exact f
   redundant label to correct markup. A guard that cries wolf gets ignored, which is worse
   than no guard — so this one stays out until it can resolve child components.
 
-- **`<div>`/`<span>` with `onClick` but no `role` + `tabIndex` — REAL, 28 hits, not fixed here.**
-  These are genuinely keyboard-inaccessible: a mouse user can activate them, a keyboard user
-  cannot. Concentrated in the admin console (`admin/users/*`, `admin/content/*`). **Not fixed
-  blind** because each needs a judgement call the scan can't make — some wrappers may have a
-  real `<button>` child doing the work, in which case the right fix is removing the handler,
-  not adding `role="button"` and a key handler to a `<div>`. Worth a focused pass by whoever
-  owns admin; the scan that finds them is three regexes in
-  `__tests__/a11y-static.test.ts`'s style.
+- **`<div>`/`<span>` with `onClick` — I reported "28 real hits". That was WRONG. All 28 are
+  fine; do not chase them.** Correcting it here rather than leaving a false lead in the
+  backlog. Breakdown after actually looking:
+  - **23** carry a documented `eslint-disable` with a rationale — they are modal
+    **backdrops** (`onClick={e => { if (e.target === e.currentTarget) close(); }}`) where
+    backdrop-dismiss is supplementary and **Escape + a visible close button are the
+    keyboard path**. That is the correct, standard pattern, already reviewed by another
+    agent.
+  - **5** were **false positives of my regex**. `eslint.config.mjs` explicitly enables
+    `jsx-a11y/click-events-have-key-events` and `no-static-element-interactions` (another
+    agent widened the ruleset beyond next's default 6), and eslint reports **zero warnings**
+    on those files. Its AST analysis is simply more accurate than pattern-matching JSX.
+  **Lesson worth keeping:** before reporting a defect class, check whether the linter
+  already covers it. `eslint .` was green the whole time I was "finding" these.
+
 _1284/1284 tests, typecheck clean, build green._
 
 ## 📌 HANDOFF — Claude/tbaz3i session end (2026-07-26)
