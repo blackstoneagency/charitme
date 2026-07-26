@@ -39,7 +39,7 @@ Ordered by dependency and value. `[x]` = shipped in this branch.
 - [ ] Brand Constitution (ingest guides → structured brand rules + scoring)
 - [ ] Opportunity engine (scored feed → convert to goal/campaign)
 - [ ] Research / Strategy / Analytics / Executive agents (governed, structured outputs)
-- [ ] Command Center executive dashboard (daily briefing, alerts, approval queue)
+- [x] Command Center executive dashboard — shipped; live-data audit + 12 tests (2026-07-26). Daily-briefing digest and approval queue remain open (approval engine is a separate item below).
 
 ### Creation
 - [ ] Goal → full multichannel campaign generation (pages, email, social, ads, SEO)
