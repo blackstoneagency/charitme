@@ -4044,10 +4044,24 @@ Verified · Production Ready. These are grounded in the current codebase
       - Refusal reasons from the API are translated into sentences a volunteer can
         act on, not machine codes.
 
-      ⬜ **Still open:** the ORGANIZER UI — schedule a shift, display/print the QR,
-      and verify or reject submitted hours. The API for all three exists
-      (`POST /api/volunteers/shifts`, `.../hours/[id]/verify`) and is tested; only
-      the screens are missing.
+      **✅ ORGANIZER UI SHIPPED** — `/volunteer/manage/[id]`: schedule a shift, see
+      each shift's check-in code and ID, and verify or reject submitted hours.
+      Ownership is re-checked in the page as well as the API, because a page that
+      renders check-in codes must not be reachable by someone who cannot create
+      them — those codes are the whole security of the check-in flow. Capped entries
+      are flagged inline ("⚠ Capped at 24h — likely a missed check-out. Confirm
+      before verifying.") so an organizer reviews rather than rubber-stamps them.
+      Auth-gated (307 → `/login` verified), registered under `authGated`.
+
+      ⬜ **Two honest gaps remaining on CHAR-1102, neither blocking use:**
+      1. **No QR *image*.** The spec says "QR check-in"; what ships is the code
+         displayed to the organizer and typed/pasted by the volunteer. Rendering an
+         actual QR needs a new dependency (`qrcode`), which is a deliberate choice
+         to leave to the owner rather than add unilaterally. The check-in flow works
+         end to end without it.
+      2. **No cancel-shift endpoint.** `status` supports `cancelled` and `canCheckIn`
+         already refuses a cancelled shift, but nothing sets it yet — a `PATCH
+         /api/volunteers/shifts/[id]` is still needed.
   - Area: Volunteers
   - Feature: Shifts, check-in/out & hours tracking
   - Description: Schedule shifts, QR check-in/out, accumulate verified hours,
