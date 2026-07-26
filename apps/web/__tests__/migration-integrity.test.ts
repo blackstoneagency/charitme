@@ -16,10 +16,21 @@ function sourceFiles(root: string): string[] {
   });
 }
 
+// Block comments are stripped first: JSDoc usage examples (e.g. the
+// `supabaseAdmin.from('x').select()` sample in lib/query-timeout.ts) are not real
+// queries, and counting them demands a migration for a table that never existed.
+// Only `/* */` is stripped — `//` appears inside every https:// literal, so
+// removing line comments would swallow real code.
+function stripBlockComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '');
+}
+
 function literalPostgrestTables(): Set<string> {
-  const source = SOURCE_ROOTS.flatMap(sourceFiles)
-    .map((path) => readFileSync(path, 'utf8'))
-    .join('\n');
+  const source = stripBlockComments(
+    SOURCE_ROOTS.flatMap(sourceFiles)
+      .map((path) => readFileSync(path, 'utf8'))
+      .join('\n'),
+  );
   return new Set(
     [...source.matchAll(/\.from\(\s*['"]([a-z_][a-z0-9_]*)['"]\s*\)/gi)]
       .map((match) => match[1]),
@@ -37,6 +48,16 @@ describe('migration integrity', () => {
 
     expect(invalid, `Invalid migration filenames: ${invalid.join(', ')}`).toEqual([]);
     expect(duplicates, `Duplicate migration versions: ${duplicates.join(', ')}`).toEqual([]);
+  });
+
+  // Guards the comment-stripping above: if it ever over-matches and blanks out real
+  // source, the check below would pass vacuously instead of catching a missing table.
+  it('still finds the core tables after comments are stripped', () => {
+    const found = literalPostgrestTables();
+    for (const table of ['campaigns', 'donations', 'profiles']) {
+      expect(found.has(table), `scanner lost ${table}`).toBe(true);
+    }
+    expect(found.size).toBeGreaterThan(20);
   });
 
   it('defines every table used by a literal PostgREST query', () => {
