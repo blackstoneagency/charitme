@@ -47,13 +47,13 @@ export default async function TrustSafetyPage() {
   const [flagsResult, reportsResult, frozenResult] = await Promise.all([
     supabaseAdmin
       .from('risk_flags')
-      .select('id, flag_type, severity, description, resolved, created_at, campaign_id, campaigns:campaign_id(title, slug)')
+      .select('id, flag_type, severity, description, resolved, created_at, campaign_id, campaigns:campaign_id(title, slug)', { count: 'exact' })
       .eq('resolved', false)
       .order('created_at', { ascending: false })
       .limit(50),
     supabaseAdmin
       .from('campaign_reports')
-      .select('id, reason, status, created_at, campaign_id, campaigns:campaign_id(title, slug)')
+      .select('id, reason, status, created_at, campaign_id, campaigns:campaign_id(title, slug)', { count: 'exact' })
       .in('status', ['open', 'investigating'])
       .order('created_at', { ascending: false })
       .limit(50),
@@ -66,6 +66,13 @@ export default async function TrustSafetyPage() {
 
   const flags = (flagsResult.data ?? []) as unknown as RiskFlag[];
   const reports = (reportsResult.data ?? []) as unknown as CampaignReport[];
+  // The lists are capped at 50 for rendering, so `.length` is a PAGE SIZE, not a
+  // count. Showing it in the summary tiles meant a 500-report backlog displayed
+  // as exactly "50" — the queue looked healthy precisely when it was worst, and
+  // /trust-safety publicly promises review "within 24 hours". These are the true
+  // totals from PostgREST; the rendered lists stay capped.
+  const flagsTotal = flagsResult.count ?? flags.length;
+  const reportsTotal = reportsResult.count ?? reports.length;
   const frozen = frozenResult.data ?? [];
 
   const sev = (s: string) => SEV_COLOR[s] ?? '#6b7280';
@@ -83,8 +90,8 @@ export default async function TrustSafetyPage() {
         {/* Summary stats */}
         <div className="kf-three-col">
           {[
-            { label: 'Unresolved Risk Flags', value: flags.length, color: '#ef4444' },
-            { label: 'Open Reports', value: reports.length, color: '#f59e0b' },
+            { label: 'Unresolved Risk Flags', value: flagsTotal, color: '#ef4444' },
+            { label: 'Open Reports', value: reportsTotal, color: '#f59e0b' },
             { label: 'Frozen Payouts', value: frozen.length, color: '#6c35ff' },
           ].map(m => (
             <div key={m.label} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '20px 24px' }}>
@@ -98,6 +105,9 @@ export default async function TrustSafetyPage() {
         <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8' }}>
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 650 }}>Unresolved Risk Flags</h2>
+            {flagsTotal > flags.length ? (
+              <span style={{ fontSize: 12, color: 'var(--t3)' }}>showing {flags.length} of {flagsTotal}</span>
+            ) : null}
           </div>
           {flags.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>✅ No unresolved risk flags</div>
@@ -145,6 +155,9 @@ export default async function TrustSafetyPage() {
         <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8' }}>
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 650 }}>Campaign Reports</h2>
+            {reportsTotal > reports.length ? (
+              <span style={{ fontSize: 12, color: 'var(--t3)' }}>showing {reports.length} of {reportsTotal} — oldest are not listed</span>
+            ) : null}
           </div>
           {reports.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>✅ No open reports</div>

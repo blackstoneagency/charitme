@@ -277,6 +277,30 @@ _Two false alarms killed by checking:_ a grep for admin guards missed
 grep for `rateLimit` missed `checkRateLimit`, making two endpoints look
 unthrottled. Both were fine.
 
+**🔴 FIXED — the trust & safety dashboard misreported its own backlog.**
+`/admin/trust-safety` showed summary tiles reading **"Unresolved Risk Flags"** and
+**"Open Reports"**, whose values were `flags.length` / `reports.length`. Those
+arrays are capped by `.limit(50)`, so **`.length` is a page size, not a count**.
+With 500 open reports the dashboard displayed a confident **"50"** — the queue
+looked healthiest exactly when it was worst. `/trust-safety` publicly promises
+staff review *"within 24 hours"*, and this is the screen that promise depends on.
+
+Tiles now use PostgREST `{ count: 'exact' }` totals; the rendered lists stay capped
+at 50. Each section also shows *"showing 50 of 213"* when truncated, and the
+reports one adds **"— oldest are not listed"**, because the lists are ordered
+newest-first: the hidden rows are the ones that have waited longest and are
+closest to breaching the SLA.
+
+_Not changed:_ the newest-first ordering itself. Flipping a moderation queue to
+oldest-first is arguably correct for an SLA but changes how staff triage, so it's
+the owner's call — the truncation notice at least makes the situation visible.
+
+**Confirmed sound while here:** the write path is good. `POST /api/campaign-reports`
+is rate-limited, validated, inserts with `status: 'open'`, and **checks the insert
+result** — with a comment explaining that swallowing the error would lose a fraud
+report given the 24-hour promise. Reports genuinely reach the queue; only the
+dashboard's arithmetic was wrong.
+
 **🔒 FIXED — the unsubscribe rate limit was bypassable by changing HTTP verb.**
 `POST /api/marketing/unsubscribe` carried a durable limit with an explicit comment:
 *"this endpoint is unauthenticated and anonymous callers can suppress an arbitrary
