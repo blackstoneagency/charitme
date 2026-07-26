@@ -277,6 +277,28 @@ _Two false alarms killed by checking:_ a grep for admin guards missed
 grep for `rateLimit` missed `checkRateLimit`, making two endpoints look
 unthrottled. Both were fine.
 
+**✅ AUDITED CLEAN — recurring donations, the highest-stakes control in the app.**
+Checked because a cancel that doesn't reach Stripe means donors keep being
+**charged** — the worst possible version of the promise-audit bug class. It is
+correct, and notably well built:
+- **`/api/donations/recurring/cancel`** — 401 unauthenticated; verifies
+  `row.donor_id !== user.id` → **403** (so nobody can cancel a stranger's
+  donation by guessing a subscription id); then calls
+  `stripe.subscriptions.update(..., { cancel_at_period_end: true })` **before**
+  writing the local row. That ordering is deliberate and commented — if the DB
+  write fails, the donor is *still* cancelled at Stripe, so the failure mode
+  never costs them money.
+- **`/api/donations/recurring/pause`** — same auth + ownership + Stripe-first
+  shape, for both pause (`pause_collection`) and resume.
+- **External changes sync back.** The webhook handles **18** event types,
+  including `customer.subscription.deleted`, `customer.subscription.updated` and
+  `invoice.payment_failed` — so a cancellation from the Stripe dashboard, an
+  expired card, or a failed payment all reach the app. Local status cannot drift
+  permanently out of sync.
+
+_No fix needed._ Recording it so the money path isn't re-audited: the promise-audit
+found 7 leaks elsewhere, but **this** control keeps its promise.
+
 **🔴 TEAM ROLES ARE A FALSE PROMISE — the UI states capabilities no code enforces.**
 `app/dashboard/team/_components/TeamActions.tsx:169-171` offers, in user-facing copy:
 - *"Admin — can edit and manage campaign"*
