@@ -36,11 +36,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
   }
 
-  const { reportId } = body as { reportId?: string };
+  // `status`/`since` back the Data Type and Date Range pickers in the donations
+  // console. They used to be ignored entirely: an admin could select "Refunded
+  // Only / Last 30 days", export, and receive completed donations for all time
+  // with nothing indicating the choice had been dropped.
+  const { reportId, status, since } = body as { reportId?: string; status?: string; since?: string };
 
   if (!reportId || typeof reportId !== 'string') {
     return NextResponse.json({ error: 'reportId is required' }, { status: 400 });
   }
+
+  // Allow-listed so a caller cannot inject an arbitrary filter value.
+  const DONATION_STATUSES = new Set(['completed', 'refunded', 'pending', 'failed']);
+  const statusFilter =
+    status === 'all' ? null : typeof status === 'string' && DONATION_STATUSES.has(status) ? status : 'completed';
+  const sinceFilter =
+    typeof since === 'string' && !Number.isNaN(Date.parse(since)) ? new Date(since).toISOString() : null;
 
   // Map reportId to a Supabase query
   type Row = Record<string, unknown>;
@@ -48,10 +59,12 @@ export async function POST(request: NextRequest) {
   let headers: string[] = [];
 
   if (reportId === 'donation-summary' || reportId === 'donation-trends' || reportId === 'recurring-donations') {
-    const { data } = await supabaseAdmin
+    let donationQuery = supabaseAdmin
       .from('donations')
-      .select('id, amount_cents, status, donor_id, campaign_id, created_at')
-      .eq('status', 'completed')
+      .select('id, amount_cents, status, donor_id, campaign_id, created_at');
+    if (statusFilter) donationQuery = donationQuery.eq('status', statusFilter);
+    if (sinceFilter) donationQuery = donationQuery.gte('created_at', sinceFilter);
+    const { data } = await donationQuery
       .order('created_at', { ascending: false })
       .limit(5000);
     rows = ((data ?? []) as Row[]).map(r => ({

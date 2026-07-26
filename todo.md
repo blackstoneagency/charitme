@@ -5668,6 +5668,41 @@ them real gates (e.g. beneficiary confirmation flow, nonprofit-only campaign typ
 or retire them. Recorded rather than guessed, because inventing restrictions on
 roles nobody holds is the fastest way to lock a real user out.
 
+### ✅ DONE — Claude, 2026-07-26 — **the admin donations export was broken four ways**
+Extended the dead-control lens from `<button>` to `<select>/<input>` (22 hits, most
+of them legitimate uncontrolled inputs inside GET forms). Two real defects fell out,
+one of them a genuine data-correctness bug:
+
+**1. `/admin/donations` Export downloaded an error message as a CSV.** The handler
+POSTed `{ format, type: 'donations' }`, but the endpoint **requires `reportId` and
+400s without it** — and the response went straight into a Blob download. So an admin
+clicking Export received a file named `donations.csv` whose contents were
+`{"error":"reportId is required"}`. **The export had never worked.** Alongside that:
+- A *second* Export button did `window.open()` on a **GET** URL against a route that
+  only implements **POST** → a tab showing 405, not a download.
+- **"Data Type" and "Date Range" were unbound `<select>`s.** Selecting "Refunded
+  Only / Last 30 days" was silently dropped. Live proof the choice matters:
+  all statuses **740** rows · completed **592** · refunded **98** · completed-last-30d
+  **233** — four very different answers to the same button.
+- **"Format" offered Excel and PDF**, but the route emits `text/csv`
+  unconditionally, so picking PDF downloaded a CSV named `.pdf`.
+**Fixed:** the route now accepts `status` (allow-listed against
+`{completed,refunded,pending,failed}` + `all`, so a caller cannot inject a filter)
+and `since`; the client binds all three selects, sends a valid `reportId`
+(`donation-summary`, or `top-donors` when Data Type = Donors), **checks `res.ok`
+before downloading** and surfaces the error in a `role="alert"`, and Format now
+offers only CSV. 9 tests in `__tests__/admin-export.test.ts`.
+
+**2. The organizer dashboard's "Your Tasks" checkboxes stored nothing.** Ticking one
+did nothing and reset on the next render. The tasks are **computed from real state**
+(`contentCreated === 0` → "post your first update"), so they resolve themselves when
+the organizer acts — a manual checkbox was conceptually wrong. Each row is now a
+**link to where the task is actually done** (`/dashboard/updates/new`,
+`/dashboard/ai-growth-plan`, the campaign page, `/create/choose-path`), keeping the
+original bullet styling via `.task-row-dot`.
+
+Verified: typecheck 0, lint 0 errors, **1316 tests / 122 files**, build green.
+
 ### ✅ DONE — Claude, 2026-07-26 — **admin dead controls cleared; guard now covers the WHOLE app**
 Finished the half I had deliberately deferred. The 12 remaining dead buttons in
 `app/admin/**` are resolved, each by what it actually needed:

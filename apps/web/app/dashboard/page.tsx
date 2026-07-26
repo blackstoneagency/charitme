@@ -461,19 +461,43 @@ export default async function DashboardPage({
     ;
 
   // Generate dynamic tasks based on real state
-  const tasks: string[][] = [];
+  // Each task carries the place it gets DONE. These are derived from real state
+  // (post an update once `contentCreated` is 0, thank donors once there are new
+  // ones), so they resolve themselves when the organizer acts — which is exactly
+  // why the row used to carry a checkbox that stored nothing and reset on every
+  // render. A computed to-do is not a manual one; the row is now a link to the
+  // work instead of a tick-box that pretends to remember.
+  const firstCampaign = data.campaigns[0];
+  const tasks: { title: string; due: string; href?: string }[] = [];
   if (unavailable) {
     // Neither task list is honest here: we don't know whether they have campaigns.
-    tasks.push(['Reload to see your tasks', 'Data unavailable']);
+    tasks.push({ title: 'Reload to see your tasks', due: 'Data unavailable' });
   } else if (hasRealCampaigns) {
-    if (data.growthCounts.contentCreated === 0) tasks.push(['Post your first campaign update', 'Due today']);
-    else tasks.push([`Post a campaign update`, 'Due today']);
-    if (data.growthCounts.newDonors > 0)
-      tasks.push([`Thank your ${data.growthCounts.newDonors} new donors`, 'Due today']);
-    tasks.push(['Share your campaign on social media', 'Due tomorrow']);
-    tasks.push(['Review AI recommendations', 'Due tomorrow']);
+    tasks.push({
+      title: data.growthCounts.contentCreated === 0 ? 'Post your first campaign update' : 'Post a campaign update',
+      due: 'Due today',
+      href: '/dashboard/updates/new',
+    });
+    if (data.growthCounts.newDonors > 0) {
+      tasks.push({
+        title: `Thank your ${data.growthCounts.newDonors} new donors`,
+        due: 'Due today',
+        href: '/dashboard/donor',
+      });
+    }
+    tasks.push({
+      title: 'Share your campaign on social media',
+      due: 'Due tomorrow',
+      href: firstCampaign ? `/campaigns/${firstCampaign.slug}` : '/dashboard/campaigns',
+    });
+    tasks.push({ title: 'Review AI recommendations', due: 'Due tomorrow', href: '/dashboard/ai-growth-plan' });
   } else {
-    tasks.push(['Create your first campaign', 'Get started'], ['Add a cover image & story', 'Step 2'], ['Set your fundraising goal', 'Step 3'], ['Share with friends & family', 'Step 4']);
+    tasks.push(
+      { title: 'Create your first campaign', due: 'Get started', href: '/create/choose-path' },
+      { title: 'Add a cover image & story', due: 'Step 2', href: '/create/choose-path' },
+      { title: 'Set your fundraising goal', due: 'Step 3', href: '/create/choose-path' },
+      { title: 'Share with friends & family', due: 'Step 4', href: '/dashboard/campaigns' },
+    );
   }
 
   // Activity: real donations or empty state
@@ -739,13 +763,21 @@ export default async function DashboardPage({
                 <h2>Your Tasks</h2>
                 <Link href="/dashboard/campaigns">View all</Link>
               </div>
-              {tasks.slice(0, 4).map(([title, due], index) => (
-                <label key={title} className="task-row">
-                  <input type="checkbox" />
-                  <span>{title}</span>
-                  <em className={index < 2 ? 'today' : ''}>{due}</em>
-                </label>
-              ))}
+              {tasks.slice(0, 4).map(({ title, due, href }, index) =>
+                href ? (
+                  <Link key={title} href={href} className="task-row">
+                    <span className="task-row-dot" aria-hidden="true" />
+                    <span>{title}</span>
+                    <em className={index < 2 ? 'today' : ''}>{due}</em>
+                  </Link>
+                ) : (
+                  <div key={title} className="task-row">
+                    <span className="task-row-dot" aria-hidden="true" />
+                    <span>{title}</span>
+                    <em className={index < 2 ? 'today' : ''}>{due}</em>
+                  </div>
+                ),
+              )}
             </section>
 
             <section className="dash-card recent-card">
