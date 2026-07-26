@@ -257,6 +257,24 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**✅ VERIFIED CLEAN — email consent.** Applied the same "does every surface honour
+the promise?" question to the notification toggles, since sending to someone who
+opted out is a legal exposure, not just a bug:
+- **Transactional email correctly gates on the opt-out.** The Stripe webhook
+  checks `notification_email === false` before both donor receipts and organizer
+  notifications and returns early.
+- **`notification_marketing` is collected but nothing consumes it** — no bulk
+  marketing send exists anywhere. The `/api/marketing/*` routes never call
+  `sendEmail`, and `lib/email.ts` never references the column. **So the opt-out
+  cannot be violated by a system that does not send.** It is set to `true` only on
+  explicit opt-in (it defaults FALSE, so that is a real opt-in, not a pre-tick).
+  ⚠️ **Whoever builds marketing email must wire this check** — the preference is
+  already stored and honoured nowhere, so it will not enforce itself.
+_One scoping error worth noting:_ I first concluded `lib/marketing-consent.ts` had
+**no importers** — wrong, my grep excluded `components/` and `.tsx`. It is used by
+`PrivacyPreferences.tsx` and `MarketingTracker.tsx`, and holds a localStorage key
+for **tracking** opt-out (not email). Checked before reporting.
+
 **🔴 FIXED — "Private" donors were still named on the leaderboard and donor walls.**
 Direct follow-on from making the Profile Visibility toggle actually save: having
 fixed the control, I checked whether anything *honours* it. `/donors/[id]` does
