@@ -149,6 +149,10 @@ export default function FeaturesPage() {
                     {module.features.slice(0, 5).map((feature) => (
                       <span key={`${module.slug}-${feature.name}`} style={{ background: '#f8f7ff', border: '1px solid #ede9fe', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: '#5b21b6' }}>
                         {feature.name}
+                        {/* Tracked for competitive parity but not built yet — the
+                            module badge above says "Production Ready", so an
+                            unbuilt entry would otherwise read as shipped. */}
+                        {feature.planned ? <em style={{ fontStyle: 'normal', opacity: 0.75, marginLeft: 5 }}>· planned</em> : null}
                       </span>
                     ))}
                     {module.features.length > 5 && (

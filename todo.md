@@ -257,6 +257,34 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**🔴 FIXED — `/features` advertised Auctions as shipped; it does not exist.**
+`auction_items` and `auction_bids` exist in the schema, but there is **no route,
+API, component or bidding UI anywhere** in the app (verified by grepping for
+auction/bid/lot across `app`, `lib`, `components` — the only hits were the
+marketing page and the catalog itself), and **no commit is building one**. Yet
+`/features` renders it inside a module badged **"Production Ready"**, so visitors
+read it as available.
+
+**First fix was wrong.** I deleted the entry — and `feature-catalog.test.ts`
+failed, which revealed intent I did not have: `REQUIRED_COMPETITOR_FEATURES` is a
+**competitive parity checklist** (what rivals offer and CharitMe intends to
+match), and the test pins every entry. Deleting it destroyed tracking. The test
+encoded a purpose the code alone did not explain.
+Correct fix: added an optional **`planned?: boolean`** to `PlatformFeature`,
+marked Auctions with it, and rendered a `· planned` marker on the page. The parity
+checklist stays complete, and nothing unbuilt is presented as shipped.
+
+_Also unbacked:_ `membership_tiers` exists in the schema and is referenced **only**
+by `feature-catalog.ts` — no route, no UI. Not flagged `planned` here because it
+is not in the competitor list; worth an owner pass over the remaining modules.
+
+**❌ Related negative result:** a keyword scan of all **105** catalog claims
+reported 16 with "no implementation". **Unreliable — discard it.** Short first
+words broke the key (`"Tax Receipts"` → `tax` is under 4 chars → fell back to
+searching the literal `"tax-receipts"`), so `lib/tax.ts` and the AI trust-score /
+fraud-monitor routes were all flagged despite plainly existing. Auctions was
+confirmed by hand, not by that scan.
+
 **✅ VERIFIED CLEAN — money path end-to-end (cents/dollars).** The classic 100×
 bug class, checked in both directions across the app:
 - **Input→storage:** `goalCents = Math.round(parseFloat(form.goal) * 100)` and

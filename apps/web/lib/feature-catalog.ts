@@ -2,6 +2,21 @@ export type PlatformFeature = {
   name: string;
   description: string;
   competitor: string;
+  /**
+   * Set when the feature is TRACKED FOR PARITY but not yet built.
+   *
+   * REQUIRED_COMPETITOR_FEATURES is a competitive checklist — what rivals offer
+   * and CharitMe intends to match — and `feature-catalog.test.ts` asserts every
+   * entry stays listed. But the /features page renders each module under a
+   * "Live" / "Production Ready" badge, so an unbuilt entry read to visitors as
+   * shipped. Auctions is the clear case: `auction_items` and `auction_bids`
+   * exist in the schema, yet there is no route, API, component or bidding UI
+   * anywhere in the app, and no commit building one.
+   *
+   * Marking it here keeps the parity checklist complete without advertising
+   * something that does not exist.
+   */
+  planned?: boolean;
 };
 
 export type PlatformModule = {
@@ -124,7 +139,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
       { competitor: 'Givebutter', name: 'Donation Forms', description: 'Custom nonprofit donation pages and embeddable forms.' },
       { competitor: 'Givebutter', name: 'Recurring Donations', description: 'Monthly giving support for sustained programs.' },
       { competitor: 'Givebutter', name: 'Fundraising Events', description: 'Virtual and in-person fundraising event tools.' },
-      { competitor: 'Givebutter', name: 'Auctions', description: 'Charity auction campaigns, items, and bids.' },
+      { competitor: 'Givebutter', name: 'Auctions', description: 'Charity auction campaigns, items, and bids.', planned: true },
       { competitor: 'Givebutter', name: 'CRM Tools', description: 'Donor contact records, tags, segments, and communication history.' },
       { competitor: 'Givebutter', name: 'Team Fundraising', description: 'Multiple organizers and supporter teams per campaign.' },
       { competitor: 'Givebutter', name: 'Livestream Fundraising', description: 'Live donation experiences connected to events and campaigns.' },
