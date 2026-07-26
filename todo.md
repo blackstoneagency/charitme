@@ -574,6 +574,25 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**✅ AUDITED CLEAN — donor-data routes; no IDOR.**
+Different class from the campaign checks: can one donor read or modify **another
+donor's** records? No.
+- `donations/receipt` — 401, then `donor_id !== user.id`.
+- `exports/{donations,donors,full}` and `fundraiser/tax-summary` — 401, and every
+  query scoped by `user_id = user.id` rather than trusting a parameter.
+- `notifications/[id]` — the classic IDOR shape, and **both** handlers are guarded:
+  401, 404 if absent, **403** on `user_id !== user.id`, and the delete result is
+  error-checked into a 500. I checked the second handler specifically because a
+  guarded first handler beside an unguarded sibling is exactly what the
+  **unsubscribe GET/POST** asymmetry turned out to be — that lesson generalised, and
+  here it came back clean.
+- Tax statement page — inherently scoped, calls `getDonorTaxStatement(user.id, …)`.
+
+**Four authorization surfaces are now bounded and verified:** super-admin (7/7
+guarded), campaign mutations (18/18), the donate surface (6/6 gates), and donor data
+(no IDOR). Those were the four places a UI-only check would have been exploitable,
+and none of them is.
+
 **✅ AUDITED CLEAN — all 18 campaign mutation routes enforce ownership.**
 Completeness check on the organizer surface: is there **any** campaign
 POST/PATCH/PUT/DELETE route without an ownership guard? **No.** All 18 are covered,
