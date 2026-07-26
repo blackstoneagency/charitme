@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
 import { attachCampaignCurrencies } from '../../../lib/home-data';
 import { formatMoneyCompact } from '@shared/currencies';
 
@@ -73,20 +74,29 @@ function pillTone(status: string): string {
 // ─────────────────────────────────────────────
 // Data fetch
 // ─────────────────────────────────────────────
-async function fetchCampaigns(userId: string): Promise<Campaign[]> {
+/**
+ * Returning `[]` on failure told an organizer they had NO campaigns — and the
+ * metrics above the list then rendered $0 raised / 0 donors, i.e. "your money is
+ * gone". For an owner whose fundraiser is live that is alarming and wrong. The
+ * load result now distinguishes "you have none" from "we could not load them",
+ * and the query is bounded so a degraded database cannot hang the page either.
+ */
+async function fetchCampaigns(userId: string): Promise<{ campaigns: Campaign[]; failed: boolean }> {
   try {
-    const { data, error } = await supabaseAdmin
-      .from('campaigns')
-      .select(
-        'id,title,slug,status,goal_amount,raised_amount,backer_count,cover_image_url,category,deadline,created_at',
-      )
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(50);
-    if (error) return [];
-    return attachCampaignCurrencies((data ?? []) as Campaign[]);
+    const { data, error } = await boundedQuery(
+      supabaseAdmin
+        .from('campaigns')
+        .select(
+          'id,title,slug,status,goal_amount,raised_amount,backer_count,cover_image_url,category,deadline,created_at',
+        )
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50),
+    );
+    if (error) return { campaigns: [], failed: true };
+    return { campaigns: await attachCampaignCurrencies((data ?? []) as Campaign[]), failed: false };
   } catch {
-    return [];
+    return { campaigns: [], failed: true };
   }
 }
 
@@ -99,7 +109,7 @@ export default async function MyCampaignsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const user = await requireUser();
-  const [campaigns, params] = await Promise.all([
+  const [{ campaigns, failed: loadFailed }, params] = await Promise.all([
     fetchCampaigns(user.id),
     searchParams,
   ]);
@@ -112,32 +122,34 @@ export default async function MyCampaignsPage({
   const totalDonors = campaigns.reduce((s, c) => s + (c.backer_count ?? 0), 0);
   const avgGift = totalDonors > 0 ? Math.round(totalRaised / totalDonors) : 0;
 
+  // When the load failed these numbers are unknown, not zero.
+  const unknown = loadFailed;
   const metrics = [
     {
       label: 'Total Raised',
-      value: fmtCents(totalRaised),
-      change: 'all campaigns',
+      value: unknown ? '—' : fmtCents(totalRaised),
+      change: unknown ? 'unavailable' : 'all campaigns',
       icon: 'gift',
       tone: 'violet' as const,
     },
     {
       label: 'Active Campaigns',
-      value: String(activeCampaigns),
-      change: `of ${campaigns.length} total`,
+      value: unknown ? '—' : String(activeCampaigns),
+      change: unknown ? 'unavailable' : `of ${campaigns.length} total`,
       icon: 'stack',
       tone: 'green' as const,
     },
     {
       label: 'Total Donors',
-      value: String(totalDonors),
-      change: 'all time',
+      value: unknown ? '—' : String(totalDonors),
+      change: unknown ? 'unavailable' : 'all time',
       icon: 'users',
       tone: 'blue' as const,
     },
     {
       label: 'Avg. Gift Size',
-      value: avgGift > 0 ? fmtCents(avgGift) : '—',
-      change: avgGift > 0 ? 'per donor' : 'no donations yet',
+      value: unknown || avgGift <= 0 ? '—' : fmtCents(avgGift),
+      change: unknown ? 'unavailable' : avgGift > 0 ? 'per donor' : 'no donations yet',
       icon: 'chart',
       tone: 'orange' as const,
     },
@@ -171,6 +183,24 @@ export default async function MyCampaignsPage({
 
       <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
         <div className="kf-content-main">
+          {loadFailed && (
+            <div
+              role="alert"
+              style={{
+                marginBottom: 16, padding: '14px 16px', borderRadius: 12,
+                background: 'var(--s2, #fffbeb)', border: '1px solid var(--b2, #fde68a)',
+                color: 'var(--t1, #92400e)',
+              }}
+            >
+              <strong style={{ display: 'block', marginBottom: 4 }}>
+                We couldn&apos;t load your campaigns just now
+              </strong>
+              <span style={{ fontSize: 13.5, lineHeight: 1.5 }}>
+                This is a temporary problem on our side — nothing has happened to your
+                campaigns or your funds. Reload the page to try again.
+              </span>
+            </div>
+          )}
           <MetricGrid metrics={metrics} />
 
           <section className="kf-card" style={{ overflow: 'hidden' }}>

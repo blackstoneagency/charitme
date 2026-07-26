@@ -4813,9 +4813,17 @@ merge commit.
 6. **GitHub Actions quota** → the blocker above
 
 ## Next highest-value work (unclaimed, in order)
-1. **Degraded-state UI for dashboard/admin reads.** They are still unbounded, but a
-   silent empty fallback is *wrong* there — "you have no campaigns" when the DB
-   timed out is worse than slow. Needs a real error state, not a fallback.
+1. [x] **Degraded-state UI — /dashboard/campaigns DONE.** The bug was worse than
+   predicted: `fetchCampaigns` returned `[]` on error, so a failed load showed an
+   organizer **"no campaigns" AND $0 raised / 0 donors** — i.e. "your money is
+   gone" — for someone whose fundraiser is live. Now returns
+   `{ campaigns, failed }`, the query is bounded, metrics render `—`/"unavailable"
+   instead of a confident zero we do not know, and a `role="alert"` banner says
+   nothing happened to their campaigns or funds.
+   **Remaining dashboard/admin pages follow the same anti-pattern** — grep for
+   `return []` / `return null` in a catch on any page that renders totals. Each is
+   the same three-line fix; the pattern to copy is in
+   `app/dashboard/campaigns/page.tsx`.
 2. **Re-verify the ⚪ claimed rows.** Two audit ✅s were stale when spot-checked
    (dead `donation_receipts`; e2e "wired" but running in no workflow). Assume rot.
 3. **Signed-in e2e** the moment test credentials exist.
