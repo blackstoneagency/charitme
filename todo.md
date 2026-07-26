@@ -257,6 +257,19 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**✅ VERIFIED CLEAN — money path end-to-end (cents/dollars).** The classic 100×
+bug class, checked in both directions across the app:
+- **Input→storage:** `goalCents = Math.round(parseFloat(form.goal) * 100)` and
+  `amountCents = Math.round(parseFloat(amount) * 100)` — both use `Math.round`
+  (so no float artifacts) with `|| 0` guards. No path sends dollars where cents
+  are expected.
+- **Storage→display:** grepped every `.tsx` for `raised_amount` / `goal_amount` /
+  `amount_cents` interpolated into JSX without a formatter → **zero hits**. Even
+  the aggregate that looked suspicious (`totalRaised` summing raw cents in
+  `ai-growth-plan`) is rendered through `fmtCents()`.
+Combined with the earlier fee-math probe (66 combinations, 0 invariant
+violations), the money path is verified at input, aggregation and display.
+
 **⚠️ Seed counts CANNOT be verified statically — use `99_verify_counts.sql`.**
 Tried to check the "≥100 seed records" criterion by counting rows in the seed SQL
 without a database. **The method is unreliable and produced a false finding**,
