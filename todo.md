@@ -234,6 +234,29 @@ gives the new capability map its first real consumer and fixes both directions o
 the drift.
 _Role-list copies found this session: 4. All now derive from one source._
 
+**✅ NEW GUARD — `__tests__/no-server-only-in-client.test.ts` (4th structural guard).**
+Catches a class **no other gate can see**: a `'use client'` module reaching a
+`server-only` module *through its import graph*. This is not hypothetical — it
+happened in this session. Deriving the admin role filter from
+`role-capabilities.ts` → `roles.ts` → `supabase.ts` failed `next build` with
+*"You're importing a component that needs server-only"* while **typecheck, lint
+and 1159 unit tests all passed**. The chain was 3 hops, so reading the client
+file's own imports would not have revealed it either. The guard walks the graph
+and prints the full chain in milliseconds instead of failing a 5-minute build.
+
+**Its first draft was wrong and reported 9 false positives** — it counted
+`import type { X } from './server-module'`, which TypeScript erases at compile
+time so it never reaches webpack. The build was green the whole time it "found"
+those. Now value-imports only. A second assertion was also wrong: it matched the
+bare word `supabaseAdmin`, which appears in a *comment* in `roles-shared.ts`
+explaining the split, so it flagged prose. Both fixed, and non-vacuity is proven
+by planting the real regression and watching it report
+`AdminUsersClient.tsx → role-capabilities.ts → roles.ts → supabase.ts`.
+
+_That is now **twice** a guard's first draft would have gated CI on correct code
+(the constants guard flagged 7 files). Verifying a guard against known-good code
+matters as much as verifying it against the bug._
+
 **⚠️ The e2e suite exists, works, and runs in NO CI workflow.** `e2e/` holds 4
 Playwright specs — `smoke`, `public-routes`, `public-quality`, `security-headers`
 — plus an `npm run e2e` script. **Neither `ci.yml` nor `image-links.yml` mentions
