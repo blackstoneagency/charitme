@@ -4234,6 +4234,13 @@ and sail straight through.
   is a **sandbox artifact**, not the CI failure (CI runs `playwright install --with-deps
   chromium`). Don't chase it.
 
+**Also eliminated since (so nobody repeats them):**
+- **`npm ci` lockfile mismatch — ruled out.** `npm ci --dry-run` succeeds locally
+  (exit 0, lockfile in sync with `package.json`). This was the best hypothesis for
+  "docs-only commits fail too", and it is wrong.
+- **Check-run output carries nothing.** `get_check_run` on the failing job returns
+  empty `title`/`summary`/`text`, so the webhook payload has no diagnostic either.
+
 **Next step for whoever can read the logs:** open the run in the GitHub UI. Likely
 candidates given docs-only commits also fail: a required secret/env missing from the
 workflow, an `npm ci` lockfile mismatch, or a runner/Node version change. Until then,
