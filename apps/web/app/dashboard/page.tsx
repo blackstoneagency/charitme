@@ -50,6 +50,12 @@ type Period = keyof typeof PERIODS;
 const PERIOD_KEYS = Object.keys(PERIODS) as Period[];
 
 type DashData = {
+  /**
+   * True when the read failed. Every number below is then a placeholder, NOT a
+   * measurement — an organizer whose campaign is live must never be shown a
+   * confident "$0 raised / no campaigns" because a query timed out.
+   */
+  failed: boolean;
   firstName: string;
   userName: string | null;
   campaigns: CampaignRow[];
@@ -161,6 +167,7 @@ function buildChart(days: ChartDay[]): {
 // ─────────────────────────────────────────────
 async function getDashboardData(userId: string, period: Period): Promise<DashData> {
   const fallback: DashData = {
+    failed: true,
     firstName: 'there',
     userName: null,
     campaigns: [],
@@ -176,7 +183,7 @@ async function getDashboardData(userId: string, period: Period): Promise<DashDat
 
   try {
     // ── Phase 1: profile + campaigns ─────────────────
-    const [{ data: profile }, { data: campaignData }] = await Promise.all([
+    const [{ data: profile }, { data: campaignData, error: campaignError }] = await Promise.all([
       supabaseAdmin.from('profiles').select('full_name').eq('id', userId).single(),
       supabaseAdmin
         .from('campaigns')
@@ -185,6 +192,13 @@ async function getDashboardData(userId: string, period: Period): Promise<DashDat
         .order('created_at', { ascending: false })
         .limit(5),
     ]);
+
+    // supabase-js resolves rather than throws on a query error, so the try/catch
+    // below never sees a timeout, an RLS denial, or a missing column — the error
+    // arrives as data:null, which reduces to "$0 raised". Check it explicitly.
+    // (The profile error is not fatal: `.single()` errors when a user simply has
+    // no profile row, and the only thing it feeds is the greeting name.)
+    if (campaignError) return fallback;
 
     const campaigns = await attachCampaignCurrencies((campaignData ?? []) as CampaignRow[]);
     const totalRaised = campaigns.reduce((s, c) => s + (c.raised_amount ?? 0), 0);
@@ -371,6 +385,7 @@ async function getDashboardData(userId: string, period: Period): Promise<DashDat
     chartDays = buckets;
 
     return {
+      failed: false,
       firstName,
       userName: fullName,
       campaigns,
@@ -412,12 +427,15 @@ export default async function DashboardPage({
   const data = await getDashboardData(user.id, period);
 
   const hasRealCampaigns = data.campaigns.length > 0;
+  // On a failed read every total is unknown, not zero — render '—' rather than a
+  // number we did not measure.
+  const unknown = data.failed;
 
   const metrics = [
-    { label: 'Total Raised',     value: fmtCents(data.totalRaised),    change: hasRealCampaigns ? 'all time' : 'no campaigns yet', icon: 'gift',  tone: 'violet' },
-    { label: 'Total Donations',  value: String(data.totalDonations),   change: 'all campaigns', icon: 'users', tone: 'green' },
-    { label: 'Total Supporters', value: String(data.totalSupporters),  change: 'unique donors', icon: 'team',  tone: 'blue' },
-    { label: 'Avg. Donation',    value: fmtCents(data.avgDonation),    change: 'per transaction', icon: 'chart', tone: 'orange' },
+    { label: 'Total Raised',     value: unknown ? '—' : fmtCents(data.totalRaised),   change: unknown ? 'unavailable' : hasRealCampaigns ? 'all time' : 'no campaigns yet', icon: 'gift',  tone: 'violet' },
+    { label: 'Total Donations',  value: unknown ? '—' : String(data.totalDonations),  change: unknown ? 'unavailable' : 'all campaigns',   icon: 'users', tone: 'green' },
+    { label: 'Total Supporters', value: unknown ? '—' : String(data.totalSupporters), change: unknown ? 'unavailable' : 'unique donors',   icon: 'team',  tone: 'blue' },
+    { label: 'Avg. Donation',    value: unknown ? '—' : fmtCents(data.avgDonation),   change: unknown ? 'unavailable' : 'per transaction', icon: 'chart', tone: 'orange' },
   ];
 
   const displayCampaigns = data.campaigns.slice(0, 3).map(c => ({
@@ -441,7 +459,10 @@ export default async function DashboardPage({
 
   // Generate dynamic tasks based on real state
   const tasks: string[][] = [];
-  if (hasRealCampaigns) {
+  if (unknown) {
+    // Neither task list is honest here: we don't know whether they have campaigns.
+    tasks.push(['Reload to see your tasks', 'Data unavailable']);
+  } else if (hasRealCampaigns) {
     if (data.growthCounts.contentCreated === 0) tasks.push(['Post your first campaign update', 'Due today']);
     else tasks.push([`Post a campaign update`, 'Due today']);
     if (data.growthCounts.newDonors > 0)
@@ -506,7 +527,11 @@ export default async function DashboardPage({
           <div>
             <h1>
               Welcome back, {data.firstName}!{' '}
-              <span aria-hidden="true">&var(--green-dark);</span>
+              {/* 👋 — a numeric entity, NOT a colour literal. A theme sweep once
+                  mistook the digits here for a hex colour and rewrote them into a
+                  CSS var(), producing an invalid entity that JSX rendered verbatim
+                  in the greeting. Guarded by __tests__/degraded-reads.test.ts. */}
+              <span aria-hidden="true">&#128075;</span>
             </h1>
             <p>Here&apos;s what&apos;s happening with your campaigns.</p>
           </div>
@@ -517,6 +542,24 @@ export default async function DashboardPage({
 
         <section className="dash-grid">
           <main className="dash-main">
+            {data.failed && (
+              <div
+                role="alert"
+                style={{
+                  marginBottom: 16, padding: '14px 16px', borderRadius: 12,
+                  background: 'var(--s2, #fffbeb)', border: '1px solid var(--b2, #fde68a)',
+                  color: 'var(--t1, #92400e)',
+                }}
+              >
+                <strong style={{ display: 'block', marginBottom: 4 }}>
+                  We couldn&apos;t load your dashboard just now
+                </strong>
+                <span style={{ fontSize: 13.5, lineHeight: 1.5 }}>
+                  This is a temporary problem on our side — nothing has happened to your
+                  campaigns or your funds. Reload the page to try again.
+                </span>
+              </div>
+            )}
             {/* ── Metric cards ── */}
             <div className="dash-metrics">
               {metrics.map(metric => (
@@ -600,24 +643,24 @@ export default async function DashboardPage({
                   </div>
                   <div className="perf-summary">
                     <PerfNumber
-                      value={hasRealCampaigns ? fmtCents(periodRaised) : '$0'}
+                      value={unknown ? '—' : hasRealCampaigns ? fmtCents(periodRaised) : '$0'}
                       label={`Raised this ${periodCfg.noun}`}
-                      change={hasRealCampaigns ? periodCfg.change : 'no data yet'}
+                      change={unknown ? 'unavailable' : hasRealCampaigns ? periodCfg.change : 'no data yet'}
                     />
                     <PerfNumber
-                      value={String(data.totalDonations)}
+                      value={unknown ? '—' : String(data.totalDonations)}
                       label="All-time Donations"
-                      change="all campaigns"
+                      change={unknown ? 'unavailable' : 'all campaigns'}
                     />
                     <PerfNumber
-                      value={String(g.engagement)}
+                      value={unknown ? '—' : String(g.engagement)}
                       label="Donor Messages"
-                      change="all time"
+                      change={unknown ? 'unavailable' : 'all time'}
                     />
                     <PerfNumber
-                      value={String(g.newDonors)}
+                      value={unknown ? '—' : String(g.newDonors)}
                       label="New Donors"
-                      change={periodCfg.change}
+                      change={unknown ? 'unavailable' : periodCfg.change}
                     />
                   </div>
                 </div>

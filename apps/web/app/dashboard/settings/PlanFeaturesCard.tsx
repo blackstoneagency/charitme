@@ -26,11 +26,15 @@ export default function PlanFeaturesCard({
   activeCampaigns,
 }: {
   entitlements: PlanEntitlements;
-  activeCampaigns: number;
+  /** `null` when the count could not be read — display it as unknown, not as 0. */
+  activeCampaigns: number | null;
 }) {
   const { name, planId, monthlyPriceCents, limits, features } = entitlements;
   const paid = isPaidPlan(planId);
-  const atCampaignLimit = limits.activeCampaigns !== null && activeCampaigns >= limits.activeCampaigns;
+  // An unknown count must not render as "at limit" — the real limit is enforced
+  // server-side on publish, so a failed read here should not warn either way.
+  const atCampaignLimit =
+    activeCampaigns !== null && limits.activeCampaigns !== null && activeCampaigns >= limits.activeCampaigns;
 
   return (
     <section
@@ -72,7 +76,7 @@ export default function PlanFeaturesCard({
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginTop: 18 }}>
         <Stat
           label="Active campaigns"
-          value={`${activeCampaigns} / ${limitLabel(limits.activeCampaigns)}`}
+          value={`${activeCampaigns ?? '—'} / ${limitLabel(limits.activeCampaigns)}`}
           warn={atCampaignLimit}
         />
         <Stat label="AI generations / mo" value={limitLabel(limits.aiGenerationsPerMonth)} />

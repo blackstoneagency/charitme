@@ -64,16 +64,18 @@ function defaultProfile(): ProfileRow {
   };
 }
 
-async function fetchCampaignCount(userId: string): Promise<number> {
+/** `null` = could not read. 0 would claim the user has no active campaigns. */
+async function fetchCampaignCount(userId: string): Promise<number | null> {
   try {
-    const { count } = await supabaseAdmin
+    const { count, error } = await supabaseAdmin
       .from('campaigns')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('status', 'active');
+    if (error) return null;
     return count ?? 0;
   } catch {
-    return 0;
+    return null;
   }
 }
 

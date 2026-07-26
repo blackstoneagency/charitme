@@ -33,7 +33,8 @@ interface ProfileData {
 
 interface Props {
   initialProfile: ProfileData;
-  campaignsCount: number;
+  /** `null` when the count could not be read — render unknown, never 0. */
+  campaignsCount: number | null;
   userEmail: string;
   userId: string;
   hasStripeCustomer: boolean;
@@ -182,9 +183,12 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
 
   const currentPlan = (initialProfile.plan ?? 'free').toLowerCase();
   const planInfo = PLAN_LABELS[currentPlan] ?? PLAN_LABELS.free;
-  const campaignPct = planInfo.campaignLimit >= 999
-    ? Math.min((campaignsCount / 20) * 100, 100)
-    : Math.min((campaignsCount / planInfo.campaignLimit) * 100, 100);
+  // An unknown count draws an empty bar rather than a confident "0 used".
+  const campaignPct = campaignsCount === null
+    ? 0
+    : planInfo.campaignLimit >= 999
+      ? Math.min((campaignsCount / 20) * 100, 100)
+      : Math.min((campaignsCount / planInfo.campaignLimit) * 100, 100);
 
   function showToast(kind: 'success' | 'error', msg: string) {
     setToast({ kind, msg });
@@ -723,7 +727,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 <span className={`kf-plan-chip ${planInfo.chipClass}`}>{planInfo.label}</span>
               </div>
               <div className="kf-usage-row">
-                <label>Active Campaigns<strong>{campaignsCount} / {planInfo.campaignLimit >= 999 ? '∞' : planInfo.campaignLimit}</strong></label>
+                <label>Active Campaigns<strong>{campaignsCount ?? '—'} / {planInfo.campaignLimit >= 999 ? '∞' : planInfo.campaignLimit}</strong></label>
                 <div className="kf-plan-bar">
                   <div className={`kf-plan-bar-fill${campaignPct >= 80 ? ' warn' : ''}`} style={{ width: `${Math.min(campaignPct, 100)}%` }} />
                 </div>

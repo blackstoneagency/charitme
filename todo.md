@@ -4820,10 +4820,40 @@ merge commit.
    `{ campaigns, failed }`, the query is bounded, metrics render `—`/"unavailable"
    instead of a confident zero we do not know, and a `role="alert"` banner says
    nothing happened to their campaigns or funds.
-   **Remaining dashboard/admin pages follow the same anti-pattern** — grep for
-   `return []` / `return null` in a catch on any page that renders totals. Each is
-   the same three-line fix; the pattern to copy is in
-   `app/dashboard/campaigns/page.tsx`.
+   **[x] Remaining pages DONE (Claude, 2026-07-26) — the sweep found the anti-pattern
+   was broader than a `catch`.** The grep-for-`return []`-in-a-catch hint only finds
+   half of it: **supabase-js resolves rather than throws on a query error**, so a
+   timeout / RLS denial / dropped column never reaches the `catch` at all — it
+   arrives as `data: null` and silently reduces to 0. Every fix below therefore had
+   to check the `error` field, not just wrap in try/catch.
+   - **`/dashboard` (organizer home — the worst instance, higher traffic than
+     /dashboard/campaigns).** `getDashboardData` destructured only `data` from the
+     campaigns query and had a `fallback` of all-zeros, so a failed read greeted a
+     funded organizer with **$0 Total Raised, 0 Donations, 0 Supporters, no
+     campaigns, and the "Create your first campaign" onboarding checklist**. Now
+     carries `failed`, checks `campaignError`, renders `—`/"unavailable" across all
+     4 metric cards + all 4 performance numbers, swaps the misleading task list, and
+     shows the same role="alert" banner.
+   - **`/admin/super` (owner console).** `count()` and `countAdmins()` returned 0 on
+     failure → "Total users 0 / Campaigns 0 / Donations 0", which during an incident
+     reads as total data loss on the one screen an owner checks first. Now
+     `number | null` → `—` per stat + an alert saying `—` means unknown, not zero.
+   - **`/dashboard/settings`.** Active-campaign count fed the plan-limit meter; 0 on
+     failure understated usage. Now nullable through `PlanFeaturesCard` and
+     `SettingsClient` (bar renders empty, `atCampaignLimit` cannot fire on unknown).
+   - **`/dashboard/integrations`.** Empty-on-error invited a user to reconnect a
+     provider they were **already** connected to. Now reports the failure instead.
+   - **Regression guard:** `__tests__/degraded-reads.test.ts` (8 tests) pins the
+     contract for all 3 totals pages — error field checked, no bare
+     `const { data } = await supabaseAdmin`, `—` present, `role="alert"` present.
+   - **Found en route — real user-visible bug, unrelated to the above.** The
+     dashboard greeting rendered the literal text **`&var(--green-dark);`**: the
+     CHAR-0015 theme sweep (`5c30b8a`) mistook the digits in the entity `&#128075;`
+     (👋) for a hex colour and rewrote them into a CSS `var()`, producing an invalid
+     entity that JSX passes through verbatim. Restored, and the test file guards the
+     whole class (`&var(--` anywhere in app/components/lib) — verified non-vacuous,
+     it caught my own comment on the first run.
+   - Verified: typecheck 0, **1206 tests / 110 files pass**, `next build` green.
 2. **Re-verify the ⚪ claimed rows.** Two audit ✅s were stale when spot-checked
    (dead `donation_receipts`; e2e "wired" but running in no workflow). Assume rot.
 3. **Signed-in e2e** the moment test credentials exist.

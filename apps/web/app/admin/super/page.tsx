@@ -7,24 +7,32 @@ import { SUPER_ADMIN_NAV } from '../../../components/SuperAdminNav';
 
 export const dynamic = 'force-dynamic';
 
-async function count(table: string): Promise<number> {
+// `null` means "we could not read this", which is not the same statement as 0.
+// This console is where an owner checks whether the platform is alive; reporting
+// "Total users 0 / Campaigns 0 / Donations 0" during a database incident reads as
+// catastrophic data loss. Note supabase-js RESOLVES on a query error rather than
+// throwing, so the error field must be checked — a try/catch alone never sees a
+// timeout or a permission failure, it just gets count:null and reports zero.
+async function count(table: string): Promise<number | null> {
   try {
-    const { count: c } = await supabaseAdmin.from(table).select('*', { count: 'exact', head: true });
+    const { count: c, error } = await supabaseAdmin.from(table).select('*', { count: 'exact', head: true });
+    if (error) return null;
     return c ?? 0;
   } catch {
-    return 0;
+    return null;
   }
 }
 
-async function countAdmins(): Promise<number> {
+async function countAdmins(): Promise<number | null> {
   try {
-    const { count: c } = await supabaseAdmin
+    const { count: c, error } = await supabaseAdmin
       .from('profiles')
       .select('*', { count: 'exact', head: true })
       .contains('roles', ['admin']);
+    if (error) return null;
     return c ?? 0;
   } catch {
-    return 0;
+    return null;
   }
 }
 
@@ -53,21 +61,41 @@ export default async function SuperAdminOverviewPage() {
     count('announcements'),
   ]);
 
+  const show = (n: number | null) => (n === null ? '—' : n.toLocaleString());
+  const counts = [users, admins, campaigns, donations, flags, seo, aeo, announcements];
+  const anyFailed = counts.some((n) => n === null);
+
   const stats = [
-    { label: 'Total users', value: users.toLocaleString(), tone: 'violet' },
-    { label: 'Admin accounts', value: admins.toLocaleString(), tone: 'orange' },
-    { label: 'Campaigns', value: campaigns.toLocaleString(), tone: 'green' },
-    { label: 'Donations', value: donations.toLocaleString(), tone: 'blue' },
-    { label: 'Feature flags', value: flags.toLocaleString(), tone: 'pink' },
-    { label: 'SEO routes', value: seo.toLocaleString(), tone: 'violet' },
-    { label: 'AEO entries', value: aeo.toLocaleString(), tone: 'green' },
-    { label: 'Announcements', value: announcements.toLocaleString(), tone: 'orange' },
+    { label: 'Total users', value: show(users), tone: 'violet' },
+    { label: 'Admin accounts', value: show(admins), tone: 'orange' },
+    { label: 'Campaigns', value: show(campaigns), tone: 'green' },
+    { label: 'Donations', value: show(donations), tone: 'blue' },
+    { label: 'Feature flags', value: show(flags), tone: 'pink' },
+    { label: 'SEO routes', value: show(seo), tone: 'violet' },
+    { label: 'AEO entries', value: show(aeo), tone: 'green' },
+    { label: 'Announcements', value: show(announcements), tone: 'orange' },
   ];
 
   return (
     <CharitMeShell active="Overview" mode="admin">
       <TopBar title="Super-Admin Console" subtitle="Owner-tier controls · gated to super_admin" />
       <div style={{ padding: '0 4px 40px' }}>
+        {anyFailed && (
+          <div
+            role="alert"
+            style={{
+              margin: '0 0 16px', padding: '14px 16px', borderRadius: 12,
+              background: 'var(--s2, #fffbeb)', border: '1px solid var(--b2, #fde68a)',
+              color: 'var(--t1, #92400e)',
+            }}
+          >
+            <strong style={{ display: 'block', marginBottom: 4 }}>Some counts could not be read</strong>
+            <span style={{ fontSize: 13.5, lineHeight: 1.5 }}>
+              Anything showing &ldquo;—&rdquo; failed to load and is unknown — it is not zero.
+              Reload to try again.
+            </span>
+          </div>
+        )}
         <div className="kf-metrics" style={{ marginBottom: 24 }}>
           {stats.map((s) => (
             <article key={s.label} className="kf-card kf-metric">
