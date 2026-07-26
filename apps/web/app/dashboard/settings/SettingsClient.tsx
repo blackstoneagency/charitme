@@ -5,6 +5,7 @@ import Link from 'next/link';
 import BillingPortalButton from './BillingPortalButton';
 import { SUPPORTED_CURRENCIES } from '@shared/currencies';
 import { SUPPORTED_LOCALES } from '../../../lib/i18n';
+import { normalizeUrl } from '../../../lib/normalize-url';
 
 // ─────────────────────────────────────────────
 // Types
@@ -201,13 +202,21 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
 
   async function saveProfile() {
     setSaving(true);
+    // `org_website` and `avatar_url` are validated with zod's .url(), which
+    // rejects a bare domain. Typing "myorg.com" is the common case and used to
+    // fail with a bare "Invalid input" toast that never said which field was
+    // wrong, so accept it and add the scheme instead of bouncing the save.
+    const website = normalizeUrl(orgWebsite);
+    const avatar = normalizeUrl(avatarUrl);
+    if (website !== orgWebsite) setOrgWebsite(website);
+    if (avatar !== avatarUrl) setAvatarUrl(avatar);
     try {
       const res = await fetch('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          full_name: fullName, bio: bio || null, avatar_url: avatarUrl || null,
-          org_name: orgName || null, org_website: orgWebsite || null, org_tagline: orgTagline || null,
+          full_name: fullName, bio: bio || null, avatar_url: avatar || null,
+          org_name: orgName || null, org_website: website || null, org_tagline: orgTagline || null,
         }),
       });
       if (!res.ok) { const e = await res.json().catch(() => ({})); showToast('error', (e as { error?: string }).error ?? 'Failed to save.'); return; }
@@ -656,7 +665,10 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                   <strong style={{ color: 'var(--red-text)' }}>Request Account Deletion</strong>
                   <span>Permanently delete your account and all data — this cannot be undone</span>
                 </div>
-                <a href="mailto:support@CharitMe.com?subject=Account%20Deletion%20Request" style={{ fontSize: 13, fontWeight: 700, color: 'var(--red-text)', border: '1px solid var(--red)', borderRadius: 'var(--r)', padding: '7px 16px', textDecoration: 'none', display: 'inline-block' }}>Request Deletion</a>
+                {/* Was a mailto:, which left the request untracked. The Privacy
+                    Center records it against the account, reports status, and
+                    blocks duplicate open requests. */}
+                <Link href="/privacy-center" style={{ fontSize: 13, fontWeight: 700, color: 'var(--red-text)', border: '1px solid var(--red)', borderRadius: 'var(--r)', padding: '7px 16px', textDecoration: 'none', display: 'inline-block' }}>Request Deletion</Link>
               </div>
             </div>
           </div>

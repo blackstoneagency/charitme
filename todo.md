@@ -2188,6 +2188,35 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
     those five toggles bound to it. Deliberately **not** stubbed back in — five
     toggles that lie are worse than five absent ones.
 
+    **✅ SETTINGS PASS 3 — untracked deletion requests + forgiving URL entry.**
+
+    4. **Account deletion went to a `mailto:`.** Settings → Data & Export sent
+       "Request Deletion" to `mailto:support@CharitMe.com`, while a real
+       Supabase-backed flow already exists at **`/privacy-center`** — it records the
+       request against the account, reports `pending`/`in_progress` status, and
+       blocks duplicate open requests. The mailto left deletion requests with no
+       record, no status and no audit trail, which is not defensible for a
+       GDPR/CCPA path. Now links to the real flow.
+
+    5. **"Invalid input" on a perfectly reasonable website.** `org_website` and
+       `avatar_url` are validated with zod `.url()`, which rejects a bare domain.
+       Typing `myorg.com` — the overwhelmingly common case — failed with a generic
+       *"Invalid input"* toast that never said **which** field was wrong. Added
+       `lib/normalize-url.ts`, applied on save, so the scheme is added instead of
+       the save being bounced.
+       Deliberately conservative: existing schemes, protocol-relative `//host`, and
+       opaque schemes (`mailto:`) pass through untouched, and non-domain junk is
+       left alone so the server still rejects it rather than having it silently
+       "fixed" into something valid-looking. **6 unit tests.**
+       _Its own test caught a bug in the first implementation:_ the scheme regex
+       `^[a-z][a-z0-9+.-]*:` matched `example.com:` — dots and hyphens are legal
+       scheme characters — so `myorg.com:8080` was mistaken for a scheme and
+       skipped. Now requires `://`, with a separate allowlist for opaque schemes.
+
+    _Audited and genuinely fine:_ the Profile panel — every field bound, `maxLength`
+    matching the zod limits (120/500/200), email correctly disabled with an
+    explanatory hint, avatar upload and URL both wired.
+
     **⚠️ Note for other agents — stale `.next/types` after PR #63.** That PR
     deleted `app/events`, `app/matching`, and `app/sponsor`. A `.next` cache built
     before rebasing onto it still holds generated stubs importing those pages, and
