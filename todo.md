@@ -4786,7 +4786,7 @@ difference as real: two audit ✅s turned out to be stale when I spot-checked th
 | 10 | Roles clearly mapped | 🟡 **mapped, but only 2 of 6 are enforced** | `lib/role-capabilities.ts` is wired into 3 surfaces. But `donor`/`organizer`/`beneficiary`/`nonprofit` have **0 enforced capabilities** — see finding |
 | 11 | 100% GoFundMe parity | 🟢 claimed-closed | `docs/charitme-gofundme-audit.md` matrix is all ✅. Its 4 remaining blockers are **owner-gated credentials**, not code |
 | 12 | Better than GoFundMe | 🟢 | 0% platform fee, AI builder, Marketing OS (goals→opportunities→campaigns), grants, matching, volunteers, events, gamification, impact tracking — none of which GoFundMe has |
-| 13 | Accessibility passes | ⚪ claimed | Earlier: axe WCAG A/AA clean on ~20–30 public routes; Lighthouse 100 on 7 key pages |
+| 13 | Accessibility passes | ✅ **verified + now enforced** | axe WCAG 2.0/2.1 A+AA over **36 routes × light AND dark = 0 violations** (4.1 min). Previously there was **no axe dependency at all** — the claim came from manual runs |
 | 14 | All payment methods work | 🔴 owner-gated | Needs Stripe **live** keys + a real charge. ADR-0003. Cannot be done from sandbox |
 | 15 | Performance optimized | 🟡 | Earlier: query-waterfall + N+1 audits, `getUser()` memoised, home 63→88. Plus item 9 above |
 | 16 | Security resolved | 🟢 improved | **New this session:** auth-gate e2e (mutation-tested), middleware auth-refresh ceiling that fails safe, owner-scoped RLS on 2 new tables. Production gates verified live by curl |
@@ -5297,3 +5297,26 @@ test would catch it, because nothing enforces it.
 these four roles gate real capabilities (in which case it is a feature to build,
 per-role)? I have not invented role gates on my own, because doing so would change
 the authorisation model and could lock existing users out of their own data.
+
+
+### ✅ FINDING — accessibility had zero automated enforcement (FIXED, and it passes)
+There was **no `axe`, `lighthouse` or `pa11y` dependency in the repo**. The
+"axe WCAG 2.0/2.1 A/AA → 0 violations" claim came from ad-hoc browser runs in
+earlier sessions, so nothing stopped a regression shipping — the same shape of gap
+as the e2e suite that ran in no workflow.
+
+Added `@axe-core/playwright` + `e2e/accessibility.spec.ts`: the real ruleset
+(`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) over all 36 public routes.
+
+**Result: 0 violations, light AND dark, 4.1 minutes.** So the claim was true — it
+simply had nothing behind it. Now it is enforced on every future change.
+
+Why both themes: colour-contrast rules only evaluate the colours actually
+rendered, so a light-only pass says nothing about dark mode. Since dark/light is
+its own checklist item (7), a single-theme sweep would have left it half-verified.
+This run is therefore **also** independent evidence for item 7 — the third such
+confirmation, alongside the static token guard and the responsive audit.
+
+**CI note:** the spec lives in `e2e/`, and the CI `e2e` job runs `npx playwright
+test` unfiltered, so it is picked up automatically on both the chromium and mobile
+projects. Expect the e2e job to lengthen by roughly 4–8 minutes.
