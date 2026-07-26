@@ -50,6 +50,33 @@ function walk(dir: string): string[] {
 }
 
 // Hardcoded white/near-white used as a BACKGROUND (light surface in dark mode).
+// Previously an ENUMERATION of six near-white hexes. That is whack-a-mole: every
+// fix appends one more literal, so the next unseen shade sails through — which is
+// exactly what happened. `#fafafa` (a competitor card on /features) and `#f9f7ff`
+// (the donate breakdown card) were both invisible to this guard, and the runtime
+// contrast sweep had to find them instead. Measure LUMINANCE instead of matching
+// a list, so any near-white surface is caught the first time it appears.
+const NEAR_WHITE_LUMINANCE = 0.75;
+
+function hexLuminance(hex: string): number {
+  let h = hex.replace('#', '');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const f = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+
+/** True when the line sets a background to a literal near-white colour. */
+function hasNearWhiteBackground(line: string): boolean {
+  for (const m of line.matchAll(/background(?:Color)?:\s*['"](#[0-9a-fA-F]{3,6})['"]/g)) {
+    if (hexLuminance(m[1]) > NEAR_WHITE_LUMINANCE) return true;
+  }
+  return false;
+}
+
 const HARDCODED_BG_WHITE = /background:\s*['"]#(?:fff|ffffff|fefefe|fdfdff|fbfaff|f8f7ff)['"]/i;
 
 // Hardcoded dark ink used as a text color (dark-on-dark in dark mode).
@@ -59,12 +86,13 @@ const HARDCODED_DARK_TEXT = /color:\s*['"]#(?:1a1a2e|0f1238|0f172a|101944|0f0f30
 const ALLOW = /theme-keep/;
 
 // Return the dashboard-relative locations where `re` matches a non-allowlisted line.
-function offendingLines(files: string[], re: RegExp): string[] {
+function offendingLines(files: string[], re: RegExp | ((line: string) => boolean)): string[] {
+  const match = typeof re === 'function' ? re : (line: string) => re.test(line);
   const hits: string[] = [];
   for (const f of files) {
     const lines = readFileSync(f, 'utf8').split('\n');
     lines.forEach((line, i) => {
-      if (re.test(line) && !ALLOW.test(line)) {
+      if (match(line) && !ALLOW.test(line)) {
         const idx = f.indexOf(`app${sep}`);
         hits.push(`${idx >= 0 ? f.slice(idx) : f}:${i + 1}`);
       }
@@ -81,8 +109,8 @@ describe('user-facing theme tokens (dark-mode regression guard)', () => {
   });
 
   it('no component uses a hardcoded white background (use var(--s1)/--s2)', () => {
-    const offenders = offendingLines(files, HARDCODED_BG_WHITE);
-    expect(offenders, `Hardcoded white background — replace with a surface token (or mark /* theme-keep */ if intentional):\n${offenders.join('\n')}`).toEqual([]);
+    const offenders = offendingLines(files, hasNearWhiteBackground);
+    expect(offenders, `Near-white hardcoded background — replace with a surface token, a translucent tint, or mark /* theme-keep */ if intentional:\n${offenders.join('\n')}`).toEqual([]);
   });
 
   it('no component uses a hardcoded dark text color (use var(--t1)/--t2)', () => {

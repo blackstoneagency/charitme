@@ -80,7 +80,7 @@ export default async function CampaignEmbedPage({ params }: Props) {
             <span style={{ fontSize: 15, fontWeight: 700, color: '#6c35ff' }}>{fmt(raised)}</span>
             <span style={{ fontSize: 13, color: '#64748b' }}>of {fmt(goal)}</span>
           </div>
-          <div style={{ background: '#e8ecf4', borderRadius: 99, height: 8, overflow: 'hidden' }}>
+          <div style={{ background: 'var(--s3, #e8ecf4)', borderRadius: 99, height: 8, overflow: 'hidden' }}>
             <div style={{ background: '#6c35ff', width: `${pct}%`, height: '100%', borderRadius: 99 }} />
           </div>
           <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 5 }}>
@@ -91,7 +91,7 @@ export default async function CampaignEmbedPage({ params }: Props) {
         {acceptDonations ? (
           <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} currency={currency} />
         ) : (
-          <div style={{ background: '#f8fafc', border: '1px solid #e8ecf4', borderRadius: 10, padding: '12px 14px', textAlign: 'center', fontSize: 13, color: '#64748b' }}>
+          <div style={{ background: 'var(--s2, #f8fafc)', border: '1px solid #e8ecf4', borderRadius: 10, padding: '12px 14px', textAlign: 'center', fontSize: 13, color: '#64748b' }}>
             Donations are temporarily paused.
           </div>
         )}

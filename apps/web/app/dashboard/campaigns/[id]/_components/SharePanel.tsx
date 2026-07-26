@@ -146,7 +146,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
           {generating ? 'Generating…' : `Generate ${CHANNELS.find(c => c.type === activeChannel)?.label} Content`}
         </button>
 
-        {error && <div style={{ padding: '10px 14px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 9, color: '#be123c', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>⚠ {error}</div>}
+        {error && <div style={{ padding: '10px 14px', background: 'rgba(244,63,94,.12)', border: '1px solid #fecdd3', borderRadius: 9, color: '#be123c', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>⚠ {error}</div>}
 
         {content && (
           <div>

@@ -1258,7 +1258,7 @@ export default function CreatePage() {
                       className={`cr2-who-card${form.forSelf === 'true' ? ' selected' : ''}`}
                       onClick={() => upd('forSelf', 'true')}
                     >
-                      <div className="cr2-who-icon" style={{ background: '#f0eaff' }}>🙋</div>
+                      <div className="cr2-who-icon" style={{ background: 'rgba(108,53,255,.12)' }}>🙋</div>
                       <strong>Yourself</strong>
                       <p>Funds are delivered to your bank account for your own use</p>
                     </button>
@@ -1267,7 +1267,7 @@ export default function CreatePage() {
                       className={`cr2-who-card${form.forSelf === 'false' ? ' selected' : ''}`}
                       onClick={() => upd('forSelf', 'false')}
                     >
-                      <div className="cr2-who-icon" style={{ background: '#e0faf0' }}>🤝</div>
+                      <div className="cr2-who-icon" style={{ background: 'rgba(16,185,129,.12)' }}>🤝</div>
                       <strong>Someone else</strong>
                       <p>You&apos;ll invite a beneficiary to receive funds or distribute them yourself</p>
                     </button>

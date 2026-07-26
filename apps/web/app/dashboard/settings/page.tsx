@@ -99,7 +99,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
           margin: '0 32px 12px',
           padding: '13px 18px',
           borderRadius: 10,
-          background: '#e8f8ee',
+          background: 'rgba(16,185,129,.12)',
           border: '1px solid #b6eecb',
           display: 'flex',
           alignItems: 'center',
