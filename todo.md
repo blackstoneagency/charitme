@@ -4310,16 +4310,18 @@ says the `.node-version` pin "is too old"), and `20.x` *should* resolve to the n
 it depends on what `setup-node` actually resolves in this repo, which is exactly what
 the logs would show and I cannot read.
 
-**Suggested one-line fix to try first** — safe either way, since a pinned Node below an
-installed dependency's minimum is a latent bug regardless of whether it is *this* break:
+**✅ SHIPPED (this change), on its own merits — not as a blind CI guess:**
+- `.node-version` **20.11.0 → 20.19.0** (still Node 20 LTS; the workflow comment already
+  called the old pin "too old", so this matches existing intent rather than changing it).
+- `apps/web/package.json` now declares **`engines: { node: "^20.19.0 || >=22.12.0" }`** —
+  previously empty, which is *why* this drifted silently. npm now warns (`EBADENGINE`) on
+  an unsupported Node instead of failing opaquely somewhere downstream later.
 
-```
-# .node-version
-20.19.0        # or 22.12.0+, matching rolldown/vitest 4
-```
-
-Deliberately not shipped blind: `.node-version` also drives Vercel deploys, and I cannot
-verify a CI fix from here. But this is the first thing to test, and it is a 30-second change.
+Justification does **not** depend on this being the CI cause: a repo pinning a Node below
+an installed dependency's stated minimum is a bug either way, and the missing `engines`
+floor is what let it happen unnoticed. Verified locally after the change — **1281/1281
+tests, typecheck clean, build exit 0**. If CI goes green, that confirms the lead; if not,
+the latent bug is still fixed and the search narrows.
 
 **Next step for whoever can read the logs:** open the run in the GitHub UI. Likely
 candidates given docs-only commits also fail: a required secret/env missing from the
