@@ -94,6 +94,42 @@ NEXT_PUBLIC_APP_URL
 UNSPLASH_ACCESS_KEY   # optional — themed live campaign covers; falls back to Picsum when unset
 ```
 
+**Beyond the core set above, 18 more are read from `process.env` in app code.** They
+were previously undocumented, so a deploy following this file alone would silently
+lose payouts, billing and all outbound email. Grouped by what breaks without them:
+
+```
+# Payments — payouts and subscriptions break silently if unset
+STRIPE_CONNECT_WEBHOOK_SECRET   # Connect webhooks (payout status). Surfaced by /api/health
+STRIPE_STARTER_MONTHLY_PRICE_ID # ─┐ subscription checkout cannot resolve a price
+STRIPE_STARTER_YEARLY_PRICE_ID  #  │ without these; the plan simply fails to start
+STRIPE_PRO_MONTHLY_PRICE_ID     #  │
+STRIPE_PRO_YEARLY_PRICE_ID      # ─┘
+
+# Email — without RESEND_API_KEY every email is DROPPED (logs an error in prod only)
+RESEND_API_KEY
+EMAIL_FROM
+SUPPORT_EMAIL
+CONTACT_EMAIL                   # falls back to ADMIN_EMAILS, then a hardcoded address
+
+# Access control
+ADMIN_EMAILS                    # comma-separated; grants admin (lib/roles.ts)
+CRON_SECRET                     # Bearer token for /api/cron/*. Fails SAFE when unset —
+                                # the route then demands an admin session, so an unset
+                                # value locks cron out rather than opening the endpoint
+
+# AI — features degrade to deterministic fallbacks when unset (never hard-fail)
+OPENAI_API_KEY
+OPENAI_MODEL
+
+# Optional integrations / misc
+NEXT_PUBLIC_FACEBOOK_APP_ID     # social share
+OPENCORPORATES_API_TOKEN        # nonprofit verification enrichment
+SUPABASE_ACCESS_TOKEN           # tooling/scripts, not request-path
+DEFAULT_DONOR_TIP_PERCENT       # overrides the shared default tip tier
+VERCEL_URL                      # provided by Vercel; origin fallback
+```
+
 **Unsplash covers**: `lib/unsplash.ts` (API client, day-cached, key-gated) + `lib/covers.ts`
 (`resolveCampaignCover`: real uploaded cover → live themed Unsplash → stored/deterministic Picsum
 placeholder — Picsum URLs are treated as overridable placeholders so live Unsplash can replace them). Only
