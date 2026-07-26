@@ -82,6 +82,23 @@ the concern recorded earlier when I declined to wire e2e into CI myself — that
 in without that decision. The `public-routes` spec already timed out on
 `/campaigns` locally for the same reason.
 
+**Evidence gathered since (partial, and it cuts against the workflow's own comment).**
+The workflow asserts *"All four specs pass against the placeholder env below, on
+chromium AND mobile."* Tested that directly: ran the full suite locally with
+`.env.local` removed and CI's exact placeholder vars exported, after killing any
+stale server.
+- With **real** credentials the suite completes in **2.3 min**.
+- With **placeholder** credentials it produced almost no output in **8+ minutes**
+  and had to be killed.
+That is consistent with DB-backed pages blocking on an unresolvable
+`placeholder.supabase.co` until timeout — but it is **not proof** of the CI
+failure, and it may be sandbox DNS behaviour that a GitHub runner does not share.
+Treat it as a strong lead, not a conclusion.
+
+**Also established:** re-running the failed jobs produced **new job IDs and the
+same failure**, and their logs **also 404**, so this is an access limitation of
+this environment rather than log expiry — I cannot read CI logs here at all.
+
 **Next step is 30 seconds for a human and impossible for me:** open the latest run
 in the GitHub UI and read which step is red. If it is the e2e job, either give the
 runner real (read-only) Supabase credentials, or scope the e2e job to the specs
