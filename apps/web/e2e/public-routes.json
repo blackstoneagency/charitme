@@ -10,7 +10,7 @@
     "sweeps were auditing the login page under two other names and passing.",
     "",
     "Before adding a route to `public`, load it signed-out and confirm it renders",
-    "itself. If it redirects, it belongs in `authGated` instead — the sweeps assert",
+    "itself. If it redirects, it belongs in `authGated` instead \u2014 the sweeps assert",
     "the landed path matches the requested one and will fail loudly either way."
   ],
   "public": [
@@ -66,7 +66,8 @@
       "/impact/manage",
       "/matching/manage",
       "/sponsor/manage",
-      "/beneficiary/accept"
+      "/beneficiary/accept",
+      "/volunteer/hours"
     ]
   }
 }
