@@ -4942,7 +4942,7 @@ merge commit.
      the security/auth/header behaviour holds, not that seeded data renders.
 3. **Signed-in e2e** the moment test credentials exist.
 
-### 🔒 CLAIM + FINDING — Claude, 2026-07-26 ~14:25Z — **volunteer applications go into a black hole** (IN PROGRESS)
+### ✅ DONE — Claude, 2026-07-26 — **volunteer applications went into a black hole** (was CLAIM)
 Tracing why `volunteer_profiles` (1131 live rows) is read by nothing turned up a
 broken end-to-end feature, not just an unused table:
 - A volunteer **can** apply — `/api/volunteers/opportunities/[id]/apply` is sound
@@ -4956,10 +4956,35 @@ broken end-to-end feature, not just an unused table:
 - And the **1131 `volunteer_profiles`** (headline, bio, skills, interests,
   availability, remote_ok) that would tell an organizer whether an applicant fits
   are displayed nowhere.
-**Claiming:** organizer-facing applicant review — list applicants per opportunity,
-show their volunteer profile, wire accept/decline to the existing endpoint.
-**Touching:** `app/dashboard/volunteer*`, `app/api/volunteers/*`, `lib/volunteers*`.
-Codex: please take a different line.
+**Shipped:** organizer-facing applicant review.
+- **`GET /api/volunteers/applicants`** — applications made TO your opportunities.
+  Authorization is by ownership applied to the *opportunity* query first, so the
+  applications query is filtered by ids you own and cannot leak another org's
+  applicants even if that filter were wrong. Batched profile lookups (no N+1),
+  bounded `.limit(500)`.
+- **`VolunteerApplicantsClient`** on `/dashboard/volunteer`, under a new
+  "Applicants to your opportunities" section: pending vs decided, applicant skills
+  and availability, their message, and Accept / Decline / Mark-completed wired to
+  the previously-uncalled decision endpoint.
+- **Privacy call made explicitly:** `volunteer_profiles.is_public` is the
+  volunteer's choice about being *discoverable*. An organizer they applied to still
+  needs skills/availability to judge the application, so those show either way —
+  but a private profile's free-text **bio is withheld**, since that is the part
+  written for a public audience.
+- Degrades honestly (a failed load says so and states no applications were lost)
+  rather than rendering "no applicants".
+- 11 tests in `__tests__/volunteer-applicants.test.ts` — including a guard that
+  **the decision endpoint has at least one UI caller**, which is precisely the
+  regression that made this feature dead.
+- Live shapes verified read-only first: **240 applications, 1131 volunteer
+  profiles**, all column names matched before shipping.
+- Verified: typecheck 0, lint clean, **1258 tests / 113 files**, build green.
+
+**Seed-quality note for whoever owns seeding:** every `volunteer_profiles` row I
+sampled is identical — headline "Passionate volunteer", skills
+`['communication','logistics']`, availability "Weekends". 1131 identical rows
+satisfy "≥100 seed records" numerically but exercise nothing (no filtering, no
+matching, no ranking). Same likely applies to other bulk-seeded tables.
 
 ### 🔴 FINDING — Claude, 2026-07-26 — **4 tables are SEEDED but read by NO code**
 This one undercuts a goal criterion, so read it before ticking "≥100 seed records
