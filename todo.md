@@ -4158,3 +4158,69 @@ the anon+cookies client so Postgres enforces ownership).
 - Marketing OS backlog is untouched and still ranked in
   `docs/marketing-os/MASTER_SPEC.md` (multi-tenant scoping, approval engine,
   brand constitution, AI agents, external connectors, experiments/attribution).
+
+## 🔒 CLAIM — Session 2026-07-25 (Claude — production-readiness sweep)
+
+> **AREA CLAIMED:** `.github/workflows/ci.yml`, `apps/web/e2e/**`, `middleware.ts`.
+> Branch `claude/prod-readiness-sweep`. Other bots: please avoid these files.
+> Free for others: `app/create/**` (F4–F10 all shipped), marketing OS, payments, tax.
+
+### 🔴 FINDING 1 — the e2e suite gated nothing (FIXED)
+`playwright.config.ts` + 4 spec files exist and work, but **no CI workflow ran
+them**, so nothing verified the public surface before a production deploy.
+Root causes found by actually running the suite (not by reading it):
+1. **Two sweeps depended on seeded data.** `/campaigns/security-header-fixture/embed`
+   resolves a real `campaigns` row → 404s on a placeholder DB → failed the whole
+   sweep. Now probed once and skipped when absent (`e2e/data-routes.ts`), so a
+   seeded env still gets full coverage and CI gates on everything else.
+2. **Per-test timeout was far too tight.** Each sweep walks ~36 routes in ONE
+   test; Supabase-backed pages cost ~7s each against a placeholder host, so the
+   30s cap tripped on slowness, not on defects. Raised to 600s for the sweeps only.
+→ New `e2e` job in `ci.yml`: installs Chromium, builds with the same placeholder
+  Supabase env as the build job, runs both projects (chromium + mobile), and
+  uploads the Playwright report as an artifact on failure.
+
+### 🟡 FINDING 2 — page-level Supabase queries have no timeout
+Measured on a production build with an unreachable Supabase host:
+`/pricing` 89ms, `/security` 73ms, `/terms` 726ms (no DB) vs **`/faq` 7108ms**
+and **`/grants` 7106ms** (DB-backed). The stall is per-page data fetching, and it
+scales with how many DB-backed pages a visitor touches.
+**Severity: conditional.** With a healthy Supabase this never fires — it is not a
+live outage. But there is no ceiling, so a degraded Supabase degrades page loads
+without bound instead of falling back to an empty/error state.
+**Not fixed here** — a real fix means auditing every server-component query and
+deciding per-page fallback behaviour, which is its own reviewable change.
+
+### ⚠️ CORRECTION — recorded so nobody repeats the wrong diagnosis
+I first attributed the ~7s to `middleware.ts` awaiting `supabase.auth.getUser()`
+on every non-API request. **That was wrong.** Evidence: `/pricing` returns in
+89ms through the same middleware, and the `X-Auth-Refresh: timeout` header never
+appeared — middleware resolves fast even against a placeholder host.
+The `AUTH_REFRESH_TIMEOUT_MS` (3s) guard added to `middleware.ts` is **kept on its
+own merits** — an unbounded auth round-trip in the hot path of every page is worth
+capping, and it fails SAFE (a timeout is treated as "not signed in", so protected
+routes redirect to login rather than being served). It is **not** the fix for
+Finding 2 and must not be described as such.
+
+
+### ⚠️ Collision #2 (2026-07-25/26) — e2e-in-CI was solved twice, concurrently
+A parallel agent wired e2e into CI at the same time as this session, choosing a
+**narrower** scope: smoke + security-headers only, chromium only, as steps inside
+the `verify` job — on the stated assumption that `public-routes` and
+`public-quality` "hit Supabase-backed pages and need real credentials, so they'd
+be flaky against the placeholders."
+
+**That assumption was tested and is false.** Those sweeps failed for two fixable
+reasons, both now fixed: one route needed seeded data (probed and skipped via
+`e2e/data-routes.ts`) and each sweep walks ~36 routes inside ONE test so the 30s
+cap tripped on slowness, not defects (now 600s for the sweeps only).
+**All four specs pass against the placeholder env on chromium AND mobile: 16/16
+verified locally.** The merge keeps the superset as its own `e2e` job and removes
+the duplicated in-`verify` steps so the suite does not run twice.
+Please don't re-narrow it without re-running it first.
+
+**Process note:** master moved from `4a4b536` → `d51208ed` during a single
+session's work (agents pushing straight to master), and the resulting conflict
+left PR #73 `mergeable_state: dirty` — GitHub then ran **no** workflow at all,
+which looks exactly like "CI is slow". Check `mergeable_state` before assuming a
+queue delay.
