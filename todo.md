@@ -4196,21 +4196,39 @@ against the real production DB works and has already settled real questions
 (SEO surface, indexing, RLS review), not a role-dashboard gap.
 
 
-## 🔒 CLAIM — ACTIVE (Claude/tbaz3i — suppress fabricated trust badges at the READ layer)
+## 🔓 CLAIM RELEASED — fabricated trust badges suppressed at the READ layer ✅
 
-> **🚧 IN FLIGHT — do not start this.** Complements the seed-source fix already
-> recorded below (which governs *future* runs only). **Re-confirmed live on
-> production just now:** `/grants` still serves **52 "Ford Foundation"**, **44
-> "City of Austin"**, **48 "Verified"** badges and **96 "Seed Grant"** listings —
-> zero of the new fictional funder names, exactly as expected since seeds don't
-> rewrite existing rows.
-> **What I'm adding:** the previous pass concluded the live rows "need the owner".
-> They need the owner to *delete*, but a **read-layer suppression ships now and
-> stops the fabricated trust signal on deploy** without touching any data: seeded
-> rows carry `source='seed'`, so public reads can force `verified=false`.
-> **Files:** `lib/grants.ts`, `lib/grants-server.ts`, the volunteer/nonprofit
-> equivalents, + tests. No DB writes, no schema, no seed files (already fixed).
-> Branch: `claude/charitme-github-integration-tbaz3i`.
+> **DONE — area is FREE.** Complements the seed-source fix below, which governs
+> *future* runs only. Re-confirmed live before starting: `/grants` served **52
+> "Ford Foundation"**, **44 "City of Austin"**, **48 "Verified"** and **96 "Seed
+> Grant"** rows, with none of the new fictional funder names — seeds don't rewrite
+> existing data.
+>
+> **What shipped:** `lib/demo-trust.ts` — public reads force `verified=false` for
+> demo rows. No writes, no schema, no seed changes; the fabricated trust signal
+> stops rendering **on deploy**, without waiting for the owner's SQL cleanup.
+> Wired into `getPublicGrants`, `getGrantBySlug`, `GET /api/grants`,
+> `getPublicOpportunities` and `getOpportunityBySlug`.
+>
+> **Two mistakes caught by testing rather than shipped** — worth recording:
+> 1. **The marker.** A `source === 'seed'` check looked obviously right (grants
+>    carry it, and the suggested cleanup SQL keys on it) — but
+>    `volunteer_opportunities` **has no `source` column at all**, so that check was
+>    a silent no-op for every volunteer row. The one marker common to all three
+>    seeded tables is the `seed-…` slug prefix, so `isDemoRow` checks both.
+> 2. **The detail read.** The first pass imported the helper into
+>    `volunteers-server.ts` and never called it on `getOpportunityBySlug`, so a
+>    seeded opportunity's own page kept its badge. Lint's unused-import warning is
+>    what surfaced it.
+>
+> Both are pinned by tests. Non-vacuity verified both directions: reverting to a
+> source-only check fails **5** tests; making it downgrade *real* verified orgs
+> fails **2**. _1270/1270 tests, lint clean, build green._
+>
+> **Still needs the owner:** the rows themselves, and the real-organization names
+> (`Ford Foundation`, `City of Austin`) already attributed to fabricated programs —
+> suppression hides the false *badge*, not the false *attribution*. Cleanup SQL is
+> below.
 
 ## 🔴 SEED-DATA — fabricated "Verified" badges, and real foundations named on fake grants (ONE IS LIVE)
 
