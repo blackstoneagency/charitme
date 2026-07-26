@@ -5,8 +5,6 @@ import { isAdmin } from '../lib/roles';
 import {
   CharitMeShell as _CharitMeShell,
   type ShellProps,
-  type Metric,
-  type TableRow,
   type SidebarCampaign,
 } from './CharitMeApp';
 
