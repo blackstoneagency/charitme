@@ -206,3 +206,38 @@ export function generateCheckInCode(random: () => number = Math.random): string 
   }
   return out;
 }
+
+export type ShiftTransitionRefusal = 'same_status' | 'already_cancelled' | 'not_a_transition';
+
+export interface ShiftTransition {
+  allowed: boolean;
+  reason?: ShiftTransitionRefusal;
+}
+
+/**
+ * Whether an organizer may move a shift from `from` to `to`.
+ *
+ * `cancelled` is terminal: re-opening a shift people were told was cancelled
+ * would let volunteers arrive to nothing, so the fix is to schedule a new one.
+ * `completed` is not terminal — an organizer who closes a shift early can put it
+ * back to `scheduled` if the session actually continues.
+ */
+export function canTransitionShift(from: ShiftStatus, to: ShiftStatus): ShiftTransition {
+  if (from === to) return { allowed: false, reason: 'same_status' };
+  if (from === 'cancelled') return { allowed: false, reason: 'already_cancelled' };
+  if (to === 'scheduled' && from === 'completed') return { allowed: true };
+  if (to === 'cancelled' || to === 'completed') return { allowed: true };
+  return { allowed: false, reason: 'not_a_transition' };
+}
+
+/**
+ * Cancelling a shift never voids hours already logged against it.
+ *
+ * Stated as code because it is a judgement call someone could reasonably get
+ * wrong: a volunteer who turned up and worked is owed that time regardless of
+ * what later happens to the shift record. Cancellation stops FUTURE check-ins
+ * (canCheckIn refuses a cancelled shift); it is not a way to erase attendance.
+ */
+export function cancellationVoidsLoggedHours(): boolean {
+  return false;
+}

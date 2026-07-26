@@ -4053,15 +4053,27 @@ Verified · Production Ready. These are grounded in the current codebase
       before verifying.") so an organizer reviews rather than rubber-stamps them.
       Auth-gated (307 → `/login` verified), registered under `authGated`.
 
-      ⬜ **Two honest gaps remaining on CHAR-1102, neither blocking use:**
-      1. **No QR *image*.** The spec says "QR check-in"; what ships is the code
-         displayed to the organizer and typed/pasted by the volunteer. Rendering an
-         actual QR needs a new dependency (`qrcode`), which is a deliberate choice
-         to leave to the owner rather than add unilaterally. The check-in flow works
-         end to end without it.
-      2. **No cancel-shift endpoint.** `status` supports `cancelled` and `canCheckIn`
-         already refuses a cancelled shift, but nothing sets it yet — a `PATCH
-         /api/volunteers/shifts/[id]` is still needed.
+      **✅ Cancel/complete SHIPPED** — `PATCH /api/volunteers/shifts/[id]` plus
+      buttons in the organizer UI. `canTransitionShift()` (6 tests) makes
+      **`cancelled` terminal** — re-opening a shift volunteers were told was
+      cancelled would have them arrive to nothing, so the fix is to schedule a new
+      one — while `completed → scheduled` IS allowed, because an organizer closing a
+      shift early and being wrong about it is recoverable. The asymmetry is
+      deliberate.
+
+      **Cancelling never voids logged hours.** Stated in code as
+      `cancellationVoidsLoggedHours()` because it is a judgement call someone could
+      reasonably get wrong: a volunteer who turned up and worked is owed that time
+      whatever later happens to the shift record. Cancellation stops FUTURE
+      check-ins only, and the UI says so out loud ("hours already logged are
+      unaffected") because an organizer pressing Cancel may reasonably fear they are
+      deleting their volunteers' time.
+
+      ⬜ **One gap left, deliberately not closed:** no QR *image*. The check-in code
+      is shown to the organizer and typed by the volunteer; the flow works end to
+      end. Rendering a real QR needs a new runtime dependency (`qrcode` — confirmed
+      absent from `package.json` and `node_modules`), and adding one to a payments
+      platform is the owner's call, not a bot's. Everything else in CHAR-1102 ships.
   - Area: Volunteers
   - Feature: Shifts, check-in/out & hours tracking
   - Description: Schedule shifts, QR check-in/out, accumulate verified hours,

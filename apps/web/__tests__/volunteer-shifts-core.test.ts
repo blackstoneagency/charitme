@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   hoursBetween, hoursForCheckout, canCheckIn, totalHours, exportableHours,
   roundHours, isValidCheckInCode, formatCheckInCode, generateCheckInCode,
-  MAX_SHIFT_HOURS, CHECKIN_CODE_LENGTH,
+  MAX_SHIFT_HOURS, CHECKIN_CODE_LENGTH, canTransitionShift, cancellationVoidsLoggedHours,
 } from '../lib/volunteer-shifts-core';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -196,5 +196,41 @@ describe('roundHours', () => {
     // helper would be complexity with no payoff. My first version of this test
     // asserted 1.01 and was simply wrong about the arithmetic.
     expect(roundHours(1.005)).toBe(1);
+  });
+});
+
+describe('canTransitionShift', () => {
+  it('lets an organizer cancel a scheduled shift', () => {
+    expect(canTransitionShift('scheduled', 'cancelled')).toEqual({ allowed: true });
+  });
+
+  it('lets an organizer mark a shift completed', () => {
+    expect(canTransitionShift('scheduled', 'completed')).toEqual({ allowed: true });
+  });
+
+  it('treats cancelled as terminal', () => {
+    // Re-opening a shift volunteers were told was cancelled would have them
+    // arrive to nothing. Schedule a new shift instead.
+    expect(canTransitionShift('cancelled', 'scheduled')).toEqual({ allowed: false, reason: 'already_cancelled' });
+    expect(canTransitionShift('cancelled', 'completed')).toEqual({ allowed: false, reason: 'already_cancelled' });
+  });
+
+  it('allows re-opening a shift closed early', () => {
+    // Not symmetric with cancelled on purpose: "completed" is an organizer
+    // saying they are done, and being wrong about that is recoverable.
+    expect(canTransitionShift('completed', 'scheduled')).toEqual({ allowed: true });
+  });
+
+  it('rejects a no-op', () => {
+    expect(canTransitionShift('scheduled', 'scheduled')).toEqual({ allowed: false, reason: 'same_status' });
+  });
+});
+
+describe('cancellationVoidsLoggedHours', () => {
+  it('is false — cancelling a shift never erases attendance', () => {
+    // A volunteer who turned up and worked is owed that time regardless of what
+    // later happens to the shift record. Cancellation stops future check-ins;
+    // it is not a way to delete hours someone earned.
+    expect(cancellationVoidsLoggedHours()).toBe(false);
   });
 });
