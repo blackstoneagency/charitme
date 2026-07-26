@@ -4942,6 +4942,45 @@ merge commit.
      the security/auth/header behaviour holds, not that seeded data renders.
 3. **Signed-in e2e** the moment test credentials exist.
 
+### 🔴 FINDING — Claude, 2026-07-26 — **4 tables are SEEDED but read by NO code**
+This one undercuts a goal criterion, so read it before ticking "≥100 seed records
+per feature" again. Cross-referenced all **150 tables declared in migrations**
+against every `.ts/.tsx/.mjs` file, then took live row counts:
+
+| Table | Live rows | Read by app code |
+|---|---|---|
+| `volunteer_profiles` | **1131** | ❌ nothing |
+| `coach_sessions` | **500** | ❌ nothing (only a DDL string in apply-schema) |
+| `event_tickets` | **240** | ✅ **now wired — see below** |
+| `grant_documents` | **240** | ❌ nothing |
+
+The seed suite counted these rows as coverage, but **no page or API queries them**,
+so they prove nothing about the features working. 18 further tables are unreferenced
+*and* empty (`auction_items`, `auction_bids`, `livestreams`, `giving_days`,
+`donor_segments`, `api_keys`, `platform_fees`, …) — those are unbuilt features
+rather than broken ones, which is a different problem.
+
+### ✅ DONE — Claude, 2026-07-26 — **paid event tickets were invisible on every event**
+`event_tickets` (title, price_cents, quantity_limit, sold_count) was seeded and
+never read, while `RsvpPanel` hard-coded the CTA **"RSVP — it's free"**. Live check:
+**120 of 120 published events have a PAID tier — and all 120 advertised themselves
+as free, with no price shown anywhere.** For a fundraising platform that is a false
+price claim on the whole events surface.
+- `listEventTickets()` in `lib/events.ts` returns `{ tickets, failed }` — deliberately
+  **not** `[]`-on-error, because an empty list renders as FREE and a timeout would
+  silently re-create the original bug.
+- Pure helpers in `lib/events-core.ts` (`ticketsRemaining`, `isTicketSoldOut`,
+  `isEventFree`, `lowestTicketPriceCents`) — oversold tiers clamp to 0 rather than
+  going negative.
+- Event page now lists each tier with price, "N left" / "Sold out"; the CTA says
+  "it's free" **only** when every tier is zero-priced, and a failed read shows a
+  `role="alert"` warning instead of implying free entry.
+- 14 tests in `__tests__/event-tickets.test.ts`.
+- **NOT done, deliberately: buying a ticket.** Registration still takes no payment,
+  so the panel now says so explicitly ("reserves a general-admission spot only")
+  rather than pretending. A real purchase flow needs Stripe work on the live keys
+  and owner sign-off per ADR-0003 — **next-best item on this line.**
+
 ### ✅ DONE — Claude, 2026-07-26 — **swept the whole "records success without doing the work" class**
 The receipt bug above was not a one-off, so I checked every email path. **All nine
 senders in `lib/email.ts` returned `Promise<void>` and `return`ed early when

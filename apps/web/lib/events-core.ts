@@ -114,3 +114,48 @@ export const RegistrationCreateSchema = z.object({
   attendee_name: z.string().trim().max(160).optional().nullable(),
   attendee_email: z.string().email().max(240).optional().nullable(),
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ticket tiers.
+//
+// `event_tickets` shipped with the events schema and was seeded (240 rows in
+// production) but read by NO application code, while the RSVP panel hard-coded
+// "RSVP — it's free". So an event with paid tiers advertised itself as free and
+// never showed its prices. These helpers are pure so they can be unit-tested
+// without a database.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface EventTicket {
+  id: string;
+  event_id: string;
+  title: string;
+  price_cents: number;
+  /** null = unlimited. */
+  quantity_limit: number | null;
+  sold_count: number;
+  created_at: string;
+}
+
+/** Tickets left, or null when the tier is unlimited. Never negative. */
+export function ticketsRemaining(ticket: Pick<EventTicket, 'quantity_limit' | 'sold_count'>): number | null {
+  if (ticket.quantity_limit === null || !Number.isFinite(ticket.quantity_limit)) return null;
+  return Math.max(0, ticket.quantity_limit - Math.max(0, ticket.sold_count ?? 0));
+}
+
+export function isTicketSoldOut(ticket: Pick<EventTicket, 'quantity_limit' | 'sold_count'>): boolean {
+  return ticketsRemaining(ticket) === 0;
+}
+
+/**
+ * True when every tier costs nothing — the only case where calling the event
+ * "free" is accurate. An event with no tiers at all is a plain RSVP, also free.
+ */
+export function isEventFree(tickets: Pick<EventTicket, 'price_cents'>[]): boolean {
+  return tickets.every((t) => (t.price_cents ?? 0) <= 0);
+}
+
+/** Cheapest non-zero price, for a "from $X" label. Null when entirely free. */
+export function lowestTicketPriceCents(tickets: Pick<EventTicket, 'price_cents'>[]): number | null {
+  const paid = tickets.map((t) => t.price_cents ?? 0).filter((c) => c > 0);
+  return paid.length > 0 ? Math.min(...paid) : null;
+}

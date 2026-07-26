@@ -17,6 +17,7 @@ export default function RsvpPanel({
   open,
   alreadyRegistered,
   slug,
+  free,
 }: {
   eventId: string;
   signedIn: boolean;
@@ -24,6 +25,8 @@ export default function RsvpPanel({
   open: boolean;
   alreadyRegistered: boolean;
   slug: string;
+  /** False when the event sells paid ticket tiers. */
+  free: boolean;
 }) {
   const router = useRouter();
   const [registered, setRegistered] = useState(alreadyRegistered);
@@ -78,7 +81,17 @@ export default function RsvpPanel({
     <div>
       <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 10 }}>Reserve your spot</h2>
       {error && <p style={{ color: 'var(--red-text)', fontSize: 13, marginBottom: 8 }}>{error}</p>}
-      <Btn disabled={submitting} onClick={rsvp}>{submitting ? 'Registering…' : 'RSVP — it’s free'}</Btn>
+      <Btn disabled={submitting} onClick={rsvp}>
+        {submitting ? 'Registering…' : free ? 'RSVP — it’s free' : 'Reserve a free spot'}
+      </Btn>
+      {/* Registration here does not take payment. Saying "it's free" on an event
+          that sells tickets would be a false price claim, so the paid tiers are
+          named explicitly above and this CTA is scoped to the free RSVP. */}
+      {!free && (
+        <p style={{ fontSize: 12.5, color: 'var(--t3)', marginTop: 8, lineHeight: 1.5 }}>
+          Paid tickets are listed above. This reserves a general-admission spot only.
+        </p>
+      )}
     </div>
   );
 }

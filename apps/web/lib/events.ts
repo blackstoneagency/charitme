@@ -4,7 +4,7 @@ import 'server-only';
 // ─────────────────────────────────────────────────────────────────────────────
 import { supabaseAdmin } from './supabase';
 import { boundedQuery } from './query-timeout';
-import type { FundraisingEvent, EventRegistration } from './events-core';
+import type { FundraisingEvent, EventRegistration, EventTicket } from './events-core';
 
 const EVENT_COLUMNS =
   'id, created_by, campaign_id, title, slug, description, event_type, starts_at, ends_at, location, virtual_url, cover_image_url, capacity, status, created_at, updated_at';
@@ -109,4 +109,27 @@ export async function attendeeRegisteredQty(eventId: string, attendeeId: string)
 async function withCounts(rows: FundraisingEvent[]): Promise<EventWithCounts[]> {
   const counts = await registeredQtyByEvent(rows.map((r) => r.id));
   return rows.map((r) => ({ ...r, registered_qty: counts.get(r.id) ?? 0 }));
+}
+
+/**
+ * Ticket tiers for an event, cheapest first.
+ *
+ * `event_tickets` had no reader anywhere in the app despite being seeded, so
+ * every event rendered as a free RSVP regardless of its tiers.
+ */
+export async function listEventTickets(
+  eventId: string,
+): Promise<{ tickets: EventTicket[]; failed: boolean }> {
+  const { data, error } = await boundedQuery(
+    supabaseAdmin
+      .from('event_tickets')
+      .select('id, event_id, title, price_cents, quantity_limit, sold_count, created_at')
+      .eq('event_id', eventId)
+      .order('price_cents', { ascending: true }),
+  );
+  // `failed` is reported rather than folded into an empty list: an empty list means
+  // "this event has no paid tiers", which the page renders as FREE. Collapsing a
+  // failed read into that would advertise a paid event as free.
+  if (error || data == null) return { tickets: [], failed: true };
+  return { tickets: data as EventTicket[], failed: false };
 }

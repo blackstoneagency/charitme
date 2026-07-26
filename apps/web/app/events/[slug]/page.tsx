@@ -3,8 +3,14 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Badge } from '../../../components/ui';
 import { getUser } from '../../../lib/auth';
-import { getEventBySlug, attendeeRegisteredQty } from '../../../lib/events';
-import { isRegistrationOpen, remainingCapacity } from '../../../lib/events-core';
+import { getEventBySlug, attendeeRegisteredQty, listEventTickets } from '../../../lib/events';
+import {
+  isRegistrationOpen,
+  remainingCapacity,
+  isEventFree,
+  ticketsRemaining,
+  isTicketSoldOut,
+} from '../../../lib/events-core';
 import RsvpPanel from './RsvpPanel';
 
 type PageProps = { params: Promise<{ slug: string }> };
@@ -34,6 +40,13 @@ export default async function EventDetailPage({ params }: PageProps) {
   const remaining = remainingCapacity(e.capacity, e.registered_qty);
   const open = isRegistrationOpen(e, e.registered_qty);
 
+  // `event_tickets` was seeded but read by nothing, so every event displayed as a
+  // free RSVP even when it had paid tiers.
+  const { tickets, failed: ticketsFailed } = await listEventTickets(e.id);
+  const free = !ticketsFailed && isEventFree(tickets);
+  const money = (cents: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
+
   return (
     <div className="container" style={{ padding: '40px 24px', maxWidth: 780 }}>
       <Link href="/events" style={{ fontSize: 14, color: 'var(--t3)', textDecoration: 'none' }}>← All events</Link>
@@ -57,6 +70,48 @@ export default async function EventDetailPage({ params }: PageProps) {
         <p style={{ fontSize: 16, lineHeight: 1.7, color: 'var(--t2)', whiteSpace: 'pre-wrap', marginTop: 18 }}>{e.description}</p>
       )}
 
+      {ticketsFailed && (
+        <p role="alert" style={{ marginTop: 24, padding: '12px 14px', borderRadius: 10, background: 'var(--s2)', border: '1px solid var(--b2)', fontSize: 13.5, color: 'var(--t2)' }}>
+          Ticket information couldn&apos;t be loaded just now — this event may have paid
+          tickets. Please reload before assuming entry is free.
+        </p>
+      )}
+
+      {tickets.length > 0 && (
+        <section style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--b2)' }}>
+          <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>Tickets</h2>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
+            {tickets.map((t) => {
+              const left = ticketsRemaining(t);
+              const soldOut = isTicketSoldOut(t);
+              return (
+                <li
+                  key={t.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    gap: 12, flexWrap: 'wrap',
+                    padding: '12px 14px', border: '1px solid var(--b2)', borderRadius: 10,
+                    background: 'var(--s1)', opacity: soldOut ? 0.6 : 1,
+                  }}
+                >
+                  <span style={{ minWidth: 0 }}>
+                    <strong style={{ fontSize: 15, color: 'var(--t1)' }}>{t.title}</strong>
+                    {left !== null && (
+                      <span style={{ display: 'block', fontSize: 12.5, color: 'var(--t3)', marginTop: 2 }}>
+                        {soldOut ? 'Sold out' : `${left} left`}
+                      </span>
+                    )}
+                  </span>
+                  <span style={{ fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap', color: 'var(--t1)' }}>
+                    {t.price_cents > 0 ? money(t.price_cents) : 'Free'}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--b2)' }}>
         <RsvpPanel
           eventId={e.id}
@@ -65,6 +120,7 @@ export default async function EventDetailPage({ params }: PageProps) {
           open={open}
           alreadyRegistered={alreadyRegistered}
           slug={e.slug}
+          free={free}
         />
       </div>
     </div>
