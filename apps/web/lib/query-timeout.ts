@@ -55,3 +55,28 @@ export async function withQueryTimeout<T>(
     if (timer) clearTimeout(timer);
   }
 }
+
+/**
+ * Give a Supabase query builder a deadline while keeping its exact result shape.
+ *
+ * `withQueryTimeout` needs an explicit fallback, which is verbose at the ~15
+ * list-read call sites that already handle `{ data, error }`. This returns the
+ * query's own resolved type, synthesising the same `{ data: null, error }` shape
+ * supabase-js produces on failure — so a timeout takes the call site's existing
+ * error branch and no downstream code has to change:
+ *
+ *   const { data, error } = await boundedQuery(supabaseAdmin.from('x').select());
+ *
+ * For reads only, and only where the existing error branch degrades sensibly.
+ */
+export async function boundedQuery<Q extends PromiseLike<unknown>>(
+  query: Q,
+  timeoutMs: number = DEFAULT_QUERY_TIMEOUT_MS,
+): Promise<Awaited<Q>> {
+  const fallback = {
+    data: null,
+    error: { message: 'query timeout', code: 'QUERY_TIMEOUT' },
+  } as unknown as Awaited<Q>;
+  const { data } = await withQueryTimeout(query as PromiseLike<Awaited<Q>>, fallback, timeoutMs);
+  return data;
+}

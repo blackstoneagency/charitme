@@ -4565,3 +4565,25 @@ remains unbounded. Each one needs a per-page judgement about what "degraded"
 should look like, so it is deliberately not a blanket search-and-replace. Tracked
 here rather than claimed as done. `lib/query-timeout.ts` (7 tests) is the tool to
 finish it with.
+
+
+### ✅ FINDING 2 (continued) — query ceiling rolled out to the public list reads
+Added `boundedQuery(query)` to `lib/query-timeout.ts`: returns the query's own
+resolved `{ data, error }` shape, synthesising supabase-js's failure shape on
+timeout so a call site's **existing** error branch runs and no downstream code
+changes. 10 tests.
+
+Applied to **15 list reads** that already degrade to `[]`:
+`leaderboard` (2), `events` (3), `grants-server` (1), `matching` (4),
+`sponsorships` (4), `volunteers-server` (1).
+
+**Deliberately NOT applied to 6 single-row reads** (`getEventBySlug` and
+siblings in events/grants/matching/sponsorships/volunteers). Those return `null`
+on error, and callers turn `null` into a **404** — so a transient timeout would
+tell a visitor that a campaign/event/grant *does not exist*. That is worse than a
+slow page, and it is cacheable/indexable. A first pass wrapped them by regex; the
+audit caught it and they were reverted. **If you extend this rollout, check what
+the caller does with the empty result before wrapping anything.**
+
+Still unbounded beyond these: admin/dashboard reads and anything where empty
+would be mistaken for a real answer (money totals, receipts, auth).

@@ -4,6 +4,7 @@ import 'server-only';
 // `sponsorships-core.ts`.
 // ─────────────────────────────────────────────────────────────────────────────
 import { supabaseAdmin } from './supabase';
+import { boundedQuery } from './query-timeout';
 import type { SponsorshipOpportunity, SponsorshipRequest } from './sponsorships-core';
 
 const OPPORTUNITY_COLUMNS =
@@ -34,7 +35,7 @@ export async function listOpenOpportunities(
   if (filters.category) query = query.eq('category', filters.category);
   if (filters.search) query = query.ilike('title', `%${filters.search}%`);
 
-  const { data, error } = await query;
+  const { data, error } = await boundedQuery(query);
   if (error || !data) return [];
   return decorate(data as SponsorshipOpportunity[]);
 }
@@ -53,12 +54,14 @@ export async function getOpportunity(id: string): Promise<OpportunityWithOrganiz
 export async function listOrganizerOpportunities(
   organizerId: string,
 ): Promise<OpportunityWithOrganizer[]> {
-  const { data, error } = await supabaseAdmin
-    .from('sponsorship_opportunities')
-    .select(OPPORTUNITY_COLUMNS)
-    .eq('organizer_id', organizerId)
-    .order('created_at', { ascending: false })
-    .limit(200);
+  const { data, error } = await boundedQuery(
+  supabaseAdmin
+      .from('sponsorship_opportunities')
+      .select(OPPORTUNITY_COLUMNS)
+      .eq('organizer_id', organizerId)
+      .order('created_at', { ascending: false })
+      .limit(200),
+  );
   if (error || !data) return [];
   return decorate(data as SponsorshipOpportunity[]);
 }
@@ -70,21 +73,25 @@ export interface RequestWithNames extends SponsorshipRequest {
 }
 
 export async function listSponsorRequests(sponsorId: string): Promise<RequestWithNames[]> {
-  const { data, error } = await supabaseAdmin
-    .from('sponsorship_requests')
-    .select('*')
-    .eq('sponsor_id', sponsorId)
-    .order('created_at', { ascending: false });
+  const { data, error } = await boundedQuery(
+  supabaseAdmin
+      .from('sponsorship_requests')
+      .select('*')
+      .eq('sponsor_id', sponsorId)
+      .order('created_at', { ascending: false }),
+  );
   if (error || !data) return [];
   return attachRequestNames(data as SponsorshipRequest[]);
 }
 
 export async function listOpportunityRequests(opportunityId: string): Promise<RequestWithNames[]> {
-  const { data, error } = await supabaseAdmin
-    .from('sponsorship_requests')
-    .select('*')
-    .eq('opportunity_id', opportunityId)
-    .order('created_at', { ascending: false });
+  const { data, error } = await boundedQuery(
+  supabaseAdmin
+      .from('sponsorship_requests')
+      .select('*')
+      .eq('opportunity_id', opportunityId)
+      .order('created_at', { ascending: false }),
+  );
   if (error || !data) return [];
   return attachRequestNames(data as SponsorshipRequest[]);
 }
