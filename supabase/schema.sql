@@ -506,26 +506,44 @@ CREATE FUNCTION public.volunteer_hours_guard_verification() RETURNS trigger
     AS $$
 declare
   owner_id uuid;
+  actor    uuid;
 begin
   if tg_op = 'UPDATE'
      and new.status is distinct from old.status
      and new.status = 'verified' then
 
+    actor := auth.uid();
+
     select created_by into owner_id
       from volunteer_opportunities
      where id = new.opportunity_id;
 
-    if not (is_admin() or owner_id = auth.uid()) then
-      raise exception 'only the opportunity owner or an admin can verify volunteer hours'
-        using errcode = 'check_violation';
+    if actor is null then
+      -- Server context (service role). RLS is bypassed here by design and the
+      -- API route has already authorized the caller. Attribution is still
+      -- mandatory: refuse an anonymous verification rather than record one.
+      if new.verified_by is null then
+        raise exception 'verified_by must be set when verifying volunteer hours from a server context'
+          using errcode = 'check_violation';
+      end if;
+      new.verified_at := coalesce(new.verified_at, now());
+    else
+      -- End-user JWT. Only the opportunity owner or an admin may verify, and
+      -- the attribution is stamped from the token so it cannot be forged.
+      if not (coalesce(is_admin(), false) or coalesce(owner_id = actor, false)) then
+        raise exception 'only the opportunity owner or an admin can verify volunteer hours'
+          using errcode = 'check_violation';
+      end if;
+      new.verified_by := actor;
+      new.verified_at := now();
     end if;
-
-    -- Stamp the attribution here so it cannot be forged by the caller.
-    new.verified_by := auth.uid();
-    new.verified_at := now();
   end if;
 
-  if tg_op = 'UPDATE' and new.status is distinct from old.status and new.status <> 'verified' then
+  -- Leaving 'verified' clears the attribution so a rejected or reopened row
+  -- never carries a stale verifier.
+  if tg_op = 'UPDATE'
+     and new.status is distinct from old.status
+     and new.status <> 'verified' then
     new.verified_by := null;
     new.verified_at := null;
   end if;
