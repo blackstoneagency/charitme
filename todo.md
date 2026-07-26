@@ -307,7 +307,19 @@ or handing collaborators more than intended. Two honest options, owner's call:
    helper and apply it across the 9 routes.
 2. **Stop promising it** — if team members are only ever meant to see analytics,
    change the copy to say so and drop the role selector.
-Until one is chosen, the copy should not claim editing rights that do not exist.
+**✅ Option 2 now applied** — the copy is honest as of this commit. On reflection
+the two options were *not* equally blocked: implementing enforcement requires
+guessing intent, but making copy match observed behaviour requires no guessing,
+and users were actively being misled (invite an "Admin", they can't edit). Same
+precedent as the Language selector: keep the control, state plainly what it does.
+Role **values** are unchanged, so stored data and any future enforcement are
+unaffected. Option 1 remains open and is the real fix.
+
+Guarded by `__tests__/team-role-copy-honesty.test.ts`, which is deliberately
+**conditional and self-retiring**: it only demands honest copy *while* no campaign
+route checks a member's role. Ship enforcement and the guard stops applying, so
+the richer copy can legitimately return. Verified non-vacuous against the exact
+string that shipped.
 
 **🔴 GOAL CRITERION "each user role is clearly mapped out and different" — NOT MET.**
 Audited `lib/roles.ts` + every consumer. Six roles exist

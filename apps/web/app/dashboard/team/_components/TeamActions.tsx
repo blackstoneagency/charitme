@@ -166,10 +166,15 @@ export function InviteMemberButton({ campaigns, onAdded }: { campaigns: Campaign
               <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
                 Role
                 <select value={role} onChange={e => setRole(e.target.value as 'admin' | 'member' | 'viewer')} style={{ height: 44, border: '1px solid var(--b2, var(--b1))', borderRadius: 9, padding: '0 14px', fontSize: 14, background: 'var(--s1)', color: 'var(--t1)' }}>
-                  <option value="admin">Admin — can edit and manage campaign</option>
-                  <option value="member">Member — can post updates</option>
-                  <option value="viewer">Viewer — read-only access</option>
+                  <option value="admin">Admin</option>
+                  <option value="member">Member</option>
+                  <option value="viewer">Viewer</option>
                 </select>
+                <span style={{ fontSize: 11, color: 'var(--t3)', fontWeight: 400 }}>
+                  Saved for when per-role permissions ship. Today every team member gets
+                  the same access — they can view this campaign&rsquo;s analytics, and
+                  cannot edit it or post updates. Only the campaign owner can do that.
+                </span>
               </label>
             </div>
             <div style={{ padding: '16px 24px', borderTop: '1px solid var(--b1)', display: 'flex', gap: 12 }}>
