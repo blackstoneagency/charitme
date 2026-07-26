@@ -20,10 +20,24 @@ import { join, sep } from 'node:path';
 // Public dynamic [slug]/[id] routes are included too: they are Supabase-backed,
 // so they cannot be browser-audited from the sandbox (no DB) — this static guard
 // is the regression protection they'd otherwise lack.
-const GUARDED_DIRS = [
-  'dashboard', 'donor', 'profile',
-  'campaigns', 'donors', 'matching', 'sponsor', 'volunteer', 'events', 'grants', 'impact',
-].map((d) => join(__dirname, '..', 'app', d));
+// Previously an explicit list of 12 directories, which left ~25 other user-facing
+// areas unguarded — `create` (the campaign wizard) and `features` had both drifted
+// back to hardcoded light-mode values without failing anything. The guard now walks
+// EVERY directory under app/ and excludes only what is deliberately out of scope,
+// so a new page is covered the moment it exists rather than when someone remembers
+// to add it here.
+const EXCLUDED_DIRS = new Set([
+  'api',    // route handlers render no UI
+  'admin',  // intentionally light-only internal tooling (documented decision)
+]);
+
+const APP_DIR = join(__dirname, '..', 'app');
+const GUARDED_DIRS = readdirSync(APP_DIR)
+  .filter((entry) => !EXCLUDED_DIRS.has(entry))
+  .map((entry) => join(APP_DIR, entry))
+  .filter((p) => {
+    try { return statSync(p).isDirectory(); } catch { return false; }
+  });
 
 function walk(dir: string): string[] {
   const out: string[] = [];
