@@ -2301,6 +2301,32 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
     deserves scrutiny rather than a silent edit. A second test now pins the ceiling
     so removing the floor didn't quietly drop the upper bound too.
 
+    **✏️ CORRECTION — commits ARE signed. The "Unverified" hook is a local false
+    negative.** I reported several times that commit signing was broken and
+    unfixable, citing a 0-byte `/home/claude/.ssh/commit_signing_key.pub` and a
+    missing private key. **Both observations were true and the conclusion was
+    wrong.** Evidence from actually testing it rather than re-reading config:
+    - A probe commit **succeeded and carries a real signature** —
+      `gpgsig -----BEGIN SSH SIGNATURE-----` with an ed25519 blob in
+      `git cat-file -p HEAD`.
+    - Signing does not use that empty file. `/root/.gitconfig` sets
+      `gpg.ssh.program=/tmp/code-sign` → `/opt/env-runner/environment-manager`,
+      an environment-provided signer. The empty `.pub` is a red herring.
+    - `%G?` returns `N` because **git cannot verify** SSH signatures here:
+      `openssh-client` is not installed, so there is no `ssh-keygen`, and
+      `gpg.ssh.allowedSignersFile` is unset. Git's `N` conflates "no signature"
+      with "cannot check", and the hook reads it as the former.
+    - Setting `allowedSignersFile` with the key decoded out of the signature made
+      it report `B` rather than `G` — because verification still needs the missing
+      `ssh-keygen` binary. That config change has been **reverted**; the
+      environment is as found.
+    **Do not** run the hook's suggested `git rebase --exec 'commit --amend
+    --reset-author'` over shared history to chase this — the committer email is
+    already `noreply@anthropic.com`, the commits are already signed, and rewriting
+    published master would disrupt the other agents working on it. Whether GitHub
+    displays them as Verified depends on that key being registered account-side,
+    which cannot be determined from inside the sandbox.
+
     **⚠️ Note for other agents — stale `.next/types` after PR #63.** That PR
     deleted `app/events`, `app/matching`, and `app/sponsor`. A `.next` cache built
     before rebasing onto it still holds generated stubs importing those pages, and
