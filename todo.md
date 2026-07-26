@@ -4287,6 +4287,40 @@ and sail straight through.
 - **Check-run output carries nothing.** `get_check_run` on the failing job returns
   empty `title`/`summary`/`text`, so the webhook payload has no diagnostic either.
 
+### 🎯 STRONGEST LEAD — a Node version below a dependency's stated minimum
+
+Objective, checkable without CI logs:
+
+| fact | value |
+|---|---|
+| `.node-version` (repo pin, used by Vercel) | **20.11.0** |
+| `rolldown` engines (vitest 4's bundler, installed) | **`^20.19.0 \|\| >=22.12.0`** |
+| `vitest` in `apps/web/package.json` | **`^4.1.7`** |
+| `apps/web` own `engines` field | **`{}` — empty, so nothing enforces a floor** |
+
+**20.11.0 does not satisfy `^20.19.0`.** Vitest 4 pulls in rolldown, so a Node below
+20.19 cannot run the unit-test step — and both CI jobs run Node tooling after
+`npm ci`, which fits *both* failing, and fits **docs-only commits failing too**
+(environmental, not code). It also fits the timing: vitest 4 is a recent upgrade, and
+master went red around then.
+
+**Caveat, stated honestly:** `ci.yml` sets `node-version: 20.x` (the comment there even
+says the `.node-version` pin "is too old"), and `20.x` *should* resolve to the newest
+20.x, which would satisfy rolldown. So this is a strong lead, **not a confirmed cause** —
+it depends on what `setup-node` actually resolves in this repo, which is exactly what
+the logs would show and I cannot read.
+
+**Suggested one-line fix to try first** — safe either way, since a pinned Node below an
+installed dependency's minimum is a latent bug regardless of whether it is *this* break:
+
+```
+# .node-version
+20.19.0        # or 22.12.0+, matching rolldown/vitest 4
+```
+
+Deliberately not shipped blind: `.node-version` also drives Vercel deploys, and I cannot
+verify a CI fix from here. But this is the first thing to test, and it is a 30-second change.
+
 **Next step for whoever can read the logs:** open the run in the GitHub UI. Likely
 candidates given docs-only commits also fail: a required secret/env missing from the
 workflow, an `npm ci` lockfile mismatch, or a runner/Node version change. Until then,
