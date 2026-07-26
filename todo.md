@@ -4780,7 +4780,7 @@ difference as real: two audit ✅s turned out to be stale when I spot-checked th
 | 4 | ≥100 seed records per feature | ⚪ claimed | Earlier session: "73 non-empty tables, every feature ≥100". **Cannot verify from sandbox** — no Supabase creds, no Docker |
 | 5 | Every image unique, 0 duplicates | 🔴 **CLAIM IS FALSE** | Re-verified 2026-07-26: **10 photos are shared across categories**, one across **15 of 18**. See finding below |
 | 6 | Frictionless UX | 🟢 improved | F1–F10 all shipped (see the friction backlog): 9→7-step wizard, cross-device drafts, multi-draft, donor preview, goal guidance, honest gate copy, real publish errors, image data-loss fix |
-| 7 | Dark/light mode everywhere | ⚪ claimed | Earlier session + `theme-tokens.test.ts` regression guard. Admin is intentionally light-only |
+| 7 | Dark/light mode everywhere | ✅ **now verified + guarded** | Re-verified 2026-07-26: guard covered only 12 of ~37 user-facing dirs; `create` and `features` had drifted. 6 values fixed, guard widened to every dir |
 | 8 | Mobile responsive | ⚪ claimed | Earlier: 19 routes at 320/390px, 0 overflow. e2e runs a mobile project, so new regressions would be caught |
 | 9 | Pages load FAST | 🟡 improved | **Real finding:** DB-backed pages had NO timeout — measured ~7.1s (`/faq`, `/grants`) vs 73–726ms without DB. 15 public list reads now bounded (`lib/query-timeout.ts`). **Dashboard/admin reads still unbounded** |
 | 10 | Roles clearly mapped | 🟢 | `lib/role-capabilities.ts` + tests (another agent, this session) |
@@ -4981,3 +4981,23 @@ picking photos.
 baseline id, ideally per-category), verify with
 `npm run audit:campaign-images -- --live`, and delete the ids from
 `DUPLICATE_BASELINE`. The audit will then enforce zero duplicates on its own.
+
+
+### ✅ FINDING — dark-mode guard covered only a third of the app (FIXED)
+`theme-tokens.test.ts` enforced "no hardcoded light-mode colours", but only across
+an **explicit list of 12 directories**. There are ~37 user-facing directories under
+`app/`, so ~25 were unguarded — including **`create`** (the campaign wizard) and
+**`features`**, both of which had drifted back to hardcoded values without failing
+anything.
+
+Scanned every unguarded directory: **6 offending lines** in 2 dirs
+(`features` ×5, `create` ×1). Each swapped for the design token with the previous
+colour kept as the CSS fallback — so **light mode is pixel-identical** and only dark
+mode changes.
+
+The guard now **walks every directory under `app/`** and excludes only `api` (no UI)
+and `admin` (intentionally light-only, documented). A new page is therefore covered
+the moment it exists, instead of when someone remembers to add it to a list.
+
+Good news for the claim itself: only 6 violations existed, so the underlying
+dark-mode work was genuinely broad — it was the *guard* that was narrow.

@@ -1138,7 +1138,7 @@ export default function CreatePage() {
           </span>
           <span style={{ fontSize: 13, opacity: .9 }}>Saved {draftAgeLabel(recoverableDraft.ts)}</span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={resumeDraft} style={{ background: '#fff', color: 'var(--violet)', border: 0, borderRadius: 999, padding: '8px 18px', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <button type="button" onClick={resumeDraft} style={{ background: 'var(--s1, #fff)', color: 'var(--violet)', border: 0, borderRadius: 999, padding: '8px 18px', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
               Resume
             </button>
             <button type="button" onClick={dismissDraft} style={{ background: 'rgba(255,255,255,.18)', color: '#fff', border: '1px solid rgba(255,255,255,.4)', borderRadius: 999, padding: '8px 16px', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>

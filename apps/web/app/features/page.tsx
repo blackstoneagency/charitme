@@ -33,7 +33,7 @@ export default function FeaturesPage() {
   const coverage = getFeatureCoverage();
 
   return (
-    <div style={{ background: '#f8f7ff', minHeight: '100vh' }}>
+    <div style={{ background: 'var(--bg, #f8f7ff)', minHeight: '100vh' }}>
 
       {/* ── Hero ── */}
       <section style={{
@@ -89,7 +89,7 @@ export default function FeaturesPage() {
       </section>
 
       {/* ── Why CharitMe Wins section ── */}
-      <section style={{ background: '#fff', borderBottom: '1px solid #ede9fe', padding: '64px 0' }}>
+      <section style={{ background: 'var(--s1, #fff)', borderBottom: '1px solid var(--b1, #ede9fe)', padding: '64px 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <span style={{ fontSize: 12, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: '.12em' }}>Why CharitMe</span>
@@ -147,7 +147,7 @@ export default function FeaturesPage() {
 
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
                     {module.features.slice(0, 5).map((feature) => (
-                      <span key={`${module.slug}-${feature.name}`} style={{ background: '#f8f7ff', border: '1px solid #ede9fe', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: '#5b21b6' }}>
+                      <span key={`${module.slug}-${feature.name}`} style={{ background: 'var(--s2, #f8f7ff)', border: '1px solid var(--b1, #ede9fe)', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: '#5b21b6' }}>
                         {feature.name}
                         {/* Tracked for competitive parity but not built yet — the
                             module badge above says "Production Ready", so an
@@ -156,7 +156,7 @@ export default function FeaturesPage() {
                       </span>
                     ))}
                     {module.features.length > 5 && (
-                      <span style={{ background: '#f8f7ff', border: '1px solid #ede9fe', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: '#4b5563' }}>
+                      <span style={{ background: 'var(--s2, #f8f7ff)', border: '1px solid var(--b1, #ede9fe)', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: '#4b5563' }}>
                         +{module.features.length - 5} more
                       </span>
                     )}
@@ -174,7 +174,7 @@ export default function FeaturesPage() {
       </section>
 
       {/* ── Competitor coverage ── */}
-      <section style={{ background: '#fff', borderTop: '1px solid #ede9fe', padding: '72px 0' }}>
+      <section style={{ background: 'var(--s1, #fff)', borderTop: '1px solid var(--b1, #ede9fe)', padding: '72px 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <span style={{ fontSize: 12, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: '.12em' }}>Competitive Coverage</span>

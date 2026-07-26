@@ -16,10 +16,20 @@ import { chromium } from '@playwright/test';
 const baseIdx = process.argv.indexOf('--base');
 const BASE = baseIdx > -1 ? process.argv[baseIdx + 1] : 'http://127.0.0.1:3100';
 
+// Previously a hand-maintained list of 17 pages while the e2e sweep covered 37,
+// so ~19 public routes were never checked for mobile overflow at all. Kept in
+// sync with e2e/public-routes.spec.ts (the campaign-embed fixture is excluded:
+// it needs seeded data, and the e2e sweep already covers it).
 const PAGES = [
-  '/', '/campaigns', '/leaderboard', '/success-stories', '/grants', '/volunteer',
-  '/events', '/sponsor', '/matching', '/pricing', '/faq', '/about-us',
-  '/how-it-works', '/for-donors', '/for-nonprofits', '/contact', '/supported-countries',
+  '/', '/about-us', '/achievements', '/ai-campaign',
+  '/ai-fundraising', '/blog', '/campaigns', '/contact',
+  '/events', '/faq', '/features', '/features/fundraising-core',
+  '/fees', '/fast-payouts', '/for-donors', '/for-individuals',
+  '/for-nonprofits', '/grants', '/help', '/how-it-works',
+  '/leaderboard', '/matching', '/offline', '/pricing',
+  '/privacy', '/privacy-center', '/prohibited-use', '/refunds',
+  '/security', '/sponsor', '/success-stories', '/supported-countries',
+  '/terms', '/transparency', '/trust-safety', '/volunteer',
 ];
 // 320 = smallest phone still in common use; 1920 = standard desktop.
 const VIEWPORTS = [
