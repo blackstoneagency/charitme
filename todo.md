@@ -2217,6 +2217,34 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
     matching the zod limits (120/500/200), email correctly disabled with an
     explanatory hint, avatar upload and URL both wired.
 
+    **✅ RUNTIME SMOKE TEST — 12 routes, all healthy.** The build catches compile
+    errors but not runtime 500s, so these were exercised against a live dev server
+    after the settings changes:
+    `/`, `/campaigns`, `/login`, `/forgot-password`, `/pricing`, `/help`, `/faq`,
+    `/trust-safety`, `/refunds`, `/api/health` → **200**;
+    `/create`, `/privacy-center`, `/dashboard/settings` → **307** to login (correct,
+    middleware-protected); `/api/settings` → **401** unauthenticated (correct).
+    No 500s. The settings API changes are runtime-clean.
+
+    **❌ NEGATIVE RESULT — `/` and `/campaigns` are NOT slow. Do not chase this.**
+    Both measure ~7.3s warm here vs <0.6s for static pages, which looks alarming
+    and is **environmental, not a defect**. Recording the evidence so the next agent
+    doesn't burn a session on it:
+    - `campaignColumns()` is **already memoized** at module level
+      (`if (_campaignCols) return _campaignCols`) — it costs 2 queries once per
+      process, not per request.
+    - The two queries on `/campaigns` **cannot** be parallelized: the
+      `campaign_launch_settings` lookup consumes `campaigns.map(c => c.id)`, a real
+      data dependency, not an oversight.
+    - Timing is flat across runs (7.35 / 7.29 / 7.35s) — a fixed round-trip cost,
+      i.e. sandbox→Supabase network egress, not variable compute. Production is
+      co-located, so this does not transfer.
+    - `/campaigns` already ships a `loading.tsx` for streaming.
+    _Also ignore_ a one-off `TypeError: __webpack_modules__[moduleId] is not a
+    function` if you see it in a dev log: it fires once on first compile, the page
+    still returns 200, and it is triggered by `rm -rf .next/types` while the dev
+    server is running. Dev-cache artifact, not product code.
+
     **⚠️ Note for other agents — stale `.next/types` after PR #63.** That PR
     deleted `app/events`, `app/matching`, and `app/sponsor`. A `.next` cache built
     before rebasing onto it still holds generated stubs importing those pages, and
