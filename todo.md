@@ -574,6 +574,30 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**✅ BOUNDED — every UI gate on the donate surface is now enforced server-side.**
+The two fixes below came from one question — *the UI is not an access control; what
+does the page gate on that the API doesn't?* Rather than keep going one at a time, I
+enumerated **every** condition the campaign page uses to show or hide the donate
+form, and checked each against the API:
+
+| page gate | API enforcement |
+|---|---|
+| `status === 'active'` | ✅ pre-existing (`CAMPAIGN_INACTIVE`) |
+| `daysLeft > 0` (deadline) | ✅ **fixed here** (`CAMPAIGN_ENDED`) |
+| `accept_donations !== false` | ✅ **fixed here** (`DONATIONS_CLOSED`) |
+| reward sold out | ✅ pre-existing (`REWARD_SOLD_OUT`) |
+| reward minimum amount | ✅ pre-existing (`REWARD_MIN_NOT_MET`) |
+| reward belongs to campaign | ✅ pre-existing (404) |
+
+**The donate surface is now fully enforced** — no remaining gap between what the page
+shows and what the server accepts. Worth noting the pre-existing reward checks use
+`item_limit != null` so an unset limit means *unlimited*, the same null-handling care
+the two new gates needed; that pattern was already right and was worth copying rather
+than reinventing.
+
+_Recurring donations need no reward gate:_ the reward UI is hidden for monthly and
+the client only sends `rewardId` when `!isMonthly`, verified earlier in this audit.
+
 **🔴 FIXED — ended campaigns still accepted donations via the API.**
 Immediate sibling of the `accept_donations` bug, found by asking the same question:
 *what else does the UI enforce that the API doesn't?*
