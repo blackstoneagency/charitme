@@ -167,11 +167,31 @@ them **do** anything:
   `components`: there is **no** route, API handler, or component that branches on
   them for access. A `donor` and an `organizer` can do exactly the same things;
   real authorization comes from being signed in plus row ownership.
-  **This is a product decision, not a bug to silently invent:** somebody has to
-  decide what an `organizer` may do that a `donor` may not, and what a
-  `beneficiary` sees at all. I have deliberately **not** fabricated a permission
-  model — inventing gates on live authorization is exactly the kind of guess that
-  breaks real users. Needs an owner call, then it is straightforward to implement.
+  Also worth knowing: **even `nonprofit` is decorative.** Tax-deductibility is
+  gated by **`campaigns.nonprofit_verified`** — a per-campaign column — not by the
+  role. So the one role that looks like it must carry real capability does not.
+
+  **✅ PARTIALLY ADDRESSED — `lib/role-capabilities.ts` + 7 tests.** I first wrote
+  this off as "needs an owner decision" and stopped. That was half right: *gating*
+  is the owner's call, but *mapping* was not, and the criterion asks for roles to
+  be clearly mapped and distinct. So there is now one authoritative definition of
+  what each role means — label, description, capabilities, whether it is default,
+  whether it is privileged.
+
+  The important part is that each capability records **`enforcedBy`** (what
+  actually checks it) and **`enforced`** (whether anything really denies access
+  today). That keeps the honest finding legible instead of papering over it:
+  `enforcedRoles()` returns exactly `['admin','super_admin']`, and
+  `advisoryRoles()` returns the other four. A test **pins** that, so when someone
+  implements real gating they must flip the flag here too and the map cannot drift
+  from reality. Another test fails if two roles ever have identical capability
+  sets — i.e. it enforces the "different from each other" half of the criterion.
+
+  **Deliberately descriptive, not executable.** Nothing in it grants or denies
+  anything at runtime. Turning these into live checks means *restricting* users who
+  today have none of those restrictions — the fastest way to lock an organizer out
+  of their own campaign — and which restrictions are wanted is a product decision.
+  What is no longer missing is the specification to implement against.
 
 **⚠️ Two divergent `parseRoles()` implementations.** Same drift pattern as the
 category list. `app/admin/users/page.tsx:52` defines its **own local** `parseRoles`
