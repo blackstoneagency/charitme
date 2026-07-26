@@ -5942,7 +5942,33 @@ rule in the a11y spec.** A correctly configured production does not hit that pat
 the guard covers fetch-level exceptions. This is a real fix for credential-less builds
 plus hardening — *not* a claim that production is currently losing titles.
 
-### ⬜ OPEN — `/ai-fundraising` returns a hard 500 on a credential-less build
+### ✅ FIXED — `/ai-fundraising` 500 (below), and a BIGGER one found behind it
+
+`/ai-fundraising` now returns **200** with its content intact; the live-stats strip is
+**omitted** when the numbers are unavailable rather than rendered as `0 / $0 / 0`.
+Verified on a production build with no credentials: `200`, h1 present,
+`aif-live-stats` occurrences `0`.
+
+**The important discovery is what this exposed.** With `/ai-fundraising` fixed, a
+COLD production server still 500s on **`/` (the homepage)** and **`/impact`** —
+consistently, 3/3 attempts. Earlier those looked like `200` only because the ISR
+prerender from build time was being served; a fresh server has to render them and
+the loaders throw.
+
+So: **on any credential-less build — which is what CI builds — the homepage returns
+500.** The SEO fix above repaired the *metadata* path; the page *body* is a separate
+throw (`getHomeData` / `listPublishedImpactSummaries` call `supabaseAdmin` with no
+error handling). Same defect class, three pages: `/ai-fundraising` (fixed), `/`,
+`/impact`.
+
+⬜ **Next slice:** apply the identical treatment to `/` and `/impact` — never
+fabricate the numbers. The homepage renders "Raised on CharitMe", campaign and
+donation counts and a trust average; defaulting those to `0` would publish false
+platform statistics. Hide the block, as the dashboards and `/ai-fundraising` now do.
+
+<details><summary>original report (kept for context)</summary>
+
+### ⬜ was: `/ai-fundraising` returns a hard 500 on a credential-less build
 Surfaced by running the sweeps against a production build (it passed on the dev server,
 which is why no one had seen it). `getAIPageData()` calls `supabaseAdmin` with no error
 handling, so the whole marketing page 500s. **This blocks `public-routes.spec.ts` and
@@ -5954,6 +5980,7 @@ mistake the dashboards were fixed to stop making. The correct fix is the dashboa
 treatment: hide the stats block when the data is unavailable rather than invent it.
 That is a design change, not a one-liner, so it is written up here rather than rushed.
 Pre-existing — it was in every route list before this session's consolidation.
+</details>
 
 ### ✅ DONE — theme guard made luminance-based; reaches /dashboard (Claude, 2026-07-26)
 **Why the static guard kept missing things:** `theme-tokens.test.ts` matched an

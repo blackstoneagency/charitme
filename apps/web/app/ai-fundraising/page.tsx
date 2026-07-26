@@ -14,34 +14,65 @@ export const metadata: Metadata = {
 };
 
 // ── Live data from Supabase ───────────────────────────────────────────────────
+/**
+ * Live stats for this page. Never throws.
+ *
+ * This used to have no error handling, so an unreachable Supabase took the whole
+ * marketing page down with a hard 500 (measured on a production build with env
+ * unset — `supabaseAdmin` throws on construction). A marketing page must not
+ * disappear because an enhancement query failed.
+ *
+ * `statsAvailable: false` rather than zeros, deliberately. The strip is labelled
+ * "Total Raised" — rendering `$0` when we simply do not know would publish a false
+ * number about the platform, and "$0 raised" on a fundraising site is worse than
+ * showing nothing. The caller omits the strip instead. Same reasoning that stopped
+ * the dashboards from turning failed reads into confident zeros.
+ */
 async function getAIPageData() {
-  const aiFundraisingCols = await campaignColumns();
-  const [
-    { count: activeCampaigns },
-    donationsResult,
-    campaignShowcase,
-  ] = await Promise.all([
-    supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-    supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed'),
-    applyLiveFilters(
-      supabaseAdmin
-        .from('campaigns')
-        .select('slug,title,tagline,cover_image_url,goal_amount,raised_amount,backer_count,category'),
-      aiFundraisingCols,
-    )
-      .order('raised_amount', { ascending: false })
-      .limit(3),
-  ]);
-
-  const totalRaised = (donationsResult.data ?? []).reduce((s, d) => s + (d.amount_cents ?? 0), 0);
-  const donationCount = donationsResult.data?.length ?? 0;
-
-  return {
-    activeCampaigns: activeCampaigns ?? 0,
-    totalRaised,
-    donationCount,
-    showcase: campaignShowcase.data ?? [],
+  const empty = {
+    statsAvailable: false,
+    activeCampaigns: 0,
+    totalRaised: 0,
+    donationCount: 0,
+    showcase: [] as Awaited<ReturnType<typeof fetchShowcase>>,
   };
+  try {
+    const aiFundraisingCols = await campaignColumns();
+    const [
+      { count: activeCampaigns },
+      donationsResult,
+      campaignShowcase,
+    ] = await Promise.all([
+      supabaseAdmin.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+      supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed'),
+      fetchShowcase(aiFundraisingCols),
+    ]);
+
+    const totalRaised = (donationsResult.data ?? []).reduce((s, d) => s + (d.amount_cents ?? 0), 0);
+    const donationCount = donationsResult.data?.length ?? 0;
+
+    return {
+      statsAvailable: true,
+      activeCampaigns: activeCampaigns ?? 0,
+      totalRaised,
+      donationCount,
+      showcase: campaignShowcase,
+    };
+  } catch {
+    return empty;
+  }
+}
+
+async function fetchShowcase(cols: Awaited<ReturnType<typeof campaignColumns>>) {
+  const { data } = await applyLiveFilters(
+    supabaseAdmin
+      .from('campaigns')
+      .select('slug,title,tagline,cover_image_url,goal_amount,raised_amount,backer_count,category'),
+    cols,
+  )
+    .order('raised_amount', { ascending: false })
+    .limit(3);
+  return data ?? [];
 }
 
 // `color` tints the icon (a graphic — WCAG's 3:1 non-text bar) while `ctaColor`
@@ -78,7 +109,7 @@ function pct(raised: number, goal: number) {
 }
 
 export default async function AiFundraisingPage() {
-  const { activeCampaigns, totalRaised, donationCount, showcase } = await getAIPageData();
+  const { statsAvailable, activeCampaigns, totalRaised, donationCount, showcase } = await getAIPageData();
 
   return (
     <div className="pub-page aif-page">
@@ -102,7 +133,10 @@ export default async function AiFundraisingPage() {
               the right donors, and optimize results so you can focus on making a bigger impact.
             </p>
 
-            {/* Live stats strip */}
+            {/* Live stats strip — omitted entirely when the numbers are unavailable,
+                rather than rendered as zeros. "$0 Total Raised" would be a false claim
+                about the platform, not a neutral placeholder. */}
+            {statsAvailable && (
             <div className="aif-live-stats">
               <div className="aif-stat-icon" style={{ background: 'rgba(108,53,255,.10)', color: 'var(--violet, #6c35ff)' }}>
                 <PublicIcon name="chart" />
@@ -126,6 +160,7 @@ export default async function AiFundraisingPage() {
                 <span>Donations Recorded</span>
               </div>
             </div>
+            )}
 
             <div className="pub-actions">
               <Link href="/ai-campaign" className="pub-btn primary aif-btn-primary">
