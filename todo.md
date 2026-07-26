@@ -3977,7 +3977,35 @@ Verified · Production Ready. These are grounded in the current codebase
       volunteer + organizer UI. The domain rules they must call are already written
       and tested.
 
-- [ ] **CHAR-1102 (follow-up: API + UI)**
+- [~] **CHAR-1102 (follow-up)** — **API routes SHIPPED (Claude, 2026-07-26); UI remains.**
+      `POST/GET /api/volunteers/shifts` (organizer schedules; code generated
+      server-side and returned only to them — the public GET deliberately does NOT
+      select `checkin_code`, since publishing it would let anyone check in without
+      being present), `POST /api/volunteers/shifts/[id]/check-in`,
+      `POST /api/volunteers/hours/[id]/check-out`,
+      `POST /api/volunteers/hours/[id]/verify`.
+
+      Notable decisions:
+      - **The verify route blocks a volunteer certifying their own hours even when
+        they own the opportunity.** The DB trigger cannot see this — from its side
+        the actor *is* the owner — so it is enforced in the route, where both
+        identities are known. Trigger and route cover different halves of the same
+        rule.
+      - Verify passes `verified_by` explicitly, because the service-role client has
+        `auth.uid()` NULL and the trigger (20260806010000) now refuses an
+        unattributed verification.
+      - Check-out leaves the row `pending`: recording time is not certifying it.
+      - Check-in is rate-limited per user (20/min) despite being authenticated. The
+        repo only requires limits on unauthenticated mutations, but this endpoint
+        takes a guessable code, and an unbounded guessing surface is not worth
+        leaving open for zero saving.
+      - `capped` is returned from check-out rather than swallowed, so an organizer
+        sees a clamped 24h entry before verifying it.
+
+      ⬜ **Still open:** volunteer + organizer UI, and the corporate CSV export
+      endpoint (`exportableHours()` is written and tested, nothing calls it yet).
+
+- [ ] **CHAR-1102 (follow-up: UI + CSV export endpoint)**
   - Area: Volunteers
   - Feature: Shifts, check-in/out & hours tracking
   - Description: Schedule shifts, QR check-in/out, accumulate verified hours,
