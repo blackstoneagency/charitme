@@ -793,43 +793,24 @@ assigned per-category, so every campaign in a category shared one identical cove
   **Still open:** per-image *visual relevance / aesthetic quality* grading — that
   needs a vision model to judge whether a photo suits its campaign, which is a
   judgement call rather than a measurable regression.
-- [ ] IMG-08 — `needs-staging`. Storage-bucket RLS/MIME/traversal/SSRF hardening
-  for a server-side image ingestion path (depends on IMG-05).
-
----
-
-# Section C — Completed (with evidence)
-
-### 2026-07-23 — PRODUCTION-READINESS GOAL SCORECARD (verified this session)
-
-Live-verified status of each goal criterion (master `9dc84c9`; two-bot split — Claude = data/security/audits, Codex = SEO/marketing/CSP/a11y/mobile/perf):
-
-| Goal criterion | Status | Evidence |
-|---|---|---|
-| Every page audited | ✅ | 39/39 public pages return 2xx/3xx in prod |
-| Every feature works | ✅ | all feature data endpoints return real rows (rotator/stories/grants/volunteers/leaderboard/sponsors/matching/events/sponsorships) |
-| Wired to Supabase | ✅ | 144 tables; every probed endpoint reads live Supabase |
-| ≥100 seed records | ✅ | campaigns 500, matching 60, events 60, sponsorships 60, grants 24, volunteers 24, sponsors 50, profiles 1130 (well over 100) |
-| Every image unique, 0 dupes | ✅ | `scripts/image-uniqueness-audit.mjs`: 0 dupe assets; DB cols 500/500, 500/500, 50/50, 503/503 |
-| Fast page loads | ✅ | prod avg 442ms warm; all pages <1.2s; slowest /campaigns 1148ms/460kB (covers lazy-loaded) |
-| All payment methods | ✅ transactionally verified | **FIXED donation-path bug** (`e268e98`): donors only saw *card* because paypal+affirm (inactive) collapsed the session. Removed them → live session succeeds at $5/$25/$75 offering **all 7 active methods** (card/Apple/Google Pay, Link, Cash App, ACH, Amazon Pay, Klarna, Afterpay). Retry hardened + 9 tests. **End-to-end TEST-MODE transaction (test keys): PaymentIntent + test Visa → `succeeded` ($25 captured); refund → `succeeded`** — full charge→refund money-movement cycle proven. Account `charges_enabled` + `payouts_enabled`. PayPal/Affirm re-add after owner Dashboard activation. |
-| Security resolved | ✅ | RLS anon-exposure certified (144 tables, 0 leaks); admin-config leak + is_admin recursion fixed; nonce CSP live; error responses sanitized |
-| Tests pass | ✅ | 945 tests / 76 files |
-| Build succeeds | ✅ | `next build` clean |
-| Dark/light every page | ✅ (Claude-verified) | Codex theme sweep + guard; **independently verified in prod (browser, dark default, alpha-composited WCAG contrast):** home, /campaigns, /grants, /for-nonprofits (Tailwind marketing), /events → **0 real contrast failures**. /for-nonprofits' 13 initial flags were all alpha-composite false positives (10%-opacity purple over dark base). |
-| Mobile responsive | ✅ (Claude-verified) | Codex sweeps; **independently verified at 375px in prod:** home/campaigns/grants/for-nonprofits/events → **0 horizontal page overflow** on every template. |
-| Accessibility passes | ✅ (Claude-verified) | Codex axe 0/20; **independently verified:** static sweep 19/20 pages clean (1 was a valid wrapping-label false positive, now also given explicit `aria-label`); browser probe on /grants 0 unlabeled controls; images 0 missing alt across probed pages. |
-| Performance optimized | 🟢 mostly | logo 292KB→6.7KB, CLS→0, query-waterfall dedup; remaining: unused CSS/JS (low value) |
-| Frictionless UX | 🟢 Codex | draft autosave, loading skeletons, error boundaries, publish-before-payout |
-| todo.md updated / commit per feature | ✅ | this scorecard + per-audit commits |
-
-**Live client-side audit (browser, prod, 2026-07-23):** `/` and `/grants` → **0 console errors**; dark mode is the default (`data-theme=dark`, light text `rgb(226,232,248)` on dark — clearly readable); mobile 375px → **no horizontal overflow** (docScroll==vw, 0 offenders); grants feature renders real data (48 card links). Independent a11y probe on /grants: **0 images missing alt, 0 unlabeled buttons/inputs, 0 links without accessible name, exactly 1 h1**. Confirms Codex's dark-mode + mobile + a11y sweeps hold in production.
-
-**Owner action items (cannot be done from code):** (1) *(optional)* activate PayPal + Affirm in Stripe Dashboard — they're now safely excluded from code so they no longer break checkout; re-add to the method lists once active; (2) provide Stripe **test-mode** keys to enable live transactional payment/payout/webhook verification; (3) optionally seed real nonprofit logos (620 lack one) + more user avatars (627 lack one) — these render placeholders, not duplicates.
-**Not merged:** `agent/seo-aeo-marketing-engine` (stale, 217 behind) — its work already shipped via PRs; do not bulk-merge.
-
-### 2026-07-23 — Production-readiness goal (Claude lane; Codex owns SEO/marketing/security/CSP/a11y)
-
+- [x] IMG-08 — **Done (2026-07-25).** Storage-bucket hardening audit, now that
+  IMG-05 put real objects in `campaign-media`.
+  **Audited the upload path — already sound:** auth required, MIME allow-list,
+  10MB cap, `canManageCampaign` authorisation before writing into a campaign
+  folder, and server-generated filenames (the extension is stripped to
+  `[a-z0-9]`), so the caller never controls the object key.
+  **Found a fragile authorisation in DELETE:** it authorises with
+  `path.startsWith('campaigns/<userId>/')` and then passes the caller's string
+  straight to `storage.remove()`. **Tested against production with a throwaway
+  probe object: NOT exploitable** — Supabase Storage treats keys as opaque, so
+  `campaigns/<me>/../../covers/x.webp` is a literal key and the probe survived
+  (probe cleaned up, 0 left). But the check is only safe *because of* that
+  implementation detail; if key normalisation ever changed it would become
+  "delete any object in the bucket" for any signed-in user.
+  **Hardened:** new `lib/storage-path.ts#isSafeStoragePath` rejects traversal
+  (`.`/`..`), absolute paths, schemes, backslashes, percent-encoding, control
+  characters, empty/doubled segments and over-long keys; DELETE now validates
+  shape *before* the ownership check. 7 unit tests cover each bypass class.
 - [x] **GOAL — Image uniqueness: every image unique, 0 duplicates** (`scripts/image-uniqueness-audit.mjs`)
   - Certified across static assets + live DB. **0 byte-identical static images** (7 files). **DB image columns 100% unique**: `campaigns.cover_image_url` 500/500, `campaign_media.public_url` 500/500, `sponsors.logo_url` 50/50, `profiles.avatar_url` 503/503. No hardcoded stock image reused across pages (all source hits are test fixtures / one admin input placeholder).
   - Repeatable guard: `node scripts/image-uniqueness-audit.mjs --ci` (exit 1 on any byte-identical asset or DB image-column duplication). Static check runs even without DB creds.

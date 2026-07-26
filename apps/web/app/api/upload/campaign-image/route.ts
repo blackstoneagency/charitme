@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { canManageCampaign } from '../../../../lib/auth';
+import { isSafeStoragePath } from '../../../../lib/storage-path';
 
 const BUCKET = 'campaign-media';
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -121,6 +122,17 @@ export async function DELETE(req: NextRequest) {
   }
 
   const path = (body as { path: string }).path;
+
+  // Defence in depth: reject traversal / absolute / encoded segments before the
+  // ownership check. Supabase Storage currently treats keys as opaque strings, so
+  // `campaigns/<me>/../../covers/x.webp` does NOT resolve out of the caller's
+  // folder today — but the ownership check below is a `startsWith` on that prefix,
+  // so the moment key normalisation changes (or this code is reused against a
+  // store that does normalise) it would authorise deleting anything in the bucket.
+  // Validate the shape explicitly rather than depending on that behaviour.
+  if (!isSafeStoragePath(path)) {
+    return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
+  }
 
   // Security: path must belong to this user or a campaign they own
   if (!path.startsWith(`campaigns/${user.id}/`)) {
