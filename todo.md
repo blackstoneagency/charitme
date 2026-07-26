@@ -5098,10 +5098,34 @@ IDs *can* be safely validated before being committed. The actual blocker is only
 *finding* replacements, which needs `UNSPLASH_ACCESS_KEY` (search API) or a human
 picking photos.
 
-**To close item 5:** set `UNSPLASH_ACCESS_KEY`, source 10 replacements (one per
-baseline id, ideally per-category), verify with
-`npm run audit:campaign-images -- --live`, and delete the ids from
-`DUPLICATE_BASELINE`. The audit will then enforce zero duplicates on its own.
+**Why it cannot be fixed in code — the arithmetic is decisive.**
+The audit requires `MIN_POOL = 4` distinct photos per category, and there are **18
+categories**, so zero sharing needs **≥ 72 distinct photos**. The catalog contains
+**45**. The shortfall is **at least 27 photos**. No amount of redistribution helps:
+you cannot fill 72 unique slots from 45 assets. Sharing is currently how the pools
+are filled at all.
+
+Rejected shortcuts, and why:
+- **Swap in Picsum/random ids.** They verify over HTTP, but they are generic stock —
+  a *Medical* or *Memorial* category showing a random landscape is a **worse**
+  product than a shared-but-appropriate photo. Would satisfy the checkbox and
+  damage the page.
+- **Shrink `MIN_POOL`.** Makes the audit pass by lowering the bar; category pages
+  would visibly repeat the same few images.
+
+**To actually close item 5 (needs a human or an API key):**
+1. Set `UNSPLASH_ACCESS_KEY` (search API) or have someone curate photos.
+2. Source **≥27** category-appropriate photos — ideally 4+ genuinely distinct per
+   category, so ~72 total.
+3. Verify every candidate resolves: `node scripts/audit-campaign-images.mjs --live`
+   (live HTTP checks **do** work from this sandbox — an earlier note saying they
+   don't is wrong).
+4. Delete the ids from `DUPLICATE_BASELINE`; the audit then enforces zero
+   duplicates by itself.
+
+**Note:** `scripts/audit-image-dupes.mjs` / `fix-image-dupes.mjs` solve a *different*
+problem — perceptual duplicates among **per-campaign covers in the database** — and
+need Supabase credentials. They do not touch these static category pools.
 
 
 ### ✅ FINDING — dark-mode guard covered only a third of the app (FIXED)
