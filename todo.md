@@ -1926,6 +1926,29 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM38 · BUG — bulk user admin could silently demote admins and always
+  reported success** — Same "unchecked write that claims success" class as
+  CHAR-SM36, found by grepping for it deliberately. `/api/admin/users/bulk` had
+  two real defects:
+  1. It read each user's roles with `.single()` and fell back to **`['donor']`
+     whenever the select returned nothing** — including a transient or RLS
+     failure. Combined with an unchecked update, a bulk "activate" could
+     **overwrite a real admin's roles with plain `donor`**, silently demoting
+     them.
+  2. It returned **`updated: ids.length`** unconditionally — the *requested*
+     count, not the actual one — so an admin suspending accounts was told it
+     worked even if every write failed.
+  **Fixed:** check the read (skip the row rather than guessing at someone's
+  privileges), check the write, and report the true count. Any failure now
+  returns non-2xx with `"N of M user(s) could not be updated."` — deliberately
+  non-2xx because the admin client treats *any* 2xx as full success, so a
+  half-applied suspension must not read as done. The client now shows the
+  server's real count instead of its own optimistic string.
+  Regression test added on the role math (`__tests__/admin-bulk-roles.test.ts`)
+  so the "default to donor" shape cannot come back.
+  _Audited the remaining unchecked writes: the rest are `ai_generations` /
+  `audit_logs` telemetry where fire-and-forget is defensible._
+
 - **CHAR-SM36 · BUG — abuse reports were silently discarded while telling the
   reporter they succeeded** — Found while load-testing `/api/campaign-reports`.
   The handler did `await supabaseAdmin.from('campaign_reports').insert({...})`

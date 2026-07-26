@@ -325,7 +325,11 @@ export default function AdminUsersClient({
         setNotice((data as { error?: string }).error ?? 'The action could not be completed.');
         return;
       }
-      setNotice(success);
+      // Prefer the server's actual count over the caller's optimistic string —
+      // the bulk endpoint used to report the requested count regardless of how
+      // many writes really landed.
+      const applied = (data as { updated?: number }).updated;
+      setNotice(typeof applied === 'number' ? `${applied} user${applied === 1 ? '' : 's'} updated.` : success);
       setView('success');
       setTimeout(() => window.location.reload(), 900);
     });
