@@ -418,6 +418,44 @@ correct, and notably well built:
 _No fix needed._ Recording it so the money path isn't re-audited: the promise-audit
 found 7 leaks elsewhere, but **this** control keeps its promise.
 
+**🔴🔴 SUSPENDING A USER DOES NOTHING. Admin sees "Suspended"; the account is untouched.**
+The most consequential enforcement gap found, and unlike the team-role gap this one
+**fails OPEN** — it grants more access than intended, not less. Suspension is a
+trust & safety tool, so the realistic case is: staff suspend a fraudulent
+fundraiser, the console shows **Suspended**, and that person keeps collecting
+donations.
+
+**The chain, each link verified:**
+1. **There is no `profiles.status` column.** The live snapshot has 26 columns and
+   `status` is not among them. So suspension can only live in the `roles` jsonb —
+   and `PATCH /api/admin/users/[id]` indeed derives status from
+   `existingRoles.includes('suspended')`.
+2. **The shared `parseRoles()` deletes it.** `lib/roles.ts` whitelists to
+   `ASSIGNABLE_ROLES` = donor/organizer/beneficiary/nonprofit/admin/super_admin.
+   `'suspended'` is not in that list, so `['organizer','suspended']` → `['organizer']`.
+   Every consumer of the shared helper — `getUserRoles`, `isAdmin`, `isSuperAdmin`
+   — is structurally incapable of seeing it.
+3. **Nothing checks it anyway.** `lib/auth.ts` and `middleware.ts` contain **zero**
+   occurrences of "suspend" or "status". `requireUser()` only asserts a user exists.
+4. **The admin console still displays it correctly**, because
+   `app/admin/users/page.tsx` uses its **own local `parseRoles`** with no whitelist.
+
+**This retro-explains the earlier `parseRoles` divergence finding.** That looked
+like tidiness — two copies, mildly inconsistent. It is actually the mechanism that
+makes suspension *look* like it works: the lenient local copy renders the badge,
+while the strict shared copy hides the flag from every enforcement path. The two
+findings are one bug.
+
+**Not fixed here.** The minimal enforcement point is genuinely a product/legal call
+— a suspended user may still need access to their own records and payout history,
+so "block everything" can be wrong. What is unambiguous is that they must not
+create campaigns or receive new donations.
+**Concrete path when someone decides:** add `profiles.status` (or add `'suspended'`
+to the whitelist plus a dedicated `isSuspended()` that reads raw roles), then gate
+the campaign-create and donation-intake routes on it. Note that fixing *only* the
+`parseRoles` divergence without adding enforcement would make things **worse** —
+the badge would disappear from the admin console while the account stayed active.
+
 **🔴 TEAM ROLES ARE A FALSE PROMISE — the UI states capabilities no code enforces.**
 `app/dashboard/team/_components/TeamActions.tsx:169-171` offers, in user-facing copy:
 - *"Admin — can edit and manage campaign"*
