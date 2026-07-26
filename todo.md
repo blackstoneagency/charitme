@@ -5597,6 +5597,20 @@ assert). Run it as
 `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test …` —
 the config already honours that env var. Don't read a launch failure as an a11y failure.
 
+_⚠️ Do NOT "verify" a11y against a Vercel preview URL._ The config supports
+`PLAYWRIGHT_BASE_URL`, so pointing the sweep at a preview deployment looks like the
+obvious way to confirm a result against a real prod build. **It silently produces a
+false pass.** Preview deployments have Vercel Deployment Protection enabled — every
+route 302s to `https://vercel.com/sso-api` (verified 2026-07-26 on the #90 preview:
+`/`, `/features`, `/ai-fundraising` all 302). Playwright follows the redirect, so axe
+would scan the **Vercel SSO login page** 36 times and report 0 violations. The run goes
+green while testing none of our pages.
+
+Doing this for real needs `VERCEL_AUTOMATION_BYPASS_SECRET` (owner-gated — do not
+invent one). If anyone wires up external-target runs, add an assertion that the final
+URL host still matches the target host **before** scanning, so a redirect to an auth
+wall fails the run instead of passing it.
+
 ### ✅ DONE — theme guard made luminance-based; reaches /dashboard (Claude, 2026-07-26)
 **Why the static guard kept missing things:** `theme-tokens.test.ts` matched an
 **enumeration of six near-white hexes** (`fff|ffffff|fefefe|fdfdff|fbfaff|f8f7ff`).
