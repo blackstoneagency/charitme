@@ -133,6 +133,58 @@ for (const [id, cats] of Object.entries(coverToCats)) {
   if (cats.length > 1) fail(`Cover photo ${id} is shared by categories: ${cats.join(', ')} (covers must be distinct).`);
 }
 
+// ---- Cross-category duplicates ANYWHERE in the pools ----------------------
+// The cover check above only inspects pool[0], so a photo reused deeper in two
+// different category pools passed silently — yet a visitor browsing both
+// categories sees the same image. Measured when this check was added: 6 photos
+// are shared, one of them across 15 of the 18 categories. That is a real gap
+// against "every image unique", and it is NOT fixable by editing this file —
+// it needs 10+ curated replacement photos (live HTTP verification of candidate
+// IDs does work from here via `--live`; *finding* good replacements needs the
+// Unsplash search API key, i.e. UNSPLASH_ACCESS_KEY).
+//
+// So: the existing duplicates are a recorded BASELINE that warns, and any NEW
+// duplicate fails. That stops the problem growing while leaving it visible
+// instead of silently passing.
+const DUPLICATE_BASELINE = new Set([
+  '1469571486292-0ba58a3f068b', // 15 categories
+  '1488521787991-ed7bbaae773c', // 13
+  '1593113598332-cd288d649433', // 12
+  '1532629345422-7515f3d16bb6', // 10
+  '1509099836639-18ba1795216d', // 10
+  '1503454537195-1dcabb73ffb9', // 8
+  // Competition ↔ Sports share sports imagery (semantically adjacent, but still
+  // the same picture on two different category pages).
+  '1530549387789-4c1017266635',
+  '1571019614242-c5c5dee9f50b',
+  '1579952363873-27f3bade9f55',
+  '1596462502278-27bfdc403348',
+]);
+
+const idToCats = {};
+for (const [cat, pool] of Object.entries(categories)) {
+  for (const url of pool) {
+    (idToCats[idOf(url)] ??= new Set()).add(cat);
+  }
+}
+
+const foundDupes = [];
+for (const [id, catSet] of Object.entries(idToCats)) {
+  if (catSet.size < 2) continue;
+  foundDupes.push(id);
+  const cats = [...catSet].sort().join(', ');
+  if (DUPLICATE_BASELINE.has(id)) {
+    warn(`Known shared photo ${id} — used by ${catSet.size} categories (${cats}).`);
+  } else {
+    fail(`NEW cross-category duplicate: photo ${id} in ${cats}. Give each category its own images.`);
+  }
+}
+const fixed = [...DUPLICATE_BASELINE].filter((id) => !foundDupes.includes(id));
+if (fixed.length > 0) {
+  warn(`${fixed.length} baseline duplicate(s) no longer shared — remove from DUPLICATE_BASELINE: ${fixed.join(', ')}`);
+}
+console.log(`Shared photos:       ${foundDupes.length} (baseline ${DUPLICATE_BASELINE.size}) — see docs/todo.md`);
+
 // ---- SQL migration images (what actually lands in the DB) -----------------
 // The catalog is the app-render source of truth, but campaign covers are also
 // written by SQL migrations (campaign_photos*.sql, per-campaign distribution).

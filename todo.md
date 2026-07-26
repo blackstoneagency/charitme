@@ -4778,7 +4778,7 @@ difference as real: two audit ✅s turned out to be stale when I spot-checked th
 | 2 | Every feature works | 🟡 unproven | 1191 unit tests + 16 e2e pass, but neither exercises a signed-in journey or a real payment |
 | 3 | Everything wired to Supabase | 🟢 mostly | All features I touched are wired. `donation_receipts` is **dead schema** (superseded by `tax_receipts`, which is wired) — see Finding below |
 | 4 | ≥100 seed records per feature | ⚪ claimed | Earlier session: "73 non-empty tables, every feature ≥100". **Cannot verify from sandbox** — no Supabase creds, no Docker |
-| 5 | Every image unique, 0 duplicates | ⚪ claimed | Earlier session: covers 50→500 distinct, 0 dup groups |
+| 5 | Every image unique, 0 duplicates | 🔴 **CLAIM IS FALSE** | Re-verified 2026-07-26: **10 photos are shared across categories**, one across **15 of 18**. See finding below |
 | 6 | Frictionless UX | 🟢 improved | F1–F10 all shipped (see the friction backlog): 9→7-step wizard, cross-device drafts, multi-draft, donor preview, goal guidance, honest gate copy, real publish errors, image data-loss fix |
 | 7 | Dark/light mode everywhere | ⚪ claimed | Earlier session + `theme-tokens.test.ts` regression guard. Admin is intentionally light-only |
 | 8 | Mobile responsive | ⚪ claimed | Earlier: 19 routes at 320/390px, 0 overflow. e2e runs a mobile project, so new regressions would be caught |
@@ -4893,3 +4893,42 @@ burns the next 24h of quota on unverified commits.
   307 → `/login?next=…`, homepage copy correct (verified by direct curl, since
   Playwright through the sandbox proxy is unreliable)
 - Last fully CI-verified commit: `fc5852b` (#75)
+
+
+### 🔴 FINDING — "every image unique, 0 duplicates" was NOT true (re-verified)
+The earlier ✅ rested on `audit:campaign-images`, which passed — but the audit only
+checked (a) duplicates *within* a single category pool and (b) uniqueness of each
+category's **cover** (`pool[0]`). A photo reused deeper in two different pools was
+invisible to it, even though a visitor browsing both categories sees the same image.
+
+**Measured reality: 10 shared photos**, worst offenders:
+
+| photo id | categories |
+|----------|-----------|
+| `1469571486292-0ba58a3f068b` | **15 of 18** |
+| `1488521787991-ed7bbaae773c` | 13 |
+| `1593113598332-cd288d649433` | 12 |
+| `1532629345422-7515f3d16bb6` | 10 |
+| `1509099836639-18ba1795216d` | 10 |
+| `1503454537195-1dcabb73ffb9` | 8 |
+| 4 × Competition ↔ Sports | 2 each |
+
+**What I fixed:** the audit now detects cross-category duplicates anywhere in the
+pools. The 10 existing ones are a recorded **baseline that warns**; any **new**
+duplicate **fails**. So the problem is visible and cannot grow, and the audit no
+longer certifies something untrue.
+
+**What I could NOT fix, and why:** it needs ~10 curated replacement photos.
+I only have 45 catalog IDs total for 18 categories, and no spare pool to draw from.
+
+**Correction to a previous session's note:** it recorded that Unsplash IDs
+"can't be HTTP-200-verified from the sandbox". **That is wrong** — I verified two
+IDs return 200 from here, and the audit's `--live` flag works. So candidate photo
+IDs *can* be safely validated before being committed. The actual blocker is only
+*finding* replacements, which needs `UNSPLASH_ACCESS_KEY` (search API) or a human
+picking photos.
+
+**To close item 5:** set `UNSPLASH_ACCESS_KEY`, source 10 replacements (one per
+baseline id, ideally per-category), verify with
+`npm run audit:campaign-images -- --live`, and delete the ids from
+`DUPLICATE_BASELINE`. The audit will then enforce zero duplicates on its own.
