@@ -574,6 +574,25 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**🟠 FIXED (sibling) — admin showed every unscored campaign as "0/100" in red.**
+Checked the other surfaces reading the same column, since a fix that leaves siblings
+untouched isn't finished. `AdminCampaignsClient` renders `{healthScore}/100` with
+colour bands (`≥70` good, `≥40` warn, **else bad**) — so an unscored campaign
+displayed **0/100 styled as failing**, to the very staff deciding what to moderate.
+Inverse of the trust & safety backlog bug: there the queue looked *healthier* than it
+was; here every campaign looks *worse*. Both misdirect attention.
+Now shows **"Not scored"** with no colour band when the value is 0.
+
+_Checked, not assumed:_ `app/donor/RecommendedCampaigns.tsx` also carries a
+`healthScore` field, but it is a **type declaration only and never rendered** — so
+there is no third, donor-facing instance. Opening it took seconds and avoided a
+fix to something that doesn't display.
+
+_Minor inconsistency noted, not changed:_ admin-created drafts default
+`healthScore: 50` locally while normally-created campaigns get the column default
+**0**, so the same "unscored" state can present as either. Worth a decision if the
+score is ever automated.
+
 **🔴 FIXED — the homepage hero showed "Trust Score 0" on nearly every campaign.**
 `HeroRotator` renders a shield badge labelled **Trust Score** whose value is
 `campaign_health_score ?? 0`. That column **defaults to 0**, its **only** writer is a

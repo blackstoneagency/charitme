@@ -751,7 +751,10 @@ export default function AdminCampaignsClient({
                   { label: 'Backers', value: selected.backerCount.toLocaleString() },
                   { label: 'Deadline', value: days === null ? '—' : days === 0 ? 'Ended' : `${days} days left` },
                   { label: 'Organizer', value: selected.organizer },
-                  { label: 'Health Score', value: `${selected.healthScore}/100` },
+                  // 0 means "never scored" — campaign_health_score defaults to 0 and
+                  // only a manual admin edit writes it — so rendering "0/100" made
+                  // every unscored campaign look measured-and-failing.
+                  { label: 'Health Score', value: selected.healthScore > 0 ? `${selected.healthScore}/100` : 'Not scored' },
                 ].map(({ label, value }) => (
                   <div key={label}>
                     <strong style={{ fontSize: 18, fontWeight: 700, display: 'block', lineHeight: 1 }}>{value}</strong>
@@ -893,8 +896,8 @@ export default function AdminCampaignsClient({
                   {selected.deadline && <><span>Deadline</span><span>{fmtDate(selected.deadline)}</span></>}
                   <span>Health Score</span>
                   <span>
-                    <span className={`ac-health ${selected.healthScore >= 70 ? 'good' : selected.healthScore >= 40 ? 'warn' : 'bad'}`}>
-                      {selected.healthScore}/100
+                    <span className={`ac-health ${selected.healthScore === 0 ? '' : selected.healthScore >= 70 ? 'good' : selected.healthScore >= 40 ? 'warn' : 'bad'}`}>
+                      {selected.healthScore > 0 ? `${selected.healthScore}/100` : 'Not scored'}
                     </span>
                   </span>
                   <span>Payouts</span><span>{selected.payoutFrozen ? '🔒 Frozen' : '✓ Open'}</span>
