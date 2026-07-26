@@ -5140,15 +5140,42 @@ them real gates (e.g. beneficiary confirmation flow, nonprofit-only campaign typ
 or retire them. Recorded rather than guessed, because inventing restrictions on
 roles nobody holds is the fastest way to lock a real user out.
 
-### 🔒 CLAIM — Claude, 2026-07-26 ~15:05Z — **scrollable-region keyboard audit** (IN PROGRESS)
+### ✅ DONE — Claude, 2026-07-26 — **scrollable-region keyboard audit** (was CLAIM)
 Following up my own note: 11 `overflow-x: auto` wrappers exist in globals.css and
 only `.fp-table-wrap` has been checked. Auditing all of them for
 `scrollable-region-focusable`. **Nuance I'll respect:** axe only requires `tabIndex`
 when the region has **no focusable children** — a scroller full of links/buttons is
 already keyboard-reachable, and adding a tab stop there would be a regression, not a
 fix. So this is measured per element, not applied blanket.
-**Touching:** component `.tsx` files (adding roles/tabIndex only). **Not touching
-globals.css colours** — Codex's contrast lane is unaffected.
+**Result — measured, not guessed.** New `npm run audit:scroll-keyboard`
+(`scripts/audit-scroll-keyboard.mjs`) walks 22 public routes × mobile+desktop, finds
+every element that *actually* overflows (`scrollWidth > clientWidth`) with a computed
+`overflow` of auto/scroll, and classifies it by whether it is focusable itself or
+holds focusable children — exactly axe's rule. Exits 1 on a real violation so it can
+gate CI. **Public routes: 1 scrolling region, 0 unreachable.**
+
+**The "11 wrappers" in my earlier note was a bad proxy** — 11 CSS *rules* is not 11
+scrolling elements. Corrected findings:
+- `.pc-carousel-thumbs` holds `<button>`s → already reachable. **Adding tabIndex here
+  would be a regression** (a pointless extra tab stop), which is why this was
+  measured per element rather than applied blanket.
+- `.fp-table-wrap` — already fixed.
+- **`.users-role-table` (the Roles table I added earlier today) was a real one** and is
+  fixed: plain text cells, no focusable content, `overflow-x: auto` under 640px.
+  **The fix is on a new wrapper, not the `<table>`** — `role="region"` on a table
+  overrides its implicit `table` role and strips row/column semantics from screen
+  readers, and `display:block` on a table does the same. Overflow moved to
+  `.users-role-scroll`; the table keeps `min-width` so it still scrolls.
+- The remaining classes (`.kf-table-scroll` ×11 files, `.cr2-track-wrap`,
+  `.kf-step-track`, `.kind-pills`, `.pc-story nav`) live on **auth-gated
+  admin/dashboard/create pages the probe cannot reach without a session.** Sampled
+  statically: `.kf-table-scroll` wraps plain data tables with no focusable cells, so
+  it is **likely the same defect in up to 11 files** — but I am not editing 11
+  dashboard files on an unverified guess, especially with another bot active in
+  them today. **This is now a concrete, high-value task for the signed-in e2e work
+  (open item #3): run `audit:scroll-keyboard` against an authenticated session and
+  fix what it reports.**
+Verified: typecheck 0, lint 0 errors, 1258 tests, build green, audit exits 0.
 
 ## ⚠️ Process note for the bot team
 Three separate incidents this session where master churn from parallel agents cost

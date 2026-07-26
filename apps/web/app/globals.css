@@ -3517,9 +3517,14 @@ img, video, iframe { max-width: 100%; }
 .users-role-table tbody th { font-weight: 650; color: #0f1238; }
 .users-role-table tbody tr:last-child th, .users-role-table tbody tr:last-child td { border-bottom: 0; }
 .users-role-tag { margin-left: 6px; padding: 1px 6px; border-radius: 5px; background: #f1f5f9; color: #475569; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
-/* The description column is the one that can force horizontal scroll on a phone. */
+/* The description column is the one that can force horizontal scroll on a phone.
+   The overflow lives on the WRAPPER, not the <table>: `display:block` on a table
+   drops its row/column semantics for screen readers, and the wrapper is also what
+   carries tabIndex so keyboard users can scroll it (axe scrollable-region-focusable). */
+.users-role-scroll { max-width: 100%; }
 @media (max-width: 640px) {
-  .users-role-table { display: block; overflow-x: auto; }
+  .users-role-scroll { overflow-x: auto; }
+  .users-role-table { min-width: 460px; }
 }
 
 .users-recent-card { padding: 0; border: 1px solid #eef0f7; border-radius: 16px; background: #fff; overflow: hidden; }

@@ -397,6 +397,13 @@ export default function AdminUsersClient({
             can grant roles and change platform settings. */}
         <div className="users-chart-card">
           <h3>Roles</h3>
+          {/* The wrapper — not the <table> — carries tabIndex/role. Putting
+              role="region" on the table itself would override its implicit `table`
+              role and strip the row/column semantics screen readers rely on. It
+              scrolls under 640px and its cells hold no focusable content, so
+              without this a keyboard user cannot reach the "Users" column. */}
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- axe scrollable-region-focusable; must stay on one line to be covered */}
+          <div className="users-role-scroll" tabIndex={0} role="region" aria-label="Roles and how many users hold each">
           <table className="users-role-table">
             <caption className="sr-only">Number of users holding each platform role</caption>
             <thead>
@@ -425,6 +432,7 @@ export default function AdminUsersClient({
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Growth Chart */}
