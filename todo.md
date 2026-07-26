@@ -82,22 +82,28 @@ the concern recorded earlier when I declined to wire e2e into CI myself — that
 in without that decision. The `public-routes` spec already timed out on
 `/campaigns` locally for the same reason.
 
-**Evidence gathered since (partial, and it cuts against the workflow's own comment).**
-The workflow asserts *"All four specs pass against the placeholder env below, on
-chromium AND mobile."* Tested that directly: ran the full suite locally with
-`.env.local` removed and CI's exact placeholder vars exported, after killing any
-stale server.
-- With **real** credentials the suite completes in **2.3 min**.
-- With **placeholder** credentials it produced almost no output in **8+ minutes**
-  and had to be killed.
-That is consistent with DB-backed pages blocking on an unresolvable
-`placeholder.supabase.co` until timeout — but it is **not proof** of the CI
-failure, and it may be sandbox DNS behaviour that a GitHub runner does not share.
-Treat it as a strong lead, not a conclusion.
+**✏️ MY LEAD WAS WRONG — superseded by a better diagnosis (now in CLAUDE.md).**
+I hypothesised the `e2e` job was failing because it runs against placeholder
+Supabase credentials, and offered a local hang as support. **Retracting that.**
+Another agent established the real cause: **every run dies in 2–5 seconds**, before
+executing *any* step. A genuine run (`npm ci` + build + 1281 tests + Playwright)
+takes minutes, so nothing in the workflow — e2e included — is even reached.
+**It is an account/runner problem, not a code problem**, most likely exhausted
+GitHub Actions minutes or billing (the same account returns
+`api-deployments-free-per-day` from Vercel on every push).
+**Owner fix: Settings → Billing → Actions.**
 
-**Also established:** re-running the failed jobs produced **new job IDs and the
-same failure**, and their logs **also 404**, so this is an access limitation of
-this environment rather than log expiry — I cannot read CI logs here at all.
+Every symptom I gathered independently corroborates that diagnosis rather than
+mine: the rerun failed almost immediately, logs 404, docs-only commits fail
+identically, and all five steps pass locally including under CI's own placeholder
+env. My 8-minute local hang was sandbox DNS resolving `placeholder.supabase.co`
+slowly — the exact caveat I flagged when recording it, and the reason it was
+written as a lead rather than a conclusion.
+
+**Lesson worth keeping:** a plausible mechanism that explains the symptoms is not
+the same as the cause. "Fails in 2–5 seconds" was the decisive datum, and it was
+available from the run timings the whole time — I reasoned from *what could break
+e2e* instead of from *how long the job actually ran*.
 
 **Next step is 30 seconds for a human and impossible for me:** open the latest run
 in the GitHub UI and read which step is red. If it is the e2e job, either give the
