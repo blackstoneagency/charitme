@@ -1,18 +1,21 @@
 import 'server-only';
 import { supabaseAdmin } from './supabase';
+import { boundedQuery } from './query-timeout';
 import { GRANT_PUBLIC_COLUMNS, GRANT_DETAIL_COLUMNS, type Grant } from './grants';
 
 // Server-side grant reads for React Server Components (initial page render).
 
 export async function getPublicGrants(limit = 24): Promise<Grant[]> {
-  const { data, error } = await supabaseAdmin
-    .from('grants')
-    .select(GRANT_PUBLIC_COLUMNS)
-    .is('deleted_at', null)
-    .in('status', ['open', 'upcoming'])
-    .order('verified', { ascending: false })
-    .order('deadline_at', { ascending: true, nullsFirst: false })
-    .limit(limit);
+  const { data, error } = await boundedQuery(
+  supabaseAdmin
+      .from('grants')
+      .select(GRANT_PUBLIC_COLUMNS)
+      .is('deleted_at', null)
+      .in('status', ['open', 'upcoming'])
+      .order('verified', { ascending: false })
+      .order('deadline_at', { ascending: true, nullsFirst: false })
+      .limit(limit),
+  );
   if (error) return [];
   return (data ?? []) as unknown as Grant[];
 }

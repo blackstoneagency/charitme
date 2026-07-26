@@ -16,7 +16,7 @@
 
 ## Existing marketing subsystem (real, keep & extend)
 
-`supabase/migrations/20260610000000_marketing_engine.sql` defines the core:
+`supabase/migrations/20260610010000_marketing_engine.sql` defines the core:
 `marketing_contacts`, `marketing_identities`, `marketing_events`,
 `marketing_segments` (+ members), `marketing_campaigns` (+ recipients),
 `marketing_automations` (+ runs), `marketing_email_templates`,

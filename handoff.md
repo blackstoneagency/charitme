@@ -88,7 +88,7 @@
 - **Shared files touched** (Agent-0 coordinate): `components/AppShell.tsx` (footer links),
   `components/CharitMeApp.tsx` (admin nav: Privacy Requests), `supabase/schema.sql` (3 DDLs appended).
 - **Migrations** (not yet applied to prod): `20260716000000_sponsorships.sql`,
-  `20260718000000_privacy_requests.sql`, `20260719000000_matching_gifts.sql`. Additive + RLS-first.
+  `20260718000000_privacy_requests.sql`, `20260719001000_matching_gifts.sql`. Additive + RLS-first.
 - **Gates**: typecheck ✓, vitest 439/439 ✓, `next build` ✓ (all routes emit), no new lint warnings.
 
 ### 2026-07-19 — Agent 5 — Admin grants UI + Volunteers pillar + RLS audit

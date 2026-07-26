@@ -10,8 +10,20 @@ const Schema = z.object({
 });
 
 // POST /api/donations/recurring/cancel
-// Cancels a recurring donation subscription. Only the donor who created it
-// (or an admin) may cancel.
+// Cancels a recurring donation subscription.
+//
+// ONLY the donor who created it may cancel — the sole check below is
+// `row.donor_id !== user.id → 403`. This comment previously read "(or an
+// admin)", which no code implements: support staff cannot cancel on a donor's
+// behalf, and assuming otherwise would mean telling a donor their subscription
+// was handled when it was not.
+//
+// Adding that capability is a permissions decision, not a doc fix, so the
+// comment now matches the code rather than the other way round.
+//
+// Ordering below is deliberate and fail-safe: Stripe is updated FIRST, so if it
+// throws, the row is never marked cancelled. The reverse would show "cancelled"
+// while charges continued.
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

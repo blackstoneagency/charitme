@@ -257,6 +257,49 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**✅ VERIFIED CLEAN — recurring-donation cancellation** (highest-stakes remaining
+control: if "cancel" doesn't cancel, donors keep being charged).
+- Calls `stripe.subscriptions.update(id, { cancel_at_period_end: true })` — real
+  cancellation, and the donor keeps the period they already paid for.
+- **Ordering is fail-safe:** Stripe is updated **first**, so a Stripe failure
+  aborts before the row is marked cancelled. The residual case (Stripe succeeds,
+  DB write fails) leaves Stripe cancelled while the UI still shows active — the
+  safe direction, and retryable.
+- Ownership enforced (`row.donor_id !== user.id → 403`); double-cancel rejected.
+
+**⚠️ Fixed a doc/code mismatch found there:** the header comment claimed *"Only
+the donor who created it **(or an admin)** may cancel"* — **no admin check exists
+anywhere in the file.** Support staff cannot cancel on a donor's behalf, so
+anyone trusting that comment could tell a donor their subscription was handled
+when it was not. Corrected the comment (and documented the fail-safe ordering)
+rather than inventing admin authorization — granting staff the ability to cancel
+other people's subscriptions is a permissions decision, not a doc fix.
+_Same class as the CLAUDE.md "5% platform fee" that no code charged._
+
+**🔴 FIXED — anonymous donors were announced BY NAME to the organizer.**
+Found by applying the lesson from the half-fix above: after correcting one copy of
+a mapping, grep for the rest. Sweeping every `full_name` read outside admin
+surfaced `sendOrganizerDonationNotification` in the Stripe webhook:
+
+```js
+const donorDisplayName = donor?.full_name || 'An anonymous donor';
+```
+
+It fell back to the anonymous label **only when the profile had no name** — the
+function was never passed the per-gift `anonymous` flag at all. So a donor who
+ticked *"donate anonymously"* but had a name on file was announced **by name** in
+both the organizer's **alert email** and their **in-app notification** — to the
+one person anonymity exists to hide them from. The flag was available at the call
+site the whole time (`meta.anonymous === '1'`, already used at 3 other lines).
+
+Now takes `isAnonymous`, forwards it from the call site, and applies **both**
+gates — the per-gift choice and account-wide Profile Visibility — matching the
+donor wall, leaderboard and exports. 3 more regression tests (12 in the file).
+
+_Surfaces checked and already correct in the same sweep:_ donor receipts and tax
+receipts send `full_name` to the **donor's own** address; both CSV exports redact;
+the donor's tax statement shows their own name.
+
 **✏️ CORRECTION — my donor-wall fix was HALF a fix; the initial page render still
 leaked.** The earlier commit fixed `/api/campaigns/[id]/donations` and I reported
 the donor wall as done. **It wasn't.** There are **two copies** of that mapping:
@@ -4530,6 +4573,23 @@ the anon+cookies client so Postgres enforces ownership).
   `docs/marketing-os/MASTER_SPEC.md` (multi-tenant scoping, approval engine,
   brand constitution, AI agents, external connectors, experiments/attribution).
 
+## Session 2026-07-26 (Codex - global banner recovery and dynamic copy)
+- [x] Reproduced the production save failure: Supabase returned `PGRST205` because `banner_settings` had not been applied, while the existing announcement feed remained available.
+- [x] Added an idempotent recovery migration plus rollback script, service-role-only access, editable title/message/link fields, and a content revision trigger so new copy is not hidden by stale visitor dismissals.
+- [x] Added the Banner text editor immediately after Live preview and wired its validated values through the super-admin API, Supabase row, cached root layout, and public banner renderer.
+- [x] Ran the migration against the live schema inside a rollback-only transaction: show/hide, copy persistence, safe link, and revision increments passed; a post-rollback REST probe confirmed no production change remained.
+- [x] Verified focused banner tests 15/15, zero-warning lint, typecheck, all 1,163 tests, and the 149-page production build.
+- [ ] Merge through the protected-main PR, apply the verified migration in the release workflow, and confirm the production Save/show/hide/text flow.
+
+## Session 2026-07-26 (Codex - full SQL/live Supabase reconciliation)
+- [x] Inventoried all 104 SQL files: 87 migrations, 2 rollbacks, 11 seed files, and 4 schema/recovery/generator artifacts.
+- [x] Compared live Supabase tables, columns, functions, RPCs, indexes, triggers, policies, RLS, seed targets, and migration history with the repository.
+- [x] Found and corrected 12 duplicate migration versions plus one invalid eight-digit migration version.
+- [x] Added migration coverage for six live tables that previously existed only out of band.
+- [x] Added a test that rejects duplicate/invalid migration versions and PostgREST table usage without migration coverage.
+- [x] Verified the exact nine-migration pending set against live Supabase in a rollback-only transaction with postcondition checks.
+- [ ] Merge PR #74, baseline the 78 verified historical versions, apply the nine pending versions, and rerun the live 150-table/catalog audit.
+
 ## 🔒 CLAIM — Session 2026-07-25 (Claude — production-readiness sweep)
 
 > **AREA CLAIMED:** `.github/workflows/ci.yml`, `apps/web/e2e/**`, `middleware.ts`.
@@ -4647,3 +4707,123 @@ remains unbounded. Each one needs a per-page judgement about what "degraded"
 should look like, so it is deliberately not a blanket search-and-replace. Tracked
 here rather than claimed as done. `lib/query-timeout.ts` (7 tests) is the tool to
 finish it with.
+
+
+### ✅ FINDING 2 (continued) — query ceiling rolled out to the public list reads
+Added `boundedQuery(query)` to `lib/query-timeout.ts`: returns the query's own
+resolved `{ data, error }` shape, synthesising supabase-js's failure shape on
+timeout so a call site's **existing** error branch runs and no downstream code
+changes. 10 tests.
+
+Applied to **15 list reads** that already degrade to `[]`:
+`leaderboard` (2), `events` (3), `grants-server` (1), `matching` (4),
+`sponsorships` (4), `volunteers-server` (1).
+
+**Deliberately NOT applied to 6 single-row reads** (`getEventBySlug` and
+siblings in events/grants/matching/sponsorships/volunteers). Those return `null`
+on error, and callers turn `null` into a **404** — so a transient timeout would
+tell a visitor that a campaign/event/grant *does not exist*. That is worse than a
+slow page, and it is cacheable/indexable. A first pass wrapped them by regex; the
+audit caught it and they were reverted. **If you extend this rollout, check what
+the caller does with the empty result before wrapping anything.**
+
+Still unbounded beyond these: admin/dashboard reads and anything where empty
+would be mistaken for a real answer (money totals, receipts, auth).
+
+### 🔴 BLOCKER — GitHub Actions is not allocating runners (owner action needed)
+As of 2026-07-26 ~13:05Z, **every** CI run fails in 2–5 seconds with no logs and
+`runner_id: 0`, `runner_name: ""` — i.e. no runner is ever assigned, so the jobs
+never execute. This is **repo-wide, not branch-specific**: master runs
+`b615e539` (3s), `fc5852b5` (5s), `0a0b5040` (3s) all died the same way.
+Today's run counter is already #458.
+
+**Not a code failure.** Most likely an Actions spending limit / minutes quota, or
+Actions disabled at account level. Check GitHub → Settings → Billing → Actions,
+and Settings → Actions → permissions.
+
+**Consequence:** the e2e gate added in #73 currently cannot run, and master's own
+state is unverified by CI. Everything merged up to `fc5852b` (#73, #75) *did* pass
+full CI first.
+
+#### Workarounds attempted, and what they proved
+- **Point the suite at a Vercel preview** — blocked: previews sit behind Vercel
+  Deployment Protection and redirect to `vercel.com/sso-api`, so the suite sees the
+  SSO wall, not the app. Needs protection disabled or a bypass token (owner).
+- **Point the suite at production** (`www.charitme.com`, publicly reachable, 200) —
+  6 specs "failed", but all 6 are **sandbox-proxy artifacts, not real defects**,
+  verified directly:
+  - auth gates are **correct in production**: `/admin`, `/dashboard`, `/create`
+    each 307 → `/login?next=…`, and `/create/choose-path` is 200. ✅
+  - all three smoke strings (`CharitMe`, `0%`, `Create My Fundraiser Now!`) **are
+    present** in live HTML. ✅
+  Conclusion: remote e2e from this sandbox is unreliable (the outbound HTTPS proxy
+  breaks Playwright navigation); direct `curl` assertions are trustworthy.
+- **`playwright.config.ts` improvement (kept):** the local `webServer` is now
+  skipped when `PLAYWRIGHT_BASE_URL` names an external target. Previously it always
+  booted a local server — and failed without a full Supabase env — so the suite
+  could not be pointed at a deployment at all. That capability is now available for
+  whenever protection/proxy constraints lift.
+
+---
+
+# 📊 CONSOLIDATED STATUS — 2026-07-26 (Claude, session handoff)
+
+Written against the 20-point goal checklist. **Verified** = I ran it this session.
+**Claimed** = an earlier doc/session asserts it; I did not re-verify. Treat the
+difference as real: two audit ✅s turned out to be stale when I spot-checked them.
+
+| # | Goal item | State | Basis |
+|---|-----------|-------|-------|
+| 1 | Every page audited | 🟡 partial | ~36 public routes swept by e2e (render + a11y + headers). **Auth-gated dashboard/admin pages are still unaudited** — signed-in e2e needs real Supabase creds (owner-gated) |
+| 2 | Every feature works | 🟡 unproven | 1191 unit tests + 16 e2e pass, but neither exercises a signed-in journey or a real payment |
+| 3 | Everything wired to Supabase | 🟢 mostly | All features I touched are wired. `donation_receipts` is **dead schema** (superseded by `tax_receipts`, which is wired) — see Finding below |
+| 4 | ≥100 seed records per feature | ⚪ claimed | Earlier session: "73 non-empty tables, every feature ≥100". **Cannot verify from sandbox** — no Supabase creds, no Docker |
+| 5 | Every image unique, 0 duplicates | ⚪ claimed | Earlier session: covers 50→500 distinct, 0 dup groups |
+| 6 | Frictionless UX | 🟢 improved | F1–F10 all shipped (see the friction backlog): 9→7-step wizard, cross-device drafts, multi-draft, donor preview, goal guidance, honest gate copy, real publish errors, image data-loss fix |
+| 7 | Dark/light mode everywhere | ⚪ claimed | Earlier session + `theme-tokens.test.ts` regression guard. Admin is intentionally light-only |
+| 8 | Mobile responsive | ⚪ claimed | Earlier: 19 routes at 320/390px, 0 overflow. e2e runs a mobile project, so new regressions would be caught |
+| 9 | Pages load FAST | 🟡 improved | **Real finding:** DB-backed pages had NO timeout — measured ~7.1s (`/faq`, `/grants`) vs 73–726ms without DB. 15 public list reads now bounded (`lib/query-timeout.ts`). **Dashboard/admin reads still unbounded** |
+| 10 | Roles clearly mapped | 🟢 | `lib/role-capabilities.ts` + tests (another agent, this session) |
+| 11 | 100% GoFundMe parity | 🟢 claimed-closed | `docs/charitme-gofundme-audit.md` matrix is all ✅. Its 4 remaining blockers are **owner-gated credentials**, not code |
+| 12 | Better than GoFundMe | 🟢 | 0% platform fee, AI builder, Marketing OS (goals→opportunities→campaigns), grants, matching, volunteers, events, gamification, impact tracking — none of which GoFundMe has |
+| 13 | Accessibility passes | ⚪ claimed | Earlier: axe WCAG A/AA clean on ~20–30 public routes; Lighthouse 100 on 7 key pages |
+| 14 | All payment methods work | 🔴 owner-gated | Needs Stripe **live** keys + a real charge. ADR-0003. Cannot be done from sandbox |
+| 15 | Performance optimized | 🟡 | Earlier: query-waterfall + N+1 audits, `getUser()` memoised, home 63→88. Plus item 9 above |
+| 16 | Security resolved | 🟢 improved | **New this session:** auth-gate e2e (mutation-tested), middleware auth-refresh ceiling that fails safe, owner-scoped RLS on 2 new tables. Production gates verified live by curl |
+| 17 | Tests pass | ✅ verified | **1191 unit tests / 108 files green on master.** 16/16 e2e green (last successful CI run) |
+| 18 | Build succeeds | ✅ verified | `next build` compiles on master; Vercel production deploys succeeded all session |
+| 19 | todo.md updated | ✅ | This document |
+| 20 | Commit after each feature | ✅ | 5 PRs merged to production this session: #73, #75, #76 (+#59/#60/#61/#62 earlier) |
+
+## 🔴 THE ONE THING BLOCKING EVERYTHING ELSE
+**GitHub Actions is allocating no runners, repo-wide** (since ~13:05Z). Every run —
+master included — dies in 2–5s, no logs, `runner_name: ""`. Almost certainly an
+Actions minutes/spending limit; today's counter passed #458 with several agents
+pushing. **Owner action: GitHub → Settings → Billing → Actions.**
+Until it clears, the e2e gate added in #73 cannot run and nothing can be
+CI-verified. PR #76 was merged on local + Vercel evidence with that stated in the
+merge commit.
+
+## Owner-gated items no amount of bot looping can close
+1. Stripe **live** keys → real payment verification (item 14)
+2. **Resend** API key → email delivery verification
+3. **Supabase production** URL/keys → apply migrations, verify seed counts (item 4), signed-in e2e (items 1, 2)
+4. **Stripe KYC** → identity verification
+5. **Vercel Deployment Protection** → blocks pointing e2e at preview URLs (previews redirect to `vercel.com/sso-api`)
+6. **GitHub Actions quota** → the blocker above
+
+## Next highest-value work (unclaimed, in order)
+1. **Degraded-state UI for dashboard/admin reads.** They are still unbounded, but a
+   silent empty fallback is *wrong* there — "you have no campaigns" when the DB
+   timed out is worse than slow. Needs a real error state, not a fallback.
+2. **Re-verify the ⚪ claimed rows.** Two audit ✅s were stale when spot-checked
+   (dead `donation_receipts`; e2e "wired" but running in no workflow). Assume rot.
+3. **Signed-in e2e** the moment test credentials exist.
+
+## ⚠️ Process note for the bot team
+Three separate incidents this session where master churn from parallel agents cost
+real time: PR #73 went `mergeable_state: dirty` (GitHub then ran **zero**
+workflows — looks exactly like a slow queue), #76's run was cancelled outright,
+and the **same feature was built twice** twice over (step validation, and e2e-in-CI
+with a narrower scope built on an assumption I had already disproved by running it).
+**Before starting: `git log origin/master -20` and read the CLAIM blocks here.**

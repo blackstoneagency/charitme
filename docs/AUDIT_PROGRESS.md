@@ -355,7 +355,7 @@ the API layer. Per-persona live RLS verification still pending (needs staging).
 | Sev | Area | Finding | Owner action? |
 |-----|------|---------|---------------|
 | High | Stripe | **Connect not live-enabled** (LB-005) — live `accounts.create` blocked pending Stripe platform-profile questionnaire + account verification. The env-value issue (LB-002/003) is **RESOLVED** (verified via `/api/health`). | Yes (Stripe dashboard) |
-| Med | DB migrations | Two additive migrations from an earlier session (`impact_tracking`, `corporate_matching`) exist on a feature branch but are superseded on master by `20260721000000_impact_tracking.sql` / `20260719000000_matching_gifts.sql`. No action; master's versions are canonical. | No |
+| Med | DB migrations | Two additive migrations from an earlier session (`impact_tracking`, `corporate_matching`) exist on a feature branch but are superseded on master by `20260721001000_impact_tracking.sql` / `20260719001000_matching_gifts.sql`. No action; master's versions are canonical. | No |
 | Low | Lint | 8 remaining cosmetic unused-var warnings (settings, shell props). Non-blocking. | No |
 
 ## Resumption pointer

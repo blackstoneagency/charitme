@@ -1,5 +1,6 @@
 import 'server-only';
 import { supabaseAdmin } from './supabase';
+import { boundedQuery } from './query-timeout';
 import {
   OPPORTUNITY_PUBLIC_COLUMNS,
   OPPORTUNITY_DETAIL_COLUMNS,
@@ -9,14 +10,16 @@ import {
 // Server-side reads for React Server Components.
 
 export async function getPublicOpportunities(limit = 24): Promise<VolunteerOpportunity[]> {
-  const { data, error } = await supabaseAdmin
-    .from('volunteer_opportunities')
-    .select(OPPORTUNITY_PUBLIC_COLUMNS)
-    .is('deleted_at', null)
-    .in('status', ['open', 'upcoming'])
-    .order('verified', { ascending: false })
-    .order('starts_at', { ascending: true, nullsFirst: false })
-    .limit(limit);
+  const { data, error } = await boundedQuery(
+  supabaseAdmin
+      .from('volunteer_opportunities')
+      .select(OPPORTUNITY_PUBLIC_COLUMNS)
+      .is('deleted_at', null)
+      .in('status', ['open', 'upcoming'])
+      .order('verified', { ascending: false })
+      .order('starts_at', { ascending: true, nullsFirst: false })
+      .limit(limit),
+  );
   if (error) return [];
   return (data ?? []) as unknown as VolunteerOpportunity[];
 }

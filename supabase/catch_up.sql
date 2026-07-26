@@ -1995,54 +1995,6 @@ drop policy if exists admin_settings_admin_all on public.admin_settings;
 create policy admin_settings_admin_all on public.admin_settings for all using (is_admin()) with check (is_admin());
 
 
--- ============ 20240001_support_cases.sql ============
--- ── support_cases ─────────────────────────────────────────────────────────────
--- Run this in Supabase SQL Editor to enable the Support admin page.
-create table if not exists public.support_cases (
-  id           uuid primary key default uuid_generate_v4(),
-  submitter_id uuid references profiles(id) on delete set null,
-  subject      text not null,
-  body         text,
-  priority     text not null default 'normal'
-                 check (priority in ('low','normal','high','urgent')),
-  status       text not null default 'open'
-                 check (status in ('open','in_progress','resolved','closed')),
-  assigned_to  uuid references profiles(id) on delete set null,
-  source       text not null default 'web'
-                 check (source in ('web','email','api')),
-  created_at   timestamptz not null default now(),
-  updated_at   timestamptz not null default now()
-);
-
-create index if not exists idx_support_cases_status     on support_cases(status);
-create index if not exists idx_support_cases_priority   on support_cases(priority);
-create index if not exists idx_support_cases_submitter  on support_cases(submitter_id);
-create index if not exists idx_support_cases_created    on support_cases(created_at desc);
-
-alter table support_cases enable row level security;
-
--- Admins can read/write all cases
-do $$ begin
-  if not exists (select 1 from pg_policies where tablename='support_cases' and policyname='support_admin_all') then
-    drop policy if exists support_admin_all on support_cases;
-create policy support_admin_all on support_cases for all using (is_admin());
-  end if;
-  if not exists (select 1 from pg_policies where tablename='support_cases' and policyname='support_own_read') then
-    drop policy if exists support_own_read on support_cases;
-create policy support_own_read on support_cases for select using (auth.uid() = submitter_id);
-  end if;
-  if not exists (select 1 from pg_policies where tablename='support_cases' and policyname='support_own_insert') then
-    drop policy if exists support_own_insert on support_cases;
-create policy support_own_insert on support_cases for insert with check (auth.uid() = submitter_id);
-  end if;
-end $$;
-
-drop trigger if exists set_updated_at_support on support_cases;
-create trigger set_updated_at_support
-  before update on support_cases
-  for each row execute function set_updated_at();
-
-
 -- ============ 20260525001000_storage_buckets.sql ============
 -- CharitMe storage buckets and policies.
 
@@ -2885,6 +2837,54 @@ drop trigger if exists digital_products_set_updated_at on digital_products;
 create trigger digital_products_set_updated_at before update on digital_products for each row execute function set_updated_at();
 
 
+-- ============ 20260525003000_support_cases.sql ============
+-- ── support_cases ─────────────────────────────────────────────────────────────
+-- Run this in Supabase SQL Editor to enable the Support admin page.
+create table if not exists public.support_cases (
+  id           uuid primary key default uuid_generate_v4(),
+  submitter_id uuid references profiles(id) on delete set null,
+  subject      text not null,
+  body         text,
+  priority     text not null default 'normal'
+                 check (priority in ('low','normal','high','urgent')),
+  status       text not null default 'open'
+                 check (status in ('open','in_progress','resolved','closed')),
+  assigned_to  uuid references profiles(id) on delete set null,
+  source       text not null default 'web'
+                 check (source in ('web','email','api')),
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+
+create index if not exists idx_support_cases_status     on support_cases(status);
+create index if not exists idx_support_cases_priority   on support_cases(priority);
+create index if not exists idx_support_cases_submitter  on support_cases(submitter_id);
+create index if not exists idx_support_cases_created    on support_cases(created_at desc);
+
+alter table support_cases enable row level security;
+
+-- Admins can read/write all cases
+do $$ begin
+  if not exists (select 1 from pg_policies where tablename='support_cases' and policyname='support_admin_all') then
+    drop policy if exists support_admin_all on support_cases;
+create policy support_admin_all on support_cases for all using (is_admin());
+  end if;
+  if not exists (select 1 from pg_policies where tablename='support_cases' and policyname='support_own_read') then
+    drop policy if exists support_own_read on support_cases;
+create policy support_own_read on support_cases for select using (auth.uid() = submitter_id);
+  end if;
+  if not exists (select 1 from pg_policies where tablename='support_cases' and policyname='support_own_insert') then
+    drop policy if exists support_own_insert on support_cases;
+create policy support_own_insert on support_cases for insert with check (auth.uid() = submitter_id);
+  end if;
+end $$;
+
+drop trigger if exists set_updated_at_support on support_cases;
+create trigger set_updated_at_support
+  before update on support_cases
+  for each row execute function set_updated_at();
+
+
 -- ============ 20260525130000_auth_profile_bootstrap.sql ============
 -- Create public profiles automatically for new Supabase Auth users.
 
@@ -3321,7 +3321,7 @@ grant execute on function public.get_admin_system_resource_usage() to authentica
 grant execute on function public.get_admin_system_resource_usage() to service_role;
 
 
--- ============ 20260608010000_campaign_photos.sql ============
+-- ============ 20260608011000_campaign_photos.sql ============
 -- Migration: replace fake Unsplash seed URLs with real, free-to-use photo IDs
 -- All photos licensed under the Unsplash License (free for commercial use, no attribution required)
 -- https://unsplash.com/license
@@ -4088,9 +4088,9 @@ begin
 end $$;
 
 
--- ============ 20260608020000_campaign_photos_fix.sql ============
+-- ============ 20260608021000_campaign_photos_fix.sql ============
 -- Fix broken Unsplash photo IDs — all IDs in this migration have been verified HTTP 200.
--- Replaces previous migration 20260608010000_campaign_photos.sql for any category
+-- Replaces previous migration 20260608011000_campaign_photos.sql for any category
 -- that had broken images.
 
 UPDATE campaigns SET
@@ -4627,7 +4627,7 @@ grant all on all routines  in schema public to anon, authenticated, service_role
 select pg_notify('pgrst', 'reload schema');
 
 
--- ============ 20260610000000_marketing_engine.sql ============
+-- ============ 20260610010000_marketing_engine.sql ============
 -- ═══════════════════════════════════════════════════════════════
 -- CharitMe Marketing Engine — core schema
 -- Contacts, identity resolution, events, segments, campaigns,
@@ -5097,7 +5097,7 @@ create policy ledger_owner_delete on transparency_ledger_items for delete using 
 );
 
 
--- ============ 20260611000000_organizer_marketing.sql ============
+-- ============ 20260611001000_organizer_marketing.sql ============
 -- ═══════════════════════════════════════════════════════════════
 -- Organizer Marketing — "My Supporters" + template-based
 -- re-engagement sends, scoped to a single campaign.
@@ -5867,7 +5867,7 @@ create policy grant_documents_owner on grant_documents for all
   );
 
 
--- ============ 20260719000000_matching_gifts.sql ============
+-- ============ 20260719001000_matching_gifts.sql ============
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Corporate matching gifts — companies run matching programs; employees submit
 -- match claims for their donations; the company approves and the platform tracks
@@ -6579,7 +6579,7 @@ exception when others then
 end; $$;
 
 
--- ============ 20260721000000_impact_tracking.sql ============
+-- ============ 20260721001000_impact_tracking.sql ============
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Impact tracking — how each campaign spends funds and the outcomes it delivers.
 -- Powers the "Impact Intelligence" + "Transparency Score" pillars.
@@ -7170,7 +7170,7 @@ on conflict (kind, value) do nothing;
 -- =============================================================================
 -- Per-campaign cover distribution
 -- =============================================================================
--- Prior migrations (20260608010000_campaign_photos.sql / _fix) assigned ONE
+-- Prior migrations (20260608011000_campaign_photos.sql / _fix) assigned ONE
 -- identical cover per category, so every Medical campaign (etc.) looked the
 -- same. This migration spreads campaigns deterministically across each
 -- category's verified photo pool, keyed by a stable hash of the slug, so
@@ -7234,7 +7234,7 @@ begin
 end $$;
 
 
--- ============ 20260723000000_financial_ledger.sql ============
+-- ============ 20260723001000_financial_ledger.sql ============
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Immutable double-entry financial ledger + reconciliation exceptions (spec §1.7).
 --
@@ -7351,7 +7351,7 @@ create policy reconciliation_exceptions_admin_all on reconciliation_exceptions f
   using (is_admin()) with check (is_admin());
 
 
--- ============ 20260723000000_rls_hardening_admin_tables.sql ============
+-- ============ 20260723002000_rls_hardening_admin_tables.sql ============
 -- ─────────────────────────────────────────────────────────────────────────────
 -- RLS hardening — admin/finance/marketing tables (security audit, §6.2)
 --
@@ -7519,7 +7519,7 @@ begin
 end $$;
 
 
--- ============ 20260724000000_reconcile_legacy_column_drift.sql ============
+-- ============ 20260724001000_reconcile_legacy_column_drift.sql ============
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Legacy column-drift reconciliation (LB-001)
 --
@@ -7582,7 +7582,7 @@ create policy cbe_insert_any on public.campaign_builder_events
 -- Reads are admin-only (service role bypasses RLS; no anon/authenticated SELECT policy).
 
 
--- ============ 20260725000000_protect_private_seo_routes.sql ============
+-- ============ 20260725001000_protect_private_seo_routes.sql ============
 do $$
 begin
   if not exists (
@@ -7738,7 +7738,7 @@ as $$
 $$;
 
 
--- ============ 20260727000000_reconcile_competitor_parity_tables.sql ============
+-- ============ 20260727001000_reconcile_competitor_parity_tables.sql ============
 -- Reconcile databases where 20260525002000 rolled back after encountering
 -- legacy tables without the newer nonprofit_id columns.
 
@@ -7892,7 +7892,7 @@ create trigger fundraising_events_set_updated_at before update on fundraising_ev
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Backfill creator_profiles + campaign_launch_settings from REAL existing rows
 --
--- 20260727000000_reconcile_competitor_parity_tables.sql created these two
+-- 20260727001000_reconcile_competitor_parity_tables.sql created these two
 -- tables with public-read policies, but left them empty. campaign_launch_settings
 -- is read by 10+ live routes (donations, recurring, analytics, settings,
 -- rewards, qr-poster, AI assistant), so every real campaign was falling back to
@@ -7951,7 +7951,7 @@ on conflict (user_id) do nothing;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Gate the parity tables' public reads to match campaign visibility
 --
--- 20260727000000_reconcile_competitor_parity_tables.sql gave both tables blanket
+-- 20260727001000_reconcile_competitor_parity_tables.sql gave both tables blanket
 -- `using (true)` SELECT policies. That is inconsistent with campaigns_public_read,
 -- which only publishes `status='active' AND visibility='public' AND deleted_at IS NULL`.
 --
@@ -8355,7 +8355,7 @@ alter table public.banner_settings enable row level security;
 -- =============================================================================
 
 
--- ============ 20260801000000_campaign_wizard_drafts.sql ============
+-- ============ 20260801010000_campaign_wizard_drafts.sql ============
 -- =============================================================================
 -- Campaign wizard drafts — cross-device resume for the /create journey
 -- =============================================================================
@@ -8423,79 +8423,6 @@ create policy cwd_delete_own on public.campaign_wizard_drafts
 
 -- =============================================================================
 -- Rollback (manual): drop table public.campaign_wizard_drafts cascade;
--- =============================================================================
-
-
--- ============ 20260802000000_campaign_wizard_drafts_multi.sql ============
--- =============================================================================
--- F8 — multiple in-flight campaign drafts per organizer
--- =============================================================================
--- `campaign_wizard_drafts` was one row per user (user_id as PK), so an organizer
--- running several campaigns could only ever have one draft in flight: starting a
--- second silently overwrote the first. This re-keys the table on a surrogate id
--- so a user can hold several named drafts and pick which to resume.
---
--- Existing rows are preserved — they simply gain a generated id and keep their
--- content, so anyone mid-draft when this ships continues uninterrupted.
---
--- RLS stays owner-scoped (this is user data): every policy already filters on
--- user_id, which is unchanged, so they keep working against the new key.
--- =============================================================================
-
--- 1. Surrogate key. Added first (nullable-with-default) so existing rows fill in.
-alter table public.campaign_wizard_drafts
-  add column if not exists id uuid not null default gen_random_uuid();
-
--- 2. Human label so a picker can distinguish drafts. Backfilled from the stored
---    form's title where one exists, otherwise left null and shown as "Untitled".
-alter table public.campaign_wizard_drafts
-  add column if not exists title text;
-
-update public.campaign_wizard_drafts
-   set title = nullif(trim(form->>'title'), '')
- where title is null;
-
--- 3. Re-key: drop the user_id primary key, promote id.
-do $$
-declare pk_name text;
-begin
-  select conname into pk_name
-    from pg_constraint
-   where conrelid = 'public.campaign_wizard_drafts'::regclass
-     and contype = 'p';
-  if pk_name is not null then
-    execute format('alter table public.campaign_wizard_drafts drop constraint %I', pk_name);
-  end if;
-end $$;
-
--- Guard against a re-run leaving the table without a primary key.
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint
-     where conrelid = 'public.campaign_wizard_drafts'::regclass and contype = 'p'
-  ) then
-    alter table public.campaign_wizard_drafts add primary key (id);
-  end if;
-end $$;
-
--- 4. user_id is now a plain FK (many drafts per user) and needs its own index
---    for the "list my drafts, newest first" query.
-create index if not exists idx_cwd_user_updated
-  on public.campaign_wizard_drafts (user_id, updated_at desc);
-
--- RLS policies are unchanged: each already filters on `auth.uid() = user_id`,
--- which still holds now that user_id is non-unique. Re-asserted here so the
--- intent is visible alongside the re-key.
-alter table public.campaign_wizard_drafts enable row level security;
-
--- =============================================================================
--- Rollback (manual, destructive — collapses each user to a single draft):
---   delete from public.campaign_wizard_drafts a using public.campaign_wizard_drafts b
---     where a.user_id = b.user_id and a.updated_at < b.updated_at;
---   alter table public.campaign_wizard_drafts drop constraint campaign_wizard_drafts_pkey;
---   alter table public.campaign_wizard_drafts add primary key (user_id);
---   alter table public.campaign_wizard_drafts drop column id, drop column title;
 -- =============================================================================
 
 
@@ -8591,6 +8518,79 @@ values
   ('Vietnam', '🇻🇳', 'VN', 'VND', false, true, 147, true),
   ('Zambia', '🇿🇲', 'ZM', 'ZMW', false, true, 148, true)
 on conflict (iso_code) do nothing;
+
+
+-- ============ 20260802010000_campaign_wizard_drafts_multi.sql ============
+-- =============================================================================
+-- F8 — multiple in-flight campaign drafts per organizer
+-- =============================================================================
+-- `campaign_wizard_drafts` was one row per user (user_id as PK), so an organizer
+-- running several campaigns could only ever have one draft in flight: starting a
+-- second silently overwrote the first. This re-keys the table on a surrogate id
+-- so a user can hold several named drafts and pick which to resume.
+--
+-- Existing rows are preserved — they simply gain a generated id and keep their
+-- content, so anyone mid-draft when this ships continues uninterrupted.
+--
+-- RLS stays owner-scoped (this is user data): every policy already filters on
+-- user_id, which is unchanged, so they keep working against the new key.
+-- =============================================================================
+
+-- 1. Surrogate key. Added first (nullable-with-default) so existing rows fill in.
+alter table public.campaign_wizard_drafts
+  add column if not exists id uuid not null default gen_random_uuid();
+
+-- 2. Human label so a picker can distinguish drafts. Backfilled from the stored
+--    form's title where one exists, otherwise left null and shown as "Untitled".
+alter table public.campaign_wizard_drafts
+  add column if not exists title text;
+
+update public.campaign_wizard_drafts
+   set title = nullif(trim(form->>'title'), '')
+ where title is null;
+
+-- 3. Re-key: drop the user_id primary key, promote id.
+do $$
+declare pk_name text;
+begin
+  select conname into pk_name
+    from pg_constraint
+   where conrelid = 'public.campaign_wizard_drafts'::regclass
+     and contype = 'p';
+  if pk_name is not null then
+    execute format('alter table public.campaign_wizard_drafts drop constraint %I', pk_name);
+  end if;
+end $$;
+
+-- Guard against a re-run leaving the table without a primary key.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conrelid = 'public.campaign_wizard_drafts'::regclass and contype = 'p'
+  ) then
+    alter table public.campaign_wizard_drafts add primary key (id);
+  end if;
+end $$;
+
+-- 4. user_id is now a plain FK (many drafts per user) and needs its own index
+--    for the "list my drafts, newest first" query.
+create index if not exists idx_cwd_user_updated
+  on public.campaign_wizard_drafts (user_id, updated_at desc);
+
+-- RLS policies are unchanged: each already filters on `auth.uid() = user_id`,
+-- which still holds now that user_id is non-unique. Re-asserted here so the
+-- intent is visible alongside the re-key.
+alter table public.campaign_wizard_drafts enable row level security;
+
+-- =============================================================================
+-- Rollback (manual, destructive — collapses each user to a single draft):
+--   delete from public.campaign_wizard_drafts a using public.campaign_wizard_drafts b
+--     where a.user_id = b.user_id and a.updated_at < b.updated_at;
+--   alter table public.campaign_wizard_drafts drop constraint campaign_wizard_drafts_pkey;
+--   alter table public.campaign_wizard_drafts add primary key (user_id);
+--   alter table public.campaign_wizard_drafts drop column id, drop column title;
+-- =============================================================================
 
 
 -- ============ 20260803000000_profiles_preference_columns.sql ============
@@ -8689,3 +8689,343 @@ alter table if exists public.profiles
 
 alter table if exists public.profiles
   add column if not exists stripe_subscription_id text;
+
+
+-- ============ 20260804000000_banner_content_and_recovery.sql ============
+create table if not exists public.banner_settings (
+  id text primary key default 'global',
+  enabled boolean not null default true,
+  content_title text not null default '',
+  content_body text not null default '',
+  content_link_label text not null default '',
+  content_link_url text not null default '',
+  content_revision bigint not null default 1,
+  background_color text not null default '#08763b',
+  text_color text not null default '#ffffff',
+  link_color text not null default '#ffffff',
+  font_family text not null default 'inherit',
+  font_size_px integer not null default 14,
+  title_font_size_px integer not null default 14,
+  font_weight integer not null default 400,
+  title_font_weight integer not null default 700,
+  text_align text not null default 'left',
+  letter_spacing_em numeric not null default 0,
+  uppercase boolean not null default false,
+  padding_y_px integer not null default 9,
+  dismissible boolean not null default true,
+  use_level_colors boolean not null default false,
+  updated_by uuid references auth.users(id) on delete set null,
+  updated_at timestamptz not null default now(),
+  constraint banner_settings_singleton_chk check (id = 'global'),
+  constraint banner_settings_bg_chk check (background_color ~* '^#[0-9a-f]{3}([0-9a-f]{3})?$'),
+  constraint banner_settings_text_chk check (text_color ~* '^#[0-9a-f]{3}([0-9a-f]{3})?$'),
+  constraint banner_settings_link_chk check (link_color ~* '^#[0-9a-f]{3}([0-9a-f]{3})?$'),
+  constraint banner_settings_font_size_chk check (font_size_px between 10 and 28),
+  constraint banner_settings_tfont_size_chk check (title_font_size_px between 10 and 28),
+  constraint banner_settings_weight_chk check (font_weight in (300,400,500,600,700,800,900)),
+  constraint banner_settings_tweight_chk check (title_font_weight in (300,400,500,600,700,800,900)),
+  constraint banner_settings_align_chk check (text_align in ('left','center','right')),
+  constraint banner_settings_tracking_chk check (letter_spacing_em between -0.05 and 0.5),
+  constraint banner_settings_padding_chk check (padding_y_px between 0 and 40)
+);
+
+alter table public.banner_settings add column if not exists content_title text not null default '';
+alter table public.banner_settings add column if not exists content_body text not null default '';
+alter table public.banner_settings add column if not exists content_link_label text not null default '';
+alter table public.banner_settings add column if not exists content_link_url text not null default '';
+alter table public.banner_settings add column if not exists content_revision bigint not null default 1;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.banner_settings'::regclass
+      and conname = 'banner_settings_content_title_chk'
+  ) then
+    alter table public.banner_settings drop constraint if exists banner_settings_content_title_chk;
+alter table public.banner_settings add constraint banner_settings_content_title_chk check (char_length(content_title) <= 120);
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.banner_settings'::regclass
+      and conname = 'banner_settings_content_body_chk'
+  ) then
+    alter table public.banner_settings drop constraint if exists banner_settings_content_body_chk;
+alter table public.banner_settings add constraint banner_settings_content_body_chk check (char_length(content_body) <= 240);
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.banner_settings'::regclass
+      and conname = 'banner_settings_content_link_label_chk'
+  ) then
+    alter table public.banner_settings drop constraint if exists banner_settings_content_link_label_chk;
+alter table public.banner_settings add constraint banner_settings_content_link_label_chk check (char_length(content_link_label) <= 60);
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.banner_settings'::regclass
+      and conname = 'banner_settings_content_link_url_chk'
+  ) then
+    alter table public.banner_settings drop constraint if exists banner_settings_content_link_url_chk;
+alter table public.banner_settings add constraint banner_settings_content_link_url_chk check (
+        char_length(content_link_url) <= 500
+        and (
+          content_link_url = ''
+          or content_link_url ~ '^/($|[^/])'
+          or content_link_url ~* '^https://'
+        )
+      );
+  end if;
+end
+$$;
+
+create or replace function public.banner_settings_touch()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if row(
+    new.content_title,
+    new.content_body,
+    new.content_link_label,
+    new.content_link_url
+  ) is distinct from row(
+    old.content_title,
+    old.content_body,
+    old.content_link_label,
+    old.content_link_url
+  ) then
+    new.content_revision = old.content_revision + 1;
+  end if;
+  new.updated_at = now();
+  return new;
+end
+$$;
+
+drop trigger if exists banner_settings_touch on public.banner_settings;
+drop trigger if exists banner_settings_touch on public.banner_settings;
+create trigger banner_settings_touch
+  before update on public.banner_settings
+  for each row execute function public.banner_settings_touch();
+
+insert into public.banner_settings (id)
+values ('global')
+on conflict (id) do nothing;
+
+alter table public.banner_settings enable row level security;
+revoke all on table public.banner_settings from anon, authenticated;
+grant all on table public.banner_settings to service_role;
+
+
+-- ============ 20260805000000_reconcile_runtime_tables.sql ============
+create table if not exists public.campaign_faqs (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid not null references public.campaigns(id) on delete cascade,
+  question text not null check (char_length(question) between 5 and 300),
+  answer text not null check (char_length(answer) between 5 and 2000),
+  sort_order integer not null default 0,
+  is_public boolean not null default true,
+  ai_generated boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_campaign_faqs_campaign_id
+  on public.campaign_faqs (campaign_id);
+
+alter table public.campaign_faqs enable row level security;
+
+drop policy if exists faqs_public_read on public.campaign_faqs;
+drop policy if exists faqs_public_read on public.campaign_faqs;
+create policy faqs_public_read on public.campaign_faqs
+  for select
+  using (
+    is_public = true
+    or public.is_admin()
+    or exists (
+      select 1 from public.campaigns
+      where campaigns.id = campaign_faqs.campaign_id
+        and campaigns.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists faqs_owner_write on public.campaign_faqs;
+drop policy if exists faqs_owner_write on public.campaign_faqs;
+create policy faqs_owner_write on public.campaign_faqs
+  for insert
+  with check (
+    public.is_admin()
+    or exists (
+      select 1 from public.campaigns
+      where campaigns.id = campaign_faqs.campaign_id
+        and campaigns.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists faqs_owner_update on public.campaign_faqs;
+drop policy if exists faqs_owner_update on public.campaign_faqs;
+create policy faqs_owner_update on public.campaign_faqs
+  for update
+  using (
+    public.is_admin()
+    or exists (
+      select 1 from public.campaigns
+      where campaigns.id = campaign_faqs.campaign_id
+        and campaigns.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists faqs_owner_delete on public.campaign_faqs;
+drop policy if exists faqs_owner_delete on public.campaign_faqs;
+create policy faqs_owner_delete on public.campaign_faqs
+  for delete
+  using (
+    public.is_admin()
+    or exists (
+      select 1 from public.campaigns
+      where campaigns.id = campaign_faqs.campaign_id
+        and campaigns.user_id = auth.uid()
+    )
+  );
+
+create table if not exists public.campaign_owner_replies (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid not null references public.campaigns(id) on delete cascade,
+  donor_message_id uuid references public.donor_messages(id) on delete set null,
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  message text not null check (char_length(message) between 1 and 5000),
+  created_at timestamptz not null default now()
+);
+
+alter table public.campaign_owner_replies enable row level security;
+
+drop policy if exists cor_donor_read on public.campaign_owner_replies;
+drop policy if exists cor_donor_read on public.campaign_owner_replies;
+create policy cor_donor_read on public.campaign_owner_replies
+  for select
+  using (
+    exists (
+      select 1 from public.donor_messages dm
+      where dm.id = campaign_owner_replies.donor_message_id
+        and dm.donor_id = auth.uid()
+    )
+  );
+
+drop policy if exists cor_owner_all on public.campaign_owner_replies;
+drop policy if exists cor_owner_all on public.campaign_owner_replies;
+create policy cor_owner_all on public.campaign_owner_replies
+  for all
+  using (auth.uid() = owner_id or public.is_admin())
+  with check (auth.uid() = owner_id);
+
+create table if not exists public.feature_flags (
+  id uuid primary key default gen_random_uuid(),
+  key text not null unique,
+  enabled boolean not null default false,
+  description text,
+  rollout_pct integer not null default 100 check (rollout_pct between 0 and 100),
+  updated_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.feature_flags enable row level security;
+
+drop policy if exists flags_public_read on public.feature_flags;
+drop policy if exists flags_admin_write on public.feature_flags;
+drop policy if exists feature_flags_admin_all on public.feature_flags;
+drop policy if exists feature_flags_admin_all on public.feature_flags;
+create policy feature_flags_admin_all on public.feature_flags
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+grant all on table public.campaign_faqs to anon, authenticated, service_role;
+grant all on table public.campaign_owner_replies to anon, authenticated, service_role;
+grant all on table public.feature_flags to anon, authenticated, service_role;
+
+create table if not exists public.campaign_milestones (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid not null references public.campaigns(id) on delete cascade,
+  title text not null,
+  description text,
+  target_amount bigint,
+  reached_at timestamptz,
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table public.campaign_milestones enable row level security;
+
+drop policy if exists milestones_public_read on public.campaign_milestones;
+drop policy if exists milestones_public_read on public.campaign_milestones;
+create policy milestones_public_read on public.campaign_milestones
+  for select
+  using (true);
+
+drop policy if exists milestones_owner_write on public.campaign_milestones;
+drop policy if exists milestones_owner_write on public.campaign_milestones;
+create policy milestones_owner_write on public.campaign_milestones
+  for insert
+  with check (
+    public.is_admin()
+    or exists (
+      select 1 from public.campaigns
+      where campaigns.id = campaign_milestones.campaign_id
+        and campaigns.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists milestones_owner_delete on public.campaign_milestones;
+drop policy if exists milestones_owner_delete on public.campaign_milestones;
+create policy milestones_owner_delete on public.campaign_milestones
+  for delete
+  using (
+    public.is_admin()
+    or exists (
+      select 1 from public.campaigns
+      where campaigns.id = campaign_milestones.campaign_id
+        and campaigns.user_id = auth.uid()
+    )
+  );
+
+grant all on table public.campaign_milestones to anon, authenticated, service_role;
+
+create table if not exists public.admin_settings (
+  key text primary key,
+  value text,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.admin_settings enable row level security;
+
+drop policy if exists admin_settings_admin_all on public.admin_settings;
+drop policy if exists admin_settings_admin_all on public.admin_settings;
+create policy admin_settings_admin_all on public.admin_settings
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+create table if not exists public.coach_sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  campaign_id uuid references public.campaigns(id) on delete set null,
+  message_count integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_coach_sessions_user_id
+  on public.coach_sessions (user_id);
+
+alter table public.coach_sessions enable row level security;
+
+drop policy if exists coach_own_all on public.coach_sessions;
+drop policy if exists coach_own_all on public.coach_sessions;
+create policy coach_own_all on public.coach_sessions
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+grant all on table public.admin_settings to anon, authenticated, service_role;
+grant all on table public.coach_sessions to anon, authenticated, service_role;

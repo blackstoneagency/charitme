@@ -21,7 +21,7 @@ declaration. Because the schema-cache-reload path (`POST /api/health`) grants
 read directly through PostgREST even though the app never does so.
 
 **Remediation (this session):** migration
-`20260723000000_rls_hardening_admin_tables.sql` enables RLS (deny-all, no
+`20260723002000_rls_hardening_admin_tables.sql` enables RLS (deny-all, no
 policies) on all 34. Because `service_role` bypasses RLS (`BYPASSRLS`), every
 existing admin route, webhook handler, and marketing function keeps working
 unchanged; anon/authenticated direct-PostgREST access is now denied. Idempotent

@@ -1,7 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Gate the parity tables' public reads to match campaign visibility
 --
--- 20260727000000_reconcile_competitor_parity_tables.sql gave both tables blanket
+-- 20260727001000_reconcile_competitor_parity_tables.sql gave both tables blanket
 -- `using (true)` SELECT policies. That is inconsistent with campaigns_public_read,
 -- which only publishes `status='active' AND visibility='public' AND deleted_at IS NULL`.
 --

@@ -164,7 +164,7 @@ describe('ledger migration hardening', () => {
   const sql = readFileSync(
     path.resolve(
       path.dirname(fileURLToPath(import.meta.url)),
-      '../../../supabase/migrations/20260723000000_financial_ledger.sql',
+      '../../../supabase/migrations/20260723001000_financial_ledger.sql',
     ),
     'utf8',
   ).toLowerCase();

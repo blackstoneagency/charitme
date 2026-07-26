@@ -47,3 +47,26 @@ describe('withQueryTimeout', () => {
     expect(DEFAULT_QUERY_TIMEOUT_MS).toBeGreaterThan(500);
   });
 });
+
+describe('boundedQuery', () => {
+  it('passes a successful query through untouched', async () => {
+    const { boundedQuery } = await import('../lib/query-timeout');
+    const q = Promise.resolve({ data: [{ id: 1 }], error: null });
+    expect(await boundedQuery(q)).toEqual({ data: [{ id: 1 }], error: null });
+  });
+
+  it('synthesises the supabase failure shape on timeout so the existing error branch runs', async () => {
+    const { boundedQuery } = await import('../lib/query-timeout');
+    const slow = new Promise((r) => setTimeout(() => r({ data: [1], error: null }), 500));
+    const result = await boundedQuery(slow, 10) as { data: unknown; error: { code: string } };
+    expect(result.data).toBeNull();
+    expect(result.error.code).toBe('QUERY_TIMEOUT');
+  });
+
+  it('also synthesises the failure shape when the query rejects', async () => {
+    const { boundedQuery } = await import('../lib/query-timeout');
+    const result = await boundedQuery(Promise.reject(new Error('ECONNREFUSED')), 50) as { data: unknown; error: { code: string } };
+    expect(result.data).toBeNull();
+    expect(result.error.code).toBe('QUERY_TIMEOUT');
+  });
+});

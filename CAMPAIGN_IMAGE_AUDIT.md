@@ -10,7 +10,7 @@
 The platform did **not** have per-campaign images to begin with. Seed campaigns
 are **procedurally generated** (250 in `seed_250.sql`, 120 in
 `seeds/01_campaigns_core.sql`, 3 in `seed.sql`) with **no per-row image**. All
-campaign imagery was assigned **by category** in `20260608010000_campaign_photos.sql`
+campaign imagery was assigned **by category** in `20260608011000_campaign_photos.sql`
 (and its `_fix`), so **every campaign in a category shared one identical cover**,
 and the gallery `image_urls` recycled a handful of core photos across many
 categories. That category-blanket assignment — not broken URLs — was the real

@@ -15,6 +15,11 @@ export type BannerTextAlign = 'left' | 'center' | 'right';
 
 export interface BannerSettings {
   enabled: boolean;
+  contentTitle: string;
+  contentBody: string;
+  contentLinkLabel: string;
+  contentLinkUrl: string;
+  contentRevision: number;
   backgroundColor: string;
   textColor: string;
   linkColor: string;
@@ -40,6 +45,11 @@ export interface BannerSettings {
  */
 export const DEFAULT_BANNER_SETTINGS: BannerSettings = {
   enabled: true,
+  contentTitle: '',
+  contentBody: '',
+  contentLinkLabel: '',
+  contentLinkUrl: '',
+  contentRevision: 1,
   backgroundColor: '#08763b',
   textColor: '#ffffff',
   linkColor: '#ffffff',
@@ -73,6 +83,23 @@ export const BANNER_FONT_WEIGHTS = [300, 400, 500, 600, 700, 800, 900] as const;
 
 const HEX = /^#[0-9a-f]{3}([0-9a-f]{3})?$/i;
 const ALLOWED_FONTS = new Set(BANNER_FONT_OPTIONS.map((f) => f.value));
+
+function safeText(value: unknown, max: number): string {
+  return typeof value === 'string' ? value.trim().slice(0, max) : '';
+}
+
+export function safeBannerLinkUrl(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const url = value.trim();
+  if (!url) return '';
+  if (url.startsWith('/') && !url.startsWith('//')) return url.slice(0, 500);
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' ? url.slice(0, 500) : '';
+  } catch {
+    return '';
+  }
+}
 
 /** A safe hex colour, or the fallback. Never returns caller-controlled text. */
 export function safeColor(value: unknown, fallback: string): string {
@@ -114,6 +141,11 @@ export function normalizeBannerSettings(row: Row): BannerSettings {
   if (!row) return d;
   return {
     enabled:         typeof row.enabled === 'boolean' ? row.enabled : d.enabled,
+    contentTitle:    safeText(row.content_title, 120),
+    contentBody:     safeText(row.content_body, 240),
+    contentLinkLabel:safeText(row.content_link_label, 60),
+    contentLinkUrl:  safeBannerLinkUrl(row.content_link_url),
+    contentRevision:safeInt(row.content_revision, 1, Number.MAX_SAFE_INTEGER, d.contentRevision),
     backgroundColor: safeColor(row.background_color, d.backgroundColor),
     textColor:       safeColor(row.text_color, d.textColor),
     linkColor:       safeColor(row.link_color, d.linkColor),

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from './supabase';
+import { boundedQuery } from './query-timeout';
 import { campaignColumns, applyLiveFilters } from './campaign-visibility';
 import { attachCampaignCurrencies } from './home-data';
 
@@ -51,14 +52,20 @@ export function periodCutoff(period: LeaderboardPeriod): string | null {
 
 export async function getTopCampaigns(limit = 20): Promise<LeaderboardCampaign[]> {
   const cols = await campaignColumns();
-  const { data, error } = await applyLiveFilters(
-    supabaseAdmin
-      .from('campaigns')
-      .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, category, trust_status, nonprofit_verified, location, profiles:user_id(full_name, avatar_url)'),
-    cols,
-  )
-    .order('raised_amount', { ascending: false })
-    .limit(limit);
+  // Bounded: an empty leaderboard is an acceptable degraded state, an unbounded
+  // stall on the whole page is not (DB-backed pages measured ~7s against an
+  // unreachable Supabase). The existing `error || !data` path already renders
+  // empty, so a timeout simply takes the same branch.
+  const { data, error } = await boundedQuery(
+    applyLiveFilters(
+      supabaseAdmin
+        .from('campaigns')
+        .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, category, trust_status, nonprofit_verified, location, profiles:user_id(full_name, avatar_url)'),
+      cols,
+    )
+      .order('raised_amount', { ascending: false })
+      .limit(limit),
+  );
 
   if (error || !data) return [];
 
@@ -100,7 +107,7 @@ export async function getTopDonors(period: LeaderboardPeriod, limit = 20): Promi
 
   if (cutoff) query = query.gte('created_at', cutoff);
 
-  const { data, error } = await query;
+  const { data, error } = await boundedQuery(query);
   if (error || !data) return [];
 
   const totals = new Map<string, { totalCents: number; donationCount: number }>();

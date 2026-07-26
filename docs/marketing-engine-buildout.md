@@ -5,7 +5,7 @@
 
 ## What was built
 
-### Database — `supabase/migrations/20260610000000_marketing_engine.sql` (17 tables)
+### Database — `supabase/migrations/20260610010000_marketing_engine.sql` (17 tables)
 
 | Table | Purpose |
 |---|---|

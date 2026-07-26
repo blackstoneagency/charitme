@@ -1,0 +1,4 @@
+-- Intentionally non-destructive. This migration brings three pre-existing,
+-- data-bearing production tables under migration control. Dropping them during
+-- rollback would destroy admin settings, campaign FAQs, milestones, organizer
+-- replies, coach sessions, and feature flags.

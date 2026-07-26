@@ -6,6 +6,7 @@ import { supabaseAdmin } from '../../../../../lib/supabase';
 import { guardSuperAdmin, logSuperAdminAction } from '../../../../../lib/super-admin';
 import {
   normalizeBannerSettings,
+  safeBannerLinkUrl,
   BANNER_FONT_OPTIONS,
   BANNER_FONT_WEIGHTS,
   DEFAULT_BANNER_SETTINGS,
@@ -22,6 +23,11 @@ const WEIGHTS = BANNER_FONT_WEIGHTS as readonly number[];
 // are bounded. Anything else is a 400 — never a best-effort coercion.
 const SettingsSchema = z.object({
   enabled:            z.boolean(),
+  content_title:      z.string().trim().max(120),
+  content_body:       z.string().trim().max(240),
+  content_link_label: z.string().trim().max(60),
+  content_link_url:   z.string().trim().max(500)
+    .refine((value) => !value || safeBannerLinkUrl(value) === value, 'Use an HTTPS or site-relative URL'),
   background_color:   z.string().regex(HEX, 'Must be a hex colour like #12b76a'),
   text_color:         z.string().regex(HEX, 'Must be a hex colour like #ffffff'),
   link_color:         z.string().regex(HEX, 'Must be a hex colour like #ffffff'),
