@@ -64,9 +64,14 @@ twice in others' work. **Run the fix, re-probe, then read the survivors by hand.
   payments platform is your call; the check-in flow works by typed code without it.
 
 ### Best next slices for another agent (non-gated)
-1. `scripts/audit-contrast.mjs` still has its own hardcoded route list with the two bad
-   routes — point it at `e2e/public-routes.json` and add the landed-path check. Its
-   "38 pages, 0 failures" number currently includes two login-page scans.
+1. ~~`scripts/audit-contrast.mjs` still has its own hardcoded route list~~ **✅ DONE
+   (Claude, 2026-07-26).** Migrated to `e2e/public-routes.json` + landed-path check.
+   All five route lists are now one. Its old comment claimed it was "kept in sync …
+   so the three sweeps cannot drift apart" — via a hand-maintained copy, which is
+   exactly how they drifted. Re-run on the CORRECT 37 pages: **0 AA failures across
+   37 × 2 themes**. Guard proven non-vacuous — `--only /achievements,/privacy-center`
+   now yields `✗ REDIRECTED to /login; not measured` (4 failures) instead of quietly
+   measuring the login page's colours and passing.
 2. Marketing OS backlog: multi-tenancy (§7), approval engine (§30), roles (§9),
    GA4/Search Console read-only connectors (§32).
 3. Re-run `su postgres -s /bin/bash -c ./scripts/regen_schema.sh` after **every**

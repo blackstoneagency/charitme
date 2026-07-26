@@ -25,6 +25,8 @@
  * you tokenise a card, check its gradient stops too — `linear-gradient(…,
  * var(--s2), var(--s3))` works and keeps the light rendering identical.
  */
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
 const argv = process.argv;
@@ -37,23 +39,20 @@ const AS_JSON = argv.includes('--json');
 const onlyIdx = argv.indexOf('--only');
 const ONLY = onlyIdx > -1 ? argv[onlyIdx + 1].split(',') : null;
 
-// Kept in sync with scripts/audit-responsive.mjs (itself derived from
-// e2e/public-routes.spec.ts) so the three sweeps cannot drift apart.
-const ALL_PAGES = [
-  '/', '/about-us', '/achievements', '/ai-campaign',
-  '/ai-fundraising', '/blog', '/campaigns', '/contact',
-  '/events', '/faq', '/features', '/features/fundraising-core',
-  '/fees', '/fast-payouts', '/for-donors', '/for-individuals',
-  '/for-nonprofits', '/grants', '/help', '/how-it-works',
-  '/leaderboard', '/matching', '/offline', '/pricing',
-  '/privacy', '/privacy-center', '/prohibited-use', '/refunds',
-  '/security', '/sponsor', '/success-stories', '/supported-countries',
-  '/terms', '/transparency', '/trust-safety', '/volunteer',
-  // Auth screens render unauthenticated and every single user passes through
-  // them, but they sit outside the public-routes sweep, so their contrast had
-  // never been measured. Highest-traffic pages in the app; keep them here.
-  '/login', '/forgot-password',
-];
+// Single source of truth: e2e/public-routes.json, shared with the e2e sweeps and
+// scripts/audit-responsive.mjs.
+//
+// This used to be a hardcoded copy carrying the comment "kept in sync ... so the
+// three sweeps cannot drift apart" — via a hand-maintained duplicate, which is
+// precisely how they drifted. It listed /achievements and /privacy-center as
+// public while both call requireUser() and 307 to /login, so this sweep measured
+// the LOGIN PAGE's contrast twice and counted it as two clean marketing pages.
+// Its "38 pages, 0 failures" figure included those two scans.
+const ROUTE_DATA = JSON.parse(
+  readFileSync(fileURLToPath(new URL('../e2e/public-routes.json', import.meta.url)), 'utf8'),
+);
+// The campaign-embed fixture needs seeded data; the e2e sweep covers it.
+const ALL_PAGES = ROUTE_DATA.public.filter((r) => !r.includes('/embed'));
 const PAGES = ONLY ?? ALL_PAGES;
 const THEMES = ['light', 'dark'];
 
@@ -171,6 +170,16 @@ for (const theme of THEMES) {
   for (const path of PAGES) {
     try {
       await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 45000 });
+      // Measure the page we asked for, or report it — never something we were sent
+      // to. Playwright follows redirects, so a route that 307s to /login otherwise
+      // gets measured under this route's name and passes on the login page's colours.
+      const landed = new URL(page.url()).pathname.replace(/\/$/, '') || '/';
+      const asked = path.replace(/\/$/, '') || '/';
+      if (landed !== asked) {
+        failures++;
+        if (!AS_JSON) console.log(`\u2717 ${theme} ${path} — REDIRECTED to ${landed}; not measured`);
+        continue;
+      }
       await page.waitForTimeout(350); // let the theme script + fonts settle
       const found = await page.evaluate(collectContrast);
       for (const f of found) {
