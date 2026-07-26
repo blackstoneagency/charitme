@@ -12,6 +12,7 @@ import {
   isTicketSoldOut,
 } from '../../../lib/events-core';
 import RsvpPanel from './RsvpPanel';
+import { realUrlOrNull } from '../../../lib/placeholder-url';
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -60,9 +61,12 @@ export default async function EventDetailPage({ params }: PageProps) {
       <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 8 }}>{e.title}</h1>
       <div style={{ fontSize: 15, color: 'var(--t2)', marginBottom: 4 }}>🗓 {dateLabel(e.starts_at)}</div>
       {e.location && <div style={{ fontSize: 14, color: 'var(--t3)', marginBottom: 4 }}>📍 {e.location}</div>}
-      {e.virtual_url && open && (
+      {/* 120 events in production carry an `example.org` virtual_url — an RFC 2606
+          documentation domain that never resolves. Showing it as a "Join link" hands
+          attendees a dead link at the moment they try to join. */}
+      {realUrlOrNull(e.virtual_url) && open && (
         <div style={{ fontSize: 14, marginBottom: 4 }}>
-          🔗 <a href={e.virtual_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green-dark)' }}>Join link</a>
+          🔗 <a href={e.virtual_url as string} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green-dark)' }}>Join link</a>
         </div>
       )}
 

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getGrantBySlug, getGrantDeadlines } from '../../../lib/grants-server';
 import { Badge } from '../../../components/ui';
 import ApplyButton from './ApplyButton';
+import { realUrlOrNull } from '../../../lib/placeholder-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -128,8 +129,11 @@ export default async function GrantDetailPage({ params }: { params: Promise<{ sl
 
             <ApplyButton grantSlug={grant.slug} />
 
-            {grant.application_url && (
-              <a href={grant.application_url} target="_blank" rel="noopener noreferrer"
+            {/* Suppressed when the funder URL is an RFC 2606 documentation domain:
+                240 grants in production carry `example.org` links, which render as a
+                live "official page" link that can never resolve. */}
+            {realUrlOrNull(grant.application_url) && (
+              <a href={grant.application_url as string} target="_blank" rel="noopener noreferrer"
                 style={{ fontSize: 13, fontWeight: 700, color: 'var(--blue-text)', textAlign: 'center' }}>
                 View funder&apos;s official page ↗
               </a>

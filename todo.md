@@ -5140,6 +5140,37 @@ them real gates (e.g. beneficiary confirmation flow, nonprofit-only campaign typ
 or retire them. Recorded rather than guessed, because inventing restrictions on
 roles nobody holds is the fastest way to lock a real user out.
 
+### ✅ DONE — Claude, 2026-07-26 — **dead "Join link" on 120 events and "Apply" link on 240 grants**
+Chasing why `grant_documents` was seeded-but-unread turned up something worse than an
+unused table: **the seeded URLs are RFC 2606 documentation domains, and two of them
+are rendered to the public as live links.**
+- `fundraising_events.virtual_url` — **120 rows** point at `example.org`. The event
+  page rendered it as **"🔗 Join link"**, so every virtual event handed attendees a
+  dead link at the exact moment they tried to join.
+- `grants.application_url` — **240 rows** point at `example.org`. The grant page
+  rendered it as **"View funder's official page ↗"**.
+- (`grant_documents.file_url` is the same — `https://example.org/docs/N.pdf`. **I did
+  NOT wire that table to the UI**, because doing so would have shipped 240 broken
+  download links and called it "wired to Supabase". It stays unwired until the seed
+  carries real files.)
+
+**Fix:** `lib/placeholder-url.ts` — `isPlaceholderUrl()` / `realUrlOrNull()`, grounded
+in **RFC 2606**, which reserves `.test`/`.example`/`.invalid`/`.localhost` and
+`example.com|net|org` precisely so they can be recognised as non-real. Both render
+sites now degrade to *no link* instead of a guaranteed 404. **Deliberately narrow —
+anything not positively recognised stays visible**, because hiding a real
+fundraiser's link would be a worse bug than the one being fixed (tests cover
+`my-example.org`, `exampleorg.com`, `notexample.com`, relative paths).
+11 tests in `__tests__/placeholder-url.test.ts`. Verified: typecheck 0, **1269 tests /
+114 files**, build green.
+
+**Open for whoever owns seeding:** the underlying data is still placeholder. A
+`virtual_url` of `null` would be more honest than `example.org` — the UI already
+handles null correctly. Same for `grants.application_url` and
+`grant_documents.file_url`. Scanned the other user-visible URL columns while I was
+there: `volunteer_opportunities.contact_url`, `campaigns.cover_image_url` and
+`profiles.avatar_url` are **clean**.
+
 ### ✅ DONE — Claude, 2026-07-26 — **scrollable-region keyboard audit** (was CLAIM)
 Following up my own note: 11 `overflow-x: auto` wrappers exist in globals.css and
 only `.fp-table-wrap` has been checked. Auditing all of them for
