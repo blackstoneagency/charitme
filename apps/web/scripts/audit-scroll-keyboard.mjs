@@ -11,6 +11,8 @@
 //
 // Exits 1 when a genuinely unreachable scroller is found, so it can gate CI.
 // ─────────────────────────────────────────────────────────────────────────────
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
 const BASE = process.argv[2] ?? 'http://127.0.0.1:3000';
@@ -18,12 +20,31 @@ const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
 
 // Public routes plus the viewports where horizontal overflow actually happens —
 // most of these wrappers only scroll under a mobile breakpoint.
+// Validated against e2e/public-routes.json below: this is a deliberate SUBSET
+// (overflow-prone wrappers only), so it is not replaced by the shared list — but
+// every entry must still exist in it. That way the curation survives while a
+// renamed or de-published route fails loudly instead of silently drifting, which
+// is how five other copies of this list ended up auditing /login.
 const ROUTES = [
   '/', '/campaigns', '/leaderboard', '/fast-payouts', '/pricing', '/transparency',
   '/features', '/how-it-works', '/faq', '/for-donors', '/for-nonprofits',
   '/volunteer', '/sponsor', '/events', '/grants', '/matching', '/impact',
   '/success-stories', '/help', '/blog', '/about-us', '/supported-countries',
 ];
+const SHARED_PUBLIC = new Set(
+  JSON.parse(
+    readFileSync(fileURLToPath(new URL('../e2e/public-routes.json', import.meta.url)), 'utf8'),
+  ).public,
+);
+const strayRoutes = ROUTES.filter((r) => !SHARED_PUBLIC.has(r));
+if (strayRoutes.length > 0) {
+  console.error(
+    `✗ These routes are not in e2e/public-routes.json (renamed, or no longer public):\n  ${strayRoutes.join('\n  ')}\n` +
+    'Fix the list here, or move the route in the shared file. Do not audit a route that no longer resolves.',
+  );
+  process.exit(1);
+}
+
 const VIEWPORTS = [
   { name: 'mobile', width: 390, height: 844 },
   { name: 'desktop', width: 1280, height: 900 },

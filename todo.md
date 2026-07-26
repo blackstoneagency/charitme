@@ -19,6 +19,34 @@ at handoff: **1378 tests, typecheck 0, lint 0 errors, build green**, a11y **4/4 
 WCAG 2.0/2.1/2.2 A+AA** and all three public sweeps **8/8 against a real production
 build**, responsive **222 renders / 0 findings**.
 
+### ✅ A test now enforces the single route list — and immediately found a SIXTH copy
+
+Five copies drifted identically; nothing stopped a sixth. `__tests__/route-list-single-source.test.ts`
+fails if any file under `e2e/` or `scripts/` hardcodes ≥10 public-route literals
+without reading `e2e/public-routes.json`.
+
+**Its first run found `scripts/audit-scroll-keyboard.mjs` — a sixth list, 21 routes,
+which I did not know existed.** It did *not* carry the bad routes, so it was not
+producing a false pass, but it would have drifted the moment a route was renamed.
+
+Fixed by **anchoring rather than replacing**: that list is a deliberate SUBSET
+(overflow-prone wrappers only), so flattening it to all 37 would change what the
+script tests. It now validates every entry against the shared file and exits 1 on a
+stray. Mutation-tested — adding `/achievements` yields
+`✗ These routes are not in e2e/public-routes.json`. The guard accordingly accepts any
+file that reads the shared list, since such a file cannot drift silently.
+
+The guard also pins the original bug directly: no route may appear in both `public`
+and `authGated`, and `/achievements` + `/privacy-center` must stay auth-gated.
+
+_Non-vacuity is asserted explicitly (`files.length > 5`, and three named files must be
+found) — the same failure mode this test exists to prevent elsewhere._
+
+_Unrelated note: `audit-scroll-keyboard.mjs` needs
+`PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium` in this sandbox, like the other
+sweeps. It is not broken — it already supports the override. With it: **0
+keyboard-unreachable scrollable regions.**_
+
 ### The one theme worth internalising
 Almost every real bug this session was **a check that passed while measuring the wrong
 thing.** Not missing tests — *present* tests and audits reporting green on something
