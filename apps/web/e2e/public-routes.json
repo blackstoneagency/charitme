@@ -67,7 +67,8 @@
       "/matching/manage",
       "/sponsor/manage",
       "/beneficiary/accept",
-      "/volunteer/hours"
+      "/volunteer/hours",
+      "/volunteer/manage"
     ]
   }
 }
