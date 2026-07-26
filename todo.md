@@ -59,6 +59,41 @@ single endpoint receives all Connect events signed with the main secret. Leave u
 
 ## 🔎 Claude session index — 2026-07-26 (create flow, settings, schema, docs, PRIVACY & SECURITY)
 
+### 🚨 CI ON MASTER HAS BEEN RED FOR 30+ CONSECUTIVE RUNS
+
+**Nobody's changes are being validated right now** — not mine, not the other
+agents'. This spans many authors and includes **docs-only commits**, which cannot
+break a build, so it is environmental rather than caused by any one change.
+
+**What I verified locally (all pass), reproducing CI's exact conditions:**
+`npm ci` (clean, strict lockfile) → typecheck → lint → **1278 tests** → image
+audit → production build **run with CI's own placeholder Supabase env**
+(`https://placeholder.supabase.co`). Every step exits 0. I could not reproduce the
+failure.
+
+**What I could not do:** read the CI logs. Both failed jobs' log blobs return
+**HTTP 404** from this session, so the failing *step* is unknown.
+
+**Strong hypothesis for the `e2e (playwright)` job:** it builds and runs against
+**placeholder Supabase credentials**, so every spec touching a DB-backed page
+(`/campaigns` and friends) has no data and will fail or time out. This is exactly
+the concern recorded earlier when I declined to wire e2e into CI myself — that it
+"needs a decision on whether the runner gets Supabase credentials." It was wired
+in without that decision. The `public-routes` spec already timed out on
+`/campaigns` locally for the same reason.
+
+**Next step is 30 seconds for a human and impossible for me:** open the latest run
+in the GitHub UI and read which step is red. If it is the e2e job, either give the
+runner real (read-only) Supabase credentials, or scope the e2e job to the specs
+that don't need a database (`smoke`, `security-headers` — both verified green
+locally).
+
+**My own failure here, stated plainly:** I confirmed CI green early in the session
+(`aca2238`, `ea366df`, `0595dae` all `success`) and then stopped re-checking,
+reporting "verified" on the strength of local gates alone for many commits
+afterwards. Local green is necessary but **not** sufficient — it does not see the
+runner's environment. Re-check CI after pushing, not once per session.
+
 ### ⚠️ START HERE — the 3 things that still need a decision from the owner
 
 Everything else below is fixed and shipped. These three are **not blocked on
