@@ -6664,42 +6664,63 @@ render (94KB / 37KB / 59KB, each with an `<h1>`).
 
 **Result: all three public sweeps pass against a REAL production build — 8/8.**
 
-### 🟡 CHAR-0015 — WCAG **2.2** AA: one sitewide failure fixed, two residual (Claude, 2026-07-26)
+### ✅ CHAR-0015 — WCAG **2.2** AA now ENFORCED, and it found a sitewide layout bug
 
-CHAR-0015 asks for WCAG **2.2** AA, but the enforced spec only ever carried
-`wcag2a/2aa/21a/21aa`. So the 2.2-only criteria had never run. axe-core 4.12.1
-ships 5 rules tagged 2.2; the one that matters here is **`target-size`
-(2.5.8 Target Size, AA)** — the "tap targets" item in this ticket.
+CHAR-0015 asks for WCAG **2.2** AA, but the spec only carried
+`wcag2a/2aa/21a/21aa`, so the 2.2-only criteria had never run. Enabling them
+surfaced `target-size` (2.5.8) — and following it down found a genuine, visible,
+sitewide layout bug that no existing audit could see.
 
-**✅ Fixed — every header nav link was an undersized tap target, on every page.**
-`.kind-header nav a` had no vertical padding, so its box was just the 13px line
-box: **19.5px tall against a 24px minimum**. Now `min-height: 24px`.
+**1. Header nav links were a 19.5px tap target on every page.** `.kind-header nav a`
+had no vertical padding, so its box was just the 13px line box. Now `min-height: 24px`,
+with the active-tab underline offset corrected from `-24px` to `-22px` — the gap
+below a link centred in the 68px bar is `(68 - h) / 2`, so the old value was right
+at h≈19.5 and 2.25px low at h=24. Verified by measurement: the underline lands at
+y=86 before and after, exactly the header's bottom edge.
 
-The subtlety was the active-tab underline. `.kind-header nav a.active::after` was
-anchored to the *link* at `bottom: -24px` but has to land on the *header's* bottom
-edge. Links are centred in the fixed 68px bar, so the gap below a link of height h
-is `(68 - h) / 2` — correct at 24px for h≈19.5, and 2.25px low once the links grew.
-Changed to **-22px** (exact for h=24) and verified by measurement rather than by eye:
+**2. The desktop nav was rendering ON TOP OF the header controls — at every width
+from 1101px to 1800px.** The nav needed 774px of links but never got more than
+621px, and `.kind-auth` paints after it in the DOM, so "About Us", "Blog" and
+"Contact Us" sat *underneath* the theme toggle, search, bell and "Sign in" —
+garbled text over icons, and those links were unclickable because the buttons
+took the clicks. Screenshot-confirmed at 1280px.
 
+Why nothing caught it: `audit-responsive.mjs` checks *page* overflow and
+elements wider than the viewport, not element-vs-element overlap. Different bug
+class. And the container caps at 1280px, so it never resolved on wider screens —
+still 136px of overlap at 1800px.
+
+**Fixed by making the header actually fit, not by removing anything:**
+- header `.container` `max-width` 1280 → **1380** (scoped to the header; the
+  header element is already `min(1380px, 100% - 40px)`, so its inner container was
+  the binding constraint), padding 40 → 24
+- nav `gap` 20 → 12, logo `margin-right` 28 → 18
+- below **1366px** the nav collapses into the existing menu button — the measured
+  point where it genuinely fits. `.kind-auth` deliberately stays visible there, so
+  the "Start a CharitMe" CTA and "Sign in" remain on a 1280px laptop; hiding them
+  too would have traded a layout bug for a conversion regression.
+- a separate media query, NOT a widening of the 1100px block — that block also
+  carries hero/grid/footer rules that must not apply at 1101–1365px.
+
+Measured overlap by viewport, before → after:
 ```
-before:  linkH=19.5  linkBottom=61.75  +24  =>  85.75   (header bottom 86)
-after:   linkH=24    linkBottom=64     +22  =>  86.00   (header bottom 86)
+1150  208px → menu    1280   78px → menu    1366  none ✓ → none ✓
+1200  158px → menu    1320   38px → menu    1440+ none ✓ → none ✓
 ```
 
-Same pixel. No visual shift, and the tap target grew.
+**Result: `WCAG_TAGS` now includes `wcag22a`/`wcag22aa` permanently.** No baseline,
+no exemption — the two "unpinned residuals" I had written up were symptoms of this
+same overlap, and fixing the root cause cleared both.
 
-**🟡 Residual — 2 desktop-only findings, NOT enforced and NOT baselined.**
-With 2.2 enabled the mobile projects pass clean; chromium reports two:
-`.theme-toggle-btn` on `/about-us` and `.kind-search-btn` on `/blog`, both
-*"partially obscured"* with tiny safe-clickable diameters (6px and 3px). axe blames
-neighbouring `.active` / `.kind-bell`, but a direct DOM sweep found **no
-overlapping and no within-24px targets**, so the cause is not yet pinned and I did
-not want to guess at header layout that other agents may also be editing.
+_Worth keeping: I nearly shipped those two as an accepted open item because I could
+not explain them. They were not noise — they were axe correctly reporting a real bug
+that three other audits were structurally blind to._
 
-**The tags are therefore reverted to 2.0/2.1 in `accessibility.spec.ts`, with a
-comment saying why.** Deliberately *not* added-then-baselined: an exemption list is
-exactly how the `/achievements` and `/privacy-center` bugs stayed hidden, and I am
-not going to reintroduce that pattern to make a number look better.
+**Verification** (production build, not the dev server):
+- accessibility 2.0/2.1/2.2 A+AA: **4/4**, 37 routes × light/dark × chromium/mobile
+- public-routes + public-quality: **4/4**
+- responsive: **37 pages × 3 viewports × 2 themes → 0 findings**
+- typecheck 0 · lint 0 errors · **1324 tests** · build green
 
 ### ✅ Responsive sweep re-run on the CORRECTED route list (Claude, 2026-07-26)
 `audit-responsive.mjs` now reads `e2e/public-routes.json`, so this is the first run
