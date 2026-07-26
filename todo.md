@@ -257,6 +257,28 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**❌ NEGATIVE RESULT — "unsent form state" cannot be found by scanning. Don't retry it.**
+Tried to automate the highest-value unguarded bug class (the Settings one: form
+state that never reaches its save payload, causing silent data loss). A scan of
+every `'use client'` file comparing `useState` names against `JSON.stringify`
+bodies reported **71 suspect files**. Essentially all are false positives, for
+three reasons worth knowing before anyone builds this again:
+1. **Renamed fields** — `DonateButton` sends `donorEmail: guestEmail.trim()` and
+   `paymentMethod: preferredMethod`, so the state name never appears in the body.
+2. **Computed keys** — `ProfileForm.updatePreference` sends
+   `JSON.stringify({ [key]: value })`. No state name is present at all.
+3. **Nested payloads** — a non-greedy `\{(.*?)\}` stops at the first `}`, so
+   anything after a nested object reads as "unsent".
+Spot-checked the top candidates by hand: `DonateButton`, `ProfileForm` (which has
+a proper optimistic-update-with-revert) — **all clean**. Unlike dead controls and
+list drift, this class needs real type/dataflow analysis, not regex. It stays a
+manual-review item.
+
+_Bonus corroboration from the check:_ `/api/profile` has always handled all three
+`notification_*` columns including `notification_updates` — the column
+`/api/settings` was missing until it was wired this session. The settings route
+was the outlier, not the column.
+
 **⚠️ The e2e suite exists, works, and runs in NO CI workflow.** `e2e/` holds 4
 Playwright specs — `smoke`, `public-routes`, `public-quality`, `security-headers`
 — plus an `npm run e2e` script. **Neither `ci.yml` nor `image-links.yml` mentions
