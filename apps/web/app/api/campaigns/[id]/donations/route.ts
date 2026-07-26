@@ -62,18 +62,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const donations = (data ?? []).map((d) => {
     const profile = asProfile(d.profiles);
+    // Profile Visibility = Private hides identity here too, not just on
+    // /donors/[id]. Settings describes that control as governing "who can see
+    // your giving activity on the leaderboard and donor walls", and this is the
+    // donor wall — but naming keyed off `anonymous` alone, so a private donor's
+    // real name and avatar were returned anyway. Treat private like anonymous
+    // for identity fields; the donation itself still shows.
+    const isPublic = profile.show_public_profile ?? true;
+    const hideIdentity = d.anonymous || !isPublic;
     const name = d.anonymous
       ? 'Anonymous'
-      : (profile.full_name || d.offline_donor_name || 'Kind supporter');
+      : !isPublic
+        ? 'Kind supporter'
+        : (profile.full_name || d.offline_donor_name || 'Kind supporter');
     return {
       id: d.id,
       name,
-      avatarUrl: d.anonymous ? null : (profile.avatar_url ?? null),
+      avatarUrl: hideIdentity ? null : (profile.avatar_url ?? null),
       amountCents: d.amount_cents,
       message: d.message,
       createdAt: d.created_at,
       anonymous: d.anonymous,
-      donorId: d.anonymous ? null : (d.donor_id ?? null),
+      // Null for private donors too: their /donors/[id] page 404s, so a link
+      // there would be broken as well as identifying.
+      donorId: hideIdentity ? null : (d.donor_id ?? null),
       showPublicProfile: profile.show_public_profile ?? true,
     };
   });

@@ -257,6 +257,31 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**🔴 FIXED — "Private" donors were still named on the leaderboard and donor walls.**
+Direct follow-on from making the Profile Visibility toggle actually save: having
+fixed the control, I checked whether anything *honours* it. `/donors/[id]` does
+(404s correctly). **The two surfaces Settings explicitly names did not.** Its own
+copy reads *"Who can see your giving activity on the leaderboard and donor
+walls"* — so the setting's description was false.
+
+- **`lib/leaderboard.ts`** returned the donor's real `full_name` and `avatar_url`
+  **regardless**, passing `showPublicProfile` through as a flag. The UI used that
+  flag only to **drop the hyperlink** — the name still rendered, and still shipped
+  inside the server-rendered HTML, so it was in view-source even if CSS had
+  hidden it.
+- **`/api/campaigns/[id]/donations`** (the donor wall) keyed naming off
+  `anonymous` **alone**, so a private donor's name and avatar were returned too.
+
+Both now anonymize **at the source**, so identity never reaches the client. The
+donation still counts and still displays — exactly like an anonymous gift — since
+the donor opted out of attribution, not out of the leaderboard. `donorId` is also
+nulled for private donors, because a link there would have 404'd as well as
+identified them.
+
+_3 regression tests, proven non-vacuous_ (reverting the leaderboard gate fails
+them). They assert the source shape rather than executing the queries, since both
+functions need a live DB.
+
 **✅ Soft-delete class CLOSED — campaigns was the only leak.** After fixing it I
 checked whether the bug had siblings, rather than assuming. **22 tables carry
 `deleted_at`**; three are publicly browsable (`campaigns`, `grants`,
