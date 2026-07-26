@@ -76,6 +76,14 @@ export default async function DonorPortalPage() {
   const { data: donationData, count: donationCount } = donationRes;
   const { data: recurringData } = recurringRes;
 
+  // supabase-js RESOLVES on a query error, so reading only `data` turns a failure
+  // into `null` -> an empty array -> "Total Given $0". That is a donor's own
+  // lifetime giving record reported back to them as nothing. Checked explicitly.
+  const unavailable =
+    Boolean(donationRes.error) || donationData == null ||
+    Boolean(totalsRes.error) || totalsRes.data == null ||
+    Boolean(recurringRes.error) || recurringData == null;
+
   const donations  = (donationData  ?? []) as DonationRow[];
   const recurring  = (recurringData ?? []) as RecurringRow[];
 
@@ -132,7 +140,24 @@ export default async function DonorPortalPage() {
         </p>
       </div>
 
-      {/* Stats row */}
+      {unavailable && (
+        <div
+          role="alert"
+          style={{
+            border: '1px solid var(--b2)', background: 'var(--s2)', color: 'var(--t1)',
+            borderRadius: 12, padding: '12px 16px', marginBottom: 20, fontSize: 14,
+          }}
+        >
+          We couldn&apos;t load your giving history just now. <strong>Nothing has been lost
+          or changed</strong> — this is a display problem. Your totals are hidden rather
+          than shown as zero, because zero would be wrong. Please refresh.
+        </div>
+      )}
+
+      {/* Stats row — omitted when the read failed. "Total Given $0" to someone who
+          has given for years is not a placeholder, it is a false statement about
+          them, and the tax-statement links below depend on the same data. */}
+      {!unavailable && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 14, marginBottom: 28 }}>
         {[
           { label: 'Total Given',        value: formatCents(totalGiven),                color: statsColors[0] },
@@ -146,6 +171,7 @@ export default async function DonorPortalPage() {
           </div>
         ))}
       </div>
+      )}
 
       {/* Tax statements — consolidated annual giving statements for filing */}
       <div style={{ ...cardStyle, marginBottom: 28 }}>
