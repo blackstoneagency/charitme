@@ -5418,3 +5418,31 @@ When tokenising a card, check its gradient stops too.
 Verified: typecheck 0, **1233 tests / 111 files pass**, `next build` exit 0,
 contrast sweep exit 0.
 
+
+### ✅ DONE — contrast sweep extended to the auth screens (Claude, 2026-07-26)
+The 36-route sweep inherited its page list from `e2e/public-routes.spec.ts`, which
+omits **`/login` and `/forgot-password`** — pages that render unauthenticated and
+that *every* user passes through. Added them (38 routes now).
+
+**Found immediately: `/forgot-password`'s "Send reset link" CTA was 3.77:1** —
+white on `bg-emerald-600` (#059669), an AA failure for 14px text, **in both
+themes** (so no dark-mode remap would have caught it). This is the button a
+locked-out user has to find to get back into their account.
+
+Note this **corrects an explicit assumption in the code**: the `.mktg-page`
+dark-mode adapter says "Green buttons (bg-emerald-600 + text-white) … are left
+untouched", i.e. they were believed safe. They were not. Fixed by pointing
+`.bg-emerald-600` at **`--green-btn`** (#0b7a3e, ~5:1) — the AA-safe fill already
+introduced for the shared `Btn` component — so the Tailwind pages and the design
+system now agree. Applies in both themes because the failure exists in both.
+
+**Final: ✅ 0 AA contrast failures across 38 pages × 2 themes.**
+typecheck 0 · vitest 1258/1258 · `next build` exit 0.
+
+**Still uncovered (needs credentials, not effort):** the authenticated surface —
+`/dashboard/*`, `/admin/*`. Both this sweep and the axe sweep stop at the login
+wall, so the logged-in experience — where organizers spend nearly all their time —
+has never had contrast or a11y measured. This is the single biggest remaining
+a11y/theme gap and it unblocks the moment test credentials exist (same blocker as
+"Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
+so it can be pointed at dashboard routes as soon as a session can be established.
