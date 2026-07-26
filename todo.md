@@ -57,7 +57,47 @@ single endpoint receives all Connect events signed with the main secret. Leave u
 > of this file and the companion **`payment-audit.md`** for the exhaustive
 > per-workflow audit + fixes.
 
-## 🔎 Claude session index — 2026-07-26 (create flow, settings, schema, docs, PRIVACY & SECURITY)
+## 🔎 Claude session index — 2026-07-26 (create flow, settings, schema, docs, PRIVACY, SECURITY, TRUST&SAFETY)
+
+### 🧭 THE PROMISE AUDIT — 16 controls checked, 13 defects, 3 clean
+
+The single most productive method this session: **take a control that promises the
+user something, then verify every path that must honour it.** Every defect below is
+the same failure — *the write path worked; a read or enforcement path never got the
+memo.* Full detail for each is further down this section.
+
+**Family 1 — a user's choice that one read path ignored (7):**
+delete campaign (content stayed public at the direct URL) · Profile→Private (named
+on leaderboard + donor wall) · Profile→Private (named on the **homepage** ticker) ·
+donate anonymously (identity in the organizer's export) · donate anonymously (named
+in supporters list) · donate anonymously (name+avatar in messages route) · save as
+draft (unpublished campaign fully readable).
+
+**Family 2 — a number whose label doesn't match what it counts (4):**
+goal suggestions inflated 2.5× · category list drifted to 11 of 18 · trust&safety
+dashboard showed `.length` of a 50-capped list as the backlog **total** · donor
+"Total Given" summed only the most recent 100 gifts.
+
+**Family 3 — an admin control that writes a flag nothing enforces (3, all fail-OPEN):**
+**user suspension does nothing** · **payout freeze cannot work** (destination
+charges — the platform never holds funds) · team roles promise capabilities no
+route checks. Plus `pinned`, written and never read.
+
+**Clean, and all three are money paths** — recurring cancel/pause (Stripe-first
+ordering so a DB failure never costs the donor), refunds (partial refunds open a
+reconciliation exception rather than guess a split), unsubscribe suppression.
+**That is the actionable signal: the money code has a review standard the rest of
+the app doesn't, and the defects cluster exactly where it doesn't reach.**
+
+### ⚠️ Biggest open items (all need a decision or access I don't have)
+1. **User suspension has no effect** — needs an enforcement point (product/legal call).
+2. **Payout freeze cannot work** — architectural; 3 options recorded.
+3. **Team/user roles enforce nothing** — needs a permission model decision.
+4. **61 drifted DB columns / 21 tables** — `scripts/gen_drifted_columns_migration.sql`
+   turns this into one paste against the live DB.
+5. **Unbounded donation aggregates** (tax statement, exports) — fix is `count:'exact'`
+   + truncation notice; **do not** just add a `.limit()`, that could *introduce* truncation.
+
 
 ### 🚨 CI ON MASTER HAS BEEN RED FOR 30+ CONSECUTIVE RUNS
 
@@ -417,6 +457,116 @@ correct, and notably well built:
 
 _No fix needed._ Recording it so the money path isn't re-audited: the promise-audit
 found 7 leaks elsewhere, but **this** control keeps its promise.
+
+**🟠 FIXED (copy) — "Weekly performance summary" promised an email that is never sent.**
+Followed the session's own observation that defects cluster where a write path
+exists and the read path was never connected. `profiles.campaign_recommendations`
+saves correctly through the settings API — and **nothing consumes it**. It appears
+only in the schema, the settings route, and the settings page.
+
+**The email does not exist.** There are exactly two cron jobs (`ingest-filings`,
+`reconcile-ledger`), neither of which sends a digest, and **no email anywhere in the
+codebase carries a weekly/summary/digest/performance subject** — verified before
+claiming it. So the old copy *"Weekly email with campaign stats"* meant a user who
+opted **in** waited indefinitely for mail that would never arrive. Inverse of the
+usual harm: not spam, but a feature advertised and undelivered.
+
+Copy now reads *"Not sending yet — your preference is saved and will apply when this
+email launches."* **Kept rather than removed**, deliberately: the column is wired
+end-to-end, so deleting the control would leave it reachable from nothing — exactly
+the wired-but-unreachable trap already fixed for `notification_updates`, and a
+future agent would likely "fix" it by adding the toggle straight back.
+
+_Also noted:_ the column is named `campaign_recommendations` but the control is
+labelled *Weekly performance summary*. Those are different features; whichever is
+intended, the other name is misleading.
+
+**✅ AUDITED CLEAN — refund handling, including the partial-refund edge case.**
+Checked whether a refund brings `campaigns.raised_amount` back down; otherwise
+public totals would overstate reality (the "number that doesn't match its label"
+family, on money). It is handled, and handled thoughtfully:
+- **Full refund** → donation set to `refunded`, `decrement_campaign_stats` RPC
+  called, ledger payable reversed idempotently by charge id.
+- **Partial refund** → deliberately does *not* guess. The status stays `completed`
+  and the code opens a **reconciliation exception (`kind: 'amount_mismatch'`,
+  carrying `campaignId`)** for finance to reverse by hand, with a comment
+  explaining that the split across principal vs. fees is ambiguous from the charge
+  alone. Choosing a human process over a guessed ledger entry is the right call.
+- Ledger reversal is explicitly best-effort and **never blocks refund processing**.
+
+_One honest observation, not a defect:_ after a **partial** refund the campaign's
+`raised_amount` retains the full original amount until someone acts on the
+exception, so a public total can sit high in the interim. That is the accepted cost
+of not guessing the split, and the exception carries `campaignId` so the
+information needed is already routed. Worth knowing, not worth "fixing" blind.
+
+**📋 SYSTEMATIC SWEEP — all 6 admin-settable campaign flags checked for enforcement.**
+Prompted by three consecutive findings of the same shape (team roles, suspension,
+payout freeze: *an admin control that writes a flag nothing enforces*), I stopped
+checking one at a time and swept the whole family. Result — **4 of 6 genuinely work**:
+
+| flag | non-admin consumers | verdict |
+|---|---|---|
+| `verified` | 81 files | ✅ enforced |
+| `featured` | 13 | ✅ consumed by listings |
+| `trust_status` | 13 | ✅ consumed |
+| `nonprofit_verified` | 5 | ✅ consumed |
+| `payout_frozen` | 2 (both advisory) | ❌ cannot work — see above |
+| **`pinned`** | **0** | ❌ **dead control** |
+
+**`pinned` is written and never read.** `PATCH /api/admin/campaigns/[id]` persists it
+alongside `payout_frozen`/`featured`/`nonprofit_verified`, but **nothing consumes
+it**: it is not selected in `lib/home-data.ts`, not selected in the campaigns
+listing, and no query orders by it. An admin pins a campaign and nothing anywhere
+changes. Low stakes next to the fraud controls — curation, not money — but the same
+shape, and cheap to either wire into listing order or remove.
+_Verified carefully:_ a naive grep for `pinned` returns 2 non-admin hits that are
+**both false positives** — comments about a pinned *Stripe API version* in
+`webhook/route.ts` and `lib/stripe.ts`, nothing to do with the campaign flag.
+
+**Why this sweep is worth more than the individual findings:** it bounds the
+problem. The pattern is real but **not endemic** — the majority of admin flags are
+properly wired, and the two that aren't are now both identified with evidence,
+rather than leaving an open worry that every admin control might be theatre.
+
+**🔴🔴 "FREEZE PAYOUTS" CANNOT WORK — it is architecturally impossible, not a bug.**
+`/admin/trust-safety` lists campaigns with `payout_frozen = true` as though funds
+were held. They are not, and cannot be.
+
+**Why:** `app/api/payouts/route.ts` documents the model — CharitMe uses **Stripe
+Connect destination charges**. Every donation transfers the principal **straight to
+the recipient's connected account at charge time**. *"CharitMe never holds the
+funds… there is NO platform-initiated 'move money' step."* Stripe then pays that
+balance to their bank on the connected account's own schedule. So by the time any
+freeze could apply, **the money is already in the organizer's account** and is
+being disbursed by Stripe, not by CharitMe.
+
+**What `payout_frozen` actually does today:**
+- ✅ written by the admin UI, stored, and listed on `/admin/trust-safety`
+- ✅ read by `app/api/ai/payout-concierge` — but that is **advisory text**, not a gate
+- ❌ **does not block donations** — `app/api/donations/route.ts` never selects or
+  checks it, so a frozen campaign keeps taking money
+- ❌ **cannot block payouts** — there is no platform payout step to block
+
+Net: staff freeze a campaign under fraud review, see it in the frozen list, and
+donations continue landing directly in that organizer's Stripe account. Same shape
+as the suspension gap and equally **fail-open**, but with money attached.
+
+**Deliberately not "fixed" by me.** With destination charges the only lever the
+platform still holds is **refusing new donations**, and "freeze payouts" and "block
+donations" are genuinely different intents — an admin may want to hold disbursement
+while an investigation runs without cutting off donors. Silently converting one
+into the other is a product decision, and on a fraud control it is not mine to
+guess. Three real options:
+1. **Block donations to frozen campaigns** — one condition beside the existing
+   `status !== 'active'` check in the donations route. Effective immediately, stops
+   new money, but changes what the control means.
+2. **Pause the connected account's payouts via Stripe** — closest to the label's
+   promise; needs a Stripe API call against the connected account.
+3. **Move to separate charges + transfers** so the platform holds funds first —
+   what would make a true freeze possible, but this is money-transmission territory
+   (see the Giving Funds note) and a major architectural change.
+**Until one is chosen, the admin UI should not present this as a working control.**
 
 **🔴🔴 SUSPENDING A USER DOES NOTHING. Admin sees "Suspended"; the account is untouched.**
 The most consequential enforcement gap found, and unlike the team-role gap this one
@@ -3494,7 +3644,24 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
        with an optimistic update that **reverts if the request fails** and a toast
        naming the resulting state.
 
-    2. **🔌 `profiles.notification_updates` existed but was wired to nothing.** The
+    2. **✏️ CORRECTION (2026-07-26) — I overstated this one; the truth is worse for users.**
+I wrote that `notification_updates` "appeared in **zero** files". **That was wrong.**
+My grep covered only four files (settings route, settings page, settings client,
+`schema.sql`) and I generalised from that scope to the whole repo — the same
+scoped-grep overclaim caught twice already this session.
+
+**What was actually true:** the column *was* consumed, since **2026-07-21**
+(`679c294`, another agent) — `POST /api/campaigns/[id]/updates` reads it and skips
+donors who opted out (`if (profile.notification_updates === false) continue`). So it
+genuinely gated campaign-update emails.
+
+**That makes the defect worse, not milder.** The column controlled real outbound
+email, but the "Product updates" toggle was dead (`checked={false}`,
+`onChange={() => null}`), so **no user could ever change it** — everyone sat on the
+DB default `true` with no way to opt out of campaign-update emails. The fix
+(wiring the toggle end-to-end) was right; my description of *why* was not.
+
+**🔌 `profiles.notification_updates` was settable by nobody.** The
        column is real (`boolean DEFAULT true NOT NULL`) yet appeared in **zero**
        files — while the UI carried a dead "Product updates" toggle hardcoded
        `checked={false} onChange={() => null}`. Two halves of a wire never
