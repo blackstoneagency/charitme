@@ -4760,7 +4760,32 @@ IMPLEMENTATION_STATUS, KNOWN_LIMITATIONS, CHANGELOG).
 - [x] **Opportunity engine** (§20) — SHIPPED: live-data generator + deterministic scoring + convert-to-goal — scored opportunity feed → convert to goal/campaign.
 - [x] **Goal → multichannel campaign generation** (§15) — SHIPPED: one goal generates a connected landing page + email + social + SEO + FAQ, editable & approvable, all linked to the goal.
       connected campaign (landing page, email, social, SEO/AEO) linked to the goal.
-- [ ] Multi-tenant `organizations`/`brands` scoping on marketing tables (§7).
+- [~] **Multi-tenant `organizations`/`brands` (§7)** — **FOUNDATION SHIPPED
+      (Claude, 2026-07-26): `20260807000000_organizations_multitenancy.sql`.**
+      `organizations`, `organization_members`, `brands`, all with RLS, plus an
+      `is_org_member(org, min_role)` helper. Validated against a real Postgres —
+      all 90 migrations replayed, `schema.sql` regenerated (152 → **155 tables**).
+      Entirely additive: no existing table altered, so it cannot break a deploy.
+
+      Design notes worth keeping:
+      - **Org roles are deliberately separate from platform roles.** A platform
+        `admin` is staff; an org `owner` runs one tenant. Conflating them is how a
+        tenant admin ends up with platform reach.
+      - `is_org_member` is `security definer` (so RLS on `organization_members`
+        cannot recurse while policies evaluate membership) and **returns FALSE, not
+        NULL, when `auth.uid()` is null**. Every comparison is `coalesce`d — the
+        direct lesson from `20260806010000`, where three-valued logic made a strict
+        guard silently permissive under the service role.
+      - No public read on organizations: an org's existence is not marketing
+        material, and a public directory is a product decision, not a default.
+      - `brands` carries `voice`/`palette` so the Brand Constitution (§10) has
+        somewhere to attach without another migration.
+
+      ⬜ **Not done, and deliberately not started:** adding `org_id` to the ~14
+      live `marketing_*` tables. That needs a decision about rows predating
+      tenancy, and a half-applied scoping migration would leave marketing data
+      reachable ACROSS tenants — worse than not starting. That is the next slice,
+      and it should be done in one migration with a backfill, not incrementally.
 - [ ] Expanded marketing roles (Brand/Legal/Finance reviewers, analyst, viewer) (§9).
 - [ ] Approval engine (`approval_requests`/`_steps`/`_decisions`) (§30).
 - [ ] Brand Constitution ingestion + per-asset scoring (§10).
