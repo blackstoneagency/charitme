@@ -4783,7 +4783,7 @@ difference as real: two audit ✅s turned out to be stale when I spot-checked th
 | 7 | Dark/light mode everywhere | ✅ **now verified + guarded** | Re-verified 2026-07-26: guard covered only 12 of ~37 user-facing dirs; `create` and `features` had drifted. 6 values fixed, guard widened to every dir |
 | 8 | Mobile responsive | ✅ **verified** | Re-verified 2026-07-26 across **36 pages × 3 viewports × 2 themes = 216 loads, 0 findings** (audit previously covered only 17 pages) |
 | 9 | Pages load FAST | 🟡 improved | **Real finding:** DB-backed pages had NO timeout — measured ~7.1s (`/faq`, `/grants`) vs 73–726ms without DB. 15 public list reads now bounded (`lib/query-timeout.ts`). **Dashboard/admin reads still unbounded** |
-| 10 | Roles clearly mapped | 🟢 | `lib/role-capabilities.ts` + tests (another agent, this session) |
+| 10 | Roles clearly mapped | 🟡 **mapped, but only 2 of 6 are enforced** | `lib/role-capabilities.ts` is wired into 3 surfaces. But `donor`/`organizer`/`beneficiary`/`nonprofit` have **0 enforced capabilities** — see finding |
 | 11 | 100% GoFundMe parity | 🟢 claimed-closed | `docs/charitme-gofundme-audit.md` matrix is all ✅. Its 4 remaining blockers are **owner-gated credentials**, not code |
 | 12 | Better than GoFundMe | 🟢 | 0% platform fee, AI builder, Marketing OS (goals→opportunities→campaigns), grants, matching, volunteers, events, gamification, impact tracking — none of which GoFundMe has |
 | 13 | Accessibility passes | ⚪ claimed | Earlier: axe WCAG A/AA clean on ~20–30 public routes; Lighthouse 100 on 7 key pages |
@@ -5237,3 +5237,38 @@ the static-analysis guard.
 reads like ~189 real responsive bugs. Every one was the same wrong-port connection
 error. Always check whether findings are `ERR_CONNECTION_REFUSED` before believing
 a large number.
+
+
+### 🟡 FINDING — four of the six user roles confer no enforced permissions
+`lib/role-capabilities.ts` (another agent's work this session, and commendably
+honest — it tracks `enforced` per capability) makes this measurable:
+
+| role | capabilities enforced |
+|------|----------------------|
+| `admin` | **3 / 3** |
+| `super_admin` | **3 / 3** |
+| `donor` | 0 / 4 |
+| `organizer` | 0 / 4 |
+| `beneficiary` | 0 / 2 |
+| `nonprofit` | 0 / 3 |
+
+Access for the four user-facing roles is governed by
+`'Signed-in session + row ownership (not the role)'` — a signed-in user can act on
+rows they own, whatever roles they hold.
+
+**This is not necessarily a defect.** Ownership-based authorisation is a sound fit
+here: a donor and an organizer differ by *which rows they own*, not by a role flag,
+and users legitimately hold several roles at once (donating to a campaign you also
+organise). Adding role gates on top could break those overlaps.
+
+**But it does mean checklist item 10 is only half true.** Roles are clearly
+*mapped* and *documented*; they are not *behaviourally different* for the four
+user-facing ones. If the intent is that e.g. a `nonprofit` sees different features
+or gains different permissions from a `donor`, **that is not implemented** — and no
+test would catch it, because nothing enforces it.
+
+**Decision needed from the owner:** is ownership-based access the intended model
+(in which case item 10 is done, and the role labels are presentational), or should
+these four roles gate real capabilities (in which case it is a feature to build,
+per-role)? I have not invented role gates on my own, because doing so would change
+the authorisation model and could lock existing users out of their own data.
