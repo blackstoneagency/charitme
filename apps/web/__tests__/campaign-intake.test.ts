@@ -43,8 +43,19 @@ describe('extractCampaignFields — goal', () => {
   it('does not read a bare small number as a goal', () => {
     expect(extractCampaignFields('replacing 3 chairs and 2 tables').goalCents).toBeUndefined();
   });
-  it('floors a tiny amount to the $100 minimum', () => {
-    expect(extractCampaignFields('just $20 dollars').goalCents).toBe(10_000);
+  it('respects a small ask instead of inflating it', () => {
+    // This test previously asserted the opposite -- that $20 was floored up to
+    // $100 -- which encoded a real bug rather than a requirement. The enforced
+    // publish minimum is PUBLISH_MIN_GOAL_CENTS ($1), and the campaign API takes
+    // min(0), so there was never a $100 floor to honour. Inflating a specific
+    // small ask ("$40 for our team uniforms") misstates what the organizer needs.
+    expect(extractCampaignFields('just $20 dollars').goalCents).toBe(2_000);
+    expect(extractCampaignFields('we need $40 for our team uniforms').goalCents).toBe(4_000);
+    expect(extractCampaignFields('raising $75 for new cheer bows').goalCents).toBe(7_500);
+  });
+
+  it('still applies the intake-only sanity ceiling', () => {
+    expect(extractCampaignFields('raising $25 million for the hospital wing').goalCents).toBe(1_000_000_000);
   });
 });
 

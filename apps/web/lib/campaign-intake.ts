@@ -1,4 +1,12 @@
 import { CAMPAIGN_CATEGORIES, type CampaignCategory } from '@shared/fees';
+import { PUBLISH_MIN_GOAL_CENTS } from './campaign-readiness';
+
+/**
+ * Upper sanity bound for a goal parsed out of free text ($10M). Intake-only —
+ * the campaign API itself sets no maximum, so this exists purely so a stray
+ * "1000000000" in a prompt cannot prefill an absurd goal.
+ */
+const INTAKE_MAX_GOAL_CENTS = 1_000_000_000;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Deterministic prompt → structured campaign fields.
@@ -93,8 +101,18 @@ function detectGoalCents(text: string): number | undefined {
   }
   if (best === undefined) return undefined;
   const cents = Math.round(best * 100);
-  // Clamp to the same bounds the campaign API accepts.
-  return Math.min(Math.max(cents, 10_000), 1_000_000_000);
+  // The floor is the real publish minimum. It used to be a hardcoded 10_000
+  // ($100) described as "the same bounds the campaign API accepts", which was
+  // untrue on both counts: the API takes `z.number().int().min(0)` with no upper
+  // bound, and the enforced publish minimum is PUBLISH_MIN_GOAL_CENTS ($1). The
+  // effect was that small, specific asks — "$40 for our team uniforms", "$75 for
+  // new cheer bows" — were silently inflated to $100, overstating what the
+  // organizer actually needed.
+  //
+  // The ceiling is kept as an intake-only sanity bound on a number parsed out of
+  // free text, so a typo cannot prefill an absurd goal. It is a suggestion the
+  // organizer reviews and can raise, not a limit the API enforces.
+  return Math.min(Math.max(cents, PUBLISH_MIN_GOAL_CENTS), INTAKE_MAX_GOAL_CENTS);
 }
 
 export function extractCampaignFields(prompt: string): ExtractedCampaignFields {

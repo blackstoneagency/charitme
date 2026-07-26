@@ -2245,6 +2245,40 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
     still returns 200, and it is triggered by `rm -rf .next/types` while the dev
     server is running. Dev-cache artifact, not product code.
 
+    **✅ FIXED — small asks were silently inflated 2.5×, and a test enforced it.**
+    `lib/campaign-intake.ts` clamped every AI-extracted goal to a hardcoded
+    `10_000` ($100) floor, under a comment claiming it matched *"the same bounds
+    the campaign API accepts."* **Both halves of that claim were false**: the API
+    takes `goalAmount: z.number().int().min(0)` — no upper bound, minimum zero —
+    and the real enforced publish minimum is `PUBLISH_MIN_GOAL_CENTS = 100` ($1),
+    **100× lower** than the hardcoded floor.
+
+    Measured impact on exactly the small youth causes this goal names:
+
+    | organizer writes | before | after |
+    |---|---|---|
+    | "we need $40 for our team uniforms" | **$100** | $40 |
+    | "raising $75 for new cheer bows" | **$100** | $75 |
+    | "$50 for my son's soccer cleats" | **$100** | $50 |
+    | "$250 for band instruments" | $250 | $250 |
+
+    A kid asking for $40 of cleats was shown a $100 goal — overstating their need
+    by 2.5× in a product whose whole premise is trust. Floor is now the real
+    `PUBLISH_MIN_GOAL_CENTS`.
+
+    The **ceiling is deliberately kept** ($10M) but renamed `INTAKE_MAX_GOAL_CENTS`
+    and documented honestly as an intake-only sanity bound on a number parsed from
+    free text — not, as before, a pretend mirror of an API limit that does not
+    exist.
+
+    **⚠️ An existing test asserted the bug.** `'floors a tiny amount to the $100
+    minimum'` expected `$20 → $100`. That is a case where the failing test was
+    *right to fail*: it encoded a defect as a requirement. Rewritten to assert the
+    ask is respected, with a comment recording that the expectation was
+    deliberately inverted and why — flagged loudly here because "a test changed"
+    deserves scrutiny rather than a silent edit. A second test now pins the ceiling
+    so removing the floor didn't quietly drop the upper bound too.
+
     **⚠️ Note for other agents — stale `.next/types` after PR #63.** That PR
     deleted `app/events`, `app/matching`, and `app/sponsor`. A `.next` cache built
     before rebasing onto it still holds generated stubs importing those pages, and
