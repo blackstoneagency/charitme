@@ -4214,6 +4214,24 @@ so a screen reader announced each as just *"button"*. Both fixed with `aria-labe
 `<img alt>` was already clean app-wide (0 offenders), which is worth knowing.
 
 Non-vacuity verified: removing one `aria-label` fails the guard with the exact file:line.
+
+**Two further checks were prototyped and deliberately NOT shipped — read before rebuilding them:**
+
+- **Icon-only links (`<a>`/`<Link>` with no text, no `aria-label`) — DROPPED, too noisy.**
+  Its single hit, `app/SponsorsBar.tsx:67`, is a **false positive**: the link wraps
+  `<SponsorImg>`, which renders `<img alt={name}>`, so it already has an accessible name.
+  A regex cannot see through an opaque child component, and "fixing" it would have added a
+  redundant label to correct markup. A guard that cries wolf gets ignored, which is worse
+  than no guard — so this one stays out until it can resolve child components.
+
+- **`<div>`/`<span>` with `onClick` but no `role` + `tabIndex` — REAL, 28 hits, not fixed here.**
+  These are genuinely keyboard-inaccessible: a mouse user can activate them, a keyboard user
+  cannot. Concentrated in the admin console (`admin/users/*`, `admin/content/*`). **Not fixed
+  blind** because each needs a judgement call the scan can't make — some wrappers may have a
+  real `<button>` child doing the work, in which case the right fix is removing the handler,
+  not adding `role="button"` and a key handler to a `<div>`. Worth a focused pass by whoever
+  owns admin; the scan that finds them is three regexes in
+  `__tests__/a11y-static.test.ts`'s style.
 _1284/1284 tests, typecheck clean, build green._
 
 ## 📌 HANDOFF — Claude/tbaz3i session end (2026-07-26)
