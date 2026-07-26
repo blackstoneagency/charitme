@@ -80,11 +80,25 @@ than buried under a locale-switcher heading.
 **Totals:** 10 dead controls removed, 5 real controls added/repaired, 8 sections
 audited, 12 routes runtime-smoke-tested. Tests **1137 / 98 files**, build green.
 
-**Two negative results recorded on purpose** (so nobody re-chases them): `/` and
-`/campaigns` are *not* slow — the ~7.3s is sandbox↔Supabase latency, `campaignColumns()`
-is memoized and the two queries have a genuine data dependency; and the donation
-fee math is *correct* — probed 66 amount/cover/tip combinations plus the custom-override
-path, 0 invariant violations.
+**Negative results recorded on purpose** (so nobody re-chases them):
+- `/` and `/campaigns` are *not* slow — the ~7.3s is sandbox↔Supabase latency,
+  `campaignColumns()` is memoized, and the two queries have a genuine data
+  dependency (the second consumes `campaigns.map(c => c.id)`).
+- **The money path is clean end-to-end.** Fee math probed across 66
+  amount/cover/tip combinations plus the custom-override branch → **0 invariant
+  violations** (a flagged case turned out to be a negative tip correctly clamped to
+  0). Donation input validation in `app/api/donations/route.ts` is bounded by the
+  **shared** `MIN_DONATION_CENTS`/`MAX_DONATION_CENTS` rather than hardcoded copies
+  — i.e. it does *not* have the drift bug `campaign-intake` had — with integer
+  cents, tip capped 0–100%, `.email()` on donor email, and every string
+  length-capped.
+- `lib/email-validation.ts` handles the cases that usually break: plus-addressing,
+  apostrophes, subdomains, long TLDs, uppercase. Only IDN (`münchen.de`) fails,
+  which is defensible for an admin-only outreach tool.
+- `lib/builder-validation.ts` and `lib/campaign-readiness.ts` are correct — the
+  latter's "mirrors the publish API" claim actually holds (both require
+  title/story/goal), and the title input caps at 80 with a paste-safe `.slice()`,
+  stricter than the API's 100.
 
 **Method that found most of these:** run the function against realistic input rather
 than reading it, and check every claim against the thing it references. Both
