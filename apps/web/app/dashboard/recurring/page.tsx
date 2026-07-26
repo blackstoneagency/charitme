@@ -34,12 +34,18 @@ function statusColor(status: string): string {
 export default async function RecurringPage() {
   const user = await requireUser();
 
-  const { data: subs } = await supabaseAdmin
+  // `error` is checked, not just `data`. supabase-js RESOLVES on a query error,
+  // so an unchecked read turns a failure into `null` -> an empty list -> "Monthly
+  // total $0" and "No recurring donations yet" presented as fact. On this page
+  // that is actively dangerous: a donor whose giving is live could conclude it had
+  // stopped and set up a duplicate subscription, double-charging themselves.
+  const { data: subs, error: subsError } = await supabaseAdmin
     .from('recurring_donations')
     .select('id, campaign_id, amount_cents, cadence, status, stripe_subscription_id, next_bill_at, created_at')
     .eq('donor_id', user.id)
     .order('created_at', { ascending: false });
 
+  const unavailable = Boolean(subsError) || subs == null;
   const recurringList = (subs ?? []) as RecurringRow[];
 
   // Resolve campaign titles + currencies — independent of each other, run in parallel.
@@ -71,8 +77,24 @@ export default async function RecurringPage() {
 
       <div className="kf-admin-dash">
 
-        {/* Stats row */}
-        {recurringList.length > 0 && (
+        {unavailable && (
+          <div
+            role="alert"
+            style={{
+              border: '1px solid var(--b2)', background: 'var(--s2)', color: 'var(--t1)',
+              borderRadius: 12, padding: '12px 16px', marginBottom: 14, fontSize: 14,
+            }}
+          >
+            We couldn&apos;t load your recurring donations just now.{' '}
+            <strong>This does not mean they have stopped</strong> — nothing has been
+            cancelled. Please refresh before setting up a new one, so you don&apos;t end
+            up giving twice.
+          </div>
+        )}
+
+        {/* Stats row — hidden when the read failed, because "$0 monthly" would be a
+            false statement about someone's active giving. */}
+        {!unavailable && recurringList.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
             {[
               { label: 'Active subscriptions', value: active.length.toString(), icon: 'check', tone: 'green' as const },
@@ -98,7 +120,15 @@ export default async function RecurringPage() {
             <h2>Your Recurring Commitments</h2>
           </div>
 
-          {recurringList.length === 0 ? (
+          {unavailable ? (
+            <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--t3)' }}>
+              <KFIcon name="gift" className="kf-empty-icon" />
+              <p style={{ marginTop: 12, fontWeight: 600 }}>Your commitments couldn&apos;t be loaded.</p>
+              <p style={{ fontSize: 13, marginTop: 6 }}>
+                This is a display problem, not a change to your giving. Refresh to try again.
+              </p>
+            </div>
+          ) : recurringList.length === 0 ? (
             <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--t3)' }}>
               <KFIcon name="gift" className="kf-empty-icon" />
               <p style={{ marginTop: 12, fontWeight: 600 }}>No recurring donations yet.</p>

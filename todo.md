@@ -7069,6 +7069,38 @@ _Lesson: SQL three-valued logic turns a missing value into a silently-skipped
 guard. Any security predicate touching a nullable column needs `coalesce` and a
 test for the NULL case._
 
+### ✅ Swept the "fabricated statistics" class across every money-rendering page
+
+Having fixed `/`, `/ai-fundraising` and `/success-stories` individually, nothing
+stopped a fourth page doing the same thing. Audited all non-admin `page.tsx` files
+that render money or counts from Supabase.
+
+**Two real instances found and fixed, both on a signed-in user's own money:**
+
+1. **`/dashboard/recurring`** — `const { data: subs } = await …` ignored `error`, so
+   a failed read rendered **"Monthly total $0"** and *"No recurring donations yet."*
+   Actively dangerous rather than merely wrong: a donor whose giving is live could
+   conclude it had stopped and **set up a duplicate subscription, double-charging
+   themselves**. The banner now says explicitly "This does not mean they have
+   stopped — nothing has been cancelled. Please refresh before setting up a new one."
+2. **`/donor`** — none of its three queries checked `error`, so a failure showed a
+   donor **"Total Given: $0"** — their own lifetime giving reported back as nothing.
+   Tiles are hidden rather than zeroed, and the tax-statement links (same data) sit
+   behind the same flag. Notable: an earlier agent had already fixed *undercounting*
+   here (100-row cap, unused `count`) — the failure case was simply never considered.
+
+**A false positive in my own audit, worth recording.** My first grep flagged
+`/dashboard/analytics` and ~19 others as unguarded. It was wrong: analytics guards
+correctly via a local named `unavailable`, and its comment already states the exact
+reasoning. My pattern just didn't match that identifier — **the same scoped-grep
+overclaim I have caught twice in others' work, in my own audit tooling.** Re-ran with
+`unavailable|degraded|loadFailed|statsAvailable|Error|failed|try {|notFound()` and the
+list collapsed from ~21 to 2, both genuine.
+
+_Also worth separating: a campaign showing `$0 raised` is CORRECT — new campaigns have
+zero. Only **aggregate** figures can lie. Entity-scoped amounts were deliberately left
+alone rather than wrapped in guards they do not need._
+
 ### ⚠️ `supabase/schema.sql` had drifted by 15 TABLES (Claude, 2026-07-26)
 Found while regenerating the mirror for CHAR-1102. `scripts/regen_schema.sh` exists
 so "the consolidated schema can never silently drift from the migrations again" —
