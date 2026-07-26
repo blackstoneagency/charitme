@@ -418,6 +418,35 @@ correct, and notably well built:
 _No fix needed._ Recording it so the money path isn't re-audited: the promise-audit
 found 7 leaks elsewhere, but **this** control keeps its promise.
 
+**📋 SYSTEMATIC SWEEP — all 6 admin-settable campaign flags checked for enforcement.**
+Prompted by three consecutive findings of the same shape (team roles, suspension,
+payout freeze: *an admin control that writes a flag nothing enforces*), I stopped
+checking one at a time and swept the whole family. Result — **4 of 6 genuinely work**:
+
+| flag | non-admin consumers | verdict |
+|---|---|---|
+| `verified` | 81 files | ✅ enforced |
+| `featured` | 13 | ✅ consumed by listings |
+| `trust_status` | 13 | ✅ consumed |
+| `nonprofit_verified` | 5 | ✅ consumed |
+| `payout_frozen` | 2 (both advisory) | ❌ cannot work — see above |
+| **`pinned`** | **0** | ❌ **dead control** |
+
+**`pinned` is written and never read.** `PATCH /api/admin/campaigns/[id]` persists it
+alongside `payout_frozen`/`featured`/`nonprofit_verified`, but **nothing consumes
+it**: it is not selected in `lib/home-data.ts`, not selected in the campaigns
+listing, and no query orders by it. An admin pins a campaign and nothing anywhere
+changes. Low stakes next to the fraud controls — curation, not money — but the same
+shape, and cheap to either wire into listing order or remove.
+_Verified carefully:_ a naive grep for `pinned` returns 2 non-admin hits that are
+**both false positives** — comments about a pinned *Stripe API version* in
+`webhook/route.ts` and `lib/stripe.ts`, nothing to do with the campaign flag.
+
+**Why this sweep is worth more than the individual findings:** it bounds the
+problem. The pattern is real but **not endemic** — the majority of admin flags are
+properly wired, and the two that aren't are now both identified with evidence,
+rather than leaving an open worry that every admin control might be theatre.
+
 **🔴🔴 "FREEZE PAYOUTS" CANNOT WORK — it is architecturally impossible, not a bug.**
 `/admin/trust-safety` lists campaigns with `payout_frozen = true` as though funds
 were held. They are not, and cannot be.
