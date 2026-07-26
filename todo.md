@@ -4287,7 +4287,39 @@ and sail straight through.
 - **Check-run output carries nothing.** `get_check_run` on the failing job returns
   empty `title`/`summary`/`text`, so the webhook payload has no diagnostic either.
 
-### 🎯 STRONGEST LEAD — a Node version below a dependency's stated minimum
+### ✅ ROOT CAUSE FOUND — the jobs never run. This is an ACCOUNT issue, not a code issue.
+
+**Every run fails in 3–5 seconds.** Measured from the Actions API (`run_started_at` →
+`updated_at`) across the last 8 master runs: 3s, 3s, 4s, 5s, 4s, 4s, 4s, 3s. PR #91's
+latest: `18:14:25` → `18:14:27` = **2s**, both jobs.
+
+A real run does `npm ci`, a Next production build, 1281 unit tests and a Playwright
+suite — **minutes**, not seconds. So the workflow is failing *before executing a single
+step*.
+
+**This retro-explains every dead end above, and they were dead ends for a reason:**
+- **Logs 404** on both lookup paths — there are no logs, because nothing ran.
+- **`get_check_run` output empty** — nothing produced output.
+- **Docs-only commits fail** — content is irrelevant when no step executes.
+- **Both jobs fail identically** — they share only the *start*, which is where it dies.
+- **Every local reproduction passes** — correctly, the code is fine.
+
+**Most likely cause: GitHub Actions minutes/billing exhausted on the free tier.** The
+account is demonstrably hitting free-tier ceilings elsewhere *right now* — Vercel returns
+`api-deployments-free-per-day` ("more than 100") on every push. An Actions quota
+exhaustion produces exactly this signature: instant failure, no logs, no output.
+
+**Owner action (2 minutes, nothing to code):** check
+**Settings → Billing → Actions** for used minutes / spending limit, and the repo's
+Actions tab for a banner. Other candidates if the quota is fine: a self-hosted/unavailable
+runner label, or org-level Actions permissions.
+
+**Consequence while it lasts:** a red check carries **zero information** — it is not
+evidence that a PR is broken. Verify locally: `tsc --noEmit`, `eslint .`,
+`vitest run`, `audit:campaign-images`, `next build`, and
+`PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test`.
+
+### ⚠️ SUPERSEDED LEAD (kept — the fix shipped anyway, on its own merits)
 
 Objective, checkable without CI logs:
 
@@ -4304,7 +4336,9 @@ Objective, checkable without CI logs:
 (environmental, not code). It also fits the timing: vitest 4 is a recent upgrade, and
 master went red around then.
 
-**Caveat, stated honestly:** `ci.yml` sets `node-version: 20.x` (the comment there even
+**This was NOT the CI cause** — the 3-second failures above rule it out; nothing ran, so
+no Node ever executed. The fix below still shipped because it is a genuine latent bug
+independent of CI. Original caveat kept for the record: `ci.yml` sets `node-version: 20.x` (the comment there even
 says the `.node-version` pin "is too old"), and `20.x` *should* resolve to the newest
 20.x, which would satisfy rolldown. So this is a strong lead, **not a confirmed cause** —
 it depends on what `setup-node` actually resolves in this repo, which is exactly what
