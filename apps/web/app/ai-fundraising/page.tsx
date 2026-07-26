@@ -44,13 +44,17 @@ async function getAIPageData() {
   };
 }
 
+// `color` tints the icon (a graphic — WCAG's 3:1 non-text bar) while `ctaColor`
+// paints the CTA *text*. They differ because the saturated accents fail AA at
+// 13px on white (sky 2.77:1, amber 2.15:1, green 3.18:1, red 3.48:1); the
+// `--*-text` tokens are the darkened, theme-aware variants for exactly this.
 const TOOLS = [
-  { icon: 'edit',  color: 'var(--violet, #6c35ff)', bg: 'rgba(108,53,255,.10)', title: 'AI Story Writer',       body: 'Create heartfelt, compelling campaign stories that move donors to act — in seconds.',        cta: 'Try it now'   },
-  { icon: 'users', color: '#0ea5e9',                bg: 'rgba(14,165,233,.10)',  title: 'Smart Donor Insights',  body: 'Find the right donors with AI-powered recommendations and predictive match scoring.',        cta: 'Learn more'   },
-  { icon: 'mail',  color: '#f59e0b',                bg: 'rgba(245,158,11,.10)',  title: 'AI Email Generator',    body: 'Generate personalized, high-converting emails that get more opens, clicks, and replies.',    cta: 'Try it now'   },
-  { icon: 'chart', color: 'var(--green, #10b981)',  bg: 'rgba(16,185,129,.10)',  title: 'Campaign Optimizer',    body: 'Get AI-powered suggestions to improve performance and reach your goal faster.',               cta: 'Learn more'   },
-  { icon: 'bot',   color: 'var(--red, #f43f5e)',    bg: 'rgba(244,63,94,.10)',   title: 'AI Fundraising Coach',  body: 'Get instant answers, ideas, and guidance from your personal AI fundraising coach, 24/7.',    cta: 'Ask anything' },
-  { icon: 'shield',color: 'var(--violet, #8b5cf6)', bg: 'rgba(139,92,246,.10)',  title: 'CharitScore™ Trust',    body: 'Every campaign gets an AI-powered 0–100 CharitScore so donors give with total confidence.', cta: 'Learn more'   },
+  { icon: 'edit',  color: 'var(--violet, #6c35ff)', ctaColor: 'var(--violet-ink, #5b21b6)', bg: 'rgba(108,53,255,.10)', title: 'AI Story Writer',       body: 'Create heartfelt, compelling campaign stories that move donors to act — in seconds.',        cta: 'Try it now'   },
+  { icon: 'users', color: '#0ea5e9',                ctaColor: 'var(--blue-text, #2164d5)',  bg: 'rgba(14,165,233,.10)',  title: 'Smart Donor Insights',  body: 'Find the right donors with AI-powered recommendations and predictive match scoring.',        cta: 'Learn more'   },
+  { icon: 'mail',  color: '#f59e0b',                ctaColor: 'var(--orange-text, #a05712)',bg: 'rgba(245,158,11,.10)',  title: 'AI Email Generator',    body: 'Generate personalized, high-converting emails that get more opens, clicks, and replies.',    cta: 'Try it now'   },
+  { icon: 'chart', color: 'var(--green, #10b981)',  ctaColor: 'var(--green-text, #0d783c)', bg: 'rgba(16,185,129,.10)',  title: 'Campaign Optimizer',    body: 'Get AI-powered suggestions to improve performance and reach your goal faster.',               cta: 'Learn more'   },
+  { icon: 'bot',   color: 'var(--red, #f43f5e)',    ctaColor: 'var(--red-text, #c42d49)',   bg: 'rgba(244,63,94,.10)',   title: 'AI Fundraising Coach',  body: 'Get instant answers, ideas, and guidance from your personal AI fundraising coach, 24/7.',    cta: 'Ask anything' },
+  { icon: 'shield',color: 'var(--violet, #8b5cf6)', ctaColor: 'var(--violet-ink, #5b21b6)', bg: 'rgba(139,92,246,.10)',  title: 'CharitScore™ Trust',    body: 'Every campaign gets an AI-powered 0–100 CharitScore so donors give with total confidence.', cta: 'Learn more'   },
 ];
 
 const STEPS = [
@@ -226,7 +230,7 @@ export default async function AiFundraisingPage() {
               </div>
               <h3>{t.title}</h3>
               <p>{t.body}</p>
-              <Link href="/ai-campaign" style={{ color: t.color }}>
+              <Link href="/ai-campaign" style={{ color: t.ctaColor }}>
                 {t.cta} <PublicIcon name="arrow" />
               </Link>
             </article>

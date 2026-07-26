@@ -4786,7 +4786,7 @@ difference as real: two audit ✅s turned out to be stale when I spot-checked th
 | 10 | Roles clearly mapped | 🟡 **mapped, but only 2 of 6 are enforced** | `lib/role-capabilities.ts` is wired into 3 surfaces. But `donor`/`organizer`/`beneficiary`/`nonprofit` have **0 enforced capabilities** — see finding |
 | 11 | 100% GoFundMe parity | 🟢 claimed-closed | `docs/charitme-gofundme-audit.md` matrix is all ✅. Its 4 remaining blockers are **owner-gated credentials**, not code |
 | 12 | Better than GoFundMe | 🟢 | 0% platform fee, AI builder, Marketing OS (goals→opportunities→campaigns), grants, matching, volunteers, events, gamification, impact tracking — none of which GoFundMe has |
-| 13 | Accessibility passes | ⚪ claimed | Earlier: axe WCAG A/AA clean on ~20–30 public routes; Lighthouse 100 on 7 key pages |
+| 13 | Accessibility passes | ✅ **verified + now enforced** | axe WCAG 2.0/2.1 A+AA over **36 routes × light AND dark = 0 violations** (4.1 min). Previously there was **no axe dependency at all** — the claim came from manual runs |
 | 14 | All payment methods work | 🔴 owner-gated | Needs Stripe **live** keys + a real charge. ADR-0003. Cannot be done from sandbox |
 | 15 | Performance optimized | 🟡 | Earlier: query-waterfall + N+1 audits, `getUser()` memoised, home 63→88. Plus item 9 above |
 | 16 | Security resolved | 🟢 improved | **New this session:** auth-gate e2e (mutation-tested), middleware auth-refresh ceiling that fails safe, owner-scoped RLS on 2 new tables. Production gates verified live by curl |
@@ -5324,3 +5324,97 @@ test would catch it, because nothing enforces it.
 these four roles gate real capabilities (in which case it is a feature to build,
 per-role)? I have not invented role gates on my own, because doing so would change
 the authorisation model and could lock existing users out of their own data.
+
+
+### ✅ FINDING — accessibility had zero automated enforcement (FIXED, and it passes)
+There was **no `axe`, `lighthouse` or `pa11y` dependency in the repo**. The
+"axe WCAG 2.0/2.1 A/AA → 0 violations" claim came from ad-hoc browser runs in
+earlier sessions, so nothing stopped a regression shipping — the same shape of gap
+as the e2e suite that ran in no workflow.
+
+Added `@axe-core/playwright` + `e2e/accessibility.spec.ts`: the real ruleset
+(`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`) over all 36 public routes.
+
+**Result: 0 violations, light AND dark, 4.1 minutes.** So the claim was true — it
+simply had nothing behind it. Now it is enforced on every future change.
+
+Why both themes: colour-contrast rules only evaluate the colours actually
+rendered, so a light-only pass says nothing about dark mode. Since dark/light is
+its own checklist item (7), a single-theme sweep would have left it half-verified.
+This run is therefore **also** independent evidence for item 7 — the third such
+confirmation, alongside the static token guard and the responsive audit.
+
+**CI note:** the spec lives in `e2e/`, and the CI `e2e` job runs `npx playwright
+test` unfiltered, so it is picked up automatically on both the chromium and mobile
+projects. Expect the e2e job to lengthen by roughly 4–8 minutes.
+
+### 🟡 IN PROGRESS — runtime contrast audit (Claude, claimed 2026-07-26 14:2x)
+
+### ✅ DONE — runtime contrast audit (Claude, 2026-07-26)
+**Claiming before code, per the duplicated-work lesson above.**
+
+**Gap found:** `scripts/audit-responsive.mjs` loads all 36 pages in **both themes**,
+but it only measures **horizontal overflow** and **broken/oversized images**. It
+never looks at colour. So the note above ("the same run is independent evidence for
+item 7 (dark/light) across all 36 public routes") is **overstated** — a page whose
+text is light-on-light renders at the correct width with working images and passes
+that sweep silently. Static `theme-tokens.test.ts` has the mirror-image blind spot:
+it greps source for hardcoded colours, so it cannot see a pairing that is only
+wrong once the cascade resolves (e.g. a themed `var(--t1)` text sitting on a
+hardcoded-light container, which is exactly what shipped on the campaign AI card,
+success-stories, and the 13 Tailwind-utility pages).
+
+**Doing:** `scripts/audit-contrast.mjs` — renders each public route in both themes
+and measures **computed** contrast per visible text node (resolving the effective
+background by walking ancestors through transparent fills), reporting anything
+under the WCAG AA threshold (4.5:1 normal, 3:1 large). This is the empirical check
+neither existing guard performs, and it is the only way to verify the dark-mode
+work actually reads — including my own `--bg` (#31) and Tailwind-remap (#78) fixes,
+which so far are verified only from the compiled stylesheet, not from a render.
+
+Scope: audit script + whatever real failures it surfaces. Not touching the
+responsive audit, the token test, or admin (documented light-only).
+
+**RESULT — 13 real AA failures found that BOTH existing guards missed; all fixed;
+sweep now clean.** `scripts/audit-contrast.mjs` renders all 36 public routes in
+both themes and measures computed text colour against the resolved effective
+background. Final run: **✅ 0 failures across 36 pages × 2 themes.**
+
+What it caught (none of it visible to overflow-sweeps or source greps):
+- **`/features` dark — an invisible H2.** "Built different from the ground up" was
+  `#0e0520` (near-black) on the dark card: **1.11:1**. Six more on the same page
+  (bare `#64748b`/`#475569`/`#5b21b6`/`#4b5563`/`#6c35ff`) between 1.84 and 3.75.
+  Root cause: the page mixed `var(--t1, #0e0520)` (correct) with **bare** `#0e0520`
+  (theme-blind) in the same file — so a grep for "has a hardcoded colour" sees both
+  and a grep for "uses the token" sees both. Only the resolved render separates them.
+- **`/ai-fundraising` light — 4 CTA links** at 2.15–3.48:1. The card accent was used
+  for *both* the icon and the CTA text; an accent that is fine as a 3:1 graphic fails
+  as 13px text. Split into `color` (icon) + `ctaColor` (text, uses the `--*-text`
+  tokens added in #78).
+- **`/ai-campaign`** `.ai-builder-examples` **2.89:1** — the *light* value was wrong
+  while a dark override already existed, i.e. the theme work had been done in only
+  one direction.
+- **`/pricing`** `.fee-calc-bad` **4.46:1** — a near-miss no human eye would catch.
+- **`/features` dark, second pass:** tokenising the text exposed the inverse pairing —
+  themed text on a still-hardcoded `#fafafa` card (1.17:1). Fixed the container too.
+
+**Two traps this run hit — worth knowing before trusting any audit number:**
+1. **A stale server silently invalidates the whole run.** My second pass reported 18
+   failures including impossible ones (white-on-white, and *light* backgrounds in
+   **dark** mode, at browser-default 16px). Cause: the new `next start` hit
+   `EADDRINUSE` and the audit hammered the **previous** server serving the **old**
+   build. The tell is physically-impossible output, not a plausible-looking number.
+   The script now defaults to :3000 (not the responsive audit's :3100) and the run
+   recipe greps the server log for `EADDRINUSE` before believing any result.
+2. **`pkill -f "next-server"` kills the shell running it** — the pattern matches that
+   shell's own command line. Use `pkill -f "[n]ext-server"`.
+
+**Known blind spot (documented in the script):** text over a background-image or
+gradient is skipped, since contrast against a photo is not a single number. That is
+why a hardcoded-light *gradient* card with themed text on `/features` was invisible
+to the sweep — found by eye and fixed to `linear-gradient(…, var(--s2), var(--s3))`.
+When tokenising a card, check its gradient stops too.
+
+Verified: typecheck 0, **1233 tests / 111 files pass**, `next build` exit 0,
+contrast sweep exit 0.
+
