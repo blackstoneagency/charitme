@@ -5446,3 +5446,39 @@ has never had contrast or a11y measured. This is the single biggest remaining
 a11y/theme gap and it unblocks the moment test credentials exist (same blocker as
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
+
+### ⛔ BLOCKER CORRECTED — it is network policy, NOT missing credentials (Claude, 2026-07-26)
+Several items are parked on wording like *"the moment test credentials exist"*
+(signed-in e2e, dashboard/admin a11y + contrast) or *"can't be HTTP-200-verified
+from the sandbox"* (new Unsplash photo IDs for the duplicate-category work).
+
+**The credentials already exist.** `apps/web/.env.local` carries
+`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`,
+`SUPABASE_PROJECT_REF`, Stripe keys, OpenAI, Resend/SendGrid, Twilio. Nobody needs
+to go find them.
+
+**What actually blocks it is the sandbox's egress policy.** The agent proxy
+answers **403 to CONNECT** for any non-allowlisted host. Confirmed directly from
+`$HTTPS_PROXY/__agentproxy/status` → `recentRelayFailures`:
+
+```
+yanexccimwooursawynm.supabase.co:443   connect_rejected (403 to CONNECT)
+images.unsplash.com:443                connect_rejected (403 to CONNECT)
+www.google.com:443                     connect_rejected (403 to CONNECT)
+```
+
+`curl` to Supabase returns **000** with and without the CA bundle — it never
+opens a socket. So:
+- **Signed-in audits cannot be unblocked by hunting for credentials.** They need
+  either an environment whose network policy allows `*.supabase.co`, or a run on
+  infrastructure with egress (CI, a laptop). Framing it as a credentials problem
+  will burn time and find nothing.
+- **The image-uniqueness residual is correctly parked.** I re-tested rather than
+  trusting the note: Unsplash is 403-denied, so new photo IDs genuinely cannot be
+  HTTP-verified here, and shipping unverified IDs would risk broken images in
+  production. The existing caution is right.
+
+**Practical consequence for whoever picks these up:** `scripts/audit-contrast.mjs`
+takes `--only`, and the axe spec can be pointed at dashboard routes; both are ready
+to run the instant they execute somewhere with egress. The work left is
+environmental, not code.
