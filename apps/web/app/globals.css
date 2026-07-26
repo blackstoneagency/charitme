@@ -3508,6 +3508,20 @@ img, video, iframe { max-width: 100%; }
 .users-kpi-card small.down { color: #c2410c; }
 .users-chart-card { padding: 20px 24px; border: 1px solid #eef0f7; border-radius: 16px; background: #fff; }
 .users-chart-card h3 { margin: 0 0 16px; font-size: 15px; font-weight: 700; color: #0f1238; }
+/* Role breakdown table (admin → Users → Overview). Admin console is intentionally
+   light-only internal tooling, so these match the hardcoded palette above rather
+   than the theme tokens used on user-facing surfaces. */
+.users-role-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.users-role-table th, .users-role-table td { padding: 9px 10px; text-align: left; border-bottom: 1px solid #f0f2f8; }
+.users-role-table thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #66708d; font-weight: 700; }
+.users-role-table tbody th { font-weight: 650; color: #0f1238; }
+.users-role-table tbody tr:last-child th, .users-role-table tbody tr:last-child td { border-bottom: 0; }
+.users-role-tag { margin-left: 6px; padding: 1px 6px; border-radius: 5px; background: #f1f5f9; color: #475569; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+/* The description column is the one that can force horizontal scroll on a phone. */
+@media (max-width: 640px) {
+  .users-role-table { display: block; overflow-x: auto; }
+}
+
 .users-recent-card { padding: 0; border: 1px solid #eef0f7; border-radius: 16px; background: #fff; overflow: hidden; }
 .users-recent-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #eef0f7; }
 .users-recent-head h3 { margin: 0; font-size: 15px; font-weight: 700; color: #0f1238; }

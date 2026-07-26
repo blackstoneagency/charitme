@@ -163,17 +163,20 @@ function initials(name: string): string {
 }
 
 function rolePillColor(role: string): React.CSSProperties {
+  // Keyed by lowercase so two-word labels work. The previous normaliser did
+  // `charAt(0).toUpperCase() + slice(1).toLowerCase()`, which turns 'Super Admin'
+  // into 'Super admin' — no map entry, so the platform's most privileged role fell
+  // through to the same grey as an unknown one. Super Admin and Admin now read as
+  // visibly different, because they are.
   const map: Record<string, { bg: string; color: string }> = {
-    Admin:       { bg: 'rgba(108,53,255,.10)', color: 'var(--violet, #6c35ff)' },
-    Organizer:   { bg: 'rgba(37,99,235,.08)', color: 'var(--blue, #0369a1)' },
-    Nonprofit:   { bg: 'rgba(22,163,74,.10)', color: 'var(--green-dark, #166534)' },
-    Donor:       { bg: 'rgba(217,119,6,.08)', color: 'var(--amber, #854d0e)' },
-    Beneficiary: { bg: 'rgba(236,72,153,.08)', color: 'var(--pink, #9d174d)' },
-    User:        { bg: 'var(--s2, #f1f5f9)', color: 'var(--t3, #475569)' },
+    'super admin': { bg: 'rgba(190,24,93,.10)',  color: '#9d174d' },
+    admin:         { bg: 'rgba(108,53,255,.10)', color: 'var(--violet, #6c35ff)' },
+    organizer:     { bg: 'rgba(37,99,235,.08)',  color: 'var(--blue, #0369a1)' },
+    nonprofit:     { bg: 'rgba(22,163,74,.10)',  color: 'var(--green-dark, #166534)' },
+    beneficiary:   { bg: 'rgba(14,116,144,.10)', color: '#155e75' },
+    donor:         { bg: 'rgba(217,119,6,.08)',  color: 'var(--amber, #854d0e)' },
   };
-  // Normalize — 'admin' → 'Admin', etc.
-  const key = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
-  const c = map[key] ?? { bg: '#f1f5f9', color: '#334155' };
+  const c = map[role.trim().toLowerCase()] ?? { bg: '#f1f5f9', color: '#334155' };
   return { background: c.bg, color: c.color, padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 650 };
 }
 
@@ -243,7 +246,7 @@ type View = 'overview' | 'list' | 'detail' | 'add' | 'success';
 export default function AdminUsersClient({
   users,
   activities,
-  roles: _roles,
+  roles: roleSummaries,
   totals,
   weeklyGrowth,
   recentUsers,
@@ -385,6 +388,43 @@ export default function AdminUsersClient({
               <small style={{ color: 'var(--t3, #64748b)' }}>{sub}</small>
             </div>
           ))}
+        </div>
+
+        {/* Role breakdown — who actually holds what.
+            This was computed and passed in but never rendered, so the console had
+            no answer to "who has power here?" Admin and Super Admin are shown as
+            separate rows because they are genuinely different: only Super Admin
+            can grant roles and change platform settings. */}
+        <div className="users-chart-card">
+          <h3>Roles</h3>
+          <table className="users-role-table">
+            <caption className="sr-only">Number of users holding each platform role</caption>
+            <thead>
+              <tr>
+                <th scope="col">Role</th>
+                <th scope="col">What it means</th>
+                <th scope="col" style={{ textAlign: 'right' }}>Users</th>
+              </tr>
+            </thead>
+            <tbody>
+              {roleSummaries.map((r) => (
+                <tr key={r.key}>
+                  <th scope="row" style={{ whiteSpace: 'nowrap' }}>
+                    {r.role}
+                    {r.system && (
+                      <span className="users-role-tag" title="Granted automatically or reserved for staff">
+                        system
+                      </span>
+                    )}
+                  </th>
+                  <td style={{ color: 'var(--t3, #64748b)' }}>{r.description}</td>
+                  <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+                    {r.count.toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {/* Growth Chart */}

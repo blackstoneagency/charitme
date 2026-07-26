@@ -2,6 +2,7 @@ import 'server-only';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireAdmin } from '../../../lib/auth';
 import { parseRoles } from '../../../lib/roles';
+import { ROLE_DEFINITIONS, ROLE_ORDER } from '../../../lib/role-capabilities';
 import { supabaseAdmin } from '../../../lib/supabase';
 import AdminUsersClient, {
   type AdminUser,
@@ -80,14 +81,23 @@ function rawRoleStrings(raw: unknown): string[] {
   return ['donor'];
 }
 
-/** First display-friendly role from the roles array. */
+/**
+ * Display label for the highest-privilege role held, via the shared catalog.
+ *
+ * The hand-rolled version this replaces had two defects. It had **no
+ * `super_admin` case**, so an account granted only `super_admin` — which the
+ * super-admin roles console can do, and which `isSuperAdmin()` alone honours —
+ * rendered in the user list as **"Donor"**, the exact inverse of its power. (Not
+ * yet live: today's single super admin also holds `admin`, so it resolved to
+ * "Admin" by luck.) It also ranked `nonprofit` above `organizer` and offered a
+ * phantom `'user'` label that is not in ASSIGNABLE_ROLES.
+ */
 function primaryRole(roles: string[]): string {
-  if (roles.includes('admin'))       return 'Admin';
-  if (roles.includes('nonprofit'))   return 'Nonprofit';
-  if (roles.includes('organizer'))   return 'Organizer';
-  if (roles.includes('beneficiary')) return 'Beneficiary';
-  if (roles.includes('user'))        return 'User';
-  return 'Donor';
+  for (let i = ROLE_ORDER.length - 1; i >= 0; i--) {
+    const role = ROLE_ORDER[i];
+    if (roles.includes(role)) return ROLE_DEFINITIONS[role].label;
+  }
+  return ROLE_DEFINITIONS.donor.label;
 }
 
 /** Derive status from roles array (suspended/inactive override) or profile.status column. */
@@ -277,13 +287,26 @@ export default async function AdminUsersPage() {
   activities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   // ── 6. Role summaries ─────────────────────────────────────────────────────
-  const roleSummaries: UserRoleSummary[] = [
-    { role: 'Super Admin', key: 'admin',       description: 'Full platform access.',         count: users.filter(u => u.roles.includes('admin')).length,       system: true  },
-    { role: 'Organizer',   key: 'organizer',   description: 'Create and manage campaigns.',  count: users.filter(u => u.roles.includes('organizer')).length,   system: false },
-    { role: 'Nonprofit',   key: 'nonprofit',   description: 'Manage nonprofit campaigns.',   count: users.filter(u => u.roles.includes('nonprofit')).length,   system: false },
-    { role: 'Donor',       key: 'donor',       description: 'Donate and manage profile.',    count: users.filter(u => u.roles.includes('donor')).length,       system: true  },
-    { role: 'User',        key: 'user',        description: 'Standard platform user.',       count: users.filter(u => u.roles.includes('user')).length,        system: true  },
-  ];
+  // Derived from the shared role catalog (lib/role-capabilities.ts) so it cannot
+  // drift from what the roles actually mean. The hand-written list this replaces
+  // had drifted badly: it labelled the `admin` row **"Super Admin"** — conflating
+  // trust-and-safety staff with the one account that can grant roles and change
+  // platform settings — gave `super_admin` and `beneficiary` no row at all, and
+  // counted a phantom `'user'` role that is not in ASSIGNABLE_ROLES and so can
+  // never be held by anyone (a live census of all 1,133 profiles: donor 1132,
+  // organizer 58, admin 5, super_admin 1, everything else 0).
+  const roleSummaries: UserRoleSummary[] = ROLE_ORDER.map((role) => {
+    const def = ROLE_DEFINITIONS[role];
+    return {
+      role: def.label,
+      key: role,
+      description: def.description,
+      count: users.filter((u) => u.roles.includes(role)).length,
+      // "system" = granted automatically or reserved for staff, i.e. not a label
+      // an operator hands out to describe what someone does on the platform.
+      system: def.isDefault || def.privileged,
+    };
+  });
 
   const weeklyGrowth  = buildWeeklyGrowth(users.map(u => u.joinedAt));
   const recentUsers   = [...users]

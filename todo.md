@@ -4892,13 +4892,53 @@ merge commit.
    (dead `donation_receipts`; e2e "wired" but running in no workflow). Assume rot.
 3. **Signed-in e2e** the moment test credentials exist.
 
-### 🔒 CLAIM — Claude, 2026-07-26 ~13:55Z — **user-role mapping audit** (IN PROGRESS)
+### ✅ DONE — Claude, 2026-07-26 — **user-role mapping audit** (was CLAIM)
 Claiming *before* writing code, per the duplicated-work incident above. Scope: the
 goal's new criterion "each user role is clearly mapped out and different from the
 others" — audit `lib/roles.ts` + every role gate, prove the roles are actually
 distinct in what they can reach, and fix/document what isn't. **Touching:
 `lib/roles.ts`, role-gated route guards, `docs/`, `__tests__/`.** Codex: please
 take a different line.
+
+**Result.** The descriptive half was already done by a teammate — `lib/role-capabilities.ts`
+maps all six roles and, importantly, records honestly that **only `admin` and
+`super_admin` gate anything**; `donor`/`organizer`/`beneficiary`/`nonprofit` are
+labels, with real authorization coming from session+row-ownership,
+`campaigns.nonprofit_verified`, and `profiles.status`. Not duplicated.
+
+**Live role census (all 1,133 profiles, service-role read):** `donor` 1132,
+`organizer` 58, `admin` 5, `super_admin` 1 — and **`beneficiary`, `nonprofit`,
+`user`, `suspended`, `inactive` = 0**. So two of the six roles are held by nobody,
+and the legacy status-in-roles markers the admin page still parses are unused live.
+
+**What was actually broken — the admin console did not reflect that catalog:**
+- **The role summary was computed, passed to the client as `_roles`, and never
+  rendered.** The console had no answer to "who holds power here?" while still
+  paying to compute it. Now rendered as a Roles table in the Users overview.
+- That dead summary was also **wrong**: it labelled the `admin` row **"Super
+  Admin"** (conflating 5 trust-and-safety accounts with the 1 account that can
+  grant roles and change platform settings), gave `super_admin` and `beneficiary`
+  no row at all, and counted the phantom `'user'` role. Now derived from
+  `ROLE_ORDER`/`ROLE_DEFINITIONS`, so it cannot drift again.
+- **`primaryRole` had no `super_admin` case** — an account granted *only*
+  `super_admin` would render as **"Donor"**, the inverse of its power. Latent, not
+  live (today's super admin also holds `admin`), but reachable: `isSuperAdmin()`
+  honours the role alone and the roles console can grant it alone. Replaced with
+  the shared catalog scan.
+- **`rolePillColor` normalised `'Super Admin'` → `'Super admin'`**, missing its map
+  entry, so the most privileged role fell through to the same grey as an unknown
+  one. Keyed lowercase; Admin and Super Admin now read as visibly different.
+- Guards added to `__tests__/role-capabilities.test.ts` (5 tests, verified
+  non-vacuous): no phantom `'user'`, no non-super row labelled "Super Admin",
+  summary+pills sourced from the catalog, distinct admin-tier colours, and the
+  summary is actually rendered.
+- Verified: typecheck 0, **1219 tests / 110 files**, `next build` green.
+
+**Still open on this criterion (not defects, product decisions for the owner):**
+`beneficiary` and `nonprofit` are held by nobody and enforce nothing — either give
+them real gates (e.g. beneficiary confirmation flow, nonprofit-only campaign types)
+or retire them. Recorded rather than guessed, because inventing restrictions on
+roles nobody holds is the fastest way to lock a real user out.
 
 ## ⚠️ Process note for the bot team
 Three separate incidents this session where master churn from parallel agents cost
