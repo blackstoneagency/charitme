@@ -118,3 +118,27 @@ describe('the campaign page applies the same gates as the API', () => {
       .toMatch(/msgProfile\.show_public_profile/);
   });
 });
+
+describe('organizer notifications respect anonymity', () => {
+  // The organizer alert (email + in-app notification) fell back to "An anonymous
+  // donor" only when the profile had NO full_name. A donor who ticked "donate
+  // anonymously" but had a name on file was announced by name — to the one
+  // person anonymity exists to hide them from.
+  const hook = read('app/api/stripe/webhook/route.ts');
+
+  it('passes the per-gift anonymous flag into the notification', () => {
+    expect(hook, 'the function must accept the flag').toMatch(/isAnonymous:\s*boolean/);
+    expect(hook, 'the call site must forward meta.anonymous')
+      .toMatch(/sendOrganizerDonationNotification\([^)]*meta\.anonymous === '1'\)/);
+  });
+
+  it('forces the anonymous label on either gate', () => {
+    expect(hook).toMatch(/\(isAnonymous \|\| !donorIsPublic\)/);
+    // The old name-presence-only fallback must be gone.
+    expect(hook).not.toMatch(/const donorDisplayName = donor\?\.full_name \|\| 'An anonymous donor';/);
+  });
+
+  it('reads the account-wide visibility flag too', () => {
+    expect(hook).toMatch(/select\('full_name, show_public_profile'\)/);
+  });
+});

@@ -257,6 +257,30 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**🔴 FIXED — anonymous donors were announced BY NAME to the organizer.**
+Found by applying the lesson from the half-fix above: after correcting one copy of
+a mapping, grep for the rest. Sweeping every `full_name` read outside admin
+surfaced `sendOrganizerDonationNotification` in the Stripe webhook:
+
+```js
+const donorDisplayName = donor?.full_name || 'An anonymous donor';
+```
+
+It fell back to the anonymous label **only when the profile had no name** — the
+function was never passed the per-gift `anonymous` flag at all. So a donor who
+ticked *"donate anonymously"* but had a name on file was announced **by name** in
+both the organizer's **alert email** and their **in-app notification** — to the
+one person anonymity exists to hide them from. The flag was available at the call
+site the whole time (`meta.anonymous === '1'`, already used at 3 other lines).
+
+Now takes `isAnonymous`, forwards it from the call site, and applies **both**
+gates — the per-gift choice and account-wide Profile Visibility — matching the
+donor wall, leaderboard and exports. 3 more regression tests (12 in the file).
+
+_Surfaces checked and already correct in the same sweep:_ donor receipts and tax
+receipts send `full_name` to the **donor's own** address; both CSV exports redact;
+the donor's tax statement shows their own name.
+
 **✏️ CORRECTION — my donor-wall fix was HALF a fix; the initial page render still
 leaked.** The earlier commit fixed `/api/campaigns/[id]/donations` and I reported
 the donor wall as done. **It wasn't.** There are **two copies** of that mapping:

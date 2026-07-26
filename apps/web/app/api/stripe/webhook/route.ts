@@ -541,7 +541,7 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
 
     // ── Notify organizer of new donation (non-blocking) ────────────────────
     if (!alreadyDone && organizerUserId && amountCents > 0) {
-      sendOrganizerDonationNotification(organizerUserId, meta.campaignId, amountCents, meta.donorId || null, currency).catch(() => {});
+      sendOrganizerDonationNotification(organizerUserId, meta.campaignId, amountCents, meta.donorId || null, currency, meta.anonymous === '1').catch(() => {});
     }
   } else if (meta.plan && meta.userId) {
     // ── Platform SaaS subscription ────────────────────────────────────────
@@ -1540,17 +1540,32 @@ async function sendOrganizerDonationNotification(
   amountCents: number,
   donorId: string | null,
   currency: string = 'usd',
+  /**
+   * Whether the donor chose "donate anonymously" for THIS gift.
+   *
+   * Previously this function never received it, so the display name fell back to
+   * "An anonymous donor" only when the profile had no full_name — meaning a donor
+   * who ticked anonymous but had a name on file was announced BY NAME to the
+   * organizer, in both the alert email and the in-app notification. That is the
+   * one person anonymity is meant to hide the donor from.
+   */
+  isAnonymous: boolean = false,
 ) {
   try {
     const [{ data: organizer }, { data: camp }, { data: donor }] = await Promise.all([
       supabaseAdmin.from('profiles').select('full_name, email, notification_email').eq('id', organizerUserId).single(),
       supabaseAdmin.from('campaigns').select('title, slug, raised_amount, goal_amount').eq('id', campaignId).single(),
-      donorId ? supabaseAdmin.from('profiles').select('full_name').eq('id', donorId).single() : Promise.resolve({ data: null }),
+      donorId ? supabaseAdmin.from('profiles').select('full_name, show_public_profile').eq('id', donorId).single() : Promise.resolve({ data: null }),
     ]);
 
     if (!organizer?.email || !camp) return;
 
-    const donorDisplayName = donor?.full_name || 'An anonymous donor';
+    // Both gates, matching the donor wall, leaderboard and exports: the per-gift
+    // `anonymous` choice and the account-wide Profile Visibility setting.
+    const donorIsPublic = donor?.show_public_profile ?? true;
+    const donorDisplayName = (isAnonymous || !donorIsPublic)
+      ? 'An anonymous donor'
+      : (donor?.full_name || 'An anonymous donor');
     const { formatCents: fmt } = await import('../../../../lib/stripe');
 
     // Insert in-app notification
