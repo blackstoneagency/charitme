@@ -47,6 +47,18 @@ for (const theme of ['light', 'dark'] as const) {
       // The app reads its theme from data-theme on <html>; set it before scanning
       // so colour-contrast rules evaluate the colours a visitor actually gets.
       await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
+      // Let transitions settle before scanning. Several controls animate colour
+      // over ~120ms (e.g. .fee-calc-preset) and axe reads computed styles, so a
+      // mid-transition sample produced a phantom colour-contrast failure that did
+      // not reproduce on a fresh load.
+      //
+      // Note: injecting a `transition: none` stylesheet is NOT an option — the app
+      // ships a strict `style-src 'self'` CSP, so page.addStyleTag is refused
+      // (which is the CSP working correctly). Emulating reduced motion is both
+      // CSP-safe and semantically what we want; the short settle covers anything
+      // that does not honour the media query.
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.waitForTimeout(250);
 
       const { violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
 

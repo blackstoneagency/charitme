@@ -1,3 +1,10 @@
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex --
+   The payout comparison table becomes horizontally scrollable under the
+   mobile breakpoint, and axe requires a scrollable region to be focusable
+   (`scrollable-region-focusable`) or keyboard users cannot reach the
+   off-screen columns. role="region" + aria-label + tabIndex={0} is the
+   documented remedy, so this rule and axe genuinely disagree here and axe
+   wins. Scoped to this file. */
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
@@ -116,7 +123,16 @@ export default function FastPayoutsPage() {
             <h2 className="fp-h2">Payout speed options</h2>
             <p className="fp-sub">Standard payouts are free for everyone. Faster options are available for eligible verified accounts through Stripe Connect.</p>
           </div>
-          <div className="fp-table-wrap">
+          {/* Becomes horizontally scrollable under the mobile breakpoint
+              (globals.css: .fp-table-wrap { overflow-x: auto }). A scrollable
+              region needs to be focusable or keyboard users cannot reach the
+              off-screen columns at all — axe `scrollable-region-focusable`. */}
+          <div
+            className="fp-table-wrap"
+            tabIndex={0}
+            role="region"
+            aria-label="Payout speed and fees comparison"
+          >
             <table className="fp-table">
               <thead>
                 <tr>
