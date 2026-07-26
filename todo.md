@@ -57,11 +57,48 @@ single endpoint receives all Connect events signed with the main secret. Leave u
 > of this file and the companion **`payment-audit.md`** for the exhaustive
 > per-workflow audit + fixes.
 
-## 🔎 Claude session index — 2026-07-26 (create flow, settings, schema, docs)
+## 🔎 Claude session index — 2026-07-26 (create flow, settings, schema, docs, PRIVACY & SECURITY)
 
-Detail for every row lives under **§0.1b item 10** (it grew there because that item
-was the entry point); this index exists so the work is findable by topic rather
-than buried under a locale-switcher heading.
+### ⚠️ START HERE — the 3 things that still need a decision from the owner
+
+Everything else below is fixed and shipped. These three are **not blocked on
+effort or investigation** — each needs one judgement call, and guessing wrong
+would cause real harm (locking people out, or publishing new claims about donor
+money). Implementation notes for each are in the detail section.
+
+| # | Needs deciding | Why I did not just do it |
+|---|---|---|
+| 1 | **"Suspend User" enforces nothing** — suspended users can still log in, donate, create campaigns | Must decide *which* surface is blocked (login? donating? creating?) and what happens to a suspended user's live campaigns and active recurring donations. Note: gating via `getUserRoles()` **cannot work** — `parseRoles()` whitelists `'suspended'` away |
+| 2 | **`/trust-safety` promises a "7-day payout hold"** the architecture forbids — every donation is a Stripe *destination charge*, so CharitMe never holds the funds | Either implement via Stripe Connect (manual payout schedule / `payouts_enabled`), or correct the public copy. Both are legitimate; publishing a safety promise the code cannot keep is not |
+| 3 | **Roles don't differentiate** — `donor`/`organizer`/`beneficiary`/`nonprofit` gate nothing; only `admin`/`super_admin` do | Someone must define what an organizer may do that a donor may not. Inventing permissions on live authorization locks real users out of their own campaigns |
+
+### 🔒 Promise-audit — controls that did not keep their promise
+
+The highest-yield technique of the session: **take a control that promises the
+user something, then follow the data to every place that promise must hold.**
+Nine of eleven controls checked had a gap, all the same shape — *the write path
+worked; one read path never got the memo.*
+
+| Control | What leaked / failed | Status |
+|---|---|---|
+| Delete campaign | Content stayed public at the direct URL | ✅ fixed |
+| Profile → Private | Named on leaderboard + donor wall | ✅ fixed |
+| Profile → Private | Named on the **homepage** ticker | ✅ fixed |
+| Donate anonymously | Identity in the organizer's full export | ✅ fixed |
+| Donate anonymously | Named in the supporters list | ✅ fixed |
+| Donate anonymously | Name + avatar in the messages route | ✅ fixed |
+| Save as draft | Unpublished campaign fully readable | ✅ fixed |
+| **Enable 2FA** | **Protected nothing** — never challenged at login | ✅ **fixed** |
+| Suspend user | Enforces nothing | ⚠️ decision #1 |
+| Payout hold | Architecturally impossible as written | ⚠️ decision #2 |
+| Email opt-out | — | ✓ was already correct |
+| Refunds / recurring cancel | — | ✓ were already correct |
+
+**Detail for every row lives under §0.1b item 10** (it grew there because that
+item was the entry point); this index exists so the work is findable by topic
+rather than buried under a locale-switcher heading.
+
+### Earlier fixes this session
 
 | # | Fix | Why it mattered |
 |---|-----|-----------------|
