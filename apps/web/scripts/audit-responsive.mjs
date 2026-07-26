@@ -11,26 +11,26 @@
  *
  * Exits 1 on any finding so it can gate CI.
  */
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
 const baseIdx = process.argv.indexOf('--base');
 const BASE = baseIdx > -1 ? process.argv[baseIdx + 1] : 'http://127.0.0.1:3100';
 
-// Previously a hand-maintained list of 17 pages while the e2e sweep covered 37,
-// so ~19 public routes were never checked for mobile overflow at all. Kept in
-// sync with e2e/public-routes.spec.ts (the campaign-embed fixture is excluded:
-// it needs seeded data, and the e2e sweep already covers it).
-const PAGES = [
-  '/', '/about-us', '/achievements', '/ai-campaign',
-  '/ai-fundraising', '/blog', '/campaigns', '/contact',
-  '/events', '/faq', '/features', '/features/fundraising-core',
-  '/fees', '/fast-payouts', '/for-donors', '/for-individuals',
-  '/for-nonprofits', '/grants', '/help', '/how-it-works',
-  '/leaderboard', '/matching', '/offline', '/pricing',
-  '/privacy', '/privacy-center', '/prohibited-use', '/refunds',
-  '/security', '/sponsor', '/success-stories', '/supported-countries',
-  '/terms', '/transparency', '/trust-safety', '/volunteer',
-];
+// Single source of truth, shared with the e2e sweeps (e2e/public-routes.json).
+//
+// This was a hand-maintained copy, and it carried the same defect all five copies
+// did: /achievements and /privacy-center were listed as public while both 307 to
+// /login. Playwright follows redirects, so this sweep measured the login page's
+// overflow twice and reported it as two clean marketing pages.
+//
+// The embed fixture is excluded here: it needs seeded data, and the e2e sweep
+// already covers it.
+const ROUTES = JSON.parse(
+  readFileSync(fileURLToPath(new URL('../e2e/public-routes.json', import.meta.url)), 'utf8'),
+);
+const PAGES = ROUTES.public.filter((r) => !r.includes('/embed'));
 // 320 = smallest phone still in common use; 1920 = standard desktop.
 const VIEWPORTS = [
   { name: '320', width: 320, height: 640, isMobile: true },
@@ -61,6 +61,16 @@ for (const vp of VIEWPORTS) {
     for (const path of PAGES) {
       try {
         await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 25000 });
+        // Measure the page we asked for, or report it — never something we were
+        // sent to. A redirect to /login (or to an SSO wall on an external target)
+        // otherwise gets measured as if it were this route, and passes.
+        const landed = new URL(page.url()).pathname.replace(/\/$/, '') || '/';
+        const asked = path.replace(/\/$/, '') || '/';
+        if (landed !== asked) {
+          console.log(`✗ ${vp.name}/${theme} ${path} — REDIRECTED to ${landed}; not measured`);
+          findings++;
+          continue;
+        }
         await page.waitForTimeout(350);
         const r = await page.evaluate(() => {
           const de = document.documentElement;

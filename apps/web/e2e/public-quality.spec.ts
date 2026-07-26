@@ -1,22 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { resolveRoutes } from './data-routes';
+import { PUBLIC_ROUTES, expectNoRedirect } from './public-routes';
 
 // This accessibility sweep walks every public route in one test. Supabase-backed pages cost
 // several seconds each when the database is a placeholder (CI), so the default
 // 30s cap is far too tight — the sweep was timing out rather than failing on a
 // real defect, which is why it could never gate CI.
 test.setTimeout(600_000);
-
-const PUBLIC_ROUTES = [
-  '/', '/about-us', '/achievements', '/ai-campaign', '/ai-fundraising', '/blog',
-  '/campaigns', '/campaigns/security-header-fixture/embed', '/contact', '/events',
-  '/faq', '/features', '/features/fundraising-core', '/fees', '/fast-payouts',
-  '/for-donors', '/for-individuals', '/for-nonprofits', '/grants', '/help',
-  '/how-it-works', '/leaderboard', '/matching', '/offline', '/pricing', '/privacy',
-  '/privacy-center', '/prohibited-use', '/refunds', '/security', '/sponsor',
-  '/success-stories', '/supported-countries', '/terms', '/transparency',
-  '/trust-safety', '/volunteer',
-] as const;
 
 test('public routes meet baseline document accessibility', async ({ page, request }) => {
   // Data-dependent routes are skipped when the database is not seeded, so this
@@ -26,6 +16,9 @@ test('public routes meet baseline document accessibility', async ({ page, reques
   for (const route of usable) {
     const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
     expect(response?.status(), route).toBeLessThan(400);
+    // A 307 to /login also arrives here as a 200 once followed, so the status
+    // check alone cannot tell us we are looking at `route`. This can.
+    expectNoRedirect(page, route);
     await expect(page.locator('body'), route).toBeVisible();
 
     const audit = await page.evaluate(() => ({
