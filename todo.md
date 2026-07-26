@@ -257,6 +257,25 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**✅ VERIFIED CLEAN — recurring-donation cancellation** (highest-stakes remaining
+control: if "cancel" doesn't cancel, donors keep being charged).
+- Calls `stripe.subscriptions.update(id, { cancel_at_period_end: true })` — real
+  cancellation, and the donor keeps the period they already paid for.
+- **Ordering is fail-safe:** Stripe is updated **first**, so a Stripe failure
+  aborts before the row is marked cancelled. The residual case (Stripe succeeds,
+  DB write fails) leaves Stripe cancelled while the UI still shows active — the
+  safe direction, and retryable.
+- Ownership enforced (`row.donor_id !== user.id → 403`); double-cancel rejected.
+
+**⚠️ Fixed a doc/code mismatch found there:** the header comment claimed *"Only
+the donor who created it **(or an admin)** may cancel"* — **no admin check exists
+anywhere in the file.** Support staff cannot cancel on a donor's behalf, so
+anyone trusting that comment could tell a donor their subscription was handled
+when it was not. Corrected the comment (and documented the fail-safe ordering)
+rather than inventing admin authorization — granting staff the ability to cancel
+other people's subscriptions is a permissions decision, not a doc fix.
+_Same class as the CLAUDE.md "5% platform fee" that no code charged._
+
 **🔴 FIXED — anonymous donors were announced BY NAME to the organizer.**
 Found by applying the lesson from the half-fix above: after correcting one copy of
 a mapping, grep for the rest. Sweeping every `full_name` read outside admin
