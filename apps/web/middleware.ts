@@ -10,6 +10,39 @@ const PUBLIC_EXCEPTIONS = ['/create/choose-path'];
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 /**
+ * Ceiling on the per-request session refresh.
+ *
+ * This middleware runs on EVERY non-API request, and `supabase.auth.getUser()` is
+ * a network round-trip. Unguarded, a slow or unreachable Supabase auth endpoint
+ * stalls every page load for as long as the fetch takes to give up (measured at
+ * ~7s against an unreachable host) — the whole site inherits the latency of one
+ * dependency. Capping it keeps a degraded dependency from becoming a degraded
+ * site: public pages render immediately, and protected pages fail SAFE by
+ * treating the timeout as "not signed in", which redirects to login rather than
+ * granting access.
+ */
+const AUTH_REFRESH_TIMEOUT_MS = 3_000;
+
+/** Resolve the session user, giving up after AUTH_REFRESH_TIMEOUT_MS. */
+async function getUserWithTimeout(
+  supabase: { auth: { getUser: () => Promise<{ data: { user: unknown | null } }> } },
+): Promise<{ user: unknown | null; timedOut: boolean }> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const timeout = new Promise<{ user: null; timedOut: true }>((resolve) => {
+      timer = setTimeout(() => resolve({ user: null, timedOut: true }), AUTH_REFRESH_TIMEOUT_MS);
+    });
+    const lookup = supabase.auth.getUser().then((r) => ({ user: r.data.user ?? null, timedOut: false as const }));
+    return await Promise.race([lookup, timeout]);
+  } catch {
+    // Network/DNS failure — same fail-safe as a timeout.
+    return { user: null, timedOut: true };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/**
  * Convert a persistent auth cookie into a session cookie by removing
  * maxAge / expires.  The browser will clear it when the window closes.
  * Deletion cookies must pass through unchanged — Supabase deletes the
@@ -89,16 +122,21 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const { user, timedOut: authTimedOut } = await getUserWithTimeout(supabase);
 
   const isProtected =
     PROTECTED.some((p) => path.startsWith(p)) && !PUBLIC_EXCEPTIONS.some((p) => path === p);
 
   if (isProtected && !user) {
+    // Includes the auth-timeout case: deny rather than risk serving a protected
+    // page to an unauthenticated visitor because the check could not complete.
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('next', path);
     return NextResponse.redirect(loginUrl);
   }
+
+  // Surface degraded auth for observability without leaking anything to the page.
+  if (authTimedOut) response.headers.set('X-Auth-Refresh', 'timeout');
 
   // ── Security headers ─────────────────────────────────────────────────
   response.headers.set('X-Content-Type-Options', 'nosniff');
