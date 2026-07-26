@@ -63,12 +63,18 @@ export async function POST(request: NextRequest) {
   // Verify campaign is active
   const { data: campaign } = await supabaseAdmin
     .from('campaigns')
-    .select('id, title, slug, status, user_id, beneficiary_profile_id')
+    .select('id, title, slug, status, user_id, beneficiary_profile_id, accept_donations')
     .eq('id', campaignId)
     .single();
 
   if (!campaign || campaign.status !== 'active') {
     return NextResponse.json({ error: campaign ? 'Campaign is not active' : 'Campaign not found' }, { status: 400 });
+  }
+  // Same gate as the one-time route: the organizer's "stop accepting donations"
+  // switch was honoured by the UI but not by the API. Only an explicit `false`
+  // blocks — the column defaults to true and is null on older rows.
+  if ((campaign as { accept_donations?: boolean | null }).accept_donations === false) {
+    return NextResponse.json({ error: 'This campaign is not accepting donations right now.', code: 'DONATIONS_CLOSED' }, { status: 400 });
   }
 
   // Campaign currency (defaults to USD)

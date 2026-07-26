@@ -1,0 +1,34 @@
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const ROUTES = ['../app/api/donations/route.ts', '../app/api/donations/recurring/route.ts'];
+
+// Regression: /api/campaigns/donations-toggle lets an organizer switch donations
+// off. The campaign page honoured it (via `acceptDonations` in `isActive`) but
+// neither donation route selected or checked the flag, so a direct POST still took
+// money after the organizer had explicitly said stop.
+describe('donation routes honour accept_donations', () => {
+  for (const rel of ROUTES) {
+    const name = rel.includes('recurring') ? 'recurring' : 'one-time';
+    const src = readFileSync(join(here, rel), 'utf8');
+
+    it(`${name}: selects the flag`, () => {
+      expect(src).toMatch(/select\([^)]*accept_donations/);
+    });
+
+    it(`${name}: rejects when explicitly disabled`, () => {
+      expect(src).toMatch(/accept_donations === false/);
+      expect(src).toMatch(/DONATIONS_CLOSED/);
+    });
+
+    it(`${name}: treats null/undefined as accepting`, () => {
+      // The column defaults to true and is null on older rows; a falsy check
+      // would wrongly block campaigns that never opted out.
+      expect(src, 'must compare to false, not use a falsy check')
+        .not.toMatch(/if \(!\s*campaign\.accept_donations\s*\)/);
+    });
+  }
+});

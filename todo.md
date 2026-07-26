@@ -574,6 +574,29 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**🔴 FIXED — "stop accepting donations" didn't stop donations.**
+The fifth fail-open control found, and **the only one that needed no decision** — so
+unlike suspension / payout freeze / roles / plan limits, this one is fixed outright.
+
+`/api/campaigns/donations-toggle` lets an organizer switch donations **off**. The
+campaign page honoured it (`acceptDonations` feeds `isActive`, hiding the donate
+button), but **neither donation route selected or checked the flag** — both gated
+only on `status !== 'active'`. So a direct `POST /api/donations` (or the recurring
+route) **still took money after the organizer explicitly said stop**. The UI was the
+only thing enforcing it, and a UI is not an access control.
+
+Both routes now select `accept_donations` and reject with **`DONATIONS_CLOSED`**.
+**Compared against `false` specifically, not a falsy check:** the column defaults to
+`true` and is **null on older rows**, so `if (!accept_donations)` would have blocked
+every campaign that never opted out — a far worse bug than the one being fixed. A
+test pins that distinction.
+**6 regression tests across both routes, verified to fail against the original code.**
+
+_Why this one was safe to fix and the other four weren't:_ the toggle exists for
+exactly one purpose, so there is no policy question about what "off" means. Turning
+on plan limits or suspension enforcement changes what existing users can do; making
+this switch work simply delivers what the organizer already asked for.
+
 **🔴🔴 PAID PLANS ENFORCE NOTHING — the campaign limit is a progress bar, not a limit.**
 Found by sweeping the pattern behind three earlier findings: *a limit enforced by
 counting*. This is the commercially significant one — **Starter ($29/mo) and Pro

@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
   // ── Fetch campaign ──────────────────────────────────────────────────────────
   const { data: campaign } = await supabaseAdmin
     .from('campaigns')
-    .select('id, title, slug, status, user_id, beneficiary_profile_id')
+    .select('id, title, slug, status, user_id, beneficiary_profile_id, accept_donations')
     .eq('id', campaignId)
     .single();
 
@@ -127,6 +127,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Campaign not found', code: 'NOT_FOUND' }, { status: 404 });
   if (campaign.status !== 'active')
     return NextResponse.json({ error: 'Campaign is not active', code: 'CAMPAIGN_INACTIVE' }, { status: 400 });
+  // The organizer can switch donations off via /api/campaigns/donations-toggle.
+  // The campaign page hides the donate button, but this route never checked the
+  // flag, so a direct POST still took money after they had explicitly said stop.
+  // Compared against `false` specifically: the column defaults to true and is null
+  // on older rows, and neither should block a campaign that never opted out.
+  if ((campaign as { accept_donations?: boolean | null }).accept_donations === false)
+    return NextResponse.json({ error: 'This campaign is not accepting donations right now.', code: 'DONATIONS_CLOSED' }, { status: 400 });
 
   // ── Campaign currency (defaults to USD) ─────────────────────────────────────
   const { data: launchSettings } = await supabaseAdmin
