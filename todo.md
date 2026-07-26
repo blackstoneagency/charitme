@@ -257,6 +257,41 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**🔴 SYSTEMIC — 36 of 143 tables (25%) have NO application code path.**
+Auctions was not a one-off. Cross-referencing the live-DB table snapshot against
+every `.from('…')` in `app`/`lib`/`components`, **plus** resolving the 6 `rpc()`
+functions called from code and the tables their bodies touch:
+
+`admin_notes, admin_settings, analytics_snapshots, api_keys, auction_bids,
+auction_items, campaign_analytics_events, campaign_payment_exports,
+campaign_payment_settings, coach_sessions, commission_requests, creator_profiles,
+creator_tips, digital_products, direct_messages, donation_forms,
+donation_receipts, donor_segment_members, donor_segments, donor_tips,
+embedded_buttons, event_tickets, exclusive_posts, giving_days, grant_documents,
+livestreams, marketing_referrals, member_subscriptions, membership_tiers,
+peer_fundraisers, platform_fees, processor_accounts, product_orders, reward_tiers,
+trust_scores, volunteer_profiles`
+
+**Directly answers "everything wired to Supabase": 75% is, 25% is not.** Several
+of these back features the `/features` page advertises as **Production Ready** —
+donation forms, CRM donor segments, peer-to-peer, memberships, digital products,
+livestreams — the same false-claim shape as Auctions, at scale.
+
+**Method was corrected twice before trusting it**, because the naive version lies:
+- A `.from()`-only scan said **37**. `rate_limit_hits` was a false positive — it is
+  written by the `check_rate_limit` **RPC**, so it *is* wired. Resolving RPC
+  function bodies against `schema.sql` fixed the count to **36**.
+- Spot-verified five more by hand (`donation_forms`, `peer_fundraisers`,
+  `donor_segments`, `membership_tiers`, `livestreams`) → **0** code references each.
+
+**Bonus finding: `reward_tiers` is a duplicate.** Rewards genuinely work, but the
+app reads **`campaign_rewards`**; `reward_tiers` is dead legacy schema.
+
+_Caveat, deliberately not overstated:_ a few entries (`admin_settings`,
+`platform_fees`, `analytics_snapshots`) may be written by SQL/cron rather than app
+code, so "no app code path" is not automatically "unused". The features-backing
+ones above are the actionable set.
+
 **🔴 FIXED — `/features` advertised Auctions as shipped; it does not exist.**
 `auction_items` and `auction_bids` exist in the schema, but there is **no route,
 API, component or bidding UI anywhere** in the app (verified by grepping for
