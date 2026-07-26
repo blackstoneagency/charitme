@@ -4786,7 +4786,7 @@ difference as real: two audit ✅s turned out to be stale when I spot-checked th
 | 10 | Roles clearly mapped | 🟡 **mapped, but only 2 of 6 are enforced** | `lib/role-capabilities.ts` is wired into 3 surfaces. But `donor`/`organizer`/`beneficiary`/`nonprofit` have **0 enforced capabilities** — see finding |
 | 11 | 100% GoFundMe parity | 🟢 claimed-closed | `docs/charitme-gofundme-audit.md` matrix is all ✅. Its 4 remaining blockers are **owner-gated credentials**, not code |
 | 12 | Better than GoFundMe | 🟢 | 0% platform fee, AI builder, Marketing OS (goals→opportunities→campaigns), grants, matching, volunteers, events, gamification, impact tracking — none of which GoFundMe has |
-| 13 | Accessibility passes | ✅ **verified + now enforced** | axe WCAG 2.0/2.1 A+AA over **36 routes × light AND dark = 0 violations** (4.1 min). Previously there was **no axe dependency at all** — the claim came from manual runs |
+| 13 | Accessibility passes | 🟡 **34 of 36 routes clean, enforced** | axe A+AA over 36 routes × both themes. **2 branded marketing pages have real contrast failures** (`/features`, `/ai-fundraising`), baselined + visible. Was **no axe dependency at all** before |
 | 14 | All payment methods work | 🔴 owner-gated | Needs Stripe **live** keys + a real charge. ADR-0003. Cannot be done from sandbox |
 | 15 | Performance optimized | 🟡 | Earlier: query-waterfall + N+1 audits, `getUser()` memoised, home 63→88. Plus item 9 above |
 | 16 | Security resolved | 🟢 improved | **New this session:** auth-gate e2e (mutation-tested), middleware auth-refresh ceiling that fails safe, owner-scoped RLS on 2 new tables. Production gates verified live by curl |
@@ -5512,3 +5512,57 @@ which do pass locally.
 
 **Cheap mitigation worth considering:** batch several changes per push instead of
 one commit per push, so a day's work costs a handful of runs rather than dozens.
+
+
+### ⚠️ CORRECTION to my own earlier result — the "0 violations" pass under-reported
+I reported `0 WCAG A/AA violations across 36 routes × both themes`. **That number was
+measured before the sweep settled animations**, and axe reads computed styles — so
+mid-transition samples masked real failures. With reduced-motion emulation and a
+250ms settle, the same sweep finds genuine `color-contrast` (serious) failures:
+
+- `/features` — the "Why CharitMe" `h2` and eyebrow `span` — fails in **both** themes
+- `/ai-fundraising` — the tool-card CTA link — fails in **light**
+
+**Not caused by my tokenisation of `/features`.** They fail in light mode too, where
+the token fallback is the original colour, so they pre-date this session's change.
+
+Also found and fixed a **real, deterministic mobile bug** while doing this:
+`/fast-payouts` `.fp-table-wrap` becomes `overflow-x: auto` under the mobile
+breakpoint, and without a tabindex the scrollable region was unreachable by
+keyboard — the off-screen speed/fee columns simply could not be read without a
+mouse. Now `tabIndex={0}` + `role="region"` + `aria-label`.
+
+**Remaining work on item 13 (needs a design decision, not a mechanical fix):**
+`todo.md` records that branded marketing pages deliberately keep their own palette
+instead of the app's theme tokens. So resolving these two means adjusting that brand
+palette's foreground colours — a design call. "Intentional palette" does **not**
+make a serious contrast failure acceptable, so they are baselined and visible in the
+test report rather than excluded. Any NEW contrast failure on any route fails CI.
+
+**Method note worth keeping:** injecting a `transition: none` stylesheet is
+impossible here — the app ships a strict `style-src 'self'` CSP and
+`page.addStyleTag` is refused (the CSP working correctly). Use
+`page.emulateMedia({ reducedMotion: 'reduce' })` plus a short settle instead.
+
+
+### 🔀 Reconciliation — two agents swept contrast concurrently (2026-07-26)
+A parallel agent extended a contrast sweep to 38 routes (adding `/login` and
+`/forgot-password`) and **fixed a real AA failure**: `/forgot-password`'s
+"Send reset link" CTA at 3.77:1, white on `bg-emerald-600`, in both themes — the
+button a locked-out user needs. They repointed `.bg-emerald-600` at `--green-btn`
+(~5:1). Good catch, and it corrected an explicit "green buttons are safe" comment
+in the dark-mode adapter.
+
+**Their sweep reports 0 AA failures across 38 pages × 2 themes. Mine reports 2**
+(`/features` h2 + eyebrow span, `/ai-fundraising` CTA link). Both cannot be right,
+and the likely difference is **animation settling**: my sweep emulates reduced
+motion and waits 250ms before scanning, which surfaces final computed colours;
+without that, axe can sample mid-transition and under-report (that is exactly how
+my own earlier "0 violations" number was wrong).
+
+**Next step for whoever picks this up:** re-run
+`npx playwright test e2e/accessibility.spec.ts` (which settles animations) *after*
+their `--green-btn` change, and see whether `/features` and `/ai-fundraising` still
+fail. If they pass, delete them from `KNOWN_CONTRAST_BASELINE` in that spec. If they
+still fail, they are genuine and need a brand-palette decision.
+Do **not** assume either number is right without settling animations first.
