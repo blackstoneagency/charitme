@@ -4730,3 +4730,67 @@ full CI first.
   booted a local server — and failed without a full Supabase env — so the suite
   could not be pointed at a deployment at all. That capability is now available for
   whenever protection/proxy constraints lift.
+
+---
+
+# 📊 CONSOLIDATED STATUS — 2026-07-26 (Claude, session handoff)
+
+Written against the 20-point goal checklist. **Verified** = I ran it this session.
+**Claimed** = an earlier doc/session asserts it; I did not re-verify. Treat the
+difference as real: two audit ✅s turned out to be stale when I spot-checked them.
+
+| # | Goal item | State | Basis |
+|---|-----------|-------|-------|
+| 1 | Every page audited | 🟡 partial | ~36 public routes swept by e2e (render + a11y + headers). **Auth-gated dashboard/admin pages are still unaudited** — signed-in e2e needs real Supabase creds (owner-gated) |
+| 2 | Every feature works | 🟡 unproven | 1191 unit tests + 16 e2e pass, but neither exercises a signed-in journey or a real payment |
+| 3 | Everything wired to Supabase | 🟢 mostly | All features I touched are wired. `donation_receipts` is **dead schema** (superseded by `tax_receipts`, which is wired) — see Finding below |
+| 4 | ≥100 seed records per feature | ⚪ claimed | Earlier session: "73 non-empty tables, every feature ≥100". **Cannot verify from sandbox** — no Supabase creds, no Docker |
+| 5 | Every image unique, 0 duplicates | ⚪ claimed | Earlier session: covers 50→500 distinct, 0 dup groups |
+| 6 | Frictionless UX | 🟢 improved | F1–F10 all shipped (see the friction backlog): 9→7-step wizard, cross-device drafts, multi-draft, donor preview, goal guidance, honest gate copy, real publish errors, image data-loss fix |
+| 7 | Dark/light mode everywhere | ⚪ claimed | Earlier session + `theme-tokens.test.ts` regression guard. Admin is intentionally light-only |
+| 8 | Mobile responsive | ⚪ claimed | Earlier: 19 routes at 320/390px, 0 overflow. e2e runs a mobile project, so new regressions would be caught |
+| 9 | Pages load FAST | 🟡 improved | **Real finding:** DB-backed pages had NO timeout — measured ~7.1s (`/faq`, `/grants`) vs 73–726ms without DB. 15 public list reads now bounded (`lib/query-timeout.ts`). **Dashboard/admin reads still unbounded** |
+| 10 | Roles clearly mapped | 🟢 | `lib/role-capabilities.ts` + tests (another agent, this session) |
+| 11 | 100% GoFundMe parity | 🟢 claimed-closed | `docs/charitme-gofundme-audit.md` matrix is all ✅. Its 4 remaining blockers are **owner-gated credentials**, not code |
+| 12 | Better than GoFundMe | 🟢 | 0% platform fee, AI builder, Marketing OS (goals→opportunities→campaigns), grants, matching, volunteers, events, gamification, impact tracking — none of which GoFundMe has |
+| 13 | Accessibility passes | ⚪ claimed | Earlier: axe WCAG A/AA clean on ~20–30 public routes; Lighthouse 100 on 7 key pages |
+| 14 | All payment methods work | 🔴 owner-gated | Needs Stripe **live** keys + a real charge. ADR-0003. Cannot be done from sandbox |
+| 15 | Performance optimized | 🟡 | Earlier: query-waterfall + N+1 audits, `getUser()` memoised, home 63→88. Plus item 9 above |
+| 16 | Security resolved | 🟢 improved | **New this session:** auth-gate e2e (mutation-tested), middleware auth-refresh ceiling that fails safe, owner-scoped RLS on 2 new tables. Production gates verified live by curl |
+| 17 | Tests pass | ✅ verified | **1191 unit tests / 108 files green on master.** 16/16 e2e green (last successful CI run) |
+| 18 | Build succeeds | ✅ verified | `next build` compiles on master; Vercel production deploys succeeded all session |
+| 19 | todo.md updated | ✅ | This document |
+| 20 | Commit after each feature | ✅ | 5 PRs merged to production this session: #73, #75, #76 (+#59/#60/#61/#62 earlier) |
+
+## 🔴 THE ONE THING BLOCKING EVERYTHING ELSE
+**GitHub Actions is allocating no runners, repo-wide** (since ~13:05Z). Every run —
+master included — dies in 2–5s, no logs, `runner_name: ""`. Almost certainly an
+Actions minutes/spending limit; today's counter passed #458 with several agents
+pushing. **Owner action: GitHub → Settings → Billing → Actions.**
+Until it clears, the e2e gate added in #73 cannot run and nothing can be
+CI-verified. PR #76 was merged on local + Vercel evidence with that stated in the
+merge commit.
+
+## Owner-gated items no amount of bot looping can close
+1. Stripe **live** keys → real payment verification (item 14)
+2. **Resend** API key → email delivery verification
+3. **Supabase production** URL/keys → apply migrations, verify seed counts (item 4), signed-in e2e (items 1, 2)
+4. **Stripe KYC** → identity verification
+5. **Vercel Deployment Protection** → blocks pointing e2e at preview URLs (previews redirect to `vercel.com/sso-api`)
+6. **GitHub Actions quota** → the blocker above
+
+## Next highest-value work (unclaimed, in order)
+1. **Degraded-state UI for dashboard/admin reads.** They are still unbounded, but a
+   silent empty fallback is *wrong* there — "you have no campaigns" when the DB
+   timed out is worse than slow. Needs a real error state, not a fallback.
+2. **Re-verify the ⚪ claimed rows.** Two audit ✅s were stale when spot-checked
+   (dead `donation_receipts`; e2e "wired" but running in no workflow). Assume rot.
+3. **Signed-in e2e** the moment test credentials exist.
+
+## ⚠️ Process note for the bot team
+Three separate incidents this session where master churn from parallel agents cost
+real time: PR #73 went `mergeable_state: dirty` (GitHub then ran **zero**
+workflows — looks exactly like a slow queue), #76's run was cancelled outright,
+and the **same feature was built twice** twice over (step validation, and e2e-in-CI
+with a narrower scope built on an assumption I had already disproved by running it).
+**Before starting: `git log origin/master -20` and read the CLAIM blocks here.**
