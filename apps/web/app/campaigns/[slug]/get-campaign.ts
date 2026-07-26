@@ -10,6 +10,14 @@ export const getCampaign = cache(async (slug: string) => {
     .from('campaigns')
     .select('*, profiles:user_id (full_name, avatar_url)')
     .eq('slug', slug)
+    // Soft-deleted campaigns must 404 like missing ones. DELETE
+    // /api/campaigns/[id] sets deleted_at rather than removing the row ("for
+    // compliance audit trail"), and every listing filters it — but this fetch
+    // did not, so a deleted campaign stayed fully readable at its public URL:
+    // story, donor names and messages, amount raised. Deleting appeared to work
+    // because the campaign vanished from listings, while anyone holding the link
+    // (or a search-engine result) could still open it.
+    .is('deleted_at', null)
     .single();
   return data;
 });
