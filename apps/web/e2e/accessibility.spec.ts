@@ -17,13 +17,27 @@ import { resolveRoutes } from './data-routes';
 // light-only pass cannot speak for dark mode).
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Only routes that render their own content to a signed-out visitor belong here.
+//
+// `/achievements` and `/privacy-center` used to be on this list and were NOT
+// public: both call `requireUser()` and 307 to `/login`. Playwright follows that
+// redirect, so the sweep was scanning the *login page* twice under their names —
+// reporting coverage it did not have, and passing while testing nothing. The
+// assertion in the loop below now makes that impossible; they are removed here
+// because they are genuinely auth-gated by design, not because the gate is
+// inconvenient.
+//
+// Deliberately excluded for the same "it would scan something else" reason:
+// `/create`, `/profile`, `/*/manage` (redirect to /login), `/donor` (signed-in
+// donor dashboard), `/beneficiary/accept` (token-gated invite flow). Covering
+// those needs a real session — see the auth-gated sweep, not this one.
 const PUBLIC_ROUTES = [
-  '/', '/about-us', '/achievements', '/ai-campaign', '/ai-fundraising', '/blog',
+  '/', '/about-us', '/ai-campaign', '/ai-fundraising', '/blog',
   '/campaigns', '/contact', '/events', '/faq', '/features',
   '/features/fundraising-core', '/fees', '/fast-payouts', '/for-donors',
-  '/for-individuals', '/for-nonprofits', '/grants', '/help', '/how-it-works',
-  '/leaderboard', '/matching', '/offline', '/pricing', '/privacy',
-  '/privacy-center', '/prohibited-use', '/refunds', '/security', '/sponsor',
+  '/for-individuals', '/for-nonprofits', '/forgot-password', '/grants', '/help',
+  '/how-it-works', '/impact', '/leaderboard', '/matching', '/offline', '/pricing',
+  '/privacy', '/prohibited-use', '/refunds', '/security', '/sponsor',
   '/success-stories', '/supported-countries', '/terms', '/transparency',
   '/trust-safety', '/volunteer',
 ] as const;
@@ -45,6 +59,28 @@ for (const theme of ['light', 'dark'] as const) {
 
     for (const route of usable) {
       await page.goto(route, { waitUntil: 'domcontentloaded' });
+
+      // Scan the page we asked for, or fail — never something we were sent to.
+      //
+      // Playwright follows redirects silently, so a route that 307s to /login (or
+      // to any auth wall) gets scanned as if it were the real page: axe finds the
+      // login page clean and the run goes green having tested nothing. That is a
+      // false pass in the most dangerous direction, and it was live here —
+      // /achievements and /privacy-center were both on the public list while both
+      // redirected to /login.
+      //
+      // The same trap applies to external targets: pointing PLAYWRIGHT_BASE_URL at
+      // a Vercel preview sends every route to the Vercel SSO wall, which would
+      // otherwise scan clean 36 times. Comparing pathnames catches both.
+      const landed = new URL(page.url()).pathname.replace(/\/$/, '') || '/';
+      const asked = route.replace(/\/$/, '') || '/';
+      expect(
+        landed,
+        `${route} redirected to ${landed} — the scan would have measured that page, ` +
+          `not ${route}. Either it is not public (remove it from PUBLIC_ROUTES) or ` +
+          `the redirect is a bug.`,
+      ).toBe(asked);
+
       // The app reads its theme from data-theme on <html>; set it before scanning
       // so colour-contrast rules evaluate the colours a visitor actually gets.
       await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);

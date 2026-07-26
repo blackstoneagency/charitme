@@ -5607,9 +5607,40 @@ would scan the **Vercel SSO login page** 36 times and report 0 violations. The r
 green while testing none of our pages.
 
 Doing this for real needs `VERCEL_AUTOMATION_BYPASS_SECRET` (owner-gated — do not
-invent one). If anyone wires up external-target runs, add an assertion that the final
-URL host still matches the target host **before** scanning, so a redirect to an auth
-wall fails the run instead of passing it.
+invent one).
+
+### ✅ The same false-pass was already live in our own spec (Claude, 2026-07-26)
+Chasing the preview-URL trap led me to check whether it applied locally. It did.
+
+**`/achievements` and `/privacy-center` were both in `PUBLIC_ROUTES` and neither is
+public** — both call `requireUser()` and 307 to `/login`. Playwright follows
+redirects silently, so the sweep was **scanning the login page twice under their
+names** and counting it as coverage of two marketing pages. It passed while testing
+nothing. My own "36 routes scanned" claim was therefore overstated: it was really 34
+distinct pages plus `/login` three times.
+
+**Fixed structurally, not by editing the list.** The spec now asserts the landed
+pathname equals the requested one *before* scanning, so any route that redirects
+**fails** instead of silently measuring the wrong page. Mutation-tested: re-adding
+`/achievements` fails with
+`/achievements redirected to /login — the scan would have measured that page`.
+This also closes the preview-URL trap above, since an SSO redirect trips the same
+assertion.
+
+**Coverage corrected while I was in there** — audited all 47 static non-admin
+`page.tsx` routes against the list by probing each one's real redirect behaviour:
+- **Removed** `/achievements`, `/privacy-center` — auth-gated by design, not public.
+- **Added** `/impact`, `/forgot-password` — genuinely public, verified real content,
+  and never previously in the enforced gate. Both now axe-clean.
+- **Deliberately not added** (would scan something else): `/create`, `/profile`,
+  `/*/manage` → `/login`; `/donor` (signed-in dashboard); `/beneficiary/accept`
+  (token-gated invite). These need a real session — an auth-gated sweep, not this one.
+
+Full run after the change: **4/4 passing (9.4m)**, 36 genuinely distinct public
+routes × light/dark × chromium/mobile.
+
+_Lesson worth keeping: "N routes scanned" is not the same as "N pages scanned."
+A green sweep should be asked what it actually loaded._
 
 ### ✅ DONE — theme guard made luminance-based; reaches /dashboard (Claude, 2026-07-26)
 **Why the static guard kept missing things:** `theme-tokens.test.ts` matched an
