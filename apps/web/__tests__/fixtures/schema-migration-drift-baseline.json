@@ -76,12 +76,6 @@
     "plan",
     "stripe_customer_id"
   ],
-  "tax_receipts": [
-    "campaign_title",
-    "no_goods_or_services",
-    "nonprofit_ein",
-    "nonprofit_name"
-  ],
   "team_members": [
     "accepted_at",
     "invited_by"

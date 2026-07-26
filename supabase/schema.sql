@@ -70,6 +70,34 @@ $$;
 
 
 --
+-- Name: banner_settings_touch(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.banner_settings_touch() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'public'
+    AS $$
+begin
+  if row(
+    new.content_title,
+    new.content_body,
+    new.content_link_label,
+    new.content_link_url
+  ) is distinct from row(
+    old.content_title,
+    old.content_body,
+    old.content_link_label,
+    old.content_link_url
+  ) then
+    new.content_revision = old.content_revision + 1;
+  end if;
+  new.updated_at = now();
+  return new;
+end
+$$;
+
+
+--
 -- Name: campaign_payment_owner_can_read(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -83,6 +111,16 @@ CREATE FUNCTION public.campaign_payment_owner_can_read(p_campaign_id uuid, p_cam
       where c.id = p_campaign_id and c.user_id = auth.uid()
     );
 $$;
+
+
+--
+-- Name: campaign_wizard_drafts_touch(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.campaign_wizard_drafts_touch() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin new.updated_at = now(); return new; end $$;
 
 
 --
@@ -133,7 +171,10 @@ CREATE FUNCTION public.claim_campaign_reward(p_reward_id uuid) RETURNS void
     LANGUAGE sql SECURITY DEFINER
     SET search_path TO 'public'
     AS $$
-  update public.campaign_rewards set claimed_count = claimed_count + 1 where id = p_reward_id and (item_limit is null or claimed_count < item_limit);
+  update public.campaign_rewards
+  set claimed_count = claimed_count + 1
+  where id = p_reward_id
+    and (item_limit is null or claimed_count < item_limit);
 $$;
 
 
@@ -215,25 +256,24 @@ CREATE FUNCTION public.handle_new_user() RETURNS trigger
     AS $$
 declare
   requested_roles jsonb;
+  display_name text;
 begin
   requested_roles := coalesce(new.raw_user_meta_data -> 'roles', '["donor"]'::jsonb);
-
   if jsonb_typeof(requested_roles) <> 'array' then
     requested_roles := '["donor"]'::jsonb;
   end if;
 
-  insert into public.profiles (
-    id,
-    email,
-    full_name,
-    avatar_url,
-    roles
-  )
+  display_name := coalesce(
+    nullif(new.raw_user_meta_data ->> 'full_name', ''),
+    nullif(new.raw_user_meta_data ->> 'name', '')
+  );
+
+  insert into public.profiles (id, email, full_name, avatar_url, roles)
   values (
     new.id,
     new.email,
-    coalesce(new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name'),
-    new.raw_user_meta_data ->> 'avatar_url',
+    display_name,
+    nullif(new.raw_user_meta_data ->> 'avatar_url', ''),
     requested_roles
   )
   on conflict (id) do update
@@ -242,6 +282,40 @@ begin
     full_name = coalesce(public.profiles.full_name, excluded.full_name),
     avatar_url = coalesce(public.profiles.avatar_url, excluded.avatar_url),
     updated_at = now();
+
+  if new.email is not null then
+    update public.marketing_contacts
+    set
+      user_id = new.id,
+      first_name = coalesce(first_name, display_name),
+      last_active_at = now()
+    where lower(email) = lower(new.email)
+      and user_id is null;
+
+    if not found then
+      insert into public.marketing_contacts (
+        user_id, email, first_name, client_type, lifecycle_stage, status
+      )
+      values (new.id, new.email, display_name, 'donor', 'subscriber', 'active')
+      on conflict do nothing;
+    end if;
+
+    insert into public.marketing_identities (contact_id, kind, value)
+    select c.id, 'email', lower(new.email)
+    from public.marketing_contacts c
+    where lower(c.email) = lower(new.email)
+    order by c.created_at
+    limit 1
+    on conflict (kind, value) do nothing;
+
+    insert into public.marketing_identities (contact_id, kind, value)
+    select c.id, 'user_id', new.id::text
+    from public.marketing_contacts c
+    where c.user_id = new.id
+    order by c.created_at
+    limit 1
+    on conflict (kind, value) do nothing;
+  end if;
 
   return new;
 end;
@@ -290,12 +364,13 @@ $$;
 --
 
 CREATE FUNCTION public.is_admin() RETURNS boolean
-    LANGUAGE sql STABLE
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
     AS $$
   select exists (
     select 1 from public.profiles
     where id = auth.uid()
-    and roles ? 'admin'
+      and roles ? 'admin'
   );
 $$;
 
@@ -373,7 +448,7 @@ begin
     perform pg_advisory_xact_lock(hashtextextended(v_lock_key, 0));
   end if;
 
-  -- Idempotency check (now race-safe under the advisory lock above)
+  -- Idempotency check (race-safe under the advisory lock above)
   select id into v_existing from donations
   where stripe_checkout_session_id = p_stripe_checkout_session_id
      or (stripe_payment_intent_id = p_stripe_payment_intent_id and p_stripe_payment_intent_id is not null)
@@ -383,6 +458,9 @@ begin
     return jsonb_build_object('status','already_processed','id', v_existing);
   end if;
 
+  -- The AFTER INSERT trigger donations_increment_campaign_stats increments
+  -- campaigns.raised_amount / backer_count for this 'completed' row. Do NOT
+  -- increment again here — that double-counts (see migration header).
   insert into donations (
     campaign_id, donor_id, amount_cents, tip_cents, processing_fee_cents,
     status, anonymous, message, stripe_payment_intent_id, stripe_checkout_session_id
@@ -390,10 +468,6 @@ begin
     p_campaign_id, p_donor_id, p_amount_cents, p_tip_cents, p_processing_fee_cents,
     'completed', p_anonymous, p_message, p_stripe_payment_intent_id, p_stripe_checkout_session_id
   );
-
-  -- NOTE: campaign raised_amount / backer_count are incremented by the AFTER
-  -- INSERT trigger donations_increment_campaign_stats. Do NOT increment here —
-  -- that double-counts (see migration 20260721000000).
 
   insert into webhook_events (stripe_event_id, event_type, payload, processed_at)
   values (p_stripe_event_id, 'checkout.session.completed', '{}'::jsonb, now())
@@ -417,6 +491,45 @@ CREATE FUNCTION public.set_updated_at() RETURNS trigger
     AS $$
 begin
   new.updated_at = now();
+  return new;
+end;
+$$;
+
+
+--
+-- Name: volunteer_hours_guard_verification(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.volunteer_hours_guard_verification() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+declare
+  owner_id uuid;
+begin
+  if tg_op = 'UPDATE'
+     and new.status is distinct from old.status
+     and new.status = 'verified' then
+
+    select created_by into owner_id
+      from volunteer_opportunities
+     where id = new.opportunity_id;
+
+    if not (is_admin() or owner_id = auth.uid()) then
+      raise exception 'only the opportunity owner or an admin can verify volunteer hours'
+        using errcode = 'check_violation';
+    end if;
+
+    -- Stamp the attribution here so it cannot be forged by the caller.
+    new.verified_by := auth.uid();
+    new.verified_at := now();
+  end if;
+
+  if tg_op = 'UPDATE' and new.status is distinct from old.status and new.status <> 'verified' then
+    new.verified_by := null;
+    new.verified_at := null;
+  end if;
+
   return new;
 end;
 $$;
@@ -475,6 +588,28 @@ CREATE TABLE public.admin_settings (
 
 
 --
+-- Name: aeo_entries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.aeo_entries (
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    question text NOT NULL,
+    answer text NOT NULL,
+    topic text,
+    schema_type text DEFAULT 'FAQPage'::text NOT NULL,
+    priority integer DEFAULT 0 NOT NULL,
+    published boolean DEFAULT true NOT NULL,
+    updated_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    route text DEFAULT '/faq'::text NOT NULL,
+    CONSTRAINT aeo_entries_private_routes_published_check CHECK (((published = false) OR (NOT ((route = ANY (ARRAY['/achievements'::text, '/privacy-center'::text, '/offline'::text])) OR (route = '/go'::text) OR (route ~~ '/go/%'::text) OR (route ~~ '/events/manage%'::text) OR (route ~~ '/impact/manage%'::text) OR (route ~~ '/matching/manage%'::text) OR (route ~~ '/sponsor/manage%'::text))))),
+    CONSTRAINT aeo_entries_public_route_check CHECK (((route ~~ '/%'::text) AND (route !~~ '%?%'::text) AND (route !~~ '%#%'::text) AND (route !~~ '/admin%'::text) AND (route !~~ '/dashboard%'::text) AND (route !~~ '/create%'::text) AND (route !~~ '/login%'::text) AND (route !~~ '/forgot-password%'::text) AND (route !~~ '/profile%'::text) AND (route !~~ '/donor%'::text) AND (route !~~ '/beneficiary%'::text))),
+    CONSTRAINT aeo_entries_schema_type_check CHECK ((schema_type = ANY (ARRAY['FAQPage'::text, 'QAPage'::text, 'HowTo'::text])))
+);
+
+
+--
 -- Name: ai_generations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -503,6 +638,27 @@ CREATE TABLE public.analytics_snapshots (
     snapshot_date date DEFAULT CURRENT_DATE NOT NULL,
     metrics jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: announcements; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.announcements (
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    title text NOT NULL,
+    body text,
+    level text DEFAULT 'info'::text NOT NULL,
+    link_url text,
+    link_label text,
+    active boolean DEFAULT false NOT NULL,
+    starts_at timestamp with time zone,
+    ends_at timestamp with time zone,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT announcements_level_check CHECK ((level = ANY (ARRAY['info'::text, 'success'::text, 'warning'::text, 'critical'::text])))
 );
 
 
@@ -573,6 +729,52 @@ CREATE TABLE public.audit_logs (
 
 
 --
+-- Name: banner_settings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.banner_settings (
+    id text DEFAULT 'global'::text NOT NULL,
+    enabled boolean DEFAULT true NOT NULL,
+    background_color text DEFAULT '#12b76a'::text NOT NULL,
+    text_color text DEFAULT '#ffffff'::text NOT NULL,
+    link_color text DEFAULT '#ffffff'::text NOT NULL,
+    font_family text DEFAULT 'inherit'::text NOT NULL,
+    font_size_px integer DEFAULT 14 NOT NULL,
+    title_font_size_px integer DEFAULT 14 NOT NULL,
+    font_weight integer DEFAULT 400 NOT NULL,
+    title_font_weight integer DEFAULT 700 NOT NULL,
+    text_align text DEFAULT 'left'::text NOT NULL,
+    letter_spacing_em numeric DEFAULT 0 NOT NULL,
+    uppercase boolean DEFAULT false NOT NULL,
+    padding_y_px integer DEFAULT 9 NOT NULL,
+    dismissible boolean DEFAULT true NOT NULL,
+    use_level_colors boolean DEFAULT false NOT NULL,
+    updated_by uuid,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    content_title text DEFAULT ''::text NOT NULL,
+    content_body text DEFAULT ''::text NOT NULL,
+    content_link_label text DEFAULT ''::text NOT NULL,
+    content_link_url text DEFAULT ''::text NOT NULL,
+    content_revision bigint DEFAULT 1 NOT NULL,
+    CONSTRAINT banner_settings_align_chk CHECK ((text_align = ANY (ARRAY['left'::text, 'center'::text, 'right'::text]))),
+    CONSTRAINT banner_settings_bg_chk CHECK ((background_color ~* '^#[0-9a-f]{3}([0-9a-f]{3})?$'::text)),
+    CONSTRAINT banner_settings_content_body_chk CHECK ((char_length(content_body) <= 240)),
+    CONSTRAINT banner_settings_content_link_label_chk CHECK ((char_length(content_link_label) <= 60)),
+    CONSTRAINT banner_settings_content_link_url_chk CHECK (((char_length(content_link_url) <= 500) AND ((content_link_url = ''::text) OR (content_link_url ~ '^/($|[^/])'::text) OR (content_link_url ~* '^https://'::text)))),
+    CONSTRAINT banner_settings_content_title_chk CHECK ((char_length(content_title) <= 120)),
+    CONSTRAINT banner_settings_font_size_chk CHECK (((font_size_px >= 10) AND (font_size_px <= 28))),
+    CONSTRAINT banner_settings_link_chk CHECK ((link_color ~* '^#[0-9a-f]{3}([0-9a-f]{3})?$'::text)),
+    CONSTRAINT banner_settings_padding_chk CHECK (((padding_y_px >= 0) AND (padding_y_px <= 40))),
+    CONSTRAINT banner_settings_singleton_chk CHECK ((id = 'global'::text)),
+    CONSTRAINT banner_settings_text_chk CHECK ((text_color ~* '^#[0-9a-f]{3}([0-9a-f]{3})?$'::text)),
+    CONSTRAINT banner_settings_tfont_size_chk CHECK (((title_font_size_px >= 10) AND (title_font_size_px <= 28))),
+    CONSTRAINT banner_settings_tracking_chk CHECK (((letter_spacing_em >= '-0.05'::numeric) AND (letter_spacing_em <= 0.5))),
+    CONSTRAINT banner_settings_tweight_chk CHECK ((title_font_weight = ANY (ARRAY[300, 400, 500, 600, 700, 800, 900]))),
+    CONSTRAINT banner_settings_weight_chk CHECK ((font_weight = ANY (ARRAY[300, 400, 500, 600, 700, 800, 900])))
+);
+
+
+--
 -- Name: beneficiary_invites; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -639,6 +841,42 @@ CREATE TABLE public.campaign_analytics_events (
 
 
 --
+-- Name: campaign_builder_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.campaign_builder_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    session_id text NOT NULL,
+    user_id uuid,
+    path text DEFAULT 'guided'::text NOT NULL,
+    step text NOT NULL,
+    event text NOT NULL,
+    meta jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT campaign_builder_events_event_chk CHECK ((event = ANY (ARRAY['enter'::text, 'advance'::text, 'back'::text, 'publish'::text, 'save_draft'::text, 'abandon'::text]))),
+    CONSTRAINT campaign_builder_events_path_chk CHECK ((path = ANY (ARRAY['guided'::text, 'ai'::text])))
+);
+
+
+--
+-- Name: campaign_faqs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.campaign_faqs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    campaign_id uuid NOT NULL,
+    question text NOT NULL,
+    answer text NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    is_public boolean DEFAULT true NOT NULL,
+    ai_generated boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT campaign_faqs_answer_check CHECK (((char_length(answer) >= 5) AND (char_length(answer) <= 2000))),
+    CONSTRAINT campaign_faqs_question_check CHECK (((char_length(question) >= 5) AND (char_length(question) <= 300)))
+);
+
+
+--
 -- Name: campaign_launch_settings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -676,6 +914,22 @@ CREATE TABLE public.campaign_media (
 
 
 --
+-- Name: campaign_milestones; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.campaign_milestones (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    campaign_id uuid NOT NULL,
+    title text NOT NULL,
+    description text,
+    target_amount bigint,
+    reached_at timestamp with time zone,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: campaign_owner_payouts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -702,6 +956,21 @@ CREATE TABLE public.campaign_owner_payouts (
     CONSTRAINT campaign_owner_payouts_gross_amount_check CHECK ((gross_amount >= 0)),
     CONSTRAINT campaign_owner_payouts_owner_net_amount_check CHECK ((owner_net_amount >= 0)),
     CONSTRAINT campaign_owner_payouts_status_check CHECK ((status = ANY (ARRAY['requested'::text, 'approved'::text, 'pending'::text, 'paid'::text, 'failed'::text, 'frozen'::text, 'released'::text, 'not_applicable'::text])))
+);
+
+
+--
+-- Name: campaign_owner_replies; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.campaign_owner_replies (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    campaign_id uuid NOT NULL,
+    donor_message_id uuid,
+    owner_id uuid NOT NULL,
+    message text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT campaign_owner_replies_message_check CHECK (((char_length(message) >= 1) AND (char_length(message) <= 5000)))
 );
 
 
@@ -1226,6 +1495,25 @@ CREATE TABLE public.campaign_updates (
 
 
 --
+-- Name: campaign_wizard_drafts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.campaign_wizard_drafts (
+    user_id uuid NOT NULL,
+    step text DEFAULT 'type'::text NOT NULL,
+    story_mode text DEFAULT 'guided'::text NOT NULL,
+    form jsonb DEFAULT '{}'::jsonb NOT NULL,
+    images jsonb DEFAULT '[]'::jsonb NOT NULL,
+    client_ts bigint DEFAULT 0 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text,
+    CONSTRAINT campaign_wizard_drafts_form_is_object CHECK ((jsonb_typeof(form) = 'object'::text)),
+    CONSTRAINT campaign_wizard_drafts_images_is_array CHECK ((jsonb_typeof(images) = 'array'::text))
+);
+
+
+--
 -- Name: campaigns; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1297,6 +1585,20 @@ CREATE TABLE public.challenges (
     CONSTRAINT challenges_goal_value_check CHECK ((goal_value > 0)),
     CONSTRAINT challenges_metric_check CHECK ((metric = ANY (ARRAY['donation_count'::text, 'total_cents'::text, 'campaign_count'::text]))),
     CONSTRAINT challenges_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'completed'::text])))
+);
+
+
+--
+-- Name: coach_sessions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.coach_sessions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    campaign_id uuid,
+    message_count integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -2098,6 +2400,50 @@ CREATE TABLE public.marketing_automations (
 
 
 --
+-- Name: marketing_campaign_plan_assets; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.marketing_campaign_plan_assets (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    plan_id uuid NOT NULL,
+    asset_type text NOT NULL,
+    channel text NOT NULL,
+    title text NOT NULL,
+    body text DEFAULT ''::text NOT NULL,
+    meta jsonb DEFAULT '{}'::jsonb NOT NULL,
+    status text DEFAULT 'draft'::text NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT marketing_cpa_status_chk CHECK ((status = ANY (ARRAY['draft'::text, 'approved'::text, 'archived'::text]))),
+    CONSTRAINT marketing_cpa_type_chk CHECK ((asset_type = ANY (ARRAY['landing_page'::text, 'email'::text, 'social_post'::text, 'seo_meta'::text, 'faq'::text, 'sms'::text, 'ad'::text, 'blog_post'::text])))
+);
+
+
+--
+-- Name: marketing_campaign_plans; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.marketing_campaign_plans (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    goal_id uuid,
+    title text NOT NULL,
+    objective text,
+    audience text,
+    geography text,
+    category text,
+    summary text,
+    status text DEFAULT 'draft'::text NOT NULL,
+    source text DEFAULT 'generated'::text NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT marketing_cplans_source_chk CHECK ((source = ANY (ARRAY['generated'::text, 'manual'::text]))),
+    CONSTRAINT marketing_cplans_status_chk CHECK ((status = ANY (ARRAY['draft'::text, 'in_review'::text, 'approved'::text, 'archived'::text])))
+);
+
+
+--
 -- Name: marketing_campaign_recipients; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2266,6 +2612,46 @@ CREATE TABLE public.marketing_forms (
 
 
 --
+-- Name: marketing_goals; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.marketing_goals (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text NOT NULL,
+    description text,
+    objective text,
+    natural_language_input text,
+    target_metric text DEFAULT 'custom'::text NOT NULL,
+    baseline_value numeric,
+    target_value numeric,
+    unit text DEFAULT 'count'::text NOT NULL,
+    deadline date,
+    priority text DEFAULT 'medium'::text NOT NULL,
+    geography text,
+    audience text,
+    category text,
+    budget_cents bigint,
+    channels text[] DEFAULT '{}'::text[] NOT NULL,
+    autonomy_level smallint DEFAULT 1 NOT NULL,
+    constraints jsonb DEFAULT '{}'::jsonb NOT NULL,
+    status text DEFAULT 'draft'::text NOT NULL,
+    confidence numeric,
+    forecast_value numeric,
+    owner_id uuid,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT marketing_goals_autonomy_chk CHECK (((autonomy_level >= 1) AND (autonomy_level <= 4))),
+    CONSTRAINT marketing_goals_budget_cents_check CHECK (((budget_cents IS NULL) OR (budget_cents >= 0))),
+    CONSTRAINT marketing_goals_confidence_chk CHECK (((confidence IS NULL) OR ((confidence >= (0)::numeric) AND (confidence <= (1)::numeric)))),
+    CONSTRAINT marketing_goals_metric_chk CHECK ((target_metric = ANY (ARRAY['fundraiser_starts'::text, 'donation_volume'::text, 'recurring_donors'::text, 'donation_conversion'::text, 'verified_charities'::text, 'donor_acquisition_cost'::text, 'organizer_retention'::text, 'aeo_visibility'::text, 'organic_traffic'::text, 'custom'::text]))),
+    CONSTRAINT marketing_goals_priority_chk CHECK ((priority = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text, 'critical'::text]))),
+    CONSTRAINT marketing_goals_status_chk CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'paused'::text, 'achieved'::text, 'missed'::text, 'archived'::text]))),
+    CONSTRAINT marketing_goals_unit_chk CHECK ((unit = ANY (ARRAY['count'::text, 'cents'::text, 'percent'::text, 'ratio'::text])))
+);
+
+
+--
 -- Name: marketing_identities; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2275,6 +2661,44 @@ CREATE TABLE public.marketing_identities (
     kind text NOT NULL,
     value text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: marketing_opportunities; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.marketing_opportunities (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text NOT NULL,
+    description text,
+    rationale text,
+    evidence jsonb DEFAULT '{}'::jsonb NOT NULL,
+    category text,
+    geography text,
+    audience text,
+    target_metric text DEFAULT 'custom'::text NOT NULL,
+    est_impact_cents bigint,
+    est_starts integer,
+    confidence numeric,
+    effort text DEFAULT 'medium'::text NOT NULL,
+    cost_cents bigint,
+    time_to_value_days integer,
+    score numeric DEFAULT 0 NOT NULL,
+    status text DEFAULT 'new'::text NOT NULL,
+    source text DEFAULT 'rule'::text NOT NULL,
+    dedupe_key text,
+    linked_goal_id uuid,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT marketing_opportunities_cost_cents_check CHECK (((cost_cents IS NULL) OR (cost_cents >= 0))),
+    CONSTRAINT marketing_opps_confidence_chk CHECK (((confidence IS NULL) OR ((confidence >= (0)::numeric) AND (confidence <= (1)::numeric)))),
+    CONSTRAINT marketing_opps_effort_chk CHECK ((effort = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text]))),
+    CONSTRAINT marketing_opps_metric_chk CHECK ((target_metric = ANY (ARRAY['fundraiser_starts'::text, 'donation_volume'::text, 'recurring_donors'::text, 'donation_conversion'::text, 'verified_charities'::text, 'donor_acquisition_cost'::text, 'organizer_retention'::text, 'aeo_visibility'::text, 'organic_traffic'::text, 'custom'::text]))),
+    CONSTRAINT marketing_opps_score_chk CHECK (((score >= (0)::numeric) AND (score <= (100)::numeric))),
+    CONSTRAINT marketing_opps_source_chk CHECK ((source = ANY (ARRAY['rule'::text, 'ai'::text, 'manual'::text]))),
+    CONSTRAINT marketing_opps_status_chk CHECK ((status = ANY (ARRAY['new'::text, 'accepted'::text, 'rejected'::text, 'deferred'::text, 'converted'::text, 'archived'::text])))
 );
 
 
@@ -2707,7 +3131,21 @@ CREATE TABLE public.profiles (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     notification_email boolean DEFAULT true NOT NULL,
     notification_updates boolean DEFAULT true NOT NULL,
-    notification_marketing boolean DEFAULT false NOT NULL
+    notification_marketing boolean DEFAULT false NOT NULL,
+    timezone text DEFAULT 'America/New_York'::text,
+    currency text DEFAULT 'usd'::text,
+    language text DEFAULT 'en'::text,
+    date_format text DEFAULT 'MM/DD/YYYY'::text,
+    time_format text DEFAULT '12h'::text,
+    show_public_profile boolean DEFAULT true,
+    campaign_recommendations boolean DEFAULT true,
+    bio text,
+    org_name text,
+    org_tagline text,
+    org_website text,
+    plan text DEFAULT 'free'::text,
+    stripe_customer_id text,
+    stripe_subscription_id text
 );
 
 
@@ -2780,9 +3218,9 @@ CREATE TABLE public.refunds (
     reason text,
     status text DEFAULT 'requested'::text NOT NULL,
     stripe_refund_id text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
     reviewed_by uuid,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT refunds_status_check CHECK ((status = ANY (ARRAY['requested'::text, 'under_review'::text, 'approved'::text, 'declined'::text, 'processing'::text, 'processed'::text, 'failed'::text, 'canceled'::text])))
 );
 
@@ -2841,6 +3279,28 @@ CREATE TABLE public.saved_campaigns (
     user_id uuid NOT NULL,
     campaign_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: seo_settings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.seo_settings (
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    route text NOT NULL,
+    title text,
+    meta_description text,
+    keywords text,
+    og_title text,
+    og_description text,
+    og_image_url text,
+    canonical_url text,
+    noindex boolean DEFAULT false NOT NULL,
+    updated_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT seo_settings_private_routes_noindex_check CHECK (((noindex = true) OR (NOT ((route = ANY (ARRAY['/achievements'::text, '/privacy-center'::text, '/offline'::text])) OR (route = '/go'::text) OR (route ~~ '/go/%'::text) OR (route ~~ '/events/manage%'::text) OR (route ~~ '/impact/manage%'::text) OR (route ~~ '/matching/manage%'::text) OR (route ~~ '/sponsor/manage%'::text)))))
 );
 
 
@@ -3040,7 +3500,12 @@ CREATE TABLE public.tax_receipts (
     receipt_number text NOT NULL,
     amount_cents bigint NOT NULL,
     emailed_at timestamp with time zone,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    currency text DEFAULT 'usd'::text NOT NULL,
+    nonprofit_name text,
+    nonprofit_ein text,
+    campaign_title text,
+    no_goods_or_services boolean DEFAULT true NOT NULL
 );
 
 
@@ -3153,6 +3618,33 @@ CREATE TABLE public.volunteer_applications (
 
 
 --
+-- Name: volunteer_hours; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.volunteer_hours (
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    shift_id uuid,
+    opportunity_id uuid NOT NULL,
+    volunteer_user_id uuid NOT NULL,
+    checked_in_at timestamp with time zone,
+    checked_out_at timestamp with time zone,
+    hours numeric(7,2) DEFAULT 0 NOT NULL,
+    source text DEFAULT 'manual'::text NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    verified_by uuid,
+    verified_at timestamp with time zone,
+    notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    deleted_at timestamp with time zone,
+    CONSTRAINT volunteer_hours_nonneg CHECK ((hours >= (0)::numeric)),
+    CONSTRAINT volunteer_hours_source_check CHECK ((source = ANY (ARRAY['manual'::text, 'check_in'::text]))),
+    CONSTRAINT volunteer_hours_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'verified'::text, 'rejected'::text]))),
+    CONSTRAINT volunteer_hours_time_order CHECK (((checked_out_at IS NULL) OR (checked_in_at IS NULL) OR (checked_out_at >= checked_in_at)))
+);
+
+
+--
 -- Name: volunteer_opportunities; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3208,6 +3700,34 @@ CREATE TABLE public.volunteer_profiles (
 
 
 --
+-- Name: volunteer_shifts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.volunteer_shifts (
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    opportunity_id uuid NOT NULL,
+    title text NOT NULL,
+    starts_at timestamp with time zone NOT NULL,
+    ends_at timestamp with time zone NOT NULL,
+    location text,
+    is_remote boolean DEFAULT false NOT NULL,
+    capacity integer,
+    filled_count integer DEFAULT 0 NOT NULL,
+    notes text,
+    checkin_code text,
+    status text DEFAULT 'scheduled'::text NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    deleted_at timestamp with time zone,
+    CONSTRAINT volunteer_shifts_capacity_nonneg CHECK (((capacity IS NULL) OR (capacity >= 0))),
+    CONSTRAINT volunteer_shifts_filled_nonneg CHECK ((filled_count >= 0)),
+    CONSTRAINT volunteer_shifts_status_check CHECK ((status = ANY (ARRAY['scheduled'::text, 'cancelled'::text, 'completed'::text]))),
+    CONSTRAINT volunteer_shifts_time_order CHECK ((ends_at > starts_at))
+);
+
+
+--
 -- Name: webhook_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3247,6 +3767,14 @@ ALTER TABLE ONLY public.admin_settings
 
 
 --
+-- Name: aeo_entries aeo_entries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.aeo_entries
+    ADD CONSTRAINT aeo_entries_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: ai_generations ai_generations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3260,6 +3788,14 @@ ALTER TABLE ONLY public.ai_generations
 
 ALTER TABLE ONLY public.analytics_snapshots
     ADD CONSTRAINT analytics_snapshots_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: announcements announcements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.announcements
+    ADD CONSTRAINT announcements_pkey PRIMARY KEY (id);
 
 
 --
@@ -3303,6 +3839,14 @@ ALTER TABLE ONLY public.audit_logs
 
 
 --
+-- Name: banner_settings banner_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.banner_settings
+    ADD CONSTRAINT banner_settings_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: beneficiary_invites beneficiary_invites_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3335,6 +3879,22 @@ ALTER TABLE ONLY public.campaign_analytics_events
 
 
 --
+-- Name: campaign_builder_events campaign_builder_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_builder_events
+    ADD CONSTRAINT campaign_builder_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: campaign_faqs campaign_faqs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_faqs
+    ADD CONSTRAINT campaign_faqs_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: campaign_launch_settings campaign_launch_settings_campaign_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3359,11 +3919,27 @@ ALTER TABLE ONLY public.campaign_media
 
 
 --
+-- Name: campaign_milestones campaign_milestones_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_milestones
+    ADD CONSTRAINT campaign_milestones_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: campaign_owner_payouts campaign_owner_payouts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.campaign_owner_payouts
     ADD CONSTRAINT campaign_owner_payouts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: campaign_owner_replies campaign_owner_replies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_owner_replies
+    ADD CONSTRAINT campaign_owner_replies_pkey PRIMARY KEY (id);
 
 
 --
@@ -3551,6 +4127,14 @@ ALTER TABLE ONLY public.campaign_updates
 
 
 --
+-- Name: campaign_wizard_drafts campaign_wizard_drafts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_wizard_drafts
+    ADD CONSTRAINT campaign_wizard_drafts_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: campaigns campaigns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3596,6 +4180,14 @@ ALTER TABLE ONLY public.challenges
 
 ALTER TABLE ONLY public.challenges
     ADD CONSTRAINT challenges_slug_key UNIQUE (slug);
+
+
+--
+-- Name: coach_sessions coach_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coach_sessions
+    ADD CONSTRAINT coach_sessions_pkey PRIMARY KEY (id);
 
 
 --
@@ -4031,6 +4623,22 @@ ALTER TABLE ONLY public.marketing_automations
 
 
 --
+-- Name: marketing_campaign_plan_assets marketing_campaign_plan_assets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_campaign_plan_assets
+    ADD CONSTRAINT marketing_campaign_plan_assets_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: marketing_campaign_plans marketing_campaign_plans_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_campaign_plans
+    ADD CONSTRAINT marketing_campaign_plans_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: marketing_campaign_recipients marketing_campaign_recipients_campaign_id_contact_id_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4103,6 +4711,14 @@ ALTER TABLE ONLY public.marketing_forms
 
 
 --
+-- Name: marketing_goals marketing_goals_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_goals
+    ADD CONSTRAINT marketing_goals_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: marketing_identities marketing_identities_kind_value_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4116,6 +4732,14 @@ ALTER TABLE ONLY public.marketing_identities
 
 ALTER TABLE ONLY public.marketing_identities
     ADD CONSTRAINT marketing_identities_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: marketing_opportunities marketing_opportunities_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_opportunities
+    ADD CONSTRAINT marketing_opportunities_pkey PRIMARY KEY (id);
 
 
 --
@@ -4439,6 +5063,22 @@ ALTER TABLE ONLY public.saved_campaigns
 
 
 --
+-- Name: seo_settings seo_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seo_settings
+    ADD CONSTRAINT seo_settings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: seo_settings seo_settings_route_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seo_settings
+    ADD CONSTRAINT seo_settings_route_key UNIQUE (route);
+
+
+--
 -- Name: share_events share_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4615,6 +5255,14 @@ ALTER TABLE ONLY public.volunteer_applications
 
 
 --
+-- Name: volunteer_hours volunteer_hours_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.volunteer_hours
+    ADD CONSTRAINT volunteer_hours_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: volunteer_opportunities volunteer_opportunities_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4639,6 +5287,22 @@ ALTER TABLE ONLY public.volunteer_profiles
 
 
 --
+-- Name: volunteer_shifts volunteer_shifts_checkin_code_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.volunteer_shifts
+    ADD CONSTRAINT volunteer_shifts_checkin_code_key UNIQUE (checkin_code);
+
+
+--
+-- Name: volunteer_shifts volunteer_shifts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.volunteer_shifts
+    ADD CONSTRAINT volunteer_shifts_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: webhook_events webhook_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4655,10 +5319,31 @@ ALTER TABLE ONLY public.webhook_events
 
 
 --
+-- Name: aeo_entries_pub_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX aeo_entries_pub_idx ON public.aeo_entries USING btree (published, priority DESC);
+
+
+--
+-- Name: aeo_entries_route_pub_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX aeo_entries_route_pub_idx ON public.aeo_entries USING btree (route, published, priority DESC, created_at DESC);
+
+
+--
 -- Name: analytics_snapshots_campaign_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX analytics_snapshots_campaign_id_idx ON public.analytics_snapshots USING btree (campaign_id);
+
+
+--
+-- Name: announcements_active_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX announcements_active_idx ON public.announcements USING btree (active);
 
 
 --
@@ -4729,6 +5414,13 @@ CREATE INDEX business_leads_status_idx ON public.business_leads USING btree (sta
 --
 
 CREATE INDEX campaign_analytics_events_campaign_id_idx ON public.campaign_analytics_events USING btree (campaign_id);
+
+
+--
+-- Name: campaign_launch_settings_campaign_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX campaign_launch_settings_campaign_id_idx ON public.campaign_launch_settings USING btree (campaign_id);
 
 
 --
@@ -4897,6 +5589,13 @@ CREATE INDEX challenges_status_idx ON public.challenges USING btree (status);
 --
 
 CREATE INDEX creator_profiles_user_id_idx ON public.creator_profiles USING btree (user_id);
+
+
+--
+-- Name: creator_profiles_user_id_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX creator_profiles_user_id_unique ON public.creator_profiles USING btree (user_id);
 
 
 --
@@ -5082,6 +5781,13 @@ CREATE INDEX idx_admin_notes_target ON public.admin_notes USING btree (target_ty
 
 
 --
+-- Name: idx_campaign_faqs_campaign_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_campaign_faqs_campaign_id ON public.campaign_faqs USING btree (campaign_id);
+
+
+--
 -- Name: idx_campaign_rewards_campaign; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5089,10 +5795,122 @@ CREATE INDEX idx_campaign_rewards_campaign ON public.campaign_rewards USING btre
 
 
 --
+-- Name: idx_cbe_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_cbe_created ON public.campaign_builder_events USING btree (created_at);
+
+
+--
+-- Name: idx_cbe_session; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_cbe_session ON public.campaign_builder_events USING btree (session_id, created_at);
+
+
+--
+-- Name: idx_cbe_step; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_cbe_step ON public.campaign_builder_events USING btree (step, created_at);
+
+
+--
+-- Name: idx_coach_sessions_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_coach_sessions_user_id ON public.coach_sessions USING btree (user_id);
+
+
+--
+-- Name: idx_cwd_updated; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_cwd_updated ON public.campaign_wizard_drafts USING btree (updated_at DESC);
+
+
+--
+-- Name: idx_cwd_user_updated; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_cwd_user_updated ON public.campaign_wizard_drafts USING btree (user_id, updated_at DESC);
+
+
+--
 -- Name: idx_donations_is_spam; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_donations_is_spam ON public.donations USING btree (is_spam) WHERE (is_spam = true);
+
+
+--
+-- Name: idx_marketing_cpa_plan; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_marketing_cpa_plan ON public.marketing_campaign_plan_assets USING btree (plan_id, sort_order);
+
+
+--
+-- Name: idx_marketing_cplans_goal; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_marketing_cplans_goal ON public.marketing_campaign_plans USING btree (goal_id);
+
+
+--
+-- Name: idx_marketing_cplans_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_marketing_cplans_status ON public.marketing_campaign_plans USING btree (status, created_at DESC);
+
+
+--
+-- Name: idx_marketing_goals_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_marketing_goals_created ON public.marketing_goals USING btree (created_at DESC);
+
+
+--
+-- Name: idx_marketing_goals_deadline; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_marketing_goals_deadline ON public.marketing_goals USING btree (deadline);
+
+
+--
+-- Name: idx_marketing_goals_owner; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_marketing_goals_owner ON public.marketing_goals USING btree (owner_id);
+
+
+--
+-- Name: idx_marketing_goals_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_marketing_goals_status ON public.marketing_goals USING btree (status, priority);
+
+
+--
+-- Name: idx_marketing_opps_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_marketing_opps_created ON public.marketing_opportunities USING btree (created_at DESC);
+
+
+--
+-- Name: idx_marketing_opps_score; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_marketing_opps_score ON public.marketing_opportunities USING btree (score DESC);
+
+
+--
+-- Name: idx_marketing_opps_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_marketing_opps_status ON public.marketing_opportunities USING btree (status, score DESC);
 
 
 --
@@ -5331,6 +6149,13 @@ CREATE INDEX marketing_contacts_stage_idx ON public.marketing_contacts USING btr
 --
 
 CREATE INDEX marketing_contacts_type_idx ON public.marketing_contacts USING btree (client_type);
+
+
+--
+-- Name: marketing_contacts_user_id_uq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX marketing_contacts_user_id_uq ON public.marketing_contacts USING btree (user_id) WHERE (user_id IS NOT NULL);
 
 
 --
@@ -5579,6 +6404,13 @@ CREATE INDEX saved_campaigns_user_id_idx ON public.saved_campaigns USING btree (
 
 
 --
+-- Name: seo_settings_route_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX seo_settings_route_idx ON public.seo_settings USING btree (route);
+
+
+--
 -- Name: sponsorship_opportunities_campaign_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5642,6 +6474,34 @@ CREATE INDEX support_cases_status_idx ON public.support_cases USING btree (statu
 
 
 --
+-- Name: supported_countries_iso_code_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX supported_countries_iso_code_key ON public.supported_countries USING btree (iso_code);
+
+
+--
+-- Name: tax_receipts_donation_id_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX tax_receipts_donation_id_unique ON public.tax_receipts USING btree (donation_id) WHERE (donation_id IS NOT NULL);
+
+
+--
+-- Name: tax_receipts_donor_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tax_receipts_donor_created_at_idx ON public.tax_receipts USING btree (donor_id, created_at DESC);
+
+
+--
+-- Name: uq_marketing_opps_dedupe; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX uq_marketing_opps_dedupe ON public.marketing_opportunities USING btree (dedupe_key) WHERE (dedupe_key IS NOT NULL);
+
+
+--
 -- Name: user_badges_user_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5660,6 +6520,41 @@ CREATE INDEX vol_app_applicant_idx ON public.volunteer_applications USING btree 
 --
 
 CREATE INDEX vol_app_opp_idx ON public.volunteer_applications USING btree (opportunity_id) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: vol_hours_one_open_checkin; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX vol_hours_one_open_checkin ON public.volunteer_hours USING btree (volunteer_user_id, shift_id) WHERE ((checked_out_at IS NULL) AND (deleted_at IS NULL) AND (shift_id IS NOT NULL));
+
+
+--
+-- Name: vol_hours_opp_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX vol_hours_opp_idx ON public.volunteer_hours USING btree (opportunity_id) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: vol_hours_shift_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX vol_hours_shift_idx ON public.volunteer_hours USING btree (shift_id) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: vol_hours_verified_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX vol_hours_verified_idx ON public.volunteer_hours USING btree (volunteer_user_id, status, checked_in_at) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: vol_hours_volunteer_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX vol_hours_volunteer_idx ON public.volunteer_hours USING btree (volunteer_user_id) WHERE (deleted_at IS NULL);
 
 
 --
@@ -5705,10 +6600,38 @@ CREATE INDEX vol_profile_skills_gin ON public.volunteer_profiles USING gin (skil
 
 
 --
+-- Name: vol_shift_opp_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX vol_shift_opp_idx ON public.volunteer_shifts USING btree (opportunity_id) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: vol_shift_starts_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX vol_shift_starts_idx ON public.volunteer_shifts USING btree (starts_at) WHERE (deleted_at IS NULL);
+
+
+--
 -- Name: admin_reviews admin_reviews_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER admin_reviews_set_updated_at BEFORE UPDATE ON public.admin_reviews FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: aeo_entries aeo_entries_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER aeo_entries_updated_at BEFORE UPDATE ON public.aeo_entries FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: announcements announcements_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER announcements_updated_at BEFORE UPDATE ON public.announcements FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -5723,6 +6646,13 @@ CREATE TRIGGER audit_campaign_payment_reconciliation_write AFTER INSERT OR UPDAT
 --
 
 CREATE TRIGGER audit_campaign_payments_write AFTER INSERT OR UPDATE ON public.campaign_payments FOR EACH ROW EXECUTE FUNCTION public.audit_campaign_payment_change();
+
+
+--
+-- Name: banner_settings banner_settings_touch; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER banner_settings_touch BEFORE UPDATE ON public.banner_settings FOR EACH ROW EXECUTE FUNCTION public.banner_settings_touch();
 
 
 --
@@ -5744,6 +6674,13 @@ CREATE TRIGGER campaign_launch_settings_set_updated_at BEFORE UPDATE ON public.c
 --
 
 CREATE TRIGGER campaign_reports_set_updated_at BEFORE UPDATE ON public.campaign_reports FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: campaign_wizard_drafts campaign_wizard_drafts_touch; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER campaign_wizard_drafts_touch BEFORE UPDATE ON public.campaign_wizard_drafts FOR EACH ROW EXECUTE FUNCTION public.campaign_wizard_drafts_touch();
 
 
 --
@@ -5894,6 +6831,20 @@ CREATE TRIGGER marketing_contacts_touch BEFORE UPDATE ON public.marketing_contac
 
 
 --
+-- Name: marketing_campaign_plan_assets marketing_cpa_touch; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER marketing_cpa_touch BEFORE UPDATE ON public.marketing_campaign_plan_assets FOR EACH ROW EXECUTE FUNCTION public.marketing_touch_updated_at();
+
+
+--
+-- Name: marketing_campaign_plans marketing_cplans_touch; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER marketing_cplans_touch BEFORE UPDATE ON public.marketing_campaign_plans FOR EACH ROW EXECUTE FUNCTION public.marketing_touch_updated_at();
+
+
+--
 -- Name: marketing_email_templates marketing_email_templates_touch; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5905,6 +6856,20 @@ CREATE TRIGGER marketing_email_templates_touch BEFORE UPDATE ON public.marketing
 --
 
 CREATE TRIGGER marketing_forms_touch BEFORE UPDATE ON public.marketing_forms FOR EACH ROW EXECUTE FUNCTION public.marketing_touch_updated_at();
+
+
+--
+-- Name: marketing_goals marketing_goals_touch; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER marketing_goals_touch BEFORE UPDATE ON public.marketing_goals FOR EACH ROW EXECUTE FUNCTION public.marketing_touch_updated_at();
+
+
+--
+-- Name: marketing_opportunities marketing_opportunities_touch; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER marketing_opportunities_touch BEFORE UPDATE ON public.marketing_opportunities FOR EACH ROW EXECUTE FUNCTION public.marketing_touch_updated_at();
 
 
 --
@@ -5989,6 +6954,13 @@ CREATE TRIGGER reward_tiers_set_updated_at BEFORE UPDATE ON public.reward_tiers 
 --
 
 CREATE TRIGGER risk_flags_set_updated_at BEFORE UPDATE ON public.risk_flags FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: seo_settings seo_settings_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER seo_settings_updated_at BEFORE UPDATE ON public.seo_settings FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -6174,6 +7146,13 @@ CREATE TRIGGER vol_profile_set_updated_at BEFORE UPDATE ON public.volunteer_prof
 
 
 --
+-- Name: volunteer_hours volunteer_hours_verify_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER volunteer_hours_verify_guard BEFORE UPDATE ON public.volunteer_hours FOR EACH ROW EXECUTE FUNCTION public.volunteer_hours_guard_verification();
+
+
+--
 -- Name: admin_notes admin_notes_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6203,6 +7182,14 @@ ALTER TABLE ONLY public.admin_reviews
 
 ALTER TABLE ONLY public.admin_reviews
     ADD CONSTRAINT admin_reviews_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: aeo_entries aeo_entries_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.aeo_entries
+    ADD CONSTRAINT aeo_entries_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
 
 
 --
@@ -6254,6 +7241,14 @@ ALTER TABLE ONLY public.analytics_snapshots
 
 
 --
+-- Name: announcements announcements_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.announcements
+    ADD CONSTRAINT announcements_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
 -- Name: api_keys api_keys_owner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6291,6 +7286,14 @@ ALTER TABLE ONLY public.auction_items
 
 ALTER TABLE ONLY public.audit_logs
     ADD CONSTRAINT audit_logs_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: banner_settings banner_settings_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.banner_settings
+    ADD CONSTRAINT banner_settings_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
 --
@@ -6334,6 +7337,22 @@ ALTER TABLE ONLY public.campaign_analytics_events
 
 
 --
+-- Name: campaign_builder_events campaign_builder_events_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_builder_events
+    ADD CONSTRAINT campaign_builder_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: campaign_faqs campaign_faqs_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_faqs
+    ADD CONSTRAINT campaign_faqs_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id) ON DELETE CASCADE;
+
+
+--
 -- Name: campaign_launch_settings campaign_launch_settings_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6355,6 +7374,14 @@ ALTER TABLE ONLY public.campaign_media
 
 ALTER TABLE ONLY public.campaign_media
     ADD CONSTRAINT campaign_media_uploader_id_fkey FOREIGN KEY (uploader_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: campaign_milestones campaign_milestones_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_milestones
+    ADD CONSTRAINT campaign_milestones_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id) ON DELETE CASCADE;
 
 
 --
@@ -6411,6 +7438,30 @@ ALTER TABLE ONLY public.campaign_owner_payouts
 
 ALTER TABLE ONLY public.campaign_owner_payouts
     ADD CONSTRAINT campaign_owner_payouts_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: campaign_owner_replies campaign_owner_replies_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_owner_replies
+    ADD CONSTRAINT campaign_owner_replies_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id) ON DELETE CASCADE;
+
+
+--
+-- Name: campaign_owner_replies campaign_owner_replies_donor_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_owner_replies
+    ADD CONSTRAINT campaign_owner_replies_donor_message_id_fkey FOREIGN KEY (donor_message_id) REFERENCES public.donor_messages(id) ON DELETE SET NULL;
+
+
+--
+-- Name: campaign_owner_replies campaign_owner_replies_owner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_owner_replies
+    ADD CONSTRAINT campaign_owner_replies_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 
 
 --
@@ -7166,6 +8217,14 @@ ALTER TABLE ONLY public.campaign_updates
 
 
 --
+-- Name: campaign_wizard_drafts campaign_wizard_drafts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_wizard_drafts
+    ADD CONSTRAINT campaign_wizard_drafts_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: campaigns campaigns_beneficiary_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7195,6 +8254,22 @@ ALTER TABLE ONLY public.challenge_participants
 
 ALTER TABLE ONLY public.challenge_participants
     ADD CONSTRAINT challenge_participants_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: coach_sessions coach_sessions_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coach_sessions
+    ADD CONSTRAINT coach_sessions_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id) ON DELETE SET NULL;
+
+
+--
+-- Name: coach_sessions coach_sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coach_sessions
+    ADD CONSTRAINT coach_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 
 
 --
@@ -7870,6 +8945,30 @@ ALTER TABLE ONLY public.marketing_automations
 
 
 --
+-- Name: marketing_campaign_plan_assets marketing_campaign_plan_assets_plan_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_campaign_plan_assets
+    ADD CONSTRAINT marketing_campaign_plan_assets_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.marketing_campaign_plans(id) ON DELETE CASCADE;
+
+
+--
+-- Name: marketing_campaign_plans marketing_campaign_plans_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_campaign_plans
+    ADD CONSTRAINT marketing_campaign_plans_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: marketing_campaign_plans marketing_campaign_plans_goal_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_campaign_plans
+    ADD CONSTRAINT marketing_campaign_plans_goal_id_fkey FOREIGN KEY (goal_id) REFERENCES public.marketing_goals(id) ON DELETE SET NULL;
+
+
+--
 -- Name: marketing_campaign_recipients marketing_campaign_recipients_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -7966,11 +9065,43 @@ ALTER TABLE ONLY public.marketing_forms
 
 
 --
+-- Name: marketing_goals marketing_goals_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_goals
+    ADD CONSTRAINT marketing_goals_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: marketing_goals marketing_goals_owner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_goals
+    ADD CONSTRAINT marketing_goals_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: marketing_identities marketing_identities_contact_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.marketing_identities
     ADD CONSTRAINT marketing_identities_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES public.marketing_contacts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: marketing_opportunities marketing_opportunities_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_opportunities
+    ADD CONSTRAINT marketing_opportunities_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: marketing_opportunities marketing_opportunities_linked_goal_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_opportunities
+    ADD CONSTRAINT marketing_opportunities_linked_goal_id_fkey FOREIGN KEY (linked_goal_id) REFERENCES public.marketing_goals(id) ON DELETE SET NULL;
 
 
 --
@@ -8358,6 +9489,14 @@ ALTER TABLE ONLY public.refunds
 
 
 --
+-- Name: refunds refunds_reviewed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refunds
+    ADD CONSTRAINT refunds_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
 -- Name: reward_tiers reward_tiers_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -8403,6 +9542,14 @@ ALTER TABLE ONLY public.saved_campaigns
 
 ALTER TABLE ONLY public.saved_campaigns
     ADD CONSTRAINT saved_campaigns_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: seo_settings seo_settings_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.seo_settings
+    ADD CONSTRAINT seo_settings_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
 
 
 --
@@ -8678,6 +9825,38 @@ ALTER TABLE ONLY public.volunteer_applications
 
 
 --
+-- Name: volunteer_hours volunteer_hours_opportunity_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.volunteer_hours
+    ADD CONSTRAINT volunteer_hours_opportunity_id_fkey FOREIGN KEY (opportunity_id) REFERENCES public.volunteer_opportunities(id) ON DELETE CASCADE;
+
+
+--
+-- Name: volunteer_hours volunteer_hours_shift_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.volunteer_hours
+    ADD CONSTRAINT volunteer_hours_shift_id_fkey FOREIGN KEY (shift_id) REFERENCES public.volunteer_shifts(id) ON DELETE SET NULL;
+
+
+--
+-- Name: volunteer_hours volunteer_hours_verified_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.volunteer_hours
+    ADD CONSTRAINT volunteer_hours_verified_by_fkey FOREIGN KEY (verified_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: volunteer_hours volunteer_hours_volunteer_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.volunteer_hours
+    ADD CONSTRAINT volunteer_hours_volunteer_user_id_fkey FOREIGN KEY (volunteer_user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
 -- Name: volunteer_opportunities volunteer_opportunities_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -8699,6 +9878,22 @@ ALTER TABLE ONLY public.volunteer_opportunities
 
 ALTER TABLE ONLY public.volunteer_profiles
     ADD CONSTRAINT volunteer_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: volunteer_shifts volunteer_shifts_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.volunteer_shifts
+    ADD CONSTRAINT volunteer_shifts_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: volunteer_shifts volunteer_shifts_opportunity_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.volunteer_shifts
+    ADD CONSTRAINT volunteer_shifts_opportunity_id_fkey FOREIGN KEY (opportunity_id) REFERENCES public.volunteer_opportunities(id) ON DELETE CASCADE;
 
 
 --
@@ -8755,6 +9950,19 @@ CREATE POLICY admin_settings_admin_all ON public.admin_settings USING (public.is
 
 
 --
+-- Name: aeo_entries; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.aeo_entries ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: aeo_entries aeo_public_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY aeo_public_read ON public.aeo_entries FOR SELECT USING ((published = true));
+
+
+--
 -- Name: ai_generations; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -8772,6 +9980,19 @@ CREATE POLICY analytics_owner_private ON public.analytics_snapshots FOR SELECT U
 --
 
 ALTER TABLE public.analytics_snapshots ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: announcements; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: announcements announcements_public_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY announcements_public_read ON public.announcements FOR SELECT USING (((active = true) AND ((starts_at IS NULL) OR (starts_at <= now())) AND ((ends_at IS NULL) OR (ends_at >= now()))));
+
 
 --
 -- Name: api_keys; Type: ROW SECURITY; Schema: public; Owner: -
@@ -8846,6 +10067,12 @@ CREATE POLICY audit_logs_admin_read ON public.audit_logs FOR SELECT USING (publi
 
 
 --
+-- Name: banner_settings; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.banner_settings ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: beneficiary_invites; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -8901,6 +10128,18 @@ CREATE POLICY campaign_analytics_owner_private ON public.campaign_analytics_even
 
 
 --
+-- Name: campaign_builder_events; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.campaign_builder_events ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: campaign_faqs; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.campaign_faqs ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: campaign_launch_settings campaign_launch_owner_write; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -8924,6 +10163,12 @@ ALTER TABLE public.campaign_launch_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.campaign_media ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: campaign_milestones; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.campaign_milestones ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: campaign_owner_payouts; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -8942,6 +10187,12 @@ CREATE POLICY campaign_owner_payouts_admin_all ON public.campaign_owner_payouts 
 
 CREATE POLICY campaign_owner_payouts_owner_read ON public.campaign_owner_payouts FOR SELECT USING (public.campaign_payment_owner_can_read(campaign_id, campaign_owner_id));
 
+
+--
+-- Name: campaign_owner_replies; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.campaign_owner_replies ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: campaign_owner_transfers; Type: ROW SECURITY; Schema: public; Owner: -
@@ -9171,6 +10422,12 @@ ALTER TABLE public.campaign_status_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.campaign_updates ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: campaign_wizard_drafts; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.campaign_wizard_drafts ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: campaigns; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -9195,6 +10452,13 @@ CREATE POLICY campaigns_public_read ON public.campaigns FOR SELECT USING ((((sta
 --
 
 CREATE POLICY campaigns_update_own ON public.campaigns FOR UPDATE USING (((auth.uid() = user_id) OR public.is_admin()));
+
+
+--
+-- Name: campaign_builder_events cbe_insert_any; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY cbe_insert_any ON public.campaign_builder_events FOR INSERT TO anon, authenticated WITH CHECK (true);
 
 
 --
@@ -9236,6 +10500,19 @@ CREATE POLICY challenges_admin_write ON public.challenges USING (public.is_admin
 
 CREATE POLICY challenges_public_read ON public.challenges FOR SELECT USING (((status = ANY (ARRAY['active'::text, 'completed'::text])) OR public.is_admin()));
 
+
+--
+-- Name: coach_sessions coach_own_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY coach_own_all ON public.coach_sessions USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
+
+
+--
+-- Name: coach_sessions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.coach_sessions ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: commission_requests; Type: ROW SECURITY; Schema: public; Owner: -
@@ -9291,6 +10568,22 @@ CREATE POLICY contact_messages_insert_public ON public.contact_messages FOR INSE
 
 
 --
+-- Name: campaign_owner_replies cor_donor_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY cor_donor_read ON public.campaign_owner_replies FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM public.donor_messages dm
+  WHERE ((dm.id = campaign_owner_replies.donor_message_id) AND (dm.donor_id = auth.uid())))));
+
+
+--
+-- Name: campaign_owner_replies cor_owner_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY cor_owner_all ON public.campaign_owner_replies USING (((auth.uid() = owner_id) OR public.is_admin())) WITH CHECK ((auth.uid() = owner_id));
+
+
+--
 -- Name: creator_profiles; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -9314,6 +10607,34 @@ ALTER TABLE public.creator_tips ENABLE ROW LEVEL SECURITY;
 --
 
 CREATE POLICY creator_tips_insert_public ON public.creator_tips FOR INSERT WITH CHECK (true);
+
+
+--
+-- Name: campaign_wizard_drafts cwd_delete_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY cwd_delete_own ON public.campaign_wizard_drafts FOR DELETE TO authenticated USING ((auth.uid() = user_id));
+
+
+--
+-- Name: campaign_wizard_drafts cwd_insert_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY cwd_insert_own ON public.campaign_wizard_drafts FOR INSERT TO authenticated WITH CHECK ((auth.uid() = user_id));
+
+
+--
+-- Name: campaign_wizard_drafts cwd_select_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY cwd_select_own ON public.campaign_wizard_drafts FOR SELECT TO authenticated USING ((auth.uid() = user_id));
+
+
+--
+-- Name: campaign_wizard_drafts cwd_update_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY cwd_update_own ON public.campaign_wizard_drafts FOR UPDATE TO authenticated USING ((auth.uid() = user_id)) WITH CHECK ((auth.uid() = user_id));
 
 
 --
@@ -9619,6 +10940,42 @@ ALTER TABLE public.exclusive_posts ENABLE ROW LEVEL SECURITY;
 --
 
 CREATE POLICY exclusive_posts_author_write ON public.exclusive_posts USING (((auth.uid() = author_id) OR public.is_admin())) WITH CHECK (((auth.uid() = author_id) OR public.is_admin()));
+
+
+--
+-- Name: campaign_faqs faqs_owner_delete; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY faqs_owner_delete ON public.campaign_faqs FOR DELETE USING ((public.is_admin() OR (EXISTS ( SELECT 1
+   FROM public.campaigns
+  WHERE ((campaigns.id = campaign_faqs.campaign_id) AND (campaigns.user_id = auth.uid()))))));
+
+
+--
+-- Name: campaign_faqs faqs_owner_update; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY faqs_owner_update ON public.campaign_faqs FOR UPDATE USING ((public.is_admin() OR (EXISTS ( SELECT 1
+   FROM public.campaigns
+  WHERE ((campaigns.id = campaign_faqs.campaign_id) AND (campaigns.user_id = auth.uid()))))));
+
+
+--
+-- Name: campaign_faqs faqs_owner_write; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY faqs_owner_write ON public.campaign_faqs FOR INSERT WITH CHECK ((public.is_admin() OR (EXISTS ( SELECT 1
+   FROM public.campaigns
+  WHERE ((campaigns.id = campaign_faqs.campaign_id) AND (campaigns.user_id = auth.uid()))))));
+
+
+--
+-- Name: campaign_faqs faqs_public_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY faqs_public_read ON public.campaign_faqs FOR SELECT USING (((is_public = true) OR public.is_admin() OR (EXISTS ( SELECT 1
+   FROM public.campaigns
+  WHERE ((campaigns.id = campaign_faqs.campaign_id) AND (campaigns.user_id = auth.uid()))))));
 
 
 --
@@ -9977,10 +11334,24 @@ CREATE POLICY livestreams_owner_write ON public.livestreams USING ((public.is_ad
 ALTER TABLE public.marketing_audit_logs ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: marketing_audit_logs marketing_audit_logs_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_audit_logs_admin_all ON public.marketing_audit_logs USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
 -- Name: marketing_automation_runs; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.marketing_automation_runs ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: marketing_automation_runs marketing_automation_runs_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_automation_runs_admin_all ON public.marketing_automation_runs USING (public.is_admin()) WITH CHECK (public.is_admin());
+
 
 --
 -- Name: marketing_automations; Type: ROW SECURITY; Schema: public; Owner: -
@@ -9989,10 +11360,36 @@ ALTER TABLE public.marketing_automation_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_automations ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: marketing_automations marketing_automations_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_automations_admin_all ON public.marketing_automations USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: marketing_campaign_plan_assets; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.marketing_campaign_plan_assets ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: marketing_campaign_plans; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.marketing_campaign_plans ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: marketing_campaign_recipients; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.marketing_campaign_recipients ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: marketing_campaign_recipients marketing_campaign_recipients_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_campaign_recipients_admin_all ON public.marketing_campaign_recipients USING (public.is_admin()) WITH CHECK (public.is_admin());
+
 
 --
 -- Name: marketing_campaigns; Type: ROW SECURITY; Schema: public; Owner: -
@@ -10001,10 +11398,24 @@ ALTER TABLE public.marketing_campaign_recipients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_campaigns ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: marketing_campaigns marketing_campaigns_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_campaigns_admin_all ON public.marketing_campaigns USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
 -- Name: marketing_consent; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.marketing_consent ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: marketing_consent marketing_consent_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_consent_admin_all ON public.marketing_consent USING (public.is_admin()) WITH CHECK (public.is_admin());
+
 
 --
 -- Name: marketing_contacts; Type: ROW SECURITY; Schema: public; Owner: -
@@ -10013,10 +11424,24 @@ ALTER TABLE public.marketing_consent ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_contacts ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: marketing_contacts marketing_contacts_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_contacts_admin_all ON public.marketing_contacts USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
 -- Name: marketing_email_templates; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.marketing_email_templates ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: marketing_email_templates marketing_email_templates_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_email_templates_admin_all ON public.marketing_email_templates USING (public.is_admin()) WITH CHECK (public.is_admin());
+
 
 --
 -- Name: marketing_events; Type: ROW SECURITY; Schema: public; Owner: -
@@ -10025,10 +11450,24 @@ ALTER TABLE public.marketing_email_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_events ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: marketing_events marketing_events_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_events_admin_all ON public.marketing_events USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
 -- Name: marketing_form_submissions; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.marketing_form_submissions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: marketing_form_submissions marketing_form_submissions_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_form_submissions_admin_all ON public.marketing_form_submissions USING (public.is_admin()) WITH CHECK (public.is_admin());
+
 
 --
 -- Name: marketing_forms; Type: ROW SECURITY; Schema: public; Owner: -
@@ -10037,10 +11476,36 @@ ALTER TABLE public.marketing_form_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_forms ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: marketing_forms marketing_forms_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_forms_admin_all ON public.marketing_forms USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: marketing_goals; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.marketing_goals ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: marketing_identities; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.marketing_identities ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: marketing_identities marketing_identities_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_identities_admin_all ON public.marketing_identities USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: marketing_opportunities; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.marketing_opportunities ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: marketing_referrals; Type: ROW SECURITY; Schema: public; Owner: -
@@ -10049,10 +11514,24 @@ ALTER TABLE public.marketing_identities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_referrals ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: marketing_referrals marketing_referrals_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_referrals_admin_all ON public.marketing_referrals USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
 -- Name: marketing_segment_members; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.marketing_segment_members ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: marketing_segment_members marketing_segment_members_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_segment_members_admin_all ON public.marketing_segment_members USING (public.is_admin()) WITH CHECK (public.is_admin());
+
 
 --
 -- Name: marketing_segments; Type: ROW SECURITY; Schema: public; Owner: -
@@ -10061,16 +11540,37 @@ ALTER TABLE public.marketing_segment_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_segments ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: marketing_segments marketing_segments_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_segments_admin_all ON public.marketing_segments USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
 -- Name: marketing_suppression_list; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.marketing_suppression_list ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: marketing_suppression_list marketing_suppression_list_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_suppression_list_admin_all ON public.marketing_suppression_list USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
 -- Name: marketing_utm_links; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.marketing_utm_links ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: marketing_utm_links marketing_utm_links_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY marketing_utm_links_admin_all ON public.marketing_utm_links USING (public.is_admin()) WITH CHECK (public.is_admin());
+
 
 --
 -- Name: matching_claims; Type: ROW SECURITY; Schema: public; Owner: -
@@ -10175,6 +11675,31 @@ ALTER TABLE public.message_thread_state ENABLE ROW LEVEL SECURITY;
 --
 
 CREATE POLICY message_thread_state_owner_all ON public.message_thread_state USING (((auth.uid() = owner_id) OR public.is_admin())) WITH CHECK (((auth.uid() = owner_id) OR public.is_admin()));
+
+
+--
+-- Name: campaign_milestones milestones_owner_delete; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY milestones_owner_delete ON public.campaign_milestones FOR DELETE USING ((public.is_admin() OR (EXISTS ( SELECT 1
+   FROM public.campaigns
+  WHERE ((campaigns.id = campaign_milestones.campaign_id) AND (campaigns.user_id = auth.uid()))))));
+
+
+--
+-- Name: campaign_milestones milestones_owner_write; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY milestones_owner_write ON public.campaign_milestones FOR INSERT WITH CHECK ((public.is_admin() OR (EXISTS ( SELECT 1
+   FROM public.campaigns
+  WHERE ((campaigns.id = campaign_milestones.campaign_id) AND (campaigns.user_id = auth.uid()))))));
+
+
+--
+-- Name: campaign_milestones milestones_public_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY milestones_public_read ON public.campaign_milestones FOR SELECT USING (true);
 
 
 --
@@ -10482,14 +12007,18 @@ CREATE POLICY public_auction_items_read ON public.auction_items FOR SELECT USING
 -- Name: campaign_launch_settings public_campaign_launch_read; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY public_campaign_launch_read ON public.campaign_launch_settings FOR SELECT USING (true);
+CREATE POLICY public_campaign_launch_read ON public.campaign_launch_settings FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM public.campaigns c
+  WHERE ((c.id = campaign_launch_settings.campaign_id) AND (c.deleted_at IS NULL) AND (c.status = 'active'::text) AND (c.visibility = 'public'::text)))));
 
 
 --
 -- Name: creator_profiles public_creator_profiles_read; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY public_creator_profiles_read ON public.creator_profiles FOR SELECT USING (true);
+CREATE POLICY public_creator_profiles_read ON public.creator_profiles FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM public.campaigns c
+  WHERE ((c.user_id = creator_profiles.user_id) AND (c.deleted_at IS NULL) AND (c.status = 'active'::text) AND (c.visibility = 'public'::text)))));
 
 
 --
@@ -10759,6 +12288,12 @@ CREATE POLICY saved_campaigns_owner_all ON public.saved_campaigns USING (((auth.
 
 
 --
+-- Name: seo_settings; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.seo_settings ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: share_events; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -11013,6 +12548,24 @@ CREATE POLICY vol_app_owner ON public.volunteer_applications USING (((applicant_
 
 
 --
+-- Name: volunteer_hours vol_hours_organizer; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY vol_hours_organizer ON public.volunteer_hours USING ((public.is_admin() OR (EXISTS ( SELECT 1
+   FROM public.volunteer_opportunities o
+  WHERE ((o.id = volunteer_hours.opportunity_id) AND (o.created_by = auth.uid())))))) WITH CHECK ((public.is_admin() OR (EXISTS ( SELECT 1
+   FROM public.volunteer_opportunities o
+  WHERE ((o.id = volunteer_hours.opportunity_id) AND (o.created_by = auth.uid()))))));
+
+
+--
+-- Name: volunteer_hours vol_hours_volunteer; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY vol_hours_volunteer ON public.volunteer_hours USING (((volunteer_user_id = auth.uid()) OR public.is_admin())) WITH CHECK (((volunteer_user_id = auth.uid()) OR public.is_admin()));
+
+
+--
 -- Name: volunteer_opportunities vol_opp_creator_read; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -11048,10 +12601,36 @@ CREATE POLICY vol_profile_public_read ON public.volunteer_profiles FOR SELECT US
 
 
 --
+-- Name: volunteer_shifts vol_shift_owner; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY vol_shift_owner ON public.volunteer_shifts USING ((public.is_admin() OR (EXISTS ( SELECT 1
+   FROM public.volunteer_opportunities o
+  WHERE ((o.id = volunteer_shifts.opportunity_id) AND (o.created_by = auth.uid())))))) WITH CHECK ((public.is_admin() OR (EXISTS ( SELECT 1
+   FROM public.volunteer_opportunities o
+  WHERE ((o.id = volunteer_shifts.opportunity_id) AND (o.created_by = auth.uid()))))));
+
+
+--
+-- Name: volunteer_shifts vol_shift_public_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY vol_shift_public_read ON public.volunteer_shifts FOR SELECT USING (((deleted_at IS NULL) AND (status = 'scheduled'::text) AND (EXISTS ( SELECT 1
+   FROM public.volunteer_opportunities o
+  WHERE ((o.id = volunteer_shifts.opportunity_id) AND (o.deleted_at IS NULL) AND (o.status = ANY (ARRAY['open'::text, 'upcoming'::text])))))));
+
+
+--
 -- Name: volunteer_applications; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.volunteer_applications ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: volunteer_hours; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.volunteer_hours ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: volunteer_opportunities; Type: ROW SECURITY; Schema: public; Owner: -
@@ -11064,6 +12643,12 @@ ALTER TABLE public.volunteer_opportunities ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.volunteer_profiles ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: volunteer_shifts; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.volunteer_shifts ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: webhook_events; Type: ROW SECURITY; Schema: public; Owner: -
