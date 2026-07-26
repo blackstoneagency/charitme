@@ -396,7 +396,11 @@ function StepActionBtn({ status, href }: { status: RoadmapStep['status']; href?:
       textDecoration: 'none',
       display: 'inline-block',
     };
-    return href ? <Link href={href} style={style}>Continue</Link> : <button style={style}>Continue</button>;
+    // Without a destination there is nothing to continue TO, so render the same
+    // non-interactive treatment as a completed step rather than an enabled button
+    // that silently does nothing. (Every step in buildRoadmap sets an href today —
+    // this is the guard for one that forgets to.)
+    return href ? <Link href={href} style={style}>Continue</Link> : <span style={{ ...style, opacity: 0.55, cursor: 'default' }}>Continue</span>;
   }
   const style: React.CSSProperties = {
     padding: '6px 16px',
@@ -411,7 +415,7 @@ function StepActionBtn({ status, href }: { status: RoadmapStep['status']; href?:
     textDecoration: 'none',
     display: 'inline-block',
   };
-  return href ? <Link href={href} style={style}>Start</Link> : <button style={style}>Start</button>;
+  return href ? <Link href={href} style={style}>Start</Link> : <span style={{ ...style, opacity: 0.55, cursor: 'default' }}>Start</span>;
 }
 
 function CampaignThumb({ url }: { url: string | null }) {

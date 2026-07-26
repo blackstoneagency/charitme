@@ -4,7 +4,6 @@ import { supabaseAdmin } from '../lib/supabase';
 import { isAdmin } from '../lib/roles';
 import {
   CharitMeShell as _CharitMeShell,
-  PageScaffold as _PageScaffold,
   type ShellProps,
   type Metric,
   type TableRow,
@@ -21,17 +20,9 @@ export {
   Avatar,
   Logo,
   MetricGrid,
-  DataTable,
-  LineChart,
-  DonutCard,
-  SidePanel,
   StatusPill,
   SmartImage,
-  FlowPage,
-  Journey,
-  sampleImages,
   campaignRows,
-  baseMetrics,
   type Metric,
   type TableRow,
   type ShellVariant,
@@ -139,29 +130,3 @@ export async function CharitMeShell(props: ShellProps) {
   );
 }
 
-// ─────────────────────────────────────────────
-// Async PageScaffold — same override behaviour.
-// Used by admin pages that call PageScaffold directly.
-// ─────────────────────────────────────────────
-type PageScaffoldProps = {
-  active: string;
-  title: string;
-  subtitle: string;
-  metrics: Metric[];
-  rows: TableRow[];
-  tabs?: string[];
-  side?: boolean;
-  mode?: 'dashboard' | 'admin';
-  children?: React.ReactNode;
-};
-
-export async function PageScaffold(props: PageScaffoldProps) {
-  const user = await fetchShellUser();
-  return (
-    <_PageScaffold
-      {...props}
-      userName={user.name ?? user.email}
-      userEmail={user.email}
-    />
-  );
-}

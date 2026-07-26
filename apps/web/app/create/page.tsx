@@ -1626,12 +1626,13 @@ export default function CreatePage() {
 
                   {/* Suggested photos */}
                   <div className="cr2-suggested">
+                    {/* The ‹ › carousel nav that used to sit here was removed: every
+                        suggestion renders at once, so the buttons had nothing to page
+                        through and did nothing when clicked — dead controls in the
+                        campaign builder, the funnel we are actively de-frictioning.
+                        Wiring fake paging would have been worse than deleting them. */}
                     <div className="cr2-suggested-head">
                       <span>Suggested for your story</span>
-                      <div className="cr2-suggested-nav">
-                        <button type="button">‹</button>
-                        <button type="button">›</button>
-                      </div>
                     </div>
                     {suggestedPhotos.map((photo, i) => (
                       <div key={i} className="cr2-suggested-item">

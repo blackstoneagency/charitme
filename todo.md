@@ -5162,6 +5162,34 @@ them real gates (e.g. beneficiary confirmation flow, nonprofit-only campaign typ
 or retire them. Recorded rather than guessed, because inventing restrictions on
 roles nobody holds is the fastest way to lock a real user out.
 
+### ✅ DONE — Claude, 2026-07-26 — **dead controls: buttons that do nothing when clicked**
+Applied the "looks live but isn't" lens to controls. Parsed every `<button>` in
+`app/` + `components/` (brace-aware, so `disabled={page > 1}` doesn't truncate the
+tag) and checked for a handler, submit, or disabled state.
+- **🔴 Live bug: the campaign builder's "Suggested for your story" panel had ‹ › nav
+  buttons that did nothing.** All three suggestions render at once, so there was
+  nothing to page through — leftover carousel chrome in the *create* funnel, the one
+  the team is actively de-frictioning. **Removed** rather than given fake paging.
+- `/dashboard/ai-growth-plan` rendered an **enabled "Start"/"Continue" button when a
+  roadmap step had no `href`** — clickable, inert. All 7 steps set an href today so it
+  never fires in practice; hardened anyway to render the same non-interactive
+  treatment as a completed step.
+- **~724 lines of dead demo scaffolding deleted.** `KindFundApp.tsx` (382 lines) and
+  `KindFundShellServer.tsx` (125) were referenced from **nowhere in the repo** —
+  rename leftovers. In `CharitMeApp.tsx`, `PageScaffold`/`DataTable`/`LineChart`/
+  `DonutCard`/`SidePanel`/`FlowPage`/`Journey`/`MiniScreen`/`SuccessCard`/`Sparkline`/
+  `MetricCard`/`sampleImages`/`baseMetrics` were re-exported but rendered by **no
+  page** — including a comment claiming "Used by admin pages that call PageScaffold
+  directly", which was **stale: zero pages call it**. That chain contained 16 of the
+  19 dead buttons. Verify before assuming something is used — `Journey`'s only two
+  hits in `app/` were `{/* Journey bar */}` **comments**.
+- Guard: `__tests__/no-dead-controls.test.ts`. **`app/admin/**` is excluded on
+  purpose** — internal tooling with its own placeholder backlog (12 remaining there);
+  gating it would freeze that cleanup rather than help it. Real users never see it.
+- Verified: typecheck 0, lint 0 errors, **1270 tests / 115 files**, build green,
+  shared JS unchanged at 103 kB (the dead chain was already tree-shaken out of the
+  bundle — the win is repo clarity and 16 fewer traps, not bytes).
+
 ### ✅ DONE — Claude, 2026-07-26 — **dead "Join link" on 120 events and "Apply" link on 240 grants**
 Chasing why `grant_documents` was seeded-but-unread turned up something worse than an
 unused table: **the seeded URLs are RFC 2606 documentation domains, and two of them
