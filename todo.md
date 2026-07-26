@@ -156,6 +156,44 @@ _Two false alarms killed by checking:_ a grep for admin guards missed
 grep for `rateLimit` missed `checkRateLimit`, making two endpoints look
 unthrottled. Both were fine.
 
+**🔴 GOAL CRITERION "each user role is clearly mapped out and different" — NOT MET.**
+Audited `lib/roles.ts` + every consumer. Six roles exist
+(`donor, organizer, beneficiary, nonprofit, admin, super_admin`) but only two of
+them **do** anything:
+- `admin` / `super_admin` genuinely gate access, via `isAdmin()` / `isSuperAdmin()`.
+- **`donor`, `organizer`, `beneficiary`, `nonprofit` gate nothing at all.** Every
+  reference to them is display-only — computing a label in the admin user list
+  (`primaryRole()`), or filtering that list. Grepped all of `app`/`lib`/
+  `components`: there is **no** route, API handler, or component that branches on
+  them for access. A `donor` and an `organizer` can do exactly the same things;
+  real authorization comes from being signed in plus row ownership.
+  **This is a product decision, not a bug to silently invent:** somebody has to
+  decide what an `organizer` may do that a `donor` may not, and what a
+  `beneficiary` sees at all. I have deliberately **not** fabricated a permission
+  model — inventing gates on live authorization is exactly the kind of guess that
+  breaks real users. Needs an owner call, then it is straightforward to implement.
+
+**⚠️ Two divergent `parseRoles()` implementations.** Same drift pattern as the
+category list. `app/admin/users/page.tsx:52` defines its **own local** `parseRoles`
+returning `string[]`, instead of importing the shared one from `lib/roles.ts`. They
+disagree on real inputs:
+
+| stored `profiles.roles` | `lib/roles.ts` | `admin/users/page.tsx` |
+|---|---|---|
+| `["suspended"]` | `['donor']` (whitelist strips it) | `['suspended']` |
+| `'["admin"]'` (JSON **string**) | `['donor']` (not an array) | `['admin']` |
+
+The second row matters: a profile whose `roles` landed as a JSON string would
+**render as "Admin" in the admin console while `isAdmin()` denies them**. It fails
+*safe* — the mismatch denies access rather than granting it — so this is a
+correctness/UI-honesty issue, not a privilege-escalation hole.
+_Not deduped here on purpose:_ the local copy is deliberately lenient, and
+`deriveStatus()` depends on that leniency to read `'suspended'`/`'inactive'` out of
+the roles array (the shared whitelist would strip both). Collapsing them naively
+would silently break status badges. The clean fix is to stop encoding status in
+`roles` at all — `profiles.status` already exists and `deriveStatus()` already
+checks it — but that touches a file three other agents have recently committed to.
+
 **⚠️ The e2e suite exists, works, and runs in NO CI workflow.** `e2e/` holds 4
 Playwright specs — `smoke`, `public-routes`, `public-quality`, `security-headers`
 — plus an `npm run e2e` script. **Neither `ci.yml` nor `image-links.yml` mentions
