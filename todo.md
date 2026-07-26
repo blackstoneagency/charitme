@@ -6932,6 +6932,47 @@ that three other audits were structurally blind to._
 - responsive: **37 pages × 3 viewports × 2 themes → 0 findings**
 - typecheck 0 · lint 0 errors · **1324 tests** · build green
 
+### 🔴→✅ My own verification trigger was permissive in the case I never tested
+
+Shipped in #101, fixed in `20260806010000`. Worth recording because the failure
+mode is subtle and I would have missed it by reading the code.
+
+I wrote the guard as:
+```sql
+if not (is_admin() or owner_id = auth.uid()) then raise ...
+```
+Every API route in this repo writes through `supabaseAdmin` (service role), where
+**`auth.uid()` is NULL**. So `owner_id = auth.uid()` is NULL, and the expression
+becomes `not (false or NULL)` = **NULL**. An `IF` only branches on TRUE — so the
+guard *silently did not fire*. A guard written to be strict was permissive in
+exactly the path the application actually uses. It then stamped
+`verified_by := auth.uid()` = NULL, recording a verification by nobody on the very
+records that get exported to an employer.
+
+**Found by running it, not reading it** — stubbed `auth.uid()` to NULL against a
+real Postgres:
+```
+RESULT: UPDATE SUCCEEDED
+verified_by = NULL
+```
+
+The fix makes the server path explicit rather than accidental: service role is
+allowed (it bypasses RLS by design and the route authorizes) **but must name the
+verifier**, because "verified by nobody" is not a verification. All comparisons are
+`coalesce`d so the guard is two-valued and cannot silently evaluate to NULL again.
+
+Proven on a real database, all four branches:
+```
+server ctx, no verified_by  → REJECTED   ✓
+server ctx, verified_by set → ALLOWED, attribution kept ✓
+volunteer self-verifying    → REJECTED   ✓   (the whole point)
+opportunity owner verifying → ALLOWED, attribution stamped ✓
+```
+
+_Lesson: SQL three-valued logic turns a missing value into a silently-skipped
+guard. Any security predicate touching a nullable column needs `coalesce` and a
+test for the NULL case._
+
 ### ⚠️ `supabase/schema.sql` had drifted by 15 TABLES (Claude, 2026-07-26)
 Found while regenerating the mirror for CHAR-1102. `scripts/regen_schema.sh` exists
 so "the consolidated schema can never silently drift from the migrations again" —
