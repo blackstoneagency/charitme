@@ -2139,6 +2139,25 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
     in the snapshot makes it fail naming that exact table and column; the fixture
     was restored afterwards and `git status` confirms it unmodified.
 
+    **✅ ONE PASTE FROM DONE — `scripts/gen_drifted_columns_migration.sql`.**
+    Before settling for "needs a live DB", I checked two other routes to the types
+    and both genuinely fail: there are **no generated Supabase types** in the repo,
+    and inferring from how the same column name is typed on other tables covers
+    only **26 of 61** (32 have no precedent anywhere, 3 conflict). Mixing verified
+    and guessed types would be worse than a clean handoff.
+
+    So instead of documenting the blocker, the query that *resolves* it is now
+    committed. Run it against the live DB and it **emits the finished migration**:
+    all 61 `(table, column)` pairs are embedded, and it reads
+    `pg_catalog`/`format_type` to render each real type — including enums, arrays
+    and precision, which `information_schema.data_type` cannot (it reports
+    `USER-DEFINED` and `ARRAY`, neither usable as a type name). Read-only; changes
+    nothing. Then: save the output as a migration → `python3
+    scripts/build_catchup.py` → shrink the drift baseline → tests go green.
+    _Honest caveat, also in the file:_ **it has never been executed** — this
+    sandbox has `psql` but no `initdb`/`pg_ctl` to stand up a server. It only
+    touches `pg_catalog`, so the worst case is a syntax error you see instantly.
+
     **⚠️ The blind spot this closes:** the schema-contract test does **not** catch it. It
     validates that *code selects* exist in the live snapshot — i.e. that code
     matches production. It cannot tell that the *migrations* fail to reproduce
