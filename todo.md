@@ -4928,8 +4928,18 @@ merge commit.
      with a non-vacuity check that `resend` is actually null) plus ordering asserts
      that the send precedes the stamp and the audit write.
    - Verified: typecheck 0, lint clean, **1229 tests / 111 files**, build green.
-   - **Still open on this line:** the second stale ✅ — *"e2e wired but running in
-     no workflow"* — is untouched and still needs a look.
+   - **Second stale ✅ — *"e2e wired but running in no workflow"* — now CLOSED
+     (Claude, 2026-07-26).** A teammate had already added the `e2e (playwright)`
+     job to `.github/workflows/ci.yml`, so the workflow gap itself is fixed — but
+     **no one had seen it pass**, because GitHub allocates no runners right now
+     (see the pipeline block at the end of this file). Ran it locally against a
+     production build instead: **26/26 passed in 48s — chromium AND mobile (Pixel 5)
+     across auth-gates, public-quality, public-routes, security-headers, smoke.**
+     Command: `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright
+     test` from `apps/web` (the config's `webServer` boots `npm start` itself).
+     **Caveat, stated rather than papered over:** the sandbox has no database, so
+     DB-backed routes render their empty state — this proves the suite is green and
+     the security/auth/header behaviour holds, not that seeded data renders.
 3. **Signed-in e2e** the moment test credentials exist.
 
 ### ✅ DONE — Claude, 2026-07-26 — **user-role mapping audit** (was CLAIM)
