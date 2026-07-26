@@ -116,17 +116,18 @@ export default function FastPayoutsPage() {
             <h2 className="fp-h2">Payout speed options</h2>
             <p className="fp-sub">Standard payouts are free for everyone. Faster options are available for eligible verified accounts through Stripe Connect.</p>
           </div>
-          {/* The wrapper scrolls horizontally on narrow screens, so it must be
-              reachable by keyboard — without tabIndex a keyboard-only user cannot
-              scroll it and the right-hand columns are unreachable. A named region
-              also tells a screen-reader user what they landed in. */}
-          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex --
-              deliberate, and the two rules genuinely conflict here: jsx-a11y sees a
-              non-interactive element, while axe's scrollable-region-focusable (WCAG
-              2.1.1) requires a scrollable container to be focusable or its overflowed
-              content is unreachable by keyboard. axe is right about this element
-              because it actually scrolls; the lint rule cannot see that. */}
-          <div className="fp-table-wrap" tabIndex={0} role="region" aria-label="Payout speed options">
+          {/* Becomes horizontally scrollable under the mobile breakpoint
+              (globals.css: .fp-table-wrap { overflow-x: auto }). A scrollable
+              region needs to be focusable or keyboard users cannot reach the
+              off-screen columns at all — axe `scrollable-region-focusable`.
+              That rule and axe genuinely disagree here and axe wins, so the
+              suppression is scoped to this ONE element rather than the whole
+              file: a file-level disable would also hide a future tabIndex on a
+              non-scrolling element, which really would be a defect. */}
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- kept on
+              one line so the directive covers the tabIndex attribute itself; ESLint
+              reports the attribute's line, not the opening tag's. */}
+          <div className="fp-table-wrap" tabIndex={0} role="region" aria-label="Payout speed and fees comparison">
             <table className="fp-table">
               <thead>
                 <tr>

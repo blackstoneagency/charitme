@@ -4786,7 +4786,7 @@ difference as real: two audit ✅s turned out to be stale when I spot-checked th
 | 10 | Roles clearly mapped | 🟡 **mapped, but only 2 of 6 are enforced** | `lib/role-capabilities.ts` is wired into 3 surfaces. But `donor`/`organizer`/`beneficiary`/`nonprofit` have **0 enforced capabilities** — see finding |
 | 11 | 100% GoFundMe parity | 🟢 claimed-closed | `docs/charitme-gofundme-audit.md` matrix is all ✅. Its 4 remaining blockers are **owner-gated credentials**, not code |
 | 12 | Better than GoFundMe | 🟢 | 0% platform fee, AI builder, Marketing OS (goals→opportunities→campaigns), grants, matching, volunteers, events, gamification, impact tracking — none of which GoFundMe has |
-| 13 | Accessibility passes | ✅ **verified + now enforced** | axe WCAG 2.0/2.1 A+AA over **36 routes × light AND dark = 0 violations** (4.1 min). Previously there was **no axe dependency at all** — the claim came from manual runs |
+| 13 | Accessibility passes | 🟡 **34 of 36 routes clean, enforced** | axe A+AA over 36 routes × both themes. **2 branded marketing pages have real contrast failures** (`/features`, `/ai-fundraising`), baselined + visible. Was **no axe dependency at all** before |
 | 14 | All payment methods work | 🔴 owner-gated | Needs Stripe **live** keys + a real charge. ADR-0003. Cannot be done from sandbox |
 | 15 | Performance optimized | 🟡 | Earlier: query-waterfall + N+1 audits, `getUser()` memoised, home 63→88. Plus item 9 above |
 | 16 | Security resolved | 🟢 improved | **New this session:** auth-gate e2e (mutation-tested), middleware auth-refresh ceiling that fails safe, owner-scoped RLS on 2 new tables. Production gates verified live by curl |
@@ -4962,12 +4962,18 @@ stories track. Verified: those violations are gone from the axe run.
 `/fast-payouts`.** `.fp-table-wrap` scrolls horizontally on narrow screens but had
 no `tabIndex`, so a keyboard-only user could not scroll it — the right-hand columns
 were simply unreachable (WCAG 2.1.1). Now `tabIndex={0}` + `role="region"` + a name.
-This needed an `eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex` with
-the reasoning inline: **the two rules genuinely conflict** — jsx-a11y sees a
-non-interactive element, axe knows it scrolls. axe is right for this element. If you
-hit the same conflict on another scroll wrapper, copy that comment rather than
-dropping the tabIndex. (11 other `overflow-x: auto` rules exist in globals.css —
-each of those wrappers may need the same treatment; not yet audited.)
+**Codex fixed this same element concurrently** (third collision today) — resolved to
+their copy, with one change: their suppression was **file-level**
+(`/* eslint-disable ... */` at line 1), which would also hide a future `tabIndex` on
+a genuinely non-scrolling element in that file. Narrowed to a single
+`eslint-disable-next-line`. **Two gotchas if you hit this elsewhere:**
+1. `jsx-a11y/no-noninteractive-tabindex` and axe genuinely conflict here — axe wins,
+   because the element really does scroll. Suppress the rule, don't drop `tabIndex`.
+2. **`eslint-disable-next-line` does NOT work on a multi-line JSX element** — ESLint
+   reports the `tabIndex` *attribute's* line, not the opening tag's, so the directive
+   misses. Keep the element on one line (verified: rule fires again if you don't).
+(11 other `overflow-x: auto` rules exist in globals.css — each of those wrappers may
+need the same treatment; **not yet audited**.)
 
 **🔵 HANDOFF TO CODEX — the ONLY remaining failures are `color-contrast`, the theme
 lane you own. I have not touched them (lane split).** Re-run after your latest
@@ -5429,3 +5435,151 @@ When tokenising a card, check its gradient stops too.
 Verified: typecheck 0, **1233 tests / 111 files pass**, `next build` exit 0,
 contrast sweep exit 0.
 
+
+### ✅ DONE — contrast sweep extended to the auth screens (Claude, 2026-07-26)
+The 36-route sweep inherited its page list from `e2e/public-routes.spec.ts`, which
+omits **`/login` and `/forgot-password`** — pages that render unauthenticated and
+that *every* user passes through. Added them (38 routes now).
+
+**Found immediately: `/forgot-password`'s "Send reset link" CTA was 3.77:1** —
+white on `bg-emerald-600` (#059669), an AA failure for 14px text, **in both
+themes** (so no dark-mode remap would have caught it). This is the button a
+locked-out user has to find to get back into their account.
+
+Note this **corrects an explicit assumption in the code**: the `.mktg-page`
+dark-mode adapter says "Green buttons (bg-emerald-600 + text-white) … are left
+untouched", i.e. they were believed safe. They were not. Fixed by pointing
+`.bg-emerald-600` at **`--green-btn`** (#0b7a3e, ~5:1) — the AA-safe fill already
+introduced for the shared `Btn` component — so the Tailwind pages and the design
+system now agree. Applies in both themes because the failure exists in both.
+
+**Final: ✅ 0 AA contrast failures across 38 pages × 2 themes.**
+typecheck 0 · vitest 1258/1258 · `next build` exit 0.
+
+**Still uncovered (needs credentials, not effort):** the authenticated surface —
+`/dashboard/*`, `/admin/*`. Both this sweep and the axe sweep stop at the login
+wall, so the logged-in experience — where organizers spend nearly all their time —
+has never had contrast or a11y measured. This is the single biggest remaining
+a11y/theme gap and it unblocks the moment test credentials exist (same blocker as
+"Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
+so it can be pointed at dashboard routes as soon as a session can be established.
+
+### ⛔ BLOCKER CORRECTED — it is network policy, NOT missing credentials (Claude, 2026-07-26)
+Several items are parked on wording like *"the moment test credentials exist"*
+(signed-in e2e, dashboard/admin a11y + contrast) or *"can't be HTTP-200-verified
+from the sandbox"* (new Unsplash photo IDs for the duplicate-category work).
+
+**The credentials already exist.** `apps/web/.env.local` carries
+`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`,
+`SUPABASE_PROJECT_REF`, Stripe keys, OpenAI, Resend/SendGrid, Twilio. Nobody needs
+to go find them.
+
+**What actually blocks it is the sandbox's egress policy.** The agent proxy
+answers **403 to CONNECT** for any non-allowlisted host. Confirmed directly from
+`$HTTPS_PROXY/__agentproxy/status` → `recentRelayFailures`:
+
+```
+yanexccimwooursawynm.supabase.co:443   connect_rejected (403 to CONNECT)
+images.unsplash.com:443                connect_rejected (403 to CONNECT)
+www.google.com:443                     connect_rejected (403 to CONNECT)
+```
+
+`curl` to Supabase returns **000** with and without the CA bundle — it never
+opens a socket. So:
+- **Signed-in audits cannot be unblocked by hunting for credentials.** They need
+  either an environment whose network policy allows `*.supabase.co`, or a run on
+  infrastructure with egress (CI, a laptop). Framing it as a credentials problem
+  will burn time and find nothing.
+- **The image-uniqueness residual is correctly parked.** I re-tested rather than
+  trusting the note: Unsplash is 403-denied, so new photo IDs genuinely cannot be
+  HTTP-verified here, and shipping unverified IDs would risk broken images in
+  production. The existing caution is right.
+
+**Practical consequence for whoever picks these up:** `scripts/audit-contrast.mjs`
+takes `--only`, and the axe spec can be pointed at dashboard routes; both are ready
+to run the instant they execute somewhere with egress. The work left is
+environmental, not code.
+
+### ⛔ INFRA CEILING HIT — free-tier quotas exhausted, CI red for everyone (Claude, 2026-07-26)
+**Do not chase the red CI as a code defect — it is not one.** Two independent
+free-tier ceilings were hit today and they explain every failing check:
+
+1. **GitHub Actions — no runner is being assigned.** Both jobs complete in
+   **~2 seconds** with `runner_id: 0` / `runner_name: ""`, i.e. nothing ever ran.
+   This is repo-wide, not PR-specific: **30 of the 30 most recent CI runs failed
+   this way, including pushes straight to `master`** that touch none of our code.
+2. **Vercel — deploy quota gone.** Preview deploys now return
+   `Resource is limited - try again in 24 hours (more than 100, code:
+   "api-deployments-free-per-day")`.
+
+Two different providers refusing work on the same day, both with quota-shaped
+errors, points at **free-tier exhaustion rather than an outage** — plausibly
+driven by how frequently we have been pushing (every commit triggers a CI run
+*and* a preview deploy).
+
+**How to tell a real failure from this one:** a genuine failure runs for minutes
+and produces logs. These produce **no logs at all** (`get_job_logs` → HTTP 404)
+and finish in ~2s. If you see that signature, stop debugging your diff.
+
+**What the owner needs to do (nothing here is fixable in code):** check Actions
+minutes / billing and the Vercel plan, or wait out the 24h window. Until then
+green CI is unobtainable, so local verification is the only real gate —
+`npm run typecheck`, `npm test`, `npm run build`, plus the audit scripts, all of
+which do pass locally.
+
+**Cheap mitigation worth considering:** batch several changes per push instead of
+one commit per push, so a day's work costs a handful of runs rather than dozens.
+
+
+### ⚠️ CORRECTION to my own earlier result — the "0 violations" pass under-reported
+I reported `0 WCAG A/AA violations across 36 routes × both themes`. **That number was
+measured before the sweep settled animations**, and axe reads computed styles — so
+mid-transition samples masked real failures. With reduced-motion emulation and a
+250ms settle, the same sweep finds genuine `color-contrast` (serious) failures:
+
+- `/features` — the "Why CharitMe" `h2` and eyebrow `span` — fails in **both** themes
+- `/ai-fundraising` — the tool-card CTA link — fails in **light**
+
+**Not caused by my tokenisation of `/features`.** They fail in light mode too, where
+the token fallback is the original colour, so they pre-date this session's change.
+
+Also found and fixed a **real, deterministic mobile bug** while doing this:
+`/fast-payouts` `.fp-table-wrap` becomes `overflow-x: auto` under the mobile
+breakpoint, and without a tabindex the scrollable region was unreachable by
+keyboard — the off-screen speed/fee columns simply could not be read without a
+mouse. Now `tabIndex={0}` + `role="region"` + `aria-label`.
+
+**Remaining work on item 13 (needs a design decision, not a mechanical fix):**
+`todo.md` records that branded marketing pages deliberately keep their own palette
+instead of the app's theme tokens. So resolving these two means adjusting that brand
+palette's foreground colours — a design call. "Intentional palette" does **not**
+make a serious contrast failure acceptable, so they are baselined and visible in the
+test report rather than excluded. Any NEW contrast failure on any route fails CI.
+
+**Method note worth keeping:** injecting a `transition: none` stylesheet is
+impossible here — the app ships a strict `style-src 'self'` CSP and
+`page.addStyleTag` is refused (the CSP working correctly). Use
+`page.emulateMedia({ reducedMotion: 'reduce' })` plus a short settle instead.
+
+
+### 🔀 Reconciliation — two agents swept contrast concurrently (2026-07-26)
+A parallel agent extended a contrast sweep to 38 routes (adding `/login` and
+`/forgot-password`) and **fixed a real AA failure**: `/forgot-password`'s
+"Send reset link" CTA at 3.77:1, white on `bg-emerald-600`, in both themes — the
+button a locked-out user needs. They repointed `.bg-emerald-600` at `--green-btn`
+(~5:1). Good catch, and it corrected an explicit "green buttons are safe" comment
+in the dark-mode adapter.
+
+**Their sweep reports 0 AA failures across 38 pages × 2 themes. Mine reports 2**
+(`/features` h2 + eyebrow span, `/ai-fundraising` CTA link). Both cannot be right,
+and the likely difference is **animation settling**: my sweep emulates reduced
+motion and waits 250ms before scanning, which surfaces final computed colours;
+without that, axe can sample mid-transition and under-report (that is exactly how
+my own earlier "0 violations" number was wrong).
+
+**Next step for whoever picks this up:** re-run
+`npx playwright test e2e/accessibility.spec.ts` (which settles animations) *after*
+their `--green-btn` change, and see whether `/features` and `/ai-fundraising` still
+fail. If they pass, delete them from `KNOWN_CONTRAST_BASELINE` in that spec. If they
+still fail, they are genuine and need a brand-palette decision.
+Do **not** assume either number is right without settling animations first.

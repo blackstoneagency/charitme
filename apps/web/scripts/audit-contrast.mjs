@@ -49,6 +49,10 @@ const ALL_PAGES = [
   '/privacy', '/privacy-center', '/prohibited-use', '/refunds',
   '/security', '/sponsor', '/success-stories', '/supported-countries',
   '/terms', '/transparency', '/trust-safety', '/volunteer',
+  // Auth screens render unauthenticated and every single user passes through
+  // them, but they sit outside the public-routes sweep, so their contrast had
+  // never been measured. Highest-traffic pages in the app; keep them here.
+  '/login', '/forgot-password',
 ];
 const PAGES = ONLY ?? ALL_PAGES;
 const THEMES = ['light', 'dark'];

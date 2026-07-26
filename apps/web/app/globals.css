@@ -6725,3 +6725,13 @@ summary:focus-visible,
 [data-theme="dark"] .border-slate-200,
 [data-theme="dark"] .border-slate-100,
 [data-theme="dark"] .border-emerald-100 { border-color: var(--b1); }
+
+/* Emerald CTA fill — white text on `bg-emerald-600` (#059669) measures 3.77:1,
+   an AA failure for normal-size text, and it fails in BOTH themes (so it is not
+   a dark-mode remap). The `.mktg-page` adapter above deliberately leaves green
+   buttons alone on the assumption they were fine; the runtime contrast sweep
+   (scripts/audit-contrast.mjs) showed otherwise on /forgot-password's "Send
+   reset link" — a password-reset CTA every locked-out user has to read.
+   `--green-btn` (#0b7a3e, ~5:1) is the AA-safe fill already used by the shared
+   Btn component, so this aligns the Tailwind pages with it. */
+.bg-emerald-600 { background-color: var(--green-btn, #0b7a3e); }
