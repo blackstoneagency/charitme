@@ -277,6 +277,38 @@ _Two false alarms killed by checking:_ a grep for admin guards missed
 grep for `rateLimit` missed `checkRateLimit`, making two endpoints look
 unthrottled. Both were fine.
 
+**🔴 TEAM ROLES ARE A FALSE PROMISE — the UI states capabilities no code enforces.**
+`app/dashboard/team/_components/TeamActions.tsx:169-171` offers, in user-facing copy:
+- *"Admin — can edit and manage campaign"*
+- *"Viewer — read-only access"*
+
+Measured against the code:
+- **9** campaign API routes enforce an ownership check (`eq('user_id', user.id)`).
+- **1** of those 9 honours team membership at all —
+  `/api/campaigns/[id]/analytics`.
+- **0** check the member's *role*. Analytics tests only that a `team_members` row
+  **exists**.
+
+So an invited **"Admin" cannot edit or manage the campaign** — rewards, milestones,
+updates, FAQs and the rest are all owner-only — and a **"Viewer" has exactly the
+same access as an "Admin"**: both can read analytics, neither can do anything else.
+`team_members` is otherwise read only by the team-members API itself (i.e. to
+render the team list) and by `ai/viral-loop`.
+
+**Direction of failure matters: it fails SAFE.** Everyone gets *less* access than
+promised, never more, so this is a broken feature and dishonest copy — **not** a
+privilege-escalation hole.
+
+**Not fixed here, deliberately.** Same reasoning as the user-role gap below:
+enforcing `admin`/`member`/`viewer` means deciding which of the 9 routes each role
+may call, and guessing that on live authorization risks either locking owners out
+or handing collaborators more than intended. Two honest options, owner's call:
+1. **Implement it** — add a shared `assertCampaignAccess(campaignId, user, minRole)`
+   helper and apply it across the 9 routes.
+2. **Stop promising it** — if team members are only ever meant to see analytics,
+   change the copy to say so and drop the role selector.
+Until one is chosen, the copy should not claim editing rights that do not exist.
+
 **🔴 GOAL CRITERION "each user role is clearly mapped out and different" — NOT MET.**
 Audited `lib/roles.ts` + every consumer. Six roles exist
 (`donor, organizer, beneficiary, nonprofit, admin, super_admin`) but only two of
