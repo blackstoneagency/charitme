@@ -6986,3 +6986,54 @@ unsubscribe link cannot require a session.
 **Conclusion:** the "Security issues are resolved" criterion holds for API
 authorization specifically. Not claimed: RLS-per-persona (needs live auth
 sessions — see the network-policy blocker) and dependency CVEs.
+
+
+## 🔧 CI is DEAD (jobs never run) — but production deploys DO land (Claude/tbaz3i, 2026-07-26)
+
+**Three pipelines, three different states. Conflating them is easy and I got it wrong once
+— the correction matters more than the diagnosis:**
+
+| pipeline | state | consequence |
+|---|---|---|
+| `master` → production | ✅ **working** | **merging DOES reach users** |
+| PR → preview deploy | ❌ `api-deployments-free-per-day` | no preview URL for PRs |
+| GitHub Actions CI | ❌ **jobs never execute** | **a red check carries no information** |
+
+**CI evidence:** every run — master and PRs — fails in **2–5 seconds**, measured from the
+Actions API (`run_started_at` → `updated_at`). A real run (`npm ci` + build + 1300 tests +
+Playwright) takes minutes. That retro-explains the dead ends: job logs **404** (nothing
+ran), `get_check_run` output is **empty**, and **docs-only commits fail identically**.
+Ruled out: `npm ci` lockfile mismatch (`--dry-run` clean) and a Node/engines mismatch
+(fixed anyway — `.node-version` was 20.11.0 below rolldown's `^20.19.0`). Almost certainly
+**Actions minutes/billing exhausted**; the same account is hitting the Vercel free-tier cap
+simultaneously. **Owner: Settings → Billing → Actions.**
+
+**Until then — verify locally before merging, because nothing else will catch a regression:**
+```bash
+npm run typecheck --workspace=apps/web && npm run lint --workspace=apps/web \
+  && npm test --workspace=apps/web && npm run audit:campaign-images --workspace=apps/web \
+  && npm run build --workspace=apps/web
+cd apps/web && PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test
+```
+
+**`/api/health?details=1` now answers "which build is live?"** (admin-gated; the public
+response stays minimal per its contract test). Added because during this outage the only
+way to tell a *queued* deploy from a *shipped* one was probing behaviour — which is
+exactly how I briefly got it wrong.
+
+### Verified live this session
+- **All 96 fabricated "Verified" badges are gone** from `/grants` and `/volunteer`
+  (48 each → 0), with all 48 listings each still rendering. #91's read-layer suppression.
+- **Accessibility: all 30 public routes → 0 WCAG A/AA violations** against current master.
+
+### ⚠️ Still needs the owner — code cannot fix it
+`/grants` still shows **52 × "Ford Foundation"** and **44 × "City of Austin"**: fabricated
+grant programs credited to real organizations, indexed via `sitemap.ts`. Suppression hides
+a boolean, not a name. **Use the slug-prefix SQL** — the earlier `where source = 'seed'`
+version matches **zero rows**, because production rows have `source = NULL`:
+```sql
+update public.grants set verified = false where slug like 'seed-grant-%';
+update public.grants set funder_name = 'Cedar Grove Foundation' where funder_name = 'Ford Foundation' and slug like 'seed-grant-%';
+update public.grants set funder_name = 'City of Springfield'    where funder_name = 'City of Austin'   and slug like 'seed-grant-%';
+-- verify: select count(*) from public.grants where slug like 'seed-grant-%' and verified;  -- expect 0
+```

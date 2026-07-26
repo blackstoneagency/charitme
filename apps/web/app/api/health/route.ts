@@ -66,6 +66,18 @@ export async function GET(request: NextRequest) {
       resendKey:           process.env.RESEND_API_KEY ? 'set (optional)' : 'not set (optional)',
       appUrl:              process.env.NEXT_PUBLIC_APP_URL ?? 'not set (using fallback)',
     };
+
+    // Which build is actually serving. Without this, "is my merge live yet?" can
+    // only be answered by probing for behaviour — which is how a queued deploy
+    // got mistaken for a shipped one during the 2026-07-26 quota outage. Vercel
+    // injects these; they are not secret (a commit SHA reveals nothing on its
+    // own) but they stay behind the admin gate so the PUBLIC health response
+    // remains minimal, per the contract test.
+    checks.deployment = {
+      commit:      process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 8) ?? 'unknown (not on Vercel)',
+      branch:      process.env.VERCEL_GIT_COMMIT_REF ?? 'unknown',
+      environment: process.env.VERCEL_ENV ?? 'unknown',
+    };
   } catch {
     checks.supabase = 'error';
     checks.errorCode = 'SUPABASE_UNAVAILABLE';

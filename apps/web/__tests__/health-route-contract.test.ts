@@ -24,4 +24,16 @@ describe('health endpoint contract', () => {
     expect(source).toContain("{ status: 'error', code: e2.code ?? 'QUERY_FAILED' }");
     expect(source).toContain("{ status: 'error', code: e3.code ?? 'QUERY_FAILED' }");
   });
+
+  // Deploy identity was added so "is my merge live?" is answerable directly
+  // rather than by probing behaviour. It must stay ADMIN-ONLY: the public branch
+  // returns before verifyAdmin(), so anything added there is world-readable.
+  it('exposes deploy identity, and only behind the admin gate', () => {
+    expect(source).toContain('checks.deployment');
+    expect(source).toContain('VERCEL_GIT_COMMIT_SHA');
+    // It must appear AFTER the admin check, never in the public early return.
+    const adminGate = source.indexOf('const user = await verifyAdmin();');
+    expect(adminGate).toBeGreaterThan(-1);
+    expect(source.indexOf('checks.deployment')).toBeGreaterThan(adminGate);
+  });
 });
