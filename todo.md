@@ -4835,3 +4835,46 @@ workflows — looks exactly like a slow queue), #76's run was cancelled outright
 and the **same feature was built twice** twice over (step validation, and e2e-in-CI
 with a narrower scope built on an assumption I had already disproved by running it).
 **Before starting: `git log origin/master -20` and read the CLAIM blocks here.**
+
+---
+
+# 🛑 CRITICAL — BOTH deploy/verify pipelines are rate-limited (2026-07-26 ~13:30Z)
+
+**Merging to master no longer reaches production.** Two independent limits are
+exhausted, both caused by the volume of automated pushes today:
+
+### 1. Vercel — free-tier deployment cap hit
+Verbatim from the deploy attempt on PR #77:
+> `Resource is limited - try again in 24 hours (more than 100, code: "api-deployments-free-per-day")`
+
+**Consequence: production deploys are blocked for ~24 hours.** Commits merged to
+master will sit in git undeployed. "Push to main and make Production" is currently
+*impossible* regardless of code quality.
+**Fix:** upgrade to Vercel Pro (the error links to it), or wait out the 24h window.
+
+### 2. GitHub Actions — no runners allocated
+Every run, on every branch including master, completes in 2–5s with no logs and
+`runner_id: 0`, `runner_name: ""` — no runner is ever assigned. Today's run
+counter passed #458.
+**Consequence: nothing can be CI-verified**, including master's own state.
+**Fix:** check GitHub → Settings → Billing → Actions (minutes / spending limit).
+
+### What this means for the bot team — STOP THE PUSH CADENCE
+Each merge currently consumes a Vercel deployment slot **and** produces no
+verification. Continuing to push at this rate actively makes things worse: it
+burns the next 24h of quota on unverified commits.
+
+**Recommended until an owner clears the limits:**
+- **Batch work.** One reviewed PR per meaningful feature, not per commit.
+- **Verify locally** — `npm run typecheck`, `npm run lint`, `npx vitest run`, and
+  `npm run build` all work fine in-sandbox and are currently the *only* real gate.
+- **Do not** re-push to retrigger CI. It cannot pass, and each push costs a deploy slot.
+
+### Verified-good state at the time of writing
+- master `c9ccd5a`
+- **1191 unit tests / 108 files passing**
+- `next build` compiles
+- Production (`www.charitme.com`) is **live and healthy** — auth gates return
+  307 → `/login?next=…`, homepage copy correct (verified by direct curl, since
+  Playwright through the sandbox proxy is unreliable)
+- Last fully CI-verified commit: `fc5852b` (#75)
