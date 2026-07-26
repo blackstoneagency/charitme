@@ -392,6 +392,35 @@ $$;
 
 
 --
+-- Name: is_org_member(uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_org_member(target_org uuid, min_role text DEFAULT 'member'::text) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+  select coalesce((
+    select case
+      when auth.uid() is null then false
+      else exists (
+        select 1
+          from organization_members m
+         where m.org_id = target_org
+           and m.user_id = auth.uid()
+           and m.deleted_at is null
+           and case min_role
+                 when 'owner'  then m.role = 'owner'
+                 when 'admin'  then m.role in ('owner', 'admin')
+                 when 'editor' then m.role in ('owner', 'admin', 'editor')
+                 else true
+               end
+      )
+    end
+  ), false);
+$$;
+
+
+--
 -- Name: marketing_touch_updated_at(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -806,6 +835,25 @@ CREATE TABLE public.beneficiary_invites (
     beneficiary_id uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     expires_at timestamp with time zone DEFAULT (now() + '7 days'::interval) NOT NULL
+);
+
+
+--
+-- Name: brands; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.brands (
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    org_id uuid NOT NULL,
+    slug text NOT NULL,
+    name text NOT NULL,
+    voice text,
+    palette jsonb,
+    logo_url text,
+    is_default boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    deleted_at timestamp with time zone
 );
 
 
@@ -2943,6 +2991,45 @@ CREATE TABLE public.notifications (
 
 
 --
+-- Name: organization_members; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.organization_members (
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    org_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    role text DEFAULT 'member'::text NOT NULL,
+    invited_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    deleted_at timestamp with time zone,
+    CONSTRAINT organization_members_role_check CHECK ((role = ANY (ARRAY['owner'::text, 'admin'::text, 'editor'::text, 'viewer'::text, 'member'::text])))
+);
+
+
+--
+-- Name: organizations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.organizations (
+    id uuid DEFAULT uuid_generate_v4() NOT NULL,
+    slug text NOT NULL,
+    name text NOT NULL,
+    description text,
+    website_url text,
+    logo_url text,
+    plan text DEFAULT 'free'::text NOT NULL,
+    status text DEFAULT 'active'::text NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    deleted_at timestamp with time zone,
+    CONSTRAINT organizations_plan_check CHECK ((plan = ANY (ARRAY['free'::text, 'starter'::text, 'pro'::text]))),
+    CONSTRAINT organizations_status_check CHECK ((status = ANY (ARRAY['active'::text, 'suspended'::text, 'archived'::text])))
+);
+
+
+--
 -- Name: organizer_sends; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -3878,6 +3965,22 @@ ALTER TABLE ONLY public.beneficiary_invites
 
 ALTER TABLE ONLY public.beneficiary_invites
     ADD CONSTRAINT beneficiary_invites_token_key UNIQUE (token);
+
+
+--
+-- Name: brands brands_org_id_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.brands
+    ADD CONSTRAINT brands_org_id_slug_key UNIQUE (org_id, slug);
+
+
+--
+-- Name: brands brands_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.brands
+    ADD CONSTRAINT brands_pkey PRIMARY KEY (id);
 
 
 --
@@ -4897,6 +5000,38 @@ ALTER TABLE ONLY public.notifications
 
 
 --
+-- Name: organization_members organization_members_org_id_user_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_members
+    ADD CONSTRAINT organization_members_org_id_user_id_key UNIQUE (org_id, user_id);
+
+
+--
+-- Name: organization_members organization_members_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_members
+    ADD CONSTRAINT organization_members_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: organizations organizations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organizations
+    ADD CONSTRAINT organizations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: organizations organizations_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organizations
+    ADD CONSTRAINT organizations_slug_key UNIQUE (slug);
+
+
+--
 -- Name: organizer_sends organizer_sends_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5383,6 +5518,13 @@ CREATE INDEX audit_logs_created_at_idx ON public.audit_logs USING btree (created
 --
 
 CREATE INDEX audit_logs_target_idx ON public.audit_logs USING btree (target_type, target_id);
+
+
+--
+-- Name: brand_org_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX brand_org_idx ON public.brands USING btree (org_id) WHERE (deleted_at IS NULL);
 
 
 --
@@ -6293,6 +6435,27 @@ CREATE INDEX message_thread_state_owner_id_idx ON public.message_thread_state US
 --
 
 CREATE INDEX nonprofit_profiles_owner_id_idx ON public.nonprofit_profiles USING btree (owner_id);
+
+
+--
+-- Name: org_created_by_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX org_created_by_idx ON public.organizations USING btree (created_by) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: org_member_org_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX org_member_org_idx ON public.organization_members USING btree (org_id) WHERE (deleted_at IS NULL);
+
+
+--
+-- Name: org_member_user_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX org_member_user_idx ON public.organization_members USING btree (user_id) WHERE (deleted_at IS NULL);
 
 
 --
@@ -7336,6 +7499,14 @@ ALTER TABLE ONLY public.beneficiary_invites
 
 ALTER TABLE ONLY public.beneficiary_invites
     ADD CONSTRAINT beneficiary_invites_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: brands brands_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.brands
+    ADD CONSTRAINT brands_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
 
 
 --
@@ -9283,6 +9454,38 @@ ALTER TABLE ONLY public.notifications
 
 
 --
+-- Name: organization_members organization_members_invited_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_members
+    ADD CONSTRAINT organization_members_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: organization_members organization_members_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_members
+    ADD CONSTRAINT organization_members_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
+-- Name: organization_members organization_members_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organization_members
+    ADD CONSTRAINT organization_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
+
+
+--
+-- Name: organizations organizations_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.organizations
+    ADD CONSTRAINT organizations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
 -- Name: organizer_sends organizer_sends_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -10115,6 +10318,26 @@ CREATE POLICY bi_own_read ON public.beneficiary_invites FOR SELECT USING (((auth
 --
 
 CREATE POLICY bi_own_update ON public.beneficiary_invites FOR UPDATE USING (((auth.uid() = beneficiary_id) OR public.is_admin()));
+
+
+--
+-- Name: brands; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.brands ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: brands brands_editor_write; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY brands_editor_write ON public.brands USING ((public.is_org_member(org_id, 'editor'::text) OR COALESCE(public.is_admin(), false))) WITH CHECK ((public.is_org_member(org_id, 'editor'::text) OR COALESCE(public.is_admin(), false)));
+
+
+--
+-- Name: brands brands_member_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY brands_member_read ON public.brands FOR SELECT USING (((deleted_at IS NULL) AND (public.is_org_member(org_id) OR COALESCE(public.is_admin(), false))));
 
 
 --
@@ -11761,6 +11984,46 @@ CREATE POLICY notif_own_all ON public.notifications USING (((auth.uid() = user_i
 --
 
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: organizations org_admin_write; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY org_admin_write ON public.organizations USING ((public.is_org_member(id, 'admin'::text) OR COALESCE(public.is_admin(), false))) WITH CHECK ((public.is_org_member(id, 'admin'::text) OR COALESCE(public.is_admin(), false)));
+
+
+--
+-- Name: organizations org_member_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY org_member_read ON public.organizations FOR SELECT USING (((deleted_at IS NULL) AND (public.is_org_member(id) OR COALESCE(public.is_admin(), false))));
+
+
+--
+-- Name: organization_members org_members_admin_write; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY org_members_admin_write ON public.organization_members USING ((public.is_org_member(org_id, 'admin'::text) OR COALESCE(public.is_admin(), false))) WITH CHECK ((public.is_org_member(org_id, 'admin'::text) OR COALESCE(public.is_admin(), false)));
+
+
+--
+-- Name: organization_members org_members_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY org_members_read ON public.organization_members FOR SELECT USING (((deleted_at IS NULL) AND (public.is_org_member(org_id) OR COALESCE(public.is_admin(), false))));
+
+
+--
+-- Name: organization_members; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: organizations; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: organizer_sends; Type: ROW SECURITY; Schema: public; Owner: -
