@@ -570,7 +570,7 @@ Live-verified status of each goal criterion (master `9dc84c9`; two-bot split —
 
 - [x] **Public marketing dark-mode parity** — Added token-backed dark overrides for the shared Tailwind utility palette used by `/for-donors`, `/for-nonprofits`, `/trust-safety`, `/faq`, `/for-individuals`, and `/profile`. Existing light-mode layouts and brand accents remain unchanged.
   - Evidence: `npm test --workspace=apps/web -- --run` (945/945), `npm run typecheck --workspace=apps/web`, `npm run lint --workspace=apps/web`, `npm run build --workspace=apps/web`, and Chromium public-route audit (39 routes, 1/1 passed; no unnamed controls, missing image alt text, or horizontal overflow).
-  - Commit: pending
+  - Commit: dd8e8c5
 
 ### 2026-07-23 — Production-readiness goal (Claude lane; Codex owns SEO/marketing/security/CSP/a11y)
 
