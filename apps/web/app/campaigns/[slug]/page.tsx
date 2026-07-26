@@ -234,6 +234,20 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     if (!user || user.id !== campaign.user_id) notFound();
   }
 
+  // Unpublished drafts are owner-only. POST /api/campaigns documents
+  // status 'draft' as "saves without publishing", and publishing is precisely
+  // what makes a campaign public — but nothing here gated on it, so a draft
+  // rendered in full at its public URL (story, media, goal) to anyone holding or
+  // guessing the slug, which is derived from the title. Listings and the sitemap
+  // already exclude drafts via applyLiveFilters, so this was the one reachable
+  // surface.
+  //
+  // Deliberately narrow: only 'draft'. 'completed' and 'archived' campaigns must
+  // stay readable, since people link to finished fundraisers.
+  if (campaign.status === 'draft') {
+    if (!user || user.id !== campaign.user_id) notFound();
+  }
+
   // Personal referral link attribution (?ref=<userId>) — ignore self-referrals
   const referrerId = sp.ref && UUID_RE.test(sp.ref) && sp.ref !== user?.id ? sp.ref : undefined;
 

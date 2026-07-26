@@ -257,6 +257,29 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**🔴 FIXED — unpublished drafts were readable at their public URL.**
+`POST /api/campaigns` documents `status: 'draft'` as *"saves without
+publishing"* — and publishing is precisely what makes a campaign public. But the
+detail page **never gated on status**: it used it only to disable donations
+(`isActive`). So a draft rendered **in full** — story, media, goal — to anyone
+holding or guessing the slug, and slugs derive from the title.
+
+Listings and the sitemap already exclude drafts (both wrap `applyLiveFilters`),
+so the detail page was the one reachable surface. Now gated on ownership, exactly
+like the existing `visibility === 'private'` branch, so the organizer can still
+preview their own draft.
+
+**Deliberately narrow: only `'draft'`.** `completed` and `archived` campaigns must
+stay readable — people link to finished fundraisers — so a blanket
+`status !== 'active'` block would have broken them. A test pins that too.
+
+_Near-miss worth recording:_ I first thought `app/sitemap.ts` leaked private and
+deleted campaigns, because `grep` showed `.from('campaigns').select(...)` with no
+filters. **Wrong** — both queries are wrapped in `applyLiveFilters(...)`, which
+applies `status='active'`, `visibility='public'` and `deleted_at IS NULL`. The
+filters live in the *enclosing call*, not the fragment grep printed. The sitemap
+is correct; reading the whole expression is what prevented a false report.
+
 **🔴 FIXED — the full data export leaked anonymous donors' identity.**
 Third application of the promise-audit, this time to *"Donate anonymously"* — the
 control donors most rely on. Checked all three export endpoints; **two were

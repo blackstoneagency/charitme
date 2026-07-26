@@ -73,3 +73,26 @@ describe('anonymous donors are redacted in every export', () => {
     expect(donors, 'anonymous rows must carry no email').toMatch(/email:\s*isAnon\s*\?\s*''/);
   });
 });
+
+describe('unpublished campaigns are owner-only', () => {
+  it('the detail page gates drafts on ownership, like private campaigns', () => {
+    // POST /api/campaigns documents status 'draft' as "saves without
+    // publishing". Nothing gated on it, so a draft rendered in full at its
+    // public URL to anyone holding or guessing the slug (slugs derive from the
+    // title). Listings and the sitemap already excluded drafts via
+    // applyLiveFilters, making the detail page the one reachable surface.
+    const src = read('app/campaigns/[slug]/page.tsx');
+    expect(src, 'drafts must be gated').toMatch(/campaign\.status === 'draft'/);
+    // Gated on ownership, not blanket-404'd — the owner must still preview.
+    const draftBlock = src.slice(src.indexOf("campaign.status === 'draft'"));
+    expect(draftBlock.slice(0, 200), 'owner must still see their own draft')
+      .toMatch(/user\.id !== campaign\.user_id/);
+  });
+
+  it('does not block completed or archived campaigns', () => {
+    // People link to finished fundraisers; only 'draft' is unpublished.
+    const src = read('app/campaigns/[slug]/page.tsx');
+    expect(src).not.toMatch(/campaign\.status !== 'active'[\s\S]{0,60}notFound/);
+    expect(src).not.toMatch(/campaign\.status === 'completed'[\s\S]{0,60}notFound/);
+  });
+});
