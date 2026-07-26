@@ -19,6 +19,10 @@ import { PUBLIC_ROUTES, expectNoRedirect } from './public-routes';
 // ─────────────────────────────────────────────────────────────────────────────
 
 
+// WCAG 2.0/2.1 A+AA are ENFORCED. 2.2 is not yet — see todo.md (CHAR-0015).
+// Adding 'wcag22a'/'wcag22aa' here today turns the suite red on two residual
+// `target-size` findings whose cause is not yet pinned. Deliberately not
+// baselined round them: an exemption list is how the last two bugs hid.
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 
