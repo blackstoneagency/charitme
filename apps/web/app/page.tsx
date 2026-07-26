@@ -4,7 +4,8 @@ import type { Metadata } from 'next';
 import { seoMetadata } from '../lib/seo';
 import { safeJsonLd } from '../lib/json-ld';
 import { getHomeData, getCategoryStats, getRecentDonations, profileName } from '../lib/home-data';
-import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
+import { getCoverForCategory } from '../lib/photo-catalog';
+import { resolveCampaignCover } from '../lib/covers';
 import CampaignImage from '../components/CampaignImage';
 import JsonLd from '../components/JsonLd';
 import { formatMoneyCompact } from '@shared/currencies';
@@ -170,15 +171,39 @@ export default async function HomePage() {
     const d = recentDonations.find((x) => x.campaignSlug === slug);
     return d ? timeAgo(d.createdAt) : '—';
   };
-  const toHeroItem = (c: {
-    slug: string; title: string; category: string | null; cover_image_url: string | null;
+  type HeroCandidate = {
+    slug: string; title: string; organizer: string; category: string | null;
+    cover_image_url: string | null; currency?: string | null;
     goal_amount: number; raised_amount: number; backer_count: number; deadline: string | null;
-    trust_status?: string | null; campaign_health_score?: number | null; currency?: string | null;
-  }, organizer: string): HeroSpotItem => ({
+    trust_status?: string | null; campaign_health_score?: number | null;
+  };
+  const heroCandidates: HeroCandidate[] = [
+    ...rotatorCampaigns.map((c): HeroCandidate => ({
+      slug: c.slug, title: c.title, organizer: c.organizer_name ?? 'CharitMe Organizer',
+      category: c.category, cover_image_url: c.cover_image_url, currency: c.currency,
+      goal_amount: c.goal_amount, raised_amount: c.raised_amount, backer_count: c.backer_count,
+      deadline: c.deadline, trust_status: c.trust_status, campaign_health_score: c.campaign_health_score,
+    })),
+    ...featuredCampaigns.map((c): HeroCandidate => ({
+      slug: c.slug, title: c.title, organizer: profileName(c.profiles),
+      category: c.category, cover_image_url: c.cover_image_url, currency: c.currency,
+      goal_amount: c.goal_amount, raised_amount: c.raised_amount, backer_count: c.backer_count,
+      deadline: c.deadline, trust_status: c.trust_status, campaign_health_score: c.campaign_health_score,
+    })),
+  ];
+  const seenHeroSlugs = new Set<string>();
+  const pickedHero = heroCandidates
+    .filter((c) => (seenHeroSlugs.has(c.slug) ? false : (seenHeroSlugs.add(c.slug), true)))
+    .slice(0, 6);
+
+  // Resolve covers for just the shown slides: stored cover → themed live Unsplash
+  // photo (when UNSPLASH_ACCESS_KEY is set) → deterministic Picsum fallback. The
+  // Unsplash search is day-cached per category, so this stays well within limits.
+  const heroItems: HeroSpotItem[] = await Promise.all(pickedHero.map(async (c): Promise<HeroSpotItem> => ({
     slug: c.slug,
     title: c.title,
-    organizer,
-    cover: c.cover_image_url || getCoverForCampaign(c.category, c.slug),
+    organizer: c.organizer,
+    cover: await resolveCampaignCover(c.cover_image_url, c.category, c.slug),
     fallbackCover: getCoverForCategory(c.category ?? 'Community'),
     currency: c.currency ?? 'usd',
     trust: c.campaign_health_score ?? 0,
@@ -190,16 +215,7 @@ export default async function HomePage() {
     deadlineLabel: deadlineLabel(c.deadline),
     verified: c.trust_status === 'Verified',
     href: `/campaigns/${c.slug}`,
-  });
-
-  const heroCandidates: HeroSpotItem[] = [
-    ...rotatorCampaigns.map((c) => toHeroItem(c, c.organizer_name ?? 'CharitMe Organizer')),
-    ...featuredCampaigns.map((c) => toHeroItem(c, profileName(c.profiles))),
-  ];
-  const seenHeroSlugs = new Set<string>();
-  const heroItems: HeroSpotItem[] = heroCandidates
-    .filter((it) => (seenHeroSlugs.has(it.slug) ? false : (seenHeroSlugs.add(it.slug), true)))
-    .slice(0, 6);
+  })));
 
   const featured = (carouselCampaigns.length ? carouselCampaigns : featuredCampaigns).slice(0, 6);
   const causes = categoryStats

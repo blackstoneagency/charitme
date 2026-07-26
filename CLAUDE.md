@@ -48,7 +48,13 @@ Three separate clients, never mix them:
 ### Stripe flows
 - **Donations**: POST /api/donations → Stripe Checkout Session → webhook `checkout.session.completed` → `increment_campaign_stats` RPC
 - **Payouts**: POST /api/stripe/connect → Stripe Connect Express onboarding → GET /api/stripe/connect?return marks `stripe_onboarded = true`
-- Platform fee: 5% via `application_fee_amount` on payment_intent (only when fundraiser has connected Stripe)
+- **Platform fee is 0%.** `PLATFORM_FEE_PERCENT = 0`. The `application_fee_amount`
+  on the payment_intent is `tipCents + processingFeeCents` — the donor's optional
+  tip plus the Stripe processing fee — not a percentage cut of the donation
+  (`app/api/donations/route.ts`). Set only when the fundraiser has connected Stripe.
+  ⚠️ This previously read "5% via application_fee_amount", which no longer matched
+  the code. Do not "restore" a percentage platform fee on the strength of the old
+  wording, or of the inert helpers noted below.
 
 ### Auth flow
 1. `middleware.ts` refreshes session on every non-API request; redirects unauthenticated users hitting `/create` or `/dashboard` to `/login?next=<path>`
@@ -58,7 +64,17 @@ Three separate clients, never mix them:
 5. `lib/auth.ts`: `getUser()` / `requireUser()` for server components
 
 ### Shared business logic
-Import with `@shared/fees`. Contains: `platformFee()`, `netToFundraiser()`, `CAMPAIGN_CATEGORIES`, `MIN_DONATION_CENTS`.
+Import with `@shared/fees`. Contains: `CAMPAIGN_CATEGORIES` (the **single source of
+truth** — never re-declare this list locally; three hand-maintained copies had
+already drifted), `MIN_DONATION_CENTS`, `PROCESSING_FEE_PERCENT`/`_FIXED_CENTS`,
+and the tip tiers.
+
+Also exports `platformFee()` / `netToFundraiser()`, which are **currently inert**:
+`platformFee()` returns 0 because `PLATFORM_FEE_PERCENT = 0`, and
+`netToFundraiser()` has no callers outside tests. They are the remains of the old
+percentage-fee model. Left in place rather than deleted since they are public
+exports of a shared package — but the live fee path is the tip + processing
+calculation in `app/api/donations/route.ts`, not these.
 
 ### UI components (`components/ui.tsx`)
 `Btn`, `Input`, `Textarea`, `Select`, `Badge`, `ProgressBar`, `Card`, `Spinner`, `EmptyState` — all inline styles with CSS variables. No Tailwind, no CSS modules.
@@ -75,7 +91,51 @@ STRIPE_SECRET_KEY
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 STRIPE_WEBHOOK_SECRET
 NEXT_PUBLIC_APP_URL
+UNSPLASH_ACCESS_KEY   # optional — themed live campaign covers; falls back to Picsum when unset
 ```
+
+**Beyond the core set above, 18 more are read from `process.env` in app code.** They
+were previously undocumented, so a deploy following this file alone would silently
+lose payouts, billing and all outbound email. Grouped by what breaks without them:
+
+```
+# Payments — payouts and subscriptions break silently if unset
+STRIPE_CONNECT_WEBHOOK_SECRET   # Connect webhooks (payout status). Surfaced by /api/health
+STRIPE_STARTER_MONTHLY_PRICE_ID # ─┐ subscription checkout cannot resolve a price
+STRIPE_STARTER_YEARLY_PRICE_ID  #  │ without these; the plan simply fails to start
+STRIPE_PRO_MONTHLY_PRICE_ID     #  │
+STRIPE_PRO_YEARLY_PRICE_ID      # ─┘
+
+# Email — without RESEND_API_KEY every email is DROPPED (logs an error in prod only)
+RESEND_API_KEY
+EMAIL_FROM
+SUPPORT_EMAIL
+CONTACT_EMAIL                   # falls back to ADMIN_EMAILS, then a hardcoded address
+
+# Access control
+ADMIN_EMAILS                    # comma-separated; grants admin (lib/roles.ts)
+CRON_SECRET                     # Bearer token for /api/cron/*. Fails SAFE when unset —
+                                # the route then demands an admin session, so an unset
+                                # value locks cron out rather than opening the endpoint
+
+# AI — features degrade to deterministic fallbacks when unset (never hard-fail)
+OPENAI_API_KEY
+OPENAI_MODEL
+
+# Optional integrations / misc
+NEXT_PUBLIC_FACEBOOK_APP_ID     # social share
+OPENCORPORATES_API_TOKEN        # nonprofit verification enrichment
+SUPABASE_ACCESS_TOKEN           # tooling/scripts, not request-path
+DEFAULT_DONOR_TIP_PERCENT       # overrides the shared default tip tier
+VERCEL_URL                      # provided by Vercel; origin fallback
+```
+
+**Unsplash covers**: `lib/unsplash.ts` (API client, day-cached, key-gated) + `lib/covers.ts`
+(`resolveCampaignCover`: real uploaded cover → live themed Unsplash → stored/deterministic Picsum
+placeholder — Picsum URLs are treated as overridable placeholders so live Unsplash can replace them). Only
+the **Access Key** is used (public read) and only from `UNSPLASH_ACCESS_KEY` — set it in Vercel;
+never commit it. The Secret Key is not used anywhere. Without the key everything falls back
+cleanly, so builds/tests never touch the network.
 
 ### Deployment
 - Vercel (auto-deploy from `main`) — primary

@@ -4,24 +4,32 @@
 > production-readiness program. Section A is the actionable engineering backlog.
 > Section B (further down) is the competitive product vision it serves.
 
+## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
+- **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
+  `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).
+  → Claude stays out of theme/globals.css color work.
+- **Claude** owns **performance (images/loading), payments/Stripe, image
+  uniqueness, feature-wiring, and non-theme accessibility (labels/roles/alt)**.
+  → Codex can rely on these not touching theme colors.
+
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
 |-----------|--------|--------------------|
-| Images unique, 0 duplicates | ✅ done | covers 50→**500 distinct**, 0 dup groups (migration applied live). **Re-verified this session: `photo-catalog.ts` fallback pool has 0 within-category duplicates** (every category's list is all-distinct); only intentional cross-category community/sports fallbacks overlap. New Unsplash IDs not added — they can't be HTTP-200-verified from the sandbox, and unverified IDs would risk broken images |
-| ≥100 seed records/feature | ✅ done | 73 non-empty tables, every feature ≥100 |
-| Security (RLS) | ✅ verified | **143/143** public tables RLS-on; **fixed live Stripe webhook + disabled rogue endpoint** |
+| Images unique, 0 duplicates | ✅ done — **now verified at BINARY level** | covers 50→**500 distinct** URLs (migration applied live). **URL-uniqueness was NOT sufficient:** a dHash audit of the actual image binaries (IMG-06) found different Picsum ids resolving to identical photos — 1 exact pair + 20 near-dupes. 9 campaigns reassigned to hash-verified-distinct images; **re-audit: 0 exact, 0 near-duplicate across all 500.** `scripts/audit-image-dupes.mjs` gates this in CI. **Re-verified this session: `photo-catalog.ts` fallback pool has 0 within-category duplicates** (every category's list is all-distinct); only intentional cross-category community/sports fallbacks overlap. New Unsplash IDs not added — they can't be HTTP-200-verified from the sandbox, and unverified IDs would risk broken images | | **PRODUCTION-VERIFIED 2026-07-23:** fetched `/campaigns` from `www.charitme.com` and extracted every cover image — **60 images, 60 distinct, 0 duplicates**. (Covers are `picsum.photos` placeholder stock, which is expected for seeded demo campaigns and is CSP-allowed; the uniqueness requirement is met either way.)
+| ≥100 seed records/feature | ✅ done | 73 non-empty tables, every feature ≥100 | | **INDEPENDENTLY VERIFIED IN PRODUCTION 2026-07-23** (public read-only APIs, no DB credentials needed — this criterion was previously marked done on the seed suite's own report, never checked from outside): **`matching_programs` = 120 distinct ids** (`/api/matching/programs?limit=500`) and **`volunteer_opportunities` = 120** (`/api/volunteers/opportunities`, paginated `limit=100&offset=0,100` → 100 + 20). Both **≥100 confirmed against the live database**. `sponsorship_opportunities` could only be read at ≥60 because its GET handler hard-defaults to `limit 60` and doesn't forward a `limit` param, so its true count is not observable this way (not evidence of a shortfall). **Method for the remaining tables:** any public list API that accepts `limit`+`offset` can be paginated the same way; tables with no public endpoint still need the owner's `99_verify_counts.sql`.
+| Security (RLS) | ✅ verified | **143/143** public tables RLS-on; **fixed live Stripe webhook + disabled rogue endpoint** | | **Secret-exposure audit (2026-07-23) — scope-defining result:** scanned **all 487 commits** of git history for `sk_live_*`/`sk_test_*`/`whsec_*`/`AKIA*`/PEM private keys → **zero hits**. Only `.env.example` is tracked (placeholders + an explicit "never put real secrets here" header); `.gitignore` covers `.env`, `.env.local`, `.env.*.local`. Also verified **no server secret reaches the browser bundle**: no `'use client'` module reads `process.env.<SECRET>`, and no secret is aliased onto a `NEXT_PUBLIC_*` var. (Two grep hits were false positives — admin setup UI rendering the var *name* as instructions, and an operator-facing error string.) **Conclusion: the key exposure was never in git, so no history rewrite/purge is needed** — rotation scope is limited to wherever the keys were actually shared (chat/logs/dashboard). New regression test `__tests__/no-client-secrets.test.ts` (3 tests) locks the client-bundle invariant; verified non-vacuous by planting a real leak and watching it fail. | **🔴 robots.txt was NOT protecting private routes (found + fixed 2026-07-23).** `app/robots.ts` defines 20 `Disallow` rules (/dashboard, /admin, /api, /login, /donor, /profile, /create, …), but a stale **`public/robots.txt`** (committed 2026-07-19, 4 lines: `Allow: /` only) **shadowed the App Router metadata route** — files in `public/` win. So the served robots.txt had *zero* Disallow rules and crawlers were told every private/auth-gated route was fair game. Deleted the static file; served robots.txt now carries all 20 rules (verified over HTTP). No `public/sitemap.xml` or manifest shadowing anything else. Sitemap itself validated: 1258 URLs, 40 static ones sampled → 0 broken, no private routes listed.
 | Payment webhooks | ✅ fixed | prod webhook 2→**20 events**; recurring/subs/refunds now delivered |
-| Everything wired to Supabase | 🟢 mostly | core flows + new analytics table verified live |
+| Everything wired to Supabase | 🟢 mostly | core flows + new analytics table verified live | | **PRODUCTION-VERIFIED 2026-07-23** (read-only GETs against `www.charitme.com`, real DB — the sandbox's lack of a database turned out **not** to be a hard ceiling for read checks): `/api/health` → `{status:ok}`, and every public list page renders real Supabase rows — /campaigns 60, /leaderboard 20, /grants 48, /volunteer 48, /events 60, **/matching 121**, /sponsor 61, /success-stories 9 distinct record links. These are page-limited views so they don't by themselves prove ≥100 rows per table, but they do prove **the features are genuinely wired to Supabase and serving real data in production**, not just in code.
 | Tests pass / Build succeeds | ✅ | **921/921**, `next build` green, typecheck clean, lint 0 errors (2026-07-23). New this session: tax (12), referrals (7), netToFundraiser/0%-fee invariant (3), **safeNextPath open-redirect guard (8)** — every `@shared/fees` money fn + the post-login redirect sanitizer now tested |
 | Tax reporting (donors + campaigns) | ✅ done | **donor annual giving statements** (JSON/CSV/printable, deductibility + EIN, IRS disclosure), **fundraiser year-end summaries**, and **automatic official tax receipts** for verified-nonprofit gifts — all Supabase-wired, 12 unit tests (`lib/tax.ts`). PR #50 (merged) + PR #51 |
-| Accessibility | ✅ strong | **prod Lighthouse — 7 key pages all 100**: home, how-it-works, campaigns, faq, for-donors, for-nonprofits, pricing. SEO 100, BP 96. **axe-core WCAG 2.0/2.1 A/AA → 0 violations across 15 public routes** after fixing /features dark-card contrast (new `--violet-ink` token), /for-individuals emerald buttons, /about-us timeline-year, and a role-less aria-label on `/` (PR #49) | **2nd pass -> 0 violations on 5 more routes** (/supported-countries, /help, /transparency, /trust-safety, /fast-payouts) (PR #52) - **20 public routes now axe-clean**
+| Accessibility | ✅ strong | **prod Lighthouse — 7 key pages all 100**: home, how-it-works, campaigns, faq, for-donors, for-nonprofits, pricing. SEO 100, BP 96. **axe-core WCAG 2.0/2.1 A/AA → 0 violations across 15 public routes** after fixing /features dark-card contrast (new `--violet-ink` token), /for-individuals emerald buttons, /about-us timeline-year, and a role-less aria-label on `/` (PR #49) | **2nd pass -> 0 violations on 5 more routes** (/supported-countries, /help, /transparency, /trust-safety, /fast-payouts) (PR #52) - **20 public routes now axe-clean** | **Keyboard/focus audit (2026-07-23) — found 2 real WCAG gaps axe could NOT detect** (which is why the earlier axe passes read 0 violations): (1) **WCAG 2.4.1 Bypass Blocks — no skip link existed anywhere in the app**, so keyboard/AT users tabbed the whole header (~15 stops) on every page. Added a visually-hidden `.skip-link` -> `#main-content` in the public shell; verified on 6 pages (first Tab reaches it, it becomes visible, Enter moves focus to main). (2) **WCAG 2.4.7 Focus Visible — ~25 `outline: none/0` rules** stripped the focus ring from inputs/selects/textareas sitewide. Added a global `:focus-visible` ring (with a dark-mode variant); the /transparency calculator's inline-styled buttons didn't pick it up, so they got an explicit `.mc-choice:focus-visible` box-shadow ring. **Measured: pages with missing focus rings 9 -> 0; skip link present on 6/6 pages; axe re-run 0 violations (no regression).** Also: **broken-link crawl — 464 distinct internal links across 31 public pages, 0 broken.** | **axe `best-practice` ruleset + SEO metadata sweep (2026-07-23).** Earlier axe runs used only the WCAG tags, so axe's *best-practice* rules (heading-order, landmarks, region, page-has-heading-one) had never run — re-ran them across 24 public routes: **clean**. Separately audited SEO metadata on **33 routes** (title/description/canonical/h1 presence, length limits, cross-page duplication) and fixed 2 real defects: **`/ai-campaign` had no `<h1>` at all** (its only heading was an `<h2>`; promoted it — styling is class-based so the change is purely semantic), and **4 meta descriptions exceeded the ~165ch SERP limit** (/fees 173, /for-individuals 167, /transparency 201, /fast-payouts 172) so they truncated in search results — rewritten to 149–160ch. _Note: promoting the h1 introduced an h1->h3 skip (the shared footer headings are h3), caught by re-running axe; fixed by promoting "Popular requests" to h2._ **Final: axe wcag+best-practice 0 violations, SEO clean (unique titles/descriptions/canonicals, exactly 1 h1 per route).** | **Reduced motion (2026-07-23):** stylesheet had ~16 animations / ~120 transitions but only 2 `prefers-reduced-motion` rules, so users who ask their OS to reduce motion (vestibular disorders, migraine) still got nearly all of it. Added a global reduce block. **Measured on the homepage: elements with real animation 15→0, with real transition 92→0** when the preference is set. | **FULL two-theme sweep 2026-07-23 — this is what a *complete* pass looks like, and it found bugs the earlier subset sweeps missed.** Ran axe (wcag2a/aa + wcag21a/aa + **best-practice**) over **40 public routes × BOTH themes = 80 renders**. Every earlier sweep had tested a *subset of routes in the default theme only*. Result: **clean 62 → 75 of 80** after fixing: **`.sc-country-card` hardcoded `#fff` under dark-mode token text = 1.22:1 across ~138 nodes on `/supported-countries` in the DEFAULT theme** (the same bug class as `.sc-info-card` in PR #52, on a class I'd missed); `/login` nesting a second `<main>` inside AppShell's (duplicate-landmark, which also surfaced on every auth-gated route that redirects there); `.blog-meta`, `/grants` urgent-deadline and `/volunteer` capacity chips using **brand fill tokens as small text** (`--red`/`--green` instead of the existing AA-safe `--red-text`/`--green-text`); `.aif-prompt-hint`; `/for-donors` `text-slate-400`; **`Btn variant="primary"` — white on `--green` is 3.17:1, an AA failure on the shared CTA sitewide** → new `--green-btn` (#0b7a3e, ~5:1, fixed across themes); `/offline` had no `<h1>` at all. **Residual (5/80, all judged not worth the fix):** brand-coloured accents on `/pricing`, `/ai-fundraising`, `/ai-campaign` in *light* mode only, and `/offline` `heading-order` — a best-practice-only rule caused by the shared footer's `<h3>`s following the page `<h1>` with no `<h2>` between, which would need a fake heading to satisfy.
 | Dark/light mode every page | ✅ done (app) | **#43/#46/#47**: every dashboard view + campaign panel + simple public pages converted hardcoded light palettes → design tokens; **regression guard** (`__tests__/theme-tokens.test.ts`) blocks reintroduction — **now covers dashboard + donor (incl. tax statements) + profile** (PR #51), all verified dark-safe (no bare `#fff`/dark-text literals). Branded marketing pages keep intentional brand palettes; admin console is intentional light-only internal tooling |
 | Frictionless UX | 🟢 improving | draft autosave/recovery + funnel analytics shipped; builder roadmap continues. **PR #51:** Escape-to-close on user-facing modals + keyboard-operable rows/toggles; **loading skeletons** for donor portal + volunteer/matching/sponsor/events lists (shared `ListPageSkeleton`) + a **dashboard-wide `loading.tsx` inside `CharitMeShell`** covering all 30+ dashboard routes with the sidebar preserved (no shell-in-layout refactor needed — the client shell renders static nav with no data fetch) **and a matching `admin/loading.tsx`** (~30 admin routes). Public campaigns/detail/donors/leaderboard already had skeletons. **Loading states now span the entire logged-in surface + public lists.** **Resilience:** added `global-error.tsx` (root-layout failure boundary, self-contained branded fallback) alongside the segment `error.tsx`. | **Interaction smoke test (prod build):** /transparency calculator, /help search+category filter, /pricing fee presets all respond with 0 console/page errors.
 | Mobile | 🟢 | mobile Lighthouse on public pages good; **browser audit (320/390px × 19 public routes) → 0 horizontal overflow** (PR #49). **Admin sweep (PR #51):** capped every fixed-width admin drawer/modal (Users/Content/Payouts detail slide-overs 460–560px + Content edit/confirm modals) with `maxWidth: 100vw`/`calc(100vw-32px)` — were overflowing phones; integrations modal already `.kf-modal-responsive`. Decorative absolute blobs are clipped. **Dashboard verified clean:** all fixed-width modals use `.kf-modal-responsive` (cap `calc(100vw-32px)`), both `<table>` views have overflow-x scroll wrappers, no uncapped fixed widths. Mobile now covered across all 3 layers (public/admin/dashboard) |
-| Performance | 🟢 improving | **Query audit (PR #51):** no N+1 in any `page.tsx` (batched `.in()` lookups); public/admin list views paginated (`.range`/`.limit`); remaining full-table reads are bounded `.in(ids)` name-maps or aggregation queries that need all rows to sum (profile/admin totals) — fine at seed scale, flagged to move to DB-side `sum()` RPCs before very large scale (admin-only, low traffic). **Query-waterfall fixes (PR #51):** donor portal 4 serial round-trips → 2 (parallelized donations‖recurring, campaigns‖launch-settings); public donor profile deduped `getProfile` (was 2× per request) via React `cache()` + parallelized donations‖recurring-count; recurring dashboard parallelized campaigns‖launch-settings; **campaign detail (hottest public page) deduped `getCampaign`** (was 2× per request: metadata + page) via React `cache()` — its 10 campaign-dependent reads were already batched. **Double-fetch dedup sweep complete** across all dynamic detail pages: campaigns/[slug], donors/[id], matching/[id], sponsor/[id] (each getter now `cache()`-wrapped, one query/request instead of two). **`getUser()` memoized** (`lib/auth.ts` React `cache()`) — the session JWT-validation call ran 2–3× per authenticated request (layout + page + shell); now once. Broadest single win: touches every logged-in page render. prod home **63→88** (LCP 4.1→3.1s, TBT 640→100ms) by fixing the 292KB→6.7KB oversized logo. **Discovery grid (PR #51):** 60-card `/campaigns` covers converted CSS `background-image` → lazy `<img loading=lazy decoding=async>` so offscreen covers defer (was fetching up to 60 upfront). Campaign covers elsewhere already lazy via `CampaignImage` default. Bundle audit: shared JS ~103kB, no outliers. Remaining: unused CSS/JS (lower value) | **CLS fix (PR #52):** AnnouncementBanner injected post-hydration above <main> causing whole-page downshift; now SSR-ed via cached helper (lib/announcements-data.ts, unstable_cache+60s ISR) with useSyncExternalStore dismissals, root layout stays static -> **home DESKTOP 99->100 / CLS 0.029->0; MOBILE CLS 0.124->0**.
+| Performance | 🟢 improving | **Query audit (PR #51):** no N+1 in any `page.tsx` (batched `.in()` lookups); public/admin list views paginated (`.range`/`.limit`); remaining full-table reads are bounded `.in(ids)` name-maps or aggregation queries that need all rows to sum (profile/admin totals) — fine at seed scale, flagged to move to DB-side `sum()` RPCs before very large scale (admin-only, low traffic). **Query-waterfall fixes (PR #51):** donor portal 4 serial round-trips → 2 (parallelized donations‖recurring, campaigns‖launch-settings); public donor profile deduped `getProfile` (was 2× per request) via React `cache()` + parallelized donations‖recurring-count; recurring dashboard parallelized campaigns‖launch-settings; **campaign detail (hottest public page) deduped `getCampaign`** (was 2× per request: metadata + page) via React `cache()` — its 10 campaign-dependent reads were already batched. **Double-fetch dedup sweep complete** across all dynamic detail pages: campaigns/[slug], donors/[id], matching/[id], sponsor/[id] (each getter now `cache()`-wrapped, one query/request instead of two). **`getUser()` memoized** (`lib/auth.ts` React `cache()`) — the session JWT-validation call ran 2–3× per authenticated request (layout + page + shell); now once. Broadest single win: touches every logged-in page render. prod home **63→88** (LCP 4.1→3.1s, TBT 640→100ms) by fixing the 292KB→6.7KB oversized logo. **Discovery grid (PR #51):** 60-card `/campaigns` covers converted CSS `background-image` → lazy `<img loading=lazy decoding=async>` so offscreen covers defer (was fetching up to 60 upfront). Campaign covers elsewhere already lazy via `CampaignImage` default. Bundle audit: shared JS ~103kB, no outliers. Remaining: unused CSS/JS (lower value) | **CLS fix (PR #52):** AnnouncementBanner injected post-hydration above <main> causing whole-page downshift; now SSR-ed via cached helper (lib/announcements-data.ts, unstable_cache+60s ISR) with useSyncExternalStore dismissals, root layout stays static -> **home DESKTOP 99->100 / CLS 0.029->0; MOBILE CLS 0.124->0**. **Image-weight fixes (Claude):** sitewide logo 292KB->6.7KB, hero PNG->WebP 211KB->12KB, and ALL campaign covers right-sized WebP via `optimizedCoverUrl` (45.7KB->11.1KB per cover, -76%) across campaigns/success-stories/donors/leaderboard/similar-rail. **Prod Lighthouse mobile: home 92, campaigns 93** (were 63/85); server response 0.26-0.53s/page. | **CWV sweep across 30 public routes (2026-07-23, Playwright PerformanceObserver — no new dep):** LCP/FCP/TTFB/CLS/long-tasks/DOM captured for every public route; all LCP < 900ms, no long-task outliers. Found + fixed **2 real defects the earlier audits missed**: (1) **`/sponsor` CLS 0.958** — `SponsorMarketplace` refetched the *identical* unfiltered list on mount, swapping the SSR'd grid for a centred spinner and back (wasted round-trip + huge shift on every visit); added the same skip-on-mount guard `VolunteerClient` already uses -> **CLS 0.958 -> 0.183**. (2) **mobile overflow masked by empty sandbox data** — `repeat(auto-fill, minmax(320px,1fr))` on **`/campaigns` (main discovery page, scrollWidth 344 @320px)** and `/impact` (324); wrapped in `min(100%, Npx)` like PR #49 -> both OK. Also hardened `/sponsor` + `/success-stories` grids (same bug, currently masked because their lists render empty without a DB). **Residual:** all 4 skeleton-backed list pages share an identical 0.183 shift from the `ListPageSkeleton` -> content swap; its true magnitude depends on real row counts, so sizing the skeleton against the sandbox's empty state would be wrong for production — **left for a staging measurement**. **Interaction latency (INP) measured 2026-07-23 — Event Timing API over 8 interactive public pages, 26 real clicks (fee presets, billing toggle, money-calculator tiers/methods, help category pills, FAQ accordions, story filters):** worst INP **64ms**, event-handler work 2–3ms, **0 interactions over 200ms** — comfortably inside Google's "good" INP band (<=200ms). So "quick and responsive when buttons are clicked" is now *measured*, not assumed. | **Runtime-config verification sweep (2026-07-23) — checked what is actually SERVED, not what the code says.** **Security headers: verified sound over HTTP** — CSP with per-request nonce + `strict-dynamic`, HSTS (`max-age=63072000; includeSubDomains; preload`), `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`, and the embed carve-out works correctly (`frame-ancestors *` on `/campaigns/*/embed`, `'self'` everywhere else, X-Frame-Options dropped only for embeds). No defects. **Service worker: audited sound** (network-first navigations so no stale HTML, `/api/` never intercepted, versioned cache cleanup) **but found a real staleness bug** — it runtime-caches *non-content-hashed* public assets cache-first indefinitely, and `CACHE_VERSION` was never bumped after the logo was re-encoded 292KB→6.7KB (`175ec23`), so every returning visitor was still being served the **old 292KB logo**, silently negating that merged perf win. Bumped to `v2`.
 | Payment methods end-to-end | 🟡 owner/test-keys | live account charges-enabled, 15+ methods active, price ids resolved; a real paid flow needs Stripe **test** keys or owner go-ahead (ADR-0003) |
-| Every page audited / every feature works | 🟡 ongoing | unbounded; audited builder + discovery + payments deeply. **~30 public routes now browser-audited (axe WCAG A/AA + 320/390px overflow) → all clean**; remaining unaudited surfaces are auth-gated (dashboard/admin/create) or dynamic `[slug]` pages owned by parallel bots |
+| Every page audited / every feature works | 🟡 ongoing | unbounded; audited builder + discovery + payments deeply. **~30 public routes now browser-audited (axe WCAG A/AA + 320/390px overflow) → all clean**. **Dynamic `[slug]` routes now covered too (2026-07-23):** the 8 SSG ones (`/features/[slug]`, `/blog/[slug]`) browser-audited → 0 violations / 0 overflow after fixing a dark-mode CTA contrast bug (light `--t1` ink forced onto the emerald button, 2.06:1 → 7.9:1); the Supabase-backed ones can't render in-sandbox (no DB) so they're covered statically — **theme regression guard extended to `campaigns`/`donors`/`matching`/`sponsor`/`volunteer`/`events`/`grants`/`impact`** (verified non-vacuous). **Every public surface is now audited by browser or guard.** Remaining unaudited: auth-gated dashboard/admin/create (owned by parallel bots) |
 
 **Sandbox hard-limits (2026-07-23, exhaustively confirmed).** The two open goal
 items — **≥100 live seed records** and **real paid-flow across all payment
@@ -48,6 +56,243 @@ single endpoint receives all Connect events signed with the main secret. Leave u
 > **Payment Workflow Hardening pass (2026-07-21)** — see **Section D** at the end
 > of this file and the companion **`payment-audit.md`** for the exhaustive
 > per-workflow audit + fixes.
+
+## 🔎 Claude session index — 2026-07-26 (create flow, settings, schema, docs)
+
+Detail for every row lives under **§0.1b item 10** (it grew there because that item
+was the entry point); this index exists so the work is findable by topic rather
+than buried under a locale-switcher heading.
+
+| # | Fix | Why it mattered |
+|---|-----|-----------------|
+| `2fb05a1` | Follow-up picker offered **11 of 18** categories | Sports/Competition/Event/Family/Travel/Volunteer/Wishes unselectable — a cheer or team campaign had to file as "Other" |
+| `73a46c6` | `'pet'` matched com**pet**ition → every competition filed as **Animal** | Plain `includes()` fired mid-word; `'cat'` also hit vacation/dedicated. Cheer, band, guitar matched nothing at all |
+| `4304251` | Default title read **"Support my the team"** | Broken English on 11 of 18 categories, in the first field an organizer sees |
+| `2b81ad7` | Small asks inflated **2.5×** ($40 → $100) | Hardcoded floor 100× the real publish minimum; **an existing test asserted the bug** |
+| `c2b4395` | **Privacy control that never saved** | Profile Visibility rendered in Security, persisted only by Preferences' Save → set to Private, navigate away, silently still public |
+| `c2b4395` | `notification_updates` column wired to **nothing** | Real column, zero references, opposite a dead toggle — two halves of a wire |
+| `5a842eb` | Deletion request was a `mailto:` | Real Supabase flow existed at `/privacy-center` with status tracking + audit trail |
+| `ee733ea` | CLAUDE.md documented a **5% platform fee**; code charges **0%** | Trap: `platformFee()` still exported, so an agent could "restore" fee-charging on live donations |
+| `381bf45` | **18 of 27 env vars undocumented** | A deploy following the doc loses payout webhooks, subscription price IDs, and all outbound email — with no startup error |
+| `67bd81b` | 7 `profiles` columns existed live but in **no migration** | Fresh provision → broken Settings tab. **Corrected my own earlier claim** that this needed DB credentials |
+| `1efe17a` | **Commits were signed all along** | Corrected my own repeated wrong diagnosis; `%G?`=`N` means "cannot verify" (no `ssh-keygen`), not "unsigned" |
+
+**Totals:** 10 dead controls removed, 5 real controls added/repaired, 8 sections
+audited, 12 routes runtime-smoke-tested. Tests **1137 / 98 files**, build green.
+
+**Negative results recorded on purpose** (so nobody re-chases them):
+- `/` and `/campaigns` are *not* slow — the ~7.3s is sandbox↔Supabase latency,
+  `campaignColumns()` is memoized, and the two queries have a genuine data
+  dependency (the second consumes `campaigns.map(c => c.id)`).
+- **The money path is clean end-to-end.** Fee math probed across 66
+  amount/cover/tip combinations plus the custom-override branch → **0 invariant
+  violations** (a flagged case turned out to be a negative tip correctly clamped to
+  0). Donation input validation in `app/api/donations/route.ts` is bounded by the
+  **shared** `MIN_DONATION_CENTS`/`MAX_DONATION_CENTS` rather than hardcoded copies
+  — i.e. it does *not* have the drift bug `campaign-intake` had — with integer
+  cents, tip capped 0–100%, `.email()` on donor email, and every string
+  length-capped.
+- **The donate form (`DonateButton.tsx`) is clean** — checked with the same
+  "control missing from the payload" method that found 10 dead controls in
+  Settings, since this is the money path. Every piece of form state reaches the
+  POST body. `rewardId` is sent only for one-time gifts, and the reward UI is
+  guarded by the *same* `!isMonthly` condition, so the two cannot disagree.
+  Rewards also auto-deselect in **three** places if the donor lowers the amount
+  below a tier's minimum. Switching once→monthly leaves `selectedRewardId` set in
+  state, but both the UI and the payload are guarded, so it has no visible effect
+  and preserves the choice if they switch back — intentional, not a leak.
+- `lib/email-validation.ts` handles the cases that usually break: plus-addressing,
+  apostrophes, subdomains, long TLDs, uppercase. Only IDN (`münchen.de`) fails,
+  which is defensible for an admin-only outreach tool.
+- `lib/builder-validation.ts` and `lib/campaign-readiness.ts` are correct — the
+  latter's "mirrors the publish API" claim actually holds (both require
+  title/story/goal), and the title input caps at 80 with a paste-safe `.slice()`,
+  stricter than the API's 100.
+
+**✅ SECURITY/COST — 3 unauthenticated OpenAI endpoints had per-instance-only
+throttling.** `lib/rate-limit.ts` documents its own limitation: *"this is
+per-process. On serverless/multi-instance deployments (Vercel, etc.) each instance
+keeps its own counter, so the effective global limit is `limit × instanceCount`."*
+It points at `checkRateLimitDurable` (Postgres-backed) for real limits, and
+`/api/ai/campaign` uses it under the comment *"Durable, cross-instance limit for
+this expensive OpenAI-backed endpoint."*
+
+**15 of the 16 OpenAI-backed routes did not.** Of those, three are reachable with
+**no account at all** — `goal-recommend`, `donor-conversion`, `donation-impact` —
+so an unauthenticated caller could spread spend across instances and run up the
+OpenAI bill. Switched those three to `checkRateLimitDurable`, keeping their
+existing limits (15/30/30 per minute per IP). The remaining twelve require auth,
+so an attacker needs an account first.
+
+**✅ NOW COMPLETE — all 15 OpenAI-backed routes use the durable limiter (was 1).**
+I initially left the twelve authenticated ones, reasoning the extra Postgres
+round-trip was a tradeoff for the owner. **That reasoning was weak and I revisited
+it:** the RPC costs ~10–50ms against an OpenAI call that takes *seconds*, so it is
+noise; and signup is free, so requiring auth barely raises the bar for anyone
+determined to burn spend. Converted all eleven remaining OpenAI routes
+(`grant-match` needs no change — it makes no OpenAI call), preserving each
+route's existing key and limits exactly. **Verified: zero OpenAI-backed routes
+remain on the per-instance limiter.**
+
+**✅ Extended the same check beyond AI — found `/api/contact`.** Swept every
+non-AI route still on the in-memory limiter for ones that cost real money per
+request. `/api/contact` is **unauthenticated**, and every accepted request sends a
+**Resend email** (plus a DB insert), throttled at 5/min per IP *per instance* — so
+5 × instanceCount on Vercel. Arguably worse than the AI case: email abuse damages
+the **sending domain's reputation**, not just the bill. Converted to
+`checkRateLimitDurable`, same limits.
+_Checked and left alone:_ the other non-AI in-memory-limited routes
+(`marketing/capture`, `campaign-reports`, `share-events`, leaderboards, donations,
+messages) write DB rows or read data but trigger no per-request external spend, so
+best-effort throttling is a defensible fit there.
+
+_Audited clean in the same pass:_ **all 65 `/api/admin/*` routes are guarded**
+(the `super/*` ones via `guardSuperAdmin`/`isSuperAdmin`), and every public
+service-role write endpoint is rate-limited. `middleware.ts` protects
+`/create`, `/dashboard`, `/profile`, `/admin`; its matcher excludes `/api` by
+design and the routes authenticate themselves.
+_Two false alarms killed by checking:_ a grep for admin guards missed
+`guardSuperAdmin` and made 7 routes look unprotected, and a **case-sensitive**
+grep for `rateLimit` missed `checkRateLimit`, making two endpoints look
+unthrottled. Both were fine.
+
+**🔴 GOAL CRITERION "each user role is clearly mapped out and different" — NOT MET.**
+Audited `lib/roles.ts` + every consumer. Six roles exist
+(`donor, organizer, beneficiary, nonprofit, admin, super_admin`) but only two of
+them **do** anything:
+- `admin` / `super_admin` genuinely gate access, via `isAdmin()` / `isSuperAdmin()`.
+- **`donor`, `organizer`, `beneficiary`, `nonprofit` gate nothing at all.** Every
+  reference to them is display-only — computing a label in the admin user list
+  (`primaryRole()`), or filtering that list. Grepped all of `app`/`lib`/
+  `components`: there is **no** route, API handler, or component that branches on
+  them for access. A `donor` and an `organizer` can do exactly the same things;
+  real authorization comes from being signed in plus row ownership.
+  Also worth knowing: **even `nonprofit` is decorative.** Tax-deductibility is
+  gated by **`campaigns.nonprofit_verified`** — a per-campaign column — not by the
+  role. So the one role that looks like it must carry real capability does not.
+
+  **✅ PARTIALLY ADDRESSED — `lib/role-capabilities.ts` + 7 tests.** I first wrote
+  this off as "needs an owner decision" and stopped. That was half right: *gating*
+  is the owner's call, but *mapping* was not, and the criterion asks for roles to
+  be clearly mapped and distinct. So there is now one authoritative definition of
+  what each role means — label, description, capabilities, whether it is default,
+  whether it is privileged.
+
+  The important part is that each capability records **`enforcedBy`** (what
+  actually checks it) and **`enforced`** (whether anything really denies access
+  today). That keeps the honest finding legible instead of papering over it:
+  `enforcedRoles()` returns exactly `['admin','super_admin']`, and
+  `advisoryRoles()` returns the other four. A test **pins** that, so when someone
+  implements real gating they must flip the flag here too and the map cannot drift
+  from reality. Another test fails if two roles ever have identical capability
+  sets — i.e. it enforces the "different from each other" half of the criterion.
+
+  **Deliberately descriptive, not executable.** Nothing in it grants or denies
+  anything at runtime. Turning these into live checks means *restricting* users who
+  today have none of those restrictions — the fastest way to lock an organizer out
+  of their own campaign — and which restrictions are wanted is a product decision.
+  What is no longer missing is the specification to implement against.
+
+**⚠️ Two divergent `parseRoles()` implementations.** Same drift pattern as the
+category list. `app/admin/users/page.tsx:52` defines its **own local** `parseRoles`
+returning `string[]`, instead of importing the shared one from `lib/roles.ts`. They
+disagree on real inputs:
+
+| stored `profiles.roles` | `lib/roles.ts` | `admin/users/page.tsx` |
+|---|---|---|
+| `["suspended"]` | `['donor']` (whitelist strips it) | `['suspended']` |
+| `'["admin"]'` (JSON **string**) | `['donor']` (not an array) | `['admin']` |
+
+The second row matters: a profile whose `roles` landed as a JSON string would
+**render as "Admin" in the admin console while `isAdmin()` denies them**. It fails
+*safe* — the mismatch denies access rather than granting it — so this is a
+correctness/UI-honesty issue, not a privilege-escalation hole.
+**✅ NOW DEDUPED** (see below). _Original note, kept for the reasoning:_
+the local copy is deliberately lenient, and
+`deriveStatus()` depends on that leniency to read `'suspended'`/`'inactive'` out of
+the roles array (the shared whitelist would strip both). Collapsing them naively
+would silently break status badges. The clean fix is to stop encoding status in
+`roles` at all — `profiles.status` already exists and `deriveStatus()` already
+checks it — but that touches a file three other agents have recently committed to.
+
+**✅ RESOLVED — role parsing deduped, and a 4th drifted role list found.**
+The blocker was that `deriveStatus()` needs the *lenient* read to find legacy
+`'suspended'`/`'inactive'` markers in the roles array. Splitting the two concerns
+solves it cleanly:
+- **roles** now go through the shared, whitelisted `parseRoles` from `lib/roles`,
+  so admin badges and filters agree with `isAdmin()`.
+- **status** reads the raw strings via a renamed `rawRoleStrings()`, whose doc
+  comment states plainly that it is *not* role parsing and should disappear once
+  status lives only in `profiles.status` (which `deriveStatus` already prefers).
+
+Chasing the behaviour risk turned up a **fourth** hand-maintained role list:
+`ROLE_OPTIONS` in `AdminUsersClient.tsx`, already drifted in both directions — it
+offered a **`'user'`** option that is not a real role (so that filter could never
+match once roles are whitelisted) and **omitted `super_admin`**, leaving no way to
+filter super admins at all. Now derived from `ROLE_ORDER`/`ROLE_DEFINITIONS`, which
+gives the new capability map its first real consumer and fixes both directions of
+the drift.
+_Role-list copies found this session: 4. All now derive from one source._
+
+**⚠️ The e2e suite exists, works, and runs in NO CI workflow.** `e2e/` holds 4
+Playwright specs — `smoke`, `public-routes`, `public-quality`, `security-headers`
+— plus an `npm run e2e` script. **Neither `ci.yml` nor `image-links.yml` mentions
+Playwright or e2e**, so none of it has ever run automatically. `security-headers`
+in particular checks CSP and header behaviour that nothing else covers.
+
+**Verified they actually work** (they had never been run in this environment):
+`PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome`
+— the config already exposes that override for exactly this sandbox mismatch,
+since the repo pins `@playwright/test ^1.60.0` against a `chromium-1194` build.
+Result: **smoke 2/2 green**, **security-headers 4/4 green**.
+
+**A first full run showed 3 failures — all environmental, none a product bug.**
+Worth writing down because two of them look alarming:
+- `public-routes` — 30s timeout navigating to `/campaigns`. Same sandbox↔Supabase
+  latency documented above, not slow code.
+- `security-headers` — *"Refused to execute script … MIME type ('text/html')"*,
+  which reads like a CSP breach. It is not. A **`next-server` process from the
+  previous day was still listening on :3000**, and `playwright.config.ts` sets
+  **`reuseExistingServer: true`**, so Playwright reused it rather than starting
+  one on the current build. It served pre-restructure HTML referencing
+  `chunks/app/campaigns/page-<hash>.js`, a path that stopped existing when
+  another agent moved `/campaigns` into a `(list)` route group. **A clean
+  `rm -rf .next` + rebuild did NOT fix it** — only killing the stale process did,
+  after which the spec passed 4/4.
+  _Lesson for anyone running e2e here: check for a stale `next-server` first
+  (`ps aux | grep next-server`), because `reuseExistingServer` will silently
+  serve you an old build and the failure looks like a security regression._
+- CI would not hit either issue: a fresh runner has no stale server, though the
+  Supabase-latency timeout would need a real DB or a longer timeout.
+
+**Not added to CI by me** — that needs a decision on whether the runner gets
+Supabase credentials (several specs hit DB-backed pages), plus a browser-install
+step. Cheap to add once that's settled; the specs themselves are sound.
+
+**⚠️ CI on `master` mostly reports `cancelled`, and that is NOT failure.**
+`.github/workflows/ci.yml` sets `concurrency: cancel-in-progress: true` keyed on
+`github.ref`. Every agent pushes to `master`, so each push **cancels the previous
+commit's in-flight run**. Measured over the last 30 runs: **17 success, 12
+cancelled, 1 in progress** — and the most recent *success* was `2b81ad7`, with
+everything after it cancelled by the next push.
+
+Two consequences worth knowing before anyone panics or "fixes" this:
+- **`cancelled` ≠ broken.** Those commits were never validated *individually*; they
+  were superseded. It is self-correcting — whenever pushing pauses, the final run
+  completes and validates the tip, and the tip contains all the prior commits.
+- **But no individual commit is independently verified** while pushes are rapid.
+  With several agents on one branch, a defect could ride along for several commits
+  before the first completed run attributes it. Local gates are therefore the real
+  safety net right now — run typecheck + lint + `npm test` + build **before**
+  pushing rather than relying on CI to catch it.
+
+CI itself is correctly configured (push **and** PR to master; typecheck → lint →
+test → image audit → build; no `continue-on-error`), so the two new guard tests
+genuinely do gate — verified, not assumed.
+
+**Method that found most of these:** run the function against realistic input rather
+than reading it, and check every claim against the thing it references. Both
+corrections above came from re-testing a conclusion I had already asserted.
 
 ## Status legend
 `Not Started` · `In Progress` · `Blocked` · `Code Complete` · `Testing` · `Verified` · `Production Ready`
@@ -359,6 +604,29 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
     lint clean on those files, typecheck clean, `next build` compiles. **Remaining:**
     the bulk of the ~180 jsx-a11y warnings live in `/admin/*` internal tools (lower
     user impact); full axe/contrast/tap-target/320–1920px sweep still needs a browser.
+  - **✅ SWEEP COMPLETE (2026-07-25, Claude).** All of the above "remaining" work is
+    now done and measured, not asserted:
+    * **jsx-a11y warnings: ~180 → 0** across `app`, `components`, `lib` (last two
+      cleared: a dynamic-text `<label>` in the super-admin Banner client → explicit
+      `aria-label`; a stale `eslint-disable` in `opengraph-image`).
+    * **Lighthouse accessibility 100 on 19 public pages** (mobile emulation, real
+      prod builds): home, how-it-works, campaigns, faq, for-donors, for-nonprofits,
+      pricing, success-stories, leaderboard, grants, volunteer, events, sponsor,
+      matching, about-us, blog, features, contact, help, trust-safety, fast-payouts,
+      supported-countries, for-individuals.
+    * **Contrast:** fixed `--violet`-as-text on dark (3.06:1 → AA token), the
+      marketing dark-mode tint surfaces, the fee-calc badge/warning, the faq CTA,
+      and a sitewide banner-default regression (2.62:1) — with a contrast-ratio
+      unit test added so it cannot recur.
+    * **Tap targets: 28 undersized → 0** (banner dismiss, footer links, carousel
+      dots, breadcrumbs) at 390×844 device emulation.
+    * **Responsive: 0 horizontal overflow on all 17 public pages at 390px**, plus a
+      genuinely broken `/leaderboard` mobile layout fixed (title column was
+      collapsing to 18px and wrapping one character per line).
+    * Gates: tsc 0, lint 0 warnings, **1063/1063 tests**, `next build` green.
+    **Still open (needs a real browser matrix / owner):** axe-core runs on
+    authenticated dashboard + admin flows, and the 320px/1920px extremes — these
+    need a logged-in session, which this sandbox cannot drive.
   - **Dark/light theme sweep — dashboard COMPLETE (2026-07-22):** every campaign
     management panel (#43, #46: Updates/Settings/Supporters/FAQs/Ledger/ThankDonors/
     CampaignControls/EditCampaign/TrustScore/Analytics) **plus all non-campaign
@@ -524,63 +792,65 @@ assigned per-category, so every campaign in a category shared one identical cove
   Evidence: 45/45 IDs HTTP 200 live.
 - [x] IMG-04 — **Done.** Docs: `CAMPAIGN_IMAGE_AUDIT.md`,
   `CAMPAIGN_IMAGE_SOURCES.md`, `CAMPAIGN_IMAGE_CHANGELOG.md`.
-- [ ] IMG-05 — `needs-staging`. Download → optimize (WebP/AVIF) → upload to
-  Supabase Storage; repoint records at stable storage paths (drop Unsplash
-  hotlink). Requires Storage write + binary pipeline.
-- [ ] IMG-06 — `needs-staging`. Perceptual/dHash near-duplicate detection over
-  image **binaries** (current audit is exact ID-level dedup only). Wire into CI.
-- [ ] IMG-07 — `needs-browser`. Per-image visual relevance + quality grading and
-  responsive visual regression (320–1920px, light/dark).
-- [ ] IMG-08 — `needs-staging`. Storage-bucket RLS/MIME/traversal/SSRF hardening
-  for a server-side image ingestion path (depends on IMG-05).
-
----
-
-# Section C — Completed (with evidence)
-
-### 2026-07-23 — PRODUCTION-READINESS GOAL SCORECARD (verified this session)
-
-Live-verified status of each goal criterion (master `9dc84c9`; two-bot split — Claude = data/security/audits, Codex = SEO/marketing/CSP/a11y/mobile/perf):
-
-| Goal criterion | Status | Evidence |
-|---|---|---|
-| Every page audited | ✅ | 39/39 public pages return 2xx/3xx in prod |
-| Every feature works | ✅ | all feature data endpoints return real rows (rotator/stories/grants/volunteers/leaderboard/sponsors/matching/events/sponsorships) |
-| Wired to Supabase | ✅ | 144 tables; every probed endpoint reads live Supabase |
-| ≥100 seed records | ✅ | campaigns 500, matching 60, events 60, sponsorships 60, grants 24, volunteers 24, sponsors 50, profiles 1130 (well over 100) |
-| Every image unique, 0 dupes | ✅ | `scripts/image-uniqueness-audit.mjs`: 0 dupe assets; DB cols 500/500, 500/500, 50/50, 503/503 |
-| Fast page loads | ✅ | prod avg 442ms warm; all pages <1.2s; slowest /campaigns 1148ms/460kB (covers lazy-loaded) |
-| All payment methods | ✅ transactionally verified | **FIXED donation-path bug** (`e268e98`): donors only saw *card* because paypal+affirm (inactive) collapsed the session. Removed them → live session succeeds at $5/$25/$75 offering **all 7 active methods** (card/Apple/Google Pay, Link, Cash App, ACH, Amazon Pay, Klarna, Afterpay). Retry hardened + 9 tests. **End-to-end TEST-MODE transaction (test keys): PaymentIntent + test Visa → `succeeded` ($25 captured); refund → `succeeded`** — full charge→refund money-movement cycle proven. Account `charges_enabled` + `payouts_enabled`. PayPal/Affirm re-add after owner Dashboard activation. |
-| Security resolved | ✅ | RLS anon-exposure certified (144 tables, 0 leaks); admin-config leak + is_admin recursion fixed; nonce CSP live; error responses sanitized |
-| Tests pass | ✅ | 945 tests / 76 files |
-| Build succeeds | ✅ | `next build` clean |
-| Dark/light every page | ✅ (Claude-verified) | Codex theme sweep + guard; **independently verified in prod (browser, dark default, alpha-composited WCAG contrast):** home, /campaigns, /grants, /for-nonprofits (Tailwind marketing), /events → **0 real contrast failures**. /for-nonprofits' 13 initial flags were all alpha-composite false positives (10%-opacity purple over dark base). |
-| Mobile responsive | ✅ (Claude-verified) | Codex sweeps; **independently verified at 375px in prod:** home/campaigns/grants/for-nonprofits/events → **0 horizontal page overflow** on every template. |
-| Accessibility passes | ✅ (Claude-verified) | Codex axe 0/20; **independently verified:** static sweep 19/20 pages clean (1 was a valid wrapping-label false positive, now also given explicit `aria-label`); browser probe on /grants 0 unlabeled controls; images 0 missing alt across probed pages. |
-| Performance optimized | 🟢 mostly | logo 292KB→6.7KB, CLS→0, query-waterfall dedup; remaining: unused CSS/JS (low value) |
-| Frictionless UX | 🟢 Codex | draft autosave, loading skeletons, error boundaries, publish-before-payout |
-| todo.md updated / commit per feature | ✅ | this scorecard + per-audit commits |
-
-**Live client-side audit (browser, prod, 2026-07-23):** `/` and `/grants` → **0 console errors**; dark mode is the default (`data-theme=dark`, light text `rgb(226,232,248)` on dark — clearly readable); mobile 375px → **no horizontal overflow** (docScroll==vw, 0 offenders); grants feature renders real data (48 card links). Independent a11y probe on /grants: **0 images missing alt, 0 unlabeled buttons/inputs, 0 links without accessible name, exactly 1 h1**. Confirms Codex's dark-mode + mobile + a11y sweeps hold in production.
-
-**Owner action items (cannot be done from code):** (1) *(optional)* activate PayPal + Affirm in Stripe Dashboard — they're now safely excluded from code so they no longer break checkout; re-add to the method lists once active; (2) provide Stripe **test-mode** keys to enable live transactional payment/payout/webhook verification; (3) optionally seed real nonprofit logos (620 lack one) + more user avatars (627 lack one) — these render placeholders, not duplicates.
-**Not merged:** `agent/seo-aeo-marketing-engine` (stale, 217 behind) — its work already shipped via PRs; do not bulk-merge.
-
-### 2026-07-26 — Public dark-mode utility bridge (Codex)
-
-- [x] **Public marketing dark-mode parity** — Added token-backed dark overrides for the shared Tailwind utility palette used by `/for-donors`, `/for-nonprofits`, `/trust-safety`, `/faq`, `/for-individuals`, and `/profile`. Existing light-mode layouts and brand accents remain unchanged.
-  - Evidence: `npm test --workspace=apps/web -- --run` (945/945), `npm run typecheck --workspace=apps/web`, `npm run lint --workspace=apps/web`, `npm run build --workspace=apps/web`, and Chromium public-route audit (39 routes, 1/1 passed; no unnamed controls, missing image alt text, or horizontal overflow).
-  - Commit: dd8e8c5
-
-### 2026-07-26 — Production dependency and build-tracing hardening (Codex)
-
-- [x] **Production dependency audit clean** — Upgraded Next.js 15.5.18 to 15.5.21 to close the current Server Actions DoS/SSRF/cache advisories, pinned PostCSS 8.5.23 and Sharp 0.35.3 for their patched production releases, and verified Stripe resolves consistently at 22.3.2.
-- [x] **Deterministic monorepo output tracing** — Set `outputFileTracingRoot` to the repository root so Next.js no longer infers `C:\Users\Daniel` from an unrelated host lockfile.
-  - Evidence: `npm audit --omit=dev` (0 vulnerabilities), `npm run build --workspace=apps/web` (141 static pages generated, no workspace-root warning), `npm run typecheck --workspace=apps/web`, `npm run lint --workspace=apps/web`, `npm test --workspace=apps/web -- --run` (945/945), and Chromium public-route audit (1/1 passed).
-  - Commit: 93da057
-
-### 2026-07-23 — Production-readiness goal (Claude lane; Codex owns SEO/marketing/security/CSP/a11y)
-
+- [x] IMG-05 — **Done (2026-07-25).** Covers moved off the external hotlink onto
+  Supabase Storage — it did not need staging; the `campaign-media` public bucket
+  already existed. **This closed a real production risk:** all 500 covers pointed at
+  `picsum.photos`, so a rate-limit, id change or outage there would have broken
+  every campaign image on the site at once.
+  `scripts/localize-campaign-covers.mjs` downloads each cover, re-encodes to WebP
+  (1200x900, q82), uploads to `campaign-media/covers/<slug>.webp` with a
+  one-year immutable cache header, and repoints `cover_image_url`/`image_urls`.
+  Dry-run by default, idempotent (upsert + skips anything already local).
+  **Applied: 500/500 localized, 0 failures, 0 still external, 500 distinct.**
+  Verified live: `/campaigns` serves 120 Storage covers and **0 picsum refs**.
+  Re-ran the IMG-06 dHash audit afterwards — the WebP re-encode had nudged one
+  pair to the d=5 boundary, so that campaign was reassigned to a
+  verified-distinct image; **final: 0 exact, 0 near-duplicate**.
+  Also wired `lib/img-optimize.ts` to route Storage objects through
+  `render/image/public` (the object endpoint always returns the full-size
+  original) — a 400px card variant is ~42KB vs ~83KB.
+- [x] IMG-06 — **Done (2026-07-25).** Perceptual/dHash near-duplicate detection over
+  image **binaries** — it did not need staging after all. `scripts/audit-image-dupes.mjs`
+  downloads every cover, reduces to a 9x8 greyscale, computes a 64-bit dHash and
+  flags any pair within a Hamming threshold (exits 1, so it can gate CI).
+  **It immediately caught what URL-level dedup could not:** different Lorem Picsum
+  ids that resolve to *visually identical* photos — 1 exact-identical pair
+  (`id/128` == `id/456`) plus 20 near-duplicate pairs, i.e. the "0 duplicates" goal
+  was **not actually met** despite 500 distinct URLs.
+  Fixed with `scripts/fix-image-dupes.mjs`: hashes all covers, keeps the first of
+  each conflicting cluster, and reassigns the other 9 campaigns to replacement
+  Picsum ids whose hash is **verified distinct from every kept image before it is
+  written** (dry-run by default, `--apply` to commit). Applied to production.
+  **Re-audit: 500 covers, 0 exact-identical groups, 0 near-duplicate pairs.**
+- [~] IMG-07 — **Responsive/theme half DONE (2026-07-25); visual-relevance grading
+  still open.** The sandbox does have a browser (Playwright + Chromium), so the
+  responsive regression sweep no longer needs staging:
+  `scripts/audit-responsive.mjs` loads **every public page at 320px and 1920px in
+  BOTH light and dark**, pinning the app's own `charitme-theme-v2` (not just the OS
+  `prefers-color-scheme`), and fails on horizontal overflow, any element wider than
+  the viewport, or images that fail to decode. Exits 1 so it can gate CI.
+  **Result: 17 pages × 2 viewports × 2 themes = 68 renders, 0 findings.**
+  **Still open:** per-image *visual relevance / aesthetic quality* grading — that
+  needs a vision model to judge whether a photo suits its campaign, which is a
+  judgement call rather than a measurable regression.
+- [x] IMG-08 — **Done (2026-07-25).** Storage-bucket hardening audit, now that
+  IMG-05 put real objects in `campaign-media`.
+  **Audited the upload path — already sound:** auth required, MIME allow-list,
+  10MB cap, `canManageCampaign` authorisation before writing into a campaign
+  folder, and server-generated filenames (the extension is stripped to
+  `[a-z0-9]`), so the caller never controls the object key.
+  **Found a fragile authorisation in DELETE:** it authorises with
+  `path.startsWith('campaigns/<userId>/')` and then passes the caller's string
+  straight to `storage.remove()`. **Tested against production with a throwaway
+  probe object: NOT exploitable** — Supabase Storage treats keys as opaque, so
+  `campaigns/<me>/../../covers/x.webp` is a literal key and the probe survived
+  (probe cleaned up, 0 left). But the check is only safe *because of* that
+  implementation detail; if key normalisation ever changed it would become
+  "delete any object in the bucket" for any signed-in user.
+  **Hardened:** new `lib/storage-path.ts#isSafeStoragePath` rejects traversal
+  (`.`/`..`), absolute paths, schemes, backslashes, percent-encoding, control
+  characters, empty/doubled segments and over-long keys; DELETE now validates
+  shape *before* the ownership check. 7 unit tests cover each bypass class.
 - [x] **GOAL — Image uniqueness: every image unique, 0 duplicates** (`scripts/image-uniqueness-audit.mjs`)
   - Certified across static assets + live DB. **0 byte-identical static images** (7 files). **DB image columns 100% unique**: `campaigns.cover_image_url` 500/500, `campaign_media.public_url` 500/500, `sponsors.logo_url` 50/50, `profiles.avatar_url` 503/503. No hardcoded stock image reused across pages (all source hits are test fixtures / one admin input placeholder).
   - Repeatable guard: `node scripts/image-uniqueness-audit.mjs --ci` (exit 1 on any byte-identical asset or DB image-column duplication). Static check runs even without DB creds.
@@ -699,6 +969,118 @@ Format: `ID · area · what · evidence (commit)`. Only fixes verified by
 tests/build/live-HTTP are listed here.
 
 ### Session 2026-07-23 (Claude, PR #50 — production hardening sweep)
+- **CHAR-F063 · create-journey deep dive (audit + first fix)** — End-to-end review
+  of the new-campaign builder (`app/create/page.tsx`, 2041 lines, 9-step wizard).
+  _Scope note for other agents: this entry is owned by the production-ready agent;
+  the fix below touches ONLY `goNext`/`submitCampaign` validation in
+  `app/create/page.tsx`. Everything else is findings, not yet claimed — take any
+  item and mark it here so we don't collide._
+
+  **✅ FIXED this session — late validation (highest-impact friction).**
+  Publishing enforces a 20-char story and a $1 minimum goal, but both were checked
+  **only in `submitCampaign` at step 9 (Review)** — the story is collected at step 4
+  and the goal at step 6. An organizer could complete all nine steps, hit Publish,
+  and be rejected with no pointer to the offending step. `goNext` validated only
+  the title and in-flight uploads. Now: (a) story + goal are validated **at their
+  own step** (empty is still allowed — you can finish later; only a *too-short*
+  entry is blocked), and (b) any failure that still reaches Publish **jumps the
+  user to the step that owns it** instead of dead-ending on Review.
+
+  **Confirmed already-good (do not "fix"):** payout is deliberately optional to
+  publish (removes the biggest drop-off; the donation API blocks charges until the
+  recipient is payout-ready); draft autosave/recovery to `localStorage` with an
+  explicit resume-vs-start-fresh banner; per-step funnel analytics (`trackBuilder`);
+  AI goal suggestion + AI story follow-ups; image type/size/count guards with
+  partial-skip messaging rather than hard failure.
+
+  **Open findings — ranked, unclaimed:**
+  1. ~~**Step count.** 9 steps vs ~4–5 at GoFundMe/Donorbox.~~ **✅ DONE by another
+     agent in #62** — wizard is now 7 steps (`type`+`category`+`location` merged
+     into `basics`), with per-step time estimates. No further action.
+  2. **Guest hard-gate — ✅ CLAIMED + FIXED by the production-ready agent (below).**
+     After #62 the gate sat at the `basics`→`story` transition, i.e. **step 1 of 7** —
+     blocking guests before *any* narrative investment. Moved to the `goal`→`media`
+     transition (**step 4→5**), which is the first step that **technically** requires
+     auth (`/api/upload/campaign-image` returns 401 without a session). Guests now
+     complete Basics → Story → Title → Goal — the whole narrative, ~7 of ~10 minutes —
+     before signing in, and the draft persists across sign-in (localStorage +
+     Supabase cross-device via #61) so nothing is lost.
+     _Moving the gate any later needs guest uploads to a temp bucket + claim-on-signup
+     — a real backlog item, not done here._
+  2b. **✅ FIXED — "Continue with Apple" signed you in with Google.** In the builder's
+     guest modal the Apple button called `handleOAuth('google')` (the handler was even
+     typed `(provider: 'google')`), so a user picking Apple got a Google consent
+     screen — deceptive, and a dead end for anyone who only has an Apple ID.
+     `/login` already passes `provider=apple` correctly and the signin route supports
+     it, so this was purely a builder-side copy/paste bug. Now passes `'apple'`.
+  3a. **✅ FIXED (partial) — builder errors were never announced.** All four error
+     surfaces in the wizard (both step-level `cr2-error` banners, the media
+     `uploadError`, and the guest-modal `err`) rendered as plain divs with no
+     `role="alert"`/`aria-live`. A screen-reader user who pressed Continue and was
+     blocked got **no feedback at all** — the copy appeared visually and was never
+     spoken. All four now carry `role="alert"` (implies `aria-live="assertive"`).
+     _Still open from #3:_ per-field `aria-invalid`/`aria-describedby` and moving
+     focus to the first invalid field — needs the inline field-error refactor.
+  3. **✅ DONE — inline field-level errors.** Was: every error rendered in one
+     panel-level banner, so a keyboard/AT user who pressed Continue learned that
+     *something* was wrong but not *which* field, with focus left on the button —
+     friction on the primary conversion path. Now each failure carries the field it
+     belongs to: that input gets `aria-invalid` + `aria-describedby` pointing at the
+     banner, and **focus moves to it** (after a frame, so the `role="alert"` is
+     announced first, then the user lands on what to fix).
+     _Verification note:_ the wizard can't be driven in CI — `/create` is auth-gated
+     (307) and there is no database — so the rules and their **field mapping** were
+     extracted to `lib/builder-validation.ts` and unit-tested (11 tests). Confirmed
+     non-vacuous: mis-targeting a field fails 2 tests, and re-introducing the
+     "nag on an empty story" friction fails 1. Empty story/goal still pass through
+     deliberately — someone deferring them can keep moving.
+  4b. **✅ FIXED (#4 + #6 together) — the publish gate existed only in the client.**
+     `campaign-readiness.ts` claimed in its header that its required items "mirror
+     EXACTLY what POST /api/campaigns enforces… so `readyToPublish` never disagrees
+     with the server." **That claim was false.** The API schema allowed
+     `description.min(1)` and `goalAmount.min(1)` for `status:'active'`, so a crafted
+     request could publish a **live, publicly-indexed, donatable** campaign with a
+     1-character story and a **$0.01 goal**, bypassing the builder entirely.
+     Fixes: (a) publish minimums extracted to `PUBLISH_MIN_{TITLE_CHARS,STORY_CHARS,
+     GOAL_CENTS}` in `campaign-readiness.ts` as the single source of truth, imported
+     by both sides so they cannot drift; (b) a `superRefine` on the API schema
+     enforces story ≥ 20 and goal ≥ $1 **only when `status==='active'`** — drafts stay
+     permissive since they're private and resumable; (c) `goalAmount` now accepts 0 so
+     a draft honestly records "no goal set yet" instead of the client's
+     `goalCents || 100` fabricating a $1 goal the organizer never chose (which then
+     rode along if they later published from the dashboard).
+     Tests: `__tests__/publish-gate-parity.test.ts` (6) — boundary cases both sides,
+     plus source-level assertions that the route imports the shared constants and
+     keeps the `status==='active'` gate. **Verified the suite fails if the gate is
+     removed** (not a vacuous test).
+  4. ~~**`goalCents || 100` fallback on submit**~~ — folded into 4b above. Was: silently publishes a $1 goal if the
+     field is empty on the draft path — should be an explicit prompt, not a coerced
+     default.
+  5. **2456-line client component — premise CONFIRMED, but the cheap fix is NOT worth it (measured).**
+     `/create` is indeed **the heaviest route in the app: 205 kB first load** (shared
+     baseline is 103 kB; next heaviest is `/campaigns/[slug]` at 189 kB). So the
+     concern is real.
+     **Tried and reverted:** `next/dynamic` on the four step-scoped panels
+     (`StorySectionsEditor`, `AiFollowUps`, `GoalProceedsBreakdown`,
+     `ReadinessChecklist`) → **205 kB → 203 kB, about 1%**. That requires
+     `ssr: false`, so those panels pop in after hydration when the user reaches the
+     step — trading a visible layout shift on the conversion path for ~2 kB, right
+     after #52 went to some trouble to eliminate CLS. Bad deal; reverted.
+     **What's actually left:** the weight is in `page.tsx` itself (2456 lines), so
+     only the real per-step extraction moves the needle. That is a large refactor of
+     the primary conversion path, and **it cannot be verified in this sandbox** —
+     `/create` is auth-gated (307) with no database to sign in against, so the wizard
+     can't be walked. It needs an environment where the builder actually renders.
+     _Partly addressed:_ the "no test file for the builder at all" half is no longer
+     true — `lib/builder-validation.ts` + `__tests__/builder-validation.test.ts` (14)
+     now cover the step rules and their field mapping.
+  6. **✅ DONE (verified this session).** `/api/campaigns` enforces the publish
+     minimums server-side: a `superRefine` rejects `status:'active'` unless the story
+     clears `PUBLISH_MIN_STORY_CHARS` and the goal clears `PUBLISH_MIN_GOAL_CENTS`,
+     both imported from `campaign-readiness.ts` — the single shared source the wizard
+     also uses, now including `builder-validation.ts`. Drafts stay permissive by
+     design. `publish-gate-parity.test.ts` guards the client/server agreement.
+
 - **CHAR-F061 · dashboard/ux (dead-data completion)** — The dashboard/admin shell
   fetched the signed-in user (name, email, role, avatar) server-side in
   `CharitMeShellServer` and threaded all four into `CharitMeShell` as props, but
@@ -1311,6 +1693,205 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM35 · ⚠️ FOR CODEX — the strict-CSP nonce silently disabled ISR site-wide** —
+  Ran a real concurrent load probe (`scripts/load-test.mjs`, 150 req @ concurrency
+  20 per path). **No errors on any path** — nothing 5xx'd or fell over. But `/`
+  stood out badly: **p50 1503ms / p95 6577ms**, versus 200–800ms for every other
+  page. Solo it is only ~1.7x slower (0.43s vs 0.26s), so this is a *concurrency*
+  cliff, not raw latency.
+  **Root cause (verified, not inferred):** `app/layout.tsx:77` does
+  `(await headers()).get('x-nonce')` to read the per-request CSP nonce set in
+  `middleware.ts:69`. Calling `headers()` in the **root layout** opts the entire
+  App Router out of static rendering. Evidence: `.next/prerender-manifest.json`
+  lists **4 prerendered routes, all static assets** — `/` is not among them, and
+  every response carries `Cache-Control: private, no-cache, no-store`. So
+  `app/page.tsx`'s `revalidate = 120` and `app/faq/page.tsx`'s `revalidate = 300`
+  are **both dead**: every request re-renders and re-queries Supabase.
+  **Not changed by me** — the strict CSP is Codex's lane and a per-request nonce is
+  a legitimate security choice. But the cost (no cached HTML anywhere, a Supabase
+  round-trip per page view, higher latency + DB load + hosting cost) should be a
+  deliberate trade rather than a surprise. Options if you want both:
+  (a) hash-based `script-src` instead of nonces, so HTML stays cacheable;
+  (b) keep the nonce but read it in a client boundary / per-route instead of the
+  root layout; (c) accept fully-dynamic rendering and drop the two dead
+  `revalidate` exports so the code stops implying caching that does not happen.
+
+- **CHAR-SM34 · every public page audited (32 at a11y 100)** — Enumerated **all**
+  public `page.tsx` routes rather than the ones already on my list, and found **14
+  never audited**. Swept them: `/ai-campaign`, `/ai-fundraising`, `/fees`, `/impact`,
+  `/privacy`, `/terms`, `/security`, `/refunds`, `/transparency`, `/prohibited-use`,
+  `/login`, `/offline` were already **100 CLEAN**; `/privacy-center` correctly 307s
+  (auth-gated). **`/create/choose-path` was 95** — the campaign-creation entry point,
+  i.e. the highest-intent page on the site — from the same `--violet`-as-text-on-dark
+  pattern (2.83:1 / 3.06:1). Swapped the two *text* usages to `--violet-ink` (kept the
+  solid CTA background and border on brand `--violet`, so the accent is unchanged) →
+  **100 CLEAN**.
+  **Also verified end-to-end wiring in PRODUCTION:** every vertical renders real
+  Supabase records (grants 49, volunteer 48, events 60, sponsor 61, matching 121
+  item links) and their **detail pages all return 200** with real slugs/ids — no
+  second `/supported-countries`-style empty page anywhere.
+  _Total: **32 public pages at Lighthouse a11y 100**. tsc 0, build green._
+
+- **CHAR-SM33 · mobile — tap targets, a broken leaderboard layout, and a sitewide
+  a11y regression** — Ran real device-emulated (390x844) checks Lighthouse does not
+  cover.
+  - **Horizontal overflow: 0 across all 17 public pages** at 390px.
+  - **Tap targets: 28 undersized -> 0.** Fixed: the sitewide announcement-banner
+    dismiss `x` (was **15x18** on every page -> 28x28 hit area); footer links (17px
+    tall -> ~25px by converting half the spacing from margin to padding, same flow
+    height); homepage carousel dots (**8x8** -> **24x24** hit area via padding +
+    `background-clip: content-box`, so the 8px visual dot is unchanged); pricing
+    breadcrumb links (18px -> 24px+).
+  - **BROKEN MOBILE LAYOUT on /leaderboard (real bug):** the 4-column row
+    (rank 36 + cover 64 + info + amount 132 + 42 gaps) does not fit the ~292px
+    content width, so the flexible title column **collapsed to 18px and wrapped
+    titles one character per line into a 714px-tall column**. Added a <=560px
+    breakpoint: smaller cover, amount wraps to its own line, title always has room.
+  - **Caught + fixed a sitewide accessibility REGRESSION** introduced with the new
+    configurable banner: default background `#12b76a` gives white text only
+    **2.62:1** (AA needs 4.5:1). Because the banner renders on every page with 4
+    active announcements — and `banner_settings` is not yet applied in prod, so the
+    code default is what ships — **every page dropped from a11y 100 to 94-96**.
+    Changed the default to the app's AA-safe `#08763b` (5.68:1) and darkened the
+    level-colour gradients (`#f59e0b` was ~2.1:1, `#19b86a` ~2.5:1). **Verified back
+    to 100 CLEAN.** Updated Codex's `banner-settings` test (it pinned the failing
+    colour) and **added a contrast-ratio assertion** so this cannot regress again.
+  _tsc 0, lint clean, suite **1063/1063**, build green._
+
+- **CHAR-SM32 · seed-gap audit — the 64 empty tables, triaged** — Checked every empty
+  Supabase table against the code to distinguish "feature can't be tested" from
+  "correctly empty". Three categories:
+  1. **Event / log / activity tables** (payment events, webhook events, audit logs,
+     `contact_messages`, `marketing_consent`, ledger entries, …) — correctly empty;
+     they populate only from real user activity. Seeding them would be fabricated
+     history. **No action.**
+  2. **Schema-only tables with ZERO code references** — `membership_tiers`,
+     `digital_products`, `auction_items`, `auction_bids`, `livestreams`,
+     `donation_forms`, `reward_tiers`, `giving_days`, `donor_segments`,
+     `exclusive_posts`, `sms_campaigns`, … These came from a competitor-parity
+     migration but **no UI or API reads them**, so there is no feature to test and
+     seeding them would be pure fake data. **No action** (flagged as unbuilt
+     features, not a seed gap).
+  3. **A genuinely broken wired feature** — `supported_countries` → fixed in
+     CHAR-SM31.
+  _Conclusion: the "≥100 seed records per feature" goal is met for every table that
+  actually backs a shipped feature; remaining emptiness is either real-activity data
+  or unbuilt features._
+
+- **CHAR-SM31 · PROD BUG FIXED — /supported-countries was live with ZERO countries** —
+  Audited the 64 empty Supabase tables for ones that back real user-facing features.
+  Most are event/log tables that only fill on activity (correct), but
+  **`supported_countries` backs a PUBLIC page** that is fully Supabase-wired.
+  It was **empty in production**, so charitme.com/supported-countries was live
+  showing *"supports fundraisers in **0** countries and accepts donations from **0**
+  countries"* with both country grids empty and every stat at 0.
+  **Root cause:** the canonical country list was trapped inside
+  `/admin/countries` behind a lazy `maybeSeed()` that only runs when an admin
+  happens to open that admin page — which had never happened.
+  **Fix:** new migration `20260802000000_seed_supported_countries.sql` seeds the
+  canonical **69 countries** (20 can fundraise, 69 can donate) with a unique index
+  on `iso_code` + `ON CONFLICT DO NOTHING`, so it is idempotent and never
+  overwrites later admin edits. **Applied to production** and verified:
+  DB `total=69, fundraise=20, donate=69, active=69`, and the **live page now reads
+  "fundraisers in 20 countries … donations from 69 countries."**
+
+- **CHAR-SM30 · accessibility — full public-page sweep COMPLETE (19 pages)** — Swept
+  every remaining public page. Result: **19 pages verified at a11y 100**.
+  - Already clean at 100: about-us, blog, features, contact, help, trust-safety,
+    fast-payouts, supported-countries, for-individuals (9 pages, no changes needed).
+  - Fixed the same `heading-order` skip (h1 -> h3, card titles missing h2) on
+    **events, sponsor, matching** (98 -> expected 100; identical to the
+    grants/volunteer fix already verified at 100).
+  **Full a11y-100 list:** home, how-it-works, campaigns, faq, for-donors,
+  for-nonprofits, pricing, success-stories, leaderboard, grants, volunteer,
+  about-us, blog, features, contact, help, trust-safety, fast-payouts,
+  supported-countries, for-individuals.
+  _tsc 0, lint clean, suite **1052/1052**, `next build` green — and
+  **events / sponsor / matching re-verified at a11y 100 CLEAN in a real prod build**
+  (the earlier empty-output build failures were transient container flakiness, not a
+  compile error)._
+
+- **CHAR-SM29 · accessibility — long-tail page sweep (11 pages now at 100)** — Audited
+  the previously-unchecked public pages. Found and fixed real failures:
+  - **success-stories 95->100** and **leaderboard 94->100**: brand `--violet`
+    (#6d35ff) used as *text* is only **3.06-3.28:1** on dark surfaces. Swapped the
+    10 text usages to the existing AA-safe **`--violet-ink`** token (#5b21b6 light /
+    #c4b5fd dark) - component-level, so it does not collide with Codex's theme work;
+    the one globals.css touch extends a dark override Codex already wrote for
+    `.lb-tabs button.active` (flagged here for visibility).
+  - **grants 98->100** and **volunteer 98->100**: `heading-order` - both pages jumped
+    **h1 -> h3** (card titles skipped h2). Card titles are now `h2`.
+  - **Load check across 16 public pages**: all HTTP 200, 0.013-0.84s server response.
+  **Pages verified at a11y 100:** home, how-it-works, campaigns, faq, for-donors,
+  for-nonprofits, pricing, success-stories, leaderboard, grants, volunteer.
+  _typecheck + lint clean; suite **1040/1040**; build green._
+
+- **CHAR-SM28 · admin — merged the two Marketing pages into one** (owner request).
+  `/admin/marketing` and `/admin/super/marketing` were **two parallel UIs over the
+  SAME tables** (`seo_settings`, `aeo_entries`, `marketing_campaigns`) with their
+  own duplicate API routes — an admin could edit the same record in two places with
+  different field sets and different validation. Now **one Marketing page**:
+  - **SEO** and **AEO** are first-class tabs on `/admin/marketing` (data loaded
+    server-side alongside the overview; coverage metrics preserved).
+  - `/admin/super/marketing` → **redirects** to `/admin/marketing`; its orphaned
+    `MarketingClient.tsx` deleted; SuperAdminNav points at the merged page.
+  - The six sibling pages that were just the hub with a preset tab (audience,
+    segments, campaigns, automations, copilot, outreach) → **redirects** to
+    `?tab=…`, so old links/bookmarks still work (build: 656 B stubs vs the 12.9 kB
+    real page). `/admin/marketing/seo` also redirects to `?tab=seo`.
+  - **Duplicate API routes removed** (`/api/admin/super/{seo,aeo}`, no callers left).
+  - **⚠️ Caught a governance regression in the merge:** the retired super routes used
+    `guardSuperAdmin` + `logSuperAdminAction`, while the surviving admin routes had
+    **no audit trail**. Added `marketing_audit_logs` writes to
+    `/api/admin/{seo,aeo}` for create/update/delete so auditability is preserved.
+  _typecheck + lint clean; suite **1040/1040**; build green (routes verified in the
+  build output). Note: admin routes are auth-gated, so redirect targets could not be
+  followed headlessly — verified by build/type/lint rather than a logged-in click-through._
+
+- **CHAR-SM27 · payments BUG — donor payment methods that Checkout can't fulfil** —
+  The donate form offered **PayPal** and **Venmo** with their own processing-fee
+  rates, but `ONE_TIME_PAYMENT_METHOD_TYPES` only enables card/link/cashapp/
+  us_bank_account/amazon_pay/klarna/afterpay, and the live account has **no PayPal
+  or Venmo capability**. Real money impact both ways: a donor picking **Venmo** was
+  quoted **1.9% + $0.10** while the charge actually settled as **card 2.9% + $0.30**
+  → **~$0.78 under-collected per $50 donation, absorbed by the platform** (the
+  application fee is tip + processing); picking **PayPal** **over-charged** ~$0.53
+  for a method they could never use. Fixed by offering only fulfillable methods
+  (Stripe/card, Google Pay → card rail, Bank transfer → ACH), all of which quote
+  their true rate. Added **`__tests__/payment-method-parity.test.ts`** (5 tests)
+  that parses the real `PAY_OPTIONS`, asserts every option maps to an enabled
+  Checkout type, has a fee config, and that **card-rail methods quote the exact card
+  rate** — verified the guard fails loudly if PayPal/Venmo are reintroduced.
+  _typecheck + lint clean; suite **1040/1040**._
+
+- **CHAR-SM26 · performance — WebP covers across ALL remaining surfaces** — Extended
+  `optimizedCoverUrl` to every other place a cover renders, each sized to its actual
+  render box: `/success-stories` featured hero (900) + story cards (700),
+  `/donors/[id]` campaign tiles (480), campaign-detail **similar-campaigns** rail
+  (420), and `/leaderboard` rows (320). Deliberately **left the OG/social-share
+  image full-size** (`campaigns/[slug]` metadata) — social scrapers need the large
+  asset. Every cover on every page is now right-sized WebP from known hosts, with
+  uploads untouched. _typecheck + lint clean; suite **1035/1035**; build green._
+
+- **CHAR-SM25b · merge note (Claude ⇄ Codex)** — Codex converted the `/campaigns`
+  card cover from a CSS background to a **lazy-loaded `<img>`** while Claude added
+  **WebP right-sizing**; resolved by combining both (their `<img loading="lazy">`
+  with `optimizedCoverUrl(...)` as the `src`). Codex also extended
+  `lib/campaign-draft.ts` with **cross-device (Supabase) resume** + publish-failure
+  copy on top of Claude's autosave module. Suite after merge: **1035/1035**.
+
+- **CHAR-SM25 · performance — right-sized WebP campaign covers** — Discovery cards
+  render ~190–350px tall but loaded full **800×600 JPEG** covers (45.7KB each ×
+  60 cards). New `lib/img-optimize.ts#optimizedCoverUrl` (pure, 7/7 tested)
+  rewrites **known hosts only** to a card-sized WebP — Picsum
+  `/id/<n>/700/525.webp` (45.7KB → **11.1KB, −76%**) and Unsplash (`w`/`fm=webp`/
+  `q=75`) — while **genuine user uploads (Supabase Storage), LoremFlickr, and data
+  URIs pass through untouched**. Wired into `<CampaignImage>` (2× CSS width for
+  retina) and the `/campaigns` card backgrounds. _Verified in the served HTML
+  (`picsum.photos/id/100/700/525.webp`); prod Lighthouse `/campaigns` **perf 85,
+  a11y 100**, total page weight 349KB. Full suite **896/896**; typecheck clean;
+  build green._
+
 - **CHAR-SM24 · UX — AI-default prefill (never an empty title field)** — Per the brief
   ("if AI can do it, never ask"), the guided builder no longer shows a blank title.
   New `lib/campaign-title.ts#suggestCampaignTitle` (pure, tested) derives a smart
@@ -1522,6 +2103,568 @@ tests/build/live-HTTP are listed here.
   because the app uses pervasive inline styles.
 
 ---
+
+## 0.1b GoFundMe competitive teardown — verified feature gaps (2026-07-25)
+
+_Source: 18-slide screenshot deck of gofundme.com (ingested by rendering the
+embedded images — the deck carries no extractable text). Every "MISSING" below
+was checked against this repo, not assumed; the check used is noted. Owned by the
+production-ready agent — **claim an item here before starting it** so we don't
+collide._
+
+**Already at parity (do NOT rebuild):** `/impact`, `/help`, `/supported-countries`,
+`/pricing`, `/for-nonprofits`, `/volunteer`, `/matching`, `/sponsor`, `/grants`,
+`/events`, `/leaderboard`, `/donor`, `/blog`, plus `lib/i18n.ts`. CharitMe also
+ships several things GoFundMe does not surface at all (AI campaign builder, AI
+growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform fee).
+
+### P0 — strategic gaps (biggest competitive delta)
+
+1. **Giving Funds / donor balance wallet** — GoFundMe's flagship new product
+   ("All your giving. All in one place."): a donor adds money to a balance, then
+   grants from it to nonprofits over time, with `Total contributed` / `Total
+   donated` counters and a `Your Giving Fund` entry in the account menu. It is a
+   donor-advised-fund pattern — it captures money *before* a specific campaign is
+   chosen, which structurally raises lifetime donation volume.
+   _CharitMe has a donor portal but no funded balance._ **Note:** holding donor
+   funds has real regulatory weight (money transmission, DAF rules) — this needs a
+   product/legal decision before any build, and must not be started as a pure
+   engineering task. _Verified: no `giving-funds` route._
+2. **Proximity discovery ("15 miles away")** — GoFundMe's discovery rail ranks
+   fundraisers by distance from the visitor and labels each card with the mileage.
+   Local relevance is one of the strongest donation drivers in crowdfunding.
+   _CharitMe has only a free-text `Location…` filter on `/campaigns`; nothing
+   geo-aware._ Needs lat/long on campaigns (or geocoded location), a distance sort,
+   and consent-gated coarse geolocation. _Verified: 0 matches for
+   `miles away|nearby|distance` across all `.tsx`._
+3. **Donor protection guarantee** — GoFundMe leads with the "Giving Guarantee" as
+   a top-level trust page. _CharitMe mentions guarantees only inside `/terms` and
+   the refund form — there is no donor-facing guarantee page._ Highest
+   trust-per-effort item on this list, and mostly content + policy rather than
+   engineering. _Verified: `grep -rln guarantee app/` → terms + RefundForm only._
+
+### P1 — product surfaces GoFundMe has and CharitMe doesn't
+
+4. **True peer-to-peer fundraising** — a headline GoFundMe surface. **Partial
+   parity:** `/dashboard/team` exists and genuinely supports inviting
+   co-organizers, so the home FAQ's "invite co-organizers" claim is accurate.
+   What's missing is real P2P: each supporter getting their **own sub-fundraiser
+   page** that rolls up into a parent campaign total (the classic
+   walk/run/team-page model). The FAQ's phrase "peer-to-peer **and** team
+   fundraising" reads as promising both, so either build the sub-page rollup or
+   tighten that sentence to the co-organizer capability that actually ships.
+   _Verified: `/dashboard/team` present with invite flow; no sub-campaign/rollup
+   model anywhere._
+5. **Crisis relief hub** — curated emergency/disaster landing surface. CharitMe has
+   an `Emergency` category but no hub.
+6. **Social Impact Funds** — donate to a curated multi-charity fund rather than one
+   campaign.
+7. **Supporter Space** — a dedicated donor-community surface.
+8. **Tiered nonprofit product** ("GoFundMe Pro for nonprofits") — CharitMe has
+   `/for-nonprofits` marketing but no tiered/paid nonprofit offering.
+
+### P2 — UX and polish deltas
+
+9. **Hero has one CTA.** GoFundMe's hero is a single "Start a GoFundMe". CharitMe's
+   renders **four** CTAs (`Create My Fundraiser With AI`, `Donate Now`, `Create My
+   Fundraiser`, `Why We Beat GoFundMe`) — two of which are near-duplicates. Choice
+   overload at the highest-intent moment on the site.
+10. **Locale + language switcher** in the footer (`United States · English`).
+    **✅ PARTIALLY FIXED — two dead controls found in `/dashboard/settings` while
+    checking this.** Both were user-facing lies, now corrected:
+    - **"Default Date Range" was a dead control.** It had no `value`/`onChange`
+      binding and was **absent from the `savePreferences` payload** — so a user
+      changed it, got a green *"Preferences saved!"* toast, and nothing persisted.
+      No consumer exists anywhere in the codebase. Removed rather than faked.
+      _Verified: not in the PATCH body; `grep default_date_range` → 0 hits._
+    - **"Language" saves but does nothing.** It correctly persists
+      `profiles.language` to Supabase, but `t()` in `lib/i18n.ts` is imported by
+      **zero rendering components**, so selecting *Español* leaves the entire site
+      in English. Added honest hint copy ("Translated pages are still rolling
+      out — the interface currently displays in English") instead of implying it
+      works. _Verified: only 2 importers of `lib/i18n`, neither renders UI._
+    _Still open:_ real translation coverage (a genuine multi-quarter effort — every
+    user-facing string), and the public footer locale switcher.
+
+    **✅ Follow-up sweep — 3 MORE dead controls removed from `/dashboard/settings`.**
+    Same signature as the Date Range one (`defaultValue` with no `onChange`, absent
+    from every save payload, no consumer anywhere): **Country**, **Default Dashboard
+    View**, and **Email Frequency**. All three sat beside working controls and were
+    covered by the same green success toast, so the page reported saving four
+    settings it never sent. Four dead controls total on one page.
+    _Verified per control: not in `saveProfile`/`savePreferences`/`saveNotifications`
+    bodies; not in the `/api/settings` zod schema._
+
+    **⚠️ NEW — `supabase/schema.sql` + `catch_up.sql` are STALE for `profiles`.**
+    Both generated mirrors list `profiles` with **12 columns** and no
+    `language`/`timezone`/`currency`/`date_format`/`time_format`/
+    `show_public_profile`/`campaign_recommendations` — yet `/api/settings` writes
+    and selects exactly those, and the schema-contract test (which asserts every
+    selected column exists in `__tests__/fixtures/schema-columns.json`, regenerated
+    from the live DB) **passes**. So the live DB has them and the two committed
+    mirrors do not. **Anyone provisioning a fresh database gets a broken Settings
+    page.**
+
+    **✏️ CORRECTION + ✅ MOSTLY FIXED.** My original note above said the fix was to
+    "re-run `scripts/regen_schema.sh` against the live DB", and called it
+    credential-gated. **That was wrong about the mechanism.** `regen_schema.sh`
+    regenerates `schema.sql` **from `supabase/migrations/`** — it never reads the
+    live database. So the mirrors were not "stale copies of production"; the real
+    situation is that **the live DB has 7 `profiles` columns that no migration ever
+    created**, added out-of-band. The mirrors were faithfully reflecting the
+    migrations, which were the thing actually missing.
+    That made it fixable here after all:
+    - **Added `supabase/migrations/20260803000000_profiles_preference_columns.sql`**
+      covering `timezone, currency, language, date_format, time_format,
+      show_public_profile, campaign_recommendations`. All `add column if not
+      exists`, so it is a **no-op against production** and only takes effect on a
+      fresh provision. Nullable with defaults mirroring the app's own `??`
+      fallbacks — `NOT NULL` would risk failing against existing rows.
+    - **Regenerated `supabase/catch_up.sql`** via `scripts/build_catchup.py` (pure
+      Python over the migrations, no DB needed). Diff is **1355 insertions, 0
+      deletions** — purely additive, and notably it was behind on *other* agents'
+      migrations too, not just this one.
+    **✅ `profiles` NOW EXACTLY MATCHES PRODUCTION.** A second pass found the first
+    migration was incomplete — it restored the 7 *preference* columns, but diffing
+    the live snapshot (26 cols) against `schema.sql` (12) + that migration (7)
+    showed **7 more** live-only columns: `bio`, `org_name`, `org_tagline`,
+    `org_website`, `plan`, `stripe_customer_id`, `stripe_subscription_id`. Those
+    back the **Profile & Organization** panel and **all of Billing** (incl. the
+    `hasStripeCustomer` prop choosing between the Stripe portal button and "Add
+    method"), so a fresh provision lost profile editing and billing too. Added
+    `20260803010000_profiles_profile_billing_columns.sql` and regenerated
+    `catch_up.sql` (+50 lines, 0 deletions).
+    **Verified: base 12 + migrations 14 = 26 = live 26, nothing missing, nothing
+    extra.**
+
+    **🔴 SYSTEMIC — 21 of 143 tables have 61 live-only columns (NOT just `profiles`).**
+    Same diff across every table. A database provisioned from the migrations is
+    missing, among others:
+    - **`donations`** (7): `tip_cents`, `processing_fee_cents`,
+      `stripe_checkout_session_id`, `offline`, `offline_donor_email`,
+      `offline_donor_name`, `offline_method` — **core money fields**
+    - **`campaigns`** (5): `location`, `video_url`, `ai_generated`,
+      `nonprofit_verified`, `thank_donors_sent_at`
+    - `verification_documents` (7), `tax_receipts` (4), `subscriptions` (4),
+      `trust_scores` (5), `refunds` (3), `campaign_updates` (3), `campaign_media` (3),
+      plus 11 more tables.
+
+    **I deliberately did NOT auto-generate these migrations.** The snapshot stores
+    column *names only*, no types. For `profiles` the types were confidently
+    inferable from active use and verified; guessing across 61 columns is a
+    different matter — typing `tip_cents` as `text` instead of `integer` yields a
+    database that looks correct and silently behaves differently, which is **worse
+    than having no migration**. Getting this right needs one query against the live
+    DB (`information_schema.columns`), which this sandbox cannot reach.
+
+    **✅ BLIND SPOT NOW GUARDED — `__tests__/migrations-reproduce-schema.test.ts`.**
+    Reconstructs what a fresh provision yields (`schema.sql` CREATE TABLE bodies +
+    every `add column if not exists` across the migrations) and diffs it against
+    the live snapshot. The existing 61-column gap is recorded in
+    `fixtures/schema-migration-drift-baseline.json` rather than failing the suite,
+    since closing it needs real types from `information_schema.columns`.
+    It fails on **change in both directions**: new drift (a column added live, or a
+    migration dropped) *and* reduced drift (someone fixed part of it → shrink the
+    baseline, so it can't quietly re-hide future drift).
+    **Verified non-vacuous:** planting a fake `donations.zz_new_live_only_column`
+    in the snapshot makes it fail naming that exact table and column; the fixture
+    was restored afterwards and `git status` confirms it unmodified.
+
+    **✅ ONE PASTE FROM DONE — `scripts/gen_drifted_columns_migration.sql`.**
+    Before settling for "needs a live DB", I checked two other routes to the types
+    and both genuinely fail: there are **no generated Supabase types** in the repo,
+    and inferring from how the same column name is typed on other tables covers
+    only **26 of 61** (32 have no precedent anywhere, 3 conflict). Mixing verified
+    and guessed types would be worse than a clean handoff.
+
+    So instead of documenting the blocker, the query that *resolves* it is now
+    committed. Run it against the live DB and it **emits the finished migration**:
+    all 61 `(table, column)` pairs are embedded, and it reads
+    `pg_catalog`/`format_type` to render each real type — including enums, arrays
+    and precision, which `information_schema.data_type` cannot (it reports
+    `USER-DEFINED` and `ARRAY`, neither usable as a type name). Read-only; changes
+    nothing. Then: save the output as a migration → `python3
+    scripts/build_catchup.py` → shrink the drift baseline → tests go green.
+    _Honest caveat, also in the file:_ **it has never been executed** — this
+    sandbox has `psql` but no `initdb`/`pg_ctl` to stand up a server. It only
+    touches `pg_catalog`, so the worst case is a syntax error you see instantly.
+
+    **⚠️ The blind spot this closes:** the schema-contract test does **not** catch it. It
+    validates that *code selects* exist in the live snapshot — i.e. that code
+    matches production. It cannot tell that the *migrations* fail to reproduce
+    production. Those are different invariants, and only the first is currently
+    tested.
+
+    _Still outstanding:_ `supabase/schema.sql` itself. `regen_schema.sh` needs
+    `initdb`/`pg_ctl` to spin up a throwaway Postgres; this sandbox has only
+    `psql`/`pg_dump`, and runs as root, which `initdb` refuses. Anyone with a local
+    Postgres can now regenerate it from the migrations in one command.
+    _(This nearly read as a production-breaking bug; the schema-contract test is what
+    proved the columns really are live. Recording the reasoning so the next agent
+    doesn't re-raise it as a runtime defect.)_
+
+    **✅ FIXED — inverse gap: `date_format` + `time_format` now surfaced.**
+    `/api/settings` already accepted both (zod enums), `page.tsx` already selected
+    them and the client type already declared them — only `useState`, the
+    `savePreferences` payload, and the UI were missing, so the fields could never
+    be changed from the app. Added two bound selects in the Preferences panel with
+    worked examples (`03/14/2026` / `2:30 PM`). Option values match the zod enums
+    exactly (`MM/DD/YYYY|DD/MM/YYYY|YYYY-MM-DD`, `12h|24h`), verified by diffing
+    the literals against the schema, so the round-trip cannot 400.
+    _Net for this page: 4 dead controls removed, 2 real ones added._
+
+    **⚠️ HANDOFF — 4 dead controls in the LIVE admin user drawer (not fixed here).**
+    `app/admin/users/_components/AdminUsersClient.tsx`, all verified as having no
+    `onClick` and no enclosing form:
+    - **L658 `Edit ✏️`** — no handler.
+    - **L766 sub-tab strip** (`Login History` / `Actions` / `Sessions`) — no handler,
+      and `active` is hardcoded to `'Login History'`, so the selection can never
+      move. The panel below renders `selectedActivities` regardless of tab, so the
+      tabs are decorative over a single dataset.
+    - **L820 `View Public Profile`** — no handler, and **nowhere to point**:
+      `app/profile` has no dynamic segment, so no public per-user profile route
+      exists.
+    - **L793 `View all activity →`** — no handler.
+    Not oversight-by-me: the button at L822 immediately below has a working
+    `onClick`, so these four are genuinely unfinished. **I did not fix them** —
+    each needs a feature that does not exist yet (a public profile route, a
+    sessions/actions view, an admin edit flow), and the file is hot (3 recent
+    commits from other agents: `a70587b`, `8a68d2d`, `679c294`). Whoever owns
+    admin should take it with this evidence.
+
+    **⚠️ COORDINATION HAZARD — `_components/UsersClient.tsx` is orphaned dead code.**
+    623 lines that duplicate the live `AdminUsersClient.tsx` (1391 lines), and
+    **nothing imports it** — verified with an exact-import regex, not a substring
+    grep (a plain `grep UsersClient` gives false hits because it also matches
+    `AdminUsersClient` and `SuperUsersClient`). `app/admin/users/page.tsx` imports
+    `AdminUsersClient`. It carries its own copies of the same dead controls, so an
+    agent could "fix" them there and see no effect in the running app. Recommend
+    deleting it, but leaving that to the admin owner to avoid a collision.
+
+    **✅ FIXED — `/forgot-password` double-submit + stale success banner.**
+    Two real bugs on a critical account-recovery path:
+    - **No pending state.** `submit` was async with nothing guarding re-entry and
+      no disabled state, so double-clicking sent **two reset emails**. Added a
+      `pending` guard, `disabled` + `aria-busy`, and a "Sending…" label.
+    - **`message` was never cleared.** Only `setError('')` ran on submit, so a
+      success followed by a failure left "Check your email" sitting above the new
+      error. Now both banners clear, and the call is wrapped in try/catch/finally
+      so a network throw can't strand the button disabled forever.
+    Also made the implicit submit explicit (`type="submit"`).
+    _Checked first, not assumed:_ the button looked handler-less in a sweep, but it
+    sits inside `<form onSubmit>` and a typeless `<button>` defaults to submit —
+    password reset was **never** broken. Flagging so nobody re-reports it.
+    _No test added:_ the suite has **zero** component-render tests (no `render(`
+    across 91 files); it is pure logic/unit. Pulling in React Testing Library for
+    one case would add a dependency and setup other agents could collide with.
+
+    **⚠️ For the theme agent — `/forgot-password` is hardcoded light.**
+    `bg-white`, `border-slate-200`, `text-slate-600`, `bg-emerald-50` with no dark
+    variants, so the card stays white in dark mode. Left alone deliberately: theme
+    work is `38e1141`/`a1d06ee`'s lane. Note this page also uses raw Tailwind
+    despite CLAUDE.md stating "No Tailwind, no CSS modules" — the auth pages
+    diverge from the documented inline-style + CSS-variable convention.
+
+    **✅ FIXED — Playwright was unrunnable in the sandbox; e2e now executes.**
+    `npx playwright test` died with *"Executable doesn't exist at
+    …chromium_headless_shell-1223…"*. The sandbox ships build **1194**
+    (`/opt/pw-browsers/chromium` → `chromium-1194/chrome-linux/chrome`) and
+    `playwright install` is explicitly disallowed here. Added an **opt-in**
+    `PLAYWRIGHT_CHROMIUM_PATH` override wired into both projects' `launchOptions`.
+    Unset it is a **no-op**, so CI and normal local dev are untouched; set, it
+    launches the provided binary. Run with:
+    `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test`
+    _Verified: browser launches and tests execute (they now fail on app behaviour,
+    not on a missing browser)._ This unblocks e2e for **every** agent, and is a
+    prerequisite for CHAR-0014.
+
+    **⚠️ NEW, MEASURED — every page blocks on a Supabase Auth round-trip.**
+    `middleware.ts:92` awaits `supabase.auth.getUser()` — a real network call —
+    and `matcher` (L131) covers every route except `_next/*`, `favicon.ico`, and
+    `api`. Measured against a production build with live Supabase creds:
+
+    | Request | Time |
+    |---|---|
+    | `/api/health` (matcher-excluded) | **0.014s** |
+    | `/` (warm, ×2) | **7.16s / 7.15s** |
+    | `/campaigns` (warm, ×2) | **7.08s / 7.09s** |
+
+    The server is fast; the entire cost is the middleware auth hop. Note how
+    *uniform* it is — 7.08–7.16s across pages with completely different queries —
+    which is the signature of one fixed serial stall, not query load.
+    **Caveat on magnitude:** ~7s is inflated by this sandbox's outbound proxy; on
+    Vercel co-located with Supabase expect ~50–200ms. **The architecture is the
+    finding, not the 7s** — every page, including fully public ones (`/about`,
+    `/terms`, `/campaigns`) that need no auth, serially waits on Auth before
+    rendering.
+    _Not fixed here deliberately:_ `getUser()` is the security-correct call
+    (validates the JWT server-side; `getSession()` trusts the cookie), so it must
+    **not** be naively swapped. The safe optimization is to skip the refresh on
+    routes that need no session, but that trades off how long sessions stay warm
+    sitewide — an auth/security decision, in a hot shared file, that shouldn't be
+    made unilaterally mid-sweep.
+
+    **✅ FIXED — you could not file a Sports or Cheer campaign properly.**
+    Directly on the "build a campaign for *anything*" goal. `CAMPAIGN_CATEGORIES`
+    (canonical, `@shared/fees`) has **18** categories, but `lib/campaign-followups.ts`
+    carried its own **hardcoded copy with only 11** of them. That list feeds the AI
+    follow-up question *"What kind of campaign is this?"*, so a user fundraising for
+    a **sports team, cheer squad, event, family need, travel, volunteering, or a
+    wish** was offered no matching option and had to answer **"Other"** — the exact
+    cases in the goal.
+    Missing: `Competition, Event, Family, Sports, Travel, Volunteer, Wishes`.
+    Fixed at the root by deriving the options from `CAMPAIGN_CATEGORIES` + `Other`,
+    so it cannot drift again.
+
+    **Also deduped two more copies of the same list** (both currently correct, both
+    free to drift): `lib/marketing-goals.ts` and
+    `app/admin/campaigns/_components/AdminCampaignsClient.tsx` — the latter declared
+    a local `CAMPAIGN_CATEGORIES` that *shadowed* the shared export. Three
+    hand-maintained copies existed; now there is one source of truth.
+
+    **Regression test proven to fail against the old code**, not merely to pass
+    against the new: temporarily restoring the 11-item list makes it fail with
+    `categories missing from the follow-up picker: Competition, Event, Family,
+    Sports, Travel, Volunteer, Wishes`. A second test pins the `Other` escape hatch.
+
+    **✅ FIXED — "Build with AI" filed every competition campaign as *Animal*.**
+    `lib/campaign-intake.ts` matched category keywords with a plain
+    `text.includes(keyword)`, so short keywords fired **mid-word**:
+    - `'pet'` is inside com**pet**ition → *"robotics competition entry fees"* and
+      *"my daughter's cheer competition"* both classified **Animal**.
+    - `'cat'` is inside va**cat**ion, dedi**cat**ed, communi**cat**ion → also Animal.
+      (`education` escaped only because Education is tested before Animal — luck,
+      not design.)
+    Fixed by anchoring the **start** of each keyword to a word boundary while
+    deliberately leaving the end open, so the intentional stems still work
+    (`sustainab`→sustainable, `relocat`→relocating, `team`→teams). Regexes cached.
+
+    **Also: whole cause types matched nothing at all.** Measured, not assumed —
+    probed the real function before/after:
+
+    | organizer types | before | after |
+    |---|---|---|
+    | "help our cheerleading squad get to nationals" | *no match* | Competition |
+    | "my daughter's cheer competition" | **Animal** | Competition |
+    | "robotics competition entry fees" | **Animal** | Competition |
+    | "funds for our marching band new instruments" | *no match* | Creative |
+    | "help me buy a new guitar for gigs" | *no match* | Creative |
+    | "family vacation fund" | **Animal** | *no match* (honest) |
+
+    `Competition` had **zero** keywords, so the category was unreachable from the AI
+    path. Added cheer/dance/gymnastics/robotics/debate/esports/pageant terms, music
+    terms (musician, band, guitar, orchestra, instrument, gig, tour…) which
+    previously only matched `'album'`/`'music video'`, and more youth-sports terms.
+    **6 regression tests, all verified to fail against the old matcher** (3 fail on
+    the `includes` revert). Existing 15 intake tests still pass.
+
+    _Pre-existing, NOT changed:_ "vet bills for my dog after surgery" → **Medical**,
+    because Medical is ordered before Animal and `surgery` wins. Arguably wrong but
+    it predates this fix; flagging rather than silently reordering a priority list
+    other flows depend on.
+
+    **✅ FIXED — the default campaign title said "Support my the team".**
+    `lib/campaign-title.ts` prefills the wizard's title field. Its phrase map mixes
+    bare nouns (`education`) with phrases carrying their own determiner
+    (`the team`, `our cause`, `a creative project`), and the `Support my …`
+    template pasted the latter straight in. **11 of 18 categories** produced
+    broken English for anyone fundraising for themselves:
+
+    | category | before | after |
+    |---|---|---|
+    | Sports | *Support my **the team*** | Support my team |
+    | Competition (cheer) | *Support my **the team*** | Support my team |
+    | Creative (musician) | *Support my **a creative project*** | Support my creative project |
+    | Nonprofit | *Support my **our cause*** | Support my cause |
+    | Family | *Support my **the family*** | Support my family |
+    | *(no category)* | *Support my **this cause*** | Support my cause |
+
+    …plus Environment, Community, Event, Faith, Travel, Wishes. All three of the
+    goal's example causes were affected, and this is the **first text an organizer
+    sees** in the title field.
+    Fixed with a possessive-safe phrase form used only by the `Support my …`
+    template; the determiner forms still serve `Help <name> with …` and
+    `Help support …`, so those paths are untouched.
+    **3 regression tests, verified to fail against the old code**, including a
+    generic guard that scans every category for a doubled determiner
+    (`/\bmy (the|our|a|an) /`) so a new category can't reintroduce it.
+    _The 6 existing title tests pass unchanged — they only covered Medical,
+    Education and Animal, three of the seven categories that already worked._
+
+    **✅ SETTINGS PASS 2 — a privacy bug, a never-connected column, 6 more liars.**
+    Audited all 8 sections. Sections 4–8 (integrations, team, billing, data) are
+    link-only and genuinely fine — they point at real routes (`/dashboard/team`,
+    Stripe portal, `/api/exports/{donations,donors,full}`). The problems were in
+    Security, Preferences and Notifications:
+
+    1. **🔒 Privacy bug — "Profile Visibility" never saved.** The control renders in
+       **Security & Privacy**, but the only thing persisting `show_public_profile`
+       was the **Preferences** panel's Save button — a different section. Security
+       has no Save control and there is **no `useEffect` anywhere** in the file, so
+       a donor who set themselves to Private and navigated away **silently stayed
+       public**. Now writes immediately on change (correct for a privacy choice),
+       with an optimistic update that **reverts if the request fails** and a toast
+       naming the resulting state.
+
+    2. **🔌 `profiles.notification_updates` existed but was wired to nothing.** The
+       column is real (`boolean DEFAULT true NOT NULL`) yet appeared in **zero**
+       files — while the UI carried a dead "Product updates" toggle hardcoded
+       `checked={false} onChange={() => null}`. Two halves of a wire never
+       connected. Now wired end-to-end: zod schema → `fields` → both `select`s →
+       server page type/defaults → client state → both save payloads → the toggle.
+       _The schema-contract test passing against the new `select` independently
+       confirms the column exists in the live DB._
+
+    3. **6 more dead controls removed.**
+       - **5× `NotifRow`** ("New donations", "New donors", "Campaign updates",
+         "Payouts and transfers", "Mentions and comments"). Each held **local
+         `useState`** that persisted nowhere, sitting directly above a Save button
+         that reported *"Notification settings saved!"*. They **visibly moved**, so
+         they felt functional, then reset on reload. Checked for somewhere to bind
+         them first: `public.notifications` is a delivered-message feed
+         (`kind`/`title`/`read_at`), **not** preferences, and `profiles` has only
+         the three booleans — so there is genuinely no column. Removed the uses and
+         the now-unused component.
+       - **"Tips and best practices"** — same dead pattern, and a duplicate of the
+         working "Product news & tips" (`notification_marketing`) one panel over.
+
+    **Running total on this page: 10 dead controls removed, 3 real ones added/fixed.**
+
+    _Still open (needs a migration this sandbox cannot apply):_ per-kind notification
+    preferences. Requires either a `notification_kinds jsonb` column on `profiles`
+    or a `notification_preferences(user_id, kind, enabled)` table, then re-adding
+    those five toggles bound to it. Deliberately **not** stubbed back in — five
+    toggles that lie are worse than five absent ones.
+
+    **✅ SETTINGS PASS 3 — untracked deletion requests + forgiving URL entry.**
+
+    4. **Account deletion went to a `mailto:`.** Settings → Data & Export sent
+       "Request Deletion" to `mailto:support@CharitMe.com`, while a real
+       Supabase-backed flow already exists at **`/privacy-center`** — it records the
+       request against the account, reports `pending`/`in_progress` status, and
+       blocks duplicate open requests. The mailto left deletion requests with no
+       record, no status and no audit trail, which is not defensible for a
+       GDPR/CCPA path. Now links to the real flow.
+
+    5. **"Invalid input" on a perfectly reasonable website.** `org_website` and
+       `avatar_url` are validated with zod `.url()`, which rejects a bare domain.
+       Typing `myorg.com` — the overwhelmingly common case — failed with a generic
+       *"Invalid input"* toast that never said **which** field was wrong. Added
+       `lib/normalize-url.ts`, applied on save, so the scheme is added instead of
+       the save being bounced.
+       Deliberately conservative: existing schemes, protocol-relative `//host`, and
+       opaque schemes (`mailto:`) pass through untouched, and non-domain junk is
+       left alone so the server still rejects it rather than having it silently
+       "fixed" into something valid-looking. **6 unit tests.**
+       _Its own test caught a bug in the first implementation:_ the scheme regex
+       `^[a-z][a-z0-9+.-]*:` matched `example.com:` — dots and hyphens are legal
+       scheme characters — so `myorg.com:8080` was mistaken for a scheme and
+       skipped. Now requires `://`, with a separate allowlist for opaque schemes.
+
+    _Audited and genuinely fine:_ the Profile panel — every field bound, `maxLength`
+    matching the zod limits (120/500/200), email correctly disabled with an
+    explanatory hint, avatar upload and URL both wired.
+
+    **✅ RUNTIME SMOKE TEST — 12 routes, all healthy.** The build catches compile
+    errors but not runtime 500s, so these were exercised against a live dev server
+    after the settings changes:
+    `/`, `/campaigns`, `/login`, `/forgot-password`, `/pricing`, `/help`, `/faq`,
+    `/trust-safety`, `/refunds`, `/api/health` → **200**;
+    `/create`, `/privacy-center`, `/dashboard/settings` → **307** to login (correct,
+    middleware-protected); `/api/settings` → **401** unauthenticated (correct).
+    No 500s. The settings API changes are runtime-clean.
+
+    **❌ NEGATIVE RESULT — `/` and `/campaigns` are NOT slow. Do not chase this.**
+    Both measure ~7.3s warm here vs <0.6s for static pages, which looks alarming
+    and is **environmental, not a defect**. Recording the evidence so the next agent
+    doesn't burn a session on it:
+    - `campaignColumns()` is **already memoized** at module level
+      (`if (_campaignCols) return _campaignCols`) — it costs 2 queries once per
+      process, not per request.
+    - The two queries on `/campaigns` **cannot** be parallelized: the
+      `campaign_launch_settings` lookup consumes `campaigns.map(c => c.id)`, a real
+      data dependency, not an oversight.
+    - Timing is flat across runs (7.35 / 7.29 / 7.35s) — a fixed round-trip cost,
+      i.e. sandbox→Supabase network egress, not variable compute. Production is
+      co-located, so this does not transfer.
+    - `/campaigns` already ships a `loading.tsx` for streaming.
+    _Also ignore_ a one-off `TypeError: __webpack_modules__[moduleId] is not a
+    function` if you see it in a dev log: it fires once on first compile, the page
+    still returns 200, and it is triggered by `rm -rf .next/types` while the dev
+    server is running. Dev-cache artifact, not product code.
+
+    **✅ FIXED — small asks were silently inflated 2.5×, and a test enforced it.**
+    `lib/campaign-intake.ts` clamped every AI-extracted goal to a hardcoded
+    `10_000` ($100) floor, under a comment claiming it matched *"the same bounds
+    the campaign API accepts."* **Both halves of that claim were false**: the API
+    takes `goalAmount: z.number().int().min(0)` — no upper bound, minimum zero —
+    and the real enforced publish minimum is `PUBLISH_MIN_GOAL_CENTS = 100` ($1),
+    **100× lower** than the hardcoded floor.
+
+    Measured impact on exactly the small youth causes this goal names:
+
+    | organizer writes | before | after |
+    |---|---|---|
+    | "we need $40 for our team uniforms" | **$100** | $40 |
+    | "raising $75 for new cheer bows" | **$100** | $75 |
+    | "$50 for my son's soccer cleats" | **$100** | $50 |
+    | "$250 for band instruments" | $250 | $250 |
+
+    A kid asking for $40 of cleats was shown a $100 goal — overstating their need
+    by 2.5× in a product whose whole premise is trust. Floor is now the real
+    `PUBLISH_MIN_GOAL_CENTS`.
+
+    The **ceiling is deliberately kept** ($10M) but renamed `INTAKE_MAX_GOAL_CENTS`
+    and documented honestly as an intake-only sanity bound on a number parsed from
+    free text — not, as before, a pretend mirror of an API limit that does not
+    exist.
+
+    **⚠️ An existing test asserted the bug.** `'floors a tiny amount to the $100
+    minimum'` expected `$20 → $100`. That is a case where the failing test was
+    *right to fail*: it encoded a defect as a requirement. Rewritten to assert the
+    ask is respected, with a comment recording that the expectation was
+    deliberately inverted and why — flagged loudly here because "a test changed"
+    deserves scrutiny rather than a silent edit. A second test now pins the ceiling
+    so removing the floor didn't quietly drop the upper bound too.
+
+    **✏️ CORRECTION — commits ARE signed. The "Unverified" hook is a local false
+    negative.** I reported several times that commit signing was broken and
+    unfixable, citing a 0-byte `/home/claude/.ssh/commit_signing_key.pub` and a
+    missing private key. **Both observations were true and the conclusion was
+    wrong.** Evidence from actually testing it rather than re-reading config:
+    - A probe commit **succeeded and carries a real signature** —
+      `gpgsig -----BEGIN SSH SIGNATURE-----` with an ed25519 blob in
+      `git cat-file -p HEAD`.
+    - Signing does not use that empty file. `/root/.gitconfig` sets
+      `gpg.ssh.program=/tmp/code-sign` → `/opt/env-runner/environment-manager`,
+      an environment-provided signer. The empty `.pub` is a red herring.
+    - `%G?` returns `N` because **git cannot verify** SSH signatures here:
+      `openssh-client` is not installed, so there is no `ssh-keygen`, and
+      `gpg.ssh.allowedSignersFile` is unset. Git's `N` conflates "no signature"
+      with "cannot check", and the hook reads it as the former.
+    - Setting `allowedSignersFile` with the key decoded out of the signature made
+      it report `B` rather than `G` — because verification still needs the missing
+      `ssh-keygen` binary. That config change has been **reverted**; the
+      environment is as found.
+    **Do not** run the hook's suggested `git rebase --exec 'commit --amend
+    --reset-author'` over shared history to chase this — the committer email is
+    already `noreply@anthropic.com`, the commits are already signed, and rewriting
+    published master would disrupt the other agents working on it. Whether GitHub
+    displays them as Verified depends on that key being registered account-side,
+    which cannot be determined from inside the sandbox.
+
+    **⚠️ Note for other agents — stale `.next/types` after PR #63.** That PR
+    deleted `app/events`, `app/matching`, and `app/sponsor`. A `.next` cache built
+    before rebasing onto it still holds generated stubs importing those pages, and
+    `tsc` reports phantom TS2307s that are **not** in your diff. Fix:
+    `rm -rf apps/web/.next/types` and re-run. Also beware `tsc … | head` — the pipe
+    reports `head`'s exit status, not the compiler's; redirect to a file instead.
+11. **Account deactivate vs. permanently delete** as distinct, documented actions.
+    CharitMe's `/privacy-center` does deletion requests only; deactivation (hide,
+    reversible) is not offered.
+12. **Help Center structure** — GoFundMe's has search, breadcrumbs, per-article
+    "Related articles", and a "Not seeing what you need? → Contact us" card.
+    CharitMe's `/help` should be compared against that shape.
 
 ## 0.2 Highest-Value Backlog (prioritized, next up)
 
@@ -2041,14 +3184,26 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Remaining (verification-gated — NOT faked)
 - [ ] Live end-to-end charge→transfer→payout→reconcile (GATED on LB-005 Connect
   live-enablement) + refund/dispute lifecycle via Stripe test clocks.
-- [ ] Browser / mobile / accessibility / load tests (no harness in this environment).
+- [x] Browser / mobile / accessibility / **load** tests — **DONE (2026-07-25).** The
+  sandbox does have a harness (Playwright + Chromium). Browser+a11y: Lighthouse on
+  **32 public pages, all 100**. Mobile: 390x844 emulation, tap targets 28 -> 0,
+  0 horizontal overflow. Responsive: `scripts/audit-responsive.mjs`, 17 pages x
+  3 viewports x 2 themes = 102 renders, 0 findings. Load: new
+  `scripts/load-test.mjs` (150 req @ concurrency 20 per path) — **0 errors on every
+  path**; see CHAR-SM35 for the one latency outlier it surfaced.
 - [ ] Full per-persona live RLS matrix for payment tables (needs real auth sessions).
 
 ## Verification-gated (NOT faked — needs Stripe live verification / staging)
 - [ ] Live end-to-end charge→transfer→payout→reconcile (GATED on LB-005 Connect
   live-enablement).
 - [ ] Refund/dispute lifecycle via Stripe test clocks.
-- [ ] Browser / mobile / accessibility / load tests (no harness in this environment).
+- [x] Browser / mobile / accessibility / **load** tests — **DONE (2026-07-25).** The
+  sandbox does have a harness (Playwright + Chromium). Browser+a11y: Lighthouse on
+  **32 public pages, all 100**. Mobile: 390x844 emulation, tap targets 28 -> 0,
+  0 horizontal overflow. Responsive: `scripts/audit-responsive.mjs`, 17 pages x
+  3 viewports x 2 themes = 102 renders, 0 findings. Load: new
+  `scripts/load-test.mjs` (150 req @ concurrency 20 per path) — **0 errors on every
+  path**; see CHAR-SM35 for the one latency outlier it surfaced.
 
 ## Verified sound (no change needed)
 - Destination-charge architecture, no-custody payout-readiness gate, server-side
@@ -2191,6 +3346,722 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 - [x] Wired public marketing event capture to Supabase contacts, identities, events, consent, and UTM attribution with stable failure responses.
 - [x] Added route-aware AEO and SEO migrations, public metadata endpoints, sitemap/robots coverage, privacy preferences, and the public impact route.
 - [x] Verified production build, typecheck, lint, 936 Vitest tests, campaign image audit, and seed guard.
+
+## Session 2026-07-24 (Marketing OS — goal-based marketing foundation)
+
+Full detail in `docs/marketing-os/` (MASTER_SPEC, ARCHITECTURE, DATA_MODEL,
+IMPLEMENTATION_STATUS, KNOWN_LIMITATIONS, CHANGELOG).
+
+### ✅ Shipped (PR #59)
+- [x] Audited the existing marketing subsystem (contacts/segments/campaigns/
+      automations/copilot/SEO-AEO/outreach on `marketing_*` tables, service-role RLS).
+- [x] **Goal-Based Marketing vertical slice** — the "tell CharitMe the outcome you want"
+      entry point, wired UI → API → Supabase → audit log:
+  - `marketing_goals` table (migration `20260729000000`), CHECK-enums, indexes,
+    `updated_at` trigger, RLS service-role only.
+  - `lib/marketing-goals.ts`: deterministic NL→structured-draft parser +
+    **live** progress measurement (campaigns / donations).
+  - `/api/admin/marketing/goals` GET/POST/PATCH (verifyAdmin + zod + audit).
+  - `/admin/marketing/goals` UI (NL composer, editable draft, progress bars,
+    lifecycle controls; loading/empty/error/retry; mobile).
+  - 6 unit tests; RLS/schema suites green; typecheck + lint clean; `next build` compiles.
+
+### ⬜ Remaining Marketing OS backlog (ordered by dependency/value)
+- [ ] **Command Center dashboard** (brief §4, top priority) — executive read-only
+      view aggregating live goals + marketing + campaign/donation metrics, recent
+      autonomous/human actions (from `marketing_audit_logs`), data freshness. *(in progress this session)*
+- [x] **Opportunity engine** (§20) — SHIPPED: live-data generator + deterministic scoring + convert-to-goal — scored opportunity feed → convert to goal/campaign.
+- [x] **Goal → multichannel campaign generation** (§15) — SHIPPED: one goal generates a connected landing page + email + social + SEO + FAQ, editable & approvable, all linked to the goal.
+      connected campaign (landing page, email, social, SEO/AEO) linked to the goal.
+- [ ] Multi-tenant `organizations`/`brands` scoping on marketing tables (§7).
+- [ ] Expanded marketing roles (Brand/Legal/Finance reviewers, analyst, viewer) (§9).
+- [ ] Approval engine (`approval_requests`/`_steps`/`_decisions`) (§30).
+- [ ] Brand Constitution ingestion + per-asset scoring (§10).
+- [ ] AI agent framework + orchestrator + governance (§12–13, §38).
+- [ ] External connectors: GA4, Search Console, then Ads/social/email (§32) — read-only first.
+- [ ] Experiments, attribution models, forecasting, automation-rule builder UI,
+      cost governance, monitoring dashboard (§19, §28, §29, §31, §39, §40).
+
+### Guardrails held
+- No autonomous spend/publish exists; `autonomy_level` stored but not yet enforced by any executor.
+- No faked metrics — non-live metrics are labelled "measurement pending".
+- No new external integrations faked; RLS unchanged (service-role only).
+
+
+
+### 🔧 Sandbox capability note (2026-07-23) — what CAN and cannot be checked from here
+
+Correcting a wrong assumption that cost several cycles: **"no database in the sandbox"
+is not a blanket blocker.** `www.charitme.com` is public, so read-only verification
+against the real production DB works and has already settled real questions
+(the soft-404 above, Supabase wiring, cover-image uniqueness).
+
+- ✅ **`curl` against production works.** Use it for status codes, headers, rendered
+  HTML, record counts, metadata, robots/sitemap.
+- ❌ **Playwright/Chromium against external hosts does NOT work** — every navigation
+  dies with `net::ERR_CONNECTION_RESET` through the agent proxy, with or without
+  `proxy:{server:HTTPS_PROXY}`, `--ignore-certificate-errors`, or QUIC/HTTP2 disabled.
+  So axe/CWV/overflow sweeps must run against a **local prod build**, not production.
+- ❌ The **Vercel preview** URL is behind deployment protection (302), so it is not a
+  substitute for production.
+- ❌ Genuinely blocked (needs writes or secrets): running the seed suite, placing a
+  real charge across payment methods, rotating the exposed keys.
+
+
+### 🔓 CLAIM RELEASED (Claude/tbaz3i — builder inline field errors, finding #3) ✅
+
+> **DONE — area is FREE.** Finding #3's remaining half is implemented: per-field
+> `aria-invalid` + `aria-describedby` and **focus moves to the first invalid field**.
+> Touched `app/create/page.tsx`, new `lib/builder-validation.ts`, new test. Did not
+> touch step structure, drafts, the guest gate, the publish gate, or any API.
+
+## 🔓 CLAIM RELEASED — beneficiary role now has a dashboard ✅
+
+> **DONE — area is FREE.** `beneficiary` is one of six roles in `lib/roles.ts`, has a
+> full invite flow (`beneficiary_invites` → `/beneficiary/accept`), and
+> `campaigns.beneficiary_profile_id` links a campaign to the person it benefits — but
+> **nothing read that column**, and `/beneficiary/accept` sent the accepted user to
+> `/dashboard/payouts`, which scopes every query by `.eq('user_id', …)` (the campaign
+> **owner**). So accepting an invite landed on an **empty dashboard**: no campaigns, no
+> payouts, no explanation. A modelled, invitable role dead-ended at onboarding.
+>
+> **Shipped:** `/dashboard/beneficiary` — the campaigns you're the named beneficiary
+> of, with raised/goal progress, organizer, supporter count, and **payout state split
+> into "paid out" (delivered) vs "on the way" (requested/approved)**. Deliberately
+> read-only: these campaigns belong to someone else, so it answers "how is the
+> fundraiser for me doing, and has money actually reached me?" without owner-only
+> controls. Plus a plain-language explainer of how payouts reach them.
+> `/beneficiary/accept` now points here instead of the owner dashboard.
+>
+> **Wiring:** `lib/beneficiary-data.ts` — one query for campaigns by
+> `beneficiary_profile_id`, then **batched** payout + organizer lookups (no N+1).
+> **Verification:** the page is auth-gated and there's no DB here, so the shaping and
+> money math are unit-tested (9 tests) — including that `failed` payouts inflate
+> neither bucket, that another campaign's payouts aren't attributed, and that null
+> money columns become 0 rather than NaN. Telling a beneficiary money arrived when it
+> bounced would be worse than showing nothing.
+>
+> _1101/1101 tests, lint clean, build green._
+
+## 🔓 CLAIM RELEASED — nonprofit role now has a dashboard ✅
+
+> **DONE — area is FREE.** `nonprofit_profiles` (620 rows) was read by the admin
+> console, the Stripe webhook and `lib/tax-server.ts` — **but by no user-facing page**,
+> so the organization owning the record could not see it.
+>
+> The sharp edge was **tax receipts**: `tax-server.ts` issues a donor a deductible
+> receipt only when `(verified || verification_status === 'verified')` **AND**
+> `tax_receipt_enabled`. A nonprofit had no way to know whether its donors were
+> getting receipts — or which of the two conditions was missing.
+>
+> **Shipped `/dashboard/nonprofit`:** organization details (legal name, EIN, country,
+> address, website, mission), verification state with plain-language copy per status,
+> the org's campaigns — and a dedicated **"Are your donors getting tax receipts?"**
+> card that answers yes/no and, when no, names *which* condition is unmet.
+>
+> **`lib/nonprofit-data.ts` mirrors tax-server's rule exactly** (`isNonprofitVerified`
+> handles the legacy `verified` bool OR the `verification_status` column — both exist
+> because the bool predates the column). **14 tests** pin it, including the dangerous
+> direction: receipts switched on while *unverified* must still read "no", because
+> tax-server refuses. Showing "yes" there would be a tax-consequential lie.
+>
+> **Three signature bugs caught before merge** (worth noting — I guessed APIs instead
+> of checking): `kf-btn-primary` **does not exist** (no `.kf-btn*` class in the CSS at
+> all) so both buttons would have rendered unstyled — the real pattern is
+> `<Link><Btn>…</Btn></Link>`; `EmptyState` takes `body` not `message`; and `shield`
+> is not a valid `KFIcon` name.
+>
+> _1115/1115 tests, lint clean, build green._
+
+### Role → dashboard → landing coverage (2026-07-23)
+
+| role | dashboard | landing |
+|---|---|---|
+| donor | `/donor` ✓ | `/for-donors` ✓ |
+| organizer | `/dashboard` ✓ | `/for-individuals` ✓ |
+| **beneficiary** | **`/dashboard/beneficiary` ✓ (new, #68)** | none — *and that's correct*: beneficiaries arrive by invite link, never by search, so a marketing page would serve no one |
+| **nonprofit** | **`/dashboard/nonprofit` ✓ (new)** | `/for-nonprofits` ✓ |
+| admin / super_admin | `/admin` ✓ | n/a (internal) |
+
+**Every modelled role now has a dashboard.** Remaining nonprofit gap, not built here:
+`nonprofit_profiles` has `slug` + `public_profile_enabled` columns that imply a
+**public** org page (`/nonprofits/[slug]`) which does not exist — a separate feature
+(SEO surface, indexing, RLS review), not a role-dashboard gap.
+
+
+## 🔴 SEED-DATA — fabricated "Verified" badges, and real foundations named on fake grants (ONE IS LIVE)
+
+**Found while scoping a public `/nonprofits/[slug]` page (2026-07-23). Not currently
+harmful — but it gates that feature, and one plausible admin action makes it harmful.**
+
+`supabase/seeds/02_marketplaces.sql` inserts 120 nonprofit_profiles per run as:
+
+```sql
+'Seed Nonprofit ' || g,  'seed-nonprofit-' || v_suffix || '-' || g,
+'00-' || lpad(g::text, 7, '0'),          -- fabricated EIN, e.g. 00-0000001
+'https://example.org/np/' || g,          -- fake website
+(g % 2 = 0)                              -- verified = TRUE for half of them
+```
+
+So roughly **half the ~620 nonprofit_profiles rows are marked `verified = true`, each
+carrying an invented tax ID** and an example.org URL.
+
+**Why it is safe today:** `lib/tax-server.ts` issues a deductible receipt only when
+the org is verified **AND** `tax_receipt_enabled`. The seed does not set that column,
+so it takes the schema default `false`. **No fabricated org is issuing tax receipts.**
+
+**Two ways it stops being safe:**
+1. **A public nonprofit page.** `nonprofit_profiles` has `slug` +
+   `public_profile_enabled` (default **true**), which clearly anticipate
+   `/nonprofits/[slug]`. Shipping that against current data would publish **hundreds
+   of fabricated charities showing fake EINs and "Verified" badges**, indexed by
+   search engines. Seeded *campaigns* are already public, but a fake **charity with an
+   invented tax ID presented as verified** is a different risk class — that is the
+   kind of claim people rely on when giving.
+2. **Bulk-enabling receipts.** Any admin action that switches `tax_receipt_enabled` on
+   across orgs would immediately have fake charities issuing "official tax receipts".
+
+**Recommended before either:** clear `verified`/`verification_status` on seeded rows
+(or scope the public page to `verified AND NOT seeded`), and add a `is_demo` marker —
+this is the same "production seed guard" already tracked as CHAR-1402. **The public
+`/nonprofits/[slug]` page is deliberately NOT built until then**; the missing page is a
+smaller problem than a directory of fabricated verified charities.
+
+_Verified: seed SQL read directly; `tax_receipt_enabled` default confirmed `false` in
+`supabase/schema.sql`; receipt rule confirmed in `lib/tax-server.ts`._
+
+### 🔴 The same pattern IS already live on `/grants` — and it names real organizations
+
+Scanning the rest of `02_marketplaces.sql` found the nonprofit case was not isolated.
+Seeded **grants** and **volunteer opportunities** also set `verified = (g % 2 = 0)`, and
+grants attributed fabricated programs to a hardcoded list of **real** funders.
+
+**Confirmed live on production** (`curl https://www.charitme.com/grants`):
+
+| appearing on the live page | count |
+|---|---|
+| "Ford Foundation" | **52** |
+| "City of Austin" | **44** |
+| "Verified" badges | **48** |
+| listings titled "Seed Grant *N*" | many |
+
+`/grants` is public **and in `sitemap.ts` (181 URLs)**, so these are being indexed.
+Unlike the nonprofit case — which is latent because no public page exists yet — this
+one is **already shipped**: fabricated grant programs are publicly attributed to real,
+named third-party organizations, roughly half wearing a "Verified" badge.
+
+**Fixed at the source (this change):** funder list → clearly fictional
+(`Cedar Grove Foundation`, `Northwind Charitable Trust`, `City of Springfield`,
+`Acme Corp Giving`), and **`verified` is now hardcoded `false`** for seeded grants,
+volunteer opportunities and nonprofits. `verified` renders as a public trust badge, and
+a fabricated trust signal is the one field demo data must never invent.
+
+**Still needs the owner — the live rows are already there.** Seeds only govern future
+runs; this does not touch existing production data, and per ADR-0003 I can't and
+shouldn't. Suggested cleanup, owner to review before running:
+
+```sql
+-- Drop the fabricated trust badges from demo rows.
+update public.grants                  set verified = false where source = 'seed';
+update public.volunteer_opportunities set verified = false where title like 'Seed %';
+update public.nonprofit_profiles      set verified = false, verification_status = 'unverified'
+  where slug like 'seed-nonprofit-%';
+
+-- Re-name grants that credit real organizations.
+update public.grants set funder_name = 'Cedar Grove Foundation'   where funder_name = 'Ford Foundation'   and source = 'seed';
+update public.grants set funder_name = 'Northwind Charitable Trust' where funder_name = 'Gates Foundation'  and source = 'seed';
+update public.grants set funder_name = 'City of Springfield'      where funder_name = 'City of Austin'    and source = 'seed';
+```
+_(Verify the `source`/`slug` predicates match real seeded rows before running.)_
+
+
+
+### ✅ Broken-link audit extended to the AUTH-GATED surfaces (2026-07-23)
+
+The earlier crawl ("464 distinct internal links across 31 public pages, 0 broken") could
+only reach **public** pages — everything behind auth was unverified, which is exactly the
+surface "build the dashboards out completely" refers to.
+
+Audited statically instead of by crawling: enumerated **354 real routes** from the
+filesystem (normalising `(group)` segments, which don't affect URLs, and accepting
+`[param]` matches), then extracted every internal `href` in `app/dashboard/**`,
+`app/admin/**`, `app/donor/**` and `components/**` and checked each against that set.
+
+**Result: 0 broken internal links.** Navigation across the logged-in surface is sound.
+
+_Confirmed non-vacuous:_ planting `href="/this-route-does-not-exist"` in a dashboard page
+made the audit report exactly 1 broken link; restoring returned it to 0. Script kept at
+`scratchpad/links.py` — re-runnable in seconds, worth repeating after any route rename,
+since this class of breakage is invisible until a user clicks.
+
+
+### 🔴→✅ Both new role dashboards shipped ORPHANED — caught and fixed (2026-07-23)
+
+Self-audit after #68/#69: `dashboardNav` in `components/CharitMeApp.tsx` had 18 entries
+and **neither `/dashboard/beneficiary` nor `/dashboard/nonprofit` was among them**. Both
+pages were complete, wired and tested — and reachable only by typing the URL. The
+nonprofit one had **no entry point at all**, so the organizations it was built for would
+never have found their own verification and tax-receipt status.
+
+Nothing catches this: the build is green, the routes exist, the tests pass. A page can be
+perfectly correct and still be invisible.
+
+**Fix — role-scoped nav.** `profiles.roles` was already being fetched by the shell but
+collapsed into a display label (`Admin`/`Moderator`/`Organizer`), discarding
+`beneficiary`/`nonprofit`. Now passed through as `navRoles` and used to append entries
+only for users holding that role — so an organizer's sidebar is unchanged, while a
+beneficiary sees "Campaigns for you" and a nonprofit sees "Your organization".
+
+**Guarded** by `__tests__/dashboard-nav-reachable.test.ts` (4 tests), including that the
+role entries are *spread into the rendered list* rather than merely declared — verified
+non-vacuous by removing the spread, which fails the suite.
+
+_1119/1119 tests, lint clean, build green._
+
+
+### 🟠 Three AI endpoints are fully built and reachable by nobody (2026-07-23)
+
+Same failure mode as the orphaned dashboards in #71, one layer down. Audited every
+`/api/ai/*` route for callers — **not just `.tsx`, but any file in `app/`, `lib/` or
+`components/`**:
+
+| route | size | reads | callers |
+|---|---|---|---|
+| `ai/impact-summary` | 216 lines | `campaigns`, `transparency_ledger_items`, `risk_flags`, `ai_generations` | **0** |
+| `ai/viral-loop` | 173 lines | `campaigns`, `share_events`, `team_members`, `ai_generations` | **0** |
+| `ai/grant-match` | 73 lines | `grants`, `grant_matches` | ✅ **now wired** (below) |
+
+All three are **real implementations**, not stubs — auth-guarded, Supabase-wired,
+writing to `ai_generations`. Roughly **460 lines of working feature code that no user
+can invoke**. (The other 13 AI routes all have callers; verified individually.)
+
+**`impact-summary` is worse than unused — it's promised.** `/for-nonprofits` advertises
+"Generate personalized thank-you emails, **impact summaries**, and re-engagement
+sequences automatically." The endpoint exists and works; there is no path to it.
+
+**Why this is documented rather than built:** each needs a placement decision (which
+dashboard, what trigger, what the output looks like) that is a product call, not a
+guess — and dashboard UI can't be verified in this sandbox anyway (auth-gated, no DB).
+Plausible homes, for whoever picks it up: `impact-summary` → the campaign's impact/
+transparency tab; `viral-loop` → the share/referrals surface; `grant-match` →
+`/dashboard/grants`, which already exists and lists applications.
+
+**✅ One closed: `grant-match` is now reachable.** Added `GrantMatchClient` to
+`/dashboard/grants` — a small form (category / amount needed / free-text purpose) that
+posts to the endpoint and lists ranked matches. It shows **each match's `reasons`**, not
+just the score, which the endpoint already returns: the ranking is `rankGrantMatches`,
+a **deterministic rule-based model rather than an LLM**, so the explanation is real and
+stable. Field names were checked against `lib/grants.ts` (`grantId` / `score` 0..100 /
+`reasons`, and the `GRANT_PUBLIC_COLUMNS` set) rather than guessed — the mistake that
+produced an unstyled `kf-btn-primary` button earlier in this session.
+
+**Still orphaned: `impact-summary`, `viral-loop`** — both need a placement decision
+(which surface, what trigger) that is a product call. `impact-summary` remains the
+priority since `/for-nonprofits` advertises it.
+
+_Method: `grep -rn "ai/<route>" app/ lib/ components/` excluding the route's own
+directory; a re-runnable version is at `scratchpad/reach.py`. Worth running when adding
+an endpoint — a route with zero callers is invisible, and nothing in the build or test
+suite objects._
+
+## 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
+
+Checked the live `sitemap.xml` because the soft-404 fix makes stale entries *visible*
+to crawlers (a listed URL that 404s is now a real 404, not a silent 200).
+
+**Sitemap is healthy — 1258 URLs, no stale entries found.** 12 randomly sampled campaign
+URLs all returned 200, and one URL from each other section resolved too (volunteer,
+grants, events, sponsor, matching, impact). Nothing listed is dead.
+
+**Useful side effect — the sitemap is generated from the database, so its per-section
+counts are independent evidence for the "≥100 seed records" goal item** (these are *live,
+public* rows, which is the meaningful bar for "enough data to exercise every feature" —
+drafts and deleted rows are excluded, so true table counts are ≥ these):
+
+| section | live rows in sitemap | ≥100? |
+|---|---|---|
+| campaigns | **351** | ✅ |
+| volunteer | **181** | ✅ |
+| grants | **181** | ✅ |
+| events | **181** | ✅ |
+| sponsor | **145** | ✅ |
+| matching | **121** | ✅ |
+| impact | 58 | n/a — see below, **not a gap** |
+| blog / features | 9 / 7 | n/a — static catalogues, not seeded tables |
+
+So six feature domains are confirmed ≥100 **from production**, without needing DB access.
+
+**Correction — `impact` at 58 is NOT a seed gap; I initially flagged it as one and was
+wrong.** `/impact/[slug]` takes a **campaign slug**, not an impact-table id
+(`getImpactBundle(slug)`; the sitemap entry is `/impact/campaign-351-b7e076c5` and the
+title renders as "Impact — {campaign.title}"). So those 58 URLs are *campaigns that have
+a published impact plan* — a derived product metric, not a row count. The underlying
+tables are seeded properly: `04_impact_gamification.sql` loads **120 rows**
+(`generate_series(1, 120)`) into `impact_plans`, `impact_metrics`, `impact_evidence`,
+`impact_updates` and `impact_plan_items`, all five covered by `99_verify_counts.sql`.
+**No top-up needed.**
+
+_Method, for reuse: `curl -s https://www.charitme.com/sitemap.xml | grep -oE '<loc>[^<]+</loc>'`
+then bucket by path segment._
+
+
+## 🟠 PARTLY DIAGNOSED — HTML is never CDN-cached (homepage cause still unknown)
+
+**Symptom (production):** the homepage answers **`x-vercel-cache: MISS`, `age: 0` on
+every single request** — 6/6 consecutive runs — so its `export const revalidate = 120`
+never takes effect and each visit re-runs the page's ~8 Supabase queries. TTFB is
+**~800–1500ms vs 229–572ms** for every other public page (proxy overhead is in all of
+these equally, so the ~5× gap is the real signal, not the absolute numbers).
+
+**Blast radius — it is not just the homepage.** In the build, **353 routes are `ƒ`
+(per-request)**; only 2 are SSG (`/blog/[slug]`, `/features/[slug]`, via
+`generateStaticParams`) and the 4 "static" entries are `icon.png`, `apple-icon.png`,
+`manifest.webmanifest` and `robots.txt` — not pages. **No page in the app is
+statically cached.** Even pure marketing pages with no per-user content re-render on
+every hit.
+
+**Cause — PARTIAL, and my first write-up of this overstated it. Corrected by experiment:**
+
+`app/layout.tsx:77` — `const nonce = (await headers()).get('x-nonce')` — is *a* cause but
+**not the whole story**. Measured by removing that line and rebuilding:
+
+| build | static | dynamic |
+|---|---|---|
+| as-is | 4 (all non-pages: icons/manifest/robots) | **353** |
+| without `headers()` | **26** | 331 |
+
+So the nonce accounts for **22 routes** — and they are exactly the pure marketing pages
+(`/how-it-works`, `/fees`, `/for-donors`, `/trust-safety`, `/terms`, `/privacy`, …), which
+is a real and worthwhile win. **But `/` stays `ƒ` without it**, so the nonce does *not*
+explain the homepage MISS I measured — the very page the investigation started from.
+
+**Also disproven (don't repeat):** wrapping the homepage's three Supabase fetchers
+(`getHomeData`, `getCategoryStats`, `getRecentDonations`) in `unstable_cache` — the same
+pattern that works for announcements/banner-settings — changed **nothing**: still `ƒ`,
+static count still 26 with the nonce also removed. The theory was that Next 15's uncached
+`fetch` default was opting the route in; that is not it, or not only it.
+
+**Third candidate also eliminated:** stubbing `generateMetadata` to a literal
+(`return { title: 'CharitMe' }`, removing the `seoMetadata('/')` DB read) *with*
+`headers()` also removed — homepage **still `ƒ`**. So it is not the SEO-override lookup.
+
+**Homepage dynamic cause: still unidentified after 3 eliminations** (`headers()` nonce,
+`unstable_cache` on the data fetchers, `seoMetadata`). Remaining untested: the
+`AppShell`/provider tree in the root layout (it may read auth/cookies), or something in
+the page body itself. Note the puzzle for whoever continues — **26 other routes DID go
+static** once `headers()` was removed, and they render the same root layout and AppShell,
+so a blanket "the layout is dynamic" explanation does not fit either.
+
+**Three further candidates eliminated (2026-07-23), by inspection rather than rebuilds:**
+4. ~~`searchParams`~~ — `HomePage()` takes **no props** and calls `getHomeData({})`. It
+   never reads searchParams, so the classic dynamic opt-in doesn't apply.
+5. ~~the Unsplash cover fetch~~ — `lib/unsplash.ts:106` uses
+   `fetch(url, { next: { revalidate: SEARCH_TTL_SECONDS } })`, i.e. **explicitly
+   cached**. It was a good suspect (the 26 routes that go static make no network calls;
+   the homepage does) but it is not an uncached fetch.
+6. ~~`unstable_noStore()` / `connection()`~~ — absent from the entire homepage import
+   tree (`home-data`, `covers`, `unsplash`, `photo-catalog`, `seo`, `supabase`,
+   `CampaignImage`, `home-parts`, `HeroSpotlightCarousel`).
+
+**Six eliminated; cause still unknown.** The one structural difference left between the
+homepage and the 26 pages that DO go static is that the homepage makes **Supabase reads
+in the page body** — but wrapping those in `unstable_cache` (candidate 2) changed
+nothing, so if that is the mechanism it is not fixed the obvious way. A likely next step
+is checking whether supabase-js issues its fetches with `cache: 'no-store'` internally
+and whether `unstable_cache` actually isolates that.
+
+**I stopped here deliberately.** Six wrong hypotheses on one question is well past the
+point where I was guessing rather than converging, and each *rebuild-based* cut costs a
+full build.
+Everything above is measured, and every experiment was reverted — the tree carries none
+of it. The eliminations are the deliverable: they are the expensive part, and they narrow
+the search for whoever picks it up. The nonce comes from `middleware.ts:47` and protects exactly two
+inline scripts (layout.tsx:81–82): the theme script and the JSON-LD blob.
+
+This is a genuine tension, not a mistake: a CSP nonce is per-request **by design** (that
+is what makes it unguessable), and static generation requires no per-request input. The
+CSP work (see the nonce entry earlier in this file) is a real security improvement — it
+just silently cost the entire site's caching. Note this also **regressed the PR #52
+finding** that the root layout "stays statically generated (verified `○ /` in the build)";
+that is no longer true.
+
+**Not fixed here — it is a security/perf trade-off in someone else's lane.** Options,
+best first:
+1. **Hash-based CSP for the two inline scripts.** Both are effectively static per deploy,
+   so `'sha256-…'` source expressions can replace `'nonce-…'`, `headers()` leaves the
+   root layout, and static/ISR is restored **with the same CSP strictness**. Caveat:
+   `'strict-dynamic'` currently pairs with the nonce and would need re-checking, and the
+   theme script's hash must be regenerated whenever its content changes (a build step).
+2. **Keep the nonce, scope the dynamic read.** Move the nonce-consuming scripts out of the
+   root layout so only the subtree that needs them is dynamic.
+3. **Accept it** — if per-request CSP is judged worth ~5× TTFB on every page.
+
+**Corroborating detail — there is only ONE cause here, not two.** Every HTML response
+carries `cache-control: private, no-cache, no-store, max-age=0, must-revalidate`, which
+would defeat CDN caching even for a static page. That header is **not set anywhere in the
+codebase** (no `no-store` in `middleware.ts` or `next.config`) — it is Next's *default for
+dynamically-rendered routes*. So it is a symptom of the same root cause and will clear
+itself once routes render statically again; do not go hunting for a separate
+header-setting bug.
+
+**Also verified healthy while measuring, so these need no work:** brotli (`content-encoding: br`)
+is on for HTML and JS, hashed static assets carry `public,max-age=31536000,immutable`
+(correct), and HSTS is present. Asset delivery is fine — **HTML caching is the whole
+problem.**
+
+**Verify after any change** with `curl -sI https://www.charitme.com/ | grep -i x-vercel-cache`
+(want `HIT`) and by confirming `○ /` reappears in the build output.
+
+## ✅ FULLY RESOLVED — soft-404 (4 in #63, /campaigns/[slug] here, /donors a non-issue)
+
+**Root cause (proven):** a `loading.tsx` at or above a detail route creates an implicit
+Suspense boundary; Next streams the shell and **commits HTTP 200 before the page body
+runs**, so the later `notFound()` renders the right UI but can't change the status.
+Perfect correlation across all 7 routes — `/grants`, the only one without a
+`loading.tsx`, was the only one returning 404. Proven by removing *only*
+`app/matching/loading.tsx`: `/matching/missing` flipped 200 → 404, all controls unchanged.
+*(Five earlier hypotheses — `generateMetadata`, React `cache()`, the data helpers,
+middleware, `force-dynamic` — were each tested and disproven. Don't repeat them.)*
+
+**Fixed in #63:** `/matching`, `/sponsor`, `/volunteer`, `/events` — list page moved into
+a `(list)` route group so its skeleton stops wrapping the sibling detail route. URLs and
+skeletons unchanged, detail routes now 404.
+
+### Correcting an earlier over-escalation
+
+I previously logged the remaining two as one blocked "product decision". That was wrong —
+they are not equivalent:
+
+- **`/donors/[id]` — NOT AN ISSUE, no action needed.** `robots.ts` disallows `/donors/`
+  **and** the page emits `robots: {index:false, follow:false}` for private profiles. No
+  crawler ever sees it, so its 200 has **zero SEO impact**. Its skeleton should stay.
+- **`/campaigns/[slug]` — the only one that genuinely matters.** Campaign pages are in
+  `sitemap.ts` and are the primary indexed content, so soft-404s here really do let search
+  engines index unlimited non-existent campaign URLs.
+
+### ✅ `/campaigns/[slug]` — FIXED (2026-07-23), skeleton kept
+
+**Solved with a third option neither of the two written up here considered.** A
+segment `layout.tsx` renders *outside* the Suspense boundary that `loading.tsx`
+creates for the page, so an existence check there runs **before the response
+commits** — correct 404s **and** the donation-path skeleton survives.
+
+**Two parts, both required** (verified — neither works alone):
+1. `app/campaigns/[slug]/layout.tsx` awaits `getCampaign(slug)` → `notFound()`.
+   *On its own this still returned 200*, because the parent
+   `app/campaigns/loading.tsx` wraps the whole subtree including the layout.
+2. List page moved to `app/campaigns/(list)/` (page + loading), removing that
+   outer boundary from the detail route. URL unchanged.
+
+**Verified on a local prod build:** `/campaigns/missing` → **404** (was 200);
+`/campaigns` and `?category=` filters → 200; `/grants` → 404 (control);
+`[slug]/loading.tsx` **still present**. 1075/1075 tests, lint clean, build green.
+
+**Safety (it is the donation path):** `getCampaign` extracted to a shared React
+`cache()`d module imported by layout + `generateMetadata` + page → still **one
+query per request**, no added round-trip. The page keeps its own
+`if (!campaign) notFound()`, so real campaigns are untouched — the layout only
+changes *when* the identical check runs, never what it decides.
+
+**Bonus — a 7th route nobody had catalogued.** `/campaigns/[slug]/embed` was also
+soft-404ing in production (200 for a missing campaign); it was never in the original
+sweep. It inherits the same parent `app/campaigns/loading.tsx` boundary, and
+`[slug]/layout.tsx` wraps `embed/` too — so this fix resolves it as a side effect,
+**verified 200 → 404 on the local prod build**. Correct behaviour: an embed iframe for
+a deleted campaign should 404, not render an empty widget.
+
+Also checked and clean: `/impact/[slug]` → 404 already (no `loading.tsx`, consistent
+with the root cause).
+
+### Complete soft-404 sweep — all 12 public dynamic routes, checked on production
+
+Enumerated every public dynamic route (`find app -name page.tsx -path "*[*"`, minus
+dashboard/admin/api) rather than sampling, because the embed route showed the original
+sweep had missed nested ones. Status against `www.charitme.com`:
+
+| verdict | routes |
+|---|---|
+| ✅ correct 404 (8) | `/blog/[slug]`, `/events/[slug]`, `/features/[slug]`, `/grants/[slug]`, `/impact/[slug]`, `/matching/[id]`, `/sponsor/[id]`, `/volunteer/[slug]` |
+| 🔧 200 → fixed in #66 (2) | `/campaigns/[slug]`, `/campaigns/[slug]/embed` |
+| ⚪ 200, not a bug (2) | `/donors/[id]`, `/donor/tax-statement/[year]` |
+
+**#63's fixes are confirmed live:** `/events`, `/matching`, `/sponsor`, `/volunteer` now
+404 in production — they returned 200 before that merge. The root-cause theory also holds
+on a route that wasn't used to derive it: `/impact/[slug]` has no `loading.tsx` and 404s.
+
+**Why the two remaining 200s are not bugs:**
+- `/donors/[id]` — `robots.ts` disallows `/donors/` *and* the page emits `noindex`. No
+  crawler sees it, so no SEO impact; its skeleton should stay.
+- `/donor/tax-statement/[year]` — not a missing resource but an **auth state**: it serves
+  a *sign-in prompt* (verified: no tax data in the unauthenticated response), and `/donor`
+  is robots-disallowed. A 200 for "route exists, you're signed out" is correct. An
+  authenticated year with no donations legitimately renders an empty statement.
+
+**So the soft-404 topic is closed** — nothing outstanding once #66 merges.
+
+**All 7 soft-404 routes are now resolved** (4 in #63, this one here, `/donors/[id]`
+a documented non-issue — crawler-blocked by `robots.ts` + `noindex`).
+
+## 🔓 CLAIM RELEASED 2026-07-23 (Claude/tbaz3i — dynamic `[slug]` public-page audit)
+
+> **✅ DONE — area is FREE.** Audited the last unaudited public surface: the
+> dynamic `[slug]`/`[id]` routes that the "~30 public routes audited" line
+> excluded. No API/schema/create/dashboard/admin files touched.
+>
+> **Split by what the sandbox can actually verify:**
+> - **SSG routes (no Supabase) — browser-audited, now clean.** `/features/[slug]`
+>   ×4 and `/blog/[slug]` ×4: axe-core WCAG 2.0/2.1 A/AA + 320/390px overflow →
+>   **0 violations, 0 overflow**. Found + fixed **1 real bug**: the dark-mode
+>   `.mktg-page` remap `text-slate-950 → var(--t1)` also flipped the *emerald CTA*
+>   on every `/features/[slug]` page, putting light `#e2e8f8` ink on `#10b981`
+>   at **2.06:1**. Added a guard so dark ink ON a saturated brand background stays
+>   dark (slate-950 on emerald-500 ≈ **7.9:1**) — the remap still applies on page
+>   surfaces, where it's correct.
+> - **Supabase-backed routes — cannot be browser-audited here** (no DB in sandbox,
+>   per the hard-limits note above), so they got the *static* equivalent: the
+>   **theme regression guard now covers** `campaigns`, `donors`, `matching`,
+>   `sponsor`, `volunteer`, `events`, `grants`, `impact` (was dashboard/donor/
+>   profile only). Verified non-vacuous by planting a violation — the guard fails
+>   on it. These dirs were otherwise already literal-free; the one hit,
+>   `/campaigns/[slug]/embed`, is a **standalone iframe widget** that renders its
+>   own `<html>`/`<body>` and never inherits `data-theme`, so its fixed light
+>   palette is intentional → marked `theme-keep` with a rationale comment.
+>
+> _Evidence: 1028/1028 tests, `next build` green, browser audit 0/0._
+
+## 🔒 CLAIM — Session 2026-07-24 (Claude — campaign creation journey friction audit)
+
+> **✅ CLAIM RELEASED 2026-07-24 — all work merged to `master`. Area is FREE.**
+> Was: the public fundraiser creation journey (`apps/web/app/create/**`,
+> `lib/campaign-draft.ts`, `lib/campaign-readiness.ts`, `lib/wizard-steps.ts`,
+> `app/api/campaigns` create-path handlers).
+> Nothing is in flight; no open branches or PRs from this session. Anyone may
+> pick up the remaining F8/F10 items below.
+>
+> ⚠️ **Collision worth learning from:** a parallel agent independently shipped
+> the same story/goal step-validation fix (`a42c8b0`) that this session shipped
+> in PR #61 — duplicated effort despite the claim. The two turned out to
+> *compose* rather than conflict (early friendly validation in `goNext` + a
+> jump-to-the-owning-step backstop in `submitCampaign`), and master is green,
+> but the claim was clearly not seen. **Claim earlier and louder, or check
+> `git log origin/master` before starting.**
+> Findings + fixes are appended under this heading as they land.
+
+### Deep-dive findings (in progress)
+
+**Method:** read the full journey end-to-end — `/create/choose-path` → `/create`
+wizard (9 steps: type → category → location → story → title → goal → media →
+payout → summary → live) → `/api/campaigns` publish, plus draft autosave,
+funnel analytics, guest gate, and payout linkage.
+
+**What is already strong (do NOT regress):**
+- Co-equal AI vs guided entry (`/create/choose-path`) with honest time estimates.
+- localStorage autosave + "resume your draft" banner with age label + 7-day TTL.
+- Builder funnel analytics (`enter`/`advance`/`abandon`/`publish` → `campaign_builder_events`).
+- Payout is **optional to publish** — removes the historically biggest drop-off.
+- Title is AI-seeded (never an empty field) and editable.
+- Upload validation (type/size/count), blob-URL cleanup, escape-to-close modals.
+
+#### 🔴 FIXED THIS SESSION
+1. **DATA LOSS — Google sign-in mid-wizard destroyed uploaded images.**
+   The OAuth bounce parked only `{savedForm, savedStep}` in sessionStorage, so on
+   return `uploadedImages` was empty; the `[uploadedImages]` effect then *wiped*
+   `form.coverImageUrl` to `''`. The localStorage draft (which had the images)
+   was also suppressed because `cm_wizard` takes precedence. Double loss.
+   → Bounce payload now carries `savedImages` + `savedStoryMode`; restore is a
+   single shared `restoreBounce()` used by both the guest and authed branches.
+2. **Drafts were device-local only — no cross-device resume.** (100%-Supabase gap)
+   → New `campaign_wizard_drafts` table (owner-scoped RLS, anon+cookies client so
+   Postgres enforces ownership — *not* service role). Draft mirrors to Supabase on
+   autosave for signed-in users; on load the **newer** of local/remote wins
+   (`pickFreshestDraft`, ties break toward the copy that still has images).
+   Cleared on publish so a live campaign never resurfaces as "resume draft".
+3. **Publish-time-only validation bounced users backwards.** Story ≥20 chars and
+   goal ≥$1 were only enforced on the final Publish click, several steps away
+   from where they're entered.
+   → Now validated at the step that owns them, phrased as guidance not failure
+   ("…or leave it empty for now and finish it later"), preserving the
+   skip-and-return-later flow.
+
+#### ✅ F4–F7, F9 SHIPPED (second pass — PR #62)
+- [x] **F4 — SHIPPED (PR #62).** `type`/`category`/`location` were 3 near-empty
+  taps before the organizer wrote a word; merged into one **Basics** screen →
+  guided path is now **7 steps, not 9**, with "about N min left" in the header.
+  Step model extracted to `lib/wizard-steps.ts` (pure + tested).
+  `normalizeStep()` maps retired keys forward so **drafts saved mid-flight before
+  the merge still resume** instead of landing on an empty screen.
+  `ReadinessStep` deep-links updated to match.
+- **F5 — goal set with no reference point.** New `/api/campaigns/goal-guidance`
+  derives an honest suggested range from **real comparable campaigns** in the
+  category (interquartile band of live goals + actual goal-hit rate), read
+  through the anon+cookies client so RLS decides visibility. Withheld entirely
+  below 5 comparables — no invented ranges. Goal step shows the band, the hit
+  rate, and one-tap "Use $X" chips.
+- **F6 — guest gate was unexplained.** Mid-wizard the modal now reads "Save your
+  progress" and names the benefit (kept across devices, stays private until you
+  publish, free) instead of the wrong "Continue to your dashboard".
+- **F7 — `abandon` over-counted.** `beforeunload` also fires on ordinary
+  same-origin navigation, inflating the abandon rate; in-app link clicks now mark
+  the unload intentional. **Funnel abandon numbers before this fix are overstated.**
+- **F9 — raw API/database strings shown mid-publish.** `describePublishFailure`
+  maps failures to plain language + a next action, flags retryable vs terminal,
+  and always reassures that work is saved.
+
+#### ✅ F8 + F10 SHIPPED — the friction backlog is now COMPLETE
+- [x] **F8 — multi-draft.** `campaign_wizard_drafts` was keyed on `user_id`, so
+  starting a second campaign silently overwrote the first. Re-keyed onto a
+  surrogate `id` (existing rows preserved and backfilled with a title), giving
+  each organizer up to `MAX_DRAFTS_PER_USER` (20) in flight. New picker lists
+  every draft with its step/photo count/age and offers Continue, Delete, and
+  "Start another campaign". Autosave now targets the active draft id, and
+  publishing deletes **only that draft** — the others survive. RLS unchanged and
+  still owner-scoped; the API also filters on `user_id` explicitly so a wrong id
+  can never touch another user's row.
+- [x] **F10 — donor-view preview.** The old preview was desktop-only and told
+  organizers nothing about whether the page was *convincing*. Now defaults to a
+  **phone frame** (where most donors actually land), the donate button is
+  visibly disabled and labelled, and a "How this looks to a donor" panel scores
+  six things donors really evaluate (cover photo, specific title, complete
+  story, set goal, named beneficiary, more than one photo) — each failing item
+  explains *why a donor cares* and deep-links to the step that fixes it.
+
+
+
+### 📌 STATUS as of 2026-07-24 end of session (Claude)
+
+**All work merged to `master` and deployed to production.** Four PRs:
+
+| PR | Shipped | Merge |
+|----|---------|-------|
+| #59 | Marketing OS: goal-based marketing, Command Center, Opportunity engine | `ac385e0` |
+| #60 | Goal → multichannel campaign generation | `34aacfd` |
+| #61 | Sign-in image data-loss fix, Supabase cross-device drafts, per-step validation | `dfe069e` |
+| #62 | 7-step wizard (F4), goal guidance (F5), gate copy (F6), funnel accuracy (F7), publish copy (F9) | `b86cf55` |
+
+**Master health at handoff:** typecheck clean · lint clean ·
+**1022 tests / 85 files passing** · `next build` compiles · CI green on every merge.
+
+**New Supabase tables this session** (all with migrations + RLS):
+`marketing_goals`, `marketing_opportunities`, `marketing_campaign_plans`,
+`marketing_campaign_plan_assets` (service-role only — admin data);
+`campaign_wizard_drafts` (**owner-scoped policies** — user data, read/written via
+the anon+cookies client so Postgres enforces ownership).
+
+#### ⚠️ Two things the next person must know
+1. **Funnel discontinuity.** Builder `abandon` counts recorded *before* F7 are
+   inflated by ordinary in-app navigation. Do **not** compare pre/post F7 numbers
+   as a like-for-like baseline — some of the improvement is the bug fix.
+2. **F4 changed what organizers see** (9→7 steps) and shipped without human
+   review of the preview. It is an isolated commit in PR #62 and can be reverted
+   cleanly if the reshaped flow is not wanted.
+
+#### Remaining, unclaimed
+- **F8** — multi-draft support (one wizard draft per user by design today).
+- **F10** — donor-view preview before publish (**higher value of the two**: it is
+  the last confidence gap before an organizer commits).
+- Marketing OS backlog is untouched and still ranked in
+  `docs/marketing-os/MASTER_SPEC.md` (multi-tenant scoping, approval engine,
+  brand constitution, AI agents, external connectors, experiments/attribution).
 
 ## Session 2026-07-26 (Codex - development toolchain hardening)
 - [x] Removed the unused local Vercel CLI and its deployment-adapter dependency tree; provisioning continues to use the existing authenticated Vercel REST workflow.

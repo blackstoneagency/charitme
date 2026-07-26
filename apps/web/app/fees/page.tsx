@@ -4,7 +4,7 @@ import Link from 'next/link';
 export const metadata: Metadata = {
   title: 'Fee Policy — 0% Platform Fee | CharitMe',
   description:
-    'CharitMe charges organizers a 0% platform fee. Donor support is optional and reducible to 0%. Payment processing fees go to the processor, never to CharitMe. Full breakdown.',
+    'CharitMe charges organizers a 0% platform fee. Donor support is optional and reducible to 0%. Processing fees go to the processor, never to CharitMe.',
   alternates: { canonical: 'https://www.charitme.com/fees' },
   openGraph: {
     title: 'Fee Policy — 0% Platform Fee | CharitMe',

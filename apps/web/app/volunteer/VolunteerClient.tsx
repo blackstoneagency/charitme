@@ -24,7 +24,7 @@ function OppCard({ opp }: { opp: VolunteerOpportunity }) {
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)' }}>{opp.org_name}</span>
           {opp.verified && <Badge color="green">Verified</Badge>}
         </div>
-        <h3 style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.3, color: 'var(--t1)', margin: 0 }}>{opp.title}</h3>
+        <h2 style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.3, color: 'var(--t1)', margin: 0 }}>{opp.title}</h2>
         {opp.summary && (
           <p style={{ fontSize: 13, color: 'var(--t3)', margin: 0, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{opp.summary}</p>
         )}
@@ -35,7 +35,7 @@ function OppCard({ opp }: { opp: VolunteerOpportunity }) {
         )}
         <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, borderTop: '1px solid var(--b1)' }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t2)' }}>{whenLabel(opp.starts_at, opp.is_remote)}</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: full ? 'var(--red)' : 'var(--green)' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: full ? 'var(--red-text)' : 'var(--green-text)' }}>
             {full ? 'Full' : opp.time_commitment || 'Open'}
           </span>
         </div>

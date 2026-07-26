@@ -68,6 +68,15 @@ export async function POST(request: NextRequest) {
     : await supabaseAdmin.from('seo_settings').insert(row).select().single();
 
   if (result.error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
+  // Audit trail: the retired /api/admin/super/seo route logged every mutation via
+  // logSuperAdminAction. Preserve that governance now that this is the only path.
+  await supabaseAdmin.from('marketing_audit_logs').insert({
+    actor_id: admin.id,
+    action: targetId ? 'seo_updated' : 'seo_created',
+    entity: 'seo_settings',
+    entity_id: result.data.id,
+    detail: { route: row.route, noindex: row.noindex },
+  });
   return NextResponse.json(result.data);
 }
 
@@ -78,5 +87,8 @@ export async function DELETE(request: NextRequest) {
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
   const { error } = await supabaseAdmin.from('seo_settings').delete().eq('id', id);
   if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
+  await supabaseAdmin.from('marketing_audit_logs').insert({
+    actor_id: admin.id, action: 'seo_deleted', entity: 'seo_settings', entity_id: id, detail: {},
+  });
   return NextResponse.json({ ok: true });
 }

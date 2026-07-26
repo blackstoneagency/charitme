@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Fast Payouts — Stripe Verified Payouts',
-  description: 'CharitMe uses Stripe Connect Express to deliver donations to fundraisers. Standard payouts are free. Same-day and instant payouts are available for eligible verified users.',
+  description: 'CharitMe delivers donations via Stripe Connect Express. Standard payouts are free; same-day and instant payouts are available to eligible verified users.',
   alternates: { canonical: 'https://www.charitme.com/fast-payouts' },
 };
 

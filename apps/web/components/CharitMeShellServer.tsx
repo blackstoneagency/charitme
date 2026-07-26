@@ -47,6 +47,8 @@ type ShellUser = {
   name: string | null;
   email: string;
   role: string;
+  /** Raw roles from profiles.roles — drives role-scoped nav entries. */
+  roles: string[];
   avatarUrl: string | null;
   hasAdminAccess: boolean;
 };
@@ -55,7 +57,7 @@ async function fetchShellUser(): Promise<ShellUser> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { id: null, name: null, email: '', role: 'Organizer', avatarUrl: null, hasAdminAccess: false };
+    if (!user) return { id: null, name: null, email: '', role: 'Organizer', roles: [], avatarUrl: null, hasAdminAccess: false };
 
     const { data: profile } = await supabaseAdmin
       .from('profiles')
@@ -78,11 +80,12 @@ async function fetchShellUser(): Promise<ShellUser> {
       name: profile?.full_name ?? meta.full_name ?? meta.name ?? null,
       email: user.email ?? '',
       role,
+      roles,
       avatarUrl: profile?.avatar_url ?? meta.avatar_url ?? meta.picture ?? null,
       hasAdminAccess,
     };
   } catch {
-    return { id: null, name: null, email: '', role: 'Organizer', avatarUrl: null, hasAdminAccess: false };
+    return { id: null, name: null, email: '', role: 'Organizer', roles: [], avatarUrl: null, hasAdminAccess: false };
   }
 }
 
@@ -129,6 +132,7 @@ export async function CharitMeShell(props: ShellProps) {
       userName={user.name ?? user.email}
       userEmail={user.email}
       userRole={user.role}
+      navRoles={user.roles}
       userAvatarUrl={user.avatarUrl}
       hasAdminAccess={user.hasAdminAccess}
     />

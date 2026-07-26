@@ -1,8 +1,8 @@
-import { cache } from 'react';
 import Link from 'next/link';
 import { safeJsonLd } from "../../../lib/json-ld";
 import { buildCampaignJsonLd } from "../../../lib/campaign-jsonld";
 import { notFound } from 'next/navigation';
+import { getCampaign } from './get-campaign';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
@@ -26,6 +26,7 @@ import CommentsList, { type WallComment } from './CommentsList';
 import SaveCampaignButton from './SaveCampaignButton';
 import CampaignAssistant from './CampaignAssistant';
 import { getPhotosForCategory, getCoverForCampaign } from '../../../lib/photo-catalog';
+import { optimizedCoverUrl } from '../../../lib/img-optimize';
 import { optimizeAsks, computeImpact } from '../../../lib/donation-optimizer';
 
 export const dynamic = 'force-dynamic';
@@ -51,16 +52,6 @@ interface Props {
 type Profile = { full_name?: string | null; avatar_url?: string | null; show_public_profile?: boolean | null };
 type CampaignWithImages = { image_urls?: string[] | null };
 
-// Memoized per-request: generateMetadata + the page both call this, and React
-// cache() dedupes it to a single query on the highest-traffic public page.
-const getCampaign = cache(async (slug: string) => {
-  const { data } = await supabaseAdmin
-    .from('campaigns')
-    .select('*, profiles:user_id (full_name, avatar_url)')
-    .eq('slug', slug)
-    .single();
-  return data;
-});
 
 async function getRecentDonations(campaignId: string) {
   const { data } = await supabaseAdmin
@@ -779,7 +770,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                 <Link key={c.id} href={`/campaigns/${c.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <div style={{ border: '1px solid var(--b1, #f1f5f9)', borderRadius: 12, overflow: 'hidden', height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--s1, #fff)' }}>
                     <div style={{
-                      height: 130, background: `url(${c.cover_image_url || getCoverForCampaign(c.category, c.slug)}) center/cover`,
+                      height: 130, background: `url(${optimizedCoverUrl(c.cover_image_url || getCoverForCampaign(c.category, c.slug), 420)}) center/cover`,
                     }} />
                     <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
                       {c.category && <span style={{ fontSize: 11, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: 0.4 }}>{c.category}</span>}

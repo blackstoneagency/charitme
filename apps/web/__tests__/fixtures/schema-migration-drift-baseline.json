@@ -1,0 +1,105 @@
+{
+  "ai_generations": [
+    "result",
+    "tokens_used"
+  ],
+  "audit_logs": [
+    "ip_address",
+    "user_agent"
+  ],
+  "campaign_media": [
+    "alt_text",
+    "caption",
+    "sort_order"
+  ],
+  "campaign_reports": [
+    "resolved_at",
+    "resolved_by"
+  ],
+  "campaign_updates": [
+    "published_at",
+    "scheduled_at",
+    "updated_at"
+  ],
+  "campaigns": [
+    "ai_generated",
+    "location",
+    "nonprofit_verified",
+    "thank_donors_sent_at",
+    "video_url"
+  ],
+  "connected_accounts": [
+    "first_payout_hold_until"
+  ],
+  "donations": [
+    "offline",
+    "offline_donor_email",
+    "offline_donor_name",
+    "offline_method",
+    "processing_fee_cents",
+    "stripe_checkout_session_id",
+    "tip_cents"
+  ],
+  "donor_crm_contacts": [
+    "donor_id",
+    "notes"
+  ],
+  "donor_messages": [
+    "anonymous"
+  ],
+  "membership_tiers": [
+    "interval"
+  ],
+  "nonprofit_profiles": [
+    "ein",
+    "logo_url",
+    "verified_at"
+  ],
+  "payouts": [
+    "paid_at",
+    "requested_at"
+  ],
+  "platform_settings": [
+    "created_at"
+  ],
+  "recurring_donations": [
+    "cancelled_at"
+  ],
+  "refunds": [
+    "notes",
+    "processed_at",
+    "requested_by"
+  ],
+  "subscriptions": [
+    "cancel_at_period_end",
+    "current_period_start",
+    "plan",
+    "stripe_customer_id"
+  ],
+  "tax_receipts": [
+    "campaign_title",
+    "no_goods_or_services",
+    "nonprofit_ein",
+    "nonprofit_name"
+  ],
+  "team_members": [
+    "accepted_at",
+    "invited_by"
+  ],
+  "trust_scores": [
+    "activity_score",
+    "computed_at",
+    "identity_score",
+    "story_score",
+    "transparency_score"
+  ],
+  "verification_documents": [
+    "doc_type",
+    "is_public",
+    "notes",
+    "public_url",
+    "verified",
+    "verified_at",
+    "verified_by"
+  ]
+}

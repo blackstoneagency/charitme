@@ -5,6 +5,7 @@ import Link from 'next/link';
 import BillingPortalButton from './BillingPortalButton';
 import { SUPPORTED_CURRENCIES } from '@shared/currencies';
 import { SUPPORTED_LOCALES } from '../../../lib/i18n';
+import { normalizeUrl } from '../../../lib/normalize-url';
 
 // ─────────────────────────────────────────────
 // Types
@@ -26,6 +27,7 @@ interface ProfileData {
   show_public_profile: boolean | null;
   campaign_recommendations: boolean | null;
   notification_email: boolean | null;
+  notification_updates: boolean | null;
   notification_marketing: boolean | null;
 }
 
@@ -132,19 +134,6 @@ function PrefRow({ id, label, desc, checked, onChange }: { id: string; label: st
 }
 
 // ─────────────────────────────────────────────
-// NotifRow (self-contained toggle state)
-// ─────────────────────────────────────────────
-function NotifRow({ id, label, desc, defaultOn }: { id: string; label: string; desc: string; defaultOn: boolean }) {
-  const [on, setOn] = useState(defaultOn);
-  return (
-    <div className="kf-setpref">
-      <div className="kf-setpref-info"><strong>{label}</strong><span>{desc}</span></div>
-      <Toggle id={id} checked={on} onChange={setOn} label={label} />
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────
 export default function SettingsClient({ initialProfile, campaignsCount, userEmail, userId, hasStripeCustomer }: Props) {
@@ -163,9 +152,12 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
   const [timezone, setTimezone] = useState(initialProfile.timezone ?? 'America/New_York');
   const [currency, setCurrency] = useState(initialProfile.currency ?? 'usd');
   const [language, setLanguage] = useState(initialProfile.language ?? 'en');
+  const [dateFormat, setDateFormat] = useState(initialProfile.date_format ?? 'MM/DD/YYYY');
+  const [timeFormat, setTimeFormat] = useState(initialProfile.time_format ?? '12h');
   const [showPublicProfile, setShowPublicProfile] = useState(initialProfile.show_public_profile ?? true);
   const [campaignRecs, setCampaignRecs] = useState(initialProfile.campaign_recommendations ?? true);
   const [notifyEmail, setNotifyEmail] = useState(initialProfile.notification_email ?? true);
+  const [notifyUpdates, setNotifyUpdates] = useState(initialProfile.notification_updates ?? true);
   const [notifyMarketing, setNotifyMarketing] = useState(initialProfile.notification_marketing ?? false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarFileRef = useRef<HTMLInputElement>(null);
@@ -210,18 +202,59 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
 
   async function saveProfile() {
     setSaving(true);
+    // `org_website` and `avatar_url` are validated with zod's .url(), which
+    // rejects a bare domain. Typing "myorg.com" is the common case and used to
+    // fail with a bare "Invalid input" toast that never said which field was
+    // wrong, so accept it and add the scheme instead of bouncing the save.
+    const website = normalizeUrl(orgWebsite);
+    const avatar = normalizeUrl(avatarUrl);
+    if (website !== orgWebsite) setOrgWebsite(website);
+    if (avatar !== avatarUrl) setAvatarUrl(avatar);
     try {
       const res = await fetch('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          full_name: fullName, bio: bio || null, avatar_url: avatarUrl || null,
-          org_name: orgName || null, org_website: orgWebsite || null, org_tagline: orgTagline || null,
+          full_name: fullName, bio: bio || null, avatar_url: avatar || null,
+          org_name: orgName || null, org_website: website || null, org_tagline: orgTagline || null,
         }),
       });
       if (!res.ok) { const e = await res.json().catch(() => ({})); showToast('error', (e as { error?: string }).error ?? 'Failed to save.'); return; }
       showToast('success', 'Profile saved!');
     } catch { showToast('error', 'Something went wrong.'); } finally { setSaving(false); }
+  }
+
+  /**
+   * Profile Visibility is rendered in Security & Privacy, but the only thing that
+   * persisted `show_public_profile` was the Preferences panel's Save button —
+   * a different section. With no Save control in Security and no autosave, a
+   * donor who switched themselves to Private and navigated away silently stayed
+   * public. A privacy choice should also apply immediately rather than wait on a
+   * save elsewhere, so this writes on change and reverts the toggle if it fails.
+   */
+  async function savePrivacy(next: boolean) {
+    const previous = showPublicProfile;
+    setShowPublicProfile(next);
+    setSaving(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ show_public_profile: next }),
+      });
+      if (!res.ok) {
+        setShowPublicProfile(previous);
+        const e = await res.json().catch(() => ({}));
+        showToast('error', (e as { error?: string }).error ?? 'Could not update visibility.');
+        return;
+      }
+      showToast('success', next ? 'Your giving activity is now public.' : 'Your giving activity is now private.');
+    } catch {
+      setShowPublicProfile(previous);
+      showToast('error', 'Something went wrong.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function savePreferences() {
@@ -231,8 +264,10 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          timezone, currency, language, show_public_profile: showPublicProfile,
-          campaign_recommendations: campaignRecs, notification_marketing: notifyMarketing,
+          timezone, currency, language, date_format: dateFormat, time_format: timeFormat,
+          show_public_profile: showPublicProfile,
+          campaign_recommendations: campaignRecs, notification_updates: notifyUpdates,
+          notification_marketing: notifyMarketing,
         }),
       });
       if (!res.ok) { const e = await res.json().catch(() => ({})); showToast('error', (e as { error?: string }).error ?? 'Failed to save.'); return; }
@@ -246,7 +281,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
       const res = await fetch('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notification_email: notifyEmail, notification_marketing: notifyMarketing }),
+        body: JSON.stringify({ notification_email: notifyEmail, notification_updates: notifyUpdates, notification_marketing: notifyMarketing }),
       });
       if (!res.ok) { const e = await res.json().catch(() => ({})); showToast('error', (e as { error?: string }).error ?? 'Failed to save.'); return; }
       showToast('success', 'Notification settings saved!');
@@ -344,9 +379,6 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 <SetField label="Tagline" className="full">
                   <input value={orgTagline} onChange={e => setOrgTagline(e.target.value)} placeholder="A short mission statement…" maxLength={200} />
                 </SetField>
-                <SetField label="Country" className="full">
-                  <select defaultValue="us"><option value="us">United States</option><option value="gb">United Kingdom</option><option value="ca">Canada</option><option value="au">Australia</option></select>
-                </SetField>
               </div>
             </div>
           </>
@@ -364,16 +396,8 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 <button type="button" className="kf-setpanel-save" onClick={savePreferences} disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
               </div>
               <div className="kf-setpanel-body">
-                <div className="kf-setrow">
-                  <SetField label="Default Dashboard View">
-                    <select defaultValue="overview"><option value="overview">Overview</option><option value="analytics">Analytics</option><option value="campaigns">Campaigns</option></select>
-                  </SetField>
-                  <SetField label="Default Date Range">
-                    <select defaultValue="month"><option value="week">This Week</option><option value="month">This Month</option><option value="quarter">This Quarter</option></select>
-                  </SetField>
-                </div>
                 <div className="kf-setrow triple">
-                  <SetField label="Language">
+                  <SetField label="Language" hint="Saved to your profile. Translated pages are still rolling out — the interface currently displays in English.">
                     <select value={language} onChange={e => setLanguage(e.target.value)}>
                       {SUPPORTED_LOCALES.map(l => (
                         <option key={l.code} value={l.code}>{l.name} ({l.nativeName})</option>
@@ -396,10 +420,24 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                     </select>
                   </SetField>
                 </div>
+                <div className="kf-setrow">
+                  <SetField label="Date Format">
+                    <select value={dateFormat} onChange={e => setDateFormat(e.target.value)}>
+                      <option value="MM/DD/YYYY">MM/DD/YYYY — 03/14/2026</option>
+                      <option value="DD/MM/YYYY">DD/MM/YYYY — 14/03/2026</option>
+                      <option value="YYYY-MM-DD">YYYY-MM-DD — 2026-03-14</option>
+                    </select>
+                  </SetField>
+                  <SetField label="Time Format">
+                    <select value={timeFormat} onChange={e => setTimeFormat(e.target.value)}>
+                      <option value="12h">12-hour — 2:30 PM</option>
+                      <option value="24h">24-hour — 14:30</option>
+                    </select>
+                  </SetField>
+                </div>
                 <div style={{ paddingTop: 8 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 12 }}>Email Preferences</div>
-                  <PrefRow id={`${uid}-updates`} label="Product updates" desc="News about new CharitMe features" checked={false} onChange={() => null} />
-                  <PrefRow id={`${uid}-tips`} label="Tips and best practices" desc="Guides and strategies for fundraising" checked={false} onChange={() => null} />
+                  <PrefRow id={`${uid}-updates`} label="Product updates" desc="News about new CharitMe features" checked={notifyUpdates} onChange={setNotifyUpdates} />
                   <PrefRow id={`${uid}-digest`} label="Weekly performance summary" desc="Weekly email with campaign stats" checked={campaignRecs} onChange={setCampaignRecs} />
                 </div>
               </div>
@@ -419,17 +457,9 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
             </div>
             <div className="kf-setpanel-body">
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 8 }}>In-App Notifications</div>
-              <NotifRow id={`${uid}-n1`} label="New donations" desc="When a donor contributes to your campaign" defaultOn={true} />
-              <NotifRow id={`${uid}-n2`} label="New donors" desc="When someone makes their first donation" defaultOn={true} />
-              <NotifRow id={`${uid}-n3`} label="Campaign updates" desc="When your campaign reaches a milestone" defaultOn={true} />
-              <NotifRow id={`${uid}-n4`} label="Payouts and transfers" desc="When payouts are processed or transferred" defaultOn={true} />
-              <NotifRow id={`${uid}-n5`} label="Mentions and comments" desc="When someone mentions you or comments" defaultOn={false} />
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', margin: '18px 0 8px' }}>Email Notifications</div>
               <PrefRow id={`${uid}-ne1`} label="Receive email notifications" desc="Get notified by email for important events" checked={notifyEmail} onChange={setNotifyEmail} />
               <PrefRow id={`${uid}-ne2`} label="Product news & tips" desc="Occasional marketing emails about new features and fundraising tips" checked={notifyMarketing} onChange={setNotifyMarketing} />
-              <SetField label="Email Frequency">
-                <select defaultValue="instant"><option value="instant">Instant</option><option value="daily">Daily Digest</option><option value="weekly">Weekly</option></select>
-              </SetField>
             </div>
           </div>
         );
@@ -461,7 +491,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                       Preview →
                     </Link>
                   )}
-                  <select value={showPublicProfile ? 'public' : 'private'} onChange={e => setShowPublicProfile(e.target.value === 'public')} style={{ height: 36, border: '1px solid var(--b1)', borderRadius: 8, padding: '0 12px', fontSize: 13 }}>
+                  <select value={showPublicProfile ? 'public' : 'private'} disabled={saving} onChange={e => savePrivacy(e.target.value === 'public')} style={{ height: 36, border: '1px solid var(--b1)', borderRadius: 8, padding: '0 12px', fontSize: 13 }}>
                     <option value="public">Public</option>
                     <option value="private">Private</option>
                   </select>
@@ -635,7 +665,10 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                   <strong style={{ color: 'var(--red-text)' }}>Request Account Deletion</strong>
                   <span>Permanently delete your account and all data — this cannot be undone</span>
                 </div>
-                <a href="mailto:support@CharitMe.com?subject=Account%20Deletion%20Request" style={{ fontSize: 13, fontWeight: 700, color: 'var(--red-text)', border: '1px solid var(--red)', borderRadius: 'var(--r)', padding: '7px 16px', textDecoration: 'none', display: 'inline-block' }}>Request Deletion</a>
+                {/* Was a mailto:, which left the request untracked. The Privacy
+                    Center records it against the account, reports status, and
+                    blocks duplicate open requests. */}
+                <Link href="/privacy-center" style={{ fontSize: 13, fontWeight: 700, color: 'var(--red-text)', border: '1px solid var(--red)', borderRadius: 'var(--r)', padding: '7px 16px', textDecoration: 'none', display: 'inline-block' }}>Request Deletion</Link>
               </div>
             </div>
           </div>

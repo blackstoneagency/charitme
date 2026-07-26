@@ -1,7 +1,7 @@
 import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { openai, OPENAI_MODEL } from '../../../../lib/openai';
-import { checkRateLimit } from '../../../../lib/rate-limit';
+import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { formatMoney, normalizeCurrency } from '@shared/currencies';
 
@@ -67,7 +67,10 @@ function fallbackMessage(opts: {
 
 export async function GET(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  if (!checkRateLimit(`donor-conversion:${ip}`, 30, 60_000)) {
+  // Durable, cross-instance limit: this endpoint is unauthenticated AND calls
+  // OpenAI, so the in-memory limiter's per-instance counter (effectively
+  // limit x instanceCount on Vercel) is not enough to bound spend.
+  if (!(await checkRateLimitDurable(`donor-conversion:${ip}`, 30, 60_000))) {
     return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
   }
 

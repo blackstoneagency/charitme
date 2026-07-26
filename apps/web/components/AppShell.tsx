@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '../lib/supabase-browser';
 import { ThemeToggle } from './ThemeProvider';
-import AnnouncementBanner, { type Announcement } from './AnnouncementBanner';
+import AnnouncementBanner, { type Announcement, type BannerAppearance } from './AnnouncementBanner';
 
 const NAV = [
   ['Home', '/'],
@@ -95,7 +95,7 @@ function Logo() {
   );
 }
 
-export function AppShell({ children, initialAnnouncements }: { children: React.ReactNode; initialAnnouncements?: Announcement[] }) {
+export function AppShell({ children, initialAnnouncements, bannerAppearance }: { children: React.ReactNode; initialAnnouncements?: Announcement[]; bannerAppearance?: BannerAppearance }) {
   const path = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -146,7 +146,11 @@ export function AppShell({ children, initialAnnouncements }: { children: React.R
 
   return (
     <>
-      <AnnouncementBanner initial={initialAnnouncements} />
+      {/* WCAG 2.4.1 (Bypass Blocks): lets keyboard/AT users jump the header nav,
+          which is otherwise ~15 tab stops on every page. Visually hidden until
+          focused — it is the first thing Tab reaches. */}
+      <a href="#main-content" className="skip-link">Skip to main content</a>
+      <AnnouncementBanner initial={initialAnnouncements} appearance={bannerAppearance} />
       <header className="kind-header">
         <div className="container">
           <Logo />
@@ -249,7 +253,7 @@ export function AppShell({ children, initialAnnouncements }: { children: React.R
         )}
       </header>
 
-      <main>{children}</main>
+      <main id="main-content" tabIndex={-1}>{children}</main>
 
       <footer className="kind-footer">
         <div className="container kind-footer-grid">

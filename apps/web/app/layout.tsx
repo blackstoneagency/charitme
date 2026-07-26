@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import './globals.css';
 import { AppShell } from '../components/AppShell';
 import { getActiveAnnouncements } from '../lib/announcements-data';
+import { getBannerSettings } from '../lib/banner-settings';
 import SessionWatcher from '../components/SessionWatcher';
 import { ThemeProvider } from '../components/ThemeProvider';
 import PWARegister from '../components/PWARegister';
@@ -69,7 +70,10 @@ const platformJsonLd = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Cached (ISR) fetch — keeps the layout statically generated while putting the
   // banner in the initial HTML so it never injects post-hydration (no layout shift).
-  const initialAnnouncements = await getActiveAnnouncements();
+  const [initialAnnouncements, bannerAppearance] = await Promise.all([
+    getActiveAnnouncements(),
+    getBannerSettings(),
+  ]);
   const nonce = (await headers()).get('x-nonce') ?? undefined;
   return (
     <html lang="en" suppressHydrationWarning>
@@ -86,7 +90,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Suspense fallback={null}>
             <MarketingTracker />
           </Suspense>
-          <AppShell initialAnnouncements={initialAnnouncements}>{children}</AppShell>
+          <AppShell initialAnnouncements={initialAnnouncements} bannerAppearance={bannerAppearance}>{children}</AppShell>
         </ThemeProvider>
       </body>
     </html>

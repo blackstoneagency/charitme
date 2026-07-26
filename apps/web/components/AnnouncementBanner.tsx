@@ -7,11 +7,14 @@ export type Announcement = {
   link_url: string | null; link_label: string | null;
 };
 
+// Banner text is white, so every stop must clear WCAG AA (4.5:1) against white —
+// the previous light ends did not (e.g. #f59e0b was ~2.1:1, #19b86a ~2.5:1),
+// which would fail accessibility sitewide whenever level colours are enabled.
 const BG: Record<string, string> = {
-  info: 'linear-gradient(90deg,#2f6fed,#5b8def)',
-  success: 'linear-gradient(90deg,#0f9d58,#19b86a)',
-  warning: 'linear-gradient(90deg,#d97706,#f59e0b)',
-  critical: 'linear-gradient(90deg,#c81e1e,#e5342f)',
+  info: 'linear-gradient(90deg,#1d4ed8,#2563eb)',
+  success: 'linear-gradient(90deg,#065f46,#08763b)',
+  warning: 'linear-gradient(90deg,#92400e,#b45309)',
+  critical: 'linear-gradient(90deg,#991b1b,#b91c1c)',
 };
 const DISMISS_KEY = 'cm_dismissed_announcements';
 
@@ -36,7 +39,26 @@ function writeDismissed(ids: string[]): void {
 
 // Site-wide banner driven by the super-admin Announcements console. Shows the most
 // recent active announcement the user hasn't dismissed.
-export default function AnnouncementBanner({ initial }: { initial?: Announcement[] }) {
+/** Appearance controlled by super admins (see lib/banner-settings.ts). */
+export type BannerAppearance = {
+  enabled: boolean;
+  backgroundColor: string;
+  textColor: string;
+  linkColor: string;
+  fontFamily: string;
+  fontSizePx: number;
+  titleFontSizePx: number;
+  fontWeight: number;
+  titleFontWeight: number;
+  textAlign: 'left' | 'center' | 'right';
+  letterSpacingEm: number;
+  uppercase: boolean;
+  paddingYPx: number;
+  dismissible: boolean;
+  useLevelColors: boolean;
+};
+
+export default function AnnouncementBanner({ initial, appearance }: { initial?: Announcement[]; appearance?: BannerAppearance }) {
   // Seeded from the server (SSR) so the bar is in the initial HTML and never
   // injects post-hydration — eliminating the layout shift it used to cause.
   const [items, setItems] = useState<Announcement[]>(initial ?? []);
@@ -54,30 +76,54 @@ export default function AnnouncementBanner({ initial }: { initial?: Announcement
 
   const current = useMemo(() => items.find((a) => !seen.includes(a.id)) ?? null, [items, seen]);
 
+  // Global kill switch — super admins can hide the banner site-wide regardless
+  // of how many announcements are active.
+  if (appearance && !appearance.enabled) return null;
   if (!current) return null;
+
+  const a = appearance;
+  // Values are validated server-side on both write and read (lib/banner-settings.ts)
+  // before reaching these inline styles.
+  const background = a && !a.useLevelColors ? a.backgroundColor : (BG[current.level] ?? BG.info);
+  const fg         = a ? a.textColor : '#fff';
+  const linkFg     = a ? a.linkColor : '#fff';
 
   const dismiss = () => {
     writeDismissed([...seen, current.id]);
   };
 
   return (
-    <div role="status" style={{ background: BG[current.level] ?? BG.info, color: '#fff' }}>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '9px 16px', display: 'flex', alignItems: 'center', gap: 12, fontSize: 14 }}>
-        <strong style={{ fontWeight: 700 }}>{current.title}</strong>
+    <div role="status" style={{ background, color: fg }}>
+      <div style={{
+        maxWidth: 1200, margin: '0 auto',
+        padding: `${a ? a.paddingYPx : 9}px 16px`,
+        display: 'flex', alignItems: 'center', gap: 12,
+        justifyContent: a?.textAlign === 'center' ? 'center' : a?.textAlign === 'right' ? 'flex-end' : 'flex-start',
+        fontSize: a ? a.fontSizePx : 14,
+        fontFamily: a ? a.fontFamily : 'inherit',
+        fontWeight: a ? a.fontWeight : 400,
+        letterSpacing: a && a.letterSpacingEm ? `${a.letterSpacingEm}em` : undefined,
+        textTransform: a?.uppercase ? 'uppercase' : undefined,
+      }}>
+        <strong style={{ fontWeight: a ? a.titleFontWeight : 700, fontSize: a ? a.titleFontSizePx : undefined }}>{current.title}</strong>
         {current.body && <span style={{ opacity: 0.92, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{current.body}</span>}
         {current.link_url && (
-          <a href={current.link_url} style={{ color: '#fff', fontWeight: 700, textDecoration: 'underline', whiteSpace: 'nowrap' }}>
+          <a href={current.link_url} style={{ color: linkFg, fontWeight: 700, textDecoration: 'underline', whiteSpace: 'nowrap' }}>
             {current.link_label || 'Learn more'} →
           </a>
         )}
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label="Dismiss announcement"
-          style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 18, lineHeight: 1, opacity: 0.85, flexShrink: 0 }}
-        >
-          ×
-        </button>
+        {(!a || a.dismissible) && (
+          <button
+            type="button"
+            onClick={dismiss}
+            aria-label="Dismiss announcement"
+            // min 28px hit area: the glyph alone was a 15x18 tap target on mobile,
+            // below the 24px minimum (WCAG 2.5.8) — and this banner is sitewide.
+            style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: fg, cursor: 'pointer', fontSize: 18, lineHeight: 1, opacity: 0.85, flexShrink: 0, minWidth: 28, minHeight: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, borderRadius: 6 }}
+          >
+            ×
+          </button>
+        )}
       </div>
     </div>
   );

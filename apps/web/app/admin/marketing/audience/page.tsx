@@ -1,18 +1,8 @@
 import 'server-only';
-import { CharitMeShell, TopBar } from '../../../../components/CharitMeShellServer';
-import { requireAdmin } from '../../../../lib/auth';
-import AdminMarketingClient from '../_components/AdminMarketingClient';
-import { getMarketingOverview } from '../_components/overview';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-
-export default async function Page() {
-  await requireAdmin();
-  const overview = await getMarketingOverview();
-  return (
-    <CharitMeShell active="Marketing" mode="admin">
-      <TopBar title="Marketing — Audience" subtitle="Live Supabase data." actions={<></>} />
-      <AdminMarketingClient overview={overview} initialTab="audience" />
-    </CharitMeShell>
-  );
+// Marketing is one page: this was the same hub client with a preset tab.
+// Kept as a redirect so existing links/bookmarks keep working.
+export default function Page() {
+  redirect('/admin/marketing?tab=audience');
 }

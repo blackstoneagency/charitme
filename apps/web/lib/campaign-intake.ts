@@ -1,4 +1,12 @@
 import { CAMPAIGN_CATEGORIES, type CampaignCategory } from '@shared/fees';
+import { PUBLISH_MIN_GOAL_CENTS } from './campaign-readiness';
+
+/**
+ * Upper sanity bound for a goal parsed out of free text ($10M). Intake-only —
+ * the campaign API itself sets no maximum, so this exists purely so a stray
+ * "1000000000" in a prompt cannot prefill an absurd goal.
+ */
+const INTAKE_MAX_GOAL_CENTS = 1_000_000_000;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Deterministic prompt → structured campaign fields.
@@ -27,8 +35,11 @@ const CATEGORY_SIGNALS: { category: CampaignCategory; keywords: string[] }[] = [
   { category: 'Animal',      keywords: ['dog', 'cat', 'puppy', 'kitten', 'pet', 'animal', 'wildlife rescue', 'shelter', 'veterinary', 'vet bill', 'rescue'] },
   { category: 'Environment', keywords: ['environment', 'climate', 'conservation', 'reforest', 'ocean', 'pollution', 'sustainab', 'planet', 'green energy'] },
   { category: 'Faith',       keywords: ['church', 'mosque', 'temple', 'synagogue', 'faith', 'ministry', 'mission trip', 'parish', 'congregation'] },
-  { category: 'Sports',      keywords: ['team', 'soccer', 'basketball', 'football', 'baseball', 'athletic', 'league', 'tournament', 'sports'] },
-  { category: 'Creative',    keywords: ['film', 'album', 'music video', 'art project', 'book', 'video game', 'podcast', 'documentary', 'creative', 'gallery'] },
+  { category: 'Sports',      keywords: ['team', 'soccer', 'basketball', 'football', 'baseball', 'softball', 'volleyball', 'hockey', 'lacrosse', 'wrestling', 'track and field', 'swim', 'athlete', 'athletic', 'league', 'tournament', 'sports', 'varsity', 'travel ball', 'jersey', 'uniforms'] },
+  // Cheer/dance/gymnastics previously matched nothing at all unless the word
+  // "team" happened to appear.
+  { category: 'Competition',  keywords: ['cheer', 'pep squad', 'drill team', 'dance', 'gymnastic', 'majorette', 'color guard', 'robotics', 'debate', 'spelling bee', 'chess club', 'esports', 'pageant', 'nationals', 'regionals', 'state finals', 'competition', 'contest'] },
+  { category: 'Creative',    keywords: ['film', 'album', 'music', 'musician', 'band', 'orchestra', 'choir', 'guitar', 'piano', 'violin', 'drums', 'instrument', 'recording', 'studio time', 'ep release', 'gig', 'tour', 'art project', 'book', 'video game', 'podcast', 'documentary', 'creative', 'gallery', 'theater', 'theatre'] },
   { category: 'Business',    keywords: ['business', 'startup', 'small shop', 'store', 'restaurant', 'food truck', 'launch my', 'my company'] },
   { category: 'Event',       keywords: ['wedding', 'gala', 'reunion', 'festival', 'conference', 'fundraising event'] },
   { category: 'Education',   keywords: ['books for'] },
@@ -42,9 +53,31 @@ const CATEGORY_SIGNALS: { category: CampaignCategory; keywords: string[] }[] = [
 
 const URGENCY_SIGNALS = ['urgent', 'urgently', 'emergency', 'immediately', 'asap', 'right now', 'time-sensitive', 'critical', 'desperately', "can't wait", 'cannot wait'];
 
+const KEYWORD_RE_CACHE = new Map<string, RegExp>();
+
+/**
+ * Match a keyword at a word boundary rather than anywhere in the string.
+ *
+ * A plain `includes` mis-fired badly on short keywords: 'pet' matched
+ * com*pet*ition, so every competition campaign was filed under Animal, and 'cat'
+ * matched vacation / dedicated / communication (Education only escaped because it
+ * is tested before Animal). Anchoring the START of the keyword to a word boundary
+ * fixes those while deliberately leaving the end unanchored, so the intentional
+ * stems still work — 'sustainab' → sustainable, 'relocat' → relocating,
+ * 'team' → teams.
+ */
+function keywordRe(keyword: string): RegExp {
+  let re = KEYWORD_RE_CACHE.get(keyword);
+  if (!re) {
+    re = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
+    KEYWORD_RE_CACHE.set(keyword, re);
+  }
+  return re;
+}
+
 function detectCategory(text: string): CampaignCategory | undefined {
   for (const { category, keywords } of CATEGORY_SIGNALS) {
-    if (keywords.some(k => text.includes(k))) return category;
+    if (keywords.some(k => keywordRe(k).test(text))) return category;
   }
   return undefined;
 }
@@ -68,8 +101,18 @@ function detectGoalCents(text: string): number | undefined {
   }
   if (best === undefined) return undefined;
   const cents = Math.round(best * 100);
-  // Clamp to the same bounds the campaign API accepts.
-  return Math.min(Math.max(cents, 10_000), 1_000_000_000);
+  // The floor is the real publish minimum. It used to be a hardcoded 10_000
+  // ($100) described as "the same bounds the campaign API accepts", which was
+  // untrue on both counts: the API takes `z.number().int().min(0)` with no upper
+  // bound, and the enforced publish minimum is PUBLISH_MIN_GOAL_CENTS ($1). The
+  // effect was that small, specific asks — "$40 for our team uniforms", "$75 for
+  // new cheer bows" — were silently inflated to $100, overstating what the
+  // organizer actually needed.
+  //
+  // The ceiling is kept as an intake-only sanity bound on a number parsed out of
+  // free text, so a typo cannot prefill an absurd goal. It is a suggestion the
+  // organizer reviews and can raise, not a limit the API enforces.
+  return Math.min(Math.max(cents, PUBLISH_MIN_GOAL_CENTS), INTAKE_MAX_GOAL_CENTS);
 }
 
 export function extractCampaignFields(prompt: string): ExtractedCampaignFields {

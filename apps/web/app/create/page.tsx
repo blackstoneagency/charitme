@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { validateBuilderStep, type BuilderField } from '../../lib/builder-validation';
 import {
   CAMPAIGN_DRAFT_KEY,
   buildDraft,
@@ -8,8 +9,41 @@ import {
   parseDraft,
   draftHasContent,
   draftAgeLabel,
+  fromRemoteDraft,
+  pickFreshestDraft,
+  describePublishFailure,
   type CampaignDraft,
 } from '../../lib/campaign-draft';
+import { WIZARD_STEPS, normalizeStep, minutesRemaining, type WizardStep } from '../../lib/wizard-steps';
+import { evaluateDonorView } from '../../lib/donor-preview';
+
+/** A pristine wizard form — also what "start another campaign" resets to (F8). */
+const EMPTY_FORM: FormState = {
+  category: 'Medical',
+  forSelf: 'true',
+  country: 'United States',
+  zipCode: '',
+  autoGoal: 'false',
+  title: '',
+  tagline: '',
+  goal: '',
+  deadline: '',
+  beneficiaryName: '',
+  beneficiaryRelationship: '',
+  description: '',
+  coverImageUrl: '',
+};
+
+/** Which of the organizer's drafts this browser is currently editing (F8). */
+const ACTIVE_DRAFT_KEY = 'charitme-active-draft-id';
+
+interface DraftSummary {
+  id: string;
+  title: string | null;
+  step: string;
+  updated_at: string;
+  imageCount: number;
+}
 import { suggestCampaignTitle } from '../../lib/campaign-title';
 import Link from 'next/link';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
@@ -26,7 +60,6 @@ import { analyzeStory } from '../../lib/story-analysis';
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
-type WizardStep = 'type' | 'category' | 'location' | 'story' | 'title' | 'goal' | 'media' | 'payout' | 'summary' | 'live';
 
 type PayoutMethod = 'stripe' | 'paypal' | 'venmo' | 'googlepay' | 'sinch';
 type PayoutAccount = {
@@ -79,19 +112,21 @@ interface UploadedImage {
 // ─────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────
-const WIZARD_STEPS: { key: WizardStep; label: string; num: number }[] = [
-  { key: 'type',     label: 'Campaign Type', num: 1 },
-  { key: 'category', label: 'Category',      num: 2 },
-  { key: 'location', label: 'Location',      num: 3 },
-  { key: 'story',    label: 'Your Story',    num: 4 },
-  { key: 'title',    label: 'Title',         num: 5 },
-  { key: 'goal',     label: 'Goal',          num: 6 },
-  { key: 'media',    label: 'Media',         num: 7 },
-  { key: 'payout',   label: 'Get Paid',      num: 8 },
-  { key: 'summary',  label: 'Review',        num: 9 },
-];
 
 const JOURNEY_STEPS = ['Plan', 'Create', 'Launch', 'Manage', 'Celebrate', 'Impact'];
+
+/**
+ * Where an unauthenticated organizer is asked to sign in — deliberately the FIRST
+ * step that technically requires a session: the next step (media) uploads to
+ * /api/upload/campaign-image, which 401s without one. Everything before it
+ * (Basics → Story → Title → Goal) is narrative work a guest can do freely, so they
+ * build the whole campaign and only sign in when the product genuinely cannot
+ * proceed. The draft survives sign-in (localStorage + Supabase cross-device), so
+ * nothing is lost at the gate.
+ *
+ * Moving this later requires guest uploads to a temp bucket + claim-on-signup.
+ */
+const GUEST_GATE_STEP: WizardStep = 'goal';
 
 const ALLOWED_IMG_TYPES = new Set([
   'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif',
@@ -142,6 +177,9 @@ function CampaignPreviewModal({
   form,
   coverImageUrl,
   goalDisplay,
+  imageCount,
+  goalCents,
+  onGoToStep,
   onClose,
   onLaunch,
   launching,
@@ -149,23 +187,49 @@ function CampaignPreviewModal({
   form: FormState;
   coverImageUrl: string;
   goalDisplay: string;
+  imageCount: number;
+  goalCents: number;
+  onGoToStep: (step: WizardStep) => void;
   onClose: () => void;
   onLaunch: () => void;
   launching: boolean;
 }) {
   const beneficiary = form.forSelf === 'true' ? 'you' : (form.beneficiaryName || 'someone in need');
+  // Most donors arrive on a phone, so the preview defaults to the phone frame —
+  // previewing only the desktop layout hid the view most donors actually get.
+  const [viewport, setViewport] = React.useState<'mobile' | 'desktop'>('mobile');
+  const donorView = evaluateDonorView({
+    title: form.title, description: form.description, goalCents,
+    coverImageUrl, imageCount, forSelf: form.forSelf,
+    beneficiaryName: form.beneficiaryName, category: form.category, country: form.country,
+  });
+  const unmet = donorView.checks.filter((c) => !c.passed);
   return (
     <div className="cr2-preview-overlay">
       <div className="cr2-preview-topbar">
         <span className="cr2-preview-badge">PREVIEW MODE</span>
         <p className="cr2-preview-topbar-title">{form.title || 'Untitled Campaign'}</p>
         <button type="button" className="cr2-preview-topbar-back" onClick={onClose}>← Back</button>
+        <div role="group" aria-label="Preview device" style={{ display: 'inline-flex', gap: 4, background: 'rgba(0,0,0,.18)', borderRadius: 999, padding: 3, marginLeft: 8 }}>
+          {(['mobile', 'desktop'] as const).map((v) => (
+            <button key={v} type="button" onClick={() => setViewport(v)} aria-pressed={viewport === v}
+              style={{ padding: '5px 12px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 800,
+                background: viewport === v ? '#fff' : 'transparent', color: viewport === v ? '#1a1a2e' : '#fff' }}>
+              {v === 'mobile' ? '📱 Phone' : '🖥 Desktop'}
+            </button>
+          ))}
+        </div>
         <button type="button" className="cr2-preview-topbar-launch" onClick={onLaunch} disabled={launching}>
           {launching ? 'Launching…' : '🚀 Launch Campaign'}
         </button>
       </div>
       <div className="cr2-preview-scroll">
-        <div className="cr2-preview-page">
+        <div
+          className="cr2-preview-page"
+          style={viewport === 'mobile'
+            ? { maxWidth: 420, margin: '0 auto', boxShadow: '0 0 0 8px rgba(0,0,0,.25)', borderRadius: 18, overflow: 'hidden' }
+            : undefined}
+        >
           <div className="cr2-preview-hero">
             {coverImageUrl
               // eslint-disable-next-line @next/next/no-img-element
@@ -193,7 +257,50 @@ function CampaignPreviewModal({
                   <span><strong>$0</strong> raised</span>
                   <span><strong>0</strong> donors</span>
                 </div>
-                <button type="button" className="cr2-donate-btn">Donate Now</button>
+                {/* Inert on purpose — say so, rather than letting it look broken. */}
+                <button type="button" className="cr2-donate-btn" disabled title="Donations are disabled in preview">
+                  Donate Now
+                </button>
+                <p style={{ margin: '8px 0 0', fontSize: 11.5, color: 'var(--t3, #64748b)', textAlign: 'center' }}>
+                  Preview only — donations are disabled until you publish.
+                </p>
+              </div>
+
+              {/* F10: what a donor looks for, from the donor's point of view. */}
+              <div style={{ marginTop: 14, background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 14, padding: '14px 16px' }}>
+                <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--t1, #1a1a2e)' }}>
+                  How this looks to a donor
+                </div>
+                <div style={{ fontSize: 12.5, color: 'var(--t3, #64748b)', margin: '2px 0 10px' }}>
+                  {donorView.passedCount} of {donorView.total} things donors look for
+                  {unmet.length === 0 ? ' — you are ready to publish.' : ''}
+                </div>
+                <div style={{ height: 7, background: 'var(--s2, #eef0f7)', borderRadius: 6, overflow: 'hidden', marginBottom: 12 }}>
+                  <div style={{ height: '100%', width: `${donorView.confidence}%`, background: 'linear-gradient(90deg,#7035ff,#ec39c3)' }} />
+                </div>
+                <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
+                  {donorView.checks.map((c) => (
+                    <li key={c.id} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+                      <span aria-hidden style={{ color: c.passed ? 'var(--green, #059669)' : 'var(--t4, #94a3b8)', fontWeight: 800, lineHeight: 1.4 }}>
+                        {c.passed ? '✓' : '○'}
+                      </span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: 13, fontWeight: c.passed ? 600 : 700, color: c.passed ? 'var(--t3, #64748b)' : 'var(--t1, #1a1a2e)' }}>
+                          {c.label}
+                        </span>
+                        {!c.passed && (
+                          <>
+                            <span style={{ display: 'block', fontSize: 12, color: 'var(--t3, #64748b)', lineHeight: 1.45, marginTop: 2 }}>{c.why}</span>
+                            <button type="button" onClick={() => { onClose(); onGoToStep(c.step); }}
+                              style={{ marginTop: 4, padding: 0, border: 'none', background: 'none', color: 'var(--violet, #6c35ff)', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
+                              Fix this →
+                            </button>
+                          </>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>
@@ -206,12 +313,24 @@ function CampaignPreviewModal({
 // ─────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────
+// The builder shows at most one error banner at a time (the title step has its
+// own; every other step shares the panel-level one), so a single id is unique in
+// the DOM and safe for aria-describedby.
+const BUILDER_ERROR_ID = 'cr2-builder-error';
+
 export default function CreatePage() {
-  const [step, setStep]               = useState<WizardStep>('type');
+  const [step, setStep]               = useState<WizardStep>('basics');
   const [loading, setLoading]         = useState(false);
   const [aiLoading, setAiLoading]     = useState(false);
   const [storyMode, setStoryMode]     = useState<'freeform' | 'guided'>('freeform');
   const [error, setError]             = useState('');
+  // Which field the current error belongs to, so it can be marked aria-invalid
+  // and focused. Panel-level banners alone told a keyboard/AT user that
+  // *something* was wrong but not *which* input, leaving focus on the button.
+  const [errorField, setErrorField]   = useState<BuilderField | null>(null);
+  const titleInputRef                 = useRef<HTMLInputElement>(null);
+  const storyInputRef                 = useRef<HTMLTextAreaElement>(null);
+  const goalInputRef                  = useRef<HTMLInputElement>(null);
   const [publishedSlug, setPublishedSlug] = useState('');
   const [userName, setUserName]       = useState<string | null>(null);
   const [userEmail, setUserEmail]     = useState<string | undefined>(undefined);
@@ -232,33 +351,40 @@ export default function CreatePage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
 
+  // Restore wizard state parked in sessionStorage across an OAuth sign-in bounce.
+  // Restores images and story mode as well as the text — text-only restores used
+  // to silently drop every upload and blank the cover image on return.
+  const restoreBounce = useCallback((saved: string | null) => {
+    if (!saved) return;
+    try {
+      const { savedForm, savedStep, savedImages, savedStoryMode } = JSON.parse(saved) as {
+        savedForm: FormState; savedStep: WizardStep;
+        savedImages?: { url: string; name: string }[]; savedStoryMode?: string;
+      };
+      if (Array.isArray(savedImages) && savedImages.length > 0) {
+        setUploadedImages(savedImages.map((i, idx) => ({
+          id: `bounce-${idx}-${i.url}`, url: i.url, name: i.name ?? '', status: 'done' as const,
+        })));
+      }
+      if (savedStoryMode === 'freeform' || savedStoryMode === 'guided') setStoryMode(savedStoryMode);
+      setForm(savedForm);
+      const restoredStep = normalizeStep(savedStep);
+      if (restoredStep) setStep(restoredStep);
+    } catch { /* ignore */ }
+    sessionStorage.removeItem('cm_wizard');
+  }, []);
+
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) {
         setIsGuest(true);
-        const saved = sessionStorage.getItem('cm_wizard');
-        if (saved) {
-          try {
-            const { savedForm, savedStep } = JSON.parse(saved) as { savedForm: FormState; savedStep: WizardStep };
-            setForm(savedForm);
-            setStep(savedStep);
-          } catch { /* ignore */ }
-          sessionStorage.removeItem('cm_wizard');
-        }
+        restoreBounce(sessionStorage.getItem('cm_wizard'));
         return;
       }
       setIsGuest(false);
       setUserEmail(user.email ?? undefined);
-      const saved = sessionStorage.getItem('cm_wizard');
-      if (saved) {
-        try {
-          const { savedForm, savedStep } = JSON.parse(saved) as { savedForm: FormState; savedStep: WizardStep };
-          setForm(savedForm);
-          setStep(savedStep);
-        } catch { /* ignore */ }
-        sessionStorage.removeItem('cm_wizard');
-      }
+      restoreBounce(sessionStorage.getItem('cm_wizard'));
       void supabase
         .from('profiles')
         .select('full_name, avatar_url')
@@ -271,23 +397,9 @@ export default function CreatePage() {
           }
         });
     });
-  }, []);
+  }, [restoreBounce]);
 
-  const [form, setForm] = useState<FormState>({
-    category: 'Medical',
-    forSelf: 'true',
-    country: 'United States',
-    zipCode: '',
-    autoGoal: 'false',
-    title: '',
-    tagline: '',
-    goal: '',
-    deadline: '',
-    beneficiaryName: '',
-    beneficiaryRelationship: '',
-    description: '',
-    coverImageUrl: '',
-  });
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [dragging, setDragging]             = useState(false);
@@ -299,6 +411,11 @@ export default function CreatePage() {
   // recovered draft until the user decides (resume vs start fresh) so autosave
   // never overwrites it with the empty initial form.
   const [recoverableDraft, setRecoverableDraft] = useState<CampaignDraft<FormState> | null>(null);
+  // Every draft the organizer has in flight (F8) plus the id of the newest, so
+  // the picker can offer "resume this one" / "start another".
+  const [draftList, setDraftList] = useState<DraftSummary[]>([]);
+  const [showDraftPicker, setShowDraftPicker] = useState(false);
+  const remoteLatestIdRef = useRef<string | null>(null);
   const draftDecided = useRef(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
@@ -315,10 +432,32 @@ export default function CreatePage() {
     }
   }, []);
 
+  // Which server-side draft this tab is editing. Organizers may keep several in
+  // flight (F8), so autosave has to update the right one rather than a single
+  // per-user row. Persisted so a refresh keeps editing the same draft.
+  const draftIdRef = useRef<string | null>(
+    typeof window === 'undefined' ? null : localStorage.getItem(ACTIVE_DRAFT_KEY),
+  );
+  const setActiveDraftId = useCallback((id: string | null) => {
+    draftIdRef.current = id;
+    if (typeof window === 'undefined') return;
+    if (id) localStorage.setItem(ACTIVE_DRAFT_KEY, id);
+    else localStorage.removeItem(ACTIVE_DRAFT_KEY);
+  }, []);
+
   const clearDraft = useCallback(() => {
     if (typeof window !== 'undefined') localStorage.removeItem(CAMPAIGN_DRAFT_KEY);
     setSavedAt(null);
-  }, []);
+    // Drop the cross-device copy too, so a published campaign never resurfaces as
+    // a "resume your draft" prompt on the organizer's other devices. Only this
+    // draft is removed — the organizer's other drafts must survive.
+    const id = draftIdRef.current;
+    if (id) {
+      void fetch(`/api/campaigns/draft?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+        .catch(() => { /* best-effort */ });
+    }
+    setActiveDraftId(null);
+  }, [setActiveDraftId]);
 
   const resumeDraft = useCallback(() => {
     const d = recoverableDraft;
@@ -326,11 +465,54 @@ export default function CreatePage() {
     setForm(d.form);
     if (d.storyMode === 'freeform' || d.storyMode === 'guided') setStoryMode(d.storyMode);
     setUploadedImages(d.images.map((i, idx) => ({ id: `restored-${idx}-${i.url}`, url: i.url, name: i.name, status: 'done' as const })));
-    if (WIZARD_STEPS.some(s => s.key === d.step)) setStep(d.step as WizardStep);
+    const draftStep = normalizeStep(d.step);
+    if (draftStep) setStep(draftStep);
     setSavedAt(d.ts);
     draftDecided.current = true;
     setRecoverableDraft(null);
   }, [recoverableDraft]);
+
+  /** Load one of the organizer's other drafts into the wizard (F8). */
+  const openDraft = useCallback(async (id: string) => {
+    try {
+      const res = await fetch(`/api/campaigns/draft?id=${encodeURIComponent(id)}`, { cache: 'no-store' });
+      if (res.status !== 200) return;
+      const { draft: row } = await res.json();
+      const d = fromRemoteDraft<FormState>(row);
+      if (!d) return;
+      setForm(d.form);
+      if (d.storyMode === 'freeform' || d.storyMode === 'guided') setStoryMode(d.storyMode);
+      setUploadedImages(d.images.map((i, idx) => ({ id: `remote-${idx}-${i.url}`, url: i.url, name: i.name, status: 'done' as const })));
+      const st = normalizeStep(d.step);
+      if (st) setStep(st);
+      setActiveDraftId(id);
+      draftDecided.current = true;
+      setRecoverableDraft(null);
+      setShowDraftPicker(false);
+    } catch { /* best-effort */ }
+  }, [setActiveDraftId]);
+
+  /** Discard one draft permanently. */
+  const deleteDraft = useCallback(async (id: string) => {
+    try {
+      await fetch(`/api/campaigns/draft?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      setDraftList((list) => list.filter((d) => d.id !== id));
+      if (draftIdRef.current === id) setActiveDraftId(null);
+    } catch { /* best-effort */ }
+  }, [setActiveDraftId]);
+
+  /** Begin a fresh campaign, leaving existing drafts untouched. */
+  const startNewDraft = useCallback(() => {
+    setActiveDraftId(null);
+    if (typeof window !== 'undefined') localStorage.removeItem(CAMPAIGN_DRAFT_KEY);
+    setForm(EMPTY_FORM);
+    setUploadedImages([]);
+    setStep('basics');
+    setSavedAt(null);
+    draftDecided.current = true;
+    setRecoverableDraft(null);
+    setShowDraftPicker(false);
+  }, [setActiveDraftId]);
 
   const dismissDraft = useCallback(() => {
     clearDraft();
@@ -352,12 +534,71 @@ export default function CreatePage() {
       });
       localStorage.setItem(CAMPAIGN_DRAFT_KEY, serializeDraft(draft));
       setSavedAt(draft.ts);
+      // Signed-in organizers also get the draft mirrored to Supabase so they can
+      // resume on another device. Best-effort: localStorage remains the source of
+      // truth for this tab, so a failed sync never blocks or interrupts the user.
+      if (isGuest === false) {
+        void (async () => {
+          try {
+            const res = await fetch('/api/campaigns/draft', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: draftIdRef.current ?? undefined,
+                step, storyMode, form, images: draft.images, ts: draft.ts,
+              }),
+            });
+            if (!res.ok) return; // incl. the draft-limit 409 — local copy still holds the work
+            const { id } = await res.json();
+            if (typeof id === 'string') setActiveDraftId(id);
+          } catch { /* offline or transient */ }
+        })();
+      }
     }, 600);
     return () => clearTimeout(t);
-  }, [form, step, storyMode, uploadedImages, recoverableDraft]);
+  }, [form, step, storyMode, uploadedImages, recoverableDraft, isGuest, setActiveDraftId]);
+
+  // Cross-device resume: once we know the user is signed in, look for a draft
+  // saved on another device and offer it when it is fresher than anything local.
+  const remoteDraftChecked = useRef(false);
+  useEffect(() => {
+    if (isGuest !== false || remoteDraftChecked.current) return;
+    remoteDraftChecked.current = true;
+    if (typeof window === 'undefined') return;
+    if (sessionStorage.getItem('cm_wizard')) return; // a login bounce owns this restore
+    void (async () => {
+      try {
+        const res = await fetch('/api/campaigns/draft', { cache: 'no-store' });
+        if (res.status !== 200) return;
+        const { drafts, latest } = await res.json();
+        setDraftList(Array.isArray(drafts) ? drafts : []);
+        const remote = fromRemoteDraft<FormState>(latest);
+        if (latest?.id) remoteLatestIdRef.current = latest.id as string;
+        if (!remote || !draftHasContent(remote.form, remote.images.length)) return;
+        const local = parseDraft<FormState>(localStorage.getItem(CAMPAIGN_DRAFT_KEY));
+        const freshest = pickFreshestDraft(local, remote);
+        // Only interrupt when the winner is the remote copy the user can't see yet.
+        if (freshest !== remote) return;
+        if (draftDecided.current && !recoverableDraft) return; // already resumed/dismissed
+        setRecoverableDraft(remote);
+        // More than one in flight → let the organizer choose rather than assuming
+        // the newest is the one they meant to continue.
+        if (Array.isArray(drafts) && drafts.length > 1) setShowDraftPicker(true);
+      } catch { /* best-effort */ }
+    })();
+  }, [isGuest, recoverableDraft]);
 
   // ── Builder funnel analytics (drop-off / abandonment / completion) ──────────
   const builderSession = useRef<string>('');
+  // Set when the user clicks an in-app link, so the resulting unload is not
+  // miscounted as abandoning the builder.
+  const internalNavRef = useRef(false);
+
+  // ── Goal guidance: what comparable campaigns in this category actually set ──
+  const [goalGuidance, setGoalGuidance] = useState<{
+    available: boolean; sampleSize: number; lowCents: number | null; highCents: number | null;
+    medianRaisedCents: number | null; goalHitRate: number | null; note: string;
+  } | null>(null);
   useEffect(() => {
     if (typeof window === 'undefined') return;
     let sid = localStorage.getItem('charitme-builder-session');
@@ -378,9 +619,31 @@ export default function CreatePage() {
   useEffect(() => { if (builderSession.current) trackBuilder('enter', step); }, [step, trackBuilder]);
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const onLeave = () => { if (step !== 'live') trackBuilder('abandon', step); };
+    // Only count a real abandonment. `beforeunload` also fires on ordinary
+    // same-origin navigation (e.g. clicking through to /login or the dashboard),
+    // which was inflating the abandon rate and making the funnel look far worse
+    // than it is. Clicking any in-app link marks the unload as intentional.
+    const onNavigate = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement | null)?.closest?.('a');
+      const href = anchor?.getAttribute('href');
+      if (!href) return;
+      if (href.startsWith('/') || href.startsWith(window.location.origin)) {
+        internalNavRef.current = true;
+        // Reset shortly after: if the navigation never actually happens, a later
+        // genuine close should still be recorded as an abandon.
+        window.setTimeout(() => { internalNavRef.current = false; }, 2000);
+      }
+    };
+    const onLeave = () => {
+      if (step === 'live' || internalNavRef.current) return;
+      trackBuilder('abandon', step);
+    };
+    document.addEventListener('click', onNavigate, true);
     window.addEventListener('beforeunload', onLeave);
-    return () => window.removeEventListener('beforeunload', onLeave);
+    return () => {
+      document.removeEventListener('click', onNavigate, true);
+      window.removeEventListener('beforeunload', onLeave);
+    };
   }, [step, trackBuilder]);
 
   // AI-default prefill: never show an empty title field. When the creator reaches
@@ -452,6 +715,23 @@ export default function CreatePage() {
     });
   }, [step]);
 
+  // Fetch guidance when the organizer reaches the Goal step. Best-effort: if it
+  // is unavailable or the category has too few comparables, the step simply
+  // renders as it did before rather than showing a made-up range.
+  useEffect(() => {
+    if (step !== 'goal' || !form.category) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/campaigns/goal-guidance?category=${encodeURIComponent(form.category)}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const { guidance } = await res.json();
+        if (!cancelled && guidance?.available) setGoalGuidance(guidance);
+      } catch { /* guidance is a nicety, never a blocker */ }
+    })();
+    return () => { cancelled = true; };
+  }, [step, form.category]);
+
   const upd = (k: keyof FormState, v: string) =>
     setForm(prev => ({ ...prev, [k]: v }));
 
@@ -461,9 +741,22 @@ export default function CreatePage() {
 
   const autoGoalStart = Math.max(2400, Math.round((parseFloat(form.goal) || 0) * 0.4));
 
+  // Report a validation failure against a specific field: show the banner, mark
+  // the field invalid, and move focus to it so the user lands on what to fix.
+  const failField = (field: BuilderField, message: string) => {
+    setError(message);
+    setErrorField(field);
+    const ref = field === 'title' ? titleInputRef
+      : field === 'description' ? storyInputRef
+      : field === 'goal' ? goalInputRef
+      : null;
+    // Focus after the banner renders so AT announces the alert, then lands.
+    requestAnimationFrame(() => ref?.current?.focus());
+  };
+
   const goNext = () => {
-    setError('');
-    if (step === 'location' && isGuest === true) {
+    setError(''); setErrorField(null);
+    if (step === GUEST_GATE_STEP && isGuest === true) {
       setShowLoginModal(true);
       return;
     }
@@ -471,10 +764,17 @@ export default function CreatePage() {
       const stillUploading = uploadedImages.some(img => img.status === 'uploading');
       if (stillUploading) { setError('Please wait for all images to finish uploading.'); return; }
     }
-    if (step === 'title' && form.title.trim().length < 3) {
-      setError('Please enter a campaign title (min 3 characters).');
-      return;
-    }
+    // Field-targeted validation lives in lib/builder-validation.ts so the rules
+    // and their field mapping are unit-tested — the builder itself can't be
+    // driven in CI (auth-gated, no database).
+    const stepError = validateBuilderStep({
+      step,
+      title: form.title,
+      description: form.description,
+      goalCents,
+      goalRaw: form.goal,
+    });
+    if (stepError) { failField(stepError.field, stepError.message); return; }
     // Payout is intentionally OPTIONAL to publish — the campaign can go live and be
     // shared immediately, and the organizer finishes payout to start receiving
     // donations (the donation API already blocks charges until the recipient is
@@ -587,10 +887,24 @@ export default function CreatePage() {
   }, []);
 
   const submitCampaign = async (status: 'draft' | 'active') => {
-    if (form.title.trim().length < 3) { setError('Campaign title must be at least 3 characters.'); return; }
+    // Any requirement that fails here also sends the organizer back to the step
+    // that owns it — an error on the Review screen is otherwise a dead end.
+    if (form.title.trim().length < 3) {
+      setError('Campaign title must be at least 3 characters.');
+      setStep('title');
+      return;
+    }
     if (status === 'active') {
-      if (form.description.trim().length < 20) { setError('Campaign story must be at least 20 characters.'); return; }
-      if (goalCents < 100) { setError('Fundraising goal must be at least $1.00.'); return; }
+      if (form.description.trim().length < 20) {
+        setError('Campaign story must be at least 20 characters.');
+        setStep('story');
+        return;
+      }
+      if (goalCents < 100) {
+        setError('Fundraising goal must be at least $1.00.');
+        setStep('goal');
+        return;
+      }
     }
     setLoading(true); setError('');
     try {
@@ -602,7 +916,10 @@ export default function CreatePage() {
           title: form.title.trim(),
           tagline: form.tagline.trim() || undefined,
           description: form.description.trim() || 'Draft — story coming soon.',
-          goalAmount: goalCents || 100,
+          // Send the real figure. A draft may legitimately have no goal yet (0);
+          // coercing it to $1 wrote a number the organizer never chose, which then
+          // rode along if they later published from the dashboard.
+          goalAmount: goalCents,
           deadline: form.deadline || null,
           category: form.category,
           coverImageUrl: form.coverImageUrl || null,
@@ -614,7 +931,11 @@ export default function CreatePage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : `Failed to ${status === 'draft' ? 'save draft' : 'publish'}.`);
+      if (!res.ok) {
+        // Never surface a raw API/database string to an organizer mid-publish.
+        setError(describePublishFailure(data?.error, res.status).message);
+        return;
+      }
       // Persisted to Supabase — the local recovery copy is no longer needed.
       clearDraft();
       trackBuilder(status === 'draft' ? 'save_draft' : 'publish', step);
@@ -623,7 +944,8 @@ export default function CreatePage() {
       setPublishedSlug(typeof data.slug === 'string' ? data.slug : '');
       setStep('live');
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed. Please try again.');
+      // Network/transport failure — the draft is still saved locally and remotely.
+      setError(describePublishFailure(e instanceof Error ? e.message : '').message);
     } finally {
       setLoading(false);
     }
@@ -759,6 +1081,54 @@ export default function CreatePage() {
   return (
     <CharitMeShell active="My Campaigns" userName={userName} userEmail={userEmail} userAvatarUrl={userAvatarUrl} guestMode={isGuest !== false} hideSidebar>
 
+      {/* ── F8: choose among several in-flight drafts ── */}
+      {showDraftPicker && draftList.length > 1 && step !== 'live' && (
+        <div role="region" aria-label="Choose a draft to continue" style={{ background: 'var(--s2, #f5f7fb)', borderBottom: '1px solid var(--b1, #e8ecf4)', padding: '16px 18px' }}>
+          <div style={{ maxWidth: 720, margin: '0 auto' }}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--t1, #1a1a2e)', marginBottom: 2 }}>
+              You have {draftList.length} campaigns in progress
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--t3, #64748b)', marginBottom: 12 }}>
+              Pick up where you left off, or start something new. Nothing is published until you say so.
+            </div>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {draftList.map((d) => (
+                <li key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: 'var(--s1, #fff)', border: '1px solid var(--b1, #e8ecf4)', borderRadius: 12, padding: '10px 14px' }}>
+                  <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1, #1a1a2e)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {d.title?.trim() || 'Untitled campaign'}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--t3, #64748b)' }}>
+                      {WIZARD_STEPS.find((w) => w.key === normalizeStep(d.step))?.label ?? 'In progress'}
+                      {d.imageCount > 0 && ` · ${d.imageCount} photo${d.imageCount === 1 ? '' : 's'}`}
+                      {` · saved ${draftAgeLabel(new Date(d.updated_at).getTime())}`}
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => void openDraft(d.id)}
+                    style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: 'var(--violet, #6c35ff)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                    Continue
+                  </button>
+                  <button type="button" onClick={() => void deleteDraft(d.id)} aria-label={`Delete draft ${d.title?.trim() || 'Untitled campaign'}`}
+                    style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid var(--b2, #d7dced)', background: 'transparent', color: 'var(--t3, #64748b)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+              <button type="button" onClick={startNewDraft}
+                style={{ padding: '8px 14px', borderRadius: 10, border: '1.5px solid var(--violet, #6c35ff)', background: 'transparent', color: 'var(--violet, #6c35ff)', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
+                + Start another campaign
+              </button>
+              <button type="button" onClick={() => setShowDraftPicker(false)}
+                style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: 'transparent', color: 'var(--t3, #64748b)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Draft recovery banner ── */}
       {recoverableDraft && step !== 'live' && (
         <div role="region" aria-label="Resume unfinished campaign" style={{ background: 'linear-gradient(135deg, var(--violet), var(--violet-2))', color: '#fff', padding: '14px 18px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
@@ -784,6 +1154,9 @@ export default function CreatePage() {
           form={form}
           coverImageUrl={form.coverImageUrl}
           goalDisplay={goalDisplay}
+          imageCount={uploadedImages.filter(i => i.status === 'done').length}
+          goalCents={goalCents}
+          onGoToStep={(s) => setStep(s)}
           onClose={() => setShowPreviewModal(false)}
           onLaunch={() => {
             setShowPreviewModal(false);
@@ -802,6 +1175,13 @@ export default function CreatePage() {
               <Link href="/dashboard/campaigns" className="cr2-back-link">← My Campaigns</Link>
               <div className="cr2-step-badge">
                 Step {stepIdx + 1} / {WIZARD_STEPS.length}
+                {stepIdx >= 0 && (
+                  // Answer "how much longer?" up front — an unknown remaining
+                  // cost is its own reason to abandon.
+                  <span style={{ marginLeft: 8, opacity: 0.75, fontWeight: 600 }}>
+                    · about {minutesRemaining(step)} min left
+                  </span>
+                )}
                 {savedAt && (
                   <span title="Your progress is saved on this device" style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, opacity: .85 }}>
                     · ✓ Saved
@@ -868,7 +1248,7 @@ export default function CreatePage() {
               )}
 
               {/* ── Step: Type ── */}
-              {step === 'type' && (
+              {step === 'basics' && (
                 <div className="cr2-type-panel">
                   <h2 className="cr2-step-q">Let&apos;s get started, who are you fundraising for?</h2>
 
@@ -893,17 +1273,7 @@ export default function CreatePage() {
                     </button>
                   </div>
 
-                  <div className="cr2-proof-line">
-                    <span>🌍</span>
-                    Every hour, around 6,000 people choose to give on CharitMe.
-                  </div>
-                </div>
-              )}
-
-              {/* ── Step: Category ── */}
-              {step === 'category' && (
-                <div className="cr2-type-panel">
-                  <h2 className="cr2-step-q">What best describes your cause?</h2>
+                  <h2 className="cr2-step-q" style={{ marginTop: 26 }}>What best describes your cause?</h2>
 
                   <div className="cr2-divider-label">Choose a category</div>
                   <div className="cr2-cat-chips">
@@ -919,17 +1289,7 @@ export default function CreatePage() {
                     ))}
                   </div>
 
-                  <div className="cr2-proof-line">
-                    <span>🌍</span>
-                    Every hour, around 6,000 people choose to give on CharitMe.
-                  </div>
-                </div>
-              )}
-
-              {/* ── Step: Location ── */}
-              {step === 'location' && (
-                <div className="cr2-form-panel">
-                  <h2 className="cr2-step-q" style={{ padding: '0', marginBottom: 22 }}>Where are you located?</h2>
+                  <h2 className="cr2-step-q" style={{ marginTop: 26, marginBottom: 22 }}>Where are you located?</h2>
 
                   <div className="cr2-field">
                     <label htmlFor="cr-country">Country</label>
@@ -1020,10 +1380,13 @@ export default function CreatePage() {
                       <label htmlFor="cr-story">Campaign Story * <span className="cr2-optional">— min. 20 characters</span></label>
                       <textarea
                         id="cr-story"
+                        ref={storyInputRef}
                         value={form.description}
                         onChange={e => upd('description', e.target.value)}
                         placeholder="Introduce yourself and what you're raising funds for..."
                         style={{ minHeight: 220 }}
+                        aria-invalid={errorField === 'description' || undefined}
+                        aria-describedby={errorField === 'description' ? BUILDER_ERROR_ID : undefined}
                       />
                     </div>
                   ) : (
@@ -1108,16 +1471,19 @@ export default function CreatePage() {
                     <input
                       type="text"
                       className="cr2-title-big"
+                      ref={titleInputRef}
                       value={form.title}
                       onChange={e => upd('title', e.target.value.slice(0, 80))}
                       placeholder="Donate to help..."
                       maxLength={80}
+                      aria-invalid={errorField === 'title' || undefined}
+                      aria-describedby={errorField === 'title' ? BUILDER_ERROR_ID : undefined}
                     />
                     <span className={`cr2-char-count${form.title.length > 70 ? ' warn' : ''}`}>
                       {form.title.length}/80
                     </span>
                   </div>
-                  {error && <div className="cr2-error" style={{ margin: '14px 0 0' }}>{error}</div>}
+                  {error && <div id={BUILDER_ERROR_ID} className="cr2-error" role="alert" style={{ margin: '14px 0 0' }}>{error}</div>}
                 </div>
               )}
 
@@ -1125,6 +1491,32 @@ export default function CreatePage() {
               {step === 'goal' && (
                 <div className="cr2-form-panel">
                   <h2 className="cr2-step-q" style={{ padding: 0, marginBottom: 8 }}>How much would you like to raise?</h2>
+
+                  {goalGuidance?.available && goalGuidance.lowCents != null && goalGuidance.highCents != null && (
+                    <div style={{ margin: '0 0 14px', padding: '12px 14px', borderRadius: 12, background: 'var(--s2, #f5f7fb)', border: '1px solid var(--b1, #e8ecf4)' }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--t1, #1a1a2e)' }}>
+                        Most {form.category.toLowerCase()} campaigns set{' '}
+                        ${Math.round(goalGuidance.lowCents / 100).toLocaleString('en-US')}–${Math.round(goalGuidance.highCents / 100).toLocaleString('en-US')}
+                      </div>
+                      <div style={{ fontSize: 12.5, color: 'var(--t3, #64748b)', marginTop: 4, lineHeight: 1.5 }}>
+                        {goalGuidance.note}
+                        {goalGuidance.goalHitRate != null && ` About ${Math.round(goalGuidance.goalHitRate * 100)}% reach their goal.`}
+                        {' '}A goal you can realistically pass builds momentum — you can raise it later.
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                        {[goalGuidance.lowCents, goalGuidance.highCents].map((c, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => upd('goal', String(Math.round((c as number) / 100)))}
+                            style={{ padding: '6px 12px', borderRadius: 999, border: '1px solid var(--b2, #d7dced)', background: 'var(--s1, #fff)', color: 'var(--t2, #334064)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Use ${Math.round((c as number) / 100).toLocaleString('en-US')}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="cr2-field">
                     <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1150,11 +1542,14 @@ export default function CreatePage() {
                       <input
                         type="number"
                         className="cr2-goal-input"
+                        ref={goalInputRef}
                         value={form.goal}
                         onChange={e => upd('goal', e.target.value)}
                         placeholder="10,000"
                         min="1"
                         step="any"
+                        aria-invalid={errorField === 'goal' || undefined}
+                        aria-describedby={errorField === 'goal' ? BUILDER_ERROR_ID : undefined}
                       />
                       <span className="cr2-goal-suffix">USD</span>
                     </div>
@@ -1207,7 +1602,7 @@ export default function CreatePage() {
                       <strong>{dragging ? 'Release to upload' : 'Drop images here or click to browse'}</strong>
                       <span>JPG, PNG, GIF, WebP, AVIF · up to {MAX_IMAGES} images · 10 MB each</span>
                     </div>
-                    {uploadError && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#ef4444', fontWeight: 700 }}>{uploadError}</p>}
+                    {uploadError && <p role="alert" style={{ margin: '6px 0 0', fontSize: 12, color: '#ef4444', fontWeight: 700 }}>{uploadError}</p>}
                   </div>
 
                   {uploadedImages.length > 0 && (
@@ -1610,7 +2005,7 @@ export default function CreatePage() {
                       <span className="cr2-review-val">
                         {form.zipCode ? `${form.zipCode}, ${form.country}` : form.country}
                       </span>
-                      <button type="button" className="cr2-review-edit" onClick={() => setStep('location')}>Edit</button>
+                      <button type="button" className="cr2-review-edit" onClick={() => setStep('basics')}>Edit</button>
                     </div>
 
                     {/* Story */}
@@ -1635,7 +2030,7 @@ export default function CreatePage() {
               )}
 
               {/* Error (global, not shown inside title step which has inline) */}
-              {error && step !== 'title' && <div className="cr2-error">{error}</div>}
+              {error && step !== 'title' && <div id={BUILDER_ERROR_ID} className="cr2-error" role="alert">{error}</div>}
 
               {/* Navigation */}
               <div className="cr2-nav">
@@ -1741,13 +2136,19 @@ export default function CreatePage() {
         <GuestLoginModal
           savedForm={form}
           savedStep={step}
+          savedImages={uploadedImages.filter(i => i.status === 'done').map(i => ({ url: i.url, name: i.name }))}
+          savedStoryMode={storyMode}
           onClose={() => setShowLoginModal(false)}
           onSuccess={() => {
             setIsGuest(false);
             setShowLoginModal(false);
-            if (step === 'location') {
-              // advance to story after login
-              setStep('story');
+            // Two callers open this modal: the mid-wizard sign-in gate (continue
+            // where they left off) and the Publish button (publish once signed in).
+            // Derived from the step list rather than a hardcoded key so moving the
+            // gate again doesn't silently strand the user here.
+            if (step === GUEST_GATE_STEP) {
+              const next = WIZARD_STEPS[WIZARD_STEPS.findIndex(s => s.key === step) + 1];
+              if (next) setStep(next.key);
             } else {
               void publish();
             }
@@ -1780,13 +2181,18 @@ function AppleMark() {
   );
 }
 
-function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
+function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep, savedImages, savedStoryMode }: {
   onClose: () => void;
   onSuccess: () => void;
   savedForm: FormState;
   savedStep: WizardStep;
+  savedImages: { url: string; name: string }[];
+  savedStoryMode: string;
 }) {
   const supabase = React.useMemo(() => createClient(), []);
+  // The gate that interrupts the builder (Location step) needs different copy
+  // from the ordinary sign-in entry point.
+  const midWizard = savedStep === 'basics';
   // Keyboard parity for the backdrop click-to-close: Escape closes the modal.
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -1801,8 +2207,10 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
   const [err, setErr]       = useState('');
   const [ok, setOk]         = useState('');
 
-  const handleOAuth = (provider: 'google') => {
-    sessionStorage.setItem('cm_wizard', JSON.stringify({ savedForm, savedStep }));
+  const handleOAuth = (provider: 'google' | 'apple') => {
+    // Carry images + story mode through the OAuth bounce too — restoring only the
+    // text used to drop every upload (and then blank coverImageUrl on return).
+    sessionStorage.setItem('cm_wizard', JSON.stringify({ savedForm, savedStep, savedImages, savedStoryMode }));
     window.location.href = `/api/auth/signin?provider=${provider}&next=/create`;
   };
 
@@ -1831,12 +2239,19 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
     <div className="guest-modal-overlay" role="presentation" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="guest-modal-card" role="dialog" aria-modal="true">
         <button className="guest-modal-close" onClick={onClose} aria-label="Close">✕</button>
-        <h2>{modalMode === 'login' ? 'Log in' : 'Sign up'}</h2>
-        <p className="guest-modal-sub">{modalMode === 'login' ? 'Continue to your dashboard.' : 'Create your free account to launch.'}</p>
+        <h2>{midWizard ? 'Save your progress' : modalMode === 'login' ? 'Log in' : 'Sign up'}</h2>
+        <p className="guest-modal-sub">
+          {midWizard
+            // Explain the interruption. An unexplained gate mid-flow reads as a
+            // paywall; naming the benefit (work is kept, campaign is yours) and
+            // the cost (free, nothing published yet) is what keeps people going.
+            ? 'Your campaign is saved to your account so you can finish it on any device. It stays private until you choose to publish — creating an account is free.'
+            : modalMode === 'login' ? 'Continue to your dashboard.' : 'Create your free account to launch.'}
+        </p>
         <button className="guest-oauth-btn" onClick={() => handleOAuth('google')} disabled={busy} type="button">
           <GoogleMark /> Continue with Google
         </button>
-        <button className="guest-oauth-btn guest-oauth-apple" onClick={() => handleOAuth('google')} disabled={busy} type="button" style={{ background: '#000', color: '#fff', marginTop: 8 }}>
+        <button className="guest-oauth-btn guest-oauth-apple" onClick={() => handleOAuth('apple')} disabled={busy} type="button" style={{ background: '#000', color: '#fff', marginTop: 8 }}>
           <AppleMark /> Continue with Apple
         </button>
         <div className="guest-modal-sep"><span>OR</span></div>
@@ -1846,7 +2261,7 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep }: {
           )}
           <label className="guest-modal-label">Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email" /></label>
           <label className="guest-modal-label">Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required minLength={6} autoComplete={modalMode === 'login' ? 'current-password' : 'new-password'} /></label>
-          {err && <p style={{ margin: 0, color: '#be123c', fontSize: 13, fontWeight: 700 }}>{err}</p>}
+          {err && <p role="alert" style={{ margin: 0, color: '#be123c', fontSize: 13, fontWeight: 700 }}>{err}</p>}
           {ok  && <p style={{ margin: 0, color: '#15803d', fontSize: 13, fontWeight: 700 }}>{ok}</p>}
           <button className="guest-modal-submit" type="submit" disabled={busy}>
             {busy ? 'Working…' : modalMode === 'login' ? 'Log in' : 'Create account'}
@@ -1878,7 +2293,7 @@ interface ScoreResult {
 }
 
 function computeScore(form: FormState, step: WizardStep, payoutLinked: boolean, isGuest: boolean | null): ScoreResult {
-  const stepOrder: WizardStep[] = ['type','category','location','story','title','goal','media','payout','summary','live'];
+  const stepOrder: WizardStep[] = ['basics','story','title','goal','media','payout','summary','live'];
   const si = stepOrder.indexOf(step);
 
   const identity: ScoreState   = isGuest === false ? 'verified' : (si >= 3 ? 'watch' : 'pending');

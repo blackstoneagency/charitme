@@ -81,7 +81,7 @@ function PathCard({
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           padding: '12px 18px', borderRadius: 12, fontWeight: 800, fontSize: 14.5,
           background: ctaSolid ? 'var(--violet, #6c35ff)' : 'transparent',
-          color: ctaSolid ? '#fff' : 'var(--violet, #6c35ff)',
+          color: ctaSolid ? '#fff' : 'var(--violet-ink)',
           border: ctaSolid ? 'none' : '1.5px solid var(--violet, #6c35ff)',
         }}
       >
@@ -114,7 +114,7 @@ export default function ChoosePathPage() {
             href="/ai-campaign"
             badge="FASTEST"
             badgeBg="var(--s2, #f5f0ff)"
-            badgeFg="var(--violet, #6c35ff)"
+            badgeFg="var(--violet-ink)"
             icon="ai"
             iconBg="linear-gradient(135deg,#6c35ff,#4d1ee0)"
             title="Build with AI"

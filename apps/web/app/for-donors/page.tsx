@@ -168,13 +168,13 @@ export default function ForDonorsPage() {
                 <div key={row.label} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
                   <div>
                     <span className="text-sm font-bold text-slate-700">{row.label}</span>
-                    {row.note && <span className="ml-2 text-xs text-slate-400">{row.note}</span>}
+                    {row.note && <span className="ml-2 text-xs text-slate-500">{row.note}</span>}
                   </div>
                   <span className={`font-black ${row.color}`}>{row.value}</span>
                 </div>
               ))}
             </div>
-            <p className="mt-4 text-center text-xs text-slate-400">
+            <p className="mt-4 text-center text-xs text-slate-500">
               Donors can cover the Stripe fee so 100% reaches the campaign. Tip is always editable to $0.
             </p>
           </div>

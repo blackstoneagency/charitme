@@ -28,7 +28,7 @@ function OpportunityCard({ o }: { o: OpportunityWithOrganizer }) {
           <Badge color="gray">From {formatMoneyShort(o.min_amount_cents, o.currency)}</Badge>
         )}
       </div>
-      <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>{o.title}</h3>
+      <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 6 }}>{o.title}</h2>
       <p style={{ color: 'var(--t3)', fontSize: 14, lineHeight: 1.5, margin: 0 }}>
         {o.description.length > 150 ? `${o.description.slice(0, 150)}…` : o.description}
       </p>
@@ -75,9 +75,16 @@ export default function SponsorMarketplace({
   }, [category, search]);
 
   useEffect(() => {
+    // Skip the fetch on mount: the server already rendered `initialOpportunities`
+    // for the unfiltered view, so refetching it immediately re-requests identical
+    // data AND swaps the SSR'd grid for the centred spinner mid-flight — a large
+    // layout shift (measured CLS 0.96 on this page) on every visit. Only fetch
+    // once a filter actually changes. Mirrors the guard in VolunteerClient.
+    if (!category && !search.trim() && opportunities === initialOpportunities) return;
     const t = setTimeout(load, search ? 300 : 0);
     return () => clearTimeout(t);
-  }, [load, search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, search]);
 
   const inputStyle: React.CSSProperties = {
     padding: '10px 14px',
@@ -124,7 +131,7 @@ export default function SponsorMarketplace({
           body="Try clearing the filters, or check back soon — new opportunities are posted regularly."
         />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 18 }}>
           {opportunities.map((o) => (
             <OpportunityCard key={o.id} o={o} />
           ))}

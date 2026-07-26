@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   MAX_DONATION_CENTS,
   DEFAULT_DONOR_TIP_PERCENT,
@@ -29,10 +29,14 @@ type FrequencyMode = 'once' | 'monthly';
 
 interface PayOption { id: PaymentMethod; label: string; icon: React.ReactNode }
 
+// Only methods Stripe Checkout can actually fulfil for this account are offered.
+// PayPal and Venmo were previously listed but are NOT in ONE_TIME_PAYMENT_METHOD_TYPES
+// (and the connected account has no such capability), so a donor picking them was
+// quoted a fee for a method they could never use — Venmo's lower rate also
+// under-collected the real card cost, which the platform then absorbed. Keep this
+// list in sync with lib/stripe-payment-methods.ts.
 const PAY_OPTIONS: PayOption[] = [
   { id: 'stripe',  label: 'Stripe',         icon: <span style={{ fontWeight: 700, fontSize: 13, color: '#635bff' }}>S</span> },
-  { id: 'paypal',  label: 'PayPal',         icon: <span style={{ fontWeight: 700, fontSize: 13, color: '#003087' }}>P</span> },
-  { id: 'venmo',   label: 'Venmo',          icon: <span style={{ fontWeight: 700, fontSize: 13, color: '#3D95CE' }}>V</span> },
   { id: 'gpay',    label: 'Google Pay',     icon: <span style={{ fontWeight: 700, fontSize: 13, color: '#4285F4' }}>G</span> },
   { id: 'bank',    label: 'Bank transfer',  icon: <span style={{ fontSize: 14 }}>🏛</span> },
   { id: 'card',    label: 'Credit or debit',icon: <span style={{ fontSize: 14 }}>💳</span> },
@@ -119,6 +123,14 @@ export default function DonateButton({
   const [anonymous, setAnonymous]         = useState(false);
   const [message, setMessage]             = useState('');
   const [tipPercent, setTipPercent]       = useState<number>(DEFAULT_DONOR_TIP_PERCENT);
+  // Custom support amount, entered in whole currency units. null = using a tier %.
+  // Kept as a string so the field can be empty while typing without snapping to 0.
+  const [customTip, setCustomTip]         = useState<string | null>(null);
+  // Reveals the custom donation-amount field (the big figure is editable, but a
+  // plain number is not a discoverable affordance).
+  const [showCustomAmount, setShowCustomAmount] = useState(false);
+  const customAmountRef = useRef<HTMLInputElement>(null);
+  const customTipRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading]             = useState(false);
   const [error, setError]                 = useState('');
   const [guestEmail, setGuestEmail]       = useState('');
@@ -150,11 +162,26 @@ export default function DonateButton({
   const amountCents = Math.round((Number.parseFloat(amount) || 0) * 100);
   const isMonthly   = frequency === 'monthly';
 
+  // A custom support amount is authoritative to the cent. null while the donor is
+  // on a tier %, or while the custom field is blank/invalid (so an empty field
+  // doesn't momentarily charge $0 before they finish typing).
+  const customTipCents = useMemo(() => {
+    if (customTip == null) return null;
+    const trimmed = customTip.trim();
+    if (trimmed === '') return null;
+    const parsed = Number.parseFloat(trimmed);
+    if (!Number.isFinite(parsed) || parsed < 0) return null;
+    return Math.round(parsed * 100);
+  }, [customTip]);
+
   const breakdown = useMemo(() => {
     // Single source of truth shared with the server + calculator (see @shared/fees).
     const b = donationBreakdown({
       amountCents,
       supportPercent: tipPercent,
+      // Sent to the API as tipCents too, so what's shown here is exactly what the
+      // card is charged — no percentage round-trip in between.
+      ...(customTipCents != null ? { supportCentsOverride: customTipCents } : {}),
       method: preferredMethod,
       coverProcessing: !isMonthly,
     });
@@ -168,7 +195,7 @@ export default function DonateButton({
       total: b.totalChargedCents,
       netToRecipient: b.netToRecipientCents,
     };
-  }, [amountCents, tipPercent, isMonthly, preferredMethod]);
+  }, [amountCents, tipPercent, customTipCents, isMonthly, preferredMethod]);
 
   const handleDonate = async () => {
     if (Number.isNaN(amountCents) || amountCents < 100) { setError(`Minimum donation is ${money(100)}`); return; }
@@ -199,6 +226,9 @@ export default function DonateButton({
           anonymous,
           coverProcessingFee: !isMonthly,
           tipPercent,
+          // Exact custom support amount wins server-side, so the donor is charged
+          // the figure shown in the breakdown above to the cent.
+          ...(customTipCents != null ? { tipCents: customTipCents } : {}),
           paymentMethod: preferredMethod,
           donorEmail: !user && guestEmail.trim() ? guestEmail.trim() : undefined,
           subscribeToUpdates: subscribeEmail,
@@ -413,6 +443,67 @@ export default function DonateButton({
         })}
       </div>
 
+      {/* ── Custom donation amount ──
+          The big figure below is editable, but a bare number reads as display-only,
+          so donors who want an off-preset amount need an explicit affordance. */}
+      {!showCustomAmount ? (
+        <button
+          type="button"
+          onClick={() => {
+            setShowCustomAmount(true);
+            // Focus after paint so the field exists.
+            requestAnimationFrame(() => customAmountRef.current?.focus());
+          }}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+            width: '100%', padding: '11px 8px', marginTop: 2,
+            border: `1.5px dashed ${BD}`, borderRadius: 14, background: 'transparent',
+            color: V, fontWeight: 700, fontSize: 13.5, cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          <svg viewBox="0 0 24 24" width={15} height={15} style={ICON_STROKE as React.CSSProperties} aria-hidden>
+            <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+          </svg>
+          Enter Custom Amount
+        </button>
+      ) : (
+        <div style={{ marginTop: 2 }}>
+          <label htmlFor="custom-donation-amount" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: MU, marginBottom: 6 }}>
+            Custom donation amount
+          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: `1.5px solid ${V}`, borderRadius: 14, padding: '10px 14px', background: 'var(--s1, #fff)' }}>
+            <span style={{ fontSize: 20, fontWeight: 800, color: INK }}>{symbol}</span>
+            <input
+              id="custom-donation-amount"
+              ref={customAmountRef}
+              type="number"
+              min="1"
+              step="0.01"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => {
+                const val = e.target.value;
+                setAmount(val);
+                if (selectedRewardId) {
+                  const reward = rewards?.find((r) => r.id === selectedRewardId);
+                  const cents = Math.round((Number.parseFloat(val) || 0) * 100);
+                  if (reward && cents < reward.amount_cents) setSelectedRewardId(null);
+                }
+              }}
+              placeholder="0.00"
+              style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', color: INK, fontFamily: 'inherit', fontSize: 20, fontWeight: 800, padding: 0 }}
+            />
+            <button
+              type="button"
+              onClick={() => { setShowCustomAmount(false); setAmount(String(recommended)); }}
+              style={{ border: 0, background: 'transparent', color: MU, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+            >
+              Use presets
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── "You're giving" — big editable amount + currency + reassurance ── */}
       <div style={{ background: VL, borderRadius: 16, padding: '16px 18px', border: `1px solid ${BD}` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -458,7 +549,7 @@ export default function DonateButton({
           onClick={() => setServiceOpen((o) => !o)}
           aria-expanded={serviceOpen}
           aria-controls="service-fee-panel"
-          aria-label={`Service fee: CharitMe tip ${tipPercent}%. Tap to ${serviceOpen ? 'collapse' : 'expand'} the options.`}
+          aria-label={`Service fee: CharitMe tip ${customTipCents != null ? money(customTipCents) : `${tipPercent}%`}. Tap to ${serviceOpen ? 'collapse' : 'expand'} the options.`}
           style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 12,
             padding: '13px 16px', background: 'var(--s1, #fff)',
@@ -473,7 +564,7 @@ export default function DonateButton({
             <img src="/logo.png" alt="CharitMe" width={20} height={20} style={{ display: 'block' }} />
           </span>
           <span style={{ flex: 1, fontSize: 14, fontWeight: 800, color: INK }}>CharitMe</span>
-          <span style={{ fontSize: 13, color: MU, fontWeight: 700, whiteSpace: 'nowrap' }}>{tipPercent}%</span>
+          <span style={{ fontSize: 13, color: MU, fontWeight: 700, whiteSpace: 'nowrap' }}>{customTipCents != null ? money(customTipCents) : `${tipPercent}%`}</span>
           <svg viewBox="0 0 24 24" width={18} height={18} aria-hidden style={{ ...(ICON_STROKE as React.CSSProperties), color: MU, flexShrink: 0, transform: serviceOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
             <polyline points="6 9 12 15 18 9" />
           </svg>
@@ -514,6 +605,62 @@ export default function DonateButton({
                 );
               })}
             </div>
+
+            {/* ── Custom support amount ──
+                A percentage ladder can't express "I want to give exactly $7". The
+                entered figure is charged to the cent (sent as tipCents), and the
+                equivalent % is shown so the donor can sanity-check it. */}
+            {customTip == null ? (
+              <button
+                type="button"
+                onClick={() => { setCustomTip(''); requestAnimationFrame(() => customTipRef.current?.focus()); }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                  width: '100%', padding: '10px 8px', marginTop: 10,
+                  border: `1.5px dashed ${BD}`, borderRadius: 12, background: 'transparent',
+                  color: V, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                <svg viewBox="0 0 24 24" width={14} height={14} style={ICON_STROKE as React.CSSProperties} aria-hidden>
+                  <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+                Enter Custom Amount
+              </button>
+            ) : (
+              <div style={{ marginTop: 10 }}>
+                <label htmlFor="custom-tip-amount" style={{ display: 'block', fontSize: 12, fontWeight: 700, color: MU, marginBottom: 6 }}>
+                  Custom support amount
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: `1.5px solid ${V}`, borderRadius: 12, padding: '9px 12px', background: 'var(--s1, #fff)' }}>
+                  <span style={{ fontSize: 17, fontWeight: 800, color: INK }}>{symbol}</span>
+                  <input
+                    id="custom-tip-amount"
+                    ref={customTipRef}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={customTip}
+                    onChange={(e) => setCustomTip(e.target.value)}
+                    placeholder="0.00"
+                    aria-describedby="custom-tip-equiv"
+                    style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', color: INK, fontFamily: 'inherit', fontSize: 17, fontWeight: 800, padding: 0 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCustomTip(null)}
+                    style={{ border: 0, background: 'transparent', color: MU, fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    Use %
+                  </button>
+                </div>
+                <p id="custom-tip-equiv" style={{ margin: '6px 0 0', fontSize: 11.5, color: MU }}>
+                  {customTipCents != null && amountCents > 0
+                    ? `${money(customTipCents)} — about ${(Math.round((customTipCents / amountCents) * 1000) / 10)}% of your ${money(amountCents)} gift.`
+                    : 'Enter any amount you like — support is always optional.'}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -2,7 +2,7 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { openai, OPENAI_MODEL } from '../../../../lib/openai';
-import { checkRateLimit } from '../../../../lib/rate-limit';
+import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 import { supabaseAdmin } from '../../../../lib/supabase';
 
 const Schema = z.object({
@@ -28,7 +28,10 @@ const CATEGORY_RANGES: Record<string, { min: number; typical: number; max: numbe
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for') ?? 'local';
-  if (!checkRateLimit(`ai-goal:${ip}`, 15, 60_000)) {
+  // Durable, cross-instance limit: this endpoint is unauthenticated AND calls
+  // OpenAI, so the in-memory limiter's per-instance counter (effectively
+  // limit x instanceCount on Vercel) is not enough to bound spend.
+  if (!(await checkRateLimitDurable(`ai-goal:${ip}`, 15, 60_000))) {
     return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
   }
 
