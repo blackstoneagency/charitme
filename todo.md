@@ -6663,6 +6663,23 @@ comment saying why.** Deliberately *not* added-then-baselined: an exemption list
 exactly how the `/achievements` and `/privacy-center` bugs stayed hidden, and I am
 not going to reintroduce that pattern to make a number look better.
 
+### ✅ Responsive sweep re-run on the CORRECTED route list (Claude, 2026-07-26)
+`audit-responsive.mjs` now reads `e2e/public-routes.json`, so this is the first run
+that actually covered the intended pages — the previous "36 pages, 0 overflow"
+figure included `/login` twice, under the names `/achievements` and
+`/privacy-center`.
+
+Run against a **production** build (`next build` + `next start`, not the dev
+server): **37 pages × 3 viewports (320/768/1920) × 2 themes = 222 renders → 0
+findings.** Exit 0.
+
+```
+✅ No responsive/theme regressions across 37 pages × 3 viewports × 2 themes.
+```
+
+This also re-validates the header `min-height: 24px` change above at every
+breakpoint — no overflow, no oversized elements, both themes.
+
 **To pick this up:** set `WCAG_TAGS` to include `'wcag22a', 'wcag22aa'`, run against
 a **production** build (`PLAYWRIGHT_BASE_URL` at a `next start` server — the dev
 server behaves differently), and reproduce with axe's `relatedNodes`. Two nodes,
