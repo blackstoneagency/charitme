@@ -6567,6 +6567,48 @@ Verified with markers on a credential-less prod build — all expect 0, all meas
 render (94KB / 37KB / 59KB, each with an `<h1>`).
 
 **Result: all three public sweeps pass against a REAL production build — 8/8.**
+
+### 🟡 CHAR-0015 — WCAG **2.2** AA: one sitewide failure fixed, two residual (Claude, 2026-07-26)
+
+CHAR-0015 asks for WCAG **2.2** AA, but the enforced spec only ever carried
+`wcag2a/2aa/21a/21aa`. So the 2.2-only criteria had never run. axe-core 4.12.1
+ships 5 rules tagged 2.2; the one that matters here is **`target-size`
+(2.5.8 Target Size, AA)** — the "tap targets" item in this ticket.
+
+**✅ Fixed — every header nav link was an undersized tap target, on every page.**
+`.kind-header nav a` had no vertical padding, so its box was just the 13px line
+box: **19.5px tall against a 24px minimum**. Now `min-height: 24px`.
+
+The subtlety was the active-tab underline. `.kind-header nav a.active::after` was
+anchored to the *link* at `bottom: -24px` but has to land on the *header's* bottom
+edge. Links are centred in the fixed 68px bar, so the gap below a link of height h
+is `(68 - h) / 2` — correct at 24px for h≈19.5, and 2.25px low once the links grew.
+Changed to **-22px** (exact for h=24) and verified by measurement rather than by eye:
+
+```
+before:  linkH=19.5  linkBottom=61.75  +24  =>  85.75   (header bottom 86)
+after:   linkH=24    linkBottom=64     +22  =>  86.00   (header bottom 86)
+```
+
+Same pixel. No visual shift, and the tap target grew.
+
+**🟡 Residual — 2 desktop-only findings, NOT enforced and NOT baselined.**
+With 2.2 enabled the mobile projects pass clean; chromium reports two:
+`.theme-toggle-btn` on `/about-us` and `.kind-search-btn` on `/blog`, both
+*"partially obscured"* with tiny safe-clickable diameters (6px and 3px). axe blames
+neighbouring `.active` / `.kind-bell`, but a direct DOM sweep found **no
+overlapping and no within-24px targets**, so the cause is not yet pinned and I did
+not want to guess at header layout that other agents may also be editing.
+
+**The tags are therefore reverted to 2.0/2.1 in `accessibility.spec.ts`, with a
+comment saying why.** Deliberately *not* added-then-baselined: an exemption list is
+exactly how the `/achievements` and `/privacy-center` bugs stayed hidden, and I am
+not going to reintroduce that pattern to make a number look better.
+
+**To pick this up:** set `WCAG_TAGS` to include `'wcag22a', 'wcag22aa'`, run against
+a **production** build (`PLAYWRIGHT_BASE_URL` at a `next start` server — the dev
+server behaves differently), and reproduce with axe's `relatedNodes`. Two nodes,
+desktop only. Enforce the tags permanently once they are clean.
 Previously they only ever passed against the reused dev server. CI's e2e job should
 now genuinely pass once runners return.
 

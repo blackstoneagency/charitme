@@ -87,9 +87,18 @@ img, video, iframe { max-width: 100%; }
 .kind-logo > .kind-logo-img { width: 34px; height: 34px; display: block; flex: 0 0 auto; }
 .kind-logo strong { font-size: 22px; letter-spacing: -.02em; color: #111331; line-height: 1; }
 .kind-header nav { display: flex; align-items: center; gap: 20px; flex: 1; min-width: 0; }
-.kind-header nav a { display: inline-flex; align-items: center; gap: 5px; color: #121838; font-size: 13px; font-weight: 700; white-space: nowrap; }
+/* min-height 24px: WCAG 2.2 AA target-size (2.5.8). These were 19.5px tall — the
+   13px line box with no vertical padding — so every header nav link was an
+   undersized tap target on every page. The link is vertically centred in the
+   68px bar, so the extra height is absorbed by the existing centring and nothing
+   moves. */
+.kind-header nav a { display: inline-flex; align-items: center; gap: 5px; color: #121838; font-size: 13px; font-weight: 700; white-space: nowrap; min-height: 24px; }
 .kind-header nav a.active { position: relative; color: #4015e8; }
-.kind-header nav a.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -24px; height: 2px; background: #5521f1; }
+/* -22px, not -24px, because the underline is anchored to the LINK but must land on
+   the header's bottom edge. Centred in the 68px bar, the gap below a link of
+   height h is (68 - h) / 2; at h = 24 that is exactly 22. It read -24px while the
+   links were ~19.5px tall — correct then, 2.25px low once they grew. */
+.kind-header nav a.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -22px; height: 2px; background: #5521f1; }
 .kind-new { display: inline-grid; place-items: center; height: 19px; padding: 0 7px; border-radius: 7px; color: #9a5a00; background: #fff0c8; font-size: 10px; font-weight: 900; }
 .kind-auth { margin-left: 16px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; }
 .kind-login, .kind-start { height: 38px; display: inline-flex; align-items: center; justify-content: center; border-radius: 18px; font-size: 13px; font-weight: 800; white-space: nowrap; }
