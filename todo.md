@@ -3644,7 +3644,24 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
        with an optimistic update that **reverts if the request fails** and a toast
        naming the resulting state.
 
-    2. **🔌 `profiles.notification_updates` existed but was wired to nothing.** The
+    2. **✏️ CORRECTION (2026-07-26) — I overstated this one; the truth is worse for users.**
+I wrote that `notification_updates` "appeared in **zero** files". **That was wrong.**
+My grep covered only four files (settings route, settings page, settings client,
+`schema.sql`) and I generalised from that scope to the whole repo — the same
+scoped-grep overclaim caught twice already this session.
+
+**What was actually true:** the column *was* consumed, since **2026-07-21**
+(`679c294`, another agent) — `POST /api/campaigns/[id]/updates` reads it and skips
+donors who opted out (`if (profile.notification_updates === false) continue`). So it
+genuinely gated campaign-update emails.
+
+**That makes the defect worse, not milder.** The column controlled real outbound
+email, but the "Product updates" toggle was dead (`checked={false}`,
+`onChange={() => null}`), so **no user could ever change it** — everyone sat on the
+DB default `true` with no way to opt out of campaign-update emails. The fix
+(wiring the toggle end-to-end) was right; my description of *why* was not.
+
+**🔌 `profiles.notification_updates` was settable by nobody.** The
        column is real (`boolean DEFAULT true NOT NULL`) yet appeared in **zero**
        files — while the UI carried a dead "Product updates" toggle hardcoded
        `checked={false} onChange={() => null}`. Two halves of a wire never
