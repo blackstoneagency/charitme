@@ -6,6 +6,8 @@
  *   - horizontal overflow (page wider than the viewport)
  *   - elements that individually exceed the viewport width
  *   - images that overflow their container or fail to load
+ *   - interactive controls overlapping each other (added after a sitewide header
+ *     bug that none of the above could see — see the comment at the check)
  *
  *   node scripts/audit-responsive.mjs [--base http://127.0.0.1:3100]
  *
@@ -87,11 +89,53 @@ for (const vp of VIEWPORTS) {
           const badImgs = [...document.images]
             .filter((i) => i.complete && i.naturalWidth === 0)
             .map((i) => (i.currentSrc || i.src || '').slice(-48));
-          return { overflow, wide, badImgs: badImgs.slice(0, 3), theme: de.getAttribute('data-theme') };
+
+          // Interactive controls sitting on top of each other.
+          //
+          // This class of bug was invisible to every audit we had. The public
+          // header nav overlapped the action cluster at EVERY width from 1101px to
+          // 1800px, on every page: "About Us"/"Blog"/"Contact Us" rendered
+          // underneath the theme toggle, search, bell and "Sign in", and were
+          // unclickable because the later-painted buttons took the clicks. The page
+          // did not overflow and no element was wider than the viewport, so the
+          // checks above stayed green throughout.
+          //
+          // Only genuinely competing controls count:
+          //  - both must be visible and non-trivial in size
+          //  - nesting is legitimate (a button inside a card link), so any
+          //    ancestor/descendant pair is skipped
+          //  - the shared area must be a real fraction of the smaller control, not
+          //    a 1px rounding kiss between neighbours
+          const overlaps = [];
+          const controls = [...document.querySelectorAll('a[href], button, input, select, textarea, [role="button"]')]
+            .filter((el) => {
+              const cs = getComputedStyle(el);
+              if (cs.visibility === 'hidden' || cs.display === 'none' || cs.pointerEvents === 'none') return false;
+              const b = el.getBoundingClientRect();
+              return b.width >= 8 && b.height >= 8 && b.bottom > 0 && b.top < window.innerHeight;
+            });
+          const nameOf = (el) => `${el.tagName.toLowerCase()}.${(typeof el.className === 'string' ? el.className : '').trim().split(/\s+/)[0] || '-'}`;
+          for (let i = 0; i < controls.length && overlaps.length < 3; i++) {
+            for (let j = i + 1; j < controls.length && overlaps.length < 3; j++) {
+              const a = controls[i], b = controls[j];
+              if (a.contains(b) || b.contains(a)) continue;
+              const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+              const ox = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);
+              const oy = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
+              if (ox <= 1 || oy <= 1) continue;
+              const area = ox * oy;
+              const smaller = Math.min(ra.width * ra.height, rb.width * rb.height);
+              if (smaller <= 0 || area / smaller < 0.15) continue;
+              overlaps.push(`${nameOf(a)} ∩ ${nameOf(b)} ${Math.round(ox)}x${Math.round(oy)}px`);
+            }
+          }
+
+          return { overflow, wide, badImgs: badImgs.slice(0, 3), overlaps, theme: de.getAttribute('data-theme') };
         });
         const issues = [];
         if (r.overflow > 2) issues.push(`overflow +${r.overflow}px ${r.wide.join(',')}`);
         if (r.badImgs.length) issues.push(`broken img: ${r.badImgs.join(', ')}`);
+        if (r.overlaps.length) issues.push(`overlapping controls: ${r.overlaps.join(' | ')}`);
         if (issues.length) { findings += issues.length; console.log(`✗ ${vp.name}/${theme} ${path} — ${issues.join(' | ')}`); }
       } catch (e) {
         findings++;
