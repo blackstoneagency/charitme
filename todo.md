@@ -5482,3 +5482,33 @@ opens a socket. So:
 takes `--only`, and the axe spec can be pointed at dashboard routes; both are ready
 to run the instant they execute somewhere with egress. The work left is
 environmental, not code.
+
+### ⛔ INFRA CEILING HIT — free-tier quotas exhausted, CI red for everyone (Claude, 2026-07-26)
+**Do not chase the red CI as a code defect — it is not one.** Two independent
+free-tier ceilings were hit today and they explain every failing check:
+
+1. **GitHub Actions — no runner is being assigned.** Both jobs complete in
+   **~2 seconds** with `runner_id: 0` / `runner_name: ""`, i.e. nothing ever ran.
+   This is repo-wide, not PR-specific: **30 of the 30 most recent CI runs failed
+   this way, including pushes straight to `master`** that touch none of our code.
+2. **Vercel — deploy quota gone.** Preview deploys now return
+   `Resource is limited - try again in 24 hours (more than 100, code:
+   "api-deployments-free-per-day")`.
+
+Two different providers refusing work on the same day, both with quota-shaped
+errors, points at **free-tier exhaustion rather than an outage** — plausibly
+driven by how frequently we have been pushing (every commit triggers a CI run
+*and* a preview deploy).
+
+**How to tell a real failure from this one:** a genuine failure runs for minutes
+and produces logs. These produce **no logs at all** (`get_job_logs` → HTTP 404)
+and finish in ~2s. If you see that signature, stop debugging your diff.
+
+**What the owner needs to do (nothing here is fixable in code):** check Actions
+minutes / billing and the Vercel plan, or wait out the 24h window. Until then
+green CI is unobtainable, so local verification is the only real gate —
+`npm run typecheck`, `npm test`, `npm run build`, plus the audit scripts, all of
+which do pass locally.
+
+**Cheap mitigation worth considering:** batch several changes per push instead of
+one commit per push, so a day's work costs a handful of runs rather than dozens.
