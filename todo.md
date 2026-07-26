@@ -3411,16 +3411,16 @@ Verified · Production Ready. These are grounded in the current codebase
 
 The ten pillars that define the platform.
 
-- [ ] **AI Campaign Builder** — Generate compelling campaigns from a few sentences.
-- [ ] **AI Campaign Manager** — Continuously optimize headlines, stories, images, goals, and outreach.
-- [ ] **AI Donor Matching** — Recommend likely donors, grants, foundations, sponsors, and volunteers.
-- [ ] **Impact Intelligence** — Show donors exactly how every dollar was used through dashboards, photos, videos, milestones, and verified updates.
-- [ ] **Transparency Score** — AI-generated trust and accountability ratings for every campaign.
-- [ ] **Marketing Automation** — Publish optimized content to websites, email, SMS, YouTube, Facebook, Instagram, LinkedIn, X, TikTok, and more from one workflow.
-- [ ] **Enterprise CRM** — A full relationship platform for donors, sponsors, volunteers, grant makers, and nonprofits.
-- [ ] **Marketplace** — Connect charities with volunteers, professional services, donated goods, equipment, and corporate sponsors.
-- [ ] **Predictive Fundraising** — AI forecasts fundraising performance and recommends improvements before launch.
-- [ ] **Autonomous Fundraising Agent** — An AI assistant that drafts updates, suggests outreach, identifies grant opportunities, and recommends the next best action while keeping humans in control.
+- [~] **AI Campaign Builder** — code present: `api/ai/campaign`, `/ai-campaign`, `/create` wizard.
+- [~] **AI Campaign Manager** — partial: `api/ai/goal-recommend`, `api/ai/content`, `api/ai/viral-loop`, `api/ai/fee-optimizer`, `lib/donation-optimizer.ts`. No single always-on "continuously optimizes" loop.
+- [~] **AI Donor Matching** — code present: `api/ai/donor-conversion`, `api/ai/matching-finder`, `api/ai/grant-match`, `/matching`, `/sponsor`, `/volunteer`, `/grants`.
+- [~] **Impact Intelligence** — code present: `api/ai/impact-summary`, `api/ai/donation-impact`, `/impact`, campaign milestones + updates, transparency ledger.
+- [~] **Transparency Score** — code present: `api/ai/trust-score`, `calculateTrustScore`/`getTrustSignals` in `lib/ai-platform.ts`, CharitScore surfaced on campaign pages.
+- [~] **Marketing Automation** — partial: `/admin/marketing/*` (automations, campaigns, segments, outreach, seo, command-center) + `api/marketing/*`, email via Resend/SendGrid and SMS via Twilio in `lib/email.ts`. **The social channels in this line (YouTube/FB/IG/LinkedIn/X/TikTok) are NOT wired** — see the unclaimed connectors item (§32).
+- [~] **Enterprise CRM** — partial: `/dashboard/donors`-adjacent surfaces (`donations`, `messages`, `supporters`, `referrals`, `corporate`, `nonprofit`, `beneficiary`, `team`) + `/admin/users`. No unified CRM record joining donor↔sponsor↔volunteer↔grant-maker.
+- [~] **Marketplace** — code present: `/volunteer`, `/sponsor`, `/grants`, `/matching`, `/events`. Donated goods/equipment are not modelled.
+- [~] **Predictive Fundraising** — partial: `lib/donation-optimizer.ts` (velocity, `projectedDaysToGoal`, momentum), `api/ai/goal-recommend`, `lib/marketing-goals.ts`. Pre-launch forecasting specifically is not a distinct feature.
+- [~] **Autonomous Fundraising Agent** — code present: `api/ai/coach`, `api/ai/campaign-assistant`, `/dashboard/ai-coach`, `/dashboard/ai-growth-plan`, `CampaignAssistant` component.
 
 ---
 
@@ -5727,3 +5727,31 @@ has neither (see the network-policy note), so an unverified palette change to th
 owner console is not worth the risk. Whoever has a working environment should pick
 a direction and verify it renders. `scripts/audit-contrast.mjs --only /admin/...`
 will confirm it once a session can be established.
+
+### 🔍 AUDIT — the 10 "vision" parity boxes were stale, not unbuilt (Claude, 2026-07-26)
+All ten were unchecked, which read as "none of this exists". **Nine have real
+implementations already**; the boxes had simply never been revisited. Audited each
+against the codebase and rewrote the lines with **file-level evidence** (above).
+
+**Marked `[~]`, deliberately not `[x]`.** A route file existing is not the same as
+a feature working, and none of these can be exercised here — they all need
+Supabase, which this sandbox cannot reach (see the network-policy note). `[~]`
+records "code present, runtime unverified", which is the honest state. Ticking
+them `[x]` would manufacture completeness.
+
+**Three are genuinely partial, and the gap is specific — worth reading before
+anyone claims parity:**
+- **Marketing Automation** names YouTube/Facebook/Instagram/LinkedIn/X/TikTok in
+  one workflow. Email (Resend/SendGrid) and SMS (Twilio) are wired; **the six
+  social channels are not** — that is the unclaimed connectors item (§32), not a
+  finished feature.
+- **Enterprise CRM** has the surfaces (donations, messages, supporters, referrals,
+  corporate, nonprofit, beneficiary, team, admin/users) but **no unified record
+  joining donor ↔ sponsor ↔ volunteer ↔ grant-maker**, which is what "full
+  relationship platform" means.
+- **Marketplace** covers volunteers/sponsors/grants/matching/events; **donated
+  goods and equipment are not modelled** at all.
+
+**Net effect on the queue:** open `- [ ]` items **31 → 21**. That reduction is
+evidence-based, not bookkeeping — each line now points at the code that backs it,
+so the next person can verify rather than re-audit from scratch.
