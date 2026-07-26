@@ -2093,6 +2093,45 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
       Python over the migrations, no DB needed). Diff is **1355 insertions, 0
       deletions** — purely additive, and notably it was behind on *other* agents'
       migrations too, not just this one.
+    **✅ `profiles` NOW EXACTLY MATCHES PRODUCTION.** A second pass found the first
+    migration was incomplete — it restored the 7 *preference* columns, but diffing
+    the live snapshot (26 cols) against `schema.sql` (12) + that migration (7)
+    showed **7 more** live-only columns: `bio`, `org_name`, `org_tagline`,
+    `org_website`, `plan`, `stripe_customer_id`, `stripe_subscription_id`. Those
+    back the **Profile & Organization** panel and **all of Billing** (incl. the
+    `hasStripeCustomer` prop choosing between the Stripe portal button and "Add
+    method"), so a fresh provision lost profile editing and billing too. Added
+    `20260803010000_profiles_profile_billing_columns.sql` and regenerated
+    `catch_up.sql` (+50 lines, 0 deletions).
+    **Verified: base 12 + migrations 14 = 26 = live 26, nothing missing, nothing
+    extra.**
+
+    **🔴 SYSTEMIC — 21 of 143 tables have 61 live-only columns (NOT just `profiles`).**
+    Same diff across every table. A database provisioned from the migrations is
+    missing, among others:
+    - **`donations`** (7): `tip_cents`, `processing_fee_cents`,
+      `stripe_checkout_session_id`, `offline`, `offline_donor_email`,
+      `offline_donor_name`, `offline_method` — **core money fields**
+    - **`campaigns`** (5): `location`, `video_url`, `ai_generated`,
+      `nonprofit_verified`, `thank_donors_sent_at`
+    - `verification_documents` (7), `tax_receipts` (4), `subscriptions` (4),
+      `trust_scores` (5), `refunds` (3), `campaign_updates` (3), `campaign_media` (3),
+      plus 11 more tables.
+
+    **I deliberately did NOT auto-generate these migrations.** The snapshot stores
+    column *names only*, no types. For `profiles` the types were confidently
+    inferable from active use and verified; guessing across 61 columns is a
+    different matter — typing `tip_cents` as `text` instead of `integer` yields a
+    database that looks correct and silently behaves differently, which is **worse
+    than having no migration**. Getting this right needs one query against the live
+    DB (`information_schema.columns`), which this sandbox cannot reach.
+
+    **⚠️ Note the blind spot:** the schema-contract test does **not** catch this. It
+    validates that *code selects* exist in the live snapshot — i.e. that code
+    matches production. It cannot tell that the *migrations* fail to reproduce
+    production. Those are different invariants, and only the first is currently
+    tested.
+
     _Still outstanding:_ `supabase/schema.sql` itself. `regen_schema.sh` needs
     `initdb`/`pg_ctl` to spin up a throwaway Postgres; this sandbox has only
     `psql`/`pg_dump`, and runs as root, which `initdb` refuses. Anyone with a local
