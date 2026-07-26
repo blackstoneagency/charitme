@@ -71,6 +71,27 @@ export default function ManageClient({
     } finally { setBusy(null); }
   }
 
+  async function setShiftStatus(id: string, status: 'cancelled' | 'completed') {
+    setError(null); setNotice(null); setBusy(id);
+    try {
+      const res = await fetch(`/api/volunteers/shifts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { setError(json?.error ?? 'Could not update that shift.'); return; }
+      setNotice(status === 'cancelled'
+        // Say explicitly that hours survive — an organizer cancelling a shift may
+        // reasonably fear they are deleting their volunteers' logged time.
+        ? 'Shift cancelled. No new check-ins are accepted; hours already logged are unaffected.'
+        : 'Shift marked complete.');
+      router.refresh();
+    } catch {
+      setError('Network problem — the shift was not updated.');
+    } finally { setBusy(null); }
+  }
+
   async function decide(id: string, decision: 'verified' | 'rejected') {
     setError(null); setNotice(null); setBusy(id);
     try {
@@ -185,9 +206,21 @@ export default function ManageClient({
                     <code style={{ fontFamily: 'var(--mono)', color: 'var(--t3)' }}>{s.id}</code>
                   </div>
                 </div>
-                <Badge color={s.status === 'scheduled' ? 'green' : 'gray'}>
-                  {s.status === 'scheduled' ? 'Scheduled' : s.status === 'cancelled' ? 'Cancelled' : 'Completed'}
-                </Badge>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <Badge color={s.status === 'scheduled' ? 'green' : 'gray'}>
+                    {s.status === 'scheduled' ? 'Scheduled' : s.status === 'cancelled' ? 'Cancelled' : 'Completed'}
+                  </Badge>
+                  {s.status === 'scheduled' && (
+                    <>
+                      <Btn variant="secondary" onClick={() => setShiftStatus(s.id, 'completed')} disabled={busy === s.id}>
+                        Mark complete
+                      </Btn>
+                      <Btn variant="danger" onClick={() => setShiftStatus(s.id, 'cancelled')} disabled={busy === s.id}>
+                        Cancel
+                      </Btn>
+                    </>
+                  )}
+                </div>
               </div>
             </Card>
           ))}
