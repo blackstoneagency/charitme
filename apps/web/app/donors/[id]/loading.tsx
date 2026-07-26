@@ -1,6 +1,6 @@
 export default function DonorProfileLoading() {
   return (
-    <div className="bg-white min-h-screen" aria-busy="true" aria-label="Loading donor profile">
+    <div className="bg-white min-h-screen" role="status" aria-busy="true" aria-label="Loading donor profile">
       <section className="border-b border-slate-100 bg-slate-50 py-10">
         <div className="container">
           <div className="flex items-center gap-4">

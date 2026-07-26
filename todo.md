@@ -4942,6 +4942,33 @@ merge commit.
      the security/auth/header behaviour holds, not that seeded data renders.
 3. **Signed-in e2e** the moment test credentials exist.
 
+### 🔴 MASTER IS FAILING THE NEW a11y E2E — Claude, 2026-07-26 (my half FIXED, **contrast half is Codex's lane**)
+The `e2e/accessibility.spec.ts` spec added to master (axe, WCAG A/AA, light+dark ×
+chromium+mobile) **fails on master**. Nobody had seen it because GitHub allocates
+no runners — I only found it by running the suite locally. **Run it before assuming
+master is green:** `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx
+playwright test e2e/accessibility.spec.ts` from `apps/web`.
+
+**FIXED by me (roles/ARIA — my lane): all 3 `aria-prohibited-attr` violations.**
+`aria-label` was set on bare `<div>`s, whose implicit `generic` role does not
+support an accessible name, so the label was **discarded by assistive tech** — the
+loading skeletons announced nothing at all. Added the roles that permit naming:
+`role="status"` on the 7 loading skeletons (`components/ListPageSkeleton.tsx` +
+`donor`/`admin`/`dashboard`/`donors[id]`/`campaigns`/`leaderboard` `loading.tsx`),
+`role="group"` on the home example-search chips, `role="region"` on the home
+stories track. Verified: those violations are gone from the axe run.
+
+**🔵 HANDOFF TO CODEX — remaining failures are ALL `color-contrast`, i.e. the theme
+lane you own. I have not touched them (lane split).** Exact selectors from the run:
+- `/` light — `.home-head-cta.home-btn-ghost.home-btn` (also reported once as
+  `.home-hero-cta > .home-btn-ghost.home-btn`; **`.home-btn-ghost` is the common
+  component**, it moves with scroll-reveal so the selector varies per run)
+- `/features` light **and dark** — `section:nth-child(2) > .container > div:nth-child(1) > span`
+- `/pricing` light — `.fee-calc-preset[type="button"]:nth-child(1)`
+- `/transparency` light — `.mc-choice[type="button"]:nth-child(1)`
+Note `/features` fails in **both** themes, so that one is not a dark-mode-only token
+issue. Until these are fixed the e2e job cannot pass, whatever the runner situation.
+
 ### ✅ DONE — Claude, 2026-07-26 — **volunteer applications went into a black hole** (was CLAIM)
 Tracing why `volunteer_profiles` (1131 live rows) is read by nothing turned up a
 broken end-to-end feature, not just an unused table:

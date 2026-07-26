@@ -1,6 +1,6 @@
 export default function LeaderboardLoading() {
   return (
-    <div className="container" style={{ padding: '40px 24px' }} aria-busy="true" aria-label="Loading leaderboard">
+    <div className="container" style={{ padding: '40px 24px' }} role="status" aria-busy="true" aria-label="Loading leaderboard">
       <div style={{ marginBottom: '28px' }}>
         <div className="pc-skeleton-block" style={{ width: 220, height: 28, marginBottom: 8 }} />
         <div className="pc-skeleton-block" style={{ width: 420, height: 16 }} />

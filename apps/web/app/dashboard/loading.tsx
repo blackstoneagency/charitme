@@ -6,7 +6,7 @@ import { CharitMeShell } from '../../components/CharitMeApp';
 export default function DashboardLoading() {
   return (
     <CharitMeShell active="">
-      <div style={{ padding: '28px 32px' }} aria-busy="true" aria-label="Loading">
+      <div style={{ padding: '28px 32px' }} role="status" aria-busy="true" aria-label="Loading">
         {/* Page title */}
         <div className="pc-skeleton-block" style={{ width: 240, height: 26, marginBottom: 8 }} />
         <div className="pc-skeleton-block" style={{ width: 360, height: 15, maxWidth: '100%', marginBottom: 28 }} />

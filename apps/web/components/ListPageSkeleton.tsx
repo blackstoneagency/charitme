@@ -16,7 +16,7 @@ export default function ListPageSkeleton({
   showFilterBar?: boolean;
 }) {
   return (
-    <div className="container" style={{ padding: '40px 24px', ...(maxWidth ? { maxWidth } : {}) }} aria-busy="true" aria-label={label}>
+    <div className="container" style={{ padding: '40px 24px', ...(maxWidth ? { maxWidth } : {}) }} role="status" aria-busy="true" aria-label={label}>
       <div style={{ marginBottom: 28 }}>
         <div className="pc-skeleton-block" style={{ width: 300, height: 30, marginBottom: 10 }} />
         <div className="pc-skeleton-block" style={{ width: 460, height: 15, maxWidth: '100%' }} />

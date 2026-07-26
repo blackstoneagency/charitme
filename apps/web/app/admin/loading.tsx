@@ -7,7 +7,7 @@ import { CharitMeShell } from '../../components/CharitMeApp';
 export default function AdminLoading() {
   return (
     <CharitMeShell active="" mode="admin">
-      <div style={{ padding: '28px 32px' }} aria-busy="true" aria-label="Loading">
+      <div style={{ padding: '28px 32px' }} role="status" aria-busy="true" aria-label="Loading">
         <div className="pc-skeleton-block" style={{ width: 220, height: 26, marginBottom: 8 }} />
         <div className="pc-skeleton-block" style={{ width: 340, height: 15, maxWidth: '100%', marginBottom: 28 }} />
 

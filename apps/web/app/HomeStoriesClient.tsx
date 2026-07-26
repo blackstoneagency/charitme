@@ -134,7 +134,7 @@ export default function HomeStoriesClient({ initialCampaigns, initialFilters }: 
           </select>
         </div>
       </div>
-      <div className={`kind-story-track${isPending ? ' loading' : ''}`} aria-label="Live campaign stories" aria-live="polite">
+      <div className={`kind-story-track${isPending ? ' loading' : ''}`} role="region" aria-label="Live campaign stories" aria-live="polite">
         {campaigns.map((campaign) => {
           const image = campaign.cover_image_url || null;
           return (

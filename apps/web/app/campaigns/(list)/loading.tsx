@@ -2,7 +2,7 @@ import { Card } from '../../../components/ui';
 
 export default function CampaignsLoading() {
   return (
-    <div className="container" style={{ padding: '40px 24px' }} aria-busy="true" aria-label="Loading campaigns">
+    <div className="container" style={{ padding: '40px 24px' }} role="status" aria-busy="true" aria-label="Loading campaigns">
       <div style={{ marginBottom: '28px' }}>
         <div className="pc-skeleton-block" style={{ width: 280, height: 28, marginBottom: 8 }} />
         <div className="pc-skeleton-block" style={{ width: 380, height: 16 }} />

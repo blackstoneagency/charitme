@@ -7,7 +7,7 @@ export default function DonorLoading() {
     padding: '20px 24px',
   };
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 24px' }} aria-busy="true" aria-label="Loading your giving history">
+    <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 24px' }} role="status" aria-busy="true" aria-label="Loading your giving history">
       <div style={{ marginBottom: 28 }}>
         <div className="pc-skeleton-block" style={{ width: 240, height: 28, marginBottom: 8 }} />
         <div className="pc-skeleton-block" style={{ width: 360, height: 15 }} />
