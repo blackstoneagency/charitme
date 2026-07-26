@@ -4781,6 +4781,17 @@ IMPLEMENTATION_STATUS, KNOWN_LIMITATIONS, CHANGELOG).
       - `brands` carries `voice`/`palette` so the Brand Constitution (§10) has
         somewhere to attach without another migration.
 
+      **Follow-up shipped:** `lib/organizations-core.ts` + 15 tests. The role
+      ladder previously existed only inside the SQL `case min_role` branches,
+      which cannot be unit-tested here. The TS mirror pins it, so a future API
+      route gates on the same answer RLS will give — a route that disagrees
+      either 500s where it meant 403, or implies access the DB refuses. It fails
+      closed on any unrecognised role (same instinct as `coalesce(..., false)`),
+      and `viewer`/`member` deliberately share a rank because the SQL `else true`
+      branch admits both; ranking them apart would invent a tier the database
+      does not enforce. Explicitly NOT a security boundary — RLS remains the
+      enforcement point.
+
       ⬜ **Not done, and deliberately not started:** adding `org_id` to the ~14
       live `marketing_*` tables. That needs a decision about rows predating
       tenancy, and a half-applied scoping migration would leave marketing data
