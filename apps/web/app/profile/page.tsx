@@ -23,20 +23,33 @@ async function getProfile(userId: string) {
   }
 }
 
+/**
+ * Returns `unavailable` rather than zeros when the read fails.
+ *
+ * This fabricated on BOTH paths before: the `catch` returned zeros, and inside the
+ * try `const { data }` ignored `error` — and supabase-js RESOLVES on a query
+ * error, so a failure silently became `null` -> `[]` -> a total of 0. Either way a
+ * donor was shown "$0 given" as a fact about their own history.
+ */
 async function getDonorStats(userId: string) {
+  const empty = {
+    totalDonated: 0, donationCount: 0, campaignCount: 0,
+    donationDates: [] as string[], unavailable: true,
+  };
   try {
-    const { data } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('donations')
       .select('amount_cents, campaign_id, created_at')
       .eq('donor_id', userId)
       .eq('status', 'completed');
-    const rows = data ?? [];
+    if (error || data == null) return empty;
+    const rows = data;
     const total = rows.reduce((s, d) => s + (d.amount_cents ?? 0), 0);
     const campaignCount = new Set(rows.map((d) => d.campaign_id)).size;
     const donationDates = rows.map((d) => d.created_at as string);
-    return { totalDonated: total, donationCount: rows.length, campaignCount, donationDates };
+    return { totalDonated: total, donationCount: rows.length, campaignCount, donationDates, unavailable: false };
   } catch {
-    return { totalDonated: 0, donationCount: 0, campaignCount: 0, donationDates: [] as string[] };
+    return empty;
   }
 }
 
@@ -53,16 +66,25 @@ async function hasActiveRecurring(userId: string): Promise<boolean> {
   }
 }
 
+/** Same contract as getDonorStats: `unavailable`, never fabricated zeros. */
 async function getCampaignStats(userId: string) {
   try {
-    const { data } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('campaigns')
       .select('id, raised_amount, status')
       .eq('user_id', userId);
+    if (error || data == null) {
+      return { totalRaised: 0, campaignCount: 0, activeCampaigns: 0, unavailable: true };
+    }
     const total = (data ?? []).reduce((s, c) => s + (c.raised_amount ?? 0), 0);
-    return { totalRaised: total, campaignCount: (data ?? []).length, activeCampaigns: (data ?? []).filter((c) => c.status === 'active').length };
+    return {
+      totalRaised: total,
+      campaignCount: (data ?? []).length,
+      activeCampaigns: (data ?? []).filter((c) => c.status === 'active').length,
+      unavailable: false,
+    };
   } catch {
-    return { totalRaised: 0, campaignCount: 0, activeCampaigns: 0 };
+    return { totalRaised: 0, campaignCount: 0, activeCampaigns: 0, unavailable: true };
   }
 }
 
@@ -96,11 +118,19 @@ export default async function ProfilePage() {
       {/* Stats banner */}
       <section className="border-b border-slate-100 bg-slate-50 py-8">
         <div className="container">
+          {(donorStats.unavailable || campaignStats.unavailable) && (
+            <div role="alert" className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+              Some of your figures couldn&apos;t be loaded, so they show as &ldquo;—&rdquo;
+              rather than zero. Nothing has changed about your account or your giving.
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { label: 'Total donated', value: formatCents(donorStats.totalDonated) },
-              { label: 'Campaigns supported', value: donorStats.campaignCount.toString() },
-              { label: 'Campaigns created', value: campaignStats.campaignCount.toString() },
+              // "—" rather than a zero when the read failed. Your own giving history
+              // reported back as $0 is a false statement about you, not a placeholder.
+              { label: 'Total donated', value: donorStats.unavailable ? '—' : formatCents(donorStats.totalDonated) },
+              { label: 'Campaigns supported', value: donorStats.unavailable ? '—' : donorStats.campaignCount.toString() },
+              { label: 'Campaigns created', value: campaignStats.unavailable ? '—' : campaignStats.campaignCount.toString() },
               { label: 'Member since', value: memberSince ?? '—' },
             ].map((s) => (
               <div key={s.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

@@ -83,6 +83,11 @@ export default async function PublicDonorProfilePage({ params }: { params: Promi
       .eq('status', 'active'),
   ]);
 
+  // supabase-js RESOLVES on a query error, so reading only `data` turns a failure
+  // into an empty array — and this is a PUBLIC page about a named person. It would
+  // publish "Total donated $0" and demote their giving level, as a statement of
+  // fact about someone else. Checked explicitly.
+  const statsUnavailable = Boolean(donationRes.error) || donationRes.data == null;
   const donations = donationRes.data ?? [];
   const totalDonated = donations.reduce((s, d) => s + (d.amount_cents ?? 0), 0);
   const campaignIds = [...new Set(donations.map((d) => d.campaign_id).filter(Boolean) as string[])];
@@ -147,7 +152,21 @@ export default async function PublicDonorProfilePage({ params }: { params: Promi
         </div>
       ) : (
         <>
-          {/* Stats banner */}
+          {statsUnavailable && (
+            <section className="border-b border-slate-100 py-6">
+              <div className="container">
+                <div role="alert" className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  This donor&apos;s giving history couldn&apos;t be loaded right now, so the
+                  totals below are hidden rather than shown as zero — zero would be wrong,
+                  and this is a public profile.
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Stats banner — omitted on a failed read. A public "$0 donated" is a false
+              claim about a named person, not a neutral placeholder. */}
+          {!statsUnavailable && (
           <section className="border-b border-slate-100 py-8">
             <div className="container">
               <div className="grid gap-4 sm:grid-cols-3">
@@ -164,8 +183,11 @@ export default async function PublicDonorProfilePage({ params }: { params: Promi
               </div>
             </div>
           </section>
+          )}
 
-          {/* Giving level + badges */}
+          {/* Giving level + badges — same flag: the level is DERIVED from the total,
+              so an unavailable total would silently demote them. */}
+          {!statsUnavailable && (
           <section className="border-b border-slate-100 py-8">
             <div className="container">
               <div className="grid gap-6 lg:grid-cols-3">
@@ -219,6 +241,7 @@ export default async function PublicDonorProfilePage({ params }: { params: Promi
               </div>
             </div>
           </section>
+          )}
 
           {/* Recently supported campaigns */}
           {recentCampaignIds.length > 0 && (

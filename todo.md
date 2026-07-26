@@ -7069,6 +7069,35 @@ _Lesson: SQL three-valued logic turns a missing value into a silently-skipped
 guard. Any security predicate touching a nullable column needs `coalesce` and a
 test for the NULL case._
 
+### ✅ Second pass on fabricated statistics — 2 more, incl. a PUBLIC claim about a person
+
+The first sweep's grep was too narrow (see below), so I re-probed with a script that
+looks for `await supabaseAdmin` reads in money-rendering pages where **no** `error`
+is captured anywhere. Three hits, two genuine:
+
+1. **`/donors/[id]` — a public profile about a named person.** A failed read
+   published **"Total donated $0"** *and demoted their giving level*, because the
+   level is derived from the total. Not a placeholder — a false public statement
+   about someone else. Both the stats banner and the giving-level card are now
+   behind one flag, with a visible explanation of why the numbers are absent.
+2. **`/profile` — fabricated on BOTH paths.** Its `catch` returned zeros, *and*
+   inside the `try` `const { data }` ignored `error`; since supabase-js resolves on
+   a query error, a failure silently became `null → [] → 0`. A try/catch that
+   returns zeros is not a guard, it is the bug with extra steps. Both stats helpers
+   now return `unavailable`, tiles render `—`, and a banner says nothing about the
+   account changed.
+
+**⬜ One left, lower stakes:** `app/campaigns/(list)/page.tsx` does
+`return { campaigns: data ?? [], total: count ?? 0 }`, so a failed read shows
+"no campaigns" — false about the platform, though no money figure is invented.
+Worth fixing; not in the same harm class as the five money bugs.
+
+_My probe script's regex was itself wrong twice (`catch\s*\(` misses `catch {`;
+`error\s*:` misses `{ data, error }`). Recording that because it is the third time
+this session a scoped pattern produced a confident wrong answer — including in the
+tooling I wrote to catch the previous instances. **Run the fix, then re-probe, then
+read the survivors by hand.**_
+
 ### ✅ Swept the "fabricated statistics" class across every money-rendering page
 
 Having fixed `/`, `/ai-fundraising` and `/success-stories` individually, nothing
