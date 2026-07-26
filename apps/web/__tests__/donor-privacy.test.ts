@@ -51,3 +51,25 @@ describe('private donors are not named publicly', () => {
     expect(src).toMatch(/show_public_profile === false/);
   });
 });
+
+describe('anonymous donors are redacted in every export', () => {
+  // The three export endpoints must agree. Two already did; /full dumped raw
+  // rows, handing the organizer donor_id and offline_donor_name for gifts the
+  // donor marked anonymous — identifiable by name for offline gifts, and by a
+  // stable profile id otherwise.
+  it('the full JSON export strips identity from anonymous donations', () => {
+    const src = read('app/api/exports/full/route.ts');
+    expect(src, 'must build a redacted list rather than passing donations through')
+      .toMatch(/redactedDonations/);
+    expect(src, 'anonymous rows must null donor_id and offline_donor_name')
+      .toMatch(/d\.anonymous\s*\?\s*\{\s*\.\.\.d,\s*donor_id:\s*null,\s*offline_donor_name:\s*null\s*\}/);
+    expect(src, 'the raw pass-through must be gone').not.toMatch(/donations:\s*donations\s*\?\?\s*\[\],/);
+  });
+
+  it('the CSV exports already name anonymous donors "Anonymous"', () => {
+    expect(read('app/api/exports/donations/route.ts')).toMatch(/d\.anonymous\s*\?\s*'Anonymous'/);
+    const donors = read('app/api/exports/donors/route.ts');
+    expect(donors).toMatch(/isAnon\s*=\s*d\.anonymous\s*\|\|\s*!d\.donor_id/);
+    expect(donors, 'anonymous rows must carry no email').toMatch(/email:\s*isAnon\s*\?\s*''/);
+  });
+});

@@ -257,6 +257,27 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**🔴 FIXED — the full data export leaked anonymous donors' identity.**
+Third application of the promise-audit, this time to *"Donate anonymously"* — the
+control donors most rely on. Checked all three export endpoints; **two were
+already right and one was the outlier**:
+- `/api/exports/donations` ✅ writes `'Anonymous'` and deliberately omits email
+  ("to avoid PII in default export").
+- `/api/exports/donors` ✅ groups anonymous gifts under one keyless row with an
+  empty email.
+- `/api/exports/full` ❌ **dumped the raw donation rows**, so the organizer
+  received `donor_id` and `offline_donor_name` for gifts marked anonymous —
+  identifiable **by name** for offline donations, and by a **stable profile id**
+  otherwise, which correlates with any non-anonymous gift the same person made.
+
+That endpoint returns the authenticated organizer's own campaigns, so this handed
+the identity straight to the one person anonymity is meant to hide it from. Now
+nulls both fields for anonymous rows; amounts, status and dates are untouched so
+the export stays complete for accounting.
+_The two siblings already redacting is what proves this was an oversight rather
+than a deliberate choice._ 2 more regression tests (5 total in the file), verified
+non-vacuous by restoring the raw pass-through.
+
 **✅ VERIFIED CLEAN — email consent.** Applied the same "does every surface honour
 the promise?" question to the notification toggles, since sending to someone who
 opted out is a legal exposure, not just a bug:
