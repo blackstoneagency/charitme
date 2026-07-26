@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "audit:campaign-images": "node scripts/audit-campaign-images.mjs",
+    "audit:contrast": "node scripts/audit-contrast.mjs",
     "audit:campaign-images:live": "node scripts/audit-campaign-images.mjs --live",
     "check:env": "node scripts/check-env.mjs"
   },

@@ -5605,3 +5605,21 @@ guard that cries wolf.
 
 Verified: typecheck 0 · vitest **1258/1258** · `next build` exit 0 · contrast sweep
 **0 failures across 38 pages × 2 themes** (re-run after the tint conversions).
+
+### ✅ DONE — contrast sweep wired into npm + CI (Claude, 2026-07-26)
+The runtime sweep was manual-only, so it protected nothing between runs. Now:
+- **`npm run audit:contrast --workspace=apps/web`** (alongside `audit:campaign-images`).
+- **A CI step in the `e2e` job**, which already produces a production build.
+
+`playwright.config.ts` owns and tears down its own webServer, so the step starts
+and stops its own. Two hard-won gotchas are encoded in it rather than left as lore:
+- **fails fast if :3000 is already serving** — a stale server audits the *old*
+  build and emits plausible-looking nonsense (this cost a full debugging cycle
+  earlier today: 18 "failures" that included white-on-white and light backgrounds
+  in dark mode);
+- **`pkill -f "[n]ext-server"`** is bracketed so it cannot match the step's own
+  shell, whose command line contains that string.
+
+Verified by running the exact CI invocation locally: **0 failures, 38 pages × 2
+themes**. Note the sweep runs against placeholder Supabase env (same as the rest
+of CI) and passes — it covers static public routes, so it needs no database.
