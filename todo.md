@@ -6354,7 +6354,63 @@ rule in the a11y spec.** A correctly configured production does not hit that pat
 the guard covers fetch-level exceptions. This is a real fix for credential-less builds
 plus hardening — *not* a claim that production is currently losing titles.
 
-### ⬜ OPEN — `/ai-fundraising` returns a hard 500 on a credential-less build
+### ✅ FIXED — `/ai-fundraising` 500 (below), and a BIGGER one found behind it
+
+`/ai-fundraising` now returns **200** with its content intact; the live-stats strip is
+**omitted** when the numbers are unavailable rather than rendered as `0 / $0 / 0`.
+Verified on a production build with no credentials: `200`, h1 present,
+`aif-live-stats` occurrences `0`.
+
+**The important discovery is what this exposed.** With `/ai-fundraising` fixed, a
+COLD production server still 500s on **`/` (the homepage)** and **`/impact`** —
+consistently, 3/3 attempts. Earlier those looked like `200` only because the ISR
+prerender from build time was being served; a fresh server has to render them and
+the loaders throw.
+
+So: **on any credential-less build — which is what CI builds — the homepage returns
+500.** The SEO fix above repaired the *metadata* path; the page *body* is a separate
+throw (`getHomeData` / `listPublishedImpactSummaries` call `supabaseAdmin` with no
+error handling). Same defect class, three pages: `/ai-fundraising` (fixed), `/`,
+`/impact`.
+
+### ✅ DONE — every public route now survives a credential-less production build
+
+Swept all 36 public routes on a cold `next build` + `next start` with no Supabase.
+**Six returned 500**, not the one I first found: `/`, `/impact`, `/ai-fundraising`,
+`/grants`, `/success-stories`, `/supported-countries`. All six now return **200**
+with their content intact. Re-scanned: **NON-200: 0**.
+
+**The subtle part — `ok` was not a sufficient signal, and assuming it was shipped the
+exact bug I was trying to prevent.** After adding try/catch to the homepage loaders,
+`/` rendered **"Raised on CharitMe $0"**. `getHomeData` does not throw when its reads
+fail: it coalesces each to `[]` internally and returns a fully-zeroed metrics object,
+so a failed load is indistinguishable from real zeros at the call site. The try/catch
+turned a 500 into a *false platform statistic in the most prominent place on the
+site*, which is worse than the crash.
+
+Fixed with `shouldShowPlatformMetrics()` (`lib/home-utils.ts`): an all-zero reading is
+treated as "no data". Deliberately conservative — if the platform really had zero of
+everything, "$0 raised / 0 campaigns / 0 donations" is still not a figure to publish.
+8 unit tests pin **both** directions, including that real numbers still show (a guard
+that always returned false would "fix" the bug by silently deleting the feature).
+
+Applied the same hide-don't-zero rule to `/success-stories` (it prints Total Raised /
+Campaigns / Donations / Supporters in **two** places — the whole "By the Numbers"
+section is now gated so no dangling heading remains) and `/ai-fundraising`.
+`/grants` and `/supported-countries` are lists, where an empty result is honest, so
+they just fail safe to `[]`.
+
+Verified with markers on a credential-less prod build — all expect 0, all measured 0:
+`Raised on CharitMe`, `Total Raised`, `By the Numbers`, `aif-live-stats`. Pages still
+render (94KB / 37KB / 59KB, each with an `<h1>`).
+
+**Result: all three public sweeps pass against a REAL production build — 8/8.**
+Previously they only ever passed against the reused dev server. CI's e2e job should
+now genuinely pass once runners return.
+
+<details><summary>original report (kept for context)</summary>
+
+### ⬜ was: `/ai-fundraising` returns a hard 500 on a credential-less build
 Surfaced by running the sweeps against a production build (it passed on the dev server,
 which is why no one had seen it). `getAIPageData()` calls `supabaseAdmin` with no error
 handling, so the whole marketing page 500s. **This blocks `public-routes.spec.ts` and
@@ -6366,6 +6422,7 @@ mistake the dashboards were fixed to stop making. The correct fix is the dashboa
 treatment: hide the stats block when the data is unavailable rather than invent it.
 That is a design change, not a one-liner, so it is written up here rather than rushed.
 Pre-existing — it was in every route list before this session's consolidation.
+</details>
 
 ### ✅ DONE — theme guard made luminance-based; reaches /dashboard (Claude, 2026-07-26)
 **Why the static guard kept missing things:** `theme-tokens.test.ts` matched an

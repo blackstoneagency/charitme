@@ -5,6 +5,7 @@ import { supabaseAdmin } from '../../lib/supabase';
 import { getCoverForCampaign, unsplash } from '../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../lib/img-optimize';
 import { attachCampaignCurrencies } from '../../lib/home-data';
+import { shouldShowPlatformMetrics } from '../../lib/home-utils';
 import { currencySymbol } from '@shared/currencies';
 
 export const dynamic = 'force-dynamic';
@@ -44,7 +45,31 @@ function pct(raised: number, goal: number): number {
   return Math.min(100, Math.round((raised / goal) * 100));
 }
 
+/**
+ * Never throws. Returns `statsAvailable` so the caller can tell "we could not read
+ * the numbers" from "the numbers are zero" — this page prints Total Raised,
+ * Campaigns, Donations and Supporters in two places, and rendering those as zeros
+ * on a failed read would publish false platform statistics.
+ *
+ * Measured: this page returned 500 on a cold production build with Supabase
+ * unreachable.
+ */
 async function getStoryData() {
+  try {
+    return await getStoryDataUncaught();
+  } catch {
+    return {
+      stories: [] as Awaited<ReturnType<typeof getStoryDataUncaught>>['stories'],
+      campaignCount: 0,
+      donationCount: 0,
+      totalRaised: 0,
+      totalDonors: 0,
+      statsAvailable: false,
+    };
+  }
+}
+
+async function getStoryDataUncaught() {
   const cols = await campaignColumns();
   const [{ data: campaigns }, { count: campaignCount }, { count: donationCount }] = await Promise.all([
     applyVisibilityFilters(
@@ -64,7 +89,14 @@ async function getStoryData() {
   const totalRaised = stories.reduce((sum, s) => sum + s.raised_amount, 0);
   const totalDonors = stories.reduce((sum, s) => sum + s.backer_count, 0);
 
-  return { stories, campaignCount: campaignCount ?? 0, donationCount: donationCount ?? 0, totalRaised, totalDonors };
+  // Same rule as the homepage: an all-zero reading is indistinguishable from a
+  // failed read, because the queries above coalesce errors to null/[] rather than
+  // throwing. Treat it as "no data" instead of printing it as fact.
+  const statsAvailable = shouldShowPlatformMetrics(
+    { raisedCents: totalRaised, campaigns: campaignCount ?? 0, donations: donationCount ?? 0 },
+    true,
+  );
+  return { stories, campaignCount: campaignCount ?? 0, donationCount: donationCount ?? 0, totalRaised, totalDonors, statsAvailable };
 }
 
 const HERO_PHOTOS = [
@@ -80,7 +112,7 @@ const COMMUNITY_PHOTOS = [
 ];
 
 export default async function SuccessStoriesPage() {
-  const { stories, campaignCount, donationCount, totalRaised, totalDonors } = await getStoryData();
+  const { stories, campaignCount, donationCount, totalRaised, totalDonors, statsAvailable } = await getStoryData();
 
   const featured = stories[0] ?? null;
   const gridStories = stories.slice(featured ? 1 : 0);
@@ -123,6 +155,7 @@ export default async function SuccessStoriesPage() {
                 </a>
               </div>
 
+              {statsAvailable && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
                 {[
                   { value: shortCount(campaignCount), label: 'Campaigns' },
@@ -136,6 +169,7 @@ export default async function SuccessStoriesPage() {
                   </div>
                 ))}
               </div>
+              )}
             </div>
 
             <div className="ss-hero-collage">
@@ -292,6 +326,7 @@ export default async function SuccessStoriesPage() {
       )}
 
       {/* ── Impact Stats ── */}
+      {statsAvailable && (
       <section style={{ padding: '72px 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
@@ -314,6 +349,7 @@ export default async function SuccessStoriesPage() {
           </div>
         </div>
       </section>
+      )}
 
       {/* ── Bottom CTA ── */}
       <section style={{

@@ -21,14 +21,23 @@ type Country = {
   notes: string | null;
 };
 
-async function getCountries() {
-  const { data } = await supabaseAdmin
-    .from('supported_countries')
-    .select('id,name,flag_emoji,iso_code,can_fundraise,can_donate,currency_code,notes')
-    .eq('active', true)
-    .order('sort_order', { ascending: true })
-    .order('name', { ascending: true });
-  return (data ?? []) as Country[];
+/**
+ * Never throws. An empty list is an honest rendering of "none available"; a hard
+ * 500 on a public marketing page is not. Measured: this page returned 500 on a
+ * cold production build with Supabase unreachable.
+ */
+async function getCountries(): Promise<Country[]> {
+  try {
+    const { data } = await supabaseAdmin
+      .from('supported_countries')
+      .select('id,name,flag_emoji,iso_code,can_fundraise,can_donate,currency_code,notes')
+      .eq('active', true)
+      .order('sort_order', { ascending: true })
+      .order('name', { ascending: true });
+    return (data ?? []) as Country[];
+  } catch {
+    return [];
+  }
 }
 
 export default async function SupportedCountriesPage() {
