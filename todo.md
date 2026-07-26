@@ -257,6 +257,23 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**⚠️ Seed counts CANNOT be verified statically — use `99_verify_counts.sql`.**
+Tried to check the "≥100 seed records" criterion by counting rows in the seed SQL
+without a database. **The method is unreliable and produced a false finding**,
+which is worth recording so nobody repeats it:
+- A tuple-counting heuristic reported `seo_settings` at **75**, i.e. short of 100.
+- Verifying precisely: that table is populated by an `insert … select … from
+  generate_series` (not `insert … values`), so neither regex measures it. The
+  file header states **105 records per table, applied to the live DB 2026-07-20**.
+  No shortfall.
+Seed SQL resists static counting generally — `select`-based inserts,
+`generate_series`, and `ON CONFLICT` (which makes re-runs idempotent for some
+tables and appending for others). The suite already ships the right tool:
+**`supabase/seeds/99_verify_counts.sql`**, which answers this in one query against
+the live DB. That, not a scan, is what closes this criterion.
+_Suite covers 33 tables in `seeds/` plus `super_admin_console_seed.sql`,
+`seed.sql` and `seed_250.sql`._
+
 **✅ VERIFIED CLEAN — CSV export escaping and search-query handling.**
 Both are security-relevant and both were probed with adversarial input rather than
 read:
