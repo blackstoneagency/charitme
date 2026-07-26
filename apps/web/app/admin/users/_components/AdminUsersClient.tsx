@@ -2,6 +2,7 @@
 
 import type React from 'react';
 import { useEffect, useMemo, useState, useTransition } from 'react';
+import Link from 'next/link';
 import { KFIcon, StatusPill, Avatar } from '../../../../components/CharitMeApp';
 import { ROLE_DEFINITIONS, ROLE_ORDER } from '../../../../lib/role-capabilities';
 
@@ -708,7 +709,13 @@ export default function AdminUsersClient({
               </div>
             </div>
           </div>
-          <button className="kf-outline" style={{ height: 38, fontSize: 13, padding: '0 14px' }}>
+          {/* Had no handler. The Settings tab below already edits this user, so the
+              button now takes you there instead of doing nothing. */}
+          <button
+            className="kf-outline"
+            style={{ height: 38, fontSize: 13, padding: '0 14px' }}
+            onClick={() => setActiveTab('Settings')}
+          >
             Edit ✏️
           </button>
         </div>
@@ -814,13 +821,10 @@ export default function AdminUsersClient({
         {/* Tab: Activity */}
         {activeTab === 'Activity' && (
           <div>
-            <div className="users-sub-tabs">
-              {['Login History', 'Actions', 'Sessions'].map((sub) => (
-                <button key={sub} className={sub === 'Login History' ? 'active' : ''}>
-                  {sub}
-                </button>
-              ))}
-            </div>
+            {/* The "Login History / Actions / Sessions" sub-tabs used to sit here.
+                They were <button>s with no handler and the same single activity list
+                rendered underneath whichever one you clicked — three tabs pretending
+                to be filters. Removed rather than faked; the list below is all of it. */}
             <div className="users-tab-content">
               {selectedActivities.length === 0 && (
                 <p style={{ color: 'var(--t3, #66708d)', fontSize: 13 }}>No activity recorded yet.</p>
@@ -843,11 +847,12 @@ export default function AdminUsersClient({
                 </div>
               ))}
               {selectedActivities.length > 0 && (
-                <button
-                  style={{ marginTop: 12, border: 0, background: 'transparent', color: '#6c35ff', fontSize: 12, fontWeight: 650, cursor: 'pointer' }}
+                <Link
+                  href={`/admin/audit-log?target=${encodeURIComponent(selected.id)}`}
+                  style={{ display: 'inline-block', marginTop: 12, border: 0, background: 'transparent', color: '#6c35ff', fontSize: 12, fontWeight: 650, cursor: 'pointer', textDecoration: 'none' }}
                 >
                   View all activity →
-                </button>
+                </Link>
               )}
             </div>
           </div>
@@ -870,7 +875,17 @@ export default function AdminUsersClient({
 
         {/* Footer */}
         <div className="users-detail-footer">
-          <button className="kf-outline">View Public Profile</button>
+          {/* Was a <button> with no handler — it looked like an action and did
+              nothing. The public profile already exists at /donors/[id]. */}
+          <Link
+            href={`/donors/${selected.id}`}
+            className="kf-outline"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
+          >
+            View Public Profile
+          </Link>
           <div style={{ position: 'relative' }}>
             <button className="kf-outline" onClick={() => setShowMoreActions((v) => !v)}>
               More Actions ▾

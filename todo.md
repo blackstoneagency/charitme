@@ -5645,6 +5645,30 @@ them real gates (e.g. beneficiary confirmation flow, nonprofit-only campaign typ
 or retire them. Recorded rather than guessed, because inventing restrictions on
 roles nobody holds is the fastest way to lock a real user out.
 
+### ✅ DONE — Claude, 2026-07-26 — **admin dead controls cleared; guard now covers the WHOLE app**
+Finished the half I had deliberately deferred. The 12 remaining dead buttons in
+`app/admin/**` are resolved, each by what it actually needed:
+- **Wired to real behaviour (3):** "View Public Profile" now links to the user's
+  existing `/donors/[id]` page; both "View all activity →" buttons now link to
+  `/admin/audit-log` (the user one filtered to that user).
+- **Wired with one line (1):** "Edit ✏️" on the user detail now switches to the
+  **Settings tab, which already edits that user** — the capability existed, the
+  button just wasn't connected to it.
+- **Removed as fake (1 group):** the user Activity panel's *"Login History /
+  Actions / Sessions"* sub-tabs — **the same single list rendered under whichever
+  one you clicked.** Three tabs pretending to be filters; deleted rather than faked.
+- **Honestly disabled (4):** payouts "Configure" / "+ Add Method" / "Generate", and
+  system "Verify Now" have no backend at all. Now `disabled` with a `title` saying
+  so — visibly unavailable beats silently inert.
+- **Deleted (623 lines):** `app/admin/users/_components/UsersClient.tsx` was another
+  rename leftover superseded by `AdminUsersClient` and referenced by nothing.
+- **`__tests__/no-dead-controls.test.ts` now covers `app/admin/**` too** (the
+  exclusion is gone). It also strips comments before scanning — it was flagging its
+  own documentation, since a comment explaining a removed `<button>` contains the
+  literal text. **Verified non-vacuous** by planting a real dead button and watching
+  it fail.
+- Verified: typecheck 0, lint 0 errors, **1299 tests / 120 files**, build green.
+
 ### ✅ DONE — Claude, 2026-07-26 — **dead controls: buttons that do nothing when clicked**
 Applied the "looks live but isn't" lens to controls. Parsed every `<button>` in
 `app/` + `components/` (brace-aware, so `disabled={page > 1}` doesn't truncate the
