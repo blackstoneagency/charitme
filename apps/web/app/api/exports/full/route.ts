@@ -38,12 +38,28 @@ export async function GET() {
       : Promise.resolve({ data: [] }),
   ]);
 
+  // Anonymous donations must not carry donor identity here.
+  //
+  // This endpoint hands the organizer the raw rows for their own campaigns, and
+  // previously included donor_id and offline_donor_name verbatim — so a donor who
+  // chose "donate anonymously" was still identifiable, by name for offline gifts
+  // and by a stable profile id otherwise (correlatable with any non-anonymous
+  // donation from the same person). Both sibling exports already redact:
+  // /api/exports/donations writes "Anonymous" and omits email, and
+  // /api/exports/donors groups anonymous gifts under a single keyless row. This
+  // one was the outlier. Amounts, status and dates are untouched, so the export
+  // stays complete for accounting.
+  type DonationRow = { donor_id?: string | null; offline_donor_name?: string | null; anonymous?: boolean | null };
+  const redactedDonations = ((donations ?? []) as DonationRow[]).map((d) =>
+    d.anonymous ? { ...d, donor_id: null, offline_donor_name: null } : d,
+  );
+
   const exportData = {
     exported_at: new Date().toISOString(),
     user_id: user.id,
     profile,
     campaigns: campaigns ?? [],
-    donations: donations ?? [],
+    donations: redactedDonations,
     campaign_updates: updates ?? [],
     team_members: teamMembers ?? [],
   };

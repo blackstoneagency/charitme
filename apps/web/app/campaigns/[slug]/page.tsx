@@ -80,7 +80,7 @@ async function getUpdates(campaignId: string) {
 async function getDonorMessages(campaignId: string) {
   const { data } = await supabaseAdmin
     .from('donor_messages')
-    .select('id, message, anonymous, created_at, profiles:donor_id(full_name, avatar_url)')
+    .select('id, message, anonymous, created_at, profiles:donor_id(full_name, avatar_url, show_public_profile)')
     .eq('campaign_id', campaignId)
     .order('created_at', { ascending: false })
     .limit(8);
@@ -172,16 +172,28 @@ type DonationRow = {
 
 function toWallDonation(d: DonationRow): WallDonation {
   const profile = asProfile(d.profiles);
+  // Second copy of the donor-wall mapping — /api/campaigns/[id]/donations has
+  // the other, used for pagination. This one builds the INITIAL server-rendered
+  // wall, so a private donor's name shipped in the page HTML on first load even
+  // after the API route was fixed. Both must apply the same two gates:
+  // `anonymous` (the donor's per-gift choice) and `show_public_profile` (their
+  // account-wide Profile Visibility setting).
+  const isPublic = profile.show_public_profile ?? true;
+  const hideIdentity = d.anonymous || !isPublic;
   return {
     id: d.id,
-    name: d.anonymous ? 'Anonymous' : (profile.full_name || d.offline_donor_name || 'Kind supporter'),
-    avatarUrl: d.anonymous ? null : (profile.avatar_url ?? null),
+    name: d.anonymous
+      ? 'Anonymous'
+      : !isPublic
+        ? 'Kind supporter'
+        : (profile.full_name || d.offline_donor_name || 'Kind supporter'),
+    avatarUrl: hideIdentity ? null : (profile.avatar_url ?? null),
     amountCents: d.amount_cents,
     message: d.message,
     createdAt: d.created_at,
     anonymous: d.anonymous,
-    donorId: d.anonymous ? null : (d.donor_id ?? null),
-    showPublicProfile: profile.show_public_profile ?? true,
+    donorId: hideIdentity ? null : (d.donor_id ?? null),
+    showPublicProfile: isPublic,
   };
 }
 
@@ -231,6 +243,20 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   // Private campaigns are only visible to the owner and admins
   const visibility = (campaign as { visibility?: string }).visibility ?? 'public';
   if (visibility === 'private') {
+    if (!user || user.id !== campaign.user_id) notFound();
+  }
+
+  // Unpublished drafts are owner-only. POST /api/campaigns documents
+  // status 'draft' as "saves without publishing", and publishing is precisely
+  // what makes a campaign public — but nothing here gated on it, so a draft
+  // rendered in full at its public URL (story, media, goal) to anyone holding or
+  // guessing the slug, which is derived from the title. Listings and the sitemap
+  // already exclude drafts via applyLiveFilters, so this was the one reachable
+  // surface.
+  //
+  // Deliberately narrow: only 'draft'. 'completed' and 'archived' campaigns must
+  // stay readable, since people link to finished fundraisers.
+  if (campaign.status === 'draft') {
     if (!user || user.id !== campaign.user_id) notFound();
   }
 
@@ -356,8 +382,17 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     const msgProfile = asProfile(msg.profiles);
     return {
       id: msg.id,
-      name: msg.anonymous ? 'Anonymous' : (msgProfile.full_name ?? 'Kind supporter'),
-      avatarUrl: msg.anonymous ? null : (msgProfile.avatar_url ?? null),
+      // Same two gates as the donation wall: a message posted on the donor wall
+      // is "giving activity on the leaderboard and donor walls", which is what
+      // Profile Visibility governs — so Private hides the name here too.
+      name: msg.anonymous
+        ? 'Anonymous'
+        : (msgProfile.show_public_profile ?? true)
+          ? (msgProfile.full_name ?? 'Kind supporter')
+          : 'Kind supporter',
+      avatarUrl: (msg.anonymous || !(msgProfile.show_public_profile ?? true))
+        ? null
+        : (msgProfile.avatar_url ?? null),
       anonymous: msg.anonymous,
       message: msg.message,
       createdAt: msg.created_at,

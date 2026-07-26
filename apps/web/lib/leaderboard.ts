@@ -128,14 +128,23 @@ export async function getTopDonors(period: LeaderboardPeriod, limit = 20): Promi
 
   return ranked.map(([donorId, stats], i) => {
     const profile = profileMap.get(donorId);
+    // A donor who set Profile Visibility to Private must not be named here.
+    // Settings describes that control as governing "who can see your giving
+    // activity on the leaderboard and donor walls", and /donors/[id] already
+    // 404s for them — but this returned their real full_name and avatar
+    // regardless, and the UI used the flag only to drop the hyperlink. Their
+    // name still rendered, and still shipped inside the server-rendered HTML.
+    // Anonymize at the source so it never reaches the client; the donation
+    // still counts toward the ranking, exactly like an anonymous gift.
+    const isPublic = profile?.show_public_profile ?? true;
     return {
       rank: i + 1,
       donorId,
-      name: profile?.full_name || 'Generous Donor',
-      avatarUrl: profile?.avatar_url ?? null,
+      name: isPublic ? (profile?.full_name || 'Generous Donor') : 'Generous Donor',
+      avatarUrl: isPublic ? (profile?.avatar_url ?? null) : null,
       totalCents: stats.totalCents,
       donationCount: stats.donationCount,
-      showPublicProfile: profile?.show_public_profile ?? true,
+      showPublicProfile: isPublic,
     };
   });
 }

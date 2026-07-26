@@ -257,6 +257,116 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**✏️ CORRECTION — my donor-wall fix was HALF a fix; the initial page render still
+leaked.** The earlier commit fixed `/api/campaigns/[id]/donations` and I reported
+the donor wall as done. **It wasn't.** There are **two copies** of that mapping:
+- `/api/campaigns/[id]/donations` — serves **pagination** (fixed then)
+- `toWallDonation` in `app/campaigns/[slug]/page.tsx` — builds the **initial
+  server-rendered wall** (still leaking)
+
+So a private donor's real name shipped in the page HTML **on first load**, and
+only later paginated batches were redacted. The duplication is exactly what let
+the leak survive its own fix — the same root cause as the four drifted role/
+category lists.
+
+**Also found and fixed: the donor *message* wall.** `getDonorMessages` did not
+even **select** `show_public_profile`, so a private donor who posted a message was
+named. Settings governs "giving activity on the leaderboard **and donor walls**",
+and a wall message is exactly that. Query and mapping both gated now.
+
+_4 more regression tests (9 in the file), each asserting the page copy — not just
+the API — applies both gates._
+
+_Lesson recorded: when a fix touches a mapping, grep for other copies of it before
+declaring it done. I verified the API route and stopped there._
+
+**🔴 FIXED — unpublished drafts were readable at their public URL.**
+`POST /api/campaigns` documents `status: 'draft'` as *"saves without
+publishing"* — and publishing is precisely what makes a campaign public. But the
+detail page **never gated on status**: it used it only to disable donations
+(`isActive`). So a draft rendered **in full** — story, media, goal — to anyone
+holding or guessing the slug, and slugs derive from the title.
+
+Listings and the sitemap already exclude drafts (both wrap `applyLiveFilters`),
+so the detail page was the one reachable surface. Now gated on ownership, exactly
+like the existing `visibility === 'private'` branch, so the organizer can still
+preview their own draft.
+
+**Deliberately narrow: only `'draft'`.** `completed` and `archived` campaigns must
+stay readable — people link to finished fundraisers — so a blanket
+`status !== 'active'` block would have broken them. A test pins that too.
+
+_Near-miss worth recording:_ I first thought `app/sitemap.ts` leaked private and
+deleted campaigns, because `grep` showed `.from('campaigns').select(...)` with no
+filters. **Wrong** — both queries are wrapped in `applyLiveFilters(...)`, which
+applies `status='active'`, `visibility='public'` and `deleted_at IS NULL`. The
+filters live in the *enclosing call*, not the fragment grep printed. The sitemap
+is correct; reading the whole expression is what prevented a false report.
+
+**🔴 FIXED — the full data export leaked anonymous donors' identity.**
+Third application of the promise-audit, this time to *"Donate anonymously"* — the
+control donors most rely on. Checked all three export endpoints; **two were
+already right and one was the outlier**:
+- `/api/exports/donations` ✅ writes `'Anonymous'` and deliberately omits email
+  ("to avoid PII in default export").
+- `/api/exports/donors` ✅ groups anonymous gifts under one keyless row with an
+  empty email.
+- `/api/exports/full` ❌ **dumped the raw donation rows**, so the organizer
+  received `donor_id` and `offline_donor_name` for gifts marked anonymous —
+  identifiable **by name** for offline donations, and by a **stable profile id**
+  otherwise, which correlates with any non-anonymous gift the same person made.
+
+That endpoint returns the authenticated organizer's own campaigns, so this handed
+the identity straight to the one person anonymity is meant to hide it from. Now
+nulls both fields for anonymous rows; amounts, status and dates are untouched so
+the export stays complete for accounting.
+_The two siblings already redacting is what proves this was an oversight rather
+than a deliberate choice._ 2 more regression tests (5 total in the file), verified
+non-vacuous by restoring the raw pass-through.
+
+**✅ VERIFIED CLEAN — email consent.** Applied the same "does every surface honour
+the promise?" question to the notification toggles, since sending to someone who
+opted out is a legal exposure, not just a bug:
+- **Transactional email correctly gates on the opt-out.** The Stripe webhook
+  checks `notification_email === false` before both donor receipts and organizer
+  notifications and returns early.
+- **`notification_marketing` is collected but nothing consumes it** — no bulk
+  marketing send exists anywhere. The `/api/marketing/*` routes never call
+  `sendEmail`, and `lib/email.ts` never references the column. **So the opt-out
+  cannot be violated by a system that does not send.** It is set to `true` only on
+  explicit opt-in (it defaults FALSE, so that is a real opt-in, not a pre-tick).
+  ⚠️ **Whoever builds marketing email must wire this check** — the preference is
+  already stored and honoured nowhere, so it will not enforce itself.
+_One scoping error worth noting:_ I first concluded `lib/marketing-consent.ts` had
+**no importers** — wrong, my grep excluded `components/` and `.tsx`. It is used by
+`PrivacyPreferences.tsx` and `MarketingTracker.tsx`, and holds a localStorage key
+for **tracking** opt-out (not email). Checked before reporting.
+
+**🔴 FIXED — "Private" donors were still named on the leaderboard and donor walls.**
+Direct follow-on from making the Profile Visibility toggle actually save: having
+fixed the control, I checked whether anything *honours* it. `/donors/[id]` does
+(404s correctly). **The two surfaces Settings explicitly names did not.** Its own
+copy reads *"Who can see your giving activity on the leaderboard and donor
+walls"* — so the setting's description was false.
+
+- **`lib/leaderboard.ts`** returned the donor's real `full_name` and `avatar_url`
+  **regardless**, passing `showPublicProfile` through as a flag. The UI used that
+  flag only to **drop the hyperlink** — the name still rendered, and still shipped
+  inside the server-rendered HTML, so it was in view-source even if CSS had
+  hidden it.
+- **`/api/campaigns/[id]/donations`** (the donor wall) keyed naming off
+  `anonymous` **alone**, so a private donor's name and avatar were returned too.
+
+Both now anonymize **at the source**, so identity never reaches the client. The
+donation still counts and still displays — exactly like an anonymous gift — since
+the donor opted out of attribution, not out of the leaderboard. `donorId` is also
+nulled for private donors, because a link there would have 404'd as well as
+identified them.
+
+_3 regression tests, proven non-vacuous_ (reverting the leaderboard gate fails
+them). They assert the source shape rather than executing the queries, since both
+functions need a live DB.
+
 **✅ Soft-delete class CLOSED — campaigns was the only leak.** After fixing it I
 checked whether the bug had siblings, rather than assuming. **22 tables carry
 `deleted_at`**; three are publicly browsable (`campaigns`, `grants`,
@@ -4469,3 +4579,55 @@ session's work (agents pushing straight to master), and the resulting conflict
 left PR #73 `mergeable_state: dirty` — GitHub then ran **no** workflow at all,
 which looks exactly like "CI is slow". Check `mergeable_state` before assuming a
 queue delay.
+
+### ✅ FINDING 3 — auth-gated surfaces had zero e2e coverage (FIXED)
+The entire dashboard + admin surface — the whole security boundary in
+`middleware.ts` — had **no browser coverage**. A regression that opened up
+`/admin` or `/dashboard` to an unauthenticated visitor would have shipped
+silently, because unit tests do not exercise middleware.
+
+New `e2e/auth-gates.spec.ts` (5 tests, verified passing) covers:
+- every `PROTECTED` prefix **and deeper paths** under it redirect an
+  unauthenticated visitor to `/login`;
+- the `next` param preserves where they were heading (otherwise every gated
+  visit dumps the user somewhere generic);
+- `next` can never be an open redirect (relative, not protocol-relative, no `http`);
+- `PUBLIC_EXCEPTIONS` (`/create/choose-path`) stay reachable pre-sign-in;
+- protected **API** routes return 401/403 rather than redirecting — API paths are
+  excluded from the middleware matcher, so each handler owns its own check, and a
+  200 there is the exact class of bug that leaks data.
+
+**Signing IN is still not covered** — that needs real Supabase credentials
+(owner-gated, same list as the GoFundMe blockers). What is covered is the half
+that matters for safety: no session ⇒ never served a protected page.
+
+**The spec was mutation-tested, not just run green.** Removing `/admin` from
+`PROTECTED` made it fail, so the gate has teeth.
+*Bonus finding from that mutation:* the redirect assertion still passed with
+middleware protection removed, because `/admin` pages **also** call
+`requireAdmin()` server-side, which redirects to `/dashboard` → `/login`.
+That is real defense-in-depth (two independent layers), and worth knowing: the
+middleware is not the only thing standing between a visitor and `/admin`.
+
+### ✅ FINDING 2 — page-level Supabase reads now have a ceiling (PARTIALLY FIXED)
+Follow-up to Finding 2 above (the unbounded ~7s stall on DB-backed pages).
+
+New `lib/query-timeout.ts` — `withQueryTimeout(work, fallback, ms)` gives a read
+an explicit deadline and an explicit fallback, returning `{ data, degraded }`.
+Deliberately scoped: it is for **reads with a sensible empty state** (a feed, a
+list, a category strip) and explicitly **not** for writes, money totals, receipts
+or auth decisions, where silently returning "nothing" would read as a real answer.
+Rejections are treated like timeouts (an unreachable DB is not worth crashing a
+render over) and the abandoned promise's later rejection is swallowed so it cannot
+surface as an unhandled rejection — covered by a test, since a naive
+implementation leaks exactly that.
+
+Applied to the two homepage social-proof reads (`getRecentDonations`,
+`getCategoryStats` in `lib/home-data.ts`): the highest-traffic page now renders
+without its feed instead of stalling on it.
+
+**Still open — the rest of the surface.** Every other DB-backed server component
+remains unbounded. Each one needs a per-page judgement about what "degraded"
+should look like, so it is deliberately not a blanket search-and-replace. Tracked
+here rather than claimed as done. `lib/query-timeout.ts` (7 tests) is the tool to
+finish it with.
