@@ -5001,3 +5001,25 @@ the moment it exists, instead of when someone remembers to add it to a list.
 
 Good news for the claim itself: only 6 violations existed, so the underlying
 dark-mode work was genuinely broad — it was the *guard* that was narrow.
+
+### 🟡 IN PROGRESS — mobile/responsive re-verification (item 8)
+**Guard was narrower than the claim, again.** `scripts/audit-responsive.mjs`
+checked a hand-maintained list of **17 pages** while the e2e sweep covered 37, so
+~19 public routes had never been checked for horizontal overflow at any viewport
+(`/features`, `/fees`, `/security`, `/terms`, `/help`, `/blog`, `/impact`,
+`/transparency`, `/privacy-center`, `/prohibited-use`, `/fast-payouts`,
+`/for-individuals`, `/ai-campaign`, `/ai-fundraising`, `/offline`, …).
+**Fixed:** the page list is now derived from `e2e/public-routes.spec.ts`, so the
+two cannot drift. Coverage 17→36 pages × 3 viewports × 2 themes.
+
+**Gotcha that probably kept this audit from being run correctly:** it defaults to
+`http://127.0.0.1:**3100**`, not 3000, and it truncates error text at 60 chars — so
+pointing it at a normal `next start` on 3000 yields 216 identical
+`ERR_CONNECTION_REFUSED` lines that *read* as `http://127.0.0.1:3`, which looks
+like a mangled URL rather than a wrong port. Run it as:
+`node scripts/audit-responsive.mjs --base http://127.0.0.1:3000`
+(and keep the server and the audit inside one shell lifetime — a backgrounded
+`npm start` from a separate tool call gets reaped).
+
+Results of the corrected 36-page run are pending; whatever it reports goes here
+next, pass or fail.
