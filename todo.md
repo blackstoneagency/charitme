@@ -2191,3 +2191,9 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 - [x] Wired public marketing event capture to Supabase contacts, identities, events, consent, and UTM attribution with stable failure responses.
 - [x] Added route-aware AEO and SEO migrations, public metadata endpoints, sitemap/robots coverage, privacy preferences, and the public impact route.
 - [x] Verified production build, typecheck, lint, 936 Vitest tests, campaign image audit, and seed guard.
+
+## Session 2026-07-26 (Codex - development toolchain hardening)
+- [x] Removed the unused local Vercel CLI and its deployment-adapter dependency tree; provisioning continues to use the existing authenticated Vercel REST workflow.
+- [x] Updated Vitest to 4.1.10 and pinned patched `js-yaml` 4.3.0 for ESLint without changing runtime dependencies.
+- [x] Verified `npm audit --omit=dev` reports zero vulnerabilities; full audit retains only the upstream `brace-expansion` advisory in lint-only packages because forcing the patched major breaks `eslint-plugin-jsx-a11y`.
+- [x] Verified lint, typecheck, 945 Vitest tests, the 141-page production build, and the 39-route Chromium document-accessibility suite.
