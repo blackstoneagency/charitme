@@ -27,7 +27,9 @@ vi.mock('react', async (importOriginal) => {
 
 vi.mock('../lib/supabase', () => ({
   supabaseAdmin: {
-    from: () => ({ select: () => ({ eq: () => ({ single }) }) }),
+    // .is('deleted_at', null) sits between .eq() and .single() so soft-deleted
+    // campaigns 404 like missing ones — the mock mirrors that chain.
+    from: () => ({ select: () => ({ eq: () => ({ is: () => ({ single }) }) }) }),
   },
 }));
 
@@ -64,5 +66,38 @@ describe('campaign detail existence gate', () => {
     await expect(assertCampaignExists('missing')).rejects.toMatchObject({
       digest: 'NEXT_NOT_FOUND',
     });
+  });
+});
+
+describe('soft-deleted campaigns are excluded at the source', () => {
+  it("filters deleted_at so a deleted campaign 404s like a missing one", async () => {
+    // Regression: DELETE /api/campaigns/[id] soft-deletes by setting deleted_at
+    // "for compliance audit trail". Every listing filtered it, but this fetch did
+    // not — so a deleted campaign stayed fully readable at /campaigns/<slug>,
+    // including its story, donor names and messages, and amount raised. Deleting
+    // looked like it worked because the campaign left the listings.
+    const calls: [string, unknown][] = [];
+    vi.resetModules();
+    vi.doMock('react', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('react')>();
+      return { ...actual, cache: <T,>(fn: T) => fn };
+    });
+    vi.doMock('../lib/supabase', () => ({
+      supabaseAdmin: {
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              is: (col: string, val: unknown) => {
+                calls.push([col, val]);
+                return { single: async () => ({ data: null }) };
+              },
+            }),
+          }),
+        }),
+      },
+    }));
+    const { getCampaign } = await import('../app/campaigns/[slug]/get-campaign');
+    await getCampaign('some-slug');
+    expect(calls, 'the query must filter deleted_at IS NULL').toContainEqual(['deleted_at', null]);
   });
 });

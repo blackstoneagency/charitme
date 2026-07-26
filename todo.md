@@ -257,6 +257,44 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**✅ Soft-delete class CLOSED — campaigns was the only leak.** After fixing it I
+checked whether the bug had siblings, rather than assuming. **22 tables carry
+`deleted_at`**; three are publicly browsable (`campaigns`, `grants`,
+`volunteer_opportunities`). Every other public path already filters correctly:
+- `grants` — list (`/api/grants`), detail (`/api/grants/[id]`) **and** the apply
+  endpoint all `.is('deleted_at', null)`.
+- `volunteer_opportunities` — all **three** queries in `lib/volunteers-server.ts`
+  (list, by-slug, categories) filter it.
+- admin routes for both filter it too.
+So `getCampaign` was the single outlier, and the class is now closed rather than
+one instance patched. The other 19 tables are payment/audit internals with no
+public read path.
+
+**🔴 FIXED — deleting a campaign did not hide it from the public URL.**
+`DELETE /api/campaigns/[id]` **soft-deletes**: it sets `deleted_at` rather than
+removing the row ("for compliance audit trail"). Every listing filters that
+column — but `getCampaign` in `app/campaigns/[slug]/get-campaign.ts` queried on
+**slug alone**, so a deleted campaign stayed **fully readable at its public URL**:
+story, donor names and messages, amount raised.
+
+Deleting *appeared* to work, because the campaign vanished from `/campaigns` and
+search. Anyone holding the link — or arriving from a search-engine result — could
+still open it. Same shape as the other "control that lies" bugs this session: the
+button reports success and does only part of what it says.
+
+Fixed at the source (`.is('deleted_at', null)`), which covers all three callers at
+once — `layout.tsx`'s existence gate, `generateMetadata`, and the page — since
+`getCampaign` is `cache()`-shared between them. Confirmed nothing else imports it.
+
+_Found by reading the file, not scanning_ — and a misread on the way: I first
+thought a `visibility = 'public'` filter contradicted the owner-can-view-private
+branch, but that filter belongs to `getSimilarCampaigns` (the recommendations
+rail), where it is correct. Checking which function owned the line is what led to
+`getCampaign` having no filters at all.
+_Tests:_ the existing mock chain broke (`.is` is not a function), which
+independently confirmed the query shape changed; updated it and added a test
+asserting `['deleted_at', null]` is applied. 4 pass.
+
 **⚠️ The 36 unwired tables could NOT be reliably split into "superseded" vs
 "never built" — that triage needs a human.** Tried twice:
 1. **Name overlap** — too noisy to use. It paired `auction_items` with
