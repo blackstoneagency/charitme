@@ -572,6 +572,13 @@ Live-verified status of each goal criterion (master `9dc84c9`; two-bot split —
   - Evidence: `npm test --workspace=apps/web -- --run` (945/945), `npm run typecheck --workspace=apps/web`, `npm run lint --workspace=apps/web`, `npm run build --workspace=apps/web`, and Chromium public-route audit (39 routes, 1/1 passed; no unnamed controls, missing image alt text, or horizontal overflow).
   - Commit: dd8e8c5
 
+### 2026-07-26 — Production dependency and build-tracing hardening (Codex)
+
+- [x] **Production dependency audit clean** — Upgraded Next.js 15.5.18 to 15.5.21 to close the current Server Actions DoS/SSRF/cache advisories, pinned PostCSS 8.5.23 and Sharp 0.35.3 for their patched production releases, and verified Stripe resolves consistently at 22.3.2.
+- [x] **Deterministic monorepo output tracing** — Set `outputFileTracingRoot` to the repository root so Next.js no longer infers `C:\Users\Daniel` from an unrelated host lockfile.
+  - Evidence: `npm audit --omit=dev` (0 vulnerabilities), `npm run build --workspace=apps/web` (141 static pages generated, no workspace-root warning), `npm run typecheck --workspace=apps/web`, `npm run lint --workspace=apps/web`, `npm test --workspace=apps/web -- --run` (945/945), and Chromium public-route audit (1/1 passed).
+  - Commit: pending
+
 ### 2026-07-23 — Production-readiness goal (Claude lane; Codex owns SEO/marketing/security/CSP/a11y)
 
 - [x] **GOAL — Image uniqueness: every image unique, 0 duplicates** (`scripts/image-uniqueness-audit.mjs`)

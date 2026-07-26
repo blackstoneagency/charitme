@@ -18,5 +18,9 @@
   "devDependencies": {
     "supabase": "^2.101.0",
     "vercel": "^54.4.1"
+  },
+  "overrides": {
+    "postcss": "8.5.23",
+    "sharp": "0.35.3"
   }
 }
