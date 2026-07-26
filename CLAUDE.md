@@ -140,5 +140,35 @@ cleanly, so builds/tests never touch the network.
 ### Deployment
 - Vercel (auto-deploy from `main`) — primary
 - Render fallback (`render.yaml`, rootDir: apps/web)
-- Node 20 pinned via `.node-version`
+- Node pinned via `.node-version` (**20.19.0** — must stay ≥ the `engines` floor in
+  `apps/web/package.json`; rolldown/vitest 4 require `^20.19.0 || >=22.12.0`)
 - Health check: `GET /api/health` → `{"status":"ok","ts":...}`
+
+
+## ⚠️ CI is currently DEAD — a red check does NOT mean your PR is broken
+
+**Verified 2026-07-26.** Every GitHub Actions run — on `master` and on PRs — fails in
+**2–5 seconds**. A real run (`npm ci` + build + 1281 tests + Playwright) takes minutes,
+so the workflow is dying **before it executes any step**. Symptoms that confirm it:
+job logs 404, `get_check_run` output is empty, and docs-only commits fail identically.
+
+**It is an account/runner problem, not a code problem** — most likely GitHub Actions
+minutes or billing exhausted (the same account is returning
+`api-deployments-free-per-day` from Vercel on every push). Owner fix: check
+**Settings → Billing → Actions**. Full write-up in `todo.md`.
+
+**So do not debug your code against a red check, and do not "fix" CI failures you did
+not cause.** Verify locally instead — this is the real signal:
+
+```bash
+npm run typecheck --workspace=apps/web     # tsc --noEmit
+npm run lint      --workspace=apps/web     # eslint (0 errors expected)
+npm test          --workspace=apps/web     # vitest
+npm run audit:campaign-images --workspace=apps/web
+npm run build     --workspace=apps/web
+# e2e — the env var points Playwright at the sandbox's prebuilt browser:
+cd apps/web && PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test
+```
+
+If `npm run typecheck` fails on a missing module, run `npm install` first — the lockfile
+moves when other agents add dependencies.
