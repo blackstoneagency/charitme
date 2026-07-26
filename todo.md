@@ -152,7 +152,53 @@ single endpoint receives all Connect events signed with the main secret. Leave u
 
 ## 🔎 Claude session index — 2026-07-26 (create flow, settings, schema, docs, PRIVACY, SECURITY, TRUST&SAFETY)
 
-### 🧭 THE PROMISE AUDIT — 16 controls checked, 13 defects, 3 clean
+### 🧭 THE PROMISE AUDIT — 39 controls checked, 23 defects, 15 clean, 1 product gap
+
+**Method (the part that transfers):** take a control that promises the user
+something, then verify **every** path that must honour it. Two refinements earned
+the hard way:
+- **Trace the DISPLAY path, not the writer.** "Nothing writes this field" nearly
+  produced two false alarms; what matters is whether something user-facing *reads* it.
+- **The UI is not an access control.** Anywhere a page hides a button based on
+  state, the API must independently enforce the same state.
+
+**Family 1 — a user's choice one read path ignored (7):** delete campaign · Private
+profile on leaderboard/donor wall · Private profile on the **homepage** ticker ·
+anonymous donor in the organizer's export · in the supporters list · in the messages
+route · unpublished **draft** fully readable.
+
+**Family 2 — a number whose label ≠ what it counts (8):** goal suggestions inflated
+2.5× · category list drifted to 11 of 18 · trust&safety backlog showed a **page size**
+as the total · donor "Total Given" summed only 100 gifts · **homepage "Trust Score 0"**
+· admin "0/100" in red · two admin stats where a **failed query** rendered as `0`.
+
+**Family 3 — a control that writes state nothing enforces (6, all fail-OPEN):**
+**suspension does nothing** · **payout freeze cannot work** (destination charges) ·
+user + team **roles enforce nothing** · **paid plans enforce nothing** · `pinned`
+dead · *(fixed)* accept-donations toggle · *(fixed)* deadline.
+
+**Family 4 — a write whose failure was invisible (4):** reward claim (could
+**oversell** a limited perk) · organizer send-cap (**bypassable**) · support ticket
+(reported success with no row) · `donations.currency` (€ silently read as $).
+
+**Clean — and the pattern is the point (15):** recurring cancel/pause, refunds,
+unsubscribe suppression, thank-donors, campaign-update emails, notifications,
+beneficiary invites, donate-surface gates (6/6), super-admin routes (7/7), campaign
+mutations (18/18), donor data (no IDOR), fee math (66 combinations).
+**Every clean area shows deliberate failure-ordering** — Stripe-first cancellation so
+a DB failure never costs a donor; partial refunds opening a reconciliation exception
+rather than guessing a split. **The defects cluster exactly where that standard of
+review doesn't reach.**
+
+### ⚠️ THE 4 THINGS THAT NEED A DECISION (code is ready; policy isn't)
+1. **User suspension has no effect** — no `profiles.status` column, `parseRoles()`
+   whitelists `'suspended'` away, and nothing checks it. Needs an enforcement point.
+2. **Payout freeze cannot work** — destination charges put funds in the organizer's
+   Stripe account at charge time. 3 options recorded.
+3. **Roles enforce nothing** — 0 of 18 routes check a role. Needs a permission model.
+4. **Paid plans enforce nothing** — `userHasFeature` has zero callers. Needs a
+   billing policy (what happens to accounts already over the limit?).
+
 
 The single most productive method this session: **take a control that promises the
 user something, then verify every path that must honour it.** Every defect below is
