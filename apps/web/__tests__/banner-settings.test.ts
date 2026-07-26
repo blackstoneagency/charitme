@@ -1,11 +1,28 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   normalizeBannerSettings,
   safeColor,
+  safeBannerLinkUrl,
   safeFontFamily,
   DEFAULT_BANNER_SETTINGS,
   BANNER_FONT_OPTIONS,
 } from '../lib/banner-settings';
+
+describe('safeBannerLinkUrl', () => {
+  it('accepts HTTPS and site-relative destinations', () => {
+    expect(safeBannerLinkUrl('/features')).toBe('/features');
+    expect(safeBannerLinkUrl('/')).toBe('/');
+    expect(safeBannerLinkUrl('https://www.charitme.com/pricing')).toBe('https://www.charitme.com/pricing');
+  });
+
+  it('rejects executable, insecure, and protocol-relative destinations', () => {
+    for (const bad of ['javascript:alert(1)', 'data:text/html,x', 'http://example.com', '//example.com', 'features', null]) {
+      expect(safeBannerLinkUrl(bad)).toBe('');
+    }
+  });
+});
 
 // Banner appearance is set by super admins and interpolated into inline styles,
 // so every value is validated on READ as well as on write. These tests pin that
@@ -96,6 +113,11 @@ describe('normalizeBannerSettings', () => {
   it('passes through a fully valid row', () => {
     const out = normalizeBannerSettings({
       enabled: false,
+      content_title: 'Important update',
+      content_body: 'A clear message for every visitor.',
+      content_link_label: 'Read more',
+      content_link_url: '/features',
+      content_revision: 4,
       background_color: '#123456',
       text_color: '#abcdef',
       link_color: '#fff',
@@ -112,6 +134,11 @@ describe('normalizeBannerSettings', () => {
       use_level_colors: true,
     });
     expect(out.enabled).toBe(false);
+    expect(out.contentTitle).toBe('Important update');
+    expect(out.contentBody).toBe('A clear message for every visitor.');
+    expect(out.contentLinkLabel).toBe('Read more');
+    expect(out.contentLinkUrl).toBe('/features');
+    expect(out.contentRevision).toBe(4);
     expect(out.backgroundColor).toBe('#123456');
     expect(out.fontSizePx).toBe(18);
     expect(out.titleFontWeight).toBe(800);
@@ -124,6 +151,7 @@ describe('normalizeBannerSettings', () => {
     const d = DEFAULT_BANNER_SETTINGS;
     const out = normalizeBannerSettings({
       enabled: 'yes',                              // not a boolean
+      content_link_url: 'javascript:alert(1)',
       background_color: 'red; background: url(x)', // CSS injection attempt
       text_color: '#zzz',
       font_family: 'Evil"); }',                    // not allow-listed
@@ -135,6 +163,7 @@ describe('normalizeBannerSettings', () => {
       padding_y_px: 1000,
     });
     expect(out.enabled).toBe(d.enabled);
+    expect(out.contentLinkUrl).toBe('');
     expect(out.backgroundColor).toBe(d.backgroundColor);
     expect(out.textColor).toBe(d.textColor);
     expect(out.fontFamily).toBe(d.fontFamily);
@@ -159,5 +188,29 @@ describe('normalizeBannerSettings', () => {
 
   it('clamps a disabled banner honestly (false stays false)', () => {
     expect(normalizeBannerSettings({ enabled: false }).enabled).toBe(false);
+  });
+});
+
+describe('banner persistence contract', () => {
+  const migration = readFileSync(
+    join(__dirname, '../../../supabase/migrations/20260804000000_banner_content_and_recovery.sql'),
+    'utf8',
+  );
+  const client = readFileSync(join(__dirname, '../app/admin/super/banner/BannerClient.tsx'), 'utf8');
+  const banner = readFileSync(join(__dirname, '../components/AnnouncementBanner.tsx'), 'utf8');
+
+  it('recovers a missing production table and keeps it service-role only', () => {
+    expect(migration).toContain('create table if not exists public.banner_settings');
+    expect(migration).toContain('revoke all on table public.banner_settings from anon, authenticated');
+    expect(migration).toContain('grant all on table public.banner_settings to service_role');
+  });
+
+  it('persists editable copy and uses a revision to reset stale dismissals', () => {
+    for (const column of ['content_title', 'content_body', 'content_link_label', 'content_link_url', 'content_revision']) {
+      expect(migration).toContain(column);
+    }
+    expect(client).toContain('content_title: s.contentTitle');
+    expect(client).toContain('Banner text');
+    expect(banner).toContain('global-banner-${appearance.contentRevision}');
   });
 });

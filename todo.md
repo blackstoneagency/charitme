@@ -4557,6 +4557,23 @@ the anon+cookies client so Postgres enforces ownership).
   `docs/marketing-os/MASTER_SPEC.md` (multi-tenant scoping, approval engine,
   brand constitution, AI agents, external connectors, experiments/attribution).
 
+## Session 2026-07-26 (Codex - global banner recovery and dynamic copy)
+- [x] Reproduced the production save failure: Supabase returned `PGRST205` because `banner_settings` had not been applied, while the existing announcement feed remained available.
+- [x] Added an idempotent recovery migration plus rollback script, service-role-only access, editable title/message/link fields, and a content revision trigger so new copy is not hidden by stale visitor dismissals.
+- [x] Added the Banner text editor immediately after Live preview and wired its validated values through the super-admin API, Supabase row, cached root layout, and public banner renderer.
+- [x] Ran the migration against the live schema inside a rollback-only transaction: show/hide, copy persistence, safe link, and revision increments passed; a post-rollback REST probe confirmed no production change remained.
+- [x] Verified focused banner tests 15/15, zero-warning lint, typecheck, all 1,163 tests, and the 149-page production build.
+- [ ] Merge through the protected-main PR, apply the verified migration in the release workflow, and confirm the production Save/show/hide/text flow.
+
+## Session 2026-07-26 (Codex - full SQL/live Supabase reconciliation)
+- [x] Inventoried all 104 SQL files: 87 migrations, 2 rollbacks, 11 seed files, and 4 schema/recovery/generator artifacts.
+- [x] Compared live Supabase tables, columns, functions, RPCs, indexes, triggers, policies, RLS, seed targets, and migration history with the repository.
+- [x] Found and corrected 12 duplicate migration versions plus one invalid eight-digit migration version.
+- [x] Added migration coverage for six live tables that previously existed only out of band.
+- [x] Added a test that rejects duplicate/invalid migration versions and PostgREST table usage without migration coverage.
+- [x] Verified the exact nine-migration pending set against live Supabase in a rollback-only transaction with postcondition checks.
+- [ ] Merge PR #74, baseline the 78 verified historical versions, apply the nine pending versions, and rerun the live 150-table/catalog audit.
+
 ## 🔒 CLAIM — Session 2026-07-25 (Claude — production-readiness sweep)
 
 > **AREA CLAIMED:** `.github/workflows/ci.yml`, `apps/web/e2e/**`, `middleware.ts`.

@@ -42,6 +42,11 @@ function writeDismissed(ids: string[]): void {
 /** Appearance controlled by super admins (see lib/banner-settings.ts). */
 export type BannerAppearance = {
   enabled: boolean;
+  contentTitle: string;
+  contentBody: string;
+  contentLinkLabel: string;
+  contentLinkUrl: string;
+  contentRevision: number;
   backgroundColor: string;
   textColor: string;
   linkColor: string;
@@ -74,7 +79,20 @@ export default function AnnouncementBanner({ initial, appearance }: { initial?: 
     return () => { cancelled = true; };
   }, []);
 
-  const current = useMemo(() => items.find((a) => !seen.includes(a.id)) ?? null, [items, seen]);
+  const current = useMemo(() => {
+    if (appearance && appearance.contentTitle.trim()) {
+      const custom: Announcement = {
+        id: `global-banner-${appearance.contentRevision}`,
+        title: appearance.contentTitle.trim(),
+        body: appearance.contentBody || null,
+        level: 'info',
+        link_url: appearance.contentLinkUrl || null,
+        link_label: appearance.contentLinkLabel || null,
+      };
+      return seen.includes(custom.id) ? null : custom;
+    }
+    return items.find((announcement) => !seen.includes(announcement.id)) ?? null;
+  }, [appearance, items, seen]);
 
   // Global kill switch — super admins can hide the banner site-wide regardless
   // of how many announcements are active.
