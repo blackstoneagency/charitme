@@ -4196,6 +4196,50 @@ against the real production DB works and has already settled real questions
 (SEO surface, indexing, RLS review), not a role-dashboard gap.
 
 
+
+## 🔴 CI HAS BEEN RED ON MASTER FOR AT LEAST 8 CONSECUTIVE COMMITS
+
+**Nobody currently has CI signal.** Every recent `master` run of `ci.yml` reports
+`failure` — checked via the Actions API, newest first:
+
+| head | title | conclusion |
+|---|---|---|
+| `18516d03` | docs(todo): close the seeded-but-unread sweep | **failure** |
+| `14a338e8` | fix(links): 120 events offered a Join link… | **failure** |
+| `a7ce188d` | Merge remote-tracking branch 'origin/master' | **failure** |
+| `e175b592` | test(a11y): enforce zero contrast failures | **failure** |
+| `01043879` | docs(todo): claim the scrollable-region audit | **failure** |
+| `032408ff` | docs(todo): API authorization audit | **failure** |
+| `59fabebb` | fix(seeds): guard the SQL seeds | **failure** |
+| `a7326bf2` | docs(todo): audit the 10 parity boxes | **failure** |
+
+Both jobs fail — `typecheck · lint · test · audit · build` **and** `e2e (playwright)`.
+Note several of those are **docs-only commits**, which is a strong hint the cause is
+environmental/config rather than any one change.
+
+**This matters more than any single feature in this file:** PRs are being merged into a
+permanently-red master, so a real regression would look exactly like the current noise
+and sail straight through.
+
+**What I could and could not establish** (from PR #91, which inherits the same failure):
+- ✅ Every CI step passes **locally** on the same tree: `tsc --noEmit` clean,
+  `eslint` **0 errors**, **1281/1281** unit tests, `audit:campaign-images` PASSED,
+  `next build` exit 0, and **30/30 Playwright e2e** (run with
+  `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium`, the opt-in override added in
+  `24ab30d`).
+- ❌ **CI logs cannot be read from here** — `get_job_logs` returns HTTP 404 for every
+  job, by `job_id` and by `run_id`+`failed_only`, on two separate runs. So the
+  CI-specific cause is not visible to an agent in this sandbox.
+- ⚠️ First local e2e attempt failed on a missing `chrome-headless-shell` binary — that
+  is a **sandbox artifact**, not the CI failure (CI runs `playwright install --with-deps
+  chromium`). Don't chase it.
+
+**Next step for whoever can read the logs:** open the run in the GitHub UI. Likely
+candidates given docs-only commits also fail: a required secret/env missing from the
+workflow, an `npm ci` lockfile mismatch, or a runner/Node version change. Until then,
+**a red check on a PR does not mean that PR is broken** — verify locally with the six
+commands above.
+
 ## 🔓 CLAIM RELEASED — fabricated trust badges suppressed at the READ layer ✅
 
 > **DONE — area is FREE.** Complements the seed-source fix below, which governs
