@@ -29,6 +29,7 @@ type ProfileRow = {
   show_public_profile: boolean | null;
   campaign_recommendations: boolean | null;
   notification_email: boolean | null;
+  notification_updates: boolean | null;
   notification_marketing: boolean | null;
 };
 
@@ -41,7 +42,7 @@ async function fetchProfile(userId: string): Promise<ProfileRow> {
         'org_name,org_website,org_tagline,' +
         'timezone,currency,language,date_format,time_format,' +
         'show_public_profile,campaign_recommendations,' +
-        'notification_email,notification_marketing'
+        'notification_email,notification_updates,notification_marketing'
       )
       .eq('id', userId)
       .single();
@@ -59,7 +60,7 @@ function defaultProfile(): ProfileRow {
     timezone: 'America/New_York', currency: 'usd', language: 'en',
     date_format: 'MM/DD/YYYY', time_format: '12h',
     show_public_profile: true, campaign_recommendations: true,
-    notification_email: true, notification_marketing: false,
+    notification_email: true, notification_updates: true, notification_marketing: false,
   };
 }
 

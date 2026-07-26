@@ -2143,6 +2143,51 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
     _The 6 existing title tests pass unchanged — they only covered Medical,
     Education and Animal, three of the seven categories that already worked._
 
+    **✅ SETTINGS PASS 2 — a privacy bug, a never-connected column, 6 more liars.**
+    Audited all 8 sections. Sections 4–8 (integrations, team, billing, data) are
+    link-only and genuinely fine — they point at real routes (`/dashboard/team`,
+    Stripe portal, `/api/exports/{donations,donors,full}`). The problems were in
+    Security, Preferences and Notifications:
+
+    1. **🔒 Privacy bug — "Profile Visibility" never saved.** The control renders in
+       **Security & Privacy**, but the only thing persisting `show_public_profile`
+       was the **Preferences** panel's Save button — a different section. Security
+       has no Save control and there is **no `useEffect` anywhere** in the file, so
+       a donor who set themselves to Private and navigated away **silently stayed
+       public**. Now writes immediately on change (correct for a privacy choice),
+       with an optimistic update that **reverts if the request fails** and a toast
+       naming the resulting state.
+
+    2. **🔌 `profiles.notification_updates` existed but was wired to nothing.** The
+       column is real (`boolean DEFAULT true NOT NULL`) yet appeared in **zero**
+       files — while the UI carried a dead "Product updates" toggle hardcoded
+       `checked={false} onChange={() => null}`. Two halves of a wire never
+       connected. Now wired end-to-end: zod schema → `fields` → both `select`s →
+       server page type/defaults → client state → both save payloads → the toggle.
+       _The schema-contract test passing against the new `select` independently
+       confirms the column exists in the live DB._
+
+    3. **6 more dead controls removed.**
+       - **5× `NotifRow`** ("New donations", "New donors", "Campaign updates",
+         "Payouts and transfers", "Mentions and comments"). Each held **local
+         `useState`** that persisted nowhere, sitting directly above a Save button
+         that reported *"Notification settings saved!"*. They **visibly moved**, so
+         they felt functional, then reset on reload. Checked for somewhere to bind
+         them first: `public.notifications` is a delivered-message feed
+         (`kind`/`title`/`read_at`), **not** preferences, and `profiles` has only
+         the three booleans — so there is genuinely no column. Removed the uses and
+         the now-unused component.
+       - **"Tips and best practices"** — same dead pattern, and a duplicate of the
+         working "Product news & tips" (`notification_marketing`) one panel over.
+
+    **Running total on this page: 10 dead controls removed, 3 real ones added/fixed.**
+
+    _Still open (needs a migration this sandbox cannot apply):_ per-kind notification
+    preferences. Requires either a `notification_kinds jsonb` column on `profiles`
+    or a `notification_preferences(user_id, kind, enabled)` table, then re-adding
+    those five toggles bound to it. Deliberately **not** stubbed back in — five
+    toggles that lie are worse than five absent ones.
+
     **⚠️ Note for other agents — stale `.next/types` after PR #63.** That PR
     deleted `app/events`, `app/matching`, and `app/sponsor`. A `.next` cache built
     before rebasing onto it still holds generated stubs importing those pages, and

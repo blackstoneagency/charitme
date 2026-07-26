@@ -26,6 +26,7 @@ interface ProfileData {
   show_public_profile: boolean | null;
   campaign_recommendations: boolean | null;
   notification_email: boolean | null;
+  notification_updates: boolean | null;
   notification_marketing: boolean | null;
 }
 
@@ -132,19 +133,6 @@ function PrefRow({ id, label, desc, checked, onChange }: { id: string; label: st
 }
 
 // ─────────────────────────────────────────────
-// NotifRow (self-contained toggle state)
-// ─────────────────────────────────────────────
-function NotifRow({ id, label, desc, defaultOn }: { id: string; label: string; desc: string; defaultOn: boolean }) {
-  const [on, setOn] = useState(defaultOn);
-  return (
-    <div className="kf-setpref">
-      <div className="kf-setpref-info"><strong>{label}</strong><span>{desc}</span></div>
-      <Toggle id={id} checked={on} onChange={setOn} label={label} />
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────
 export default function SettingsClient({ initialProfile, campaignsCount, userEmail, userId, hasStripeCustomer }: Props) {
@@ -168,6 +156,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
   const [showPublicProfile, setShowPublicProfile] = useState(initialProfile.show_public_profile ?? true);
   const [campaignRecs, setCampaignRecs] = useState(initialProfile.campaign_recommendations ?? true);
   const [notifyEmail, setNotifyEmail] = useState(initialProfile.notification_email ?? true);
+  const [notifyUpdates, setNotifyUpdates] = useState(initialProfile.notification_updates ?? true);
   const [notifyMarketing, setNotifyMarketing] = useState(initialProfile.notification_marketing ?? false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const avatarFileRef = useRef<HTMLInputElement>(null);
@@ -226,6 +215,39 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
     } catch { showToast('error', 'Something went wrong.'); } finally { setSaving(false); }
   }
 
+  /**
+   * Profile Visibility is rendered in Security & Privacy, but the only thing that
+   * persisted `show_public_profile` was the Preferences panel's Save button —
+   * a different section. With no Save control in Security and no autosave, a
+   * donor who switched themselves to Private and navigated away silently stayed
+   * public. A privacy choice should also apply immediately rather than wait on a
+   * save elsewhere, so this writes on change and reverts the toggle if it fails.
+   */
+  async function savePrivacy(next: boolean) {
+    const previous = showPublicProfile;
+    setShowPublicProfile(next);
+    setSaving(true);
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ show_public_profile: next }),
+      });
+      if (!res.ok) {
+        setShowPublicProfile(previous);
+        const e = await res.json().catch(() => ({}));
+        showToast('error', (e as { error?: string }).error ?? 'Could not update visibility.');
+        return;
+      }
+      showToast('success', next ? 'Your giving activity is now public.' : 'Your giving activity is now private.');
+    } catch {
+      setShowPublicProfile(previous);
+      showToast('error', 'Something went wrong.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function savePreferences() {
     setSaving(true);
     try {
@@ -235,7 +257,8 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
         body: JSON.stringify({
           timezone, currency, language, date_format: dateFormat, time_format: timeFormat,
           show_public_profile: showPublicProfile,
-          campaign_recommendations: campaignRecs, notification_marketing: notifyMarketing,
+          campaign_recommendations: campaignRecs, notification_updates: notifyUpdates,
+          notification_marketing: notifyMarketing,
         }),
       });
       if (!res.ok) { const e = await res.json().catch(() => ({})); showToast('error', (e as { error?: string }).error ?? 'Failed to save.'); return; }
@@ -249,7 +272,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
       const res = await fetch('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notification_email: notifyEmail, notification_marketing: notifyMarketing }),
+        body: JSON.stringify({ notification_email: notifyEmail, notification_updates: notifyUpdates, notification_marketing: notifyMarketing }),
       });
       if (!res.ok) { const e = await res.json().catch(() => ({})); showToast('error', (e as { error?: string }).error ?? 'Failed to save.'); return; }
       showToast('success', 'Notification settings saved!');
@@ -405,8 +428,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 </div>
                 <div style={{ paddingTop: 8 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 12 }}>Email Preferences</div>
-                  <PrefRow id={`${uid}-updates`} label="Product updates" desc="News about new CharitMe features" checked={false} onChange={() => null} />
-                  <PrefRow id={`${uid}-tips`} label="Tips and best practices" desc="Guides and strategies for fundraising" checked={false} onChange={() => null} />
+                  <PrefRow id={`${uid}-updates`} label="Product updates" desc="News about new CharitMe features" checked={notifyUpdates} onChange={setNotifyUpdates} />
                   <PrefRow id={`${uid}-digest`} label="Weekly performance summary" desc="Weekly email with campaign stats" checked={campaignRecs} onChange={setCampaignRecs} />
                 </div>
               </div>
@@ -426,11 +448,6 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
             </div>
             <div className="kf-setpanel-body">
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 8 }}>In-App Notifications</div>
-              <NotifRow id={`${uid}-n1`} label="New donations" desc="When a donor contributes to your campaign" defaultOn={true} />
-              <NotifRow id={`${uid}-n2`} label="New donors" desc="When someone makes their first donation" defaultOn={true} />
-              <NotifRow id={`${uid}-n3`} label="Campaign updates" desc="When your campaign reaches a milestone" defaultOn={true} />
-              <NotifRow id={`${uid}-n4`} label="Payouts and transfers" desc="When payouts are processed or transferred" defaultOn={true} />
-              <NotifRow id={`${uid}-n5`} label="Mentions and comments" desc="When someone mentions you or comments" defaultOn={false} />
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', margin: '18px 0 8px' }}>Email Notifications</div>
               <PrefRow id={`${uid}-ne1`} label="Receive email notifications" desc="Get notified by email for important events" checked={notifyEmail} onChange={setNotifyEmail} />
               <PrefRow id={`${uid}-ne2`} label="Product news & tips" desc="Occasional marketing emails about new features and fundraising tips" checked={notifyMarketing} onChange={setNotifyMarketing} />
@@ -465,7 +482,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                       Preview →
                     </Link>
                   )}
-                  <select value={showPublicProfile ? 'public' : 'private'} onChange={e => setShowPublicProfile(e.target.value === 'public')} style={{ height: 36, border: '1px solid var(--b1)', borderRadius: 8, padding: '0 12px', fontSize: 13 }}>
+                  <select value={showPublicProfile ? 'public' : 'private'} disabled={saving} onChange={e => savePrivacy(e.target.value === 'public')} style={{ height: 36, border: '1px solid var(--b1)', borderRadius: 8, padding: '0 12px', fontSize: 13 }}>
                     <option value="public">Public</option>
                     <option value="private">Private</option>
                   </select>

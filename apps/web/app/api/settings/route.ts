@@ -29,6 +29,7 @@ const SettingsSchema = z.object({
   campaign_recommendations: z.boolean().optional(),
   // Notifications
   notification_email: z.boolean().optional(),
+  notification_updates: z.boolean().optional(),
   notification_marketing: z.boolean().optional(),
 });
 
@@ -47,7 +48,7 @@ export async function GET() {
         'org_name,org_website,org_tagline,' +
         'timezone,currency,language,date_format,time_format,' +
         'show_public_profile,campaign_recommendations,' +
-        'notification_email,notification_marketing'
+        'notification_email,notification_updates,notification_marketing'
       )
       .eq('id', user.id)
       .single();
@@ -81,7 +82,7 @@ export async function PATCH(request: NextRequest) {
       'org_name', 'org_website', 'org_tagline',
       'timezone', 'currency', 'language', 'date_format', 'time_format',
       'show_public_profile', 'campaign_recommendations',
-      'notification_email', 'notification_marketing',
+      'notification_email', 'notification_updates', 'notification_marketing',
     ];
     for (const key of fields) {
       if (d[key] !== undefined) updates[key] = d[key];
@@ -96,7 +97,7 @@ export async function PATCH(request: NextRequest) {
         'org_name,org_website,org_tagline,' +
         'timezone,currency,language,date_format,time_format,' +
         'show_public_profile,campaign_recommendations,' +
-        'notification_email,notification_marketing'
+        'notification_email,notification_updates,notification_marketing'
       )
       .single();
 
