@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { resend } from '../../../lib/email';
-import { checkRateLimit } from '../../../lib/rate-limit';
+import { checkRateLimitDurable } from '../../../lib/rate-limit-durable';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { resolveContact, trackEvent } from '../../../lib/marketing-engine';
 
@@ -19,7 +19,10 @@ function contactRecipients(): string[] {
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
-  if (!checkRateLimit(`contact:${ip}`, 5, 60_000)) {
+  // Durable, cross-instance limit: this endpoint is unauthenticated and each
+  // accepted request sends a Resend email, so a per-instance counter bounds
+  // neither spend nor the sending domain's reputation.
+  if (!(await checkRateLimitDurable(`contact:${ip}`, 5, 60_000))) {
     return NextResponse.json({ error: 'Too many contact requests', code: 'RATE_LIMITED' }, { status: 429 });
   }
 

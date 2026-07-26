@@ -134,6 +134,18 @@ determined to burn spend. Converted all eleven remaining OpenAI routes
 route's existing key and limits exactly. **Verified: zero OpenAI-backed routes
 remain on the per-instance limiter.**
 
+**✅ Extended the same check beyond AI — found `/api/contact`.** Swept every
+non-AI route still on the in-memory limiter for ones that cost real money per
+request. `/api/contact` is **unauthenticated**, and every accepted request sends a
+**Resend email** (plus a DB insert), throttled at 5/min per IP *per instance* — so
+5 × instanceCount on Vercel. Arguably worse than the AI case: email abuse damages
+the **sending domain's reputation**, not just the bill. Converted to
+`checkRateLimitDurable`, same limits.
+_Checked and left alone:_ the other non-AI in-memory-limited routes
+(`marketing/capture`, `campaign-reports`, `share-events`, leaderboards, donations,
+messages) write DB rows or read data but trigger no per-request external spend, so
+best-effort throttling is a defensible fit there.
+
 _Audited clean in the same pass:_ **all 65 `/api/admin/*` routes are guarded**
 (the `super/*` ones via `guardSuperAdmin`/`isSuperAdmin`), and every public
 service-role write endpoint is rate-limited. `middleware.ts` protects
