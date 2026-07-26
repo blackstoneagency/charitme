@@ -1673,6 +1673,29 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM35 · ⚠️ FOR CODEX — the strict-CSP nonce silently disabled ISR site-wide** —
+  Ran a real concurrent load probe (`scripts/load-test.mjs`, 150 req @ concurrency
+  20 per path). **No errors on any path** — nothing 5xx'd or fell over. But `/`
+  stood out badly: **p50 1503ms / p95 6577ms**, versus 200–800ms for every other
+  page. Solo it is only ~1.7x slower (0.43s vs 0.26s), so this is a *concurrency*
+  cliff, not raw latency.
+  **Root cause (verified, not inferred):** `app/layout.tsx:77` does
+  `(await headers()).get('x-nonce')` to read the per-request CSP nonce set in
+  `middleware.ts:69`. Calling `headers()` in the **root layout** opts the entire
+  App Router out of static rendering. Evidence: `.next/prerender-manifest.json`
+  lists **4 prerendered routes, all static assets** — `/` is not among them, and
+  every response carries `Cache-Control: private, no-cache, no-store`. So
+  `app/page.tsx`'s `revalidate = 120` and `app/faq/page.tsx`'s `revalidate = 300`
+  are **both dead**: every request re-renders and re-queries Supabase.
+  **Not changed by me** — the strict CSP is Codex's lane and a per-request nonce is
+  a legitimate security choice. But the cost (no cached HTML anywhere, a Supabase
+  round-trip per page view, higher latency + DB load + hosting cost) should be a
+  deliberate trade rather than a surprise. Options if you want both:
+  (a) hash-based `script-src` instead of nonces, so HTML stays cacheable;
+  (b) keep the nonce but read it in a client boundary / per-route instead of the
+  root layout; (c) accept fully-dynamic rendering and drop the two dead
+  `revalidate` exports so the code stops implying caching that does not happen.
+
 - **CHAR-SM34 · every public page audited (32 at a11y 100)** — Enumerated **all**
   public `page.tsx` routes rather than the ones already on my list, and found **14
   never audited**. Swept them: `/ai-campaign`, `/ai-fundraising`, `/fees`, `/impact`,
@@ -3141,14 +3164,26 @@ Severity: 🔴 Critical · 🟠 High · 🟡 Medium · 🟢 Low. Full detail in 
 ## Remaining (verification-gated — NOT faked)
 - [ ] Live end-to-end charge→transfer→payout→reconcile (GATED on LB-005 Connect
   live-enablement) + refund/dispute lifecycle via Stripe test clocks.
-- [ ] Browser / mobile / accessibility / load tests (no harness in this environment).
+- [x] Browser / mobile / accessibility / **load** tests — **DONE (2026-07-25).** The
+  sandbox does have a harness (Playwright + Chromium). Browser+a11y: Lighthouse on
+  **32 public pages, all 100**. Mobile: 390x844 emulation, tap targets 28 -> 0,
+  0 horizontal overflow. Responsive: `scripts/audit-responsive.mjs`, 17 pages x
+  3 viewports x 2 themes = 102 renders, 0 findings. Load: new
+  `scripts/load-test.mjs` (150 req @ concurrency 20 per path) — **0 errors on every
+  path**; see CHAR-SM35 for the one latency outlier it surfaced.
 - [ ] Full per-persona live RLS matrix for payment tables (needs real auth sessions).
 
 ## Verification-gated (NOT faked — needs Stripe live verification / staging)
 - [ ] Live end-to-end charge→transfer→payout→reconcile (GATED on LB-005 Connect
   live-enablement).
 - [ ] Refund/dispute lifecycle via Stripe test clocks.
-- [ ] Browser / mobile / accessibility / load tests (no harness in this environment).
+- [x] Browser / mobile / accessibility / **load** tests — **DONE (2026-07-25).** The
+  sandbox does have a harness (Playwright + Chromium). Browser+a11y: Lighthouse on
+  **32 public pages, all 100**. Mobile: 390x844 emulation, tap targets 28 -> 0,
+  0 horizontal overflow. Responsive: `scripts/audit-responsive.mjs`, 17 pages x
+  3 viewports x 2 themes = 102 renders, 0 findings. Load: new
+  `scripts/load-test.mjs` (150 req @ concurrency 20 per path) — **0 errors on every
+  path**; see CHAR-SM35 for the one latency outlier it surfaced.
 
 ## Verified sound (no change needed)
 - Destination-charge architecture, no-custody payout-readiness gate, server-side
