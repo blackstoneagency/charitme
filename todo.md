@@ -5040,7 +5040,29 @@ against every `.ts/.tsx/.mjs` file, then took live row counts:
 | `volunteer_profiles` | **1131** | ❌ nothing |
 | `coach_sessions` | **500** | ❌ nothing (only a DDL string in apply-schema) |
 | `event_tickets` | **240** | ✅ **now wired — see below** |
-| `grant_documents` | **240** | ❌ nothing |
+| `grant_documents` | **240** | ⛔ deliberately not wired — see below |
+
+**SWEEP CLOSED (Claude, 2026-07-26) — every one resolved, with a reason:**
+- `event_tickets` → **wired** (paid tiers now shown on every event page).
+- `volunteer_profiles` → **wired** (shown to organizers reviewing applicants).
+- `grant_documents` → **deliberately left unwired.** Every `file_url` is
+  `https://example.org/docs/N.pdf`. Wiring it would ship 240 broken downloads and
+  let us tick "wired to Supabase" for a feature that fails on click. Needs real
+  files first.
+- `coach_sessions` → **not worth wiring as designed.** The table stores only
+  `user_id, campaign_id, message_count` — a usage *counter*, not a conversation
+  store, so reading it gives a user nothing and its 500 seeded rows are meaningless
+  counters. Either extend it to hold messages (real feature: coach memory across
+  sessions) or drop it. Recorded rather than half-wired.
+- The other 18 unreferenced tables are empty *and* unread — unbuilt features, not
+  broken ones.
+
+**Placeholder-data sweep (read-only, 11 public-facing tables, up to 300 rows each):**
+only `fundraising_events.virtual_url` (120) and `grants.application_url` (240) leaked
+RFC 2606 domains into the UI — both now guarded. `campaigns`, `volunteer_opportunities`,
+`sponsorship_opportunities`, `matching_programs`, `nonprofit_profiles`,
+`campaign_updates` are **clean**. `profiles.email` has 7 `example.com` seed accounts,
+which is normal for test users and is not rendered publicly.
 
 The seed suite counted these rows as coverage, but **no page or API queries them**,
 so they prove nothing about the features working. 18 further tables are unreferenced
