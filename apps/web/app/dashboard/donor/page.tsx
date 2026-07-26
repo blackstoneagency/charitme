@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar, MetricGrid, KFIcon, type Metric } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
+import { DataUnavailableAlert } from '../../../components/ui';
 import DonorTagEditor from './DonorTagEditor';
 
 export const dynamic = 'force-dynamic';
@@ -62,29 +64,46 @@ async function fetchDonorData(userId: string): Promise<{
   newLast30: number;
   avgDonationCents: number;
   allTags: string[];
+  loadFailed: boolean;
+  detailsFailed: boolean;
 }> {
-  const empty = { donors: [], totalCents: 0, totalUnique: 0, newLast30: 0, avgDonationCents: 0, allTags: [] };
+  const empty = {
+    donors: [],
+    totalCents: 0,
+    totalUnique: 0,
+    newLast30: 0,
+    avgDonationCents: 0,
+    allTags: [],
+    loadFailed: false,
+    detailsFailed: false,
+  };
 
   try {
     // Step 1: get user's campaign IDs
-    const { data: campData, error: campError } = await supabaseAdmin
-      .from('campaigns')
-      .select('id')
-      .eq('user_id', userId);
+    const { data: campData, error: campError } = await boundedQuery(
+      supabaseAdmin
+        .from('campaigns')
+        .select('id')
+        .eq('user_id', userId),
+    );
 
-    if (campError || !campData || campData.length === 0) return empty;
+    if (campError || !campData) return { ...empty, loadFailed: true };
+    if (campData.length === 0) return empty;
 
     const campaignIds = (campData as { id: string }[]).map(c => c.id);
 
     // Step 2: get all completed donations for those campaigns
-    const { data: donData, error: donError } = await supabaseAdmin
-      .from('donations')
-      .select('id, donor_id, amount_cents, anonymous, created_at')
-      .in('campaign_id', campaignIds)
-      .eq('status', 'completed')
-      .order('created_at', { ascending: false });
+    const { data: donData, error: donError } = await boundedQuery(
+      supabaseAdmin
+        .from('donations')
+        .select('id, donor_id, amount_cents, anonymous, created_at')
+        .in('campaign_id', campaignIds)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false }),
+    );
 
-    if (donError || !donData || donData.length === 0) return empty;
+    if (donError || !donData) return { ...empty, loadFailed: true };
+    if (donData.length === 0) return empty;
 
     type RawDon = {
       id: string;
@@ -105,29 +124,39 @@ async function fetchDonorData(userId: string): Promise<{
     ];
 
     const profileMap = new Map<string, { name: string; email: string }>();
+    let detailsFailed = false;
     if (knownDonorIds.length > 0) {
-      const { data: profileData } = await supabaseAdmin
-        .from('profiles')
-        .select('id, full_name, email')
-        .in('id', knownDonorIds);
-      for (const p of (profileData ?? []) as {
-        id: string;
-        full_name: string | null;
-        email: string | null;
-      }[]) {
-        profileMap.set(p.id, {
-          name: p.full_name ?? 'Donor',
-          email: p.email ?? '',
-        });
+      const { data: profileData, error: profileError } = await boundedQuery(
+        supabaseAdmin
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', knownDonorIds),
+      );
+      if (profileError || !profileData) {
+        detailsFailed = true;
+      } else {
+        for (const p of profileData as {
+          id: string;
+          full_name: string | null;
+          email: string | null;
+        }[]) {
+          profileMap.set(p.id, {
+            name: p.full_name ?? 'Donor',
+            email: p.email ?? '',
+          });
+        }
       }
     }
 
     // Step 4: fetch CRM tags for this organizer's donor contacts
-    const { data: contactData } = await supabaseAdmin
-      .from('donor_crm_contacts')
-      .select('email, tags')
-      .eq('owner_id', userId)
-      .is('nonprofit_id', null);
+    const { data: contactData, error: contactError } = await boundedQuery(
+      supabaseAdmin
+        .from('donor_crm_contacts')
+        .select('email, tags')
+        .eq('owner_id', userId)
+        .is('nonprofit_id', null),
+    );
+    if (contactError || !contactData) detailsFailed = true;
 
     const tagsByEmail = new Map<string, string[]>();
     for (const c of (contactData ?? []) as { email: string | null; tags: string[] | null }[]) {
@@ -181,9 +210,18 @@ async function fetchDonorData(userId: string): Promise<{
 
     const allTags = [...new Set(donors.flatMap((d) => d.tags))].sort((a, b) => a.localeCompare(b));
 
-    return { donors, totalCents, totalUnique, newLast30, avgDonationCents, allTags };
+    return {
+      donors,
+      totalCents,
+      totalUnique,
+      newLast30,
+      avgDonationCents,
+      allTags,
+      loadFailed: false,
+      detailsFailed,
+    };
   } catch {
-    return empty;
+    return { ...empty, loadFailed: true };
   }
 }
 
@@ -196,7 +234,16 @@ export default async function DonorsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const user = await requireUser();
-  const [{ donors, totalCents, totalUnique, newLast30, avgDonationCents, allTags }, params] =
+  const [{
+    donors,
+    totalCents,
+    totalUnique,
+    newLast30,
+    avgDonationCents,
+    allTags,
+    loadFailed,
+    detailsFailed,
+  }, params] =
     await Promise.all([fetchDonorData(user.id), searchParams]);
 
   const activeTab = String(params.tab ?? 'all').toLowerCase();
@@ -205,29 +252,29 @@ export default async function DonorsPage({
   const metrics: Metric[] = [
     {
       label: 'Total Donors',
-      value: totalUnique.toLocaleString(),
-      change: 'all time',
+      value: loadFailed ? '—' : totalUnique.toLocaleString(),
+      change: loadFailed ? 'unavailable' : 'all time',
       icon: 'users',
       tone: 'violet',
     },
     {
       label: 'New Donors',
-      value: newLast30.toLocaleString(),
-      change: 'last 30 days',
+      value: loadFailed ? '—' : newLast30.toLocaleString(),
+      change: loadFailed ? 'unavailable' : 'last 30 days',
       icon: 'team',
       tone: 'green',
     },
     {
       label: 'Total Donated',
-      value: fmtCents(totalCents),
-      change: 'all campaigns',
+      value: loadFailed ? '—' : fmtCents(totalCents),
+      change: loadFailed ? 'unavailable' : 'all campaigns',
       icon: 'gift',
       tone: 'blue',
     },
     {
       label: 'Avg. Donation',
-      value: fmtCents(avgDonationCents),
-      change: 'per transaction',
+      value: loadFailed ? '—' : fmtCents(avgDonationCents),
+      change: loadFailed ? 'unavailable' : 'per transaction',
       icon: 'chart',
       tone: 'orange',
     },
@@ -265,6 +312,17 @@ export default async function DonorsPage({
 
       <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
         <div className="kf-content-main">
+          {loadFailed ? (
+            <DataUnavailableAlert
+              title="We couldn't load your donor records"
+              body="This is a temporary problem on our side. Your supporter history and funds are unaffected. Reload the page to try again."
+            />
+          ) : detailsFailed ? (
+            <DataUnavailableAlert
+              title="Some donor details are temporarily unavailable"
+              body="Donation totals are current, but some supporter names, emails, or tags could not be loaded. Reload the page to try again."
+            />
+          ) : null}
           <MetricGrid metrics={metrics} />
 
           <section className="kf-card" style={{ overflow: 'hidden' }}>
@@ -273,7 +331,9 @@ export default async function DonorsPage({
               <h2>All Donors</h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 13, color: 'var(--t3)' }}>
-                  {totalUnique.toLocaleString()} donor{totalUnique !== 1 ? 's' : ''}
+                  {loadFailed
+                    ? 'Donor count unavailable'
+                    : `${totalUnique.toLocaleString()} donor${totalUnique !== 1 ? 's' : ''}`}
                 </span>
                 <Link
                   href="/api/exports/donors"
@@ -290,16 +350,16 @@ export default async function DonorsPage({
 
             <div className="kf-tabs">
               <Link href={tabHref('all')} className={activeTab === 'all' ? 'active' : ''} style={{ textDecoration: 'none' }}>
-                All ({totalUnique})
+                All ({loadFailed ? '—' : totalUnique})
               </Link>
               <Link href={tabHref('new')} className={activeTab === 'new' ? 'active' : ''} style={{ textDecoration: 'none' }}>
-                New ({newLast30})
+                New ({loadFailed ? '—' : newLast30})
               </Link>
               <Link href={tabHref('top-donors')} className={activeTab === 'top-donors' ? 'active' : ''} style={{ textDecoration: 'none' }}>
-                Top Donors ({topDonors.length})
+                Top Donors ({loadFailed ? '—' : topDonors.length})
               </Link>
               <Link href={tabHref('recurring')} className={activeTab === 'recurring' ? 'active' : ''} style={{ textDecoration: 'none' }}>
-                Recurring ({recurringDonors.length})
+                Recurring ({loadFailed ? '—' : recurringDonors.length})
               </Link>
             </div>
 
@@ -445,7 +505,7 @@ export default async function DonorsPage({
             </div>
 
             {/* Empty state */}
-            {filtered.length === 0 && (
+            {!loadFailed && filtered.length === 0 && (
               <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--t3)' }}>
                 <KFIcon name="users" />
                 <p style={{ marginTop: 12, fontWeight: 600 }}>

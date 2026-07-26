@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
+import { DataUnavailableAlert } from '../../../components/ui';
 import { attachCampaignCurrencies } from '../../../lib/home-data';
 import { formatMoneyShort } from '@shared/currencies';
 import RequestPayoutButton from './RequestPayoutButton';
@@ -89,37 +91,48 @@ export default async function PayoutsPage({
   const activeTab = (typeof params.tab === 'string' ? params.tab : 'all').toLowerCase();
 
   // Fetch active campaigns with available balance for the request payout widget
-  const { data: activeCampaignData } = await supabaseAdmin
-    .from('campaigns')
-    .select('id, title, raised_amount')
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .is('deleted_at', null)
-    .order('raised_amount', { ascending: false })
-    .limit(20);
+  const [
+    { data: activeCampaignData, error: activeCampaignError },
+    { data: payoutData, error: payoutError },
+  ] = await Promise.all([
+    boundedQuery(
+      supabaseAdmin
+        .from('campaigns')
+        .select('id, title, raised_amount')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .is('deleted_at', null)
+        .order('raised_amount', { ascending: false })
+        .limit(20),
+    ),
+    boundedQuery(
+      supabaseAdmin
+        .from('payouts')
+        .select('id,campaign_id,amount_cents,fee_cents,payout_speed,status,created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(100),
+    ),
+  ]);
   const activeCampaigns = await attachCampaignCurrencies(
     (activeCampaignData ?? []) as { id: string; title: string; raised_amount: number }[],
   );
-
-  // Step 1: fetch payouts for this user
-  const { data: payoutData } = await supabaseAdmin
-    .from('payouts')
-    .select('id,campaign_id,amount_cents,fee_cents,payout_speed,status,created_at')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(100);
-
   const payouts = (payoutData ?? []) as PayoutRow[];
+  const loadFailed = Boolean(payoutError || !payoutData);
+  let detailsFailed = Boolean(activeCampaignError || !activeCampaignData);
 
   // Step 2: fetch campaign titles + currencies for all payout campaign IDs
   const campaignIds = [...new Set(payouts.map((p) => p.campaign_id))];
   let campaignTitleMap = new Map<string, string>();
   let campaignCurrencyMap = new Map<string, string | null>();
   if (campaignIds.length > 0) {
-    const { data: campaignData } = await supabaseAdmin
-      .from('campaigns')
-      .select('id,title')
-      .in('id', campaignIds);
+    const { data: campaignData, error: campaignError } = await boundedQuery(
+      supabaseAdmin
+        .from('campaigns')
+        .select('id,title')
+        .in('id', campaignIds),
+    );
+    if (campaignError || !campaignData) detailsFailed = true;
     const campaigns = (campaignData ?? []) as CampaignIdTitle[];
     campaignTitleMap = new Map(campaigns.map((c) => [c.id, c.title]));
     const withCurrencies = await attachCampaignCurrencies(campaigns);
@@ -140,10 +153,10 @@ export default async function PayoutsPage({
   const totalFees = payouts.reduce((sum, p) => sum + p.fee_cents, 0);
 
   const metrics = [
-    { label: 'Total Paid Out', value: fmtCents(totalPaid), change: 'lifetime', icon: 'wallet', tone: 'violet' as const },
-    { label: 'Pending', value: fmtCents(totalPending), change: 'requested + approved', icon: 'gift', tone: 'orange' as const },
-    { label: 'This Month', value: fmtCents(thisMonth), change: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), icon: 'chart', tone: 'green' as const },
-    { label: 'Fees Paid', value: fmtCents(totalFees), change: 'all time', icon: 'doc', tone: 'blue' as const },
+    { label: 'Paid Out', value: loadFailed ? '—' : fmtCents(totalPaid), change: loadFailed ? 'unavailable' : 'latest 100 payouts', icon: 'wallet', tone: 'violet' as const },
+    { label: 'Pending', value: loadFailed ? '—' : fmtCents(totalPending), change: loadFailed ? 'unavailable' : 'requested + approved', icon: 'gift', tone: 'orange' as const },
+    { label: 'This Month', value: loadFailed ? '—' : fmtCents(thisMonth), change: loadFailed ? 'unavailable' : new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), icon: 'chart', tone: 'green' as const },
+    { label: 'Fees Paid', value: loadFailed ? '—' : fmtCents(totalFees), change: loadFailed ? 'unavailable' : 'latest 100 payouts', icon: 'doc', tone: 'blue' as const },
   ];
 
   // Tab filtering
@@ -176,6 +189,17 @@ export default async function PayoutsPage({
       />
 
       <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
+        {loadFailed ? (
+          <DataUnavailableAlert
+            title="We couldn't load your payout history"
+            body="This is a temporary problem on our side. Your balances and payout records are unaffected. Reload the page to try again."
+          />
+        ) : detailsFailed ? (
+          <DataUnavailableAlert
+            title="Some payout details are temporarily unavailable"
+            body="Payout amounts and statuses are current, but some campaign details or payout tools could not be loaded."
+          />
+        ) : null}
         <MetricGrid metrics={metrics} />
 
         <PayoutConciergeCard campaigns={activeCampaigns} />
@@ -201,7 +225,7 @@ export default async function PayoutsPage({
           </div>
 
           {/* Rows */}
-          {filtered.length === 0 ? (
+          {!loadFailed && filtered.length === 0 ? (
             <div
               style={{
                 padding: '48px 32px',
@@ -221,7 +245,7 @@ export default async function PayoutsPage({
                 Connect Stripe
               </Link>
             </div>
-          ) : (
+          ) : filtered.length > 0 ? (
             <div className="kf-rows">
               {filtered.map((payout) => {
                 const tone = statusTone(payout.status);
@@ -257,10 +281,12 @@ export default async function PayoutsPage({
                 );
               })}
             </div>
-          )}
+          ) : null}
 
           <div className="kf-table-footer">
-            {filtered.length} payout{filtered.length !== 1 ? 's' : ''}
+            {loadFailed
+              ? 'Payout count unavailable'
+              : `${filtered.length} payout${filtered.length !== 1 ? 's' : ''}`}
           </div>
         </section>
       </div>

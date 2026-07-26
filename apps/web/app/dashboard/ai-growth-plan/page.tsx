@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar, KFIcon, MetricGrid } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
+import { DataUnavailableAlert } from '../../../components/ui';
 import type { Metric } from '../../../components/CharitMeShellServer';
 
 export const dynamic = 'force-dynamic';
@@ -47,6 +49,8 @@ type GrowthData = {
   donations: Donation[];
   contentCreated: number;
   engagement: number;
+  loadFailed: boolean;
+  detailsFailed: boolean;
 };
 
 // ─────────────────────────────────────────────
@@ -98,53 +102,97 @@ function momentumScore(campaign: Campaign, donations: Donation[]): number {
 // ─────────────────────────────────────────────
 async function getGrowthData(userId: string): Promise<GrowthData> {
   try {
-    const { data: campaigns } = await supabaseAdmin
-      .from('campaigns')
-      .select('id,title,slug,status,goal_amount,raised_amount,backer_count,cover_image_url,category')
-      .eq('user_id', userId)
-      .order('raised_amount', { ascending: false })
-      .limit(10);
+    const { data: campaigns, error: campaignsError } = await boundedQuery(
+      supabaseAdmin
+        .from('campaigns')
+        .select('id,title,slug,status,goal_amount,raised_amount,backer_count,cover_image_url,category')
+        .eq('user_id', userId)
+        .order('raised_amount', { ascending: false })
+        .limit(10),
+    );
+    if (campaignsError || !campaigns) {
+      return {
+        campaigns: [],
+        donations: [],
+        contentCreated: 0,
+        engagement: 0,
+        loadFailed: true,
+        detailsFailed: false,
+      };
+    }
 
-    const cids = (campaigns ?? []).map((c: Campaign) => c.id);
+    const cids = campaigns.map((c: Campaign) => c.id);
 
     let donations: Donation[] = [];
     if (cids.length > 0) {
       const thirtyDaysAgo = new Date(PAGE_TIME - 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: donationData } = await supabaseAdmin
-        .from('donations')
-        .select('campaign_id,amount_cents,created_at')
-        .in('campaign_id', cids)
-        .eq('status', 'completed')
-        .gte('created_at', thirtyDaysAgo);
-      donations = (donationData ?? []) as Donation[];
+      const { data: donationData, error: donationsError } = await boundedQuery(
+        supabaseAdmin
+          .from('donations')
+          .select('campaign_id,amount_cents,created_at')
+          .in('campaign_id', cids)
+          .eq('status', 'completed')
+          .gte('created_at', thirtyDaysAgo),
+      );
+      if (donationsError || !donationData) {
+        return {
+          campaigns: campaigns as Campaign[],
+          donations: [],
+          contentCreated: 0,
+          engagement: 0,
+          loadFailed: true,
+          detailsFailed: false,
+        };
+      }
+      donations = donationData as Donation[];
     }
 
     // Fetch content created (campaign updates) and engagement (donor messages)
     let contentCreated = 0;
     let engagement = 0;
+    let detailsFailed = false;
     if (cids.length > 0) {
-      const [{ count: updatesCount }, { count: messagesCount }] = await Promise.all([
-        supabaseAdmin
-          .from('campaign_updates')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userId),
-        supabaseAdmin
-          .from('donor_messages')
-          .select('*', { count: 'exact', head: true })
-          .in('campaign_id', cids),
+      const [updatesResult, messagesResult] = await Promise.all([
+        boundedQuery(
+          supabaseAdmin
+            .from('campaign_updates')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId),
+        ),
+        boundedQuery(
+          supabaseAdmin
+            .from('donor_messages')
+            .select('*', { count: 'exact', head: true })
+            .in('campaign_id', cids),
+        ),
       ]);
-      contentCreated = updatesCount ?? 0;
-      engagement = messagesCount ?? 0;
+      detailsFailed = Boolean(
+        updatesResult.error ||
+        updatesResult.count == null ||
+        messagesResult.error ||
+        messagesResult.count == null,
+      );
+      contentCreated = updatesResult.count ?? 0;
+      engagement = messagesResult.count ?? 0;
     }
 
     return {
-      campaigns: (campaigns ?? []) as Campaign[],
+      campaigns: campaigns as Campaign[],
       donations,
       contentCreated,
       engagement,
+      loadFailed: false,
+      detailsFailed,
     };
   } catch {
-    return { campaigns: [], donations: [], contentCreated: 0, engagement: 0 };
+    return {
+      campaigns: [],
+      donations: [],
+      contentCreated: 0,
+      engagement: 0,
+      loadFailed: true,
+      detailsFailed: false,
+    };
   }
 }
 
@@ -452,12 +500,36 @@ export default async function AiGrowthPlanPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const user = await requireUser();
-  const [{ campaigns, donations, contentCreated, engagement }, params] = await Promise.all([
+  const [{
+    campaigns,
+    donations,
+    contentCreated,
+    engagement,
+    loadFailed,
+    detailsFailed,
+  }, params] = await Promise.all([
     getGrowthData(user.id),
     searchParams,
   ]);
 
   const roadmapFilter = String(params.filter ?? 'all').toLowerCase();
+
+  if (loadFailed) {
+    return (
+      <CharitMeShell active="AI Growth Plan">
+        <TopBar
+          title="AI Growth Plan"
+          subtitle="Your personalized roadmap to reach more donors and raise more."
+        />
+        <div className="kf-admin-dash">
+          <DataUnavailableAlert
+            title="We couldn't build a trustworthy growth plan"
+            body="Your campaign and donation records are unaffected. Reload the page to try again before acting on recommendations."
+          />
+        </div>
+      </CharitMeShell>
+    );
+  }
 
   const hasCampaigns = campaigns.length > 0;
   const topCampaign = campaigns[0] ?? null;
@@ -476,8 +548,8 @@ export default async function AiGrowthPlanPage({
   const metrics: Metric[] = [
     {
       label: 'Content Created',
-      value: contentCreated.toLocaleString(),
-      change: 'Campaign updates posted',
+      value: detailsFailed ? '—' : contentCreated.toLocaleString(),
+      change: detailsFailed ? 'unavailable' : 'Campaign updates posted',
       icon: 'doc',
       tone: 'violet',
     },
@@ -490,8 +562,8 @@ export default async function AiGrowthPlanPage({
     },
     {
       label: 'Engagement',
-      value: engagement.toLocaleString(),
-      change: 'Donor messages received',
+      value: detailsFailed ? '—' : engagement.toLocaleString(),
+      change: detailsFailed ? 'unavailable' : 'Donor messages received',
       icon: 'chart',
       tone: 'blue',
     },
@@ -743,6 +815,13 @@ export default async function AiGrowthPlanPage({
               Manage Campaign →
             </Link>
           </section>
+        )}
+
+        {detailsFailed && (
+          <DataUnavailableAlert
+            title="Some engagement details are temporarily unavailable"
+            body="Your campaign and donation recommendations are current, but update and message counts could not be loaded."
+          />
         )}
 
         {/* ── 4 KPI metrics ── */}

@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
+import { DataUnavailableAlert } from '../../../components/ui';
 import { formatCents } from '../../../lib/stripe';
 import PauseResumeButton from './PauseResumeButton';
 
@@ -34,23 +36,37 @@ function statusColor(status: string): string {
 export default async function RecurringPage() {
   const user = await requireUser();
 
-  const { data: subs } = await supabaseAdmin
-    .from('recurring_donations')
-    .select('id, campaign_id, amount_cents, cadence, status, stripe_subscription_id, next_bill_at, created_at')
-    .eq('donor_id', user.id)
-    .order('created_at', { ascending: false });
+  const { data: subs, error: subscriptionsError } = await boundedQuery(
+    supabaseAdmin
+      .from('recurring_donations')
+      .select('id, campaign_id, amount_cents, cadence, status, stripe_subscription_id, next_bill_at, created_at')
+      .eq('donor_id', user.id)
+      .order('created_at', { ascending: false }),
+  );
 
   const recurringList = (subs ?? []) as RecurringRow[];
+  const loadFailed = Boolean(subscriptionsError || !subs);
 
   // Resolve campaign titles + currencies — independent of each other, run in parallel.
   const campaignIds = [...new Set(recurringList.map(r => r.campaign_id))];
   const campaignMap = new Map<string, CampaignRef>();
   const currencyMap = new Map<string, string>();
+  let detailsFailed = false;
   if (campaignIds.length > 0) {
     const [campaignsRes, launchRes] = await Promise.all([
-      supabaseAdmin.from('campaigns').select('id, title, slug').in('id', campaignIds),
-      supabaseAdmin.from('campaign_launch_settings').select('campaign_id, currency').in('campaign_id', campaignIds),
+      boundedQuery(
+        supabaseAdmin.from('campaigns').select('id, title, slug').in('id', campaignIds),
+      ),
+      boundedQuery(
+        supabaseAdmin
+          .from('campaign_launch_settings')
+          .select('campaign_id, currency')
+          .in('campaign_id', campaignIds),
+      ),
     ]);
+    detailsFailed = Boolean(
+      campaignsRes.error || !campaignsRes.data || launchRes.error || !launchRes.data,
+    );
     for (const c of (campaignsRes.data ?? []) as CampaignRef[]) {
       campaignMap.set(c.id, c);
     }
@@ -70,6 +86,17 @@ export default async function RecurringPage() {
       />
 
       <div className="kf-admin-dash">
+        {loadFailed ? (
+          <DataUnavailableAlert
+            title="We couldn't load your recurring donations"
+            body="This is a temporary problem on our side. Your subscriptions and billing schedule are unaffected. Reload the page to try again."
+          />
+        ) : detailsFailed ? (
+          <DataUnavailableAlert
+            title="Some campaign details are temporarily unavailable"
+            body="Your subscription amounts and statuses are current, but some campaign names or currencies could not be loaded."
+          />
+        ) : null}
 
         {/* Stats row */}
         {recurringList.length > 0 && (
@@ -98,7 +125,7 @@ export default async function RecurringPage() {
             <h2>Your Recurring Commitments</h2>
           </div>
 
-          {recurringList.length === 0 ? (
+          {!loadFailed && recurringList.length === 0 ? (
             <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--t3)' }}>
               <KFIcon name="gift" className="kf-empty-icon" />
               <p style={{ marginTop: 12, fontWeight: 600 }}>No recurring donations yet.</p>
@@ -109,7 +136,7 @@ export default async function RecurringPage() {
                 Browse Campaigns
               </Link>
             </div>
-          ) : (
+          ) : recurringList.length > 0 ? (
             <div className="kf-rows">
               {recurringList.map(sub => {
                 const camp = campaignMap.get(sub.campaign_id);
@@ -158,7 +185,7 @@ export default async function RecurringPage() {
                 );
               })}
             </div>
-          )}
+          ) : null}
         </section>
 
         <p style={{ fontSize: 12, color: 'var(--t3)', lineHeight: 1.6 }}>

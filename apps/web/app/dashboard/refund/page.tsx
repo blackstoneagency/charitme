@@ -1,6 +1,8 @@
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
+import { DataUnavailableAlert } from '../../../components/ui';
 import RefundForm, { type RefundableDonation } from './RefundForm';
 
 export const dynamic = 'force-dynamic';
@@ -44,16 +46,35 @@ export default async function RefundPage({
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-  const { data: rawDonations } = await supabaseAdmin
-    .from('donations')
-    .select('id, amount_cents, currency, status, created_at, campaign_id')
-    .eq('donor_id', user.id)
-    .in('status', ['completed', 'refunded'])
-    .gte('created_at', ninetyDaysAgo.toISOString())
-    .order('created_at', { ascending: false })
-    .limit(50);
+  const { data: rawDonations, error: donationsError } = await boundedQuery(
+    supabaseAdmin
+      .from('donations')
+      .select('id, amount_cents, currency, status, created_at, campaign_id')
+      .eq('donor_id', user.id)
+      .in('status', ['completed', 'refunded'])
+      .gte('created_at', ninetyDaysAgo.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(50),
+  );
 
-  const donations = (rawDonations ?? []) as DonationRow[];
+  if (donationsError || !rawDonations) {
+    return (
+      <CharitMeShell active="Refund">
+        <TopBar
+          title="Request a Refund"
+          subtitle="Submit a refund request for a recent donation."
+        />
+        <div className="kf-admin-dash" style={{ maxWidth: 640 }}>
+          <DataUnavailableAlert
+            title="We couldn't load your refundable donations"
+            body="No refund request has been submitted. Your donation records are unaffected. Reload the page to try again."
+          />
+        </div>
+      </CharitMeShell>
+    );
+  }
+
+  const donations = rawDonations as DonationRow[];
 
   if (donations.length === 0) {
     // No donations in window — pass empty list directly
@@ -72,10 +93,12 @@ export default async function RefundPage({
 
   // ── Resolve campaign titles ───────────────────────────────────────────────
   const campaignIds = [...new Set(donations.map((d) => d.campaign_id))];
-  const { data: campaignData } = await supabaseAdmin
-    .from('campaigns')
-    .select('id, title')
-    .in('id', campaignIds);
+  const { data: campaignData, error: campaignError } = await boundedQuery(
+    supabaseAdmin
+      .from('campaigns')
+      .select('id, title')
+      .in('id', campaignIds),
+  );
 
   const campaignMap = new Map<string, string>(
     ((campaignData ?? []) as CampaignRow[]).map((c) => [c.id, c.title]),
@@ -83,10 +106,29 @@ export default async function RefundPage({
 
   // ── Check which donations already have a pending/approved refund request ──
   const donationIds = donations.map((d) => d.id);
-  const { data: existingRefunds } = await supabaseAdmin
-    .from('refunds')
-    .select('donation_id, status')
-    .in('donation_id', donationIds);
+  const { data: existingRefunds, error: refundsError } = await boundedQuery(
+    supabaseAdmin
+      .from('refunds')
+      .select('donation_id, status')
+      .in('donation_id', donationIds),
+  );
+
+  if (refundsError || !existingRefunds) {
+    return (
+      <CharitMeShell active="Refund">
+        <TopBar
+          title="Request a Refund"
+          subtitle="Submit a refund request for a recent donation."
+        />
+        <div className="kf-admin-dash" style={{ maxWidth: 640 }}>
+          <DataUnavailableAlert
+            title="We couldn't verify your refund eligibility"
+            body="No refund request has been submitted. Reload the page before trying again so we can prevent duplicate requests."
+          />
+        </div>
+      </CharitMeShell>
+    );
+  }
 
   const pendingRefundSet = new Set(
     ((existingRefunds ?? []) as RefundRow[])
@@ -113,6 +155,12 @@ export default async function RefundPage({
         subtitle="Select a donation and describe your reason. Our team reviews requests within 3–5 business days."
       />
       <div className="kf-admin-dash">
+        {(campaignError || !campaignData) && (
+          <DataUnavailableAlert
+            title="Some campaign details are temporarily unavailable"
+            body="Your refundable donations are current and you can still submit a request, but some campaign names could not be loaded."
+          />
+        )}
         <RefundForm donations={enriched} preselectedId={preselectedId} />
       </div>
     </CharitMeShell>

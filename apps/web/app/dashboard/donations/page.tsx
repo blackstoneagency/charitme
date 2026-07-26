@@ -4,6 +4,8 @@ import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/C
 // Donors can request refunds for their own donations at /dashboard/refund.
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
+import { DataUnavailableAlert } from '../../../components/ui';
 import { formatMoneyCompact } from '@shared/currencies';
 
 export const dynamic = 'force-dynamic';
@@ -90,16 +92,33 @@ function initials(name: string): string {
 async function fetchDonationsData(userId: string): Promise<{
   donations: EnrichedDonation[];
   campaignMap: Map<string, string>;
+  loadFailed: boolean;
+  detailsFailed: boolean;
 }> {
   try {
     // Step 1: get user's campaigns
-    const { data: campData, error: campError } = await supabaseAdmin
-      .from('campaigns')
-      .select('id,title')
-      .eq('user_id', userId);
+    const { data: campData, error: campError } = await boundedQuery(
+      supabaseAdmin
+        .from('campaigns')
+        .select('id,title')
+        .eq('user_id', userId),
+    );
 
-    if (campError || !campData || campData.length === 0) {
-      return { donations: [], campaignMap: new Map() };
+    if (campError || !campData) {
+      return {
+        donations: [],
+        campaignMap: new Map(),
+        loadFailed: true,
+        detailsFailed: false,
+      };
+    }
+    if (campData.length === 0) {
+      return {
+        donations: [],
+        campaignMap: new Map(),
+        loadFailed: false,
+        detailsFailed: false,
+      };
     }
 
     const campaigns = campData as CampaignRef[];
@@ -109,16 +128,18 @@ async function fetchDonationsData(userId: string): Promise<{
     const campaignIds = campaigns.map((c) => c.id);
 
     // Step 2: get completed donations
-    const { data: donData, error: donError } = await supabaseAdmin
-      .from('donations')
-      .select('id,amount_cents,currency,status,created_at,anonymous,donor_id,campaign_id')
-      .in('campaign_id', campaignIds)
-      .eq('status', 'completed')
-      .order('created_at', { ascending: false })
-      .limit(200);
+    const { data: donData, error: donError } = await boundedQuery(
+      supabaseAdmin
+        .from('donations')
+        .select('id,amount_cents,currency,status,created_at,anonymous,donor_id,campaign_id')
+        .in('campaign_id', campaignIds)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(200),
+    );
 
     if (donError || !donData) {
-      return { donations: [], campaignMap };
+      return { donations: [], campaignMap, loadFailed: true, detailsFailed: false };
     }
 
     const rawDonations = donData as Donation[];
@@ -133,15 +154,22 @@ async function fetchDonationsData(userId: string): Promise<{
     ];
 
     const profileMap = new Map<string, string>();
+    let detailsFailed = false;
 
     if (uniqueDonorIds.length > 0) {
-      const { data: profileData } = await supabaseAdmin
-        .from('profiles')
-        .select('id,full_name')
-        .in('id', uniqueDonorIds);
+      const { data: profileData, error: profileError } = await boundedQuery(
+        supabaseAdmin
+          .from('profiles')
+          .select('id,full_name')
+          .in('id', uniqueDonorIds),
+      );
 
-      for (const p of (profileData ?? []) as Profile[]) {
-        if (p.full_name) profileMap.set(p.id, p.full_name);
+      if (profileError || !profileData) {
+        detailsFailed = true;
+      } else {
+        for (const p of profileData as Profile[]) {
+          if (p.full_name) profileMap.set(p.id, p.full_name);
+        }
       }
     }
 
@@ -150,13 +178,18 @@ async function fetchDonationsData(userId: string): Promise<{
       donorName:
         d.anonymous || !d.donor_id
           ? 'Anonymous'
-          : (profileMap.get(d.donor_id) ?? 'Anonymous'),
+          : (profileMap.get(d.donor_id) ?? 'Donor'),
       campaignTitle: campaignMap.get(d.campaign_id) ?? 'Unknown Campaign',
     }));
 
-    return { donations, campaignMap };
+    return { donations, campaignMap, loadFailed: false, detailsFailed };
   } catch {
-    return { donations: [], campaignMap: new Map() };
+    return {
+      donations: [],
+      campaignMap: new Map(),
+      loadFailed: true,
+      detailsFailed: false,
+    };
   }
 }
 
@@ -169,7 +202,7 @@ export default async function DonationsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const user = await requireUser();
-  const [{ donations }, params] = await Promise.all([
+  const [{ donations, loadFailed, detailsFailed }, params] = await Promise.all([
     fetchDonationsData(user.id),
     searchParams,
   ]);
@@ -180,36 +213,36 @@ export default async function DonationsPage({
   const totalRaised = donations.reduce((s, d) => s + d.amount_cents, 0);
   const donationCount = donations.length;
   const uniqueDonors = new Set(
-    donations.filter((d) => d.donor_id !== null && d.donorName !== 'Anonymous').map((d) => d.donor_id),
+    donations.filter((d) => d.donor_id !== null && !d.anonymous).map((d) => d.donor_id),
   ).size;
   const avgDonation = donationCount > 0 ? Math.round(totalRaised / donationCount) : 0;
 
   const metrics = [
     {
-      label: 'Total Raised',
-      value: fmtCents(totalRaised),
-      change: 'all time',
+      label: 'Recent Raised',
+      value: loadFailed ? '—' : fmtCents(totalRaised),
+      change: loadFailed ? 'unavailable' : 'latest 200 donations',
       icon: 'gift',
       tone: 'violet' as const,
     },
     {
       label: 'Donations',
-      value: donationCount.toLocaleString(),
-      change: 'completed',
+      value: loadFailed ? '—' : donationCount.toLocaleString(),
+      change: loadFailed ? 'unavailable' : 'latest 200 completed',
       icon: 'stack',
       tone: 'green' as const,
     },
     {
       label: 'Unique Donors',
-      value: uniqueDonors.toLocaleString(),
-      change: 'identified donors',
+      value: loadFailed ? '—' : uniqueDonors.toLocaleString(),
+      change: loadFailed ? 'unavailable' : 'latest 200 donations',
       icon: 'users',
       tone: 'blue' as const,
     },
     {
       label: 'Avg. Donation',
-      value: fmtCents(avgDonation),
-      change: 'per transaction',
+      value: loadFailed ? '—' : fmtCents(avgDonation),
+      change: loadFailed ? 'unavailable' : 'latest 200 donations',
       icon: 'chart',
       tone: 'orange' as const,
     },
@@ -259,7 +292,7 @@ export default async function DonationsPage({
     <CharitMeShell active="Donations">
       <TopBar
         title="Donations"
-        subtitle="Track every donation across all your campaigns."
+        subtitle="Review your latest completed donations across all campaigns."
         actions={
           <div style={{ display: 'flex', gap: 10 }}>
             <Link
@@ -291,6 +324,17 @@ export default async function DonationsPage({
 
       <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
         <div className="kf-content-main">
+          {loadFailed ? (
+            <DataUnavailableAlert
+              title="We couldn't load your donations"
+              body="This is a temporary problem on our side. Your donation records and funds are unaffected. Reload the page to try again."
+            />
+          ) : detailsFailed ? (
+            <DataUnavailableAlert
+              title="Some donor details are temporarily unavailable"
+              body="Donation amounts and totals are current, but some supporter names could not be loaded. Reload the page to try again."
+            />
+          ) : null}
           <MetricGrid metrics={metrics} />
 
           <section className="kf-card" style={{ overflow: 'hidden' }}>
@@ -444,7 +488,7 @@ export default async function DonationsPage({
             </div>
 
             {/* Empty state */}
-            {filtered.length === 0 && (
+            {!loadFailed && filtered.length === 0 && (
               <div
                 style={{
                   padding: '48px 24px',

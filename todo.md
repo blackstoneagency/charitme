@@ -4826,9 +4826,29 @@ merge commit.
    - [x] `app/dashboard/page.tsx` (main dashboard) — DONE. Its catch-all fallback
      was all-zeros, and a null campaign read hit the same path; now carries
      `loadFailed`, renders `—`/"unavailable", and shows a `role="alert"` banner.
-   - [ ] `app/dashboard/donations/page.tsx` — 5 totals rendered, `(profileData ?? [])` at L143
-   - [ ] `app/dashboard/analytics/page.tsx` — 12 totals, `(campaignData ?? [])` L101, `(donationData ?? [])` L112
-   - [ ] `app/dashboard/donor/page.tsx` — 5 totals, `(profileData ?? [])` L113
+   - [x] `app/dashboard/donations/page.tsx` — core reads are bounded and failed
+     reads render unavailable values instead of zero/empty history. Profile
+     enrichment failures preserve financial totals and never relabel identified
+     supporters as anonymous. The 200-row window is now labeled honestly.
+   - [x] `app/dashboard/analytics/page.tsx` — campaign and donation failures are
+     distinct from real empty data; metrics, trend chart, and campaign totals no
+     longer render fabricated zeroes.
+   - [x] `app/dashboard/donor/page.tsx` — core totals fail closed to unavailable;
+     profile/CRM enrichment can degrade independently without erasing donations.
+   - [x] `app/dashboard/payouts/page.tsx` — payout history failures no longer look
+     like a zero balance, and the 100-row metric window is explicitly labeled.
+   - [x] `app/dashboard/recurring/page.tsx` — subscription failures no longer
+     render the "No recurring donations" acquisition empty state.
+   - [x] `app/dashboard/refund/page.tsx` — donation/refund eligibility failures
+     block the form with an accessible retry message, preventing duplicate or
+     invalid requests from incomplete data.
+   - [x] `app/dashboard/ai-growth-plan/page.tsx` — failed campaign/donation reads
+     now stop recommendation generation instead of producing advice from zeroed
+     fallback data; secondary engagement counts degrade independently.
+   - [ ] Replace bounded donation/payout history windows with database aggregate
+     RPCs plus cursor pagination before volume exceeds the current 200/100 rows.
+   Verification for this sweep: typecheck clean, lint clean, 1,208/1,208 tests
+   passing, and the production build generated all 149 static pages.
    Pattern to copy: `app/dashboard/campaigns/page.tsx` or `app/dashboard/page.tsx`.
 
    **Gotcha for whoever continues:** `__tests__/migration-integrity.test.ts` scans

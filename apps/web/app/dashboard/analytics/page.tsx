@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
+import { DataUnavailableAlert } from '../../../components/ui';
 import { attachCampaignCurrencies } from '../../../lib/home-data';
 import { formatMoneyCompact } from '@shared/currencies';
 
@@ -93,24 +95,32 @@ export default async function AnalyticsPage({
   const userId = user.id;
 
   // Step 1: get campaigns
-  const { data: campaignData } = await supabaseAdmin
-    .from('campaigns')
-    .select('id,title,slug,raised_amount,backer_count,goal_amount,status')
-    .eq('user_id', userId);
+  const { data: campaignData, error: campaignError } = await boundedQuery(
+    supabaseAdmin
+      .from('campaigns')
+      .select('id,title,slug,raised_amount,backer_count,goal_amount,status')
+      .eq('user_id', userId),
+  );
 
   const campaigns = await attachCampaignCurrencies((campaignData ?? []) as CampaignRow[]);
   const cids = campaigns.map((c) => c.id);
+  const campaignsUnavailable = Boolean(campaignError || !campaignData);
 
   // Step 2: get completed donations for these campaigns
   let donations: DonationRow[] = [];
+  let donationsUnavailable = false;
   if (cids.length > 0) {
-    const { data: donationData } = await supabaseAdmin
-      .from('donations')
-      .select('amount_cents,created_at,campaign_id')
-      .in('campaign_id', cids)
-      .eq('status', 'completed');
+    const { data: donationData, error: donationError } = await boundedQuery(
+      supabaseAdmin
+        .from('donations')
+        .select('amount_cents,created_at,campaign_id')
+        .in('campaign_id', cids)
+        .eq('status', 'completed'),
+    );
+    donationsUnavailable = Boolean(donationError || !donationData);
     donations = (donationData ?? []) as DonationRow[];
   }
+  const loadFailed = campaignsUnavailable || donationsUnavailable;
 
   // Computed metrics
   const sevenDaysAgo = daysAgo(7).toISOString();
@@ -137,10 +147,10 @@ export default async function AnalyticsPage({
       : null;
 
   const metrics = [
-    { label: 'Raised This Week', value: fmtCents(weeklyRaised), change: 'last 7 days', icon: 'gift', tone: 'violet' as const },
-    { label: 'Raised This Month', value: fmtCents(monthlyRaised), change: 'last 30 days', icon: 'chart', tone: 'green' as const },
-    { label: 'Total Backers', value: totalBackers.toLocaleString(), change: `avg ${fmtCents(avgDonation)} / donation`, icon: 'users', tone: 'orange' as const },
-    { label: 'Top Campaign', value: bestCampaign ? formatMoneyCompact(bestCampaign.raised_amount, bestCampaign.currency ?? 'usd') : '$0', change: bestCampaign ? bestCampaign.title.slice(0, 28) + (bestCampaign.title.length > 28 ? '…' : '') : 'No campaigns yet', icon: 'send', tone: 'blue' as const },
+    { label: 'Raised This Week', value: loadFailed ? '—' : fmtCents(weeklyRaised), change: loadFailed ? 'unavailable' : 'last 7 days', icon: 'gift', tone: 'violet' as const },
+    { label: 'Raised This Month', value: loadFailed ? '—' : fmtCents(monthlyRaised), change: loadFailed ? 'unavailable' : 'last 30 days', icon: 'chart', tone: 'green' as const },
+    { label: 'Total Backers', value: loadFailed ? '—' : totalBackers.toLocaleString(), change: loadFailed ? 'unavailable' : `avg ${fmtCents(avgDonation)} / donation`, icon: 'users', tone: 'orange' as const },
+    { label: 'Top Campaign', value: loadFailed ? '—' : bestCampaign ? formatMoneyCompact(bestCampaign.raised_amount, bestCampaign.currency ?? 'usd') : '$0', change: loadFailed ? 'unavailable' : bestCampaign ? bestCampaign.title.slice(0, 28) + (bestCampaign.title.length > 28 ? '…' : '') : 'No campaigns yet', icon: 'send', tone: 'blue' as const },
   ];
 
   // SVG line chart: 7-day rolling donations
@@ -187,6 +197,12 @@ export default async function AnalyticsPage({
       />
 
       <div className="kf-admin-dash">
+        {loadFailed && (
+          <DataUnavailableAlert
+            title="We couldn't load all of your analytics"
+            body="This is a temporary problem on our side. Your campaign and donation records are unaffected. Reload the page to try again."
+          />
+        )}
         <MetricGrid metrics={metrics} />
 
         {/* Two-column: chart + campaign table */}
@@ -197,6 +213,11 @@ export default async function AnalyticsPage({
               <h2>Daily Donations (7 days)</h2>
               <span className="kf-pill violet">Live</span>
             </div>
+            {donationsUnavailable || campaignsUnavailable ? (
+              <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--t3)' }}>
+                Donation trends are temporarily unavailable.
+              </div>
+            ) : (
             <svg
               viewBox={`0 0 ${SVG_W} ${SVG_H + 40}`}
               role="img"
@@ -261,6 +282,7 @@ export default async function AnalyticsPage({
                 </text>
               ))}
             </svg>
+            )}
           </section>
 
           {/* Right: campaign performance table */}
@@ -271,7 +293,11 @@ export default async function AnalyticsPage({
                 View all
               </Link>
             </div>
-            {campaigns.length === 0 ? (
+            {campaignsUnavailable ? (
+              <div style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--t3)' }}>
+                Campaign performance is temporarily unavailable.
+              </div>
+            ) : campaigns.length === 0 ? (
               <div
                 style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--t3)' }}
               >
@@ -359,7 +385,11 @@ export default async function AnalyticsPage({
               </Link>
             </div>
             <div style={{ padding: '8px 20px 16px' }}>
-              {campaigns.length === 0 ? (
+              {campaignsUnavailable || donationsUnavailable ? (
+                <p style={{ color: 'var(--t3)', fontSize: 13, paddingTop: 8 }}>
+                  Campaign donation totals are temporarily unavailable.
+                </p>
+              ) : campaigns.length === 0 ? (
                 <p style={{ color: 'var(--t3)', fontSize: 13, paddingTop: 8 }}>No campaigns yet.</p>
               ) : (
                 (() => {

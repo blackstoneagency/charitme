@@ -206,6 +206,31 @@ export function EmptyState({ icon, title, body, action }: {
 }
 
 // ── Select ────────────────────────────────────────────────────────────────────
+export function DataUnavailableAlert({
+  title,
+  body,
+}: {
+  title: string;
+  body: string;
+}) {
+  return (
+    <div
+      role="alert"
+      style={{
+        marginBottom: 16,
+        padding: '14px 16px',
+        borderRadius: 'var(--r)',
+        background: 'var(--s2)',
+        border: '1px solid var(--b2)',
+        color: 'var(--t1)',
+      }}
+    >
+      <strong style={{ display: 'block', marginBottom: 4 }}>{title}</strong>
+      <span style={{ display: 'block', fontSize: 13.5, lineHeight: 1.5 }}>{body}</span>
+    </div>
+  );
+}
+
 export function Select({
   label,
   error,
