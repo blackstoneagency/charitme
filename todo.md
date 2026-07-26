@@ -341,12 +341,28 @@ account, is never challenged. An attacker holding only the password signs in
 exactly as before. The control is decorative, and worse than absent, because it
 tells the user they are protected.
 
-Unlike the suspension and payout-hold items, this needs **no product decision** —
-there is only one correct behaviour: if you enrolled a factor, you must complete
-it. What it does need is care, since a half-built gate locks 2FA users out
-entirely. A complete fix is: a challenge page for code entry, plus a gate that
-redirects an aal1 session to it whenever
-`getAuthenticatorAssuranceLevel()` reports `nextLevel === 'aal2'`.
+**✅ FIXED — both halves shipped.**
+- **`app/login/mfa/page.tsx`** — the challenge page. Enters the 6-digit code,
+  runs `mfa.challenge` → `mfa.verify`, then does a **full page load** (not a
+  client transition) so the middleware re-evaluates with the elevated token.
+- **`middleware.ts`** — refuses an aal1 session when
+  `getAuthenticatorAssuranceLevel()` reports `nextLevel === 'aal2'`.
+
+**Three properties keep it from locking anyone out** — the failure mode of a
+second-factor gate is worse than the bug it fixes — and all three are pinned by
+tests:
+1. **Users without 2FA are untouched.** Supabase reports `nextLevel === 'aal2'`
+   *only* for accounts with a verified factor, so the branch cannot fire otherwise.
+2. **No redirect loop.** `/login/mfa` is exempt explicitly, *and* it sits outside
+   every `PROTECTED` prefix, so the gate cannot even run there. A test asserts
+   `/login` never joins `PROTECTED`.
+3. **Fails OPEN.** A throw from the assurance-level lookup sets a header and
+   allows the request; a Supabase outage must not bar signed-in users. A test
+   asserts the `catch` contains no redirect.
+Plus: the page redirects away if no verified factor exists (never strands a user
+on a page they cannot complete), and always offers sign-out as an escape.
+_Non-vacuity verified:_ flipping the check to `nextLevel === 'aal1'` fails the
+suite.
 
 **🔴 TRUST & SAFETY — the public "7-day payout hold" claim contradicts the money architecture. NOT FIXED (owner's call).**
 `/trust-safety` tells donors, verbatim:

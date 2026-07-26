@@ -59,6 +59,8 @@ function toSessionCookie(options: CookieOptions): CookieOptions {
   return rest;
 }
 
+const MFA_CHALLENGE_PATH = '/login/mfa';
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
@@ -133,6 +135,30 @@ export async function middleware(request: NextRequest) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('next', path);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // ── Second-factor gate ───────────────────────────────────────────────
+  // Enrolling TOTP previously protected nothing: Supabase issues a password
+  // sign-in at aal1, and nothing in the app ever refused an aal1 session, so
+  // "Two-Factor Authentication — add an extra layer of security" was decorative
+  // and an attacker holding only the password signed in unchallenged.
+  //
+  // `nextLevel` is 'aal2' ONLY when the user has a verified factor, so accounts
+  // without 2FA are never affected by this branch. `/login/mfa` is exempt or the
+  // redirect would loop, and a failure to read the level is treated as "do not
+  // challenge" so a Supabase hiccup cannot lock people out of their accounts.
+  if (isProtected && user && path !== MFA_CHALLENGE_PATH) {
+    try {
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal && aal.nextLevel === 'aal2' && aal.currentLevel !== 'aal2') {
+        const mfaUrl = new URL(MFA_CHALLENGE_PATH, request.url);
+        mfaUrl.searchParams.set('next', path);
+        return NextResponse.redirect(mfaUrl);
+      }
+    } catch {
+      // Fail open: an unreachable auth service must not bar a signed-in user.
+      response.headers.set('X-Mfa-Check', 'error');
+    }
   }
 
   // Surface degraded auth for observability without leaking anything to the page.
