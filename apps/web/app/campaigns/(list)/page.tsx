@@ -69,10 +69,15 @@ async function getCampaigns(opts: {
 
     const from = (opts.page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
-    const { data, count } = await query.range(from, to);
-    return { campaigns: data ?? [], total: count ?? 0 };
+    // `error` is checked, not just `data`. supabase-js resolves on a query error,
+    // so an unchecked read renders "No campaigns found" — telling a visitor the
+    // platform has nothing to support, which is both false and the worst possible
+    // moment to say it. `unavailable` lets the caller say "couldn't load" instead.
+    const { data, count, error } = await query.range(from, to);
+    if (error || data == null) return { campaigns: [], total: 0, unavailable: true };
+    return { campaigns: data, total: count ?? 0, unavailable: false };
   } catch {
-    return { campaigns: [], total: 0 };
+    return { campaigns: [], total: 0, unavailable: true };
   }
 }
 
@@ -99,7 +104,7 @@ export default async function CampaignsPage({ searchParams }: Props) {
   const tax      = sp.tax === '1';
   const page     = Math.max(1, parseInt(sp.page ?? '1', 10) || 1);
 
-  const { campaigns, total } = await getCampaigns({
+  const { campaigns, total, unavailable } = await getCampaigns({
     category, q, sort, verifiedOnly: verified, location, taxDeductibleOnly: tax, page,
   });
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -206,7 +211,17 @@ export default async function CampaignsPage({ searchParams }: Props) {
         </div>
       </form>
 
-      {campaigns.length === 0 ? (
+      {unavailable ? (
+        // Distinct from "no results": one is a fact about the search, the other is
+        // a fault on our side. Telling a would-be donor there is nothing to support
+        // when the database simply failed is the wrong answer to the wrong question.
+        <EmptyState
+          icon="⚠️"
+          title="We couldn't load campaigns just now"
+          body="This is a problem on our side, not an empty catalogue. Please refresh in a moment."
+          action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Try again</Link>}
+        />
+      ) : campaigns.length === 0 ? (
         <EmptyState
           icon="🔍"
           title="No campaigns found"
