@@ -2126,7 +2126,20 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
     than having no migration**. Getting this right needs one query against the live
     DB (`information_schema.columns`), which this sandbox cannot reach.
 
-    **⚠️ Note the blind spot:** the schema-contract test does **not** catch this. It
+    **✅ BLIND SPOT NOW GUARDED — `__tests__/migrations-reproduce-schema.test.ts`.**
+    Reconstructs what a fresh provision yields (`schema.sql` CREATE TABLE bodies +
+    every `add column if not exists` across the migrations) and diffs it against
+    the live snapshot. The existing 61-column gap is recorded in
+    `fixtures/schema-migration-drift-baseline.json` rather than failing the suite,
+    since closing it needs real types from `information_schema.columns`.
+    It fails on **change in both directions**: new drift (a column added live, or a
+    migration dropped) *and* reduced drift (someone fixed part of it → shrink the
+    baseline, so it can't quietly re-hide future drift).
+    **Verified non-vacuous:** planting a fake `donations.zz_new_live_only_column`
+    in the snapshot makes it fail naming that exact table and column; the fixture
+    was restored afterwards and `git status` confirms it unmodified.
+
+    **⚠️ The blind spot this closes:** the schema-contract test does **not** catch it. It
     validates that *code selects* exist in the live snapshot — i.e. that code
     matches production. It cannot tell that the *migrations* fail to reproduce
     production. Those are different invariants, and only the first is currently
