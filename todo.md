@@ -3947,7 +3947,37 @@ Verified · Production Ready. These are grounded in the current codebase
   - Completion Evidence: —
   - Commit: —
 
-- [ ] **CHAR-1102**
+- [~] **CHAR-1102** — **Schema + domain layer SHIPPED (Claude, 2026-07-26).**
+      `20260806000000_volunteer_shifts_hours.sql` adds `volunteer_shifts` +
+      `volunteer_hours` with RLS, and `lib/volunteer-shifts-core.ts` holds the pure
+      logic (30 tests). API routes + UI remain — see the note below for exactly what.
+
+      **Integrity is the point of this slice, not the CRUD.** These hours get exported
+      to employers for corporate volunteer-matching, so "verified" has to mean
+      something. A **trigger** (`volunteer_hours_guard_verification`) rejects any
+      attempt to set `status='verified'` by anyone other than the opportunity owner or
+      an admin, and stamps `verified_by`/`verified_at` server-side so attribution
+      cannot be forged. RLS decides *who* may write a row; it cannot restrict *which
+      columns* they change — hence the trigger. Without it a volunteer with ordinary
+      write access to their own row could self-certify hours to their employer.
+      Also: a partial unique index means scanning the QR twice cannot start a second
+      clock, and `MAX_SHIFT_HOURS = 24` caps a forgotten check-out (a three-day
+      "shift" would otherwise export as 72 measured hours) while flagging `capped`
+      so an organizer sees it rather than it being silently recorded as fact.
+      `totalHours()` deliberately returns verified/pending/rejected separately — one
+      combined "total hours" number would invite exactly the conflation this feature
+      exists to prevent.
+
+      **Validated against a real Postgres**, not just eyeballed: `scripts/regen_schema.sh`
+      replayed all 88 migrations into a throwaway instance and regenerated
+      `schema.sql` (152 tables) with both tables, the trigger and the policies present.
+
+      ⬜ **Still open for CHAR-1102:** API routes (create/cancel shift, check-in by
+      code, check-out, organizer verify/reject, corporate CSV export) and the
+      volunteer + organizer UI. The domain rules they must call are already written
+      and tested.
+
+- [ ] **CHAR-1102 (follow-up: API + UI)**
   - Area: Volunteers
   - Feature: Shifts, check-in/out & hours tracking
   - Description: Schedule shifts, QR check-in/out, accumulate verified hours,
@@ -6901,6 +6931,27 @@ that three other audits were structurally blind to._
 - public-routes + public-quality: **4/4**
 - responsive: **37 pages × 3 viewports × 2 themes → 0 findings**
 - typecheck 0 · lint 0 errors · **1324 tests** · build green
+
+### ⚠️ `supabase/schema.sql` had drifted by 15 TABLES (Claude, 2026-07-26)
+Found while regenerating the mirror for CHAR-1102. `scripts/regen_schema.sh` exists
+so "the consolidated schema can never silently drift from the migrations again" —
+but the checked-in `schema.sql` was **15 tables behind** the migrations. Regenerating
+added 17 `CREATE TABLE`s: 2 mine, **15 pre-existing**, including `announcements`,
+`banner_settings`, `campaign_wizard_drafts`, `campaign_faqs`, `campaign_milestones`,
+`campaign_builder_events`, `campaign_owner_replies`, `aeo_entries` …
+
+The mirror is only protective if it is regenerated when migrations land. It had not
+been, so anything reading `schema.sql` as the source of truth was working from a
+schema missing 15 tables.
+
+Also shrank `__tests__/fixtures/schema-migration-drift-baseline.json` from 21 tables
+to 20 — the 4 `tax_receipts` columns it was excusing are now covered by migrations.
+That guard failed the build until I shrank it, which is exactly what it is for:
+it refuses to let a stale baseline hide drift that has since been fixed.
+
+_Note for other agents: run `su postgres -s /bin/bash -c ./scripts/regen_schema.sh`
+after adding a migration — `initdb` refuses to run as root, which is likely why the
+mirror kept falling behind._
 
 ### ✅ Overlap detection added — the header bug's whole class is now caught (Claude, 2026-07-26)
 
