@@ -574,6 +574,29 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**💡 PRODUCT GAP (not a defect) — campaign currency can't be chosen at creation.**
+Chased as a suspected sibling of the `donations.currency` bug and it is **not one** —
+the behaviour here is coherent, so recording it as a gap rather than a fault.
+
+- `campaign_launch_settings` has exactly **one writer**: `PATCH
+  /api/campaigns/[id]/settings`. Nothing writes it at campaign creation, so most
+  campaigns have **no row at all**.
+- The **create flow never asks for a currency** (no `currency` reference anywhere
+  in `app/create/page.tsx`).
+- Reads degrade safely: `normalizeCurrency(undefined)` → `DEFAULT_CURRENCY`, so
+  there is **no wrong number** — unlike `donations.currency`, where a *dropped
+  write* on a defaulted column silently misstated an amount. Worth stating the
+  contrast: a default applied because nothing was ever set is fine; a default
+  applied because a write *failed* is a lie.
+
+**The gap:** an organizer outside the US creates a campaign, it is USD, and donors
+can start giving in USD before the organizer discovers the currency exists on a
+separate campaign-settings page. The platform ships `SUPPORTED_CURRENCIES` and a
+`/supported-countries` page, so international fundraising is clearly intended —
+creation just doesn't ask. Fix is small (one step in the wizard writing the
+launch-settings row) but it is a product decision about the create flow, so it is
+recorded rather than added unilaterally.
+
 **📋 SWEEP — every silent `void supabaseAdmin` write, triaged by consequence.**
 Prompted by the reward-claim finding (a *write* whose failure was unobservable, a
 new variant of the audit's usual "missing read path"). Found **10** bare
