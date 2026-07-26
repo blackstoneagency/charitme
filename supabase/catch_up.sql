@@ -2549,6 +2549,16 @@ create table if not exists outbound_webhook_endpoints (
   updated_at timestamptz not null default now()
 );
 
+-- Some legacy databases already have these tables from an earlier schema. The
+-- create-if-missing statements above do not add columns to those tables, so
+-- reconcile the columns used by this migration before creating indexes/policies.
+alter table if exists donation_forms
+  add column if not exists nonprofit_id uuid references nonprofit_profiles(id) on delete cascade;
+alter table if exists donor_crm_contacts
+  add column if not exists nonprofit_id uuid references nonprofit_profiles(id) on delete cascade;
+alter table if exists fundraising_events
+  add column if not exists nonprofit_id uuid references nonprofit_profiles(id) on delete cascade;
+
 create index if not exists creator_profiles_user_id_idx on creator_profiles(user_id);
 create index if not exists reward_tiers_campaign_id_idx on reward_tiers(campaign_id);
 create index if not exists nonprofit_profiles_owner_id_idx on nonprofit_profiles(owner_id);
@@ -6875,6 +6885,287 @@ values
 on conflict (slug) do nothing;
 
 
+-- ============ 20260722100000_route_aware_aeo_entries.sql ============
+-- Route-aware AEO content lets each published answer support the page it describes.
+alter table aeo_entries
+  add column if not exists route text not null default '/faq';
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'aeo_entries_public_route_check'
+      and conrelid = 'aeo_entries'::regclass
+  ) then
+    alter table aeo_entries drop constraint if exists aeo_entries_public_route_check;
+alter table aeo_entries add constraint aeo_entries_public_route_check check (
+        route like '/%'
+        and route not like '%?%'
+        and route not like '%#%'
+        and route not like '/admin%'
+        and route not like '/dashboard%'
+        and route not like '/create%'
+        and route not like '/login%'
+        and route not like '/forgot-password%'
+        and route not like '/profile%'
+        and route not like '/donor%'
+        and route not like '/beneficiary%'
+      );
+  end if;
+end $$;
+
+create index if not exists aeo_entries_route_pub_idx
+  on aeo_entries(route, published, priority desc, created_at desc);
+
+
+-- ============ 20260722110000_seed_public_aeo_content.sql ============
+-- Curated, route-specific answers for the public marketing engine.
+-- Keep this idempotent so a staging refresh or controlled re-run is safe.
+with entries(question, answer, topic, route, priority) as (
+  values
+    ('What is CharitMe?', 'CharitMe is an AI-powered fundraising platform for individuals, nonprofits, teams, donors, events, grants, matching gifts, sponsorships, and transparent impact reporting.', 'Getting started', '/', 100),
+    ('What does the AI campaign builder create?', 'The AI campaign builder turns a plain-language description into a campaign title, story draft, fundraising goal guidance, donation tiers, and launch-ready content that you can review and edit.', 'AI fundraising', '/ai-campaign', 100),
+    ('How does AI help fundraisers?', 'CharitMe AI helps organizers write stronger campaign stories, identify missing trust signals, plan donor outreach, draft updates, and find practical opportunities to improve campaign performance.', 'AI fundraising', '/ai-fundraising', 100),
+    ('Why was CharitMe created?', 'CharitMe was created to make fundraising simpler, more transparent, and more trustworthy by combining compassionate product design, clear money flows, and practical AI guidance.', 'About CharitMe', '/about-us', 100),
+    ('What can I learn from the CharitMe blog?', 'The CharitMe blog shares fundraising strategy, donor communication guidance, AI playbooks, nonprofit ideas, trust and safety education, and practical campaign growth advice.', 'Resources', '/blog', 100),
+    ('How do I find a campaign to support?', 'Browse active campaigns on CharitMe, then compare their story, trust signals, verification details, updates, and donation information before choosing how to give.', 'Donations', '/campaigns', 100),
+    ('How can I contact CharitMe?', 'Use the CharitMe contact page for campaign support, donation questions, nonprofit partnerships, press requests, billing help, and trust and safety concerns.', 'Support', '/contact', 100),
+    ('What can I do on a CharitMe fundraising event page?', 'Fundraising event pages can share event details, connect an event to a campaign, explain registration or attendance, and provide a clear path for supporters to participate.', 'Events', '/events', 100),
+    ('How fast can I receive a CharitMe payout?', 'After Stripe verification is complete, standard payouts are generally available on the normal processor schedule. Eligible organizers can choose faster payout options where available, with the exact timing and fee shown before confirmation.', 'Payouts', '/fast-payouts', 100),
+    ('What tools are included on CharitMe?', 'CharitMe includes campaign creation, donation checkout, donor management, trust signals, payouts, updates, AI guidance, nonprofit tools, events, grants, matching, sponsorships, and impact reporting.', 'Features', '/features', 100),
+    ('Does CharitMe charge a platform fee?', 'CharitMe does not charge organizers a mandatory platform fee. Payment processing costs and any optional donor support are shown transparently before a donation is completed.', 'Fees', '/fees', 100),
+    ('Can donors give anonymously on CharitMe?', 'Yes. Donors can choose anonymous giving at checkout. The public campaign page will not display the donor name when that option is selected.', 'For donors', '/for-donors', 100),
+    ('What can I raise money for as an individual?', 'Individuals can use CharitMe for eligible medical, emergency, memorial, education, community, pet, and other personal fundraising needs, subject to platform policies.', 'Personal fundraising', '/for-individuals', 100),
+    ('How does CharitMe help nonprofits?', 'CharitMe gives nonprofits campaign tools, donor management, recurring giving, receipts, team workflows, events, grants, impact reporting, and AI-assisted outreach.', 'Nonprofits', '/for-nonprofits', 100),
+    ('How do I apply for a grant on CharitMe?', 'Review a grant opportunity’s eligibility, deadline, amount, and application requirements, then begin an application from the grant page. Draft applications remain private in your dashboard.', 'Grants', '/grants', 100),
+    ('Where can I get help with CharitMe?', 'The CharitMe Help Center covers campaign setup, donations, payouts, account management, trust and safety, and billing. Contact support when you need help with a specific case.', 'Support', '/help', 100),
+    ('How does fundraising work on CharitMe?', 'Create a campaign, explain the cause, set a goal, add trust-building details, share the campaign, receive donations through secure checkout, and follow progress through updates and impact reporting.', 'Getting started', '/how-it-works', 100),
+    ('What is impact reporting?', 'Impact reporting shows how a campaign plans to use funds, records progress through updates and metrics, and gives supporters clearer evidence of what their donations made possible.', 'Impact', '/impact', 100),
+    ('How is the fundraising leaderboard calculated?', 'The leaderboard highlights leading campaign and donor activity using platform data and clearly labeled time ranges. It is intended for recognition and discovery, not as a guarantee of campaign quality.', 'Community', '/leaderboard', 100),
+    ('How do donation matching programs work?', 'A matching program lets an eligible sponsor or employer match qualifying donations according to the program’s ratio, limits, categories, and claim rules shown on its detail page.', 'Matching gifts', '/matching', 100),
+    ('What are CharitMe pricing plans?', 'CharitMe offers a free starting plan plus optional paid plans with additional AI, campaign, donor, nonprofit, creator, or community capabilities. Current plan details are shown on the pricing page.', 'Pricing', '/pricing', 100),
+    ('Are CharitMe donations secure?', 'Donations are processed through Stripe’s secure payment infrastructure. CharitMe does not store raw card numbers or CVV data, and campaign trust information is presented to help donors make informed decisions.', 'Security', '/security', 100),
+    ('How does CharitMe handle refunds?', 'Refund and chargeback handling depends on the donation and campaign circumstances. Start with the refund policy and contact support when a donation needs review.', 'Refunds', '/refunds', 100),
+    ('How can a company sponsor a campaign?', 'Companies can review sponsorship opportunities, compare requested support and benefits, and submit a sponsorship request from the opportunity page.', 'Sponsorships', '/sponsor', 100),
+    ('Where can I read CharitMe success stories?', 'Success stories share campaign outcomes, fundraising patterns, and practical examples that can help organizers learn how to communicate their cause and build supporter momentum.', 'Resources', '/success-stories', 100),
+    ('Which countries does CharitMe support?', 'Fundraising and payout availability depends on country, currency, and Stripe Connect eligibility. The supported countries page lists current availability and relevant restrictions.', 'Availability', '/supported-countries', 100),
+    ('How does CharitMe protect trust and safety?', 'CharitMe combines identity and payout verification, campaign trust signals, fraud screening, reporting tools, moderation, and transparent donor information to support safer giving.', 'Trust and safety', '/trust-safety', 100),
+    ('How can I volunteer through CharitMe?', 'Browse volunteer opportunities by cause, location, remote availability, skills, or time commitment, then review the opportunity details and apply when a role fits.', 'Volunteering', '/volunteer', 100),
+    ('How does CharitMe protect privacy?', 'CharitMe explains what information it collects, how it is used, how payment data is handled, and which privacy choices are available in its privacy policy and privacy controls.', 'Privacy', '/privacy', 100),
+    ('How does CharitMe keep its money flows transparent?', 'CharitMe shows donation breakdowns, processor costs, optional support, payout status, campaign updates, and impact information so supporters can better understand where money goes.', 'Transparency', '/transparency', 100),
+    ('How do I manage my CharitMe account terms?', 'The Terms of Service explain the rules for using CharitMe, creating campaigns, donating, receiving payouts, communicating with supporters, and maintaining platform safety.', 'Policies', '/terms', 100)
+)
+insert into aeo_entries (question, answer, topic, schema_type, priority, published, route)
+select e.question, e.answer, e.topic, 'FAQPage', e.priority, true, e.route
+from entries e
+where not exists (
+  select 1 from aeo_entries existing
+  where existing.route = e.route and existing.question = e.question
+);
+
+
+-- ============ 20260722120000_protect_private_seo_overrides.sql ============
+-- Existing SEO seed rows for private surfaces must never make those routes indexable.
+update seo_settings
+set noindex = true,
+    updated_at = now()
+where route in ('/achievements', '/privacy-center', '/impact/manage')
+   or route like '/events/manage%'
+   or route like '/matching/manage%'
+   or route like '/sponsor/manage%';
+
+
+-- ============ 20260722130000_seed_public_seo_settings.sql ============
+-- Seed the canonical SEO control plane for every public marketing route.
+-- Only missing routes are inserted so administrator overrides remain intact.
+with routes(route, title, meta_description) as (
+  values
+    ('/', 'CharitMe | AI Fundraising Platform', 'Launch trusted fundraising campaigns, accept donations, and grow with AI fundraising tools.'),
+    ('/campaigns', 'Browse Fundraising Campaigns', 'Discover active CharitMe campaigns and support verified people, nonprofits, and causes.'),
+    ('/pricing', 'CharitMe Pricing', 'Review simple fundraising pricing, payment processing details, and AI growth options.'),
+    ('/features', 'Fundraising Platform Features', 'Explore CharitMe tools for campaigns, donations, donor growth, AI coaching, and payouts.'),
+    ('/how-it-works', 'How CharitMe Works', 'Learn how to start a fundraiser, share it, collect donations, and receive payouts.'),
+    ('/for-nonprofits', 'Fundraising For Nonprofits', 'AI-powered donation pages, donor insights, events, grants, and reporting for nonprofits.'),
+    ('/for-donors', 'Giving For Donors', 'Find trusted campaigns, give quickly, and follow the impact of your donations.'),
+    ('/for-individuals', 'Personal Fundraising', 'Raise money for medical bills, emergencies, education, memorials, and community needs.'),
+    ('/ai-fundraising', 'AI Fundraising', 'Use AI to write campaign stories, find growth opportunities, and improve donor outreach.'),
+    ('/ai-campaign', 'AI Campaign Builder', 'Create high-converting fundraising campaigns with AI-guided copy, media, and launch tools.'),
+    ('/events', 'Fundraising Events', 'Create, promote, and discover fundraising events connected to CharitMe campaigns.'),
+    ('/grants', 'Fundraising Grants', 'Find grant opportunities and manage applications for nonprofit and community fundraising.'),
+    ('/matching', 'Donation Matching', 'Connect campaigns with corporate matching gifts and sponsor-funded donation matches.'),
+    ('/volunteer', 'Volunteer Opportunities', 'Discover volunteer opportunities connected to causes and nonprofit fundraising campaigns.'),
+    ('/sponsor', 'Campaign Sponsorships', 'Find sponsorship opportunities and fund campaigns with clear benefits and impact.'),
+    ('/impact', 'Impact Reporting', 'See how campaigns use donations through transparent plans, updates, and outcomes.'),
+    ('/leaderboard', 'Fundraising Leaderboard', 'Track leading CharitMe campaigns and donors by fundraising momentum and impact.'),
+    ('/blog', 'Fundraising Blog', 'Read fundraising strategy, donor growth guidance, nonprofit tips, and CharitMe updates.'),
+    ('/success-stories', 'Fundraising Success Stories', 'Learn from successful campaigns and real fundraising playbooks on CharitMe.'),
+    ('/fast-payouts', 'Fast Fundraising Payouts', 'Understand CharitMe payout timing, payment processing, and organizer fund access.'),
+    ('/fees', 'Fundraising Fees', 'Compare CharitMe platform fees, processing fees, and donor-supported fundraising costs.'),
+    ('/transparency', 'Fundraising Transparency', 'Review CharitMe trust signals, campaign transparency, donations, and accountability tools.'),
+    ('/trust-safety', 'Trust And Safety', 'Learn how CharitMe protects donors, organizers, campaigns, and platform integrity.'),
+    ('/help', 'CharitMe Help Center', 'Get answers about fundraising, donations, payouts, campaign setup, and account support.'),
+    ('/faq', 'CharitMe FAQ', 'Find quick answers to common CharitMe fundraising, donation, and payout questions.'),
+    ('/contact', 'Contact CharitMe', 'Contact CharitMe for fundraising support, partnerships, press, and platform questions.'),
+    ('/about-us', 'About CharitMe', 'Learn about CharitMe and the mission to make fundraising faster, trusted, and more accessible.'),
+    ('/supported-countries', 'Supported Countries', 'See where CharitMe fundraising, donations, and payouts are supported.'),
+    ('/privacy', 'Privacy Policy', 'Read the CharitMe privacy policy for donors, organizers, nonprofits, and visitors.'),
+    ('/terms', 'Terms Of Service', 'Read the CharitMe terms that govern fundraising, donations, campaigns, and platform use.'),
+    ('/security', 'Security', 'Review CharitMe security practices for fundraising accounts, donations, and platform data.'),
+    ('/refunds', 'Refund Policy', 'Understand CharitMe donation refund policy, eligibility, and support process.'),
+    ('/prohibited-use', 'Prohibited Use Policy', 'Review prohibited fundraising categories and platform integrity rules for CharitMe.')
+), missing as (
+  select r.route, r.title, r.meta_description
+  from routes r
+  where not exists (select 1 from seo_settings s where s.route = r.route)
+)
+insert into seo_settings (
+  route, title, meta_description, og_title, og_description, og_image_url,
+  canonical_url, noindex
+)
+select
+  route,
+  title,
+  meta_description,
+  title,
+  meta_description,
+  'https://www.charitme.com/opengraph-image',
+  case when route = '/' then 'https://www.charitme.com' else 'https://www.charitme.com' || route end,
+  false
+from missing;
+
+
+-- ============ 20260722150000_auth_marketing_contact_bootstrap.sql ============
+-- Keep auth, profiles, and the marketing engine synchronized.
+-- The trigger handles new users; the idempotent backfills repair users created
+-- before the trigger or marketing tables were deployed.
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  requested_roles jsonb;
+  display_name text;
+begin
+  requested_roles := coalesce(new.raw_user_meta_data -> 'roles', '["donor"]'::jsonb);
+  if jsonb_typeof(requested_roles) <> 'array' then
+    requested_roles := '["donor"]'::jsonb;
+  end if;
+
+  display_name := coalesce(
+    nullif(new.raw_user_meta_data ->> 'full_name', ''),
+    nullif(new.raw_user_meta_data ->> 'name', '')
+  );
+
+  insert into public.profiles (id, email, full_name, avatar_url, roles)
+  values (
+    new.id,
+    new.email,
+    display_name,
+    nullif(new.raw_user_meta_data ->> 'avatar_url', ''),
+    requested_roles
+  )
+  on conflict (id) do update
+  set
+    email = excluded.email,
+    full_name = coalesce(public.profiles.full_name, excluded.full_name),
+    avatar_url = coalesce(public.profiles.avatar_url, excluded.avatar_url),
+    updated_at = now();
+
+  if new.email is not null then
+    update public.marketing_contacts
+    set
+      user_id = new.id,
+      first_name = coalesce(first_name, display_name),
+      last_active_at = now()
+    where lower(email) = lower(new.email)
+      and user_id is null;
+
+    if not found then
+      insert into public.marketing_contacts (
+        user_id, email, first_name, client_type, lifecycle_stage, status
+      )
+      values (new.id, new.email, display_name, 'donor', 'subscriber', 'active')
+      on conflict do nothing;
+    end if;
+
+    insert into public.marketing_identities (contact_id, kind, value)
+    select c.id, 'email', lower(new.email)
+    from public.marketing_contacts c
+    where lower(c.email) = lower(new.email)
+    order by c.created_at
+    limit 1
+    on conflict (kind, value) do nothing;
+
+    insert into public.marketing_identities (contact_id, kind, value)
+    select c.id, 'user_id', new.id::text
+    from public.marketing_contacts c
+    where c.user_id = new.id
+    order by c.created_at
+    limit 1
+    on conflict (kind, value) do nothing;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+insert into public.profiles (id, email, full_name, avatar_url, roles)
+select
+  u.id,
+  u.email,
+  coalesce(nullif(u.raw_user_meta_data ->> 'full_name', ''), nullif(u.raw_user_meta_data ->> 'name', '')),
+  nullif(u.raw_user_meta_data ->> 'avatar_url', ''),
+  case
+    when jsonb_typeof(coalesce(u.raw_user_meta_data -> 'roles', '["donor"]'::jsonb)) = 'array'
+      then coalesce(u.raw_user_meta_data -> 'roles', '["donor"]'::jsonb)
+    else '["donor"]'::jsonb
+  end
+from auth.users u
+where not exists (select 1 from public.profiles p where p.id = u.id)
+on conflict (id) do nothing;
+
+insert into public.marketing_contacts (
+  user_id, email, first_name, client_type, lifecycle_stage, status
+)
+select
+  u.id,
+  u.email,
+  coalesce(nullif(u.raw_user_meta_data ->> 'full_name', ''), nullif(u.raw_user_meta_data ->> 'name', '')),
+  'donor',
+  'subscriber',
+  'active'
+from auth.users u
+where u.email is not null
+  and not exists (
+    select 1
+    from public.marketing_contacts c
+    where lower(c.email) = lower(u.email)
+       or c.user_id = u.id
+  )
+on conflict do nothing;
+
+insert into public.marketing_identities (contact_id, kind, value)
+select c.id, 'email', lower(c.email)
+from public.marketing_contacts c
+where c.email is not null
+on conflict (kind, value) do nothing;
+
+insert into public.marketing_identities (contact_id, kind, value)
+select c.id, 'user_id', c.user_id::text
+from public.marketing_contacts c
+where c.user_id is not null
+on conflict (kind, value) do nothing;
+
+
 -- ============ 20260723000000_campaign_cover_per_campaign.sql ============
 -- =============================================================================
 -- Per-campaign cover distribution
@@ -7134,6 +7425,35 @@ end $$;
 -- access to any of these, add an explicit, scoped policy in a new migration.
 
 
+-- ============ 20260723010000_marketing_admin_policies.sql ============
+-- Make the marketing engine's service-role-only contract explicit in RLS.
+-- Public writes and reads use authenticated API routes with supabaseAdmin;
+-- direct client access is limited to administrators.
+
+do $$
+declare
+  table_name text;
+  policy_name text;
+begin
+  foreach table_name in array array[
+    'marketing_contacts','marketing_identities','marketing_events','marketing_segments',
+    'marketing_segment_members','marketing_campaigns','marketing_campaign_recipients',
+    'marketing_automations','marketing_automation_runs','marketing_email_templates',
+    'marketing_utm_links','marketing_referrals','marketing_forms','marketing_form_submissions',
+    'marketing_consent','marketing_suppression_list','marketing_audit_logs'
+  ]
+  loop
+    policy_name := table_name || '_admin_all';
+    execute format('drop policy if exists %I on public.%I', policy_name, table_name);
+    execute format(
+      'create policy %I on public.%I for all using (public.is_admin()) with check (public.is_admin())',
+      policy_name,
+      table_name
+    );
+  end loop;
+end $$;
+
+
 -- ============ 20260724000000_campaign_cover_unique_picsum.sql ============
 -- =============================================================================
 -- Unique per-campaign cover images (no duplicates)
@@ -7262,6 +7582,79 @@ create policy cbe_insert_any on public.campaign_builder_events
 -- Reads are admin-only (service role bypasses RLS; no anon/authenticated SELECT policy).
 
 
+-- ============ 20260725000000_protect_private_seo_routes.sql ============
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'seo_settings_private_routes_noindex_check'
+      and conrelid = 'seo_settings'::regclass
+  ) then
+    alter table seo_settings drop constraint if exists seo_settings_private_routes_noindex_check;
+alter table seo_settings add constraint seo_settings_private_routes_noindex_check check (
+        noindex = true
+        or not (
+          route in ('/achievements', '/privacy-center', '/offline')
+          or route = '/go'
+          or route like '/go/%'
+          or route like '/events/manage%'
+          or route like '/impact/manage%'
+          or route like '/matching/manage%'
+          or route like '/sponsor/manage%'
+        )
+      );
+  end if;
+end $$;
+
+
+-- ============ 20260725010000_seed_prohibited_use_aeo.sql ============
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'aeo_entries_private_routes_published_check'
+      and conrelid = 'aeo_entries'::regclass
+  ) then
+    alter table aeo_entries drop constraint if exists aeo_entries_private_routes_published_check;
+alter table aeo_entries add constraint aeo_entries_private_routes_published_check check (
+        published = false
+        or not (
+          route in ('/achievements', '/privacy-center', '/offline')
+          or route = '/go'
+          or route like '/go/%'
+          or route like '/events/manage%'
+          or route like '/impact/manage%'
+          or route like '/matching/manage%'
+          or route like '/sponsor/manage%'
+        )
+      );
+  end if;
+end $$;
+
+insert into aeo_entries (question, answer, topic, schema_type, priority, published, route)
+select
+  'What fundraising activities are prohibited on CharitMe?',
+  'CharitMe prohibits illegal activity, fraud, hate or abuse, regulated goods, deceptive fundraising, and campaigns that violate our trust and safety rules. Review the full policy before launching a campaign.',
+  'Trust and safety',
+  'FAQPage',
+  80,
+  true,
+  '/prohibited-use'
+where not exists (
+  select 1 from aeo_entries where route = '/prohibited-use' and published = true
+);
+
+
+-- ============ 20260725050000_marketing_contact_user_uniqueness.sql ============
+-- One authenticated user must resolve to one marketing contact.
+-- The live duplicate audit was clean before adding this constraint.
+create unique index if not exists marketing_contacts_user_id_uq
+  on public.marketing_contacts (user_id)
+  where user_id is not null;
+
+
 -- ============ 20260726000000_tax_receipt_reconciliation.sql ============
 -- Keep one official tax receipt per completed donation so email delivery,
 -- annual donor statements, and admin re-sends reconcile to the same record.
@@ -7284,3 +7677,965 @@ create unique index if not exists tax_receipts_donation_id_unique
 
 create index if not exists tax_receipts_donor_created_at_idx
   on public.tax_receipts (donor_id, created_at desc);
+
+
+-- ============ 20260727000000_lock_down_admin_config_rls.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Security: stop leaking admin configuration to anonymous callers (CHAR-0012)
+--
+-- `platform_settings` and `feature_flags` are ADMIN configuration tables, but
+-- both carried a `*_public_read` SELECT policy with `using (true)`. Because the
+-- Supabase anon key ships to every browser, ANY visitor could read:
+--   platform_settings.config -> donationFeePercent, platformFeePercent,
+--     supportEmail/Phone, stripeLiveMode, maintenanceMode, allowNewRegistrations
+--   feature_flags            -> every flag incl. disabled/unreleased features
+--     (e.g. referral_program=false), i.e. the unshipped product roadmap
+--
+-- No credentials were exposed, but neither table has any reason to be world
+-- readable. Every application read of these tables goes through `supabaseAdmin`
+-- (service role), which bypasses RLS entirely — verified across all 12
+-- referencing files (admin pages + API routes); none use the browser client and
+-- none read these tables through the cookie/anon server client. Admin access is
+-- preserved by the pre-existing is_admin() policies.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+drop policy if exists settings_public_read on public.platform_settings;
+drop policy if exists flags_public_read on public.feature_flags;
+
+-- Defensive: RLS must stay on so the remaining is_admin() policies are enforced.
+alter table if exists public.platform_settings enable row level security;
+alter table if exists public.feature_flags     enable row level security;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Fix latent infinite RLS recursion in is_admin() (surfaced by the change above)
+--
+-- is_admin() selects from public.profiles, and profiles' own SELECT policy is
+--   (auth.uid() = id) OR is_admin()
+-- so is_admin() -> profiles -> is_admin() -> ... until Postgres aborts with
+-- 54001 "stack depth limit exceeded". This was previously masked wherever a
+-- permissive `using (true)` policy short-circuited the OR; removing the public
+-- read policies above exposed it. It affects EVERY table whose only applicable
+-- policy is is_admin() — those queries error instead of denying cleanly.
+--
+-- SECURITY DEFINER makes the profiles lookup run as the function owner, so it
+-- is not subject to profiles' RLS and cannot recurse. The predicate is
+-- unchanged (`id = auth.uid() and roles ? 'admin'`), so it still only reports
+-- whether the CURRENT caller is an admin — no privilege is widened.
+-- search_path is pinned so the definer context cannot be hijacked.
+-- ─────────────────────────────────────────────────────────────────────────────
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid()
+      and roles ? 'admin'
+  );
+$$;
+
+
+-- ============ 20260727000000_reconcile_competitor_parity_tables.sql ============
+-- Reconcile databases where 20260525002000 rolled back after encountering
+-- legacy tables without the newer nonprofit_id columns.
+
+create table if not exists creator_profiles (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  handle text not null unique,
+  display_name text not null,
+  bio text,
+  hero_image_url text,
+  website_url text,
+  brand_color text default '#059669',
+  accepts_tips boolean not null default true,
+  accepts_commissions boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists campaign_launch_settings (
+  id uuid primary key default uuid_generate_v4(),
+  campaign_id uuid not null unique references campaigns(id) on delete cascade,
+  funding_model text not null default 'flexible' check (funding_model in ('flexible','fixed')),
+  launch_type text not null default 'fundraiser' check (launch_type in ('fundraiser','project','product','indemand')),
+  currency text not null default 'usd',
+  country text not null default 'US',
+  is_indemand boolean not null default false,
+  product_stage text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists nonprofit_profiles (
+  id uuid primary key default uuid_generate_v4(),
+  owner_id uuid not null references profiles(id) on delete cascade,
+  name text not null,
+  slug text not null unique,
+  mission text,
+  tax_id text,
+  website_url text,
+  verified boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  verification_status text not null default 'unverified',
+  tax_receipt_enabled boolean not null default false,
+  country text not null default 'US',
+  address text,
+  public_profile_enabled boolean not null default true,
+  constraint nonprofit_profiles_verification_status_check
+    check (verification_status in ('unverified','pending','verified','rejected'))
+);
+
+create table if not exists fundraising_events (
+  id uuid primary key default uuid_generate_v4(),
+  nonprofit_id uuid references nonprofit_profiles(id) on delete cascade,
+  campaign_id uuid references campaigns(id) on delete cascade,
+  title text not null,
+  slug text not null unique,
+  event_type text not null default 'fundraiser'
+    check (event_type in ('fundraiser','gala','giving_day','livestream','auction','registration')),
+  starts_at timestamptz not null,
+  ends_at timestamptz,
+  location text,
+  virtual_url text,
+  status text not null default 'draft'
+    check (status in ('draft','published','completed','cancelled')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  created_by uuid references profiles(id) on delete set null,
+  description text,
+  capacity integer,
+  cover_image_url text
+);
+
+alter table if exists donation_forms
+  add column if not exists nonprofit_id uuid references nonprofit_profiles(id) on delete cascade;
+alter table if exists donor_crm_contacts
+  add column if not exists nonprofit_id uuid references nonprofit_profiles(id) on delete cascade;
+alter table if exists fundraising_events
+  add column if not exists nonprofit_id uuid references nonprofit_profiles(id) on delete cascade;
+
+create index if not exists creator_profiles_user_id_idx on creator_profiles(user_id);
+create index if not exists campaign_launch_settings_campaign_id_idx on campaign_launch_settings(campaign_id);
+create index if not exists nonprofit_profiles_owner_id_idx on nonprofit_profiles(owner_id);
+create index if not exists fundraising_events_nonprofit_id_idx on fundraising_events(nonprofit_id);
+
+alter table creator_profiles enable row level security;
+alter table campaign_launch_settings enable row level security;
+alter table nonprofit_profiles enable row level security;
+alter table fundraising_events enable row level security;
+
+do $$
+begin
+  if not exists (select 1 from pg_policy where polrelid = 'creator_profiles'::regclass and polname = 'public_creator_profiles_read') then
+    drop policy if exists public_creator_profiles_read on creator_profiles;
+create policy public_creator_profiles_read on creator_profiles for select using (true);
+  end if;
+  if not exists (select 1 from pg_policy where polrelid = 'creator_profiles'::regclass and polname = 'creator_profiles_owner_write') then
+    drop policy if exists creator_profiles_owner_write on creator_profiles;
+create policy creator_profiles_owner_write on creator_profiles for all
+      using (auth.uid() = user_id or is_admin())
+      with check (auth.uid() = user_id or is_admin());
+  end if;
+  if not exists (select 1 from pg_policy where polrelid = 'campaign_launch_settings'::regclass and polname = 'public_campaign_launch_read') then
+    drop policy if exists public_campaign_launch_read on campaign_launch_settings;
+create policy public_campaign_launch_read on campaign_launch_settings for select using (true);
+  end if;
+  if not exists (select 1 from pg_policy where polrelid = 'campaign_launch_settings'::regclass and polname = 'campaign_launch_owner_write') then
+    drop policy if exists campaign_launch_owner_write on campaign_launch_settings;
+create policy campaign_launch_owner_write on campaign_launch_settings for all
+      using (is_admin() or exists (select 1 from campaigns where campaigns.id = campaign_launch_settings.campaign_id and campaigns.user_id = auth.uid()))
+      with check (is_admin() or exists (select 1 from campaigns where campaigns.id = campaign_launch_settings.campaign_id and campaigns.user_id = auth.uid()));
+  end if;
+  if not exists (select 1 from pg_policy where polrelid = 'nonprofit_profiles'::regclass and polname = 'public_nonprofit_profiles_read') then
+    drop policy if exists public_nonprofit_profiles_read on nonprofit_profiles;
+create policy public_nonprofit_profiles_read on nonprofit_profiles for select using (true);
+  end if;
+  if not exists (select 1 from pg_policy where polrelid = 'nonprofit_profiles'::regclass and polname = 'nonprofit_profiles_owner_write') then
+    drop policy if exists nonprofit_profiles_owner_write on nonprofit_profiles;
+create policy nonprofit_profiles_owner_write on nonprofit_profiles for all
+      using (auth.uid() = owner_id or is_admin())
+      with check (auth.uid() = owner_id or is_admin());
+  end if;
+  if not exists (select 1 from pg_policy where polrelid = 'fundraising_events'::regclass and polname = 'public_events_read') then
+    drop policy if exists public_events_read on fundraising_events;
+create policy public_events_read on fundraising_events for select using (status = 'published' or is_admin());
+  end if;
+  if not exists (select 1 from pg_policy where polrelid = 'fundraising_events'::regclass and polname = 'events_owner_write') then
+    drop policy if exists events_owner_write on fundraising_events;
+create policy events_owner_write on fundraising_events for all
+      using (is_admin() or exists (select 1 from nonprofit_profiles where nonprofit_profiles.id = fundraising_events.nonprofit_id and nonprofit_profiles.owner_id = auth.uid()))
+      with check (is_admin() or exists (select 1 from nonprofit_profiles where nonprofit_profiles.id = fundraising_events.nonprofit_id and nonprofit_profiles.owner_id = auth.uid()));
+  end if;
+end
+$$;
+
+drop trigger if exists creator_profiles_set_updated_at on creator_profiles;
+drop trigger if exists creator_profiles_set_updated_at on creator_profiles;
+create trigger creator_profiles_set_updated_at before update on creator_profiles for each row execute function set_updated_at();
+drop trigger if exists campaign_launch_settings_set_updated_at on campaign_launch_settings;
+drop trigger if exists campaign_launch_settings_set_updated_at on campaign_launch_settings;
+create trigger campaign_launch_settings_set_updated_at before update on campaign_launch_settings for each row execute function set_updated_at();
+drop trigger if exists nonprofit_profiles_set_updated_at on nonprofit_profiles;
+drop trigger if exists nonprofit_profiles_set_updated_at on nonprofit_profiles;
+create trigger nonprofit_profiles_set_updated_at before update on nonprofit_profiles for each row execute function set_updated_at();
+drop trigger if exists fundraising_events_set_updated_at on fundraising_events;
+drop trigger if exists fundraising_events_set_updated_at on fundraising_events;
+create trigger fundraising_events_set_updated_at before update on fundraising_events for each row execute function set_updated_at();
+
+
+-- ============ 20260728000000_backfill_parity_tables.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Backfill creator_profiles + campaign_launch_settings from REAL existing rows
+--
+-- 20260727000000_reconcile_competitor_parity_tables.sql created these two
+-- tables with public-read policies, but left them empty. campaign_launch_settings
+-- is read by 10+ live routes (donations, recurring, analytics, settings,
+-- rewards, qr-poster, AI assistant), so every real campaign was falling back to
+-- implicit defaults instead of having a settings row.
+--
+-- This is a BACKFILL, not seed data: every row is derived from an existing
+-- campaign or an existing profile that actually owns a campaign. No fictional
+-- people, campaigns, bios, or imagery are invented — bio is deliberately left
+-- NULL rather than fabricated, since creator_profiles is publicly readable on a
+-- live fundraising site.
+--
+-- Idempotent: safe to re-run (unique indexes + ON CONFLICT DO NOTHING).
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- One creator profile per user. Also makes the backfill below re-runnable.
+create unique index if not exists creator_profiles_user_id_unique
+  on public.creator_profiles (user_id);
+
+-- ── campaign_launch_settings: one row per live campaign ──────────────────────
+-- Non-default columns are left to the schema defaults (flexible / fundraiser /
+-- usd / US) because `campaigns` carries no currency or country column to source.
+insert into public.campaign_launch_settings (campaign_id)
+select c.id
+from public.campaigns c
+where c.deleted_at is null
+on conflict (campaign_id) do nothing;
+
+-- ── creator_profiles: one row per profile that actually owns a campaign ──────
+-- handle: slug of the real display name (or email local-part), suffixed with a
+-- short slice of the user id so it is deterministic AND collision-free.
+-- display_name / hero_image_url come from the profile's real values.
+insert into public.creator_profiles (user_id, handle, display_name, hero_image_url)
+select
+  p.id,
+  coalesce(
+    nullif(
+      trim(both '-' from regexp_replace(
+        lower(coalesce(nullif(trim(p.full_name), ''), split_part(coalesce(p.email, ''), '@', 1))),
+        '[^a-z0-9]+', '-', 'g'
+      )),
+      ''
+    ),
+    'creator'
+  ) || '-' || left(replace(p.id::text, '-', ''), 6) as handle,
+  coalesce(nullif(trim(p.full_name), ''), nullif(split_part(coalesce(p.email, ''), '@', 1), ''), 'CharitMe Creator') as display_name,
+  p.avatar_url
+from public.profiles p
+where exists (
+  select 1 from public.campaigns c
+  where c.user_id = p.id and c.deleted_at is null
+)
+on conflict (user_id) do nothing;
+
+
+-- ============ 20260728010000_gate_parity_public_reads.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Gate the parity tables' public reads to match campaign visibility
+--
+-- 20260727000000_reconcile_competitor_parity_tables.sql gave both tables blanket
+-- `using (true)` SELECT policies. That is inconsistent with campaigns_public_read,
+-- which only publishes `status='active' AND visibility='public' AND deleted_at IS NULL`.
+--
+-- Measured on production before this change: 500 campaigns, of which only 350 are
+-- publicly visible — so 150 rows (50 draft, 50 paused, 50 completed) were readable
+-- by anonymous callers. Draft campaigns are the real problem: an anonymous user
+-- could enumerate campaign_launch_settings and learn that an unpublished campaign
+-- exists, along with its funding_model / launch_type / product_stage, even though
+-- the campaign row itself is hidden.
+--
+-- Owners and admins keep full access through the existing *_owner_write ALL
+-- policies (ALL covers SELECT), so dashboards and drafts are unaffected.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- campaign_launch_settings: publish only for publicly visible campaigns.
+drop policy if exists public_campaign_launch_read on public.campaign_launch_settings;
+drop policy if exists public_campaign_launch_read on public.campaign_launch_settings;
+create policy public_campaign_launch_read on public.campaign_launch_settings
+  for select
+  using (
+    exists (
+      select 1
+      from public.campaigns c
+      where c.id = campaign_launch_settings.campaign_id
+        and c.deleted_at is null
+        and c.status = 'active'
+        and c.visibility = 'public'
+    )
+  );
+
+-- creator_profiles: publish only creators who already have a public campaign.
+-- Their display name is public on that campaign page anyway, so this exposes
+-- nothing new — while keeping creators whose only campaigns are drafts private.
+drop policy if exists public_creator_profiles_read on public.creator_profiles;
+drop policy if exists public_creator_profiles_read on public.creator_profiles;
+create policy public_creator_profiles_read on public.creator_profiles
+  for select
+  using (
+    exists (
+      select 1
+      from public.campaigns c
+      where c.user_id = creator_profiles.user_id
+        and c.deleted_at is null
+        and c.status = 'active'
+        and c.visibility = 'public'
+    )
+  );
+
+
+-- ============ 20260729000000_marketing_goals.sql ============
+-- =============================================================================
+-- Marketing Goals — goal-based marketing entry point ("tell CharitMe the outcome")
+-- =============================================================================
+-- The foundation of the Marketing OS goal→campaign loop. A marketing leader
+-- enters a business objective in natural language (or via the structured form);
+-- the system stores it as a measurable goal with a baseline, a target, a
+-- deadline, an owner, and an autonomy level. Progress is measured against LIVE
+-- CharitMe data (campaign starts, donation volume) where the metric maps to a
+-- real table; other metrics are stored and clearly labelled "measurement
+-- pending" rather than faked.
+--
+-- RLS: marketing data is admin/service-role only — matches the existing
+-- marketing_* tables. No anon/authenticated policies; API routes read/write via
+-- the service role after verifyAdmin() + zod validation. Every mutation is
+-- recorded in marketing_audit_logs by the API layer.
+-- =============================================================================
+
+create table if not exists public.marketing_goals (
+  id                      uuid primary key default gen_random_uuid(),
+  title                   text not null,
+  description             text,
+  objective               text,                       -- plain-English business objective
+  natural_language_input  text,                       -- the original NL prompt, if any
+
+  target_metric           text not null default 'custom',
+  baseline_value          numeric,                    -- value captured when the goal was set
+  target_value            numeric,
+  unit                    text not null default 'count',   -- count | cents | percent | ratio
+
+  deadline                date,
+  priority                text not null default 'medium',
+  geography               text,
+  audience                text,
+  category                text,                       -- campaign category the goal targets
+  budget_cents            bigint check (budget_cents is null or budget_cents >= 0),
+  channels                text[] not null default '{}',
+
+  autonomy_level          smallint not null default 1, -- 1 recommend, 2 create, 3 guardrailed, 4 exception-based
+  constraints             jsonb not null default '{}'::jsonb,
+
+  status                  text not null default 'draft',
+  confidence              numeric,                    -- 0..1, nullable until forecast exists
+  forecast_value          numeric,
+
+  owner_id                uuid references auth.users(id) on delete set null,
+  created_by              uuid references auth.users(id) on delete set null,
+  created_at              timestamptz not null default now(),
+  updated_at              timestamptz not null default now(),
+
+  constraint marketing_goals_metric_chk check (target_metric in (
+    'fundraiser_starts','donation_volume','recurring_donors','donation_conversion',
+    'verified_charities','donor_acquisition_cost','organizer_retention',
+    'aeo_visibility','organic_traffic','custom'
+  )),
+  constraint marketing_goals_unit_chk check (unit in ('count','cents','percent','ratio')),
+  constraint marketing_goals_priority_chk check (priority in ('low','medium','high','critical')),
+  constraint marketing_goals_status_chk check (status in ('draft','active','paused','achieved','missed','archived')),
+  constraint marketing_goals_autonomy_chk check (autonomy_level between 1 and 4),
+  constraint marketing_goals_confidence_chk check (confidence is null or (confidence >= 0 and confidence <= 1))
+);
+
+create index if not exists idx_marketing_goals_status   on public.marketing_goals (status, priority);
+create index if not exists idx_marketing_goals_deadline on public.marketing_goals (deadline);
+create index if not exists idx_marketing_goals_created  on public.marketing_goals (created_at desc);
+create index if not exists idx_marketing_goals_owner    on public.marketing_goals (owner_id);
+
+-- updated_at trigger (reuses the marketing_engine helper if present, else defines it)
+do $$
+begin
+  if not exists (select 1 from pg_proc where proname = 'marketing_touch_updated_at') then
+    create function public.marketing_touch_updated_at()
+    returns trigger language plpgsql as 'begin new.updated_at = now(); return new; end';
+  end if;
+end $$;
+
+drop trigger if exists marketing_goals_touch on public.marketing_goals;
+drop trigger if exists marketing_goals_touch on public.marketing_goals;
+create trigger marketing_goals_touch
+  before update on public.marketing_goals
+  for each row execute function public.marketing_touch_updated_at();
+
+-- RLS: service-role only, same as every other marketing_* table.
+alter table public.marketing_goals enable row level security;
+-- (no anon/authenticated policies: service role bypasses RLS, everyone else denied)
+
+-- =============================================================================
+-- Rollback (manual): drop table public.marketing_goals cascade;
+-- =============================================================================
+
+
+-- ============ 20260730000000_marketing_opportunities.sql ============
+-- =============================================================================
+-- Marketing Opportunities — data-derived, scored opportunity feed
+-- =============================================================================
+-- The "Prioritize" hop of the Marketing OS loop. Opportunities are generated
+-- from LIVE CharitMe data (campaign category momentum + realised funds), scored
+-- deterministically, and can be converted straight into a marketing_goal — which
+-- closes Prioritize → Plan. Nothing here is invented: every opportunity carries
+-- the real numbers that produced it in `evidence`, and the source is recorded.
+--
+-- RLS: service-role only, matching every other marketing_* table. API routes
+-- gate on verifyAdmin() + zod and audit every mutation to marketing_audit_logs.
+-- =============================================================================
+
+create table if not exists public.marketing_opportunities (
+  id                uuid primary key default gen_random_uuid(),
+  title             text not null,
+  description       text,
+  rationale         text,                         -- plain-English "why this matters"
+  evidence          jsonb not null default '{}'::jsonb,   -- the live numbers behind it
+
+  category          text,                         -- campaign category, when applicable
+  geography         text,
+  audience          text,
+  target_metric     text not null default 'custom',
+
+  -- estimates (clearly labelled as estimates in the UI, never as fact)
+  est_impact_cents  bigint,                        -- projected incremental funds
+  est_starts        integer,                       -- projected incremental fundraiser starts
+  confidence        numeric,                       -- 0..1
+  effort            text not null default 'medium',-- low | medium | high
+  cost_cents        bigint check (cost_cents is null or cost_cents >= 0),
+  time_to_value_days integer,
+
+  score             numeric not null default 0,    -- 0..100 composite priority score
+  status            text not null default 'new',
+  source            text not null default 'rule',  -- rule | ai | manual
+  dedupe_key        text,                          -- stable key so re-generation upserts
+
+  linked_goal_id    uuid references public.marketing_goals(id) on delete set null,
+  created_by        uuid references auth.users(id) on delete set null,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now(),
+
+  constraint marketing_opps_metric_chk check (target_metric in (
+    'fundraiser_starts','donation_volume','recurring_donors','donation_conversion',
+    'verified_charities','donor_acquisition_cost','organizer_retention',
+    'aeo_visibility','organic_traffic','custom'
+  )),
+  constraint marketing_opps_effort_chk check (effort in ('low','medium','high')),
+  constraint marketing_opps_status_chk check (status in ('new','accepted','rejected','deferred','converted','archived')),
+  constraint marketing_opps_source_chk check (source in ('rule','ai','manual')),
+  constraint marketing_opps_confidence_chk check (confidence is null or (confidence >= 0 and confidence <= 1)),
+  constraint marketing_opps_score_chk check (score >= 0 and score <= 100)
+);
+
+-- Re-generation is idempotent per data-derived opportunity: same dedupe_key updates in place.
+create unique index if not exists uq_marketing_opps_dedupe
+  on public.marketing_opportunities (dedupe_key) where dedupe_key is not null;
+create index if not exists idx_marketing_opps_status on public.marketing_opportunities (status, score desc);
+create index if not exists idx_marketing_opps_score  on public.marketing_opportunities (score desc);
+create index if not exists idx_marketing_opps_created on public.marketing_opportunities (created_at desc);
+
+do $$
+begin
+  if not exists (select 1 from pg_proc where proname = 'marketing_touch_updated_at') then
+    create function public.marketing_touch_updated_at()
+    returns trigger language plpgsql as 'begin new.updated_at = now(); return new; end';
+  end if;
+end $$;
+
+drop trigger if exists marketing_opportunities_touch on public.marketing_opportunities;
+drop trigger if exists marketing_opportunities_touch on public.marketing_opportunities;
+create trigger marketing_opportunities_touch
+  before update on public.marketing_opportunities
+  for each row execute function public.marketing_touch_updated_at();
+
+alter table public.marketing_opportunities enable row level security;
+-- (no anon/authenticated policies: service role bypasses RLS, everyone else denied)
+
+-- =============================================================================
+-- Rollback (manual): drop table public.marketing_opportunities cascade;
+-- =============================================================================
+
+
+-- ============ 20260731000000_marketing_campaign_plans.sql ============
+-- =============================================================================
+-- Marketing Campaign Plans — one goal → a connected multichannel campaign
+-- =============================================================================
+-- The "Create" hop of the Marketing OS loop. A goal generates a campaign plan
+-- plus a connected set of real draft assets (landing page, email, social posts,
+-- SEO metadata, FAQ) — all linked to the same goal so strategy, audience, and
+-- measurement stay coherent. Assets are genuine persisted drafts a human edits
+-- and approves; nothing publishes to an external channel (no connectors exist),
+-- so plan/asset status stops at 'approved' and that limit is shown honestly.
+--
+-- RLS: service-role only, matching every other marketing_* table. API routes
+-- gate on verifyAdmin() + zod and audit mutations to marketing_audit_logs.
+-- =============================================================================
+
+create table if not exists public.marketing_campaign_plans (
+  id            uuid primary key default gen_random_uuid(),
+  goal_id       uuid references public.marketing_goals(id) on delete set null,
+  title         text not null,
+  objective     text,
+  audience      text,
+  geography     text,
+  category      text,
+  summary       text,
+  status        text not null default 'draft',
+  source        text not null default 'generated',   -- generated | manual
+  created_by    uuid references auth.users(id) on delete set null,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  constraint marketing_cplans_status_chk check (status in ('draft','in_review','approved','archived')),
+  constraint marketing_cplans_source_chk check (source in ('generated','manual'))
+);
+
+create table if not exists public.marketing_campaign_plan_assets (
+  id            uuid primary key default gen_random_uuid(),
+  plan_id       uuid not null references public.marketing_campaign_plans(id) on delete cascade,
+  asset_type    text not null,     -- landing_page | email | social_post | seo_meta | faq | sms | ad | blog_post
+  channel       text not null,     -- web | email | social | search | sms | paid
+  title         text not null,
+  body          text not null default '',
+  meta          jsonb not null default '{}'::jsonb,
+  status        text not null default 'draft',
+  sort_order    integer not null default 0,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  constraint marketing_cpa_type_chk check (asset_type in (
+    'landing_page','email','social_post','seo_meta','faq','sms','ad','blog_post'
+  )),
+  constraint marketing_cpa_status_chk check (status in ('draft','approved','archived'))
+);
+
+create index if not exists idx_marketing_cplans_goal    on public.marketing_campaign_plans (goal_id);
+create index if not exists idx_marketing_cplans_status  on public.marketing_campaign_plans (status, created_at desc);
+create index if not exists idx_marketing_cpa_plan       on public.marketing_campaign_plan_assets (plan_id, sort_order);
+
+do $$
+begin
+  if not exists (select 1 from pg_proc where proname = 'marketing_touch_updated_at') then
+    create function public.marketing_touch_updated_at()
+    returns trigger language plpgsql as 'begin new.updated_at = now(); return new; end';
+  end if;
+end $$;
+
+drop trigger if exists marketing_cplans_touch on public.marketing_campaign_plans;
+drop trigger if exists marketing_cplans_touch on public.marketing_campaign_plans;
+create trigger marketing_cplans_touch
+  before update on public.marketing_campaign_plans
+  for each row execute function public.marketing_touch_updated_at();
+
+drop trigger if exists marketing_cpa_touch on public.marketing_campaign_plan_assets;
+drop trigger if exists marketing_cpa_touch on public.marketing_campaign_plan_assets;
+create trigger marketing_cpa_touch
+  before update on public.marketing_campaign_plan_assets
+  for each row execute function public.marketing_touch_updated_at();
+
+alter table public.marketing_campaign_plans enable row level security;
+alter table public.marketing_campaign_plan_assets enable row level security;
+-- (no anon/authenticated policies: service role bypasses RLS, everyone else denied)
+
+-- =============================================================================
+-- Rollback (manual):
+--   drop table public.marketing_campaign_plan_assets cascade;
+--   drop table public.marketing_campaign_plans cascade;
+-- =============================================================================
+
+
+-- ============ 20260801000000_banner_settings.sql ============
+-- =============================================================================
+-- Banner settings — super-admin control of the site-wide announcement banner
+-- =============================================================================
+-- The green bar above the header was hardcoded: its colours came from a fixed
+-- level→colour map in components/AnnouncementBanner.tsx and there was no global
+-- kill switch. This table gives super admins one place to (a) show/hide the
+-- banner across the whole site and (b) fully control its appearance — colours,
+-- font family, sizes, weights, alignment, and density.
+--
+-- SINGLETON: exactly one row, pinned by a constant primary key, so reads never
+-- have to pick between rows and writes are a plain upsert.
+--
+-- Every appearance value is re-validated in the API (zod) AND at render time
+-- before it reaches an inline style, because these strings end up in CSS. The
+-- CHECK constraints below are the last line of defence, not the only one.
+--
+-- RLS: service-role only. Reads go through lib/banner-settings.ts (service role,
+-- cached); writes go through /api/admin/super/banner behind guardSuperAdmin().
+-- =============================================================================
+
+create table if not exists public.banner_settings (
+  id                  text primary key default 'global',
+
+  -- Global kill switch. false → no banner renders anywhere, regardless of how
+  -- many announcements are active.
+  enabled             boolean not null default true,
+
+  -- Colours (validated as #rgb / #rrggbb before they reach a style attribute)
+  background_color    text not null default '#12b76a',
+  text_color          text not null default '#ffffff',
+  link_color          text not null default '#ffffff',
+
+  -- Typography
+  font_family         text not null default 'inherit',
+  font_size_px        integer not null default 14,
+  title_font_size_px  integer not null default 14,
+  font_weight         integer not null default 400,
+  title_font_weight   integer not null default 700,
+  text_align          text not null default 'left',
+  letter_spacing_em   numeric not null default 0,
+  uppercase           boolean not null default false,
+
+  -- Layout / density
+  padding_y_px        integer not null default 9,
+  dismissible         boolean not null default true,
+
+  -- When true the per-announcement level colour wins over background_color, so
+  -- a critical alert can still look critical without disabling customisation.
+  use_level_colors    boolean not null default false,
+
+  updated_by          uuid references auth.users(id) on delete set null,
+  updated_at          timestamptz not null default now(),
+
+  constraint banner_settings_singleton_chk  check (id = 'global'),
+  constraint banner_settings_bg_chk         check (background_color ~* '^#[0-9a-f]{3}([0-9a-f]{3})?$'),
+  constraint banner_settings_text_chk       check (text_color       ~* '^#[0-9a-f]{3}([0-9a-f]{3})?$'),
+  constraint banner_settings_link_chk       check (link_color       ~* '^#[0-9a-f]{3}([0-9a-f]{3})?$'),
+  constraint banner_settings_font_size_chk  check (font_size_px       between 10 and 28),
+  constraint banner_settings_tfont_size_chk check (title_font_size_px between 10 and 28),
+  constraint banner_settings_weight_chk     check (font_weight       in (300,400,500,600,700,800,900)),
+  constraint banner_settings_tweight_chk    check (title_font_weight in (300,400,500,600,700,800,900)),
+  constraint banner_settings_align_chk      check (text_align in ('left','center','right')),
+  constraint banner_settings_tracking_chk   check (letter_spacing_em between -0.05 and 0.5),
+  constraint banner_settings_padding_chk    check (padding_y_px between 0 and 40)
+);
+
+-- Seed the single row so reads always find settings (defaults reproduce today's
+-- green banner exactly, so applying this migration changes nothing visually).
+insert into public.banner_settings (id) values ('global') on conflict (id) do nothing;
+
+drop trigger if exists banner_settings_touch on public.banner_settings;
+do $$
+begin
+  if not exists (select 1 from pg_proc where proname = 'marketing_touch_updated_at') then
+    create function public.marketing_touch_updated_at()
+    returns trigger language plpgsql as 'begin new.updated_at = now(); return new; end';
+  end if;
+end $$;
+drop trigger if exists banner_settings_touch on public.banner_settings;
+create trigger banner_settings_touch
+  before update on public.banner_settings
+  for each row execute function public.marketing_touch_updated_at();
+
+alter table public.banner_settings enable row level security;
+-- (no anon/authenticated policies: service role bypasses RLS, everyone else denied)
+
+-- =============================================================================
+-- Rollback (manual): drop table public.banner_settings cascade;
+-- =============================================================================
+
+
+-- ============ 20260801000000_campaign_wizard_drafts.sql ============
+-- =============================================================================
+-- Campaign wizard drafts — cross-device resume for the /create journey
+-- =============================================================================
+-- The guided builder autosaves in-progress state to localStorage, which is
+-- instant and offline-safe but strictly device-local: a signed-in organizer who
+-- starts on their phone and finishes on a laptop lost everything. The wizard
+-- already requires sign-in at the Location step, so from that point on we know
+-- who the user is and can durably persist their work.
+--
+-- One row per user (the wizard is single-draft by design) holding the same
+-- payload shape the localStorage draft uses, so the two are interchangeable and
+-- the newer of the pair wins on restore.
+--
+-- RLS: this is USER data, not admin data — so unlike the marketing_* tables this
+-- gets real owner-scoped policies and the app reads/writes it with the
+-- anon+cookies server client. A user can only ever see or touch their own row.
+-- =============================================================================
+
+create table if not exists public.campaign_wizard_drafts (
+  user_id     uuid primary key references auth.users(id) on delete cascade,
+  step        text not null default 'type',
+  story_mode  text not null default 'guided',
+  form        jsonb not null default '{}'::jsonb,
+  images      jsonb not null default '[]'::jsonb,
+  client_ts   bigint not null default 0,      -- draft timestamp from the client, for newest-wins merge
+  updated_at  timestamptz not null default now(),
+  constraint campaign_wizard_drafts_form_is_object check (jsonb_typeof(form) = 'object'),
+  constraint campaign_wizard_drafts_images_is_array check (jsonb_typeof(images) = 'array')
+);
+
+create index if not exists idx_cwd_updated on public.campaign_wizard_drafts (updated_at desc);
+
+create or replace function public.campaign_wizard_drafts_touch()
+returns trigger language plpgsql as $$
+begin new.updated_at = now(); return new; end $$;
+
+drop trigger if exists campaign_wizard_drafts_touch on public.campaign_wizard_drafts;
+drop trigger if exists campaign_wizard_drafts_touch on public.campaign_wizard_drafts;
+create trigger campaign_wizard_drafts_touch
+  before update on public.campaign_wizard_drafts
+  for each row execute function public.campaign_wizard_drafts_touch();
+
+alter table public.campaign_wizard_drafts enable row level security;
+
+-- Owner-only access. Service role still bypasses RLS for support/admin tooling.
+drop policy if exists cwd_select_own on public.campaign_wizard_drafts;
+drop policy if exists cwd_select_own on public.campaign_wizard_drafts;
+create policy cwd_select_own on public.campaign_wizard_drafts
+  for select to authenticated using (auth.uid() = user_id);
+
+drop policy if exists cwd_insert_own on public.campaign_wizard_drafts;
+drop policy if exists cwd_insert_own on public.campaign_wizard_drafts;
+create policy cwd_insert_own on public.campaign_wizard_drafts
+  for insert to authenticated with check (auth.uid() = user_id);
+
+drop policy if exists cwd_update_own on public.campaign_wizard_drafts;
+drop policy if exists cwd_update_own on public.campaign_wizard_drafts;
+create policy cwd_update_own on public.campaign_wizard_drafts
+  for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists cwd_delete_own on public.campaign_wizard_drafts;
+drop policy if exists cwd_delete_own on public.campaign_wizard_drafts;
+create policy cwd_delete_own on public.campaign_wizard_drafts
+  for delete to authenticated using (auth.uid() = user_id);
+
+-- =============================================================================
+-- Rollback (manual): drop table public.campaign_wizard_drafts cascade;
+-- =============================================================================
+
+
+-- ============ 20260802000000_campaign_wizard_drafts_multi.sql ============
+-- =============================================================================
+-- F8 — multiple in-flight campaign drafts per organizer
+-- =============================================================================
+-- `campaign_wizard_drafts` was one row per user (user_id as PK), so an organizer
+-- running several campaigns could only ever have one draft in flight: starting a
+-- second silently overwrote the first. This re-keys the table on a surrogate id
+-- so a user can hold several named drafts and pick which to resume.
+--
+-- Existing rows are preserved — they simply gain a generated id and keep their
+-- content, so anyone mid-draft when this ships continues uninterrupted.
+--
+-- RLS stays owner-scoped (this is user data): every policy already filters on
+-- user_id, which is unchanged, so they keep working against the new key.
+-- =============================================================================
+
+-- 1. Surrogate key. Added first (nullable-with-default) so existing rows fill in.
+alter table public.campaign_wizard_drafts
+  add column if not exists id uuid not null default gen_random_uuid();
+
+-- 2. Human label so a picker can distinguish drafts. Backfilled from the stored
+--    form's title where one exists, otherwise left null and shown as "Untitled".
+alter table public.campaign_wizard_drafts
+  add column if not exists title text;
+
+update public.campaign_wizard_drafts
+   set title = nullif(trim(form->>'title'), '')
+ where title is null;
+
+-- 3. Re-key: drop the user_id primary key, promote id.
+do $$
+declare pk_name text;
+begin
+  select conname into pk_name
+    from pg_constraint
+   where conrelid = 'public.campaign_wizard_drafts'::regclass
+     and contype = 'p';
+  if pk_name is not null then
+    execute format('alter table public.campaign_wizard_drafts drop constraint %I', pk_name);
+  end if;
+end $$;
+
+-- Guard against a re-run leaving the table without a primary key.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conrelid = 'public.campaign_wizard_drafts'::regclass and contype = 'p'
+  ) then
+    alter table public.campaign_wizard_drafts add primary key (id);
+  end if;
+end $$;
+
+-- 4. user_id is now a plain FK (many drafts per user) and needs its own index
+--    for the "list my drafts, newest first" query.
+create index if not exists idx_cwd_user_updated
+  on public.campaign_wizard_drafts (user_id, updated_at desc);
+
+-- RLS policies are unchanged: each already filters on `auth.uid() = user_id`,
+-- which still holds now that user_id is non-unique. Re-asserted here so the
+-- intent is visible alongside the re-key.
+alter table public.campaign_wizard_drafts enable row level security;
+
+-- =============================================================================
+-- Rollback (manual, destructive — collapses each user to a single draft):
+--   delete from public.campaign_wizard_drafts a using public.campaign_wizard_drafts b
+--     where a.user_id = b.user_id and a.updated_at < b.updated_at;
+--   alter table public.campaign_wizard_drafts drop constraint campaign_wizard_drafts_pkey;
+--   alter table public.campaign_wizard_drafts add primary key (user_id);
+--   alter table public.campaign_wizard_drafts drop column id, drop column title;
+-- =============================================================================
+
+
+-- ============ 20260802000000_seed_supported_countries.sql ============
+-- =============================================================================
+-- Seed supported_countries (fixes an empty PUBLIC page)
+-- =============================================================================
+-- /supported-countries is a public page fully wired to this table, but the table
+-- was only ever populated by a lazy maybeSeed() that runs when an admin happens
+-- to open /admin/countries. Since no admin had, production was live showing
+-- "supports fundraisers in 0 countries and accepts donations from 0 countries"
+-- with both country grids empty.
+--
+-- This seeds the canonical list (69 countries: 20 can fundraise,
+-- 49 donate-only) so the page is correct regardless of admin activity.
+-- Idempotent: ON CONFLICT on iso_code does nothing, and admins can still edit
+-- rows afterwards via /admin/countries without this re-overwriting them.
+-- =============================================================================
+
+create unique index if not exists supported_countries_iso_code_key
+  on public.supported_countries (iso_code);
+
+insert into public.supported_countries
+  (name, flag_emoji, iso_code, currency_code, can_fundraise, can_donate, sort_order, active)
+values
+  ('United States', '🇺🇸', 'US', 'USD', true, true, 1, true),
+  ('United Kingdom', '🇬🇧', 'GB', 'GBP', true, true, 2, true),
+  ('Canada', '🇨🇦', 'CA', 'CAD', true, true, 3, true),
+  ('Australia', '🇦🇺', 'AU', 'AUD', true, true, 4, true),
+  ('Austria', '🇦🇹', 'AT', 'EUR', true, true, 5, true),
+  ('Belgium', '🇧🇪', 'BE', 'EUR', true, true, 6, true),
+  ('Denmark', '🇩🇰', 'DK', 'DKK', true, true, 7, true),
+  ('Finland', '🇫🇮', 'FI', 'EUR', true, true, 8, true),
+  ('France', '🇫🇷', 'FR', 'EUR', true, true, 9, true),
+  ('Germany', '🇩🇪', 'DE', 'EUR', true, true, 10, true),
+  ('Ireland', '🇮🇪', 'IE', 'EUR', true, true, 11, true),
+  ('Italy', '🇮🇹', 'IT', 'EUR', true, true, 12, true),
+  ('Luxembourg', '🇱🇺', 'LU', 'EUR', true, true, 13, true),
+  ('Netherlands', '🇳🇱', 'NL', 'EUR', true, true, 14, true),
+  ('New Zealand', '🇳🇿', 'NZ', 'NZD', true, true, 15, true),
+  ('Norway', '🇳🇴', 'NO', 'NOK', true, true, 16, true),
+  ('Portugal', '🇵🇹', 'PT', 'EUR', true, true, 17, true),
+  ('Spain', '🇪🇸', 'ES', 'EUR', true, true, 18, true),
+  ('Sweden', '🇸🇪', 'SE', 'SEK', true, true, 19, true),
+  ('Switzerland', '🇨🇭', 'CH', 'CHF', true, true, 20, true),
+  ('Argentina', '🇦🇷', 'AR', 'ARS', false, true, 100, true),
+  ('Bahrain', '🇧🇭', 'BH', 'BHD', false, true, 101, true),
+  ('Brazil', '🇧🇷', 'BR', 'BRL', false, true, 102, true),
+  ('Chile', '🇨🇱', 'CL', 'CLP', false, true, 103, true),
+  ('China', '🇨🇳', 'CN', 'CNY', false, true, 104, true),
+  ('Colombia', '🇨🇴', 'CO', 'COP', false, true, 105, true),
+  ('Costa Rica', '🇨🇷', 'CR', 'CRC', false, true, 106, true),
+  ('Croatia', '🇭🇷', 'HR', 'EUR', false, true, 107, true),
+  ('Cyprus', '🇨🇾', 'CY', 'EUR', false, true, 108, true),
+  ('Czech Republic', '🇨🇿', 'CZ', 'CZK', false, true, 109, true),
+  ('Egypt', '🇪🇬', 'EG', 'EGP', false, true, 110, true),
+  ('Estonia', '🇪🇪', 'EE', 'EUR', false, true, 111, true),
+  ('Greece', '🇬🇷', 'GR', 'EUR', false, true, 112, true),
+  ('Hong Kong', '🇭🇰', 'HK', 'HKD', false, true, 113, true),
+  ('Hungary', '🇭🇺', 'HU', 'HUF', false, true, 114, true),
+  ('India', '🇮🇳', 'IN', 'INR', false, true, 115, true),
+  ('Indonesia', '🇮🇩', 'ID', 'IDR', false, true, 116, true),
+  ('Israel', '🇮🇱', 'IL', 'ILS', false, true, 117, true),
+  ('Japan', '🇯🇵', 'JP', 'JPY', false, true, 118, true),
+  ('Jordan', '🇯🇴', 'JO', 'JOD', false, true, 119, true),
+  ('Kenya', '🇰🇪', 'KE', 'KES', false, true, 120, true),
+  ('Kuwait', '🇰🇼', 'KW', 'KWD', false, true, 121, true),
+  ('Latvia', '🇱🇻', 'LV', 'EUR', false, true, 122, true),
+  ('Lebanon', '🇱🇧', 'LB', 'USD', false, true, 123, true),
+  ('Lithuania', '🇱🇹', 'LT', 'EUR', false, true, 124, true),
+  ('Malaysia', '🇲🇾', 'MY', 'MYR', false, true, 125, true),
+  ('Mexico', '🇲🇽', 'MX', 'MXN', false, true, 126, true),
+  ('Morocco', '🇲🇦', 'MA', 'MAD', false, true, 127, true),
+  ('Namibia', '🇳🇦', 'NA', 'NAD', false, true, 128, true),
+  ('Nigeria', '🇳🇬', 'NG', 'NGN', false, true, 129, true),
+  ('Oman', '🇴🇲', 'OM', 'OMR', false, true, 130, true),
+  ('Pakistan', '🇵🇰', 'PK', 'PKR', false, true, 131, true),
+  ('Peru', '🇵🇪', 'PE', 'PEN', false, true, 132, true),
+  ('Philippines', '🇵🇭', 'PH', 'PHP', false, true, 133, true),
+  ('Poland', '🇵🇱', 'PL', 'PLN', false, true, 134, true),
+  ('Qatar', '🇶🇦', 'QA', 'QAR', false, true, 135, true),
+  ('Romania', '🇷🇴', 'RO', 'RON', false, true, 136, true),
+  ('Saudi Arabia', '🇸🇦', 'SA', 'SAR', false, true, 137, true),
+  ('Singapore', '🇸🇬', 'SG', 'SGD', false, true, 138, true),
+  ('Slovakia', '🇸🇰', 'SK', 'EUR', false, true, 139, true),
+  ('Slovenia', '🇸🇮', 'SI', 'EUR', false, true, 140, true),
+  ('South Africa', '🇿🇦', 'ZA', 'ZAR', false, true, 141, true),
+  ('South Korea', '🇰🇷', 'KR', 'KRW', false, true, 142, true),
+  ('Taiwan', '🇹🇼', 'TW', 'TWD', false, true, 143, true),
+  ('Thailand', '🇹🇭', 'TH', 'THB', false, true, 144, true),
+  ('Turkey', '🇹🇷', 'TR', 'TRY', false, true, 145, true),
+  ('United Arab Emirates', '🇦🇪', 'AE', 'AED', false, true, 146, true),
+  ('Vietnam', '🇻🇳', 'VN', 'VND', false, true, 147, true),
+  ('Zambia', '🇿🇲', 'ZM', 'ZMW', false, true, 148, true)
+on conflict (iso_code) do nothing;
+
+
+-- ============ 20260803000000_profiles_preference_columns.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- profiles: preference columns that exist in the live database but in no migration.
+--
+-- These seven columns are read AND written by /api/settings and selected by
+-- app/dashboard/settings/page.tsx, and the schema-contract test (which validates
+-- every `.from(table).select()` against a snapshot taken from the live database)
+-- passes — so they are demonstrably present in production. They were never added
+-- by a migration, though, so they are absent from supabase/schema.sql and
+-- supabase/catch_up.sql, both of which are generated FROM supabase/migrations/
+-- by scripts/regen_schema.sh and scripts/build_catchup.py.
+--
+-- The consequence: provisioning a fresh database from the migrations (or from the
+-- generated schema.sql) produced a `profiles` table with 12 columns, and the whole
+-- Preferences tab of Settings failed against it while working fine in production.
+--
+-- Every statement is `add column if not exists`, so this is a no-op against the
+-- live database and only takes effect on a fresh provision. Columns are nullable
+-- with defaults rather than NOT NULL: the application already supplies its own
+-- fallbacks (`initialProfile.language ?? 'en'`), and NOT NULL would risk failing
+-- against existing rows.
+--
+-- Defaults mirror the fallbacks the app uses, so a fresh database behaves the same
+-- as production.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+alter table if exists public.profiles
+  add column if not exists timezone text default 'America/New_York';
+
+alter table if exists public.profiles
+  add column if not exists currency text default 'usd';
+
+alter table if exists public.profiles
+  add column if not exists language text default 'en';
+
+alter table if exists public.profiles
+  add column if not exists date_format text default 'MM/DD/YYYY';
+
+alter table if exists public.profiles
+  add column if not exists time_format text default '12h';
+
+alter table if exists public.profiles
+  add column if not exists show_public_profile boolean default true;
+
+alter table if exists public.profiles
+  add column if not exists campaign_recommendations boolean default true;

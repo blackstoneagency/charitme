@@ -1947,10 +1947,32 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
     and selects exactly those, and the schema-contract test (which asserts every
     selected column exists in `__tests__/fixtures/schema-columns.json`, regenerated
     from the live DB) **passes**. So the live DB has them and the two committed
-    mirrors do not. **Anyone provisioning a fresh database from `schema.sql` gets a
-    broken Settings page**, and `catch_up.sql` won't repair it. Fix: re-run
-    `scripts/regen_schema.sh` against the live DB and commit the refreshed mirrors.
-    _Owner-gated — regeneration needs live DB credentials this sandbox doesn't have._
+    mirrors do not. **Anyone provisioning a fresh database gets a broken Settings
+    page.**
+
+    **✏️ CORRECTION + ✅ MOSTLY FIXED.** My original note above said the fix was to
+    "re-run `scripts/regen_schema.sh` against the live DB", and called it
+    credential-gated. **That was wrong about the mechanism.** `regen_schema.sh`
+    regenerates `schema.sql` **from `supabase/migrations/`** — it never reads the
+    live database. So the mirrors were not "stale copies of production"; the real
+    situation is that **the live DB has 7 `profiles` columns that no migration ever
+    created**, added out-of-band. The mirrors were faithfully reflecting the
+    migrations, which were the thing actually missing.
+    That made it fixable here after all:
+    - **Added `supabase/migrations/20260803000000_profiles_preference_columns.sql`**
+      covering `timezone, currency, language, date_format, time_format,
+      show_public_profile, campaign_recommendations`. All `add column if not
+      exists`, so it is a **no-op against production** and only takes effect on a
+      fresh provision. Nullable with defaults mirroring the app's own `??`
+      fallbacks — `NOT NULL` would risk failing against existing rows.
+    - **Regenerated `supabase/catch_up.sql`** via `scripts/build_catchup.py` (pure
+      Python over the migrations, no DB needed). Diff is **1355 insertions, 0
+      deletions** — purely additive, and notably it was behind on *other* agents'
+      migrations too, not just this one.
+    _Still outstanding:_ `supabase/schema.sql` itself. `regen_schema.sh` needs
+    `initdb`/`pg_ctl` to spin up a throwaway Postgres; this sandbox has only
+    `psql`/`pg_dump`, and runs as root, which `initdb` refuses. Anyone with a local
+    Postgres can now regenerate it from the migrations in one command.
     _(This nearly read as a production-breaking bug; the schema-contract test is what
     proved the columns really are live. Recording the reasoning so the next agent
     doesn't re-raise it as a runtime defect.)_
