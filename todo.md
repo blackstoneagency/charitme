@@ -279,7 +279,13 @@ _Bonus corroboration from the check:_ `/api/profile` has always handled all thre
 `/api/settings` was missing until it was wired this session. The settings route
 was the outlier, not the column.
 
-**⚠️ The e2e suite exists, works, and runs in NO CI workflow.** `e2e/` holds 4
+**✅ CLOSED — the e2e suite now runs in CI and is CONFIRMED green there.**
+Wired `smoke` + `security-headers` into `ci.yml`, then verified in real CI rather
+than assuming: run `d51208e` completed **success**, and its duration jumped to
+**451s** against 292/308/344s for the three preceding successful runs. That
++110–160s is exactly the Playwright browser install plus the 6 specs (~1.3 min
+locally), so the step demonstrably executed rather than being skipped.
+_Original finding, kept for context:_ **⚠️ The e2e suite exists, works, and runs in NO CI workflow.** `e2e/` holds 4
 Playwright specs — `smoke`, `public-routes`, `public-quality`, `security-headers`
 — plus an `npm run e2e` script. **Neither `ci.yml` nor `image-links.yml` mentions
 Playwright or e2e**, so none of it has ever run automatically. `security-headers`
