@@ -2263,7 +2263,7 @@ img, video, iframe { max-width: 100%; }
 .ai-builder-input { position: relative; width: 100%; max-width: 760px; margin: 28px 0 0; padding: 22px 76px 22px 22px; text-align: left; border: 1.5px solid #6c35ff; border-radius: 18px; background: #fff; box-shadow: 0 18px 50px rgba(108,53,255,.1); }
 .ai-builder-input textarea { width: 100%; border: 0; outline: none; resize: none; font: inherit; font-size: 15px; color: #14193b; background: transparent; }
 .ai-builder-input textarea::placeholder { color: #9097b3; }
-.ai-builder-examples { margin: 6px 0 0; color: #9097b3; font-size: 13px; line-height: 1.6; }
+.ai-builder-examples { margin: 6px 0 0; color: var(--t3, #5b6688); font-size: 13px; line-height: 1.6; }
 .ai-builder-input button { position: absolute; right: 18px; bottom: 18px; width: 46px; height: 46px; display: grid; place-items: center; border: 0; border-radius: 12px; color: #fff; background: linear-gradient(135deg, #6c35ff, #9d31e8); cursor: pointer; box-shadow: 0 12px 26px rgba(108,53,255,.32); transition: transform .15s ease; }
 .ai-builder-input button:hover { transform: translateY(-1px); }
 .ai-builder-popular { margin: 36px 0 0; font-size: 17px; letter-spacing: -.01em; }
@@ -2413,7 +2413,7 @@ img, video, iframe { max-width: 100%; }
 .fee-calc-warning { color: var(--red-text); font-weight: 700; }
 /* Dark surfaces need a lighter rose for AA contrast (rose-400 ≈ 6:1 on the dark card). */
 [data-theme="dark"] .fee-calc-warning { color: #fb7185; }
-.fee-calc-bad { color: #e11d48; }
+.fee-calc-bad { color: var(--red-text, #c42d49); }
 [data-theme="dark"] .fee-calc-bad { color: #fb7185; }
 .fee-calc-note { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 16px; }
 /* Two fee boxes side-by-side overflow narrow phones — stack them. */
