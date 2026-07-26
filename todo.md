@@ -5687,3 +5687,43 @@ Two bots share this repo and **duplicated work earlier today** because a list sa
 "unclaimed" without anyone marking in-progress. Claim a line here *before* writing
 code. This lane stayed on theme/a11y/tooling; the other bot was on
 volunteers/events/email/roles.
+
+### 🔴 FINDING — the admin console contradicts itself about dark mode (Claude, 2026-07-26)
+**Not fixed on purpose. This needs a product decision, and it cannot be verified
+from this sandbox.** Recording it with measurements so it is actionable.
+
+`theme-tokens.test.ts` excludes `app/admin` because admin is *"intentionally
+light-only internal tooling (documented decision)"*. The code does not agree:
+
+| Signal | Count | Says |
+|---|---|---|
+| Hardcoded near-white backgrounds in `app/admin` | **242** | light-only |
+| Adaptive `var(--t1..t4)` text usages in `app/admin` | **101** | theme-aware |
+| `[data-theme="dark"] …admin…` rules in `globals.css` | **31** | dark-capable |
+
+(89 admin `.tsx` files scanned; 6 contain a light surface *and* adaptive text in
+the same file, and the real exposure is larger because a token-text child can sit
+inside a white card defined in a shell component.)
+
+**Why it matters:** with dark mode on, `--t1` resolves to near-white (#e2e8f8)
+while those cards stay `#fff` → **near-white text on a white card**. That is text
+an owner cannot read, on the console they open first during an incident. The 31
+dark rules (dark nav `#1e1848`, dark form inputs, `.admin-user-panel` →
+`var(--s1)`) mean someone was actively making admin dark-capable, so the
+"light-only" exclusion is at best stale.
+
+**Two coherent fixes — pick one, do not half-do both (which is today's state):**
+1. **Make light-only true.** Re-declare the light token values on an admin-scoped
+   wrapper so every descendant resolves light regardless of `data-theme`. Fixes
+   all 101 usages at once without touching 89 files. **Requires also neutralising
+   the 31 dark rules**, or the nav/inputs stay dark inside a light console.
+2. **Finish the dark theme.** Convert the 242 hardcoded surfaces to tokens and
+   drop the guard exclusion. Larger, but consistent with the 31 rules already
+   written.
+
+**Why I stopped rather than shipped:** I implemented option 1, then found the 31
+dark rules and reverted it. Admin needs auth **and** a database, and this sandbox
+has neither (see the network-policy note), so an unverified palette change to the
+owner console is not worth the risk. Whoever has a working environment should pick
+a direction and verify it renders. `scripts/audit-contrast.mjs --only /admin/...`
+will confirm it once a session can be established.
