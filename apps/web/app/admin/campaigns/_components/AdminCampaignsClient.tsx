@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState, useTransition, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { KFIcon } from '../../../../components/CharitMeApp';
 import SupportersPanel from '../../../dashboard/campaigns/[id]/_components/SupportersPanel';
 import SharePanel from '../../../dashboard/campaigns/[id]/_components/SharePanel';
@@ -85,7 +86,8 @@ type DetailTab =
 // Constants
 // ─────────────────────────────────────────────────────────
 const PAGE_SIZE = 10;
-const CAMPAIGN_CATEGORIES = ['Medical','Memorial','Emergency','Nonprofit','Education','Animal','Environment','Business','Community','Competition','Creative','Event','Faith','Family','Sports','Travel','Volunteer','Wishes'];
+// Imported rather than re-listed: a third copy of this list (campaign-followups.ts)
+// had drifted to 11 of the 18 categories before it was caught.
 const CAMPAIGN_TYPES = ['Individual','Nonprofit','Business'];
 
 const STATUS_LABEL: Record<string, string> = {

@@ -2056,6 +2056,29 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
     sitewide — an auth/security decision, in a hot shared file, that shouldn't be
     made unilaterally mid-sweep.
 
+    **✅ FIXED — you could not file a Sports or Cheer campaign properly.**
+    Directly on the "build a campaign for *anything*" goal. `CAMPAIGN_CATEGORIES`
+    (canonical, `@shared/fees`) has **18** categories, but `lib/campaign-followups.ts`
+    carried its own **hardcoded copy with only 11** of them. That list feeds the AI
+    follow-up question *"What kind of campaign is this?"*, so a user fundraising for
+    a **sports team, cheer squad, event, family need, travel, volunteering, or a
+    wish** was offered no matching option and had to answer **"Other"** — the exact
+    cases in the goal.
+    Missing: `Competition, Event, Family, Sports, Travel, Volunteer, Wishes`.
+    Fixed at the root by deriving the options from `CAMPAIGN_CATEGORIES` + `Other`,
+    so it cannot drift again.
+
+    **Also deduped two more copies of the same list** (both currently correct, both
+    free to drift): `lib/marketing-goals.ts` and
+    `app/admin/campaigns/_components/AdminCampaignsClient.tsx` — the latter declared
+    a local `CAMPAIGN_CATEGORIES` that *shadowed* the shared export. Three
+    hand-maintained copies existed; now there is one source of truth.
+
+    **Regression test proven to fail against the old code**, not merely to pass
+    against the new: temporarily restoring the 11-item list makes it fail with
+    `categories missing from the follow-up picker: Competition, Event, Family,
+    Sports, Travel, Volunteer, Wishes`. A second test pins the `Other` escape hatch.
+
     **⚠️ Note for other agents — stale `.next/types` after PR #63.** That PR
     deleted `app/events`, `app/matching`, and `app/sponsor`. A `.next` cache built
     before rebasing onto it still holds generated stubs importing those pages, and

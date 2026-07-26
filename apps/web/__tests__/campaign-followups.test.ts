@@ -5,6 +5,7 @@ import {
   remainingFollowUps,
   type FollowUpForm,
 } from '../lib/campaign-followups';
+import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 
 const base: FollowUpForm = {
   forSelf: '',
@@ -82,5 +83,22 @@ describe('campaign follow-ups', () => {
     }
     expect(order).toEqual(['for-self', 'beneficiary-name', 'relationship', 'category', 'goal', 'deadline']);
     expect(nextFollowUp(form)).toBeNull();
+  });
+});
+
+describe('category follow-up options stay in sync with the canonical list', () => {
+  const categoryQuestion = followUpPlan(base).find((q) => q.id === 'category');
+
+  it('offers every real campaign category', () => {
+    // Regression: this list was hardcoded and had drifted to 11 of the 18
+    // categories, so a sports team, cheer squad, event, family need, travel,
+    // volunteering or wish campaign could only be filed under "Other".
+    const offered = new Set((categoryQuestion?.options ?? []).map((o) => o.value));
+    const missing = CAMPAIGN_CATEGORIES.filter((c) => !offered.has(c));
+    expect(missing, `categories missing from the follow-up picker: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  it('still offers an Other escape hatch', () => {
+    expect((categoryQuestion?.options ?? []).map((o) => o.value)).toContain('Other');
   });
 });

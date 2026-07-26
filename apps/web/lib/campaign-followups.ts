@@ -8,6 +8,8 @@
 // UI: app/create/AiFollowUps.tsx.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { CAMPAIGN_CATEGORIES } from '@shared/fees';
+
 /** The subset of the wizard form the follow-up flow reads/writes. */
 export interface FollowUpForm {
   forSelf: string;                 // '' | 'true' | 'false'
@@ -42,10 +44,11 @@ const RELATIONSHIP_OPTIONS = [
   { value: 'Other', label: 'Other' },
 ];
 
-const CATEGORY_OPTIONS = [
-  'Medical', 'Memorial', 'Emergency', 'Nonprofit', 'Education', 'Animal',
-  'Environment', 'Business', 'Community', 'Creative', 'Faith', 'Other',
-].map((c) => ({ value: c, label: c }));
+// Derived from the canonical list rather than hand-maintained: the previous
+// hardcoded copy had drifted to 11 of the 18 real categories, so anyone
+// fundraising for a sports team, a cheer squad, an event, a family need, travel,
+// volunteering or a wish could only answer "Other" here.
+const CATEGORY_OPTIONS = [...CAMPAIGN_CATEGORIES, 'Other'].map((c) => ({ value: c, label: c }));
 
 function has(v: string | undefined | null): boolean {
   return !!v && v.trim().length > 0;

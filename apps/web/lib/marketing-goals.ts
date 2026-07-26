@@ -1,4 +1,5 @@
 import 'server-only';
+import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { supabaseAdmin } from './supabase';
 
 // ── Metric catalogue ────────────────────────────────────────────────────────
@@ -62,10 +63,9 @@ export interface GoalProgress {
   note: string;
 }
 
-const CATEGORIES = new Set([
-  'Medical','Memorial','Emergency','Nonprofit','Education','Animal','Environment','Business',
-  'Community','Competition','Creative','Event','Faith','Family','Sports','Travel','Volunteer','Wishes',
-]);
+// Derived, not hand-listed — a duplicate of this list in campaign-followups.ts
+// had silently drifted to 11 of the 18 categories.
+const CATEGORIES = new Set<string>(CAMPAIGN_CATEGORIES);
 
 // ── Deterministic natural-language → structured draft ────────────────────────
 // Turns "Grow verified education fundraisers in New Jersey by 15% before Dec 1"
