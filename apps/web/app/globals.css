@@ -2005,9 +2005,12 @@ img, video, iframe { max-width: 100%; }
 .task-card { padding-bottom: 14px; }
 .task-row { min-height: 40px; display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 12px; padding: 7px 20px; border-radius: 9px; color: #2b3357; font-size: 14px; font-weight: 600; transition: background .15s ease; }
 .task-row:hover { background: rgba(108,53,255,.05); }
-.task-row input { appearance: none; position: relative; width: 19px; height: 19px; border: 1.5px solid #ccd3e5; border-radius: 50%; background: #fff; cursor: pointer; transition: border-color .15s ease, background .15s ease; }
-.task-row input:checked { border-color: transparent; background: #6c35ff; }
-.task-row input:checked::after { content: ""; position: absolute; left: 6px; top: 2px; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+/* The row is a link to where the task gets done, not a checkbox. The old
+   `input[type=checkbox]` stored nothing and reset on every render, so ticking a
+   task silently undid itself. `.task-row-dot` keeps the original bullet look. */
+a.task-row { text-decoration: none; }
+.task-row-dot { width: 19px; height: 19px; border: 1.5px solid #ccd3e5; border-radius: 50%; background: #fff; }
+a.task-row:hover .task-row-dot { border-color: #6c35ff; }
 .task-row em { color: #7a8299; font-size: 12px; font-style: normal; font-weight: 500; }
 .task-row em.today { color: #ff3158; font-weight: 600; }
 .recent-card { padding-bottom: 12px; }

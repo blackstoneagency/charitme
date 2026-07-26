@@ -886,6 +886,58 @@ export default function DonationsClient({
   const [filterStatus, setFilterStatus] = useState('all');
   const [page, setPage] = useState(0);
   const [exportFormat, setExportFormat] = useState('csv');
+  // These two used to be unbound <select>s whose value was never read.
+  const [exportDataType, setExportDataType] = useState('all');
+  const [exportRange, setExportRange] = useState('all');
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  // Rewritten: the previous handler POSTed `{ format, type: 'donations' }`, but the
+  // endpoint requires `reportId` and 400s without it — and the response was piped
+  // straight into a Blob download, so an admin clicking Export received a file named
+  // `donations.csv` whose contents were `{"error":"reportId is required"}`. It also
+  // ignored the Data Type and Date Range pickers entirely.
+  const EXPORT_SINCE: Record<string, () => string | undefined> = {
+    all: () => undefined,
+    '30d': () => new Date(Date.now() - 30 * 864e5).toISOString(),
+    '90d': () => new Date(Date.now() - 90 * 864e5).toISOString(),
+    ytd: () => new Date(new Date().getFullYear(), 0, 1).toISOString(),
+  };
+
+  async function runExport() {
+    setExportError(null);
+    // "Donors" is a different report entirely; the rest are donation rows filtered
+    // by status, where "All Donations" means no status filter.
+    const isDonors = exportDataType === 'donors';
+    const payload: Record<string, string> = {
+      reportId: isDonors ? 'top-donors' : 'donation-summary',
+    };
+    if (!isDonors) payload.status = exportDataType === 'all' ? 'all' : exportDataType;
+    const since = EXPORT_SINCE[exportRange]?.();
+    if (since) payload.since = since;
+
+    try {
+      const res = await fetch('/api/admin/reports/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        // Never hand the user a "CSV" that is actually an error body.
+        const detail = await res.json().catch(() => ({}));
+        setExportError((detail as { error?: string }).error ?? `Export failed (${res.status})`);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${isDonors ? 'donors' : 'donations'}-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportError('Network error — the export did not download.');
+    }
+  }
 
   const PAGE_SIZE = 10;
 
@@ -1138,9 +1190,11 @@ export default function DonationsClient({
                 <option value="refunded">Refunded</option>
                 <option value="failed">Failed</option>
               </select>
+              {/* Was window.open(...) on a GET URL, but the export route only
+                  implements POST — this opened a tab showing 405, not a download. */}
               <button type="button"
                 style={{ height: 42, padding: '0 18px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-                onClick={() => window.open('/api/admin/reports/export?type=donations&format=' + exportFormat, '_blank')}>
+                onClick={() => void runExport()}>
                 Export
               </button>
             </div>
@@ -1374,48 +1428,41 @@ export default function DonationsClient({
             <div style={{ maxWidth: 460, display: 'grid', gap: 18 }}>
               <div className="ado-field">
                 <label htmlFor="exp-datatype">Data Type</label>
-                <select id="exp-datatype" className="ac-input">
-                  <option>All Donations</option>
-                  <option>Completed Only</option>
-                  <option>Refunded Only</option>
-                  <option>Donors</option>
+                <select id="exp-datatype" className="ac-input" value={exportDataType} onChange={e => setExportDataType(e.target.value)}>
+                  <option value="all">All Donations</option>
+                  <option value="completed">Completed Only</option>
+                  <option value="refunded">Refunded Only</option>
+                  <option value="donors">Donors</option>
                 </select>
               </div>
               <div className="ado-field">
                 <label htmlFor="exp-format">Format</label>
+                {/* Excel and PDF used to be offered here, but the export endpoint
+                    only ever produces CSV — picking PDF downloaded a CSV named
+                    ".pdf". Offer only what the server can actually make. */}
                 <select id="exp-format" className="ac-input" value={exportFormat} onChange={e => setExportFormat(e.target.value)}>
                   <option value="csv">CSV</option>
-                  <option value="excel">Excel</option>
-                  <option value="pdf">PDF</option>
                 </select>
               </div>
               <div className="ado-field">
                 <label htmlFor="exp-daterange">Date Range</label>
-                <select id="exp-daterange" className="ac-input">
-                  <option>All time</option>
-                  <option>Last 30 days</option>
-                  <option>Last 90 days</option>
-                  <option>This year</option>
+                <select id="exp-daterange" className="ac-input" value={exportRange} onChange={e => setExportRange(e.target.value)}>
+                  <option value="all">All time</option>
+                  <option value="30d">Last 30 days</option>
+                  <option value="90d">Last 90 days</option>
+                  <option value="ytd">This year</option>
                 </select>
               </div>
               <button type="button" className="kf-primary"
                 style={{ height: 44, fontSize: 14, fontWeight: 700 }}
-                onClick={() =>
-                  fetch('/api/admin/reports/export', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ format: exportFormat, type: 'donations' }),
-                  }).then(r => r.blob()).then(blob => {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `donations.${exportFormat}`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }).catch(() => undefined)
-                }>
+                onClick={() => void runExport()}>
                 Export Donations
               </button>
+              {exportError && (
+                <p role="alert" style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--red-text, #be123c)' }}>
+                  {exportError}
+                </p>
+              )}
             </div>
           </div>
         )}

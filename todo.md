@@ -277,6 +277,109 @@ _Two false alarms killed by checking:_ a grep for admin guards missed
 grep for `rateLimit` missed `checkRateLimit`, making two endpoints look
 unthrottled. Both were fine.
 
+**🔒 FIXED — the unsubscribe rate limit was bypassable by changing HTTP verb.**
+`POST /api/marketing/unsubscribe` carried a durable limit with an explicit comment:
+*"this endpoint is unauthenticated and anonymous callers can suppress an arbitrary
+email, so a per-instance counter does not bound abuse."* The **GET handler beside
+it had no limit at all** — and it suppresses an arbitrary address with exactly the
+same capability. Limiting one of two identical unauthenticated capabilities bounds
+nothing. GET now uses the same durable limit, returning an HTML 429 (it renders in
+a browser, unlike the JSON one POST returns).
+Guarded by `__tests__/unsubscribe-guards.test.ts`, which asserts **every** exported
+handler in that file rate-limits — so a future third verb can't reintroduce the
+hole — and that the durable limiter is used rather than the per-instance one.
+Verified non-vacuous.
+
+**⚠️ NOT fixed — state-changing GET means scanners can silently unsubscribe users.**
+The link in every email is `GET /api/marketing/unsubscribe?email=...`, which mutates
+state on fetch. Corporate mail security (Outlook Safe Links, spam filters,
+link-prefetchers) routinely **fetches URLs in email without the recipient clicking**,
+so real users get unsubscribed silently — they simply stop receiving mail, and
+nobody can tell why. This is exactly why RFC 8058 one-click unsubscribe is a
+**POST** with a `List-Unsubscribe-Post: List-Unsubscribe=One-Click` header.
+**Left for the owner because it trades a real UX property.** The code comment says
+*"One-click unsubscribe links from emails"*, so one-click looks deliberate, and the
+two standard remedies both change it:
+1. **RFC 8058 properly** — send `List-Unsubscribe` + `List-Unsubscribe-Post`
+   headers and let the mail client POST. Best-practice, invisible to users, and
+   still genuinely one click in Gmail/Outlook.
+2. **Confirmation page** — GET renders a "Confirm unsubscribe" button that POSTs.
+   Immune to prefetch, costs one extra click.
+_Related, minor:_ `lib/email.ts` appends the Unsubscribe link to **every** email it
+sends, including receipts and password resets. Harmless (clicking it only
+suppresses marketing) but it implies you can unsubscribe from transactional mail.
+
+**Confirmed working, for the record:** all three marketing send paths — `outreach`,
+`campaigns`, `automations` — check the suppression list before sending, and
+`unsubscribeEmail()` writes the suppression row, flips `marketing_contacts.status`,
+and records consent history. The unsubscribe promise itself is kept.
+
+**✅ AUDITED CLEAN — recurring donations, the highest-stakes control in the app.**
+Checked because a cancel that doesn't reach Stripe means donors keep being
+**charged** — the worst possible version of the promise-audit bug class. It is
+correct, and notably well built:
+- **`/api/donations/recurring/cancel`** — 401 unauthenticated; verifies
+  `row.donor_id !== user.id` → **403** (so nobody can cancel a stranger's
+  donation by guessing a subscription id); then calls
+  `stripe.subscriptions.update(..., { cancel_at_period_end: true })` **before**
+  writing the local row. That ordering is deliberate and commented — if the DB
+  write fails, the donor is *still* cancelled at Stripe, so the failure mode
+  never costs them money.
+- **`/api/donations/recurring/pause`** — same auth + ownership + Stripe-first
+  shape, for both pause (`pause_collection`) and resume.
+- **External changes sync back.** The webhook handles **18** event types,
+  including `customer.subscription.deleted`, `customer.subscription.updated` and
+  `invoice.payment_failed` — so a cancellation from the Stripe dashboard, an
+  expired card, or a failed payment all reach the app. Local status cannot drift
+  permanently out of sync.
+
+_No fix needed._ Recording it so the money path isn't re-audited: the promise-audit
+found 7 leaks elsewhere, but **this** control keeps its promise.
+
+**🔴 TEAM ROLES ARE A FALSE PROMISE — the UI states capabilities no code enforces.**
+`app/dashboard/team/_components/TeamActions.tsx:169-171` offers, in user-facing copy:
+- *"Admin — can edit and manage campaign"*
+- *"Viewer — read-only access"*
+
+Measured against the code:
+- **9** campaign API routes enforce an ownership check (`eq('user_id', user.id)`).
+- **1** of those 9 honours team membership at all —
+  `/api/campaigns/[id]/analytics`.
+- **0** check the member's *role*. Analytics tests only that a `team_members` row
+  **exists**.
+
+So an invited **"Admin" cannot edit or manage the campaign** — rewards, milestones,
+updates, FAQs and the rest are all owner-only — and a **"Viewer" has exactly the
+same access as an "Admin"**: both can read analytics, neither can do anything else.
+`team_members` is otherwise read only by the team-members API itself (i.e. to
+render the team list) and by `ai/viral-loop`.
+
+**Direction of failure matters: it fails SAFE.** Everyone gets *less* access than
+promised, never more, so this is a broken feature and dishonest copy — **not** a
+privilege-escalation hole.
+
+**Not fixed here, deliberately.** Same reasoning as the user-role gap below:
+enforcing `admin`/`member`/`viewer` means deciding which of the 9 routes each role
+may call, and guessing that on live authorization risks either locking owners out
+or handing collaborators more than intended. Two honest options, owner's call:
+1. **Implement it** — add a shared `assertCampaignAccess(campaignId, user, minRole)`
+   helper and apply it across the 9 routes.
+2. **Stop promising it** — if team members are only ever meant to see analytics,
+   change the copy to say so and drop the role selector.
+**✅ Option 2 now applied** — the copy is honest as of this commit. On reflection
+the two options were *not* equally blocked: implementing enforcement requires
+guessing intent, but making copy match observed behaviour requires no guessing,
+and users were actively being misled (invite an "Admin", they can't edit). Same
+precedent as the Language selector: keep the control, state plainly what it does.
+Role **values** are unchanged, so stored data and any future enforcement are
+unaffected. Option 1 remains open and is the real fix.
+
+Guarded by `__tests__/team-role-copy-honesty.test.ts`, which is deliberately
+**conditional and self-retiring**: it only demands honest copy *while* no campaign
+route checks a member's role. Ship enforcement and the guard stops applying, so
+the richer copy can legitimately return. Verified non-vacuous against the exact
+string that shipped.
+
 **🔴 GOAL CRITERION "each user role is clearly mapped out and different" — NOT MET.**
 Audited `lib/roles.ts` + every consumer. Six roles exist
 (`donor, organizer, beneficiary, nonprofit, admin, super_admin`) but only two of
@@ -5667,6 +5770,41 @@ and the legacy status-in-roles markers the admin page still parses are unused li
 them real gates (e.g. beneficiary confirmation flow, nonprofit-only campaign types)
 or retire them. Recorded rather than guessed, because inventing restrictions on
 roles nobody holds is the fastest way to lock a real user out.
+
+### ✅ DONE — Claude, 2026-07-26 — **the admin donations export was broken four ways**
+Extended the dead-control lens from `<button>` to `<select>/<input>` (22 hits, most
+of them legitimate uncontrolled inputs inside GET forms). Two real defects fell out,
+one of them a genuine data-correctness bug:
+
+**1. `/admin/donations` Export downloaded an error message as a CSV.** The handler
+POSTed `{ format, type: 'donations' }`, but the endpoint **requires `reportId` and
+400s without it** — and the response went straight into a Blob download. So an admin
+clicking Export received a file named `donations.csv` whose contents were
+`{"error":"reportId is required"}`. **The export had never worked.** Alongside that:
+- A *second* Export button did `window.open()` on a **GET** URL against a route that
+  only implements **POST** → a tab showing 405, not a download.
+- **"Data Type" and "Date Range" were unbound `<select>`s.** Selecting "Refunded
+  Only / Last 30 days" was silently dropped. Live proof the choice matters:
+  all statuses **740** rows · completed **592** · refunded **98** · completed-last-30d
+  **233** — four very different answers to the same button.
+- **"Format" offered Excel and PDF**, but the route emits `text/csv`
+  unconditionally, so picking PDF downloaded a CSV named `.pdf`.
+**Fixed:** the route now accepts `status` (allow-listed against
+`{completed,refunded,pending,failed}` + `all`, so a caller cannot inject a filter)
+and `since`; the client binds all three selects, sends a valid `reportId`
+(`donation-summary`, or `top-donors` when Data Type = Donors), **checks `res.ok`
+before downloading** and surfaces the error in a `role="alert"`, and Format now
+offers only CSV. 9 tests in `__tests__/admin-export.test.ts`.
+
+**2. The organizer dashboard's "Your Tasks" checkboxes stored nothing.** Ticking one
+did nothing and reset on the next render. The tasks are **computed from real state**
+(`contentCreated === 0` → "post your first update"), so they resolve themselves when
+the organizer acts — a manual checkbox was conceptually wrong. Each row is now a
+**link to where the task is actually done** (`/dashboard/updates/new`,
+`/dashboard/ai-growth-plan`, the campaign page, `/create/choose-path`), keeping the
+original bullet styling via `.task-row-dot`.
+
+Verified: typecheck 0, lint 0 errors, **1316 tests / 122 files**, build green.
 
 ### ✅ DONE — Claude, 2026-07-26 — **admin dead controls cleared; guard now covers the WHOLE app**
 Finished the half I had deliberately deferred. The 12 remaining dead buttons in
