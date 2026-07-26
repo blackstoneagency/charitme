@@ -4522,9 +4522,22 @@ IMPLEMENTATION_STATUS, KNOWN_LIMITATIONS, CHANGELOG).
   - 6 unit tests; RLS/schema suites green; typecheck + lint clean; `next build` compiles.
 
 ### ⬜ Remaining Marketing OS backlog (ordered by dependency/value)
-- [ ] **Command Center dashboard** (brief §4, top priority) — executive read-only
-      view aggregating live goals + marketing + campaign/donation metrics, recent
-      autonomous/human actions (from `marketing_audit_logs`), data freshness. *(in progress this session)*
+- [x] **Command Center dashboard** (brief §4, top priority) — **SHIPPED & VERIFIED
+      (Claude, 2026-07-26).** The checkbox was stale: `app/admin/marketing/command-center/`
+      + `lib/marketing-command-center.ts` were already built. Audited against the
+      spec rather than taken on trust — it reads **7 live tables** (`marketing_goals`,
+      `marketing_campaigns`, `marketing_contacts`, `marketing_events`,
+      `marketing_audit_logs`, `campaigns`, `donations`), covering every element the
+      item asked for: live goals, marketing + campaign/donation metrics, recent
+      human/autonomous actions from the audit log, and data freshness.
+      **It is also honest about missing data** — `pct()` returns `null` when the
+      prior 7d baseline is 0 and the card prints "no prior-week baseline" in grey
+      instead of inventing a percentage (growth from zero is infinite). Same rule
+      the public pages now follow.
+      Gap closed: it had **no tests**. Added 12 in `__tests__/marketing-command-center.test.ts`
+      pinning the no-baseline rule (including the tempting-but-wrong "0% = no change"
+      case, which would claim a measurement that never happened) and the audit-label
+      fallbacks. **Mutation-tested — 2 fail if the zero-baseline guard is removed.**
 - [x] **Opportunity engine** (§20) — SHIPPED: live-data generator + deterministic scoring + convert-to-goal — scored opportunity feed → convert to goal/campaign.
 - [x] **Goal → multichannel campaign generation** (§15) — SHIPPED: one goal generates a connected landing page + email + social + SEO + FAQ, editable & approvable, all linked to the goal.
       connected campaign (landing page, email, social, SEO/AEO) linked to the goal.

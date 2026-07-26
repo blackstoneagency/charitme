@@ -58,12 +58,21 @@ async function countCampaigns(sinceISO: string, untilISO: string): Promise<numbe
   return count ?? 0;
 }
 
-function pct(current: number, previous: number): number | null {
+/**
+ * Week-over-week change, or `null` when there is no baseline to compare against.
+ *
+ * Exported for tests. `null` rather than a number is the whole point: with a
+ * previous period of 0 there is no honest percentage to show — any growth from
+ * zero is infinite — so the dashboard prints "no prior-week baseline" instead of
+ * a fabricated figure. Same rule the public pages follow for platform stats.
+ */
+export function pct(current: number, previous: number): number | null {
   if (previous === 0) return null;
   return ((current - previous) / previous) * 100;
 }
 
-function summarizeAudit(action: string, detail: Record<string, unknown> | null): string {
+/** Human label for an audit row; falls back to the action name. Exported for tests. */
+export function summarizeAudit(action: string, detail: Record<string, unknown> | null): string {
   const d = detail ?? {};
   if (typeof d.title === 'string') return String(d.title);
   if (typeof d.name === 'string') return String(d.name);
