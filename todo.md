@@ -574,6 +574,35 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**🔴🔴 PAID PLANS ENFORCE NOTHING — the campaign limit is a progress bar, not a limit.**
+Found by sweeping the pattern behind three earlier findings: *a limit enforced by
+counting*. This is the commercially significant one — **Starter ($29/mo) and Pro
+($89/mo) currently restrict nothing a free account can't do.**
+
+**Verified, each link:**
+- `PLAN_LABELS` defines `campaignLimit` free **1** / starter **5** / pro **999**, and
+  `campaignLimit` appears **only in `SettingsClient.tsx`** — a progress bar and an
+  *"Active Campaigns 3 / 5"* label.
+- **`POST /api/campaigns` has no plan or campaign-count check whatsoever.** The only
+  `limit` references in that file are pagination.
+- `lib/entitlements.ts` exists and is real, but `getUserEntitlements` has exactly
+  **2 callers, both display** (`/api/me/entitlements`, the settings page), and
+  **`userHasFeature` has ZERO callers**.
+- **No API route anywhere returns a plan-gated 402/403.**
+
+So a free user can create unlimited campaigns while the UI shows them at 1/1 with a
+full bar. Same family as roles / suspension / payout freeze — state that is written
+and displayed but never enforced — and it **fails OPEN**: users receive more than
+they paid for.
+
+**Not fixed, and this one especially isn't mine to decide.** Turning enforcement on
+is a billing decision with immediate customer impact: what happens to accounts
+already over the limit, whether existing campaigns are grandfathered, whether
+creation hard-blocks or soft-warns, and whether the cap counts *active* or *all*
+campaigns. Guessing wrong locks paying customers out of their own campaigns.
+**The plumbing is ready** — `getUserEntitlements(userId)` already returns the plan,
+so enforcement is a few lines in `POST /api/campaigns` once the policy is chosen.
+
 **🔴 FIXED — a silent write failure made the organizer send-cap bypassable.**
 Found by sweeping the question behind the last three findings: *does this code check
 whether its write succeeded?* Scanned every API route for a write whose `error` is
