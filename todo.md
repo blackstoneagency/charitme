@@ -418,6 +418,45 @@ correct, and notably well built:
 _No fix needed._ Recording it so the money path isn't re-audited: the promise-audit
 found 7 leaks elsewhere, but **this** control keeps its promise.
 
+**🔴🔴 "FREEZE PAYOUTS" CANNOT WORK — it is architecturally impossible, not a bug.**
+`/admin/trust-safety` lists campaigns with `payout_frozen = true` as though funds
+were held. They are not, and cannot be.
+
+**Why:** `app/api/payouts/route.ts` documents the model — CharitMe uses **Stripe
+Connect destination charges**. Every donation transfers the principal **straight to
+the recipient's connected account at charge time**. *"CharitMe never holds the
+funds… there is NO platform-initiated 'move money' step."* Stripe then pays that
+balance to their bank on the connected account's own schedule. So by the time any
+freeze could apply, **the money is already in the organizer's account** and is
+being disbursed by Stripe, not by CharitMe.
+
+**What `payout_frozen` actually does today:**
+- ✅ written by the admin UI, stored, and listed on `/admin/trust-safety`
+- ✅ read by `app/api/ai/payout-concierge` — but that is **advisory text**, not a gate
+- ❌ **does not block donations** — `app/api/donations/route.ts` never selects or
+  checks it, so a frozen campaign keeps taking money
+- ❌ **cannot block payouts** — there is no platform payout step to block
+
+Net: staff freeze a campaign under fraud review, see it in the frozen list, and
+donations continue landing directly in that organizer's Stripe account. Same shape
+as the suspension gap and equally **fail-open**, but with money attached.
+
+**Deliberately not "fixed" by me.** With destination charges the only lever the
+platform still holds is **refusing new donations**, and "freeze payouts" and "block
+donations" are genuinely different intents — an admin may want to hold disbursement
+while an investigation runs without cutting off donors. Silently converting one
+into the other is a product decision, and on a fraud control it is not mine to
+guess. Three real options:
+1. **Block donations to frozen campaigns** — one condition beside the existing
+   `status !== 'active'` check in the donations route. Effective immediately, stops
+   new money, but changes what the control means.
+2. **Pause the connected account's payouts via Stripe** — closest to the label's
+   promise; needs a Stripe API call against the connected account.
+3. **Move to separate charges + transfers** so the platform holds funds first —
+   what would make a true freeze possible, but this is money-transmission territory
+   (see the Giving Funds note) and a major architectural change.
+**Until one is chosen, the admin UI should not present this as a working control.**
+
 **🔴🔴 SUSPENDING A USER DOES NOTHING. Admin sees "Suspended"; the account is untouched.**
 The most consequential enforcement gap found, and unlike the team-role gap this one
 **fails OPEN** — it grants more access than intended, not less. Suspension is a
