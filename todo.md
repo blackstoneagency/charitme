@@ -574,6 +574,42 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**✅ AUDITED CLEAN (with one judgement call) — "Thank donors".**
+Well built where it counts:
+- **Respects anonymity** — both the send path and the "thankable donations" listing
+  filter `.eq('anonymous', false)`, so anonymous donors are never named or mailed.
+- **Fails loudly, not silently** — with no `RESEND_API_KEY` it returns **503** with
+  `{ error: 'Email service not configured…', sent: 0 }` rather than reporting a
+  success that never happened. That is the opposite of the silent-success pattern
+  behind most defects in this audit.
+- Tracks `sent` and a `failed[]` list instead of assuming delivery.
+
+**⚖️ One inconsistency, recorded for a decision rather than fixed:** the profile
+lookup selects only `id, full_name, email`, so the send does **not** consult the
+donor's *"Receive email notifications"* preference (`notification_email`). Meanwhile
+`POST /api/campaigns/[id]/updates` **does** honour `notification_updates`. So the
+codebase respects an email opt-out in one place and not the other, with nothing
+documenting the difference.
+Both readings are defensible — a thank-you for a gift you just made is arguably
+relational rather than marketing, and the donor chose to give non-anonymously — so
+I have **not** silently added a filter that could suppress mail organizers expect to
+send. Worth a deliberate call: either honour `notification_email` here too, or
+document the carve-out so the inconsistency reads as intent.
+
+**✅ AUDITED CLEAN — campaign update emails, in-app notifications, beneficiary invites.**
+Three more controls checked against the promise-audit method; all keep their promise.
+- **`POST /api/campaigns/[id]/updates`** — gathers donors **and** savers, and
+  **honours the per-user opt-out** (`if (profile.notification_updates === false)
+  continue`). This is the consumer that disproved one of my own claims — see the
+  correction below.
+- **In-app notifications** — genuinely wired both ways: writers (`lib/notify.ts`,
+  webhook → `donation_received`, `refund_processed`, `amount_mismatch`), reader
+  routes (`/api/notifications`, `/count`, `/[id]`), and **four** UI consumers
+  including `NotificationBell` and the dashboard page.
+- **Beneficiary invites** — email sent on invite; accept route requires auth,
+  validates the token, and rejects already-accepted (**409**) and expired (**410**).
+  Single-use, expiring, authenticated — the right shape.
+
 **✅ AUDITED CLEAN — refund handling, including the partial-refund edge case.**
 Checked whether a refund brings `campaigns.raised_amount` back down; otherwise
 public totals would overstate reality (the "number that doesn't match its label"
