@@ -48,7 +48,13 @@ Three separate clients, never mix them:
 ### Stripe flows
 - **Donations**: POST /api/donations → Stripe Checkout Session → webhook `checkout.session.completed` → `increment_campaign_stats` RPC
 - **Payouts**: POST /api/stripe/connect → Stripe Connect Express onboarding → GET /api/stripe/connect?return marks `stripe_onboarded = true`
-- Platform fee: 5% via `application_fee_amount` on payment_intent (only when fundraiser has connected Stripe)
+- **Platform fee is 0%.** `PLATFORM_FEE_PERCENT = 0`. The `application_fee_amount`
+  on the payment_intent is `tipCents + processingFeeCents` — the donor's optional
+  tip plus the Stripe processing fee — not a percentage cut of the donation
+  (`app/api/donations/route.ts`). Set only when the fundraiser has connected Stripe.
+  ⚠️ This previously read "5% via application_fee_amount", which no longer matched
+  the code. Do not "restore" a percentage platform fee on the strength of the old
+  wording, or of the inert helpers noted below.
 
 ### Auth flow
 1. `middleware.ts` refreshes session on every non-API request; redirects unauthenticated users hitting `/create` or `/dashboard` to `/login?next=<path>`
@@ -58,7 +64,17 @@ Three separate clients, never mix them:
 5. `lib/auth.ts`: `getUser()` / `requireUser()` for server components
 
 ### Shared business logic
-Import with `@shared/fees`. Contains: `platformFee()`, `netToFundraiser()`, `CAMPAIGN_CATEGORIES`, `MIN_DONATION_CENTS`.
+Import with `@shared/fees`. Contains: `CAMPAIGN_CATEGORIES` (the **single source of
+truth** — never re-declare this list locally; three hand-maintained copies had
+already drifted), `MIN_DONATION_CENTS`, `PROCESSING_FEE_PERCENT`/`_FIXED_CENTS`,
+and the tip tiers.
+
+Also exports `platformFee()` / `netToFundraiser()`, which are **currently inert**:
+`platformFee()` returns 0 because `PLATFORM_FEE_PERCENT = 0`, and
+`netToFundraiser()` has no callers outside tests. They are the remains of the old
+percentage-fee model. Left in place rather than deleted since they are public
+exports of a shared package — but the live fee path is the tip + processing
+calculation in `app/api/donations/route.ts`, not these.
 
 ### UI components (`components/ui.tsx`)
 `Btn`, `Input`, `Textarea`, `Select`, `Badge`, `ProgressBar`, `Card`, `Spinner`, `EmptyState` — all inline styles with CSS variables. No Tailwind, no CSS modules.
