@@ -257,6 +257,37 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**🔴 FIXED — two ENTIRE modules advertised "Production Ready" with 0% built.**
+Following the unwired-table finding into the catalog's own `databaseTables`
+declarations:
+
+| module | declared tables unwired | route | badge was |
+|---|---|---|---|
+| **Memberships and Community** | **5 / 5** | none | Production Ready |
+| **Creator Commerce and Tips** | **6 / 6** | none | Production Ready |
+| projects-perks | 2 / 5 | yes | (left alone) |
+| nonprofit-suite | 2 / 7 | yes | (left alone) |
+| ai-trust-growth | 1 / 6 | yes | (left alone) |
+
+The two at 100% were the actionable ones, and the journey was worse than Auctions
+because each carries an **action CTA**: `/features` → "Memberships and Community"
+badged *Production Ready* → `/features/memberships` → button **"Create membership
+tiers"** → lands on **`/create/choose-path`**, the ordinary campaign wizard, where
+no membership functionality exists. Same for **"Build a creator page"**.
+
+Worse, **`/features/[slug]` never rendered status at all** — the detail page is
+where the CTA lives, so it gave the visitor no signal whatsoever.
+
+Fix: added **`'Planned'`** to the status union (it was `'Live' | 'Production
+Ready'`, with *no way to express "not built"* — the structural cause), marked
+those two modules, styled the badge on `/features`, and surfaced a **"Planned —
+not yet available"** marker beside the CTA on the detail page.
+
+_Deliberately conservative:_ only the two modules with **100%** unwired tables
+**and** no route were changed. The other three have partial gaps that may be
+legitimately implemented without those specific tables — flipping them would be
+positioning, not fact-checking.
+
 **🔴 SYSTEMIC — 36 of 143 tables (25%) have NO application code path.**
 Auctions was not a one-off. Cross-referencing the live-DB table snapshot against
 every `.from('…')` in `app`/`lib`/`components`, **plus** resolving the 6 `rpc()`

@@ -136,7 +136,7 @@ export default function FeaturesPage() {
                     <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg,#f3f0ff,#ede9fe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
                       {MODULE_ICONS[module.slug] ?? '✦'}
                     </div>
-                    <span style={{ background: module.status === 'Live' ? '#dcfce7' : '#f3f0ff', color: module.status === 'Live' ? '#15803d' : '#6c35ff', borderRadius: 999, padding: '4px 12px', fontSize: 11, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>
+                    <span style={{ background: module.status === 'Live' ? '#dcfce7' : module.status === 'Planned' ? '#fef3c7' : '#f3f0ff', color: module.status === 'Live' ? '#15803d' : module.status === 'Planned' ? '#92400e' : '#6c35ff', borderRadius: 999, padding: '4px 12px', fontSize: 11, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>
                       {module.status}
                     </span>
                   </div>
