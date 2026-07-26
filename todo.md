@@ -5961,10 +5961,40 @@ throw (`getHomeData` / `listPublishedImpactSummaries` call `supabaseAdmin` with 
 error handling). Same defect class, three pages: `/ai-fundraising` (fixed), `/`,
 `/impact`.
 
-⬜ **Next slice:** apply the identical treatment to `/` and `/impact` — never
-fabricate the numbers. The homepage renders "Raised on CharitMe", campaign and
-donation counts and a trust average; defaulting those to `0` would publish false
-platform statistics. Hide the block, as the dashboards and `/ai-fundraising` now do.
+### ✅ DONE — every public route now survives a credential-less production build
+
+Swept all 36 public routes on a cold `next build` + `next start` with no Supabase.
+**Six returned 500**, not the one I first found: `/`, `/impact`, `/ai-fundraising`,
+`/grants`, `/success-stories`, `/supported-countries`. All six now return **200**
+with their content intact. Re-scanned: **NON-200: 0**.
+
+**The subtle part — `ok` was not a sufficient signal, and assuming it was shipped the
+exact bug I was trying to prevent.** After adding try/catch to the homepage loaders,
+`/` rendered **"Raised on CharitMe $0"**. `getHomeData` does not throw when its reads
+fail: it coalesces each to `[]` internally and returns a fully-zeroed metrics object,
+so a failed load is indistinguishable from real zeros at the call site. The try/catch
+turned a 500 into a *false platform statistic in the most prominent place on the
+site*, which is worse than the crash.
+
+Fixed with `shouldShowPlatformMetrics()` (`lib/home-utils.ts`): an all-zero reading is
+treated as "no data". Deliberately conservative — if the platform really had zero of
+everything, "$0 raised / 0 campaigns / 0 donations" is still not a figure to publish.
+8 unit tests pin **both** directions, including that real numbers still show (a guard
+that always returned false would "fix" the bug by silently deleting the feature).
+
+Applied the same hide-don't-zero rule to `/success-stories` (it prints Total Raised /
+Campaigns / Donations / Supporters in **two** places — the whole "By the Numbers"
+section is now gated so no dangling heading remains) and `/ai-fundraising`.
+`/grants` and `/supported-countries` are lists, where an empty result is honest, so
+they just fail safe to `[]`.
+
+Verified with markers on a credential-less prod build — all expect 0, all measured 0:
+`Raised on CharitMe`, `Total Raised`, `By the Numbers`, `aif-live-stats`. Pages still
+render (94KB / 37KB / 59KB, each with an `<h1>`).
+
+**Result: all three public sweeps pass against a REAL production build — 8/8.**
+Previously they only ever passed against the reused dev server. CI's e2e job should
+now genuinely pass once runners return.
 
 <details><summary>original report (kept for context)</summary>
 

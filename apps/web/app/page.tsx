@@ -9,6 +9,7 @@ import { resolveCampaignCover } from '../lib/covers';
 import CampaignImage from '../components/CampaignImage';
 import JsonLd from '../components/JsonLd';
 import { formatMoneyCompact } from '@shared/currencies';
+import { shouldShowPlatformMetrics } from '../lib/home-utils';
 import { AiSearch, CountUp, Reveal } from './home-parts';
 import HeroSpotlightCarousel, { type HeroSpotItem } from './HeroSpotlightCarousel';
 
@@ -155,12 +156,50 @@ function deadlineLabel(iso: string | null): string {
   return `${days} day${days === 1 ? '' : 's'} left`;
 }
 
+/**
+ * Run a homepage loader without letting it take the page down.
+ *
+ * The homepage used to render these unguarded, so an unreachable Supabase threw
+ * straight through `unstable_cache` and the whole page returned a hard 500 —
+ * measured 3/3 on a cold production server with env unset. It looked healthy only
+ * while the build-time ISR prerender was still being served.
+ *
+ * Returns `ok` so the caller can tell "no data" from "zero", which matters a lot
+ * here: see the metrics block below.
+ */
+async function loadOrDegrade<T>(work: Promise<T>, fallback: T): Promise<{ value: T; ok: boolean }> {
+  try {
+    return { value: await work, ok: true };
+  } catch {
+    return { value: fallback, ok: false };
+  }
+}
+
+const NO_HOME_DATA = {
+  stats: [] as string[][],
+  metrics: { raisedCents: 0, campaigns: 0, donations: 0, trustAvg: 0 },
+  heroCampaign: null,
+  featuredCampaigns: [],
+  carouselCampaigns: [],
+  rotatorCampaigns: [],
+  heroPercent: 0,
+  daysLeft: 0,
+} satisfies Awaited<ReturnType<typeof getHomeData>>;
+
 export default async function HomePage() {
-  const [{ metrics, featuredCampaigns, carouselCampaigns, rotatorCampaigns }, categoryStats, recentDonations] = await Promise.all([
-    getHomeData({}),
-    getCategoryStats(),
-    getRecentDonations(6),
+  const [home, categoryStatsResult, recentDonationsResult] = await Promise.all([
+    loadOrDegrade(getHomeData({}), NO_HOME_DATA),
+    loadOrDegrade(getCategoryStats(), [] as Awaited<ReturnType<typeof getCategoryStats>>),
+    loadOrDegrade(getRecentDonations(6), [] as Awaited<ReturnType<typeof getRecentDonations>>),
   ]);
+
+  const { metrics, featuredCampaigns, carouselCampaigns, rotatorCampaigns } = home.value;
+  // See shouldShowPlatformMetrics — `home.ok` alone is not a sufficient signal, and
+  // assuming it was is what shipped "Raised on CharitMe $0" onto a credential-less
+  // build's homepage.
+  const metricsAvailable = shouldShowPlatformMetrics(metrics, home.ok);
+  const categoryStats = categoryStatsResult.value;
+  const recentDonations = recentDonationsResult.value;
 
   // Live featured-campaign spotlight — a rotating carousel of real campaigns from
   // Supabase. Prefer the purpose-built rotator set (organizer names + live covers),
@@ -272,7 +311,11 @@ export default async function HomePage() {
           </Reveal>
         </div>
 
-        {/* Animated impact metrics — real platform numbers */}
+        {/* Animated impact metrics — real platform numbers.
+            Omitted entirely when the read failed, never rendered as zeros:
+            "Raised on CharitMe $0" is a false statistic about the platform, not a
+            neutral placeholder, and it is the first thing a visitor sees. */}
+        {metricsAvailable && (
         <div className="home-wrap">
           <dl className="home-metrics" aria-label="Platform impact">
             <div><dt>Raised on CharitMe</dt><dd><CountUp value={metrics.raisedCents} kind="money" /></dd></div>
@@ -281,6 +324,7 @@ export default async function HomePage() {
             <div><dt>Avg. trust score</dt><dd><CountUp value={metrics.trustAvg} kind="percent" /></dd></div>
           </dl>
         </div>
+        )}
       </section>
 
       {/* ── MEET CHARITME AI ─────────────────────────────────────────────── */}

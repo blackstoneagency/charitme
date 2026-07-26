@@ -19,9 +19,13 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function GrantsPage() {
+  // Never let a failed read 500 the page. Both are lists, so an empty result is an
+  // honest "nothing to show" — unlike a statistic, where zero would be a claim.
+  // Measured: this page returned 500 on a cold production build with Supabase
+  // unreachable, because neither loader guarded against it.
   const [grants, categories] = await Promise.all([
-    getPublicGrants(48),
-    getGrantCategories(),
+    getPublicGrants(48).catch(() => []),
+    getGrantCategories().catch(() => []),
   ]);
 
   return (

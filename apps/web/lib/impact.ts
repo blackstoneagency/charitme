@@ -145,7 +145,23 @@ export async function getImpactBundle(idOrSlug: string, viewerOwns = false): Pro
   };
 }
 
+/**
+ * Published impact summaries for the public /impact index.
+ *
+ * Never throws: this page used to return a hard 500 whenever Supabase was
+ * unreachable (measured on a cold production build with env unset, where
+ * `supabaseAdmin` throws on construction). An empty index is a correct, honest
+ * rendering of "no reports to show"; a 500 is not.
+ */
 export async function listPublishedImpactSummaries(limit = 24): Promise<PublicImpactSummary[]> {
+  try {
+    return await listPublishedImpactSummariesUncaught(limit);
+  } catch {
+    return [];
+  }
+}
+
+async function listPublishedImpactSummariesUncaught(limit = 24): Promise<PublicImpactSummary[]> {
   const { data: planData } = await supabaseAdmin
     .from('impact_plans')
     .select('id, campaign_id, title, summary, total_budget_cents, updated_at')
