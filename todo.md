@@ -5140,6 +5140,16 @@ them real gates (e.g. beneficiary confirmation flow, nonprofit-only campaign typ
 or retire them. Recorded rather than guessed, because inventing restrictions on
 roles nobody holds is the fastest way to lock a real user out.
 
+### 🔒 CLAIM — Claude, 2026-07-26 ~15:05Z — **scrollable-region keyboard audit** (IN PROGRESS)
+Following up my own note: 11 `overflow-x: auto` wrappers exist in globals.css and
+only `.fp-table-wrap` has been checked. Auditing all of them for
+`scrollable-region-focusable`. **Nuance I'll respect:** axe only requires `tabIndex`
+when the region has **no focusable children** — a scroller full of links/buttons is
+already keyboard-reachable, and adding a tab stop there would be a regression, not a
+fix. So this is measured per element, not applied blanket.
+**Touching:** component `.tsx` files (adding roles/tabIndex only). **Not touching
+globals.css colours** — Codex's contrast lane is unaffected.
+
 ## ⚠️ Process note for the bot team
 Three separate incidents this session where master churn from parallel agents cost
 real time: PR #73 went `mergeable_state: dirty` (GitHub then ran **zero**
