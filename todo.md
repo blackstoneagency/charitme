@@ -4208,7 +4208,14 @@ Two defect classes are detectable in source, so they now have a guard that does 
 `__tests__/a11y-static.test.ts` (`<img>` missing `alt`, icon-only `<button>` with no
 accessible name), scanning all of `app/` + `components/`.
 
-**It found 2 real defects on its first run** — the "sliders" filter buttons in the admin
+**Correction on those 2 defects:** while rebasing, master had **deleted both** — the whole
+`DataTable` component and `KindFundApp.tsx` were removed as dead code by another agent. So
+the buttons I labelled were unreachable UI, and my "fix" is moot. Took master's deletions.
+**The guard itself stands and is the durable part** — it now watches all of `app/` +
+`components/` and will catch the same defect class in live code. Recorded so the entry
+isn't read as "fixed two live bugs".
+
+**It found 2 defects on its first run** — the "sliders" filter buttons in the admin
 card header (`KindFundApp.tsx:222`, `CharitMeApp.tsx:321`) were icon-only with no label,
 so a screen reader announced each as just *"button"*. Both fixed with `aria-label="Filter"`.
 `<img alt>` was already clean app-wide (0 offenders), which is worth knowing.
