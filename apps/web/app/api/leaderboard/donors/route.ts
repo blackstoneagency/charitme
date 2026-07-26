@@ -18,5 +18,11 @@ export async function GET(request: NextRequest) {
     : 'all';
 
   const donors = await getTopDonors(period, limit);
-  return NextResponse.json({ donors, period });
+  return NextResponse.json(
+    { donors, period },
+    // Public, identical for every caller and slow-changing: let the CDN serve it.
+    // Without this every request reached the origin, so the 60/min per-IP limiter
+    // fired for ordinary users sharing an IP (offices, universities, mobile CGNAT).
+    { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } },
+  );
 }

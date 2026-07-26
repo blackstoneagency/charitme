@@ -14,5 +14,10 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(MAX_LIMIT, Math.max(1, Number(url.searchParams.get('limit')) || 20));
 
   const campaigns = await getTopCampaigns(limit);
-  return NextResponse.json({ campaigns });
+  return NextResponse.json(
+    { campaigns },
+    // See the donors route: public, identical per caller, slow-changing — cache at
+    // the CDN so the per-IP limiter stops firing for shared-IP users.
+    { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } },
+  );
 }

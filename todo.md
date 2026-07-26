@@ -1964,6 +1964,26 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM39 · API load audit — leaderboard endpoints 429'd 40% of requests** —
+  Extended the load probe from pages to the public API surface (100 req @
+  concurrency 20 each). Every endpoint was clean **except both leaderboard
+  routes, which failed 40 of 100 requests** (`429 RATE_LIMITED`); the rest
+  returned 0 errors (`/api/campaigns` p95 271ms, `/api/grants` 205ms,
+  `/api/events` 317ms, `/api/health` 76ms).
+  **Cause:** a 60-req/min **per-IP** limiter on a *public, read-only, cacheable*
+  endpoint that carried **no cache headers at all**, so every request reached the
+  origin and the DB. Real users sharing an IP — offices, universities, mobile
+  CGNAT — burn that budget collectively, and the leaderboard page itself calls the
+  donors route on every period-tab switch.
+  **Fixed at the root rather than by loosening the limit:** both routes now send
+  `Cache-Control: public, s-maxage=60, stale-while-revalidate=300`, matching the
+  pattern `/api/announcements` already used. The CDN serves the overwhelming
+  majority of requests, so the limiter stops firing for legitimate traffic and DB
+  load drops — without weakening abuse protection. Verified the headers are served.
+  _Note: `/api/campaigns`, `/api/grants` and `/api/events` are also uncached
+  public reads; they did not error under this load, so left alone rather than
+  changing caching semantics speculatively._
+
 - **CHAR-SM38 · BUG — bulk user admin could silently demote admins and always
   reported success** — Same "unchecked write that claims success" class as
   CHAR-SM36, found by grepping for it deliberately. `/api/admin/users/bulk` had
