@@ -111,7 +111,13 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (result.sent) sent++; else suppressed++;
   }
 
-  const { data: record } = await supabaseAdmin.from('organizer_sends').insert({
+  // This row IS the rate-limit ledger — the 2/day cap above is enforced by
+  // COUNTING these rows. The error was previously discarded, so a failed insert
+  // meant: emails already sent, no row written, daily count unchanged, and the
+  // organizer free to send again immediately. A silent bypass of a control that
+  // exists to protect donors from repeat mail. Cannot un-send, and the send itself
+  // genuinely succeeded, so this logs loudly rather than failing the response.
+  const { data: record, error: sendLogError } = await supabaseAdmin.from('organizer_sends').insert({
     campaign_id: id,
     organizer_id: user.id,
     template_key: templateKey,
@@ -123,6 +129,11 @@ export async function POST(req: NextRequest, { params }: Params) {
     suppressed_count: suppressed,
     status: sent === 0 ? 'failed' : suppressed > 0 ? 'partial' : 'sent',
   }).select('id').single();
+  if (sendLogError) {
+    console.error('[engage] organizer_sends row NOT written — daily send cap is bypassable until this is fixed', {
+      campaignId: id, organizerId: user.id, sent, code: sendLogError.code, message: sendLogError.message,
+    });
+  }
 
   // Feed the marketing event stream (organizer engagement is a strong platform signal)
   try {

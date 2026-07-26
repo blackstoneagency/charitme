@@ -574,6 +574,32 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**🔴 FIXED — a silent write failure made the organizer send-cap bypassable.**
+Found by sweeping the question behind the last three findings: *does this code check
+whether its write succeeded?* Scanned every API route for a write whose `error` is
+destructured away — **4 hits**, triaged by consequence. This one is the serious one.
+
+`POST /api/campaigns/[id]/engage` enforces **2 sends per campaign per day** by
+**counting `organizer_sends` rows** (lines 50–56). The row recording each send was
+inserted with `const { data: record }` — **error discarded** — and, critically,
+**after** the emails are dispatched. So a failed insert meant: mail already sent,
+no row written, the daily count unchanged, and the organizer **free to send again
+immediately**. A silent bypass of a control that exists to stop donors being mailed
+repeatedly.
+
+It cannot un-send, and the send genuinely succeeded, so the response stays truthful
+and the failure is now **logged loudly** with the bypass spelled out.
+_Deeper design question left for a decision:_ the ledger row is written **after**
+sending, so the cap is only as reliable as that write. Writing it **first**
+(reserving the slot) would fail *closed* — an organizer might lose a slot to a
+failed send, but donors could never be over-mailed. That is a real trade, so it is
+recorded rather than chosen unilaterally.
+
+_The other 3 hits, deliberately left:_ referral-event inserts in
+`donations`/`donations/recurring` (attribution only) and the AI generation log in
+`complaint-resolver` (usage logging). Losing those costs analytics, not a user
+guarantee.
+
 **🔴 FIXED — a failed support ticket still reported success to the user.**
 `POST /api/support-tickets` destructured **only** `{ data: ticket }` from the
 `support_cases` insert, discarding `error`. So when the insert failed the code fell
