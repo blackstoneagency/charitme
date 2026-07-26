@@ -24,6 +24,21 @@ describe('donation routes honour accept_donations', () => {
       expect(src).toMatch(/DONATIONS_CLOSED/);
     });
 
+    it(`${name}: rejects donations after the deadline`, () => {
+      // The campaign page renders "This campaign has ended." and hides the donate
+      // form once the deadline passes; the API previously accepted a direct POST.
+      expect(src).toMatch(/select\([^)]*deadline/);
+      expect(src).toMatch(/CAMPAIGN_ENDED/);
+      // Boundary must match the page's Math.ceil((deadline-now)/day) > 0, i.e.
+      // blocked precisely when deadline <= now.
+      expect(src).toMatch(/getTime\(\) <= Date\.now\(\)/);
+    });
+
+    it(`${name}: treats a null deadline as open-ended`, () => {
+      expect(src, 'a campaign with no deadline must never be blocked')
+        .toMatch(/deadlineAt &&/);
+    });
+
     it(`${name}: treats null/undefined as accepting`, () => {
       // The column defaults to true and is null on older rows; a falsy check
       // would wrongly block campaigns that never opted out.

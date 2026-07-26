@@ -574,6 +574,29 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**🔴 FIXED — ended campaigns still accepted donations via the API.**
+Immediate sibling of the `accept_donations` bug, found by asking the same question:
+*what else does the UI enforce that the API doesn't?*
+
+The campaign page renders **"This campaign has ended."** and hides the donate form
+once the deadline passes (`isActive` requires `daysLeft > 0`). Neither donation
+route referenced `deadline` **at all** — so a direct POST could still donate to a
+campaign the site had already told the donor was over.
+
+**I checked intent before fixing, because this one was genuinely ambiguous.** A
+deadline can legitimately be a display device — plenty of platforms keep taking
+money past the goal date — in which case the UI would be the bug. The deciding
+evidence was the user-facing copy: the page states the campaign *has ended*, so the
+hard stop is the product's stated behaviour.
+
+**Boundary matched to the page exactly**, so the API can never block while the
+button is still visible: the page uses `Math.ceil((deadline - now) / 86_400_000) > 0`,
+false precisely when `deadline <= now`; the API blocks on
+`new Date(deadline).getTime() <= Date.now()`. A **null deadline is never blocked** —
+pinned by its own test.
+**4 more regression tests (10 total on these routes), verified to fail against the
+original code.**
+
 **🔴 FIXED — "stop accepting donations" didn't stop donations.**
 The fifth fail-open control found, and **the only one that needed no decision** — so
 unlike suspension / payout freeze / roles / plan limits, this one is fixed outright.

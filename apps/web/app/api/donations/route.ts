@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
   // ── Fetch campaign ──────────────────────────────────────────────────────────
   const { data: campaign } = await supabaseAdmin
     .from('campaigns')
-    .select('id, title, slug, status, user_id, beneficiary_profile_id, accept_donations')
+    .select('id, title, slug, status, user_id, beneficiary_profile_id, accept_donations, deadline')
     .eq('id', campaignId)
     .single();
 
@@ -134,6 +134,15 @@ export async function POST(request: NextRequest) {
   // on older rows, and neither should block a campaign that never opted out.
   if ((campaign as { accept_donations?: boolean | null }).accept_donations === false)
     return NextResponse.json({ error: 'This campaign is not accepting donations right now.', code: 'DONATIONS_CLOSED' }, { status: 400 });
+
+  // The campaign page renders "This campaign has ended." and hides the donate form
+  // once the deadline passes, but the API never checked it — so a direct POST could
+  // still donate to an ended campaign. Boundary matches the page exactly: it uses
+  // Math.ceil((deadline - now)/day) > 0, which is false precisely when deadline <= now.
+  const deadlineAt = (campaign as { deadline?: string | null }).deadline;
+  if (deadlineAt && new Date(deadlineAt).getTime() <= Date.now()) {
+    return NextResponse.json({ error: 'This campaign has ended.', code: 'CAMPAIGN_ENDED' }, { status: 400 });
+  }
 
   // ── Campaign currency (defaults to USD) ─────────────────────────────────────
   const { data: launchSettings } = await supabaseAdmin
