@@ -57,6 +57,39 @@ single endpoint receives all Connect events signed with the main secret. Leave u
 > of this file and the companion **`payment-audit.md`** for the exhaustive
 > per-workflow audit + fixes.
 
+## 🔎 Claude session index — 2026-07-26 (create flow, settings, schema, docs)
+
+Detail for every row lives under **§0.1b item 10** (it grew there because that item
+was the entry point); this index exists so the work is findable by topic rather
+than buried under a locale-switcher heading.
+
+| # | Fix | Why it mattered |
+|---|-----|-----------------|
+| `2fb05a1` | Follow-up picker offered **11 of 18** categories | Sports/Competition/Event/Family/Travel/Volunteer/Wishes unselectable — a cheer or team campaign had to file as "Other" |
+| `73a46c6` | `'pet'` matched com**pet**ition → every competition filed as **Animal** | Plain `includes()` fired mid-word; `'cat'` also hit vacation/dedicated. Cheer, band, guitar matched nothing at all |
+| `4304251` | Default title read **"Support my the team"** | Broken English on 11 of 18 categories, in the first field an organizer sees |
+| `2b81ad7` | Small asks inflated **2.5×** ($40 → $100) | Hardcoded floor 100× the real publish minimum; **an existing test asserted the bug** |
+| `c2b4395` | **Privacy control that never saved** | Profile Visibility rendered in Security, persisted only by Preferences' Save → set to Private, navigate away, silently still public |
+| `c2b4395` | `notification_updates` column wired to **nothing** | Real column, zero references, opposite a dead toggle — two halves of a wire |
+| `5a842eb` | Deletion request was a `mailto:` | Real Supabase flow existed at `/privacy-center` with status tracking + audit trail |
+| `ee733ea` | CLAUDE.md documented a **5% platform fee**; code charges **0%** | Trap: `platformFee()` still exported, so an agent could "restore" fee-charging on live donations |
+| `381bf45` | **18 of 27 env vars undocumented** | A deploy following the doc loses payout webhooks, subscription price IDs, and all outbound email — with no startup error |
+| `67bd81b` | 7 `profiles` columns existed live but in **no migration** | Fresh provision → broken Settings tab. **Corrected my own earlier claim** that this needed DB credentials |
+| `1efe17a` | **Commits were signed all along** | Corrected my own repeated wrong diagnosis; `%G?`=`N` means "cannot verify" (no `ssh-keygen`), not "unsigned" |
+
+**Totals:** 10 dead controls removed, 5 real controls added/repaired, 8 sections
+audited, 12 routes runtime-smoke-tested. Tests **1137 / 98 files**, build green.
+
+**Two negative results recorded on purpose** (so nobody re-chases them): `/` and
+`/campaigns` are *not* slow — the ~7.3s is sandbox↔Supabase latency, `campaignColumns()`
+is memoized and the two queries have a genuine data dependency; and the donation
+fee math is *correct* — probed 66 amount/cover/tip combinations plus the custom-override
+path, 0 invariant violations.
+
+**Method that found most of these:** run the function against realistic input rather
+than reading it, and check every claim against the thing it references. Both
+corrections above came from re-testing a conclusion I had already asserted.
+
 ## Status legend
 `Not Started` · `In Progress` · `Blocked` · `Code Complete` · `Testing` · `Verified` · `Production Ready`
 
