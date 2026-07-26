@@ -82,11 +82,11 @@ img, video, iframe { max-width: 100%; }
   background: rgba(255, 255, 255, .86);
   backdrop-filter: blur(18px);
 }
-.kind-header > .container { height: 68px; display: flex; align-items: center; gap: 0; }
-.kind-logo { display: inline-flex; align-items: center; gap: 9px; flex: 0 0 auto; margin-right: 28px; }
+.kind-header > .container { height: 68px; display: flex; align-items: center; gap: 0; max-width: 1380px; padding-left: 24px; padding-right: 24px; }
+.kind-logo { display: inline-flex; align-items: center; gap: 9px; flex: 0 0 auto; margin-right: 18px; }
 .kind-logo > .kind-logo-img { width: 34px; height: 34px; display: block; flex: 0 0 auto; }
 .kind-logo strong { font-size: 22px; letter-spacing: -.02em; color: #111331; line-height: 1; }
-.kind-header nav { display: flex; align-items: center; gap: 20px; flex: 1; min-width: 0; }
+.kind-header nav { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
 /* min-height 24px: WCAG 2.2 AA target-size (2.5.8). These were 19.5px tall — the
    13px line box with no vertical padding — so every header nav link was an
    undersized tap target on every page. The link is vertically centred in the
@@ -6752,3 +6752,39 @@ summary:focus-visible,
    `--green-btn` (#0b7a3e, ~5:1) is the AA-safe fill already used by the shared
    Btn component, so this aligns the Tailwind pages with it. */
 .bg-emerald-600 { background-color: var(--green-btn, #0b7a3e); }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Header: collapse to the menu button below 1366px.
+
+   The desktop nav genuinely does not fit under that width. Measured on a
+   production build at /about-us: the nav needs 718px of links but the header
+   only affords it 663px at 1320px and less below, so the last links rendered
+   ON TOP OF the theme toggle, search and bell icons and collided with "Sign in".
+   `.kind-auth` paints after nav in the DOM, so those links were also unclickable
+   — the collision was stealing their clicks.
+
+   Overlap by viewport before this rule (after the spacing work above):
+     1150 208px · 1200 158px · 1280 78px · 1320 38px · 1366 none · 1440 none
+
+   1366 is therefore the honest breakpoint. Below it users get the menu button,
+   which already lists every destination; above it the nav fits with room to
+   spare. Nothing is removed from the navigation at any width.
+
+   Deliberately a separate query rather than widening the 1100px block — that
+   block also carries hero/grid/footer layout rules that must NOT apply to
+   1101–1365px.
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (min-width: 1101px) and (max-width: 1365px) {
+  /* Only the NAV collapses here — `.kind-auth` deliberately stays visible so the
+     primary "Start a CharitMe" CTA and "Sign in" remain in the bar on a 1280px
+     laptop. The overlap is nav-against-auth, so removing the nav resolves it
+     completely; hiding the CTA as well would trade a layout bug for a conversion
+     regression. Below 1100px the existing block still hides both, as before. */
+  .kind-header nav { display: none; }
+  /* nav was the flex spacer (flex: 1); with it gone the controls would bunch up
+     against the logo, so the auth cluster takes over pushing itself right. */
+  .kind-auth { margin-left: auto; }
+  .kind-menu { display: block; margin-left: 12px; }
+  .kind-mobile { display: grid; gap: 16px; padding: 16px 28px 24px; background: rgba(255, 255, 255, .96); }
+  .kind-mobile a { font-weight: 850; }
+}

@@ -19,11 +19,15 @@ import { PUBLIC_ROUTES, expectNoRedirect } from './public-routes';
 // ─────────────────────────────────────────────────────────────────────────────
 
 
-// WCAG 2.0/2.1 A+AA are ENFORCED. 2.2 is not yet — see todo.md (CHAR-0015).
-// Adding 'wcag22a'/'wcag22aa' here today turns the suite red on two residual
-// `target-size` findings whose cause is not yet pinned. Deliberately not
-// baselined round them: an exemption list is how the last two bugs hid.
-const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+// WCAG 2.0 / 2.1 / 2.2, A + AA — all ENFORCED, no exemptions.
+//
+// 2.2 was previously absent, so `target-size` (2.5.8) had never run. Enabling it
+// found two things: header nav links were a 19.5px tap target on every page, and
+// two "partially obscured" findings that turned out to be symptoms of a real
+// layout bug — the desktop nav was rendering on top of the header controls at
+// every width from 1101px to 1800px. Both are fixed (see globals.css), so 2.2
+// enforces cleanly rather than needing a baseline.
+const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'];
 
 
 /** One test per theme so a failure names the theme without re-running everything. */
