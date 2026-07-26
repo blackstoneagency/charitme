@@ -57,7 +57,47 @@ single endpoint receives all Connect events signed with the main secret. Leave u
 > of this file and the companion **`payment-audit.md`** for the exhaustive
 > per-workflow audit + fixes.
 
-## 🔎 Claude session index — 2026-07-26 (create flow, settings, schema, docs, PRIVACY & SECURITY)
+## 🔎 Claude session index — 2026-07-26 (create flow, settings, schema, docs, PRIVACY, SECURITY, TRUST&SAFETY)
+
+### 🧭 THE PROMISE AUDIT — 16 controls checked, 13 defects, 3 clean
+
+The single most productive method this session: **take a control that promises the
+user something, then verify every path that must honour it.** Every defect below is
+the same failure — *the write path worked; a read or enforcement path never got the
+memo.* Full detail for each is further down this section.
+
+**Family 1 — a user's choice that one read path ignored (7):**
+delete campaign (content stayed public at the direct URL) · Profile→Private (named
+on leaderboard + donor wall) · Profile→Private (named on the **homepage** ticker) ·
+donate anonymously (identity in the organizer's export) · donate anonymously (named
+in supporters list) · donate anonymously (name+avatar in messages route) · save as
+draft (unpublished campaign fully readable).
+
+**Family 2 — a number whose label doesn't match what it counts (4):**
+goal suggestions inflated 2.5× · category list drifted to 11 of 18 · trust&safety
+dashboard showed `.length` of a 50-capped list as the backlog **total** · donor
+"Total Given" summed only the most recent 100 gifts.
+
+**Family 3 — an admin control that writes a flag nothing enforces (3, all fail-OPEN):**
+**user suspension does nothing** · **payout freeze cannot work** (destination
+charges — the platform never holds funds) · team roles promise capabilities no
+route checks. Plus `pinned`, written and never read.
+
+**Clean, and all three are money paths** — recurring cancel/pause (Stripe-first
+ordering so a DB failure never costs the donor), refunds (partial refunds open a
+reconciliation exception rather than guess a split), unsubscribe suppression.
+**That is the actionable signal: the money code has a review standard the rest of
+the app doesn't, and the defects cluster exactly where it doesn't reach.**
+
+### ⚠️ Biggest open items (all need a decision or access I don't have)
+1. **User suspension has no effect** — needs an enforcement point (product/legal call).
+2. **Payout freeze cannot work** — architectural; 3 options recorded.
+3. **Team/user roles enforce nothing** — needs a permission model decision.
+4. **61 drifted DB columns / 21 tables** — `scripts/gen_drifted_columns_migration.sql`
+   turns this into one paste against the live DB.
+5. **Unbounded donation aggregates** (tax statement, exports) — fix is `count:'exact'`
+   + truncation notice; **do not** just add a `.limit()`, that could *introduce* truncation.
+
 
 ### 🚨 CI ON MASTER HAS BEEN RED FOR 30+ CONSECUTIVE RUNS
 
