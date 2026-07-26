@@ -4610,3 +4610,37 @@ the caller does with the empty result before wrapping anything.**
 
 Still unbounded beyond these: admin/dashboard reads and anything where empty
 would be mistaken for a real answer (money totals, receipts, auth).
+
+### 🔴 BLOCKER — GitHub Actions is not allocating runners (owner action needed)
+As of 2026-07-26 ~13:05Z, **every** CI run fails in 2–5 seconds with no logs and
+`runner_id: 0`, `runner_name: ""` — i.e. no runner is ever assigned, so the jobs
+never execute. This is **repo-wide, not branch-specific**: master runs
+`b615e539` (3s), `fc5852b5` (5s), `0a0b5040` (3s) all died the same way.
+Today's run counter is already #458.
+
+**Not a code failure.** Most likely an Actions spending limit / minutes quota, or
+Actions disabled at account level. Check GitHub → Settings → Billing → Actions,
+and Settings → Actions → permissions.
+
+**Consequence:** the e2e gate added in #73 currently cannot run, and master's own
+state is unverified by CI. Everything merged up to `fc5852b` (#73, #75) *did* pass
+full CI first.
+
+#### Workarounds attempted, and what they proved
+- **Point the suite at a Vercel preview** — blocked: previews sit behind Vercel
+  Deployment Protection and redirect to `vercel.com/sso-api`, so the suite sees the
+  SSO wall, not the app. Needs protection disabled or a bypass token (owner).
+- **Point the suite at production** (`www.charitme.com`, publicly reachable, 200) —
+  6 specs "failed", but all 6 are **sandbox-proxy artifacts, not real defects**,
+  verified directly:
+  - auth gates are **correct in production**: `/admin`, `/dashboard`, `/create`
+    each 307 → `/login?next=…`, and `/create/choose-path` is 200. ✅
+  - all three smoke strings (`CharitMe`, `0%`, `Create My Fundraiser Now!`) **are
+    present** in live HTML. ✅
+  Conclusion: remote e2e from this sandbox is unreliable (the outbound HTTPS proxy
+  breaks Playwright navigation); direct `curl` assertions are trustworthy.
+- **`playwright.config.ts` improvement (kept):** the local `webServer` is now
+  skipped when `PLAYWRIGHT_BASE_URL` names an external target. Previously it always
+  booted a local server — and failed without a full Supabase env — so the suite
+  could not be pointed at a deployment at all. That capability is now available for
+  whenever protection/proxy constraints lift.

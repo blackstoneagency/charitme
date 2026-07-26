@@ -8,18 +8,30 @@ import { defineConfig, devices } from '@playwright/test';
 const chromiumPath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
 const launchOptions = chromiumPath ? { executablePath: chromiumPath } : {};
 
+// When PLAYWRIGHT_BASE_URL points at an already-deployed target (a Vercel preview,
+// staging, production), starting a local server is pointless — and it fails unless
+// the local environment happens to carry a full Supabase config. Booting one anyway
+// meant the suite could not be pointed at a real deployment at all, which is
+// exactly what you want when CI compute is unavailable or when verifying a preview
+// with real environment variables.
+const externalTarget = process.env.PLAYWRIGHT_BASE_URL;
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
   workers: 1,
-  webServer: {
-    command: 'npm start',
-    url: 'http://127.0.0.1:3000',
-    reuseExistingServer: true,
-    timeout: 120_000,
-  },
+  ...(externalTarget
+    ? {}
+    : {
+        webServer: {
+          command: 'npm start',
+          url: 'http://127.0.0.1:3000',
+          reuseExistingServer: true,
+          timeout: 120_000,
+        },
+      }),
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:3000',
+    baseURL: externalTarget ?? 'http://127.0.0.1:3000',
     trace: 'on-first-retry',
   },
   projects: [
