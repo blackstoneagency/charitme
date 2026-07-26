@@ -574,6 +574,26 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**✅ AUDITED CLEAN — all 18 campaign mutation routes enforce ownership.**
+Completeness check on the organizer surface: is there **any** campaign
+POST/PATCH/PUT/DELETE route without an ownership guard? **No.** All 18 are covered,
+via one of `canManageCampaign()`, `eq('user_id', user.id)`, `user_id !== user.id`,
+or an admin guard.
+
+_Two things that make this trustworthy rather than a vacuous "found nothing":_
+1. **Non-vacuity checked** — the sweep examined **18** files, not zero. A loop over
+   an empty set prints the same reassuring silence.
+2. **Spot-checked for real guards** — `faqs` (`canManageCampaign`), `milestones`
+   (`eq('user_id', user.id)`), `donations-toggle` (`user_id !== user.id`) — so the
+   matches are genuine authorization, not an incidental `user.id` mention.
+The pattern list deliberately included every shared-helper name seen in this
+codebase, having twice been fooled by exactly that (see the super-admin near-miss).
+
+_Note on an earlier figure:_ a previous entry says "9 campaign routes enforce an
+ownership check" — that counted only routes matching `eq('user_id', user.id)`, in the
+context of team-role enforcement. **18** is the full set of *mutation* routes across
+all guard styles. Both are right; they count different things.
+
 **✅ AUDITED CLEAN — super-admin routes; no privilege escalation.**
 The highest-stakes application of *"the UI is not an access control"*: admin pages
 hide super-admin actions, so if those APIs only checked `isAdmin`, any ordinary
