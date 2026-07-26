@@ -574,6 +574,34 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**🔴 FIXED — the homepage hero showed "Trust Score 0" on nearly every campaign.**
+`HeroRotator` renders a shield badge labelled **Trust Score** whose value is
+`campaign_health_score ?? 0`. That column **defaults to 0**, its **only** writer is a
+manual admin edit (`PATCH /api/admin/campaigns/[id]`), and the AI trust-score route
+computes a value but **only logs it to `ai_generations` — it never persists one**. So
+the site's most prominent surface advertised a trust score of **0** for virtually
+every campaign: reads as *untrustworthy*, means *never scored*.
+
+The numeral now renders only when a score genuinely exists; otherwise the badge
+falls back to **Status** with the existing `trust_status` label, which is real
+signal. **Not fabricated:** the genuine computation (`calculateTrustScore`) needs
+inputs the rotator doesn't carry — `identity_verified`, `stripe_onboarded`,
+`evidence_count`, `account_age_days` — so inventing a number here would have been
+worse than showing none.
+
+**✅ And the donor-facing trust score itself is sound — I had this backwards at
+first.** I assumed the campaign page also read the stale column. It does not: it
+calls `calculateTrustScore(buildCampaignTrustInput(...))` at render time, a
+transparent weighted heuristic over **real** signals (identity +12, beneficiary +10,
+Stripe onboarded +10, evidence +8, description depth +8, admin approval +10, backer
+count, account age, prior campaigns). Donors get a genuine assessment. **Checking
+the display path, not the writer, is what corrected me** — the writer analysis alone
+pointed at a much bigger problem than actually exists.
+
+_Also noted:_ `matching-finder` ranks with `healthScore / 100`, so with the column at
+0 that term contributes nothing and ranking silently reduces to category affinity +
+verified boost. Not wrong, but a dead input worth knowing about.
+
 **🔍 REFINED — the "36 unwired tables" figure, split into what actually matters.**
 Re-measured an existing todo claim. My count is **34** (vs 36 recorded) tables with
 no `.from('table')` anywhere in `app/`+`lib/` — so the original figure was **broadly

@@ -214,10 +214,25 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
       <div className="kind-floating kind-floating-1">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /></svg>
         <div>
-          <span>Trust Score</span>
-          <strong style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>
-            {healthScore}
-          </strong>
+          {/*
+            `campaign_health_score` DEFAULTS TO 0 and is written only by a manual
+            admin edit — the AI trust-score route computes a value but never
+            persists it. So this rendered a shield reading "Trust Score 0" on the
+            homepage for virtually every campaign, which reads as *untrustworthy*
+            when it only means *never scored*.
+
+            The real, computed score (`calculateTrustScore`, used on the campaign
+            page) needs inputs this rotator doesn't carry — identity_verified,
+            stripe_onboarded, evidence_count and so on — so rather than fabricate a
+            number, the numeral is shown only when one genuinely exists. The
+            `trust_status` label below is real signal either way.
+          */}
+          <span>{healthScore > 0 ? 'Trust Score' : 'Status'}</span>
+          {healthScore > 0 ? (
+            <strong style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>
+              {healthScore}
+            </strong>
+          ) : null}
           <small style={{ transition: 'opacity 0.3s', opacity: fading ? 0 : 1 }}>
             {trustLabel(campaign?.trust_status ?? null)}
           </small>
