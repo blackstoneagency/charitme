@@ -24,6 +24,9 @@ const PAGES = [
 // 320 = smallest phone still in common use; 1920 = standard desktop.
 const VIEWPORTS = [
   { name: '320', width: 320, height: 640, isMobile: true },
+  // 768 covers the tablet/`max-width: 560px`-and-up breakpoints that neither the
+  // 320 nor the 1920 pass exercises — the /leaderboard row collapse lived here.
+  { name: '768', width: 768, height: 1024, isMobile: false },
   { name: '1920', width: 1920, height: 1080, isMobile: false },
 ];
 const THEMES = ['light', 'dark'];

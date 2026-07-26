@@ -19,6 +19,16 @@ export function optimizedCoverUrl(url: string | null | undefined, width = 640): 
   const pic = url.match(/^(https:\/\/picsum\.photos\/(?:id\/\d+|seed\/[^/]+))\/\d+\/\d+(?:\.\w+)?(\?.*)?$/);
   if (pic) return `${pic[1]}/${w}/${h}.webp${pic[2] ?? ''}`;
 
+  // Supabase Storage (where seeded covers now live, IMG-05): the object endpoint
+  // always serves the full 1200x900 original, so route through the render/image
+  // transformer to get a card-sized variant instead.
+  const storage = url.match(/^(https:\/\/[^/]+\/storage\/v1)\/object\/public\/(.+)$/);
+  if (storage) {
+    const [, base, objectPath] = storage;
+    const [pathOnly] = objectPath.split('?');
+    return `${base}/render/image/public/${pathOnly}?width=${w}&height=${h}&resize=cover&quality=75`;
+  }
+
   // Unsplash: add sizing + WebP + quality.
   if (url.includes('images.unsplash.com/')) {
     try {

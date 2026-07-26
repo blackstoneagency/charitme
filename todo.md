@@ -156,6 +156,64 @@ _Two false alarms killed by checking:_ a grep for admin guards missed
 grep for `rateLimit` missed `checkRateLimit`, making two endpoints look
 unthrottled. Both were fine.
 
+**🔴 GOAL CRITERION "each user role is clearly mapped out and different" — NOT MET.**
+Audited `lib/roles.ts` + every consumer. Six roles exist
+(`donor, organizer, beneficiary, nonprofit, admin, super_admin`) but only two of
+them **do** anything:
+- `admin` / `super_admin` genuinely gate access, via `isAdmin()` / `isSuperAdmin()`.
+- **`donor`, `organizer`, `beneficiary`, `nonprofit` gate nothing at all.** Every
+  reference to them is display-only — computing a label in the admin user list
+  (`primaryRole()`), or filtering that list. Grepped all of `app`/`lib`/
+  `components`: there is **no** route, API handler, or component that branches on
+  them for access. A `donor` and an `organizer` can do exactly the same things;
+  real authorization comes from being signed in plus row ownership.
+  Also worth knowing: **even `nonprofit` is decorative.** Tax-deductibility is
+  gated by **`campaigns.nonprofit_verified`** — a per-campaign column — not by the
+  role. So the one role that looks like it must carry real capability does not.
+
+  **✅ PARTIALLY ADDRESSED — `lib/role-capabilities.ts` + 7 tests.** I first wrote
+  this off as "needs an owner decision" and stopped. That was half right: *gating*
+  is the owner's call, but *mapping* was not, and the criterion asks for roles to
+  be clearly mapped and distinct. So there is now one authoritative definition of
+  what each role means — label, description, capabilities, whether it is default,
+  whether it is privileged.
+
+  The important part is that each capability records **`enforcedBy`** (what
+  actually checks it) and **`enforced`** (whether anything really denies access
+  today). That keeps the honest finding legible instead of papering over it:
+  `enforcedRoles()` returns exactly `['admin','super_admin']`, and
+  `advisoryRoles()` returns the other four. A test **pins** that, so when someone
+  implements real gating they must flip the flag here too and the map cannot drift
+  from reality. Another test fails if two roles ever have identical capability
+  sets — i.e. it enforces the "different from each other" half of the criterion.
+
+  **Deliberately descriptive, not executable.** Nothing in it grants or denies
+  anything at runtime. Turning these into live checks means *restricting* users who
+  today have none of those restrictions — the fastest way to lock an organizer out
+  of their own campaign — and which restrictions are wanted is a product decision.
+  What is no longer missing is the specification to implement against.
+
+**⚠️ Two divergent `parseRoles()` implementations.** Same drift pattern as the
+category list. `app/admin/users/page.tsx:52` defines its **own local** `parseRoles`
+returning `string[]`, instead of importing the shared one from `lib/roles.ts`. They
+disagree on real inputs:
+
+| stored `profiles.roles` | `lib/roles.ts` | `admin/users/page.tsx` |
+|---|---|---|
+| `["suspended"]` | `['donor']` (whitelist strips it) | `['suspended']` |
+| `'["admin"]'` (JSON **string**) | `['donor']` (not an array) | `['admin']` |
+
+The second row matters: a profile whose `roles` landed as a JSON string would
+**render as "Admin" in the admin console while `isAdmin()` denies them**. It fails
+*safe* — the mismatch denies access rather than granting it — so this is a
+correctness/UI-honesty issue, not a privilege-escalation hole.
+_Not deduped here on purpose:_ the local copy is deliberately lenient, and
+`deriveStatus()` depends on that leniency to read `'suspended'`/`'inactive'` out of
+the roles array (the shared whitelist would strip both). Collapsing them naively
+would silently break status badges. The clean fix is to stop encoding status in
+`roles` at all — `profiles.status` already exists and `deriveStatus()` already
+checks it — but that touches a file three other agents have recently committed to.
+
 **⚠️ The e2e suite exists, works, and runs in NO CI workflow.** `e2e/` holds 4
 Playwright specs — `smoke`, `public-routes`, `public-quality`, `security-headers`
 — plus an `npm run e2e` script. **Neither `ci.yml` nor `image-links.yml` mentions
@@ -714,9 +772,23 @@ assigned per-category, so every campaign in a category shared one identical cove
   Evidence: 45/45 IDs HTTP 200 live.
 - [x] IMG-04 — **Done.** Docs: `CAMPAIGN_IMAGE_AUDIT.md`,
   `CAMPAIGN_IMAGE_SOURCES.md`, `CAMPAIGN_IMAGE_CHANGELOG.md`.
-- [ ] IMG-05 — `needs-staging`. Download → optimize (WebP/AVIF) → upload to
-  Supabase Storage; repoint records at stable storage paths (drop Unsplash
-  hotlink). Requires Storage write + binary pipeline.
+- [x] IMG-05 — **Done (2026-07-25).** Covers moved off the external hotlink onto
+  Supabase Storage — it did not need staging; the `campaign-media` public bucket
+  already existed. **This closed a real production risk:** all 500 covers pointed at
+  `picsum.photos`, so a rate-limit, id change or outage there would have broken
+  every campaign image on the site at once.
+  `scripts/localize-campaign-covers.mjs` downloads each cover, re-encodes to WebP
+  (1200x900, q82), uploads to `campaign-media/covers/<slug>.webp` with a
+  one-year immutable cache header, and repoints `cover_image_url`/`image_urls`.
+  Dry-run by default, idempotent (upsert + skips anything already local).
+  **Applied: 500/500 localized, 0 failures, 0 still external, 500 distinct.**
+  Verified live: `/campaigns` serves 120 Storage covers and **0 picsum refs**.
+  Re-ran the IMG-06 dHash audit afterwards — the WebP re-encode had nudged one
+  pair to the d=5 boundary, so that campaign was reassigned to a
+  verified-distinct image; **final: 0 exact, 0 near-duplicate**.
+  Also wired `lib/img-optimize.ts` to route Storage objects through
+  `render/image/public` (the object endpoint always returns the full-size
+  original) — a 400px card variant is ~42KB vs ~83KB.
 - [x] IMG-06 — **Done (2026-07-25).** Perceptual/dHash near-duplicate detection over
   image **binaries** — it did not need staging after all. `scripts/audit-image-dupes.mjs`
   downloads every cover, reduces to a 9x8 greyscale, computes a 64-bit dHash and
@@ -741,43 +813,24 @@ assigned per-category, so every campaign in a category shared one identical cove
   **Still open:** per-image *visual relevance / aesthetic quality* grading — that
   needs a vision model to judge whether a photo suits its campaign, which is a
   judgement call rather than a measurable regression.
-- [ ] IMG-08 — `needs-staging`. Storage-bucket RLS/MIME/traversal/SSRF hardening
-  for a server-side image ingestion path (depends on IMG-05).
-
----
-
-# Section C — Completed (with evidence)
-
-### 2026-07-23 — PRODUCTION-READINESS GOAL SCORECARD (verified this session)
-
-Live-verified status of each goal criterion (master `9dc84c9`; two-bot split — Claude = data/security/audits, Codex = SEO/marketing/CSP/a11y/mobile/perf):
-
-| Goal criterion | Status | Evidence |
-|---|---|---|
-| Every page audited | ✅ | 39/39 public pages return 2xx/3xx in prod |
-| Every feature works | ✅ | all feature data endpoints return real rows (rotator/stories/grants/volunteers/leaderboard/sponsors/matching/events/sponsorships) |
-| Wired to Supabase | ✅ | 144 tables; every probed endpoint reads live Supabase |
-| ≥100 seed records | ✅ | campaigns 500, matching 60, events 60, sponsorships 60, grants 24, volunteers 24, sponsors 50, profiles 1130 (well over 100) |
-| Every image unique, 0 dupes | ✅ | `scripts/image-uniqueness-audit.mjs`: 0 dupe assets; DB cols 500/500, 500/500, 50/50, 503/503 |
-| Fast page loads | ✅ | prod avg 442ms warm; all pages <1.2s; slowest /campaigns 1148ms/460kB (covers lazy-loaded) |
-| All payment methods | ✅ transactionally verified | **FIXED donation-path bug** (`e268e98`): donors only saw *card* because paypal+affirm (inactive) collapsed the session. Removed them → live session succeeds at $5/$25/$75 offering **all 7 active methods** (card/Apple/Google Pay, Link, Cash App, ACH, Amazon Pay, Klarna, Afterpay). Retry hardened + 9 tests. **End-to-end TEST-MODE transaction (test keys): PaymentIntent + test Visa → `succeeded` ($25 captured); refund → `succeeded`** — full charge→refund money-movement cycle proven. Account `charges_enabled` + `payouts_enabled`. PayPal/Affirm re-add after owner Dashboard activation. |
-| Security resolved | ✅ | RLS anon-exposure certified (144 tables, 0 leaks); admin-config leak + is_admin recursion fixed; nonce CSP live; error responses sanitized |
-| Tests pass | ✅ | 945 tests / 76 files |
-| Build succeeds | ✅ | `next build` clean |
-| Dark/light every page | ✅ (Claude-verified) | Codex theme sweep + guard; **independently verified in prod (browser, dark default, alpha-composited WCAG contrast):** home, /campaigns, /grants, /for-nonprofits (Tailwind marketing), /events → **0 real contrast failures**. /for-nonprofits' 13 initial flags were all alpha-composite false positives (10%-opacity purple over dark base). |
-| Mobile responsive | ✅ (Claude-verified) | Codex sweeps; **independently verified at 375px in prod:** home/campaigns/grants/for-nonprofits/events → **0 horizontal page overflow** on every template. |
-| Accessibility passes | ✅ (Claude-verified) | Codex axe 0/20; **independently verified:** static sweep 19/20 pages clean (1 was a valid wrapping-label false positive, now also given explicit `aria-label`); browser probe on /grants 0 unlabeled controls; images 0 missing alt across probed pages. |
-| Performance optimized | 🟢 mostly | logo 292KB→6.7KB, CLS→0, query-waterfall dedup; remaining: unused CSS/JS (low value) |
-| Frictionless UX | 🟢 Codex | draft autosave, loading skeletons, error boundaries, publish-before-payout |
-| todo.md updated / commit per feature | ✅ | this scorecard + per-audit commits |
-
-**Live client-side audit (browser, prod, 2026-07-23):** `/` and `/grants` → **0 console errors**; dark mode is the default (`data-theme=dark`, light text `rgb(226,232,248)` on dark — clearly readable); mobile 375px → **no horizontal overflow** (docScroll==vw, 0 offenders); grants feature renders real data (48 card links). Independent a11y probe on /grants: **0 images missing alt, 0 unlabeled buttons/inputs, 0 links without accessible name, exactly 1 h1**. Confirms Codex's dark-mode + mobile + a11y sweeps hold in production.
-
-**Owner action items (cannot be done from code):** (1) *(optional)* activate PayPal + Affirm in Stripe Dashboard — they're now safely excluded from code so they no longer break checkout; re-add to the method lists once active; (2) provide Stripe **test-mode** keys to enable live transactional payment/payout/webhook verification; (3) optionally seed real nonprofit logos (620 lack one) + more user avatars (627 lack one) — these render placeholders, not duplicates.
-**Not merged:** `agent/seo-aeo-marketing-engine` (stale, 217 behind) — its work already shipped via PRs; do not bulk-merge.
-
-### 2026-07-23 — Production-readiness goal (Claude lane; Codex owns SEO/marketing/security/CSP/a11y)
-
+- [x] IMG-08 — **Done (2026-07-25).** Storage-bucket hardening audit, now that
+  IMG-05 put real objects in `campaign-media`.
+  **Audited the upload path — already sound:** auth required, MIME allow-list,
+  10MB cap, `canManageCampaign` authorisation before writing into a campaign
+  folder, and server-generated filenames (the extension is stripped to
+  `[a-z0-9]`), so the caller never controls the object key.
+  **Found a fragile authorisation in DELETE:** it authorises with
+  `path.startsWith('campaigns/<userId>/')` and then passes the caller's string
+  straight to `storage.remove()`. **Tested against production with a throwaway
+  probe object: NOT exploitable** — Supabase Storage treats keys as opaque, so
+  `campaigns/<me>/../../covers/x.webp` is a literal key and the probe survived
+  (probe cleaned up, 0 left). But the check is only safe *because of* that
+  implementation detail; if key normalisation ever changed it would become
+  "delete any object in the bucket" for any signed-in user.
+  **Hardened:** new `lib/storage-path.ts#isSafeStoragePath` rejects traversal
+  (`.`/`..`), absolute paths, schemes, backslashes, percent-encoding, control
+  characters, empty/doubled segments and over-long keys; DELETE now validates
+  shape *before* the ownership check. 7 unit tests cover each bypass class.
 - [x] **GOAL — Image uniqueness: every image unique, 0 duplicates** (`scripts/image-uniqueness-audit.mjs`)
   - Certified across static assets + live DB. **0 byte-identical static images** (7 files). **DB image columns 100% unique**: `campaigns.cover_image_url` 500/500, `campaign_media.public_url` 500/500, `sponsors.logo_url` 50/50, `profiles.avatar_url` 503/503. No hardcoded stock image reused across pages (all source hits are test fixtures / one admin input placeholder).
   - Repeatable guard: `node scripts/image-uniqueness-audit.mjs --ci` (exit 1 on any byte-identical asset or DB image-column duplication). Static check runs even without DB creds.
@@ -3997,3 +4050,26 @@ own merits** — an unbounded auth round-trip in the hot path of every page is w
 capping, and it fails SAFE (a timeout is treated as "not signed in", so protected
 routes redirect to login rather than being served). It is **not** the fix for
 Finding 2 and must not be described as such.
+
+
+### ⚠️ Collision #2 (2026-07-25/26) — e2e-in-CI was solved twice, concurrently
+A parallel agent wired e2e into CI at the same time as this session, choosing a
+**narrower** scope: smoke + security-headers only, chromium only, as steps inside
+the `verify` job — on the stated assumption that `public-routes` and
+`public-quality` "hit Supabase-backed pages and need real credentials, so they'd
+be flaky against the placeholders."
+
+**That assumption was tested and is false.** Those sweeps failed for two fixable
+reasons, both now fixed: one route needed seeded data (probed and skipped via
+`e2e/data-routes.ts`) and each sweep walks ~36 routes inside ONE test so the 30s
+cap tripped on slowness, not defects (now 600s for the sweeps only).
+**All four specs pass against the placeholder env on chromium AND mobile: 16/16
+verified locally.** The merge keeps the superset as its own `e2e` job and removes
+the duplicated in-`verify` steps so the suite does not run twice.
+Please don't re-narrow it without re-running it first.
+
+**Process note:** master moved from `4a4b536` → `d51208ed` during a single
+session's work (agents pushing straight to master), and the resulting conflict
+left PR #73 `mergeable_state: dirty` — GitHub then ran **no** workflow at all,
+which looks exactly like "CI is slow". Check `mergeable_state` before assuming a
+queue delay.
