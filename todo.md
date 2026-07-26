@@ -2115,6 +2115,34 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
     it predates this fix; flagging rather than silently reordering a priority list
     other flows depend on.
 
+    **✅ FIXED — the default campaign title said "Support my the team".**
+    `lib/campaign-title.ts` prefills the wizard's title field. Its phrase map mixes
+    bare nouns (`education`) with phrases carrying their own determiner
+    (`the team`, `our cause`, `a creative project`), and the `Support my …`
+    template pasted the latter straight in. **11 of 18 categories** produced
+    broken English for anyone fundraising for themselves:
+
+    | category | before | after |
+    |---|---|---|
+    | Sports | *Support my **the team*** | Support my team |
+    | Competition (cheer) | *Support my **the team*** | Support my team |
+    | Creative (musician) | *Support my **a creative project*** | Support my creative project |
+    | Nonprofit | *Support my **our cause*** | Support my cause |
+    | Family | *Support my **the family*** | Support my family |
+    | *(no category)* | *Support my **this cause*** | Support my cause |
+
+    …plus Environment, Community, Event, Faith, Travel, Wishes. All three of the
+    goal's example causes were affected, and this is the **first text an organizer
+    sees** in the title field.
+    Fixed with a possessive-safe phrase form used only by the `Support my …`
+    template; the determiner forms still serve `Help <name> with …` and
+    `Help support …`, so those paths are untouched.
+    **3 regression tests, verified to fail against the old code**, including a
+    generic guard that scans every category for a doubled determiner
+    (`/\bmy (the|our|a|an) /`) so a new category can't reintroduce it.
+    _The 6 existing title tests pass unchanged — they only covered Medical,
+    Education and Animal, three of the seven categories that already worked._
+
     **⚠️ Note for other agents — stale `.next/types` after PR #63.** That PR
     deleted `app/events`, `app/matching`, and `app/sponsor`. A `.next` cache built
     before rebasing onto it still holds generated stubs importing those pages, and
