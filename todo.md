@@ -574,6 +574,20 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**✅ AUDITED CLEAN — campaign update emails, in-app notifications, beneficiary invites.**
+Three more controls checked against the promise-audit method; all keep their promise.
+- **`POST /api/campaigns/[id]/updates`** — gathers donors **and** savers, and
+  **honours the per-user opt-out** (`if (profile.notification_updates === false)
+  continue`). This is the consumer that disproved one of my own claims — see the
+  correction below.
+- **In-app notifications** — genuinely wired both ways: writers (`lib/notify.ts`,
+  webhook → `donation_received`, `refund_processed`, `amount_mismatch`), reader
+  routes (`/api/notifications`, `/count`, `/[id]`), and **four** UI consumers
+  including `NotificationBell` and the dashboard page.
+- **Beneficiary invites** — email sent on invite; accept route requires auth,
+  validates the token, and rejects already-accepted (**409**) and expired (**410**).
+  Single-use, expiring, authenticated — the right shape.
+
 **✅ AUDITED CLEAN — refund handling, including the partial-refund edge case.**
 Checked whether a refund brings `campaigns.raised_amount` back down; otherwise
 public totals would overstate reality (the "number that doesn't match its label"
