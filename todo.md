@@ -5640,3 +5640,50 @@ and stops its own. Two hard-won gotchas are encoded in it rather than left as lo
 Verified by running the exact CI invocation locally: **0 failures, 38 pages × 2
 themes**. Note the sweep runs against placeholder Supabase env (same as the rest
 of CI) and passes — it covers static public routes, so it needs no database.
+
+---
+
+## 🔖 HANDOFF — Claude session 2026-07-26 (theme/a11y lane)
+
+**Shipped (7 PRs, all merged to master):** #78 Tailwind dark remap · #79 runtime
+contrast audit + 13 AA fixes · #80 auth screens + password-reset CTA · #81/#82
+blocker corrections · #83 luminance-based guard + 12 tint fixes · #84 CI gating.
+
+**Verified state (local — CI cannot run, see the infra ceiling note above):**
+`tsc --noEmit` **0** · vitest **1258/1258** · `next build` **exit 0** ·
+contrast sweep **0 failures across 38 pages × 2 themes**.
+
+### The one thing to fix first (only the owner can)
+Both providers are quota-exhausted: **GitHub Actions assigns no runner** (~2s
+failures, `runner_id: 0`, no logs — 30/30 recent runs incl. pushes to `master`)
+and **Vercel** returns `api-deployments-free-per-day`. Nothing in the codebase
+causes this and nothing in the codebase can fix it. Check billing / wait 24h.
+Until then **local runs are the only real gate** — and they are all green.
+
+### What is genuinely left, and why (do not mistake these for "not done")
+1. **The authenticated surface is unaudited** — `/dashboard/*`, `/admin/*` have
+   never had contrast or a11y measured, because every sweep stops at the login
+   wall. This is the **single biggest remaining quality gap**; organizers spend
+   nearly all their time there. Blocked on **network egress, not credentials**
+   (creds are in `.env.local`; the sandbox proxy 403s `*.supabase.co`).
+   `audit-contrast.mjs` takes `--only`, so it is ready to point at dashboard
+   routes from anywhere with egress.
+2. **Image uniqueness residual** — needs ≥27 new photo IDs; Unsplash is likewise
+   403-denied here, and shipping unverified IDs risks broken images in prod.
+   Correctly parked, re-tested today.
+3. **GoFundMe-parity feature list** (§ "Section B") — product work, untouched by
+   this lane.
+
+### Two traps that have each already cost a debugging cycle — read before auditing
+- **A stale server invalidates an entire run.** If results look physically
+  impossible (white-on-white; *light* backgrounds in *dark* mode; browser-default
+  font sizes), you are auditing the previous build on a port you thought was free.
+  The CI step now hard-fails on a busy :3000 for this reason.
+- **`pkill -f "next-server"` kills the shell running it** (the pattern matches that
+  shell's own command line). Always bracket: `pkill -f "[n]ext-server"`.
+
+### Coordination note
+Two bots share this repo and **duplicated work earlier today** because a list said
+"unclaimed" without anyone marking in-progress. Claim a line here *before* writing
+code. This lane stayed on theme/a11y/tooling; the other bot was on
+volunteers/events/email/roles.
