@@ -257,6 +257,34 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**⚠️ The 36 unwired tables could NOT be reliably split into "superseded" vs
+"never built" — that triage needs a human.** Tried twice:
+1. **Name overlap** — too noisy to use. It paired `auction_items` with
+   `impact_plan_items` purely because both contain "items", and
+   `volunteer_profiles` with `volunteer_opportunities`, which are different
+   concepts. It claimed 19 "superseded"; most are coincidence.
+2. **Column-set similarity** (stronger evidence) — mostly *negative*:
+
+   | pair | shared cols | jaccard |
+   |---|---|---|
+   | `reward_tiers` / `campaign_rewards` | 8/11 | **0.62** |
+   | `donor_segment_members` / `marketing_segment_members` | 2/3 | 0.50 (tiny tables, noisy) |
+   | `member_subscriptions` / `subscriptions` | 6/8 | 0.43 |
+   | `donation_receipts` / `tax_receipts` | 9/20 | 0.38 |
+   | `processor_accounts` / `connected_accounts` | 5/15 | 0.25 |
+   | `platform_fees` / `campaign_platform_fees` | 3/6 | 0.14 |
+
+**Only `reward_tiers` is confirmed superseded**, and that came from *reading the
+code* (the app queries `campaign_rewards`), not from either heuristic. The rest
+stay unclassified rather than guessed at.
+
+_Pattern worth naming — this is the **third** scan this session that produced
+candidates rather than findings_ (the others: "unsent form state", and the
+105-claim catalog check). **Structural heuristics are good at narrowing where to
+look and bad at concluding.** Every genuine finding this session — the category
+drift, the dead controls, Auctions, the two unbuilt modules — was confirmed by
+opening the file. Budget scans as search, not as evidence.
+
 **✅ 5th GUARD — `__tests__/feature-status-honesty.test.ts`.**
 Stops the module-status problem from returning. A module fails if it claims
 `Live`/`Production Ready` while **none** of its declared `databaseTables` is
