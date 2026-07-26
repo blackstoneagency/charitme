@@ -4826,10 +4826,15 @@ merge commit.
    - [x] `app/dashboard/page.tsx` (main dashboard) — DONE. Its catch-all fallback
      was all-zeros, and a null campaign read hit the same path; now carries
      `loadFailed`, renders `—`/"unavailable", and shows a `role="alert"` banner.
-   - [ ] `app/dashboard/donations/page.tsx` — 5 totals rendered, `(profileData ?? [])` at L143
-   - [ ] `app/dashboard/analytics/page.tsx` — 12 totals, `(campaignData ?? [])` L101, `(donationData ?? [])` L112
-   - [ ] `app/dashboard/donor/page.tsx` — 5 totals, `(profileData ?? [])` L113
-   Pattern to copy: `app/dashboard/campaigns/page.tsx` or `app/dashboard/page.tsx`.
+   - [x] `app/dashboard/donations/page.tsx` — DONE. Also split the conflated
+     `campError || !campData || length === 0` guard: a failed read and "no campaigns"
+     are now different outcomes.
+   - [x] `app/dashboard/analytics/page.tsx` — DONE (inline reads, no helper; both the
+     campaign and donation reads now set `loadFailed`).
+   - [x] `app/dashboard/donor/page.tsx` — DONE. Both early returns split the same way.
+   **All four totals-rendering dashboard pages now distinguish "none" from
+   "couldn't load".** Each shows `—`/"unavailable" plus a `role="alert"` banner
+   stating campaigns, donations and funds are unaffected.
 
    **Gotcha for whoever continues:** `__tests__/migration-integrity.test.ts` scans
    for `.from('<literal>')` **including inside comments**, so a JSDoc example using

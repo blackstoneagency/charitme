@@ -62,6 +62,8 @@ async function fetchDonorData(userId: string): Promise<{
   newLast30: number;
   avgDonationCents: number;
   allTags: string[];
+  /** True when a read failed, so the totals are unknown rather than zero. */
+  failed: boolean;
 }> {
   const empty = { donors: [], totalCents: 0, totalUnique: 0, newLast30: 0, avgDonationCents: 0, allTags: [] };
 
@@ -72,7 +74,8 @@ async function fetchDonorData(userId: string): Promise<{
       .select('id')
       .eq('user_id', userId);
 
-    if (campError || !campData || campData.length === 0) return empty;
+    if (campError || !campData) return { ...empty, failed: true };
+    if (campData.length === 0) return { ...empty, failed: false };
 
     const campaignIds = (campData as { id: string }[]).map(c => c.id);
 
@@ -84,7 +87,8 @@ async function fetchDonorData(userId: string): Promise<{
       .eq('status', 'completed')
       .order('created_at', { ascending: false });
 
-    if (donError || !donData || donData.length === 0) return empty;
+    if (donError || !donData) return { ...empty, failed: true };
+    if (donData.length === 0) return { ...empty, failed: false };
 
     type RawDon = {
       id: string;
@@ -181,9 +185,10 @@ async function fetchDonorData(userId: string): Promise<{
 
     const allTags = [...new Set(donors.flatMap((d) => d.tags))].sort((a, b) => a.localeCompare(b));
 
-    return { donors, totalCents, totalUnique, newLast30, avgDonationCents, allTags };
+    return { donors, totalCents, totalUnique, newLast30, avgDonationCents, allTags, failed: false };
   } catch {
-    return empty;
+    // `empty` is all zeros; flag it so the page does not present that as fact.
+    return { ...empty, failed: true };
   }
 }
 
@@ -196,7 +201,7 @@ export default async function DonorsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const user = await requireUser();
-  const [{ donors, totalCents, totalUnique, newLast30, avgDonationCents, allTags }, params] =
+  const [{ donors, totalCents, totalUnique, newLast30, avgDonationCents, allTags, failed: loadFailed }, params] =
     await Promise.all([fetchDonorData(user.id), searchParams]);
 
   const activeTab = String(params.tab ?? 'all').toLowerCase();
@@ -205,28 +210,28 @@ export default async function DonorsPage({
   const metrics: Metric[] = [
     {
       label: 'Total Donors',
-      value: totalUnique.toLocaleString(),
+      value: loadFailed ? '—' : totalUnique.toLocaleString(),
       change: 'all time',
       icon: 'users',
       tone: 'violet',
     },
     {
       label: 'New Donors',
-      value: newLast30.toLocaleString(),
+      value: loadFailed ? '—' : newLast30.toLocaleString(),
       change: 'last 30 days',
       icon: 'team',
       tone: 'green',
     },
     {
       label: 'Total Donated',
-      value: fmtCents(totalCents),
+      value: loadFailed ? '—' : fmtCents(totalCents),
       change: 'all campaigns',
       icon: 'gift',
       tone: 'blue',
     },
     {
       label: 'Avg. Donation',
-      value: fmtCents(avgDonationCents),
+      value: loadFailed ? '—' : fmtCents(avgDonationCents),
       change: 'per transaction',
       icon: 'chart',
       tone: 'orange',
@@ -265,6 +270,22 @@ export default async function DonorsPage({
 
       <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
         <div className="kf-content-main">
+          {loadFailed && (
+            <div
+              role="alert"
+              style={{
+                marginBottom: 16, padding: '14px 16px', borderRadius: 12,
+                background: 'var(--s2, #fffbeb)', border: '1px solid var(--b2, #fde68a)',
+                color: 'var(--t1, #92400e)',
+              }}
+            >
+              <strong style={{ display: 'block', marginBottom: 4 }}>We couldn&apos;t load your donors</strong>
+              <span style={{ fontSize: 13.5, lineHeight: 1.5 }}>
+                This is a temporary problem on our side — your campaigns, donations and
+                funds are unaffected. Reload the page to try again.
+              </span>
+            </div>
+          )}
           <MetricGrid metrics={metrics} />
 
           <section className="kf-card" style={{ overflow: 'hidden' }}>

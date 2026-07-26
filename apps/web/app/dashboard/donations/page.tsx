@@ -90,6 +90,8 @@ function initials(name: string): string {
 async function fetchDonationsData(userId: string): Promise<{
   donations: EnrichedDonation[];
   campaignMap: Map<string, string>;
+  /** True when a read failed, so the totals derived below are unknown, not zero. */
+  failed: boolean;
 }> {
   try {
     // Step 1: get user's campaigns
@@ -98,8 +100,12 @@ async function fetchDonationsData(userId: string): Promise<{
       .select('id,title')
       .eq('user_id', userId);
 
-    if (campError || !campData || campData.length === 0) {
-      return { donations: [], campaignMap: new Map() };
+    if (campError || !campData) {
+      // A failed read, not an organizer without campaigns.
+      return { donations: [], campaignMap: new Map(), failed: true };
+    }
+    if (campData.length === 0) {
+      return { donations: [], campaignMap: new Map(), failed: false };
     }
 
     const campaigns = campData as CampaignRef[];
@@ -118,7 +124,7 @@ async function fetchDonationsData(userId: string): Promise<{
       .limit(200);
 
     if (donError || !donData) {
-      return { donations: [], campaignMap };
+      return { donations: [], campaignMap, failed: true };
     }
 
     const rawDonations = donData as Donation[];
@@ -154,9 +160,9 @@ async function fetchDonationsData(userId: string): Promise<{
       campaignTitle: campaignMap.get(d.campaign_id) ?? 'Unknown Campaign',
     }));
 
-    return { donations, campaignMap };
+    return { donations, campaignMap, failed: false };
   } catch {
-    return { donations: [], campaignMap: new Map() };
+    return { donations: [], campaignMap: new Map(), failed: true };
   }
 }
 
@@ -169,7 +175,7 @@ export default async function DonationsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const user = await requireUser();
-  const [{ donations }, params] = await Promise.all([
+  const [{ donations, failed: loadFailed }, params] = await Promise.all([
     fetchDonationsData(user.id),
     searchParams,
   ]);
@@ -187,28 +193,28 @@ export default async function DonationsPage({
   const metrics = [
     {
       label: 'Total Raised',
-      value: fmtCents(totalRaised),
+      value: loadFailed ? '—' : fmtCents(totalRaised),
       change: 'all time',
       icon: 'gift',
       tone: 'violet' as const,
     },
     {
       label: 'Donations',
-      value: donationCount.toLocaleString(),
+      value: loadFailed ? '—' : donationCount.toLocaleString(),
       change: 'completed',
       icon: 'stack',
       tone: 'green' as const,
     },
     {
       label: 'Unique Donors',
-      value: uniqueDonors.toLocaleString(),
+      value: loadFailed ? '—' : uniqueDonors.toLocaleString(),
       change: 'identified donors',
       icon: 'users',
       tone: 'blue' as const,
     },
     {
       label: 'Avg. Donation',
-      value: fmtCents(avgDonation),
+      value: loadFailed ? '—' : fmtCents(avgDonation),
       change: 'per transaction',
       icon: 'chart',
       tone: 'orange' as const,
@@ -291,6 +297,22 @@ export default async function DonationsPage({
 
       <div className="kf-content-grid" style={{ gridTemplateColumns: '1fr' }}>
         <div className="kf-content-main">
+          {loadFailed && (
+            <div
+              role="alert"
+              style={{
+                marginBottom: 16, padding: '14px 16px', borderRadius: 12,
+                background: 'var(--s2, #fffbeb)', border: '1px solid var(--b2, #fde68a)',
+                color: 'var(--t1, #92400e)',
+              }}
+            >
+              <strong style={{ display: 'block', marginBottom: 4 }}>We couldn&apos;t load your donations</strong>
+              <span style={{ fontSize: 13.5, lineHeight: 1.5 }}>
+                This is a temporary problem on our side — your campaigns, donations and
+                funds are unaffected. Reload the page to try again.
+              </span>
+            </div>
+          )}
           <MetricGrid metrics={metrics} />
 
           <section className="kf-card" style={{ overflow: 'hidden' }}>

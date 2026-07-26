@@ -92,23 +92,27 @@ export default async function AnalyticsPage({
   const user = await requireUser();
   const userId = user.id;
 
-  // Step 1: get campaigns
-  const { data: campaignData } = await supabaseAdmin
+  // Step 1: get campaigns. A null result means the read failed — distinct from an
+  // organizer who genuinely has none. Treating them alike made every analytics
+  // figure render as a confident zero during an outage.
+  const { data: campaignData, error: campaignError } = await supabaseAdmin
     .from('campaigns')
     .select('id,title,slug,raised_amount,backer_count,goal_amount,status')
     .eq('user_id', userId);
 
+  let loadFailed = Boolean(campaignError) || campaignData == null;
   const campaigns = await attachCampaignCurrencies((campaignData ?? []) as CampaignRow[]);
   const cids = campaigns.map((c) => c.id);
 
   // Step 2: get completed donations for these campaigns
   let donations: DonationRow[] = [];
   if (cids.length > 0) {
-    const { data: donationData } = await supabaseAdmin
+    const { data: donationData, error: donationError } = await supabaseAdmin
       .from('donations')
       .select('amount_cents,created_at,campaign_id')
       .in('campaign_id', cids)
       .eq('status', 'completed');
+    if (donationError || donationData == null) loadFailed = true;
     donations = (donationData ?? []) as DonationRow[];
   }
 
@@ -137,10 +141,10 @@ export default async function AnalyticsPage({
       : null;
 
   const metrics = [
-    { label: 'Raised This Week', value: fmtCents(weeklyRaised), change: 'last 7 days', icon: 'gift', tone: 'violet' as const },
-    { label: 'Raised This Month', value: fmtCents(monthlyRaised), change: 'last 30 days', icon: 'chart', tone: 'green' as const },
-    { label: 'Total Backers', value: totalBackers.toLocaleString(), change: `avg ${fmtCents(avgDonation)} / donation`, icon: 'users', tone: 'orange' as const },
-    { label: 'Top Campaign', value: bestCampaign ? formatMoneyCompact(bestCampaign.raised_amount, bestCampaign.currency ?? 'usd') : '$0', change: bestCampaign ? bestCampaign.title.slice(0, 28) + (bestCampaign.title.length > 28 ? '…' : '') : 'No campaigns yet', icon: 'send', tone: 'blue' as const },
+    { label: 'Raised This Week', value: loadFailed ? '—' : fmtCents(weeklyRaised), change: loadFailed ? 'unavailable' : 'last 7 days', icon: 'gift', tone: 'violet' as const },
+    { label: 'Raised This Month', value: loadFailed ? '—' : fmtCents(monthlyRaised), change: loadFailed ? 'unavailable' : 'last 30 days', icon: 'chart', tone: 'green' as const },
+    { label: 'Total Backers', value: loadFailed ? '—' : totalBackers.toLocaleString(), change: loadFailed ? 'unavailable' : `avg ${fmtCents(avgDonation)} / donation`, icon: 'users', tone: 'orange' as const },
+    { label: 'Top Campaign', value: loadFailed ? '—' : bestCampaign ? formatMoneyCompact(bestCampaign.raised_amount, bestCampaign.currency ?? 'usd') : '$0', change: loadFailed ? 'unavailable' : bestCampaign ? bestCampaign.title.slice(0, 28) + (bestCampaign.title.length > 28 ? '…' : '') : 'No campaigns yet', icon: 'send', tone: 'blue' as const },
   ];
 
   // SVG line chart: 7-day rolling donations
@@ -187,6 +191,24 @@ export default async function AnalyticsPage({
       />
 
       <div className="kf-admin-dash">
+        {loadFailed && (
+          <div
+            role="alert"
+            style={{
+              marginBottom: 16, padding: '14px 16px', borderRadius: 12,
+              background: 'var(--s2, #fffbeb)', border: '1px solid var(--b2, #fde68a)',
+              color: 'var(--t1, #92400e)',
+            }}
+          >
+            <strong style={{ display: 'block', marginBottom: 4 }}>
+              We couldn&apos;t load your analytics
+            </strong>
+            <span style={{ fontSize: 13.5, lineHeight: 1.5 }}>
+              This is a temporary problem on our side — your campaigns, donations and funds
+              are unaffected. Reload the page to try again.
+            </span>
+          </div>
+        )}
         <MetricGrid metrics={metrics} />
 
         {/* Two-column: chart + campaign table */}
