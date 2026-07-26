@@ -1,6 +1,7 @@
 import 'server-only';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { supabaseAdmin } from './supabase';
+import { withQueryTimeout } from './query-timeout';
 import type { RotatorCampaign } from '../app/HeroRotator';
 import type { HomeCampaign, StoryFilters, StoryFilterValue } from './home-types';
 import { formatHomeCents, normalizeStoryFilters, shortHomeCount } from './home-utils';
@@ -118,11 +119,13 @@ export function aggregateCategoryStats(rows: { category: string | null; backer_c
 /** Real campaign counts + supporter totals per category, for the "Discover causes" grid. */
 export async function getCategoryStats(): Promise<CategoryStat[]> {
   const cols = await campaignColumns();
-  const { data } = await applyLiveFilters(
-    supabaseAdmin.from('campaigns').select('category, backer_count'),
-    cols,
+  const { data: result } = await withQueryTimeout(
+    applyLiveFilters(supabaseAdmin.from('campaigns').select('category, backer_count'), cols),
+    { data: null } as { data: unknown[] | null },
   );
-  return aggregateCategoryStats((data ?? []) as { category: string | null; backer_count: number | null }[]);
+  return aggregateCategoryStats(
+    (result?.data ?? []) as { category: string | null; backer_count: number | null }[],
+  );
 }
 
 /** Recent completed donations for the live social-proof feed. Anonymous donors are redacted. */
@@ -131,14 +134,20 @@ export async function getRecentDonations(limit = 8): Promise<RecentDonation[]> {
   const campaignJoin = cols.visibility
     ? 'campaigns:campaign_id(title, slug, visibility)'
     : 'campaigns:campaign_id(title, slug)';
-  const { data } = await supabaseAdmin
-    .from('donations')
-    .select(`id, amount_cents, anonymous, created_at, offline_donor_name, ${campaignJoin}, profiles:donor_id(full_name)`)
-    .eq('status', 'completed')
-    .order('created_at', { ascending: false })
-    .limit(limit * 3);
+  // Bounded: this feed is social proof, so an unreachable/slow database should
+  // render the homepage without it rather than stall the whole page (~7s measured
+  // against an unreachable host, with no ceiling).
+  const { data: result } = await withQueryTimeout(
+    supabaseAdmin
+      .from('donations')
+      .select(`id, amount_cents, anonymous, created_at, offline_donor_name, ${campaignJoin}, profiles:donor_id(full_name)`)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(limit * 3),
+    { data: null } as { data: unknown[] | null },
+  );
 
-  return mapRecentDonations((data ?? []) as unknown as RawDonationRow[], limit);
+  return mapRecentDonations((result?.data ?? []) as unknown as RawDonationRow[], limit);
 }
 
 type JoinedCampaign = { title: string; slug: string; visibility?: string | null };

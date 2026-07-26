@@ -4513,3 +4513,55 @@ session's work (agents pushing straight to master), and the resulting conflict
 left PR #73 `mergeable_state: dirty` — GitHub then ran **no** workflow at all,
 which looks exactly like "CI is slow". Check `mergeable_state` before assuming a
 queue delay.
+
+### ✅ FINDING 3 — auth-gated surfaces had zero e2e coverage (FIXED)
+The entire dashboard + admin surface — the whole security boundary in
+`middleware.ts` — had **no browser coverage**. A regression that opened up
+`/admin` or `/dashboard` to an unauthenticated visitor would have shipped
+silently, because unit tests do not exercise middleware.
+
+New `e2e/auth-gates.spec.ts` (5 tests, verified passing) covers:
+- every `PROTECTED` prefix **and deeper paths** under it redirect an
+  unauthenticated visitor to `/login`;
+- the `next` param preserves where they were heading (otherwise every gated
+  visit dumps the user somewhere generic);
+- `next` can never be an open redirect (relative, not protocol-relative, no `http`);
+- `PUBLIC_EXCEPTIONS` (`/create/choose-path`) stay reachable pre-sign-in;
+- protected **API** routes return 401/403 rather than redirecting — API paths are
+  excluded from the middleware matcher, so each handler owns its own check, and a
+  200 there is the exact class of bug that leaks data.
+
+**Signing IN is still not covered** — that needs real Supabase credentials
+(owner-gated, same list as the GoFundMe blockers). What is covered is the half
+that matters for safety: no session ⇒ never served a protected page.
+
+**The spec was mutation-tested, not just run green.** Removing `/admin` from
+`PROTECTED` made it fail, so the gate has teeth.
+*Bonus finding from that mutation:* the redirect assertion still passed with
+middleware protection removed, because `/admin` pages **also** call
+`requireAdmin()` server-side, which redirects to `/dashboard` → `/login`.
+That is real defense-in-depth (two independent layers), and worth knowing: the
+middleware is not the only thing standing between a visitor and `/admin`.
+
+### ✅ FINDING 2 — page-level Supabase reads now have a ceiling (PARTIALLY FIXED)
+Follow-up to Finding 2 above (the unbounded ~7s stall on DB-backed pages).
+
+New `lib/query-timeout.ts` — `withQueryTimeout(work, fallback, ms)` gives a read
+an explicit deadline and an explicit fallback, returning `{ data, degraded }`.
+Deliberately scoped: it is for **reads with a sensible empty state** (a feed, a
+list, a category strip) and explicitly **not** for writes, money totals, receipts
+or auth decisions, where silently returning "nothing" would read as a real answer.
+Rejections are treated like timeouts (an unreachable DB is not worth crashing a
+render over) and the abandoned promise's later rejection is swallowed so it cannot
+surface as an unhandled rejection — covered by a test, since a naive
+implementation leaks exactly that.
+
+Applied to the two homepage social-proof reads (`getRecentDonations`,
+`getCategoryStats` in `lib/home-data.ts`): the highest-traffic page now renders
+without its feed instead of stalling on it.
+
+**Still open — the rest of the surface.** Every other DB-backed server component
+remains unbounded. Each one needs a per-page judgement about what "degraded"
+should look like, so it is deliberately not a blanket search-and-replace. Tracked
+here rather than claimed as done. `lib/query-timeout.ts` (7 tests) is the tool to
+finish it with.
