@@ -109,6 +109,27 @@ audited, 12 routes runtime-smoke-tested. Tests **1137 / 98 files**, build green.
   title/story/goal), and the title input caps at 80 with a paste-safe `.slice()`,
   stricter than the API's 100.
 
+**⚠️ CI on `master` mostly reports `cancelled`, and that is NOT failure.**
+`.github/workflows/ci.yml` sets `concurrency: cancel-in-progress: true` keyed on
+`github.ref`. Every agent pushes to `master`, so each push **cancels the previous
+commit's in-flight run**. Measured over the last 30 runs: **17 success, 12
+cancelled, 1 in progress** — and the most recent *success* was `2b81ad7`, with
+everything after it cancelled by the next push.
+
+Two consequences worth knowing before anyone panics or "fixes" this:
+- **`cancelled` ≠ broken.** Those commits were never validated *individually*; they
+  were superseded. It is self-correcting — whenever pushing pauses, the final run
+  completes and validates the tip, and the tip contains all the prior commits.
+- **But no individual commit is independently verified** while pushes are rapid.
+  With several agents on one branch, a defect could ride along for several commits
+  before the first completed run attributes it. Local gates are therefore the real
+  safety net right now — run typecheck + lint + `npm test` + build **before**
+  pushing rather than relying on CI to catch it.
+
+CI itself is correctly configured (push **and** PR to master; typecheck → lint →
+test → image audit → build; no `continue-on-error`), so the two new guard tests
+genuinely do gate — verified, not assumed.
+
 **Method that found most of these:** run the function against realistic input rather
 than reading it, and check every claim against the thing it references. Both
 corrections above came from re-testing a conclusion I had already asserted.
