@@ -6,6 +6,29 @@
 -- Requires: at least one profile (run 00_test_users.sql first for full coverage).
 -- Run once. Re-running appends more rows (not idempotent for child tables).
 -- =============================================================================
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- DEMO-SEED GUARD — refuses to run unless this database is explicitly marked as
+-- a disposable demo/staging target.
+--
+-- Why: scripts/seed-guard.mjs already protects the JS seed runners, but THESE
+-- files are pasted straight into the Supabase SQL editor, which bypasses it
+-- entirely — and that is the path that actually loaded demo data into
+-- production. These seeds are also NOT idempotent (see the header note: "Run
+-- once. Re-running appends more rows"), so an accidental re-run silently
+-- duplicates campaigns and donations.
+--
+-- To run against a throwaway project, execute this FIRST in the same session:
+--     set charitme.allow_demo_seed = 'true';
+-- ─────────────────────────────────────────────────────────────────────────────
+do $$
+begin
+  if coalesce(current_setting('charitme.allow_demo_seed', true), '') <> 'true' then
+    raise exception 'Demo seed blocked: this database is not marked as a disposable demo/staging target.'
+      using hint = 'If this really is a throwaway project, run  set charitme.allow_demo_seed = ''true'';  in the SAME session, then re-run this file.';
+  end if;
+end $$;
+
 do $$
 begin
   if current_setting('app.charitme_allow_demo_seed', true) <> 'true' then

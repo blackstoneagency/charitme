@@ -5755,3 +5755,40 @@ anyone claims parity:**
 **Net effect on the queue:** open `- [ ]` items **31 → 21**. That reduction is
 evidence-based, not bookkeeping — each line now points at the code that backs it,
 so the next person can verify rather than re-audit from scratch.
+
+### ✅ DONE (half of CHAR-1402) — SQL seeds now carry a demo-seed guard (Claude, 2026-07-26)
+**The existing guard was real but guarded the wrong door.** `scripts/seed-guard.mjs`
+is correctly wired into both `.mjs` seed runners (verified — it is imported and
+called, not dead code). But the **SQL** seeds are pasted straight into the Supabase
+SQL editor, which never touches Node, so they bypassed it completely — **and that
+is the path that actually loaded demo data into production.**
+
+The exposure is not theoretical: `01_campaigns_core.sql`'s own header says *"Run
+once. Re-running appends more rows (not idempotent for child tables)"*, so one
+accidental re-run silently duplicates campaigns and donations in a live database.
+
+**Fixed:** all **9** seed files (`seeds/00`–`06`, `super_admin_console_seed.sql`,
+`seed_250.sql`) now open with a `do $$ … raise exception … $$` guard requiring an
+explicit opt-in in the same session:
+```sql
+set charitme.allow_demo_seed = 'true';
+```
+`99_verify_counts.sql` is deliberately left unguarded — it is read-only verification.
+
+**Verified against a real PostgreSQL 16.13**, both directions, on an actual seed
+file rather than a snippet:
+- without the opt-in → blocks at the guard **before touching any table**, `exit 3`;
+- with the opt-in → `SET / DO / DO`, i.e. execution proceeds past the guard into
+  the seed body.
+
+The error carries a `HINT` with the exact command, so whoever hits it is not left
+guessing.
+
+**Still open (the other half of CHAR-1402): demo-data LABELLING.** Roughly 500
+demo campaigns are already live and nothing marks them as demo — no `is_demo`
+column exists anywhere in the schema. A donor cannot tell a seeded campaign from a
+real one. Mitigating factor found while checking: demo campaigns have no connected
+Stripe account, and the campaign page renders *"Donations open soon"* instead of
+the donate form when `payoutReady` is false — so they **cannot currently take
+money**. That is a safety net, not a label. The labelling half needs a migration
+plus a backfill, which requires the DB access this sandbox does not have.
