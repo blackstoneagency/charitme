@@ -5792,3 +5792,40 @@ Stripe account, and the campaign page renders *"Donations open soon"* instead of
 the donate form when `payoutReady` is false — so they **cannot currently take
 money**. That is a safety net, not a label. The labelling half needs a migration
 plus a backfill, which requires the DB access this sandbox does not have.
+
+### ✅ VERIFIED — API authorization audit: 153 mutating routes, 0 holes (Claude, 2026-07-26)
+Audited **every** `route.ts` under `app/api` exporting POST/PUT/PATCH/DELETE
+(**153 routes**) for a missing authorization guard — the classic way a
+service-role key gets exposed to the internet. **Result: no unguarded mutating
+route.** Recording the method because the naive version of this audit produces
+alarming false positives, twice over.
+
+**Guards actually in use** (a grep that does not know these will "find" holes that
+do not exist): `verifyAdmin()` ×95, `requireAdmin()` ×10, `guardSuperAdmin()` ×10,
+`verifyOwnership()`/`verifyOwner()`/`verifyCampaignOwner()` ×3 each, plus
+`canManageCampaign()`, Stripe signature verification, and `CRON_SECRET`.
+
+**False positive #1 — the scary one.** My first pass flagged **6
+`admin/super/*` routes using `supabaseAdmin`** as unauthenticated, which reads
+like a critical breach of the owner console. It was wrong: they all call
+`guardSuperAdmin()`, which my pattern simply did not know about. *Always open the
+file before believing an authz grep.*
+
+**False positive #2.** The next pass left 8 routes, including
+**`ai/campaign` and `ai/goal-recommend` calling OpenAI while unauthenticated** —
+which would let anyone burn the owner's API budget. Also wrong: both are
+rate-limited. Verified the limits are real and not merely imported:
+- `ai/campaign` — `checkRateLimitDurable('ai:'+ip, 12, 60_000)` → 12 req/min/IP
+- `ai/goal-recommend` — 15 req/min/IP
+
+and both are **durable** (not in-process, so they survive serverless cold starts)
+and degrade to a deterministic `fallbackAiCampaign()` when no OpenAI key is set.
+
+**The remaining unauthenticated routes are intentionally public and all
+rate-limited:** `auth/signout`, `marketing/unsubscribe`, `marketing/capture`,
+`contact`, `campaign-reports`, `trust-score`. That is the correct design — an
+unsubscribe link cannot require a session.
+
+**Conclusion:** the "Security issues are resolved" criterion holds for API
+authorization specifically. Not claimed: RLS-per-persona (needs live auth
+sessions — see the network-policy blocker) and dependency CVEs.
