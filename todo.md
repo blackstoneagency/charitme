@@ -5878,6 +5878,83 @@ routes × light/dark × chromium/mobile.
 _Lesson worth keeping: "N routes scanned" is not the same as "N pages scanned."
 A green sweep should be asked what it actually loaded._
 
+### ✅ All five route lists consolidated + the sweeps were run against a REAL prod build (Claude, 2026-07-26)
+
+**The same defect was in all five copies**, not just the a11y spec. `/achievements`
+and `/privacy-center` were listed as public in `accessibility.spec.ts`,
+`public-quality.spec.ts`, `public-routes.spec.ts`, `audit-contrast.mjs` and
+`audit-responsive.mjs`. Proven, not inferred:
+
+```
+/achievements:   asserted status=200 | landed=/login | h1="Welcome back."
+/privacy-center: asserted status=200 | landed=/login | h1="Something went wrong"
+```
+
+So `public-quality` was asserting document language, button names, link names and
+alt text **about the login page** under two other names, and passing.
+
+**Fixed:** one source of truth (`e2e/public-routes.json`, consumed by
+`e2e/public-routes.ts` for specs and by `fs` for `.mjs` scripts) plus a shared
+`expectNoRedirect()`. Migrated `accessibility`, `public-quality`, `public-routes`
+and `audit-responsive`.
+
+> ⚠️ **`scripts/audit-contrast.mjs` is NOT migrated — left for Codex.** It is
+> contrast/theme work per the ownership split at the top of this file, so I did not
+> touch it. It still carries its own hardcoded list including the two bad routes,
+> which means **its "38 pages × 2 themes, 0 failures" number included two scans of
+> the login page.** Point it at `e2e/public-routes.json` and add the same
+> landed-path check.
+
+**Bigger methodology correction: every a11y result I reported before this ran against
+the DEV server.** `playwright.config.ts` uses `reuseExistingServer: true`, so it
+reused the running `next dev` instead of the production server CI builds. Dev-mode
+metadata/hydration timing differs materially — that is how the `document-title` rule
+behaved differently. Re-ran on a real `next build` + `next start`:
+
+**accessibility.spec.ts: 4/4 passing against a production build** (36 routes ×
+light/dark × chromium/mobile). That is a strictly stronger result than any earlier
+number in this file. Use `PLAYWRIGHT_BASE_URL=http://127.0.0.1:<port>` against a
+`next start` server to reproduce; don't trust a sweep that reused a dev server.
+
+### ✅ FIXED — SEO override failure silently deleted a page's entire metadata
+
+Found while chasing the above. `getSeoForRoute()` had **no error handling**, despite a
+docstring promising it was "Safe to call in any page's generateMetadata." When the
+Supabase call threw, `generateMetadata` rejected and **Next.js dropped metadata for the
+whole route** — the page still rendered, so there was no error, no log line, no visible
+symptom. Just no `<title>`, description, canonical or OG tags.
+
+Measured on a production build with Supabase env unset — `/` served **89KB of correct
+homepage markup, h1 "Raise More.", and zero meta tags**: a silent WCAG 2.4.2 (Page
+Titled) failure plus total SEO loss on the highest-traffic page on the site. Exactly the
+two pages that call `seoMetadata` (`/` and `/impact`) were the two affected, which
+confirms the diagnosis.
+
+Fixed with a try/catch returning `null`, so the override degrades to the page's own
+metadata. After: `/` → `CharitMe | Raise More Faster With AI`, `/impact` →
+`Impact Reports - Donation Transparency | CharitMe`. 6 unit tests in
+`__tests__/seo-metadata.test.ts`; **mutation-tested — 4 of 6 fail without the fix.**
+
+_Scope stated honestly:_ the trigger measured here is `supabaseAdmin` throwing on
+**construction** when env vars are unset, so this bites misconfigured deploys and every
+credential-less build — **including CI, where it would have failed the `document-title`
+rule in the a11y spec.** A correctly configured production does not hit that path; there
+the guard covers fetch-level exceptions. This is a real fix for credential-less builds
+plus hardening — *not* a claim that production is currently losing titles.
+
+### ⬜ OPEN — `/ai-fundraising` returns a hard 500 on a credential-less build
+Surfaced by running the sweeps against a production build (it passed on the dev server,
+which is why no one had seen it). `getAIPageData()` calls `supabaseAdmin` with no error
+handling, so the whole marketing page 500s. **This blocks `public-routes.spec.ts` and
+`public-quality.spec.ts` from passing in CI**, where Supabase is a placeholder.
+
+Deliberately **not** fixed with a fallback-to-zero: the page renders "total raised" and
+campaign counts, so defaulting to `0` would publish a false marketing number — the same
+mistake the dashboards were fixed to stop making. The correct fix is the dashboard
+treatment: hide the stats block when the data is unavailable rather than invent it.
+That is a design change, not a one-liner, so it is written up here rather than rushed.
+Pre-existing — it was in every route list before this session's consolidation.
+
 ### ✅ DONE — theme guard made luminance-based; reaches /dashboard (Claude, 2026-07-26)
 **Why the static guard kept missing things:** `theme-tokens.test.ts` matched an
 **enumeration of six near-white hexes** (`fff|ffffff|fefefe|fdfdff|fbfaff|f8f7ff`).
