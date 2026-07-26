@@ -297,6 +297,35 @@ unbounded selects, so omitting a limit would have silently reintroduced the very
 same bug at a different threshold. A test pins that.
 Regression test verified non-vacuous.
 
+**⚠️ PATTERN, not yet a proven defect — unbounded `donations` queries feeding totals.**
+After fixing the donor dashboard, I swept for the shape. A crude scan finds
+**31 files** with a `.from('donations')` chain carrying no `.limit()`/`.range()` —
+but **most of those are fine** (single-row lookups, `head: true` counts, webhook
+updates), and I am explicitly *not* claiming 31 defects. The detection is regex-based
+and noisy; naming a number like that without reading each one is the same
+grep-driven overclaim already caught twice in this session.
+
+**The subset where the consequence is high, each read and confirmed to aggregate
+into a user-visible total:**
+- `lib/tax-server.ts` → the printable **tax statement**
+- `app/api/fundraiser/tax-summary` → fundraiser **year-end tax summary**
+- `app/api/exports/{donations,donors,full}` → downloadable records
+- `app/dashboard/donor/page.tsx` → organizer's donor CRM (`totalCents`,
+  `avgDonationCents`)
+
+**Why this is flagged rather than fixed:** whether these truncate depends on the
+server's PostgREST `db-max-rows`, which this sandbox cannot read. And the obvious
+"fix" is actively unsafe — **adding `.limit(10_000)` where none exists would
+*introduce* a cap** if the server currently returns everything, turning a
+hypothetical bug into a real one.
+
+**The safe fix, for whoever has DB access:** add `{ count: 'exact' }` (no behaviour
+change), compare the count against the returned row length, and surface a
+truncation notice when they differ. That detects the condition at runtime instead
+of guessing at it, and never imposes a new cap. This differs from the donor-page
+fix, where the cap was **explicit and visible** (`.limit(100)`) so the bug could be
+proven and fixed outright.
+
 **⚠️ FLAGGED, NOT CLAIMED — the same unbounded shape in two tax-relevant paths.**
 `lib/tax-server.ts` (`loadDonorTaxInputs`) and `app/api/exports/donations` both
 query donations with **no explicit limit and no pagination**. Whether they truncate
