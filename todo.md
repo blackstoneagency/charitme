@@ -109,6 +109,33 @@ audited, 12 routes runtime-smoke-tested. Tests **1137 / 98 files**, build green.
   title/story/goal), and the title input caps at 80 with a paste-safe `.slice()`,
   stricter than the API's 100.
 
+**✅ SECURITY/COST — 3 unauthenticated OpenAI endpoints had per-instance-only
+throttling.** `lib/rate-limit.ts` documents its own limitation: *"this is
+per-process. On serverless/multi-instance deployments (Vercel, etc.) each instance
+keeps its own counter, so the effective global limit is `limit × instanceCount`."*
+It points at `checkRateLimitDurable` (Postgres-backed) for real limits, and
+`/api/ai/campaign` uses it under the comment *"Durable, cross-instance limit for
+this expensive OpenAI-backed endpoint."*
+
+**15 of the 16 OpenAI-backed routes did not.** Of those, three are reachable with
+**no account at all** — `goal-recommend`, `donor-conversion`, `donation-impact` —
+so an unauthenticated caller could spread spend across instances and run up the
+OpenAI bill. Switched those three to `checkRateLimitDurable`, keeping their
+existing limits (15/30/30 per minute per IP). The remaining twelve require auth,
+so an attacker needs an account first — **left deliberately**, since converting
+them all adds a Postgres round-trip per call and that latency/cost tradeoff is the
+owner's call, not mine.
+
+_Audited clean in the same pass:_ **all 65 `/api/admin/*` routes are guarded**
+(the `super/*` ones via `guardSuperAdmin`/`isSuperAdmin`), and every public
+service-role write endpoint is rate-limited. `middleware.ts` protects
+`/create`, `/dashboard`, `/profile`, `/admin`; its matcher excludes `/api` by
+design and the routes authenticate themselves.
+_Two false alarms killed by checking:_ a grep for admin guards missed
+`guardSuperAdmin` and made 7 routes look unprotected, and a **case-sensitive**
+grep for `rateLimit` missed `checkRateLimit`, making two endpoints look
+unthrottled. Both were fine.
+
 **⚠️ CI on `master` mostly reports `cancelled`, and that is NOT failure.**
 `.github/workflows/ci.yml` sets `concurrency: cancel-in-progress: true` keyed on
 `github.ref`. Every agent pushes to `master`, so each push **cancels the previous
