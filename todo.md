@@ -6902,6 +6902,30 @@ that three other audits were structurally blind to._
 - responsive: **37 pages × 3 viewports × 2 themes → 0 findings**
 - typecheck 0 · lint 0 errors · **1324 tests** · build green
 
+### ✅ Overlap detection added — the header bug's whole class is now caught (Claude, 2026-07-26)
+
+The header nav rendering on top of the action buttons was a **sitewide, user-facing
+bug that not one of our audits could see.** The page never overflowed and no element
+was wider than the viewport, so `audit-responsive.mjs` stayed green; axe only caught
+it indirectly, as two `target-size` "partially obscured" findings I nearly filed away
+as unexplained. Nothing stopped it recurring.
+
+`audit-responsive.mjs` now also reports **interactive controls overlapping each
+other**. Tuned to avoid false positives — both controls must be visible and ≥8px,
+ancestor/descendant pairs are skipped (a button inside a card link is legitimate),
+and the shared area must be ≥15% of the smaller control, so a 1px rounding kiss
+between neighbours does not fire.
+
+**Proven in both directions, which is the only reason it is worth having:**
+- against the pre-fix stylesheet (`f3b2a6e~1`): **74 findings**, naming exactly the
+  right elements —
+  `a.- ∩ button.theme-toggle-btn 32x24px | a.- ∩ a.kind-search-btn | a.- ∩ a.kind-bell`
+  — on 37 pages × 2 themes at 1920px
+- against current master: **0 findings** across 222 renders
+
+_Lesson: the audits were all measuring the page against the viewport. None asked
+whether the page's own controls were fighting each other._
+
 ### ✅ Responsive sweep re-run on the CORRECTED route list (Claude, 2026-07-26)
 `audit-responsive.mjs` now reads `e2e/public-routes.json`, so this is the first run
 that actually covered the intended pages — the previous "36 pages, 0 overflow"
