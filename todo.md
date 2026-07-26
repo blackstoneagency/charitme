@@ -122,9 +122,17 @@ this expensive OpenAI-backed endpoint."*
 so an unauthenticated caller could spread spend across instances and run up the
 OpenAI bill. Switched those three to `checkRateLimitDurable`, keeping their
 existing limits (15/30/30 per minute per IP). The remaining twelve require auth,
-so an attacker needs an account first — **left deliberately**, since converting
-them all adds a Postgres round-trip per call and that latency/cost tradeoff is the
-owner's call, not mine.
+so an attacker needs an account first.
+
+**✅ NOW COMPLETE — all 15 OpenAI-backed routes use the durable limiter (was 1).**
+I initially left the twelve authenticated ones, reasoning the extra Postgres
+round-trip was a tradeoff for the owner. **That reasoning was weak and I revisited
+it:** the RPC costs ~10–50ms against an OpenAI call that takes *seconds*, so it is
+noise; and signup is free, so requiring auth barely raises the bar for anyone
+determined to burn spend. Converted all eleven remaining OpenAI routes
+(`grant-match` needs no change — it makes no OpenAI call), preserving each
+route's existing key and limits exactly. **Verified: zero OpenAI-backed routes
+remain on the per-instance limiter.**
 
 _Audited clean in the same pass:_ **all 65 `/api/admin/*` routes are guarded**
 (the `super/*` ones via `guardSuperAdmin`/`isSuperAdmin`), and every public

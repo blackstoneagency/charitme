@@ -1,7 +1,7 @@
 import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { openai, OPENAI_MODEL } from '../../../../lib/openai';
-import { checkRateLimit } from '../../../../lib/rate-limit';
+import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 import { createClient } from '../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { isAdmin } from '../../../../lib/roles';
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
   const campaignId = request.nextUrl.searchParams.get('campaignId');
   if (!campaignId) return NextResponse.json({ error: 'Missing campaignId' }, { status: 400 });
 
-  if (!checkRateLimit(`trust-score:${user.id}`, 12, 60_000)) {
+  if (!(await checkRateLimitDurable(`trust-score:${user.id}`, 12, 60_000))) {
     return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
   }
 

@@ -2,7 +2,7 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { openai, OPENAI_MODEL } from '../../../../lib/openai';
-import { checkRateLimit } from '../../../../lib/rate-limit';
+import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 import { createClient } from '../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 
@@ -41,7 +41,7 @@ Always keep CharitMe's 0% platform fee advantage top of mind when discussing fee
 // Returns a streaming text response from the AI coach.
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for') ?? 'local';
-  if (!checkRateLimit(`ai-coach:${ip}`, 20, 60_000)) {
+  if (!(await checkRateLimitDurable(`ai-coach:${ip}`, 20, 60_000))) {
     return NextResponse.json({ error: 'Too many requests. Try again shortly.' }, { status: 429 });
   }
 

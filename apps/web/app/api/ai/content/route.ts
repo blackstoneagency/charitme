@@ -2,7 +2,7 @@ import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { openai, OPENAI_MODEL } from '../../../../lib/openai';
-import { checkRateLimit } from '../../../../lib/rate-limit';
+import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 import { createClient } from '../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { canManageCampaign } from '../../../../lib/auth';
@@ -18,7 +18,7 @@ const Schema = z.object({
 // for the authenticated organiser's campaign.
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for') ?? 'local';
-  if (!checkRateLimit(`ai-content:${ip}`, 30, 60_000)) {
+  if (!(await checkRateLimitDurable(`ai-content:${ip}`, 30, 60_000))) {
     return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
   }
 

@@ -2,7 +2,7 @@ import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { openai, OPENAI_MODEL } from '../../../../lib/openai';
-import { checkRateLimit } from '../../../../lib/rate-limit';
+import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 import { createClient } from '../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { isAdmin } from '../../../../lib/roles';
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
   const admin = await isAdmin(user.id, user.email);
   if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  if (!checkRateLimit(`complaint-resolver:${user.id}`, 20, 60_000)) {
+  if (!(await checkRateLimitDurable(`complaint-resolver:${user.id}`, 20, 60_000))) {
     return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
   }
 
