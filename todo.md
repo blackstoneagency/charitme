@@ -5320,3 +5320,28 @@ confirmation, alongside the static token guard and the responsive audit.
 **CI note:** the spec lives in `e2e/`, and the CI `e2e` job runs `npx playwright
 test` unfiltered, so it is picked up automatically on both the chromium and mobile
 projects. Expect the e2e job to lengthen by roughly 4–8 minutes.
+
+### 🟡 IN PROGRESS — runtime contrast audit (Claude, claimed 2026-07-26 14:2x)
+**Claiming before code, per the duplicated-work lesson above.**
+
+**Gap found:** `scripts/audit-responsive.mjs` loads all 36 pages in **both themes**,
+but it only measures **horizontal overflow** and **broken/oversized images**. It
+never looks at colour. So the note above ("the same run is independent evidence for
+item 7 (dark/light) across all 36 public routes") is **overstated** — a page whose
+text is light-on-light renders at the correct width with working images and passes
+that sweep silently. Static `theme-tokens.test.ts` has the mirror-image blind spot:
+it greps source for hardcoded colours, so it cannot see a pairing that is only
+wrong once the cascade resolves (e.g. a themed `var(--t1)` text sitting on a
+hardcoded-light container, which is exactly what shipped on the campaign AI card,
+success-stories, and the 13 Tailwind-utility pages).
+
+**Doing:** `scripts/audit-contrast.mjs` — renders each public route in both themes
+and measures **computed** contrast per visible text node (resolving the effective
+background by walking ancestors through transparent fills), reporting anything
+under the WCAG AA threshold (4.5:1 normal, 3:1 large). This is the empirical check
+neither existing guard performs, and it is the only way to verify the dark-mode
+work actually reads — including my own `--bg` (#31) and Tailwind-remap (#78) fixes,
+which so far are verified only from the compiled stylesheet, not from a render.
+
+Scope: audit script + whatever real failures it surfaces. Not touching the
+responsive audit, the token test, or admin (documented light-only).
