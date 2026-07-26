@@ -4781,7 +4781,7 @@ difference as real: two audit ✅s turned out to be stale when I spot-checked th
 | 5 | Every image unique, 0 duplicates | 🔴 **CLAIM IS FALSE** | Re-verified 2026-07-26: **10 photos are shared across categories**, one across **15 of 18**. See finding below |
 | 6 | Frictionless UX | 🟢 improved | F1–F10 all shipped (see the friction backlog): 9→7-step wizard, cross-device drafts, multi-draft, donor preview, goal guidance, honest gate copy, real publish errors, image data-loss fix |
 | 7 | Dark/light mode everywhere | ✅ **now verified + guarded** | Re-verified 2026-07-26: guard covered only 12 of ~37 user-facing dirs; `create` and `features` had drifted. 6 values fixed, guard widened to every dir |
-| 8 | Mobile responsive | ⚪ claimed | Earlier: 19 routes at 320/390px, 0 overflow. e2e runs a mobile project, so new regressions would be caught |
+| 8 | Mobile responsive | ✅ **verified** | Re-verified 2026-07-26 across **36 pages × 3 viewports × 2 themes = 216 loads, 0 findings** (audit previously covered only 17 pages) |
 | 9 | Pages load FAST | 🟡 improved | **Real finding:** DB-backed pages had NO timeout — measured ~7.1s (`/faq`, `/grants`) vs 73–726ms without DB. 15 public list reads now bounded (`lib/query-timeout.ts`). **Dashboard/admin reads still unbounded** |
 | 10 | Roles clearly mapped | 🟢 | `lib/role-capabilities.ts` + tests (another agent, this session) |
 | 11 | 100% GoFundMe parity | 🟢 claimed-closed | `docs/charitme-gofundme-audit.md` matrix is all ✅. Its 4 remaining blockers are **owner-gated credentials**, not code |
@@ -5109,5 +5109,16 @@ like a mangled URL rather than a wrong port. Run it as:
 (and keep the server and the audit inside one shell lifetime — a backgrounded
 `npm start` from a separate tool call gets reaped).
 
-Results of the corrected 36-page run are pending; whatever it reports goes here
-next, pass or fail.
+**RESULT — clean.** The corrected run reports:
+`✅ No responsive/theme regressions across 36 pages × 3 viewports × 2 themes`
+(216 page loads, 0 connection errors, exit 0). So the mobile claim **was** true;
+it had simply only ever been demonstrated on 17 of 37 routes. **Item 8 verified.**
+
+Bonus: this audit loads every page in **both themes**, so the same run is
+independent evidence for item 7 (dark/light) across all 36 public routes — not just
+the static-analysis guard.
+
+**Caution against a false alarm:** my first attempt reported "216 finding(s)", which
+reads like ~189 real responsive bugs. Every one was the same wrong-port connection
+error. Always check whether findings are `ERR_CONNECTION_REFUSED` before believing
+a large number.
