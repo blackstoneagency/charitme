@@ -156,6 +156,41 @@ _Two false alarms killed by checking:_ a grep for admin guards missed
 grep for `rateLimit` missed `checkRateLimit`, making two endpoints look
 unthrottled. Both were fine.
 
+**⚠️ The e2e suite exists, works, and runs in NO CI workflow.** `e2e/` holds 4
+Playwright specs — `smoke`, `public-routes`, `public-quality`, `security-headers`
+— plus an `npm run e2e` script. **Neither `ci.yml` nor `image-links.yml` mentions
+Playwright or e2e**, so none of it has ever run automatically. `security-headers`
+in particular checks CSP and header behaviour that nothing else covers.
+
+**Verified they actually work** (they had never been run in this environment):
+`PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome`
+— the config already exposes that override for exactly this sandbox mismatch,
+since the repo pins `@playwright/test ^1.60.0` against a `chromium-1194` build.
+Result: **smoke 2/2 green**, **security-headers 4/4 green**.
+
+**A first full run showed 3 failures — all environmental, none a product bug.**
+Worth writing down because two of them look alarming:
+- `public-routes` — 30s timeout navigating to `/campaigns`. Same sandbox↔Supabase
+  latency documented above, not slow code.
+- `security-headers` — *"Refused to execute script … MIME type ('text/html')"*,
+  which reads like a CSP breach. It is not. A **`next-server` process from the
+  previous day was still listening on :3000**, and `playwright.config.ts` sets
+  **`reuseExistingServer: true`**, so Playwright reused it rather than starting
+  one on the current build. It served pre-restructure HTML referencing
+  `chunks/app/campaigns/page-<hash>.js`, a path that stopped existing when
+  another agent moved `/campaigns` into a `(list)` route group. **A clean
+  `rm -rf .next` + rebuild did NOT fix it** — only killing the stale process did,
+  after which the spec passed 4/4.
+  _Lesson for anyone running e2e here: check for a stale `next-server` first
+  (`ps aux | grep next-server`), because `reuseExistingServer` will silently
+  serve you an old build and the failure looks like a security regression._
+- CI would not hit either issue: a fresh runner has no stale server, though the
+  Supabase-latency timeout would need a real DB or a longer timeout.
+
+**Not added to CI by me** — that needs a decision on whether the runner gets
+Supabase credentials (several specs hit DB-backed pages), plus a browser-install
+step. Cheap to add once that's settled; the specs themselves are sound.
+
 **⚠️ CI on `master` mostly reports `cancelled`, and that is NOT failure.**
 `.github/workflows/ci.yml` sets `concurrency: cancel-in-progress: true` keyed on
 `github.ref`. Every agent pushes to `master`, so each push **cancels the previous
