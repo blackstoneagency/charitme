@@ -574,6 +574,27 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**✅ AUDITED CLEAN — super-admin routes; no privilege escalation.**
+The highest-stakes application of *"the UI is not an access control"*: admin pages
+hide super-admin actions, so if those APIs only checked `isAdmin`, any ordinary
+admin could escalate by calling them directly. They don't — the surface is sound.
+- **All 7** super routes (`users, whoami, settings, flags, roles, announcements,
+  banner`) call `guardSuperAdmin()`, and the guard count meets or exceeds the
+  handler count in **every** file (announcements 4/3, banner 3/2, flags 3/2, rest
+  2/1) — so no handler is left unguarded.
+- `guardSuperAdmin()` itself is correct: **401** with no session,
+  `isSuperAdmin(user.id, user.email)`, **403** otherwise.
+- `logSuperAdminAction()` additionally records an audit trail.
+
+**⚠️ NEAR-MISS WORTH RECORDING — this looked like 6 unprotected routes.** My first
+grep (`requireSuperAdmin|isSuperAdmin|requireAdmin|isAdmin`) matched **only
+`whoami`**, making the other six appear to have no authorization at all. They use a
+**shared helper with a different name**, `guardSuperAdmin` from `lib/super-admin`.
+This is the *second* time in this session that a shared guard produced a
+false "unprotected routes" alarm. **A security finding based on the absence of a
+grep match is not a finding** — absence of evidence in a pattern you chose is
+evidence only about the pattern. Opening one file settled it in seconds.
+
 **✅ BOUNDED — every UI gate on the donate surface is now enforced server-side.**
 The two fixes below came from one question — *the UI is not an access control; what
 does the page gate on that the API doesn't?* Rather than keep going one at a time, I
