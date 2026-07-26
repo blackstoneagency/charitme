@@ -257,6 +257,29 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**✏️ CORRECTION — my donor-wall fix was HALF a fix; the initial page render still
+leaked.** The earlier commit fixed `/api/campaigns/[id]/donations` and I reported
+the donor wall as done. **It wasn't.** There are **two copies** of that mapping:
+- `/api/campaigns/[id]/donations` — serves **pagination** (fixed then)
+- `toWallDonation` in `app/campaigns/[slug]/page.tsx` — builds the **initial
+  server-rendered wall** (still leaking)
+
+So a private donor's real name shipped in the page HTML **on first load**, and
+only later paginated batches were redacted. The duplication is exactly what let
+the leak survive its own fix — the same root cause as the four drifted role/
+category lists.
+
+**Also found and fixed: the donor *message* wall.** `getDonorMessages` did not
+even **select** `show_public_profile`, so a private donor who posted a message was
+named. Settings governs "giving activity on the leaderboard **and donor walls**",
+and a wall message is exactly that. Query and mapping both gated now.
+
+_4 more regression tests (9 in the file), each asserting the page copy — not just
+the API — applies both gates._
+
+_Lesson recorded: when a fix touches a mapping, grep for other copies of it before
+declaring it done. I verified the API route and stopped there._
+
 **🔴 FIXED — unpublished drafts were readable at their public URL.**
 `POST /api/campaigns` documents `status: 'draft'` as *"saves without
 publishing"* — and publishing is precisely what makes a campaign public. But the

@@ -96,3 +96,25 @@ describe('unpublished campaigns are owner-only', () => {
     expect(src).not.toMatch(/campaign\.status === 'completed'[\s\S]{0,60}notFound/);
   });
 });
+
+describe('the campaign page applies the same gates as the API', () => {
+  // There are TWO copies of the donor-wall mapping: this page builds the initial
+  // server-rendered wall, and /api/campaigns/[id]/donations serves pagination.
+  // Fixing only the API left a private donor's name in the page HTML on first
+  // load — the leak survived the first fix because the copies disagreed.
+  const page = read('app/campaigns/[slug]/page.tsx');
+
+  it('toWallDonation gates on show_public_profile, not just anonymous', () => {
+    expect(page, 'must derive an isPublic gate').toMatch(/const isPublic\s*=\s*profile\.show_public_profile/);
+    expect(page, 'must combine both gates').toMatch(/hideIdentity\s*=\s*d\.anonymous\s*\|\|\s*!isPublic/);
+    expect(page, 'the anonymous-only avatar rule must be gone')
+      .not.toMatch(/avatarUrl:\s*d\.anonymous\s*\?\s*null\s*:\s*\(profile\.avatar_url/);
+  });
+
+  it('the donor message wall selects and applies the visibility flag', () => {
+    expect(page, 'the query must fetch show_public_profile for messages')
+      .toMatch(/profiles:donor_id\(full_name, avatar_url, show_public_profile\)/);
+    expect(page, 'message names must consult the flag')
+      .toMatch(/msgProfile\.show_public_profile/);
+  });
+});
