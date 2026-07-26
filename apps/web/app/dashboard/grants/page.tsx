@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar, KFIcon } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import GrantApplicationsClient from './GrantApplicationsClient';
+import GrantMatchClient from './GrantMatchClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,8 @@ export default async function DashboardGrantsPage() {
         }
       />
       <div className="kf-admin-dash" style={{ padding: '4px 0' }}>
+        {/* Surfaces POST /api/ai/grant-match, which was fully built with zero callers. */}
+        <GrantMatchClient />
         <GrantApplicationsClient />
       </div>
     </CharitMeShell>

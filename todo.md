@@ -3020,7 +3020,7 @@ Same failure mode as the orphaned dashboards in #71, one layer down. Audited eve
 |---|---|---|---|
 | `ai/impact-summary` | 216 lines | `campaigns`, `transparency_ledger_items`, `risk_flags`, `ai_generations` | **0** |
 | `ai/viral-loop` | 173 lines | `campaigns`, `share_events`, `team_members`, `ai_generations` | **0** |
-| `ai/grant-match` | 73 lines | `grants`, `grant_matches` | **0** |
+| `ai/grant-match` | 73 lines | `grants`, `grant_matches` | ✅ **now wired** (below) |
 
 All three are **real implementations**, not stubs — auth-guarded, Supabase-wired,
 writing to `ai_generations`. Roughly **460 lines of working feature code that no user
@@ -3037,9 +3037,23 @@ Plausible homes, for whoever picks it up: `impact-summary` → the campaign's im
 transparency tab; `viral-loop` → the share/referrals surface; `grant-match` →
 `/dashboard/grants`, which already exists and lists applications.
 
+**✅ One closed: `grant-match` is now reachable.** Added `GrantMatchClient` to
+`/dashboard/grants` — a small form (category / amount needed / free-text purpose) that
+posts to the endpoint and lists ranked matches. It shows **each match's `reasons`**, not
+just the score, which the endpoint already returns: the ranking is `rankGrantMatches`,
+a **deterministic rule-based model rather than an LLM**, so the explanation is real and
+stable. Field names were checked against `lib/grants.ts` (`grantId` / `score` 0..100 /
+`reasons`, and the `GRANT_PUBLIC_COLUMNS` set) rather than guessed — the mistake that
+produced an unstyled `kf-btn-primary` button earlier in this session.
+
+**Still orphaned: `impact-summary`, `viral-loop`** — both need a placement decision
+(which surface, what trigger) that is a product call. `impact-summary` remains the
+priority since `/for-nonprofits` advertises it.
+
 _Method: `grep -rn "ai/<route>" app/ lib/ components/` excluding the route's own
-directory. Worth re-running when adding an endpoint — a route with zero callers is
-invisible, and nothing in the build or test suite objects._
+directory; a re-runnable version is at `scratchpad/reach.py`. Worth running when adding
+an endpoint — a route with zero callers is invisible, and nothing in the build or test
+suite objects._
 
 ## 📊 Sitemap health + independent seed-count evidence (production, 2026-07-23)
 
