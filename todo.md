@@ -72,6 +72,32 @@ money). Implementation notes for each are in the detail section.
 | 2 | **`/trust-safety` promises a "7-day payout hold"** the architecture forbids — every donation is a Stripe *destination charge*, so CharitMe never holds the funds | Either implement via Stripe Connect (manual payout schedule / `payouts_enabled`), or correct the public copy. Both are legitimate; publishing a safety promise the code cannot keep is not |
 | 3 | **Roles don't differentiate** — `donor`/`organizer`/`beneficiary`/`nonprofit` gate nothing; only `admin`/`super_admin` do | Someone must define what an organizer may do that a donor may not. Inventing permissions on live authorization locks real users out of their own campaigns |
 
+### ✓ Controls audited and found CORRECT — do not re-investigate
+
+Recording these so the next agent doesn't spend a session re-deriving them:
+
+| Control | Why it's correct |
+|---|---|
+| **Email preferences** | Genuinely honoured end-to-end. `notification_email` gates transactional mail (`stripe/webhook` returns early on `=== false`, 2 sites); `notification_updates` gates campaign-update mail (`campaigns/[id]/updates` skips opted-out donors). `notification_marketing` is written as a real opt-in (defaults FALSE) with no sender yet — a toggle ahead of its feature, not a leak |
+| **Team member removal** | Hard `.delete()` behind an ownership check, and access reads query `team_members` live per request — revocation is immediate, nothing cached |
+| **Campaign reporting** | Rate-limited, validated, inserts `status:'open'`, **and checks the insert error** — the route even carries a comment reasoning about this exact failure mode. The button only shows "sent" on `res.ok` |
+| **Refunds** | Defer to the webhook's `decrement_campaign_stats` rather than decrementing locally, avoiding a double-count |
+| **Recurring cancellation** | Cancels at **Stripe first**, then marks the row — deliberately avoiding the ordering where the UI says "cancelled" while charges continue |
+
+**⚠️ Methodology warning, from three near-misses this session.** Every false lead
+came from the same mistake: **judging from a fragment instead of the whole
+result.**
+1. `grep` showed `.from('campaigns').select(...)` with no filters → looked like the
+   sitemap leaked private campaigns. The filters were in the *enclosing*
+   `applyLiveFilters(...)` call.
+2. A truncated `grep … | head -6` hid `campaigns/[id]/updates/route.ts` → looked
+   like `notification_updates` had no consumer and the toggle was dead. It is
+   honoured on line 116.
+3. `getSimilarCampaigns` looked unfiltered for the same reason.
+**A grep hit is a hypothesis. Open the file and read the enclosing expression
+before believing it — and never conclude "no consumer" from a `head`-truncated
+list.**
+
 ### 🔒 Promise-audit — controls that did not keep their promise
 
 The highest-yield technique of the session: **take a control that promises the
