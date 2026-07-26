@@ -3,6 +3,7 @@
 import type React from 'react';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { KFIcon, StatusPill, Avatar } from '../../../../components/CharitMeApp';
+import { ROLE_DEFINITIONS, ROLE_ORDER } from '../../../../lib/role-capabilities';
 
 function useEscape(onClose: () => void): void {
   useEffect(() => {
@@ -89,14 +90,14 @@ type Props = {
 
 const PAGE_SIZE = 10;
 // All possible role values in the jsonb roles array
-const ROLE_OPTIONS: { value: string; label: string }[] = [
-  { value: 'admin',       label: 'Admin'       },
-  { value: 'user',        label: 'User'        },
-  { value: 'donor',       label: 'Donor'       },
-  { value: 'organizer',   label: 'Organizer'   },
-  { value: 'nonprofit',   label: 'Nonprofit'   },
-  { value: 'beneficiary', label: 'Beneficiary' },
-];
+// Derived from the shared role catalog rather than hand-listed. The previous
+// hardcoded copy had already drifted: it offered a 'user' option that is not a
+// real role (so the filter could never match once roles are whitelisted) and
+// omitted 'super_admin' entirely, leaving no way to filter super admins.
+const ROLE_OPTIONS: { value: string; label: string }[] = ROLE_ORDER.map((r) => ({
+  value: r,
+  label: ROLE_DEFINITIONS[r].label,
+}));
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

@@ -2,6 +2,21 @@ export type PlatformFeature = {
   name: string;
   description: string;
   competitor: string;
+  /**
+   * Set when the feature is TRACKED FOR PARITY but not yet built.
+   *
+   * REQUIRED_COMPETITOR_FEATURES is a competitive checklist — what rivals offer
+   * and CharitMe intends to match — and `feature-catalog.test.ts` asserts every
+   * entry stays listed. But the /features page renders each module under a
+   * "Live" / "Production Ready" badge, so an unbuilt entry read to visitors as
+   * shipped. Auctions is the clear case: `auction_items` and `auction_bids`
+   * exist in the schema, yet there is no route, API, component or bidding UI
+   * anywhere in the app, and no commit building one.
+   *
+   * Marking it here keeps the parity checklist complete without advertising
+   * something that does not exist.
+   */
+  planned?: boolean;
 };
 
 export type PlatformModule = {
@@ -10,7 +25,19 @@ export type PlatformModule = {
   eyebrow: string;
   summary: string;
   audience: string;
-  status: 'Live' | 'Production Ready';
+  /**
+   * 'Planned' means the module is designed and its schema exists, but no
+   * application code reads those tables yet.
+   *
+   * Added because the union previously had no way to say "not built": every
+   * module had to claim Live or Production Ready. Two modules were therefore
+   * advertised as Production Ready on /features with **100% of their declared
+   * databaseTables unwired** — memberships (5/5) and creator-commerce (6/6) —
+   * each with an action CTA ("Create membership tiers", "Build a creator page")
+   * that lands the visitor on /create/choose-path, the ordinary campaign wizard,
+   * where none of that functionality exists.
+   */
+  status: 'Live' | 'Production Ready' | 'Planned';
   primaryCta: string;
   features: PlatformFeature[];
   operatingModel: string[];
@@ -85,7 +112,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     eyebrow: 'Patreon parity',
     summary: 'Recurring memberships, membership tiers, subscriber-only content, creator pages, community posts, messages, and billing.',
     audience: 'Creators, nonprofits, community leaders, and recurring supporter programs',
-    status: 'Production Ready',
+    status: 'Planned',
     primaryCta: 'Create membership tiers',
     databaseTables: ['creator_profiles', 'membership_tiers', 'member_subscriptions', 'exclusive_posts', 'direct_messages'],
     operatingModel: [
@@ -124,7 +151,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
       { competitor: 'Givebutter', name: 'Donation Forms', description: 'Custom nonprofit donation pages and embeddable forms.' },
       { competitor: 'Givebutter', name: 'Recurring Donations', description: 'Monthly giving support for sustained programs.' },
       { competitor: 'Givebutter', name: 'Fundraising Events', description: 'Virtual and in-person fundraising event tools.' },
-      { competitor: 'Givebutter', name: 'Auctions', description: 'Charity auction campaigns, items, and bids.' },
+      { competitor: 'Givebutter', name: 'Auctions', description: 'Charity auction campaigns, items, and bids.', planned: true },
       { competitor: 'Givebutter', name: 'CRM Tools', description: 'Donor contact records, tags, segments, and communication history.' },
       { competitor: 'Givebutter', name: 'Team Fundraising', description: 'Multiple organizers and supporter teams per campaign.' },
       { competitor: 'Givebutter', name: 'Livestream Fundraising', description: 'Live donation experiences connected to events and campaigns.' },
@@ -169,7 +196,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     eyebrow: 'Ko-fi and Buy Me a Coffee parity',
     summary: 'One-time support, creator pages, memberships, digital downloads, commissions, storefronts, donation buttons, supporter messages, email collection, and analytics.',
     audience: 'Creators, artists, writers, streamers, builders, and small creative businesses',
-    status: 'Production Ready',
+    status: 'Planned',
     primaryCta: 'Build a creator page',
     databaseTables: ['creator_profiles', 'digital_products', 'product_orders', 'commission_requests', 'creator_tips', 'embedded_buttons'],
     operatingModel: [

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ASSIGNABLE_ROLES, type UserRole } from '../lib/roles';
+import { ASSIGNABLE_ROLES, type UserRole } from '../lib/roles-shared';
 import {
   ROLE_DEFINITIONS,
   ROLE_ORDER,

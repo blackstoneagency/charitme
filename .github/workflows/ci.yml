@@ -54,21 +54,52 @@ jobs:
           NEXT_PUBLIC_APP_URL: https://www.charitme.com
           SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
 
-      # ── End-to-end smoke ──────────────────────────────────────────────────
-      # The e2e/ suite existed but ran in NO workflow, so nothing exercised the
-      # app as a browser sees it. security-headers.spec.ts in particular covers
-      # CSP and header behaviour that no unit test touches.
-      #
-      # Only the two DB-light specs run here. public-routes and public-quality
-      # hit Supabase-backed pages and need real credentials, so they'd be flaky
-      # against the placeholders below. Verified before wiring this up: these
-      # two pass with exactly this placeholder env (6/6).
+
+  # ── End-to-end (browser) ────────────────────────────────────────────────────
+  # The e2e/ suite existed but ran in NO workflow, so nothing exercised the app
+  # as a browser sees it — security-headers.spec.ts in particular covers CSP and
+  # header behaviour no unit test touches.
+  #
+  # A narrower version of this ran only smoke + security-headers on chromium, on
+  # the assumption that public-routes/public-quality need real credentials. That
+  # assumption was tested and is false: those sweeps failed for two fixable
+  # reasons — one route needed seeded data (now probed and skipped via
+  # e2e/data-routes.ts) and each sweep walks ~36 routes inside ONE test, so the
+  # 30s cap tripped on slowness rather than defects (now 600s for the sweeps).
+  # All four specs pass against the placeholder env below, on chromium AND
+  # mobile: verified 16/16. Please don't re-narrow this without re-testing.
+  #
+  # Runs as its own job so it parallelises with `verify` and can publish a report.
+  e2e:
+    name: e2e (playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
         working-directory: apps/web
 
-      - name: End-to-end smoke (browser)
-        run: npx playwright test e2e/smoke.spec.ts e2e/security-headers.spec.ts --project=chromium
+      # playwright.config.ts owns the webServer (`npm start`), so the suite runs
+      # against a real production build using the same placeholders as `verify`.
+      - name: Production build
+        run: npm run build --workspace=apps/web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_APP_URL: https://www.charitme.com
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+
+      - name: End-to-end tests (chromium + mobile)
+        run: npx playwright test
         working-directory: apps/web
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
@@ -76,7 +107,7 @@ jobs:
           NEXT_PUBLIC_APP_URL: https://www.charitme.com
           SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
 
-      - name: Upload e2e report on failure
+      - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:

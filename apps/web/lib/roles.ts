@@ -1,18 +1,12 @@
 import { supabaseAdmin } from './supabase';
+import { ASSIGNABLE_ROLES, parseRoles, type UserRole } from './roles-shared';
 
-export type UserRole = 'donor' | 'organizer' | 'beneficiary' | 'nonprofit' | 'admin' | 'super_admin';
+// Re-exported so existing importers of lib/roles keep working unchanged.
+export { ASSIGNABLE_ROLES, parseRoles };
+export type { UserRole };
 
-export const ASSIGNABLE_ROLES: readonly UserRole[] = [
-  'donor', 'organizer', 'beneficiary', 'nonprofit', 'admin', 'super_admin',
-] as const;
 
-export function parseRoles(raw: unknown): UserRole[] {
-  if (!Array.isArray(raw)) return ['donor'];
-  const roles = raw.filter((role): role is UserRole =>
-    (ASSIGNABLE_ROLES as readonly string[]).includes(String(role))
-  );
-  return roles.length > 0 ? roles : ['donor'];
-}
+
 
 export async function getUserRoles(userId: string): Promise<UserRole[]> {
   const { data } = await supabaseAdmin.from('profiles').select('roles').eq('id', userId).single();

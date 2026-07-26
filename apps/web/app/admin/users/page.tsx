@@ -1,6 +1,7 @@
 import 'server-only';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireAdmin } from '../../../lib/auth';
+import { parseRoles } from '../../../lib/roles';
 import { supabaseAdmin } from '../../../lib/supabase';
 import AdminUsersClient, {
   type AdminUser,
@@ -49,7 +50,23 @@ type DonationRow = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Parse roles jsonb → string[].  Handles arrays, stringified arrays, plain strings. */
-function parseRoles(raw: unknown): string[] {
+/**
+ * Every string stored in `profiles.roles`, unfiltered.
+ *
+ * This is NOT role parsing — use the shared `parseRoles` from lib/roles for that,
+ * which whitelists against ASSIGNABLE_ROLES. This exists only because
+ * `deriveStatus` below still reads legacy 'suspended'/'inactive' markers out of
+ * the roles array, and the shared whitelist strips them. Previously this function
+ * was *named* `parseRoles` and shadowed the shared one, so the same profile could
+ * resolve to different roles depending on which file read it: given the JSON
+ * string '["admin"]' this returned ['admin'] while the shared version returned
+ * ['donor'], meaning such a user rendered as Admin in the console while isAdmin()
+ * denied them.
+ *
+ * Status should move to `profiles.status` (which `deriveStatus` already prefers),
+ * at which point this can go.
+ */
+function rawRoleStrings(raw: unknown): string[] {
   if (Array.isArray(raw)) return raw.map(String).filter(Boolean);
   if (typeof raw === 'string' && raw.trim()) {
     try {
@@ -182,8 +199,10 @@ export default async function AdminUsersPage() {
 
   // ── 3. Build AdminUser records directly from profiles ────────────────────
   const users: AdminUser[] = profiles.map((profile) => {
+    // Roles go through the SHARED whitelist so badges and filters agree with
+    // isAdmin(); status still reads the raw strings for the legacy markers.
     const roles         = parseRoles(profile.roles);
-    const status        = deriveStatus(roles, profile.status ?? null);
+    const status        = deriveStatus(rawRoleStrings(profile.roles), profile.status ?? null);
     const userCampaigns = campaignByUser.get(profile.id) ?? [];
     const userDonations = donationByUser.get(profile.id) ?? [];
     const updatedAt     = profile.updated_at ?? profile.created_at;
