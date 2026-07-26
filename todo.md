@@ -418,6 +418,29 @@ correct, and notably well built:
 _No fix needed._ Recording it so the money path isn't re-audited: the promise-audit
 found 7 leaks elsewhere, but **this** control keeps its promise.
 
+**🟠 FIXED (copy) — "Weekly performance summary" promised an email that is never sent.**
+Followed the session's own observation that defects cluster where a write path
+exists and the read path was never connected. `profiles.campaign_recommendations`
+saves correctly through the settings API — and **nothing consumes it**. It appears
+only in the schema, the settings route, and the settings page.
+
+**The email does not exist.** There are exactly two cron jobs (`ingest-filings`,
+`reconcile-ledger`), neither of which sends a digest, and **no email anywhere in the
+codebase carries a weekly/summary/digest/performance subject** — verified before
+claiming it. So the old copy *"Weekly email with campaign stats"* meant a user who
+opted **in** waited indefinitely for mail that would never arrive. Inverse of the
+usual harm: not spam, but a feature advertised and undelivered.
+
+Copy now reads *"Not sending yet — your preference is saved and will apply when this
+email launches."* **Kept rather than removed**, deliberately: the column is wired
+end-to-end, so deleting the control would leave it reachable from nothing — exactly
+the wired-but-unreachable trap already fixed for `notification_updates`, and a
+future agent would likely "fix" it by adding the toggle straight back.
+
+_Also noted:_ the column is named `campaign_recommendations` but the control is
+labelled *Weekly performance summary*. Those are different features; whichever is
+intended, the other name is misleading.
+
 **✅ AUDITED CLEAN — refund handling, including the partial-refund edge case.**
 Checked whether a refund brings `campaigns.raised_amount` back down; otherwise
 public totals would overstate reality (the "number that doesn't match its label"

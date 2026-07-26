@@ -442,7 +442,19 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 <div style={{ paddingTop: 8 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', marginBottom: 12 }}>Email Preferences</div>
                   <PrefRow id={`${uid}-updates`} label="Product updates" desc="News about new CharitMe features" checked={notifyUpdates} onChange={setNotifyUpdates} />
-                  <PrefRow id={`${uid}-digest`} label="Weekly performance summary" desc="Weekly email with campaign stats" checked={campaignRecs} onChange={setCampaignRecs} />
+                  {/*
+                    Backed by `profiles.campaign_recommendations`, which saves
+                    correctly — but no weekly summary email exists yet. There is no
+                    cron job that sends one (only ingest-filings and
+                    reconcile-ledger), and no email anywhere carries a
+                    weekly/summary/digest subject. The old copy promised mail that
+                    would never arrive, so someone opting IN waited indefinitely.
+                    Kept rather than removed: the column is wired end-to-end, and
+                    deleting the control would leave it reachable from nothing —
+                    the same wired-but-unreachable trap already fixed for
+                    notification_updates.
+                  */}
+                  <PrefRow id={`${uid}-digest`} label="Weekly performance summary" desc="Not sending yet — your preference is saved and will apply when this email launches" checked={campaignRecs} onChange={setCampaignRecs} />
                 </div>
               </div>
             </div>
