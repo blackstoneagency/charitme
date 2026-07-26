@@ -60,3 +60,42 @@ describe('extractCampaignFields — urgency + robustness', () => {
     expect(extractCampaignFields('   ')).toEqual({});
   });
 });
+
+describe('keyword matching respects word boundaries', () => {
+  // Regression: matching was a plain `text.includes(keyword)`, so short keywords
+  // fired mid-word. 'pet' matched com*pet*ition — filing every competition
+  // campaign under Animal — and 'cat' matched vacation / dedicated /
+  // communication.
+  it('does not read "competition" as the Animal keyword "pet"', () => {
+    expect(extractCampaignFields('robotics competition entry fees').category).not.toBe('Animal');
+    expect(extractCampaignFields('my daughter cheer competition').category).not.toBe('Animal');
+  });
+
+  it('does not read "vacation" or "dedicated" as the Animal keyword "cat"', () => {
+    expect(extractCampaignFields('family vacation fund').category).not.toBe('Animal');
+    expect(extractCampaignFields('a dedicated volunteer').category).not.toBe('Animal');
+  });
+
+  it('still matches intentional word stems', () => {
+    expect(extractCampaignFields('sustainable reforestation project').category).toBe('Environment');
+    expect(extractCampaignFields('relocating after losing our home').category).toBeDefined();
+    expect(extractCampaignFields('our soccer teams need jerseys').category).toBe('Sports');
+  });
+});
+
+describe('covers the long tail of real campaign types', () => {
+  it('classifies cheer, dance and academic competitions', () => {
+    expect(extractCampaignFields('help our cheerleading squad get to nationals').category).toBe('Competition');
+    expect(extractCampaignFields('robotics competition entry fees').category).toBe('Competition');
+  });
+
+  it('classifies musicians and bands as Creative', () => {
+    expect(extractCampaignFields('funds for our marching band new instruments').category).toBe('Creative');
+    expect(extractCampaignFields('help me buy a new guitar for gigs').category).toBe('Creative');
+    expect(extractCampaignFields('im a musician recording my first album').category).toBe('Creative');
+  });
+
+  it('classifies youth sports', () => {
+    expect(extractCampaignFields('our soccer team needs new jerseys').category).toBe('Sports');
+  });
+});

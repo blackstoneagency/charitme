@@ -2079,6 +2079,42 @@ growth engine, CharitScore trust, grants + volunteer marketplaces, 0% platform f
     `categories missing from the follow-up picker: Competition, Event, Family,
     Sports, Travel, Volunteer, Wishes`. A second test pins the `Other` escape hatch.
 
+    **✅ FIXED — "Build with AI" filed every competition campaign as *Animal*.**
+    `lib/campaign-intake.ts` matched category keywords with a plain
+    `text.includes(keyword)`, so short keywords fired **mid-word**:
+    - `'pet'` is inside com**pet**ition → *"robotics competition entry fees"* and
+      *"my daughter's cheer competition"* both classified **Animal**.
+    - `'cat'` is inside va**cat**ion, dedi**cat**ed, communi**cat**ion → also Animal.
+      (`education` escaped only because Education is tested before Animal — luck,
+      not design.)
+    Fixed by anchoring the **start** of each keyword to a word boundary while
+    deliberately leaving the end open, so the intentional stems still work
+    (`sustainab`→sustainable, `relocat`→relocating, `team`→teams). Regexes cached.
+
+    **Also: whole cause types matched nothing at all.** Measured, not assumed —
+    probed the real function before/after:
+
+    | organizer types | before | after |
+    |---|---|---|
+    | "help our cheerleading squad get to nationals" | *no match* | Competition |
+    | "my daughter's cheer competition" | **Animal** | Competition |
+    | "robotics competition entry fees" | **Animal** | Competition |
+    | "funds for our marching band new instruments" | *no match* | Creative |
+    | "help me buy a new guitar for gigs" | *no match* | Creative |
+    | "family vacation fund" | **Animal** | *no match* (honest) |
+
+    `Competition` had **zero** keywords, so the category was unreachable from the AI
+    path. Added cheer/dance/gymnastics/robotics/debate/esports/pageant terms, music
+    terms (musician, band, guitar, orchestra, instrument, gig, tour…) which
+    previously only matched `'album'`/`'music video'`, and more youth-sports terms.
+    **6 regression tests, all verified to fail against the old matcher** (3 fail on
+    the `includes` revert). Existing 15 intake tests still pass.
+
+    _Pre-existing, NOT changed:_ "vet bills for my dog after surgery" → **Medical**,
+    because Medical is ordered before Animal and `surgery` wins. Arguably wrong but
+    it predates this fix; flagging rather than silently reordering a priority list
+    other flows depend on.
+
     **⚠️ Note for other agents — stale `.next/types` after PR #63.** That PR
     deleted `app/events`, `app/matching`, and `app/sponsor`. A `.next` cache built
     before rebasing onto it still holds generated stubs importing those pages, and

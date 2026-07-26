@@ -27,8 +27,11 @@ const CATEGORY_SIGNALS: { category: CampaignCategory; keywords: string[] }[] = [
   { category: 'Animal',      keywords: ['dog', 'cat', 'puppy', 'kitten', 'pet', 'animal', 'wildlife rescue', 'shelter', 'veterinary', 'vet bill', 'rescue'] },
   { category: 'Environment', keywords: ['environment', 'climate', 'conservation', 'reforest', 'ocean', 'pollution', 'sustainab', 'planet', 'green energy'] },
   { category: 'Faith',       keywords: ['church', 'mosque', 'temple', 'synagogue', 'faith', 'ministry', 'mission trip', 'parish', 'congregation'] },
-  { category: 'Sports',      keywords: ['team', 'soccer', 'basketball', 'football', 'baseball', 'athletic', 'league', 'tournament', 'sports'] },
-  { category: 'Creative',    keywords: ['film', 'album', 'music video', 'art project', 'book', 'video game', 'podcast', 'documentary', 'creative', 'gallery'] },
+  { category: 'Sports',      keywords: ['team', 'soccer', 'basketball', 'football', 'baseball', 'softball', 'volleyball', 'hockey', 'lacrosse', 'wrestling', 'track and field', 'swim', 'athlete', 'athletic', 'league', 'tournament', 'sports', 'varsity', 'travel ball', 'jersey', 'uniforms'] },
+  // Cheer/dance/gymnastics previously matched nothing at all unless the word
+  // "team" happened to appear.
+  { category: 'Competition',  keywords: ['cheer', 'pep squad', 'drill team', 'dance', 'gymnastic', 'majorette', 'color guard', 'robotics', 'debate', 'spelling bee', 'chess club', 'esports', 'pageant', 'nationals', 'regionals', 'state finals', 'competition', 'contest'] },
+  { category: 'Creative',    keywords: ['film', 'album', 'music', 'musician', 'band', 'orchestra', 'choir', 'guitar', 'piano', 'violin', 'drums', 'instrument', 'recording', 'studio time', 'ep release', 'gig', 'tour', 'art project', 'book', 'video game', 'podcast', 'documentary', 'creative', 'gallery', 'theater', 'theatre'] },
   { category: 'Business',    keywords: ['business', 'startup', 'small shop', 'store', 'restaurant', 'food truck', 'launch my', 'my company'] },
   { category: 'Event',       keywords: ['wedding', 'gala', 'reunion', 'festival', 'conference', 'fundraising event'] },
   { category: 'Education',   keywords: ['books for'] },
@@ -42,9 +45,31 @@ const CATEGORY_SIGNALS: { category: CampaignCategory; keywords: string[] }[] = [
 
 const URGENCY_SIGNALS = ['urgent', 'urgently', 'emergency', 'immediately', 'asap', 'right now', 'time-sensitive', 'critical', 'desperately', "can't wait", 'cannot wait'];
 
+const KEYWORD_RE_CACHE = new Map<string, RegExp>();
+
+/**
+ * Match a keyword at a word boundary rather than anywhere in the string.
+ *
+ * A plain `includes` mis-fired badly on short keywords: 'pet' matched
+ * com*pet*ition, so every competition campaign was filed under Animal, and 'cat'
+ * matched vacation / dedicated / communication (Education only escaped because it
+ * is tested before Animal). Anchoring the START of the keyword to a word boundary
+ * fixes those while deliberately leaving the end unanchored, so the intentional
+ * stems still work — 'sustainab' → sustainable, 'relocat' → relocating,
+ * 'team' → teams.
+ */
+function keywordRe(keyword: string): RegExp {
+  let re = KEYWORD_RE_CACHE.get(keyword);
+  if (!re) {
+    re = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
+    KEYWORD_RE_CACHE.set(keyword, re);
+  }
+  return re;
+}
+
 function detectCategory(text: string): CampaignCategory | undefined {
   for (const { category, keywords } of CATEGORY_SIGNALS) {
-    if (keywords.some(k => text.includes(k))) return category;
+    if (keywords.some(k => keywordRe(k).test(text))) return category;
   }
   return undefined;
 }
