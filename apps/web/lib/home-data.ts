@@ -141,7 +141,7 @@ async function getRecentDonationsUncached(limit = 8): Promise<RecentDonation[]> 
   const { data: result } = await withQueryTimeout(
     supabaseAdmin
       .from('donations')
-      .select(`id, amount_cents, anonymous, created_at, offline_donor_name, ${campaignJoin}, profiles:donor_id(full_name)`)
+      .select(`id, amount_cents, anonymous, created_at, offline_donor_name, ${campaignJoin}, profiles:donor_id(full_name, show_public_profile)`)
       .eq('status', 'completed')
       .order('created_at', { ascending: false })
       .limit(limit * 3),
@@ -159,8 +159,10 @@ export type RawDonationRow = {
   created_at: string;
   offline_donor_name: string | null;
   campaigns: JoinedCampaign | JoinedCampaign[] | null;
-  profiles: { full_name: string | null } | { full_name: string | null }[] | null;
+  profiles: DonorProfileJoin | DonorProfileJoin[] | null;
 };
+
+type DonorProfileJoin = { full_name: string | null; show_public_profile?: boolean | null };
 
 /**
  * Pure transform for the recent-donations feed:
@@ -175,7 +177,13 @@ export function mapRecentDonations(rows: RawDonationRow[], limit: number): Recen
     const camp = Array.isArray(r.campaigns) ? r.campaigns[0] : r.campaigns;
     if (!camp || camp.visibility === 'private') continue; // never surface private campaigns
     const prof = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
-    const name = r.anonymous ? 'Anonymous' : (prof?.full_name || r.offline_donor_name || 'A kind supporter');
+    // Two independent gates, same as the leaderboard and donor wall: the
+    // per-donation `anonymous` flag, and the account-wide Profile Visibility
+    // setting. Only the first was honoured, so a donor who set themselves to
+    // Private but gave without ticking "anonymous" was still named in the
+    // homepage ticker — the highest-traffic surface on the site.
+    const hidden = r.anonymous || !(prof?.show_public_profile ?? true);
+    const name = hidden ? 'Anonymous' : (prof?.full_name || r.offline_donor_name || 'A kind supporter');
     out.push({
       id: r.id,
       name,

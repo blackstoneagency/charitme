@@ -33,21 +33,30 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const { data: donations } = await supabaseAdmin
     .from('donations')
-    .select('donor_id, amount_cents, created_at, anonymous, offline_donor_email, offline_donor_name, profiles:donor_id(email, full_name)')
+    .select('donor_id, amount_cents, created_at, anonymous, offline_donor_email, offline_donor_name, profiles:donor_id(email, full_name, show_public_profile)')
     .eq('campaign_id', id)
     .eq('status', 'completed')
     .order('created_at', { ascending: false })
     .limit(2000);
 
   const rows: DonationRow[] = (donations ?? []).map((d) => {
-    const profile = d.profiles as unknown as { email: string | null; full_name: string | null } | null;
+    const profile = d.profiles as unknown as { email: string | null; full_name: string | null; show_public_profile: boolean | null } | null;
     return {
       donor_id: d.donor_id,
       amount_cents: d.amount_cents,
       created_at: d.created_at,
       anonymous: d.anonymous,
       email: profile?.email ?? d.offline_donor_email ?? null,
-      name: profile?.full_name ?? d.offline_donor_name ?? null,
+      // A donor who gave anonymously, or who set Profile Visibility to Private,
+      // must not be named to the organizer. This route already masks emails
+      // ("organizers see names + masked emails, never raw addresses") but took
+      // full_name unconditionally, so anonymous gifts were attributed by name in
+      // the supporter list. The organizer can still reach them through the
+      // engage flow, which addresses the donor directly — they just don't learn
+      // who it is.
+      name: (d.anonymous || !(profile?.show_public_profile ?? true))
+        ? 'Anonymous donor'
+        : (profile?.full_name ?? d.offline_donor_name ?? null),
     };
   });
 

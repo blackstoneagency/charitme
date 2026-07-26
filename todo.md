@@ -323,6 +323,31 @@ the API — applies both gates._
 _Lesson recorded: when a fix touches a mapping, grep for other copies of it before
 declaring it done. I verified the API route and stopped there._
 
+**🔴 FIXED — 3 more surfaces named donors who had asked to be hidden (leaks 5–7).**
+Completes the anonymous/private-donor sweep. Each honoured the **per-donation
+`anonymous` flag but not the account-wide Profile Visibility setting** — the same
+half-wired shape as the leaderboard and donor wall:
+- **`lib/home-data.ts` — the HOMEPAGE recent-donations ticker.** Highest-traffic
+  surface on the site. A donor set to Private who simply didn't tick "anonymous"
+  was named to every visitor.
+- **`/api/campaigns/[id]/supporters`** — took `full_name` unconditionally, so
+  **anonymous gifts were attributed by name** in the organizer's supporter list.
+  (Emails were already masked via `maskEmail`; only the name leaked.)
+- **`/api/campaigns/[id]/messages`** — the pagination route behind the donation
+  wall; name *and* avatar now honour both gates.
+
+**A guard test caught the homepage one, not me.** `donor-identity-gates.test.ts`
+asserts every file joining a donor profile for display also consults
+`show_public_profile`; it failed on `lib/home-data.ts` while I was mid-way through
+the other two. It correctly ignores `profiles:user_id(...)` joins — those are
+campaign **organizers**, who are legitimately public.
+
+_Process note:_ this work was sitting **uncommitted and failing** across a context
+boundary — typecheck was red (`show_public_profile` missing from `DonorProfile`)
+and the guard was failing. Verifying before committing is what caught both;
+committing on the assumption that in-flight work was finished would have shipped a
+broken build **and** left the homepage leak in place.
+
 **🔴 FIXED — unpublished drafts were readable at their public URL.**
 `POST /api/campaigns` documents `status: 'draft'` as *"saves without
 publishing"* — and publishing is precisely what makes a campaign public. But the

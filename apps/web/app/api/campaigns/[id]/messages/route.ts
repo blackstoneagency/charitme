@@ -12,7 +12,7 @@ const Schema = z.object({
 
 const MAX_LIMIT = 50;
 
-type DonorProfile = { full_name?: string | null; avatar_url?: string | null };
+type DonorProfile = { full_name?: string | null; avatar_url?: string | null; show_public_profile?: boolean | null };
 
 function asProfile(value: unknown): DonorProfile {
   if (Array.isArray(value)) return (value[0] ?? {}) as DonorProfile;
@@ -38,7 +38,7 @@ export async function GET(
 
   const { data, error } = await supabaseAdmin
     .from('donor_messages')
-    .select('id, message, anonymous, created_at, profiles:donor_id(full_name, avatar_url)')
+    .select('id, message, anonymous, created_at, profiles:donor_id(full_name, avatar_url, show_public_profile)')
     .eq('campaign_id', campaignId)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
@@ -76,8 +76,17 @@ export async function GET(
     const profile = asProfile(m.profiles);
     return {
       id: m.id,
-      name: m.anonymous ? 'Anonymous' : (profile.full_name ?? 'Kind supporter'),
-      avatarUrl: m.anonymous ? null : (profile.avatar_url ?? null),
+      // Third copy of this mapping (page render + this pagination route + the
+      // donation wall). Both gates: the per-message `anonymous` flag and the
+      // account-wide Profile Visibility setting.
+      name: m.anonymous
+        ? 'Anonymous'
+        : (profile.show_public_profile ?? true)
+          ? (profile.full_name ?? 'Kind supporter')
+          : 'Kind supporter',
+      avatarUrl: (m.anonymous || !(profile.show_public_profile ?? true))
+        ? null
+        : (profile.avatar_url ?? null),
       anonymous: m.anonymous,
       message: m.message,
       createdAt: m.created_at,
