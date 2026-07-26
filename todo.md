@@ -714,9 +714,23 @@ assigned per-category, so every campaign in a category shared one identical cove
   Evidence: 45/45 IDs HTTP 200 live.
 - [x] IMG-04 — **Done.** Docs: `CAMPAIGN_IMAGE_AUDIT.md`,
   `CAMPAIGN_IMAGE_SOURCES.md`, `CAMPAIGN_IMAGE_CHANGELOG.md`.
-- [ ] IMG-05 — `needs-staging`. Download → optimize (WebP/AVIF) → upload to
-  Supabase Storage; repoint records at stable storage paths (drop Unsplash
-  hotlink). Requires Storage write + binary pipeline.
+- [x] IMG-05 — **Done (2026-07-25).** Covers moved off the external hotlink onto
+  Supabase Storage — it did not need staging; the `campaign-media` public bucket
+  already existed. **This closed a real production risk:** all 500 covers pointed at
+  `picsum.photos`, so a rate-limit, id change or outage there would have broken
+  every campaign image on the site at once.
+  `scripts/localize-campaign-covers.mjs` downloads each cover, re-encodes to WebP
+  (1200x900, q82), uploads to `campaign-media/covers/<slug>.webp` with a
+  one-year immutable cache header, and repoints `cover_image_url`/`image_urls`.
+  Dry-run by default, idempotent (upsert + skips anything already local).
+  **Applied: 500/500 localized, 0 failures, 0 still external, 500 distinct.**
+  Verified live: `/campaigns` serves 120 Storage covers and **0 picsum refs**.
+  Re-ran the IMG-06 dHash audit afterwards — the WebP re-encode had nudged one
+  pair to the d=5 boundary, so that campaign was reassigned to a
+  verified-distinct image; **final: 0 exact, 0 near-duplicate**.
+  Also wired `lib/img-optimize.ts` to route Storage objects through
+  `render/image/public` (the object endpoint always returns the full-size
+  original) — a 400px card variant is ~42KB vs ~83KB.
 - [x] IMG-06 — **Done (2026-07-25).** Perceptual/dHash near-duplicate detection over
   image **binaries** — it did not need staging after all. `scripts/audit-image-dupes.mjs`
   downloads every cover, reduces to a 9x8 greyscale, computes a 64-bit dHash and
