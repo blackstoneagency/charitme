@@ -92,6 +92,15 @@ audited, 12 routes runtime-smoke-tested. Tests **1137 / 98 files**, build green.
   — i.e. it does *not* have the drift bug `campaign-intake` had — with integer
   cents, tip capped 0–100%, `.email()` on donor email, and every string
   length-capped.
+- **The donate form (`DonateButton.tsx`) is clean** — checked with the same
+  "control missing from the payload" method that found 10 dead controls in
+  Settings, since this is the money path. Every piece of form state reaches the
+  POST body. `rewardId` is sent only for one-time gifts, and the reward UI is
+  guarded by the *same* `!isMonthly` condition, so the two cannot disagree.
+  Rewards also auto-deselect in **three** places if the donor lowers the amount
+  below a tier's minimum. Switching once→monthly leaves `selectedRewardId` set in
+  state, but both the UI and the payload are guarded, so it has no visible effect
+  and preserves the choice if they switch back — intentional, not a leak.
 - `lib/email-validation.ts` handles the cases that usually break: plus-addressing,
   apostrophes, subdomains, long TLDs, uppercase. Only IDN (`münchen.de`) fails,
   which is defensible for an admin-only outreach tool.
