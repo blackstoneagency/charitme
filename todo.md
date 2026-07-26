@@ -4005,7 +4005,29 @@ Verified · Production Ready. These are grounded in the current codebase
       ⬜ **Still open:** volunteer + organizer UI, and the corporate CSV export
       endpoint (`exportableHours()` is written and tested, nothing calls it yet).
 
-- [ ] **CHAR-1102 (follow-up: UI + CSV export endpoint)**
+- [~] **CHAR-1102 (follow-up)** — **Corporate CSV export SHIPPED (Claude, 2026-07-26); only UI remains.**
+      `GET /api/volunteers/hours/export`, two scopes:
+      `?opportunity_id=` (organizer/admin, includes volunteer names — they run the
+      programme) and no-parameter (the signed-in volunteer's own hours). There is
+      deliberately **no "export everything" mode**: an employer-facing report should
+      be scoped to one programme or one person, not to the platform.
+
+      - Rows are filtered through the shared `exportableHours()` predicate **again**,
+        not just by the query. The rule deciding what an employer sees lives in one
+        tested place so a future query change cannot quietly widen it.
+      - Uses `toCsv()`, which neutralises formula-injection leads. Volunteers set
+        their own display names and those cells land in Excel — a name like
+        `=HYPERLINK(...)` would otherwise execute from a file the employer was told
+        to trust. Covered by a test.
+      - `X-Verified-Hours` reports the **verified** total only, so a consumer
+        reconciling the file never sees pending time as though it counted.
+
+      6 tests in `__tests__/volunteer-hours-export.test.ts` pin the composition:
+      pending/rejected never appear, formula injection is neutralised, hours stay
+      numeric, and a comma in a name does not break the column count.
+
+- [ ] **CHAR-1102 (follow-up: volunteer + organizer UI)** — the only remaining piece;
+      schema, domain logic, API and export are all shipped and tested.
   - Area: Volunteers
   - Feature: Shifts, check-in/out & hours tracking
   - Description: Schedule shifts, QR check-in/out, accumulate verified hours,
