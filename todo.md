@@ -4674,3 +4674,59 @@ remains unbounded. Each one needs a per-page judgement about what "degraded"
 should look like, so it is deliberately not a blanket search-and-replace. Tracked
 here rather than claimed as done. `lib/query-timeout.ts` (7 tests) is the tool to
 finish it with.
+
+
+### ✅ FINDING 2 (continued) — query ceiling rolled out to the public list reads
+Added `boundedQuery(query)` to `lib/query-timeout.ts`: returns the query's own
+resolved `{ data, error }` shape, synthesising supabase-js's failure shape on
+timeout so a call site's **existing** error branch runs and no downstream code
+changes. 10 tests.
+
+Applied to **15 list reads** that already degrade to `[]`:
+`leaderboard` (2), `events` (3), `grants-server` (1), `matching` (4),
+`sponsorships` (4), `volunteers-server` (1).
+
+**Deliberately NOT applied to 6 single-row reads** (`getEventBySlug` and
+siblings in events/grants/matching/sponsorships/volunteers). Those return `null`
+on error, and callers turn `null` into a **404** — so a transient timeout would
+tell a visitor that a campaign/event/grant *does not exist*. That is worse than a
+slow page, and it is cacheable/indexable. A first pass wrapped them by regex; the
+audit caught it and they were reverted. **If you extend this rollout, check what
+the caller does with the empty result before wrapping anything.**
+
+Still unbounded beyond these: admin/dashboard reads and anything where empty
+would be mistaken for a real answer (money totals, receipts, auth).
+
+### 🔴 BLOCKER — GitHub Actions is not allocating runners (owner action needed)
+As of 2026-07-26 ~13:05Z, **every** CI run fails in 2–5 seconds with no logs and
+`runner_id: 0`, `runner_name: ""` — i.e. no runner is ever assigned, so the jobs
+never execute. This is **repo-wide, not branch-specific**: master runs
+`b615e539` (3s), `fc5852b5` (5s), `0a0b5040` (3s) all died the same way.
+Today's run counter is already #458.
+
+**Not a code failure.** Most likely an Actions spending limit / minutes quota, or
+Actions disabled at account level. Check GitHub → Settings → Billing → Actions,
+and Settings → Actions → permissions.
+
+**Consequence:** the e2e gate added in #73 currently cannot run, and master's own
+state is unverified by CI. Everything merged up to `fc5852b` (#73, #75) *did* pass
+full CI first.
+
+#### Workarounds attempted, and what they proved
+- **Point the suite at a Vercel preview** — blocked: previews sit behind Vercel
+  Deployment Protection and redirect to `vercel.com/sso-api`, so the suite sees the
+  SSO wall, not the app. Needs protection disabled or a bypass token (owner).
+- **Point the suite at production** (`www.charitme.com`, publicly reachable, 200) —
+  6 specs "failed", but all 6 are **sandbox-proxy artifacts, not real defects**,
+  verified directly:
+  - auth gates are **correct in production**: `/admin`, `/dashboard`, `/create`
+    each 307 → `/login?next=…`, and `/create/choose-path` is 200. ✅
+  - all three smoke strings (`CharitMe`, `0%`, `Create My Fundraiser Now!`) **are
+    present** in live HTML. ✅
+  Conclusion: remote e2e from this sandbox is unreliable (the outbound HTTPS proxy
+  breaks Playwright navigation); direct `curl` assertions are trustworthy.
+- **`playwright.config.ts` improvement (kept):** the local `webServer` is now
+  skipped when `PLAYWRIGHT_BASE_URL` names an external target. Previously it always
+  booted a local server — and failed without a full Supabase env — so the suite
+  could not be pointed at a deployment at all. That capability is now available for
+  whenever protection/proxy constraints lift.

@@ -3,6 +3,7 @@ import 'server-only';
 // Events — Supabase data access. Pure logic in `events-core.ts`.
 // ─────────────────────────────────────────────────────────────────────────────
 import { supabaseAdmin } from './supabase';
+import { boundedQuery } from './query-timeout';
 import type { FundraisingEvent, EventRegistration } from './events-core';
 
 const EVENT_COLUMNS =
@@ -27,12 +28,14 @@ async function registeredQtyByEvent(eventIds: string[]): Promise<Map<string, num
 }
 
 export async function listPublishedEvents(limit = 60): Promise<EventWithCounts[]> {
-  const { data, error } = await supabaseAdmin
-    .from('fundraising_events')
-    .select(EVENT_COLUMNS)
-    .eq('status', 'published')
-    .order('starts_at', { ascending: true })
-    .limit(Math.min(limit, 200));
+  const { data, error } = await boundedQuery(
+  supabaseAdmin
+      .from('fundraising_events')
+      .select(EVENT_COLUMNS)
+      .eq('status', 'published')
+      .order('starts_at', { ascending: true })
+      .limit(Math.min(limit, 200)),
+  );
   if (error || !data) return [];
   return withCounts(data as FundraisingEvent[]);
 }
@@ -59,12 +62,14 @@ export async function getEventById(id: string): Promise<FundraisingEvent | null>
 }
 
 export async function listOrganizerEvents(userId: string): Promise<EventWithCounts[]> {
-  const { data, error } = await supabaseAdmin
-    .from('fundraising_events')
-    .select(EVENT_COLUMNS)
-    .eq('created_by', userId)
-    .order('starts_at', { ascending: false })
-    .limit(200);
+  const { data, error } = await boundedQuery(
+  supabaseAdmin
+      .from('fundraising_events')
+      .select(EVENT_COLUMNS)
+      .eq('created_by', userId)
+      .order('starts_at', { ascending: false })
+      .limit(200),
+  );
   if (error || !data) return [];
   return withCounts(data as FundraisingEvent[]);
 }
@@ -74,11 +79,13 @@ export interface RegistrationWithCheckin extends EventRegistration {
 }
 
 export async function listEventRegistrations(eventId: string): Promise<RegistrationWithCheckin[]> {
-  const { data, error } = await supabaseAdmin
-    .from('event_registrations')
-    .select('*')
-    .eq('event_id', eventId)
-    .order('created_at', { ascending: false });
+  const { data, error } = await boundedQuery(
+  supabaseAdmin
+      .from('event_registrations')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false }),
+  );
   if (error || !data) return [];
   const rows = data as EventRegistration[];
   const { data: checkins } = await supabaseAdmin

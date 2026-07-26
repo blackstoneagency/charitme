@@ -3,6 +3,7 @@ import 'server-only';
 // Corporate matching gifts — Supabase data access. Pure logic in `matching-core.ts`.
 // ─────────────────────────────────────────────────────────────────────────────
 import { supabaseAdmin } from './supabase';
+import { boundedQuery } from './query-timeout';
 import { reservesCap, type MatchingProgram, type MatchingClaim } from './matching-core';
 
 const PROGRAM_COLUMNS =
@@ -21,7 +22,7 @@ export async function listActivePrograms(search?: string): Promise<ProgramWithSp
     .limit(120);
   if (search) query = query.ilike('company_name', `%${search}%`);
 
-  const { data, error } = await query;
+  const { data, error } = await boundedQuery(query);
   if (error || !data) return [];
   return decorate(data as MatchingProgram[]);
 }
@@ -38,12 +39,14 @@ export async function getProgram(id: string): Promise<ProgramWithSponsor | null>
 }
 
 export async function listSponsorPrograms(sponsorId: string): Promise<ProgramWithSponsor[]> {
-  const { data, error } = await supabaseAdmin
-    .from('matching_programs')
-    .select(PROGRAM_COLUMNS)
-    .eq('sponsor_id', sponsorId)
-    .order('created_at', { ascending: false })
-    .limit(200);
+  const { data, error } = await boundedQuery(
+  supabaseAdmin
+      .from('matching_programs')
+      .select(PROGRAM_COLUMNS)
+      .eq('sponsor_id', sponsorId)
+      .order('created_at', { ascending: false })
+      .limit(200),
+  );
   if (error || !data) return [];
   return decorate(data as MatchingProgram[]);
 }
@@ -70,21 +73,25 @@ export interface ClaimWithNames extends MatchingClaim {
 }
 
 export async function listEmployeeClaims(employeeId: string): Promise<ClaimWithNames[]> {
-  const { data, error } = await supabaseAdmin
-    .from('matching_claims')
-    .select('*')
-    .eq('employee_id', employeeId)
-    .order('created_at', { ascending: false });
+  const { data, error } = await boundedQuery(
+  supabaseAdmin
+      .from('matching_claims')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .order('created_at', { ascending: false }),
+  );
   if (error || !data) return [];
   return attachNames(data as MatchingClaim[]);
 }
 
 export async function listProgramClaims(programId: string): Promise<ClaimWithNames[]> {
-  const { data, error } = await supabaseAdmin
-    .from('matching_claims')
-    .select('*')
-    .eq('program_id', programId)
-    .order('created_at', { ascending: false });
+  const { data, error } = await boundedQuery(
+  supabaseAdmin
+      .from('matching_claims')
+      .select('*')
+      .eq('program_id', programId)
+      .order('created_at', { ascending: false }),
+  );
   if (error || !data) return [];
   return attachNames(data as MatchingClaim[]);
 }
