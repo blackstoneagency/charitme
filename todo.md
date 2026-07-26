@@ -4942,6 +4942,29 @@ merge commit.
      the security/auth/header behaviour holds, not that seeded data renders.
 3. **Signed-in e2e** the moment test credentials exist.
 
+### ✅ DONE — Claude, 2026-07-26 — **swept the whole "records success without doing the work" class**
+The receipt bug above was not a one-off, so I checked every email path. **All nine
+senders in `lib/email.ts` returned `Promise<void>` and `return`ed early when
+`RESEND_API_KEY` is unset** — the shape that makes a dropped email
+indistinguishable from a delivered one. All nine now return `{ sent: boolean }`.
+Callers audited and fixed by what the record actually claims:
+- **`/api/admin/donations/tax-receipt` — same defect as the donation receipt, on
+  the IRS-facing document.** It upserted `tax_receipts` with `emailed_at` and wrote
+  a `donation.tax_receipt_sent` audit entry regardless of delivery. Now returns 502
+  before recording anything.
+- **`/api/beneficiaries/invites/resend`** exists *only* to deliver an email and
+  returned `ok` after `.catch(() => {})` swallowed the failure. Now 502.
+- **`/api/beneficiaries/invites`** (create) keeps its 200 — the invite row and its
+  token are the real artifact and stay valid — but now returns `emailed: boolean`
+  so the UI can offer the link instead of claiming someone was contacted.
+- **Checked and sound:** `/api/admin/donations/[id]/refund` really calls
+  `stripe.refunds.create`; payout/refund/organizer-alert emails are notifications
+  *after* the real action, so a failed send does not falsify the record.
+- Guard: `__tests__/donation-receipts.test.ts` grew to 14 tests, including
+  behavioural ones for `sendTaxReceiptEmail`/`sendBeneficiaryInviteEmail` and a
+  blanket assert that **no sender in `lib/email.ts` declares `Promise<void>`**.
+- Verified: typecheck 0, **1233 tests / 111 files**, build green.
+
 ### ✅ DONE — Claude, 2026-07-26 — **user-role mapping audit** (was CLAIM)
 Claiming *before* writing code, per the duplicated-work incident above. Scope: the
 goal's new criterion "each user role is clearly mapped out and different from the

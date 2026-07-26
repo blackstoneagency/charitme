@@ -47,15 +47,19 @@ export async function POST(request: NextRequest) {
   const { data: organizer } = await supabaseAdmin.from('profiles').select('full_name').eq('id', user.id).single();
 
   // Send invite email using the proper template
-  await sendBeneficiaryInviteEmail({
+  // The invite row is the real artifact — its token stays valid whether or not the
+  // email goes out, so a failed send is not a failed request. But it must be
+  // REPORTED, otherwise the organizer is told an invite was delivered to someone
+  // who will never hear about it. `emailed` lets the UI offer the link instead.
+  const { sent: emailed } = await sendBeneficiaryInviteEmail({
     to: email,
     organizerName: organizer?.full_name ?? 'Your fundraiser organizer',
     campaignTitle: campaign.title,
     campaignSlug: campaign.slug,
     inviteToken: inviteRow.token,
-  }).catch(() => {});
+  }).catch(() => ({ sent: false }));
 
-  return NextResponse.json({ ok: true, inviteId: inviteRow.id });
+  return NextResponse.json({ ok: true, inviteId: inviteRow.id, emailed });
 }
 
 // GET /api/beneficiaries/invites?token=... — look up invite by token (for accept flow)

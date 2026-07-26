@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     year: 'numeric', month: 'long', day: 'numeric',
   });
 
-  await sendTaxReceiptEmail({
+  const { sent } = await sendTaxReceiptEmail({
     to: (profile as { email: string }).email,
     donorName: (profile as { full_name?: string }).full_name,
     nonprofitName: nonprofit.name,
@@ -104,6 +104,17 @@ export async function POST(req: NextRequest) {
     receiptNumber,
     donationDate,
   });
+
+  // Same rule as the donation receipt: never stamp `emailed_at` or write a
+  // `tax_receipt_sent` audit entry for a send that did not happen. This is an
+  // IRS-facing document — a false delivery record is a compliance problem, not a
+  // cosmetic one.
+  if (!sent) {
+    return NextResponse.json(
+      { error: 'Email could not be sent — receipt not recorded', code: 'EMAIL_UNAVAILABLE' },
+      { status: 502 },
+    );
+  }
 
   await supabaseAdmin.from('tax_receipts').upsert({
     donation_id: donation.id,

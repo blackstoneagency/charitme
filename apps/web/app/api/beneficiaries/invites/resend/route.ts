@@ -42,13 +42,24 @@ export async function POST(request: NextRequest) {
 
   // Send invite email
   const { data: organizer } = await supabaseAdmin.from('profiles').select('full_name').eq('id', user.id).single();
-  await sendBeneficiaryInviteEmail({
+  // Resending exists only to deliver the email, so a send that did not happen is a
+  // failed request — reporting ok would tell the organizer the beneficiary was
+  // contacted again when nothing left the building. (The expiry extension above
+  // still stands, which is harmless and keeps the invite usable.)
+  const { sent } = await sendBeneficiaryInviteEmail({
     to: inv.email,
     organizerName: organizer?.full_name ?? 'Your fundraiser organizer',
     campaignTitle: camp.title,
     campaignSlug: camp.slug,
     inviteToken: inv.token,
-  }).catch(() => {});
+  }).catch(() => ({ sent: false }));
+
+  if (!sent) {
+    return NextResponse.json(
+      { error: 'Email could not be sent right now', code: 'EMAIL_UNAVAILABLE' },
+      { status: 502 },
+    );
+  }
 
   return NextResponse.json({ ok: true, expiresAt: newExpiry });
 }

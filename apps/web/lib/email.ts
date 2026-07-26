@@ -145,8 +145,8 @@ export async function sendOrganizerDonationAlert(input: {
   donorDisplayName: string;
   totalRaisedFormatted: string;
   goalFormatted: string;
-}): Promise<void> {
-  if (!resend) return;
+}): Promise<{ sent: boolean }> {
+  if (!resend) return { sent: false };
 
   const year = new Date().getFullYear();
   const dashboardUrl = `${ORIGIN}/dashboard`;
@@ -185,6 +185,7 @@ export async function sendOrganizerDonationAlert(input: {
     html: emailWrapper('New Donation', body, year),
     text: `${input.donorDisplayName} just donated ${input.amountFormatted} to "${input.campaignTitle}".\n\nTotal raised: ${input.totalRaisedFormatted} of ${input.goalFormatted} goal.\n\nDashboard: ${dashboardUrl}\n\n© ${year} CharitMe`,
   });
+  return { sent: true };
 }
 
 // ─────────────────────────────────────────────
@@ -197,8 +198,8 @@ export async function sendUpdateNotification(input: {
   campaignSlug: string;
   updateTitle: string;
   updateBody: string;
-}): Promise<void> {
-  if (!resend) return;
+}): Promise<{ sent: boolean }> {
+  if (!resend) return { sent: false };
 
   const year = new Date().getFullYear();
   const campaignUrl = `${ORIGIN}/campaigns/${input.campaignSlug}`;
@@ -222,6 +223,7 @@ export async function sendUpdateNotification(input: {
     html: emailWrapper(`Update: ${input.campaignTitle}`, body, year),
     text: `${input.updateTitle}\n\n${input.updateBody}\n\nView campaign: ${campaignUrl}`,
   });
+  return { sent: true };
 }
 
 // ─────────────────────────────────────────────
@@ -233,8 +235,8 @@ export async function sendRefundEmail(input: {
   campaignTitle: string;
   amountFormatted: string;
   refundId?: string;
-}): Promise<void> {
-  if (!resend) return;
+}): Promise<{ sent: boolean }> {
+  if (!resend) return { sent: false };
 
   const year = new Date().getFullYear();
   const dashboardUrl = `${ORIGIN}/donor`;
@@ -266,6 +268,7 @@ export async function sendRefundEmail(input: {
     html: emailWrapper('Refund Processed', body, year),
     text: `Your refund of ${input.amountFormatted} from "${input.campaignTitle}" has been processed.\n\nDonation history: ${dashboardUrl}\n\n© ${year} CharitMe`,
   });
+  return { sent: true };
 }
 
 // ─────────────────────────────────────────────
@@ -279,8 +282,8 @@ export async function sendPayoutEmail(input: {
   status: 'paid' | 'failed' | 'scheduled';
   arrivalDate?: string;
   failureReason?: string;
-}): Promise<void> {
-  if (!resend) return;
+}): Promise<{ sent: boolean }> {
+  if (!resend) return { sent: false };
 
   const year = new Date().getFullYear();
   const dashboardUrl = `${ORIGIN}/dashboard/payouts`;
@@ -321,6 +324,7 @@ export async function sendPayoutEmail(input: {
     html: emailWrapper(title, body, year),
     text: `${title}\n\nAmount: ${input.amountFormatted}\nCampaign: ${input.campaignTitle}\n${input.arrivalDate ? `Expected: ${input.arrivalDate}\n` : ''}${input.failureReason ? `Reason: ${input.failureReason}\n` : ''}\nView payouts: ${dashboardUrl}\n\n© ${year} CharitMe`,
   });
+  return { sent: true };
 }
 
 // ─────────────────────────────────────────────
@@ -332,8 +336,8 @@ export async function sendBeneficiaryInviteEmail(input: {
   campaignTitle: string;
   campaignSlug: string;
   inviteToken: string;
-}): Promise<void> {
-  if (!resend) return;
+}): Promise<{ sent: boolean }> {
+  if (!resend) return { sent: false };
 
   const year = new Date().getFullYear();
   const acceptUrl = `${ORIGIN}/beneficiary/accept?token=${input.inviteToken}`;
@@ -365,6 +369,7 @@ export async function sendBeneficiaryInviteEmail(input: {
     html: emailWrapper('Beneficiary Invitation', body, year),
     text: `${input.organizerName} has invited you to be the beneficiary of "${input.campaignTitle}".\n\nAccept: ${acceptUrl}\nView campaign: ${campaignUrl}\n\nThis invitation expires in 7 days.\n\n© ${year} CharitMe`,
   });
+  return { sent: true };
 }
 
 // ─────────────────────────────────────────────
@@ -376,8 +381,8 @@ export async function sendCoOrganizerInviteEmail(input: {
   campaignTitle: string;
   campaignSlug: string;
   role: string;
-}): Promise<void> {
-  if (!resend) return;
+}): Promise<{ sent: boolean }> {
+  if (!resend) return { sent: false };
 
   const year = new Date().getFullYear();
   const campaignUrl = `${ORIGIN}/campaigns/${input.campaignSlug}`;
@@ -407,6 +412,7 @@ export async function sendCoOrganizerInviteEmail(input: {
     html: emailWrapper('Team Invitation', body, year),
     text: `${input.organizerName} added you as ${input.role} on "${input.campaignTitle}".\n\nDashboard: ${dashboardUrl}\nCampaign: ${campaignUrl}\n\n© ${year} CharitMe`,
   });
+  return { sent: true };
 }
 
 // ─────────────────────────────────────────────
@@ -421,8 +427,8 @@ export async function sendTaxReceiptEmail(input: {
   amountFormatted: string;
   receiptNumber: string;
   donationDate: string;
-}): Promise<void> {
-  if (!resend) return;
+}): Promise<{ sent: boolean }> {
+  if (!resend) return { sent: false };
 
   const year = new Date().getFullYear();
   const dashboardUrl = `${ORIGIN}/donor`;
@@ -478,4 +484,5 @@ export async function sendTaxReceiptEmail(input: {
     html: emailWrapper('Tax Receipt', body, year),
     text: `Official Tax Receipt\n\nNonprofit: ${input.nonprofitName}\nEIN: ${input.nonprofitEin}\nCampaign: ${input.campaignTitle}\nDate: ${input.donationDate}\nReceipt: ${input.receiptNumber}\nAmount: ${input.amountFormatted}\n\nThis donation is tax-deductible.\n\nView donations: ${dashboardUrl}\n\n© ${year} CharitMe`,
   });
+  return { sent: true };
 }

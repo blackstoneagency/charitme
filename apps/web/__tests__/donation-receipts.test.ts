@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { sendReceiptEmail, resend } from '../lib/email';
+import {
+  sendReceiptEmail,
+  sendTaxReceiptEmail,
+  sendBeneficiaryInviteEmail,
+  resend,
+} from '../lib/email';
 
 const WEB_ROOT = join(__dirname, '..');
 const read = (p: string) => readFileSync(join(WEB_ROOT, p), 'utf8');
@@ -97,5 +102,62 @@ describe('receipt endpoints record only what actually happened', () => {
     // The raw check missed hardcoded owner emails, ADMIN_EMAILS, and super admins
     // who do not also hold `admin`.
     expect(src).not.toMatch(/roles\.includes\('admin'\)/);
+  });
+});
+
+// The IRS-facing tax receipt had the identical defect: it upserted `tax_receipts`
+// with `emailed_at` and wrote a `donation.tax_receipt_sent` audit entry regardless
+// of whether the email left the building.
+describe('tax receipts record only real sends', () => {
+  it('sendTaxReceiptEmail reports sent:false with no transport', async () => {
+    await expect(
+      sendTaxReceiptEmail({
+        to: 'donor@example.com',
+        donorName: 'Donor',
+        nonprofitName: 'Test Org',
+        nonprofitEin: '12-3456789',
+        campaignTitle: 'Test campaign',
+        amountFormatted: '$25.00',
+        receiptNumber: 'RCP-2026-ABCDEF12',
+        donationDate: 'January 1, 2026',
+      }),
+    ).resolves.toEqual({ sent: false });
+  });
+
+  it('the route bails before stamping emailed_at', () => {
+    const src = read('app/api/admin/donations/tax-receipt/route.ts');
+    const bail = src.indexOf('EMAIL_UNAVAILABLE');
+    expect(bail).toBeGreaterThan(-1);
+    // The property write, not the comment above it that mentions the column.
+    expect(src.indexOf('emailed_at:')).toBeGreaterThan(bail);
+    expect(src.indexOf("action: 'donation.tax_receipt_sent'")).toBeGreaterThan(bail);
+  });
+});
+
+// Every sender must be able to say whether it delivered. Returning void is what
+// let three separate routes record deliveries that never happened.
+describe('no email helper resolves silently', () => {
+  it('sendBeneficiaryInviteEmail reports its result too', async () => {
+    await expect(
+      sendBeneficiaryInviteEmail({
+        to: 'b@example.com',
+        organizerName: 'Organizer',
+        campaignTitle: 'Test campaign',
+        campaignSlug: 'test-campaign',
+        inviteToken: 'tok',
+      }),
+    ).resolves.toEqual({ sent: false });
+  });
+
+  it('lib/email declares no sender returning Promise<void>', () => {
+    const src = read('lib/email.ts');
+    const senders = [...src.matchAll(/export async function (send\w+)\(/g)].map((m) => m[1]);
+    expect(senders.length).toBeGreaterThanOrEqual(9);
+    // Not one of them may declare Promise<void> — that is the shape that made a
+    // dropped email indistinguishable from a delivered one.
+    expect(src, `a sender still returns Promise<void>: ${senders.join(', ')}`)
+      .not.toContain('): Promise<void> {');
+    // …and each must be able to report the no-transport case.
+    expect(src.match(/return \{ sent: false \};/g)?.length ?? 0).toBeGreaterThanOrEqual(senders.length);
   });
 });
