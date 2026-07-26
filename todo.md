@@ -12,6 +12,66 @@
   uniqueness, feature-wiring, and non-theme accessibility (labels/roles/alt)**.
   → Codex can rely on these not touching theme colors.
 
+## 📌 SESSION HANDOFF — Claude, 2026-07-26 (read this first)
+
+**16 PRs merged to master this session** (#90, #92, #94, #96, #98–#109). Verified state
+at handoff: **1378 tests, typecheck 0, lint 0 errors, build green**, a11y **4/4 across
+WCAG 2.0/2.1/2.2 A+AA** and all three public sweeps **8/8 against a real production
+build**, responsive **222 renders / 0 findings**.
+
+### The one theme worth internalising
+Almost every real bug this session was **a check that passed while measuring the wrong
+thing.** Not missing tests — *present* tests and audits reporting green on something
+other than what they claimed:
+
+1. A contrast baseline exempting 2 routes for failures that no longer existed.
+2. `/achievements` + `/privacy-center` listed as public in **all five** route lists
+   while both 307 to `/login` — so five sweeps audited the login page and passed.
+3. `audit-responsive.mjs` green through 222 renders while the nav rendered **on top of**
+   the header buttons at every width 1101–1800px, sitewide. It measured page-vs-viewport;
+   nothing asked whether the page's own controls overlapped.
+4. A verification trigger I wrote that **did not fire at all** under the service role,
+   because `not (is_admin() or owner_id = auth.uid())` is NULL — not TRUE — when
+   `auth.uid()` is NULL.
+5. **Seven** pages rendering `$0` as fact when a read failed, including a public claim
+   about a named person and a donor's own lifetime giving.
+6. `schema.sql` — the mirror that exists to prevent drift — **15 tables behind**.
+
+**Corollary, learned the hard way three times: a scoped grep is not evidence.** My own
+audit tooling produced two confident wrong answers (`catch\s*\(` misses `catch {`;
+`error\s*:` misses `{ data, error }`), after I had already caught the same mistake
+twice in others' work. **Run the fix, re-probe, then read the survivors by hand.**
+
+### Rules now encoded in code, not convention
+- A list may be empty; **a statistic may not be invented.** `shouldShowPlatformMetrics()`
+  treats an all-zero reading as "no data" — `home.ok` alone is insufficient, because
+  `getHomeData` coalesces failed reads to `[]` and returns zeros without throwing.
+- **A try/catch that returns zeros is not a guard, it is the bug with extra steps.**
+- Only `verified` volunteer hours reach an employer; `totalHours()` returns
+  verified/pending/rejected **separately** so no caller can conflate them.
+- Any security predicate over a nullable column needs `coalesce` **and** a NULL-case test.
+- Sweeps assert the landed path equals the requested one — a redirect now fails loudly
+  instead of silently auditing something else.
+
+### What is genuinely blocked on you (no bot can close these)
+- **GitHub Actions billing** — every run dies in 2–5s with `runner_id: 0`, on master too.
+  Traced to billing in `a0ae222`, not code. **Nothing below is CI-verified.**
+- **Vercel** — `api-deployments-free-per-day` cap hit repeatedly.
+- **Supabase / Stripe / Resend credentials** — these block the ≥100 seed records, any
+  real paid flow, and a signed-in a11y sweep of `/dashboard`, `/admin`, `/create`.
+  That auth-gated surface is a **confirmed unmeasured** gap, not a vague one.
+- **`qrcode` dependency** for CHAR-1102's QR image. Adding a runtime dependency to a
+  payments platform is your call; the check-in flow works by typed code without it.
+
+### Best next slices for another agent (non-gated)
+1. `scripts/audit-contrast.mjs` still has its own hardcoded route list with the two bad
+   routes — point it at `e2e/public-routes.json` and add the landed-path check. Its
+   "38 pages, 0 failures" number currently includes two login-page scans.
+2. Marketing OS backlog: multi-tenancy (§7), approval engine (§30), roles (§9),
+   GA4/Search Console read-only connectors (§32).
+3. Re-run `su postgres -s /bin/bash -c ./scripts/regen_schema.sh` after **every**
+   migration — `initdb` refuses to run as root, which is why the mirror drifted.
+
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
