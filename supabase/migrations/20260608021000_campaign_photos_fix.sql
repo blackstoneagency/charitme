@@ -1,5 +1,5 @@
 -- Fix broken Unsplash photo IDs — all IDs in this migration have been verified HTTP 200.
--- Replaces previous migration 20260608010000_campaign_photos.sql for any category
+-- Replaces previous migration 20260608011000_campaign_photos.sql for any category
 -- that had broken images.
 
 UPDATE campaigns SET

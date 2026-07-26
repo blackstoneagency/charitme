@@ -1,7 +1,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Backfill creator_profiles + campaign_launch_settings from REAL existing rows
 --
--- 20260727000000_reconcile_competitor_parity_tables.sql created these two
+-- 20260727001000_reconcile_competitor_parity_tables.sql created these two
 -- tables with public-read policies, but left them empty. campaign_launch_settings
 -- is read by 10+ live routes (donations, recurring, analytics, settings,
 -- rewards, qr-poster, AI assistant), so every real campaign was falling back to

@@ -4276,6 +4276,15 @@ the anon+cookies client so Postgres enforces ownership).
 - [x] Verified focused banner tests 15/15, zero-warning lint, typecheck, all 1,163 tests, and the 149-page production build.
 - [ ] Merge through the protected-main PR, apply the verified migration in the release workflow, and confirm the production Save/show/hide/text flow.
 
+## Session 2026-07-26 (Codex - full SQL/live Supabase reconciliation)
+- [x] Inventoried all 104 SQL files: 87 migrations, 2 rollbacks, 11 seed files, and 4 schema/recovery/generator artifacts.
+- [x] Compared live Supabase tables, columns, functions, RPCs, indexes, triggers, policies, RLS, seed targets, and migration history with the repository.
+- [x] Found and corrected 12 duplicate migration versions plus one invalid eight-digit migration version.
+- [x] Added migration coverage for six live tables that previously existed only out of band.
+- [x] Added a test that rejects duplicate/invalid migration versions and PostgREST table usage without migration coverage.
+- [x] Verified the exact nine-migration pending set against live Supabase in a rollback-only transaction with postcondition checks.
+- [ ] Merge PR #74, baseline the 78 verified historical versions, apply the nine pending versions, and rerun the live 150-table/catalog audit.
+
 ## 🔒 CLAIM — Session 2026-07-25 (Claude — production-readiness sweep)
 
 > **AREA CLAIMED:** `.github/workflows/ci.yml`, `apps/web/e2e/**`, `middleware.ts`.

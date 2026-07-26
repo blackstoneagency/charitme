@@ -54,7 +54,7 @@ from `supabase/migrations/*.sql` and includes them in the `--live` HTTP-200
 verification (and approved-host check).
 
 **Found + fixed:** the extended live audit flagged **23 of 68** SQL image IDs
-returning **404** (removed upstream) — all in `20260608010000_campaign_photos.sql`
+returning **404** (removed upstream) — all in `20260608011000_campaign_photos.sql`
 gallery arrays. Each was replaced with a verified-live catalog ID. These were
 already superseded in production by `20260723000000_campaign_cover_per_campaign.sql`
 (all-verified catalog IDs), so no user-facing impact — but the repo/seed is now

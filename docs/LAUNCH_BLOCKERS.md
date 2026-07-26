@@ -86,7 +86,7 @@ also had a bug (`tm.campaign_id = tm.id`, should correlate to `campaigns.id`).
 ### LB-001 — Live database schema out of sync — ✅ RECONCILED (2026-07-24)
 Reconciled with owner approval. **31 → 132 tables (matches the repo target), no
 data loss** (connected_accounts/campaigns/donations = 500 each intact). Fix chain:
-`20260724000000_reconcile_legacy_column_drift` (adds `nonprofit_id` to legacy
+`20260724001000_reconcile_legacy_column_drift` (adds `nonprofit_id` to legacy
 `donor_crm_contacts`/`recurring_donations`) unblocked `competitor_parity_features`
 → `events_platform` → `admin_settings_and_audit`. PostgREST schema cache reloaded.
 **Verified:** 132 tables · **RLS enabled on 132/132** · 42 functions · 70 triggers ·
@@ -165,7 +165,7 @@ provide/allow a scratch clone). This is far larger than the single migration
 requested and must not be done blind on the deployed database.
 
 **Remediation progress (this session, via Management API):**
-- `20260723000000_rls_hardening_admin_tables.sql` — applied HTTP 201, **no-op**
+- `20260723002000_rls_hardening_admin_tables.sql` — applied HTTP 201, **no-op**
   (target tables absent).
 - `20260609000000_gofundme_audit_gaps.sql` — applied HTTP 201 and **VERIFIED**:
   `select count(*) from campaigns where visibility='public' and deleted_at is null`

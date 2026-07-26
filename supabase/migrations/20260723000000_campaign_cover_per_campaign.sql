@@ -1,7 +1,7 @@
 -- =============================================================================
 -- Per-campaign cover distribution
 -- =============================================================================
--- Prior migrations (20260608010000_campaign_photos.sql / _fix) assigned ONE
+-- Prior migrations (20260608011000_campaign_photos.sql / _fix) assigned ONE
 -- identical cover per category, so every Medical campaign (etc.) looked the
 -- same. This migration spreads campaigns deterministically across each
 -- category's verified photo pool, keyed by a stable hash of the slug, so
