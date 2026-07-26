@@ -323,6 +323,40 @@ the API — applies both gates._
 _Lesson recorded: when a fix touches a mapping, grep for other copies of it before
 declaring it done. I verified the API route and stopped there._
 
+**🔴 TRUST & SAFETY — "Suspend User" does not suspend anyone. NOT FIXED (needs a product call).**
+The most consequential promise-audit finding, and the only one I have not fixed —
+because fixing it wrong locks real people out of their accounts.
+
+**What happens today:** an admin clicks *Suspend User* → `POST /api/admin/users/[id]`
+→ `rolesFor()` adds `'suspended'` to `profiles.roles`. That is the entire effect.
+The user can still **log in, donate, create campaigns, post updates** — everything.
+Suspension is a label in the admin console.
+
+Three independent confirmations:
+1. **No enforcement exists.** `lib/auth.ts` (`getUser`/`requireUser`) checks only
+   admin/super-admin. `middleware.ts` never reads `profiles` at all. No API route
+   checks suspension. Grepped `app`, `lib`, `middleware.ts`.
+2. **The canonical reader deliberately discards the marker.** `parseRoles()` in
+   `lib/roles.ts` whitelists to `ASSIGNABLE_ROLES` =
+   `donor, organizer, beneficiary, nonprofit, admin, super_admin` — **`'suspended'`
+   is not in that list**. So `getUserRoles()` strips it, and any future
+   `getUserRoles(id).includes('suspended')` check is **permanently false**. This is
+   the concrete harm from the two-divergent-`parseRoles` drift recorded above.
+3. **Status is written into the wrong place.** Suspension is encoded as a *role*
+   even though `profiles.status` exists and `deriveStatus()` already reads it.
+
+**Why I stopped here rather than shipping enforcement:** blocking the wrong surface
+is worse than the bug. Someone has to decide whether a suspended user is blocked at
+**login** (cannot see their account or appeal), at **donation**, at **campaign
+creation**, or all three — and what happens to their live campaigns and any active
+recurring donations mid-suspension. Those are policy questions with real
+money and real users attached.
+
+**When decided, the implementation is small:** stop encoding status in `roles`
+(use `profiles.status`, already present and already read by `deriveStatus`), then
+gate the chosen surfaces in `requireUser()`. Do **not** gate via `getUserRoles()` —
+per (2) it cannot see the marker.
+
 **🔴 FIXED — 3 more surfaces named donors who had asked to be hidden (leaks 5–7).**
 Completes the anonymous/private-donor sweep. Each honoured the **per-donation
 `anonymous` flag but not the account-wide Profile Visibility setting** — the same
