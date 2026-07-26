@@ -139,13 +139,17 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
 
   if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
-  // Write campaign_status_log
+  // Audit trail for a destructive action. Non-blocking on purpose — the delete
+  // already succeeded, so failing the response here would be wrong — but logged,
+  // because a silently lost entry means no record of who deleted what.
   void supabaseAdmin.from('campaign_status_log').insert({
     campaign_id: id,
     changed_by: user.id,
     from_status: campaign.status,
     to_status: 'deleted',
     reason: 'User deleted campaign',
+  }).then(({ error }) => {
+    if (error) console.error('[campaigns] status log not written for delete', { campaignId: id, changedBy: user.id, code: error.code, message: error.message });
   });
 
   try {

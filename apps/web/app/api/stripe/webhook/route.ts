@@ -224,7 +224,10 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
 
       if (recurringCurrency !== 'usd') {
         const currencyDonId = await findDonationId({ paymentIntentId: null, checkoutSessionId: session.id });
-        if (currencyDonId) void supabaseAdmin.from('donations').update({ currency: recurringCurrency }).eq('id', currencyDonId);
+        // Non-blocking, but logged: `donations.currency` DEFAULTS TO 'usd', so a
+        // dropped write silently records a non-USD gift as dollars.
+        if (currencyDonId) void supabaseAdmin.from('donations').update({ currency: recurringCurrency }).eq('id', currencyDonId)
+          .then(({ error }) => { if (error) console.error('[webhook] recurring currency not recorded — donation will read as usd', { currencyDonId, recurringCurrency, code: error.code }); });
       }
 
       // Store UTM attribution on recurring donation (same logic as one-time)
@@ -430,7 +433,10 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
 
     // Record charge currency (non-fatal; column defaults to 'usd')
     if (!alreadyDone && donationId && currency !== 'usd') {
-      void supabaseAdmin.from('donations').update({ currency }).eq('id', donationId);
+      // Same as above: the column defaults to 'usd', so losing this misstates the
+      // amount rather than merely omitting it.
+      void supabaseAdmin.from('donations').update({ currency }).eq('id', donationId)
+        .then(({ error }) => { if (error) console.error('[webhook] charge currency not recorded — donation will read as usd', { donationId, currency, code: error.code }); });
     }
     const campaignPaymentId = await recordCampaignPayment({
       donationId,

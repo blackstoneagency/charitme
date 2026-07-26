@@ -574,6 +574,27 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**📋 SWEEP — every silent `void supabaseAdmin` write, triaged by consequence.**
+Prompted by the reward-claim finding (a *write* whose failure was unobservable, a
+new variant of the audit's usual "missing read path"). Found **10** bare
+fire-and-forget DB writes. **Deliberately did not "fix" all 10** — for analytics
+(`source_utm`, `share_events`) silent loss is an acceptable trade, and blanket
+changes would be noise. Triaged by what an actual failure costs:
+
+| write | consequence if dropped | action |
+|---|---|---|
+| `donations.currency` (×2) | column **defaults to `'usd'`** → a €50 gift silently reads as **$50** | ✅ logged |
+| `campaign_status_log` insert | **audit trail** for a campaign *deletion* — no record of who deleted what | ✅ logged |
+| `claim_campaign_reward` / `reward_id` | limited perk oversold (above) | ✅ logged |
+| `profiles.notification_marketing = true` | opt-in lost → *less* email; fails safe | ⏭️ left |
+| `source_utm`, `share_events` (×2) | attribution/analytics gap only | ⏭️ left |
+
+The currency one is the notable find: because the column **defaults** rather than
+staying null, a lost write doesn't leave a gap you'd notice — it produces a
+**confidently wrong number**, which is the same failure mode as the capped-`.length`
+totals earlier in this audit.
+All three fixes keep their non-blocking behaviour; only observability changed.
+
 **🟠 FIXED — a dropped reward claim could oversell a limited perk, invisibly.**
 The reward flow is otherwise wired correctly: `POST /api/donations` validates the
 `rewardId` and checks `item_limit`/`claimed_count`; on completion the webhook sets
