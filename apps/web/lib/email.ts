@@ -74,6 +74,14 @@ export async function sendMarketingEmail(input: {
 // ─────────────────────────────────────────────
 // Donation receipt (donor)
 // ─────────────────────────────────────────────
+/**
+ * Returns `{ sent: false }` rather than throwing when email is not configured.
+ *
+ * This used to return `void` and no-op silently, so every caller "succeeded"
+ * whether or not the donor received anything — which let the admin console mark
+ * a tax receipt as sent, and write an audit-log entry saying so, with no email
+ * behind it. Callers that record a receipt MUST branch on `sent`.
+ */
 export async function sendReceiptEmail(input: {
   to: string;
   donorName?: string | null;
@@ -81,8 +89,8 @@ export async function sendReceiptEmail(input: {
   campaignSlug: string;
   amountFormatted: string;
   donationId?: string;
-}): Promise<void> {
-  if (!resend) return;
+}): Promise<{ sent: boolean }> {
+  if (!resend) return { sent: false };
 
   const year = new Date().getFullYear();
   const campaignUrl = `${ORIGIN}/campaigns/${input.campaignSlug}`;
@@ -122,6 +130,7 @@ export async function sendReceiptEmail(input: {
     html: emailWrapper('Donation Receipt', body, year),
     text: `Thank you for donating ${input.amountFormatted} to "${input.campaignTitle}".\n\nView the campaign: ${campaignUrl}\nYour donations: ${dashboardUrl}\n\n© ${year} CharitMe`,
   });
+  return { sent: true };
 }
 
 // ─────────────────────────────────────────────

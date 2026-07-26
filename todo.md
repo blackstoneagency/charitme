@@ -4888,8 +4888,48 @@ merge commit.
    `.from('<literal>')` **including inside comments**, so the JSDoc example in
    `lib/query-timeout.ts` failed the suite. The scanner now strips block comments
    (commit `7719702`) — JSDoc examples are safe again.
-2. **Re-verify the ⚪ claimed rows.** Two audit ✅s were stale when spot-checked
-   (dead `donation_receipts`; e2e "wired" but running in no workflow). Assume rot.
+2. [x] **Re-verify the ⚪ claimed rows — `donation_receipts` half DONE (Claude,
+   2026-07-26). The "assume rot" instinct was right, and the rot was worse than
+   "dead table".**
+   - **`donation_receipts` confirmed dead:** defined in
+     `20260609000000_gofundme_audit_gaps.sql` with `receipt_number`,
+     `email_sent_at`, `resent_at` — purpose-built to record issued receipts — and
+     **0 rows in production**, referenced by no application code.
+   - **🔴 The admin "Send receipt" button sent no email at all.**
+     `/api/admin/donations/[id]/receipt` stamped `receipt_sent_at`, inserted an
+     audit-log entry `donation.receipt_sent`, and returned ok — with **no send in
+     the route**. The console then displayed *"A donation receipt has been sent to
+     {donorName}."* So a **tax document the donor never received was recorded as
+     delivered, in the audit log that exists to evidence delivery.** Worse than a
+     no-op: it manufactured false compliance evidence.
+   - **🔴 The donor-facing route emailed the wrong person.**
+     `/api/donations/receipt` loaded `profiles` for `user.id` — the *requester* —
+     not `don.donor_id`. On the admin path the receipt went **to the admin, under
+     the admin's name**, and the donor got nothing.
+   - **Root enabler:** `sendReceiptEmail` returned `void` and `return`ed early when
+     `RESEND_API_KEY` was unset, so **no caller could tell a delivered receipt from
+     a dropped one**. Now returns `{ sent: boolean }`; both routes bail with 502
+     `EMAIL_UNAVAILABLE` instead of claiming success (the admin client already
+     surfaces the server's message, so no client change was needed).
+   - **Now:** send first → only then stamp `receipt_sent_at`, write the audit log,
+     and **write the `donation_receipts` ledger** (insert with `email_sent_at`,
+     `resent_at` on a resend). Offline donations use `offline_donor_email`;
+     a donation with no contact detail returns 422 `NO_RECIPIENT` rather than
+     recording an undeliverable receipt. Authorization moved from a raw
+     `roles.includes('admin')` to `isAdmin()` — the raw check missed hardcoded owner
+     emails, `ADMIN_EMAILS`, and super admins without `admin`.
+   - **All 17 ledger columns + `campaigns.nonprofit_verified` +
+     `donations.receipt_sent_at` verified to exist in the LIVE schema** (read-only
+     PostgREST probes) before shipping the insert.
+   - `is_tax_deductible` is taken from `campaigns.nonprofit_verified`, never the
+     donor's `nonprofit` role — consistent with `lib/role-capabilities.ts`.
+   - Guard: `__tests__/donation-receipts.test.ts` (10 tests) — including a real
+     behavioural one (`sendReceiptEmail` returns `{sent:false}` with no transport,
+     with a non-vacuity check that `resend` is actually null) plus ordering asserts
+     that the send precedes the stamp and the audit write.
+   - Verified: typecheck 0, lint clean, **1229 tests / 111 files**, build green.
+   - **Still open on this line:** the second stale ✅ — *"e2e wired but running in
+     no workflow"* — is untouched and still needs a look.
 3. **Signed-in e2e** the moment test credentials exist.
 
 ### ✅ DONE — Claude, 2026-07-26 — **user-role mapping audit** (was CLAIM)
