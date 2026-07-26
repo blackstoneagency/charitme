@@ -6,6 +6,7 @@ import {
   OPPORTUNITY_DETAIL_COLUMNS,
   type VolunteerOpportunity,
 } from './volunteers';
+import { suppressDemoTrust, suppressDemoTrustAll } from './demo-trust';
 
 // Server-side reads for React Server Components.
 
@@ -21,7 +22,8 @@ export async function getPublicOpportunities(limit = 24): Promise<VolunteerOppor
       .limit(limit),
   );
   if (error) return [];
-  return (data ?? []) as unknown as VolunteerOpportunity[];
+  // Demo rows must never render a fabricated "Verified" badge — see lib/demo-trust.ts.
+  return suppressDemoTrustAll((data ?? []) as unknown as VolunteerOpportunity[]);
 }
 
 export async function getOpportunityBySlug(slug: string): Promise<VolunteerOpportunity | null> {
@@ -33,7 +35,7 @@ export async function getOpportunityBySlug(slug: string): Promise<VolunteerOppor
     .in('status', ['open', 'upcoming'])
     .maybeSingle();
   if (error || !data) return null;
-  return data as unknown as VolunteerOpportunity;
+  return suppressDemoTrust(data as unknown as VolunteerOpportunity);
 }
 
 export async function getVolunteerCategories(): Promise<string[]> {

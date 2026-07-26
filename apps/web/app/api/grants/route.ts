@@ -5,6 +5,7 @@ import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 import { isAdmin } from '../../../lib/roles';
 import { GRANT_PUBLIC_COLUMNS, GrantSearchSchema } from '../../../lib/grants';
+import { suppressDemoTrustAll } from '../../../lib/demo-trust';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,7 +44,8 @@ export async function GET(request: NextRequest) {
   const { data, error, count } = await query;
   if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
-  return NextResponse.json({ grants: data ?? [], total: count ?? 0, limit, offset });
+  // Demo rows must never render a fabricated "Verified" badge — see lib/demo-trust.ts.
+  return NextResponse.json({ grants: suppressDemoTrustAll((data ?? []) as { source?: string | null; verified?: boolean | null }[]), total: count ?? 0, limit, offset });
 }
 
 const GrantCreateSchema = z.object({

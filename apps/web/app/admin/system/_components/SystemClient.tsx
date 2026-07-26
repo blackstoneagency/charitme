@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { KFIcon, StatusPill } from '../../../../components/CharitMeApp';
 
 function useEscape(onClose: () => void): void {
@@ -487,7 +488,8 @@ export default function SystemClient({ categories, overview, recentActivity, res
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 13, color: '#4b5676', fontWeight: 600 }}>Last verified: today</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 99, color: '#15803d', fontSize: 12, fontWeight: 650 }}>Verified ✓</span>
-            <button type="button" style={{ height: 34, padding: '0 14px', border: '1px solid #d8d2ff', borderRadius: 8, background: '#fff', color: '#551cf2', fontSize: 12, fontWeight: 650, cursor: 'pointer' }}>Verify Now</button>
+            {/* No re-verification endpoint exists; this did nothing when clicked. */}
+            <button type="button" disabled title="Re-running email verification is not built yet" style={{ height: 34, padding: '0 14px', border: '1px solid #d8d2ff', borderRadius: 8, background: '#fff', color: '#551cf2', fontSize: 12, fontWeight: 650, cursor: 'not-allowed', opacity: 0.5 }}>Verify Now</button>
           </div>
         </div>
       </div>
@@ -890,7 +892,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
           <div style={{ border: '1px solid #eef0f7', borderRadius: 14, background: '#fff', overflow: 'hidden' }}>
             <div style={{ padding: '14px 16px', borderBottom: '1px solid #eef0f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <strong style={{ fontSize: 13, fontWeight: 700, color: '#0f1238' }}>Recent System Activity</strong>
-              <button type="button" style={{ border: 0, background: 'transparent', color: '#6c35ff', fontSize: 12, fontWeight: 650, cursor: 'pointer' }}>View all activity →</button>
+              <Link href="/admin/audit-log" style={{ border: 0, background: 'transparent', color: '#6c35ff', fontSize: 12, fontWeight: 650, cursor: 'pointer', textDecoration: 'none' }}>View all activity →</Link>
             </div>
             <div className="sys-activity-list">
               {recentActivity.slice(0, 6).map(ev => (

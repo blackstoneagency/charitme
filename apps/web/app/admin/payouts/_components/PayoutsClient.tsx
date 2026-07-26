@@ -599,11 +599,14 @@ export default function PayoutsClient({
                 <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 18px', border: '1px solid #e6e9f2', borderRadius: 12 }}>
                   <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#101944' }}>{m.name}</div>
                   {m.isDefault && <span style={{ fontSize: 11, fontWeight: 700, color: '#551cf2', background: '#efe8ff', padding: '3px 10px', borderRadius: 999 }}>Default</span>}
-                  <button type="button" style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Configure</button>
+                  <button type="button" disabled title="Payout-method configuration is not built yet" style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontSize: 12, fontWeight: 600, cursor: 'not-allowed', opacity: 0.5 }}>Configure</button>
                 </div>
               ))}
             </div>
-            <button type="button" style={{ marginTop: 14, height: 42, padding: '0 20px', border: '1px dashed #d7c9ff', borderRadius: 9, background: '#fbf7ff', color: '#551cf2', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>+ Add Method</button>
+            {/* The payout-method and report controls below are placeholder UI with no
+                backend. Disabled + titled so an operator can see they are unavailable,
+                instead of clicking and having nothing happen. */}
+            <button type="button" disabled title="Adding a payout method is not built yet" style={{ marginTop: 14, height: 42, padding: '0 20px', border: '1px dashed #d7c9ff', borderRadius: 9, background: '#fbf7ff', color: '#551cf2', fontSize: 13, fontWeight: 600, cursor: 'not-allowed', opacity: 0.5 }}>+ Add Method</button>
           </div>
         )}
 
@@ -614,7 +617,7 @@ export default function PayoutsClient({
               <select style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 13 }}><option>Payout Summary</option><option>Recipient Report</option><option>Fee Report</option></select>
               <select style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 13 }}><option>Last 30 Days</option><option>Last 90 Days</option><option>This Year</option></select>
               <select style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 13 }}><option>By Week</option><option>By Month</option></select>
-              <button type="button" style={{ height: 42, padding: '0 20px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Generate</button>
+              <button type="button" disabled title="Report generation is not built yet" style={{ height: 42, padding: '0 20px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'not-allowed', opacity: 0.5 }}>Generate</button>
             </div>
           </div>
         )}

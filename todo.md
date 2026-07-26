@@ -57,11 +57,132 @@ single endpoint receives all Connect events signed with the main secret. Leave u
 > of this file and the companion **`payment-audit.md`** for the exhaustive
 > per-workflow audit + fixes.
 
-## 🔎 Claude session index — 2026-07-26 (create flow, settings, schema, docs)
+## 🔎 Claude session index — 2026-07-26 (create flow, settings, schema, docs, PRIVACY & SECURITY)
 
-Detail for every row lives under **§0.1b item 10** (it grew there because that item
-was the entry point); this index exists so the work is findable by topic rather
-than buried under a locale-switcher heading.
+### 🚨 CI ON MASTER HAS BEEN RED FOR 30+ CONSECUTIVE RUNS
+
+**Nobody's changes are being validated right now** — not mine, not the other
+agents'. This spans many authors and includes **docs-only commits**, which cannot
+break a build, so it is environmental rather than caused by any one change.
+
+**What I verified locally (all pass), reproducing CI's exact conditions:**
+`npm ci` (clean, strict lockfile) → typecheck → lint → **1278 tests** → image
+audit → production build **run with CI's own placeholder Supabase env**
+(`https://placeholder.supabase.co`). Every step exits 0. I could not reproduce the
+failure.
+
+**What I could not do:** read the CI logs. Both failed jobs' log blobs return
+**HTTP 404** from this session, so the failing *step* is unknown.
+
+**Strong hypothesis for the `e2e (playwright)` job:** it builds and runs against
+**placeholder Supabase credentials**, so every spec touching a DB-backed page
+(`/campaigns` and friends) has no data and will fail or time out. This is exactly
+the concern recorded earlier when I declined to wire e2e into CI myself — that it
+"needs a decision on whether the runner gets Supabase credentials." It was wired
+in without that decision. The `public-routes` spec already timed out on
+`/campaigns` locally for the same reason.
+
+**✏️ MY LEAD WAS WRONG — superseded by a better diagnosis (now in CLAUDE.md).**
+I hypothesised the `e2e` job was failing because it runs against placeholder
+Supabase credentials, and offered a local hang as support. **Retracting that.**
+Another agent established the real cause: **every run dies in 2–5 seconds**, before
+executing *any* step. A genuine run (`npm ci` + build + 1281 tests + Playwright)
+takes minutes, so nothing in the workflow — e2e included — is even reached.
+**It is an account/runner problem, not a code problem**, most likely exhausted
+GitHub Actions minutes or billing (the same account returns
+`api-deployments-free-per-day` from Vercel on every push).
+**Owner fix: Settings → Billing → Actions.**
+
+Every symptom I gathered independently corroborates that diagnosis rather than
+mine: the rerun failed almost immediately, logs 404, docs-only commits fail
+identically, and all five steps pass locally including under CI's own placeholder
+env. My 8-minute local hang was sandbox DNS resolving `placeholder.supabase.co`
+slowly — the exact caveat I flagged when recording it, and the reason it was
+written as a lead rather than a conclusion.
+
+**Lesson worth keeping:** a plausible mechanism that explains the symptoms is not
+the same as the cause. "Fails in 2–5 seconds" was the decisive datum, and it was
+available from the run timings the whole time — I reasoned from *what could break
+e2e* instead of from *how long the job actually ran*.
+
+**Next step is 30 seconds for a human and impossible for me:** open the latest run
+in the GitHub UI and read which step is red. If it is the e2e job, either give the
+runner real (read-only) Supabase credentials, or scope the e2e job to the specs
+that don't need a database (`smoke`, `security-headers` — both verified green
+locally).
+
+**My own failure here, stated plainly:** I confirmed CI green early in the session
+(`aca2238`, `ea366df`, `0595dae` all `success`) and then stopped re-checking,
+reporting "verified" on the strength of local gates alone for many commits
+afterwards. Local green is necessary but **not** sufficient — it does not see the
+runner's environment. Re-check CI after pushing, not once per session.
+
+### ⚠️ START HERE — the 3 things that still need a decision from the owner
+
+Everything else below is fixed and shipped. These three are **not blocked on
+effort or investigation** — each needs one judgement call, and guessing wrong
+would cause real harm (locking people out, or publishing new claims about donor
+money). Implementation notes for each are in the detail section.
+
+| # | Needs deciding | Why I did not just do it |
+|---|---|---|
+| 1 | **"Suspend User" enforces nothing** — suspended users can still log in, donate, create campaigns | Must decide *which* surface is blocked (login? donating? creating?) and what happens to a suspended user's live campaigns and active recurring donations. Note: gating via `getUserRoles()` **cannot work** — `parseRoles()` whitelists `'suspended'` away |
+| 2 | **`/trust-safety` promises a "7-day payout hold"** the architecture forbids — every donation is a Stripe *destination charge*, so CharitMe never holds the funds | Either implement via Stripe Connect (manual payout schedule / `payouts_enabled`), or correct the public copy. Both are legitimate; publishing a safety promise the code cannot keep is not |
+| 3 | **Roles don't differentiate** — `donor`/`organizer`/`beneficiary`/`nonprofit` gate nothing; only `admin`/`super_admin` do | Someone must define what an organizer may do that a donor may not. Inventing permissions on live authorization locks real users out of their own campaigns |
+
+### ✓ Controls audited and found CORRECT — do not re-investigate
+
+Recording these so the next agent doesn't spend a session re-deriving them:
+
+| Control | Why it's correct |
+|---|---|
+| **Email preferences** | Genuinely honoured end-to-end. `notification_email` gates transactional mail (`stripe/webhook` returns early on `=== false`, 2 sites); `notification_updates` gates campaign-update mail (`campaigns/[id]/updates` skips opted-out donors). `notification_marketing` is written as a real opt-in (defaults FALSE) with no sender yet — a toggle ahead of its feature, not a leak |
+| **Team member removal** | Hard `.delete()` behind an ownership check, and access reads query `team_members` live per request — revocation is immediate, nothing cached |
+| **Campaign reporting** | Rate-limited, validated, inserts `status:'open'`, **and checks the insert error** — the route even carries a comment reasoning about this exact failure mode. The button only shows "sent" on `res.ok` |
+| **Refunds** | Defer to the webhook's `decrement_campaign_stats` rather than decrementing locally, avoiding a double-count |
+| **Recurring cancellation** | Cancels at **Stripe first**, then marks the row — deliberately avoiding the ordering where the UI says "cancelled" while charges continue |
+
+**⚠️ Methodology warning, from three near-misses this session.** Every false lead
+came from the same mistake: **judging from a fragment instead of the whole
+result.**
+1. `grep` showed `.from('campaigns').select(...)` with no filters → looked like the
+   sitemap leaked private campaigns. The filters were in the *enclosing*
+   `applyLiveFilters(...)` call.
+2. A truncated `grep … | head -6` hid `campaigns/[id]/updates/route.ts` → looked
+   like `notification_updates` had no consumer and the toggle was dead. It is
+   honoured on line 116.
+3. `getSimilarCampaigns` looked unfiltered for the same reason.
+**A grep hit is a hypothesis. Open the file and read the enclosing expression
+before believing it — and never conclude "no consumer" from a `head`-truncated
+list.**
+
+### 🔒 Promise-audit — controls that did not keep their promise
+
+The highest-yield technique of the session: **take a control that promises the
+user something, then follow the data to every place that promise must hold.**
+Nine of eleven controls checked had a gap, all the same shape — *the write path
+worked; one read path never got the memo.*
+
+| Control | What leaked / failed | Status |
+|---|---|---|
+| Delete campaign | Content stayed public at the direct URL | ✅ fixed |
+| Profile → Private | Named on leaderboard + donor wall | ✅ fixed |
+| Profile → Private | Named on the **homepage** ticker | ✅ fixed |
+| Donate anonymously | Identity in the organizer's full export | ✅ fixed |
+| Donate anonymously | Named in the supporters list | ✅ fixed |
+| Donate anonymously | Name + avatar in the messages route | ✅ fixed |
+| Save as draft | Unpublished campaign fully readable | ✅ fixed |
+| **Enable 2FA** | **Protected nothing** — never challenged at login | ✅ **fixed** |
+| Suspend user | Enforces nothing | ⚠️ decision #1 |
+| Payout hold | Architecturally impossible as written | ⚠️ decision #2 |
+| Email opt-out | — | ✓ was already correct |
+| Refunds / recurring cancel | — | ✓ were already correct |
+
+**Detail for every row lives under §0.1b item 10** (it grew there because that
+item was the entry point); this index exists so the work is findable by topic
+rather than buried under a locale-switcher heading.
+
+### Earlier fixes this session
 
 | # | Fix | Why it mattered |
 |---|-----|-----------------|
@@ -341,12 +462,28 @@ account, is never challenged. An attacker holding only the password signs in
 exactly as before. The control is decorative, and worse than absent, because it
 tells the user they are protected.
 
-Unlike the suspension and payout-hold items, this needs **no product decision** —
-there is only one correct behaviour: if you enrolled a factor, you must complete
-it. What it does need is care, since a half-built gate locks 2FA users out
-entirely. A complete fix is: a challenge page for code entry, plus a gate that
-redirects an aal1 session to it whenever
-`getAuthenticatorAssuranceLevel()` reports `nextLevel === 'aal2'`.
+**✅ FIXED — both halves shipped.**
+- **`app/login/mfa/page.tsx`** — the challenge page. Enters the 6-digit code,
+  runs `mfa.challenge` → `mfa.verify`, then does a **full page load** (not a
+  client transition) so the middleware re-evaluates with the elevated token.
+- **`middleware.ts`** — refuses an aal1 session when
+  `getAuthenticatorAssuranceLevel()` reports `nextLevel === 'aal2'`.
+
+**Three properties keep it from locking anyone out** — the failure mode of a
+second-factor gate is worse than the bug it fixes — and all three are pinned by
+tests:
+1. **Users without 2FA are untouched.** Supabase reports `nextLevel === 'aal2'`
+   *only* for accounts with a verified factor, so the branch cannot fire otherwise.
+2. **No redirect loop.** `/login/mfa` is exempt explicitly, *and* it sits outside
+   every `PROTECTED` prefix, so the gate cannot even run there. A test asserts
+   `/login` never joins `PROTECTED`.
+3. **Fails OPEN.** A throw from the assurance-level lookup sets a header and
+   allows the request; a Supabase outage must not bar signed-in users. A test
+   asserts the `catch` contains no redirect.
+Plus: the page redirects away if no verified factor exists (never strands a user
+on a page they cannot complete), and always offers sign-out as an escape.
+_Non-vacuity verified:_ flipping the check to `nextLevel === 'aal1'` fails the
+suite.
 
 **🔴 TRUST & SAFETY — the public "7-day payout hold" claim contradicts the money architecture. NOT FIXED (owner's call).**
 `/trust-safety` tells donors, verbatim:
@@ -4117,6 +4254,257 @@ against the real production DB works and has already settled real questions
 (SEO surface, indexing, RLS review), not a role-dashboard gap.
 
 
+
+
+
+### ✅ Static a11y guard — covers the auth-gated surface axe cannot reach (Claude, 2026-07-26)
+
+`e2e/accessibility.spec.ts` runs axe against real pages and is the stronger check, but it
+can only reach routes that render **without a database** — so the entire authenticated
+surface (dashboard, admin, donor) is invisible to it both in CI and in this sandbox.
+Two defect classes are detectable in source, so they now have a guard that does cover it:
+`__tests__/a11y-static.test.ts` (`<img>` missing `alt`, icon-only `<button>` with no
+accessible name), scanning all of `app/` + `components/`.
+
+**Correction on those 2 defects:** while rebasing, master had **deleted both** — the whole
+`DataTable` component and `KindFundApp.tsx` were removed as dead code by another agent. So
+the buttons I labelled were unreachable UI, and my "fix" is moot. Took master's deletions.
+**The guard itself stands and is the durable part** — it now watches all of `app/` +
+`components/` and will catch the same defect class in live code. Recorded so the entry
+isn't read as "fixed two live bugs".
+
+**It found 2 defects on its first run** — the "sliders" filter buttons in the admin
+card header (`KindFundApp.tsx:222`, `CharitMeApp.tsx:321`) were icon-only with no label,
+so a screen reader announced each as just *"button"*. Both fixed with `aria-label="Filter"`.
+`<img alt>` was already clean app-wide (0 offenders), which is worth knowing.
+
+Non-vacuity verified: removing one `aria-label` fails the guard with the exact file:line.
+
+**Two further checks were prototyped and deliberately NOT shipped — read before rebuilding them:**
+
+- **Icon-only links (`<a>`/`<Link>` with no text, no `aria-label`) — DROPPED, too noisy.**
+  Its single hit, `app/SponsorsBar.tsx:67`, is a **false positive**: the link wraps
+  `<SponsorImg>`, which renders `<img alt={name}>`, so it already has an accessible name.
+  A regex cannot see through an opaque child component, and "fixing" it would have added a
+  redundant label to correct markup. A guard that cries wolf gets ignored, which is worse
+  than no guard — so this one stays out until it can resolve child components.
+
+- **`<div>`/`<span>` with `onClick` — I reported "28 real hits". That was WRONG. All 28 are
+  fine; do not chase them.** Correcting it here rather than leaving a false lead in the
+  backlog. Breakdown after actually looking:
+  - **23** carry a documented `eslint-disable` with a rationale — they are modal
+    **backdrops** (`onClick={e => { if (e.target === e.currentTarget) close(); }}`) where
+    backdrop-dismiss is supplementary and **Escape + a visible close button are the
+    keyboard path**. That is the correct, standard pattern, already reviewed by another
+    agent.
+  - **5** were **false positives of my regex**. `eslint.config.mjs` explicitly enables
+    `jsx-a11y/click-events-have-key-events` and `no-static-element-interactions` (another
+    agent widened the ruleset beyond next's default 6), and eslint reports **zero warnings**
+    on those files. Its AST analysis is simply more accurate than pattern-matching JSX.
+  **Lesson worth keeping:** before reporting a defect class, check whether the linter
+  already covers it. `eslint .` was green the whole time I was "finding" these.
+
+_1284/1284 tests, typecheck clean, build green._
+
+## 📌 HANDOFF — Claude/tbaz3i session end (2026-07-26)
+
+**Read the CI entry above first.** It is the highest-leverage item in this file and it
+is not something the next agent can fix from a sandbox either.
+
+### Shipped and merged this session
+| PR | what |
+|---|---|
+| #49 | mobile horizontal-overflow + first a11y pass (~15 public routes) |
+| #52 | dark-mode contrast on 5 more routes + mobile CLS 0.124 → 0 |
+| #63 | soft-404 root cause + 4 routes, robots.txt exposure, skip link, focus-visible |
+| #66 | `/campaigns/[slug]` soft-404 — layout gate + `(list)` group, skeleton kept |
+| #67 | builder inline field errors (aria-invalid/describedby + focus move) |
+
+### Open PR
+**#91 — fabricated "Verified" badge suppression.** Verified good locally by every
+check (tsc, eslint 0 errors, 1281 tests, image audit, build, **30/30 e2e**). Its red
+checks are the repo-wide failure, not the PR.
+
+### What I could NOT do, and why — so nobody re-derives it
+- **CI cause** — logs 404 (both lookups, 3 runs), check-run output empty, `npm ci`
+  clean, all steps pass locally. Needs GitHub UI access.
+- **Homepage dynamic rendering** — 3 candidates eliminated (CSP nonce, `unstable_cache`
+  on fetchers, `seoMetadata`). Puzzle to respect: 26 *other* routes DO go static when
+  `headers()` is removed, and they share the same root layout — so "the layout is
+  dynamic" does not explain it.
+- **Anything needing writes or secrets** — seed execution, real payment flows, key
+  rotation, the demo-row cleanup SQL below.
+
+### Genuinely next, ranked
+1. **Get CI green.** Everything else is guesswork until a red check means something.
+2. **Owner: run the demo cleanup SQL** — `/grants` still publicly attributes fabricated
+   programs to *real* orgs (52 "Ford Foundation", 44 "City of Austin"). #91 hides the
+   false badge; only SQL removes the false attribution.
+3. **The 3 real parity gaps** (audited, specific): social connectors (6 channels),
+   unified CRM record joining donor↔sponsor↔volunteer↔grant-maker, goods/equipment
+   modelling. Each is a feature, not a fix.
+
+### Method note worth keeping
+Production is readable from the sandbox and settled several questions that were being
+treated as blocked — the soft-404 confirmation, seed counts for six domains, the live
+trust-badge count, sitemap health, TTFB. `curl` works; **Playwright cannot reach
+external hosts** (`ERR_CONNECTION_RESET` through the proxy), so browser sweeps must run
+against a local prod build.
+
+## 🔴 CI HAS BEEN RED ON MASTER FOR AT LEAST 8 CONSECUTIVE COMMITS
+
+**Nobody currently has CI signal.** Every recent `master` run of `ci.yml` reports
+`failure` — checked via the Actions API, newest first:
+
+| head | title | conclusion |
+|---|---|---|
+| `18516d03` | docs(todo): close the seeded-but-unread sweep | **failure** |
+| `14a338e8` | fix(links): 120 events offered a Join link… | **failure** |
+| `a7ce188d` | Merge remote-tracking branch 'origin/master' | **failure** |
+| `e175b592` | test(a11y): enforce zero contrast failures | **failure** |
+| `01043879` | docs(todo): claim the scrollable-region audit | **failure** |
+| `032408ff` | docs(todo): API authorization audit | **failure** |
+| `59fabebb` | fix(seeds): guard the SQL seeds | **failure** |
+| `a7326bf2` | docs(todo): audit the 10 parity boxes | **failure** |
+
+Both jobs fail — `typecheck · lint · test · audit · build` **and** `e2e (playwright)`.
+Note several of those are **docs-only commits**, which is a strong hint the cause is
+environmental/config rather than any one change.
+
+**This matters more than any single feature in this file:** PRs are being merged into a
+permanently-red master, so a real regression would look exactly like the current noise
+and sail straight through.
+
+**What I could and could not establish** (from PR #91, which inherits the same failure):
+- ✅ Every CI step passes **locally** on the same tree: `tsc --noEmit` clean,
+  `eslint` **0 errors**, **1281/1281** unit tests, `audit:campaign-images` PASSED,
+  `next build` exit 0, and **30/30 Playwright e2e** (run with
+  `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium`, the opt-in override added in
+  `24ab30d`).
+- ❌ **CI logs cannot be read from here** — `get_job_logs` returns HTTP 404 for every
+  job, by `job_id` and by `run_id`+`failed_only`, on two separate runs. So the
+  CI-specific cause is not visible to an agent in this sandbox.
+- ⚠️ First local e2e attempt failed on a missing `chrome-headless-shell` binary — that
+  is a **sandbox artifact**, not the CI failure (CI runs `playwright install --with-deps
+  chromium`). Don't chase it.
+
+**Also eliminated since (so nobody repeats them):**
+- **`npm ci` lockfile mismatch — ruled out.** `npm ci --dry-run` succeeds locally
+  (exit 0, lockfile in sync with `package.json`). This was the best hypothesis for
+  "docs-only commits fail too", and it is wrong.
+- **Check-run output carries nothing.** `get_check_run` on the failing job returns
+  empty `title`/`summary`/`text`, so the webhook payload has no diagnostic either.
+
+### ✅ ROOT CAUSE FOUND — the jobs never run. This is an ACCOUNT issue, not a code issue.
+
+**Every run fails in 3–5 seconds.** Measured from the Actions API (`run_started_at` →
+`updated_at`) across the last 8 master runs: 3s, 3s, 4s, 5s, 4s, 4s, 4s, 3s. PR #91's
+latest: `18:14:25` → `18:14:27` = **2s**, both jobs.
+
+A real run does `npm ci`, a Next production build, 1281 unit tests and a Playwright
+suite — **minutes**, not seconds. So the workflow is failing *before executing a single
+step*.
+
+**This retro-explains every dead end above, and they were dead ends for a reason:**
+- **Logs 404** on both lookup paths — there are no logs, because nothing ran.
+- **`get_check_run` output empty** — nothing produced output.
+- **Docs-only commits fail** — content is irrelevant when no step executes.
+- **Both jobs fail identically** — they share only the *start*, which is where it dies.
+- **Every local reproduction passes** — correctly, the code is fine.
+
+**Most likely cause: GitHub Actions minutes/billing exhausted on the free tier.** The
+account is demonstrably hitting free-tier ceilings elsewhere *right now* — Vercel returns
+`api-deployments-free-per-day` ("more than 100") on every push. An Actions quota
+exhaustion produces exactly this signature: instant failure, no logs, no output.
+
+**Owner action (2 minutes, nothing to code):** check
+**Settings → Billing → Actions** for used minutes / spending limit, and the repo's
+Actions tab for a banner. Other candidates if the quota is fine: a self-hosted/unavailable
+runner label, or org-level Actions permissions.
+
+**Consequence while it lasts:** a red check carries **zero information** — it is not
+evidence that a PR is broken. Verify locally: `tsc --noEmit`, `eslint .`,
+`vitest run`, `audit:campaign-images`, `next build`, and
+`PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test`.
+
+### ⚠️ SUPERSEDED LEAD (kept — the fix shipped anyway, on its own merits)
+
+Objective, checkable without CI logs:
+
+| fact | value |
+|---|---|
+| `.node-version` (repo pin, used by Vercel) | **20.11.0** |
+| `rolldown` engines (vitest 4's bundler, installed) | **`^20.19.0 \|\| >=22.12.0`** |
+| `vitest` in `apps/web/package.json` | **`^4.1.7`** |
+| `apps/web` own `engines` field | **`{}` — empty, so nothing enforces a floor** |
+
+**20.11.0 does not satisfy `^20.19.0`.** Vitest 4 pulls in rolldown, so a Node below
+20.19 cannot run the unit-test step — and both CI jobs run Node tooling after
+`npm ci`, which fits *both* failing, and fits **docs-only commits failing too**
+(environmental, not code). It also fits the timing: vitest 4 is a recent upgrade, and
+master went red around then.
+
+**This was NOT the CI cause** — the 3-second failures above rule it out; nothing ran, so
+no Node ever executed. The fix below still shipped because it is a genuine latent bug
+independent of CI. Original caveat kept for the record: `ci.yml` sets `node-version: 20.x` (the comment there even
+says the `.node-version` pin "is too old"), and `20.x` *should* resolve to the newest
+20.x, which would satisfy rolldown. So this is a strong lead, **not a confirmed cause** —
+it depends on what `setup-node` actually resolves in this repo, which is exactly what
+the logs would show and I cannot read.
+
+**✅ SHIPPED (this change), on its own merits — not as a blind CI guess:**
+- `.node-version` **20.11.0 → 20.19.0** (still Node 20 LTS; the workflow comment already
+  called the old pin "too old", so this matches existing intent rather than changing it).
+- `apps/web/package.json` now declares **`engines: { node: "^20.19.0 || >=22.12.0" }`** —
+  previously empty, which is *why* this drifted silently. npm now warns (`EBADENGINE`) on
+  an unsupported Node instead of failing opaquely somewhere downstream later.
+
+Justification does **not** depend on this being the CI cause: a repo pinning a Node below
+an installed dependency's stated minimum is a bug either way, and the missing `engines`
+floor is what let it happen unnoticed. Verified locally after the change — **1281/1281
+tests, typecheck clean, build exit 0**. If CI goes green, that confirms the lead; if not,
+the latent bug is still fixed and the search narrows.
+
+**Next step for whoever can read the logs:** open the run in the GitHub UI. Likely
+candidates given docs-only commits also fail: a required secret/env missing from the
+workflow, an `npm ci` lockfile mismatch, or a runner/Node version change. Until then,
+**a red check on a PR does not mean that PR is broken** — verify locally with the six
+commands above.
+
+## 🔓 CLAIM RELEASED — fabricated trust badges suppressed at the READ layer ✅
+
+> **DONE — area is FREE.** Complements the seed-source fix below, which governs
+> *future* runs only. Re-confirmed live before starting: `/grants` served **52
+> "Ford Foundation"**, **44 "City of Austin"**, **48 "Verified"** and **96 "Seed
+> Grant"** rows, with none of the new fictional funder names — seeds don't rewrite
+> existing data.
+>
+> **What shipped:** `lib/demo-trust.ts` — public reads force `verified=false` for
+> demo rows. No writes, no schema, no seed changes; the fabricated trust signal
+> stops rendering **on deploy**, without waiting for the owner's SQL cleanup.
+> Wired into `getPublicGrants`, `getGrantBySlug`, `GET /api/grants`,
+> `getPublicOpportunities` and `getOpportunityBySlug`.
+>
+> **Two mistakes caught by testing rather than shipped** — worth recording:
+> 1. **The marker.** A `source === 'seed'` check looked obviously right (grants
+>    carry it, and the suggested cleanup SQL keys on it) — but
+>    `volunteer_opportunities` **has no `source` column at all**, so that check was
+>    a silent no-op for every volunteer row. The one marker common to all three
+>    seeded tables is the `seed-…` slug prefix, so `isDemoRow` checks both.
+> 2. **The detail read.** The first pass imported the helper into
+>    `volunteers-server.ts` and never called it on `getOpportunityBySlug`, so a
+>    seeded opportunity's own page kept its badge. Lint's unused-import warning is
+>    what surfaced it.
+>
+> Both are pinned by tests. Non-vacuity verified both directions: reverting to a
+> source-only check fails **5** tests; making it downgrade *real* verified orgs
+> fails **2**. _1270/1270 tests, lint clean, build green._
+>
+> **Still needs the owner:** the rows themselves, and the real-organization names
+> (`Ford Foundation`, `City of Austin`) already attributed to fabricated programs —
+> suppression hides the false *badge*, not the false *attribution*. Cleanup SQL is
+> below.
+
 ## 🔴 SEED-DATA — fabricated "Verified" badges, and real foundations named on fake grants (ONE IS LIVE)
 
 **Found while scoping a public `/nonprofits/[slug]` page (2026-07-23). Not currently
@@ -5279,6 +5667,30 @@ and the legacy status-in-roles markers the admin page still parses are unused li
 them real gates (e.g. beneficiary confirmation flow, nonprofit-only campaign types)
 or retire them. Recorded rather than guessed, because inventing restrictions on
 roles nobody holds is the fastest way to lock a real user out.
+
+### ✅ DONE — Claude, 2026-07-26 — **admin dead controls cleared; guard now covers the WHOLE app**
+Finished the half I had deliberately deferred. The 12 remaining dead buttons in
+`app/admin/**` are resolved, each by what it actually needed:
+- **Wired to real behaviour (3):** "View Public Profile" now links to the user's
+  existing `/donors/[id]` page; both "View all activity →" buttons now link to
+  `/admin/audit-log` (the user one filtered to that user).
+- **Wired with one line (1):** "Edit ✏️" on the user detail now switches to the
+  **Settings tab, which already edits that user** — the capability existed, the
+  button just wasn't connected to it.
+- **Removed as fake (1 group):** the user Activity panel's *"Login History /
+  Actions / Sessions"* sub-tabs — **the same single list rendered under whichever
+  one you clicked.** Three tabs pretending to be filters; deleted rather than faked.
+- **Honestly disabled (4):** payouts "Configure" / "+ Add Method" / "Generate", and
+  system "Verify Now" have no backend at all. Now `disabled` with a `title` saying
+  so — visibly unavailable beats silently inert.
+- **Deleted (623 lines):** `app/admin/users/_components/UsersClient.tsx` was another
+  rename leftover superseded by `AdminUsersClient` and referenced by nothing.
+- **`__tests__/no-dead-controls.test.ts` now covers `app/admin/**` too** (the
+  exclusion is gone). It also strips comments before scanning — it was flagging its
+  own documentation, since a comment explaining a removed `<button>` contains the
+  literal text. **Verified non-vacuous** by planting a real dead button and watching
+  it fail.
+- Verified: typecheck 0, lint 0 errors, **1299 tests / 120 files**, build green.
 
 ### ✅ DONE — Claude, 2026-07-26 — **dead controls: buttons that do nothing when clicked**
 Applied the "looks live but isn't" lens to controls. Parsed every `<button>` in

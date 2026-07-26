@@ -10,12 +10,13 @@ const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 // then silently fails. An earlier audit of Settings removed ten of these; this
 // guard stops them coming back on user-facing surfaces.
 //
-// Scope is deliberate:
-//  • `app/admin/**` is excluded — internal tooling with its own known backlog of
-//    placeholder controls; gating it here would freeze that cleanup rather than
-//    help it, and it is not a surface real users touch.
-//  • Only <button> is checked. A styled <span>/<div> is not announced as a
-//    control, and links are covered by the broken-link crawl.
+// `app/admin/**` was excluded while it still carried a placeholder backlog; that
+// backlog is now cleared, so the guard covers the whole app. Admin controls that
+// need an unbuilt backend are `disabled` with a `title` — visibly unavailable
+// rather than silently inert, which is what the `disabled` allowance below is for.
+//
+// Only <button> is checked: a styled <span>/<div> is not announced as a control,
+// and links are covered by the broken-link crawl.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const HANDLER_ATTRS = [
@@ -31,6 +32,17 @@ function sourceFiles(root: string): string[] {
     if (statSync(path).isDirectory()) return sourceFiles(path);
     return name.endsWith('.tsx') ? [path] : [];
   });
+}
+
+/**
+ * Comments are blanked (length-preserving, so reported line numbers stay right)
+ * before scanning. A comment explaining a `<button>` that was removed is not a
+ * button — without this the guard flags its own documentation.
+ */
+function stripComments(source: string): string {
+  return source
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, (m) => m.replace(/[^\n]/g, ' '))
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
 }
 
 /** Yields each `<button …>` opening tag, respecting braces in JSX expressions. */
@@ -54,15 +66,15 @@ function buttonTags(source: string): { index: number; tag: string }[] {
 }
 
 describe('no dead buttons on user-facing surfaces', () => {
-  it('every <button> outside admin has a handler, submits, or is disabled', () => {
+  it('every <button> has a handler, submits, or is visibly disabled', () => {
     const files = [
       ...sourceFiles(join(WEB_ROOT, 'app')),
       ...sourceFiles(join(WEB_ROOT, 'components')),
-    ].filter((path) => !path.includes(`${'app'}/admin/`));
+    ];
 
     const offenders: string[] = [];
     for (const path of files) {
-      const source = readFileSync(path, 'utf8');
+      const source = stripComments(readFileSync(path, 'utf8'));
       for (const { index, tag } of buttonTags(source)) {
         if (HANDLER_ATTRS.some((attr) => tag.includes(attr))) continue;
         // A disabled button is an intentional, visibly-inert affordance.
