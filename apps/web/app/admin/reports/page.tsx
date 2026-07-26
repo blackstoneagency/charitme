@@ -80,7 +80,9 @@ export default async function AdminReportsPage() {
       status: 'Live',
       createdOn: today,
       value: (totalCampaigns ?? 0).toLocaleString() + ' total',
-      description: `${activeCampaigns ?? 0} active · ${completedCampaigns ?? 0} completed`,
+      // Same as the countries page: a null count means the query failed, not that
+      // the number is zero. Render unknown rather than a confident 0.
+      description: `${activeCampaigns ?? '—'} active · ${completedCampaigns ?? '—'} completed`,
     },
     {
       id: 'user-activity',

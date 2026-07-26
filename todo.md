@@ -574,6 +574,28 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**🟠 FIXED — a failed count query rendered as a confident "0".**
+Swept the pattern behind the last three fixes: *a displayed number that means
+"unset" but reads as "measured"*. Found it in two admin stat lines where `count` is
+**null on query failure, not on an empty table**:
+- `/admin/countries` — *"0 countries — 0 can fundraise"* on the page whose entire
+  subject is which countries are supported.
+- `/admin/reports` — *"0 active · 0 completed"*.
+
+Both now render **`—`**. Not my invention: this codebase already settled the
+question, in `dashboard/settings` — `campaignsCount: number | null` carries the
+comment *"null when the count could not be read — render unknown, never 0."*
+Applying an existing convention beat inventing one.
+
+_Triaged, not blanket-applied:_ three other `?? 0` displays were left alone —
+role-member counts and the two supporter-group counts are **genuinely zero** when
+empty, so a `0` there is correct rather than misleading.
+
+_Self-inflicted error worth noting:_ my first edit put a `{/* … */}` comment in a
+**JSX attribute position**, which is a syntax error. Typecheck caught it instantly
+and it never reached a commit — a reminder that the cheap gate runs before the
+expensive one for a reason.
+
 **🟠 FIXED (sibling) — admin showed every unscored campaign as "0/100" in red.**
 Checked the other surfaces reading the same column, since a fix that leaves siblings
 untouched isn't finished. `AdminCampaignsClient` renders `{healthScore}/100` with

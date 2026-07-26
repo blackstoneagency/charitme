@@ -103,6 +103,10 @@ export default async function AdminCountriesPage() {
   await requireAdmin();
   await maybeSeed();
 
+  // `count` is null when the query FAILS, not when the table is empty, so a
+  // `?? 0` fallback rendered "0 countries — 0 can fundraise" as though it were a
+  // measurement. Convention already set in dashboard/settings: "null when the
+  // count could not be read — render unknown, never 0."
   const { count: total }     = await supabaseAdmin.from('supported_countries').select('id', { count: 'exact', head: true });
   const { count: fundraise } = await supabaseAdmin.from('supported_countries').select('id', { count: 'exact', head: true }).eq('can_fundraise', true);
 
@@ -110,7 +114,7 @@ export default async function AdminCountriesPage() {
     <CharitMeShell active="Supported Countries" mode="admin">
       <TopBar
         title="Supported Countries"
-        subtitle={`${total ?? 0} countries — ${fundraise ?? 0} can fundraise. Changes appear live on /supported-countries.`}
+        subtitle={`${total ?? '—'} countries — ${fundraise ?? '—'} can fundraise. Changes appear live on /supported-countries.`}
         actions={<></>}
       />
       <AdminCountriesClient />
