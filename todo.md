@@ -4198,6 +4198,24 @@ against the real production DB works and has already settled real questions
 
 
 
+
+### ✅ Static a11y guard — covers the auth-gated surface axe cannot reach (Claude, 2026-07-26)
+
+`e2e/accessibility.spec.ts` runs axe against real pages and is the stronger check, but it
+can only reach routes that render **without a database** — so the entire authenticated
+surface (dashboard, admin, donor) is invisible to it both in CI and in this sandbox.
+Two defect classes are detectable in source, so they now have a guard that does cover it:
+`__tests__/a11y-static.test.ts` (`<img>` missing `alt`, icon-only `<button>` with no
+accessible name), scanning all of `app/` + `components/`.
+
+**It found 2 real defects on its first run** — the "sliders" filter buttons in the admin
+card header (`KindFundApp.tsx:222`, `CharitMeApp.tsx:321`) were icon-only with no label,
+so a screen reader announced each as just *"button"*. Both fixed with `aria-label="Filter"`.
+`<img alt>` was already clean app-wide (0 offenders), which is worth knowing.
+
+Non-vacuity verified: removing one `aria-label` fails the guard with the exact file:line.
+_1284/1284 tests, typecheck clean, build green._
+
 ## 📌 HANDOFF — Claude/tbaz3i session end (2026-07-26)
 
 **Read the CI entry above first.** It is the highest-leverage item in this file and it
