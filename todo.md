@@ -323,6 +323,31 @@ the API — applies both gates._
 _Lesson recorded: when a fix touches a mapping, grep for other copies of it before
 declaring it done. I verified the API route and stopped there._
 
+**🔴 SECURITY — enabling Two-Factor Authentication protects nothing. (Fix attempted below.)**
+The single most serious promise-audit finding. Settings offers *"Two-Factor
+Authentication — Add an extra layer of security to your account"* with a working
+**enrolment** flow (`app/dashboard/settings/mfa/page.tsx` does `enroll` →
+`challenge` → `verify` → `unenroll`, all correct).
+
+**Nothing ever requires the second factor.** Supabase issues a password sign-in at
+assurance level **aal1**; reaching **aal2** requires the app to challenge the
+factor *and* to refuse aal1 sessions. Grepping the entire codebase for `aal`,
+`AssuranceLevel` and `mfa` returns **nothing outside the enrolment page itself** —
+not `middleware.ts`, not `lib/auth.ts`, not the login flow, not
+`/api/auth/callback`.
+
+**Consequence:** a user who enables 2FA, believing they have hardened their
+account, is never challenged. An attacker holding only the password signs in
+exactly as before. The control is decorative, and worse than absent, because it
+tells the user they are protected.
+
+Unlike the suspension and payout-hold items, this needs **no product decision** —
+there is only one correct behaviour: if you enrolled a factor, you must complete
+it. What it does need is care, since a half-built gate locks 2FA users out
+entirely. A complete fix is: a challenge page for code entry, plus a gate that
+redirects an aal1 session to it whenever
+`getAuthenticatorAssuranceLevel()` reports `nextLevel === 'aal2'`.
+
 **🔴 TRUST & SAFETY — the public "7-day payout hold" claim contradicts the money architecture. NOT FIXED (owner's call).**
 `/trust-safety` tells donors, verbatim:
 > *"Payout holds — New accounts have a 7-day payout hold on their first campaign.
