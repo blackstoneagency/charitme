@@ -2074,6 +2074,22 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM40 · perf — cached the homepage data layer (p95 6577ms -> 657ms)** —
+  Follow-up to CHAR-SM35. The homepage issues ~9 Supabase queries per render.
+  They are already **parallel**, so the cost was never query *structure* — it was
+  that nothing was cached: `revalidate = 120` is inert while the root layout reads
+  the CSP nonce via `headers()`, so every visit re-queried the database.
+  Rather than wait on the CSP decision (Codex's lane), cached the **data layer**,
+  which works regardless of how the page renders: `getHomeData`, `getCategoryStats`
+  and `getRecentDonations` are now wrapped in `unstable_cache` (60s, tags `['home']`),
+  matching the pattern `announcements-data.ts` / `banner-settings.ts` already used.
+  Verified only the homepage calls these three, so there is no blast radius.
+  **Measured, not asserted** (150 req @ concurrency 20, warmed):
+  p50 **1503ms -> 627ms**, p95 **6577ms -> 1343ms**; on the full probe `/` lands at
+  p50 **55ms** / p95 **657ms** with 0 errors, and **every path now passes**
+  (previously `/` was the sole failure). Content verified unchanged after caching
+  (campaign links, Storage covers and the category grid all still render).
+
 - **CHAR-SM39 · API load audit — leaderboard endpoints 429'd 40% of requests** —
   Extended the load probe from pages to the public API surface (100 req @
   concurrency 20 each). Every endpoint was clean **except both leaderboard

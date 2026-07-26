@@ -1,4 +1,5 @@
 import 'server-only';
+import { unstable_cache } from 'next/cache';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { supabaseAdmin } from './supabase';
 import { withQueryTimeout } from './query-timeout';
@@ -117,7 +118,7 @@ export function aggregateCategoryStats(rows: { category: string | null; backer_c
 }
 
 /** Real campaign counts + supporter totals per category, for the "Discover causes" grid. */
-export async function getCategoryStats(): Promise<CategoryStat[]> {
+async function getCategoryStatsUncached(): Promise<CategoryStat[]> {
   const cols = await campaignColumns();
   const { data: result } = await withQueryTimeout(
     applyLiveFilters(supabaseAdmin.from('campaigns').select('category, backer_count'), cols),
@@ -129,7 +130,7 @@ export async function getCategoryStats(): Promise<CategoryStat[]> {
 }
 
 /** Recent completed donations for the live social-proof feed. Anonymous donors are redacted. */
-export async function getRecentDonations(limit = 8): Promise<RecentDonation[]> {
+async function getRecentDonationsUncached(limit = 8): Promise<RecentDonation[]> {
   const cols = await campaignColumns();
   const campaignJoin = cols.visibility
     ? 'campaigns:campaign_id(title, slug, visibility)'
@@ -188,7 +189,7 @@ export function mapRecentDonations(rows: RawDonationRow[], limit: number): Recen
   return out;
 }
 
-export async function getHomeData(filters: StoryFilters): Promise<{
+async function getHomeDataUncached(filters: StoryFilters): Promise<{
   stats: string[][];
   metrics: HomeMetrics;
   heroCampaign: HomeCampaign | null;
@@ -316,3 +317,39 @@ export async function getHomeData(filters: StoryFilters): Promise<{
     ],
   };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Cached homepage reads.
+//
+// The homepage runs ~9 Supabase queries per render. They are already issued in
+// parallel, so the cost is not query *structure* — it is that nothing was
+// cached. `revalidate = 120` on the page is currently inert because the root
+// layout reads the per-request CSP nonce via `headers()`, which opts the whole
+// App Router out of static rendering (see CHAR-SM35), so every visit re-queried
+// the database.
+//
+// Caching the data layer fixes that independently of how the page renders, and
+// keeps working if the CSP approach changes later. 60s matches the TTL already
+// used for announcements and banner settings.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Real campaign counts + supporter totals per category (cached 60s). */
+export const getCategoryStats = unstable_cache(
+  getCategoryStatsUncached,
+  ['home-category-stats'],
+  { revalidate: 60, tags: ['home'] },
+);
+
+/** Recent completed donations for the social-proof feed (cached 60s, keyed by limit). */
+export const getRecentDonations = unstable_cache(
+  getRecentDonationsUncached,
+  ['home-recent-donations'],
+  { revalidate: 60, tags: ['home'] },
+);
+
+/** Homepage campaign sets + headline metrics (cached 60s, keyed by filters). */
+export const getHomeData = unstable_cache(
+  getHomeDataUncached,
+  ['home-data'],
+  { revalidate: 60, tags: ['home'] },
+);
