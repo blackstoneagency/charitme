@@ -4068,3 +4068,11 @@ the anon+cookies client so Postgres enforces ownership).
 - [x] Updated Vitest to 4.1.10 and pinned patched `js-yaml` 4.3.0 for ESLint without changing runtime dependencies.
 - [x] Verified `npm audit --omit=dev` reports zero vulnerabilities; full audit retains only the upstream `brace-expansion` advisory in lint-only packages because forcing the patched major breaks `eslint-plugin-jsx-a11y`.
 - [x] Verified lint, typecheck, 945 Vitest tests, the 141-page production build, and the 39-route Chromium document-accessibility suite.
+
+## Session 2026-07-26 (Codex - global banner recovery and dynamic copy)
+- [x] Reproduced the production save failure: Supabase returned `PGRST205` because `banner_settings` had not been applied, while the existing announcement feed remained available.
+- [x] Added an idempotent recovery migration plus rollback script, service-role-only access, editable title/message/link fields, and a content revision trigger so new copy is not hidden by stale visitor dismissals.
+- [x] Added the Banner text editor immediately after Live preview and wired its validated values through the super-admin API, Supabase row, cached root layout, and public banner renderer.
+- [x] Ran the migration against the live schema inside a rollback-only transaction: show/hide, copy persistence, safe link, and revision increments passed; a post-rollback REST probe confirmed no production change remained.
+- [x] Verified focused banner tests 15/15, zero-warning lint, typecheck, all 1,163 tests, and the 149-page production build.
+- [ ] Merge through the protected-main PR, apply the verified migration in the release workflow, and confirm the production Save/show/hide/text flow.

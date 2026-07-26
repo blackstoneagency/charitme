@@ -34,6 +34,10 @@ export default function BannerClient({
         // snake_case keys match the API schema / DB columns
         body: JSON.stringify({
           enabled: s.enabled,
+          content_title: s.contentTitle,
+          content_body: s.contentBody,
+          content_link_label: s.contentLinkLabel,
+          content_link_url: s.contentLinkUrl,
           background_color: s.backgroundColor,
           text_color: s.textColor,
           link_color: s.linkColor,
@@ -90,9 +94,17 @@ export default function BannerClient({
                 letterSpacing: s.letterSpacingEm ? `${s.letterSpacingEm}em` : undefined,
                 textTransform: s.uppercase ? 'uppercase' : undefined,
               }}>
-                <strong style={{ fontWeight: s.titleFontWeight, fontSize: s.titleFontSizePx }}>New: AI Growth Plan is live</strong>
-                <span style={{ opacity: 0.92 }}>This is a platform announcement used to preview the banner.</span>
-                <a href="#preview" onClick={(e) => e.preventDefault()} style={{ color: s.linkColor, fontWeight: 700, textDecoration: 'underline', whiteSpace: 'nowrap' }}>Learn more →</a>
+                <strong style={{ fontWeight: s.titleFontWeight, fontSize: s.titleFontSizePx }}>
+                  {s.contentTitle || 'Latest active announcement'}
+                </strong>
+                <span style={{ opacity: 0.92 }}>
+                  {s.contentBody || 'Custom copy is blank, so the newest active announcement will appear here.'}
+                </span>
+                {(s.contentLinkUrl || s.contentLinkLabel) && (
+                  <a href="#preview" onClick={(e) => e.preventDefault()} style={{ color: s.linkColor, fontWeight: 700, textDecoration: 'underline', whiteSpace: 'nowrap' }}>
+                    {s.contentLinkLabel || 'Learn more'} →
+                  </a>
+                )}
                 {s.dismissible && <span style={{ marginLeft: 'auto', opacity: 0.85, fontSize: 18, lineHeight: 1 }}>×</span>}
               </div>
             </div>
@@ -101,6 +113,63 @@ export default function BannerClient({
               Banner is hidden site-wide.
             </div>
           )}
+        </div>
+      </div>
+
+      {/* ── Content ── */}
+      <div style={card}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: '#1e293b', marginBottom: 4 }}>Banner text</div>
+        <div style={{ fontSize: 12.5, color: '#64748b', marginBottom: 14 }}>
+          Saved copy appears site-wide immediately. Leave the title blank to use the newest active announcement instead.
+        </div>
+        <div style={{ display: 'grid', gap: 14 }}>
+          <div>
+            <label htmlFor="banner-title" style={label}>Title</label>
+            <input
+              id="banner-title"
+              value={s.contentTitle}
+              maxLength={120}
+              onChange={(e) => set('contentTitle', e.target.value)}
+              placeholder="New: AI Growth Plan is live"
+              style={field}
+            />
+          </div>
+          <div>
+            <label htmlFor="banner-body" style={label}>Message</label>
+            <textarea
+              id="banner-body"
+              value={s.contentBody}
+              maxLength={240}
+              rows={3}
+              onChange={(e) => set('contentBody', e.target.value)}
+              placeholder="Tell visitors what changed and why it matters."
+              style={{ ...field, resize: 'vertical' }}
+            />
+          </div>
+          <div style={row}>
+            <div>
+              <label htmlFor="banner-link-label" style={label}>Link label</label>
+              <input
+                id="banner-link-label"
+                value={s.contentLinkLabel}
+                maxLength={60}
+                onChange={(e) => set('contentLinkLabel', e.target.value)}
+                placeholder="Learn more"
+                style={field}
+              />
+            </div>
+            <div>
+              <label htmlFor="banner-link-url" style={label}>Link URL</label>
+              <input
+                id="banner-link-url"
+                value={s.contentLinkUrl}
+                maxLength={500}
+                onChange={(e) => set('contentLinkUrl', e.target.value)}
+                placeholder="/features or https://..."
+                style={field}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
