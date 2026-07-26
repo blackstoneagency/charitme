@@ -92,9 +92,9 @@ export default function FeaturesPage() {
       <section style={{ background: 'var(--s1, #fff)', borderBottom: '1px solid var(--b1, #ede9fe)', padding: '64px 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <span style={{ fontSize: 12, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: '.12em' }}>Why CharitMe</span>
-            <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: '#0e0520', margin: '10px 0 14px' }}>Built different from the ground up</h2>
-            <p style={{ color: '#64748b', fontSize: 16, maxWidth: 540, margin: '0 auto' }}>Not a clone. A rethink — AI trust scores, 0% fees, beneficiary routing, and real-time fraud detection baked in.</p>
+            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet-ink, #6c35ff)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Why CharitMe</span>
+            <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 14px' }}>Built different from the ground up</h2>
+            <p style={{ color: 'var(--t3, #64748b)', fontSize: 16, maxWidth: 540, margin: '0 auto' }}>Not a clone. A rethink — AI trust scores, 0% fees, beneficiary routing, and real-time fraud detection baked in.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
             {[
@@ -105,10 +105,10 @@ export default function FeaturesPage() {
               { icon: '🤖', title: 'AI Fundraising Suite', desc: 'AI writes your story, optimises your ask, and suggests next actions in real time.' },
               { icon: '🔒', title: 'Built-in Compliance', desc: 'GDPR-ready, RLS on every table, fraud queues, dispute handling, and immutable ledger.' },
             ].map(f => (
-              <div key={f.title} style={{ background: 'linear-gradient(145deg,#faf8ff,#f3f0ff)', border: '1px solid #ede9fe', borderRadius: 18, padding: '28px 24px' }}>
+              <div key={f.title} style={{ background: 'linear-gradient(145deg, var(--s2, #faf8ff), var(--s3, #f3f0ff))', border: '1px solid var(--b1, #ede9fe)', borderRadius: 18, padding: '28px 24px' }}>
                 <div style={{ fontSize: 28, marginBottom: 12 }}>{f.icon}</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#0e0520', marginBottom: 8 }}>{f.title}</div>
-                <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6 }}>{f.desc}</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1, #0e0520)', marginBottom: 8 }}>{f.title}</div>
+                <div style={{ fontSize: 13, color: 'var(--t3, #64748b)', lineHeight: 1.6 }}>{f.desc}</div>
               </div>
             ))}
           </div>
@@ -119,9 +119,9 @@ export default function FeaturesPage() {
       <section style={{ padding: '72px 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
-            <span style={{ fontSize: 12, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: '.12em' }}>Platform Modules</span>
-            <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: '#0e0520', margin: '10px 0 14px' }}>Everything in one platform</h2>
-            <p style={{ color: '#475569', fontSize: 16, maxWidth: 500, margin: '0 auto' }}>Each module is production-ready and connected to a shared ledger, donor graph, and trust layer.</p>
+            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet-ink, #6c35ff)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Platform Modules</span>
+            <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 14px' }}>Everything in one platform</h2>
+            <p style={{ color: 'var(--t2, #475569)', fontSize: 16, maxWidth: 500, margin: '0 auto' }}>Each module is production-ready and connected to a shared ledger, donor graph, and trust layer.</p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 24 }}>
@@ -147,7 +147,7 @@ export default function FeaturesPage() {
 
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 20 }}>
                     {module.features.slice(0, 5).map((feature) => (
-                      <span key={`${module.slug}-${feature.name}`} style={{ background: 'var(--s2, #f8f7ff)', border: '1px solid var(--b1, #ede9fe)', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: '#5b21b6' }}>
+                      <span key={`${module.slug}-${feature.name}`} style={{ background: 'var(--s2, #f8f7ff)', border: '1px solid var(--b1, #ede9fe)', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: 'var(--violet-ink, #5b21b6)' }}>
                         {feature.name}
                         {/* Tracked for competitive parity but not built yet — the
                             module badge above says "Production Ready", so an
@@ -156,7 +156,7 @@ export default function FeaturesPage() {
                       </span>
                     ))}
                     {module.features.length > 5 && (
-                      <span style={{ background: 'var(--s2, #f8f7ff)', border: '1px solid var(--b1, #ede9fe)', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: '#4b5563' }}>
+                      <span style={{ background: 'var(--s2, #f8f7ff)', border: '1px solid var(--b1, #ede9fe)', borderRadius: 999, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: 'var(--t2, #4b5563)' }}>
                         +{module.features.length - 5} more
                       </span>
                     )}
@@ -177,24 +177,24 @@ export default function FeaturesPage() {
       <section style={{ background: 'var(--s1, #fff)', borderTop: '1px solid var(--b1, #ede9fe)', padding: '72px 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <span style={{ fontSize: 12, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: '.12em' }}>Competitive Coverage</span>
-            <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: '#0e0520', margin: '10px 0 14px' }}>We mapped every competitor</h2>
-            <p style={{ color: '#64748b', fontSize: 16, maxWidth: 480, margin: '0 auto' }}>CharitMe has feature parity with all major platforms — and beats them on trust and transparency.</p>
+            <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet-ink, #6c35ff)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Competitive Coverage</span>
+            <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 14px' }}>We mapped every competitor</h2>
+            <p style={{ color: 'var(--t3, #64748b)', fontSize: 16, maxWidth: 480, margin: '0 auto' }}>CharitMe has feature parity with all major platforms — and beats them on trust and transparency.</p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, maxWidth: 900, margin: '0 auto' }}>
             {coverage.competitors.map((competitor) => {
               const accent = COMPETITOR_COLORS[competitor.name] ?? '#6c35ff';
               return (
-                <div key={competitor.name} style={{ background: '#fafafa', border: '1.5px solid #f1f5f9', borderRadius: 16, padding: '20px 20px 18px', position: 'relative', overflow: 'hidden' }}>
+                <div key={competitor.name} style={{ background: 'var(--s1, #fafafa)', border: '1.5px solid var(--b1, #f1f5f9)', borderRadius: 16, padding: '20px 20px 18px', position: 'relative', overflow: 'hidden' }}>
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: accent, borderRadius: '16px 16px 0 0' }} />
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <span style={{ width: 10, height: 10, borderRadius: '50%', background: accent, flexShrink: 0 }} />
-                    <span style={{ fontSize: 15, fontWeight: 900, color: '#0e0520' }}>{competitor.name}</span>
+                    <span style={{ fontSize: 15, fontWeight: 900, color: 'var(--t1, #0e0520)' }}>{competitor.name}</span>
                   </div>
-                  <div style={{ fontSize: 26, fontWeight: 950, color: '#0e0520', lineHeight: 1 }}>{competitor.count}</div>
-                  <div style={{ fontSize: 12, color: '#475569', marginTop: 4, fontWeight: 600 }}>required features covered</div>
-                  <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#15803d' }}>
+                  <div style={{ fontSize: 26, fontWeight: 950, color: 'var(--t1, #0e0520)', lineHeight: 1 }}>{competitor.count}</div>
+                  <div style={{ fontSize: 12, color: 'var(--t2, #475569)', marginTop: 4, fontWeight: 600 }}>required features covered</div>
+                  <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--green-text, #15803d)' }}>
                     <span>✓</span> Full parity
                   </div>
                 </div>
