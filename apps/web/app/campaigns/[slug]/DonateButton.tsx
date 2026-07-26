@@ -314,7 +314,7 @@ export default function DonateButton({
         </div>
       )}
       {!isMonthly && (
-        <div style={{ background: '#f0fff8', borderRadius: 10, padding: '10px 14px', border: '1px solid #bbf7d0' }}>
+        <div style={{ background: 'rgba(16,185,129,.10)', borderRadius: 10, padding: '10px 14px', border: '1px solid #bbf7d0' }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: '#065f46' }}>0% mandatory platform fee</div>
           <div style={{ fontSize: 12, color: '#065f46', marginTop: 3 }}>
             CharitMe is supported by optional donor tips. Every fee is shown before checkout.
@@ -845,7 +845,7 @@ export default function DonateButton({
       {!isMonthly && <EmployerMatchWidget amountCents={amountCents} />}
 
       {error && (
-        <p style={{ margin: 0, padding: '10px 14px', borderRadius: 10, background: '#fff0f3', color: '#ef4444', fontSize: 13, fontWeight: 700, border: '1px solid #fecdd3' }}>
+        <p style={{ margin: 0, padding: '10px 14px', borderRadius: 10, background: 'rgba(244,63,94,.12)', color: '#ef4444', fontSize: 13, fontWeight: 700, border: '1px solid #fecdd3' }}>
           ⚠ {error}
         </p>
       )}

@@ -5583,3 +5583,60 @@ their `--green-btn` change, and see whether `/features` and `/ai-fundraising` st
 fail. If they pass, delete them from `KNOWN_CONTRAST_BASELINE` in that spec. If they
 still fail, they are genuine and need a brand-palette decision.
 Do **not** assume either number is right without settling animations first.
+
+### ✅ DONE — theme guard made luminance-based; reaches /dashboard (Claude, 2026-07-26)
+**Why the static guard kept missing things:** `theme-tokens.test.ts` matched an
+**enumeration of six near-white hexes** (`fff|ffffff|fefefe|fdfdff|fbfaff|f8f7ff`).
+That is whack-a-mole — every fix appends one more literal, so the next unseen
+shade sails straight through. Both bugs the runtime sweep had to find were shades
+*not on the list*: `#fafafa` (the /features competitor card, 1.17:1) and `#f9f7ff`
+(the donate breakdown card). The guard was structurally incapable of catching them.
+
+**Fixed by measuring instead of matching:** any literal background whose relative
+**luminance > 0.75** now fails, so an unseen near-white shade is caught the first
+time it appears. Proven non-vacuous — injecting `#fafafa` fails the suite at the
+exact line, and it passed before the change.
+
+**Why this matters beyond public pages:** this guard walks every dir under `app/`
+except `api`/`admin`, so it is the **only** coverage `/dashboard/*` has. Those
+routes are Supabase-backed and the sandbox has no DB egress, so they cannot be
+browser-audited here at all (see the network-policy note above). Strengthening the
+static rule is the one lever that reaches them.
+
+**Found and fixed 12 near-white surfaces** the enumeration missed, across
+`/campaigns/[slug]` (+ embed + DonateButton), `/create`, `/dashboard/settings`,
+`/dashboard/campaigns/[id]` SharePanel, and `/donor`. Most were **light tint chips**
+(`#f0eaff`, `#dcfce7`, `#f0fff8`, `#fff0f3`, `#e8f8ee`, `#f5f3ff`, `#e0faf0`) —
+these pass contrast, which is why the runtime sweep never flagged them, but they
+stay glaringly bright on a dark page. Converted to **translucent tints**
+(`rgba(…, .10–.14)`), the pattern already used elsewhere in this codebase, which
+reads correctly on both themes; the two plain neutrals became `--s2`/`--s3`.
+
+**Deliberately NOT extended to text.** The same luminance rule on `color:` fires on
+58 lines, but most are legitimate brand accents (`#7c3aed`, `#635bff`, `#4285F4`,
+`#059669`) — dark by luminance, correct by intent. Saturation does not separate
+them either (`#0e0520`, the invisible headline, is itself highly saturated). A
+text-side rule would need the *resolved pairing*, which is exactly what
+`audit-contrast.mjs` already does at runtime. Left alone rather than shipping a
+guard that cries wolf.
+
+Verified: typecheck 0 · vitest **1258/1258** · `next build` exit 0 · contrast sweep
+**0 failures across 38 pages × 2 themes** (re-run after the tint conversions).
+
+### ✅ DONE — contrast sweep wired into npm + CI (Claude, 2026-07-26)
+The runtime sweep was manual-only, so it protected nothing between runs. Now:
+- **`npm run audit:contrast --workspace=apps/web`** (alongside `audit:campaign-images`).
+- **A CI step in the `e2e` job**, which already produces a production build.
+
+`playwright.config.ts` owns and tears down its own webServer, so the step starts
+and stops its own. Two hard-won gotchas are encoded in it rather than left as lore:
+- **fails fast if :3000 is already serving** — a stale server audits the *old*
+  build and emits plausible-looking nonsense (this cost a full debugging cycle
+  earlier today: 18 "failures" that included white-on-white and light backgrounds
+  in dark mode);
+- **`pkill -f "[n]ext-server"`** is bracketed so it cannot match the step's own
+  shell, whose command line contains that string.
+
+Verified by running the exact CI invocation locally: **0 failures, 38 pages × 2
+themes**. Note the sweep runs against placeholder Supabase env (same as the rest
+of CI) and passes — it covers static public routes, so it needs no database.

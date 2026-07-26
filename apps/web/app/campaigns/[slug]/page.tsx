@@ -464,12 +464,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span className="pc-verified">✓ Verified Campaign</span>
           {campaign.category && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: '#f0eaff', color: 'var(--violet)', fontSize: 12, fontWeight: 650, letterSpacing: '.04em' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: 'rgba(108,53,255,.12)', color: 'var(--violet)', fontSize: 12, fontWeight: 650, letterSpacing: '.04em' }}>
               {campaign.category}
             </span>
           )}
           {(campaign as { nonprofit_verified?: boolean }).nonprofit_verified && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: '#dcfce7', color: '#15803d', fontSize: 12, fontWeight: 650 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: 'rgba(16,185,129,.14)', color: '#15803d', fontSize: 12, fontWeight: 650 }}>
               Tax Deductible
             </span>
           )}
@@ -488,7 +488,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           </div>
           <p className="pc-organizer" style={{ margin: 0 }}>
             Organized by <b style={{ color: 'var(--ink)', fontWeight: 650 }}>{organizer.full_name ?? 'CharitMe Organizer'}</b>
-            {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: '#dcfce7', color: '#15803d', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 650 }}>✓ Verified</span>
+            {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(16,185,129,.14)', color: '#15803d', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 650 }}>✓ Verified</span>
             {' '}· {campaign.location ?? 'New York, USA'}
           </p>
         </div>
