@@ -277,6 +277,43 @@ _Two false alarms killed by checking:_ a grep for admin guards missed
 grep for `rateLimit` missed `checkRateLimit`, making two endpoints look
 unthrottled. Both were fine.
 
+**🔒 FIXED — the unsubscribe rate limit was bypassable by changing HTTP verb.**
+`POST /api/marketing/unsubscribe` carried a durable limit with an explicit comment:
+*"this endpoint is unauthenticated and anonymous callers can suppress an arbitrary
+email, so a per-instance counter does not bound abuse."* The **GET handler beside
+it had no limit at all** — and it suppresses an arbitrary address with exactly the
+same capability. Limiting one of two identical unauthenticated capabilities bounds
+nothing. GET now uses the same durable limit, returning an HTML 429 (it renders in
+a browser, unlike the JSON one POST returns).
+Guarded by `__tests__/unsubscribe-guards.test.ts`, which asserts **every** exported
+handler in that file rate-limits — so a future third verb can't reintroduce the
+hole — and that the durable limiter is used rather than the per-instance one.
+Verified non-vacuous.
+
+**⚠️ NOT fixed — state-changing GET means scanners can silently unsubscribe users.**
+The link in every email is `GET /api/marketing/unsubscribe?email=...`, which mutates
+state on fetch. Corporate mail security (Outlook Safe Links, spam filters,
+link-prefetchers) routinely **fetches URLs in email without the recipient clicking**,
+so real users get unsubscribed silently — they simply stop receiving mail, and
+nobody can tell why. This is exactly why RFC 8058 one-click unsubscribe is a
+**POST** with a `List-Unsubscribe-Post: List-Unsubscribe=One-Click` header.
+**Left for the owner because it trades a real UX property.** The code comment says
+*"One-click unsubscribe links from emails"*, so one-click looks deliberate, and the
+two standard remedies both change it:
+1. **RFC 8058 properly** — send `List-Unsubscribe` + `List-Unsubscribe-Post`
+   headers and let the mail client POST. Best-practice, invisible to users, and
+   still genuinely one click in Gmail/Outlook.
+2. **Confirmation page** — GET renders a "Confirm unsubscribe" button that POSTs.
+   Immune to prefetch, costs one extra click.
+_Related, minor:_ `lib/email.ts` appends the Unsubscribe link to **every** email it
+sends, including receipts and password resets. Harmless (clicking it only
+suppresses marketing) but it implies you can unsubscribe from transactional mail.
+
+**Confirmed working, for the record:** all three marketing send paths — `outreach`,
+`campaigns`, `automations` — check the suppression list before sending, and
+`unsubscribeEmail()` writes the suppression row, flips `marketing_contacts.status`,
+and records consent history. The unsubscribe promise itself is kept.
+
 **✅ AUDITED CLEAN — recurring donations, the highest-stakes control in the app.**
 Checked because a cancel that doesn't reach Stripe means donors keep being
 **charged** — the worst possible version of the promise-audit bug class. It is

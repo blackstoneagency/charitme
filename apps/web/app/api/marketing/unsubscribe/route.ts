@@ -26,6 +26,18 @@ export async function GET(req: NextRequest) {
   const email = req.nextUrl.searchParams.get('email') ?? '';
   const parsed = Schema.safeParse({ email });
   if (!parsed.success) return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
+
+  // Same durable limit as POST. Without it the POST handler's protection was
+  // trivially bypassed: both handlers suppress an arbitrary address with no
+  // authentication, so limiting only one of them bounds nothing.
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (!(await checkRateLimitDurable(`mkt-unsub:${ip}`, 10, 60_000))) {
+    return new NextResponse(
+      '<html><body style="font-family:sans-serif;text-align:center;padding:60px"><h2>Too many requests</h2><p>Please try again in a minute.</p></body></html>',
+      { status: 429, headers: { 'Content-Type': 'text/html' } },
+    );
+  }
+
   await unsubscribeEmail(parsed.data.email);
   return new NextResponse(
     '<html><body style="font-family:sans-serif;text-align:center;padding:60px"><h2>You have been unsubscribed.</h2><p>You will no longer receive marketing emails from CharitMe.</p></body></html>',
