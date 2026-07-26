@@ -1,7 +1,7 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { checkRateLimit } from '../../../../lib/rate-limit';
+import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 import { resolveContact, trackEvent } from '../../../../lib/marketing-engine';
 import { createClient } from '../../../../lib/supabase-server';
 
@@ -20,7 +20,9 @@ const EventSchema = z.object({
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  if (!checkRateLimit(`mkt-event:${ip}`, 60, 60_000)) {
+  // Durable, cross-instance limit: this endpoint is unauthenticated and
+  // anonymous events are written to the marketing pipeline, so a per-instance counter does not bound abuse.
+  if (!(await checkRateLimitDurable(`mkt-event:${ip}`, 60, 60_000))) {
     return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
   }
 

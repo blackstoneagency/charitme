@@ -1,14 +1,16 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { checkRateLimit } from '../../../../lib/rate-limit';
+import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 import { unsubscribeEmail } from '../../../../lib/marketing-engine';
 
 const Schema = z.object({ email: z.string().email().max(254) });
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  if (!checkRateLimit(`mkt-unsub:${ip}`, 10, 60_000)) {
+  // Durable, cross-instance limit: this endpoint is unauthenticated and
+  // anonymous callers can suppress an arbitrary email, so a per-instance counter does not bound abuse.
+  if (!(await checkRateLimitDurable(`mkt-unsub:${ip}`, 10, 60_000))) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
   const body = await req.json().catch(() => null);

@@ -1673,6 +1673,33 @@ tests/build/live-HTTP are listed here.
     unit-tested; full suite **779/779**; typecheck + lint clean; `next build` green.
     (End-to-end Stripe test-mode donation still needs test keys per ADR-0003.)
 
+- **CHAR-SM36 · BUG — abuse reports were silently discarded while telling the
+  reporter they succeeded** — Found while load-testing `/api/campaign-reports`.
+  The handler did `await supabaseAdmin.from('campaign_reports').insert({...})`
+  **without checking `error`**, then always returned **201 `{ok:true}`**.
+  `campaign_reports.campaign_id` has a foreign key to `campaigns`, so any insert
+  that violates it (or hits RLS, a constraint, or a DB outage) fails with 23503 —
+  and the reporter is told "reported successfully" while nothing is recorded.
+  This is the trust & safety path the FAQ promises is "reviewed within 24 hours".
+  **Verified live**: a report for a non-existent campaign returned 201 with zero
+  rows written. **Fixed:** check the insert result, return **404** for a
+  non-existent campaign and **500** (with a server log) for anything else.
+  Re-verified: bogus campaign now **404**, real campaign still **201**. All test
+  rows removed from production (0 remaining).
+  _Audited the other unchecked inserts: they are `ai_generations`/`audit_logs`
+  telemetry where fire-and-forget is defensible (the user still gets their
+  result). This one was different — the insert **was** the request._
+
+- **CHAR-SM37 · security — durable rate limits on the 6 remaining anonymous write
+  endpoints** — A teammate converted the OpenAI routes and the contact form to the
+  durable limiter. These six were outside that scope and still used the in-memory
+  `checkRateLimit`, whose counter is **per-instance** — on serverless the effective
+  limit is `limit x instances`, so it bounds nothing: `campaign-reports`,
+  `marketing/capture`, `marketing/event`, `marketing/unsubscribe`, `share-events`,
+  `trust-score`. All six verified to accept **unauthenticated writes** before
+  converting. Now on `checkRateLimitDurable`, following the teammate's exact
+  pattern. **Verified enforcing live:** 9 rapid reports → 5x201 then 4x429.
+
 - **CHAR-SM35 · ⚠️ FOR CODEX — the strict-CSP nonce silently disabled ISR site-wide** —
   Ran a real concurrent load probe (`scripts/load-test.mjs`, 150 req @ concurrency
   20 per path). **No errors on any path** — nothing 5xx'd or fell over. But `/`

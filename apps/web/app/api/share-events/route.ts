@@ -1,7 +1,7 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { checkRateLimit } from '../../../lib/rate-limit';
+import { checkRateLimitDurable } from '../../../lib/rate-limit-durable';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 
@@ -17,7 +17,9 @@ const Schema = z.object({
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  if (!checkRateLimit(`share-event:${ip}`, 60, 60_000)) {
+  // Durable, cross-instance limit: this endpoint is unauthenticated and
+  // anonymous share events are written to `share_events`, so a per-instance counter does not bound abuse.
+  if (!(await checkRateLimitDurable(`share-event:${ip}`, 60, 60_000))) {
     return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
   }
   const body = await request.json().catch(() => null);

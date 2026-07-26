@@ -1,7 +1,7 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { checkRateLimit } from '../../../../lib/rate-limit';
+import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 import { resolveContact, trackEvent, refreshContactScores } from '../../../../lib/marketing-engine';
 import { supabaseAdmin } from '../../../../lib/supabase';
 
@@ -25,7 +25,9 @@ const CaptureSchema = z.object({
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  if (!checkRateLimit(`mkt-capture:${ip}`, 30, 60_000)) {
+  // Durable, cross-instance limit: this endpoint is unauthenticated and
+  // anonymous submissions create marketing contacts, so a per-instance counter does not bound abuse.
+  if (!(await checkRateLimitDurable(`mkt-capture:${ip}`, 30, 60_000))) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
 
