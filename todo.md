@@ -257,6 +257,19 @@ _That is now **twice** a guard's first draft would have gated CI on correct code
 (the constants guard flagged 7 files). Verifying a guard against known-good code
 matters as much as verifying it against the bug._
 
+**✅ Soft-delete class CLOSED — campaigns was the only leak.** After fixing it I
+checked whether the bug had siblings, rather than assuming. **22 tables carry
+`deleted_at`**; three are publicly browsable (`campaigns`, `grants`,
+`volunteer_opportunities`). Every other public path already filters correctly:
+- `grants` — list (`/api/grants`), detail (`/api/grants/[id]`) **and** the apply
+  endpoint all `.is('deleted_at', null)`.
+- `volunteer_opportunities` — all **three** queries in `lib/volunteers-server.ts`
+  (list, by-slug, categories) filter it.
+- admin routes for both filter it too.
+So `getCampaign` was the single outlier, and the class is now closed rather than
+one instance patched. The other 19 tables are payment/audit internals with no
+public read path.
+
 **🔴 FIXED — deleting a campaign did not hide it from the public URL.**
 `DELETE /api/campaigns/[id]` **soft-deletes**: it sets `deleted_at` rather than
 removing the row ("for compliance audit trail"). Every listing filters that
