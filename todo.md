@@ -277,6 +277,35 @@ _Two false alarms killed by checking:_ a grep for admin guards missed
 grep for `rateLimit` missed `checkRateLimit`, making two endpoints look
 unthrottled. Both were fine.
 
+**🔴 FIXED — donors saw an understated lifetime giving total on their own record.**
+Found by sweeping for the same shape as the trust & safety bug: a `.length` (or a
+`reduce`) over an array that a `.limit()` already truncated.
+`app/donor/page.tsx` fetched donations with `.limit(100)` for the list, then
+computed the **money tiles from that same capped array**:
+- **"Total Given"** and **"Platform Tips"** reduced over the 100 most recent rows,
+  so a donor with more than 100 gifts saw a **materially wrong lifetime total** —
+  their own giving history, quietly understated.
+- **"Donations"** showed `donations.length`, i.e. `100`, even though the query
+  **already requested `count: 'exact'`** — the true count was sitting right there
+  unused.
+
+Money tiles now come from a dedicated narrow query (`amount_cents, tip_cents` for
+all completed donations); the rendered list stays capped at 100. The count tile
+uses `donationRes.count`.
+**The explicit `.limit(10_000)` on the new query is deliberate:** PostgREST caps
+unbounded selects, so omitting a limit would have silently reintroduced the very
+same bug at a different threshold. A test pins that.
+Regression test verified non-vacuous.
+
+**⚠️ FLAGGED, NOT CLAIMED — the same unbounded shape in two tax-relevant paths.**
+`lib/tax-server.ts` (`loadDonorTaxInputs`) and `app/api/exports/donations` both
+query donations with **no explicit limit and no pagination**. Whether they truncate
+depends on the server's PostgREST `db-max-rows`, which **I cannot read from this
+sandbox** — so I am *not* asserting these are broken. Recording because the
+consequence is high if it does apply (a truncated **tax statement** or export is a
+document someone files), and the fix is cheap: set an explicit limit and surface a
+truncation indicator, exactly as done above.
+
 **🔴 FIXED — the trust & safety dashboard misreported its own backlog.**
 `/admin/trust-safety` showed summary tiles reading **"Unresolved Risk Flags"** and
 **"Open Reports"**, whose values were `flags.length` / `reports.length`. Those

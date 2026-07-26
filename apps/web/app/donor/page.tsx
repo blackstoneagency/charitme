@@ -48,13 +48,25 @@ export default async function DonorPortalPage() {
   if (!user) redirect('/login?next=/donor');
 
   // Independent queries — run in parallel (avoids a serial round-trip waterfall).
-  const [donationRes, recurringRes] = await Promise.all([
+  const [donationRes, totalsRes, recurringRes] = await Promise.all([
     supabaseAdmin
       .from('donations')
       .select('id, amount_cents, tip_cents, currency, status, anonymous, message, created_at, campaign_id', { count: 'exact' })
       .eq('donor_id', user.id)
       .order('created_at', { ascending: false })
       .limit(100),
+    // Separate narrow query for the money tiles. The list above is capped at 100
+    // for rendering, and summing THAT array understated a long-time donor's
+    // lifetime "Total Given" — their own giving record, quietly wrong. Only two
+    // small ints per row, so this stays cheap. The explicit high limit matters:
+    // PostgREST caps unbounded selects (commonly 1000), so omitting it would
+    // silently reintroduce the same bug at a different threshold.
+    supabaseAdmin
+      .from('donations')
+      .select('amount_cents, tip_cents')
+      .eq('donor_id', user.id)
+      .eq('status', 'completed')
+      .limit(10_000),
     supabaseAdmin
       .from('recurring_donations')
       .select('id, amount_cents, cadence, status, stripe_subscription_id, next_bill_at, created_at, campaign_id')
@@ -86,8 +98,13 @@ export default async function DonorPortalPage() {
     }
   }
 
-  const totalGiven   = donations.filter(d => d.status === 'completed').reduce((s, d) => s + d.amount_cents, 0);
-  const totalTips    = donations.filter(d => d.status === 'completed').reduce((s, d) => s + (d.tip_cents ?? 0), 0);
+  // Computed from the UNCAPPED totals query, not the 100-row display list.
+  const allCompleted = (totalsRes.data ?? []) as { amount_cents: number; tip_cents: number | null }[];
+  const totalGiven   = allCompleted.reduce((s, d) => s + d.amount_cents, 0);
+  const totalTips    = allCompleted.reduce((s, d) => s + (d.tip_cents ?? 0), 0);
+  // The query already asked for `count: 'exact'`; the tile just wasn't using it,
+  // so a donor with 250 gifts saw "100".
+  const donationsCount = donationRes.count ?? donations.length;
   const currentYear  = new Date().getUTCFullYear();
   const taxYears = [...new Set(
     donations
@@ -120,7 +137,7 @@ export default async function DonorPortalPage() {
         {[
           { label: 'Total Given',        value: formatCents(totalGiven),                color: statsColors[0] },
           { label: 'Platform Tips',      value: formatCents(totalTips),                 color: statsColors[1] },
-          { label: 'Donations',          value: donations.length.toString(),            color: statsColors[2] },
+          { label: 'Donations',          value: donationsCount.toString(),              color: statsColors[2] },
           { label: 'Monthly Recurring',  value: monthlyTotal > 0 ? `${formatCents(monthlyTotal)}/mo` : '—', color: statsColors[3] },
         ].map(s => (
           <div key={s.label} style={{ ...cardStyle, textAlign: 'center' }}>
