@@ -60,7 +60,7 @@ export interface GrantApplication {
 export const GRANT_PUBLIC_COLUMNS =
   'id,slug,title,funder_name,funder_type,summary,category,focus_areas,eligibility,' +
   'eligible_entity_types,amount_min,amount_max,currency,location,country,' +
-  'application_url,deadline_at,rolling_deadline,status,verified,created_at,updated_at';
+  'application_url,deadline_at,rolling_deadline,status,verified,source,created_at,updated_at';
 
 export const GRANT_DETAIL_COLUMNS = GRANT_PUBLIC_COLUMNS + ',description';
 

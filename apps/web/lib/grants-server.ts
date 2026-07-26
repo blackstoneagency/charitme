@@ -2,6 +2,7 @@ import 'server-only';
 import { supabaseAdmin } from './supabase';
 import { boundedQuery } from './query-timeout';
 import { GRANT_PUBLIC_COLUMNS, GRANT_DETAIL_COLUMNS, type Grant } from './grants';
+import { suppressDemoTrust, suppressDemoTrustAll } from './demo-trust';
 
 // Server-side grant reads for React Server Components (initial page render).
 
@@ -17,7 +18,8 @@ export async function getPublicGrants(limit = 24): Promise<Grant[]> {
       .limit(limit),
   );
   if (error) return [];
-  return (data ?? []) as unknown as Grant[];
+  // Demo rows must never render a fabricated "Verified" badge — see lib/demo-trust.ts.
+  return suppressDemoTrustAll((data ?? []) as unknown as Grant[]);
 }
 
 export async function getGrantBySlug(slug: string): Promise<Grant | null> {
@@ -29,7 +31,7 @@ export async function getGrantBySlug(slug: string): Promise<Grant | null> {
     .in('status', ['open', 'upcoming'])
     .maybeSingle();
   if (error || !data) return null;
-  return data as unknown as Grant;
+  return suppressDemoTrust(data as unknown as Grant);
 }
 
 export interface GrantDeadline {
