@@ -37,7 +37,12 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   // Insert into support_cases (canonical table name from schema)
-  const { data: ticket } = await supabaseAdmin
+  // The insert result MUST be checked. Previously `error` was destructured away,
+  // so a failed insert still fell through to `{ ok: true }` + 201 with a null
+  // ticketId: the user was told their request was filed when no row existed, and
+  // would later find it missing from their ticket list. Same reasoning already
+  // applied in app/api/campaign-reports.
+  const { data: ticket, error: insertError } = await supabaseAdmin
     .from('support_cases')
     .insert({
       submitter_id: user?.id ?? null,
@@ -50,6 +55,26 @@ export async function POST(request: NextRequest) {
     })
     .select('id')
     .single();
+
+  if (insertError) {
+    console.error('[support-tickets] insert failed', insertError.code, insertError.message);
+    // Still notify support so the request itself isn't lost, then tell the user
+    // the truth: it was not saved, so they don't wait on a ticket that isn't there.
+    if (resend) {
+      await Promise.allSettled([
+        resend.emails.send({
+          from: FROM,
+          to: SUPPORT_EMAIL,
+          subject: `[UNSAVED] Support request from ${email}`,
+          text: `A support request could NOT be saved to the database and has no ticket id.\n\nFrom: ${email}\nSubject: ${subject}\nPriority: ${priority}\n\n${message}`,
+        }),
+      ]);
+    }
+    return NextResponse.json(
+      { error: 'We could not save your request. Please email us directly so nothing is lost.', code: 'TICKET_NOT_SAVED' },
+      { status: 500 },
+    );
+  }
 
   const ticketId = (ticket as { id: string } | null)?.id ?? null;
   const ticketRef = ticketId ? `Ticket #${ticketId.slice(0, 8).toUpperCase()}` : 'New request';

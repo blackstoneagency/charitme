@@ -574,6 +574,25 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**🔴 FIXED — a failed support ticket still reported success to the user.**
+`POST /api/support-tickets` destructured **only** `{ data: ticket }` from the
+`support_cases` insert, discarding `error`. So when the insert failed the code fell
+straight through: `ticketId` became `null`, the reference degraded to the string
+*"New request"*, and the route still returned **`{ ok: true }` with 201**. The user
+was told their request was filed when **no row existed** — and would later find it
+missing from their own ticket list, with nothing to reference.
+
+Now the insert error is captured and the route **tells the truth**: HTTP **500**
+with `code: 'TICKET_NOT_SAVED'` and a message pointing them to email directly.
+Critically it *still* notifies support first, tagged **`[UNSAVED]`**, so the request
+itself isn't lost even though the row wasn't written — failing honestly without
+throwing away the user's message.
+
+_The precedent was already in this repo:_ `app/api/campaign-reports` carries an
+explicit comment that the insert result **MUST** be checked, because swallowing it
+loses a fraud report. Same reasoning, simply never applied here. **3 regression
+tests, all verified to fail against the original code.**
+
 **💡 PRODUCT GAP (not a defect) — campaign currency can't be chosen at creation.**
 Chased as a suspected sibling of the `donations.currency` bug and it is **not one** —
 the behaviour here is coherent, so recording it as a gap rather than a fault.
