@@ -574,6 +574,33 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**🔍 REFINED — the "36 unwired tables" figure, split into what actually matters.**
+Re-measured an existing todo claim. My count is **34** (vs 36 recorded) tables with
+no `.from('table')` anywhere in `app/`+`lib/` — so the original figure was **broadly
+right, not an overclaim**. But the raw number conflates two very different things,
+and the split is the actionable part:
+
+| | count | meaning |
+|---|---|---|
+| unreferenced by app code | **34** | no `.from()` call |
+| …but touched by non-DDL SQL | **20** | seeded, or read/written by a function/trigger — *wired, just not from TypeScript* |
+| …**truly inert** | **14** | schema exists; **nothing anywhere reads or writes them** |
+
+**The 14 genuinely inert tables:** `admin_notes, analytics_snapshots, api_keys,
+auction_bids, commission_requests, creator_tips, direct_messages, embedded_buttons,
+exclusive_posts, grant_documents, member_subscriptions, peer_fundraisers,
+product_orders, trust_scores`.
+Mostly **unbuilt features** (auctions, creator tips, digital products, peer
+fundraising, DMs) — i.e. schema landed ahead of the product. Notably `trust_scores`
+is inert **even though the app displays trust scores**, which are computed elsewhere;
+worth knowing before anyone "fixes" that table.
+
+_Method note — I got this wrong on the first attempt and caught it._ My initial pass
+reported **34 of 34** as SQL-touched, which is implausible on its face: every table
+appears in SQL because that is where it is **created**. The DDL had to be excluded
+before the number meant anything. A measurement that flatters itself perfectly is a
+bug in the measurement.
+
 **✅ AUDITED CLEAN — donor-data routes; no IDOR.**
 Different class from the campaign checks: can one donor read or modify **another
 donor's** records? No.
