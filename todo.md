@@ -4026,8 +4026,28 @@ Verified · Production Ready. These are grounded in the current codebase
       pending/rejected never appear, formula injection is neutralised, hours stay
       numeric, and a comma in a name does not break the column count.
 
-- [ ] **CHAR-1102 (follow-up: volunteer + organizer UI)** — the only remaining piece;
-      schema, domain logic, API and export are all shipped and tested.
+- [~] **CHAR-1102 (follow-up)** — **Volunteer UI SHIPPED (Claude, 2026-07-26).**
+      `/volunteer/hours`: check in by shift ID + code, check out, per-entry history,
+      and a CSV download of verified hours. Auth-gated (307 → `/login` verified) and
+      registered in `e2e/public-routes.json` under `authGated`, so nobody later adds
+      it to `public` and ends up auditing the login page — the trap that hid two
+      bugs earlier in this session.
+
+      Carries the session's honesty rules into the UI:
+      - Verified / Pending / **Not counted** are three separate tiles. They are never
+        summed, because only "verified" is a figure an employer accepts.
+      - A failed read renders `—` and a `role="alert"` banner rather than `0.00`, the
+        same fix the dashboards got.
+      - The 24h cap is surfaced in plain language on check-out ("that entry ran past
+        24 hours, so it was capped — your organizer will review it") instead of
+        quietly showing a clamped number as though it were measured.
+      - Refusal reasons from the API are translated into sentences a volunteer can
+        act on, not machine codes.
+
+      ⬜ **Still open:** the ORGANIZER UI — schedule a shift, display/print the QR,
+      and verify or reject submitted hours. The API for all three exists
+      (`POST /api/volunteers/shifts`, `.../hours/[id]/verify`) and is tested; only
+      the screens are missing.
   - Area: Volunteers
   - Feature: Shifts, check-in/out & hours tracking
   - Description: Schedule shifts, QR check-in/out, accumulate verified hours,
