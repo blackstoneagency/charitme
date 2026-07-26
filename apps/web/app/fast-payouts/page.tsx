@@ -116,7 +116,17 @@ export default function FastPayoutsPage() {
             <h2 className="fp-h2">Payout speed options</h2>
             <p className="fp-sub">Standard payouts are free for everyone. Faster options are available for eligible verified accounts through Stripe Connect.</p>
           </div>
-          <div className="fp-table-wrap">
+          {/* The wrapper scrolls horizontally on narrow screens, so it must be
+              reachable by keyboard — without tabIndex a keyboard-only user cannot
+              scroll it and the right-hand columns are unreachable. A named region
+              also tells a screen-reader user what they landed in. */}
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex --
+              deliberate, and the two rules genuinely conflict here: jsx-a11y sees a
+              non-interactive element, while axe's scrollable-region-focusable (WCAG
+              2.1.1) requires a scrollable container to be focusable or its overflowed
+              content is unreachable by keyboard. axe is right about this element
+              because it actually scrolls; the lint rule cannot see that. */}
+          <div className="fp-table-wrap" tabIndex={0} role="region" aria-label="Payout speed options">
             <table className="fp-table">
               <thead>
                 <tr>

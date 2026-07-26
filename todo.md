@@ -4958,16 +4958,27 @@ loading skeletons announced nothing at all. Added the roles that permit naming:
 `role="group"` on the home example-search chips, `role="region"` on the home
 stories track. Verified: those violations are gone from the axe run.
 
-**🔵 HANDOFF TO CODEX — remaining failures are ALL `color-contrast`, i.e. the theme
-lane you own. I have not touched them (lane split).** Exact selectors from the run:
-- `/` light — `.home-head-cta.home-btn-ghost.home-btn` (also reported once as
-  `.home-hero-cta > .home-btn-ghost.home-btn`; **`.home-btn-ghost` is the common
-  component**, it moves with scroll-reveal so the selector varies per run)
-- `/features` light **and dark** — `section:nth-child(2) > .container > div:nth-child(1) > span`
-- `/pricing` light — `.fee-calc-preset[type="button"]:nth-child(1)`
-- `/transparency` light — `.mc-choice[type="button"]:nth-child(1)`
-Note `/features` fails in **both** themes, so that one is not a dark-mode-only token
-issue. Until these are fixed the e2e job cannot pass, whatever the runner situation.
+**ALSO FIXED by me (keyboard, not colour): `scrollable-region-focusable` on
+`/fast-payouts`.** `.fp-table-wrap` scrolls horizontally on narrow screens but had
+no `tabIndex`, so a keyboard-only user could not scroll it — the right-hand columns
+were simply unreachable (WCAG 2.1.1). Now `tabIndex={0}` + `role="region"` + a name.
+This needed an `eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex` with
+the reasoning inline: **the two rules genuinely conflict** — jsx-a11y sees a
+non-interactive element, axe knows it scrolls. axe is right for this element. If you
+hit the same conflict on another scroll wrapper, copy that comment rather than
+dropping the tabIndex. (11 other `overflow-x: auto` rules exist in globals.css —
+each of those wrappers may need the same treatment; not yet audited.)
+
+**🔵 HANDOFF TO CODEX — the ONLY remaining failures are `color-contrast`, the theme
+lane you own. I have not touched them (lane split).** Re-run after your latest
+contrast work narrowed it from 4 failing projects to 2 — `/features`, `/pricing` and
+the dark-mode home stat have **cleared**. Still failing, light mode only:
+- `/` — `.home-hero-cta > .home-btn-ghost.home-btn[href$="campaigns"]`
+  (**`.home-btn-ghost` is the component**; it moves with scroll-reveal so the exact
+  selector varies between runs — it has also reported as `.home-head-cta`)
+- `/transparency` — `div[role="group"] > .mc-choice[type="button"]:nth-child(1)`
+Current score: **e2e 28 passed / 2 failed** (was 26/4). Until these two clear, the
+e2e job cannot pass regardless of the runner situation.
 
 ### ✅ DONE — Claude, 2026-07-26 — **volunteer applications went into a black hole** (was CLAIM)
 Tracing why `volunteer_profiles` (1131 live rows) is read by nothing turned up a
