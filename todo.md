@@ -620,6 +620,30 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**✅ AUDITED CLEAN — payment methods (goal criterion: "all payment methods work").**
+Chased a suspected money bug and it **is not one** — the fee a donor is quoted does
+match the method they can actually pay with.
+
+The concern was real in shape: `METHOD_FEES` charges very different rates
+(paypal **3.49% + $0.49**, venmo **1.9% + $0.10**, bank **0.8% capped at $5**, card
+2.9% + $0.30), while `payment_method_types` passed to Stripe Checkout is a **fixed
+constant** — so a fee quoted from a UI choice that didn't bind the real payment
+method would overcharge donors.
+
+**It doesn't, because the donor picker only offers four methods** — `stripe`,
+`gpay`, `bank`, `card` — and every one lines up with what Checkout actually
+provides (`card` for the first three, `us_bank_account` for bank). **PayPal and
+Venmo are not offered at all**, matching the note in `stripe-payment-methods.ts`
+that *"paypal_payments and affirm_payments are NOT active"*. Reading `PAY_OPTIONS`
+settled it; reasoning from the fee table alone pointed at a much bigger problem
+than exists.
+
+_Minor hardening, recorded not fixed:_ the zod schema still accepts `'paypal'` and
+`'venmo'`, which the UI never sends. A hand-crafted POST could quote itself venmo's
+1.9% while paying by card — the effect is the **platform absorbs a smaller fee**,
+not donor harm, and it needs deliberate API manipulation. Worth tightening the enum
+to the four live methods when someone touches this file; not urgent.
+
 **🟠 FIXED — a failed count query rendered as a confident "0".**
 Swept the pattern behind the last three fixes: *a displayed number that means
 "unset" but reads as "measured"*. Found it in two admin stat lines where `count` is
