@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation';
 // collapsible dropdown, auto-expanded while on any /admin/super route.
 export const SUPER_ADMIN_NAV: readonly (readonly [string, string, string])[] = [
   ['Overview', '/admin/super', 'grid'],
+  ['AI', '/admin/ai', 'spark'],
   ['Roles & Permissions', '/admin/super/roles', 'crown'],
   ['Users', '/admin/super/users', 'users'],
   ['Marketing', '/admin/marketing', 'send'],
@@ -30,6 +31,7 @@ function Icon({ name }: { name: string }) {
     gear: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.3.36.5.74.6 1.1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z" /></>,
     bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></>,
     list: <><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></>,
+    spark: <><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z" /><path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7.7-1.8Z" /></>,
     chevron: <path d="M9 18l6-6-6-6" />,
   };
   return <svg {...p} className="kf-icon">{shapes[name] ?? shapes.grid}</svg>;
@@ -37,9 +39,23 @@ function Icon({ name }: { name: string }) {
 
 export default function SuperAdminNav() {
   const path = usePathname();
-  const onSuper = path === '/admin/super' || path.startsWith('/admin/super/');
+  // Membership is derived from the nav list itself, not from a `/admin/super/`
+  // prefix — entries like AI (/admin/ai) and Marketing (/admin/marketing) live
+  // outside that path and would otherwise leave the section collapsed while the
+  // user is standing on one of its pages.
+  const onSuper = SUPER_ADMIN_NAV.some(([, href]) => path === href || path.startsWith(href + '/'));
   const [isSuper, setIsSuper] = useState<boolean | null>(null);
   const [open, setOpen] = useState(onSuper);
+
+  // Client-side navigation INTO the section expands it. Adjusting state during
+  // render on a changed value is React's documented pattern for this and avoids
+  // the cascading extra render an effect would cause. Keyed on the transition,
+  // not the value, so it does not fight a user who collapses it while inside.
+  const [wasOnSuper, setWasOnSuper] = useState(onSuper);
+  if (onSuper !== wasOnSuper) {
+    setWasOnSuper(onSuper);
+    if (onSuper) setOpen(true);
+  }
 
   useEffect(() => {
     let cancelled = false;

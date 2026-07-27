@@ -38,6 +38,7 @@ async function countAdmins(): Promise<number | null> {
 
 const DESCRIPTIONS: Record<string, string> = {
   'Overview': 'Console home and platform health at a glance.',
+  'AI': 'AI Control Center — agent roster and one-click context packs.',
   'Roles & Permissions': 'Grant or revoke platform roles per user.',
   'Users': 'Full user directory — search, roles, suspend/restore.',
   'Marketing': 'SEO, AEO (answer-engine), and marketing campaigns.',

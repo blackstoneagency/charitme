@@ -122,6 +122,12 @@ CRON_SECRET                     # Bearer token for /api/cron/*. Fails SAFE when 
 OPENAI_API_KEY
 OPENAI_MODEL
 
+# AI Control Center (/admin/ai) — super-admin only
+GITHUB_TOKEN                    # ─┐ repo-scoped PAT + "owner/name". Without BOTH,
+GITHUB_REPO                     #  │ the console reports "Not configured" and every
+                                # ─┘ GitHub number shows "—" (never 0). GITHUB_PAT and
+                                #    GITHUB_REPOSITORY are accepted as aliases.
+
 # Optional integrations / misc
 NEXT_PUBLIC_FACEBOOK_APP_ID     # social share
 OPENCORPORATES_API_TOKEN        # nonprofit verification enrichment
@@ -136,6 +142,32 @@ placeholder — Picsum URLs are treated as overridable placeholders so live Unsp
 the **Access Key** is used (public read) and only from `UNSPLASH_ACCESS_KEY` — set it in Vercel;
 never commit it. The Secret Key is not used anywhere. Without the key everything falls back
 cleanly, so builds/tests never touch the network.
+
+### AI Control Center (`/admin/ai`) — super-admin only
+Phase 1 of the AI Context Manager: an agent roster plus one-click context packs.
+
+- **Gating is doubled.** `app/admin/layout.tsx` requires admin; the page also calls
+  `requireSuperAdmin()` (redirects a plain admin to `/admin`), and
+  `POST /api/admin/ai/context` calls `guardSuperAdmin()` before any work. The sidebar
+  entry lives in `SUPER_ADMIN_NAV` (`components/SuperAdminNav.tsx`), which self-gates
+  via `/api/admin/super/whoami` — **do not** add it to `adminNav` in `CharitMeApp.tsx`,
+  that list renders for every admin.
+- `lib/ai-agents-core.ts` is **pure** (roster, `resolveAgentStatus`, `buildContextPack`).
+  An agent's `requires` must equal the sources of its `facts` — a test enforces this,
+  because a mismatch is how an agent shows **Ready** while a source it reads is down.
+- ⚠️ **`open_issues_count` counts pull requests as issues.** Measured against this repo:
+  it reports `1` while the only open item is PR #93 — i.e. 0 issues, 1 PR. The issue
+  count is always `deriveOpenIssues(open_issues_count, openPRs)` (`lib/github-core.ts`).
+  Never render that field directly.
+- **Only repo-scoped `repos/{owner}/{repo}/...` endpoints.** The Search API would give
+  issue counts in one call but is refused by gateways that bind a token to specific
+  repositories — the agent sandbox returns `403 "sessions are bound to their configured
+  repositories"` for it.
+- Every count is `number | null`; `null` renders as `—`. On this screen 0 is the
+  *reassuring* answer ("no open issues", "no risk flags"), so it must be measured. Do
+  not reintroduce `?? 0` anywhere in this path.
+- Sandbox note: node's `fetch` ignores `HTTPS_PROXY`, so a direct live call from here
+  401s. Verify through `undici`'s `ProxyAgent` with `/root/.ccr/ca-bundle.crt`.
 
 ### Deployment
 - Vercel (auto-deploy from `main`) — primary

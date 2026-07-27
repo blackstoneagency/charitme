@@ -49,6 +49,56 @@ use, so none of this can be exercised safely without test keys (ADR-0003).
 GitHub Actions allocates no runners, so **CI cannot verify anything** — every gate
 below was run locally, which is currently the only real signal.
 
+## ✅ SHIPPED — AI Control Center, Phase 1 (Claude, 2026-07-27)
+
+`/admin/ai` — the AI Context Manager's first phase. **Super-admin only**, listed as
+**AI** in the left sidebar. Suite at **1545 tests / 142 files**, typecheck 0, lint 0,
+build green.
+
+**What it does:** renders the five-agent roster (Executive Assistant, Lead Engineer, QA
+Engineer, Security Engineer, Marketing Director) with a per-agent readiness status, the
+live delivery state (current sprint, open issues, open PRs, open support cases, open
+risk flags), and a per-agent **"Open …"** button that builds that agent's context pack
+from GitHub + Supabase and offers it as copyable markdown.
+
+**Files:** `lib/ai-agents-core.ts` (pure roster/status/pack), `lib/github-core.ts` (pure
+counting arithmetic), `lib/github.ts` (REST client), `lib/ai-context.ts` (assembly),
+`app/admin/ai/` (page + client), `app/api/admin/ai/context/route.ts`,
+`__tests__/ai-control-center.test.ts` (52 tests).
+
+**Three things worth carrying forward:**
+
+1. ⚠️ **`open_issues_count` counts PRs as issues.** Verified live against this repo: it
+   reports `1`, and the single open item is **PR #93** — the honest answer is **0 issues,
+   1 PR**. Rendering that field as "Open GitHub issues" is just wrong. The count is
+   always `deriveOpenIssues(open_issues_count, openPRs)`.
+2. **The Search API is unusable from an agent sandbox.** `/search/issues` would give the
+   count directly but is not repo-scoped; the gateway returns `403 "sessions are bound to
+   their configured repositories"`. The console uses only `repos/{owner}/{repo}/...`.
+3. **A test caught a real fail-open before it shipped.** The invariant "an agent's
+   `requires` must equal the sources of its `facts`" failed on QA Engineer, which read a
+   Supabase fact while requiring only GitHub — it would have displayed **Ready** with the
+   database down. Fixed in the definition, and the invariant is now enforced for all five.
+
+Consistent with the six `?? 0` fail-opens already fixed: every count here is
+`number | null` and unknown renders as `—`. On this screen 0 is the *reassuring* answer,
+so it has to be measured. All four degradation paths were exercised (no token, no repo,
+bad repo, rejected token) and the happy path verified live through the proxy.
+
+**Env (new, both required or the console says "Not configured"):** `GITHUB_TOKEN`,
+`GITHUB_REPO`. Documented in CLAUDE.md. Not set in Vercel yet — until the owner adds
+them the page renders correctly with GitHub marked *Not configured* and its numbers as
+`—`; the Supabase half works regardless.
+
+**Not verified:** the rendered page behind a super-admin session. The sandbox has no
+authorised login (see the blocked-on-owner item below), so gating was confirmed by probe
+— `/admin/ai` → 307 to `/login`, `POST /api/admin/ai/context` → 401 — and rendering by
+build + component tests, not by eye.
+
+**Phase 2 (not started):** the roster is presentational plus context assembly. Clicking
+an agent builds and shows its brief; it does not yet run the agent. Wiring the pack into
+an actual model call is the next phase.
+
 ## 📌 SESSION HANDOFF — Claude, 2026-07-26 (read this first)
 
 **16 PRs merged to master this session** (#90, #92, #94, #96, #98–#109). Verified state
