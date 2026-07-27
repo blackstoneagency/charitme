@@ -167,7 +167,10 @@ export default function HelpPage() {
       )}
 
       {/* Contact support CTA */}
-      <div style={{ marginTop: 48, padding: 28, background: 'linear-gradient(135deg,rgba(109,53,255,.14),#fff)', borderRadius: 16, border: '1px solid var(--b2)', textAlign: 'center' }}>
+      {/* The second gradient stop must be a surface token, not #fff: the heading
+          inherits var(--t1), so a hardcoded white stop put near-white text on
+          white in dark mode (measured 1.23:1 — invisible). */}
+      <div style={{ marginTop: 48, padding: 28, background: 'linear-gradient(135deg,rgba(109,53,255,.14),var(--s1, #fff))', borderRadius: 16, border: '1px solid var(--b2)', textAlign: 'center' }}>
         <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
         <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800 }}>Still need help?</h2>
         <p style={{ color: 'var(--t3)', fontSize: 14, margin: '0 0 20px' }}>Our support team typically replies within 24 hours.</p>

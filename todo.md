@@ -9746,3 +9746,39 @@ I grepped the `.ts`/`.mjs` sources, but the routes live in `public-routes.json`,
 both auth screens are in its `public` array. All sweeps already covered them. The
 lesson generalises — once a list is extracted to data, grepping code for route
 literals reports absence that isn't real.
+
+### ✅ DONE — contrast audit now scores gradients; found 66 real AA misses (Claude, 2026-07-27)
+Closed the blind spot I had documented and then hit for real: the sweep skipped any
+text over a `background-image`, so a hardcoded-light **gradient** card with themed
+text was invisible to it — I found the `/features` one **by eye**.
+
+A gradient is not a photo. Its colour stops are enumerable, so the worst case over
+the fill is computable. The sweep now scores the **least favourable stop** (text
+readable at one end of a fill and not the other is still unreadable somewhere), and
+only a real `url(...)` stays unscoreable.
+
+**Two false-positive classes had to be killed first — the first run reported 79 and
+some of it was nonsense.** Both come from gradient *text*:
+- `background-clip: text` paints the gradient **into the glyphs**. Scoring text
+  against it compares the glyphs to themselves — that is where the `/features` hero
+  "plus AI trust no one else has." invented a 2.46:1. Now walks past to the real
+  backdrop.
+- such text also carries `-webkit-text-fill-color: transparent`, so `cs.color` is a
+  colour nobody sees. Those nodes are skipped outright.
+
+**After the fixes: 66 findings, and they are real.** White on the *pink end* of the
+brand CTA gradient is ~3.5:1; `--violet` on the dark login surface is 3.17:1.
+
+**They are reported but do NOT fail the run, deliberately.** Fixing them means
+changing the brand gradients — a design decision, not a lint fix — and gating on it
+would have flipped CI from green to 66 red on a call nobody had made. `⚠` lines and
+a summary carry them; `--strict-gradients` opts in once the call is made.
+
+**One finding was not a design decision and is fixed:** `/help`'s "Still need help?"
+card ended its gradient in a hardcoded `#fff` while the heading inherits `var(--t1)`
+— **1.23:1 in dark mode, invisible**, with the paragraph beneath it at 3.19:1. Same
+bug class as the `/features` card, except this time the tool found it instead of me.
+Stop is now `var(--s1, #fff)`; both are clean.
+
+Verified: typecheck 0 · **1646/1646 tests across 147 files** · `next build` exit 0 ·
+sweep exit 0 (37 pages × 2 themes, 0 gating failures).
