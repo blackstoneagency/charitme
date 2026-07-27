@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { isDemoRow, suppressDemoTrust, suppressDemoTrustAll } from '../lib/demo-trust';
+import { isDemoRow, suppressDemoTrust, suppressDemoTrustAll, sanitizeDemoFunder, sanitizeDemoRow, sanitizeDemoRowAll } from '../lib/demo-trust';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fabricated "Verified" badges must never reach a public read.
@@ -62,6 +62,46 @@ describe('suppressDemoTrust', () => {
   });
 });
 
+describe('sanitizeDemoFunder — fabricated programs must not name real organizations', () => {
+  it('re-labels a real foundation on a demo row', () => {
+    expect(sanitizeDemoFunder({ slug: 'seed-grant-1', funder_name: 'Ford Foundation' }).funder_name)
+      .toBe('Cedar Grove Foundation');
+    expect(sanitizeDemoFunder({ slug: 'seed-grant-2', funder_name: 'Gates Foundation' }).funder_name)
+      .toBe('Northwind Charitable Trust');
+  });
+
+  it('re-labels a real municipality on a demo row', () => {
+    expect(sanitizeDemoFunder({ slug: 'seed-grant-3', funder_name: 'City of Austin' }).funder_name)
+      .toBe('City of Springfield');
+  });
+
+  it('NEVER renames a real grant that genuinely comes from that funder', () => {
+    const real = { slug: 'ford-community-fund-2026', funder_name: 'Ford Foundation' };
+    expect(sanitizeDemoFunder(real).funder_name).toBe('Ford Foundation');
+    expect(sanitizeDemoFunder(real)).toBe(real); // untouched
+  });
+
+  it('leaves an already-fictional demo funder alone', () => {
+    expect(sanitizeDemoFunder({ slug: 'seed-grant-4', funder_name: 'Acme Corp Giving' }).funder_name)
+      .toBe('Acme Corp Giving');
+  });
+
+  it('sanitizeDemoRow applies BOTH protections at once', () => {
+    const out = sanitizeDemoRow({ slug: 'seed-grant-9', verified: true, funder_name: 'Ford Foundation' });
+    expect(out.verified).toBe(false);
+    expect(out.funder_name).toBe('Cedar Grove Foundation');
+  });
+
+  it('list form handles a mix of demo and real rows', () => {
+    const out = sanitizeDemoRowAll([
+      { slug: 'seed-grant-1', verified: true, funder_name: 'Ford Foundation' },
+      { slug: 'real-grant',   verified: true, funder_name: 'Ford Foundation' },
+    ]);
+    expect(out[0]).toMatchObject({ verified: false, funder_name: 'Cedar Grove Foundation' });
+    expect(out[1]).toMatchObject({ verified: true,  funder_name: 'Ford Foundation' });
+  });
+});
+
 // A suppression helper that isn't actually called by the read paths would be
 // worthless, so pin the wiring too.
 describe('the public read paths actually apply it', () => {
@@ -69,12 +109,12 @@ describe('the public read paths actually apply it', () => {
 
   it('grants server reads suppress demo trust', () => {
     const src = read('lib/grants-server.ts');
-    expect(src).toContain('suppressDemoTrustAll');
-    expect(src).toContain('suppressDemoTrust(');
+    expect(src).toContain('sanitizeDemoRowAll');
+    expect(src).toContain('sanitizeDemoRow(');
   });
 
   it('the public grants API suppresses demo trust', () => {
-    expect(read('app/api/grants/route.ts')).toContain('suppressDemoTrustAll');
+    expect(read('app/api/grants/route.ts')).toContain('sanitizeDemoRowAll');
   });
 
   it('volunteer server reads suppress demo trust — BOTH list and detail', () => {

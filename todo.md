@@ -6386,6 +6386,35 @@ removed strings._
   **"Add files via upload"** commits, which contain no code logic at all.
 Verify locally instead. Owner fix: **Settings → Billing → Actions**.
 
+## ✅ FIXED — fabricated grants no longer published under real organizations' names
+
+The badge suppression stopped the false *trust signal*; this stops the false
+*attribution*, which is the sharper half.
+
+Production still serves **~52 listings crediting "Ford Foundation"** and **~44
+crediting "City of Austin"**, each attached to an invented "Seed Grant N" programme,
+and `/grants` is in `sitemap.ts` so they are indexed. The seed was fixed in #70 —
+future runs invent funders — but rows already inserted keep the real names.
+
+Publishing a fabricated funding programme under a real foundation's or a real city's
+name is a different risk class from ordinary demo data: it is a factual claim about a
+third party who never made it, on an indexed public page.
+
+**Read-layer fix, same shape as the badge one:** `sanitizeDemoFunder` re-labels demo
+rows to the fictional funders the current seed uses — `Ford Foundation → Cedar Grove
+Foundation`, `Gates Foundation → Northwind Charitable Trust`, `City of Austin → City of
+Springfield` (`Acme Corp Giving` was already fictional). Mapped index-wise to the seed's
+own `(g % 4)` rotation so funder *type* stays coherent. `sanitizeDemoRow` applies badge +
+funder together; wired into `getPublicGrants`, `getGrantBySlug` and `GET /api/grants`.
+
+**The guard that matters: a genuine grant from these funders is never renamed** — the
+demo marker is checked first, so a real Ford Foundation grant keeps its name. Verified
+non-vacuous both ways: dropping the demo check (which would rename real grants) fails
+**2** tests; removing the sanitizer from the read path fails **1**. 18 tests total.
+
+**Still the owner's:** deleting the rows. This changes what is *displayed*, not what is
+*stored* — the cleanup SQL below remains the real remedy. _1588/1588 tests, build green._
+
 ## ✅ PERFORMANCE — every public page measured on PRODUCTION (2026-07-27)
 
 24 public routes, warmed then measured (`curl -w time_starttransfer/time_total/size`).

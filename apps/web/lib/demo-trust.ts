@@ -55,3 +55,50 @@ export function suppressDemoTrust<T extends MaybeDemoRow>(row: T): T {
 export function suppressDemoTrustAll<T extends MaybeDemoRow>(rows: T[]): T[] {
   return rows.map(suppressDemoTrust);
 }
+
+/**
+ * Real organizations the ORIGINAL seed attributed fabricated grant programs to,
+ * mapped to the fictional funders the seed uses now.
+ *
+ * The seed was fixed (#70) so future runs invent names, but rows already inserted
+ * keep the real ones: production still serves ~52 listings crediting "Ford
+ * Foundation" and ~44 crediting "City of Austin", each attached to an invented
+ * "Seed Grant N" program, and `/grants` is in sitemap.ts so they are indexed.
+ *
+ * Publishing a fabricated funding program under a real foundation's or a real
+ * city's name is a different risk class from ordinary demo data — it is a claim
+ * about a third party who never made it. Deleting the rows needs the owner; the
+ * displayed name does not, so demo rows are re-labelled on read.
+ *
+ * Indexes align with the seed's own `(g % 4)` rotation, so a demo grant keeps a
+ * coherent funder type (foundation → foundation, city → city).
+ */
+const DEMO_FUNDER_REPLACEMENTS: Record<string, string> = {
+  'Ford Foundation':  'Cedar Grove Foundation',
+  'Gates Foundation': 'Northwind Charitable Trust',
+  'City of Austin':   'City of Springfield',
+};
+
+type MaybeDemoFunder = MaybeDemoRow & { funder_name?: string | null };
+
+/**
+ * Replaces a real organization's name on a DEMO row with its fictional stand-in.
+ *
+ * Real rows are never touched — a genuine Ford Foundation grant must keep its
+ * name, so the demo marker is checked first.
+ */
+export function sanitizeDemoFunder<T extends MaybeDemoFunder>(row: T): T {
+  if (!isDemoRow(row) || !row.funder_name) return row;
+  const replacement = DEMO_FUNDER_REPLACEMENTS[row.funder_name];
+  return replacement ? { ...row, funder_name: replacement } : row;
+}
+
+/** Both demo protections in one pass: fabricated badge + real-org attribution. */
+export function sanitizeDemoRow<T extends MaybeDemoFunder>(row: T): T {
+  return sanitizeDemoFunder(suppressDemoTrust(row));
+}
+
+/** Array form, for list endpoints. */
+export function sanitizeDemoRowAll<T extends MaybeDemoFunder>(rows: T[]): T[] {
+  return rows.map(sanitizeDemoRow);
+}
