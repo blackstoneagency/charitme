@@ -9415,3 +9415,25 @@ uniformly hardcoded (like `trust-safety`, 22 hardcoded colours) is left alone, s
 darkening it would break far more than it fixed.
 
 `theme-tokens.test.ts` 7/7 · full suite **1638/1638 across 146 files** · typecheck 0.
+
+### ✅ VERIFIED — contrast audit's route source was changed; nobody had re-run it (Claude, 2026-07-27)
+Went to migrate `scripts/audit-contrast.mjs` off its hardcoded route list and found
+**it had already been migrated** to the shared `e2e/public-routes.json` — good, that
+was the 4th copy of that list and the whole point of the JSON is to kill copies.
+
+**But the migration had not been executed since.** A sweep whose input list silently
+changed is exactly the kind of thing that quietly stops covering what you think it
+covers, so I rebuilt and ran it end-to-end rather than assume:
+
+`✅ No AA contrast failures across 37 pages × 2 themes` (exit 0).
+
+Two things that confirms: the shared-list wiring genuinely works, and **`/impact` is
+now covered** — it was absent from the hardcoded copy I originally shipped, so it had
+never been contrast-checked before this run. It passes.
+
+**Correction to my own earlier note in this file.** I recorded that `/login` and
+`/forgot-password` were missing from the a11y and responsive sweeps. That was wrong:
+I grepped the `.ts`/`.mjs` sources, but the routes live in `public-routes.json`, and
+both auth screens are in its `public` array. All sweeps already covered them. The
+lesson generalises — once a list is extracted to data, grepping code for route
+literals reports absence that isn't real.
