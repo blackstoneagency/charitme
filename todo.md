@@ -24,7 +24,7 @@ minutes and produces logs. These finish in ~2 seconds with none. If you see that
 stop debugging your diff.
 
 **Local verification is therefore the real gate, and it is green:**
-`npm run typecheck` (0) · `npm test` (**1686/1686, 151 files**) · `npm run build`
+`npm run typecheck` (0) · `npm test` (**1690/1690, 152 files**) · `npm run build`
 (exit 0) · `scripts/audit-contrast.mjs --strict-gradients` (**0 WCAG AA failures,
 37 pages × 2 themes, 3,638 text elements per theme**).
 
@@ -46,10 +46,16 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   resource RPCs are executable by `service_role` only.
 - [x] The admin schema-repair flow ends by reapplying the same secure grants,
   so it cannot silently restore the old public permissions.
+- [x] Contact, support, share attribution, donation receipt, campaign status,
+  builder analytics, and creator-tip mutations are service-managed. Browser
+  clients can no longer bypass API validation or durable rate limits.
+- [x] Anonymous support-ticket submissions now have a durable 5/minute/IP limit
+  before request parsing, database writes, or email delivery.
 - [x] `supabase/catch_up.sql` regenerated from the migration chain.
-- [x] Regression coverage added; full local suite passes 1,686 tests, typecheck,
+- [x] Regression coverage added; full local suite passes 1,690 tests, typecheck,
   zero-warning lint, and the 150-page production build.
 - [ ] Apply `20260809000000_harden_privileged_database_boundaries.sql` to staging,
+  followed by `20260810000000_lock_down_service_managed_writes.sql`,
   run authenticated/anonymous RLS probes, then apply it to production through
   the release workflow. This remains externally blocked by the staging/CI/deploy
   constraints documented above.

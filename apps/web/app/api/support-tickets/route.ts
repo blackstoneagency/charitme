@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 import { resend } from '../../../lib/email';
+import { checkRateLimitDurable } from '../../../lib/rate-limit-durable';
 
 const FROM = process.env.EMAIL_FROM ?? 'CharitMe <hello@charitme.com>';
 const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL ?? 'hello@charitme.com';
@@ -21,6 +22,14 @@ const Schema = z.object({
 
 // POST /api/support-tickets
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (!(await checkRateLimitDurable(`support-ticket:${ip}`, 5, 60_000))) {
+    return NextResponse.json(
+      { error: 'Too many support requests', code: 'RATE_LIMITED' },
+      { status: 429 },
+    );
+  }
+
   let body: unknown;
   try { body = await request.json(); } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });

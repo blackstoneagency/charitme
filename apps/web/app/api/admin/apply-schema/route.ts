@@ -833,6 +833,43 @@ const SCHEMA_CHUNKS: { name: string; sql: string }[] = [
     grant execute on function public.claim_campaign_reward(uuid) to service_role;
     select pg_notify('pgrst', 'reload schema');
   ` },
+  { name: 'Final service-managed write enforcement', sql: `
+    do $service_write_lockdown$
+    declare
+      table_name text;
+    begin
+      foreach table_name in array array[
+        'contact_messages',
+        'support_cases',
+        'share_events',
+        'donation_receipts',
+        'campaign_status_log',
+        'campaign_builder_events',
+        'creator_tips'
+      ]
+      loop
+        if to_regclass('public.' || table_name) is not null then
+          execute format(
+            'revoke insert, update, delete on table public.%I from public, anon, authenticated',
+            table_name
+          );
+          execute format(
+            'grant insert, update, delete on table public.%I to service_role',
+            table_name
+          );
+        end if;
+      end loop;
+    end;
+    $service_write_lockdown$;
+
+    drop policy if exists contact_messages_insert on public.contact_messages;
+    drop policy if exists support_own_insert on public.support_cases;
+    drop policy if exists share_insert_any on public.share_events;
+    drop policy if exists receipts_svc_insert on public.donation_receipts;
+    drop policy if exists status_log_svc_insert on public.campaign_status_log;
+    drop policy if exists creator_tips_insert_public on public.creator_tips;
+    select pg_notify('pgrst', 'reload schema');
+  ` },
 ];
 
 // API routes must DENY, not redirect: `requireAdmin()` is the PAGE helper and
