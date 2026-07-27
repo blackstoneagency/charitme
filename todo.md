@@ -7155,14 +7155,54 @@ scrolling elements. Corrected findings:
   fix what it reports.**
 Verified: typecheck 0, lint 0 errors, 1258 tests, build green, audit exits 0.
 
-### 🔒 CLAIM — Claude, 2026-07-26 — **CHAR-1102 UI: volunteer hours** (IN PROGRESS)
+### ✅ DONE — Claude, 2026-07-26 — **CHAR-1102 UI: volunteer hours** (was CLAIM)
 Schema, domain logic and API routes are all shipped; the note says "UI remains".
 Found while sizing it: **there is no `GET` for hours at all**, so the verify route
 has no list to drive it — the same "endpoint with no caller" shape as the volunteer
 applications black hole. Building `GET /api/volunteers/hours` (mine + awaiting-my-
 verification) and the dashboard UI.
-**Touching:** `app/api/volunteers/hours/route.ts` (new), `app/dashboard/volunteer/*`.
-Codex: please take a different line.
+**Shipped:**
+- **`GET /api/volunteers/hours?scope=mine|to-verify`** — the piece that was missing.
+  `to-verify` resolves owned opportunities first and filters hours by those ids, so a
+  wrong filter cannot leak another organizer's volunteers; soft-deleted rows excluded;
+  bounded `.limit(500)`; batched name lookups. A failed read returns **500, never an
+  empty list** — hours are work someone actually did, and rendering 0 because a query
+  failed is a claim we cannot make.
+- **`VolunteerHoursClient`** on `/dashboard/volunteer` in both scopes: "Your hours"
+  (with **Check out**) and "Hours to verify" (**Verify / Reject**).
+- **Verified / pending / rejected are shown as three separate totals and never
+  summed**, matching `totalHours()`'s deliberate split — only verified hours may go
+  to an employer. The volunteer-facing copy says checking out records time and the
+  organizer certifies it separately.
+- 15 tests in `__tests__/volunteer-hours-ui.test.ts`, including guards that the
+  verify and check-out endpoints each have a UI caller — the exact regression that
+  made this feature dead.
+
+### 🔴 BLOCKER — **the last 3 migrations are NOT applied to production**
+Found while verifying the above against the live schema: **`volunteer_shifts` and
+`volunteer_hours` do not exist in production** (PostgREST `PGRST205`). Checked the
+latest 12 migrations against live:
+
+| Migration | Live? |
+|---|---|
+| …through `20260805000000_reconcile_runtime_tables` | ✅ applied |
+| `20260806000000_volunteer_shifts_hours` | ❌ **MISSING** |
+| `20260806010000_volunteer_hours_verify_guard_fix` | ❌ **MISSING** (depends on above) |
+| `20260807000000_organizations_multitenancy` | ❌ **MISSING** (`organizations`, `organization_members`, `brands`) |
+
+**Consequence:** the entire CHAR-1102 feature — schema, the API routes shipped
+earlier today, and this UI — is **inert in production**, and so is the multi-tenancy
+work another bot just landed. The code is correct and tested; the tables are not
+there. This is not fixable from the sandbox: DDL needs the Supabase **management
+token** (only the service-role key is available here, and PostgREST cannot run DDL),
+and the deploy pipeline is quota-blocked besides.
+**Owner action:** apply those three migrations to production, then re-run the live
+schema check. Until then treat CHAR-1102 and multi-tenancy as *code-complete,
+not live*.
+**One thing that worked as designed:** because the routes report a failed read
+instead of an empty one, the UI shows *"We couldn't load these hours"* rather than
+telling a volunteer they have logged **0 hours** — which is exactly what the old
+`catch → []` pattern would have done against a missing table.
 
 ## ⚠️ Process note for the bot team
 Three separate incidents this session where master churn from parallel agents cost

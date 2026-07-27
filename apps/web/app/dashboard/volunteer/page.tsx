@@ -3,6 +3,7 @@ import { CharitMeShell, TopBar, KFIcon } from '../../../components/CharitMeShell
 import { requireUser } from '../../../lib/auth';
 import VolunteerApplicationsClient from './VolunteerApplicationsClient';
 import VolunteerApplicantsClient from './VolunteerApplicantsClient';
+import VolunteerHoursClient from './VolunteerHoursClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,8 +31,21 @@ export default async function DashboardVolunteerPage() {
             the accept/decline endpoint existed but had no caller anywhere in the UI.
             The component renders nothing noisy when you host no opportunities. */}
         <section>
+          <h2 style={{ fontSize: 17, fontWeight: 700, margin: '0 0 12px' }}>Your hours</h2>
+          <VolunteerHoursClient scope="mine" />
+        </section>
+
+        <section>
           <h2 style={{ fontSize: 17, fontWeight: 700, margin: '0 0 12px' }}>Applicants to your opportunities</h2>
           <VolunteerApplicantsClient />
+        </section>
+
+        {/* Organizer side of hours. CHAR-1102 shipped check-in/out and verify as
+            API routes, but nothing listed hours — so the verify endpoint had no
+            caller and logged time could never be certified through the product. */}
+        <section>
+          <h2 style={{ fontSize: 17, fontWeight: 700, margin: '0 0 12px' }}>Hours to verify</h2>
+          <VolunteerHoursClient scope="to-verify" />
         </section>
       </div>
     </CharitMeShell>
