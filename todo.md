@@ -230,7 +230,23 @@ path in `app/`, `components/` and `lib/` against the real App Router route table
 (153 pages + 215 API routes, honouring `[param]`, `[...catch]` and `(groups)`).
 No server, no session, no network.
 
-**Template-literal links are covered too, and that found a second defect.** A
+**Coverage now includes template links AND template fetches** — 91 dynamic
+`href`s plus **130 `fetch()` calls**, where a wrong API path fails silently at
+runtime. Reaching the fetches meant matching any backtick template starting with
+`/`, not only ``href={`…`}``. Widening it surfaced three blind spots in the
+checker itself, all now fixed:
+
+- **route handlers outside `/api` were invisible.** `app/go/[code]/route.ts`
+  serves the outreach click-tracking redirect; checking only `page.tsx` for
+  non-`/api` paths reported `/go/*` broken when it is that module's entire
+  purpose.
+- **external API clients look internal.** `lib/github.ts` calls
+  `/repos/{owner}/{repo}` through a helper that supplies the base URL, so there
+  is no `https://` on the line to give it away. Now a named exclusion.
+- **a JSX comment I wrote quoting the old path in backticks** was itself read as
+  a link. Reworded.
+
+**Template-literal links were the gap that found a second defect.** A
 literal-only pass is blind to `` `/dashboard/campaigns/${id}/payout-setup` `` —
 i.e. most of the dynamic navigation in the dashboard and admin console (91 of
 them). Normalising each interpolated segment to `*` keeps the literal parts and

@@ -2462,8 +2462,8 @@ function QuickSharePanel({ slug, campaignId }: { slug: string; campaignId: strin
             ))}
           </div>
 
-          {/* Was `/api/campaigns/${slug}/poster` — wrong twice: the route is
-              `qr-poster`, and it keys on the campaign ID, not the slug. The
+          {/* Previously pointed at the slug-keyed "poster" path — wrong twice:
+              the route is qr-poster, and it keys on the campaign ID. The
               onClick hid both by calling window.print(), which printed the
               BUILDER page rather than a poster, so the button never once did
               what it says. It now opens the real poster, which carries its own

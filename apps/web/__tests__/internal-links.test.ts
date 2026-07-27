@@ -32,7 +32,10 @@ describe('internal links resolve to real routes', () => {
     // literal-only pass sees none of them. That gap hid a "Download printable
     // poster" button pointing at `/api/campaigns/${slug}/poster` — wrong route
     // name AND wrong identifier.
-    expect(stats.templates).toBeGreaterThan(20);
+    // …and 130 template fetches, where a wrong API path fails silently at
+    // runtime. Reaching those meant matching any backtick template starting
+    // with '/', not only href={`…`}.
+    expect(stats.templates).toBeGreaterThan(60);
   });
 
   it('has no link to a nonexistent route', () => {
