@@ -7542,6 +7542,34 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### ✅ SECURITY — API authorization audited and now GUARDED (Claude, 2026-07-26)
+Audited every route under `app/api` rather than asserting the posture. **Result is
+clean**, and it is now a test rather than a claim (`__tests__/api-auth-coverage.test.ts`,
+5 tests, verified non-vacuous by planting an unguarded `POST` and watching it fail):
+
+- **158 routes expose a mutating handler. 150 carry an auth guard.** The 8 that do
+  not are deliberately public and each is listed with a reason in `PUBLIC_MUTATIONS`
+  — abuse reports (must be filable without an account), contact, newsletter
+  capture/unsubscribe, signout (clearing your own session cannot require one), the
+  public trust-score calculator, and two public AI drafting endpoints. **Adding a
+  9th now requires editing that list**, so a forgotten guard cannot slip in quietly.
+- The allow-list is also checked for **stale** entries, so it keeps meaning "these
+  are reachable anonymously" rather than drifting into a rubber stamp.
+- **The old "15 of 16 OpenAI routes have per-instance-only throttling" concern is
+  RESOLVED.** All 19 OpenAI-backed routes checked: every anonymous one uses
+  `checkRateLimitDurable` (Postgres-backed). The three without a durable limit are
+  authenticated (admin copilot, campaign FAQs) or do not call OpenAI at all
+  (`/api/health` only reports config). Guard is **method-agnostic on purpose**:
+  `ai/donation-impact` and `ai/donor-conversion` are public **GET**s, and a GET that
+  bills OpenAI needs the same protection a POST does — filtering to mutations would
+  have skipped exactly those two.
+
+**⚠️ False alarm I raised and corrected inside this audit** — worth knowing before
+trusting a scan like it: my first pass reported **4 `/api/admin/*` routes with no
+auth at all** (countries ×2, nonprofits, payments actions). That would have been
+critical. **It was wrong**: the regex simply omitted `requireAdmin`, which all four
+call. Read the file before believing a security scanner, including your own.
+
 ### 📋 SCALE REGISTER — unbounded reads, classified (Claude, 2026-07-26)
 Scanned `app/` + `lib/` for `.select()` on large tables with no `.limit()`/`.range()`.
 **87 raw hits, but ~73 are `.in('id', ids)` name-maps** whose size is fixed by the
