@@ -7542,6 +7542,35 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### ✅ DONE — Claude, 2026-07-26 — **CLS 0.225 → 0 on four list pages; per-route perf now gated**
+New `npm run audit:web-vitals` (`scripts/audit-web-vitals.mjs`) measures TTFB / FCP /
+LCP / CLS / long-tasks per public route against budgets and exits 1 on a breach, so
+"every page loads FAST" is a gate rather than an assertion. First run: **33/37 within
+budget**, with one real defect.
+
+**The defect: CLS 0.225 on `/events`, `/matching`, `/sponsor`, `/volunteer`** — over
+Google's 0.1 "good" threshold, on four public pages. todo.md had this recorded at
+0.183 and parked for "a staging measurement"; it was measurable here all along.
+**Attribution pinned the cause exactly** (LayoutShift `sources`, not guesswork):
+`FOOTER.kind-footer y 691 → 0 @561ms`. `ListPageSkeleton` renders **6** placeholder
+cards, so while loading the page was shorter than the viewport and the footer sat
+**on-screen**; the instant the real 48-item list arrived it was shoved away — one
+large visible jump. Fix: `minHeight: 100vh` on the skeleton root, so the footer stays
+below the fold during loading and the content swap moves nothing visible.
+**Re-measured: 37/37 within budget, CLS 0 on all four.**
+
+**⚠️ Two false findings this run — both worth knowing before trusting a browser audit here:**
+1. **"The homepage never fires `load` (30s timeout)."** Not true.
+   **Playwright's Chromium does not inherit `HTTPS_PROXY`** the way curl and urllib
+   do, so external assets hang. Even after configuring the proxy, 2 of the
+   homepage's 29 requests (Supabase Storage covers) still stall in the browser while
+   **the very same objects fetch in ~0.5s via curl, and 12 in parallel in 1.5s**. The
+   audit now waits for `domcontentloaded` + a 2.5s settle instead of `load` — LCP and
+   CLS do not need the load event, and depending on it makes every run hostage to
+   sandbox networking.
+2. `www.charitme.com` is **not reachable from the sandbox browser** at all, so
+   production cannot be used as the control for this kind of comparison.
+
 ### ✅ DONE — Claude, 2026-07-26 — **the 11 `.kf-table-scroll` wrappers, judged one by one**
 I had parked this as "needs a signed-in session". Most of it did not: whether a
 scroller *contains focusable content* is answerable from source, and only the

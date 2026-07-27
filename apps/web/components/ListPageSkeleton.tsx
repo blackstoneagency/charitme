@@ -16,7 +16,14 @@ export default function ListPageSkeleton({
   showFilterBar?: boolean;
 }) {
   return (
-    <div className="container" style={{ padding: '40px 24px', ...(maxWidth ? { maxWidth } : {}) }} role="status" aria-busy="true" aria-label={label}>
+    // `minHeight: 100vh` is the anti-layout-shift measure, not decoration.
+    // Measured cause of a 0.225 CLS on /volunteer, /events, /matching and /sponsor
+    // (Google's "good" threshold is 0.1): with only 6 placeholder cards the page was
+    // shorter than the viewport, so the FOOTER rendered on-screen at y=691 and was
+    // then shoved away the instant the real 48-item list arrived — one big visible
+    // jump. Reserving a viewport of height keeps the footer below the fold while
+    // loading, so the content swap moves nothing the user can see.
+    <div className="container" style={{ padding: '40px 24px', minHeight: '100vh', ...(maxWidth ? { maxWidth } : {}) }} role="status" aria-busy="true" aria-label={label}>
       <div style={{ marginBottom: 28 }}>
         <div className="pc-skeleton-block" style={{ width: 300, height: 30, marginBottom: 10 }} />
         <div className="pc-skeleton-block" style={{ width: 460, height: 15, maxWidth: '100%' }} />
