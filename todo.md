@@ -6768,6 +6768,18 @@ non-vacuous both ways: dropping the demo check (which would rename real grants) 
 
 ## ✅ MOBILE REGRESSION CAUGHT + FIXED — `/ai-fundraising` (2026-07-27)
 
+**Coverage closed to 27/27 on both axes.** The two axe `ERR`s in the first pass
+(`/` and `/success-stories`) were **not** violations — they are the DB-backed pages
+that never reach `waitUntil:'load'` without a database. Re-run with
+`domcontentloaded` + a settle delay: **both report 0 WCAG A/AA violations.**
+
+So on the **current** build (not an earlier PR's snapshot):
+**27/27 routes axe-clean · 27/27 routes overflow-free at 320 px.**
+
+_Method note for re-runs: use `domcontentloaded`, not `load`, or the Supabase-backed
+routes time out and look like failures. That distinction is the difference between
+"2 unverified routes" and "2 broken routes"._
+
 **Re-ran the sweep instead of citing the old PR, and found a regression.** 27 public
 routes, current build: **26/27 mobile-clean, 25/27 axe-clean** — but
 `/ai-fundraising` had come back to **410 px at a 320 px viewport**, a page fixed in #49.
