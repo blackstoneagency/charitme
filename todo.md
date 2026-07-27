@@ -2395,8 +2395,22 @@ AI platform, admin, lead-gen — **plus all eight domains above**.
       collapsing to 18px and wrapping one character per line).
     * Gates: tsc 0, lint 0 warnings, **1063/1063 tests**, `next build` green.
     **Still open (needs a real browser matrix / owner):** axe-core runs on
-    authenticated dashboard + admin flows, and the 320px/1920px extremes — these
-    need a logged-in session, which this sandbox cannot drive.
+    authenticated dashboard + admin flows — these need a logged-in session, which
+    this sandbox cannot drive.
+    **✅ The 320px/1920px extremes are NO LONGER open (Claude, 2026-07-26).** That
+    line conflated two things: authenticated flows (genuinely blocked) and the
+    viewport extremes on *public* pages (never blocked). Re-measured on the current
+    build with `scripts/audit-responsive.mjs --base http://127.0.0.1:3000`:
+    **37 pages × 3 viewports (320 / 768 / 1920) × 2 themes = 222 renders, 0
+    findings.** So the remaining CHAR-0015 work is *only* the authenticated surface.
+    **⚠️ Tooling trap fixed while doing this — it cost two full sweeps.**
+    `audit-responsive.mjs` defaults to `--base http://127.0.0.1:3100`. Point it at a
+    port with nothing on it and it does **not** fail: every page records
+    `ERROR … ERR_CONNECTION_REFUSED` and the run ends `222 finding(s)`, which reads
+    exactly like the site is catastrophically broken. I misread it that way twice and
+    went looking for a dying server. The script now **preflights the base URL and
+    exits 2** with the URL it tried. If you see a suspiciously round finding count,
+    check the port first.
   - **Dark/light theme sweep — dashboard COMPLETE (2026-07-22):** every campaign
     management panel (#43, #46: Updates/Settings/Supporters/FAQs/Ledger/ThankDonors/
     CampaignControls/EditCampaign/TrustScore/Analytics) **plus all non-campaign

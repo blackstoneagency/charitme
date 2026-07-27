@@ -20,6 +20,29 @@ import { chromium } from '@playwright/test';
 const baseIdx = process.argv.indexOf('--base');
 const BASE = baseIdx > -1 ? process.argv[baseIdx + 1] : 'http://127.0.0.1:3100';
 
+// Preflight the target before sweeping.
+//
+// Without this, pointing at a port with nothing on it does not fail — every page
+// merely records `ERROR ... ERR_CONNECTION_REFUSED` and the run ends with
+// "222 finding(s)", which reads like the site is catastrophically broken rather
+// than like the audit never connected. (That is exactly what happened: the default
+// here is 3100, a server was running on 3000, and two full sweeps were spent before
+// the cause was obvious.) Fail fast and say which URL was tried.
+try {
+  const probe = await fetch(BASE, { method: 'HEAD' });
+  if (!probe.ok && probe.status >= 500) {
+    console.error(`✗ ${BASE} responded ${probe.status}. Start the app first, or pass --base <url>.`);
+    process.exit(2);
+  }
+} catch (error) {
+  console.error(
+    `✗ Nothing is listening on ${BASE} (${error.code ?? error.message}).\n` +
+    '  Start the app (`npm start` from apps/web) or pass --base <url>.\n' +
+    '  Not sweeping — every page would report a connection error and look like a finding.',
+  );
+  process.exit(2);
+}
+
 // Single source of truth, shared with the e2e sweeps (e2e/public-routes.json).
 //
 // This was a hand-maintained copy, and it carried the same defect all five copies
