@@ -36,9 +36,36 @@ export async function getUserEntitlements(userId: string | null | undefined): Pr
   const rows = data ?? [];
   if (rows.length === 0) return PLAN_CATALOG.free;
 
-  // Prefer an in-good-standing subscription; otherwise the newest row (already sorted).
-  const best = rows.find((r) => r.status === 'active' || r.status === 'trialing') ?? rows[0];
-  return resolveEntitlements(best.plan, best.status);
+  // Prefer an in-good-standing subscription whose period has not already ended;
+  // otherwise the newest row (already sorted).
+  const best = rows.find((r) => isCurrent(r)) ?? rows[0];
+  return resolveEntitlements(best.plan, isCurrent(best) ? best.status : 'expired');
+}
+
+/**
+ * Is this subscription row still entitling?
+ *
+ * `current_period_end` was already being SELECTed here and then dropped, so
+ * entitlements never expired: a row left at `status='active'` granted paid
+ * features indefinitely. Status is normally corrected by the Stripe webhook — but
+ * this repo's webhook was misconfigured with 2 of the needed 20 events until
+ * earlier today, which is exactly how a `customer.subscription.deleted` goes
+ * missing and a cancelled plan keeps paying out features.
+ *
+ * Deliberately conservative: a MISSING or unparseable `current_period_end` counts
+ * as current. Only a date that has demonstrably passed revokes, so a data gap can
+ * never take access away from someone who is paying.
+ */
+export function isCurrent(
+  row: { status?: string | null; current_period_end?: string | null },
+  now: Date = new Date(),
+): boolean {
+  if (row.status !== 'active' && row.status !== 'trialing') return false;
+  const end = row.current_period_end;
+  if (!end) return true;
+  const endMs = Date.parse(end);
+  if (Number.isNaN(endMs)) return true;
+  return endMs > now.getTime();
 }
 
 /** Convenience: does this user currently have a given feature? */

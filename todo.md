@@ -7582,6 +7582,34 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### 💳 REVENUE — paid entitlements never expired (Claude, 2026-07-26)
+Second find from the untested-`lib` sweep, and the more commercially significant one.
+
+**`getUserEntitlements` SELECTed `current_period_end` and then dropped it**, and
+`resolveEntitlements(plan, status)` takes **no date at all**. So a subscription row
+left at `status='active'` granted paid features **indefinitely** — the period end was
+read from the database and thrown away.
+
+**Why that is not merely theoretical here:** status is normally corrected by the
+Stripe webhook, and **this project's webhook was configured with 2 of the needed 20
+events until earlier today**. That is precisely how a `customer.subscription.deleted`
+goes missing and a cancelled plan keeps paying out features with nothing to
+self-correct it.
+
+**Severity: latent, not live.** Checked production first: 500 subscription rows
+(350 `active`, 50 `trialing`, 50 `cancelled`, 50 `past_due`) and **0 entitled rows
+whose period had already ended**. Nothing is currently over-entitled.
+
+**Fix:** `isCurrent(row, now)` — an entitling status **and** a period that has not
+passed. **Deliberately conservative in the safe direction**: a missing or unparseable
+`current_period_end` counts as *current*, so a data gap can never revoke access from
+someone who is paying; only a date that has demonstrably passed revokes. A lapsed row
+now resolves as `'expired'` rather than its stale stored status. 9 tests, including
+the boundary instant and every non-entitling status.
+
+**Still open on this line:** `lib/trust-signals.ts` (79 loc) is the last
+security/money-adjacent module with no test.
+
 ### 🔒 SECURITY — the public-listing privacy filter failed OPEN (Claude, 2026-07-26)
 Found by asking which `lib/` modules have **no test at all** (17 of 122) and starting
 with the security- and money-adjacent ones. `lib/campaign-visibility.ts` is the filter
