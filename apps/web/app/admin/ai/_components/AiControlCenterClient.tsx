@@ -23,14 +23,13 @@ import {
 //     agent's required sources answered on this request.
 // ─────────────────────────────────────────────────────────────────────────────
 
-type Sprint = {
+export type SprintView = {
+  id: string;
+  number: number | null;
   title: string;
-  number: number;
-  dueOn: string | null;
-  openIssues: number;
-  closedIssues: number;
-  url: string;
-};
+  goals: string[];
+  backlog: string[];
+} | null;
 
 export type GithubView = {
   health: SourceHealth;
@@ -38,7 +37,6 @@ export type GithubView = {
   reason: string | null;
   openIssues: number | null;
   openPullRequests: number | null;
-  sprint: Sprint | null;
 };
 
 export type PlatformView = {
@@ -55,6 +53,7 @@ export type AgentView = {
   name: string;
   mandate: string;
   responsibilities: string[];
+  kpis: string[];
   requires: ContextSource[];
   status: AgentStatus;
 };
@@ -131,10 +130,12 @@ export default function AiControlCenterClient({
   agents,
   github,
   platform,
+  sprint,
 }: {
   agents: AgentView[];
   github: GithubView;
   platform: PlatformView;
+  sprint: SprintView;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [pack, setPack] = useState<ContextPack | null>(null);
@@ -178,8 +179,6 @@ export default function AiControlCenterClient({
   }, [pack]);
 
   const anyDegraded = github.health !== 'connected' || platform.health !== 'connected';
-  const sprintLabel =
-    github.health !== 'connected' ? '—' : (github.sprint?.title ?? 'No open milestone');
 
   return (
     <div style={{ padding: '0 4px 48px', display: 'grid', gap: 22 }}>
@@ -213,6 +212,11 @@ export default function AiControlCenterClient({
           detail={github.reason ?? github.repo}
         />
         <SourceRow
+          name="AI documents"
+          health={sprint ? 'connected' : 'not-configured'}
+          detail={sprint ? `AI/employees · AI/sprints (${sprint.id})` : 'no numbered sprint in AI/sprints'}
+        />
+        <SourceRow
           name="Platform database"
           health={platform.health}
           detail={platform.health === 'connected' ? 'Supabase' : 'no counts could be read'}
@@ -227,12 +231,8 @@ export default function AiControlCenterClient({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
           <Stat
             label="Current sprint"
-            value={sprintLabel}
-            note={
-              github.sprint
-                ? `${github.sprint.closedIssues} closed · ${github.sprint.openIssues} open`
-                : null
-            }
+            value={sprint?.title ?? 'No sprint defined'}
+            note={sprint?.goals.length ? sprint.goals.join(' · ') : 'from AI/sprints'}
           />
           <Stat label="Open GitHub issues" value={num(github.openIssues)} />
           <Stat label="Open pull requests" value={num(github.openPullRequests)} />
@@ -308,6 +308,12 @@ export default function AiControlCenterClient({
               </Btn>
             </div>
             <p style={{ margin: 0, fontSize: 13.5, color: 'var(--t2)', lineHeight: 1.5 }}>{pack.mandate}</p>
+
+            {pack.kpis.length > 0 && (
+              <div style={{ fontSize: 12.5, color: 'var(--t3)' }}>
+                <strong style={{ color: 'var(--t2)' }}>Measured on:</strong> {pack.kpis.join(' · ')}
+              </div>
+            )}
 
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5, minWidth: 380 }}>

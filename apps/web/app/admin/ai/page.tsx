@@ -10,9 +10,9 @@ export const dynamic = 'force-dynamic';
 // ─────────────────────────────────────────────────────────────────────────────
 // AI Control Center — /admin/ai
 //
-// Phase 1 of the AI Context Manager: the roster of platform agents, the live
-// state of the two sources they draw context from, and a one-click context build
-// per agent.
+// Phase 1 of the AI Context Manager: the roster of AI employees defined by
+// AI/employees/*.md, the live state of the sources they draw context from, and a
+// one-click context build per agent.
 //
 // Access is doubly gated. app/admin/layout.tsx already requires admin; this page
 // additionally calls requireSuperAdmin(), which redirects a plain admin to
@@ -30,6 +30,7 @@ export default async function AiControlCenterPage() {
     name: agent.name,
     mandate: agent.mandate,
     responsibilities: [...agent.responsibilities],
+    kpis: [...agent.kpis],
     requires: [...agent.requires],
     status: resolveAgentStatus(agent, snapshot.health) as AgentStatus,
   }));
@@ -48,8 +49,8 @@ export default async function AiControlCenterPage() {
           reason: snapshot.repo.reason,
           openIssues: snapshot.repo.openIssues,
           openPullRequests: snapshot.repo.openPullRequests,
-          sprint: snapshot.repo.sprint,
         }}
+        sprint={snapshot.sprint}
         platform={{
           health: snapshot.platform.health,
           users: snapshot.platform.users,

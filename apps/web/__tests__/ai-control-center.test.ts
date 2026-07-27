@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   AI_AGENTS,
@@ -40,17 +40,32 @@ const read = (p: string) => strip(readFileSync(join(WEB_ROOT, p), 'utf8'));
 const ALL_CONNECTED: Record<ContextSource, SourceHealth> = {
   github: 'connected',
   supabase: 'connected',
+  docs: 'connected',
 };
 
 describe('the roster is well formed', () => {
-  it('carries the five platform agents', () => {
-    expect(AI_AGENTS.map((a) => a.name)).toEqual([
-      'Executive Assistant',
-      'Lead Engineer',
-      'QA Engineer',
-      'Security Engineer',
-      'Marketing Director',
-    ]);
+  it('is exactly the AI/employees documents, with nothing invented', () => {
+    // The roster must not be a second hardcoded list that drifts from the
+    // documents the owner maintains.
+    const onDisk = readdirSync(join(WEB_ROOT, '..', '..', 'AI', 'employees'))
+      .filter((f) => f.endsWith('.md'))
+      .map((f) => f.replace(/\.md$/, ''))
+      .sort();
+    expect(AI_AGENTS.map((a) => a.id).sort()).toEqual(onDisk);
+  });
+
+  it('includes the five agents the console was specified with', () => {
+    const ids = AI_AGENTS.map((a) => a.id);
+    for (const id of ['executive-assistant', 'lead-engineer', 'qa-engineer', 'security-engineer', 'marketing-director']) {
+      expect(ids, id).toContain(id);
+    }
+  });
+
+  it('carries each document\'s real mission text, not a placeholder', () => {
+    for (const agent of AI_AGENTS) {
+      const doc = readFileSync(join(WEB_ROOT, '..', '..', 'AI', 'employees', `${agent.id}.md`), 'utf8');
+      expect(doc, agent.id).toContain(agent.mandate);
+    }
   });
 
   it('gives every agent a unique id, a mandate and at least one source', () => {
@@ -74,15 +89,24 @@ describe('the roster is well formed', () => {
 
   it('requires exactly the sources its facts come from', () => {
     // A mismatch is how an agent ends up 'Ready' while a source it actually
-    // reads is down.
+    // reads is down. This held by hand-declaration once and immediately broke;
+    // `requires` is now derived, so this asserts the derivation.
     for (const agent of AI_AGENTS) {
       const used = new Set(agent.facts.map((k) => FACTS[k].source));
       expect(new Set(agent.requires), agent.id).toEqual(used);
     }
   });
 
+  it('gives an undocumented employee a working default rather than an empty card', () => {
+    // Dropping a new markdown file into AI/employees/ must not need a code change.
+    for (const agent of AI_AGENTS) {
+      expect(agent.facts.length, agent.id).toBeGreaterThan(0);
+    }
+  });
+
   it('resolves by id and returns null rather than throwing on a bad one', () => {
     expect(agentById('executive-assistant')?.name).toBe('Executive Assistant');
+    expect(agentById('marketing-director')?.name).toBe('Marketing Director');
     expect(agentById('nope')).toBeNull();
     expect(agentById('')).toBeNull();
   });
@@ -119,10 +143,14 @@ describe('readiness is derived, never asserted', () => {
   });
 
   it('ignores sources the agent does not depend on', () => {
+    // Marketing reads only platform facts, so GitHub being absent is irrelevant.
     const marketing = agentById('marketing-director')!;
-    expect(resolveAgentStatus(marketing, { github: 'not-configured', supabase: 'connected' })).toBe('Ready');
+    expect(marketing.requires).not.toContain('github');
+    expect(resolveAgentStatus(marketing, { github: 'not-configured', supabase: 'connected', docs: 'connected' })).toBe('Ready');
+    // Lead Engineer reads no platform facts, so the database being down is not its problem.
     const lead = agentById('lead-engineer')!;
-    expect(resolveAgentStatus(lead, { github: 'connected', supabase: 'unreadable' })).toBe('Ready');
+    expect(lead.requires).not.toContain('supabase');
+    expect(resolveAgentStatus(lead, { github: 'connected', supabase: 'unreadable', docs: 'connected' })).toBe('Ready');
   });
 
   it('does not colour an unmeasured status green', () => {
@@ -282,7 +310,7 @@ describe('the GitHub client fails closed', () => {
     // The Search API is refused by gateways that bind a token to specific
     // repositories — this project's own sandbox returns 403 for it.
     expect(src).not.toContain('/search/issues');
-    for (const path of ['/repos/${repo}`', '/repos/${repo}/pulls', '/repos/${repo}/milestones']) {
+    for (const path of ['/repos/${repo}`', '/repos/${repo}/pulls']) {
       expect(src, path).toContain(path);
     }
   });
@@ -323,12 +351,10 @@ describe('platform counts do not coerce a failed read to zero', () => {
     expect(src).not.toMatch(/count \?\? 0/);
   });
 
-  it('reports a connected repo with no milestone as a fact, not a gap', () => {
-    expect(src).toMatch(/No open milestone/);
-  });
-
-  it('does not claim a sprint when GitHub was unreachable', () => {
-    expect(src).toMatch(/repo\.health === 'connected' \?/);
+  it('takes the sprint from the AI documents, not from GitHub', () => {
+    // Two competing answers to "which sprint is this?" is worse than one.
+    expect(src).toMatch(/sprint: sprint\?\.title \?\? null/);
+    expect(read('lib/github.ts')).not.toMatch(/milestone/i);
   });
 });
 
@@ -384,5 +410,49 @@ describe('the console renders unknown as an em dash', () => {
   it('warns the operator when a source is not reporting', () => {
     expect(client).toContain('role="alert"');
     expect(client).toMatch(/it is not zero/);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The roster is compiled from AI/*.md at build time rather than read with fs at
+// request time: those documents live outside apps/web, so Next's output file
+// tracing would not ship them into a Vercel function — the page would render an
+// empty roster in production while working perfectly in dev.
+//
+// The cost of baking them in is that the generated file can go stale. This test
+// is what makes that impossible to miss.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('the generated roster matches the documents on disk', () => {
+  it('has not drifted from AI/employees and AI/sprints', async () => {
+    const { collectRoster, renderModule } = await import('../scripts/generate-ai-roster.mjs');
+    const expected = renderModule(collectRoster());
+    const committed = readFileSync(join(WEB_ROOT, 'lib', 'ai-roster.generated.ts'), 'utf8');
+    expect(
+      committed,
+      'lib/ai-roster.generated.ts is stale — run `npm run generate:ai-roster`',
+    ).toBe(expected);
+  });
+
+  it('parses a document into the sections the console renders', async () => {
+    const { parseEmployee } = await import('../scripts/generate-ai-roster.mjs');
+    const parsed = parseEmployee(
+      'demo',
+      '# Demo Role\n\n## Mission\nDo the thing well.\n\n## Primary Responsibilities\n- One\n- Two\n\n## KPIs\n- Quality\n',
+    );
+    expect(parsed).toMatchObject({
+      id: 'demo',
+      name: 'Demo Role',
+      mission: 'Do the thing well.',
+      responsibilities: ['One', 'Two'],
+      kpis: ['Quality'],
+    });
+  });
+
+  it('picks the highest-numbered sprint as current', async () => {
+    const { collectRoster } = await import('../scripts/generate-ai-roster.mjs');
+    const { currentSprint } = collectRoster();
+    // sprint-001 and sprint-002 both exist; 002 is current.
+    expect(currentSprint?.number).toBe(2);
+    expect(currentSprint?.title).toBe('Sprint 002');
   });
 });

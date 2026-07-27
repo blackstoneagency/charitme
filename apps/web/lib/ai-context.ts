@@ -3,6 +3,7 @@ import { supabaseAdmin } from './supabase';
 import { fetchRepoSnapshot, type RepoSnapshot } from './github';
 import {
   buildContextPack,
+  CURRENT_SPRINT,
   type AgentDefinition,
   type ContextPack,
   type ContextSource,
@@ -75,22 +76,33 @@ export async function fetchPlatformFacts(): Promise<PlatformFacts> {
 export type ContextSnapshot = {
   repo: RepoSnapshot;
   platform: PlatformFacts;
+  sprint: typeof CURRENT_SPRINT;
   health: Record<ContextSource, SourceHealth>;
 };
 
-/** Read both sources once. Callers derive every agent's status from this. */
+/** Read every source once. Callers derive every agent's status from this. */
 export async function fetchContextSnapshot(): Promise<ContextSnapshot> {
   const [repo, platform] = await Promise.all([fetchRepoSnapshot(), fetchPlatformFacts()]);
-  return { repo, platform, health: { github: repo.health, supabase: platform.health } };
+  return {
+    repo,
+    platform,
+    sprint: CURRENT_SPRINT,
+    health: {
+      github: repo.health,
+      supabase: platform.health,
+      // The AI/ documents are compiled into the bundle, so this is a fact about
+      // the build, not a network call that can fail at request time. It reports
+      // not-configured only when AI/sprints holds no numbered sprint.
+      docs: CURRENT_SPRINT ? 'connected' : 'not-configured',
+    },
+  };
 }
 
 /** Flatten a snapshot into the fact values the pure builder consumes. */
 export function snapshotToFactValues(snapshot: ContextSnapshot): FactValues {
-  const { repo, platform } = snapshot;
+  const { repo, platform, sprint } = snapshot;
   return {
-    // A connected repo with no open milestone is a real answer, not a failure —
-    // so it reports "No open milestone" rather than an em dash.
-    sprint: repo.health === 'connected' ? (repo.sprint?.title ?? 'No open milestone') : null,
+    sprint: sprint?.title ?? null,
     openIssues: repo.openIssues,
     openPullRequests: repo.openPullRequests,
     users: platform.users,

@@ -1,10 +1,22 @@
+import { AI_EMPLOYEE_DOCS, AI_CURRENT_SPRINT } from './ai-roster.generated';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // AI Control Center — agent roster and context assembly (PURE).
 //
-// Phase 1 of the AI Context Manager. This module holds no I/O: it declares which
-// agents exist, what each one needs to know, and how a readiness status is
-// DERIVED from measured source health. Everything network- or database-shaped
-// lives in lib/github.ts and lib/ai-context.ts.
+// Phase 1 of the AI Context Manager. This module holds no I/O: it says what each
+// agent needs to know and how a readiness status is DERIVED from measured source
+// health. Everything network- or database-shaped lives in lib/github.ts and
+// lib/ai-context.ts.
+//
+// WHO the agents are is NOT defined here. The roster is the set of documents in
+// AI/employees/ at the repository root, compiled into ai-roster.generated.ts by
+// scripts/generate-ai-roster.mjs. Adding an employee means adding a document —
+// there is no second list in TypeScript to keep in sync, because a hardcoded
+// parallel roster would drift from the documents the owner actually maintains.
+//
+// What this module adds on top of a document is the LIVE data to attach to it
+// (FACT_ASSIGNMENT below), since a markdown charter cannot say how many pull
+// requests are open.
 //
 // Design rule carried over from the rest of the admin console: a status is only
 // ever as good as what was actually measured. There is no path here that returns
@@ -12,8 +24,14 @@
 // failed — unknown is `null` and prints as an em dash.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** External systems an agent draws its context from. */
-export type ContextSource = 'github' | 'supabase';
+/**
+ * Where a fact comes from.
+ *
+ * 'docs' is the AI/ markdown compiled into the bundle. It is an ordinary import,
+ * so it cannot fail at request time — which is exactly why the sprint reads from
+ * there rather than from a GitHub milestone.
+ */
+export type ContextSource = 'github' | 'supabase' | 'docs';
 
 /** Measured health of one context source. Never inferred. */
 export type SourceHealth = 'connected' | 'unreadable' | 'not-configured';
@@ -40,7 +58,7 @@ export type FactSpec = {
 };
 
 export const FACTS: Readonly<Record<FactKey, FactSpec>> = {
-  sprint:           { label: 'Current sprint',        source: 'github',   hint: 'earliest open milestone' },
+  sprint:           { label: 'Current sprint',        source: 'docs',     hint: 'highest AI/sprints entry' },
   openIssues:       { label: 'Open GitHub issues',    source: 'github',   hint: 'excludes pull requests' },
   openPullRequests: { label: 'Open pull requests',    source: 'github',   hint: 'awaiting review or merge' },
   users:            { label: 'Registered users',      source: 'supabase', hint: 'profiles table' },
@@ -55,74 +73,62 @@ export type AgentDefinition = {
   name: string;
   mandate: string;
   responsibilities: readonly string[];
-  /** Sources that must be healthy for this agent to be Ready. */
-  requires: readonly ContextSource[];
+  kpis: readonly string[];
   /** Facts assembled into this agent's context pack, in render order. */
   facts: readonly FactKey[];
+  /**
+   * Sources that must be healthy for this agent to be Ready. DERIVED from
+   * `facts`, never hand-written: the first version of this file declared the two
+   * separately and QA Engineer ended up reading a Supabase fact while requiring
+   * only GitHub, so it would have displayed **Ready** with the database down.
+   * Deriving it makes that class of mistake unrepresentable.
+   */
+  requires: readonly ContextSource[];
 };
 
-export const AI_AGENTS: readonly AgentDefinition[] = [
-  {
-    id: 'executive-assistant',
-    name: 'Executive Assistant',
-    mandate: 'Turns platform and repository state into a single decision brief for the owner.',
-    responsibilities: [
-      'Summarise what changed since the last check-in',
-      'Surface the few decisions that actually need the owner',
-      'Route work to the specialist agents',
-    ],
-    requires: ['github', 'supabase'],
-    facts: ['sprint', 'openIssues', 'openPullRequests', 'users', 'activeCampaigns', 'donations', 'openSupportCases'],
-  },
-  {
-    id: 'lead-engineer',
-    name: 'Lead Engineer',
-    mandate: 'Owns the delivery queue: what is in flight, what is blocked, what ships next.',
-    responsibilities: [
-      'Triage open issues into the current sprint',
-      'Keep pull requests moving toward merge',
-      'Flag work that has stalled',
-    ],
-    requires: ['github'],
-    facts: ['sprint', 'openIssues', 'openPullRequests'],
-  },
-  {
-    id: 'qa-engineer',
-    name: 'QA Engineer',
-    mandate: 'Guards the release gate — nothing ships without evidence that it works.',
-    responsibilities: [
-      'Reproduce and confirm reported defects',
-      'Check that changes carry tests',
-      'Verify the live surface, not just the diff',
-    ],
-    requires: ['github', 'supabase'],
-    facts: ['openIssues', 'openPullRequests', 'activeCampaigns'],
-  },
-  {
-    id: 'security-engineer',
-    name: 'Security Engineer',
-    mandate: 'Watches the trust boundary: authorisation, data exposure, and abuse signals.',
-    responsibilities: [
-      'Review changes that touch auth or payments',
-      'Work the trust & safety backlog',
-      'Escalate anything that widens access',
-    ],
-    requires: ['github', 'supabase'],
-    facts: ['openIssues', 'openRiskFlags', 'openSupportCases'],
-  },
-  {
-    id: 'marketing-director',
-    name: 'Marketing Director',
-    mandate: 'Owns growth: who is arriving, what they start, and what they give.',
-    responsibilities: [
-      'Track acquisition and campaign creation',
-      'Brief content and lifecycle messaging',
-      'Report on donation conversion',
-    ],
-    requires: ['supabase'],
-    facts: ['users', 'activeCampaigns', 'donations'],
-  },
-] as const;
+/**
+ * Which live facts attach to which employee document.
+ *
+ * The documents describe the role; they cannot know what data exists on this
+ * platform. An id with no entry here falls back to DEFAULT_FACTS, so dropping a
+ * new employee markdown file into AI/employees/ works without a code change.
+ */
+const FACT_ASSIGNMENT: Readonly<Record<string, readonly FactKey[]>> = {
+  'executive-assistant': ['sprint', 'openIssues', 'openPullRequests', 'users', 'activeCampaigns', 'donations', 'openSupportCases'],
+  'product-manager':     ['sprint', 'openIssues', 'activeCampaigns'],
+  'lead-engineer':       ['sprint', 'openIssues', 'openPullRequests'],
+  'release-manager':     ['sprint', 'openIssues', 'openPullRequests'],
+  'qa-engineer':         ['openIssues', 'openPullRequests', 'activeCampaigns'],
+  'security-engineer':   ['openIssues', 'openRiskFlags', 'openSupportCases'],
+  'database-architect':  ['openIssues', 'users', 'donations'],
+  'stripe-engineer':     ['openIssues', 'donations'],
+  'ux-designer':         ['openIssues', 'activeCampaigns'],
+  'marketing-director':  ['users', 'activeCampaigns', 'donations'],
+};
+
+const DEFAULT_FACTS: readonly FactKey[] = ['sprint', 'openIssues', 'openPullRequests'];
+
+/** The sprint named by AI/sprints, or null when no numbered sprint exists. */
+export const CURRENT_SPRINT = AI_CURRENT_SPRINT;
+
+/**
+ * The roster: one agent per AI/employees/*.md document, in document order.
+ *
+ * `requires` is derived from the assigned facts, so an agent can never claim
+ * readiness for a source it silently reads.
+ */
+export const AI_AGENTS: readonly AgentDefinition[] = AI_EMPLOYEE_DOCS.map((doc) => {
+  const facts = FACT_ASSIGNMENT[doc.id] ?? DEFAULT_FACTS;
+  return {
+    id: doc.id,
+    name: doc.name,
+    mandate: doc.mission,
+    responsibilities: doc.responsibilities,
+    kpis: doc.kpis,
+    facts,
+    requires: [...new Set(facts.map((k) => FACTS[k].source))],
+  };
+});
 
 /** Look up an agent by id. Returns null rather than throwing on an unknown id. */
 export function agentById(id: string): AgentDefinition | null {
@@ -169,6 +175,7 @@ export type ContextPack = {
   agentName: string;
   mandate: string;
   responsibilities: readonly string[];
+  kpis: readonly string[];
   facts: ContextFact[];
   /** Labels of facts that could not be read. Empty means the pack is complete. */
   missing: string[];
@@ -205,6 +212,7 @@ export function buildContextPack(
     agentName: agent.name,
     mandate: agent.mandate,
     responsibilities: agent.responsibilities,
+    kpis: agent.kpis,
     facts,
     missing: facts.filter((f) => f.value === null).map((f) => f.label),
     builtAt,
@@ -224,10 +232,15 @@ export function contextPackToMarkdown(pack: ContextPack): string {
     '',
     '## Responsibilities',
     ...pack.responsibilities.map((r) => `- ${r}`),
+  ];
+  if (pack.kpis.length > 0) {
+    lines.push('', '## Measured on', ...pack.kpis.map((k) => `- ${k}`));
+  }
+  lines.push(
     '',
     '## Current state',
     ...pack.facts.map((f) => `- ${f.label}: ${f.value ?? 'unknown (read failed)'}`),
-  ];
+  );
   if (pack.missing.length > 0) {
     lines.push(
       '',

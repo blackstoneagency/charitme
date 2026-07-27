@@ -52,19 +52,31 @@ below was run locally, which is currently the only real signal.
 ## ✅ SHIPPED — AI Control Center, Phase 1 (Claude, 2026-07-27)
 
 `/admin/ai` — the AI Context Manager's first phase. **Super-admin only**, listed as
-**AI** in the left sidebar. Suite at **1545 tests / 142 files**, typecheck 0, lint 0,
+**AI** in the left sidebar. Suite at **1550 tests / 142 files**, typecheck 0, lint 0,
 build green.
 
-**What it does:** renders the five-agent roster (Executive Assistant, Lead Engineer, QA
-Engineer, Security Engineer, Marketing Director) with a per-agent readiness status, the
+**What it does:** renders the **10-employee roster read from `AI/employees/*.md`** (the
+docs the owner pushed in 77f78d4/5aac0dd — Executive Assistant, Product Manager, Lead
+Engineer, UX Designer, QA Engineer, Security Engineer, Database Architect, Stripe
+Engineer, Release Manager, Marketing Director) with a per-agent readiness status, the
 live delivery state (current sprint, open issues, open PRs, open support cases, open
 risk flags), and a per-agent **"Open …"** button that builds that agent's context pack
 from GitHub + Supabase and offers it as copyable markdown.
 
-**Files:** `lib/ai-agents-core.ts` (pure roster/status/pack), `lib/github-core.ts` (pure
+**Files:** `scripts/generate-ai-roster.mjs` + `lib/ai-roster.generated.ts` (docs → code),
+`lib/ai-agents-core.ts` (pure status/fact-assignment/pack), `lib/github-core.ts` (pure
 counting arithmetic), `lib/github.ts` (REST client), `lib/ai-context.ts` (assembly),
 `app/admin/ai/` (page + client), `app/api/admin/ai/context/route.ts`,
-`__tests__/ai-control-center.test.ts` (52 tests).
+`__tests__/ai-control-center.test.ts` (57 tests).
+
+**The roster is the documents, not a second list.** `AI/employees/*.md` and
+`AI/sprints/*.md` are compiled into `lib/ai-roster.generated.ts` by `prebuild`; a drift
+test (verified to actually fail on drift) keeps them in sync. Adding an employee is
+adding a markdown file — no code change. They are **baked in at build time rather than
+read with `fs`**: `AI/` sits outside `apps/web`, so Next's output file tracing would not
+ship it into a Vercel function and the roster would have been empty in production while
+working perfectly in dev. Current sprint = highest-numbered `AI/sprints/sprint-NNN.md`
+(**Sprint 002**), not a GitHub milestone — one answer to "which sprint is this?".
 
 **Three things worth carrying forward:**
 
@@ -78,7 +90,8 @@ counting arithmetic), `lib/github.ts` (REST client), `lib/ai-context.ts` (assemb
 3. **A test caught a real fail-open before it shipped.** The invariant "an agent's
    `requires` must equal the sources of its `facts`" failed on QA Engineer, which read a
    Supabase fact while requiring only GitHub — it would have displayed **Ready** with the
-   database down. Fixed in the definition, and the invariant is now enforced for all five.
+   database down. `requires` is now *derived* from the facts, so that mistake is no
+   longer representable, and the invariant is asserted for every employee.
 
 Consistent with the six `?? 0` fail-opens already fixed: every count here is
 `number | null` and unknown renders as `—`. On this screen 0 is the *reassuring* answer,

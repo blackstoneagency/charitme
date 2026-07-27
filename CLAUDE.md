@@ -152,9 +152,19 @@ Phase 1 of the AI Context Manager: an agent roster plus one-click context packs.
   entry lives in `SUPER_ADMIN_NAV` (`components/SuperAdminNav.tsx`), which self-gates
   via `/api/admin/super/whoami` — **do not** add it to `adminNav` in `CharitMeApp.tsx`,
   that list renders for every admin.
-- `lib/ai-agents-core.ts` is **pure** (roster, `resolveAgentStatus`, `buildContextPack`).
-  An agent's `requires` must equal the sources of its `facts` — a test enforces this,
-  because a mismatch is how an agent shows **Ready** while a source it reads is down.
+- **The roster is `AI/employees/*.md` at the repo root — not a list in TypeScript.**
+  `scripts/generate-ai-roster.mjs` compiles those docs (plus `AI/sprints/*.md`) into
+  `lib/ai-roster.generated.ts`; `prebuild` runs it and a test fails if the committed
+  output drifts. Adding an employee means adding a markdown file. They are **baked in
+  at build time, not read with `fs`**: `AI/` sits outside `apps/web`, so Next's output
+  file tracing would not ship it into a Vercel function — the roster would be empty in
+  production while working fine in dev.
+- The **current sprint** comes from the highest-numbered `AI/sprints/sprint-NNN.md`,
+  never from a GitHub milestone. One answer to "which sprint is this?", not two.
+- `lib/ai-agents-core.ts` is **pure** (status, fact assignment, `buildContextPack`). An
+  agent's `requires` is **derived** from the sources of its `facts` — declaring the two
+  separately is how QA Engineer ended up reading a Supabase fact while requiring only
+  GitHub, which would have shown **Ready** with the database down.
 - ⚠️ **`open_issues_count` counts pull requests as issues.** Measured against this repo:
   it reports `1` while the only open item is PR #93 — i.e. 0 issues, 1 PR. The issue
   count is always `deriveOpenIssues(open_issues_count, openPRs)` (`lib/github-core.ts`).
