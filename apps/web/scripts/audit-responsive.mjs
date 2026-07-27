@@ -96,6 +96,21 @@ for (const vp of VIEWPORTS) {
           findings++;
           continue;
         }
+        // Readiness gate, not a guess.
+        //
+        // `domcontentloaded` fires before stylesheets and webfonts are applied, so
+        // a fixed sleep is a race: under CPU contention (five dev servers running)
+        // this sweep measured UNSTYLED pages and reported **84–86 phantom
+        // "overlapping controls"**, varying run to run, where a single-server run
+        // reproducibly reported 0. Someone would have spent a day chasing layout
+        // bugs that do not exist — the false-positive mirror of the vacuous passes
+        // recorded elsewhere in this file.
+        //
+        // Waiting for `load` (stylesheets in) plus `document.fonts.ready` (metrics
+        // final) makes the measurement deterministic, because overlap detection is
+        // entirely a function of text metrics.
+        await page.waitForLoadState('load').catch(() => {});
+        await page.evaluate(() => document.fonts?.ready ?? Promise.resolve()).catch(() => {});
         await page.waitForTimeout(350);
         const r = await page.evaluate(() => {
           const de = document.documentElement;
@@ -156,6 +171,13 @@ for (const vp of VIEWPORTS) {
           return { overflow, wide, badImgs: badImgs.slice(0, 3), overlaps, theme: de.getAttribute('data-theme') };
         });
         const issues = [];
+        // The applied theme was already being collected and then thrown away.
+        // Assert it: if the attribute does not match what this pass asked for,
+        // every colour-dependent finding below describes the OTHER theme, and the
+        // run would still print "× 2 themes". That is exactly how
+        // e2e/accessibility.spec.ts audited dark twice and never once checked
+        // light — the theme was set after load and the ThemeProvider overwrote it.
+        if (r.theme !== theme) issues.push(`THEME-NOT-APPLIED: asked ${theme}, rendered ${r.theme ?? 'none'}`);
         if (r.overflow > 2) issues.push(`overflow +${r.overflow}px ${r.wide.join(',')}`);
         if (r.badImgs.length) issues.push(`broken img: ${r.badImgs.join(', ')}`);
         if (r.overlaps.length) issues.push(`overlapping controls: ${r.overlaps.join(' | ')}`);

@@ -108,6 +108,48 @@ use, so none of this can be exercised safely without test keys (ADR-0003).
 GitHub Actions allocates no runners, so **CI cannot verify anything** — every gate
 below was run locally, which is currently the only real signal.
 
+## 🔴 THE RESPONSIVE SWEEP INVENTS FINDINGS UNDER LOAD (Claude, 2026-07-27)
+
+**The false-positive mirror of everything else in this file** — and I nearly reported 84
+layout regressions that do not exist.
+
+`audit-responsive.mjs` waited only for `domcontentloaded` plus a fixed 350 ms before
+measuring. `domcontentloaded` fires **before stylesheets and webfonts apply**, and its
+"overlapping controls" check is purely a function of text metrics. Measured:
+
+| Conditions | Result |
+|---|---|
+| 5 Next servers competing for CPU | **84 findings**, then **86** on a re-run |
+| Single server, run 1 | **0 findings** |
+| Single server, run 2 | **0 findings** |
+
+Same build, same pages. The findings varied run to run and vanished when the machine was
+quiet: the sweep was measuring **unstyled pages**. Someone would have spent a day chasing
+layout bugs that do not exist.
+
+**What caught it:** not the output — the *shape* of the output. A jump from 0 to 86, then
+84 on a repeat, is not what a real regression looks like. Same tell as the 31 phantom
+"unguarded" auth handlers earlier today.
+
+**Fixed:** the sweep now waits for `load` (stylesheets applied) **and**
+`document.fonts.ready` (metrics final) before measuring, so the result no longer depends on
+how busy the machine is.
+
+**Also wired up a signal that was already being collected and thrown away:** the probe
+returned the live `data-theme` and nothing read it. It now fails with `THEME-NOT-APPLIED`
+when the rendered theme is not the one requested — the exact failure that let
+`e2e/accessibility.spec.ts` audit dark twice and never once check light.
+
+⚠️ **Honest limits of the verification.** The gate is the standard fix and the diagnosis is
+reproduced above, but I did **not** get a full post-fix 222-render sweep to complete: the
+sandbox ended up saturated with my own leftover dev servers and each run takes ~10 min under
+that load. A clean single-server run was in flight at handoff. **Next agent: re-run
+`node scripts/audit-responsive.mjs --base <url>` on a quiet machine and confirm 0.**
+
+**Standing lesson for this file's audit claims:** the responsive sweep's historical
+"0 findings" results are only meaningful when the machine was quiet. Run the sweeps with
+nothing else competing, or the numbers mean nothing in either direction.
+
 ## ✅ VERIFIED CLEAN — no handler acts before it authenticates (Claude, 2026-07-27)
 
 Third distinct claim about the same handlers. Each earlier one was true while the next was
