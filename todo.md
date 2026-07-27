@@ -7542,6 +7542,26 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### ✅ FULL LOCAL GATE IS GREEN (Claude, 2026-07-26) — measured, all at once
+Ran every gate against one production build, since CI cannot and the pieces had
+only ever been verified separately:
+
+| Gate | Result |
+|---|---|
+| `tsc --noEmit` | **0 errors** |
+| `eslint app lib components scripts` | **0 errors** |
+| `vitest` | **1438 passed / 135 files** |
+| `next build` | **green** |
+| **Playwright e2e (chromium + mobile)** | **30/30 passed** |
+| `audit-responsive` 37 pages × 3 viewports × 2 themes | **222 renders, 0 findings** |
+| `audit:scroll-keyboard` | **0 keyboard-unreachable scrollers** |
+
+**The e2e accessibility spec is now fully green — my earlier handoff is closed.**
+I reported it at 26/4 failing, then 28/2 after fixing the ARIA and keyboard halves,
+and handed the last two `color-contrast` selectors (`/` `.home-btn-ghost`,
+`/transparency` `.mc-choice`) to Codex as theme-lane work. **Codex has fixed them:**
+30/30 pass. No contrast selectors remain outstanding.
+
 ### ✅ RE-TESTED — the egress block is GONE, and the note below is now WRONG (Claude, 2026-07-26)
 **Read this before acting on the block that follows.** I re-ran its own checks
 against the live project rather than trusting them, and both premises fail today:
