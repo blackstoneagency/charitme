@@ -6386,6 +6386,30 @@ removed strings._
   **"Add files via upload"** commits, which contain no code logic at all.
 Verify locally instead. Owner fix: **Settings → Billing → Actions**.
 
+## ✅ PERFORMANCE — every public page measured on PRODUCTION (2026-07-27)
+
+24 public routes, warmed then measured (`curl -w time_starttransfer/time_total/size`).
+**No page is pathologically slow; the spread is 254–598 ms TTFB.**
+
+| band | routes |
+|---|---|
+| **TTFB < 300 ms** (13) | `/fees` 262 · `/security` 268 · `/help` 261 · `/features` 254 · `/pricing` 264 · `/how-it-works` 266 · `/trust-safety` 272 · `/blog` 275 · `/contact` 283 · `/transparency` 293 · `/leaderboard` 301 · `/for-nonprofits` 307 · `/events` 309 |
+| **300–400 ms** (8) | `/sponsor` 322 · `/success-stories` 324 · `/for-individuals` 330 · `/volunteer` 332 · `/for-donors` 347 · `/matching` 377 · `/impact` 394 · `/campaigns` 257 (TTFB) |
+| **> 400 ms** (3) | `/grants` 444 · `/` 593 · `/faq` 598 |
+
+**Heaviest payload: `/campaigns` at 490 KB** (60-card grid) — 3× the next page
+(`/matching` 289 KB). Covers are already `loading=lazy`, so the weight is markup +
+RSC payload for 60 cards. **Worth considering:** the grid ships all 60 up front; a
+smaller first page with load-more would cut the largest transfer on the discovery path.
+Not done here — it changes discovery UX, so it is a product call, and total load is
+still ~1 s.
+
+**Caveat, stated so the numbers aren't over-read:** these run through the sandbox's
+agent proxy, so absolute values include proxy overhead — the *relative* spread is the
+signal. Every route was measured the same way. CWV (LCP/CLS/INP) were measured
+separately against a local production build in earlier work; this is server-response
+timing only.
+
 ## ✅ IMAGE UNIQUENESS — re-verified across production (2026-07-27)
 
 | page | images | distinct | within-page dupes |
