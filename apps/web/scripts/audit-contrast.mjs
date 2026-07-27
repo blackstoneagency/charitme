@@ -60,10 +60,40 @@ const STRICT_GRADIENTS = argv.includes('--strict-gradients');
 const ROUTE_DATA = JSON.parse(
   readFileSync(fileURLToPath(new URL('../e2e/public-routes.json', import.meta.url)), 'utf8'),
 );
+// ─── signed-in sweep ─────────────────────────────────────────────────────────
+//
+// `--auth` adds the gated half of the product: the 13 standalone gated routes
+// plus every static route under /dashboard and /admin, plus one instantiation of
+// each [param] template. That is ~104 routes which no contrast, axe or responsive
+// sweep has ever measured — the tracker recorded them as blocked on "egress to
+// Supabase", which was a misdiagnosis: the sweeps need A Supabase, not THE
+// Supabase. `scripts/supabase-stub.mjs` is one, and `scripts/audit-signed-in.mjs`
+// wires it up.
+//
+// This flag does NOT mint a session on its own. It expects the caller to have
+// exported STUB_SESSION_COOKIE; without it every gated route redirects to /login
+// and the run fails loudly on the redirect guard below rather than quietly
+// measuring the login page 104 times.
+const WITH_AUTH = argv.includes('--auth');
+const SESSION_COOKIE = process.env.STUB_SESSION_COOKIE ?? '';
+
 // The campaign-embed fixture needs seeded data; the e2e sweep covers it.
 const ALL_PAGES = ROUTE_DATA.public.filter((r) => !r.includes('/embed'));
-const PAGES = ONLY ?? ALL_PAGES;
+const GATED_PAGES = [
+  ...ROUTE_DATA.authGated.routes,
+  ...ROUTE_DATA.authGated.consoles,
+  ...ROUTE_DATA.authGated.dynamicSamples,
+];
+const PAGES = ONLY ?? (WITH_AUTH ? [...ALL_PAGES, ...GATED_PAGES] : ALL_PAGES);
 const THEMES = ['light', 'dark'];
+
+if (WITH_AUTH && !SESSION_COOKIE) {
+  console.error(
+    '--auth needs STUB_SESSION_COOKIE in the environment. Run scripts/audit-signed-in.mjs,\n' +
+    'which starts the stub, mints the cookie and sets it for you.',
+  );
+  process.exit(2);
+}
 
 // Runs in the page. Returns one entry per failing text node.
 function collectContrast() {
@@ -224,6 +254,13 @@ for (const theme of THEMES) {
   await ctx.addInitScript((t) => {
     try { localStorage.setItem('charitme-theme-v2', t); } catch { /* ignore */ }
   }, theme);
+  if (SESSION_COOKIE) {
+    // Cookie name is derived by supabase-js as `sb-<hostname-first-label>-auth-token`,
+    // so it follows whatever NEXT_PUBLIC_SUPABASE_URL the build was made against.
+    // audit-signed-in.mjs computes both the name and the value and passes them here.
+    const { name, value } = JSON.parse(SESSION_COOKIE);
+    await ctx.addCookies([{ name, value, url: BASE }]);
+  }
   const page = await ctx.newPage();
 
   for (const path of PAGES) {

@@ -873,7 +873,11 @@ img, video, iframe { max-width: 100%; }
   box-shadow: 0 2px 8px rgba(108,53,255,.2);
 }
 .kf-icon { width: 20px; height: 20px; }
-.kf-section-label { margin: 4px 8px -12px; color: #7a8299; text-transform: uppercase; font-size: 12px; font-weight: 650; }
+/* Was #7a8299 — 3.83:1 on white, and the dark override below already pointed at
+   --t3. Half-tokenised rules like this are how the whole app-shell chrome failed
+   AA in light mode while looking correct in dark: only the theme someone actually
+   looked at got a token. */
+.kf-section-label { margin: 4px 8px -12px; color: var(--t3); text-transform: uppercase; font-size: 12px; font-weight: 650; }
 .kf-nav { display: grid; gap: 6px; }
 .kf-admin-nav {
   display: grid;
@@ -1131,7 +1135,9 @@ img, video, iframe { max-width: 100%; }
   text-overflow: ellipsis;
   max-width: 150px;
 }
-.kf-user-chip-meta small { color: #6b7492; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+/* Was #6b7492 — 4.46:1, i.e. failing by 0.04. Same half-tokenised shape as
+   .kf-section-label above; the dark override already used --t3. */
+.kf-user-chip-meta small { color: var(--t3); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
 
 .kf-profile {
   display: flex;
