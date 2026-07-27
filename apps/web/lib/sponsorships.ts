@@ -6,6 +6,7 @@ import 'server-only';
 import { supabaseAdmin } from './supabase';
 import { boundedQuery } from './query-timeout';
 import type { SponsorshipOpportunity, SponsorshipRequest } from './sponsorships-core';
+import { likeTerm } from './campaign-search';
 
 const OPPORTUNITY_COLUMNS =
   'id, organizer_id, campaign_id, title, description, category, benefits, min_amount_cents, target_amount_cents, raised_amount_cents, currency, status, created_at, updated_at';
@@ -33,7 +34,8 @@ export async function listOpenOpportunities(
     .limit(Math.min(filters.limit ?? 60, 200));
 
   if (filters.category) query = query.eq('category', filters.category);
-  if (filters.search) query = query.ilike('title', `%${filters.search}%`);
+  const safeSearch = filters.search ? likeTerm(filters.search) : '';
+  if (safeSearch) query = query.ilike('title', `%${safeSearch}%`);
 
   const { data, error } = await boundedQuery(query);
   if (error || !data) return [];

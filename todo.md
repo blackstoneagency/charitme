@@ -620,6 +620,26 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**🟠 COMPLETED — my own previous fix was incomplete; 3 more sites + a shared helper.**
+Sweeping every interpolated `.ilike()` found **4** call sites, of which I had fixed
+exactly one:
+- **`app/api/campaigns/route.ts`** — the **API counterpart of the page I had just
+  fixed**, taking `location` straight from `searchParams`. Fixing the page and
+  missing the API is precisely the "check the siblings" lesson from the trust-score
+  work, and I repeated the mistake within two commits of learning it.
+- `lib/sponsorships.ts` — `filters.search` on `title`.
+- `lib/matching.ts` — `search` on `company_name`.
+
+**Extracted `likeTerm()` into `lib/campaign-search.ts` rather than patching four
+copies.** Four hand-maintained copies of the same escape is exactly how
+`CAMPAIGN_CATEGORIES` drifted to 11 of 18 — the bug that started this whole audit.
+The helper returns `''` when the input was entirely wildcards, so callers skip the
+filter instead of falling back to a match-all.
+
+A **cross-file test** now asserts all four sites route through `likeTerm`, verified
+non-vacuous by reverting `lib/matching.ts` alone. That catches a fifth site
+diverging later, which a per-file test would not.
+
 **🟠 FIXED — the location filter didn't strip wildcards, though search beside it did.**
 Found while auditing search: `/campaigns` sanitises the keyword box carefully but
 interpolated the **location** box raw —

@@ -7,6 +7,7 @@ import { checkRateLimit } from '../../../lib/rate-limit';
 import { applyCampaignSearch } from '../../../lib/campaign-search';
 import { totalPages } from '../../../lib/pagination';
 import { PUBLISH_MIN_STORY_CHARS, PUBLISH_MIN_GOAL_CENTS } from '../../../lib/campaign-readiness';
+import { likeTerm } from '../../../lib/campaign-search';
 
 function slugify(text: string): string {
   return text
@@ -174,7 +175,9 @@ export async function GET(request: NextRequest) {
     .range(offset, offset + limit - 1);
 
   if (category) query = query.eq('category', category);
-  if (location) query = query.ilike('location', `%${location}%`);
+  // Escape LIKE wildcards — the API counterpart of the /campaigns page filter.
+  const safeLocation = location ? likeTerm(location) : '';
+  if (safeLocation) query = query.ilike('location', `%${safeLocation}%`);
   // Tokenized multi-word keyword search across title/tagline/description
   // (ilike leverages the trigram indexes). Each word must match some field.
   query = applyCampaignSearch(query, q);

@@ -5,6 +5,7 @@ import 'server-only';
 import { supabaseAdmin } from './supabase';
 import { boundedQuery } from './query-timeout';
 import { reservesCap, type MatchingProgram, type MatchingClaim } from './matching-core';
+import { likeTerm } from './campaign-search';
 
 const PROGRAM_COLUMNS =
   'id, sponsor_id, company_name, description, match_ratio, annual_cap_cents, min_donation_cents, categories, currency, status, created_at, updated_at';
@@ -20,7 +21,8 @@ export async function listActivePrograms(search?: string): Promise<ProgramWithSp
     .eq('status', 'active')
     .order('created_at', { ascending: false })
     .limit(120);
-  if (search) query = query.ilike('company_name', `%${search}%`);
+  const safeSearch = search ? likeTerm(search) : '';
+  if (safeSearch) query = query.ilike('company_name', `%${safeSearch}%`);
 
   const { data, error } = await boundedQuery(query);
   if (error || !data) return [];

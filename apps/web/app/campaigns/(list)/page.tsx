@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibility';
-import { applyCampaignSearch } from '../../../lib/campaign-search';
+import { applyCampaignSearch, likeTerm } from '../../../lib/campaign-search';
 import { ProgressBar, Badge, Card, EmptyState } from '../../../components/ui';
 import { formatCents } from '../../../lib/stripe';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
@@ -60,7 +60,7 @@ async function getCampaigns(opts: {
       // silently did nothing) and "N_w York" matched "New York". Not an injection
       // — .ilike() parameterises the value — but two adjacent inputs on the same
       // page should not escape differently.
-      const safeLocation = opts.location.replace(/[%_]/g, ' ').trim();
+      const safeLocation = likeTerm(opts.location);
       if (safeLocation) query = query.ilike('location', `%${safeLocation}%`);
     }
     // Tokenized multi-word keyword search (each word must match some field).

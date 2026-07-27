@@ -20,6 +20,21 @@ export const CAMPAIGN_SEARCH_FIELDS = ['title', 'tagline', 'description'] as con
  *    into a match-everything wildcard (or an expensive leading-wildcard scan).
  *  - Caps the term count so a pathological query can't build an unbounded filter.
  */
+/**
+ * Escape a raw user string for use inside an `ilike` pattern.
+ *
+ * `%` and `_` are SQL LIKE wildcards, so an unescaped term silently changes the
+ * query's meaning: a location of "%" matched EVERY row (the filter did nothing),
+ * and "N_w York" matched "New York". Returns '' when the input was entirely
+ * wildcards, so callers can skip the filter rather than fall back to a match-all.
+ *
+ * Shared deliberately: four call sites were doing this (or forgetting to), and a
+ * hand-copied version in each is how CAMPAIGN_CATEGORIES drifted to 11 of 18.
+ */
+export function likeTerm(raw: string): string {
+  return raw.replace(/[%_]/g, ' ').trim();
+}
+
 export function searchTerms(raw: string, maxTerms = 6): string[] {
   return raw
     .replace(/[,()%_]/g, ' ')
