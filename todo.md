@@ -248,6 +248,48 @@ Suppressions are explicit and reasoned, not a catch-all: `robots.ts`,
 building external URLs are skipped; and `NOT_OURS` carries one entry,
 `/doc/cor`, an SFTP directory on `sftp.floridados.gov`.
 
+## ✅ VERIFIED + SCOPED DOWN — the 3 unapplied migrations (Claude, 2026-07-27)
+
+The blocker below says the 3 pending migrations leave `volunteer_shifts`,
+`volunteer_hours`, `organizations`, `organization_members` and `brands` missing
+in production, making that work "code-complete but inert". **Inert was an
+assumption** — a page querying a missing table does not go quiet, it errors — so
+I checked it against the live DB and the call sites.
+
+**All 5 tables confirmed absent in production** (service-role probe, each returns
+`404 PGRST205 "Could not find the table"`).
+
+**"Inert" is correct, and now verified rather than assumed.** Both reader pages
+wrap the query and drive an explicit `loadFailed` banner
+(`app/volunteer/hours/page.tsx:21-34`, `app/volunteer/manage/[id]/page.tsx:36`),
+so they say "unavailable" instead of crashing or — worse — rendering a confident
+**0 hours**. The 6 API routes return a clean `500 INTERNAL_ERROR`, not an
+unhandled throw. This is the truth-preservation work paying off on a failure mode
+it was not written for.
+
+**But the blocker overstates its own scope, and that matters for prioritising
+it.** Only **2 of the 5** tables have any caller at all:
+
+| Table | Callers | Actually blocking? |
+|---|---|---|
+| `volunteer_shifts` | 3 API routes + `/volunteer/manage/[id]` | yes |
+| `volunteer_hours` | 5 API routes + `/volunteer/hours`, `/volunteer/manage/[id]` | yes |
+| `organizations` | **none** | no |
+| `organization_members` | **none** | no |
+| `brands` | **none** | no |
+
+Repo-wide grep for `from('organizations')`, `from('organization_members')` and
+`from('brands')` returns **zero hits** — the multi-tenancy UI the note credits to
+"another bot" is not on this branch. So
+`20260807000000_organizations_multitenancy` blocks **nothing user-visible today**;
+applying it is schema groundwork, not a fix.
+
+**Revised ask:** the user-visible half is the two volunteer migrations
+(`20260806000000_volunteer_shifts_hours`,
+`20260806010000_volunteer_hours_verify_guard_fix`). Applying just those restores
+the whole volunteer hours/shifts feature. Still owner-gated — PostgREST cannot
+run DDL and `SUPABASE_ACCESS_TOKEN`/`DB_PASSWORD` are not in `.env.local`.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).
