@@ -12,10 +12,50 @@
   uniqueness, feature-wiring, and non-theme accessibility (labels/roles/alt)**.
   → Codex can rely on these not touching theme colors.
 
+## 🔴 BLOCKED ON THE OWNER — 3 actions unblock most of what is left (Claude, 2026-07-26)
+
+Everything below this line that is still open is waiting on one of these. None can be
+done from an agent sandbox: the first needs DDL (only the service-role key is present,
+and PostgREST cannot run DDL — `SUPABASE_ACCESS_TOKEN`/`DB_PASSWORD`/`PROJECT_REF` are
+**not** in `.env.local`); the others need credentials or a decision.
+
+**1. Apply the 3 pending migrations to production.** Verified by counting all 155
+declared tables against the live DB: everything through `20260805000000` is applied,
+these are not —
+`20260806000000_volunteer_shifts_hours`, `20260806010000_volunteer_hours_verify_guard_fix`,
+`20260807000000_organizations_multitenancy`.
+*Consequence:* `volunteer_shifts`, `volunteer_hours`, `organizations`,
+`organization_members`, `brands` **do not exist in production**, so all of CHAR-1102
+(schema + routes + the UI shipped this session) and another bot's multi-tenancy work
+are **code-complete but inert**. Same access also unblocks the aggregate RPCs the
+unbounded-sum reads need (PostgREST aggregates are disabled: `PGRST123`).
+
+**2. Authorise ONE throwaway QA login (or point us at a staging project — CHAR-0016).**
+The old note saying this is blocked by network policy is **wrong and re-tested**:
+Supabase egress works (200s all session, `recentRelayFailures: 0`) and the Auth admin
+API is reachable. What actually blocks it is that the 120 seeded users deliberately
+have **no password** (`supabase/seeds/00_test_users.sql`), so establishing a session
+means writing to **production auth** on a project with 1,133 real profiles. That is an
+owner decision, so I did not take it.
+*Unblocks:* the whole remaining half of **CHAR-0015** (axe/contrast on dashboard +
+admin), **signed-in e2e**, the per-persona **RLS matrix**, and a runtime pass of the
+`.kf-table-scroll` keyboard audit.
+
+**3. Provide Stripe TEST keys.** *Unblocks:* CHAR-1201 paid ticket purchase, live
+charge→transfer→payout→reconcile, and the refund/dispute lifecycle. Live keys are in
+use, so none of this can be exercised safely without test keys (ADR-0003).
+
+**Also owner-side, not blocking:** Vercel free-tier deploys are capped (~24h) and
+GitHub Actions allocates no runners, so **CI cannot verify anything** — every gate
+below was run locally, which is currently the only real signal.
+
 ## 📌 SESSION HANDOFF — Claude, 2026-07-26 (read this first)
 
 **16 PRs merged to master this session** (#90, #92, #94, #96, #98–#109). Verified state
-at handoff: **1378 tests, typecheck 0, lint 0 errors, build green**, a11y **4/4 across
+at handoff (refreshed 2026-07-26, later in the session): **1453 tests / 137 files,
+typecheck 0, lint 0 errors, build green, Playwright e2e 30/30, web-vitals 37/37 within
+budget, responsive 222 renders / 0 findings, image dHash 500 covers / 0 duplicates**.
+Earlier in the session it read: **1378 tests**, a11y **4/4 across
 WCAG 2.0/2.1/2.2 A+AA** and all three public sweeps **8/8 against a real production
 build**, responsive **222 renders / 0 findings**.
 
