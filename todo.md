@@ -7582,6 +7582,32 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### 🚨 DONE — Claude, 2026-07-26 — **the notification badge could inflate OR vanish**
+Sixth and last of this shape, and the most subtle: its two failure modes point in
+**opposite directions**.
+
+`/api/notifications/count` computed
+`unreplied = max(0, (totalResult.count ?? 0) - (repliedResult.count ?? 0))`.
+- A failed **replies** read → 0 replies → **every donor message counts as unreplied**,
+  inflating the badge.
+- A failed **totals** read → 0 messages → badge **disappears**, so the organizer never
+  learns anyone wrote to them.
+
+Neither number is worth showing. Both halves are now required before the subtraction
+happens; an errored read is `null`, not `0`; and the response carries **`partial`** so
+a caller can tell *"you have nothing"* apart from *"we could not check"*. The badge
+still stays hidden when unknown — a wrong number is worse than none — but the
+distinction is now available instead of discarded. 4 tests.
+
+**Severity is lower than the other five** (the badge refetches, so a miss is
+transient) — recorded honestly rather than inflated to match the others.
+
+**The `count ?? 0` register is now fully worked.** Six defects of the dangerous
+direction found and fixed; the genuine remainder — admin user/marketing tiles, the
+rotator, and the public stat strips on `about-us`/`contact`/home — are display-only
+by the corrected test ("what does an operator *do* with this number?"), and none of
+them assert safety.
+
 ### 🚨 DONE — Claude, 2026-07-26 — **the support queue reported a false all-clear too**
 Re-checked the rest of the "display-only" register instead of trusting my own triage a
 second time — and found a **fifth** fail-open of the dangerous direction.

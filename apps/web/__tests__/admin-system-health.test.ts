@@ -99,3 +99,33 @@ describe('the support queue cannot report a false all-clear', () => {
     expect(page).toMatch(/not an empty queue/);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The notification badge had the same shape with a twist: its two failure modes
+// pointed in OPPOSITE directions. `unreplied = total - replied` with `?? 0` on
+// both sides meant a failed *replies* read counted every donor message as
+// unreplied (inflating the badge), while a failed *totals* read collapsed it to 0
+// (hiding it). Neither number is worth showing.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('the notification count does not invent a number', () => {
+  const route = read('app/api/notifications/count/route.ts');
+
+  it('no longer subtracts two possibly-failed counts', () => {
+    expect(route).not.toMatch(/\(totalResult\.count \?\? 0\) - \(repliedResult\.count \?\? 0\)/);
+  });
+
+  it('requires both halves before computing unreplied', () => {
+    expect(route).toMatch(/if \(totalCount == null \|\| repliedCount == null\)/);
+  });
+
+  it('treats an errored read as unknown, not as zero', () => {
+    expect(route).toMatch(/totalResult\.error \? null : totalResult\.count/);
+    expect(route).toMatch(/repliedResult\.error \? null : repliedResult\.count/);
+  });
+
+  it('tells the caller the number is partial', () => {
+    // "You have nothing" and "we could not check" are different facts.
+    expect(route).toMatch(/partial/);
+    expect(route).toMatch(/messages: unrepliedMessages, partial/);
+  });
+});

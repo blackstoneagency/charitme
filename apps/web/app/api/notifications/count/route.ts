@@ -29,6 +29,10 @@ export async function GET() {
         .in('status', ['active', 'paused', 'completed']),
     ]);
 
+    // `count` is null on a query error, so `?? 0` silently reports "nothing to see".
+    // Tracked so the response can say the number is partial rather than assert a
+    // confident zero.
+    let partial = Boolean(notifResult.error) || notifResult.count == null;
     const unreadNotifications = notifResult.count ?? 0;
     const campaignIds = (campaignsResult.data ?? []).map((c: { id: string }) => c.id);
 
@@ -44,13 +48,28 @@ export async function GET() {
           .select('id', { count: 'exact', head: true })
           .in('campaign_id', campaignIds),
       ]);
-      unrepliedMessages = Math.max(0, (totalResult.count ?? 0) - (repliedResult.count ?? 0));
+      // Both halves must be readable for the subtraction to mean anything. The two
+      // failure modes go in OPPOSITE directions: if the replies count fails, every
+      // donor message counts as unreplied and the badge is inflated; if the totals
+      // count fails, it collapses to 0 and the badge disappears. Neither number is
+      // worth showing, so a failure on either side leaves this at 0 and marks the
+      // response partial.
+      const totalCount = totalResult.error ? null : totalResult.count;
+      const repliedCount = repliedResult.error ? null : repliedResult.count;
+      if (totalCount == null || repliedCount == null) {
+        partial = true;
+      } else {
+        unrepliedMessages = Math.max(0, totalCount - repliedCount);
+      }
     }
 
     const total = unreadNotifications + unrepliedMessages;
 
     return NextResponse.json(
-      { count: total, notifications: unreadNotifications, messages: unrepliedMessages },
+      // `partial` lets a caller distinguish "you have nothing" from "we could not
+      // check". The badge itself stays hidden either way — a wrong number is worse
+      // than none — but the distinction is available rather than thrown away.
+      { count: total, notifications: unreadNotifications, messages: unrepliedMessages, partial },
       { headers: { 'Cache-Control': 'private, max-age=30' } },
     );
   } catch {
