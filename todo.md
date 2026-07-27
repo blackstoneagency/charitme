@@ -49,6 +49,38 @@ use, so none of this can be exercised safely without test keys (ADR-0003).
 GitHub Actions allocates no runners, so **CI cannot verify anything** — every gate
 below was run locally, which is currently the only real signal.
 
+## 🔴 FIXED — the keyboard sweep passed vacuously (Claude, 2026-07-27)
+
+Found by **running** this session's own verification, not by reading it — which is how
+every instance of this class has been found.
+
+`audit-scroll-keyboard.mjs` took a **positional** base URL while `audit-responsive.mjs`
+and `audit-web-vitals.mjs` take `--base`. Passing `--base <url>` made the base the literal
+string `"--base"`, so all 44 page loads failed, 0 scrollable regions were found, and the
+script printed **"No keyboard-unreachable scrollable regions"** and **exited 0**. A green
+WCAG 2.1.1 result from zero measurements.
+
+The earlier todo note saying this script "is not broken — it already supports the
+override" was **wrong**: it supports a positional, not the flag the other two sweeps use.
+A disagreement in CLI shape is not cosmetic when it silently disables a check.
+
+Fixed: `--base` accepted (positional kept for compatibility), a preflight that exits **2**
+on an unusable base, a counter that exits **2** if zero pages loaded or if more than half
+failed, and the denominator now printed (`Audited 44/44 page loads`) so a partial sweep is
+visible instead of invisible.
+
+**All four failure paths exercised**, not just asserted: dead base → exit 2; `--base` →
+44/44 audited; positional → still works; and the real result is **1 scrollable region, 0
+unreachable** — a genuine pass, replacing a vacuous one.
+`__tests__/audit-sweeps-nonvacuous.test.ts` (11 tests) now holds all three sweeps to the
+same invocation shape so they cannot drift apart again.
+
+### Sweeps re-run after this session's UI changes (/admin/ai, auction lots)
+- **Responsive:** 37 pages × 3 viewports × 2 themes → **0 regressions**
+- **Web vitals:** **37/37 routes within budget**
+- **Image uniqueness:** 500 covers hashed, **0 exact, 0 near-duplicate** (binary level)
+- **Keyboard/scroll:** 44/44 loads, **0 unreachable scrollers**
+
 ## ✅ SHIPPED — Charity Auctions + pricing defaults to Yearly (Claude, 2026-07-27)
 
 **Auctions was the last `planned: true` feature in the catalog** — the one thing between

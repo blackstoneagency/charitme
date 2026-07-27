@@ -7,16 +7,41 @@
 // tabIndex would add a pointless tab stop. So this reports the two cases
 // separately instead of flagging every overflow container.
 //
-//   node scripts/audit-scroll-keyboard.mjs [baseUrl]
+//   node scripts/audit-scroll-keyboard.mjs [--base <url>] [baseUrl]
 //
 // Exits 1 when a genuinely unreachable scroller is found, so it can gate CI.
+// Exits 2 when the base URL is unreachable, or when navigation failed for so
+// many routes that a green result would be meaningless — see the preflight and
+// the navigation-failure check below.
 // ─────────────────────────────────────────────────────────────────────────────
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
-const BASE = process.argv[2] ?? 'http://127.0.0.1:3000';
+// Accept `--base <url>` like audit-responsive.mjs and audit-web-vitals.mjs, and
+// still accept a bare positional for compatibility. The sweeps used to disagree
+// on this: passing `--base` here made the URL literally "--base", every
+// navigation failed, and the script printed "No keyboard-unreachable scrollable
+// regions" — a green result from zero measurements.
+function parseBase(argv) {
+  const flagIndex = argv.indexOf('--base');
+  if (flagIndex !== -1 && argv[flagIndex + 1]) return argv[flagIndex + 1];
+  const positional = argv.slice(2).find((a) => !a.startsWith('--'));
+  return positional ?? 'http://127.0.0.1:3000';
+}
+const BASE = parseBase(process.argv);
 const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
+
+// Preflight. Without it an unreachable base produces a confident pass, which is
+// strictly worse than a failure: it tells you the accessibility check ran.
+try {
+  const probe = await fetch(BASE, { signal: AbortSignal.timeout(10_000) });
+  if (!probe.ok && probe.status >= 500) throw new Error(`HTTP ${probe.status}`);
+} catch (error) {
+  console.error(`✗ Nothing usable on ${BASE} (${error.message}).`);
+  console.error('  Start the app (`npm start` from apps/web) or pass --base <url>.');
+  process.exit(2);
+}
 
 // Public routes plus the viewports where horizontal overflow actually happens —
 // most of these wrappers only scroll under a mobile breakpoint.
@@ -86,6 +111,8 @@ const PROBE = () => {
 const browser = await chromium.launch(EXECUTABLE ? { executablePath: EXECUTABLE } : {});
 const violations = [];
 const alreadyReachable = [];
+let navigated = 0;
+let navFailed = 0;
 
 for (const viewport of VIEWPORTS) {
   const context = await browser.newContext({ viewport });
@@ -93,6 +120,7 @@ for (const viewport of VIEWPORTS) {
   for (const route of ROUTES) {
     try {
       await page.goto(`${BASE}${route}`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+      navigated++;
       await page.waitForTimeout(350);
       for (const hit of await page.evaluate(PROBE)) {
         const row = { route, viewport: viewport.name, ...hit };
@@ -101,6 +129,7 @@ for (const viewport of VIEWPORTS) {
         else alreadyReachable.push(row);
       }
     } catch (error) {
+      navFailed++;
       console.warn(`  ! ${route} @${viewport.name}: ${error.message.split('\n')[0]}`);
     }
   }
@@ -108,11 +137,25 @@ for (const viewport of VIEWPORTS) {
 }
 await browser.close();
 
+// A sweep that could not load the pages has not audited anything. Reporting
+// "no violations" from that state is the failure mode this project keeps
+// finding: a check that passes while measuring something other than it claims.
+const attempted = ROUTES.length * VIEWPORTS.length;
+if (navigated === 0) {
+  console.error(`\n✗ Not one of ${attempted} page loads succeeded — nothing was audited.`);
+  process.exit(2);
+}
+if (navFailed > attempted / 2) {
+  console.error(`\n✗ ${navFailed}/${attempted} page loads failed — too few pages audited to trust this result.`);
+  process.exit(2);
+}
+
 const key = (r) => `${r.route} @${r.viewport} ${r.selector}`;
 const uniqueViolations = [...new Map(violations.map((r) => [key(r), r])).values()];
 const uniqueOk = [...new Map(alreadyReachable.map((r) => [key(r), r])).values()];
 
-console.log(`\nScrollable regions found: ${uniqueViolations.length + uniqueOk.length}`);
+console.log(`\nAudited ${navigated}/${attempted} page loads${navFailed ? ` (${navFailed} failed)` : ''}.`);
+console.log(`Scrollable regions found: ${uniqueViolations.length + uniqueOk.length}`);
 console.log(`  reachable already (focusable, or contains focusable children): ${uniqueOk.length}`);
 console.log(`  UNREACHABLE by keyboard: ${uniqueViolations.length}`);
 
