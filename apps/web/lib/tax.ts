@@ -256,3 +256,14 @@ export function donationYears(donations: TaxDonationInput[]): number[] {
   }
   return [...years].sort((a, b) => b - a);
 }
+
+/** Years (descending) for which the organizer received a completed donation. */
+export function fundraiserYears(donations: FundraiserDonationInput[]): number[] {
+  const years = new Set<number>();
+  for (const donation of donations) {
+    if (donation.status !== 'completed') continue;
+    const date = new Date(donation.createdAt);
+    if (!Number.isNaN(date.getTime())) years.add(date.getUTCFullYear());
+  }
+  return [...years].sort((a, b) => b - a);
+}

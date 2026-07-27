@@ -10010,3 +10010,20 @@ Fix cadence should not burn the owner's quota faster than it delivers.
 
 Verified: typecheck 0 · **1658/1658 tests across 149 files** · `next build` exit 0 ·
 default sweep exit 0.
+### DONE - unified tax document center for donors and campaign owners (Codex, 2026-07-27)
+
+- Added `/dashboard/tax` to the signed-in navigation for every role.
+- Added year and currency scoped donor statements with CSV, printable PDF workflow,
+  deductible/non-deductible totals, and individual receipt re-delivery.
+- Added year and currency scoped campaign-owner summaries with CSV and printable
+  PDF workflow, per-campaign gross totals, and explicit filing limitations.
+- Centralized fundraiser tax reads in `lib/tax-server.ts`; every query starts from
+  campaigns owned by the authenticated user before reading completed donations.
+- Extended checkout receipts to guest donors using Stripe's checkout email. Official
+  nonprofit tax receipts are persisted only after email delivery succeeds and only
+  when a real donation UUID exists.
+- Added regression coverage for year discovery, Supabase ownership scoping, global
+  navigation, document links, receipt delivery, and guest checkout.
+
+Verified: focused tax/receipt suite 48/48, full suite 1668/1668, typecheck and
+zero-warning lint pass, production build succeeds with 150 generated static pages.

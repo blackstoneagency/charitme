@@ -213,7 +213,15 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
       // Record charge currency (non-fatal; column defaults to 'usd')
       const recurringCurrency = (session.currency ?? 'usd').toLowerCase();
 
-      await sendDonorReceipt(meta.donorId, meta.campaignId, `${formatCents(amountCents, recurringCurrency)}/month`);
+      await sendDonorReceipt(
+        {
+          donorId: meta.donorId,
+          email: session.customer_details?.email ?? session.customer_email,
+          name: session.customer_details?.name,
+        },
+        meta.campaignId,
+        `${formatCents(amountCents, recurringCurrency)}/month`,
+      );
 
       // "Subscribe to receive emails" checkbox — opt a logged-in donor into
       // marketing emails (notification_marketing defaults FALSE, so this is a real
@@ -552,11 +560,19 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
       });
     }
 
-    if (!alreadyDone && meta.donorId && amountCents > 0) {
-      // Prefer the real donation UUID so an auto-issued tax receipt number
-      // reconciles with the annual giving statement; fall back to the event id.
+    if (!alreadyDone && amountCents > 0) {
+      // Only a persisted donation UUID can back an official tax receipt.
       const realDonationId = await findDonationId({ paymentIntentId, checkoutSessionId: session.id });
-      await sendDonorReceipt(meta.donorId, meta.campaignId, formatCents(amountCents, currency), realDonationId ?? eventId);
+      await sendDonorReceipt(
+        {
+          donorId: meta.donorId,
+          email: session.customer_details?.email ?? session.customer_email,
+          name: session.customer_details?.name,
+        },
+        meta.campaignId,
+        formatCents(amountCents, currency),
+        realDonationId ?? undefined,
+      );
     }
 
     // ── Notify organizer of new donation (non-blocking) ────────────────────
@@ -1467,18 +1483,36 @@ async function findDonationId({
 }
 
 async function sendDonorReceipt(
-  donorId: string | null | undefined,
+  recipient: {
+    donorId?: string | null;
+    email?: string | null;
+    name?: string | null;
+  },
   campaignId: string,
   amountFormatted: string,
   donationId?: string,
 ) {
-  if (!donorId) return;
+  if (!recipient.donorId && !recipient.email) return;
   try {
-    const [{ data: profile }, { data: camp }] = await Promise.all([
-      supabaseAdmin.from('profiles').select('full_name, email, notification_email').eq('id', donorId).single(),
-      supabaseAdmin.from('campaigns').select('title, slug, user_id').eq('id', campaignId).single(),
-    ]);
-    if (!profile?.email || !camp || profile.notification_email === false) return;
+    let donorEmail = recipient.email ?? null;
+    let donorName = recipient.name ?? null;
+    if (recipient.donorId) {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('full_name, email, notification_email')
+        .eq('id', recipient.donorId)
+        .single();
+      if (profile?.notification_email === false) return;
+      donorEmail = profile?.email ?? donorEmail;
+      donorName = profile?.full_name ?? donorName;
+    }
+
+    const { data: camp } = await supabaseAdmin
+      .from('campaigns')
+      .select('title, slug, user_id')
+      .eq('id', campaignId)
+      .single();
+    if (!donorEmail || !camp) return;
 
     // If the campaign is run by a verified nonprofit that issues tax receipts
     // (and has an EIN), the donor's automatic receipt should be the OFFICIAL
@@ -1511,9 +1545,9 @@ async function sendDonorReceipt(
       // Receipt number derived identically to the annual statement so the
       // emailed receipt and the year-end statement reconcile.
       const receiptNumber = `RCP-${year}-${donationId!.slice(0, 8).toUpperCase()}`;
-      await sendTaxReceiptEmail({
-        to: profile.email,
-        donorName: profile.full_name,
+      const { sent } = await sendTaxReceiptEmail({
+        to: donorEmail,
+        donorName,
         nonprofitName: nonprofit.name,
         nonprofitEin: nonprofit.tax_id!,
         campaignTitle: camp.title,
@@ -1521,6 +1555,7 @@ async function sendDonorReceipt(
         receiptNumber,
         donationDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
       });
+      if (!sent) return;
       const { data: donationRow } = await supabaseAdmin
         .from('donations')
         .select('amount_cents, currency')
@@ -1528,7 +1563,7 @@ async function sendDonorReceipt(
         .maybeSingle();
       await supabaseAdmin.from('tax_receipts').upsert({
         donation_id: donationId,
-        donor_id: donorId,
+        donor_id: recipient.donorId ?? null,
         nonprofit_id: nonprofit.id,
         receipt_number: receiptNumber,
         amount_cents: donationRow?.amount_cents ?? 0,
@@ -1542,8 +1577,8 @@ async function sendDonorReceipt(
     }
 
     await sendReceiptEmail({
-      to: profile.email,
-      donorName: profile.full_name,
+      to: donorEmail,
+      donorName,
       campaignTitle: camp.title,
       campaignSlug: camp.slug,
       amountFormatted,

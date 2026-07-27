@@ -1,10 +1,10 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
 import { rowsToCsv } from '../../../../lib/csv';
 import { formatCents } from '@shared/currencies';
-import { buildFundraiserTaxSummary, MixedCurrencyError, type FundraiserDonationInput } from '../../../../lib/tax';
+import { MixedCurrencyError } from '../../../../lib/tax';
+import { getFundraiserTaxSummary } from '../../../../lib/tax-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,52 +31,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid year' }, { status: 400 });
   }
 
-  // Campaigns owned by this user.
-  const { data: camps, error: campaignsError } = await supabaseAdmin
-    .from('campaigns')
-    .select('id, title')
-    .eq('user_id', user.id);
-  if (campaignsError) return NextResponse.json({ error: 'Tax data unavailable', code: 'TAX_DATA_UNAVAILABLE' }, { status: 503 });
-  const campaigns = (camps ?? []) as { id: string; title: string }[];
-  const titleById = new Map(campaigns.map((c) => [c.id, c.title]));
-  const cids = campaigns.map((c) => c.id);
-
-  let inputs: FundraiserDonationInput[] = [];
-  if (cids.length > 0) {
-    const { data: donations, error: donationsError } = await supabaseAdmin
-      .from('donations')
-      .select('amount_cents, tip_cents, currency, status, created_at, campaign_id')
-      .in('campaign_id', cids)
-      .eq('status', 'completed')
-      .gte('created_at', `${year}-01-01T00:00:00.000Z`)
-      .lt('created_at', `${year + 1}-01-01T00:00:00.000Z`);
-    if (donationsError) return NextResponse.json({ error: 'Tax data unavailable', code: 'TAX_DATA_UNAVAILABLE' }, { status: 503 });
-
-    inputs = ((donations ?? []) as {
-      amount_cents: number; tip_cents: number | null; currency: string | null;
-      status: string; created_at: string; campaign_id: string;
-    }[]).map((d) => ({
-      amountCents: d.amount_cents,
-      tipCents: d.tip_cents ?? 0,
-      currency: d.currency,
-      status: d.status,
-      createdAt: d.created_at,
-      campaignId: d.campaign_id,
-      campaignTitle: titleById.get(d.campaign_id) ?? 'Campaign',
-    }));
-  }
-
-  const selectedInputs = currency
-    ? inputs.filter((input) => (input.currency ?? 'usd').toLowerCase() === currency)
-    : inputs;
-  let summary;
+  let summary, availableYears;
   try {
-    summary = buildFundraiserTaxSummary(selectedInputs, year);
+    ({ summary, availableYears } = await getFundraiserTaxSummary(user.id, year, currency));
   } catch (error) {
     if (error instanceof MixedCurrencyError) {
       return NextResponse.json({ error: 'This report contains multiple currencies. Select one currency and try again.', code: error.code, availableCurrencies: error.currencies }, { status: 422 });
     }
-    return NextResponse.json({ error: 'Failed to build summary', code: 'TAX_SUMMARY_FAILED' }, { status: 500 });
+    return NextResponse.json({ error: 'Tax data unavailable', code: 'TAX_DATA_UNAVAILABLE' }, { status: 503 });
   }
 
   if (format === 'csv') {
@@ -102,6 +64,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     summary,
+    availableYears,
     formatted: {
       gross: formatCents(summary.totals.grossCents, summary.currency),
       tips: formatCents(summary.totals.tipCents, summary.currency),
