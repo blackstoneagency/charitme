@@ -207,6 +207,47 @@ change that would collide with the other agents mid-session, so I left it. The f
 is verified by typecheck, lint and build only — **not** by a re-run of the sweep,
 which would need the login I removed.
 
+## 🔴 FOUND + FIXED — a dead link at the worst possible moment (Claude, 2026-07-27)
+
+The broken-link crawl in this file ("464 distinct internal links across 31 public
+pages, 0 broken") covers **public pages only** — an authenticated page 307s to
+`/login` for an anonymous crawler, so every link on the dashboard, the donor
+portal and the campaign builder was unverified.
+
+**`/dashboard/support` does not exist.** The payout concierge handed it to a
+fundraiser as the `actionUrl` for two blockers:
+
+- `payout_frozen` — "Payouts are frozen for this campaign pending admin review"
+- every open `risk_*` flag
+
+`PayoutConciergeCard.tsx:99` renders those as `<Link href={b.actionUrl}>`. So at
+the single moment a fundraiser most needs to reach a human — their money is held
+— the button 404s. Fixed to `/contact`, which is what the **trust-score
+suggestions in the same codebase already use** for the same purpose.
+
+New: **`apps/web/scripts/audit-internal-links.mjs`** — resolves every literal
+absolute path in `app/`, `components/` and `lib/` against the real App Router
+route table (153 pages + 215 API routes, honouring `[param]`, `[...catch]` and
+`(groups)`). No server, no session, no network.
+
+It runs in **`npm test`** (`__tests__/internal-links.test.ts`), not only as a
+script: CI is dead, and a script nobody invokes is not a check.
+
+**Its own first draft was vacuous, which is worth recording.** Matching only
+`href=` attributes reported a clean **0 broken across 74 routes** — because the
+admin and dashboard navs are arrays of **tuples**
+(`['Overview', '/admin/super', 'grid']`) with no `href` key anywhere, i.e. it was
+blind to exactly the surface it existed to check. Scanning every quoted absolute
+path took it to 210 literals and surfaced the real defect. The test asserts the
+scan stays that broad, so it cannot quietly narrow again; non-vacuity re-verified
+by planting `/dashboard/definitely-not-a-route` and watching it go red.
+
+Suppressions are explicit and reasoned, not a catch-all: `robots.ts`,
+`sitemap.ts` and the two policy modules hold path **prefixes** rather than links
+(`/signup` is legitimately listed there without existing as a page); lines
+building external URLs are skipped; and `NOT_OURS` carries one entry,
+`/doc/cor`, an SFTP directory on `sftp.floridados.gov`.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).
