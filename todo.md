@@ -81,6 +81,50 @@ use, so none of this can be exercised safely without test keys (ADR-0003).
 GitHub Actions allocates no runners, so **CI cannot verify anything** — every gate
 below was run locally, which is currently the only real signal.
 
+## 🔴 FOUND + FIXED — data with no reader, and a 4th parity overclaim (Claude, 2026-07-27)
+
+New audit: **`npm run audit:orphan-tables`** (`scripts/audit-orphan-tables.mjs`, read-only).
+It crosses **live row counts** against the app's real `.from()` call sites, because two
+goal criteria collide and row counts alone cannot separate them: a table with 500 rows and
+no reader satisfies *"≥100 seed records"* while failing *"everything wired to Supabase"*.
+
+**Result across all 155 declared tables — 120 have a reader.**
+
+**1. Independently confirms the migration blocker.** Exactly 5 tables are declared in
+`schema.sql` but absent from the live database: `brands`, `organizations`,
+`organization_members`, `volunteer_hours`, `volunteer_shifts` — precisely the 3 pending
+migrations. Third independent confirmation, now by a repeatable script.
+
+**2. Five tables hold ≥100 rows that nothing reads — 1,980 seeded rows with no surface:**
+
+| Table | Rows | Note |
+|---|---|---|
+| `coach_sessions` | 500 | AI coach persists nothing |
+| `creator_profiles` | 500 | memberships module (Planned) |
+| `trust_scores` | 500 | app computes trust live in `lib/trust-signals.ts`; this table is redundant |
+| `grant_documents` | 240 | zero mentions anywhere in the codebase |
+| `peer_fundraisers` | 240 | **see below** |
+
+Verified individually, not by the grep alone — the only mentions are DDL in
+`apply-schema` and `databaseTables` declarations. No embed, join or RPC reads them.
+
+**3. `peer_fundraisers` exposed a FOURTH parity overclaim.** It is purpose-built
+(`parent_campaign_id`, slug, goal, raised), holds 240 rows, has **zero readers**, and there
+is no alternate implementation. Yet **Peer-to-Peer was counted as shipped for three
+competitors** — Donorbox, Classy and Mightycause. All three are now marked `planned: true`,
+so **full parity drops from 7 competitors to 4** (GoFundMe, Kickstarter, Indiegogo,
+CharitMe). GoFundMe stays **10/10**.
+
+**Why the existing honesty test missed it:** it flags a module only when **none** of its
+tables are wired, and `nonprofit-suite` has most of them wired. Feature-level unwiring is
+invisible to it — which is exactly the gap the new script covers. A test also pins that
+peer fundraising is not conflated with **team** fundraising, which IS genuinely built on
+`team_members`.
+
+**Bounded, non-blocked backlog this creates:** build peer-to-peer pages (240 rows waiting),
+surface `creator_profiles` (500 rows), and decide whether `trust_scores` should be deleted
+or read instead of recomputed.
+
 ## 🔴 FIXED — the keyboard sweep passed vacuously (Claude, 2026-07-27)
 
 Found by **running** this session's own verification, not by reading it — which is how

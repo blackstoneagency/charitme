@@ -203,3 +203,49 @@ describe('the public features page does not hardcode parity', () => {
     expect(code).toContain('coverage.builtFeatureCount');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Peer-to-peer was claimed for three competitors while unbuilt.
+//
+// `peer_fundraisers` is a purpose-built table — parent_campaign_id, slug, goal,
+// raised — holding 240 rows in production with ZERO `.from()` call sites, and
+// there is no alternate implementation (nothing in app code references a parent
+// campaign). Team fundraising is a different feature and IS wired
+// (`team_members`), so the two must not be conflated.
+//
+// The module-level honesty check could not catch this: it flags a module only
+// when NONE of its tables are wired, and nonprofit-suite has most of them. That
+// is what `scripts/audit-orphan-tables.mjs` exists to find — it crosses live row
+// counts against real call sites.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('peer-to-peer is not counted as shipped', () => {
+  const p2p = PLATFORM_MODULES.flatMap((m) =>
+    m.features.filter((f) => /peer/i.test(f.name)).map((f) => ({ module: m, feature: f })),
+  );
+
+  it('finds the peer-to-peer entries', () => {
+    // Non-vacuity: if the names change, this test must fail rather than pass empty.
+    expect(p2p.length).toBe(3);
+    expect(p2p.map((x) => x.feature.competitor).sort()).toEqual(['Classy', 'Donorbox', 'Mightycause']);
+  });
+
+  it('marks every one of them planned', () => {
+    for (const { feature } of p2p) {
+      expect(feature.planned, `${feature.competitor}:${feature.name}`).toBe(true);
+    }
+  });
+
+  it('keeps them out of the built count', () => {
+    const byName = new Map(getFeatureCoverage().competitors.map((c) => [c.name, c]));
+    for (const competitor of ['Donorbox', 'Classy', 'Mightycause']) {
+      expect(byName.get(competitor)!.fullParity, competitor).toBe(false);
+    }
+  });
+
+  it('does not confuse peer fundraising with team fundraising', () => {
+    // Team fundraising is genuinely built on `team_members`; only P2P is unbuilt.
+    const team = PLATFORM_MODULES.flatMap((m) => m.features).filter((f) => /team/i.test(f.name));
+    expect(team.length).toBeGreaterThan(0);
+    for (const f of team) expect(f.planned, f.name).not.toBe(true);
+  });
+});

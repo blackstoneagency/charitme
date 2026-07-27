@@ -18,7 +18,8 @@
     "audit:scroll-keyboard": "node scripts/audit-scroll-keyboard.mjs",
     "audit:web-vitals": "node scripts/audit-web-vitals.mjs",
     "audit:campaign-images:live": "node scripts/audit-campaign-images.mjs --live",
-    "check:env": "node scripts/check-env.mjs"
+    "check:env": "node scripts/check-env.mjs",
+    "audit:orphan-tables": "node scripts/audit-orphan-tables.mjs"
   },
   "dependencies": {
     "@shared/fees": "*",
