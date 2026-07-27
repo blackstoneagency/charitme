@@ -7542,7 +7542,42 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
-### ⛔ BLOCKER CORRECTED — it is network policy, NOT missing credentials (Claude, 2026-07-26)
+### ✅ RE-TESTED — the egress block is GONE, and the note below is now WRONG (Claude, 2026-07-26)
+**Read this before acting on the block that follows.** I re-ran its own checks
+against the live project rather than trusting them, and both premises fail today:
+
+1. **Supabase egress works.** Dozens of PostgREST calls succeeded this session
+   (role census over 1,133 profiles, `event_tickets`, `volunteer_hours` schema
+   probes). Direct check just now: `/rest/v1/campaigns` → **200**, and
+   `$HTTPS_PROXY/__agentproxy/status` reports **`recentRelayFailures: 0`** with no
+   supabase entry. The `connect_rejected (403 to CONNECT)` capture below is stale.
+2. **`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD` and `SUPABASE_PROJECT_REF` are
+   NOT in `apps/web/.env.local`.** The file holds exactly: `ADMIN_EMAILS`, `APP_URL`,
+   `DEFAULT_DONOR_TIP_PERCENT`, `EMAIL_FROM`, `NEXT_PUBLIC_*` (app URL, production
+   URL, Stripe publishable, Supabase URL + anon), `OPENAI_MODEL`, `RESEND_API_KEY`,
+   the four Stripe price ids, and `SUPABASE_SERVICE_ROLE_KEY`. **This is why the
+   three pending migrations cannot be applied from here** — DDL needs the management
+   token, and PostgREST cannot run DDL.
+
+**So the real state of the signed-in work is neither "no credentials" nor "no
+network".** The **Auth admin API is reachable** with the service-role key
+(`/auth/v1/admin/users` → 200). A session *can* be minted. What stops me is a
+judgement call, not a capability:
+- The 120 seeded test users **have no password on purpose** —
+  `supabase/seeds/00_test_users.sql`: *"Test users have NO password (they are for
+  data/feature testing, not for logging in); create a real login separately."*
+- So establishing a session means **either creating an auth user in the production
+  database, or setting a password on an existing one.** That is a write to live auth
+  on a project with 1,133 real profiles, and it may fire signup triggers/emails.
+
+**→ OWNER DECISION (small, and it unblocks a lot):** authorise one throwaway QA
+account in production — or better, point us at a staging project (CHAR-0016). Either
+one immediately unblocks: authenticated axe/contrast on dashboard + admin (the whole
+remaining half of CHAR-0015), signed-in e2e, the `.kf-table-scroll` keyboard audit
+across 11 dashboard files, and the per-persona RLS matrix. **I have not created the
+account, because writing to production auth is the owner's call, not mine.**
+
+### ⛔ SUPERSEDED (kept for the record) — "it is network policy, NOT missing credentials"'
 Several items are parked on wording like *"the moment test credentials exist"*
 (signed-in e2e, dashboard/admin a11y + contrast) or *"can't be HTTP-200-verified
 from the sandbox"* (new Unsplash photo IDs for the duplicate-category work).
