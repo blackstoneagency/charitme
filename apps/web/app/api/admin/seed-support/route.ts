@@ -1,13 +1,19 @@
 import 'server-only';
 import { NextResponse } from 'next/server';
-import { requireAdmin } from '../../../../lib/auth';
+import { verifyAdmin } from '../users/_auth';
 import { supabaseAdmin } from '../../../../lib/supabase';
 
 // GET /api/admin/seed-support
 // Idempotent: skips if 100+ rows already exist.
 // Seeds 500 realistic fake support_cases rows directly into Supabase.
+// API routes must DENY, not redirect. `requireAdmin()` is the page helper: it
+// calls redirect('/dashboard'), so a fetch caller received a 307 and then HTML,
+// making res.json() throw — the UI showed a generic connection error instead of
+// "your session expired". `verifyAdmin()` is the API-side equivalent and returns
+// null. Same gate, correct protocol.
 export async function GET() {
-  await requireAdmin();
+  const admin = await verifyAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   // Check existing count — skip if already seeded
   const { count } = await supabaseAdmin

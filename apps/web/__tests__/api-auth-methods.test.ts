@@ -100,3 +100,48 @@ describe('every admin API handler guards itself, not just its file', () => {
     expect(handlerBody(src, 'DELETE')).toBeNull();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// API routes must DENY, not redirect.
+//
+// `requireAdmin()` / `requireUser()` / `requireSuperAdmin()` are PAGE helpers —
+// they call `redirect()`. Used in a route handler, a `fetch` caller receives a
+// 307 and then an HTML login page, so `res.json()` throws and the UI reports a
+// generic connection error instead of "your session expired".
+//
+// Four admin GETs did exactly this (`countries`, `nonprofits`,
+// `payments/export`, `seed-support`), found by probing every route with
+// scripts/audit-api-auth-live.mjs rather than by reading the handlers.
+// `verifyAdmin()` is the API-side equivalent and returns null.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('API routes deny rather than redirect', () => {
+  // These are legitimate redirects: OAuth and Stripe Connect entry points whose
+  // whole purpose is to send the browser somewhere.
+  const REDIRECT_BY_DESIGN = new Set(['/api/auth/signin', '/api/auth/callback', '/api/stripe/connect']);
+
+  const routes = routeFiles().filter((r) => !REDIRECT_BY_DESIGN.has(r.url));
+
+  it('no route handler uses a page-redirecting auth helper', () => {
+    const offenders: string[] = [];
+    for (const route of routes) {
+      for (const method of ['GET', 'POST', 'PATCH', 'PUT', 'DELETE']) {
+        const body = handlerBody(route.src, method);
+        if (body === null) continue;
+        if (/\b(requireAdmin|requireSuperAdmin|requireUser)\s*\(/.test(body)) {
+          offenders.push(`${method} ${route.url}`);
+        }
+      }
+    }
+    expect(
+      offenders,
+      'These handlers call a PAGE auth helper, which redirects. An API caller gets\n' +
+        'HTML and res.json() throws. Use verifyAdmin() (or auth.getUser() + 401).',
+    ).toEqual([]);
+  });
+
+  it('the helpers really do redirect, so this guard is warranted', () => {
+    // Non-vacuity: if requireAdmin stopped redirecting, this rule would be noise.
+    const auth = readFileSync(join(__dirname, '..', 'lib', 'auth.ts'), 'utf8');
+    expect(auth).toMatch(/export async function requireAdmin[\s\S]{0,200}redirect\(/);
+  });
+});

@@ -1,6 +1,6 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '../../../../lib/auth';
+import { verifyAdmin } from '../users/_auth';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Supabase Management API — the ONLY external endpoint that accepts raw SQL
@@ -765,8 +765,12 @@ const SCHEMA_CHUNKS: { name: string; sql: string }[] = [
   ` },
 ];
 
+// API routes must DENY, not redirect: `requireAdmin()` is the PAGE helper and
+// calls redirect(), which hands a fetch caller HTML and makes res.json() throw.
+// `verifyAdmin()` is the API-side equivalent and returns null. Same gate.
 export async function POST(_request: NextRequest) {
-  await requireAdmin();
+  const admin = await verifyAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const token = process.env.SUPABASE_ACCESS_TOKEN;
   if (!token) {

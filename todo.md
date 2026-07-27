@@ -122,14 +122,29 @@ parameter list to its matching `)` first, and a non-vacuity case pins that behav
 lesson as the rest of this file: *a scoped grep is not evidence* — the implausible shape of
 the result is what exposed it.
 
-### Remaining, lower severity — 4 admin GETs redirect instead of 401
-`/api/admin/countries`, `/api/admin/nonprofits`, `/api/admin/payments/export`,
-`/api/admin/seed-support` return **307 → /login**. They are *gated* (no data leaks), but a
-`fetch` caller receives HTML and `res.json()` throws, so the UI shows a generic connection
-error instead of "your session expired" — the same wart already fixed on the auctions bid
-route. Not fixed here to keep this commit to the disclosure; **next slice, fully
-non-blocked.** (`/api/auth/signin` and `/api/stripe/connect` also redirect, correctly — they
-are OAuth/Connect entry points.)
+### ✅ DONE — API routes now deny instead of redirecting (8 handlers)
+`requireAdmin()` / `requireUser()` / `requireSuperAdmin()` are **page** helpers: they call
+`redirect()`. In a route handler that hands a `fetch` caller a 307 and then an HTML login
+page, so `res.json()` throws and the UI reports a generic connection error rather than
+"your session expired". `verifyAdmin()` is the API-side equivalent and returns `null`.
+
+**The live GET probe found 4** — `/api/admin/countries`, `/api/admin/nonprofits`,
+`/api/admin/payments/export`, `/api/admin/seed-support`. All now return
+`401 {"error":"Unauthorized"}`, verified over HTTP.
+
+**The new static guard then found 4 more the GET probe structurally could not see**,
+because they are POST/PATCH/DELETE: `PATCH`+`DELETE /api/admin/countries/[id]`,
+`POST /api/admin/apply-schema`, `POST /api/admin/payments/[transactionId]/actions`. Also
+fixed. The two checks are genuinely complementary — the probe proves behaviour on GET, the
+guard covers every method.
+
+`__tests__/api-auth-methods.test.ts` now blocks any route handler from calling a
+redirecting auth helper, with a non-vacuity case asserting `requireAdmin` really does
+redirect (so the rule stays warranted rather than becoming folklore).
+
+**Live re-probe: 118 GET routes → 79 denied (was 75), 13 public-by-design, 2 redirects, 12
+other.** Both remaining redirects are correct: `/api/auth/signin` (Google OAuth) and
+`/api/stripe/connect` (Stripe Connect onboarding) exist to send the browser somewhere.
 
 ## 🚨 THE E2E A11Y SUITE NEVER AUDITED LIGHT MODE (Claude, 2026-07-27)
 
