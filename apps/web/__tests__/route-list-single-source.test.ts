@@ -120,4 +120,44 @@ describe('public route list has a single source of truth', () => {
     expect(data.authGated.routes).toContain('/achievements');
     expect(data.authGated.routes).toContain('/privacy-center');
   });
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // The auth-gated list is not just a parking bay for routes excluded from the
+  // public sweep — scripts/audit-authed.mjs reads it as its work list. So a
+  // route missing from it is a page nothing audits at all.
+  //
+  // It held 13 routes and omitted all 25 /dashboard screens, i.e. the entire
+  // primary product surface. Enumerate them from the filesystem so a new
+  // dashboard page joins the sweep the moment it exists.
+  // ───────────────────────────────────────────────────────────────────────────
+  it('lists every /dashboard route, so the signed-in sweep covers them', () => {
+    const appDir = path.join(WEB_ROOT, 'app', 'dashboard');
+    const onDisk: string[] = [];
+    const collect = (dir: string, route: string) => {
+      for (const entry of readdirSync(dir)) {
+        const full = path.join(dir, entry);
+        if (statSync(full).isDirectory()) {
+          // Dynamic segments need a real id to render; the sweep can't guess one.
+          if (entry.startsWith('[')) continue;
+          collect(full, `${route}/${entry}`);
+        } else if (entry === 'page.tsx') {
+          onDisk.push(route);
+        }
+      }
+    };
+    collect(appDir, '/dashboard');
+
+    const data = JSON.parse(
+      readFileSync(path.join(WEB_ROOT, 'e2e', 'public-routes.json'), 'utf8'),
+    ) as { authGated: { routes: string[] } };
+
+    expect(onDisk.length, 'found no dashboard pages — the walk is broken').toBeGreaterThan(15);
+    const missing = onDisk.filter((r) => !data.authGated.routes.includes(r));
+    expect(
+      missing,
+      'These dashboard pages exist but are in no route list, so no sweep visits them.\n' +
+        'Add them to `authGated.routes` in e2e/public-routes.json:\n  ' +
+        missing.join('\n  '),
+    ).toEqual([]);
+  });
 });
