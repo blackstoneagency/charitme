@@ -238,6 +238,74 @@ but I left it rather than widen the diff — delete it whenever suits you.
 Two independent tools, previously disagreeing only because they were looking at different
 themes, now agree on green.
 
+## 🔴 THE SIGNED-IN HALF OF THE PRODUCT WAS NEVER AUDITED — 331 FAILURES (Claude, 2026-07-27)
+
+**The "egress is firewalled, so signed-in pages cannot be audited" blocker was a
+misdiagnosis, and it hid a bigger problem than the one it was excusing.**
+
+Blocker #3 in the table at the top of this file said the sandbox cannot reach
+`*.supabase.co`, therefore no session, therefore no signed-in sweep — owner action
+required. Every accessibility, contrast, responsive and keyboard sweep in this repo
+has covered **public routes only**, and this was the stated reason.
+
+The inference has a hole in it: **the sweeps do not need THE production Supabase.
+They need A Supabase** — any host that answers `GET /auth/v1/user` with a user and
+`GET /rest/v1/<table>` with rows. Nothing in a contrast measurement depends on the
+data being real. It depends on the page RENDERING.
+
+So I wrote one: `scripts/supabase-stub.mjs` (~200 lines) + `scripts/audit-signed-in.mjs`
+to orchestrate it. **The blocker was never the firewall. It was that nobody had
+separated "I need production data" from "I need a page to render."**
+
+### What the first run found
+
+| | |
+|---|---|
+| Routes newly covered | **104** — 13 standalone gated + 75 static `/dashboard` + `/admin` + 16 `[param]` templates |
+| Previous coverage of them | **zero**, by any sweep |
+| Contrast failures | **331** (227 light, 86 dark, plus 117 non-gating gradient findings) |
+| Worst | **1.11:1** — white-on-white, literally invisible |
+| Server-side crashes | **8** across `/donor`, `/admin/audit-log`, `/admin/super`, `/admin/system` |
+
+**The dark-mode admin console is the severe class.** `--t1` (dark ink `#e2e8f8`)
+lands on hardcoded `#fff` panels at **1.19–1.23:1** across `/admin`, `/admin/content`,
+`/admin/donations`, `/admin/finance` and more: headings, Export buttons and pagination
+controls that are *not visible at all* to an operator in dark mode. This is the same
+bug already recorded further down as "the admin console contradicts itself about dark
+mode" and already fixed once in `admin/setup/page.tsx` — it is live across the console.
+
+### Two systemic fixes, 120 of the 331 findings
+
+Both in the app shell, both the same shape — a hardcoded light-mode colour whose
+`[data-theme="dark"]` override *already* pointed at `--t3`:
+
+- `.kf-section-label` `#7a8299` → `var(--t3)` (3.83:1 → 5.67:1) — 50 findings
+- `.kf-user-chip-meta small` `#6b7492` → `var(--t3)` (4.46:1 → 5.46:1) — 70 findings
+
+**Half-tokenised rules are the mechanism.** Someone fixed the theme they were
+looking at and left the other one hardcoded. Grep for `[data-theme="dark"] X { color: var(--t…) }`
+whose base rule has a literal — that pattern is a reliable finder for the rest.
+
+### Read this before quoting the number
+
+A page that renders against the stub proves **layout, colour and markup**. It does
+**not** prove the query is right, that RLS admits the right rows, or that the feature
+works — the stub has no RLS and no query planner, by design, because a stub that
+enforced policies would be a second implementation of the security model. Do not let
+a green run here become "the admin console works". It means "the admin console is
+legible".
+
+Likewise the 8 crashes: they are pages that threw on fixture rows missing a column.
+Some are stub artifacts; some are almost certainly real null-handling bugs, since the
+columns involved are nullable in `schema.sql`. **Not yet triaged — do not assume
+either way.** (`CHAR-1420`)
+
+### Remaining: 211 failures + 8 crashes
+
+`CHAR-1421`. Run `node scripts/audit-signed-in.mjs` after building with
+`NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321`. It refuses to run if the build is
+pointed elsewhere, rather than silently sweeping 104 login pages.
+
 ### ✅ DONE — `--strict-gradients` sweep to zero (Claude, 2026-07-27)
 
 The default sweep reports gradient-backed text as a warning, because a gradient fails at

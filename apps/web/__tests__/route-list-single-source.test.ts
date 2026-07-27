@@ -121,3 +121,81 @@ describe('public route list has a single source of truth', () => {
     expect(data.authGated.routes).toContain('/privacy-center');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The signed-in console list must track the filesystem.
+//
+// `authGated.consoles` is what the signed-in sweep (scripts/audit-signed-in.mjs)
+// actually visits. A new page under /dashboard or /admin that nobody adds here is
+// not "untested but visible" — it is invisible, because the sweep enumerates the
+// list, not the app. The public list drifted exactly this way and cost five
+// sweeps their meaning; this one is derived from disk so it cannot.
+//
+// Deliberately one-directional in strictness: a route on disk but missing from
+// the list is a coverage hole and fails. A route in the list but not on disk also
+// fails, because the sweep would report it as a 404 finding and someone would go
+// looking for a colour bug that is really a deleted page.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('signed-in console routes are derived from the app directory', () => {
+  function pageRoutes(dir: string, prefix: string, out: string[] = []): string[] {
+    let entries: string[];
+    try {
+      entries = readdirSync(dir);
+    } catch {
+      return out;
+    }
+    for (const e of entries) {
+      const full = path.join(dir, e);
+      if (statSync(full).isDirectory()) {
+        pageRoutes(full, `${prefix}/${e}`, out);
+      } else if (e === 'page.tsx') {
+        out.push(prefix || '/');
+      }
+    }
+    return out;
+  }
+
+  const onDisk = [
+    ...pageRoutes(path.join(WEB_ROOT, 'app', 'dashboard'), '/dashboard'),
+    ...pageRoutes(path.join(WEB_ROOT, 'app', 'admin'), '/admin'),
+  ].sort();
+
+  const data = JSON.parse(
+    readFileSync(path.join(WEB_ROOT, 'e2e', 'public-routes.json'), 'utf8'),
+  ) as { authGated: { consoles: string[]; dynamicSamples: string[] } };
+
+  it('scans a real tree', () => {
+    expect(onDisk.length).toBeGreaterThan(50);
+    expect(onDisk).toContain('/dashboard');
+    expect(onDisk).toContain('/admin/super');
+  });
+
+  it('lists every static /dashboard and /admin page, and nothing that is gone', () => {
+    const staticOnDisk = onDisk.filter((r) => !r.includes('['));
+    const listed = [...data.authGated.consoles].sort();
+
+    const missing = staticOnDisk.filter((r) => !listed.includes(r));
+    const stale = listed.filter((r) => !staticOnDisk.includes(r));
+
+    expect(
+      missing,
+      'These pages exist but the signed-in sweep never visits them — it walks the\n' +
+        'list, not the app, so an unlisted page is unaudited and looks fine:\n  ' +
+        missing.join('\n  '),
+    ).toEqual([]);
+    expect(
+      stale,
+      `Listed but no longer on disk (the sweep will report a phantom 404): ${stale.join(', ')}`,
+    ).toEqual([]);
+  });
+
+  it('instantiates every [param] template exactly once', () => {
+    const dynamicOnDisk = onDisk.filter((r) => r.includes('['));
+    // Each sample is the template with its params substituted, so the shapes must
+    // correspond one-to-one; a template with no sample is an unswept page type.
+    expect(data.authGated.dynamicSamples).toHaveLength(dynamicOnDisk.length);
+    for (const sample of data.authGated.dynamicSamples) {
+      expect(sample, `sample still contains an unsubstituted param: ${sample}`).not.toMatch(/[[\]]/);
+    }
+  });
+});
