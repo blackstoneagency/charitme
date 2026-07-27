@@ -158,6 +158,15 @@ const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromi
 const results = [];
 let failures = 0;
 let connErrors = 0;
+// Elements actually examined, per page. A contrast sweep can only fail on text
+// it can see, and large parts of these pages are DATA-CONDITIONAL — e.g.
+// /ai-fundraising renders its whole campaign showcase behind
+// `{showcase.length > 0 && …}`. Swept against a server with no database those
+// sections do not exist, so the sweep reports clean without having looked at
+// them. That is how a real 2.56:1 failure inside `.aif-showcase-meta` survived
+// every previous "0 violations" run. Reporting the sample size makes an empty
+// shell visibly different from a populated page instead of identical.
+const sampled = [];
 
 for (const theme of THEMES) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: theme });
@@ -181,6 +190,19 @@ for (const theme of THEMES) {
         continue;
       }
       await page.waitForTimeout(350); // let the theme script + fonts settle
+      const textCount = await page.evaluate(() => {
+        let n = 0;
+        for (const el of document.querySelectorAll('body *')) {
+          if (!(el instanceof HTMLElement)) continue;
+          const t = el.textContent?.trim();
+          if (!t || el.children.length > 0) continue;
+          const style = getComputedStyle(el);
+          if (style.visibility === 'hidden' || style.display === 'none') continue;
+          n++;
+        }
+        return n;
+      });
+      sampled.push({ theme, path, textCount });
       const found = await page.evaluate(collectContrast);
       for (const f of found) {
         failures++;
@@ -198,10 +220,26 @@ for (const theme of THEMES) {
       if (!AS_JSON) console.log(`✗ ${theme}/${path} — ERROR ${msg.slice(0, 80)}`);
     }
   }
-  if (!AS_JSON) console.log(`· ${theme}: swept ${PAGES.length} pages`);
+  if (!AS_JSON) {
+    const forTheme = sampled.filter((r) => r.theme === theme);
+    const total = forTheme.reduce((sum, r) => sum + r.textCount, 0);
+    console.log(`· ${theme}: swept ${PAGES.length} pages, ${total.toLocaleString()} text elements examined`);
+  }
   await ctx.close();
 }
 await browser.close();
+
+// A page that rendered almost nothing was not meaningfully audited. This does not
+// fail the run — an empty state can be legitimate — but it must be SAID, so a
+// green result is never mistaken for coverage the sweep did not have.
+const THIN = Number(process.env.CONTRAST_THIN_THRESHOLD ?? 15);
+const thin = sampled.filter((r) => r.textCount < THIN);
+if (!AS_JSON && thin.length > 0) {
+  console.log(`\n⚠ ${thin.length} page render(s) had fewer than ${THIN} text elements — likely an empty`);
+  console.log('  data state, so any data-conditional section on them went unchecked:');
+  for (const r of thin) console.log(`    ${r.theme.padEnd(5)} ${r.path} — ${r.textCount}`);
+  console.log('  Re-run against a server with database credentials to audit those sections.');
+}
 
 if (AS_JSON) {
   console.log(JSON.stringify(results, null, 2));

@@ -81,6 +81,53 @@ use, so none of this can be exercised safely without test keys (ADR-0003).
 GitHub Actions allocates no runners, so **CI cannot verify anything** — every gate
 below was run locally, which is currently the only real signal.
 
+## 🔴 THE A11Y "0 VIOLATIONS" CLAIM IS VACUOUS FOR DATA-BACKED SECTIONS (Claude, 2026-07-27)
+
+**This is the most important finding of the session.** Every previous accessibility pass —
+axe across 36–40 routes × light/dark, "no baseline, no exemptions" — was run against a
+sandbox server **with no database**. Large parts of the public pages are data-conditional,
+e.g. `/ai-fundraising` wraps its entire campaign showcase in `{showcase.length > 0 && …}`.
+With no data those sections **do not exist in the DOM**, so axe reports clean without ever
+having looked at them.
+
+**Proof: the moment I swept a server holding real credentials, a genuine WCAG AA failure
+appeared on the first run.**
+
+```
+✗ light /ai-fundraising — 2.56:1 (need 4.5)
+  rgb(148,163,184) on rgb(255,255,255) · 12px/400 · <SPAN> "raised · N donors"
+```
+
+`app/globals.css:4109` → `.aif-showcase-meta span { color: #94a3b8; }` — a hardcoded
+slate-400. **Light mode only**; line 5509 already overrides dark to `var(--t3)`. It is on a
+public marketing page, on live campaign cards, in production right now.
+
+### → CODEX: this one is yours (globals.css theme colours, per the lane split)
+One line. The dark override already uses the right token, so the likely fix is
+`color: var(--t3)` unconditionally and delete the `[data-theme="dark"]` override at 5509 —
+please confirm `--t3`'s **light** value clears 4.5:1 at 12px/400. I deliberately did not
+touch it.
+
+**Why no guard caught it:** `theme-tokens.test.ts` walks `app/` for component-level
+literals, but its only `globals.css` assertion is that `--violet-ink` exists. A hardcoded
+muted-text colour in the stylesheet is unpoliced. (That file is Codex's, so I left it —
+flagging the gap rather than editing.)
+
+### What I changed (Claude lane — audit vacuity, not colour)
+`scripts/audit-contrast.mjs` now reports **how much it actually examined**:
+`· light: swept 37 pages, N text elements examined`, plus a warning naming any page render
+with **< 15 text elements** — "likely an empty data state, so any data-conditional section
+went unchecked. Re-run against a server with database credentials." It does not fail the
+run, because an empty state can be legitimate; it just makes a green result stop looking
+like coverage it does not have. Threshold overridable via `CONTRAST_THIN_THRESHOLD`, which
+is how I verified the warning fires (it correctly reported `/offline — 56`).
+
+**Consequence for the tracker:** every prior "accessibility passes / axe clean" claim in
+this file should be read as *"clean on the statically-rendered parts"*. The auth-gated
+surface was already known-unmeasured; **data-conditional public sections were not, and were
+being counted as audited.** Re-running the sweeps against a data-backed server is now a
+standing requirement, not an optimisation.
+
 ## 🔴 FOUND + FIXED — data with no reader, and a 4th parity overclaim (Claude, 2026-07-27)
 
 New audit: **`npm run audit:orphan-tables`** (`scripts/audit-orphan-tables.mjs`, read-only).
