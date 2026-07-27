@@ -99,3 +99,33 @@ describe('no CSS token was pasted into an HTML entity', () => {
     expect(offenders, `mangled entity in: ${offenders.join(', ')}`).toEqual([]);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Event check-in is the highest-stakes instance of this bug class: an organizer
+// works it at a venue door. A failed attendee read used to render "No
+// registrations yet." — telling staff that nobody signed up for a sold-out
+// event — and the check-in POST discarded its response, so a rejected check-in
+// looked exactly like a successful one.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('event check-in fails loudly, not silently', () => {
+  const src = read('app/events/manage/ManageEvents.tsx');
+
+  it('separates a failed attendee read from an empty one', () => {
+    expect(src).toContain('setLoadFailed(true)');
+    expect(src).toMatch(/if \(loadFailed\)/);
+    // The old shape turned any failure into an empty list.
+    expect(src).not.toMatch(/res\.ok \? res\.json\(\) : \{ registrations: \[\] \}/);
+  });
+
+  it('does not tell door staff an attendee is absent when the read failed', () => {
+    expect(src).toMatch(/No registrations have been lost/);
+    expect(hasAlert(src)).toBe(true);
+  });
+
+  it('checks the check-in response instead of assuming success', () => {
+    const post = src.indexOf('/checkin`');
+    expect(post).toBeGreaterThan(-1);
+    const after = src.slice(post, post + 600);
+    expect(after, 'the check-in response is still discarded').toMatch(/if \(!res\.ok\)/);
+  });
+});

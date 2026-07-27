@@ -6951,6 +6951,24 @@ them real gates (e.g. beneficiary confirmation flow, nonprofit-only campaign typ
 or retire them. Recorded rather than guessed, because inventing restrictions on
 roles nobody holds is the fastest way to lock a real user out.
 
+### ✅ DONE — Claude, 2026-07-26 — **event check-in lied at the door (CHAR-1201 slice)**
+Worked the non-Stripe half of CHAR-1201. Check-in itself was already wired
+(`/api/events/registrations/[id]/checkin` + `ManageEvents`), but it carried the
+**highest-stakes instance of the degraded-read bug class** — an organizer runs this
+screen at a venue door:
+- **A failed attendee read rendered "No registrations yet."** `res.ok ? res.json() :
+  { registrations: [] }` plus `.catch(() => setRegs([]))` meant a timeout told door
+  staff **nobody had signed up for a sold-out event**. Now a distinct `loadFailed`
+  state with a `role="alert"`: *"No registrations have been lost … reload before
+  telling anyone they are not on the list."*
+- **The check-in POST discarded its response.** `await fetch(...)` with no `res.ok`
+  check, so a rejected check-in (401/403/500) looked identical to a successful one.
+  Now surfaces the server's message.
+- 3 tests appended to `__tests__/degraded-reads.test.ts`.
+**Still blocked on CHAR-1201:** paid ticket purchase (Stripe Checkout + webhook) and
+QR check-in. Ticket *display* shipped earlier today; purchase needs live-key work and
+owner sign-off per ADR-0003.
+
 ### ✅ DONE — Claude, 2026-07-26 — **photo suggestions covered 4 of 18 categories**
 The campaign builder's "Suggested for your story" panel tells an organizer what
 photos to add. `SUGGESTED_PHOTOS` listed only Medical / Emergency / Education /

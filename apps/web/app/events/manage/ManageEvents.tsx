@@ -89,42 +89,79 @@ function CreateForm({ eventTypes, onCreated }: { eventTypes: string[]; onCreated
 function Attendees({ eventId }: { eventId: string }) {
   const [regs, setRegs] = useState<RegistrationWithCheckin[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // A failed read used to become `[]`, which renders "No registrations yet." —
+  // told to an organizer standing at the door of a sold-out event. Failure and
+  // emptiness are now different states.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   async function reload() {
     const res = await fetch(`/api/events/${eventId}/registrations`);
-    const json = res.ok ? await res.json() : { registrations: [] };
+    if (!res.ok) {
+      setLoadFailed(true);
+      return;
+    }
+    const json = await res.json();
     setRegs(json.registrations ?? []);
+    setLoadFailed(false);
   }
 
   React.useEffect(() => {
     let cancelled = false;
     fetch(`/api/events/${eventId}/registrations`)
-      .then((res) => (res.ok ? res.json() : { registrations: [] }))
-      .then((json: { registrations?: RegistrationWithCheckin[] }) => { if (!cancelled) setRegs(json.registrations ?? []); })
-      .catch(() => { if (!cancelled) setRegs([]); });
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('load failed'))))
+      .then((json: { registrations?: RegistrationWithCheckin[] }) => {
+        if (cancelled) return;
+        setRegs(json.registrations ?? []);
+        setLoadFailed(false);
+      })
+      .catch(() => { if (!cancelled) { setRegs([]); setLoadFailed(true); } });
     return () => { cancelled = true; };
   }, [eventId]);
 
   async function toggle(id: string) {
     setBusyId(id);
+    setActionError(null);
     try {
-      await fetch(`/api/events/registrations/${id}/checkin`, { method: 'POST' });
+      // The response was previously discarded, so a rejected check-in looked
+      // identical to a successful one — the worst possible failure mode for
+      // someone working a door.
+      const res = await fetch(`/api/events/registrations/${id}/checkin`, { method: 'POST' });
+      if (!res.ok) {
+        const detail = await res.json().catch(() => ({}));
+        setActionError((detail as { error?: string }).error ?? 'Could not update check-in. Try again.');
+        return;
+      }
       await reload();
+    } catch {
+      setActionError('Network error — check-in was not saved.');
     } finally {
       setBusyId(null);
     }
   }
 
-  if (regs === null) return <p style={{ fontSize: 13, color: 'var(--t4)', padding: '8px 0' }}>Loading attendees…</p>;
-  if (regs.length === 0) return <p style={{ fontSize: 13, color: 'var(--t4)', padding: '8px 0' }}>No registrations yet.</p>;
+  if (regs === null && !loadFailed) return <p style={{ fontSize: 13, color: 'var(--t4)', padding: '8px 0' }}>Loading attendees…</p>;
+  if (loadFailed) {
+    return (
+      <p role="alert" style={{ fontSize: 13, color: 'var(--t1)', padding: '10px 12px', marginTop: 12, border: '1px solid var(--b2)', borderRadius: 'var(--r)', background: 'var(--s2)' }}>
+        <strong>We couldn&apos;t load your attendee list.</strong>{' '}
+        No registrations have been lost — this is a temporary problem on our side.
+        Reload before telling anyone they are not on the list.
+      </p>
+    );
+  }
+  if (regs!.length === 0) return <p style={{ fontSize: 13, color: 'var(--t4)', padding: '8px 0' }}>No registrations yet.</p>;
 
-  const checkedIn = regs.filter((r) => r.checked_in).length;
+  const checkedIn = regs!.filter((r) => r.checked_in).length;
 
   return (
     <div style={{ marginTop: 12 }}>
-      <div style={{ fontSize: 13, color: 'var(--t4)', marginBottom: 8 }}>{checkedIn}/{regs.length} checked in</div>
+      <div style={{ fontSize: 13, color: 'var(--t4)', marginBottom: 8 }}>{checkedIn}/{regs!.length} checked in</div>
+      {actionError && (
+        <p role="alert" style={{ fontSize: 13, color: 'var(--red-text)', margin: '0 0 8px' }}>{actionError}</p>
+      )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {regs.map((r) => (
+        {regs!.map((r) => (
           <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '8px 12px', border: '1px solid var(--b2)', borderRadius: 'var(--r)' }}>
             <div style={{ fontSize: 14 }}>
               {r.attendee_name || r.attendee_email || 'Guest'}
