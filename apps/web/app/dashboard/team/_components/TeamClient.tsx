@@ -141,7 +141,14 @@ export function TeamClient({ campaigns, initialMembers, profiles, currentUserId 
           ))}
         </div>
 
-        <div className="kf-table-scroll">
+        {/* Scrolls horizontally on narrow screens and contains no focusable content, so
+            without tabIndex its off-screen columns cannot be reached by keyboard (WCAG
+            2.1.1 / axe scrollable-region-focusable). Sibling tables whose rows already
+            hold buttons or links are deliberately NOT given one — that would add a dead
+            tab stop. Kept on one line: ESLint reports the tabIndex attribute's own line,
+            so a disable above a multi-line element misses it. */}
+        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
+        <div className="kf-table-scroll" tabIndex={0} role="region" aria-label="Team members">
         {/* Column headers */}
         <div
           style={{

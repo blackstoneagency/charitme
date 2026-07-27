@@ -110,7 +110,11 @@ function ObjectRow({ label, value }: { label: string; value: string | null }): J
 function Rows({ rows, empty = 'No records.' }: { rows: string[][]; empty?: string }): JSX.Element {
   if (rows.length === 0) return <p style={muted}>{empty}</p>;
   return (
-    <div className="kf-table-scroll" style={{ overflowX: 'auto' }}>
+    /* Scrolls horizontally and contains no focusable content, so without tabIndex its
+       off-screen columns cannot be reached by keyboard (axe scrollable-region-focusable).
+       A JS comment, not {/* … *\/}: this sits in a JSX *expression* position. */
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+    <div className="kf-table-scroll" style={{ overflowX: 'auto' }} tabIndex={0} role="region" aria-label="Transaction rows">
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <tbody>
           {rows.map((row, index) => (

@@ -7542,6 +7542,38 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### ✅ DONE — Claude, 2026-07-26 — **the 11 `.kf-table-scroll` wrappers, judged one by one**
+I had parked this as "needs a signed-in session". Most of it did not: whether a
+scroller *contains focusable content* is answerable from source, and only the
+runtime confirmation needs a session. Result across the 13 wrapper instances in 11
+files: **6 already reachable, 5 fixed, 2 saved from a wrong fix.**
+
+**Fixed (genuinely no focusable content in the subtree)** — `tabIndex={0}` +
+`role="region"` + a name on the wrapper:
+`admin/payments/.../transactions/[transactionId]`, `dashboard/analytics`,
+`dashboard/donations`, `dashboard/donor`, `dashboard/team`.
+
+**Left alone on purpose** — rows already contain buttons/links, so a tabIndex would
+add a **dead tab stop**, not accessibility: `admin/payments/PaymentAdminParts`,
+`admin/trust-safety` (×3), `dashboard/campaigns`, `dashboard/referrals`, plus the two
+below.
+
+**Three heuristics in a row got this wrong, which is the lesson worth keeping:**
+1. A 3,000-char window said `dashboard/campaigns` was bare. Its `<Link>` sits ~6,000
+   chars in. Wrong.
+2. A brace-counting subtree walker terminated early (1,166 chars on a table that runs
+   much longer). Wrong.
+3. Even a correct region scan says `admin/countries` and `admin/support` are bare —
+   **they are not**: their rows delegate to `<CountryRow>` and `<AiTriageButton>`,
+   which contain the buttons. **Focusable content can live inside a child component,
+   and no source scan of the parent will ever see it.**
+I had a patch applied to all 7 before catching #3; it is reverted. **Read the row
+component before trusting any scan of a table.**
+
+**Also:** the JSX-comment form `{/* … */}` is invalid in an *expression* position
+(a ternary branch, or directly inside `return ( … )`). Two of the five needed a
+plain `//` comment instead — same fix, different comment syntax.
+
 ### ✅ FULL LOCAL GATE IS GREEN (Claude, 2026-07-26) — measured, all at once
 Ran every gate against one production build, since CI cannot and the pieces had
 only ever been verified separately:

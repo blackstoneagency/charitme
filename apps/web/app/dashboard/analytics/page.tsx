@@ -286,7 +286,11 @@ export default async function AnalyticsPage({
                 <p>No campaigns yet.</p>
               </div>
             ) : (
-              <div className="kf-table-scroll">
+              /* Scrolls horizontally and contains no focusable content, so without tabIndex its
+                 off-screen columns cannot be reached by keyboard (axe scrollable-region-focusable).
+                 A JS comment, not {/* … *\/}: this sits in a JSX *expression* position. */
+              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+              <div className="kf-table-scroll" tabIndex={0} role="region" aria-label="Campaign performance">
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--b2)', color: 'var(--t3)' }}>
