@@ -180,7 +180,11 @@ Phase 1 of the AI Context Manager: an agent roster plus one-click context packs.
   401s. Verify through `undici`'s `ProxyAgent` with `/root/.ccr/ca-bundle.crt`.
 
 ### Deployment
-- Vercel (auto-deploy from `main`) — primary
+- Vercel (auto-deploy from `master`) — primary. **The branch is `master`, not
+  `main`** — no `main` branch exists in this repo, and `vercel.json` sets no
+  `git.productionBranch`, so production tracks the branch configured in the Vercel
+  dashboard. Don't "fix" this to `main`; that would point production at a branch
+  that isn't there.
 - Render fallback (`render.yaml`, rootDir: apps/web)
 - Node pinned via `.node-version` (**20.19.0** — must stay ≥ the `engines` floor in
   `apps/web/package.json`; rolldown/vitest 4 require `^20.19.0 || >=22.12.0`)
