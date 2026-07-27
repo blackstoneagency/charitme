@@ -459,6 +459,50 @@ twice in others' work. **Run the fix, re-probe, then read the survivors by hand.
 3. Re-run `su postgres -s /bin/bash -c ./scripts/regen_schema.sh` after **every**
    migration — `initdb` refuses to run as root, which is why the mirror drifted.
 
+## ⚠️ OPEN PR #93 (Codex) — ATTEMPTED RESOLUTION, and the real blocker found
+
+**Tried to resolve the conflicts (2026-07-27). Aborted deliberately — neither side
+can be taken wholesale, and here is the concrete reason.**
+
+Conflicts are now **8 files**: `dashboard/{ai-growth-plan,analytics,donations,donor,payouts,recurring,refund}/page.tsx`
+plus `todo.md`. `components/ui.tsx` and `__tests__/dashboard-data-trust.test.ts`
+merge **cleanly**.
+
+**Master already covers every page #93 touches** — degraded-read references per page
+on master: ai-growth-plan 22, payouts 14, donations 10, donor 10, analytics 7,
+recurring 4, refund 1. So #93's page edits are largely superseded, and taking them
+would revert newer work.
+
+**But taking master's pages fails 8 of #93's 10 tests — and that is NOT because
+master is wrong.** `__tests__/dashboard-data-trust.test.ts` is a **source-string
+test**: it `readFileSync`s each page and asserts literal patterns —
+
+```
+expect(source).toContain('DataUnavailableAlert');
+expect(source).toMatch(/value:\s*loadFailed\s*\?\s*['"]—['"]/);
+```
+
+It asserts **implementation shape, not behaviour**, so it fails against any valid
+alternative implementation. Master's pages achieve the same guarantee by different
+means and the strings do not match. Verified: with master's pages, tsc is clean and
+8/10 of those tests fail purely on string matching.
+
+**So the choice is a real one, not mechanical:**
+- take **master's pages** → must rewrite that test file to assert behaviour
+  (render with a failing read, expect no fabricated `$0` / no false empty state)
+  rather than source text; or
+- take **#93's pages** → reverts master's newer coverage on 7 pages.
+
+**Recommended:** master's pages + keep `DataUnavailableAlert` from `ui.tsx` (a real
+addition — master's pages each hand-roll a banner) + rewrite the test to be
+behavioural. Do NOT simply weaken the assertions to make them pass; a source-string
+test that has been loosened until it is green is the same failure mode as the
+baselines and vacuous sweeps documented throughout this file.
+
+_Nothing was pushed. The branch is untouched, so this is safe to pick up cold._
+
+<details><summary>earlier assessment (still accurate on what #93 uniquely adds)</summary>
+
 ## ⚠️ OPEN PR #93 (Codex) — stale, conflicting, PARTIALLY superseded. Do not close it.
 
 Checked at the owner's request that other bots' work reaches main. **One PR is
@@ -483,7 +527,9 @@ does not have:
 - **blocks refund submission when duplicate-request eligibility cannot be
   verified** — a real correctness guard, not just presentation
 
-**Next step, and why I did not do it:** resolving this needs taking master's side
+</details>
+
+**Superseded note — resolving this needs taking master's side
 on the four dashboard pages while preserving #93's unique additions. Done carelessly
 it silently reverts either master's guards or Codex's — which is precisely the class
 of bug both changes exist to prevent (a page that confidently shows the wrong
