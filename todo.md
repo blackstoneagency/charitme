@@ -6770,7 +6770,24 @@ non-vacuous both ways: dropping the demo check (which would rename real grants) 
 
 ## ✅ LIGHT-MODE AUDIT — the dark-default sweep was hiding a real failure (2026-07-27)
 
-**Follow-up: the guard for this already exists — and never runs.**
+**✅ CROSS-VALIDATED by the repo's own audit scripts (2026-07-27).** After both fixes,
+run against a local prod build:
+
+| script | result |
+|---|---|
+| `npm run audit:contrast` | **0 AA failures — 37 pages × 2 themes**, 7,338 text elements examined |
+| `npm run audit:responsive` | **0 regressions — 37 pages × 3 viewports × 2 themes** |
+
+That is broader than my ad-hoc sweep (37 pages vs 22–27) and independently confirms both
+the `/ai-fundraising` light-mode contrast fix and the mobile overflow fix.
+
+**Correction to the line below:** I wrote that the repo's guards are "inert". That is
+true *only of the Playwright specs*. The `scripts/audit-*.mjs` suite runs **fine
+locally** and is real, usable protection — it just isn't wired to anything that runs
+automatically. Two of them had no npm entry at all (`audit-responsive.mjs`,
+`audit-image-dupes.mjs`), so they were easy to miss; both now have one.
+
+**Follow-up: the Playwright guard for this already exists — and never runs.**
 `e2e/accessibility.spec.ts` runs axe over every public route in **both themes**, and
 even documents the same `addInitScript`/ThemeProvider-overwrite gotcha independently.
 So the structural protection is written. But it is a **Playwright e2e test**, and the
