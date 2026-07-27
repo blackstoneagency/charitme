@@ -82,6 +82,49 @@ directions, not checkboxes, or this list can never close.
 > production-readiness program. Section A is the actionable engineering backlog.
 > Section B (further down) is the competitive product vision it serves.
 
+## ✅ CLOSED — the `donor_messages` "RLS leak" is NOT a leak (Claude, 2026-07-27)
+
+Recording this so the next agent does not spend the same hour on it. A live
+anon-key sweep of every sensitive table returned **0 rows** for `donations`,
+`profiles`, `payouts`, `tax_receipts`, `donor_crm_contacts`,
+`recurring_donations`, `refunds`, `notifications`, `risk_flags` and
+`audit_logs` — RLS is doing its job. `donor_messages` returned **1120**, which
+looks alarming and is correct: it is the public comments wall under every
+campaign, and it is on the deliberate ALLOWLIST in `scripts/rls-anon-audit.mjs`.
+
+The part that actually looked like a finding, and the answer:
+
+```
+all rows            : 1120
+visibility = public : 1090
+visibility ≠ public :   30   ← all of them 'anonymous'
+```
+
+**`visibility` is a dead column on this table.** Nothing in `apps/web` reads it.
+Donor anonymity is carried by the `anonymous` BOOLEAN, and that flag *is*
+honoured in all three render paths — `app/campaigns/[slug]/page.tsx:381`,
+`app/api/campaigns/[id]/messages/route.ts` (the "load more" route) and the
+donation wall — each gating on `anonymous || !show_public_profile` before it
+emits a name or an avatar. So no anonymous commenter was ever exposed.
+
+Two things fixed so this stops reading as a leak:
+
+- `supabase/seeds/05_engagement_financial.sql` wrote `visibility='anonymous'`
+  on every 4th row. Those rows rendered the donor's **real name** (correct — the
+  boolean was false) while presenting as private to anyone querying the table.
+  It now seeds the `anonymous` boolean the product actually honours and leaves
+  `visibility` at its `'public'` default.
+- The ALLOWLIST entry in `scripts/rls-anon-audit.mjs` now carries the reasoning
+  and an explicit "do not re-raise on `visibility`".
+
+Note the seed change only affects **future** seed runs; the 30 existing rows in
+the live DB still carry `visibility='anonymous'` and are harmless (dead column).
+No RLS policy change was needed, so nothing here is owner-gated.
+
+Related, already tracked, not new: `donor_messages.anonymous` exists in the live
+DB but not in `supabase/schema.sql` / `ensure_columns.sql`. It is already
+recorded in `__tests__/fixtures/schema-migration-drift-baseline.json`.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).

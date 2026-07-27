@@ -51,13 +51,24 @@ begin
   end if;
 
   -- donor_messages (campaign comments / donor wall) --------------------------
-  insert into public.donor_messages (campaign_id, donor_id, donation_id, message, visibility)
+  -- The donor wall is intentionally world-readable (see the ALLOWLIST in
+  -- scripts/rls-anon-audit.mjs). Anonymity is carried by the `anonymous`
+  -- BOOLEAN, which is the only gate the app reads — the campaign page, the
+  -- /api/campaigns/[id]/messages pagination route and the donation wall all
+  -- branch on `anonymous` (plus profiles.show_public_profile).
+  --
+  -- This previously seeded visibility='anonymous' on every 4th row. Nothing
+  -- reads `visibility` on this table, so those rows displayed the donor's real
+  -- name while an auditor querying the table saw 30 "non-public" rows readable
+  -- by anon and reasonably read it as an RLS leak. Seed the flag the product
+  -- actually honours instead, and leave `visibility` at its 'public' default.
+  insert into public.donor_messages (campaign_id, donor_id, donation_id, message, anonymous)
   select v_camps[1 + (g % n_camps)],
          v_users[1 + (g % n_users)],
          case when n_dons > 0 and g % 2 = 0 then v_dons[1 + (g % n_dons)] else null end,
          (array['Sending love and support!','So proud to back this cause.','Praying for you all.',
                 'Happy to help — keep going!','This matters. Thank you for doing it.'])[1 + (g % 5)],
-         (array['public','public','public','anonymous'])[1 + (g % 4)]
+         (g % 4) = 3
   from generate_series(1, 120) g;
 
   -- recurring_donations ------------------------------------------------------
