@@ -265,17 +265,37 @@ export default async function AdminDashboardPage() {
     { label: 'Failed', pct: pct(cntFailed), color: '#ef4444' },
   ].filter(s => s.pct > 0);
 
-  // System health services
+  // System health services.
+  //
+  // `count` is null whenever the query errors, so `?? 0` reported **zero webhook
+  // errors** — i.e. "Payment Gateway: Operational" — precisely when the database
+  // was in trouble. Zero is the favourable answer here, so it needs proof.
+  const webhookErrorsUnknown = Boolean(webhookErrorsResult.error) || webhookErrorsResult.count == null;
   const webhookErrors = webhookErrorsResult.count ?? 0;
+  const integrationsUnknown = Boolean(integrationCountResult.error) || integrationCountResult.count == null;
   const integrations = integrationCountResult.count ?? 0;
 
+  // Only claim a status we actually measured.
+  //
+  // Platform / Storage / Email had a hardcoded 'Operational' — they were never
+  // checked, so the panel asserted green for four of six services no matter what
+  // was happening. 'Unknown' is honest and visibly different; asserting health we
+  // have not verified is the failure this whole panel is supposed to prevent.
+  // Database is the one safe inference: these very queries just returned, so it is
+  // reachable.
   const services: SystemService[] = [
-    { name: 'Platform', status: 'Operational' },
+    { name: 'Platform', status: 'Unknown' },
     { name: 'Database', status: 'Operational' },
-    { name: 'Storage', status: 'Operational' },
-    { name: 'Payment Gateway', status: webhookErrors > 5 ? 'Degraded' : 'Operational' },
-    { name: 'Email Service', status: 'Operational' },
-    { name: `Integrations (${integrations})`, status: 'Operational' },
+    { name: 'Storage', status: 'Unknown' },
+    {
+      name: 'Payment Gateway',
+      status: webhookErrorsUnknown ? 'Unknown' : webhookErrors > 5 ? 'Degraded' : 'Operational',
+    },
+    { name: 'Email Service', status: 'Unknown' },
+    {
+      name: integrationsUnknown ? 'Integrations (—)' : `Integrations (${integrations})`,
+      status: integrationsUnknown ? 'Unknown' : 'Operational',
+    },
   ];
 
   return (

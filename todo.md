@@ -7582,6 +7582,30 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### 🚨 DONE — Claude, 2026-07-26 — **the admin System Health panel asserted green without measuring**
+Started working the display-only register below and the very first file held a
+**fourth fail-open of the dangerous direction**, not a cosmetic one.
+
+`/admin` — the screen an operator opens *during* an incident — showed six services:
+- **Platform, Storage and Email Service were hardcoded `status: 'Operational'`.**
+  Four of six rows claimed health that **nothing ever checked**.
+- **Payment Gateway's only signal is the `webhook_events` error count**, read as
+  `count ?? 0`. `count` is null whenever the query errors, so a database problem
+  rendered "0 errors" → **Operational**. A false all-clear, produced by the very
+  failure the panel exists to surface.
+
+**Fixed:** added an `Unknown` status (its own grey, visibly not green) and used it for
+everything unmeasured. **Database stays `Operational` — the one safe inference**,
+since the page's own queries just returned. Payment Gateway reports `Unknown` when the
+count could not be read, derived from `Boolean(error) || count == null` rather than a
+falsy count. Integrations shows `(—)` instead of `(0)`.
+7 tests in `__tests__/admin-system-health.test.ts`.
+
+**This is the same shape as the risk-flag defect** — zero is the favourable answer, so
+it needs proof — which is now **4 for 4** on that heuristic. The remaining items in the
+register below are genuinely display-only (dashboard tiles, notification badge,
+public stat strips); worth doing, but none of them assert *safety*.
+
 ### 📋 FAIL-OPEN REGISTER — every `count ?? 0` classified by direction (Claude, 2026-07-26)
 The three defects above all shared one shape: **`?? 0` / `!error` turning "we could
 not check" into "we checked and it is fine."** So I swept for it: **31 occurrences of

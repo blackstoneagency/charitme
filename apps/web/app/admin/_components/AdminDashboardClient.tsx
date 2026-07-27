@@ -35,7 +35,13 @@ export type SourceItem = { label: string; pct: number; color: string };
 
 export type SystemService = {
   name: string;
-  status: 'Operational' | 'Degraded' | 'Down';
+  /**
+   * `Unknown` exists because the panel used to assert `Operational` for services
+   * it never measured, and for one whose only signal (webhook error count) read
+   * as 0 whenever its query failed — a false all-clear on exactly the screen an
+   * operator opens during an incident.
+   */
+  status: 'Operational' | 'Degraded' | 'Down' | 'Unknown';
 };
 
 type Props = {
@@ -260,10 +266,10 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
             {services.map((s) => (
               <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 9, border: '1px solid #eef0f7', background: '#fafbff' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.status === 'Operational' ? '#19b86a' : s.status === 'Degraded' ? '#f59e0b' : '#ef4444' }} />
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.status === 'Operational' ? '#19b86a' : s.status === 'Degraded' ? '#f59e0b' : s.status === 'Unknown' ? '#94a3b8' : '#ef4444' }} />
                   <span style={{ fontSize: 13, fontWeight: 650 }}>{s.name}</span>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: s.status === 'Operational' ? '#079447' : s.status === 'Degraded' ? '#f97316' : '#ef4444' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: s.status === 'Operational' ? '#079447' : s.status === 'Degraded' ? '#f97316' : s.status === 'Unknown' ? '#64748b' : '#ef4444' }}>
                   {s.status}
                 </span>
               </div>
