@@ -9181,3 +9181,37 @@ for running the full suite rather than trusting a green PR:
 
 Verified: typecheck 0 · **1585/1585 tests across 143 files** · lint 0 errors ·
 `next build` exit 0.
+
+### ✅ DONE — cross-bot branch audit: is every bot's work actually on master? (Claude, 2026-07-27)
+Owner asked to confirm other bots' work reaches **main and production**, not just
+preview. Checked all 29 remote branches for commits master does not contain.
+
+**Result: only two branches carry anything, and neither is pending work.**
+- `codex/dashboard-data-trust` (PR #93) — **landed via #118**, then closed with an
+  explanation of what was taken and what was deliberately not. See the entry above.
+- `codex/fix-system-health-window` — 155 commits, but `git diff master...branch`
+  fails with **`no merge base`**: it is an **orphan branch with a separate root**,
+  last touched **2026-06-08** (7 weeks stale). Its commits describe work master
+  already has (admin pages wired to Supabase, nav states, campaign trust header),
+  and master has `app/admin/system/page.tsx`. **Superseded, not pending** — no PR,
+  correctly left alone. Do not try to merge it; there is no shared history to merge.
+- The other 26 branches are fully contained in master.
+
+**Production deploy path — one piece of stale documentation worth correcting.**
+`CLAUDE.md` says "Vercel (auto-deploy from **`main`**)". **There is no `main`
+branch** — the repo's default is `master`, and `vercel.json` sets no
+`git.productionBranch`, so production tracks whatever the Vercel dashboard has
+configured. Production deploys have demonstrably worked (earlier sessions verified
+live content on www.charitme.com), so the dashboard is set to `master` and the doc
+is simply wrong. Worth fixing in CLAUDE.md so nobody "corrects" the branch name to
+match the doc and breaks deploys.
+
+**Could not verify production content from here:** `curl https://www.charitme.com`
+returns **000** — the sandbox egress policy blocks it, same as Supabase/Unsplash
+(see the blocker entry above). So "is it live on production" is verifiable only by
+the owner or from an environment with egress. What *is* verifiable from here — that
+every bot's commits are contained in `master` — is confirmed.
+
+**Vercel quota partially recovered:** preview deploys are building again (the 24h
+window reset), while **GitHub Actions is still starved** — jobs continue to finish
+in ~2s with `runner_id: 0`. Two independent quotas; one is back, one is not.
