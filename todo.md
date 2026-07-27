@@ -620,6 +620,26 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**🟠 FIXED — two finance tiles where a failed query read as "0" (my earlier sweep was too narrow).**
+Re-swept the `?? 0` display pattern with a wider regex. My original pattern
+(`\?\? 0\}`) only matched a JSX-expression ending, so it **missed ~8 sites** using
+`?? 0` inside `String(…)`, template literals or parentheses. Finding the limits of
+my own earlier sweep is why the re-check was worth doing.
+
+**Triaged by one criterion — *would a false "0" cause someone to fail to act?***
+- ✅ **Fixed:** `/admin/finance` → **"Failed Donations"** and **"Pending Payouts"**.
+  A false 0 there reads as *"no failures to investigate"* and *"nothing awaiting
+  release"* — an operator would take no action precisely when action is needed.
+- ⏭️ **Left:** `/admin` active-campaign and donation-status tiles (informational, no
+  action hangs on them), and the role/supporter counts (**genuinely zero** when
+  empty).
+- ✅ **Already correct, worth copying:** `admin/super/users` uses
+  `total={count ?? users.length}` — a *sensible* fallback rather than a fake zero.
+
+That criterion is now recorded so the remaining sites are a deliberate choice rather
+than an oversight — the distinction between triage and blanket-patching is the whole
+point of the sweep.
+
 **🟠 COMPLETED — my own previous fix was incomplete; 3 more sites + a shared helper.**
 Sweeping every interpolated `.ilike()` found **4** call sites, of which I had fixed
 exactly one:

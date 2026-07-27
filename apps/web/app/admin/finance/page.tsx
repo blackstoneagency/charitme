@@ -47,8 +47,12 @@ export default async function FinancePage() {
     { label: 'Processing Fees Covered', value: fmtCents(totalFees), sub: 'donor-covered fees', color: '#f59e0b' },
     { label: 'Total Payouts Sent', value: fmtCents(totalPaid), sub: 'paid to organizers', color: '#3b82f6' },
     { label: 'Total Refunded', value: fmtCents(totalRefunds), sub: 'net reversal', color: '#ef4444' },
-    { label: 'Failed Donations', value: String(failedRes.count ?? 0), sub: 'payment failed', color: '#94a3b8' },
-    { label: 'Pending Payouts', value: String(pendingPayRes.count ?? 0), sub: 'awaiting release', color: '#f97316' },
+    // `count` is null when the QUERY FAILS, not when the number is zero. A false
+    // "0" on these two is operationally consequential: it reads as "no failed
+    // donations to investigate" and "nothing awaiting release", so nobody acts.
+    // Same convention as dashboard/settings: render unknown, never a fake 0.
+    { label: 'Failed Donations', value: failedRes.count == null ? '—' : String(failedRes.count), sub: 'payment failed', color: '#94a3b8' },
+    { label: 'Pending Payouts', value: pendingPayRes.count == null ? '—' : String(pendingPayRes.count), sub: 'awaiting release', color: '#f97316' },
     { label: 'Net to Fundraisers', value: fmtCents(totalGross - totalRefunds), sub: 'gross minus refunds', color: '#0ea5e9' },
   ];
 
