@@ -6703,6 +6703,14 @@ removed strings._
   **"Add files via upload"** commits, which contain no code logic at all.
 Verify locally instead. Owner fix: **Settings → Billing → Actions**.
 
+**One more hypothesis eliminated (2026-07-27):** a *broken workflow file* would produce
+identical symptoms — instant failure on every commit including docs-only — and unlike
+billing it would be fixable from here. Checked: both `.github/workflows/*.yml` parse as
+**valid YAML**, the jobs (`verify`, `e2e`) match the failing check names exactly,
+`runs-on: ubuntu-latest` is a standard hosted label, and nothing gates on a secret or
+`environment:` at startup. **The workflow is sound**, so the account/runner explanation
+stands and there is genuinely nothing to fix in-repo.
+
 ## ⛔ DELIBERATELY NOT DONE — do NOT extend demo-trust suppression to nonprofits
 
 Checked whether the grants/volunteer suppression should also cover
