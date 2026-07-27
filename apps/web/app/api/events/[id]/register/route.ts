@@ -28,11 +28,31 @@ export async function POST(request: NextRequest, { params }: Ctx) {
   const { quantity, attendee_name, attendee_email } = parsed.data;
 
   // Capacity check against the current total registered quantity.
-  const { data: regs } = await supabaseAdmin
-    .from('event_registrations')
-    .select('quantity')
-    .eq('event_id', id);
-  const registeredQty = (regs ?? []).reduce((s, r) => s + (r.quantity as number), 0);
+  //
+  // Bounded deliberately, and the bound is provably safe rather than a guess:
+  //
+  //  • capacity null or <= 0 → `remainingCapacity` returns Infinity, so the total
+  //    cannot affect any decision below. Skip the read entirely; an unlimited event
+  //    now costs zero registration rows per signup instead of all of them.
+  //  • capacity > 0 → read at most `capacity` rows. Every row has quantity >= 1
+  //    (schema default 1, and the request schema enforces min 1), so:
+  //      – if the true total < capacity, the row count is also < capacity, nothing
+  //        is truncated and the sum is exact;
+  //      – if the true total >= capacity, either nothing is truncated (exact), or we
+  //        read `capacity` rows whose sum is itself >= capacity.
+  //    Both branches decide "is it full?" identically to reading every row.
+  //
+  // Previously this pulled EVERY registration for the event on EVERY signup attempt,
+  // which is O(registrations) on the hottest path a popular event has.
+  let registeredQty = 0;
+  if (event.capacity != null && event.capacity > 0) {
+    const { data: regs } = await supabaseAdmin
+      .from('event_registrations')
+      .select('quantity')
+      .eq('event_id', id)
+      .limit(event.capacity);
+    registeredQty = (regs ?? []).reduce((s, r) => s + (r.quantity as number), 0);
+  }
 
   if (!isRegistrationOpen(event, registeredQty)) {
     return NextResponse.json({ error: 'Registration is closed for this event' }, { status: 409 });

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
+  remainingCapacity,
   ticketsRemaining,
   isTicketSoldOut,
   isEventFree,
@@ -94,5 +95,40 @@ describe('the event page no longer claims free unconditionally', () => {
     // the original bug, silently.
     expect(page).toContain('!ticketsFailed && isEventFree(tickets)');
     expect(page).toContain('role="alert"');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Registration capacity check.
+//
+// It used to read EVERY registration row for the event on EVERY signup attempt —
+// O(registrations) on the hottest path a popular event has. It is now bounded by
+// the event's own capacity, which is provably equivalent for the decision it makes.
+// These tests pin the arithmetic that makes the bound safe.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('capacity arithmetic makes a bounded read safe', () => {
+  it('an unlimited event ignores the registered total entirely', () => {
+    // So the route can skip the query outright.
+    for (const capacity of [null, 0, -5]) {
+      expect(remainingCapacity(capacity, 0)).toBe(Number.POSITIVE_INFINITY);
+      expect(remainingCapacity(capacity, 10_000)).toBe(Number.POSITIVE_INFINITY);
+    }
+  });
+
+  it('reading at most `capacity` rows decides fullness identically', () => {
+    // Every row has quantity >= 1, so `capacity` rows already sum to >= capacity.
+    const capacity = 10;
+    // True total below capacity: row count is below capacity too, nothing truncated.
+    expect(remainingCapacity(capacity, 7)).toBe(3);
+    // Truncated read still reports >= capacity, so it still reads as full.
+    expect(remainingCapacity(capacity, capacity)).toBe(0);
+    expect(remainingCapacity(capacity, 999)).toBe(0);
+  });
+
+  it('the route bounds the read by the event capacity', () => {
+    const src = readFileSync(join(__dirname, '../app/api/events/[id]/register/route.ts'), 'utf8');
+    expect(src).toMatch(/\.limit\(event\.capacity\)/);
+    // …and skips it altogether when capacity is unlimited.
+    expect(src).toMatch(/if \(event\.capacity != null && event\.capacity > 0\)/);
   });
 });

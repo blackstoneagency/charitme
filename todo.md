@@ -7542,6 +7542,38 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### 📋 SCALE REGISTER — unbounded reads, classified (Claude, 2026-07-26)
+Scanned `app/` + `lib/` for `.select()` on large tables with no `.limit()`/`.range()`.
+**87 raw hits, but ~73 are `.in('id', ids)` name-maps** whose size is fixed by the
+parent query's page — those are fine and should not be "fixed". **14 are genuinely
+scope-bounded-only** and grow with the account:
+
+**Fixed now — `/api/events/[id]/register` capacity check.** It read **every**
+registration row for the event on **every** signup attempt — O(registrations) on the
+hottest path a popular event has. Now:
+- capacity null/≤0 → `remainingCapacity` returns Infinity, so the total cannot affect
+  any decision: **the query is skipped entirely.**
+- capacity > 0 → read at most `capacity` rows. Every row has `quantity >= 1`, so if
+  the true total is below capacity nothing is truncated (exact sum), and if it is at
+  or above capacity then either nothing is truncated or the `capacity` rows read
+  already sum to ≥ capacity. **Both branches decide "is it full?" identically to
+  reading every row** — a bound that is provably equivalent, not a truncation.
+  3 tests pin that arithmetic.
+
+**Cannot be fixed without DDL (an RPC) — a limit here would be WRONG, not just
+lossy:** `lib/events.ts` registered-quantity totals, `/api/fundraiser/tax-summary`,
+`lib/tax-server.ts`, and `about-us`'s `getLiveStats`. These *sum* a column; truncating
+produces a confidently wrong number, which is worse than a slow one.
+**I checked whether PostgREST could do it without a migration — it cannot on this
+project: `select=amount_cents.sum()` returns `PGRST123 "Use of aggregate functions is
+not allowed"`.** So these wait on the same DDL access as the pending migrations.
+
+**Intentionally unbounded (3):** the CSV export routes — a partial export is a broken
+export.
+**Remaining display lists (4)** (`/profile`, `dashboard/donor`, `dashboard/analytics`,
+`ai-growth-plan`): a limit is safe but changes what the user sees, so it wants a
+paging decision rather than a silent cap. Left for whoever owns those screens.
+
 ### ✅ DONE — Claude, 2026-07-26 — **the four slowest public pages cached: TTFB up to 12× faster**
 Follow-on from the vitals audit. Most public routes answer in ~20ms; four data-backed
 ones were 6–30× that because each request paid a fresh Supabase round-trip. All four
