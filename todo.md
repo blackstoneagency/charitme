@@ -9944,3 +9944,34 @@ that the cause is known, because the fix is per-element rather than per-token.
 
 Verified: typecheck 0 · **1655/1655 tests across 148 files** · `next build` exit 0 ·
 default sweep exit 0 (findings reported, not gating).
+
+### ✅ DONE — brand accents to AA, batched third pass: 33 → 10 (Claude, 2026-07-27)
+Batched deliberately into one PR rather than one-per-fix: **every merge costs a CI
+run and a preview deploy**, and Vercel hit `api-deployments-free-per-day` twice today.
+Fix cadence should not burn the owner's quota faster than it delivers.
+
+**30 CSS edits across four defect classes** (66 → 10 overall):
+- **Fills under white text** — `#b13af0→#ac38e9`, `#14b45b→#0f8543`, and the
+  `/fast-payouts` greens, which needed **two rounds**: `#12a653→#0f8643` (3.18→4.65),
+  then `#0f8543→#0d7a3d` and `#0b8f45→#0a8340` once the audit showed the *other* stop
+  of the same gradient was also under AA at 4.18. Fixing one stop is not enough — a
+  gradient fails at whichever end is lightest.
+- **Muted text below AA on its own surface** — `#7c6fa0→#716592`, `#94a3b8→var(--t3)`,
+  `#f59e0b→var(--orange-text)`, `#64748b→var(--t3)` (9 sites).
+- **Translucent white text** — `rgba(255,255,255,.8/.9)` → opaque `#fff` (6 sites).
+  This is the class flagged last pass: the *fill* was already compliant, the alpha
+  was the defect. Darkening those fills would have been a confident wrong fix.
+
+**The remaining 10 and why they are not just "more of the same":**
+- 4 are on colours (`#cf4ab3`, `#c840d8`, `#aa53e5`) that **do not appear anywhere in
+  the source** — they are computed gradient stops resolved through chained vars, so
+  they need tracing from the rendered element back to a rule, not a find-and-replace.
+  I stopped rather than guess at a hex and hope.
+- `/about-us` `"↓ scroll"` is `rgba(255,255,255,0.3)` — 30% white. Genuinely
+  decorative-looking, but it *is* text, so it needs a judgement call on whether to
+  raise the opacity or mark it presentational, not a silent bump.
+- `/help`'s category button (`--violet` on dark) and `/pricing`'s slate-on-dark
+  paragraph are ordinary token swaps, deferred only to keep this batch coherent.
+
+Verified: typecheck 0 · **1658/1658 tests across 149 files** · `next build` exit 0 ·
+default sweep exit 0.
