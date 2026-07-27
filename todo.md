@@ -6758,6 +6758,34 @@ non-vacuous both ways: dropping the demo check (which would rename real grants) 
 **Still the owner's:** deleting the rows. This changes what is *displayed*, not what is
 *stored* — the cleanup SQL below remains the real remedy. _1588/1588 tests, build green._
 
+## ✅ MOBILE REGRESSION CAUGHT + FIXED — `/ai-fundraising` (2026-07-27)
+
+**Re-ran the sweep instead of citing the old PR, and found a regression.** 27 public
+routes, current build: **26/27 mobile-clean, 25/27 axe-clean** — but
+`/ai-fundraising` had come back to **410 px at a 320 px viewport**, a page fixed in #49.
+(The two axe `ERR`s are `/` and `/success-stories` timing out without a database, not
+violations.)
+
+**Two separate causes, both found by measuring the computed layout rather than guessing:**
+
+1. **Grid track blowout.** `.aif-hero-grid` container was 280 px while its single track
+   computed to **390 px**. A bare `1fr` is `minmax(auto, 1fr)`, and the `auto` minimum
+   lets a track grow to its widest child instead of shrinking to the container. Fixed
+   with `minmax(0, 1fr)` — applied to `.aif-hero-grid` **and** the shared mobile rule
+   covering `.pub-hero-grid`, `.pricing-grid`, `.story-grid`, `.blog-grid` et al, which
+   all carried the same latent bug. → 410 px → 395 px.
+2. **Flex items that couldn't shrink.** `.aif-live-stats` is `display:flex`, and flex
+   items default to `min-width:auto`, so the stat labels held the row at ~395 px. Added
+   `min-width: 0` + `flex-wrap: wrap` on mobile. → 395 px → **320 px**.
+
+**Verified after each step**, which is why both were found — fixing only the grid would
+have looked done at 395 px and still overflowed. `/pricing`, `/blog`, `/for-donors`
+re-checked at 320 px: clean. _1655/1655 tests, build green._
+
+**Worth internalising:** "verified in an earlier PR" is not the same as "still true".
+Master moved ~90 commits since that fix; the sweep is cheap and should be re-run rather
+than referenced.
+
 ## ✅ PERFORMANCE — every public page measured on PRODUCTION (2026-07-27)
 
 24 public routes, warmed then measured (`curl -w time_starttransfer/time_total/size`).
