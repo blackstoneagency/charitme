@@ -28,8 +28,10 @@ const TABLES = [
 describe('service-managed write boundaries', () => {
   it('revokes browser mutations and preserves service-role writes', () => {
     for (const table of TABLES) {
-      expect(migration).toContain(
-        `revoke insert, update, delete on table public.${table}\n  from public, anon, authenticated`,
+      expect(migration).toMatch(
+        new RegExp(
+          `revoke insert, update, delete on table public\\.${table}\\s+from public, anon, authenticated`,
+        ),
       );
       expect(migration).toContain(
         `grant insert, update, delete on table public.${table} to service_role`,
