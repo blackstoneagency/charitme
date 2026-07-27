@@ -7582,6 +7582,40 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### 🔒 SECURITY — the public-listing privacy filter failed OPEN (Claude, 2026-07-26)
+Found by asking which `lib/` modules have **no test at all** (17 of 122) and starting
+with the security- and money-adjacent ones. `lib/campaign-visibility.ts` is the filter
+that keeps private and soft-deleted campaigns off public listings.
+
+**The defect.** It probes whether `campaigns.visibility` exists by selecting it, and
+read the answer as `{ visibility: !v.error }` — **any** error meant "column absent" —
+then cached that for the **lifetime of the process**. So one transient failure
+(timeout, connection blip, rate limit) on the first call after a cold start disabled
+`visibility = 'public'` **and** `deleted_at IS NULL` on every public listing until
+that serverless instance recycled. A privacy filter that fails **open**.
+
+**Severity: latent, not live.** Verified against production before claiming anything:
+both columns exist, and there are currently **0 non-public and 0 soft-deleted
+campaigns**, so nothing has been exposed. The direction of the failure is still wrong.
+
+**The fix.** A missing column is *provable* — PostgREST surfaces Postgres
+**`42703 undefined_column`** (confirmed live: selecting a bogus column returns exactly
+that). Only 42703 (or a "does not exist" message) now means absent. Everything else is
+**unknown**, which:
+- still applies the filter — a listing that errors and renders empty is a visible,
+  self-correcting failure; one that quietly includes private campaigns is not; and
+- is **never cached**, so the next request re-probes.
+Decision logic extracted to `lib/campaign-visibility-core.ts` so it is testable
+without a database — this was a *decision* bug, not a query bug. 10 tests, including
+the exact error shapes that used to disable the filter (timeout, JWT expired,
+connection failure, 429, bare `fetch failed`).
+
+**Untested-module sweep, for whoever continues:** 17 of 122 `lib/` modules have no
+test. Most are thin data-access wrappers, but two more are worth the same treatment —
+`lib/entitlements.ts` (74 loc, decides what a paying customer gets) and
+`lib/trust-signals.ts` (79 loc). The rest are largely `lead-ingestion`/`lead-enrichment`
+(external I/O) and trivial type modules.
+
 ### 📊 SEED COVERAGE — the "≥100 records per feature" criterion, measured in full (Claude, 2026-07-26)
 Counted **every one of the 155 declared tables** directly with the service-role key
 (previous checks sampled a few via public list APIs). This replaces "73 non-empty
