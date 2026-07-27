@@ -620,6 +620,29 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**✅ BOUNDED + FIXED — rate limiting now verified across the whole API, not asserted.**
+I had claimed the durable-limit property "holds everywhere". That was an assertion,
+so I measured it. **158** mutating routes; **135** carry no rate limit — a number
+that would be alarming and useless on its own, because most are admin routes already
+behind `requireAdmin`/`guardSuperAdmin`, where an authenticated admin abusing their
+own console is not the threat model.
+
+The actionable subset is *mutating **and** reachable without authentication*: **3**.
+- `auth/signout` — idempotent, harmless. Correctly unlimited.
+- `stripe/webhook` — **must stay unlimited**: Stripe retries, and a dropped delivery
+  loses a donation. Protected by signature verification instead.
+- **`analytics/builder`** — the one real gap. An **unauthenticated insert** into
+  `campaign_builder_events` with no bound, so anyone could flood the table (storage
+  cost, polluted analytics). **Fixed** with a durable **240/min per IP** — loose on
+  purpose, since the wizard fires an event per step and per field, and analytics
+  must never obstruct a real organizer. Over the limit it returns the same **204**
+  and drops the event, rather than surfacing an error to someone mid-wizard who did
+  nothing wrong.
+
+**Re-ran the sweep after the fix: only the two correct-by-design routes remain.**
+The property is now verified rather than claimed — and the triage from 135 → 3 is
+the part worth keeping, since the raw count invites either panic or dismissal.
+
 **🔒 FIXED — offline donations had no rate limit at all.**
 Organizers record cash/cheque gifts via `POST /api/offline-donations`. The route is
 properly **ownership-scoped** (`.eq('user_id', user.id)`, so only your own campaigns)
