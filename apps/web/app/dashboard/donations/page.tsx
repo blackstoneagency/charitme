@@ -286,14 +286,13 @@ export default async function DonationsPage({
             >
               <KFIcon name="upload" /> Export CSV
             </a>
-            <a
-              href={`/api/fundraiser/tax-summary?year=${new Date().getUTCFullYear()}&format=csv`}
-              download
+            <Link
+              href="/dashboard/tax"
               className="kf-outline"
               style={{ display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
             >
-              <KFIcon name="upload" /> Year-End Tax Summary
-            </a>
+              <KFIcon name="doc" /> Tax Documents
+            </Link>
           </div>
         }
       />

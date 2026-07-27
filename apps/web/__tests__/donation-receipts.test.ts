@@ -13,6 +13,7 @@ const read = (p: string) => readFileSync(join(WEB_ROOT, p), 'utf8');
 
 const ADMIN_ROUTE = 'app/api/admin/donations/[id]/receipt/route.ts';
 const DONOR_ROUTE = 'app/api/donations/receipt/route.ts';
+const STRIPE_WEBHOOK = 'app/api/stripe/webhook/route.ts';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // A donation receipt is a tax document. The two defects this pins:
@@ -102,6 +103,31 @@ describe('receipt endpoints record only what actually happened', () => {
     // The raw check missed hardcoded owner emails, ADMIN_EMAILS, and super admins
     // who do not also hold `admin`.
     expect(src).not.toMatch(/roles\.includes\('admin'\)/);
+  });
+});
+
+describe('checkout receipts include guest donors', () => {
+  it('does not gate one-time receipts on a signed-in donor id', () => {
+    const src = read(STRIPE_WEBHOOK);
+    expect(src).toContain('if (!alreadyDone && amountCents > 0)');
+    expect(src).not.toContain('if (!alreadyDone && meta.donorId && amountCents > 0)');
+  });
+
+  it('uses the Stripe checkout email when no account is attached', () => {
+    const src = read(STRIPE_WEBHOOK);
+    expect(src).toContain('session.customer_details?.email ?? session.customer_email');
+    expect(src).toContain('if (!recipient.donorId && !recipient.email) return');
+    expect(src).toContain('donor_id: recipient.donorId ?? null');
+  });
+
+  it('persists official tax-receipt delivery only after the email sends', () => {
+    const src = read(STRIPE_WEBHOOK);
+    const sendAt = src.indexOf('const { sent } = await sendTaxReceiptEmail');
+    const bailAt = src.indexOf('if (!sent) return', sendAt);
+    const persistAt = src.indexOf("from('tax_receipts').upsert", sendAt);
+    expect(sendAt).toBeGreaterThan(-1);
+    expect(bailAt).toBeGreaterThan(sendAt);
+    expect(persistAt).toBeGreaterThan(bailAt);
   });
 });
 

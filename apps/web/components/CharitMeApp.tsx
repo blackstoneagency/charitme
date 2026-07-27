@@ -57,6 +57,7 @@ const dashboardNav = [
   ['AI Growth Plan', '/dashboard/ai-growth-plan', 'send', 'New'],
   ['AI Coach', '/dashboard/ai-coach', 'send', 'AI'],
   ['Donations', '/dashboard/donations', 'gift'],
+  ['Tax Documents', '/dashboard/tax', 'doc'],
   ['Recurring', '/dashboard/recurring', 'gift'],
   ['Donors', '/dashboard/donor', 'users'],
   ['Grants', '/dashboard/grants', 'audit'],

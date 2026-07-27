@@ -48,4 +48,9 @@ describe('dashboard nav reachability', () => {
       expect(existsSync(page), `${route} has a nav entry but no page.tsx`).toBe(true);
     }
   });
+
+  it('keeps the tax document center reachable for every signed-in role', () => {
+    expect(navHrefs()).toContain('/dashboard/tax');
+    expect(existsSync(join(__dirname, '..', 'app', 'dashboard', 'tax', 'page.tsx'))).toBe(true);
+  });
 });
