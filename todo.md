@@ -1,5 +1,37 @@
 # CharitMe — Execution Tracker
 
+## 🛑 READ FIRST — what is blocked, and by whom (updated 2026-07-27)
+
+Everything below this box is engineering detail. These four items are the only
+things standing between "done in the repo" and "done in production", and **none of
+them can be cleared by another agent** — they are owner/environment actions.
+
+| # | Blocker | Evidence | Who can clear it |
+|---|---------|----------|------------------|
+| 1 | **GitHub Actions assigns no runner.** Every CI job fails in ~2s with `runner_id: 0`, `runner_name: ""`, and **no logs at all** (`get_job_logs` → 404). Repo-wide, including pushes straight to `master`. | 30 of 30 most recent runs | **Owner** — Actions minutes / billing |
+| 2 | **Vercel free-tier deploy cap** was hit (`api-deployments-free-per-day`, >100/day). Previews have since resumed; the cap will recur at this push rate. | Vercel bot comments, 2026-07-26/27 | **Owner** — plan, or batch commits per push |
+| 3 | **Sandbox egress is firewalled.** The proxy answers **403 to CONNECT** for non-allowlisted hosts, so `*.supabase.co`, `images.unsplash.com` and `www.charitme.com` are all unreachable (`curl` → `000`). | `$HTTPS_PROXY/__agentproxy/status` → `recentRelayFailures` | **Owner/env** — allowlist, or run the sweeps somewhere with egress |
+| 4 | Consequently: **live seed verification, signed-in dashboard/admin audits, real payment flows, and "is it live on production" cannot be checked from here.** | — | **Owner** |
+
+**The credentials are NOT the blocker — a previous note said they were.**
+`apps/web/.env.local` holds Supabase service-role/access-token/db-password/project-ref,
+Stripe, OpenAI, Resend and Twilio keys. Nobody needs to go hunting for them; the
+network simply refuses to carry the request. Anyone who reads "the moment test
+credentials exist" and starts looking will find them in a minute and still be stuck.
+
+**How to tell an infra failure from a real one:** a genuine CI failure runs for
+minutes and produces logs. These finish in ~2 seconds with none. If you see that,
+stop debugging your diff.
+
+**Local verification is therefore the real gate, and it is green:**
+`npm run typecheck` (0) · `npm test` (**1625/1625, 145 files**) · `npm run build`
+(exit 0) · `scripts/audit-contrast.mjs` (**0 WCAG AA failures, 38 pages × 2 themes**).
+
+**Two goal lines are unbounded by construction** and will never produce an empty
+todo: *"every page audited"*, *"100% GoFundMe parity / world class"*. Treat them as
+directions, not checkboxes, or this list can never close.
+
+
 > **Agent 0 owns this file.** It is the living source of truth for the
 > production-readiness program. Section A is the actionable engineering backlog.
 > Section B (further down) is the competitive product vision it serves.
