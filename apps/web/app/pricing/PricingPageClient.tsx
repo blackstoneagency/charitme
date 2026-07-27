@@ -157,7 +157,10 @@ function FeeCalculator() {
 }
 
 export default function PricingPage() {
-  const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
+  // Yearly is the default: it is the better-value plan (20% off) and the one we
+  // want to lead with, so the page opens on it rather than making the visitor
+  // find the saving themselves.
+  const [billing, setBilling] = useState<'monthly' | 'yearly'>('yearly');
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
   const router = useRouter();

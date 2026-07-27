@@ -88,8 +88,10 @@ describe('feature status honesty', () => {
     expect(wired.has('campaigns')).toBe(true);
     expect(wired.has('donations')).toBe(true);
     expect(wired.has('profiles')).toBe(true);
-    // And a table with no reader must not.
-    expect(wired.has('auction_bids')).toBe(false);
+    // And a table with no reader must not. `auction_bids` used to be this
+    // fixture and correctly stopped qualifying once auctions were built —
+    // membership_tiers belongs to the still-unbuilt memberships module.
+    expect(wired.has('membership_tiers')).toBe(false);
   });
 
   it('the two known-unbuilt modules are marked Planned', () => {

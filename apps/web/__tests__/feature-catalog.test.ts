@@ -147,11 +147,19 @@ describe('competitive coverage counts only what ships', () => {
   });
 
   it('does not count a planned feature as shipped', () => {
-    // Auctions is Givebutter's, and is explicitly planned.
-    const givebutter = byName.get('Givebutter');
-    expect(givebutter).toBeDefined();
-    expect(givebutter!.built).toBeLessThan(givebutter!.total);
-    expect(givebutter!.fullParity).toBe(false);
+    // Asserted through the mechanism rather than a named competitor: Givebutter
+    // was this fixture while Auctions was unbuilt, and building auctions
+    // correctly moved it to 10/10. Any feature still marked `planned` must be
+    // excluded from its competitor's built count.
+    for (const m of PLATFORM_MODULES) {
+      for (const f of m.features) {
+        if (f.planned !== true || m.status === 'Planned') continue;
+        const c = byName.get(f.competitor)!;
+        expect(c.built, `${f.competitor}:${f.name}`).toBeLessThan(c.total);
+      }
+    }
+    // Givebutter's Auctions is now built, so it reaches full parity.
+    expect(byName.get('Givebutter')!.fullParity).toBe(true);
   });
 
   it('does not count features of a wholly Planned module as shipped', () => {

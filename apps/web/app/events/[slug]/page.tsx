@@ -12,6 +12,8 @@ import {
   isTicketSoldOut,
 } from '../../../lib/events-core';
 import RsvpPanel from './RsvpPanel';
+import AuctionLots from './_components/AuctionLots';
+import { listAuctionItems, countBidsByItem } from '../../../lib/auctions';
 import { realUrlOrNull } from '../../../lib/placeholder-url';
 
 type PageProps = { params: Promise<{ slug: string }> };
@@ -44,6 +46,12 @@ export default async function EventDetailPage({ params }: PageProps) {
   // `event_tickets` was seeded but read by nothing, so every event displayed as a
   // free RSVP even when it had paid tiers.
   const { tickets, failed: ticketsFailed } = await listEventTickets(e.id);
+  const { items: auctionItems, failed: auctionFailed } = await listAuctionItems(e.id);
+  const bidCountMap = auctionItems.length > 0 ? await countBidsByItem(auctionItems.map((i) => i.id)) : new Map();
+  // A null map means the count read failed. It is passed through as null so each
+  // lot says "bid count unavailable" rather than "0 bids", which would tell a
+  // bidder the lot is uncontested when we simply could not check.
+  const bidCounts = bidCountMap === null ? null : Object.fromEntries(bidCountMap);
   const free = !ticketsFailed && isEventFree(tickets);
   const money = (cents: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
@@ -79,6 +87,20 @@ export default async function EventDetailPage({ params }: PageProps) {
           Ticket information couldn&apos;t be loaded just now — this event may have paid
           tickets. Please reload before assuming entry is free.
         </p>
+      )}
+
+      {(auctionItems.length > 0 || auctionFailed) && (
+        <section style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--b2)' }}>
+          <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>Auction lots</h2>
+          {auctionFailed ? (
+            <p role="alert" style={{ fontSize: 13.5, color: 'var(--t2)', margin: 0 }}>
+              We couldn&rsquo;t load the auction lots for this event. This is not the same as
+              there being none — please reload before assuming nothing is up for bid.
+            </p>
+          ) : (
+            <AuctionLots items={auctionItems} bidCounts={bidCounts} signedIn={Boolean(user)} />
+          )}
+        </section>
       )}
 
       {tickets.length > 0 && (

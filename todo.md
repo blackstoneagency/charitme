@@ -49,6 +49,55 @@ use, so none of this can be exercised safely without test keys (ADR-0003).
 GitHub Actions allocates no runners, so **CI cannot verify anything** — every gate
 below was run locally, which is currently the only real signal.
 
+## ✅ SHIPPED — Charity Auctions + pricing defaults to Yearly (Claude, 2026-07-27)
+
+**Auctions was the last `planned: true` feature in the catalog** — the one thing between
+Givebutter 9/10 and full parity. The `auction_items` / `auction_bids` tables had shipped
+to production (verified live: both 200, both empty) but no route, API or UI ever read
+them. Now built, so the flag is **cleared honestly**: there is a real route, API and UI.
+
+**Files:** `lib/auctions-core.ts` (pure bid rules), `lib/auctions.ts` (reads + the bid
+write), `app/api/auctions/[id]/bids/route.ts`, `app/events/[slug]/_components/AuctionLots.tsx`,
+wired into the event detail page. 38 tests.
+
+**The hard part was the race.** Two bidders submitting the same amount at the same instant
+must not both be told they are winning, and a read-then-write cannot prevent that — both
+read the same value before either writes. The usual fix is a Postgres function with
+`SELECT … FOR UPDATE`, but **DDL is owner-blocked** (same access that blocks the aggregate
+RPCs). So the guard is a **conditional update** instead:
+
+```
+PATCH /auction_items?id=eq.<id>&current_bid_cents=lt.<amount>&status=eq.open
+```
+
+PostgREST turns those filters into the UPDATE's `WHERE`, so Postgres evaluates the
+comparison and the row lock in **one statement**. The loser matches zero rows and is told
+it was outbid (409). This is a real compare-and-set, needs **no migration**, and therefore
+works against production today.
+
+Ordering is deliberate: the lot is claimed **before** the bid is recorded, so a crash
+leaves a standing bid with no ledger row (visible, fixable) rather than a ledger row that
+never won anything. The previous leader is demoted before the new one is inserted, so no
+window has two rows claiming `winning`. A failed ledger insert reports "accepted but not
+fully recorded" rather than a clean success.
+
+**Two edges the tests caught:** an unparseable/blank `closes_at` now reads as **closed**,
+not as an auction that never ends (failing the other way keeps taking money on corrupt
+data); and `null` vs `''` are separated, since both are falsy but only `null` means "no
+deadline". Also, the bid API returns **401 instead of `requireUser()`'s redirect** — a
+307 hands a `fetch` caller HTML, so `res.json()` throws and the bidder sees a connection
+error instead of "your session expired". Every other API route already returned 401.
+
+**⚠️ Not empirically verified:** the race itself. Confirming it means writing a lot to the
+**production** database, which is outside the standing constraint. The guard is asserted
+structurally and rests on documented PostgREST filter semantics — **please confirm with
+two concurrent bids in staging** before an auction goes live.
+
+**Also — pricing now defaults to Yearly** (`PricingPageClient.tsx`), the 20%-off plan, so
+visitors see the better value first instead of the higher monthly number. Monthly is still
+one click away. Guarded by a test, since a one-word default is easy to flip back by
+accident.
+
 ## 🔴 FIXED — /features advertised parity it did not have (Claude, 2026-07-27)
 
 **A public-facing competitive overclaim**, and the most consequential instance of this

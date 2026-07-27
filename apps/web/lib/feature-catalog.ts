@@ -9,12 +9,16 @@ export type PlatformFeature = {
    * and CharitMe intends to match — and `feature-catalog.test.ts` asserts every
    * entry stays listed. But the /features page renders each module under a
    * "Live" / "Production Ready" badge, so an unbuilt entry read to visitors as
-   * shipped. Auctions is the clear case: `auction_items` and `auction_bids`
-   * exist in the schema, yet there is no route, API, component or bidding UI
-   * anywhere in the app, and no commit building one.
+   * shipped. Auctions was the original case: `auction_items` and `auction_bids`
+   * existed in the schema with no route, API, component or bidding UI anywhere
+   * in the app. It has since been built (lib/auctions-core.ts, lib/auctions.ts,
+   * /api/auctions/[id]/bids, and the lots section on the event page), so the
+   * flag is off.
    *
-   * Marking it here keeps the parity checklist complete without advertising
-   * something that does not exist.
+   * Marking an entry here keeps the parity checklist complete without
+   * advertising something that does not exist. Set it whenever the schema lands
+   * before the code does, and clear it only when a real route, API and UI read
+   * those tables.
    */
   planned?: boolean;
 };
@@ -151,7 +155,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
       { competitor: 'Givebutter', name: 'Donation Forms', description: 'Custom nonprofit donation pages and embeddable forms.' },
       { competitor: 'Givebutter', name: 'Recurring Donations', description: 'Monthly giving support for sustained programs.' },
       { competitor: 'Givebutter', name: 'Fundraising Events', description: 'Virtual and in-person fundraising event tools.' },
-      { competitor: 'Givebutter', name: 'Auctions', description: 'Charity auction campaigns, items, and bids.', planned: true },
+      { competitor: 'Givebutter', name: 'Auctions', description: 'Charity auction lots with live bidding on event pages.' },
       { competitor: 'Givebutter', name: 'CRM Tools', description: 'Donor contact records, tags, segments, and communication history.' },
       { competitor: 'Givebutter', name: 'Team Fundraising', description: 'Multiple organizers and supporter teams per campaign.' },
       { competitor: 'Givebutter', name: 'Livestream Fundraising', description: 'Live donation experiences connected to events and campaigns.' },
