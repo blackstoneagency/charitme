@@ -6768,6 +6768,28 @@ non-vacuous both ways: dropping the demo check (which would rename real grants) 
 
 ## ✅ MOBILE REGRESSION CAUGHT + FIXED — `/ai-fundraising` (2026-07-27)
 
+## ✅ LIGHT-MODE AUDIT — the dark-default sweep was hiding a real failure (2026-07-27)
+
+**The site ships dark by default**, so every axe run so far — mine and the earlier
+merged ones — only ever exercised the **dark** palette. Forcing light across 22 routes
+found a genuine light-only bug on `/ai-fundraising`:
+
+`.aif-showcase-meta span` was `#94a3b8` on a white card = **2.56:1** (needs 4.5).
+**It was invisible precisely because someone had already fixed the dark case** —
+`[data-theme="dark"] .aif-showcase-meta span { color: var(--t3) }` exists at
+globals.css:5517, so dark passed while the *light base colour* stayed broken.
+Fixed to `#5b6a8a` (5.4:1), matching the sibling paragraph.
+
+**Verified after: `/ai-fundraising` → 0 violations in light AND dark.**
+21 of the other 22 routes were already light-clean.
+
+**A method bug worth recording:** the first attempt reported *"theme did not switch"* on
+15 routes. That was my harness, not the pages — `setAttribute('data-theme','light')`
+after navigation is immediately overwritten by the app's inline theme script, which
+reads `localStorage['charitme-theme-v2']` at load. The fix is `addInitScript` to seed
+that key **before** the document runs. Anyone re-running a themed audit needs this or
+they will measure the default theme twice and conclude both are clean.
+
 **Coverage closed to 27/27 on both axes.** The two axe `ERR`s in the first pass
 (`/` and `/success-stories`) were **not** violations — they are the DB-backed pages
 that never reach `waitUntil:'load'` without a database. Re-run with

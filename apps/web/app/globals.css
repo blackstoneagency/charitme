@@ -4110,7 +4110,10 @@ a.task-row:hover .task-row-dot { border-color: #6c35ff; }
 .aif-showcase-bar > div { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--aif-purple), var(--aif-pink)); }
 .aif-showcase-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; }
 .aif-showcase-meta strong { font-weight: 950; color: #14193b; }
-.aif-showcase-meta span { color: #94a3b8; flex: 1; }
+/* #94a3b8 on the white card measured 2.56:1 — a light-mode-only failure, hidden
+   because a dark override existed (see [data-theme="dark"] below) and the site
+   ships dark by default. #5b6a8a matches the sibling paragraph at 5.4:1. */
+.aif-showcase-meta span { color: #5b6a8a; flex: 1; }
 .aif-showcase-meta b { color: var(--aif-purple); font-weight: 950; }
 
 /* AI tools grid (6 cards, 3-col) */
