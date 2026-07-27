@@ -620,6 +620,27 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**✅ AUDITED CLEAN — campaign search is injection-safe.** Probed `lib/campaign-search.ts`
+with hostile and realistic input, the same technique that found the
+`'pet'`/com**pet**ition miscategorisation:
+
+| input | outcome |
+|---|---|
+| `cancer,fund` · `help (urgent)` | PostgREST `.or()` filter syntax stripped ✓ |
+| `a%b` · `x_y` | **SQL LIKE wildcards stripped** — a user cannot turn their own query into a match-everything ✓ |
+| `a.ilike.b` | lands as a literal value, not a nested filter ✓ |
+| `O'Brien` · `Ann-Marie` | preserved correctly ✓ |
+| `"   "` | zero terms → **no-op**, not an accidental match-all ✓ |
+
+The `%`/`_` stripping is the load-bearing part and is easy to omit: without it a
+search for `%` would match every campaign. Terms are also capped at 6, and the
+semantics are right — **AND across terms, OR across fields**.
+
+_One cosmetic oddity, not a defect:_ `*` survives tokenisation and becomes `%*%`,
+which PostgREST may treat as a wildcard, so searching `*` likely returns everything
+rather than literal asterisks. No security impact — an unfiltered list is already
+public — and not worth a code change.
+
 **📋 LOW PRIORITY, deliberately NOT fixed — read queries that discard their error.**
 Swept the read-side sibling of the write-error work: a query that fails, drops its
 `error`, and renders an **empty state that looks like real data**.
