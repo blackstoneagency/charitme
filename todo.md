@@ -620,6 +620,28 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**📋 LOW PRIORITY, deliberately NOT fixed — read queries that discard their error.**
+Swept the read-side sibling of the write-error work: a query that fails, drops its
+`error`, and renders an **empty state that looks like real data**.
+`app/campaigns/[slug]/page.tsx` has **8** instances of
+`const { data } = await supabaseAdmin…` (3 ending `return data ?? []`), so a failed
+donations query renders a funded campaign as having **zero supporters** — and the
+supporters list is social proof that drives giving.
+
+**Recorded rather than fixed, on two grounds:**
+1. **Reads and writes are not symmetric.** A failed write loses data *permanently*
+   (the reward claim, the send-cap row, the support ticket). A failed read is
+   *transient* and self-corrects on refresh. That asymmetry is the same reason 7 of
+   10 `void` writes were left alone.
+2. **The failure is visibly wrong, not plausibly wrong.** `raised_amount` and
+   `backer_count` come from the **campaign row**, not this query — so the page would
+   show *"$50,000 raised · 300 backers"* beside an empty supporters list. An
+   inconsistency a human notices beats a clean-looking lie.
+
+Adding logging to 8 helpers would be mechanical churn for a low-severity,
+self-correcting condition. Worth doing **if** these helpers are ever touched for
+another reason; not worth a commit of its own.
+
 **✅ BOUNDED + FIXED — rate limiting now verified across the whole API, not asserted.**
 I had claimed the durable-limit property "holds everywhere". That was an assertion,
 so I measured it. **158** mutating routes; **135** carry no rate limit — a number
