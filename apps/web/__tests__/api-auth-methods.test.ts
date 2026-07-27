@@ -145,3 +145,94 @@ describe('API routes deny rather than redirect', () => {
     expect(auth).toMatch(/export async function requireAdmin[\s\S]{0,200}redirect\(/);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// A guard placed AFTER the work it gates is not a guard.
+//
+// The api-auth-coverage scan proves a handler contains a check; this proves the
+// check runs FIRST. A handler that queries (or worse, writes) and only then
+// calls verifyAdmin() has already done the thing — it just declines to return
+// the result, and any write has already landed.
+//
+// This is the third distinct claim about the same handlers, and each previous
+// one was true while the next was false:
+//   1. "contains a guard"  → api-auth-coverage.test.ts
+//   2. "denies rather than redirects" → above, found 8 offenders
+//   3. "denies BEFORE acting" → this test
+// ─────────────────────────────────────────────────────────────────────────────
+describe('the auth check runs before any database work', () => {
+  // Helpers that ALWAYS deny. Their presence alone means the route is gated.
+  const HARD_GUARD = /\b(?:verifyAdmin|guardSuperAdmin|requireAdmin|requireSuperAdmin|requireUser)\s*\(/;
+  // `auth.getUser()` is ambiguous: it gates a route only when its result is used
+  // to REFUSE. Several public routes call it to ATTRIBUTE instead — /api/donations
+  // allows anonymous giving and reads the session only to link the donor,
+  // /api/campaigns/[id]/messages and /api/ai/grant-match likewise personalise a
+  // public response. Treating those as guards flagged all three as "queries before
+  // authenticating", which was wrong: they are not authenticating at all.
+  const SOFT_GUARD = /auth\.getUser\s*\(/;
+  const DENIES = /status:\s*40[13]\b/;
+  const DB_CALL = /supabaseAdmin\s*\.\s*from\s*\(|supabaseAdmin\s*\.\s*rpc\s*\(|supabaseAdmin\s*\.\s*auth\s*\./;
+
+  // EVERY route, not just /api/admin: the rule is about ordering, and it only
+  // applies where a handler has both a guard and a database call, so a public
+  // route without a guard is simply skipped below.
+  const protectedRoutes = routeFiles();
+
+  it('finds routes to check (non-vacuity)', () => {
+    expect(protectedRoutes.length).toBeGreaterThan(100);
+  });
+
+  it('no handler touches the database before authenticating', () => {
+    const offenders: string[] = [];
+    for (const route of protectedRoutes) {
+      for (const method of ['GET', 'POST', 'PATCH', 'PUT', 'DELETE']) {
+        const body = handlerBody(route.src, method);
+        if (body === null) continue;
+        const hardAt = body.search(HARD_GUARD);
+        const softAt = DENIES.test(body) ? body.search(SOFT_GUARD) : -1;
+        const candidates = [hardAt, softAt].filter((i) => i !== -1);
+        const guardAt = candidates.length > 0 ? Math.min(...candidates) : -1;
+        const dbAt = body.search(DB_CALL);
+        if (guardAt === -1 || dbAt === -1) continue; // not gated / no db → other tests
+        if (dbAt < guardAt) offenders.push(`${method} ${route.url}`);
+      }
+    }
+    expect(
+      offenders,
+      'These handlers query or write BEFORE checking authorisation. The guard only\n' +
+        'withholds the response — the work already happened, and any write already\n' +
+        'landed. Move the auth check to the top of the handler.',
+    ).toEqual([]);
+  });
+
+  it('the ordering check actually distinguishes the two cases (non-vacuity)', () => {
+    const bad = `export async function GET() {
+      const { data } = await supabaseAdmin.from('x').select('*');
+      const admin = await verifyAdmin();
+      if (!admin) return null;
+      return data;
+    }`;
+    const good = `export async function GET() {
+      const admin = await verifyAdmin();
+      if (!admin) return null;
+      const { data } = await supabaseAdmin.from('x').select('*');
+      return data;
+    }`;
+    const order = (src: string) => {
+      const b = handlerBody(src, 'GET')!;
+      return b.search(DB_CALL) < b.search(HARD_GUARD);
+    };
+    expect(order(bad)).toBe(true);
+    expect(order(good)).toBe(false);
+
+    // And attribution must NOT count as a guard: reading the session to label a
+    // record is not the same act as refusing an unauthorised caller.
+    const attribution = `export async function POST() {
+      const { data } = await supabaseAdmin.from('x').select('*');
+      const { data: { user } } = await supabase.auth.getUser();
+      return { ...data, donor_id: user?.id ?? null };
+    }`;
+    const b = handlerBody(attribution, 'POST')!;
+    expect(DENIES.test(b), 'no 401/403 → not a guard').toBe(false);
+  });
+});

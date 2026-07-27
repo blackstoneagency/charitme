@@ -81,6 +81,34 @@ use, so none of this can be exercised safely without test keys (ADR-0003).
 GitHub Actions allocates no runners, so **CI cannot verify anything** — every gate
 below was run locally, which is currently the only real signal.
 
+## ✅ VERIFIED CLEAN — no handler acts before it authenticates (Claude, 2026-07-27)
+
+Third distinct claim about the same handlers. Each earlier one was true while the next was
+false, which is why they had to be checked separately:
+
+1. **"contains a guard"** → `api-auth-coverage.test.ts`. True — and `GET /api/admin/sponsors`
+   still leaked, because the guard was in `POST`.
+2. **"denies rather than redirects"** → found **8** offenders.
+3. **"denies BEFORE acting"** → this check. **0 offenders across all ~150 routes.**
+
+A guard placed after the work it gates is not a guard: the handler has already queried, and
+any write has already landed — it merely declines to return the result. Now asserted for
+every handler that has both a guard and a database call.
+
+**A refinement worth recording, because the first run was wrong.** It initially flagged
+three routes — `POST /api/donations`, `GET /api/campaigns/[id]/messages`,
+`POST /api/ai/grant-match` — all **false positives**. They call `auth.getUser()` to
+**attribute**, not to **authorise**: `/api/donations` allows anonymous giving and reads the
+session only to link the donor; the other two personalise a public response. Reading the
+session and refusing an unauthorised caller are different acts that share one API call.
+
+The check now treats `verifyAdmin` / `guardSuperAdmin` / `require*` as hard guards, and
+`auth.getUser()` as a guard **only when the handler also returns a 401/403**. Both
+behaviours are pinned by non-vacuity cases, and the ordering rule was verified by planting
+a guard *after* the query in `/api/admin/countries` and watching the test name it.
+
+Suite **1663 / 149 files**, typecheck 0, lint 0, build green.
+
 ## 🔴 SECURITY — `GET /api/admin/sponsors` served unpublished rows to anyone (Claude, 2026-07-27)
 
 **A real disclosure, live in production, found by probing rather than reading.**
