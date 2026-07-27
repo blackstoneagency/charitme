@@ -2087,7 +2087,7 @@ a.task-row:hover .task-row-dot { border-color: #6c35ff; }
 .about-stat-num { font-size: clamp(24px, 3vw, 36px); font-weight: 950; color: #fff; letter-spacing: -.03em; }
 .about-stat-label { font-size: 12px; color: #a78bfa; font-weight: 700; margin-top: 3px; white-space: nowrap; }
 .about-stat-divider { width: 1px; height: 48px; background: rgba(255,255,255,.15); margin: 0 4px; }
-.about-hero-scroll-hint { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,.3); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; animation: about-bounce 2s ease-in-out infinite; }
+.about-hero-scroll-hint { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,.5); font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; animation: about-bounce 2s ease-in-out infinite; }
 @keyframes about-bounce { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(6px); } }
 
 /* Manifesto */
@@ -2540,7 +2540,7 @@ a.task-row:hover .task-row-dot { border-color: #6c35ff; }
 .hiw-cta-band p { margin: 0 auto 32px; max-width: 520px; font-size: 17px; line-height: 1.6; opacity: .9; }
 .hiw-cta-band-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; }
 .hiw-cta-band .pub-btn.primary { background: #fff; color: #4b1af2; box-shadow: 0 12px 28px rgba(0,0,0,.18); }
-.hiw-cta-band .pub-btn.secondary { color: #fff; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.6); }
+.hiw-cta-band .pub-btn.secondary { color: #fff; background: rgba(0,0,0,.12); border: 1px solid rgba(255,255,255,.6); }
 
 .simple-public > section:first-child { max-width: 1180px; margin: 0 auto; border-bottom: 0; }
 .simple-public h1 { max-width: 920px; }
@@ -6065,8 +6065,8 @@ a.task-row:hover .task-row-dot { border-color: #6c35ff; }
 .home-btn-text:hover { color: var(--h-accent); }
 .home-btn-white { color: #1a0b3d; background: #fff; box-shadow: 0 12px 30px rgba(0,0,0,.18); }
 .home-btn-white:hover { transform: translateY(-2px); }
-.home-btn-outline-light { color: #fff; background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.34); }
-.home-btn-outline-light:hover { background: rgba(255,255,255,.18); transform: translateY(-2px); }
+.home-btn-outline-light { color: #fff; background: rgba(0,0,0,.12); border-color: rgba(255,255,255,.34); }
+.home-btn-outline-light:hover { background: rgba(0,0,0,.20); transform: translateY(-2px); }
 
 /* Headings / eyebrows */
 .home-eyebrow { display: inline-flex; align-items: center; gap: 7px; margin: 0 0 12px; font-size: 13px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--h-accent); }
@@ -6090,7 +6090,10 @@ a.task-row:hover .task-row-dot { border-color: #6c35ff; }
 .home-hero-sub strong { color: var(--t2); font-weight: 800; }
 .home-hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 26px; }
 .home-hero-trust { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 20px 0 0; font-size: 14px; font-weight: 700; color: var(--t3); }
-.home-hero-trust strong { color: var(--h-green); font-weight: 800; }
+/* --h-green (#12a653) is the brand green FILL; as 14px text on the near-white
+   hero it measures 3.06:1. --green-text is the accent-as-text pair (AA on both
+   themes), same convention used everywhere else accents carry text. */
+.home-hero-trust strong { color: var(--green-text); font-weight: 800; }
 
 /* AI search */
 .home-ai { margin-top: 4px; }

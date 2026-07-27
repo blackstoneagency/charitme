@@ -113,7 +113,7 @@ export default function HelpPage() {
             padding: '7px 16px', borderRadius: 20, border: '1.5px solid',
             borderColor: activeCategory === 'all' ? 'var(--violet)' : 'var(--b2)',
             background: activeCategory === 'all' ? 'rgba(109,53,255,.14)' : 'var(--s1)',
-            color: activeCategory === 'all' ? 'var(--violet)' : 'var(--t2)',
+            color: activeCategory === 'all' ? 'var(--violet-ink)' : 'var(--t2)',
             fontSize: 13, fontWeight: 700, cursor: 'pointer',
           }}>
           All ({ARTICLES.length})
@@ -124,7 +124,7 @@ export default function HelpPage() {
               padding: '7px 16px', borderRadius: 20, border: '1.5px solid',
               borderColor: activeCategory === cat.id ? 'var(--violet)' : 'var(--b2)',
               background: activeCategory === cat.id ? 'rgba(109,53,255,.14)' : 'var(--s1)',
-              color: activeCategory === cat.id ? 'var(--violet)' : 'var(--t2)',
+              color: activeCategory === cat.id ? 'var(--violet-ink)' : 'var(--t2)',
               fontSize: 13, fontWeight: 700, cursor: 'pointer',
             }}>
             {cat.icon} {cat.label}
@@ -137,7 +137,7 @@ export default function HelpPage() {
         <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--t3)' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
           <p style={{ fontWeight: 700 }}>No articles match your search.</p>
-          <p style={{ fontSize: 13, marginTop: 6 }}>Try different keywords or <a href="/contact" style={{ color: 'var(--violet)', fontWeight: 700 }}>contact support</a>.</p>
+          <p style={{ fontSize: 13, marginTop: 6 }}>Try different keywords or <a href="/contact" style={{ color: 'var(--violet-ink)', fontWeight: 700 }}>contact support</a>.</p>
         </div>
       ) : (
         <div style={{ display: 'grid', gap: 4 }}>
