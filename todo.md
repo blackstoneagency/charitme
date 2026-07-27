@@ -6951,6 +6951,37 @@ them real gates (e.g. beneficiary confirmation flow, nonprofit-only campaign typ
 or retire them. Recorded rather than guessed, because inventing restrictions on
 roles nobody holds is the fastest way to lock a real user out.
 
+### ✅ DONE — Claude, 2026-07-26 — **photo suggestions covered 4 of 18 categories**
+The campaign builder's "Suggested for your story" panel tells an organizer what
+photos to add. `SUGGESTED_PHOTOS` listed only Medical / Emergency / Education /
+Animal, so **14 of the 18 categories fell through to a generic default** — a
+Memorial or Sports organizer got "Campaign hero image" while a Medical one got real
+guidance. This is the drift trap CLAUDE.md warns about (three hand-maintained copies
+of the category list had already diverged). All 18 now have specific prompts, and
+`__tests__/campaign-suggested-photos.test.ts` (5 tests) fails if a category is added
+to `CAMPAIGN_CATEGORIES` without prompts here — **verified non-vacuous** by deleting
+a category and watching it fail.
+- **Caught myself repeating a bug I'd just fixed:** I first wrote `'Last year&apos;s
+  event'` inside a JS string. These render as JSX *children*, where entities are NOT
+  decoded, so it would have displayed literally — the same class as the
+  `&var(--green-dark);` greeting. The guard now asserts no prompt contains an HTML
+  entity.
+
+### 🔍 NEGATIVE RESULTS — Claude, 2026-07-26 (recorded so nobody re-chases them)
+Two audits came back **clean**. Both are worth not repeating:
+- **Dead/broken links: none.** Built the real route table from the App Router (264
+  static + 100 dynamic) and checked every `href` in `app/` + `components/`:
+  **0 `href="#"` placeholders, 0 links to routes that do not exist.**
+- **APIs that accept input and ignore it: none.** Scanned every `route.ts` for
+  request fields that are validated then never read. **All 53 raw hits were false
+  positives** — the routes pass `parsed.data` wholesale to a helper
+  (`calculateTrustScore(parsed.data)`), spread it into an insert, or map it through
+  a `COL` table.
+  **⚠️ Trap for the next person, which caught me:** I briefly believed
+  `/api/admin/grants/[id]` accepted 19 fields and wrote 5. It writes all 19 — my
+  key-extraction regex only matched line-leading keys, and `COL` packs several pairs
+  per line. **Read the file before "fixing" a scan result.**
+
 ### ✅ DONE — Claude, 2026-07-26 — **the admin donations export was broken four ways**
 Extended the dead-control lens from `<button>` to `<select>/<input>` (22 hits, most
 of them legitimate uncontrolled inputs inside GET forms). Two real defects fell out,

@@ -162,12 +162,39 @@ const _CATEGORY_META: Record<string, { icon: string; tone: string; desc: string 
   Wishes:      { icon: 'gift',   tone: 'violet', desc: 'Dreams, gifts, celebrations' },
 };
 
+/**
+ * Photo prompts per campaign category.
+ *
+ * Covers **every** entry in `CAMPAIGN_CATEGORIES`. It previously listed only
+ * Medical/Emergency/Education/Animal, so 14 of the 18 categories fell through to
+ * the generic `default` — a Memorial or Sports organizer was told to add a
+ * "Campaign hero image" while a Medical one got real guidance. CLAUDE.md flags
+ * hand-maintained copies of this list as a known drift trap (three had already
+ * diverged); `__tests__/campaign-suggested-photos.test.ts` now fails if a category
+ * is added to the shared list without prompts here.
+ */
 const SUGGESTED_PHOTOS: Record<string, string[]> = {
-  Medical:   ['Hospital recovery photo', 'Family support gathering', 'Medical team portrait'],
-  Emergency: ['Community response photo', 'Crisis impact image', 'Recovery moment'],
-  Education: ['Student studying photo', 'Graduation celebration', 'Classroom scene'],
-  Animal:    ['Pet recovery photo', 'Animal shelter moment', 'Vet visit photo'],
-  default:   ['Campaign hero image', 'Community gathering', 'Personal story photo'],
+  Medical:     ['Hospital recovery photo', 'Family support gathering', 'Medical team portrait'],
+  Memorial:    ['Favourite photo of them', 'Family together', 'A place they loved'],
+  Emergency:   ['Community response photo', 'Crisis impact image', 'Recovery moment'],
+  Nonprofit:   ['Your team at work', 'People you serve', 'Programme in action'],
+  Education:   ['Student studying photo', 'Graduation celebration', 'Classroom scene'],
+  Animal:      ['Pet recovery photo', 'Animal shelter moment', 'Vet visit photo'],
+  Environment: ['Site before the work', 'Volunteers restoring it', 'Wildlife or habitat'],
+  Business:    ['Your storefront or workspace', 'The team behind it', 'Product being made'],
+  Community:   ['Neighbours together', 'The space being improved', 'A local event'],
+  Competition: ['Team photo', 'Training session', 'Last competition'],
+  Creative:    ['Work in progress', 'Finished piece', 'You in the studio'],
+  // NB: a real apostrophe, not `&apos;` — these strings render as JSX *children*
+  // (`{photo}`), where HTML entities are not decoded and would show verbatim.
+  Event:       ["Last year's event", 'The venue', 'People taking part'],
+  Faith:       ['Congregation gathered', 'The building or space', 'Community outreach'],
+  Family:      ['Family portrait', 'Everyday moment together', 'The home'],
+  Sports:      ['Team in action', 'Match day photo', 'Training or kit'],
+  Travel:      ['Where you are going', 'Preparing for the trip', 'The people joining you'],
+  Volunteer:   ['Volunteers at work', 'Who the work helps', 'The site or project'],
+  Wishes:      ['The person this is for', 'What the wish means', 'A moment together'],
+  default:     ['Campaign hero image', 'Community gathering', 'Personal story photo'],
 };
 
 // ─────────────────────────────────────────────
