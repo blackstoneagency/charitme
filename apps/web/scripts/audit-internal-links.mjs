@@ -53,6 +53,11 @@ function matcher(route) {
       if (p.startsWith('[...') || p.startsWith('[[...')) return true; // catch-all swallows the rest
       if (ci >= cand.length) return false;
       if (p.startsWith('[')) { ci++; continue; }
+      // '*' is an interpolated segment from a template literal — it can stand in
+      // for a dynamic segment, and leniently for a literal one too (someone may
+      // interpolate a constant). Being lenient here can miss a bug; being strict
+      // would invent one, and a checker that cries wolf gets switched off.
+      if (cand[ci] === '*') { ci++; continue; }
       if (p !== cand[ci]) return false;
       ci++;
     }
@@ -128,6 +133,20 @@ for (const file of sources) {
       if (!hits.has(route)) hits.set(route, new Set());
       hits.get(route).add(`${rel}:${i + 1}`);
     }
+    // Template-literal links: `/dashboard/campaigns/${id}/payout-setup`. 91 of
+    // them exist, and the literal-only pass was blind to every one — which is
+    // most of the dynamic navigation in the dashboard and admin console. Each
+    // interpolated segment becomes '*'; the LITERAL parts and the segment COUNT
+    // are still checked, which is where this class of link actually breaks.
+    for (const m of line.matchAll(/[=:]\s*\{?`(\/[^`]*)`/g)) {
+      const raw = m[1].split('#')[0].split('?')[0];
+      if (raw.includes('${') === false) continue;
+      const route = '/' + raw.split('/').filter(Boolean)
+        .map((seg) => (seg.includes('${') ? '*' : seg)).join('/');
+      if (!hits.has(route)) hits.set(route, new Set());
+      hits.get(route).add(`${rel}:${i + 1}`);
+    }
+
     // API paths are worth checking too, but only where they are actually called.
     for (const m of line.matchAll(/["'`](\/api\/[a-zA-Z0-9/_-]*)["'`]/g)) {
       const route = m[1].replace(/\/$/, '');
@@ -148,7 +167,13 @@ export function findBrokenLinks() {
   return broken.map(([route, where]) => [route, [...where]]);
 }
 
-export const stats = { pages: pageRoutes.length, apiRoutes: apiRoutes.length, literals: hits.size };
+export const stats = {
+  pages: pageRoutes.length,
+  apiRoutes: apiRoutes.length,
+  literals: hits.size,
+  // Template-literal links (`/x/${id}/y`), normalised to `/x/*/y`.
+  templates: [...hits.keys()].filter((r) => r.includes('/*')).length,
+};
 
 // Only print when run directly, so importing this from a test stays silent.
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

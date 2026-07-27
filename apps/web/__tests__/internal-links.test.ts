@@ -27,6 +27,12 @@ describe('internal links resolve to real routes', () => {
     expect(stats.pages).toBeGreaterThan(100);
     expect(stats.apiRoutes).toBeGreaterThan(100);
     expect(stats.literals).toBeGreaterThan(150);
+    // Template-literal links (`/dashboard/campaigns/${id}/payout-setup`) are
+    // most of the dynamic navigation in the dashboard and admin console, and a
+    // literal-only pass sees none of them. That gap hid a "Download printable
+    // poster" button pointing at `/api/campaigns/${slug}/poster` — wrong route
+    // name AND wrong identifier.
+    expect(stats.templates).toBeGreaterThan(20);
   });
 
   it('has no link to a nonexistent route', () => {

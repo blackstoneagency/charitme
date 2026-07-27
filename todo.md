@@ -225,10 +225,27 @@ the single moment a fundraiser most needs to reach a human — their money is he
 — the button 404s. Fixed to `/contact`, which is what the **trust-score
 suggestions in the same codebase already use** for the same purpose.
 
-New: **`apps/web/scripts/audit-internal-links.mjs`** — resolves every literal
-absolute path in `app/`, `components/` and `lib/` against the real App Router
-route table (153 pages + 215 API routes, honouring `[param]`, `[...catch]` and
-`(groups)`). No server, no session, no network.
+New: **`apps/web/scripts/audit-internal-links.mjs`** — resolves every internal
+path in `app/`, `components/` and `lib/` against the real App Router route table
+(153 pages + 215 API routes, honouring `[param]`, `[...catch]` and `(groups)`).
+No server, no session, no network.
+
+**Template-literal links are covered too, and that found a second defect.** A
+literal-only pass is blind to `` `/dashboard/campaigns/${id}/payout-setup` `` —
+i.e. most of the dynamic navigation in the dashboard and admin console (91 of
+them). Normalising each interpolated segment to `*` keeps the literal parts and
+the segment count checked, which is where this class of link breaks. It caught:
+
+**"🖨 Download printable poster" in the campaign builder never worked** — the
+success screen shown right after publishing. `app/create/page.tsx` pointed at
+`` `/api/campaigns/${slug}/poster` ``, **wrong twice**: the route is `qr-poster`,
+and it keys on the campaign **id** (`.eq('id', id)`), not the slug. Both were
+masked by an `onClick` doing `e.preventDefault(); window.print()`, which printed
+the **builder page** instead of a poster — so the button never once did what its
+label said, and the broken href only surfaced on middle-click or copy-link.
+Fixed: the publish response already returns `{id, slug}`, so the id is now
+captured and the link opens the real poster (which carries its own print
+stylesheet) in a new tab.
 
 It runs in **`npm test`** (`__tests__/internal-links.test.ts`), not only as a
 script: CI is dead, and a script nobody invokes is not a check.
