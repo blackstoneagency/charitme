@@ -54,7 +54,15 @@ async function getCampaigns(opts: {
     if (opts.category) query = query.eq('category', opts.category);
     if (opts.verifiedOnly) query = query.eq('trust_status', 'Verified');
     if (opts.taxDeductibleOnly) query = query.eq('nonprofit_verified', true);
-    if (opts.location) query = query.ilike('location', `%${opts.location}%`);
+    if (opts.location) {
+      // Strip SQL LIKE wildcards, exactly as applyCampaignSearch does one line
+      // below. Without this a location of "%" matched every campaign (the filter
+      // silently did nothing) and "N_w York" matched "New York". Not an injection
+      // — .ilike() parameterises the value — but two adjacent inputs on the same
+      // page should not escape differently.
+      const safeLocation = opts.location.replace(/[%_]/g, ' ').trim();
+      if (safeLocation) query = query.ilike('location', `%${safeLocation}%`);
+    }
     // Tokenized multi-word keyword search (each word must match some field).
     query = applyCampaignSearch(query, opts.q);
 

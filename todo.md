@@ -620,6 +620,26 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**🟠 FIXED — the location filter didn't strip wildcards, though search beside it did.**
+Found while auditing search: `/campaigns` sanitises the keyword box carefully but
+interpolated the **location** box raw —
+`query.ilike('location', \`%${opts.location}%\`)` — with `opts.location` straight from
+`searchParams`, **one line above** the `applyCampaignSearch` call that strips `%`
+and `_`.
+
+Effect: a location of `%` matched **every** campaign (the filter silently did
+nothing), and `N_w York` matched `New York`. **Not an injection** — `.ilike()`
+parameterises its value — so this is a correctness and consistency issue, not a
+security hole, and it is worth being precise about which.
+
+Now strips the same characters, and a location that was *entirely* wildcards is
+dropped rather than becoming an unfiltered match-all. 3 tests, verified non-vacuous.
+
+_Why this one earned a commit when other small findings didn't:_ the correct pattern
+already existed **one line away**. Two adjacent inputs on the same page escaping
+differently is exactly the inconsistency that misleads the next reader — and the
+in-repo precedent made the fix obvious rather than a judgement call.
+
 **✅ AUDITED CLEAN — campaign search is injection-safe.** Probed `lib/campaign-search.ts`
 with hostile and realistic input, the same technique that found the
 `'pet'`/com**pet**ition miscategorisation:
