@@ -126,3 +126,57 @@ describe('admin console renders roles from the catalog', () => {
     expect(usersClient).toContain('roleSummaries.map');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The role-grant screen is where an owner acts on roles, so it must not carry its
+// own copy of what a role means. It used to: a hardcoded ALL_ROLES that had
+// already drifted into describing `nonprofit` as "Manage a nonprofit org" while
+// the capability map records that the role confers no tax-deductibility at all.
+//
+// Same drift pattern as CAMPAIGN_CATEGORIES (3 copies) and the route lists (6).
+// ─────────────────────────────────────────────────────────────────────────────
+describe('the role-grant screen reads the shared catalog', () => {
+  const src = readFileSync(
+    join(__dirname, '../app/admin/super/roles/RolesClient.tsx'),
+    'utf8',
+  );
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
+
+  it('derives its role list from ROLE_DEFINITIONS', () => {
+    expect(code).toContain('ROLE_ORDER.map(');
+    expect(code).toContain('ROLE_DEFINITIONS[key]');
+  });
+
+  it('no longer hardcodes role labels and descriptions', () => {
+    // The exact strings the stale copy carried.
+    expect(code).not.toContain("desc: 'Manage a nonprofit org'");
+    expect(code).not.toContain("desc: 'Receive campaign funds'");
+    expect(code).not.toMatch(/\{\s*key:\s*'donor',\s*label:\s*'Donor'/);
+  });
+
+  it('distinguishes roles that gate access from labels that do not', () => {
+    // Rendering `nonprofit` identically to `admin` invites an owner to believe
+    // they granted access they did not.
+    expect(code).toContain("c.enforced");
+    expect(code).toMatch(/Label only/);
+    expect(code).toMatch(/Gates access/);
+  });
+
+  it('states in the UI that tax-deductibility is not the Nonprofit role', () => {
+    expect(src).toMatch(/not<\/em> from the\s*\n?\s*Nonprofit role/);
+  });
+
+  it('gives each toggle a real accessible name, not just a title', () => {
+    expect(code).toMatch(/aria-label=\{`\$\{r\.label\}/);
+  });
+});
+
+describe('the advisory/enforced split is real, not decorative', () => {
+  it('exactly admin and super_admin gate access today', () => {
+    expect(enforcedRoles().sort()).toEqual(['admin', 'super_admin']);
+  });
+
+  it('the other four are advisory, and the UI banner names them', () => {
+    expect(advisoryRoles().sort()).toEqual(['beneficiary', 'donor', 'nonprofit', 'organizer']);
+  });
+});

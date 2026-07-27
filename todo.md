@@ -49,6 +49,34 @@ use, so none of this can be exercised safely without test keys (ADR-0003).
 GitHub Actions allocates no runners, so **CI cannot verify anything** — every gate
 below was run locally, which is currently the only real signal.
 
+## ✅ SHIPPED — role clarity on the grant screen (Claude, 2026-07-27)
+
+Goal criterion *"each user role is clearly mapped out and different than the others"*.
+The map itself already existed and was honest (`lib/role-capabilities.ts`, with its
+`enforced` vs advisory split). **The screen where an owner actually acts on roles did
+not use it.**
+
+`app/admin/super/roles/RolesClient.tsx` carried a **seventh hardcoded role list**, and it
+had already drifted into telling the operator something false: it described `nonprofit`
+as *"Manage a nonprofit org"*, while the capability map records that the role confers **no
+tax-deductibility** — that comes from per-campaign `nonprofit_verified`. Same drift
+pattern as CAMPAIGN_CATEGORIES (3 copies) and the route lists (6 copies).
+
+Worse, the grid rendered all six roles identically. Toggling `admin` genuinely opens the
+admin console; toggling `nonprofit` changes **nothing in code**. An owner had no way to
+tell those two actions apart.
+
+Fixed: the list is now derived from `ROLE_ORDER`/`ROLE_DEFINITIONS`, each role card is
+marked **"Gates access"** or **"Label only"**, and a note names the four advisory roles
+and states explicitly that tax-deductibility is not the Nonprofit role. Toggles also got
+a real `aria-label` (they previously relied on `title` alone for an accessible name).
+7 new tests, including that exactly `admin` + `super_admin` are enforced.
+
+**Still true and unchanged:** 4 of 6 roles are advisory. That is deliberate — inventing
+enforcement would be the fastest way to lock an organizer out of their own campaign, as
+`role-capabilities.ts` has warned since it was written. The criterion is met by the roles
+being *clearly mapped and clearly differentiated*, not by gating for its own sake.
+
 ## ✅ SHIPPED — AI Control Center, Phase 1 (Claude, 2026-07-27)
 
 `/admin/ai` — the AI Context Manager's first phase. **Super-admin only**, listed as

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import { ROLE_DEFINITIONS, ROLE_ORDER } from '../../../../lib/role-capabilities';
 
 export type RoleUser = {
   id: string;
@@ -10,14 +11,30 @@ export type RoleUser = {
   roles: string[];
 };
 
-const ALL_ROLES: { key: string; label: string; desc: string }[] = [
-  { key: 'donor', label: 'Donor', desc: 'Give and manage a profile' },
-  { key: 'organizer', label: 'Organizer', desc: 'Create & run campaigns' },
-  { key: 'beneficiary', label: 'Beneficiary', desc: 'Receive campaign funds' },
-  { key: 'nonprofit', label: 'Nonprofit', desc: 'Manage a nonprofit org' },
-  { key: 'admin', label: 'Admin', desc: 'Platform administration' },
-  { key: 'super_admin', label: 'Super Admin', desc: 'Owner-tier control' },
-];
+// ─────────────────────────────────────────────────────────────────────────────
+// Derived from lib/role-capabilities.ts — the single source of truth for what a
+// role MEANS. This screen used to carry its own hardcoded copy, which had already
+// drifted into telling the operator something false: it described `nonprofit` as
+// "Manage a nonprofit org", while the capability map records that the role grants
+// no tax-deductibility at all (that comes from per-campaign `nonprofit_verified`).
+// Same drift pattern as the campaign categories and the six route lists.
+//
+// `enforced` is surfaced deliberately. Toggling `admin` really does open the admin
+// console; toggling `nonprofit` changes nothing in code today. Rendering the two
+// identically invites an owner to believe they have granted or revoked access they
+// have not.
+// ─────────────────────────────────────────────────────────────────────────────
+const ALL_ROLES = ROLE_ORDER.map((key) => {
+  const def = ROLE_DEFINITIONS[key];
+  return {
+    key: key as string,
+    label: def.label,
+    desc: def.description,
+    enforced: def.capabilities.some((c) => c.enforced),
+  };
+});
+
+const ADVISORY_ROLES = ALL_ROLES.filter((r) => !r.enforced).map((r) => r.label);
 
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).map((n) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
@@ -66,13 +83,39 @@ export default function RolesClient({ users: initial }: { users: RoleUser[] }) {
 
   return (
     <div style={{ padding: '0 4px 48px' }}>
+      {ADVISORY_ROLES.length > 0 && (
+        <div
+          role="note"
+          style={{
+            margin: '0 0 18px', padding: '14px 16px', borderRadius: 12,
+            background: 'var(--s2)', border: '1px solid var(--b2)', color: 'var(--t1)',
+          }}
+        >
+          <strong style={{ display: 'block', marginBottom: 4 }}>
+            Only Admin and Super Admin currently gate access
+          </strong>
+          <span style={{ fontSize: 13.5, lineHeight: 1.55 }}>
+            {ADVISORY_ROLES.join(', ')} are descriptive labels today — granting or removing
+            them changes how a user is described, not what they can do. In particular,
+            tax-deductibility comes from per-campaign verification, <em>not</em> from the
+            Nonprofit role. Hover a column heading for what each role means.
+          </span>
+        </div>
+      )}
+
       <div className="kf-metrics" style={{ marginBottom: 20 }}>
         {ALL_ROLES.map((r) => (
           <article key={r.key} className="kf-card kf-metric">
             <div className={`kf-square ${r.key === 'super_admin' ? 'orange' : r.key === 'admin' ? 'pink' : 'violet'}`}>
               <span style={{ fontWeight: 800 }}>{r.label.slice(0, 1)}</span>
             </div>
-            <div><span>{r.label}</span><strong>{counts[r.key] ?? 0}</strong></div>
+            <div>
+              <span>{r.label}</span>
+              <strong>{counts[r.key] ?? 0}</strong>
+              <small style={{ display: 'block', fontSize: 11, color: 'var(--t3)', fontWeight: 600 }}>
+                {r.enforced ? 'Gates access' : 'Label only'}
+              </small>
+            </div>
           </article>
         ))}
       </div>
@@ -119,7 +162,8 @@ export default function RolesClient({ users: initial }: { users: RoleUser[] }) {
                           onClick={() => toggleRole(u, r.key)}
                           disabled={savingId === u.id}
                           aria-pressed={on}
-                          title={`${on ? 'Remove' : 'Add'} ${r.label}`}
+                          aria-label={`${r.label} — ${on ? 'granted' : 'not granted'} to ${u.name}`}
+                          title={`${on ? 'Remove' : 'Add'} ${r.label}${r.enforced ? '' : ' (label only — gates nothing)'}`}
                           style={{
                             width: 26, height: 26, borderRadius: 7, cursor: 'pointer',
                             border: on ? 'none' : '1.5px solid var(--b2)',
