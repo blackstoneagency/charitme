@@ -32,14 +32,14 @@ beforeEach(() => {
 });
 
 describe('ensureUserProfile', () => {
-  it('creates a missing profile from auth metadata', async () => {
+  it('creates a missing donor profile without trusting metadata roles', async () => {
     maybeSingle.mockResolvedValueOnce({ data: null, error: null });
     upsert.mockResolvedValueOnce({ error: null });
 
     await ensureUserProfile(userFixture({
       full_name: 'New World Venture LLC',
       avatar_url: 'https://example.com/avatar.png',
-      roles: ['organizer'],
+      roles: ['admin', 'super_admin'],
     }));
 
     expect(upsert).toHaveBeenCalledWith({
@@ -47,7 +47,7 @@ describe('ensureUserProfile', () => {
       email: 'newworldventurellc@google.com',
       full_name: 'New World Venture LLC',
       avatar_url: 'https://example.com/avatar.png',
-      roles: ['organizer'],
+      roles: ['donor'],
     }, { onConflict: 'id', ignoreDuplicates: true });
   });
 

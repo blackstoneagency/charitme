@@ -24,13 +24,35 @@ minutes and produces logs. These finish in ~2 seconds with none. If you see that
 stop debugging your diff.
 
 **Local verification is therefore the real gate, and it is green:**
-`npm run typecheck` (0) · `npm test` (**1663/1663, 149 files**) · `npm run build`
+`npm run typecheck` (0) · `npm test` (**1683/1683, 151 files**) · `npm run build`
 (exit 0) · `scripts/audit-contrast.mjs --strict-gradients` (**0 WCAG AA failures,
 37 pages × 2 themes, 3,638 text elements per theme**).
 
 ⚠️ Run `npm test` from **`apps/web`**, not the repo root. Root-level `npx vitest run`
 picks up a different config and reports ~24 failing files (`server-only` imports that
 the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
+
+## SECURITY BOUNDARIES - code complete, production migration pending (Codex, 2026-07-27)
+
+- [x] New auth users always receive the baseline `donor` role. Signup metadata
+  can no longer request `admin`, `super_admin`, or another privileged role.
+- [x] Missing-profile repair also assigns `donor`; it no longer promotes from
+  self-asserted auth metadata.
+- [x] Browser writes cannot change profile roles, plan, verification state,
+  trust score, Stripe billing identifiers, or profile email.
+- [x] Direct browser inserts into donations, donor tips, platform fees, and
+  campaign reports are revoked. Existing server routes use `supabaseAdmin`.
+- [x] Donation accounting, reward claims, campaign stat mutation, and system
+  resource RPCs are executable by `service_role` only.
+- [x] The admin schema-repair flow ends by reapplying the same secure grants,
+  so it cannot silently restore the old public permissions.
+- [x] `supabase/catch_up.sql` regenerated from the migration chain.
+- [x] Regression coverage added; full local suite passes 1,683 tests, typecheck,
+  zero-warning lint, and the 150-page production build.
+- [ ] Apply `20260809000000_harden_privileged_database_boundaries.sql` to staging,
+  run authenticated/anonymous RLS probes, then apply it to production through
+  the release workflow. This remains externally blocked by the staging/CI/deploy
+  constraints documented above.
 
 **Two goal lines are unbounded by construction** and will never produce an empty
 todo: *"every page audited"*, *"100% GoFundMe parity / world class"*. Treat them as
