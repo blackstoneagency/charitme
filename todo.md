@@ -121,9 +121,26 @@ invisible to it — which is exactly the gap the new script covers. A test also 
 peer fundraising is not conflated with **team** fundraising, which IS genuinely built on
 `team_members`.
 
-**Bounded, non-blocked backlog this creates:** build peer-to-peer pages (240 rows waiting),
-surface `creator_profiles` (500 rows), and decide whether `trust_scores` should be deleted
-or read instead of recomputed.
+### ⚠️ CORRECTION — I called this a "bounded, non-blocked backlog". It is not.
+
+I wrote that peer-to-peer, `creator_profiles` and `trust_scores` were three quick wins.
+Inspecting the actual rows says otherwise. Recording it precisely so the next agent does
+not spend a session discovering it again:
+
+| Orphan | Why it is NOT a quick win |
+|---|---|
+| `peer_fundraisers` (240) | **BLOCKED.** `donations` has **no `peer_fundraiser_id` column**, so a donation cannot be attributed to a peer page and `raised_amount` can never be maintained. Needs DDL — the same access blocking the 3 migrations. Belongs on the blocked list, not the backlog. |
+| `creator_profiles` (500) | Data is a **shell**: `bio` and `hero_image_url` are null and `brand_color` is the default on every row. Surfacing it yields 500 near-identical empty pages, not a feature. |
+| `grant_documents` (240) | Every `file_url` is `https://example.org/docs/N.pdf` — an **RFC 2606 reserved domain**. Rendering these gives 240 dead download links. Any future UI must route through the existing `lib/placeholder-url.ts`. |
+| `coach_sessions` (500) | **Metadata only** — `message_count`, no transcript. Surfacing it says "you had 2 messages" and shows none. |
+| `trust_scores` (500) | **Reading it would be a REGRESSION, not a completion.** Every row's `computed_at` is ≈ 2026-04-27 (~3 months stale) with `signals: []`. The live score is computed per request by `lib/trust-signals.ts`. Wiring the table in would publish stale trust numbers on **public campaign pages** as fact. |
+
+**Guard added** (`__tests__/orphan-table-hazards.test.ts`, 4 tests, verified non-vacuous by
+planting a read and watching it fail): no application code may read `trust_scores` while it
+is stale, with the reasoning in the failure message. Deliberately reversible — if the table
+is ever made authoritative (recompute job **plus** a freshness check at read time), delete
+the test on purpose rather than by accident. `orphan-tables` is therefore a **hazard
+register**, not a to-do list: the right move for four of the five is to leave them alone.
 
 ## 🔴 FIXED — the keyboard sweep passed vacuously (Claude, 2026-07-27)
 
