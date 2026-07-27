@@ -24,8 +24,13 @@ minutes and produces logs. These finish in ~2 seconds with none. If you see that
 stop debugging your diff.
 
 **Local verification is therefore the real gate, and it is green:**
-`npm run typecheck` (0) · `npm test` (**1625/1625, 145 files**) · `npm run build`
-(exit 0) · `scripts/audit-contrast.mjs` (**0 WCAG AA failures, 38 pages × 2 themes**).
+`npm run typecheck` (0) · `npm test` (**1663/1663, 149 files**) · `npm run build`
+(exit 0) · `scripts/audit-contrast.mjs --strict-gradients` (**0 WCAG AA failures,
+37 pages × 2 themes, 3,638 text elements per theme**).
+
+⚠️ Run `npm test` from **`apps/web`**, not the repo root. Root-level `npx vitest run`
+picks up a different config and reports ~24 failing files (`server-only` imports that
+the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 
 **Two goal lines are unbounded by construction** and will never produce an empty
 todo: *"every page audited"*, *"100% GoFundMe parity / world class"*. Treat them as
@@ -232,6 +237,36 @@ but I left it rather than widen the diff — delete it whenever suits you.
 
 Two independent tools, previously disagreeing only because they were looking at different
 themes, now agree on green.
+
+### ✅ DONE — `--strict-gradients` sweep to zero (Claude, 2026-07-27)
+
+The default sweep reports gradient-backed text as a warning, because a gradient fails at
+whichever stop is lightest and that stop may sit behind no text at all. Running with
+`--strict-gradients` promotes those to failures and surfaced **66 real findings**. Driven
+to **0** over five passes. What the passes actually taught:
+
+- **A gradient fails at whichever end is lightest, and fixing one end does not finish the
+  job.** `/fast-payouts` needed two rounds: one stop lifted to 4.65, re-run, the *other*
+  stop was still 4.18.
+- **The defect is often the overlay, not the fill.** `/ai-fundraising` reported 3.48:1 and
+  the obvious fix was to darken `#c026d3` — but that colour on white is **4.71:1, already
+  passing**. The real defect was `rgba(255,255,255,0.8)` text. Three glassy buttons
+  (`.hiw-cta-band .pub-btn.secondary`, `.home-btn-outline-light`, `/ai-fundraising`
+  "Create Manually") were the same shape: the gradient beneath measured 5.28:1; the white
+  overlay was what broke it. Changed to `rgba(0,0,0,.12)`.
+- **`background-clip: text` is not text-on-a-gradient** — it is gradient-*coloured* text.
+  The audit was reporting 2.46:1 on `/features` hero for it. Now the walker skips past to
+  the real backdrop and ignores `-webkit-text-fill-color: transparent` nodes. That alone
+  removed 13 of 79 findings as false.
+- **The recurring true bug is a brand FILL token used as TEXT.** Last finding of the whole
+  sweep: `.home-hero-trust strong` → `var(--h-green)` (#12a653) at 14px on the near-white
+  hero = **3.06:1**. Fixed by pointing at `--green-text`, the accent-as-text pair that
+  already existed for exactly this. Same class as `--red`/`--green` on the grants and
+  volunteer chips, and as `Btn variant="primary"` before `--green-btn`.
+
+**Measure the reference, don't estimate it.** I computed one alpha fix against white when
+its backdrop was dark and got a number that was wrong in the safe direction by luck
+(`.about-hero-scroll-hint` .3 → 2.56:1 real, not the value I first wrote; .5 → 5.11:1).
 
 ## 🔴 THE A11Y "0 VIOLATIONS" CLAIM IS VACUOUS FOR DATA-BACKED SECTIONS (Claude, 2026-07-27)
 
