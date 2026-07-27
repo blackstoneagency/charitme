@@ -6768,6 +6768,34 @@ non-vacuous both ways: dropping the demo check (which would rename real grants) 
 
 ## ✅ MOBILE REGRESSION CAUGHT + FIXED — `/ai-fundraising` (2026-07-27)
 
+## ✅ FULL AUDIT SUITE RUN LOCALLY — all clean (2026-07-27)
+
+Ran the repo's **own** `scripts/audit-*.mjs` suite against a local production build
+(these are the guards that CI can't run). Every one passes, and each covers more ground
+than the ad-hoc harnesses I'd been writing:
+
+| audit | scope | result |
+|---|---|---|
+| `audit:contrast` | 37 pages × 2 themes, **7,338 text elements** | ✅ 0 AA failures |
+| `audit:responsive` | 37 pages × 3 viewports × 2 themes | ✅ 0 regressions |
+| `audit:web-vitals` | 37 routes, **LCP/CLS/INP** | ✅ **37/37 within budget** — LCP 88–116 ms, CLS **0**, INP **0** |
+| `audit:scroll-keyboard` | 44 page loads | ✅ 0 keyboard-unreachable scrollable regions |
+| `audit:image-dupes` | **500 campaign covers, perceptual hash** | ✅ 0 exact, **0 near-duplicates** (Hamming ≤ 5) |
+
+**This supersedes several weaker claims made earlier in this file**, and does so with the
+project's real tooling rather than a hand-rolled sweep:
+- *Performance*: CWV measured directly (LCP/CLS/INP), not just server TTFB.
+- *Images*: **binary/perceptual** comparison of all 500 covers, not URL-string matching
+  across 4 pages — this is what actually proves "0 duplicates".
+- *Accessibility*: 37 pages in **both** themes, versus 22–27 in one.
+
+**Invocation note (cost me a false failure):** `audit-web-vitals.mjs` and
+`audit-scroll-keyboard.mjs` read `PLAYWRIGHT_CHROMIUM_PATH`, while `audit-contrast.mjs`
+and `audit-responsive.mjs` hardcode `/opt/pw-browsers/chromium`. Without the env var the
+first two abort with "Please run npx playwright install", which looks like a broken
+script and isn't. Run them as:
+`PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run audit:web-vitals -- --base http://localhost:PORT`
+
 ## ✅ LIGHT-MODE AUDIT — the dark-default sweep was hiding a real failure (2026-07-27)
 
 **✅ CROSS-VALIDATED by the repo's own audit scripts (2026-07-27).** After both fixes,
