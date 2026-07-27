@@ -6000,6 +6000,15 @@ commands above.
 
 ## 🔓 CLAIM RELEASED — fabricated trust badges suppressed at the READ layer ✅
 
+> **✅ CONFIRMED LIVE ON PRODUCTION (2026-07-27), post-merge:** `/grants` "Verified"
+> badges **48 → 0**; `/volunteer` **0**. That second number is the proof the marker
+> choice mattered — `volunteer_opportunities` has no `source` column, so a
+> source-only check would have left every volunteer badge standing.
+> **Unchanged, as designed:** "Ford Foundation" ×52 and "Seed Grant" ×96 are still
+> served — suppression removes the false *badge*, not the false *attribution*.
+> The cleanup SQL below is still the owner's to run.
+
+
 > **DONE — area is FREE.** Complements the seed-source fix below, which governs
 > *future* runs only. Re-confirmed live before starting: `/grants` served **52
 > "Ford Foundation"**, **44 "City of Austin"**, **48 "Verified"** and **96 "Seed
