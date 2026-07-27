@@ -4106,7 +4106,7 @@ a.task-row:hover .task-row-dot { border-color: #6c35ff; }
 .aif-showcase-bar > div { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--aif-purple), var(--aif-pink)); }
 .aif-showcase-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; }
 .aif-showcase-meta strong { font-weight: 950; color: #14193b; }
-.aif-showcase-meta span { color: #94a3b8; flex: 1; }
+.aif-showcase-meta span { color: var(--t3); flex: 1; } /* #94a3b8 was 2.56:1 on white (AA fail, WCAG 1.4.3); --t3 measures 5.67:1 in light and is what the dark override at the bottom of this file already uses */
 .aif-showcase-meta b { color: var(--aif-purple); font-weight: 950; }
 
 /* AI tools grid (6 cards, 3-col) */
