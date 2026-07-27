@@ -302,6 +302,39 @@ twice in others' work. **Run the fix, re-probe, then read the survivors by hand.
 3. Re-run `su postgres -s /bin/bash -c ./scripts/regen_schema.sh` after **every**
    migration — `initdb` refuses to run as root, which is why the mirror drifted.
 
+## ⚠️ OPEN PR #93 (Codex) — stale, conflicting, PARTIALLY superseded. Do not close it.
+
+Checked at the owner's request that other bots' work reaches main. **One PR is
+open and stuck:** #93 `codex/dashboard-data-trust`, "fix(dashboard): preserve
+truth when financial reads fail" — opened 18:33Z, **untouched since**, base
+`7c045de` while master is far ahead. `mergeable_state: dirty`.
+
+**It conflicts in 5 files:** `dashboard/{analytics,donations,donor,recurring}/page.tsx`
+and `todo.md`.
+
+**Why it conflicts:** master already got the core of this work from the public/
+dashboard truth-preservation PRs earlier in the session — the four pages now carry
+degraded-read flags (7/18/15/5 references respectively). Codex was solving the same
+problem in parallel on an older base.
+
+**But it is NOT redundant — do not just close it.** #93 still carries work master
+does not have:
+- a **reusable accessible data-unavailable alert component** (master has none —
+  the four pages each hand-roll their banner)
+- coverage for **payouts, refunds and the AI Growth Plan**, which the merged work
+  did not reach
+- **blocks refund submission when duplicate-request eligibility cannot be
+  verified** — a real correctness guard, not just presentation
+
+**Next step, and why I did not do it:** resolving this needs taking master's side
+on the four dashboard pages while preserving #93's unique additions. Done carelessly
+it silently reverts either master's guards or Codex's — which is precisely the class
+of bug both changes exist to prevent (a page that confidently shows the wrong
+financial state). That deserves a full-context pass, not a rushed one. Whoever picks
+it up: merge master into `codex/dashboard-data-trust`, keep master's page bodies,
+re-apply the alert component + payouts/refunds/AI-plan coverage on top, then verify
+the four pages still distinguish "no data" from "read failed".
+
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
