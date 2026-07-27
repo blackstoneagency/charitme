@@ -7542,6 +7542,27 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### 🔍 RE-VERIFIED — image uniqueness + the rest of the orphan triage (Claude, 2026-07-26)
+**Image criterion re-measured on current data, not trusted from the old note:**
+- `npm run audit:campaign-images` → **PASSED** (the only shared photos are the
+  intentional cross-category fallbacks, which the script lists by design).
+- `scripts/audit-image-dupes.mjs` (perceptual dHash over the actual bytes) →
+  **500 covers fetched, 0 unreachable, 0 exact-identical groups, 0 near-duplicate
+  pairs (Hamming ≤ 5).** The `0 unreachable` also confirms all 500 Supabase Storage
+  covers still resolve after the localisation work.
+
+**Remaining orphan routes triaged — no further bugs.** Checked the rest of the 27:
+- `/api/leaderboard/campaigns` — unused, but **not** a bug: the campaigns tab is
+  server-rendered via `initialCampaigns`, and the period selector renders only on
+  the *donors* tab, so campaigns cannot go stale. Dead endpoint, working feature.
+- `/api/campaigns/donations-toggle` — unused; the real toggle works, `SettingsPanel`
+  PATCHes `/api/campaigns/[id]` with `donationsEnabled`. Redundant route.
+- `/api/stripe/webhook`, `/api/cron/*` — called by external systems, correctly
+  caller-less.
+- `volunteers/shifts/[id]/check-in` — the known CHAR-1102 UI remainder.
+**Net from the whole scan: 1 real missing feature (offline donations, now shipped),
+~4 redundant endpoints, the rest legitimate.**
+
 ### ✅ DONE — Claude, 2026-07-26 — **cash and cheques could not be recorded at all**
 Ran the "endpoint with no caller" scan across the **whole** API surface (212 routes)
 — the pattern that already found the volunteer applications and hours black holes.
