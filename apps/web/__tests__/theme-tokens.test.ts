@@ -142,3 +142,63 @@ describe('--violet-ink adaptive token', () => {
     expect(count, 'globals.css must define --violet-ink in both :root and [data-theme="dark"]').toBeGreaterThanOrEqual(2);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin is excluded from the guard above as "intentionally light-only". That is
+// only safe while it is CONSISTENTLY light: nothing scopes admin out of the
+// theme (there is no data-theme override in app/admin/layout.tsx or the shell),
+// so `<html data-theme="dark">` applies there too. A file that mixes the modes —
+// an adaptive text token inside a hardcoded-light container — renders near-white
+// on white. app/admin/setup/page.tsx did exactly that and measured ~1.1:1, i.e.
+// invisible, on the health-check page an operator opens when something is wrong.
+//
+// The naive version of this check ("file has #fff AND has var(--t…)") was
+// rejected: it false-positived on 2 of its 4 hits, because the `#fff` in
+// super/settings and super/flags is a 20x20 TOGGLE KNOB, not a text container.
+// A guard that is wrong half the time gets ignored. The discriminator below is
+// what separates them, and it is exact on all four known cases: card-like
+// containers carry padding/borderRadius and no fixed `width:`; knobs carry
+// `width: 20, height: 20`.
+// ─────────────────────────────────────────────────────────────────────────────
+const ADMIN_DIR = join(APP_DIR, 'admin');
+
+/** A bare light background on something container-shaped (not a small decoration). */
+function isLightContainerBackground(line: string): boolean {
+  if (!/background:\s*['"]#(?:fff|ffffff)['"]/i.test(line)) return false;
+  // Fixed pixel width => a knob/dot/decoration, not a surface that wraps text.
+  if (/\bwidth:\s*\d+\b/.test(line)) return false;
+  return true;
+}
+
+describe('admin stays consistently light (no mixed-mode invisible text)', () => {
+  const adminFiles = walk(ADMIN_DIR);
+
+  it('finds admin files to check', () => {
+    expect(adminFiles.length).toBeGreaterThan(10);
+  });
+
+  it('no admin file pairs a hardcoded-light container with adaptive text tokens', () => {
+    const offenders: string[] = [];
+    for (const file of adminFiles) {
+      const src = readFileSync(file, 'utf8');
+      if (ALLOW.test(src)) continue;
+      const hasAdaptiveText = /color:\s*['"]var\(--t[1-4]\)/.test(src);
+      if (!hasAdaptiveText) continue; // consistently hardcoded — fine, stays light
+      const bad = src
+        .split('\n')
+        .map((line, i) => ({ line, i }))
+        .filter(({ line }) => isLightContainerBackground(line));
+      for (const { i } of bad) {
+        offenders.push(`${file.split(`${sep}app${sep}`)[1]}:${i + 1}`);
+      }
+    }
+    expect(
+      offenders,
+      'Admin file mixes a hardcoded-light container with adaptive var(--t…) text. ' +
+        'In dark mode the text flips to near-white and the container does not, so the ' +
+        'content becomes invisible. Either make the container adaptive (var(--s1, #fff)) ' +
+        'or pin the text to the light palette so the page stays consistently light:\n' +
+        offenders.join('\n'),
+    ).toEqual([]);
+  });
+});

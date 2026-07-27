@@ -9389,3 +9389,29 @@ migration set is still coherent after this session's renumbering:
 
 Swept the rest of the open items for the same drift — no other one references a PR
 or merge that has since completed.
+
+### ✅ DONE — admin mixed-mode guard, with the false-positive problem solved (Claude, 2026-07-27)
+Earlier this session I fixed admin's invisible-text bug but **declined to add a
+regression guard**, because the obvious one false-positived on 2 of its 4 hits. That
+was the right call then; this closes it properly rather than leaving the hole.
+
+**The discriminator.** The naive check ("admin file contains `#fff` AND
+`color: 'var(--t…)'`") cannot tell a text container from a decoration — the `#fff`
+in `super/settings` and `super/flags` is a **20×20 toggle knob**. Card-like
+containers carry `padding`/`borderRadius` and **no fixed `width:`**; knobs carry
+`width: 20, height: 20`. Ignoring any light background whose style object declares a
+fixed pixel width separates them **exactly on all four known cases**.
+
+**Verified non-vacuous in both directions**, which is the part that matters:
+- **Catches the real bug:** reverted `admin/setup/page.tsx` to the bare `#fff` that
+  actually shipped → guard fails, naming `admin/setup/page.tsx:152` precisely.
+- **Ignores the decoration:** planted a `width: 20 … background: '#fff'` knob into a
+  file that *does* use adaptive text → guard stays green. The naive version flagged
+  exactly this.
+
+Note what the guard encodes: admin may be light-only, but it must be **consistently**
+light. It only fires on files that use adaptive `var(--t…)` text — a file that is
+uniformly hardcoded (like `trust-safety`, 22 hardcoded colours) is left alone, since
+darkening it would break far more than it fixed.
+
+`theme-tokens.test.ts` 7/7 · full suite **1638/1638 across 146 files** · typecheck 0.
