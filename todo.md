@@ -6770,6 +6770,24 @@ non-vacuous both ways: dropping the demo check (which would rename real grants) 
 
 ## ✅ LIGHT-MODE AUDIT — the dark-default sweep was hiding a real failure (2026-07-27)
 
+**Follow-up: the guard for this already exists — and never runs.**
+`e2e/accessibility.spec.ts` runs axe over every public route in **both themes**, and
+even documents the same `addInitScript`/ThemeProvider-overwrite gotcha independently.
+So the structural protection is written. But it is a **Playwright e2e test**, and the
+`e2e (playwright)` job is one of the two that dies in seconds on every commit — so it
+has never actually executed. That is why a light-mode contrast bug survived to
+production despite a test existing that would catch it.
+
+**This is the real cost of the dead CI**, beyond red badges: the repo's own guards are
+inert. Static `vitest` guards still protect (they run locally and are cheap to invoke),
+but anything behind Playwright is currently decorative. I could not get the spec to run
+here either — it drives its own `webServer` on :3000 and exited without output — so the
+verification in this session came from a standalone harness instead.
+
+**Practical consequence for other agents:** do not assume `e2e/*.spec.ts` coverage means
+a regression will be caught. Until Actions billing is restored, treat every Playwright
+assertion as unverified and re-check by hand.
+
 **The site ships dark by default**, so every axe run so far — mine and the earlier
 merged ones — only ever exercised the **dark** palette. Forcing light across 22 routes
 found a genuine light-only bug on `/ai-fundraising`:
