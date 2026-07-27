@@ -47,3 +47,21 @@ describe('donation routes honour accept_donations', () => {
     });
   }
 });
+
+describe('inactive payment methods are normalised, not rejected', () => {
+  const src = readFileSync(join(here, '../app/api/donations/route.ts'), 'utf8');
+
+  it('remaps paypal/venmo to a method Checkout actually offers', () => {
+    // METHOD_FEES prices paypal at 3.49%+$0.49 and venmo at 1.9%+$0.10, but
+    // neither is in ONE_TIME_PAYMENT_METHOD_TYPES, so such a donor pays by card
+    // regardless. Quoting them a rate they cannot use misstates the fee.
+    expect(src).toMatch(/requestedMethod === 'paypal' \|\| requestedMethod === 'venmo'/);
+    expect(src).toMatch(/\?\s*'card'/);
+  });
+
+  it('does not reject them with a 400', () => {
+    // A stale cached client sending 'paypal' should still be able to donate; an
+    // error would turn a real donation attempt into a lost one.
+    expect(src).not.toMatch(/paypal[\s\S]{0,120}status: 400/);
+  });
+});

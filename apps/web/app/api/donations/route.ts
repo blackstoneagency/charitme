@@ -98,7 +98,22 @@ export async function POST(request: NextRequest) {
     subscribeToUpdates,
   } = parsed.data;
 
-  const paymentMethod: PaymentMethod = parsed.data.paymentMethod ?? 'stripe';
+  // Normalise to a method Checkout actually offers, so the processing fee the
+  // donor is quoted matches what they will really pay with.
+  //
+  // METHOD_FEES prices paypal at 3.49%+$0.49 and venmo at 1.9%+$0.10, but neither
+  // is in ONE_TIME_PAYMENT_METHOD_TYPES — the account has paypal_payments
+  // inactive (see lib/stripe-payment-methods.ts) — so such a donor is routed to
+  // card regardless. The current UI offers only stripe/gpay/bank/card, so this is
+  // unreachable from the app today; it protects against a stale cached client or a
+  // hand-crafted POST quoting itself a rate it cannot use.
+  //
+  // These are REMAPPED rather than REJECTED on purpose: a 400 here would turn a
+  // real donation attempt into an error, which is a worse outcome than a fee
+  // rounding difference.
+  const requestedMethod: PaymentMethod = parsed.data.paymentMethod ?? 'stripe';
+  const paymentMethod: PaymentMethod =
+    requestedMethod === 'paypal' || requestedMethod === 'venmo' ? 'card' : requestedMethod;
   // An exact custom support amount is authoritative; otherwise derive it from the
   // chosen tier percentage. Either way the charge below is built from tipCents,
   // so what the donor was shown is exactly what the card is charged.

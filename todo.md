@@ -638,11 +638,16 @@ that *"paypal_payments and affirm_payments are NOT active"*. Reading `PAY_OPTION
 settled it; reasoning from the fee table alone pointed at a much bigger problem
 than exists.
 
-_Minor hardening, recorded not fixed:_ the zod schema still accepts `'paypal'` and
-`'venmo'`, which the UI never sends. A hand-crafted POST could quote itself venmo's
-1.9% while paying by card — the effect is the **platform absorbs a smaller fee**,
-not donor harm, and it needs deliberate API manipulation. Worth tightening the enum
-to the four live methods when someone touches this file; not urgent.
+**✅ NOW HARDENED — and deliberately NOT by tightening the enum.** I first recorded
+this as "narrow the zod enum to the four live methods". On second look that fix is
+**worse than the bug**: rejecting `'paypal'` would 400 a request from any stale
+cached client, turning a **real donation attempt into an error**. Losing a donation
+to avoid a fee-rounding difference is a bad trade.
+
+Instead the route **normalises** `paypal`/`venmo` → `card` before computing the fee,
+so the quoted processing fee matches the method Checkout will actually use. Nobody
+is rejected, and nobody is quoted a rate they cannot pay with. 2 tests, verified
+non-vacuous.
 
 **🟠 FIXED — a failed count query rendered as a confident "0".**
 Swept the pattern behind the last three fixes: *a displayed number that means
