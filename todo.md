@@ -6693,7 +6693,10 @@ the anon+cookies client so Postgres enforces ownership).
 - [x] Added the Banner text editor immediately after Live preview and wired its validated values through the super-admin API, Supabase row, cached root layout, and public banner renderer.
 - [x] Ran the migration against the live schema inside a rollback-only transaction: show/hide, copy persistence, safe link, and revision increments passed; a post-rollback REST probe confirmed no production change remained.
 - [x] Verified focused banner tests 15/15, zero-warning lint, typecheck, all 1,163 tests, and the 149-page production build.
-- [ ] Merge through the protected-main PR, apply the verified migration in the release workflow, and confirm the production Save/show/hide/text flow.
+- [~] **Merge DONE (PR #74, merged 2026-07-26 13:24Z).** The remaining half is
+  owner-side and unchanged: apply the verified migration in the release workflow,
+  then confirm the production Save/show/hide/text flow. Split out because reading
+  this as "not merged" invites someone to redo work that already landed.
 
 ## Session 2026-07-26 (Codex - full SQL/live Supabase reconciliation)
 - [x] Inventoried all 104 SQL files: 87 migrations, 2 rollbacks, 11 seed files, and 4 schema/recovery/generator artifacts.
@@ -6702,7 +6705,11 @@ the anon+cookies client so Postgres enforces ownership).
 - [x] Added migration coverage for six live tables that previously existed only out of band.
 - [x] Added a test that rejects duplicate/invalid migration versions and PostgREST table usage without migration coverage.
 - [x] Verified the exact nine-migration pending set against live Supabase in a rollback-only transaction with postcondition checks.
-- [ ] Merge PR #74, baseline the 78 verified historical versions, apply the nine pending versions, and rerun the live 150-table/catalog audit.
+- [~] **Merge DONE (PR #74, merged 2026-07-26 13:24Z — verified via the GitHub API,
+  `merged: true`).** Still open, and all of it needs a live database the sandbox
+  cannot reach (403 on CONNECT to `*.supabase.co`): baseline the 78 verified
+  historical versions, apply the nine pending versions in order, and rerun the live
+  150-table/catalog audit.
 
 ## 🔒 CLAIM — Session 2026-07-25 (Claude — production-readiness sweep)
 
@@ -9282,3 +9289,27 @@ contrast sweep (`scripts/audit-contrast.mjs`) pointed at admin routes, which nee
 session — i.e. it lands with the signed-in audit, not before.
 
 Verified: typecheck 0 · **1625/1625 tests across 145 files**.
+
+### ✅ DONE — todo hygiene: two items claimed work was unmerged when it had landed (Claude, 2026-07-27)
+Audited the open checkboxes for items whose state had drifted from reality.
+
+**Two of the 18 were lying about merge status.** Both Codex sessions ended with
+`- [ ] Merge PR #74 …` / `- [ ] Merge through the protected-main PR …`, but **PR #74
+merged on 2026-07-26 13:24Z** — confirmed against the GitHub API (`merged: true`,
+`merged_by`), not inferred. Read literally, those lines tell the next bot the SQL
+reconciliation is still sitting unmerged, which invites re-doing 40 files of work
+that already landed.
+
+Both were split rather than simply ticked, because each bundled a **done** step with
+a genuinely **open** one: the merge happened; baselining the 78 historical versions,
+applying the nine pending migrations, and rerunning the live 150-table audit have
+not, and cannot from here — they need the live database the sandbox is firewalled
+from (403 on CONNECT to `*.supabase.co`). Marking them `[x]` would have been just as
+wrong as leaving them `[ ]`.
+
+Open checkboxes 18 → 16, with the remainder now accurate. Also re-verified the
+migration set is still coherent after this session's renumbering:
+**91 migrations, `migration-integrity` 3/3 green, no duplicate or invalid versions.**
+
+Swept the rest of the open items for the same drift — no other one references a PR
+or merge that has since completed.
