@@ -9143,3 +9143,41 @@ update public.grants set funder_name = 'Cedar Grove Foundation' where funder_nam
 update public.grants set funder_name = 'City of Springfield'    where funder_name = 'City of Austin'   and slug like 'seed-grant-%';
 -- verify: select count(*) from public.grants where slug like 'seed-grant-%' and verified;  -- expect 0
 ```
+
+### ✅ DONE — PR #93 (Codex) landed on master, minus the parts master had outgrown (Claude, 2026-07-26)
+Followed the disposition written above rather than merging or closing #93 blindly.
+Master's four dashboard pages were kept as-is; only #93's genuinely-unique work was
+re-applied on top: **payouts, refunds and the AI Growth Plan** — the three pages the
+earlier truth-preservation sweep never reached, and the ones where a confident zero
+reads worst ("you have been paid $0"; the AI plan additionally *reasons* over the
+numbers, so a failed read produced advice derived from an empty dataset).
+
+**One part of the disposition was out of date and I did NOT follow it.** It said
+master had no shared alert and "the four pages each hand-roll their banner", so #93's
+`DataUnavailableAlert` was unique value. Master has since gained
+`components/DegradedReadNotice.tsx`. Landing #93's component would have left the repo
+with **two near-identical alerts** — the exact duplication this file keeps warning
+about — so the three pages were converted to the existing shared component instead
+(prop shapes differ: `body="…"` → children, with `'` → `&apos;` for the JSX lint).
+
+**Also dropped: #93's `dashboard-data-trust.test.ts`.** It asserted on *source text*
+using Codex's own variable names (`loadFailed`), so it failed against master's
+equivalent naming (`failed`) — a guard that tests spelling, not behaviour. Master's
+`degraded-reads.test.ts` already encodes the same intent naming-agnostically, so the
+three new pages were **added to its `TOTALS_PAGES`** instead. 25 tests pass there,
+and the assertions are demonstrably non-vacuous — the older test failed 8/10 on
+exactly these checks before the conversion.
+
+**Master's guards caught a real defect in the imported code**, which is the argument
+for running the full suite rather than trusting a green PR:
+- `no-dead-controls` — the AI-plan step CTA rendered `<button>Continue</button>` /
+  `<button>Start</button>` with **no handler** whenever the step had no href: a
+  live-looking call-to-action that silently did nothing. Now visibly `disabled`.
+- `migration-integrity` — an uncommitted `20260806000000_demo_data_labeling.sql` in
+  the workspace collided with master's `20260806000000_volunteer_shifts_hours.sql`
+  (two bots picked the same timestamp). The CHAR-1402 demo-labelling work was good
+  and unlanded, so it was **renumbered to `20260808000000`** rather than discarded —
+  `20260807000000` was taken too, by `organizations_multitenancy`.
+
+Verified: typecheck 0 · **1585/1585 tests across 143 files** · lint 0 errors ·
+`next build` exit 0.

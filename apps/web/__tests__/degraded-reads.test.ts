@@ -30,6 +30,14 @@ const TOTALS_PAGES = [
   'app/dashboard/analytics/page.tsx',
   'app/dashboard/donor/page.tsx',
   'app/admin/super/page.tsx',
+  // Added when PR #93's unique coverage was re-applied onto master. The earlier
+  // truth-preservation sweep never reached these three, and they are the pages
+  // where a confident zero is most alarming: payouts ("you have been paid $0"),
+  // refunds, and the AI plan — which additionally *reasons* over the numbers, so
+  // a failed read produced advice derived from an empty dataset.
+  'app/dashboard/payouts/page.tsx',
+  'app/dashboard/refund/page.tsx',
+  'app/dashboard/ai-growth-plan/page.tsx',
 ];
 
 // The notice may be inline or the shared component; both must reach the DOM as a
