@@ -7542,6 +7542,40 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### ✅ DONE — Claude, 2026-07-26 — **cash and cheques could not be recorded at all**
+Ran the "endpoint with no caller" scan across the **whole** API surface (212 routes)
+— the pattern that already found the volunteer applications and hours black holes.
+**27 had no reference outside their own `route.ts`.** Most are legitimate (Stripe
+webhook, cron jobs) but one was a genuinely missing feature:
+
+**`/api/offline-donations` was complete and unreachable.** Auth, ownership, zod
+validation, a durable rate limit — all there, and **nothing in the product called
+it**. An organizer handed cash at an event had no way to get it into the campaign.
+- **The trap that hides it:** the Ledger panel *does* offer an "Offline donation
+  received" item type — but that writes `transparency_ledger_items`, a **public note
+  about** money. It does **not** create a donation, so it never moves
+  `raised_amount` or the backer count. Anyone using it would reasonably assume their
+  total should have changed. It did not.
+- Added `RecordOfflineDonation` to the campaign **Supporters** panel: amount, method
+  (exactly the four the schema allows), date, optional donor name/email/notes.
+  Money is parsed to integer cents via `Math.round(n * 100)` so `12.34` cannot
+  become `1233.9999…`. Failures surface instead of reporting success.
+- 7 tests, including a guard that the endpoint **has a UI caller** and that the UI
+  offers exactly the methods the API validates.
+
+**Other orphans, triaged (not bugs):** `/api/stripe/webhook` and `/api/cron/*` are
+called by external systems. **`/api/contact` is a redundant duplicate** — the contact
+form posts to `/api/support-tickets` (→ `support_cases`, 500 live rows, working);
+`/api/contact` writes `contact_messages`, which has **0 rows**. Left in place rather
+than deleted, but it is an unauthenticated email-adjacent endpoint with no caller and
+is a reasonable removal candidate. `volunteers/shifts/[id]/check-in` has no UI yet —
+that is the known CHAR-1102 remainder.
+
+**⚠️ Correction inside this one:** I briefly thought the **contact form was broken in
+production** because `support_tickets` returned 404. It was not — I had guessed the
+table name from the route name. The route writes `support_cases`, which exists with
+500 rows. **Check the route's actual `.from()` before calling a form broken.**
+
 ### ✅ SECURITY — API authorization audited and now GUARDED (Claude, 2026-07-26)
 Audited every route under `app/api` rather than asserting the posture. **Result is
 clean**, and it is now a test rather than a claim (`__tests__/api-auth-coverage.test.ts`,

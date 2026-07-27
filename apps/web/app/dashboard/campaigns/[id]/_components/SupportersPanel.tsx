@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import RecordOfflineDonation from './RecordOfflineDonation';
 
 /* ── types mirroring /api/campaigns/[id]/supporters ── */
 interface SupporterRow {
@@ -104,6 +105,9 @@ export default function SupportersPanel({
 
   return (
     <div style={{ maxWidth: 1080 }}>
+      {/* /api/offline-donations was fully built and had no caller anywhere, so cash
+          and cheques could not be entered at all. This is that missing surface. */}
+      <RecordOfflineDonation campaignId={campaignId} />
       {showHeading && (
         <>
           <h2 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--t1)' }}>My Supporters</h2>
