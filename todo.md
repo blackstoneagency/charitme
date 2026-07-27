@@ -81,6 +81,56 @@ use, so none of this can be exercised safely without test keys (ADR-0003).
 GitHub Actions allocates no runners, so **CI cannot verify anything** — every gate
 below was run locally, which is currently the only real signal.
 
+## 🔴 SECURITY — `GET /api/admin/sponsors` served unpublished rows to anyone (Claude, 2026-07-27)
+
+**A real disclosure, live in production, found by probing rather than reading.**
+
+`POST`, `PATCH` and `DELETE` on that route all call `verifyAdmin()`. **`GET` had no auth
+check at all**, and it reads through `supabaseAdmin` — service role, RLS bypassed.
+Measured against the live database:
+
+| Endpoint | Anonymous | Rows | Inactive rows |
+|---|---|---|---|
+| `/api/admin/sponsors` | **200** | **50** | **10 exposed** |
+| `/api/sponsors` (public) | 200 | 40 | 0 (correctly withheld) |
+
+The 10 `active: false` rows are deliberately unpublished commercial relationships —
+lapsed, draft or prospective sponsors. Now `401`; public still returns its 40. Verified
+live after the fix.
+
+**Why nothing caught it — two checks that each covered half:**
+- `__tests__/api-auth-coverage.test.ts` scans the **file** for a guard. This file has one
+  (in `POST`), so it passed. *"Contains a guard"* and *"denies access"* are different claims.
+- `e2e/auth-gates.spec.ts` asserts *"protected API routes reject an unauthenticated
+  caller"* — from a **hardcoded sample of two endpoints**, out of ~158.
+
+### New: `npm run audit:api-auth-live` (`scripts/audit-api-auth-live.mjs`)
+Probes **every GET API route** unauthenticated against a running app. GET-only, so it is
+idempotent and safe against a live database. Current result: **118 routes — 75 denied,
+13 public-by-design, 6 redirect, 12 other (405/400/404)**.
+
+### New: `__tests__/api-auth-methods.test.ts`
+Closes the gap statically: under `/api/admin`, **every exported handler** must carry its
+own check, not merely share a file with one. Verified non-vacuous by reverting the fix and
+watching it name `GET /api/admin/sponsors`.
+
+⚠️ **My first version of that test reported 31 unguarded handlers — all false.** Every one
+was an `[id]` route, a shape no real defect has. Cause: for
+`POST(req, { params }: { params: Promise<{ id: string }> })` the brace-matcher landed on
+the **destructuring pattern in the parameter list** instead of the body. It now walks the
+parameter list to its matching `)` first, and a non-vacuity case pins that behaviour. Same
+lesson as the rest of this file: *a scoped grep is not evidence* — the implausible shape of
+the result is what exposed it.
+
+### Remaining, lower severity — 4 admin GETs redirect instead of 401
+`/api/admin/countries`, `/api/admin/nonprofits`, `/api/admin/payments/export`,
+`/api/admin/seed-support` return **307 → /login**. They are *gated* (no data leaks), but a
+`fetch` caller receives HTML and `res.json()` throws, so the UI shows a generic connection
+error instead of "your session expired" — the same wart already fixed on the auctions bid
+route. Not fixed here to keep this commit to the disclosure; **next slice, fully
+non-blocked.** (`/api/auth/signin` and `/api/stripe/connect` also redirect, correctly — they
+are OAuth/Connect entry points.)
+
 ## 🚨 THE E2E A11Y SUITE NEVER AUDITED LIGHT MODE (Claude, 2026-07-27)
 
 **Root cause found for the section below — and it is worse than "data was missing".**
