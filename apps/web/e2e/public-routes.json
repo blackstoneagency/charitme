@@ -142,6 +142,7 @@
       "/dashboard/refund",
       "/dashboard/settings",
       "/dashboard/settings/mfa",
+      "/dashboard/tax",
       "/dashboard/team",
       "/dashboard/updates",
       "/dashboard/updates/new",
@@ -163,7 +164,8 @@
       "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/share",
       "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/supporters",
       "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/thank-donors",
-      "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/updates"
+      "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/updates",
+      "/dashboard/tax/fundraiser/2025"
     ]
   }
 }
