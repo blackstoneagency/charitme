@@ -9247,3 +9247,38 @@ every bot's commits are contained in `master` — is confirmed.
 **Vercel quota partially recovered:** preview deploys are building again (the 24h
 window reset), while **GitHub Actions is still starved** — jobs continue to finish
 in ~2s with `runner_id: 0`. Two independent quotas; one is back, one is not.
+
+### ✅ DONE — admin console: "intentionally light-only" was half true (Claude, 2026-07-27)
+`theme-tokens.test.ts` excludes `admin` as *"intentionally light-only, documented"*.
+Checked whether that assumption actually holds, because I had already disproved one
+just like it (`bg-emerald-600` was assumed safe and measured 3.77:1).
+
+**It does not hold, and nothing scopes admin out of the theme.** There is no
+`data-theme` override in `app/admin/layout.tsx` or the shell, so when a user picks
+dark mode the attribute is on `<html>` and admin inherits it. Two files mix the
+modes — a hardcoded-light container wrapping *adaptive* text:
+
+- **`app/admin/setup/page.tsx` — the real one.** A `<section>` hardcoded to `#fff`
+  wraps rows whose labels use `var(--t1)`. In dark mode `--t1` is `#e2e8f8`, i.e.
+  **near-white text on white, ~1.1:1 — invisible.** This is the setup/health-check
+  page, the screen an operator opens *when something is already wrong*.
+- **`app/admin/trust-safety/page.tsx`** — two `var(--t3)` "showing N of M" labels
+  inside `#fff` cards: ~3:1 in dark. Milder, still under AA.
+
+**The two files needed OPPOSITE fixes**, which is the interesting part:
+- `setup` is mostly adaptive already (3 adaptive text + 1 `var(--s*)` bg + the 1
+  stray `#fff`) → made the container adaptive: `var(--s1, #fff)`.
+- `trust-safety` is deliberately light — **22 hardcoded text colours** vs 2 adaptive.
+  Darkening its background would have made those 22 unreadable, i.e. a much bigger
+  bug than the one being fixed. So the 2 strays were pinned to the light palette
+  (`#64748b`) instead, leaving the page self-consistently light as documented.
+
+**No static regression guard added, deliberately.** The obvious one — "flag any admin
+file with both `background: '#fff'` and `color: 'var(--t…)'`" — is what found these,
+and it **false-positived on 2 of 4 hits**: the `#fff` in `super/settings` and
+`super/flags` is a 20×20 *toggle knob*, not a text container. A guard with a 50%
+false-positive rate trains people to ignore it. The reliable check is the runtime
+contrast sweep (`scripts/audit-contrast.mjs`) pointed at admin routes, which needs a
+session — i.e. it lands with the signed-in audit, not before.
+
+Verified: typecheck 0 · **1625/1625 tests across 145 files**.

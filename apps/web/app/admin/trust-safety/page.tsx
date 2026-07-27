@@ -106,7 +106,7 @@ export default async function TrustSafetyPage() {
           <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8' }}>
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 650 }}>Unresolved Risk Flags</h2>
             {flagsTotal > flags.length ? (
-              <span style={{ fontSize: 12, color: 'var(--t3)' }}>showing {flags.length} of {flagsTotal}</span>
+              <span style={{ fontSize: 12, color: '#64748b' }}>showing {flags.length} of {flagsTotal}</span>
             ) : null}
           </div>
           {flags.length === 0 ? (
@@ -156,7 +156,7 @@ export default async function TrustSafetyPage() {
           <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8' }}>
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 650 }}>Campaign Reports</h2>
             {reportsTotal > reports.length ? (
-              <span style={{ fontSize: 12, color: 'var(--t3)' }}>showing {reports.length} of {reportsTotal} — oldest are not listed</span>
+              <span style={{ fontSize: 12, color: '#64748b' }}>showing {reports.length} of {reportsTotal} — oldest are not listed</span>
             ) : null}
           </div>
           {reports.length === 0 ? (

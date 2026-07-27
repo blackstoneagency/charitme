@@ -149,7 +149,7 @@ export default async function AdminSetupPage() {
         )}
 
         {/* Checks list */}
-        <section style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--b2)', overflow: 'hidden' }}>
+        <section style={{ background: 'var(--s1, #fff)', borderRadius: 14, border: '1px solid var(--b2)', overflow: 'hidden' }}>
           {checks.map((check, i) => {
             const s = STATUS_STYLE[check.status];
             return (
