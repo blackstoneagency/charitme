@@ -7542,6 +7542,46 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### 📊 SEED COVERAGE — the "≥100 records per feature" criterion, measured in full (Claude, 2026-07-26)
+Counted **every one of the 155 declared tables** directly with the service-role key
+(previous checks sampled a few via public list APIs). This replaces "73 non-empty
+tables, every feature ≥100" with an exact, reproducible census:
+
+| Bucket | Count |
+|---|---|
+| ≥100 rows | **68** |
+| 1–99 rows | 14 |
+| empty | 68 |
+| **missing from production** | **5** |
+
+**The 5 missing are exactly the three unapplied migrations** — `organizations`,
+`organization_members`, `brands`, `volunteer_shifts`, `volunteer_hours`. Independent
+confirmation of that blocker, from a different direction.
+
+**The criterion needs reading carefully, because taken literally it is unmeetable —
+and that is correct, not a shortfall.** The 14 in the 1–99 band are **config,
+singleton or telemetry** tables where 100 rows would be wrong:
+`banner_settings` 1 and `platform_settings` 1 are singletons; `admin_settings` 7,
+`feature_flags` 12, `payment_processors` 2 are configuration; `rate_limit_hits` 9,
+`share_events` 6, `campaign_builder_events` 20 are telemetry that accrues with real
+use; `supported_countries` 69 is a real-world list, not a seed target.
+**Possible genuine gap: `sponsors` at 50** — a browse-able list that could plausibly
+want more depth.
+
+**The 68 empty tables split cleanly, which is the useful part:**
+- **52 are runtime tables the app writes** (`campaign_payments`, `donation_receipts`,
+  `beneficiary_invites`, `campaign_wizard_drafts`, `direct_messages`, …). Empty is
+  the *correct* state — they fill through use. **Seeding them would be fabricating
+  activity**, which is precisely what CHAR-1402's demo-data work exists to prevent.
+- **16 have no application code at all** (`auction_items`, `auction_bids`,
+  `livestreams`, `giving_days`, `donor_segments`, `api_keys`, `platform_fees`, …).
+  These are **unbuilt features**, not seed gaps — schema shipped ahead of the
+  feature. Seeding them would make an unbuilt feature look built.
+
+**So the honest status of this criterion: met for every built, user-facing feature;
+the residue is config (correct), runtime tables (correct to be empty), and unbuilt
+features (a product-scope question, not a seeding one).**
+
 ### 🔍 RE-VERIFIED — image uniqueness + the rest of the orphan triage (Claude, 2026-07-26)
 **Image criterion re-measured on current data, not trusted from the old note:**
 - `npm run audit:campaign-images` → **PASSED** (the only shared photos are the
