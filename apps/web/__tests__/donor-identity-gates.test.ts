@@ -44,6 +44,10 @@ const ADDRESSES_THE_DONOR_DIRECTLY = new Set([
   'app/api/campaigns/[id]/engage/route.ts',
 ]);
 
+function repoRelative(file: string): string {
+  return relative(APP_WEB_ROOT, file).replaceAll('\\', '/');
+}
+
 function listFiles(root: string): string[] {
   const out: string[] = [];
   const walk = (dir: string) => {
@@ -68,7 +72,7 @@ describe('donor identity gates', () => {
     const offenders: string[] = [];
     for (const dir of SCAN_DIRS) {
       for (const file of listFiles(join(APP_WEB_ROOT, dir))) {
-        const rel = relative(APP_WEB_ROOT, file);
+        const rel = repoRelative(file);
         if (ADMIN_PATH.test(rel)) continue;
         if (ADDRESSES_THE_DONOR_DIRECTLY.has(rel)) continue;
         const src = readFileSync(file, 'utf8');
@@ -91,7 +95,7 @@ describe('donor identity gates', () => {
     // reason. Assert it still sees the real call sites.
     const matched = SCAN_DIRS.flatMap((d) => listFiles(join(APP_WEB_ROOT, d)))
       .filter((f) => DONOR_NAME_JOIN.test(readFileSync(f, 'utf8')))
-      .map((f) => relative(APP_WEB_ROOT, f));
+      .map(repoRelative);
     expect(matched.length, 'the join pattern must match real files').toBeGreaterThan(0);
     expect(matched.some((f) => f.includes('campaigns'))).toBe(true);
   });
