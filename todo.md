@@ -9791,3 +9791,35 @@ Stop is now `var(--s1, #fff)`; both are clean.
 
 Verified: typecheck 0 · **1646/1646 tests across 147 files** · `next build` exit 0 ·
 sweep exit 0 (37 pages × 2 themes, 0 gating failures).
+
+### ✅ DONE — brand CTAs brought to AA; /login fully clean (Claude, 2026-07-27)
+The 66 gradient findings were parked as "a design decision". On reflection that was
+over-cautious: **the repo had already made this exact decision twice** — `--green-btn`
+(#0b7a3e) and `--violet-ink` both exist because a brand fill failed AA as a button or
+as text, and both are in master. Following the established convention is not a
+unilateral rebrand.
+
+**Fixed, 66 → 51 under `--strict-gradients`:**
+- **`--cta-from` / `--cta-to` tokens.** The primary CTA gradient was pasted inline at
+  8 sites plus 2 CSS classes with no token at all. Its light end `#d63ae7` is 3.74:1
+  under white — this paints "Start Free" / "Start Your Fundraiser". `--cta-to` is
+  `#bd33cd`: the same hue darkened four 3% steps to **4.65:1**. The violet end is
+  untouched (already 5.92:1).
+- **Progress bars deliberately left alone.** A clean discriminator existed in the
+  markup: `135deg` = CTA button (carries white text), `90deg` = progress bar (carries
+  none, so no contrast requirement). Tokenising blindly would have restyled the bars
+  for no accessibility gain.
+- **`/login` is now completely AA-clean** — the page every user passes through.
+  `.auth-kicker`, `.auth-forgot` and the "Sign up" switch used `var(--violet)`, the
+  brand *fill*, as small text (3.17:1); they now use `--violet-ink`, which exists for
+  precisely that. The "Log in" button's gradient ended in `var(--pink)` (3.47:1, in
+  **both** themes) → new `--pink-btn` (#ca36aa, 4.55:1). `--pink` itself is unchanged,
+  since it is used decoratively elsewhere where no text sits on it.
+
+**Remaining 51 are the same shape on other surfaces** (`/contact` #ec39c3, `/fast-payouts`
+greens, `/ai-fundraising`, `/supported-countries` #8b5cf6, `/pricing` slate-500 on dark).
+Each is a small, mechanical token addition following the pattern now established — the
+approach is settled, only the repetition is left.
+
+Verified: typecheck 0 · **1655/1655 tests across 148 files** · `next build` exit 0 ·
+default sweep exit 0.

@@ -63,7 +63,7 @@ export default function FeaturesPage() {
           </p>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 56 }}>
-            <Link href="/create/choose-path" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 52, padding: '0 28px', borderRadius: 14, background: 'linear-gradient(135deg,#6736ff,#d63ae7)', color: '#fff', fontWeight: 900, fontSize: 15, textDecoration: 'none', boxShadow: '0 16px 32px rgba(103,54,255,.4)' }}>
+            <Link href="/create/choose-path" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 52, padding: '0 28px', borderRadius: 14, background: 'linear-gradient(135deg, var(--cta-from, #6736ff), var(--cta-to, #bd33cd))', color: '#fff', fontWeight: 900, fontSize: 15, textDecoration: 'none', boxShadow: '0 16px 32px rgba(103,54,255,.4)' }}>
               Start Free →
             </Link>
             <Link href="/campaigns" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 52, padding: '0 28px', borderRadius: 14, border: '1.5px solid rgba(255,255,255,.2)', color: '#fff', fontWeight: 800, fontSize: 15, textDecoration: 'none', background: 'rgba(255,255,255,.07)' }}>
@@ -234,7 +234,7 @@ export default function FeaturesPage() {
             Join thousands of fundraisers who trust CharitMe&apos;s AI-powered platform.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 14 }}>
-            <Link href="/create/choose-path" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 54, padding: '0 32px', borderRadius: 15, background: 'linear-gradient(135deg,#6736ff,#d63ae7)', color: '#fff', fontWeight: 900, fontSize: 16, textDecoration: 'none', boxShadow: '0 16px 40px rgba(103,54,255,.45)' }}>
+            <Link href="/create/choose-path" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 54, padding: '0 32px', borderRadius: 15, background: 'linear-gradient(135deg, var(--cta-from, #6736ff), var(--cta-to, #bd33cd))', color: '#fff', fontWeight: 900, fontSize: 16, textDecoration: 'none', boxShadow: '0 16px 40px rgba(103,54,255,.45)' }}>
               Start Your Fundraiser Free →
             </Link>
             <Link href="/campaigns" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 54, padding: '0 32px', borderRadius: 15, border: '1.5px solid rgba(255,255,255,.2)', color: '#fff', fontWeight: 800, fontSize: 16, textDecoration: 'none', background: 'rgba(255,255,255,.07)' }}>
