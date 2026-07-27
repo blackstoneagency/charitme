@@ -13,6 +13,52 @@ them can be cleared by another agent** — they are owner/environment actions.
 | 3 | **Sandbox egress is firewalled.** The proxy answers **403 to CONNECT** for non-allowlisted hosts, so `*.supabase.co`, `images.unsplash.com` and `www.charitme.com` are all unreachable (`curl` → `000`). | `$HTTPS_PROXY/__agentproxy/status` → `recentRelayFailures` | **Owner/env** — allowlist, or run the sweeps somewhere with egress |
 | 4 | Consequently: **live seed verification, signed-in dashboard/admin audits, real payment flows, and "is it live on production" cannot be checked from here.** | — | **Owner** |
 
+## ⚠️ CORRECTION (2026-07-27) — egress is NOT fully firewalled, and seeds ARE verifiable
+
+Blocker #3/#4 above overstate the network limits, and acting on them costs real
+capability. Measured just now, from this sandbox:
+
+| target | claimed | actual |
+|---|---|---|
+| `www.charitme.com/api/health`, `/grants` | "cannot check if it's live on production" | **200** — production is fully checkable by curl |
+| `images.unsplash.com/...` | 403 CONNECT-blocked | **200** |
+| `<project>.supabase.co/rest/v1/` | 403 CONNECT-blocked | **401** — the network carries it; the server just wants a key |
+
+A **401 is not a 403**: the request reached Supabase and got an authenticated
+response. With the `NEXT_PUBLIC_SUPABASE_ANON_KEY` already in `.env.local`, PostgREST
+count queries work — so **"live seed verification … cannot be checked from here" is
+false.**
+
+### ✅ SEED COUNTS — verified against the LIVE database (anon key, RLS-enforced)
+
+```
+nonprofit_profiles        740        grants                    180
+campaigns                 350        volunteer_opportunities   180
+matching_programs         240        donations / profiles        0  ← correct, see below
+```
+
+Every seeded feature table is **far above the ≥100 target**, confirmed against production
+rather than inferred from seed files or sitemap counts.
+
+**The two zeros are a security PASS, not missing data.** `donations` and `profiles` return
+0 rows to an anonymous caller because RLS hides them — exactly what should happen. Reading
+them as "empty" would be a serious misdiagnosis.
+
+**Method (reproducible, read-only, least-privilege):**
+```bash
+cd apps/web && set -a && . ./.env.local && set +a
+curl -sI -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
+        -H "Authorization: Bearer $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
+        -H "Prefer: count=exact" -H "Range: 0-0" \
+        "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/campaigns?select=id" | grep -i content-range
+```
+Use the **anon** key, not the service-role key: it is RLS-enforced and read-only, so it
+answers the seeding question without bypassing any protection.
+
+**What remains genuinely blocked:** signed-in dashboard/admin audits (need a session) and
+real payment flows (need Stripe **test** keys). Those are narrower than blockers #3/#4
+imply — and CI/Vercel (#1/#2) are unaffected by any of this.
+
 **The credentials are NOT the blocker — a previous note said they were.**
 `apps/web/.env.local` holds Supabase service-role/access-token/db-password/project-ref,
 Stripe, OpenAI, Resend and Twilio keys. Nobody needs to go hunting for them; the
