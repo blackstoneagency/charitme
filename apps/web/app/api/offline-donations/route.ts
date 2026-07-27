@@ -1,6 +1,7 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { checkRateLimitDurable } from '../../../lib/rate-limit-durable';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 
@@ -29,6 +30,18 @@ export async function POST(request: NextRequest) {
   const parsed = Schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
+  }
+
+  // Offline donations are self-reported by the organizer and feed the PUBLIC
+  // raised_amount via the donations_increment_campaign_stats trigger, so an
+  // unbounded endpoint lets someone manufacture social proof at will. Every
+  // comparable write route here carries a durable limit; this one had none.
+  //
+  // 60/hour is deliberately generous — an organizer keying in cash and cheques
+  // after a fundraising event must never be blocked — while still stopping a
+  // scripted run from inflating a total.
+  if (!(await checkRateLimitDurable(`offline-donation:${user.id}`, 60, 60 * 60_000))) {
+    return NextResponse.json({ error: 'Too many offline donations recorded. Please try again shortly.', code: 'RATE_LIMITED' }, { status: 429 });
   }
 
   const { campaignId, amountCents, donorName, donorEmail, method, notes, donatedAt } = parsed.data;

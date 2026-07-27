@@ -620,6 +620,30 @@ _Also noted:_ the column is named `campaign_recommendations` but the control is
 labelled *Weekly performance summary*. Those are different features; whichever is
 intended, the other name is misleading.
 
+**🔒 FIXED — offline donations had no rate limit at all.**
+Organizers record cash/cheque gifts via `POST /api/offline-donations`. The route is
+properly **ownership-scoped** (`.eq('user_id', user.id)`, so only your own campaigns)
+and caps a single entry at **$100,000** — but had **zero** rate limiting, while every
+comparable write route in this codebase carries a durable one.
+
+That matters because these rows feed the **public `raised_amount`** through the
+`donations_increment_campaign_stats` trigger. An unbounded endpoint lets someone
+manufacture social proof at will — and a large "raised" figure is exactly what
+persuades real donors to give.
+
+Added a durable **60/hour per user** limit. Deliberately generous: an organizer
+keying in cash and cheques after a fundraising event must never be blocked, which is
+the same "don't fail closed on a legitimate user" reasoning that made *normalising*
+better than *rejecting* for payment methods.
+
+**⚖️ RECORDED, NOT DECIDED — offline gifts are indistinguishable to donors.**
+Nothing surfaces the `offline` flag publicly, so a campaign's raised total blends
+**verified Stripe money** with **self-reported** entries with no visible difference.
+Counting offline donations toward a total is normal for the category (GoFundMe does
+it), so this is **not** obviously a bug — but whether donors should be able to tell
+is a trust/product call, not mine to make unilaterally. Flagging because the raised
+figure is the single most persuasive number on the page.
+
 **✅ AUDITED CLEAN — payment methods (goal criterion: "all payment methods work").**
 Chased a suspected money bug and it **is not one** — the fee a donor is quoted does
 match the method they can actually pay with.
