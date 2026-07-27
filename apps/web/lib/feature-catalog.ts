@@ -262,17 +262,66 @@ export function getPlatformModule(slug: string) {
   return PLATFORM_MODULES.find((module) => module.slug === slug);
 }
 
+/**
+ * A feature is BUILT only when it is not itself `planned` and its module is not
+ * wholly `Planned`. Both markers already exist precisely because the thing is not
+ * built — Auctions has no route, API or UI, and the memberships and
+ * creator-commerce modules have 100% of their declared tables unwired.
+ */
+export function isFeatureBuilt(platformModule: PlatformModule, feature: PlatformFeature): boolean {
+  return platformModule.status !== 'Planned' && feature.planned !== true;
+}
+
+/**
+ * Competitive coverage, counted honestly.
+ *
+ * This used to return a single `count` per competitor that included planned
+ * features and whole planned modules, and /features rendered it under a
+ * hardcoded green "✓ Full parity" badge. So the PUBLIC page claimed full parity
+ * with Givebutter while counting Auctions — which the catalog itself marks as
+ * not built — toward that claim, and claimed parity for competitors whose entire
+ * module (memberships, creator-commerce) is unwired.
+ *
+ * `total` is what is mapped, `built` is what actually ships, and `fullParity` is
+ * true only when they agree. A parity claim is a competitive statement made to
+ * visitors, so it is exactly the wrong place to round up.
+ */
 export function getFeatureCoverage() {
-  const competitors = new Map<string, number>();
+  const totals = new Map<string, number>();
+  const built = new Map<string, number>();
   for (const platformModule of PLATFORM_MODULES) {
     for (const feature of platformModule.features) {
-      competitors.set(feature.competitor, (competitors.get(feature.competitor) ?? 0) + 1);
+      totals.set(feature.competitor, (totals.get(feature.competitor) ?? 0) + 1);
+      if (isFeatureBuilt(platformModule, feature)) {
+        built.set(feature.competitor, (built.get(feature.competitor) ?? 0) + 1);
+      }
     }
   }
 
+  const competitors = Array.from(totals.entries()).map(([name, total]) => {
+    const builtCount = built.get(name) ?? 0;
+    return {
+      name,
+      /** Retained for existing callers: the number MAPPED, not the number built. */
+      count: total,
+      total,
+      built: builtCount,
+      planned: total - builtCount,
+      fullParity: builtCount === total,
+    };
+  });
+
+  const builtFeatureCount = PLATFORM_MODULES.reduce(
+    (sum, m) => sum + m.features.filter((f) => isFeatureBuilt(m, f)).length,
+    0,
+  );
+
   return {
     moduleCount: PLATFORM_MODULES.length,
+    /** Every feature tracked for parity, built or not. */
     featureCount: REQUIRED_COMPETITOR_FEATURES.length,
-    competitors: Array.from(competitors.entries()).map(([name, count]) => ({ name, count })),
+    /** The subset that actually ships today. */
+    builtFeatureCount,
+    competitors,
   };
 }

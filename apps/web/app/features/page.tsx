@@ -75,7 +75,7 @@ export default function FeaturesPage() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
             {[
               { value: coverage.moduleCount, label: 'Product modules' },
-              { value: coverage.featureCount, label: 'Mapped features' },
+              { value: coverage.builtFeatureCount, label: 'Features shipped' },
               { value: '0%', label: 'Mandatory platform fee' },
               { value: coverage.competitors.length, label: 'Competitors mapped' },
             ].map(s => (
@@ -179,7 +179,7 @@ export default function FeaturesPage() {
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet-ink, #6c35ff)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Competitive Coverage</span>
             <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 14px' }}>We mapped every competitor</h2>
-            <p style={{ color: 'var(--t3, #64748b)', fontSize: 16, maxWidth: 480, margin: '0 auto' }}>CharitMe has feature parity with all major platforms — and beats them on trust and transparency.</p>
+            <p style={{ color: 'var(--t3, #64748b)', fontSize: 16, maxWidth: 480, margin: '0 auto' }}>Every feature we track against each platform, and how many of them ship today — and we beat them on trust and transparency.</p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, maxWidth: 900, margin: '0 auto' }}>
@@ -192,11 +192,24 @@ export default function FeaturesPage() {
                     <span style={{ width: 10, height: 10, borderRadius: '50%', background: accent, flexShrink: 0 }} />
                     <span style={{ fontSize: 15, fontWeight: 900, color: 'var(--t1, #0e0520)' }}>{competitor.name}</span>
                   </div>
-                  <div style={{ fontSize: 26, fontWeight: 950, color: 'var(--t1, #0e0520)', lineHeight: 1 }}>{competitor.count}</div>
-                  <div style={{ fontSize: 12, color: 'var(--t2, #475569)', marginTop: 4, fontWeight: 600 }}>required features covered</div>
-                  <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--green-text, #15803d)' }}>
-                    <span>✓</span> Full parity
+                  <div style={{ fontSize: 26, fontWeight: 950, color: 'var(--t1, #0e0520)', lineHeight: 1 }}>
+                    {competitor.built}
+                    <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--t3, #64748b)' }}>{` / ${competitor.total}`}</span>
                   </div>
+                  <div style={{ fontSize: 12, color: 'var(--t2, #475569)', marginTop: 4, fontWeight: 600 }}>required features shipped</div>
+                  {/* Full parity is a competitive claim made to visitors, so it is
+                      asserted only when every mapped feature actually ships. It used
+                      to be hardcoded, which advertised parity that included features
+                      the catalog itself marks as not built. */}
+                  {competitor.fullParity ? (
+                    <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--green-text, #15803d)' }}>
+                      <span>✓</span> Full parity
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--t3, #64748b)' }}>
+                      <span aria-hidden="true">◐</span> {competitor.planned} in development
+                    </div>
+                  )}
                 </div>
               );
             })}

@@ -49,6 +49,43 @@ use, so none of this can be exercised safely without test keys (ADR-0003).
 GitHub Actions allocates no runners, so **CI cannot verify anything** — every gate
 below was run locally, which is currently the only real signal.
 
+## 🔴 FIXED — /features advertised parity it did not have (Claude, 2026-07-27)
+
+**A public-facing competitive overclaim**, and the most consequential instance of this
+session's recurring defect class — a statistic asserting more than was measured.
+
+`getFeatureCoverage()` counted every mapped feature per competitor, including ones marked
+`planned: true` and every feature of a wholly `status: 'Planned'` module. `/features` then
+printed a **hardcoded green "✓ Full parity"** under each competitor card. The markers were
+already in the catalog *because the things are not built* — the file's own comment says
+Auctions has "no route, API, component or bidding UI anywhere in the app", and memberships
+and creator-commerce have **100% of their declared tables unwired**.
+
+**Measured result — the page claimed full parity with 11 platforms; only 7 have it:**
+
+| Competitor | Shipped / Mapped | Was shown |
+|---|---|---|
+| GoFundMe | **10 / 10** ✅ | ✓ Full parity (correct) |
+| Kickstarter, Indiegogo, Donorbox, Classy, Mightycause, CharitMe | full | ✓ (correct) |
+| Givebutter | 9 / 10 | ✓ Full parity — **counted Auctions, which is unbuilt** |
+| **Patreon** | **0 / 10** | ✓ Full parity — **nothing ships** |
+| **Ko-fi** | **0 / 10** | ✓ Full parity — **nothing ships** |
+| **Buy Me a Coffee** | **0 / 10** | ✓ Full parity — **nothing ships** |
+
+Headline stat was equally inflated: **"105 Mapped features"** where **74 actually ship**.
+
+Now: `built` / `total` / `planned` / `fullParity` per competitor, the badge renders only
+when `built === total` (otherwise "N in development"), cards read "9 / 10 required
+features shipped", and the headline is the **shipped** count. 11 new tests, including that
+`builtFeatureCount < featureCount` so the distinction can never become decorative.
+
+**This also answers the goal criterion directly: GoFundMe parity is 10/10 — genuinely
+complete, and now provable rather than asserted.** The remaining gap to "100% parity with
+all platforms" is the creator-economy tier (Patreon / Ko-fi / Buy Me a Coffee = the
+memberships + creator-commerce modules, 30 features, schema exists, no app code) plus
+Givebutter Auctions. That is a **bounded, non-blocked build backlog** — the first concrete
+scope for the parity criterion, which was previously unbounded.
+
 ## ✅ CLOSED — the `count ?? 0` fail-open register (Claude, 2026-07-27)
 
 The register is now **complete**. supabase-js resolves rather than throws on a query

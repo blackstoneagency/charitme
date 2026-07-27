@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { getFeatureCoverage, PLATFORM_MODULES, REQUIRED_COMPETITOR_FEATURES } from '../lib/feature-catalog';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { getFeatureCoverage, isFeatureBuilt, PLATFORM_MODULES, REQUIRED_COMPETITOR_FEATURES } from '../lib/feature-catalog';
 
 const requiredFeatures = [
   'GoFundMe:Campaign Creation Wizard',
@@ -120,5 +122,76 @@ describe('feature catalog', () => {
     const coverage = getFeatureCoverage();
     expect(coverage.featureCount).toBe(REQUIRED_COMPETITOR_FEATURES.length);
     expect(coverage.competitors.map((competitor) => competitor.name)).toContain('CharitMe');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Competitive coverage is a claim made to the PUBLIC on /features, so it is the
+// wrong place to round up.
+//
+// getFeatureCoverage() used to return one `count` per competitor that included
+// features marked `planned` and features belonging to whole `status: 'Planned'`
+// modules — and the page printed a hardcoded green "✓ Full parity" beneath it.
+// So visitors were told CharitMe had full parity with Givebutter while Auctions
+// (no route, no API, no UI — the catalog says so itself) counted toward it.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('competitive coverage counts only what ships', () => {
+  const coverage = getFeatureCoverage();
+  const byName = new Map(coverage.competitors.map((c) => [c.name, c]));
+
+  it('separates what is mapped from what is built', () => {
+    for (const c of coverage.competitors) {
+      expect(c.built, c.name).toBeLessThanOrEqual(c.total);
+      expect(c.planned, c.name).toBe(c.total - c.built);
+    }
+  });
+
+  it('does not count a planned feature as shipped', () => {
+    // Auctions is Givebutter's, and is explicitly planned.
+    const givebutter = byName.get('Givebutter');
+    expect(givebutter).toBeDefined();
+    expect(givebutter!.built).toBeLessThan(givebutter!.total);
+    expect(givebutter!.fullParity).toBe(false);
+  });
+
+  it('does not count features of a wholly Planned module as shipped', () => {
+    const plannedModules = PLATFORM_MODULES.filter((m) => m.status === 'Planned');
+    expect(plannedModules.length).toBeGreaterThan(0);
+    for (const m of plannedModules) {
+      for (const f of m.features) {
+        expect(isFeatureBuilt(m, f), `${m.slug}:${f.name}`).toBe(false);
+      }
+    }
+  });
+
+  it('claims full parity only when built equals total', () => {
+    for (const c of coverage.competitors) {
+      expect(c.fullParity, c.name).toBe(c.built === c.total);
+    }
+  });
+
+  it('reports a shipped count strictly below the mapped count', () => {
+    // If these were ever equal the distinction would be decorative.
+    expect(coverage.builtFeatureCount).toBeLessThan(coverage.featureCount);
+    expect(coverage.builtFeatureCount).toBeGreaterThan(0);
+  });
+});
+
+describe('the public features page does not hardcode parity', () => {
+  const src = readFileSync(join(__dirname, '../app/features/page.tsx'), 'utf8');
+  const code = src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ');
+
+  it('gates the Full parity badge on the computed flag', () => {
+    expect(code).toContain('competitor.fullParity ?');
+  });
+
+  it('shows shipped-of-mapped rather than a bare total', () => {
+    expect(code).toContain('competitor.built');
+    expect(code).toMatch(/required features shipped/);
+    expect(code).not.toMatch(/\{competitor\.count\}/);
+  });
+
+  it('headlines the shipped count, not the mapped one', () => {
+    expect(code).toContain('coverage.builtFeatureCount');
   });
 });
