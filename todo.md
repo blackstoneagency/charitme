@@ -6364,6 +6364,67 @@ problem.**
 **Verify after any change** with `curl -sI https://www.charitme.com/ | grep -i x-vercel-cache`
 (want `HIT`) and by confirming `○ /` reappears in the build output.
 
+## ✅ VERIFIED (2026-07-27) — production IS current with master, and CI red is NOT your code
+
+### 1. Merged work IS reaching production (not just Preview)
+Checked behaviourally rather than trusting a dashboard: `8e2e2fb` changed `/features`
+in three observable ways and live production matches **all three** — `"Features shipped"`
+present, `"Mapped features"` gone, `"feature parity with all major platforms"` 0 on both
+master and prod. `"Full parity"` still appears and that is *correct*: that commit made it
+conditional (`competitor.fullParity`) rather than deleting it.
+**The merge → production pipeline works.** Vercel's `api-deployments-free-per-day` delays
+a deploy; it does not drop one.
+_Reusable method: pick a merged commit that changes visible copy, then
+`curl -s https://www.charitme.com/<route> | grep -c "<string>"` for the added **and**
+removed strings._
+
+### 2. CI red is an account/runner failure — PROVEN
+- Both jobs die in **2–10 seconds**; a real run (`npm ci` + build + ~1580 tests +
+  Playwright) takes minutes, so the workflow fails **before executing any step**.
+- **Job logs 404** for both (`get_job_logs(run_id, failed_only=true)`).
+- **Decisive:** the same failure hits **`master` itself** — including two
+  **"Add files via upload"** commits, which contain no code logic at all.
+Verify locally instead. Owner fix: **Settings → Billing → Actions**.
+
+## ✅ IMAGE UNIQUENESS — re-verified across production (2026-07-27)
+
+| page | images | distinct | within-page dupes |
+|---|---|---|---|
+| `/` | 15 | 15 | **0** |
+| `/campaigns` | 60 | 60 | **0** |
+| `/leaderboard` | 20 | 20 | **0** |
+| `/success-stories` | 15 | 15 | **0** |
+
+**Two measurement corrections:** (1) scanning `<img src>` alone under-counts —
+`/success-stories` renders covers as CSS `background-image:url(…)`, so a src-only scan
+reports it as imageless; (2) cross-page repeats are **not** duplicates — 96 cover
+references resolve to **66 distinct covers**, the repeats being the same campaign shown
+on home + grid + leaderboard. Cover filenames embed the campaign slug, so distinct
+covers ⇒ distinct campaigns: **no two campaigns share a cover.** One Unsplash editorial
+photo repeats across `/` and `/success-stories` — ordinary design reuse.
+Pages like `/grants`, `/volunteer`, `/events`, `/matching`, `/sponsor`, `/impact` render
+**no content images at all** (text/card listings, logo only), so the criterion does not
+apply there — noted so the absence isn't mistaken for missing coverage.
+
+## ✅ FIXED — a "Production Ready" module advertised a feature with no code (PR #117)
+
+Found while checking the GoFundMe-parity criterion. **Parity result: the catalog reports
+exactly one unbuilt feature (`Auctions`) and ZERO GoFundMe-required features unbuilt** —
+parity against GoFundMe holds in the data.
+
+But that gap leaked into copy: **Nonprofit Growth Suite** (`status: 'Production Ready'`)
+listed *"…events, auctions, reporting…"*, **live on production**. Verified genuinely
+unbuilt rather than stale: `auction_items`/`auction_bids` exist in `schema.sql` and are
+seeded 120 rows each, but **no API, lib or UI** references them.
+
+Fixed the summary and added `__tests__/catalog-honesty.test.ts`: no **shipped-status**
+module may mention a feature the catalog reports unbuilt; no `Production Ready` module
+may have zero built features. (A module whose own status is `Planned` may describe its
+roadmap — the label is right there. My first version of the test missed that distinction
+and wrongly flagged `memberships`.) Verified non-vacuous by restoring the exact live
+string. **Third instance of one root cause: prose drifting from the structured data
+beside it** — prose can't be type-checked, so the catalog now has a test.
+
 ## ✅ FULLY RESOLVED — soft-404 (4 in #63, /campaigns/[slug] here, /donors a non-issue)
 
 **Root cause (proven):** a `loading.tsx` at or above a detail route creates an implicit
