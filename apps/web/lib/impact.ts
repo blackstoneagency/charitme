@@ -1,4 +1,5 @@
 import 'server-only';
+import { unstable_cache } from 'next/cache';
 // ─────────────────────────────────────────────────────────────────────────────
 // Impact tracking — Supabase data access. Pure logic in `impact-core.ts`.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -153,12 +154,29 @@ export async function getImpactBundle(idOrSlug: string, viewerOwns = false): Pro
  * `supabaseAdmin` throws on construction). An empty index is a correct, honest
  * rendering of "no reports to show"; a 500 is not.
  */
+/**
+ * Cached because `/impact` was the slowest public route by an order of magnitude —
+ * **TTFB ~600ms against ~20ms for static pages** (`npm run audit:web-vitals`). The
+ * query is already batched and partly parallel; the cost is three sequential
+ * round-trips to Supabase, which caching removes for everyone but the first caller.
+ *
+ * Safe to cache: this is published, non-personalised, public data. 60s matches the
+ * homepage layer (`lib/home-data.ts`), and the `impact` tag lets a publish bust it.
+ */
+const fetchPublishedImpactSummaries = unstable_cache(
+  async (limit: number): Promise<PublicImpactSummary[]> => {
+    try {
+      return await listPublishedImpactSummariesUncaught(limit);
+    } catch {
+      return [];
+    }
+  },
+  ['public-impact-summaries'],
+  { revalidate: 60, tags: ['impact'] },
+);
+
 export async function listPublishedImpactSummaries(limit = 24): Promise<PublicImpactSummary[]> {
-  try {
-    return await listPublishedImpactSummariesUncaught(limit);
-  } catch {
-    return [];
-  }
+  return fetchPublishedImpactSummaries(limit);
 }
 
 async function listPublishedImpactSummariesUncaught(limit = 24): Promise<PublicImpactSummary[]> {

@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { supabaseAdmin } from '../../lib/supabase';
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 
 export const dynamic = 'force-dynamic';
 
-async function getLiveStats() {
+async function getLiveStatsUncached() {
   try {
     const [donRes, campRes, donorRes] = await Promise.all([
       supabaseAdmin.from('donations').select('amount_cents').eq('status', 'completed'),
@@ -25,6 +26,14 @@ async function getLiveStats() {
     return { totalRaised: 0, activeCamps: 0, uniqueDonors: 0 };
   }
 }
+
+/**
+ * Cached: this is public, non-personalised aggregate data, and it was costing a
+ * Supabase round-trip on every request. `npm run audit:web-vitals` measured these
+ * data-backed pages at 120-600ms TTFB against ~20ms for static ones. 60s matches
+ * the homepage and impact layers; the tag allows an explicit bust.
+ */
+const getLiveStats = unstable_cache(getLiveStatsUncached, ['public-about-stats'], { revalidate: 60, tags: ['about-stats'] });
 
 function fmtBig(cents: number) {
   const d = cents / 100;

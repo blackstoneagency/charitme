@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import type React from 'react';
@@ -78,7 +79,7 @@ function Icon({ name, className = '' }: { name: string; className?: string }) {
   return <svg {...common}>{paths[name]}</svg>;
 }
 
-async function getContactStats() {
+async function getContactStatsUncached() {
   try {
     const [casesCountRes, resolvedRes, activeCampRes, donationsRes] = await Promise.all([
       supabaseAdmin.from('support_cases').select('id', { count: 'exact', head: true }),
@@ -105,6 +106,14 @@ async function getContactStats() {
     return { totalCases: 0, resolvedCases: 0, avgResponseHours: 0, activeCampaigns: 0, donorsHelped: 0 };
   }
 }
+
+/**
+ * Cached: this is public, non-personalised aggregate data, and it was costing a
+ * Supabase round-trip on every request. `npm run audit:web-vitals` measured these
+ * data-backed pages at 120-600ms TTFB against ~20ms for static ones. 60s matches
+ * the homepage and impact layers; the tag allows an explicit bust.
+ */
+const getContactStats = unstable_cache(getContactStatsUncached, ['public-contact-stats'], { revalidate: 60, tags: ['contact-stats'] });
 
 function fmtResponseTime(hours: number): string {
   if (hours <= 0) return '< 24 hrs';

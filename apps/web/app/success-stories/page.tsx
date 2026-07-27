@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import Link from 'next/link';
 import { campaignColumns, applyVisibilityFilters } from '../../lib/campaign-visibility';
 import type { Metadata } from 'next';
@@ -54,7 +55,7 @@ function pct(raised: number, goal: number): number {
  * Measured: this page returned 500 on a cold production build with Supabase
  * unreachable.
  */
-async function getStoryData() {
+async function getStoryDataUncached() {
   try {
     return await getStoryDataUncaught();
   } catch {
@@ -68,6 +69,14 @@ async function getStoryData() {
     };
   }
 }
+
+/**
+ * Cached: this is public, non-personalised aggregate data, and it was costing a
+ * Supabase round-trip on every request. `npm run audit:web-vitals` measured these
+ * data-backed pages at 120-600ms TTFB against ~20ms for static ones. 60s matches
+ * the homepage and impact layers; the tag allows an explicit bust.
+ */
+const getStoryData = unstable_cache(getStoryDataUncached, ['public-success-stories'], { revalidate: 60, tags: ['success-stories'] });
 
 async function getStoryDataUncaught() {
   const cols = await campaignColumns();

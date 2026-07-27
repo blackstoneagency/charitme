@@ -7542,6 +7542,29 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### ✅ DONE — Claude, 2026-07-26 — **the four slowest public pages cached: TTFB up to 12× faster**
+Follow-on from the vitals audit. Most public routes answer in ~20ms; four data-backed
+ones were 6–30× that because each request paid a fresh Supabase round-trip. All four
+serve **public, non-personalised aggregate data**, so they cache cleanly — same
+`unstable_cache` pattern as `lib/home-data.ts` (60s + a bust tag).
+
+| Route | TTFB before | TTFB after |
+|---|---|---|
+| `/impact` | 565–**1720**ms | **143ms** |
+| `/success-stories` | 242ms | **44ms** |
+| `/about-us` | 122–208ms | **38ms** |
+| `/contact` | 178ms | **37ms** |
+| `/pricing` (static control) | 21ms | 21ms — unchanged, as expected |
+
+`/impact` was the worst by far: three *sequential* round-trip phases (plans →
+campaigns → a parallel batch of four). It is already batched, so caching was the
+remaining lever rather than another query rewrite.
+**Noted for scale, not fixed:** `about-us`'s `getLiveStats` does two **unbounded**
+full-table reads (`donations.amount_cents` and `donations.donor_id`, no limit). Fine
+at 740 donations and now cached, but it is O(donations) and will need a DB-side
+`sum()`/`count()` RPC before the table gets large.
+**Re-measured: 37/37 routes within budget.**
+
 ### ✅ DONE — Claude, 2026-07-26 — **CLS 0.225 → 0 on four list pages; per-route perf now gated**
 New `npm run audit:web-vitals` (`scripts/audit-web-vitals.mjs`) measures TTFB / FCP /
 LCP / CLS / long-tasks per public route against budgets and exits 1 on a breach, so
