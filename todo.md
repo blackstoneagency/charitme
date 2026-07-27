@@ -7582,6 +7582,34 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### 📋 FAIL-OPEN REGISTER — every `count ?? 0` classified by direction (Claude, 2026-07-26)
+The three defects above all shared one shape: **`?? 0` / `!error` turning "we could
+not check" into "we checked and it is fine."** So I swept for it: **31 occurrences of
+`X.count ?? 0`, 30 with no error check on `X`.**
+
+**The classification that matters is DIRECTION, not count.** `count ?? 0` is only
+dangerous when zero is the *favourable* answer:
+
+- **DANGEROUS (fixed):** `risk_flag_count` — the score *subtracts* for flags, so 0
+  meant "clean". Fixed above.
+- **SAFE, verified not merely assumed:** the other two in `lib/trust-signals.ts` —
+  `evidence_count` and `prior_campaign_count` **add** points (`+8` / `+3` when > 0,
+  `lib/ai-platform.ts:101,105`). A failed read withholds a bonus and *lowers* the
+  score. Conservative; deliberately left alone. **The trust module is now correct in
+  both directions.**
+- **DISPLAY-ONLY (27):** admin dashboard tiles (`admin/page.tsx` ×7, `admin/users`,
+  `admin/settings`, `admin/support`, `admin/marketing/overview` ×4), the notification
+  badge, the campaign rotator, and the public stat strips on `about-us`/`contact`/
+  home. Wrong-but-cosmetic: they render a confident **0** during an incident. This is
+  the **same class already fixed** for `/dashboard`, `/admin/super` and the other
+  totals pages — the remedy and the pattern to copy are in
+  `__tests__/degraded-reads.test.ts`. **Next agent: this is a well-defined,
+  low-risk, ~12-file task with an existing template.**
+
+**The heuristic worth keeping:** when you see `?? 0` on a database count, ask *"does
+zero help or hurt the subject?"* If zero helps them — no flags, no strikes, no
+expiry — it is a fail-open and needs proof before it is believed.
+
 ### 🛡️ TRUST & SAFETY — the public CharitScore's risk signal failed OPEN (Claude, 2026-07-26)
 Third find from the untested-`lib` sweep, and the same failure *direction* as the
 other two — which is now clearly a pattern in this codebase worth watching for.
