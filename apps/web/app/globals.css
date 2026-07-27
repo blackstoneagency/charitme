@@ -11,6 +11,20 @@
   /* Violet text accent that stays AA (≥4.5:1) on light surfaces (--s1/--s2/#fff)
      and flips to a light violet on dark surfaces. Use for violet body/label text. */
   --violet-ink: #5b21b6;
+  /* CTA gradient stops. The light end is #bd33cd, not the brand's #d63ae7:
+     white text on #d63ae7 measures 3.74:1, an AA miss, and this gradient paints
+     the primary "Start Free" / "Start Your Fundraiser" buttons. #bd33cd is the
+     same hue darkened four 3% steps to 4.65:1 — a subtle shift, not a rebrand,
+     and the same move already made for --green-btn. The violet end is unchanged
+     (#6736ff is already 5.92:1). Progress bars keep the original stops: they
+     carry no text, so they have no contrast requirement. */
+  --cta-from: #6736ff;
+  --cta-to: #bd33cd;
+  /* Button-safe pink. White on --pink (#eb3fc6) is 3.47:1 — an AA miss — and it
+     is the last stop of the .auth-submit gradient, i.e. the "Log in" button.
+     #ca36aa is the same hue at 4.55:1. --pink itself is unchanged: it is used
+     decoratively elsewhere, where no text sits on it. */
+  --pink-btn: #ca36aa;
   --pink: #eb3fc6;
   --soft: #fbfaff;
   /* Page background token. Used as the base surface on many public pages via
@@ -195,8 +209,8 @@ img, video, iframe { max-width: 100%; }
 .kind-hero-cta-grid { display: grid; grid-template-columns: max-content max-content; gap: 18px; margin-top: 28px; }
 .kind-hero-cta-grid .kind-btn { width: 100%; }
 .kind-btn { height: 56px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; border-radius: 17px; padding: 0 31px; font-size: 15px; font-weight: 900; }
-.kind-btn-primary { color: #fff; background: linear-gradient(135deg, #6736ff, #d63ae7); box-shadow: 0 18px 34px rgba(117, 56, 238, .23); }
-.kind-btn-gradient { color: #fff; background: linear-gradient(135deg, #6736ff, #d63ae7); box-shadow: 0 18px 34px rgba(117, 56, 238, .23); }
+.kind-btn-primary { color: #fff; background: linear-gradient(135deg, var(--cta-from), var(--cta-to)); box-shadow: 0 18px 34px rgba(117, 56, 238, .23); }
+.kind-btn-gradient { color: #fff; background: linear-gradient(135deg, var(--cta-from), var(--cta-to)); box-shadow: 0 18px 34px rgba(117, 56, 238, .23); }
 .kind-btn-gradient span { width: 24px; height: 24px; display: grid; place-items: center; border: 2px solid #fff; border-radius: 50%; color: #fff; }
 .kind-btn-secondary { min-width: 215px; border: 1px solid #dbd5f8; background: #fff; box-shadow: 0 12px 26px rgba(58, 42, 118, .08); }
 .kind-btn-secondary span { width: 24px; height: 24px; display: grid; place-items: center; border: 2px solid #7543ff; border-radius: 50%; color: #7543ff; }
@@ -1460,7 +1474,7 @@ img, video, iframe { max-width: 100%; }
 .auth-copy, .auth-card { border: 1px solid var(--line); border-radius: 28px; background: rgba(255,255,255,.88); box-shadow: var(--shadow); }
 .auth-copy { padding: 54px; background: radial-gradient(circle at 74% 22%, rgba(235,63,198,.16), transparent 28%), radial-gradient(circle at 24% 72%, rgba(109,53,255,.14), transparent 34%), #fff; }
 .auth-logo { margin-bottom: 54px; }
-.auth-kicker { color: var(--violet); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin: 0 0 14px; }
+.auth-kicker { color: var(--violet-ink); font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin: 0 0 14px; }
 .auth-copy h1 { margin: 0; font-size: clamp(38px, 5vw, 68px); line-height: .98; letter-spacing: -.04em; color: var(--ink); max-width: 620px; }
 .auth-copy p:not(.auth-kicker) { color: var(--muted); font-size: 17px; line-height: 1.7; max-width: 570px; margin: 22px 0 0; }
 .auth-proof { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 38px; }
@@ -1480,12 +1494,12 @@ img, video, iframe { max-width: 100%; }
 .auth-error, .auth-success { border-radius: 14px; padding: 12px 14px; font-weight: 650; }
 .auth-error { background: #fff0f3; color: var(--red-text) !important; }
 .auth-success { background: var(--green-light); color: var(--green-dark) !important; }
-.auth-submit { border: 0; color: #fff; background: linear-gradient(135deg, var(--violet), var(--violet-2), var(--pink)); box-shadow: 0 16px 30px rgba(109,53,255,.20); }
+.auth-submit { border: 0; color: #fff; background: linear-gradient(135deg, var(--violet), var(--violet-2), var(--pink-btn)); box-shadow: 0 16px 30px rgba(109,53,255,.20); }
 .auth-submit:disabled, .auth-google:disabled, .auth-apple:disabled { opacity: .65; cursor: wait; }
-.auth-forgot { align-self: flex-end; margin-top: -8px; font-size: 12.5px; font-weight: 800; color: var(--violet); text-decoration: none; }
+.auth-forgot { align-self: flex-end; margin-top: -8px; font-size: 12.5px; font-weight: 800; color: var(--violet-ink); text-decoration: none; }
 .auth-forgot:hover { text-decoration: underline; }
 .auth-switch { text-align: center; }
-.auth-switch button { border: 0; background: transparent; color: var(--violet); font-weight: 700; margin-left: 8px; }
+.auth-switch button { border: 0; background: transparent; color: var(--violet-ink); font-weight: 700; margin-left: 8px; }
 
 /* ── Public Campaign Page ── */
 .public-campaign { width: min(1900px, 100%); margin: 0 auto; padding: 34px 42px 48px; color: var(--ink); }
@@ -5088,7 +5102,7 @@ a.task-row:hover .task-row-dot { border-color: #6c35ff; }
 [data-theme="dark"] .auth-separator::before,
 [data-theme="dark"] .auth-separator::after { background: var(--line); }
 [data-theme="dark"] .auth-switch { color: var(--t3); }
-[data-theme="dark"] .auth-switch button { color: var(--violet); }
+[data-theme="dark"] .auth-switch button { color: var(--violet-ink); }
 
 /* ── Public campaign page ── */
 [data-theme="dark"] .public-campaign { color: var(--ink); }
