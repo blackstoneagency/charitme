@@ -9873,3 +9873,31 @@ approach is settled, only the repetition is left.
 
 Verified: typecheck 0 · **1655/1655 tests across 148 files** · `next build` exit 0 ·
 default sweep exit 0.
+
+### ✅ DONE — brand accents to AA, second pass: 66 → 33 (Claude, 2026-07-27)
+Continued the token work. Half of all gradient findings are now gone.
+
+**The dominant class was one colour.** 24 of 51 were white-ish text on `#ec39c3`,
+which appears **13 times in `globals.css`** as the light end of brand gradients —
+including **`.kind-start`, the header CTA on every page**. Ten text-bearing uses now
+resolve through `--pink-btn` (4.55:1). **Three were left vivid on purpose**: the two
+`radial-gradient` orbs and the timeline rule are decorative and carry no text, so
+darkening them would cost brand colour for zero accessibility gain.
+
+**Also darkened, hue preserved, text-bearing gradients only:** `#8b5cf6 → #8357e7`
+(4.23 → 4.69), `#34d399 → #218661` on the green fill (1.92 → 4.52, paired with the
+existing `--green-btn`).
+
+**A finding that corrected my assumption.** `/ai-fundraising` reported 3.48:1 on
+`#c026d3` — but `#c026d3` measured against **pure** white is **4.71:1, already
+passing**. The failure is the *text*: `rgba(255,255,255,0.8)`. Translucent white on a
+saturated fill composites down below AA. So that class is **not** a gradient problem
+and must not be "fixed" by darkening the fill — the text needs to be opaque. Same
+shape on `/fast-payouts` (`0.9`) and `/about-us` (`0.8`). Left for the next pass now
+that the cause is known, because the fix is per-element rather than per-token.
+
+**Remaining 33** are that opacity class plus a few one-offs (`/how-it-works` `#aa53e5`
+→ `#a04ed7` computed, `/pricing` slate-on-dark, `/contact` muted-on-near-white).
+
+Verified: typecheck 0 · **1655/1655 tests across 148 files** · `next build` exit 0 ·
+default sweep exit 0 (findings reported, not gating).
