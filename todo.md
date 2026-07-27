@@ -7582,6 +7582,25 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### 🚨 DONE — Claude, 2026-07-26 — **the support queue reported a false all-clear too**
+Re-checked the rest of the "display-only" register instead of trusting my own triage a
+second time — and found a **fifth** fail-open of the dangerous direction.
+
+`/admin/support` read `count ?? 0` and `data ?? []`, so a failed query rendered
+**"Urgent: 0"** in red and an **empty case list**: a support admin is told nothing
+needs attention at the exact moment the database cannot answer. Zero is the
+favourable answer, so it needs proof.
+
+**Fixed:** all four reads now derive unknown from the error field; unknown counts
+render `—` instead of `0`; and a `role="alert"` states plainly that this is *"not an
+empty queue — the read failed"*. 4 more tests.
+
+**Triage lesson, recorded because I got it wrong twice:** I twice classified a batch
+as "display-only, cosmetic" and twice the batch contained a safety-bearing signal
+(system health, then the urgent-case count). **A stat tile is not automatically
+cosmetic — ask what an operator *does* with the number.** "0 urgent" and "0 webhook
+errors" are both instructions to stand down.
+
 ### 🚨 DONE — Claude, 2026-07-26 — **the admin System Health panel asserted green without measuring**
 Started working the display-only register below and the very first file held a
 **fourth fail-open of the dangerous direction**, not a cosmetic one.

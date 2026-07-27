@@ -70,3 +70,32 @@ describe('the client can render the Unknown state', () => {
     expect(greys.length).toBeGreaterThanOrEqual(2);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The support queue had the same shape. `count ?? 0` and `data ?? []` rendered
+// **"Urgent: 0"** and an empty case list when the reads failed — telling a support
+// admin nothing needs attention at the exact moment the database could not answer.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('the support queue cannot report a false all-clear', () => {
+  const page = read('app/admin/support/page.tsx');
+
+  it('derives unknown from the error field for both counts', () => {
+    expect(page).toMatch(/Boolean\(urgentResult\.error\) \|\| urgentResult\.count == null/);
+    expect(page).toMatch(/Boolean\(resolvedResult\.error\) \|\| resolvedResult\.count == null/);
+  });
+
+  it('treats a failed case-list read as failure, not an empty queue', () => {
+    expect(page).toMatch(/Boolean\(openResult\.error\) \|\| openResult\.data == null/);
+    expect(page).toMatch(/Boolean\(inProgResult\.error\) \|\| inProgResult\.data == null/);
+  });
+
+  it('renders unknown counts as an em dash rather than 0', () => {
+    expect(page).toMatch(/show\(urgentUnknown, urgent\)/);
+    expect(page).toMatch(/show\(openFailed, open\.length\)/);
+  });
+
+  it('warns the operator not to read the queue as clear', () => {
+    expect(page).toContain('role="alert"');
+    expect(page).toMatch(/not an empty queue/);
+  });
+});

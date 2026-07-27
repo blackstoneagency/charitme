@@ -116,10 +116,21 @@ export default async function AdminSupportPage() {
       .in('status', ['open', 'in_progress']),
   ]);
 
+  // `count` is null and `data` is null whenever a query errors, so `?? 0` / `?? []`
+  // reported **"Urgent: 0"** and an empty case list — telling a support admin that
+  // nothing needs attention at the exact moment the database could not answer.
+  // Zero is the favourable answer here, so it needs proof.
+  const openFailed = Boolean(openResult.error) || openResult.data == null;
+  const inProgFailed = Boolean(inProgResult.error) || inProgResult.data == null;
+  const resolvedUnknown = Boolean(resolvedResult.error) || resolvedResult.count == null;
+  const urgentUnknown = Boolean(urgentResult.error) || urgentResult.count == null;
+  const listsFailed = openFailed || inProgFailed;
+
   const open = (openResult.data ?? []) as unknown as SupportCase[];
   const inProg = (inProgResult.data ?? []) as unknown as SupportCase[];
   const resolved = resolvedResult.count ?? 0;
   const urgent = urgentResult.count ?? 0;
+  const show = (unknown: boolean, value: number) => (unknown ? '—' : String(value));
 
   return (
     <CharitMeShell active="Support" mode="admin">
@@ -130,13 +141,29 @@ export default async function AdminSupportPage() {
       />
 
       <div className="kf-admin-dash">
+        {listsFailed && (
+          <div
+            role="alert"
+            style={{
+              margin: '0 0 16px', padding: '14px 16px', borderRadius: 12,
+              background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e',
+            }}
+          >
+            <strong style={{ display: 'block', marginBottom: 4 }}>We couldn&apos;t load the case list</strong>
+            <span style={{ fontSize: 13.5, lineHeight: 1.5 }}>
+              No cases have been lost, and this is not an empty queue — the read failed.
+              Anything showing &ldquo;—&rdquo; is unknown, not zero. Reload before
+              treating the queue as clear.
+            </span>
+          </div>
+        )}
         {/* Summary metrics */}
         <div className="kf-metrics">
           {[
-            { label: 'Open Cases',          value: open.length, color: '#f59e0b' },
-            { label: 'In Progress',          value: inProg.length, color: '#6c35ff' },
-            { label: 'Urgent',               value: urgent, color: '#ef4444' },
-            { label: 'Resolved (all time)',  value: resolved, color: '#19b86a' },
+            { label: 'Open Cases',          value: show(openFailed, open.length), color: '#f59e0b' },
+            { label: 'In Progress',          value: show(inProgFailed, inProg.length), color: '#6c35ff' },
+            { label: 'Urgent',               value: show(urgentUnknown, urgent), color: '#ef4444' },
+            { label: 'Resolved (all time)',  value: show(resolvedUnknown, resolved), color: '#19b86a' },
           ].map(m => (
             <div key={m.label} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '20px 24px' }}>
               <div style={{ fontSize: 28, fontWeight: 700, color: m.color }}>{m.value}</div>
