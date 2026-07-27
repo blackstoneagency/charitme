@@ -57,6 +57,15 @@ export async function buildCampaignTrustInput(campaign: TrustCampaignRow): Promi
 
   const evidenceCount = (evidenceRes.count ?? 0) + (mediaRes.count ?? 0);
 
+  // A failed risk read must NOT read as "no risk flags".
+  //
+  // `riskRes.count ?? 0` gave a campaign with open flags a clean bill of health
+  // whenever the query errored — and the score deducts up to 24 points for flags,
+  // enough to move a campaign from the red/amber band into green on the public
+  // page. Production currently holds 560 open/reviewing flags, so assuming clean
+  // is the wrong default for a trust-and-safety signal.
+  const riskUnavailable = Boolean(riskRes.error) || riskRes.count == null;
+
   return {
     cover_image_url: campaign.cover_image_url,
     tagline: campaign.tagline,
@@ -73,6 +82,7 @@ export async function buildCampaignTrustInput(campaign: TrustCampaignRow): Promi
     account_age_days: accountAgeDays,
     prior_campaign_count: priorRes.count ?? 0,
     admin_review_status: campaign.trust_status === 'Verified' ? 'approved' : undefined,
-    risk_flag_count: riskRes.count ?? 0,
+    risk_flag_count: riskUnavailable ? null : riskRes.count,
+    risk_signal_unavailable: riskUnavailable,
   };
 }

@@ -23,6 +23,8 @@ export type CampaignTrustInput = {
   prior_campaign_count?: number | null;
   admin_review_status?: string | null;
   risk_flag_count?: number | null;
+  /** True when the risk-flag lookup failed, so `risk_flag_count` proves nothing. */
+  risk_signal_unavailable?: boolean;
 };
 
 export const BRAND = {
@@ -104,7 +106,15 @@ export function calculateTrustScore(campaign: CampaignTrustInput): number {
   if (campaign.admin_review_status === 'approved') score += 10;
   if (campaign.status === 'active') score += 4;
 
-  score -= Math.min(24, (campaign.risk_flag_count ?? 0) * 8);
+  // "We could not check" must not score the same as "we checked and it is clean".
+  // When the risk lookup fails we apply the full risk deduction rather than the
+  // clean-bill benefit: briefly under-scoring an honest campaign during a database
+  // blip is a far smaller harm than briefly certifying a flagged one as
+  // trustworthy, and it self-corrects on the next successful read.
+  const RISK_MAX_DEDUCTION = 24;
+  score -= campaign.risk_signal_unavailable
+    ? RISK_MAX_DEDUCTION
+    : Math.min(RISK_MAX_DEDUCTION, (campaign.risk_flag_count ?? 0) * 8);
 
   return Math.max(0, Math.min(99, score));
 }

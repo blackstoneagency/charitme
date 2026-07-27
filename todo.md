@@ -7582,6 +7582,40 @@ a11y/theme gap and it unblocks the moment test credentials exist (same blocker a
 "Signed-in e2e" in the queue above). `scripts/audit-contrast.mjs` takes `--only`,
 so it can be pointed at dashboard routes as soon as a session can be established.
 
+### 🛡️ TRUST & SAFETY — the public CharitScore's risk signal failed OPEN (Claude, 2026-07-26)
+Third find from the untested-`lib` sweep, and the same failure *direction* as the
+other two — which is now clearly a pattern in this codebase worth watching for.
+
+`buildCampaignTrustInput` returned **`risk_flag_count: riskRes.count ?? 0`**, and
+PostgREST returns `count: null` whenever the query errors. So a timeout, an RLS
+denial or a missing table handed a campaign with open risk flags a **clean bill of
+health**. The score deducts up to **24 points** for flags — enough to move a campaign
+out of the red/amber band into **green on the public campaign page**, where the badge
+is colour-coded at ≥70 / ≥45.
+
+**Production holds 560 open/reviewing risk flags**, so "assume clean" is precisely the
+wrong default here.
+
+**Fix.** The builder now distinguishes unknown (`Boolean(riskRes.error) || count ==
+null`) and reports `risk_signal_unavailable`. The scorer applies the **full** risk
+deduction when the signal is unavailable rather than the clean-bill benefit.
+**The judgement, stated plainly:** briefly under-scoring an honest campaign during a
+database blip is a far smaller harm than briefly certifying a flagged one as
+trustworthy, and it self-corrects on the next successful read. A null count *without*
+the unavailable flag still behaves exactly as before, so unrelated callers that pass
+no risk data are unaffected (tested).
+6 tests in `__tests__/trust-risk-signal.test.ts`.
+
+**Test-authoring note:** the first version of that test failed because the score is
+**clamped at 99** and a maximal base sat on the ceiling, hiding an 8-point deduction.
+The code was right; the fixture was wrong. Use a mid-range campaign when asserting
+that a deduction moves the score.
+
+**The untested-`lib` sweep is now complete for the risk-bearing modules** — all three
+(`campaign-visibility`, `entitlements`, `trust-signals`) contained a real fail-open
+defect. The 14 remaining untested modules are external-I/O wrappers
+(`lead-ingestion`, `lead-enrichment`) and trivial type/constant files.
+
 ### 💳 REVENUE — paid entitlements never expired (Claude, 2026-07-26)
 Second find from the untested-`lib` sweep, and the more commercially significant one.
 
