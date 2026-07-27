@@ -141,7 +141,10 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     slug: 'nonprofit-suite',
     title: 'Nonprofit Growth Suite',
     eyebrow: 'Givebutter, Donorbox, Classy, and Mightycause parity',
-    summary: 'Donation forms, recurring giving, CRM, tax receipts, peer-to-peer, team fundraising, events, auctions, reporting, templates, and nonprofit profiles.',
+    // 'auctions' deliberately NOT listed: the catalog marks Auctions planned:true
+    // and there is no auction API, lib or UI — only tables. A 'Production Ready'
+    // module must not advertise a capability this same file says is unbuilt.
+    summary: 'Donation forms, recurring giving, CRM, tax receipts, peer-to-peer, team fundraising, events, reporting, templates, and nonprofit profiles.',
     audience: 'Nonprofits, schools, churches, community groups, and enterprise fundraising teams',
     status: 'Production Ready',
     primaryCta: 'Open nonprofit suite',

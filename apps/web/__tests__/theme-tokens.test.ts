@@ -77,8 +77,6 @@ function hasNearWhiteBackground(line: string): boolean {
   return false;
 }
 
-const HARDCODED_BG_WHITE = /background:\s*['"]#(?:fff|ffffff|fefefe|fdfdff|fbfaff|f8f7ff)['"]/i;
-
 // Hardcoded dark ink used as a text color (dark-on-dark in dark mode).
 const HARDCODED_DARK_TEXT = /color:\s*['"]#(?:1a1a2e|0f1238|0f172a|101944|0f0f30|26335c|334064|334155|27305d)['"]/i;
 

@@ -6267,6 +6267,15 @@ commands above.
 
 ## 🔓 CLAIM RELEASED — fabricated trust badges suppressed at the READ layer ✅
 
+> **✅ CONFIRMED LIVE ON PRODUCTION (2026-07-27), post-merge:** `/grants` "Verified"
+> badges **48 → 0**; `/volunteer` **0**. That second number is the proof the marker
+> choice mattered — `volunteer_opportunities` has no `source` column, so a
+> source-only check would have left every volunteer badge standing.
+> **Unchanged, as designed:** "Ford Foundation" ×52 and "Seed Grant" ×96 are still
+> served — suppression removes the false *badge*, not the false *attribution*.
+> The cleanup SQL below is still the owner's to run.
+
+
 > **DONE — area is FREE.** Complements the seed-source fix below, which governs
 > *future* runs only. Re-confirmed live before starting: `/grants` served **52
 > "Ford Foundation"**, **44 "City of Austin"**, **48 "Verified"** and **96 "Seed
@@ -6621,6 +6630,146 @@ problem.**
 
 **Verify after any change** with `curl -sI https://www.charitme.com/ | grep -i x-vercel-cache`
 (want `HIT`) and by confirming `○ /` reappears in the build output.
+
+## ✅ VERIFIED (2026-07-27) — production IS current with master, and CI red is NOT your code
+
+### 1. Merged work IS reaching production (not just Preview)
+Checked behaviourally rather than trusting a dashboard: `8e2e2fb` changed `/features`
+in three observable ways and live production matches **all three** — `"Features shipped"`
+present, `"Mapped features"` gone, `"feature parity with all major platforms"` 0 on both
+master and prod. `"Full parity"` still appears and that is *correct*: that commit made it
+conditional (`competitor.fullParity`) rather than deleting it.
+**The merge → production pipeline works.** Vercel's `api-deployments-free-per-day` delays
+a deploy; it does not drop one.
+_Reusable method: pick a merged commit that changes visible copy, then
+`curl -s https://www.charitme.com/<route> | grep -c "<string>"` for the added **and**
+removed strings._
+
+### 2. CI red is an account/runner failure — PROVEN
+- Both jobs die in **2–10 seconds**; a real run (`npm ci` + build + ~1580 tests +
+  Playwright) takes minutes, so the workflow fails **before executing any step**.
+- **Job logs 404** for both (`get_job_logs(run_id, failed_only=true)`).
+- **Decisive:** the same failure hits **`master` itself** — including two
+  **"Add files via upload"** commits, which contain no code logic at all.
+Verify locally instead. Owner fix: **Settings → Billing → Actions**.
+
+## ⛔ DELIBERATELY NOT DONE — do NOT extend demo-trust suppression to nonprofits
+
+Checked whether the grants/volunteer suppression should also cover
+`nonprofit_profiles` (seeded rows carry fabricated `verified` + invented EINs like
+`00-0000001`). **It should not**, and the next agent to notice the asymmetry should
+read this before "finishing the job".
+
+Every read of `nonprofit_profiles` was traced. There are three, and none is a public
+badge:
+
+| read | what it is | why suppression would be wrong |
+|---|---|---|
+| `lib/nonprofit-data.ts` → `getNonprofitSummary(ownerId)` | the **signed-in org's own dashboard**, scoped by `owner_id` | an organization looking at its own record must see its *actual* verification status; faking it to `false` would misreport their standing to themselves |
+| `lib/tax-server.ts` | **deductibility gating** for tax receipts | `verified` here is a *business rule*, not a display badge. Forcing it false would silently change who receives a deductible receipt — a tax consequence, not a cosmetic one |
+| `app/api/stripe/webhook` | internal payment handling | not user-facing |
+
+**There is no public nonprofit badge to suppress** — `/nonprofits/[slug]` does not
+exist (it is gated on this same seed-data problem, documented below). So the
+asymmetry with grants/volunteers is correct, not an oversight: those have public
+listing pages that render the badge to donors; nonprofits do not.
+
+**If `/nonprofits/[slug]` is ever built**, it must call `sanitizeDemoRow` (or at
+minimum `suppressDemoTrust`) on its public read — and must *not* route that through
+`tax-server.ts`. The seeded EINs are the other half of that page's gating and are
+untouched by any of this.
+
+## ✅ FIXED — fabricated grants no longer published under real organizations' names
+
+The badge suppression stopped the false *trust signal*; this stops the false
+*attribution*, which is the sharper half.
+
+Production still serves **~52 listings crediting "Ford Foundation"** and **~44
+crediting "City of Austin"**, each attached to an invented "Seed Grant N" programme,
+and `/grants` is in `sitemap.ts` so they are indexed. The seed was fixed in #70 —
+future runs invent funders — but rows already inserted keep the real names.
+
+Publishing a fabricated funding programme under a real foundation's or a real city's
+name is a different risk class from ordinary demo data: it is a factual claim about a
+third party who never made it, on an indexed public page.
+
+**Read-layer fix, same shape as the badge one:** `sanitizeDemoFunder` re-labels demo
+rows to the fictional funders the current seed uses — `Ford Foundation → Cedar Grove
+Foundation`, `Gates Foundation → Northwind Charitable Trust`, `City of Austin → City of
+Springfield` (`Acme Corp Giving` was already fictional). Mapped index-wise to the seed's
+own `(g % 4)` rotation so funder *type* stays coherent. `sanitizeDemoRow` applies badge +
+funder together; wired into `getPublicGrants`, `getGrantBySlug` and `GET /api/grants`.
+
+**The guard that matters: a genuine grant from these funders is never renamed** — the
+demo marker is checked first, so a real Ford Foundation grant keeps its name. Verified
+non-vacuous both ways: dropping the demo check (which would rename real grants) fails
+**2** tests; removing the sanitizer from the read path fails **1**. 18 tests total.
+
+**Still the owner's:** deleting the rows. This changes what is *displayed*, not what is
+*stored* — the cleanup SQL below remains the real remedy. _1588/1588 tests, build green._
+
+## ✅ PERFORMANCE — every public page measured on PRODUCTION (2026-07-27)
+
+24 public routes, warmed then measured (`curl -w time_starttransfer/time_total/size`).
+**No page is pathologically slow; the spread is 254–598 ms TTFB.**
+
+| band | routes |
+|---|---|
+| **TTFB < 300 ms** (13) | `/fees` 262 · `/security` 268 · `/help` 261 · `/features` 254 · `/pricing` 264 · `/how-it-works` 266 · `/trust-safety` 272 · `/blog` 275 · `/contact` 283 · `/transparency` 293 · `/leaderboard` 301 · `/for-nonprofits` 307 · `/events` 309 |
+| **300–400 ms** (8) | `/sponsor` 322 · `/success-stories` 324 · `/for-individuals` 330 · `/volunteer` 332 · `/for-donors` 347 · `/matching` 377 · `/impact` 394 · `/campaigns` 257 (TTFB) |
+| **> 400 ms** (3) | `/grants` 444 · `/` 593 · `/faq` 598 |
+
+**Heaviest payload: `/campaigns` at 490 KB** (60-card grid) — 3× the next page
+(`/matching` 289 KB). Covers are already `loading=lazy`, so the weight is markup +
+RSC payload for 60 cards. **Worth considering:** the grid ships all 60 up front; a
+smaller first page with load-more would cut the largest transfer on the discovery path.
+Not done here — it changes discovery UX, so it is a product call, and total load is
+still ~1 s.
+
+**Caveat, stated so the numbers aren't over-read:** these run through the sandbox's
+agent proxy, so absolute values include proxy overhead — the *relative* spread is the
+signal. Every route was measured the same way. CWV (LCP/CLS/INP) were measured
+separately against a local production build in earlier work; this is server-response
+timing only.
+
+## ✅ IMAGE UNIQUENESS — re-verified across production (2026-07-27)
+
+| page | images | distinct | within-page dupes |
+|---|---|---|---|
+| `/` | 15 | 15 | **0** |
+| `/campaigns` | 60 | 60 | **0** |
+| `/leaderboard` | 20 | 20 | **0** |
+| `/success-stories` | 15 | 15 | **0** |
+
+**Two measurement corrections:** (1) scanning `<img src>` alone under-counts —
+`/success-stories` renders covers as CSS `background-image:url(…)`, so a src-only scan
+reports it as imageless; (2) cross-page repeats are **not** duplicates — 96 cover
+references resolve to **66 distinct covers**, the repeats being the same campaign shown
+on home + grid + leaderboard. Cover filenames embed the campaign slug, so distinct
+covers ⇒ distinct campaigns: **no two campaigns share a cover.** One Unsplash editorial
+photo repeats across `/` and `/success-stories` — ordinary design reuse.
+Pages like `/grants`, `/volunteer`, `/events`, `/matching`, `/sponsor`, `/impact` render
+**no content images at all** (text/card listings, logo only), so the criterion does not
+apply there — noted so the absence isn't mistaken for missing coverage.
+
+## ✅ FIXED — a "Production Ready" module advertised a feature with no code (PR #117)
+
+Found while checking the GoFundMe-parity criterion. **Parity result: the catalog reports
+exactly one unbuilt feature (`Auctions`) and ZERO GoFundMe-required features unbuilt** —
+parity against GoFundMe holds in the data.
+
+But that gap leaked into copy: **Nonprofit Growth Suite** (`status: 'Production Ready'`)
+listed *"…events, auctions, reporting…"*, **live on production**. Verified genuinely
+unbuilt rather than stale: `auction_items`/`auction_bids` exist in `schema.sql` and are
+seeded 120 rows each, but **no API, lib or UI** references them.
+
+Fixed the summary and added `__tests__/catalog-honesty.test.ts`: no **shipped-status**
+module may mention a feature the catalog reports unbuilt; no `Production Ready` module
+may have zero built features. (A module whose own status is `Planned` may describe its
+roadmap — the label is right there. My first version of the test missed that distinction
+and wrongly flagged `memberships`.) Verified non-vacuous by restoring the exact live
+string. **Third instance of one root cause: prose drifting from the structured data
+beside it** — prose can't be type-checked, so the catalog now has a test.
 
 ## ✅ FULLY RESOLVED — soft-404 (4 in #63, /campaigns/[slug] here, /donors a non-issue)
 

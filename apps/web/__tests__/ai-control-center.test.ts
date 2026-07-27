@@ -428,7 +428,7 @@ describe('the generated roster matches the documents on disk', () => {
     const expected = renderModule(collectRoster());
     const committed = readFileSync(join(WEB_ROOT, 'lib', 'ai-roster.generated.ts'), 'utf8');
     expect(
-      committed,
+      committed.replace(/\r\n/g, '\n'),
       'lib/ai-roster.generated.ts is stale — run `npm run generate:ai-roster`',
     ).toBe(expected);
   });

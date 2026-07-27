@@ -29,6 +29,7 @@ export default function Image() {
               use next/image. Kept as a plain comment because the eslint-disable it
               used to carry no longer matches any active rule, and an unused
               directive is itself a lint warning — but the reason still matters. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={LOGO} width={104} height={104} alt="" style={{ display: 'flex' }} />
           <div style={{ fontSize: 76, fontWeight: 900, letterSpacing: '-0.02em', display: 'flex' }}>CharitMe</div>
         </div>

@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // ─────────────────────────────────────────────────────────────────────────────
 // Generate lib/ai-roster.generated.ts from the AI/ documents at the repo root.
 //
