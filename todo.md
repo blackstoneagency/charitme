@@ -6386,6 +6386,32 @@ removed strings._
   **"Add files via upload"** commits, which contain no code logic at all.
 Verify locally instead. Owner fix: **Settings → Billing → Actions**.
 
+## ⛔ DELIBERATELY NOT DONE — do NOT extend demo-trust suppression to nonprofits
+
+Checked whether the grants/volunteer suppression should also cover
+`nonprofit_profiles` (seeded rows carry fabricated `verified` + invented EINs like
+`00-0000001`). **It should not**, and the next agent to notice the asymmetry should
+read this before "finishing the job".
+
+Every read of `nonprofit_profiles` was traced. There are three, and none is a public
+badge:
+
+| read | what it is | why suppression would be wrong |
+|---|---|---|
+| `lib/nonprofit-data.ts` → `getNonprofitSummary(ownerId)` | the **signed-in org's own dashboard**, scoped by `owner_id` | an organization looking at its own record must see its *actual* verification status; faking it to `false` would misreport their standing to themselves |
+| `lib/tax-server.ts` | **deductibility gating** for tax receipts | `verified` here is a *business rule*, not a display badge. Forcing it false would silently change who receives a deductible receipt — a tax consequence, not a cosmetic one |
+| `app/api/stripe/webhook` | internal payment handling | not user-facing |
+
+**There is no public nonprofit badge to suppress** — `/nonprofits/[slug]` does not
+exist (it is gated on this same seed-data problem, documented below). So the
+asymmetry with grants/volunteers is correct, not an oversight: those have public
+listing pages that render the badge to donors; nonprofits do not.
+
+**If `/nonprofits/[slug]` is ever built**, it must call `sanitizeDemoRow` (or at
+minimum `suppressDemoTrust`) on its public read — and must *not* route that through
+`tax-server.ts`. The seeded EINs are the other half of that page's gating and are
+untouched by any of this.
+
 ## ✅ FIXED — fabricated grants no longer published under real organizations' names
 
 The badge suppression stopped the false *trust signal*; this stops the false
