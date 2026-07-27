@@ -42,6 +42,20 @@ for (const theme of ['light', 'dark'] as const) {
 
     const failures: string[] = [];
 
+    // Persist the theme BEFORE any navigation, the way audit-contrast.mjs does.
+    //
+    // This test used to set `data-theme` with page.evaluate AFTER load. The
+    // ThemeProvider hydrates a moment later, reads localStorage, and OVERWRITES
+    // the attribute — measured: the light run asked for "light", the attribute
+    // read "light" immediately, and 250ms later at scan time it was "dark".
+    //
+    // So BOTH tests scanned dark mode and light was never audited at all, while
+    // reporting "36 routes × light/dark, no baseline, no exemptions". A real
+    // 2.56:1 light-mode failure on /ai-fundraising survived every such run.
+    await page.context().addInitScript((t) => {
+      try { localStorage.setItem('charitme-theme-v2', t); } catch { /* ignore */ }
+    }, theme);
+
     for (const route of usable) {
       await page.goto(route, { waitUntil: 'domcontentloaded' });
 
@@ -49,9 +63,14 @@ for (const theme of ['light', 'dark'] as const) {
       // (Shared with the other public sweeps; see public-routes.ts for why.)
       expectNoRedirect(page, route);
 
-      // The app reads its theme from data-theme on <html>; set it before scanning
-      // so colour-contrast rules evaluate the colours a visitor actually gets.
-      await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
+      // Belt and braces: the init script above is what actually holds, but assert
+      // the page really is in the requested theme at scan time. A silent revert
+      // is precisely the failure this test could not see before.
+      const active = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+      if (active !== theme) {
+        failures.push(`${route} [${theme}] THEME-NOT-APPLIED — scanned as "${active}"; result would not describe ${theme} mode`);
+        continue;
+      }
       // Let transitions settle before scanning. Several controls animate colour
       // over ~120ms (e.g. .fee-calc-preset) and axe reads computed styles, so a
       // mid-transition sample produced a phantom colour-contrast failure that did

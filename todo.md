@@ -81,6 +81,56 @@ use, so none of this can be exercised safely without test keys (ADR-0003).
 GitHub Actions allocates no runners, so **CI cannot verify anything** — every gate
 below was run locally, which is currently the only real signal.
 
+## 🚨 THE E2E A11Y SUITE NEVER AUDITED LIGHT MODE (Claude, 2026-07-27)
+
+**Root cause found for the section below — and it is worse than "data was missing".**
+
+`e2e/accessibility.spec.ts` set the theme with `page.evaluate(... setAttribute('data-theme', t))`
+**after** navigation. The ThemeProvider hydrates a moment later, reads localStorage, and
+**overwrites the attribute**. Measured directly:
+
+```
+spec asked for "light" → set to "light" → AT SCAN TIME "dark"
+spec asked for "dark"  → set to "dark"  → AT SCAN TIME "dark"
+```
+
+**Both tests scanned dark mode. Light mode was never audited — not once** — while the suite
+reported "36 routes × light/dark × chromium/mobile, no baseline and no exemptions, all
+green". That claim is in this file, and it covered half of what it said.
+
+`scripts/audit-contrast.mjs` sets the theme via `addInitScript` on localStorage **before**
+load, which survives hydration. That is the only reason it caught the failure and axe did not.
+
+**Fixed** (Claude lane — test correctness, not colour): the spec now uses the same
+`addInitScript` approach, **plus** asserts at scan time that `data-theme` actually equals
+the requested theme, failing with `THEME-NOT-APPLIED` if it silently reverts. A test that
+cannot detect its own subject being swapped is the exact failure this whole file keeps
+recording.
+
+**Result after the fix — the suite now tells the truth:**
+- **dark: passes** (all public routes)
+- **light: FAILS with exactly ONE violation**
+
+```
+/ai-fundraising [light] color-contrast (serious)
+  → .aif-showcase-card:nth-child(1) > .aif-showcase-body > .aif-showcase-meta > span
+```
+
+Good news inside the bad: light mode is **not** broadly broken. One bug, found by two
+independent tools that now agree.
+
+### 🔴 → CODEX: one line, and it is currently making the light a11y run red
+`app/globals.css:4109` — `.aif-showcase-meta span { color: #94a3b8; }` → measured
+**2.56:1** on white at 12px/400 (needs 4.5). Light only; line 5509 already overrides dark
+to `var(--t3)`. Suggested: use `var(--t3)` unconditionally and drop the dark override —
+please confirm `--t3`'s light value clears 4.5:1. **I left it deliberately** (globals.css
+colours are your lane per the split at the top of this file). If Codex is not active, this
+is a safe one-liner for the owner.
+
+**The e2e light test is now RED, and that is correct** — it is failing on a real,
+production-live WCAG violation rather than passing vacuously. It goes green the moment the
+CSS lands. The vitest suite (1646/147) is unaffected and passing.
+
 ## 🔴 THE A11Y "0 VIOLATIONS" CLAIM IS VACUOUS FOR DATA-BACKED SECTIONS (Claude, 2026-07-27)
 
 **This is the most important finding of the session.** Every previous accessibility pass —
