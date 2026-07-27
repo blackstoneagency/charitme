@@ -31,9 +31,12 @@ export type RecentActivity = {
 
 export type SystemOverview = {
   healthStatus: string;
+  /** Genuinely measured: how many monitored queries returned without error. */
   servicesOnline: number;
-  integrationsActive: number;
-  scheduledJobs: number;
+  // Pre-formatted on the server so an unread count arrives as '—' rather than
+  // being coerced to 0 here. On this page 0 is the reassuring answer.
+  integrationsActive: string;
+  scheduledJobs: string;
   errorRate: string;
 };
 
@@ -877,7 +880,9 @@ export default function SystemClient({ categories, overview, recentActivity, res
             { label: 'Services Online', value: overview.servicesOnline, icon: '✓', color: '#6c35ff' },
             { label: 'Integrations Active', value: overview.integrationsActive, icon: '🔗', color: '#19b86a' },
             { label: 'Scheduled Jobs', value: overview.scheduledJobs, icon: '⏱', color: '#2f80ed' },
-            { label: 'Error Rate', value: overview.errorRate, icon: overview.errorRate === '0%' ? '✓' : '⚠', color: overview.errorRate === '0%' ? '#15803d' : '#c2410c' },
+            // '—' means the rate could not be read. It must not paint green: that
+            // is the false all-clear this tile used to show during an outage.
+            { label: 'Error Rate', value: overview.errorRate, icon: overview.errorRate === '0%' ? '✓' : '⚠', color: overview.errorRate === '0%' ? '#15803d' : overview.errorRate === '—' ? '#67718e' : '#c2410c' },
           ].map(({ label, value, color }) => (
             <div key={label} style={{ padding: '16px 18px', border: '1px solid #eef0f7', borderRadius: 14, background: '#fafbff' }}>
               <small style={{ display: 'block', color: '#67718e', fontSize: 11, fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</small>

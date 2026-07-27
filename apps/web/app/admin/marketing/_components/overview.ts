@@ -15,12 +15,20 @@ export async function getMarketingOverview() {
   const byType: Record<string, number> = {};
   for (const c of typesRes.data ?? []) byType[c.client_type] = (byType[c.client_type] ?? 0) + 1;
 
+  // `null` means the count could not be read, which is not the same statement as
+  // 0. supabase-js resolves rather than throws on a query error, so `?? 0` turned
+  // an unreadable table into a confident zero. "Unsubscribed: 0" is the
+  // favourable answer a marketing operator would act on, and "Total contacts: 0"
+  // reads as a wiped audience — neither should be shown without a measurement.
+  const count = (r: { count: number | null; error: unknown }): number | null =>
+    r.error ? null : r.count;
+
   return {
-    contacts: contactsRes.count ?? 0,
+    contacts: count(contactsRes),
     byType,
-    events7d: eventsRes.count ?? 0,
-    campaignsSent: campaignsRes.count ?? 0,
+    events7d: count(eventsRes),
+    campaignsSent: count(campaignsRes),
     topSegments: segmentsRes.data ?? [],
-    unsubscribed: unsubRes.count ?? 0,
+    unsubscribed: count(unsubRes),
   };
 }

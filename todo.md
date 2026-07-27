@@ -49,6 +49,35 @@ use, so none of this can be exercised safely without test keys (ADR-0003).
 GitHub Actions allocates no runners, so **CI cannot verify anything** — every gate
 below was run locally, which is currently the only real signal.
 
+## ✅ CLOSED — the `count ?? 0` fail-open register (Claude, 2026-07-27)
+
+The register is now **complete**. supabase-js resolves rather than throws on a query
+error, so `count` is null on failure and `?? 0` turns "could not read" into a confident
+zero. Seven safety-bearing instances were fixed earlier this session; these were the
+remaining display sites, where zero is still the answer an operator would act on.
+
+**Worst of the batch — `/admin/system`, the page you open during an incident:**
+`percentage(n, d)` returns its `emptyValue` of **100** for an empty denominator, so an
+all-failed read rendered **"Webhook Success 100%"** and **"Integration Health 100%"** —
+fabricating the most reassuring possible number from no data. Those bars are now omitted
+unless their inputs were read. The KPI tile was the same shape: `formatErrorRate(0, 0)`
+returned `'0%'`, and `SystemClient` painted a **green ✓** on exactly that string, so an
+unreadable error count showed a green all-clear. Now `—` in neutral grey.
+(The `healthStatus` pill was already honest — any failed monitored read → Degraded — so
+the page was contradicting itself: green bars beside a Degraded pill.)
+
+**Also fixed:** `/admin/marketing` (`unsubscribed: 0` is the favourable answer;
+`contacts: 0` reads as a wiped audience), `/admin/settings` ("0 connected integrations"),
+and `/admin/users` — where the two failure modes are tracked separately, because a failed
+*count* with rows loaded still yields a real page-limited number; only when the row read
+failed too is the total genuinely unknown, and then `DegradedReadNotice` says so.
+
+**Deliberately not banned:** `?? 0` survives at 6 sites where an explicit unknown flag
+governs what is displayed (admin dashboard webhooks/integrations, support queue). The
+operator is fine there; what matters is whether a flag decides the rendering.
+`__tests__/count-fail-open-register.test.ts` (14 tests) asserts both halves — the fixes
+*and* that the surviving sites keep their flags.
+
 ## ✅ SHIPPED — role clarity on the grant screen (Claude, 2026-07-27)
 
 Goal criterion *"each user role is clearly mapped out and different than the others"*.

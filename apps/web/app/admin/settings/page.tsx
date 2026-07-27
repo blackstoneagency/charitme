@@ -18,6 +18,10 @@ export default async function AdminSettingsPage() {
     supabaseAdmin.from('profiles').select('email').not('roles', 'is', null).limit(1),
   ]);
 
+  // `null` is "could not read", not zero. "0 connected integrations" is the
+  // favourable-looking answer and would be shown during a database failure.
+  const integrationsUnknown =
+    Boolean(integrationCountResult.error) || integrationCountResult.count == null;
   const integrations = integrationCountResult.count ?? 0;
   const adminEmail =
     (adminEmailResult.data ?? []).length > 0
@@ -93,7 +97,7 @@ export default async function AdminSettingsPage() {
     platformStatus: 'Online',
     categoriesCount: categories.length,
     configurations: Object.keys(settings).length,
-    integrations,
+    integrations: integrationsUnknown ? null : integrations,
   };
 
   return (

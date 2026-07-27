@@ -3,6 +3,7 @@ import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireAdmin } from '../../../lib/auth';
 import { parseRoles } from '../../../lib/roles';
 import { ROLE_DEFINITIONS, ROLE_ORDER } from '../../../lib/role-capabilities';
+import DegradedReadNotice from '../../../components/DegradedReadNotice';
 import { supabaseAdmin } from '../../../lib/supabase';
 import AdminUsersClient, {
   type AdminUser,
@@ -164,6 +165,10 @@ export default async function AdminUsersPage() {
 
   const profileError  = profileDataResult.error;
   const profileData   = profileDataResult.data;
+  // `null` means unread, which is not 0. "Total users 0" on the admin user
+  // directory reads as catastrophic data loss during a database incident.
+  const totalUnknown  = Boolean(countResult.error) || countResult.count == null;
+  const new30dUnknown = Boolean(newUsersCountResult.error) || newUsersCountResult.count == null;
   const exactTotal    = countResult.count ?? 0;       // real total — never capped at 1000
   const exactNew30d   = newUsersCountResult.count ?? 0; // new in last 30 days
 
@@ -248,6 +253,12 @@ export default async function AdminUsersPage() {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+  // The count query and the row read are separate failure modes. If the count
+  // fails but rows loaded, `users.length` is a real (page-limited) number and is
+  // shown. Only when BOTH failed is the figure genuinely unknown — and then the
+  // notice below says so rather than letting "0 total users" stand as fact.
+  const totalsUnreliable = (totalUnknown || new30dUnknown) && Boolean(profileError);
+
   const totals = {
     total:     exactTotal > 0 ? exactTotal : users.length, // exact from DB count query
     active:    users.filter(u => u.status === 'Active').length, // from fetched rows (good enough for ≤2000)
@@ -317,9 +328,21 @@ export default async function AdminUsersPage() {
     <CharitMeShell active="Users" mode="admin">
       <TopBar
         title="Users"
-        subtitle={`${(exactTotal > 0 ? exactTotal : users.length).toLocaleString()} total users · public.profiles`}
+        subtitle={
+          totalsUnreliable
+            ? 'User count unavailable · public.profiles'
+            : `${(exactTotal > 0 ? exactTotal : users.length).toLocaleString()} total users · public.profiles`
+        }
         actions={<></>}
       />
+      {totalsUnreliable && (
+        <div style={{ padding: '0 4px' }}>
+          <DegradedReadNotice title="We couldn't load the user counts">
+            The figures below are unknown, not zero — both the count query and the profile
+            read failed. Reload to try again.
+          </DegradedReadNotice>
+        </div>
+      )}
       <AdminUsersClient
         users={users}
         activities={activities}

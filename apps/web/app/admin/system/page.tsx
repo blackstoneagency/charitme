@@ -49,15 +49,35 @@ function mergeCategory(raw: unknown, defaults: Record<string, unknown>): Record<
   return { ...defaults, ...stored };
 }
 
-function countOf(result: { count: number | null }): number {
-  return result.count ?? 0;
+// `null` means the count could not be read, which is NOT the same statement as 0.
+// supabase-js resolves rather than throws on a query error, so a bare `count` is
+// null on failure and `?? 0` would report a healthy-looking zero for an
+// unreadable table. On a system-health page zero errors is the *favourable*
+// answer, so it has to be measured.
+function countOf(result: { count: number | null; error?: unknown }): number | null {
+  if (result.error) return null;
+  return result.count;
+}
+
+/** Sum that stays unknown if any part is unknown. */
+function sumOrNull(...values: (number | null)[]): number | null {
+  if (values.some((v) => v === null)) return null;
+  return (values as number[]).reduce((a, b) => a + b, 0);
+}
+
+/** Display helper: unknown renders as an em dash, never as 0. */
+function showCount(value: number | null): string {
+  return value === null ? '—' : value.toLocaleString();
 }
 
 function querySucceeded(result: { error: unknown }): boolean {
   return !result.error;
 }
 
-function formatErrorRate(errorCount: number, totalCount: number): string {
+function formatErrorRate(errorCount: number | null, totalCount: number | null): string {
+  // An unread numerator or denominator is unknown. Returning '0%' here is what
+  // painted a green check mark on the KPI tile during a database failure.
+  if (errorCount === null || totalCount === null) return '—';
   if (totalCount <= 0 || errorCount <= 0) return '0%';
   const value = (errorCount / totalCount) * 100;
   return value < 1 ? `${value.toFixed(2)}%` : `${value.toFixed(1)}%`;
@@ -170,10 +190,20 @@ export default async function SystemSettingsPage() {
   const auditLogs = (auditLogsResult.data ?? []) as AuditLog[];
   const totalHealthEvents = countOf(webhookHealthTotalResult);
   const webhookErrors = countOf(webhookHealthErrorResult);
-  const integrationsActive = countOf(integrationConnectedResult) + countOf(outboundWebhookResult);
+  const integrationsActive = sumOrNull(countOf(integrationConnectedResult), countOf(outboundWebhookResult));
   const integrationErrors = countOf(integrationErrorResult);
-  const scheduledJobs = countOf(scheduledUpdatesResult) + countOf(scheduledEmailResult) + countOf(scheduledSmsResult);
-  const errorRateValue = totalHealthEvents > 0 ? (webhookErrors / totalHealthEvents) * 100 : 0;
+  const scheduledJobs = sumOrNull(
+    countOf(scheduledUpdatesResult),
+    countOf(scheduledEmailResult),
+    countOf(scheduledSmsResult),
+  );
+  // An unknown error rate must not read as 0 — `healthStatus` below already goes
+  // Degraded when any monitored read fails, and this keeps the KPI tile agreeing
+  // with it instead of showing a green 0%.
+  const errorRateValue =
+    webhookErrors !== null && totalHealthEvents !== null && totalHealthEvents > 0
+      ? (webhookErrors / totalHealthEvents) * 100
+      : 0;
   const errorRate = formatErrorRate(webhookErrors, totalHealthEvents);
 
   const recentActivity: RecentActivity[] = [
@@ -234,20 +264,41 @@ export default async function SystemSettingsPage() {
   const allMonitoredServicesOnline = servicesOnline === monitoredChecks.length;
   const healthStatus = allMonitoredServicesOnline && errorRateValue <= HEALTH_ERROR_THRESHOLD_PCT ? 'Healthy' : 'Degraded';
 
+  // The computed fallback bars are only shown when their inputs were actually
+  // read. `percentage()` returns its `emptyValue` of 100 for an empty
+  // denominator, so an all-failed read used to render "Webhook Success 100%" and
+  // "Integration Health 100%" — inventing the most reassuring possible number
+  // from no data, on the page an operator opens during an incident.
   const rpcResourceUsage = normalizeResourceUsage((resourceUsageResult.data ?? []) as ResourceUsage[]);
-  const resourceUsage = rpcResourceUsage.length > 0
-    ? rpcResourceUsage
-    : [
-      { label: 'Webhook Success', value: percentage(totalHealthEvents - webhookErrors, totalHealthEvents), color: '#6c35ff' },
-      { label: 'Integration Health', value: percentage(integrationsActive, integrationsActive + integrationErrors), color: '#19b86a' },
-      { label: 'Scheduled Queue Clear', value: percentage(Math.max(50 - scheduledJobs, 0), 50), color: '#2f80ed' },
-    ];
+  const computedResourceUsage: ResourceUsage[] = [];
+  if (totalHealthEvents !== null && webhookErrors !== null && totalHealthEvents > 0) {
+    computedResourceUsage.push({
+      label: 'Webhook Success',
+      value: percentage(totalHealthEvents - webhookErrors, totalHealthEvents),
+      color: '#6c35ff',
+    });
+  }
+  if (integrationsActive !== null && integrationErrors !== null && integrationsActive + integrationErrors > 0) {
+    computedResourceUsage.push({
+      label: 'Integration Health',
+      value: percentage(integrationsActive, integrationsActive + integrationErrors),
+      color: '#19b86a',
+    });
+  }
+  if (scheduledJobs !== null) {
+    computedResourceUsage.push({
+      label: 'Scheduled Queue Clear',
+      value: percentage(Math.max(50 - scheduledJobs, 0), 50),
+      color: '#2f80ed',
+    });
+  }
+  const resourceUsage = rpcResourceUsage.length > 0 ? rpcResourceUsage : computedResourceUsage;
 
   const overview: SystemOverview = {
     healthStatus,
     servicesOnline,
-    integrationsActive,
-    scheduledJobs,
+    integrationsActive: showCount(integrationsActive),
+    scheduledJobs: showCount(scheduledJobs),
     errorRate,
   };
 

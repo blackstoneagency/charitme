@@ -32,6 +32,11 @@ const TABS = [
   { key: 'seo',         label: 'SEO' },
   { key: 'aeo',         label: 'AEO' },
 ] as const;
+/** Unknown renders as an em dash; a measured zero still renders as 0. */
+function showCount(value: number | null): string {
+  return value === null ? '—' : value.toLocaleString();
+}
+
 type TabKey = typeof TABS[number]['key'];
 
 /* ── types ── */
@@ -67,7 +72,8 @@ const dt = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('en-US
 
 export default function AdminMarketingClient({ initialTab = 'overview', overview, seo, aeo, seoCoverage }: {
   initialTab?: TabKey;
-  overview: { contacts: number; byType: Record<string, number>; events7d: number; campaignsSent: number; topSegments: { name: string; member_count: number }[]; unsubscribed: number };
+  // Counts are `number | null`: null is "could not read", rendered as an em dash.
+  overview: { contacts: number | null; byType: Record<string, number>; events7d: number | null; campaignsSent: number | null; topSegments: { name: string; member_count: number }[]; unsubscribed: number | null };
   seo: SeoRow[];
   aeo: AeoRow[];
   seoCoverage: SeoAeoCoverage;
@@ -111,10 +117,10 @@ export default function AdminMarketingClient({ initialTab = 'overview', overview
 /* ═══════════ Overview ═══════════ */
 function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof AdminMarketingClient>['overview']; go: (t: TabKey) => void }) {
   const kpis = [
-    { label: 'Total contacts', value: overview.contacts.toLocaleString(), tab: 'audience' as TabKey },
-    { label: 'Events (7 days)', value: overview.events7d.toLocaleString(), tab: 'audience' as TabKey },
-    { label: 'Campaigns sent', value: overview.campaignsSent.toLocaleString(), tab: 'campaigns' as TabKey },
-    { label: 'Unsubscribed', value: overview.unsubscribed.toLocaleString(), tab: 'audience' as TabKey },
+    { label: 'Total contacts', value: showCount(overview.contacts), tab: 'audience' as TabKey },
+    { label: 'Events (7 days)', value: showCount(overview.events7d), tab: 'audience' as TabKey },
+    { label: 'Campaigns sent', value: showCount(overview.campaignsSent), tab: 'campaigns' as TabKey },
+    { label: 'Unsubscribed', value: showCount(overview.unsubscribed), tab: 'audience' as TabKey },
   ];
   return (
     <div>

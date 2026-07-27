@@ -47,7 +47,8 @@ export type OverviewStats = {
   platformStatus: string;
   categoriesCount: number;
   configurations: number;
-  integrations: number;
+  /** null = could not read. Rendered as an em dash, never as 0. */
+  integrations: number | null;
 };
 
 type Props = {
@@ -209,7 +210,7 @@ export default function SettingsClient({ categories, settings: initialSettings, 
         <Panel title="Integration Switches">
           <SettingToggle title="Google OAuth" description="Enable Google as an auth provider." value={settings.googleOAuthEnabled} onChange={v => set('googleOAuthEnabled', v)} />
           <SettingToggle title="Stripe Connect" description="Enable connected accounts and payout onboarding." value={settings.stripeConnectEnabled} onChange={v => set('stripeConnectEnabled', v)} />
-          <p style={{ margin: 0, color: '#67718e', fontWeight: 600 }}>Connected integrations: {overview.integrations.toLocaleString()}</p>
+          <p style={{ margin: 0, color: '#67718e', fontWeight: 600 }}>Connected integrations: {overview.integrations === null ? '—' : overview.integrations.toLocaleString()}</p>
         </Panel>
       );
     }
@@ -230,7 +231,7 @@ export default function SettingsClient({ categories, settings: initialSettings, 
           { label: 'Platform Status', value: overview.platformStatus, icon: 'check', tone: 'green' as const },
           { label: 'Categories', value: overview.categoriesCount.toString(), icon: 'stack', tone: 'violet' as const },
           { label: 'Configurations', value: overview.configurations.toString(), icon: 'gear', tone: 'blue' as const },
-          { label: 'Integrations', value: overview.integrations.toString(), icon: 'link', tone: 'orange' as const },
+          { label: 'Integrations', value: overview.integrations === null ? '—' : overview.integrations.toString(), icon: 'link', tone: 'orange' as const },
         ].map(m => (
           <article key={m.label} className="kf-card kf-metric">
             <div className={`kf-square ${m.tone}`}><KFIcon name={m.icon} /></div>
