@@ -263,21 +263,34 @@ export function buildFixtures() {
       priority: ['low', 'normal', 'high', 'urgent'][i % 4],
       email: `donor${i + 2}@charitme.local`,
     })),
+    // Same class of mismatch: the schema has `event_type`, `processed_at` and
+    // `processing_error`, not `type`/`processed`/`error`. /admin/audit-log maps
+    // webhook rows through actionCategory(e.event_type), so undefined threw
+    // "Cannot read properties of undefined (reading 'startsWith')" and that page
+    // 500'd out of the sweep too.
     webhook_events: genericRows('whev', 40, (i) => ({
-      type: ['checkout.session.completed', 'account.updated', 'payout.paid'][i % 3],
+      event_type: ['checkout.session.completed', 'account.updated', 'payout.paid'][i % 3],
       stripe_event_id: `evt_stub_${i + 1}`,
-      processed: i % 4 !== 0,
-      error: i % 9 === 0 ? 'Signature verification failed' : null,
+      payload: {},
+      processed_at: i % 4 !== 0 ? daysAgo(i % 30) : null,
+      processing_error: i % 9 === 0 ? 'Signature verification failed' : null,
     })),
     refunds: genericRows('refn', 20, (i) => ({
       amount_cents: (i + 1) * 1_500,
       reason: 'Donor requested',
       donation_id: uuid('dona', i + 1),
     })),
+    // Column names must match supabase/schema.sql exactly. These were `interval`
+    // and `next_charge_at`, which exist nowhere in the schema — the real columns
+    // are `cadence` (NOT NULL, CHECK weekly|monthly|quarterly|annual) and
+    // `next_bill_at`. /donor calls cadenceLabel(r.cadence), so the mismatch threw
+    // "Cannot read properties of undefined (reading 'charAt')" and the page 500'd
+    // mid-sweep — it was never audited, and the failure looked like a product bug.
     recurring_donations: genericRows('recr', 25, (i) => ({
       amount_cents: [1000, 2500, 5000][i % 3],
-      interval: 'month',
-      next_charge_at: daysAgo(-((i % 28) + 1)),
+      cadence: ['weekly', 'monthly', 'quarterly', 'annual'][i % 4],
+      status: ['active', 'active', 'paused', 'cancelled'][i % 4],
+      next_bill_at: daysAgo(-((i % 28) + 1)),
       donor_id: USER_ID,
     })),
     donor_messages: genericRows('dmsg', 25, (i) => ({
