@@ -3,22 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { SUPER_ADMIN_NAV } from '../lib/super-admin-nav';
 
-// Super-admin-only feature set. Each item renders in the main content area when
-// clicked (standard App-Router navigation). The parent "Admin" row is a
-// collapsible dropdown, auto-expanded while on any /admin/super route.
-export const SUPER_ADMIN_NAV: readonly (readonly [string, string, string])[] = [
-  ['Overview', '/admin/super', 'grid'],
-  ['AI', '/admin/ai', 'spark'],
-  ['Roles & Permissions', '/admin/super/roles', 'crown'],
-  ['Users', '/admin/super/users', 'users'],
-  ['Marketing', '/admin/marketing', 'send'],
-  ['Feature Flags', '/admin/super/flags', 'flag'],
-  ['Platform Settings', '/admin/super/settings', 'gear'],
-  ['Announcements', '/admin/super/announcements', 'bell'],
-  ['Banner', '/admin/super/banner', 'flag'],
-  ['Activity Log', '/admin/super/activity', 'list'],
-] as const;
+// The list itself lives in lib/super-admin-nav.ts, a module with NO 'use client'
+// directive: app/admin/super/page.tsx is a Server Component, and plain data does not
+// survive the client boundary. Re-exported here for existing importers.
+export { SUPER_ADMIN_NAV } from '../lib/super-admin-nav';
 
 function Icon({ name }: { name: string }) {
   const p = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };

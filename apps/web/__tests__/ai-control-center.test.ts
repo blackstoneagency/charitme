@@ -383,7 +383,15 @@ describe('AI is reachable from the left navigation', () => {
   const nav = read('components/SuperAdminNav.tsx');
 
   it('appears in the super-admin nav list', () => {
-    expect(nav).toMatch(/\['AI', '\/admin\/ai', 'spark'\]/);
+    // The list moved to lib/super-admin-nav.ts, a module with NO 'use client':
+    // app/admin/super/page.tsx is a Server Component, and Next replaces a client
+    // module with a reference proxy, so plain data does not survive the boundary.
+    expect(read('lib/super-admin-nav.ts')).toMatch(/\['AI', '\/admin\/ai', 'spark'\]/);
+  });
+
+  it('keeps the list out of the client module, so the server page can read it', () => {
+    expect(read('lib/super-admin-nav.ts')).not.toContain("'use client'");
+    expect(read('app/admin/super/page.tsx')).toContain("from '../../../lib/super-admin-nav'");
   });
 
   it('sits in the self-gating super-admin section, not the shared admin nav', () => {
