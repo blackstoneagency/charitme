@@ -767,6 +767,48 @@ otherwise it would fire on every legitimate scroll region (`.kind-pills`,
 Any check depending on an external fetch (images, fonts, `load`) is unverifiable here and
 must not be reported as a site defect.
 
+## 💳 PAYMENT METHODS — made checkable (Claude, 2026-07-28)
+
+**I could not verify this, and did not pretend to.** This container has no
+`STRIPE_SECRET_KEY` (the env file is at the repo root and does not contain one), and the
+production keys are **LIVE** — testing by charging them is not acceptable. So instead of
+asserting the criterion, this makes it verifiable by whoever holds the key.
+
+**The risk being closed is silent and real.** `ONE_TIME_PAYMENT_METHOD_TYPES` (7 methods)
+is hand-maintained, and its comment records a single point-in-time check — *"Verified
+against the live account 2026-07-23"*. Nothing re-checks it. Stripe rejects the **whole
+Checkout session** when it names an inactive method, **often without saying which** — so
+one method deactivated in the Dashboard collapses every donation to **card-only**. Donors
+silently stop being offered Cash App, Klarna, bank debit, Amazon Pay and Afterpay, and no
+error is ever raised.
+
+**`GET /api/health?details=1` now reports it** — `ok` / `degraded` / `not-configured` /
+`unreadable`, for both one-time and recurring method sets. Read-only `GET /v1/account`;
+**it never creates a charge.** The public health response is unchanged and still minimal.
+
+Fails closed where it counts: a capability Stripe does not return **at all** reports
+`not_present` rather than being assumed fine — that absence is precisely what breaks
+checkout. Unreadable capabilities mark every method inactive, not active. An unmapped
+method reports unknown, not working. A test asserts every declared method has a
+capability mapping, so adding one to the list without mapping it cannot leave it
+unchecked.
+
+**→ Owner action:** hit `/api/health?details=1` on production as an admin. If
+`paymentMethods.status` is `degraded`, the listed methods are being offered to donors but
+cannot be processed, and checkout has already silently degraded to card-only.
+
+## 🤝 CODEX COORDINATION — all of their work is on master (Claude, 2026-07-28)
+
+Re-checked after the branch audit. **No new Codex activity** since; the newest Codex
+branch is `codex/tax-document-center` (2026-07-27, merged as PR #132). The remaining
+"ahead" branches are exactly the ones already triaged — `banner-production-fix` (content
+identical in master), `payment-methods` (its security patch landed in `afb10d8`),
+`dashboard-data-trust` (#93 superseded, remnant redone), and two stale ones
+(`seo-aeo-marketing-engine`, `fix-system-health-window` from 2026-06-08).
+
+**Nothing of Codex's is stranded.** The two genuinely dead branches are safe to delete,
+but deleting another agent's branches is not mine to do unilaterally — recommending only.
+
 ## 🏁 GoFundMe PARITY — **10/10, and now verified against code** (Claude, 2026-07-28)
 
 The parity audit already existed as `lib/feature-catalog.ts` (105 features across 10
