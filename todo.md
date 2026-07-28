@@ -2610,6 +2610,33 @@ before and after** (no loss), picking up other agents' drifted `is_demo` indexes
 plus the tax-receipt fix. This also *proves* the new migration applies cleanly on
 top of the full migration history, since the script replays all of them.
 
+**🔴 FIXED — a failed *recurring* donation record was permanent; the one-time path
+already retried.** A Stripe webhook returning 2xx means *"handled, do not retry."*
+The one-time donation path knows this and **throws** if `record_donation` fails, so
+the webhook 500s and Stripe redelivers until it lands. The two **recurring** paths —
+subscription checkout (`~207`) and invoice renewal (`~657`) — discarded the result
+entirely. A failure there left a **charged** donor with no donation row, no receipt
+and campaign totals that never moved, with nothing to retry it. Both now throw, as
+the one-time path does.
+
+Throwing is safe *specifically* because `record_donation` is idempotent on
+`p_stripe_event_id` — a Stripe retry cannot double-count. Pinned by the ratchet.
+
+⚠️ **This was a miss in my own sweep #2, not a new discovery.** These two were
+inside the 172; the listing I triaged from was truncated at 60 lines and never
+showed the `.rpc(` sites. The consequence is worse than 3 of the 4 I *did* fix.
+The lesson isn't "look harder" — it's that **triaging from a truncated listing is
+triaging from a sample you didn't choose.** What actually surfaced it was checking
+a different invariant (every `.rpc()` name and argument against the schema) and
+reading the call sites on the way past.
+
+**📋 CLEAN — the RPC surface itself.** All 6 `.rpc()` names exist in the schema and
+every call supplies every argument (none have defaults, so a missing one is a
+runtime `PGRST202`). No action needed; recorded so it isn't re-checked.
+Fixed a stale `CLAUDE.md` claim found doing it: the donation flow calls
+**`record_donation`**, not `increment_campaign_stats` — which exists nowhere in the
+schema and has no callers.
+
 **🔴 FIXED — the same 42P10 across 5 more upserts, incl. the payment ledgers and
 unsubscribe.** Rather than stop at the two found by hand, the invariant got a test:
 `__tests__/upsert-onconflict-has-index.test.ts` parses every `onConflict:` target

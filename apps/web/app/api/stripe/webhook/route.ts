@@ -204,7 +204,14 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
     const tipCents = Number(meta.tipCents ?? 0);
 
     if (subscriptionId && amountCents > 0) {
-      await supabaseAdmin.rpc('record_donation', {
+      // Money has been collected by Stripe. If recording it fails we must NOT
+      // return 2xx: the one-time path above throws for exactly this reason, so
+      // the webhook 500s and Stripe retries until the donation lands.
+      // `record_donation` is idempotent on `p_stripe_event_id`, so a retry
+      // cannot double-count. Discarding this result meant a failure here left a
+      // charged recurring donor with no donation row, no receipt, and campaign
+      // totals that never moved — permanently, since nothing retried.
+      const { error: recordErr } = await supabaseAdmin.rpc('record_donation', {
         p_stripe_event_id: eventId,
         p_campaign_id: meta.campaignId,
         p_donor_id: meta.donorId || null,
@@ -216,6 +223,7 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
         p_stripe_payment_intent_id: null,
         p_stripe_checkout_session_id: session.id,
       });
+      if (recordErr) throw new Error(`record_donation failed: ${recordErr.message}`);
 
       await supabaseAdmin.from('recurring_donations').upsert({
         donor_id: meta.donorId || null,
@@ -654,7 +662,9 @@ async function handleInvoiceSucceeded(eventId: string, invoice: Stripe.Invoice) 
   const amountCents = invoice.amount_paid ?? 0;
   if (amountCents <= 0) return;
 
-  await supabaseAdmin.rpc('record_donation', {
+  // Same as the subscription-checkout path: the renewal has already been charged,
+  // so a failed record must 500 and let Stripe retry rather than be swallowed.
+  const { error: recordErr } = await supabaseAdmin.rpc('record_donation', {
     p_stripe_event_id: eventId,
     p_campaign_id: subMeta.campaignId,
     p_donor_id: subMeta.donorId || null,
@@ -666,6 +676,7 @@ async function handleInvoiceSucceeded(eventId: string, invoice: Stripe.Invoice) 
     p_stripe_payment_intent_id: invoicePaymentIntentId(invoice),
     p_stripe_checkout_session_id: null,
   });
+  if (recordErr) throw new Error(`record_donation failed: ${recordErr.message}`);
 
   const periodEnd = subscriptionPeriodEnd(sub);
   if (periodEnd) {

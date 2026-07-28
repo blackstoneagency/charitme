@@ -10,6 +10,7 @@ const TAX_RECEIPT = 'app/api/admin/donations/tax-receipt/route.ts';
 const FRAUD_MONITOR = 'app/api/ai/fraud-monitor/route.ts';
 const IMPACT_SUMMARY = 'app/api/ai/impact-summary/route.ts';
 const DONATIONS_CLIENT = 'app/admin/donations/_components/DonationsClient.tsx';
+const STRIPE_WEBHOOK = 'app/api/stripe/webhook/route.ts';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // A `await supabaseAdmin.from(x).insert(...)` with no destructuring cannot fail
@@ -48,6 +49,38 @@ describe('writes that follow an irreversible side effect capture their error', (
       expect(bare, `${path} awaits a ledger write without checking it`).toEqual([]);
     },
   );
+});
+
+describe('every record_donation call can fail loudly', () => {
+  // A Stripe webhook that returns 2xx tells Stripe "handled, do not retry". So
+  // for the one call that records the money itself, swallowing the error is
+  // permanent data loss: a charged donor with no donation row, no receipt, and
+  // campaign totals that never moved. The one-time path already threw; the two
+  // RECURRING paths (subscription checkout, invoice renewal) discarded the
+  // result, so nothing ever retried them.
+  //
+  // Throwing is safe here specifically because `record_donation` is idempotent
+  // on `p_stripe_event_id` — a Stripe retry cannot double-count.
+  it('checks the error and throws at all three sites', () => {
+    const src = read(STRIPE_WEBHOOK);
+    const calls = [...src.matchAll(/\.rpc\('record_donation'/g)];
+    expect(calls.length, 'call sites moved — re-check each one').toBe(3);
+
+    // The one-time path destructures `{ data, error }`; the recurring ones only
+    // need the error.
+    const checked = [
+      ...src.matchAll(/\{(?:\s*data,)?\s*error(?:: (\w+))? \} = await supabaseAdmin\.rpc\('record_donation'/g),
+    ];
+    expect(checked.length, 'a record_donation call discards its result').toBe(3);
+
+    for (const [, alias] of checked) {
+      const name = alias ?? 'error';
+      expect(
+        src,
+        `${name} is captured but never turned into a non-2xx — Stripe will not retry`,
+      ).toMatch(new RegExp(`if \\(${name}\\) throw new Error`));
+    }
+  });
 });
 
 describe('the caller is told when the record is missing', () => {
