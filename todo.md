@@ -742,6 +742,27 @@ legitimately clips).
    ("checks this environment could not perform"), not a finding, and deliberately *not*
    dropped: an empty list would be indistinguishable from "all images verified".
 
+### The tablet breakpoint was never measured — two more real bugs
+My manual pass covered 320/360/390 only. The full sweep (which includes **768**) found
+two more, in **both** themes:
+- `/ai-fundraising` concierge card → **877px on a 768px screen**. Two bare `1fr` tracks
+  summed to 776.7px inside a 676px container. The 320px fix could not reach it: that rule
+  lives in `max-width:760px`, which does not apply at 768. Fixed at the `max-width:1180px`
+  rule, which also hardens `.stories-hero-grid`, `.story-bottom`, `.pricing-grid`,
+  `.pricing-promises`.
+- `/for-nonprofits` plan card → a `shrink-0` price overflowed its own flex parent (137px
+  in a 169px row) because the sibling tier name kept `min-width:auto`. Added `min-w-0`.
+
+**✅ Full sweep now clean: 37 pages × 3 viewports × 2 themes = 222 renders, 0 findings.**
+
+### My own new check had a false positive — fixed before it could mislead
+It flagged `/fast-payouts`' comparison table at 579px. That table is **correct**: it sits
+in `.fp-table-wrap { overflow-x: auto }` (own right edge 302px, scrollWidth 560 >
+clientWidth 282) and already carries `tabIndex`/`role="region"` so keyboard users reach
+the off-screen columns. The check now skips elements with a scrollable ancestor —
+otherwise it would fire on every legitimate scroll region (`.kind-pills`,
+`.pc-carousel-thumbs`, every wide table) and get ignored, exactly like the phantom images.
+
 ⚠️ **For anyone running audits in this sandbox: Chromium does not inherit `HTTPS_PROXY`.**
 Any check depending on an external fetch (images, fonts, `load`) is unverifiable here and
 must not be reported as a site defect.
