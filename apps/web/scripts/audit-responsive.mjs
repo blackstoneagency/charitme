@@ -211,12 +211,29 @@ for (const vp of VIEWPORTS) {
           //
           // Decorative layers are excluded: absolutely-positioned, no text. Those
           // are what `overflow-x: hidden` legitimately exists to clip.
+          //
+          // Content inside a genuinely scrollable ancestor is REACHABLE, not
+          // clipped, so it must not be reported. /fast-payouts is the case that
+          // proved this: its comparison table paints out to 579px, but it sits in
+          // `.fp-table-wrap { overflow-x: auto }` whose own right edge is 302px
+          // and whose scrollWidth (560) exceeds its clientWidth (282). That is a
+          // correctly built horizontal-scroll region, and this site has several
+          // (.kind-pills, .pc-carousel-thumbs). Flagging them would train everyone
+          // to ignore this check -- the same way the phantom broken images did.
+          const inScrollableRegion = (el) => {
+            for (let n = el.parentElement; n && n !== document.documentElement; n = n.parentElement) {
+              const ox = getComputedStyle(n).overflowX;
+              if ((ox === 'auto' || ox === 'scroll') && n.scrollWidth > n.clientWidth + 1) return true;
+            }
+            return false;
+          };
           const clipped = [];
           for (const el of document.querySelectorAll('body *')) {
             const b = el.getBoundingClientRect();
             if (b.width <= 0 || b.height <= 0 || b.right <= vw + 1) continue;
             const cs = getComputedStyle(el);
             if (cs.position === 'absolute' && !(el.innerText || '').trim()) continue;
+            if (inScrollableRegion(el)) continue;
             clipped.push(`${nameOf(el)}@${Math.round(b.right)}`);
             if (clipped.length >= 3) break;
           }
