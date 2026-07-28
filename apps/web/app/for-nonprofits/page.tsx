@@ -110,7 +110,7 @@ export default function ForNonprofitsPage() {
           </div>
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
             {NONPROFIT_FEATURES.map((feature) => (
-              <div key={feature.title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div key={feature.title} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="mb-3 text-3xl">{feature.icon}</div>
                 <h3 className="font-black text-slate-950">{feature.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-600">{feature.body}</p>
@@ -187,7 +187,7 @@ export default function ForNonprofitsPage() {
             {NONPROFIT_PLANS.map((tier) => (
               <div
                 key={tier.name}
-                className="flex flex-col rounded-3xl border border-slate-200 bg-white p-7 shadow-sm"
+                className="flex min-w-0 flex-col rounded-3xl border border-slate-200 bg-white p-7 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>

@@ -168,7 +168,36 @@ for (const vp of VIEWPORTS) {
             }
           }
 
-          return { overflow, wide, badImgs: badImgs.slice(0, 3), overlaps, theme: de.getAttribute('data-theme') };
+          // Content painted PAST the right edge.
+          //
+          // The two checks above both missed an entire class of real bug:
+          //
+          //  - `de.scrollWidth` is defeated by `html, body { overflow-x: hidden }`,
+          //    which this stylesheet sets. The document then reports exactly the
+          //    viewport width no matter how far content spills, so the page reads
+          //    as clean while the overflow is merely CLIPPED — strictly worse than
+          //    scrolling, because the content is unreachable. Measured on
+          //    /ai-fundraising at 320px: 26 elements painted out to 410px,
+          //    including the h1 and both CTA buttons, with `overflow` reading 0.
+          //
+          //  - `b.width > vw` only catches elements WIDER than the viewport. A
+          //    narrow element pushed sideways is invisible to it — on
+          //    /success-stories a 90px div sat at x=257, so it ended at 347px on a
+          //    320px screen while being nowhere near 320px wide.
+          //
+          // Decorative layers are excluded: absolutely-positioned, no text. Those
+          // are what `overflow-x: hidden` legitimately exists to clip.
+          const clipped = [];
+          for (const el of document.querySelectorAll('body *')) {
+            const b = el.getBoundingClientRect();
+            if (b.width <= 0 || b.height <= 0 || b.right <= vw + 1) continue;
+            const cs = getComputedStyle(el);
+            if (cs.position === 'absolute' && !(el.innerText || '').trim()) continue;
+            clipped.push(`${nameOf(el)}@${Math.round(b.right)}`);
+            if (clipped.length >= 3) break;
+          }
+
+          return { overflow, wide, clipped, badImgs: badImgs.slice(0, 3), overlaps, theme: de.getAttribute('data-theme') };
         });
         const issues = [];
         // The applied theme was already being collected and then thrown away.
@@ -179,6 +208,7 @@ for (const vp of VIEWPORTS) {
         // light — the theme was set after load and the ThemeProvider overwrote it.
         if (r.theme !== theme) issues.push(`THEME-NOT-APPLIED: asked ${theme}, rendered ${r.theme ?? 'none'}`);
         if (r.overflow > 2) issues.push(`overflow +${r.overflow}px ${r.wide.join(',')}`);
+        if (r.clipped.length) issues.push(`content clipped past viewport: ${r.clipped.join(', ')}`);
         if (r.badImgs.length) issues.push(`broken img: ${r.badImgs.join(', ')}`);
         if (r.overlaps.length) issues.push(`overlapping controls: ${r.overlaps.join(' | ')}`);
         if (issues.length) { findings += issues.length; console.log(`✗ ${vp.name}/${theme} ${path} — ${issues.join(' | ')}`); }
