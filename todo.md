@@ -2564,6 +2564,101 @@ creation just doesn't ask. Fix is small (one step in the wizard writing the
 launch-settings row) but it is a product decision about the create flow, so it is
 recorded rather than added unilaterally.
 
+**🔴 FIXED — two admin buttons that could never have worked, and said "ok" anyway.**
+Follow-on from sweep #2 below. Chasing *who reads a donor's refund request* led to
+`refunds.upsert(..., { onConflict: 'donation_id' })` in `admin/support/[id]` — and
+`refunds` has **no unique index on `donation_id`**, correctly so (a donation can
+carry a donor request *and* the admin's processed row, or two partials). Postgres
+therefore raises **42P10** on every call. The same statement also omits
+`amount_cents`, which is **NOT NULL**. Two independent guaranteed failures, both
+swallowed by a bare `await`, and the handler still returned `{ ok: true }`.
+**"Trigger refund" on a support case has never once queued a refund.**
+
+Replaced with an explicit find-then-insert-or-update that supplies `amount_cents`
+and **surfaces** failure — nothing irreversible happens here, so a 500 is correct.
+
+That raised the same question for the *other* `onConflict: 'donation_id'` upsert,
+`tax_receipts`, which **does** have a purpose-built unique index (20260726000000)
+— but a **partial** one, `where donation_id is not null`. **Verified on a real
+Postgres 16** (`initdb` is present at `/usr/lib/postgresql/16/bin`, just off PATH):
+
+| statement | index | result |
+|---|---|---|
+| `on conflict (donation_id)` — what PostgREST emits | partial | **42P10** |
+| `on conflict (donation_id) where donation_id is not null` | partial | ✅ |
+| `on conflict (donation_id)` | plain | ✅ |
+| two `null` donation_id rows | plain | ✅ **allowed** |
+
+Postgres only infers a partial index when the statement repeats the predicate, and
+supabase-js `onConflict` takes column names only — there is no way to attach one.
+So the tax-receipt upsert **also failed every time**: the donor got an IRS receipt
+by email and nothing was recorded. The predicate was never needed — a plain
+`UNIQUE` already treats NULLs as distinct (row 4 above), so it bought nothing and
+cost the upsert. Migration `20260728020000_fix_tax_receipt_upsert_inference.sql`
+drops the predicate.
+
+⚠️ Note what nearly happened: the sweep below had just added *error logging* to
+that same tax-receipt call. Logging alone would have been a fix that made a
+100%-reproducible failure merely **visible**. Reading the constraint — not the
+call site — is what turned it into a repair.
+
+**✅ UNBLOCKED — `supabase/schema.sql` regenerated (was "needs `initdb`").**
+`initdb` exists; it just refuses to run as root and isn't on PATH, which is what
+the earlier "blocked" note actually hit. `scripts/regen_schema.sh` run as the
+`postgres` user replays every migration and dumps a fresh mirror: **155 tables
+before and after** (no loss), picking up other agents' drifted `is_demo` indexes
+plus the tax-receipt fix. This also *proves* the new migration applies cleanly on
+top of the full migration history, since the script replays all of them.
+
+**🔴 FIXED — the same 42P10 across 5 more upserts, incl. the payment ledgers and
+unsubscribe.** Rather than stop at the two found by hand, the invariant got a test:
+`__tests__/upsert-onconflict-has-index.test.ts` parses every `onConflict:` target
+out of `app/` + `lib/` and checks it against a **non-partial** unique index in the
+regenerated mirror. It flagged 5 more — all confirmed against the schema:
+
+| upsert | index present | why it fails |
+|---|---|---|
+| `campaign_processor_fees(processor,processor_object_id)` | **none** | — |
+| `campaign_payment_refunds(…)` | **none** | — |
+| `campaign_owner_transfers(…)` | **none** | — |
+| `marketing_opportunities(dedupe_key)` | partial | predicate not repeatable |
+| `marketing_suppression_list(email)` | `lower(email)`, partial | **expression** index; `onConflict` can't match it |
+
+The three payment ledgers are the serious ones. `20260608020000` created **four**
+sibling tables, all upserted on the same webhook-replay key — and only
+`campaign_payment_disputes` ever got the constraint. So every processor-fee,
+refund and owner-transfer row the Stripe webhook tried to record was **rejected**,
+which is why those reconciliation views had nothing in them. The fix isn't a
+judgement call: it copies the constraint its own sibling already has.
+
+`marketing_suppression_list` is the one with a compliance edge — **"unsubscribe"
+wrote nothing**, so the address kept receiving mail. (`unsubscribeEmail()`
+normalizes before writing, so a plain unique on `email` is equivalent for every
+caller; the `lower(email)` index is kept as the case-insensitivity backstop.)
+
+⚠️ **A migration can be silently undone by a later one.** The first draft of this
+sat at `20260728030000` and did nothing: `20260730000000_marketing_opportunities.sql`
+is future-dated and **re-creates** the partial index afterwards. Only regenerating
+`schema.sql` caught it — the mirror replays migrations in order, so it shows the
+state that *results*, not the one each file intends. Re-dated `20260812000000`,
+after every existing migration. **Check the regenerated mirror, not the migration
+you just wrote.**
+
+**🟠 FIXED — `maybeSingle()` on `refunds`, a table where multi-row is normal.**
+`maybeSingle()` tolerates 0 rows but **errors** on more than one (PGRST116). Both
+uses in `donations/[id]/refund-request` discarded that error:
+- **GET** → reported `refundRequest: null`, i.e. *"you have no pending request"*,
+  as soon as a second `refunds` row existed — which the admin refund path now
+  creates routinely.
+- **POST** duplicate guard → a guard that **fails open**, letting the duplicate
+  through. Now `order(created_at desc).limit(1)`, and an unreadable check is a
+  503, not a pass — matching the donor page, which already refuses to submit
+  rather than risk a duplicate when it can't verify eligibility.
+
+There are **275** `maybeSingle()` calls repo-wide. **Not sweeping them** — most key
+on a genuinely unique column, and the count is not the defect list. Acted only
+where multi-row was *established* rather than suspected.
+
 **📋 SWEEP #2 — the same bug without the `void`: `await`ed writes whose result is
 discarded.** The sweep below searched `void supabaseAdmin`, which misses the more
 common shape — `await supabaseAdmin.from(x).insert(...)` with no destructuring.

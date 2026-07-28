@@ -103,18 +103,75 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   // Trigger refund (creates a refund request row for the admin refunds queue)
+  //
+  // This used to be an `upsert(..., { onConflict: 'donation_id' })`, which could
+  // not work: `refunds` has no unique index on `donation_id` — correctly, since a
+  // donation can have a donor request plus the admin's processed row, or two
+  // partial refunds — so every call raised 42P10, "no unique or exclusion
+  // constraint matching the ON CONFLICT specification". It also omitted
+  // `amount_cents`, which is NOT NULL. Two independent guaranteed failures, both
+  // swallowed because the result was discarded, and the handler still returned
+  // `{ ok: true }`. The button reported success and did nothing, every time.
   if (action === 'trigger_refund' && donationId) {
-    await supabaseAdmin.from('refunds').upsert(
-      {
-        donation_id: donationId,
-        reason: `Support case #${id}: admin-triggered refund`,
-        status: 'approved',
-        requested_by: adminId,
-        reviewed_by: adminId,
-        notes: note?.trim() ?? null,
-      },
-      { onConflict: 'donation_id' },
-    );
+    const { data: donationRow, error: donationErr } = await supabaseAdmin
+      .from('donations')
+      .select('id, amount_cents')
+      .eq('id', donationId)
+      .maybeSingle();
+
+    if (donationErr || !donationRow) {
+      return NextResponse.json(
+        { error: 'Could not load the donation to refund.', code: 'DONATION_NOT_FOUND' },
+        { status: donationErr ? 500 : 404 },
+      );
+    }
+
+    // Reuse an already-queued request rather than stacking a second one; the
+    // admin refunds queue lists by status, so duplicates would show as two jobs.
+    const { data: pending, error: pendingErr } = await supabaseAdmin
+      .from('refunds')
+      .select('id')
+      .eq('donation_id', donationId)
+      .in('status', ['requested', 'under_review', 'approved'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (pendingErr) {
+      return NextResponse.json(
+        { error: 'Could not check for an existing refund request.', code: 'REFUND_CHECK_FAILED' },
+        { status: 500 },
+      );
+    }
+
+    const refundFields = {
+      reason: `Support case #${id}: admin-triggered refund`,
+      status: 'approved',
+      reviewed_by: adminId,
+      notes: note?.trim() ?? null,
+    };
+
+    // Nothing irreversible has happened here — no money has moved, this only
+    // queues the request — so a failure must surface rather than be logged and
+    // swallowed. Silence is what hid this for as long as it did.
+    const { error: refundErr } = pending
+      ? await supabaseAdmin
+          .from('refunds')
+          .update({ ...refundFields, updated_at: new Date().toISOString() })
+          .eq('id', (pending as { id: string }).id)
+      : await supabaseAdmin.from('refunds').insert({
+          ...refundFields,
+          donation_id: donationId,
+          amount_cents: (donationRow as { amount_cents: number }).amount_cents,
+          requested_by: adminId,
+        });
+
+    if (refundErr) {
+      return NextResponse.json(
+        { error: 'The refund could not be queued.', code: 'REFUND_QUEUE_FAILED' },
+        { status: 500 },
+      );
+    }
   }
 
   // Audit log
