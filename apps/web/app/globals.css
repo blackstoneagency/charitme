@@ -5465,6 +5465,13 @@ a.task-row:hover .task-row-dot { border-color: #6c35ff; }
   box-shadow: none;
 }
 [data-theme="dark"] .aif-live-stats span { color: var(--t3); }
+/* The category chip is 11px/950 — small text, so it needs 4.5:1. The shared
+   --aif-purple (#6c35ff) gives only 3.04:1 on the dark card, a real WCAG AA
+   miss. Overridden per-selector rather than by lightening --aif-purple itself:
+   that token also paints WHITE text on a gradient built from it
+   (.aif-concierge-icon) and dark text on a light #f0eaff pill, both of which a
+   lighter purple would make worse. #a78bfa measures ~6.6:1 here. */
+[data-theme="dark"] .aif-showcase-cat { color: #a78bfa; }
 [data-theme="dark"] .aif-concierge-card {
   background: rgba(18,21,52,.96);
   border-color: var(--line);
