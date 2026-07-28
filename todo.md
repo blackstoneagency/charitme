@@ -514,6 +514,26 @@ The sweep's own "fewer than 15 text elements" report, before vs after:
 | elements examined | 18,578 light / 18,223 dark | **19,725 / 19,422** |
 | contrast failures | 201 | **219** |
 
+**Third fix — a `notifications` fixture** (the table had none, so
+`/api/notifications` returned empty and `/dashboard/notifications` rendered 7
+elements with its whole list UI unaudited). Final state across all three fixes:
+
+| | start | end |
+|---|---|---|
+| thin renders | **13** | **5** |
+| elements examined | 18,578 / 18,223 | **19,983 / 19,599** |
+| contrast failures | 201 | **220** |
+
+**+1,405 light / +1,376 dark text elements now actually audited**, and eight
+page-renders recovered from crash-or-empty states.
+
+**The 5 that remain** are genuine empty-data states, not crashes, and are worth
+someone's time only if they want those sections covered:
+`/login` (0 — it is in the gated list but has no data), the
+`transactions/[donationId]` payment detail (5 — needs `campaign_payments` /
+`donations` fixtures), and `campaigns/[id]/updates` (14 — `campaign_updates`
+fixture exists but the sample campaign id does not match its rows).
+
 Six page-renders recovered (3 pages × 2 themes) and ~1,150 more text elements
 examined per theme. `/admin/system` came back too — it reads `webhook_events`,
 so the fixture fix reached further than the one page it was traced from.
