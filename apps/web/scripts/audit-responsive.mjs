@@ -68,6 +68,7 @@ const THEMES = ['light', 'dark'];
 
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
 let findings = 0;
+const notes = new Set();
 
 for (const vp of VIEWPORTS) {
   for (const theme of THEMES) {
@@ -109,8 +110,19 @@ for (const vp of VIEWPORTS) {
         // Waiting for `load` (stylesheets in) plus `document.fonts.ready` (metrics
         // final) makes the measurement deterministic, because overlap detection is
         // entirely a function of text metrics.
-        await page.waitForLoadState('load').catch(() => {});
-        await page.evaluate(() => document.fonts?.ready ?? Promise.resolve()).catch(() => {});
+        //
+        // Both waits are BOUNDED. `load` does not fire in a sandbox whose Chromium
+        // does not inherit HTTPS_PROXY, because external subresources never
+        // settle, and `document.fonts.ready` then stays pending forever — a
+        // pending promise, not a rejection, so the `.catch` below cannot end it.
+        // Unbounded, this sweep hung at 0.1% CPU with no output and had to be
+        // killed; an audit that can hang indefinitely is an audit nobody runs.
+        // Degrading to a slightly less settled measurement beats never finishing.
+        await page.waitForLoadState('load', { timeout: 8_000 }).catch(() => {});
+        await Promise.race([
+          page.evaluate(() => document.fonts?.ready ?? Promise.resolve()).catch(() => {}),
+          page.waitForTimeout(5_000),
+        ]);
         await page.waitForTimeout(350);
         const r = await page.evaluate(() => {
           const de = document.documentElement;
@@ -124,9 +136,21 @@ for (const vp of VIEWPORTS) {
               if (wide.length >= 3) break;
             }
           }
-          const badImgs = [...document.images]
-            .filter((i) => i.complete && i.naturalWidth === 0)
-            .map((i) => (i.currentSrc || i.src || '').slice(-48));
+          // Broken images, split by origin.
+          //
+          // Chromium here does not inherit HTTPS_PROXY, so every CROSS-ORIGIN
+          // image (campaign covers on Supabase storage) fails to load in the
+          // browser while fetching fine over curl — 200, image/webp, 83KB.
+          // Reporting those as broken is a phantom finding that sends the next
+          // agent chasing a storage bug that does not exist. Same-origin failures
+          // are still real and still reported.
+          const brokenAll = [...document.images].filter((i) => i.complete && i.naturalWidth === 0);
+          const isSameOrigin = (i) => {
+            try { return new URL(i.currentSrc || i.src, location.href).origin === location.origin; }
+            catch { return true; }
+          };
+          const badImgs = brokenAll.filter(isSameOrigin).map((i) => (i.currentSrc || i.src || '').slice(-48));
+          const crossOriginUnverifiable = brokenAll.length - badImgs.length;
 
           // Interactive controls sitting on top of each other.
           //
@@ -197,7 +221,7 @@ for (const vp of VIEWPORTS) {
             if (clipped.length >= 3) break;
           }
 
-          return { overflow, wide, clipped, badImgs: badImgs.slice(0, 3), overlaps, theme: de.getAttribute('data-theme') };
+          return { overflow, wide, clipped, badImgs: badImgs.slice(0, 3), crossOriginUnverifiable, overlaps, theme: de.getAttribute('data-theme') };
         });
         const issues = [];
         // The applied theme was already being collected and then thrown away.
@@ -209,7 +233,10 @@ for (const vp of VIEWPORTS) {
         if (r.theme !== theme) issues.push(`THEME-NOT-APPLIED: asked ${theme}, rendered ${r.theme ?? 'none'}`);
         if (r.overflow > 2) issues.push(`overflow +${r.overflow}px ${r.wide.join(',')}`);
         if (r.clipped.length) issues.push(`content clipped past viewport: ${r.clipped.join(', ')}`);
-        if (r.badImgs.length) issues.push(`broken img: ${r.badImgs.join(', ')}`);
+        if (r.badImgs.length) issues.push(`broken img (same-origin): ${r.badImgs.join(', ')}`);
+        // Not a finding: unverifiable here, and silently dropping it would let a
+        // real cross-origin outage hide behind the sandbox's own limitation.
+        if (r.crossOriginUnverifiable > 0) notes.add(`${r.crossOriginUnverifiable} cross-origin image(s) unverifiable (browser has no proxy) on ${path}`);
         if (r.overlaps.length) issues.push(`overlapping controls: ${r.overlaps.join(' | ')}`);
         if (issues.length) { findings += issues.length; console.log(`✗ ${vp.name}/${theme} ${path} — ${issues.join(' | ')}`); }
       } catch (e) {
@@ -223,6 +250,12 @@ for (const vp of VIEWPORTS) {
 }
 
 await browser.close();
+// Surfaced, never counted as a finding: an empty notes list would otherwise be
+// indistinguishable from "all cross-origin images verified".
+if (notes.size) {
+  console.log(`\nℹ️  ${notes.size} note(s) — checks this environment could not perform:`);
+  for (const n of notes) console.log(`   · ${n}`);
+}
 console.log(findings === 0
   ? `\n✅ No responsive/theme regressions across ${PAGES.length} pages × ${VIEWPORTS.length} viewports × ${THEMES.length} themes.`
   : `\n${findings} finding(s).`);
