@@ -689,6 +689,84 @@ enforcement would be the fastest way to lock an organizer out of their own campa
 `role-capabilities.ts` has warned since it was written. The criterion is met by the roles
 being *clearly mapped and clearly differentiated*, not by gating for its own sake.
 
+## 🔍 BRANCH AUDIT — is every bot's work actually on master? (Claude, 2026-07-28)
+
+Audited all 20 remote branches. **A branch showing "N commits ahead" is NOT evidence of
+unshipped work** — every merged PR here was squashed, which leaves the source branch
+permanently "ahead" even though its content is in master. Judging by ahead-count alone
+would have flagged 15 branches; the real number was 2.
+
+Method: match each branch to its PR and check `merged_at` (the `merged` field comes back
+`false` even for merged PRs — do not trust it), then diff the branch's specific change
+against master's current content.
+
+### Shipped — do not re-investigate
+`claude/campaign-f8-f10` (#65), `claude/campaign-journey-f4-f10` (#62),
+`claude/campaign-journey-friction` (#61), `claude/e2e-auth-gates` (#75),
+`claude/prod-readiness-sweep` (#73), `claude/todo-status-consolidation` (#77),
+`claude/charitme-github-integration-njok43` (13 PRs), `...-tbaz3i` (2),
+`claude/charitme-marketing-os-build-wcu7oh` (21) — all merged.
+
+`claude/query-timeout-rollout` — **shipped despite having no PR.** Its content reached
+master another way; master has `boundedQuery` in *more* call sites than the branch does.
+(My first check said otherwise because I grepped for `withQueryTimeout` when callers
+import `boundedQuery` — the grep was wrong, not the code.)
+
+`agent/banner-production-fix` — the banner work is in master (`banner-settings.ts`,
+`BannerClient.tsx`, the route and the migration are all byte-identical). Only stale docs
+and an older `catch_up.sql` differ.
+
+`codex/dashboard-data-trust` (**PR #93, closed unmerged**) — correctly superseded, not
+lost. Master already solves it with `DegradedReadNotice` and a `failed` flag; the branch
+carries an *older* parallel solution and would have reverted master's. One genuine
+remnant: it adds `boundedQuery` to 4 dashboard pages master doesn't cover
+(donations, analytics, donor, recurring). Worth redoing against current master — do NOT
+merge the branch, it is 205 commits behind.
+
+### Genuinely unshipped — one was a live security hole
+`agent/payment-methods` — **no PR was ever opened**, so a dependency security patch sat
+on a branch for two days. Shipped in `afb10d8`: master was on `next@15.5.18`, exposed to
+**8 advisories** (unauthenticated Server Function disclosure, SSRF in rewrites, SSRF in
+Server Actions, two cache-confusion advisories, App Router DoS, unbounded Edge Server
+Action payload, Image Optimization DoS) — all fixed in 15.5.21. Now on 15.5.22, plus
+postcss 8.5.23 direct and overrides for tar/js-yaml/sharp. **npm audit 37→35, critical
+1→0.** Verified against `npm audit`, not the commit message.
+
+`claude/charitme-github-integration-tbaz3i` — **PR #127 is OPEN but a DRAFT**, so it will
+never merge on its own. A sibling Claude session's mobile fix for `/ai-fundraising`
+(410px at a 320px viewport, a regression of the page #49 already fixed). **Needs the
+owner or that session to mark it ready.** Not mine to force-merge.
+
+### Stale, superseded — recommend deleting
+`agent/seo-aeo-marketing-engine` (103 commits, 557 behind, superseded by
+`codex/seo-aeo-integration`), `codex/fix-system-health-window` (155 commits, 796 behind,
+from 2026-06-08).
+
+### Is master actually on PRODUCTION (not Preview)?
+`www.charitme.com` is live, healthy, served by Vercel. The apex `charitme.com` 307s to
+`www`. **Production was running the pre-bump build** — proven by the content-addressed
+vendor chunk `18-03f9ad6f3ded61b6.js`, which is byte-identical to a local build on
+`next@15.5.18`.
+
+**VERIFIED: master auto-deploys to Production, and the security patch is LIVE.** Watched
+the hash flip in real time — `18-03f9ad6f3ded61b6` → **`18-c6633c4945af8275`**, which is
+byte-identical to the local post-bump build, about 3 minutes after pushing `afb10d8`.
+Confirmed stable across 5 consecutive samples with `/api/health` 200 throughout. So the
+`api-deployments-free-per-day` quota problem noted earlier is **not currently blocking
+deploys**.
+
+**Reusable method for this question** (every direct signal — `/api/health?details=1`'s
+deployment block, the Vercel dashboard — is behind auth a sandbox does not have):
+compare `/_next/static/chunks/18-*.js` on the live site against a local `next build`.
+The hash is content-derived, so it changes exactly when deployed code changes.
+
+⚠️ **Sample it more than once, and reject an empty result.** My first poller reported
+"CHANGED" on a *failed fetch*, because an empty string is not equal to the baseline —
+the same shape as the responsive sweep that invented 222 findings from connection
+errors. Edge nodes also update unevenly: the very first sample after the deploy still
+returned the old hash while the next two returned the new one. A single sample can lie
+in either direction.
+
 ## ✅ SHIPPED — AI Control Center, Phase 1 (Claude, 2026-07-27)
 
 `/admin/ai` — the AI Context Manager's first phase. **Super-admin only**, listed as
