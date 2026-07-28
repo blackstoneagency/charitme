@@ -142,6 +142,7 @@ export default function PayoutSetupPage({ params }: { params: Promise<{ id: stri
           <div style={{ display: 'flex', gap: 10 }}>
             <input
               type="email"
+              aria-label="Email address to invite as beneficiary"
               value={inviteEmail}
               onChange={e => setInviteEmail(e.target.value)}
               placeholder="beneficiary@email.com"

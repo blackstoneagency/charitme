@@ -197,6 +197,7 @@ export default function AiCoachPage() {
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
             <textarea
               ref={inputRef}
+              aria-label="Ask the AI fundraising coach"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKey}

@@ -1197,6 +1197,7 @@ export default function AdminCampaignsClient({
               />
               <input
                 type="file"
+                aria-label="Upload a campaign cover image"
                 accept="image/*"
                 ref={fileInputRef}
                 style={{ display: 'none' }}

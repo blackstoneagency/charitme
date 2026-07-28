@@ -360,6 +360,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                     <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{userEmail}</div>
                     <input
                       ref={avatarFileRef}
+                      aria-label="Upload a profile photo"
                       type="file"
                       accept="image/jpeg,image/png,image/webp,image/gif"
                       style={{ display: 'none' }}
@@ -536,7 +537,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                       Preview →
                     </Link>
                   )}
-                  <select value={showPublicProfile ? 'public' : 'private'} disabled={saving} onChange={e => savePrivacy(e.target.value === 'public')} style={{ height: 36, border: '1px solid var(--b1)', borderRadius: 8, padding: '0 12px', fontSize: 13 }}>
+                  <select aria-label="Profile visibility" value={showPublicProfile ? 'public' : 'private'} disabled={saving} onChange={e => savePrivacy(e.target.value === 'public')} style={{ height: 36, border: '1px solid var(--b1)', borderRadius: 8, padding: '0 12px', fontSize: 13 }}>
                     <option value="public">Public</option>
                     <option value="private">Private</option>
                   </select>

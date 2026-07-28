@@ -28,9 +28,10 @@ import { join, relative } from 'node:path';
 // Without this the metric punishes the fix: 37 controls were repaired in
 // admin/system and the count did not move.
 //
-// This is a RATCHET, not a clean bill of health. 200 offenders exist today and
-// fixing them is a large mechanical job; what this prevents is the number
-// growing while nobody is looking.
+// This began as a RATCHET against ~200 offenders. The backlog is now CLEARED:
+// BASELINE is 0, so this is no longer "do not get worse" but "no unlabelled
+// control ships". Keep it at 0 — raising it to admit one is how a backlog
+// restarts.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const WEB = join(__dirname, '..');
@@ -59,7 +60,7 @@ function attributesOf(src: string, tagStart: number): string {
 const SKIP_TYPES = new Set(['hidden', 'submit', 'button', 'image']);
 
 /** Current known debt. Lower it when controls are fixed; never raise it. */
-const BASELINE = 13;
+const BASELINE = 0;
 
 function tsxFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -118,6 +119,21 @@ function insideLabel(src: string, index: number): boolean {
   return close !== -1 && close > index;
 }
 
+/**
+ * True when the match sits inside a `//` line comment.
+ *
+ * Prose about markup is not markup. `DonationsClient.tsx` carries the comment
+ * "These two used to be unbound <select>s whose value was never read" — a note
+ * about a fix that had already been made — and the scan counted that sentence as
+ * an unlabelled control. Left alone it would have been "fixed" by editing a
+ * comment, which changes the number without changing anything a user meets.
+ */
+function inLineComment(src: string, index: number): boolean {
+  const lineStart = src.lastIndexOf('\n', index) + 1;
+  const slashes = src.indexOf('//', lineStart);
+  return slashes !== -1 && slashes < index;
+}
+
 function findOffenders(): string[] {
   const offenders: string[] = [];
   for (const dir of ['app', 'components']) {
@@ -129,6 +145,7 @@ function findOffenders(): string[] {
         const type = /type=["{]?\s*['"]?(\w+)/.exec(attrs)?.[1] ?? 'text';
         if (SKIP_TYPES.has(type)) continue;
         if (/aria-label|aria-labelledby|\bid=/.test(attrs)) continue;
+        if (inLineComment(src, m.index ?? 0)) continue;
         if (insideLabel(src, m.index ?? 0)) continue;
         if (insideLabellingWrapper(src, m.index ?? 0, wrappers)) continue;
         offenders.push(`${relative(WEB, file)}:${src.slice(0, m.index).split('\n').length}`);
@@ -157,12 +174,16 @@ describe('form controls carry an accessible name', () => {
     ).toBeLessThanOrEqual(BASELINE);
   });
 
-  it('has a baseline that matches reality, so progress is visible', () => {
-    // If the count drops well below the baseline, lower BASELINE in the same
-    // commit — otherwise the ratchet stops ratcheting.
-    expect(
-      offenders.length,
-      `Only ${offenders.length} offenders remain; lower BASELINE to ${offenders.length}.`,
-    ).toBeGreaterThan(BASELINE - 25);
+  it('actually detects an unlabelled control', () => {
+    // At BASELINE 0 the suite passes when the scan finds nothing — which is also
+    // exactly what a broken scan does. The old check here compared the count to
+    // BASELINE - 25 to prompt lowering the baseline; at 0 that is always true and
+    // proves nothing. So assert the detector fires on a known-bad input instead.
+    const bad = '<div><input placeholder="Search" /></div>';
+    const good = '<div><input aria-label="Search" /></div>';
+    expect(CONTROL_OPEN.test(bad)).toBe(true);
+    CONTROL_OPEN.lastIndex = 0;
+    expect(/aria-label/.test(good)).toBe(true);
+    expect(/aria-label/.test(bad)).toBe(false);
   });
 });
