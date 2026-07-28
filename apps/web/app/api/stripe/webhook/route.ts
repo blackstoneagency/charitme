@@ -9,6 +9,7 @@ import { recordCampaignPayment, recordPaymentEvent } from '../../../../lib/payme
 import { resolvePayoutDestination } from '../../../../lib/payout-destination';
 import { resolveContact, trackEvent, refreshContactScores } from '../../../../lib/marketing-engine';
 import { postDonation, postRefund, postDisputeLoss, openReconciliationException } from '../../../../lib/ledger';
+import { resolveRecurringRenewalAmounts } from '../../../../lib/recurring-payment';
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -211,7 +212,7 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
       // cannot double-count. Discarding this result meant a failure here left a
       // charged recurring donor with no donation row, no receipt, and campaign
       // totals that never moved — permanently, since nothing retried.
-      const { error: recordErr } = await supabaseAdmin.rpc('record_donation', {
+      const { error: recurringDonationError } = await supabaseAdmin.rpc('record_donation', {
         p_stripe_event_id: eventId,
         p_campaign_id: meta.campaignId,
         p_donor_id: meta.donorId || null,
@@ -223,17 +224,22 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
         p_stripe_payment_intent_id: null,
         p_stripe_checkout_session_id: session.id,
       });
-      if (recordErr) throw new Error(`record_donation failed: ${recordErr.message}`);
+      if (recurringDonationError) throw new Error('Initial recurring donation could not be recorded.');
 
-      await supabaseAdmin.from('recurring_donations').upsert({
+      const { error: recurringConfigError } = await supabaseAdmin.from('recurring_donations').upsert({
         donor_id: meta.donorId || null,
         campaign_id: meta.campaignId,
         amount_cents: amountCents,
+        tip_cents: tipCents,
+        anonymous: meta.anonymous === '1',
         cadence: meta.cadence ?? 'monthly',
         status: 'active',
         stripe_subscription_id: subscriptionId,
         next_bill_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       }, { onConflict: 'stripe_subscription_id', ignoreDuplicates: false });
+      if (recurringConfigError) {
+        throw new Error('Recurring donation configuration could not be stored.');
+      }
 
       // Record charge currency (non-fatal; column defaults to 'usd')
       const recurringCurrency = (session.currency ?? 'usd').toLowerCase();
@@ -288,7 +294,7 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
       // is enriched later by handleChargeObserved (charge.succeeded) once Stripe
       // reports the balance transaction. recordCampaignPayment is idempotent.
       const recurringDonationId = await findDonationId({ paymentIntentId: null, checkoutSessionId: session.id });
-      await recordCampaignPayment({
+      const initialRecurringPaymentId = await recordCampaignPayment({
         donationId: recurringDonationId,
         campaignId: meta.campaignId,
         campaignOwnerId: meta.organizerUserId || null,
@@ -314,6 +320,9 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
           subscription_id: subscriptionId,
         },
       });
+      if (!initialRecurringPaymentId) {
+        throw new Error('Initial recurring payment reporting could not be recorded.');
+      }
     }
   } else if (meta.campaignId) {
     // ── One-time donation ─────────────────────────────────────────────────
@@ -659,24 +668,44 @@ async function handleInvoiceSucceeded(eventId: string, invoice: Stripe.Invoice) 
   // First invoice handled by checkout.session.completed
   if (invoice.billing_reason === 'subscription_create') return;
 
-  const amountCents = invoice.amount_paid ?? 0;
-  if (amountCents <= 0) return;
+  const invoiceAmountPaid = invoice.amount_paid ?? 0;
+  if (invoiceAmountPaid <= 0) return;
 
   // Same as the subscription-checkout path: the renewal has already been charged,
   // so a failed record must 500 and let Stripe retry rather than be swallowed.
-  const { error: recordErr } = await supabaseAdmin.rpc('record_donation', {
+  const { data: recurringDonation, error: recurringError } = await supabaseAdmin
+    .from('recurring_donations')
+    .select('amount_cents, tip_cents, anonymous')
+    .eq('stripe_subscription_id', subscriptionId)
+    .maybeSingle();
+  if (recurringError) {
+    throw new Error('Recurring donation configuration could not be read.');
+  }
+
+  const { donationAmountCents, tipCents } = resolveRecurringRenewalAmounts({
+    invoiceAmountPaid,
+    metadataDonationAmount: subMeta.donationAmountCents,
+    metadataTipAmount: subMeta.tipCents,
+    storedDonationAmount: recurringDonation?.amount_cents,
+    storedTipAmount: recurringDonation?.tip_cents,
+  });
+  const anonymous = subMeta.anonymous !== undefined
+    ? subMeta.anonymous === '1'
+    : recurringDonation?.anonymous === true;
+
+  const { error: donationError } = await supabaseAdmin.rpc('record_donation', {
     p_stripe_event_id: eventId,
     p_campaign_id: subMeta.campaignId,
     p_donor_id: subMeta.donorId || null,
-    p_amount_cents: amountCents,
-    p_tip_cents: 0,
+    p_amount_cents: donationAmountCents,
+    p_tip_cents: tipCents,
     p_processing_fee_cents: 0,
     p_message: null,
-    p_anonymous: subMeta.anonymous === '1',
+    p_anonymous: anonymous,
     p_stripe_payment_intent_id: invoicePaymentIntentId(invoice),
     p_stripe_checkout_session_id: null,
   });
-  if (recordErr) throw new Error(`record_donation failed: ${recordErr.message}`);
+  if (donationError) throw new Error('Recurring donation renewal could not be recorded.');
 
   const periodEnd = subscriptionPeriodEnd(sub);
   if (periodEnd) {
@@ -701,7 +730,7 @@ async function handleInvoiceSucceeded(eventId: string, invoice: Stripe.Invoice) 
       ? await resolvePayoutDestination(campaign as { user_id: string; beneficiary_profile_id?: string | null })
       : null;
     const donationId = await findDonationId({ paymentIntentId: piId, checkoutSessionId: null });
-    await recordCampaignPayment({
+    const campaignPaymentId = await recordCampaignPayment({
       donationId,
       campaignId: subMeta.campaignId,
       campaignOwnerId: (campaign as { user_id?: string } | null)?.user_id ?? null,
@@ -710,21 +739,30 @@ async function handleInvoiceSucceeded(eventId: string, invoice: Stripe.Invoice) 
       processorAccountId: destination?.stripeAccountId ?? null,
       processorPaymentIntentId: piId,
       processorCheckoutSessionId: null,
-      grossAmount: amountCents,
-      tipAmount: 0,
-      platformFeeAmount: 0,
+      grossAmount: donationAmountCents,
+      tipAmount: tipCents,
+      platformFeeAmount: tipCents,
       processorFeeAmount: 0,
-      ownerNetAmount: amountCents,
+      ownerNetAmount: donationAmountCents,
       currency: (invoice.currency ?? 'usd').toLowerCase(),
       paymentStatus: 'succeeded',
       transferStatus: destination ? 'created' : 'pending',
       payoutStatus: destination ? 'requested' : 'not_applicable',
       paidAt: new Date().toISOString(),
       webhookEventId: eventId,
-      metadata: { recurring: true, renewal: true, subscription_id: subscriptionId, cadence: subMeta.cadence ?? 'monthly' },
+      metadata: {
+        recurring: true,
+        renewal: true,
+        subscription_id: subscriptionId,
+        cadence: subMeta.cadence ?? 'monthly',
+        stripe_invoice_amount_paid: invoiceAmountPaid,
+      },
     });
-  } catch (e) {
-    console.warn('[webhook] renewal campaign_payment record failed (non-blocking):', e);
+    if (!campaignPaymentId) {
+      throw new Error('Recurring renewal payment reporting could not be recorded.');
+    }
+  } catch {
+    throw new Error('Recurring renewal payment reporting failed.');
   }
 }
 

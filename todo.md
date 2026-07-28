@@ -24,7 +24,7 @@ minutes and produces logs. These finish in ~2 seconds with none. If you see that
 stop debugging your diff.
 
 **Local verification is therefore the real gate, and it is green:**
-`npm run typecheck` (0) · `npm test` (**1750/1750, 162 files**) · `npm run build`
+`npm run typecheck` (0) · `npm test` (**1792/1792, 169 files**) · `npm run build`
 (exit 0) · `scripts/audit-contrast.mjs --strict-gradients` (**0 WCAG AA failures,
 37 pages × 2 themes, 3,638 text elements per theme**).
 
@@ -34,7 +34,7 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 
 ## CLEAN DATABASE REPLAY - verified locally, staging application pending (Codex, 2026-07-28)
 
-- [x] Replayed all **97/97** ordered migrations against a brand-new local
+- [x] Replayed all **101/101** ordered migrations against a brand-new local
   Supabase PostgreSQL database.
 - [x] Added additive dependency migrations so `profiles`, `admin_settings`, and
   `feature_flags` exist before historical functions and data migrations consume
@@ -43,7 +43,7 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   hardening migration replaces them, eliminating duplicate-policy failure.
 - [x] Replaced seed-time promotion of the oldest real customer with two
   deterministic, non-login `.invalid` synthetic identities.
-- [x] Verified the completed local database contains 97 migration records,
+- [x] Verified the completed local database contains 101 migration records,
   2 auth users, 2 trigger-created profiles, 3 campaigns, 4 donations,
   7 admin settings, and 3 feature flags.
 - [x] Provisioning now requires an explicit staging or production target,
@@ -57,6 +57,19 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   replay, provisions staging, runs live RLS and three Playwright smoke suites,
   then gates production on the exact staging-verified commit and protected
   GitHub environment approval.
+
+## RECURRING TIP ACCOUNTING - code complete, release pending (Codex, 2026-07-28)
+
+- [x] Preserve donation principal, optional CharitMe tip, and anonymity in
+  Stripe subscription metadata and `recurring_donations`.
+- [x] Split every renewal invoice into campaign principal and platform tip
+  before writing donations, campaign totals, payment reporting, or tax records.
+- [x] Recover legacy subscription splits from the stored campaign principal and
+  fail closed when no trustworthy principal exists.
+- [x] Add an idempotent repair migration and rollback for existing renewal
+  donations, receipts, payment detail rows, and affected campaign totals.
+- [x] Replayed the full migration chain, proved repair idempotency with a tipped
+  renewal fixture, and ran all application gates before merging through a PR.
 
 ## SECURITY BOUNDARIES - code complete, production migration pending (Codex, 2026-07-27)
 
