@@ -25,6 +25,20 @@ const config = [
     ignores: ['.next/**', 'node_modules/**', 'coverage/**', 'playwright-report/**'],
   },
   {
+    // ImageResponse renders at the edge and cannot use next/image, so these files
+    // must use a raw <img>.
+    //
+    // This is a CONFIG override rather than an inline eslint-disable on purpose.
+    // Whether `no-img-element` fires here varies with the eslint-config-next
+    // version, so an inline directive is either required (or the rule errors) or
+    // unused (and the unused directive itself warns) depending on the resolved
+    // version — the file has flip-flopped between those two states across several
+    // branches, each "fixing" the other's warning. Turning the rule off for these
+    // paths is stable under both.
+    files: ['app/**/opengraph-image.tsx', 'app/**/twitter-image.tsx', 'app/**/icon.tsx'],
+    rules: { '@next/next/no-img-element': 'off' },
+  },
+  {
     rules: {
       '@typescript-eslint/no-unused-vars': [
         'warn',
