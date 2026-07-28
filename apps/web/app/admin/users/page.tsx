@@ -253,16 +253,23 @@ export default async function AdminUsersPage() {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  // The count query and the row read are separate failure modes. If the count
-  // fails but rows loaded, `users.length` is a real (page-limited) number and is
-  // shown. Only when BOTH failed is the figure genuinely unknown — and then the
-  // notice below says so rather than letting "0 total users" stand as fact.
-  const totalsUnreliable = (totalUnknown || new30dUnknown) && Boolean(profileError);
+  // The count query and the row read are separate failure modes, and a failed
+  // COUNT alone is enough to make the total unknown.
+  //
+  // This used to require both to fail (`&& Boolean(profileError)`), on the
+  // reasoning that `users.length` is "a real (page-limited) number". It is real,
+  // but it is LABELLED "total users" — and the row query is capped at 2000. So a
+  // count failure on a site with more than 2000 profiles would confidently
+  // report exactly "2,000 total users", forever, with no notice shown. Latent
+  // rather than live today: production holds 1,133 profiles, so the substitution
+  // currently happens to equal the true total.
+  const totalsUnreliable = totalUnknown || new30dUnknown;
 
   const totals = {
-    total:     exactTotal > 0 ? exactTotal : users.length, // exact from DB count query
+    // null, not a substitute — an unknown total renders as an em dash.
+    total:     totalUnknown ? null : exactTotal,
     active:    users.filter(u => u.status === 'Active').length, // from fetched rows (good enough for ≤2000)
-    newUsers:  exactNew30d > 0 ? exactNew30d : users.filter(u => new Date(u.joinedAt) >= thirtyDaysAgo).length,
+    newUsers:  new30dUnknown ? null : exactNew30d,
     suspended: users.filter(u => u.status === 'Suspended').length,
   };
 
@@ -331,15 +338,16 @@ export default async function AdminUsersPage() {
         subtitle={
           totalsUnreliable
             ? 'User count unavailable · public.profiles'
-            : `${(exactTotal > 0 ? exactTotal : users.length).toLocaleString()} total users · public.profiles`
+            : `${exactTotal.toLocaleString()} total users · public.profiles`
         }
         actions={<></>}
       />
       {totalsUnreliable && (
         <div style={{ padding: '0 4px' }}>
           <DegradedReadNotice title="We couldn't load the user counts">
-            The figures below are unknown, not zero — both the count query and the profile
-            read failed. Reload to try again.
+            The counts below are unknown, not zero — the count query failed. The user list
+            itself may still be showing (capped at 2,000 rows), so do not read its length as
+            the total. Reload to try again.
           </DegradedReadNotice>
         </div>
       )}

@@ -82,7 +82,9 @@ type Props = {
   users: AdminUser[];
   activities: AdminUserActivity[];
   roles: UserRoleSummary[];
-  totals: { total: number; newUsers: number; active: number; suspended: number };
+  // total/newUsers are `null` when the count query failed. Unknown is not zero,
+  // and it is not the length of a page-limited row read either.
+  totals: { total: number | null; newUsers: number | null; active: number; suspended: number };
   weeklyGrowth: GrowthPoint[];
   recentUsers: AdminUser[];
 };
@@ -378,9 +380,10 @@ export default function AdminUsersClient({
         {/* KPI Row */}
         <div className="users-kpi-row">
           {[
-            { label: 'Total Users',    value: totals.total.toLocaleString(),    sub: 'all time' },
-            { label: 'Active Users',   value: totals.active.toLocaleString(),   sub: `${totals.total > 0 ? Math.round((totals.active / totals.total) * 100) : 0}% of total` },
-            { label: 'New (30 days)',  value: totals.newUsers.toLocaleString(), sub: 'last 30 days' },
+            { label: 'Total Users',    value: totals.total === null ? '—' : totals.total.toLocaleString(), sub: totals.total === null ? 'unavailable' : 'all time' },
+            // A percentage OF an unknown total is not a number worth printing.
+            { label: 'Active Users',   value: totals.active.toLocaleString(),   sub: totals.total && totals.total > 0 ? `${Math.round((totals.active / totals.total) * 100)}% of total` : 'share of total unknown' },
+            { label: 'New (30 days)',  value: totals.newUsers === null ? '—' : totals.newUsers.toLocaleString(), sub: totals.newUsers === null ? 'unavailable' : 'last 30 days' },
             { label: 'Suspended',      value: totals.suspended.toLocaleString(), sub: 'requires review' },
           ].map(({ label, value, sub }) => (
             <div className="users-kpi-card" key={label}>
