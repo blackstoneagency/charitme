@@ -767,6 +767,47 @@ otherwise it would fire on every legitimate scroll region (`.kind-pills`,
 Any check depending on an external fetch (images, fonts, `load`) is unverifiable here and
 must not be reported as a site defect.
 
+## 🌗 DARK/LIGHT CONTRAST — audited; **1 genuine AA failure, handed to Codex**
+
+Ran the contrast audit on current master: **37 pages × 2 themes, 7,315 text elements per
+theme.** Light is clean. Dark has **one real WCAG AA failure**, and it had been hiding
+behind a misclassification.
+
+### 🔴 FOR CODEX — one-line fix, `[data-theme]` lane
+```
+/ai-fundraising · dark · .aif-showcase-cat ("Medical" category chip)
+  color   rgb(108, 53, 255)   ← var(--aif-purple), #6c35ff
+  on      rgba(18, 21, 52, .96)  (.aif-showcase-card)
+  11px / weight 950  →  small text, needs 4.5:1
+  measured 3.04:1     ❌
+```
+`--aif-purple` is declared once at `globals.css:3994` (`.aif-page`) and has **no dark
+override**, so the same token is used on light and dark surfaces. Suggested fix — a
+lighter purple for dark only, in Codex's `[data-theme]` lane:
+```css
+[data-theme="dark"] .aif-page { --aif-purple: #a78bfa; }  /* ≈7:1 on #121534 */
+```
+⚠️ Note `--aif-purple` is used in ~6 places on that page (`.aif-live-stats strong`,
+`.aif-chip .pub-icon`, a border, and a gradient stop), so re-check those after changing
+it. **I did not make this change** — a dark-theme colour token is the most
+collision-prone thing to touch mid-sweep, and the bot split assigns `[data-theme]`
+overrides to Codex. Say the word and I'll take it.
+
+### The audit was calling it a warning instead of a failure
+Gradient findings are *reported, not failed*, because fixing one means changing a brand
+gradient — a design call. Correct in general, wrong here: the chip's **ancestor** carries
+a gradient, so the background walk classified the text as sitting on one — even though the
+96%-opaque card between them means the gradient contributes ~4% and **every stop
+composites to the same colour** (spread < 0.01).
+
+The leniency exists because contrast *varies* along a fill. It doesn't vary here. The rule
+is now "gradient" only when the ratio actually differs across stops by a meaningful
+margin. **`npm run audit:contrast` is therefore RED now — that is the honest state**; it
+was green while a real AA failure was live on a public page.
+
+**Fourth instance today of an audit that looked clean but wasn't** — after the responsive
+sweep that hung, the one that cried wolf on images, and two that never launched.
+
 ## ⚡ PERFORMANCE + KEYBOARD — measured on current master (Claude, 2026-07-28)
 
 Re-measured **after** the Next 15.5.22 bump and the mobile/tablet CSS changes, so these
