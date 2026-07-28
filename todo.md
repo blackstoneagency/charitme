@@ -2610,6 +2610,37 @@ before and after** (no loss), picking up other agents' drifted `is_demo` indexes
 plus the tax-receipt fix. This also *proves* the new migration applies cleanly on
 top of the full migration history, since the script replays all of them.
 
+**🔴 FIXED — a beneficiary invite could be accepted by the wrong person.**
+`POST /api/beneficiaries/invites/accept` writes `campaigns.beneficiary_profile_id`
+— it decides who a fundraiser is understood to be raising money *for*. The invite
+names an email, and the accept screen displays it ("this invite is for <email>"),
+but the column was **SELECTed and then never compared**. Any signed-in user
+holding the token could accept an invite addressed to someone else.
+
+Possession of a link is not identity: tokens get forwarded, links get shared, and
+the invite itself states who it is for. Now compared case-insensitively **before
+any write** — order matters, because the invite is marked accepted and cannot be
+retried, so a check running afterwards would lock the real invitee out
+permanently. The 403 names the expected address, since the legitimate way to hit
+this is signing up under a different one.
+
+Same route: the `campaigns` link write was unchecked, so a failure showed
+*"You're set as a beneficiary!"* over a campaign with **no beneficiary**, with the
+invite already consumed. Now a 500. The `roles` write is logged but non-fatal —
+nothing branches on the role; the entitlement comes from
+`beneficiary_profile_id`.
+
+**📋 ROLE SYSTEM — the earlier "roles enforce nothing" note needs a correction.**
+Re-checked: `getUserRoles()` still has **no callers** outside `isAdmin` /
+`isSuperAdmin`, so `donor` / `organizer` / `beneficiary` / `nonprofit` remain
+decorative. But calling that an *authorization hole* was wrong — the role-specific
+areas are scoped by **data ownership**, not by role: `/donor` filters on
+`donor_id = user.id`, `/dashboard` on the owner, the beneficiary portal on
+`beneficiary_profile_id`. A donor opening an organizer page sees their own (empty)
+data, not someone else's. So this is a **product/UX** gap — the roles aren't
+distinct experiences — not a security one, and it should not be fixed by bolting
+role checks onto routes that are already correctly scoped.
+
 **🔴 FIXED — `creator_tips` was world-readable, Stripe payment intent IDs and all.**
 RLS audit, run against a **local replay of every migration** (Postgres 16) rather
 than by reading policy files. Two checks came back clean and are recorded so they
