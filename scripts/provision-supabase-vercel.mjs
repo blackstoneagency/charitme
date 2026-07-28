@@ -2,9 +2,8 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const projectRef = process.env.SUPABASE_PROJECT_REF ?? 'yanexccimwooursawynm';
+const projectRef = process.env.SUPABASE_PROJECT_REF ?? '';
 const supabaseUrl = `https://${projectRef}.supabase.co`;
-const targets = ['production', 'preview', 'development'];
 const root = process.cwd();
 
 function requireEnv(name) {
@@ -13,8 +12,17 @@ function requireEnv(name) {
   return value;
 }
 
+function redactArgs(args) {
+  const secretFlags = new Set(['--db-url', '--password']);
+  return args.map((arg, index) => {
+    if (index > 0 && secretFlags.has(args[index - 1])) return '[REDACTED]';
+    if (/^postgres(?:ql)?:\/\//i.test(arg)) return '[REDACTED]';
+    return arg;
+  });
+}
+
 function run(command, args, options = {}) {
-  console.log(`> ${command} ${args.join(' ')}`);
+  console.log(`> ${command} ${redactArgs(args).join(' ')}`);
   execFileSync(command, args, {
     cwd: root,
     env: process.env,
@@ -117,6 +125,30 @@ async function patchVercelProject(projectIdOrName, token) {
 }
 
 async function main() {
+  requireEnv('SUPABASE_PROJECT_REF');
+  const deployEnvironment = requireEnv('DEPLOY_ENVIRONMENT');
+  const productionProjectRef = requireEnv('SUPABASE_PRODUCTION_PROJECT_REF');
+
+  if (!['staging', 'production'].includes(deployEnvironment)) {
+    throw new Error('DEPLOY_ENVIRONMENT must be staging or production.');
+  }
+  if (deployEnvironment === 'staging' && projectRef === productionProjectRef) {
+    throw new Error('Staging provisioning cannot target the production Supabase project.');
+  }
+  if (deployEnvironment === 'production') {
+    if (projectRef !== productionProjectRef) {
+      throw new Error('Production provisioning must target SUPABASE_PRODUCTION_PROJECT_REF.');
+    }
+    if (process.env.ALLOW_PRODUCTION_DATABASE_PUSH !== 'true') {
+      throw new Error('ALLOW_PRODUCTION_DATABASE_PUSH=true is required for production.');
+    }
+    const verifiedCommit = requireEnv('STAGING_VERIFIED_COMMIT');
+    const currentCommit = output('git', ['rev-parse', 'HEAD']).trim();
+    if (verifiedCommit !== currentCommit) {
+      throw new Error('Production requires this exact commit to pass staging verification.');
+    }
+  }
+
   requireEnv('SUPABASE_ACCESS_TOKEN');
   if (!process.env.SUPABASE_DB_URL && !process.env.SUPABASE_DB_PASSWORD) {
     throw new Error('SUPABASE_DB_PASSWORD or SUPABASE_DB_URL is required for non-interactive database provisioning.');
@@ -152,6 +184,9 @@ async function main() {
     throw new Error('Could not read Supabase anon and service_role keys from the Supabase CLI output.');
   }
 
+  const targets = deployEnvironment === 'production'
+    ? ['production']
+    : ['preview', 'development'];
   const env = [
     { key: 'NEXT_PUBLIC_SUPABASE_URL', value: supabaseUrl, type: 'plain', target: targets },
     { key: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', value: keys.anon, type: 'encrypted', target: targets },

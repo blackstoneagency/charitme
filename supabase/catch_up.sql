@@ -1995,6 +1995,23 @@ drop policy if exists admin_settings_admin_all on public.admin_settings;
 create policy admin_settings_admin_all on public.admin_settings for all using (is_admin()) with check (is_admin());
 
 
+-- ============ 20260524000000_profile_function_dependency.sql ============
+-- The original schema defines is_admin() before it creates profiles.
+-- Pre-create the exact profile contract so fresh databases can compile that function.
+
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text,
+  full_name text,
+  avatar_url text,
+  roles jsonb not null default '["donor"]'::jsonb,
+  identity_verified boolean not null default false,
+  trust_passport_score integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+
 -- ============ 20260525001000_storage_buckets.sql ============
 -- CharitMe storage buckets and policies.
 
@@ -3027,6 +3044,51 @@ create policy audit_logs_admin_insert on audit_logs
   for insert with check (is_admin());
 
 
+-- ============ 20260528114000_runtime_config_dependencies.sql ============
+-- Foundational configuration tables used by later data migrations.
+-- This version intentionally sorts before the first admin_settings and
+-- feature_flags writes so a clean database can replay the chain in order.
+
+create table if not exists public.admin_settings (
+  key text primary key,
+  value text,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.feature_flags (
+  id uuid primary key default gen_random_uuid(),
+  key text not null unique,
+  enabled boolean not null default false,
+  description text,
+  rollout_pct integer not null default 100 check (rollout_pct between 0 and 100),
+  updated_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.admin_settings enable row level security;
+alter table public.feature_flags enable row level security;
+
+drop policy if exists admin_settings_admin_all on public.admin_settings;
+drop policy if exists admin_settings_admin_all on public.admin_settings;
+create policy admin_settings_admin_all on public.admin_settings
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop policy if exists feature_flags_admin_all on public.feature_flags;
+drop policy if exists feature_flags_admin_all on public.feature_flags;
+create policy feature_flags_admin_all on public.feature_flags
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+revoke all on table public.admin_settings from public, anon, authenticated;
+revoke all on table public.feature_flags from public, anon, authenticated;
+grant select, insert, update, delete on table public.admin_settings to service_role;
+grant select, insert, update, delete on table public.feature_flags to service_role;
+
+
 -- ============ 20260528150000_campaigns_featured_pinned.sql ============
 -- Add featured and pinned flags to campaigns for admin controls
 ALTER TABLE campaigns
@@ -3143,6 +3205,25 @@ alter table public.campaigns add constraint campaigns_category_check
     'Environment','Business','Community','Competition','Creative','Event',
     'Faith','Family','Sports','Travel','Volunteer','Wishes'
   ));
+
+
+-- ============ 20260607900000_prepare_support_policy_hardening.sql ============
+-- The original support migration and production hardening reuse these policy names.
+-- Only clean replays need the earlier definitions removed. Existing environments
+-- may receive this older compatibility migration after hardening is already live.
+
+do $$
+begin
+  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '20260608000000'
+  ) then
+    drop policy if exists support_own_read on public.support_cases;
+    drop policy if exists support_own_insert on public.support_cases;
+  end if;
+end
+$$;
 
 
 -- ============ 20260608000000_production_hardening.sql ============
