@@ -1182,7 +1182,7 @@ export default function DonationsClient({
                   style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }}
                 />
               </div>
-              <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(0); }}
+              <select aria-label="Filter by donation status" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(0); }}
                 style={{ height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', fontSize: 13, background: '#fff' }}>
                 <option value="all">All Status</option>
                 <option value="completed">Completed</option>

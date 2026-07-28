@@ -67,7 +67,7 @@ function ListView() {
         <div style={{ fontSize: 15, fontWeight: 800, color: '#1e293b', marginBottom: 6 }}>Generate a campaign from a goal</div>
         <div style={{ fontSize: 13, color: '#64748b', marginBottom: 12 }}>Pick a goal — the OS assembles a connected set of draft assets across every channel, linked to that goal.</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <select value={selGoal} onChange={(e) => setSelGoal(e.target.value)} style={{ ...input, maxWidth: 460 }}>
+          <select aria-label="Goal to generate a campaign plan from" value={selGoal} onChange={(e) => setSelGoal(e.target.value)} style={{ ...input, maxWidth: 460 }}>
             <option value="">Select a goal…</option>
             {goals.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}
           </select>
@@ -195,7 +195,7 @@ function AssetCard({ a, save }: { a: Asset; save: (id: string, body: Record<stri
       </div>
 
       {editing ? (
-        <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={Math.min(18, Math.max(5, body.split('\n').length + 1))} style={{ ...input, fontFamily: 'ui-monospace, monospace', fontSize: 12, lineHeight: 1.5, resize: 'vertical' }} />
+        <textarea aria-label="Asset content" value={body} onChange={(e) => setBody(e.target.value)} rows={Math.min(18, Math.max(5, body.split('\n').length + 1))} style={{ ...input, fontFamily: 'ui-monospace, monospace', fontSize: 12, lineHeight: 1.5, resize: 'vertical' }} />
       ) : (
         <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace, monospace', fontSize: 12, lineHeight: 1.5, color: '#334155', margin: 0, background: '#fafbfd', border: '1px solid #f1f5f9', borderRadius: 8, padding: 12, maxHeight: 260, overflow: 'auto' }}>{a.body}</pre>
       )}

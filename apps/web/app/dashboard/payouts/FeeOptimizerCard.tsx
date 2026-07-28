@@ -60,7 +60,7 @@ export default function FeeOptimizerCard({ campaigns }: Props) {
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>✨ AI Fee Optimizer</h2>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {campaigns.length > 1 && (
-            <select value={campaignId} onChange={e => { setCampaignId(e.target.value); setResult(null); }}
+            <select aria-label="Campaign to optimise fees for" value={campaignId} onChange={e => { setCampaignId(e.target.value); setResult(null); }}
               style={{ height: 36, border: '1px solid var(--b2)', borderRadius: 8, padding: '0 10px', fontSize: 13, background: 'var(--s1)' }}>
               {campaigns.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>

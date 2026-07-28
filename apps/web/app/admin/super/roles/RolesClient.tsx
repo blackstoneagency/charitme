@@ -123,6 +123,7 @@ export default function RolesClient({ users: initial }: { users: RoleUser[] }) {
       <div className="kf-card" style={{ padding: 16 }}>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
           <input
+            aria-label="Search users by name or email"
             placeholder="Search by name or email…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
