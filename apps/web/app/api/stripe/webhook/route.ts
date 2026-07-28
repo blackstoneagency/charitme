@@ -10,6 +10,7 @@ import { resolvePayoutDestination } from '../../../../lib/payout-destination';
 import { resolveContact, trackEvent, refreshContactScores } from '../../../../lib/marketing-engine';
 import { postDonation, postRefund, postDisputeLoss, openReconciliationException } from '../../../../lib/ledger';
 import { resolveRecurringRenewalAmounts } from '../../../../lib/recurring-payment';
+import { normalizeReceiptEmail } from '../../../../lib/tax-receipt-access';
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -244,6 +245,10 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
       // Record charge currency (non-fatal; column defaults to 'usd')
       const recurringCurrency = (session.currency ?? 'usd').toLowerCase();
 
+      const recurringDonationId = await findDonationId({
+        paymentIntentId: null,
+        checkoutSessionId: session.id,
+      });
       await sendDonorReceipt(
         {
           donorId: meta.donorId,
@@ -251,7 +256,9 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
           name: session.customer_details?.name,
         },
         meta.campaignId,
-        `${formatCents(amountCents, recurringCurrency)}/month`,
+        formatCents(amountCents, recurringCurrency),
+        recurringDonationId ?? undefined,
+        'recurring',
       );
 
       // "Subscribe to receive emails" checkbox — opt a logged-in donor into
@@ -293,7 +300,6 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
       // payments are traceable in the admin payments dashboard. The processor fee
       // is enriched later by handleChargeObserved (charge.succeeded) once Stripe
       // reports the balance transaction. recordCampaignPayment is idempotent.
-      const recurringDonationId = await findDonationId({ paymentIntentId: null, checkoutSessionId: session.id });
       const initialRecurringPaymentId = await recordCampaignPayment({
         donationId: recurringDonationId,
         campaignId: meta.campaignId,
@@ -707,6 +713,21 @@ async function handleInvoiceSucceeded(eventId: string, invoice: Stripe.Invoice) 
   });
   if (donationError) throw new Error('Recurring donation renewal could not be recorded.');
 
+  const renewalDonationId = await findDonationId({
+    paymentIntentId: invoicePaymentIntentId(invoice),
+    checkoutSessionId: null,
+  });
+  await sendDonorReceipt(
+    {
+      donorId: subMeta.donorId,
+      email: subMeta.donorEmail || null,
+    },
+    subMeta.campaignId,
+    formatCents(donationAmountCents, (invoice.currency ?? 'usd').toLowerCase()),
+    renewalDonationId ?? undefined,
+    'recurring',
+  );
+
   const periodEnd = subscriptionPeriodEnd(sub);
   if (periodEnd) {
     await supabaseAdmin.from('recurring_donations').update({
@@ -729,9 +750,8 @@ async function handleInvoiceSucceeded(eventId: string, invoice: Stripe.Invoice) 
     const destination = campaign
       ? await resolvePayoutDestination(campaign as { user_id: string; beneficiary_profile_id?: string | null })
       : null;
-    const donationId = await findDonationId({ paymentIntentId: piId, checkoutSessionId: null });
     const campaignPaymentId = await recordCampaignPayment({
-      donationId,
+      donationId: renewalDonationId,
       campaignId: subMeta.campaignId,
       campaignOwnerId: (campaign as { user_id?: string } | null)?.user_id ?? null,
       donorId: subMeta.donorId || null,
@@ -1557,7 +1577,8 @@ async function sendDonorReceipt(
   campaignId: string,
   amountFormatted: string,
   donationId?: string,
-) {
+  receiptType: 'donation' | 'recurring' = 'donation',
+): Promise<void> {
   if (!recipient.donorId && !recipient.email) return;
   try {
     let donorEmail = recipient.email ?? null;
@@ -1565,10 +1586,9 @@ async function sendDonorReceipt(
     if (recipient.donorId) {
       const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('full_name, email, notification_email')
+        .select('full_name, email')
         .eq('id', recipient.donorId)
         .single();
-      if (profile?.notification_email === false) return;
       donorEmail = profile?.email ?? donorEmail;
       donorName = profile?.full_name ?? donorName;
     }
@@ -1579,6 +1599,24 @@ async function sendDonorReceipt(
       .eq('id', campaignId)
       .single();
     if (!donorEmail || !camp) return;
+
+    const { data: donationRow } = donationId
+      ? await supabaseAdmin
+        .from('donations')
+        .select('donor_id, amount_cents, tip_cents, processing_fee_cents, currency, created_at, stripe_payment_intent_id, stripe_checkout_session_id')
+        .eq('id', donationId)
+        .maybeSingle()
+      : { data: null };
+    if (donationId && !donationRow) return;
+
+    const { data: existingReceipt } = donationId
+      ? await supabaseAdmin
+        .from('donation_receipts')
+        .select('id, receipt_number')
+        .eq('donation_id', donationId)
+        .limit(1)
+        .maybeSingle()
+      : { data: null };
 
     // If the campaign is run by a verified nonprofit that issues tax receipts
     // (and has an EIN), the donor's automatic receipt should be the OFFICIAL
@@ -1596,9 +1634,6 @@ async function sendDonorReceipt(
       nonprofit = (np as NpRow | null) ?? null;
     }
 
-    // Gate on donationId so only discrete one-time charges become tax receipts;
-    // recurring receipts ("$X/month") stay on the generic path (each recurring
-    // charge is receipted separately elsewhere, not as a "/month" tax receipt).
     const deductible = Boolean(donationId) && nonprofit !== null && canIssueTaxReceipt({
       name: nonprofit.name,
       taxId: nonprofit.tax_id,
@@ -1606,12 +1641,16 @@ async function sendDonorReceipt(
       taxReceiptEnabled: nonprofit.tax_receipt_enabled,
     });
 
-    if (deductible && nonprofit) {
-      const year = new Date().getUTCFullYear();
-      // Receipt number derived identically to the annual statement so the
-      // emailed receipt and the year-end statement reconcile.
-      const receiptNumber = `RCP-${year}-${donationId!.slice(0, 8).toUpperCase()}`;
-      const { sent } = await sendTaxReceiptEmail({
+    const taxEligible = Boolean(nonprofit)
+      && (nonprofit!.verified || nonprofit!.verification_status === 'verified')
+      && nonprofit!.tax_receipt_enabled;
+    const receiptYear = donationRow?.created_at
+      ? new Date(donationRow.created_at).getUTCFullYear()
+      : new Date().getUTCFullYear();
+    const receiptNumber = existingReceipt?.receipt_number
+      ?? (donationId ? `RCP-${receiptYear}-${donationId.slice(0, 8).toUpperCase()}` : null);
+    if (deductible && nonprofit && receiptNumber) {
+      const taxDelivery = await sendTaxReceiptEmail({
         to: donorEmail,
         donorName,
         nonprofitName: nonprofit.name,
@@ -1619,37 +1658,76 @@ async function sendDonorReceipt(
         campaignTitle: camp.title,
         amountFormatted,
         receiptNumber,
-        donationDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        donationDate: new Date(donationRow!.created_at).toLocaleDateString(
+          'en-US',
+          { month: 'long', day: 'numeric', year: 'numeric' },
+        ),
       });
-      if (!sent) return;
-      const { data: donationRow } = await supabaseAdmin
-        .from('donations')
-        .select('amount_cents, currency')
-        .eq('id', donationId)
-        .maybeSingle();
-      await supabaseAdmin.from('tax_receipts').upsert({
-        donation_id: donationId,
-        donor_id: recipient.donorId ?? null,
+      if (!taxDelivery.sent) return;
+      const { error: taxReceiptError } = await supabaseAdmin.from('tax_receipts').upsert({
+        donation_id: donationId!,
+        donor_id: donationRow!.donor_id ?? recipient.donorId ?? null,
         nonprofit_id: nonprofit.id,
         receipt_number: receiptNumber,
-        amount_cents: donationRow?.amount_cents ?? 0,
-        currency: donationRow?.currency ?? 'usd',
+        amount_cents: donationRow!.amount_cents,
+        currency: donationRow!.currency ?? 'usd',
         nonprofit_name: nonprofit.name,
         nonprofit_ein: nonprofit.tax_id,
         campaign_title: camp.title,
         emailed_at: new Date().toISOString(),
       }, { onConflict: 'donation_id' });
-      return;
+      if (taxReceiptError) {
+        console.error('[webhook] tax receipt delivery could not be recorded', {
+          donation_id: donationId,
+          code: taxReceiptError.code,
+        });
+      }
+    } else {
+      const receiptDelivery = await sendReceiptEmail({
+        to: donorEmail,
+        donorName,
+        campaignTitle: camp.title,
+        campaignSlug: camp.slug,
+        amountFormatted,
+        donationId,
+      });
+      if (!receiptDelivery.sent) return;
     }
 
-    await sendReceiptEmail({
-      to: donorEmail,
-      donorName,
-      campaignTitle: camp.title,
-      campaignSlug: camp.slug,
-      amountFormatted,
-      donationId,
-    });
+    if (!donationId || !donationRow || !receiptNumber) return;
+    const deliveredAt = new Date().toISOString();
+    const receiptValues = {
+      donation_id: donationId,
+      donor_id: donationRow.donor_id ?? recipient.donorId ?? null,
+      campaign_id: campaignId,
+      receipt_number: receiptNumber,
+      amount_cents: donationRow.amount_cents,
+      tip_cents: donationRow.tip_cents ?? 0,
+      processing_fee_cents: donationRow.processing_fee_cents ?? 0,
+      currency: donationRow.currency ?? 'usd',
+      is_tax_deductible: taxEligible,
+      nonprofit_ein: taxEligible ? nonprofit?.tax_id ?? null : null,
+      campaign_title: camp.title,
+      donor_name: donorName,
+      donor_email: normalizeReceiptEmail(donorEmail),
+      email_sent_at: deliveredAt,
+      resent_at: existingReceipt ? deliveredAt : null,
+      stripe_payment_intent_id: donationRow.stripe_payment_intent_id,
+      stripe_checkout_session_id: donationRow.stripe_checkout_session_id,
+      receipt_type: receiptType,
+    };
+    const { error: receiptLedgerError } = existingReceipt
+      ? await supabaseAdmin
+        .from('donation_receipts')
+        .update(receiptValues)
+        .eq('id', existingReceipt.id)
+      : await supabaseAdmin.from('donation_receipts').insert(receiptValues);
+    if (receiptLedgerError) {
+      console.error('[webhook] receipt delivery could not be recorded', {
+        donation_id: donationId,
+        code: receiptLedgerError.code,
+      });
+    }
   } catch {
     // Non-fatal — receipt failure must not fail webhook
   }

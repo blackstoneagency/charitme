@@ -24,7 +24,7 @@ minutes and produces logs. These finish in ~2 seconds with none. If you see that
 stop debugging your diff.
 
 **Local verification is therefore the real gate, and it is green:**
-`npm run typecheck` (0) · `npm test` (**1792/1792, 169 files**) · `npm run build`
+`npm run typecheck` (0) · `npm test` (**1808/1808, 171 files**) · `npm run build`
 (exit 0) · `scripts/audit-contrast.mjs --strict-gradients` (**0 WCAG AA failures,
 37 pages × 2 themes, 3,638 text elements per theme**).
 
@@ -34,7 +34,7 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 
 ## CLEAN DATABASE REPLAY - verified locally, staging application pending (Codex, 2026-07-28)
 
-- [x] Replayed all **101/101** ordered migrations against a brand-new local
+- [x] Replayed all **102/102** ordered migrations against a brand-new local
   Supabase PostgreSQL database.
 - [x] Added additive dependency migrations so `profiles`, `admin_settings`, and
   `feature_flags` exist before historical functions and data migrations consume
@@ -43,7 +43,7 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   hardening migration replaces them, eliminating duplicate-policy failure.
 - [x] Replaced seed-time promotion of the oldest real customer with two
   deterministic, non-login `.invalid` synthetic identities.
-- [x] Verified the completed local database contains 101 migration records,
+- [x] Verified the completed local database contains 102 migration records,
   2 auth users, 2 trigger-created profiles, 3 campaigns, 4 donations,
   7 admin settings, and 3 feature flags.
 - [x] Provisioning now requires an explicit staging or production target,
@@ -70,6 +70,22 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   donations, receipts, payment detail rows, and affected campaign totals.
 - [x] Replayed the full migration chain, proved repair idempotency with a tipped
   renewal fixture, and ran all application gates before merging through a PR.
+
+## TAX DOCUMENT ACCESS - code complete, release pending (Codex, 2026-07-28)
+
+- [x] Persist automatic one-time and recurring donation receipts in Supabase,
+  including guest delivery details, integer-cent totals, and tax status.
+- [x] Generate and deliver a separate receipt for every recurring renewal.
+- [x] Let signed-in former guests recover annual tax history using their
+  verified account email without overriding a donation owned by another user.
+- [x] Preserve official nonprofit EIN, receipt number, and disclosure details
+  when an eligible donor re-sends a receipt.
+- [x] Let authorized admins issue tax receipts for guest donations using the
+  persisted receipt recipient without placing recipient PII in audit metadata.
+- [x] Add an idempotent migration, rollback, static contract test, and live SQL
+  fixture for normalized guest access and one receipt ledger row per donation.
+- [ ] Apply the migration to staging and run authenticated receipt/payment smoke
+  tests before the release workflow is allowed to apply it to production.
 
 ## SECURITY BOUNDARIES - code complete, production migration pending (Codex, 2026-07-27)
 

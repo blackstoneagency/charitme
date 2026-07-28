@@ -73,9 +73,9 @@ function withCurrency(path: string, currency: string): string {
   return `${path}${path.includes('?') ? '&' : '?'}currency=${encodeURIComponent(currency)}`;
 }
 
-async function loadTaxInputs(userId: string): Promise<TaxInputs> {
+async function loadTaxInputs(userId: string, userEmail?: string | null): Promise<TaxInputs> {
   const [donorResult, fundraiserResult] = await Promise.allSettled([
-    loadDonorTaxInputs(userId),
+    loadDonorTaxInputs(userId, userEmail),
     loadFundraiserTaxInputs(userId),
   ]);
   return {
@@ -92,7 +92,7 @@ export default async function TaxDocumentsPage({
   searchParams: Promise<SearchParams>;
 }): Promise<React.ReactElement> {
   const [user, params] = await Promise.all([requireUser(), searchParams]);
-  const inputs = await loadTaxInputs(user.id);
+  const inputs = await loadTaxInputs(user.id, user.email);
   const currentYear = new Date().getUTCFullYear();
   const availableYears = [...new Set([
     currentYear,

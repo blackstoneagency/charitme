@@ -33,7 +33,7 @@ export default async function TaxStatementPage({ params, searchParams }: { param
   let profileName: string | null = null;
   try {
     const [{ statement: loadedStatement }, profileRes] = await Promise.all([
-      getDonorTaxStatement(user.id, year, requestedCurrency),
+      getDonorTaxStatement(user.id, year, requestedCurrency, user.email),
       supabaseAdmin.from('profiles').select('full_name').eq('id', user.id).single(),
     ]);
     statement = loadedStatement;

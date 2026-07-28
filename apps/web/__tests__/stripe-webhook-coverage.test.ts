@@ -132,6 +132,7 @@ describe('recurring renewal accounting contract', () => {
     expect(subscriptionData).toContain('donationAmountCents: String(amountCents)');
     expect(subscriptionData).toContain('tipCents: String(tipCents)');
     expect(subscriptionData).toContain("anonymous: anonymous ? '1' : '0'");
+    expect(subscriptionData).toContain("donorEmail: stripeEmail ?? ''");
   });
 
   it('resolves and records principal and tip separately for renewals', () => {
