@@ -112,12 +112,41 @@ const Ico = {
 // ─────────────────────────────────────────────
 // SetField
 // ─────────────────────────────────────────────
+// Associates the visible label with the control it names.
+//
+// This used to render a bare sibling `<label>{label}</label>` with no `htmlFor`,
+// so NONE of the settings fields were programmatically labelled — a screen
+// reader announced every one of them as an unnamed edit field. Only the disabled
+// Email input tripped axe's `label` rule, because every other control happens to
+// carry a `placeholder` that axe accepts as a fallback accessible name; the
+// placeholder disappears the moment a value is typed, so the pass was cosmetic.
+//
+// The id is generated with `useId()` and forwarded onto the single form control
+// passed as `children` (unless it already brings its own id), which keeps every
+// call site unchanged — the label text is already there, it just needed wiring.
+//
+// Not unit-tested: vitest's rolldown transform refuses to compile an imported
+// `.tsx`, so this repo cannot render a component in a test. The public axe sweep
+// cannot reach it either -- /dashboard/settings requires auth -- which is why 19
+// unlabelled controls survived a clean accessibility run.
+const LABELLABLE = new Set(['input', 'select', 'textarea']);
+
 function SetField({ label, hint, children, className }: { label: string; hint?: string; children: React.ReactNode; className?: string }) {
+  const fieldId = useId();
+  const hintId = `${fieldId}-hint`;
+
+  const control = React.isValidElement(children) && LABELLABLE.has(children.type as string)
+    ? React.cloneElement(children as React.ReactElement<{ id?: string; 'aria-describedby'?: string }>, {
+        id: (children.props as { id?: string }).id ?? fieldId,
+        'aria-describedby': hint ? hintId : (children.props as { 'aria-describedby'?: string })['aria-describedby'],
+      })
+    : children;
+
   return (
     <div className={`kf-setfield${className ? ` ${className}` : ''}`}>
-      <label>{label}</label>
-      {children}
-      {hint ? <span className="kf-setfield-hint">{hint}</span> : null}
+      <label htmlFor={fieldId}>{label}</label>
+      {control}
+      {hint ? <span className="kf-setfield-hint" id={hintId}>{hint}</span> : null}
     </div>
   );
 }

@@ -29,7 +29,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ALLOWLIST = new Set([
   'aeo_entries', 'announcements', 'campaign_faqs', 'campaign_media',
   'campaign_milestones', 'campaign_rewards', 'campaign_updates', 'campaigns',
-  'challenge_participants', 'challenges', 'donor_messages', 'event_tickets',
+  'challenge_participants', 'challenges', 'event_tickets',
   'fundraising_events', 'grants', 'nonprofit_profiles', 'peer_fundraisers',
   'sponsors', 'sponsorship_opportunities', 'transparency_ledger_items',
   'trust_scores', 'user_badges', 'volunteer_opportunities', 'volunteer_profiles',
@@ -47,6 +47,14 @@ const ALLOWLIST = new Set([
   // same gate as campaigns_public_read, so they expose nothing the public
   // campaign page does not already show. (Verified: anon sees 350 of 500 rows.)
   'creator_profiles', 'campaign_launch_settings',
+  // The public donor wall (campaign comments). Re-verified 2026-07-27: anon
+  // reads all 1120 rows, which is correct — this is the comments section under
+  // every campaign. Do NOT re-raise on the `visibility` column: 30 rows read
+  // visibility='anonymous', but NOTHING in the app reads that column. Donor
+  // anonymity is carried by the `anonymous` BOOLEAN, honoured in all three
+  // render paths (campaign page, messages pagination route, donation wall),
+  // together with profiles.show_public_profile.
+  'donor_messages',
 ]);
 
 function loadEnv() {
