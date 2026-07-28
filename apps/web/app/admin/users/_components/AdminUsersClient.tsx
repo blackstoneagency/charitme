@@ -569,6 +569,7 @@ export default function AdminUsersClient({
           <div className="admin-user-row head">
             <span>
               <input
+                aria-label="Select all users on this page"
                 type="checkbox"
                 checked={selectedIds.length === paginated.length && paginated.length > 0}
                 onChange={(e) =>
@@ -587,6 +588,7 @@ export default function AdminUsersClient({
             <div className="admin-user-row" key={u.id}>
               <span>
                 <input
+                  aria-label={`Select ${u.name || u.email}`}
                   type="checkbox"
                   checked={selectedIds.includes(u.id)}
                   onChange={(e) =>

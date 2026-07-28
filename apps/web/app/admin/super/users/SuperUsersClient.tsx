@@ -62,7 +62,7 @@ export default function SuperUsersClient({ users: initial, total }: { users: Dir
 
       <div className="kf-card" style={{ padding: 16 }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
-          <input placeholder="Search name or email…" value={query} onChange={(e) => setQuery(e.target.value)}
+          <input aria-label="Search users by name or email" placeholder="Search name or email…" value={query} onChange={(e) => setQuery(e.target.value)}
             style={{ flex: 1, minWidth: 200, padding: '10px 14px', borderRadius: 10, border: '1px solid var(--b2)', background: 'var(--s1)', color: 'var(--t1)' }} />
           <div className="kf-tabs">
             {(['all', 'admins', 'verified', 'suspended'] as const).map((f) => (
@@ -87,7 +87,7 @@ export default function SuperUsersClient({ users: initial, total }: { users: Dir
                   </td>
                   <td style={{ fontSize: 12 }}>{u.roles.map((r) => <span key={r} className={`kf-pill ${r === 'super_admin' ? 'orange' : r === 'admin' ? 'pink' : 'violet'}`} style={{ marginRight: 4 }}>{r}</span>)}</td>
                   <td>
-                    <select value={u.plan} disabled={busyId === u.id} onChange={(e) => action(u, 'set_plan', e.target.value)}
+                    <select aria-label={`Plan for ${u.email}`} value={u.plan} disabled={busyId === u.id} onChange={(e) => action(u, 'set_plan', e.target.value)}
                       style={{ padding: '5px 8px', borderRadius: 8, border: '1px solid var(--b2)', background: 'var(--s1)', color: 'var(--t1)', fontSize: 12 }}>
                       <option value="free">free</option><option value="starter">starter</option><option value="pro">pro</option>
                     </select>

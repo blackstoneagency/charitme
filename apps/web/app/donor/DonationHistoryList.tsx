@@ -127,21 +127,21 @@ export default function DonationHistoryList({
           Donation History <span style={{ color: 'var(--t3, #94a3b8)', fontWeight: 600 }}>({filtered.length} of {items.length}{hasMore ? '+' : ''})</span>
         </h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} style={selectStyle}>
+          <select aria-label="Filter by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} style={selectStyle}>
             <option value="all">All statuses</option>
             <option value="completed">Completed</option>
             <option value="refunded">Refunded</option>
             <option value="pending">Pending</option>
           </select>
           {campaignOptions.length > 1 && (
-            <select value={campaignFilter} onChange={(e) => setCampaignFilter(e.target.value)} style={selectStyle}>
+            <select aria-label="Filter by campaign" value={campaignFilter} onChange={(e) => setCampaignFilter(e.target.value)} style={selectStyle}>
               <option value="all">All campaigns</option>
               {campaignOptions.map(([id, title]) => (
                 <option key={id} value={id}>{title}</option>
               ))}
             </select>
           )}
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortKey)} style={selectStyle}>
+          <select aria-label="Sort donations" value={sortBy} onChange={(e) => setSortBy(e.target.value as SortKey)} style={selectStyle}>
             <option value="newest">Newest first</option>
             <option value="oldest">Oldest first</option>
             <option value="amount_desc">Amount: high to low</option>

@@ -1531,7 +1531,7 @@ function EditForm({
                 No cover image set
               </div>
             )}
-            <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" style={{ display: 'none' }}
+            <input aria-label="Upload cover image" ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" style={{ display: 'none' }}
               onChange={e => { const f = e.target.files?.[0]; if (f) void uploadCover(f); e.target.value = ''; }} />
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <button type="button" disabled={uploadingCover} onClick={() => coverInputRef.current?.click()}
@@ -1585,7 +1585,7 @@ function EditForm({
                 ))}
               </div>
             )}
-            <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple style={{ display: 'none' }}
+            <input aria-label="Upload gallery images" ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple style={{ display: 'none' }}
               onChange={async e => {
                 const files = Array.from(e.target.files ?? []).slice(0, 10 - (draft.imageUrls ?? []).length);
                 for (const f of files) await uploadGalleryImage(f);
@@ -1634,7 +1634,7 @@ function EditForm({
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <input
                 className="ac-input"
-                value={draft.videoUrl ?? ''}
+                aria-label="Video URL" value={draft.videoUrl ?? ''}
                 onChange={e => upd('videoUrl', e.target.value || null)}
                 placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
                 style={{ flex: 1 }}
