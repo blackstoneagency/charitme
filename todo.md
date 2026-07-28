@@ -1574,6 +1574,39 @@ has no real secrets set, so a value-pattern scan here cannot fail the way it wou
 on a machine that does — re-run it against a Vercel build to make the value half of
 this check meaningful.
 
+## 👥 Roles: mapped and distinct — with the one real gap named (Claude, 2026-07-28)
+
+Checked the "each user role is clearly mapped out and different from the others"
+criterion rather than leaving it as an open question. It is **substantially met**,
+and the evidence is already enforced by tests (`__tests__/role-capabilities.test.ts`,
+25 assertions passing):
+
+- every assignable role is defined, **with nothing extra** — the phantom `user` role
+  has its own regression test so it cannot come back
+- every role carries a description and at least one capability
+- **`roles are actually distinct from one another`** is an explicit assertion, so two
+  roles cannot silently collapse into the same capability set
+- `donor` is pinned as the only default; `admin`/`super_admin` are pinned as the only
+  privileged pair
+
+**The one real gap, stated precisely rather than as "not confirmed":**
+
+```
+enforcedRoles() === ['admin', 'super_admin']
+advisoryRoles() === ['donor', 'organizer', 'beneficiary', 'nonprofit']
+```
+
+So four of the six roles are **advisory** — they describe a user and drive UI copy,
+but nothing gates on them. Whether they *should* gate is a product decision (does a
+`beneficiary` lose access a `donor` has?), which is why this is owner-gated rather
+than a bug to fix unilaterally.
+
+Credit where due: that honesty is already pinned by a test whose comment says the
+`enforced` flag and the real gating "must move together" — so whoever implements
+gating is forced to update the catalog in the same commit. That is the right shape,
+and it is why this criterion should read 🟡 *"mapped, distinct, four roles advisory
+by design"* — not ⚪ unknown.
+
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
