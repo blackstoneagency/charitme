@@ -852,6 +852,25 @@ cannot see this, because the failure is about events nobody wrote a handler for.
 
 ## 🔓 RUNBOOK — apply the 3 pending migrations (Claude, 2026-07-28)
 
+### 🔴 Three migrations merged in #146 are UNAPPLIED — the code shipped, the fixes did not
+
+`bf42c91` is on `master` and deploying. Its code changes are safe without the
+migrations (nothing errors), but **three fixes stay broken until this runbook is
+run**, because each one *is* a schema change:
+
+| migration | what stays broken without it |
+|---|---|
+| `20260728020000_fix_tax_receipt_upsert_inference` | tax receipt still emailed to the donor and **never recorded** (partial index → 42P10) |
+| `20260812000000_make_onconflict_targets_inferable` | Stripe webhook still **rejects** every processor-fee / refund / owner-transfer row; **"unsubscribe" still writes nothing** |
+| `20260812010000_creator_tips_not_world_readable` | `creator_tips` stays **world-readable** — supporter IDs, amounts, Stripe payment intent IDs |
+
+The third is the one to prioritise: it is a live data exposure, and it is a
+single `drop policy` + `create policy`, safe to run on its own.
+
+⚠️ The code half of the tax-receipt fix now **logs** the failure it previously
+swallowed. Expect `[admin/tax-receipt] tax_receipts upsert failed` in production
+logs until the migration lands — that is the bug becoming visible, not a new one.
+
 This has been the #1 blocker all session. It is still blocked *here* — but Codex's PR #136
 added the tooling, so it is now a **copy-paste command** rather than an open question.
 
