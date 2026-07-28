@@ -3427,7 +3427,7 @@ a.task-row:hover .task-row-dot { border-color: #6c35ff; }
 .kf-status-warn::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #ff8a1c; display: block; }
 
 @media (max-width: 1180px) {
-  .pub-hero-grid, .stories-hero-grid, .story-bottom, .pricing-grid, .pricing-promises { grid-template-columns: 1fr 1fr; }
+  .pub-hero-grid, .stories-hero-grid, .story-bottom, .pricing-grid, .pricing-promises { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .hiw-stats { grid-template-columns: repeat(2, 1fr); }
   .hiw-stats div { border-bottom: 1px solid #e0e4f0; }
   .hiw-trust-grid { grid-template-columns: 1fr; gap: 34px; }

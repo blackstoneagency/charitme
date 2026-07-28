@@ -190,7 +190,7 @@ export default function ForNonprofitsPage() {
                 className="flex min-w-0 flex-col rounded-3xl border border-slate-200 bg-white p-7 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <h3 className="text-xl font-black text-slate-950">{tier.name}</h3>
                     <p className="mt-1 text-sm text-slate-500">{tier.audience}</p>
                   </div>
