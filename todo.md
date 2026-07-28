@@ -501,8 +501,41 @@ entirely. `/admin/audit-log` reported **5 text elements** and was never audited 
 surfaced only by the sweep's own "fewer than 15 text elements" warning, which is
 the single most valuable thing in that script's output.
 
+### Measured result of both fixes — and the 201 figure was an UNDERCOUNT
+
+The sweep's own "fewer than 15 text elements" report, before vs after:
+
+| | run 1 (crashing) | run 3 (both fixes) |
+|---|---|---|
+| thin renders | **13** | **7** |
+| `/admin/super` | 5 elements, both themes | **gone from the list** |
+| `/admin/audit-log` | 5 elements, both themes | **gone** |
+| `/admin/system` | 5 elements, both themes | **gone** |
+| elements examined | 18,578 light / 18,223 dark | **19,725 / 19,422** |
+| contrast failures | 201 | **219** |
+
+Six page-renders recovered (3 pages × 2 themes) and ~1,150 more text elements
+examined per theme. `/admin/system` came back too — it reads `webhook_events`,
+so the fixture fix reached further than the one page it was traced from.
+
+**The failure count went UP because the audit got honest.** 201 was measured
+against a run where three pages had crashed to an error boundary; the real
+figure with those pages rendering is **219**. A rising number here is the sweep
+working, not a regression — and it is the exact shape of undercount this file
+keeps recording: a green-looking measurement taken over content that never
+rendered.
+
+All 219 are contrast/theme → **Codex's lane**, untouched by me.
+
 **Score for the day: 3 crashes investigated → 1 real bug.** Same discipline as
 the fetch-method audit: open the file before calling it a defect.
+
+⚠️ **One method note against myself:** I tried to verify `/admin/super` with an
+ad-hoc `curl` carrying a hand-built session cookie, and it reported all three
+pages as error pages. That was **my harness being wrong** — `/admin/super` and
+`/admin/audit-log` returned byte-identical 1095-char bodies, i.e. the cookie was
+rejected and both rendered the same login page. The sweep's own report is the
+measurement to trust here; the ad-hoc check was discarded, not reported.
 
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
