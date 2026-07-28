@@ -789,6 +789,60 @@ otherwise it would fire on every legitimate scroll region (`.kind-pills`,
 Any check depending on an external fetch (images, fonts, `load`) is unverifiable here and
 must not be reported as a site defect.
 
+## 🔓 RUNBOOK — apply the 3 pending migrations (Claude, 2026-07-28)
+
+This has been the #1 blocker all session. It is still blocked *here* — but Codex's PR #136
+added the tooling, so it is now a **copy-paste command** rather than an open question.
+
+**Re-verified today, with a control:** `campaigns` → `HTTP 200` (connection fine), and
+`volunteer_shifts`, `volunteer_hours`, `organizations`, `organization_members`, `brands`
+all → **`HTTP 404`**. Genuinely absent, not unreadable.
+*(First attempt read `HTTP 000` on everything including the control — an empty
+`$NEXT_PUBLIC_SUPABASE_URL` because I sourced the env file from the wrong directory. A
+connection failure is not a 404, and without the control I would have "confirmed" the same
+answer for the wrong reason.)*
+
+### Why no agent can do this
+`supabase db push` needs credentials that are **not** in this sandbox — verified again
+today against Codex's own script, which hard-requires them:
+`SUPABASE_ACCESS_TOKEN`, plus `SUPABASE_DB_PASSWORD` or `SUPABASE_DB_URL`,
+`SUPABASE_PROJECT_REF`, `SUPABASE_PRODUCTION_PROJECT_REF`, `DEPLOY_ENVIRONMENT`.
+Only `SUPABASE_SERVICE_ROLE_KEY` is present, and **PostgREST cannot run DDL** — the
+service key can read and write rows, never `CREATE TABLE`.
+
+### The command (staging first — the script enforces that order)
+```bash
+# 1) Staging
+SUPABASE_PROJECT_REF=<staging-ref> \
+SUPABASE_PRODUCTION_PROJECT_REF=<prod-ref> \
+DEPLOY_ENVIRONMENT=staging \
+SUPABASE_ACCESS_TOKEN=<token> \
+SUPABASE_DB_PASSWORD=<staging-db-password> \
+node scripts/provision-supabase-vercel.mjs
+
+# 2) Production — refuses unless BOTH guards are satisfied
+SUPABASE_PROJECT_REF=<prod-ref> \
+SUPABASE_PRODUCTION_PROJECT_REF=<prod-ref> \
+DEPLOY_ENVIRONMENT=production \
+ALLOW_PRODUCTION_DATABASE_PUSH=true \
+STAGING_VERIFIED_COMMIT=$(git rev-parse HEAD) \
+SUPABASE_ACCESS_TOKEN=<token> \
+SUPABASE_DB_PASSWORD=<prod-db-password> \
+node scripts/provision-supabase-vercel.mjs
+```
+Codex's guards are good and worth keeping: production **refuses** without
+`ALLOW_PRODUCTION_DATABASE_PUSH=true`, and `STAGING_VERIFIED_COMMIT` must equal the exact
+commit being deployed, so you cannot push a build staging never saw.
+
+### What unblocks the moment it runs
+`volunteer_shifts`, `volunteer_hours`, `organizations`, `organization_members`, `brands`
+start existing — making **all of CHAR-1102** (schema + routes + UI, already shipped) and
+another bot's **multi-tenancy** work live instead of inert. It also unblocks the aggregate
+RPCs the unbounded-sum reads need (PostgREST aggregates are disabled: `PGRST123`).
+
+**Verify after running:** re-run the five `curl` checks above — all five should flip 404 →
+200. Or hit `/api/health?details=1` as an admin.
+
 ## 🌗 DARK/LIGHT CONTRAST — audited; **1 genuine AA failure, handed to Codex**
 
 Ran the contrast audit on current master: **37 pages × 2 themes, 7,315 text elements per
