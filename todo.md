@@ -376,6 +376,53 @@ output is not evidence. Three separate times here the tool was wrong and the cod
 was right — which is exactly how a *real* finding gets dismissed as tool noise if
 nobody checks each hit individually.
 
+## ⚪ CLEAN — Stripe webhook event coverage is complete (Claude, 2026-07-28)
+
+Compared the live endpoint's `enabled_events` (read-only Stripe API) against
+what `app/api/stripe/webhook/route.ts` dispatches. The switch has **no
+`default:` branch**, so an event with no dispatch is dropped in total silence —
+no log, no error, no row. For money movement that is the quietest possible
+failure, so it now has a guard: `__tests__/stripe-webhook-coverage.test.ts`.
+
+**Result: coverage is COMPLETE.** All 20 subscribed events are dispatched, and
+every handler is reachable. One subscribed event is deliberately not dispatched:
+
+- `customer.subscription.created` — `checkout.session.completed` already sets
+  `plan`, `stripe_customer_id` and `stripe_subscription_id` for a platform
+  subscription (`handleCheckoutComplete`, the `meta.plan && meta.userId` branch),
+  so dispatching `.created` would be a redundant second write. Recorded in the
+  test's `INTENTIONALLY_UNHANDLED` map **with that reason**, not just waived.
+
+### ⚠️ I reported a defect here that does not exist — correcting it
+
+I claimed `transfer.failed` was subscribed but unhandled and that
+`handleTransferFailed` was unreachable dead code, and I committed a `case` to
+"fix" it. **That was wrong.** `transfer.failed` is dispatched by an early guard
+*above* the switch:
+
+```ts
+if ((event.type as string) === 'transfer.failed') {
+  await handleTransferFailed(event.data.object as Stripe.Transfer);
+  return;
+}
+```
+
+It is written that way because the Stripe SDK's typed event union for the pinned
+API version omits `transfer.failed`, so a `case` would not typecheck. My grep
+matched only `case '…'` labels and did not see it. **The change was reverted; the
+webhook file is untouched.** Payout/transfer failure handling was never broken.
+
+The guard now recognises **both** dispatch shapes, so it cannot repeat my
+mistake. Non-vacuity verified in both directions — deleting the `payout.failed`
+case and deleting the `transfer.failed` early-guard each fail the suite, and
+each trips both checks (unreachable handler *and* dropped event).
+
+**Method note, since this is the second time today:** the first confident output
+of a static checker was wrong again. Between this and the fetch-method audit,
+that is 18 false positives versus 2 real defects. Every hit needs opening the
+file before it gets called a bug — a grep that reports something is missing has
+only proved that *the grep* did not find it.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).
