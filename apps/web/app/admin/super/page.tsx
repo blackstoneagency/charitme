@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
 import { requireSuperAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
-import { SUPER_ADMIN_NAV } from '../../../components/SuperAdminNav';
+import { SUPER_ADMIN_NAV } from '../../../lib/super-admin-nav';
 
 export const dynamic = 'force-dynamic';
 
