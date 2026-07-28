@@ -250,6 +250,30 @@ export function buildFixtures() {
     // columns a list view needs. A page that reads a column not present here
     // renders it blank — which is a legitimate audit subject (blank cell, wrong
     // colour) but NOT evidence the column is missing in production.
+    // /dashboard/notifications is client-rendered from /api/notifications, which
+    // filters on user_id and selects kind/title/body/link/read_at. With no
+    // fixture the list came back empty and the page rendered 7 text elements —
+    // it appeared in the sweep's "fewer than 15 text elements" report, meaning
+    // its entire notification UI (rows, unread state, mark-read controls) went
+    // unaudited. Column names follow supabase/schema.sql: kind and title are
+    // NOT NULL, read_at is nullable and drives the unread filter.
+    notifications: genericRows('notf', 30, (i) => ({
+      kind: ['donation', 'comment', 'payout', 'campaign', 'system'][i % 5],
+      title: [
+        'You received a new donation',
+        'Someone commented on your campaign',
+        'A payout is on its way',
+        'Your campaign was approved',
+        'Scheduled maintenance this weekend',
+      ][i % 5],
+      body: 'Seeded by the audit stub so the notification list renders with rows.',
+      link: ['/dashboard/donations', '/dashboard/messages', '/dashboard/payouts', '/dashboard/campaigns', null][i % 5],
+      // A third unread, so the unread filter and the mark-all-read control both
+      // have something to render rather than collapsing to an empty state.
+      read_at: i % 3 === 0 ? null : daysAgo(i),
+      meta: {},
+    })),
+
     audit_logs: genericRows('audt', 50, (i) => ({
       action: ['campaign.approve', 'payout.release', 'user.suspend', 'settings.update'][i % 4],
       actor_email: 'audit-stub@charitme.local',
