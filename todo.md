@@ -793,6 +793,59 @@ otherwise it would fire on every legitimate scroll region (`.kind-pills`,
 Any check depending on an external fetch (images, fonts, `load`) is unverifiable here and
 must not be reported as a site defect.
 
+## 🐛 FOUR SILENT FAILURES FIXED — from porting draft PR #127's audits (Claude, 2026-07-28)
+
+⚠️ **I was wrong about PR #127 twice**, and it cost real bugs staying live. I called it
+"a mobile fix whose substance is already landed" and suggested closing it — reaching that
+conclusion by trusting **my own earlier summary instead of re-diffing**. It actually
+carried a live-500 fix and three audits none of which were in master. **Do not close it**;
+the seed and mobile-CSS parts are still outstanding.
+
+### 1. `/admin/super` was returning **500** — and I caused half of it
+`app/admin/super/page.tsx` is a Server Component importing `SUPER_ADMIN_NAV` from a
+`'use client'` module. Next replaces client modules with a reference proxy — a *component*
+survives, plain *data* does not — so the page threw
+**`SUPER_ADMIN_NAV.filter is not a function`**. Behind `requireSuperAdmin()`, so nothing
+routine visits it. It typechecks, it builds, it only fails at request time.
+
+**Mine to own:** I added the AI entry to that list and extended the page to describe it,
+so the AI Control Center's own console link sat on a page that could not render.
+
+Fixed by moving the list to `lib/super-admin-nav.ts` (no `'use client'`). Guard test
+ported and **verified non-vacuous** — against master before the fix it named exactly that
+import.
+
+### 2. The printable poster never worked — broken **three ways at once**
+- linked to a path missing its `qr-` prefix → 404
+- passed a **slug** while the route resolved `.eq('id', id)` → even the right path found nothing
+- `onClick` did `preventDefault()` then `window.print()` → **printed whatever page the user was on**
+
+A real poster route (title, QR, progress, print-ready) existed the whole time and was
+unreachable. Route now accepts id **or** slug. Verified live: **slug 200, id 200, old path
+404**, response really is the poster.
+
+### 3. A payout blocker sent fundraisers to a 404
+`/dashboard/support` does not exist. The payout concierge linked there **twice**, both from
+*"Payouts are frozen for this campaign pending admin review."* — the one moment a
+fundraiser most needs help ended on a dead page. Repointed to `/contact` (the convention at
+4 other call sites).
+
+**Why these were invisible:** the existing broken-link crawl walks **public pages only** —
+an anonymous crawler gets redirected to `/login`, so *every authenticated link was
+unverified*. PR #127's audit is static, so it reaches the signed-in surface.
+
+### 4. Stripe webhook: an unhandled event vanished
+19 `case`s, **no `default:`**. An unsubscribed-for event fell through with no log, no
+error, no row — **and a 200 back to Stripe**, so it never retried and nothing showed as
+failed in the delivery log. Both ends believed it succeeded.
+
+Not hypothetical: this endpoint went **2 → 20 subscribed events in one sitting**, and the
+Dashboard changes independently of the code. Now logs type + id. Deliberately logs rather
+than throws — throwing would turn every newly-subscribed event into a retry storm.
+
+*(The pre-existing coverage test checks configured events have handlers; it structurally
+cannot see this, because the failure is about events nobody wrote a handler for.)*
+
 ## 🔓 RUNBOOK — apply the 3 pending migrations (Claude, 2026-07-28)
 
 This has been the #1 blocker all session. It is still blocked *here* — but Codex's PR #136
