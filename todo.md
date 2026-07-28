@@ -1547,6 +1547,96 @@ connected" — the same false-green shape as the audit that swept a dead port an
 called it 222 findings. Always sanity-check the target responds 200 before trusting
 a timing number.
 
+## 🔐 Client bundle scanned for secrets (Claude, 2026-07-28) — clean
+
+Direct check of the owner's stated constraint, *"no secrets may be exposed in
+browser bundles"*. Scanned **all 421 client chunks** of a production build for both
+secret **names** and secret-shaped **values**:
+
+```
+secret VALUES (sk_live_/sk_test_/whsec_/re_/sk-/ghp_/service-role JWT):  NONE
+```
+
+Two secret *names* do appear, and both are benign — checked rather than assumed:
+- `CRON_SECRET` — inside role-matrix UI copy: *"Run cron endpoints without CRON_SECRET"*.
+- `STRIPE_SECRET_KEY` — inside an operator hint when Connect onboarding fails:
+  *"Ensure STRIPE_SECRET_KEY is set in Vercel."*
+
+Neither carries a value; both are the variable's *name* in explanatory text, which is
+public knowledge. Mild information disclosure at worst, on an admin/fundraiser path.
+**Not** worth "fixing" by obfuscating the names — that would make a real
+misconfiguration harder to diagnose while removing no secret.
+
+_Scope, stated honestly:_ this proves nothing leaked into the **static client
+bundle**. It does not cover runtime API responses, server logs, or values injected
+at deploy time by Vercel. Those need production access. Note also that this sandbox
+has no real secrets set, so a value-pattern scan here cannot fail the way it would
+on a machine that does — re-run it against a Vercel build to make the value half of
+this check meaningful.
+
+## 👥 Roles: mapped and distinct — with the one real gap named (Claude, 2026-07-28)
+
+Checked the "each user role is clearly mapped out and different from the others"
+criterion rather than leaving it as an open question. It is **substantially met**,
+and the evidence is already enforced by tests (`__tests__/role-capabilities.test.ts`,
+25 assertions passing):
+
+- every assignable role is defined, **with nothing extra** — the phantom `user` role
+  has its own regression test so it cannot come back
+- every role carries a description and at least one capability
+- **`roles are actually distinct from one another`** is an explicit assertion, so two
+  roles cannot silently collapse into the same capability set
+- `donor` is pinned as the only default; `admin`/`super_admin` are pinned as the only
+  privileged pair
+
+**The one real gap, stated precisely rather than as "not confirmed":**
+
+```
+enforcedRoles() === ['admin', 'super_admin']
+advisoryRoles() === ['donor', 'organizer', 'beneficiary', 'nonprofit']
+```
+
+So four of the six roles are **advisory** — they describe a user and drive UI copy,
+but nothing gates on them. Whether they *should* gate is a product decision (does a
+`beneficiary` lose access a `donor` has?), which is why this is owner-gated rather
+than a bug to fix unilaterally.
+
+Credit where due: that honesty is already pinned by a test whose comment says the
+`enforced` flag and the real gating "must move together" — so whoever implements
+gating is forced to update the catalog in the same commit. That is the right shape,
+and it is why this criterion should read 🟡 *"mapped, distinct, four roles advisory
+by design"* — not ⚪ unknown.
+
+## ✅ Other bots' work checked into main (Claude, 2026-07-28)
+
+Owner asked to confirm other agents' code reaches main. **One PR was open: #127**
+(`claude/charitme-github-integration-tbaz3i`, mobile overflow on `/ai-fundraising`),
+still a **draft** since 27 Jul.
+
+**Its content is already on master** — verified in the CSS, not assumed:
+- `.aif-hero-grid { grid-template-columns: minmax(0, 1fr); }` — globals.css:4168
+- `.aif-live-stats { flex-wrap: wrap; min-width: 0; }` + `> div { min-width: 0; }` — 4170–4171
+
+Both of #127's two fixes landed via another route, so the PR is **fully superseded**.
+Confirmed behaviourally on a production build at a 320px viewport:
+
+```
+/ai-fundraising  scrollWidth=320  viewport=320  clean
+/pricing         scrollWidth=320  viewport=320  clean
+/blog            scrollWidth=320  viewport=320  clean
+/for-donors      scrollWidth=320  viewport=320  clean
+```
+
+**Recommend closing #127 as superseded** — not merging it. Re-applying CSS that is
+already present risks a conflict for no behavioural gain. Left open rather than
+closed by me, since it belongs to another agent's session and closing someone
+else's PR is their call, not mine.
+
+_Also worth keeping from that PR's own write-up:_ it caught a **regression** in a page
+"fixed in #49" — master had moved ~90 commits and "verified earlier" had quietly
+stopped being true. That is the same lesson as everything else in this file: a past
+green result is not a current one.
+
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
