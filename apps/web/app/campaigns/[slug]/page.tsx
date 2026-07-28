@@ -80,7 +80,7 @@ async function getUpdates(campaignId: string) {
 async function getDonorMessages(campaignId: string) {
   const { data } = await supabaseAdmin
     .from('donor_messages')
-    .select('id, message, anonymous, created_at, profiles:donor_id(full_name, avatar_url, show_public_profile)')
+    .select('id, message, anonymous, visibility, created_at, profiles:donor_id(full_name, avatar_url, show_public_profile)')
     .eq('campaign_id', campaignId)
     .order('created_at', { ascending: false })
     .limit(8);
@@ -380,20 +380,21 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
   const initialComments: WallComment[] = donorMessages.map((msg) => {
     const msgProfile = asProfile(msg.profiles);
+    const anonymous = msg.anonymous || msg.visibility === 'anonymous';
     return {
       id: msg.id,
       // Same two gates as the donation wall: a message posted on the donor wall
       // is "giving activity on the leaderboard and donor walls", which is what
       // Profile Visibility governs — so Private hides the name here too.
-      name: msg.anonymous
+      name: anonymous
         ? 'Anonymous'
         : (msgProfile.show_public_profile ?? true)
           ? (msgProfile.full_name ?? 'Kind supporter')
           : 'Kind supporter',
-      avatarUrl: (msg.anonymous || !(msgProfile.show_public_profile ?? true))
+      avatarUrl: (anonymous || !(msgProfile.show_public_profile ?? true))
         ? null
         : (msgProfile.avatar_url ?? null),
-      anonymous: msg.anonymous,
+      anonymous,
       message: msg.message,
       createdAt: msg.created_at,
       likeCount: messageLikeCounts.get(msg.id) ?? 0,

@@ -1,30 +1,24 @@
 # CharitMe — Execution Tracker
 
-## 🛑 READ FIRST — what is blocked, and by whom (updated 2026-07-27)
+## 🛑 READ FIRST — what is blocked, and by whom (updated 2026-07-28)
 
-Everything below this box is engineering detail. These four items are the only
-things standing between "done in the repo" and "done in production", and **none of
-them can be cleared by another agent** — they are owner/environment actions.
+Everything below this box is engineering detail. These are the remaining
+external release constraints after the latest production deployment.
 
 | # | Blocker | Evidence | Who can clear it |
 |---|---------|----------|------------------|
 | 1 | **GitHub Actions assigns no runner.** Every CI job fails in ~2s with `runner_id: 0`, `runner_name: ""`, and **no logs at all** (`get_job_logs` → 404). Repo-wide, including pushes straight to `master`. | 30 of 30 most recent runs | **Owner** — Actions minutes / billing |
-| 2 | **Vercel free-tier deploy cap — now a HARD 24h block, not a transient one.** The commit status is `failure / "Deployment rate limited — retry in 24 hours"` (`api-deployments-free-per-day`, >100/day). An earlier note here said "previews have since resumed"; that is no longer true. **Nothing merged to `master` will reach production until the window resets or the plan is upgraded** — this is now the binding constraint on the "is it live on Production, not Preview" goal line, and no amount of batching clears it today. | Vercel commit status + bot comment on PR #131, 2026-07-27 | **Owner** — upgrade plan, or wait out the 24h window |
-| 3 | **Sandbox egress is firewalled.** The proxy answers **403 to CONNECT** for non-allowlisted hosts, so `*.supabase.co`, `images.unsplash.com` and `www.charitme.com` are all unreachable (`curl` → `000`). | `$HTTPS_PROXY/__agentproxy/status` → `recentRelayFailures` | **Owner/env** — allowlist, or run the sweeps somewhere with egress |
-| 4 | Consequently: **live seed verification, signed-in dashboard/admin audits, real payment flows, and "is it live on production" cannot be checked from here.** | — | **Owner** |
+| 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project, so database release policy correctly blocks production migration application until the same commit is verified on a real CharitMe staging project. | Supabase project inventory, 2026-07-28 | **Owner** — provision/link CharitMe staging |
 
-**The credentials are NOT the blocker — a previous note said they were.**
-`apps/web/.env.local` holds Supabase service-role/access-token/db-password/project-ref,
-Stripe, OpenAI, Resend and Twilio keys. Nobody needs to go hunting for them; the
-network simply refuses to carry the request. Anyone who reads "the moment test
-credentials exist" and starts looking will find them in a minute and still be stuck.
+**Vercel production is operational again.** `master` commit `e1cdb7cd` deployed
+successfully and is aliased to both `www.charitme.com` and `charitme.com`.
 
 **How to tell an infra failure from a real one:** a genuine CI failure runs for
 minutes and produces logs. These finish in ~2 seconds with none. If you see that,
 stop debugging your diff.
 
 **Local verification is therefore the real gate, and it is green:**
-`npm run typecheck` (0) · `npm test` (**1808/1808, 171 files**) · `npm run build`
+`npm run typecheck` (0) · `npm test` (**1812/1812, 172 files**) · `npm run build`
 (exit 0) · `scripts/audit-contrast.mjs --strict-gradients` (**0 WCAG AA failures,
 37 pages × 2 themes, 3,638 text elements per theme**).
 
@@ -34,7 +28,7 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 
 ## CLEAN DATABASE REPLAY - verified locally, staging application pending (Codex, 2026-07-28)
 
-- [x] Replayed all **102/102** ordered migrations against a brand-new local
+- [x] Replayed all **103/103** ordered migrations against a brand-new local
   Supabase PostgreSQL database.
 - [x] Added additive dependency migrations so `profiles`, `admin_settings`, and
   `feature_flags` exist before historical functions and data migrations consume
@@ -43,9 +37,9 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   hardening migration replaces them, eliminating duplicate-policy failure.
 - [x] Replaced seed-time promotion of the oldest real customer with two
   deterministic, non-login `.invalid` synthetic identities.
-- [x] Verified the completed local database contains 102 migration records,
-  2 auth users, 2 trigger-created profiles, 3 campaigns, 4 donations,
-  7 admin settings, and 3 feature flags.
+- [x] Verified the completed local database contains 103 migration records,
+  122 auth users/profiles, 123 campaigns, 124 donations, and at least 100 rows
+  in all 93 covered user-facing feature tables.
 - [x] Provisioning now requires an explicit staging or production target,
   refuses to use the production project as staging, limits production
   credentials to Vercel production, and requires the exact staging-verified
@@ -86,6 +80,24 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   fixture for normalized guest access and one receipt ledger row per donation.
 - [ ] Apply the migration to staging and run authenticated receipt/payment smoke
   tests before the release workflow is allowed to apply it to production.
+
+## REPEATABLE FEATURE SEED COVERAGE - verified locally (Codex, 2026-07-28)
+
+- [x] `supabase db reset --local` now runs the complete ordered 00-07 seed suite
+  and strict verifier after every migration replay.
+- [x] Verified at least 100 rows in all 93 covered user-facing tables, including
+  tax receipt delivery, organizations, volunteer hours, campaign teams,
+  beneficiaries, messaging, analytics, outreach, and Marketing Engine plans.
+- [x] Seeded donor, organizer, beneficiary, nonprofit, admin, and super-admin
+  role cohorts; labeled every synthetic core profile, campaign, and donation.
+- [x] Added relational assertions for receipt/campaign ownership, beneficiary
+  inviters, and volunteer shift opportunities.
+- [x] Blocked the base seed when any non-demo auth identity exists and documented
+  that demo fixtures must never run through a linked production reset.
+- [x] Reconciled the legacy donor-message anonymity column with the migration
+  contract and proved bidirectional privacy synchronization in live local SQL.
+- [ ] Apply `20260813000000_donor_message_anonymity_contract.sql` to CharitMe
+  staging and verify mixed-version comment reads/writes before production.
 
 ## SECURITY BOUNDARIES - code complete, production migration pending (Codex, 2026-07-27)
 

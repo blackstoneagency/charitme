@@ -6,6 +6,22 @@
 -- =============================================================================
 
 do $$
+begin
+  if exists (
+    select 1
+    from auth.users
+    where coalesce(lower(email), '') not like '%@charitme.invalid'
+      and coalesce(lower(email), '') not like '%@charitme.test'
+      and coalesce(lower(email), '') not like '%@example.test'
+  ) then
+    raise exception 'Local demo seed blocked: non-demo auth users already exist.';
+  end if;
+end $$;
+
+set charitme.allow_demo_seed = 'true';
+set app.charitme_allow_demo_seed = 'true';
+
+do $$
 declare
   v_admin_id   uuid := '10000000-0000-4000-8000-000000000001';
   v_donor_id   uuid := '10000000-0000-4000-8000-000000000002';
@@ -60,11 +76,13 @@ begin
   -- Assign representative roles to the synthetic users.
   -- -------------------------------------------------------------------------
   update public.profiles
-  set roles = '["admin","fundraiser","donor"]'::jsonb
+  set roles = '["admin","super_admin","organizer","donor"]'::jsonb,
+      is_demo = true
   where id = v_admin_id;
 
   update public.profiles
-  set roles = '["donor"]'::jsonb
+  set roles = '["donor"]'::jsonb,
+      is_demo = true
   where id = v_donor_id;
 
   -- -------------------------------------------------------------------------
@@ -73,7 +91,7 @@ begin
   insert into public.campaigns(
     id, user_id, slug, title, tagline, description, category,
     goal_amount, raised_amount, backer_count, status, deadline,
-    trust_status, campaign_health_score
+    trust_status, campaign_health_score, is_demo
   ) values
     (
       v_c1_id, v_admin_id,
@@ -89,7 +107,7 @@ begin
       'Medical',
       1500000, 427850, 83, 'active',
       current_date + interval '45 days',
-      'Verified', 82
+      'Verified', 82, true
     ),
     (
       v_c2_id, v_admin_id,
@@ -104,7 +122,7 @@ begin
       'Emergency',
       5000000, 1823400, 312, 'active',
       current_date + interval '30 days',
-      'Established', 74
+      'Established', 74, true
     ),
     (
       v_c3_id, v_admin_id,
@@ -119,7 +137,7 @@ begin
       'Education',
       2400000, 965000, 148, 'active',
       current_date + interval '60 days',
-      'Highly Trusted', 91
+      'Highly Trusted', 91, true
     )
   on conflict (slug) do nothing;
 
@@ -139,12 +157,12 @@ begin
   -- Sample donations
   -- -------------------------------------------------------------------------
   insert into public.donations(
-    campaign_id, donor_id, amount_cents, message, anonymous, status
+    campaign_id, donor_id, amount_cents, message, anonymous, status, is_demo
   ) values
-    (v_c1_id, v_donor_id,  5000, 'Sending love and prayers, Sarah!', false, 'completed'),
-    (v_c1_id, v_donor_id, 10000, null,                                true,  'completed'),
-    (v_c2_id, v_donor_id,  2500, 'Stay strong, Millbrook!',          false, 'completed'),
-    (v_c3_id, v_donor_id, 15000, 'Education changes everything.',    false, 'completed')
+    (v_c1_id, v_donor_id,  5000, 'Sending love and prayers, Sarah!', false, 'completed', true),
+    (v_c1_id, null,       10000, null,                                true,  'completed', true),
+    (v_c2_id, v_donor_id,  2500, 'Stay strong, Millbrook!',          false, 'completed', true),
+    (v_c3_id, v_donor_id, 15000, 'Education changes everything.',    false, 'completed', true)
   on conflict do nothing;
 
   raise notice 'Seed complete. Admin user: %, Donor user: %', v_admin_id, v_donor_id;
