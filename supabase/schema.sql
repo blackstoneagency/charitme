@@ -10983,6 +10983,15 @@ CREATE POLICY creator_profiles_owner_write ON public.creator_profiles USING (((a
 ALTER TABLE public.creator_tips ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: creator_tips creator_tips_private; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY creator_tips_private ON public.creator_tips FOR SELECT USING (((auth.uid() = supporter_id) OR (EXISTS ( SELECT 1
+   FROM public.creator_profiles cp
+  WHERE ((cp.id = creator_tips.creator_profile_id) AND (cp.user_id = auth.uid())))) OR public.is_admin()));
+
+
+--
 -- Name: campaign_wizard_drafts cwd_delete_own; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -12411,13 +12420,6 @@ CREATE POLICY public_campaign_launch_read ON public.campaign_launch_settings FOR
 CREATE POLICY public_creator_profiles_read ON public.creator_profiles FOR SELECT USING ((EXISTS ( SELECT 1
    FROM public.campaigns c
   WHERE ((c.user_id = creator_profiles.user_id) AND (c.deleted_at IS NULL) AND (c.status = 'active'::text) AND (c.visibility = 'public'::text)))));
-
-
---
--- Name: creator_tips public_creator_tips_read; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY public_creator_tips_read ON public.creator_tips FOR SELECT USING (true);
 
 
 --

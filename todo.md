@@ -2610,6 +2610,64 @@ before and after** (no loss), picking up other agents' drifted `is_demo` indexes
 plus the tax-receipt fix. This also *proves* the new migration applies cleanly on
 top of the full migration history, since the script replays all of them.
 
+**🔴 FIXED — `creator_tips` was world-readable, Stripe payment intent IDs and all.**
+RLS audit, run against a **local replay of every migration** (Postgres 16) rather
+than by reading policy files. Two checks came back clean and are recorded so they
+aren't redone: **no** table granted to `anon`/`authenticated` has RLS disabled, and
+of the 18 tables with an unconditional `using (true)` read, all but one are public
+by design (rewards, milestones, updates, countries, badges…).
+
+The exception: `creator_tips`, holding `supporter_id`, `amount_cents`, `message`
+and **`stripe_payment_intent_id`** — enumerable by anyone, signed in or not.
+
+It reads as an oversight, not a decision, because the same migration locks both
+siblings on the **adjacent lines**:
+
+```sql
+create policy product_orders_private      … using (auth.uid() = buyer_id     or is_admin());
+create policy commission_requests_private … using (auth.uid() = requester_id or is_admin());
+create policy public_creator_tips_read    … using (true);   -- ← the odd one out
+```
+
+Same shape (payer, amount, payment reference), same file, opposite policy — and
+`creator_tips` is the only one exposing a Stripe identifier at all. Safe to
+tighten: **no app code queries it** (it appears only as a table *name* in
+`feature-catalog.ts`), and `anon`/`authenticated` hold only SELECT, so every write
+already goes through `service_role`. Verified on real rows across four identities:
+anonymous **0**, supporter **1**, creator **1**, unrelated signed-in user **0**.
+
+**🔴 FIXED — the generator turned SQL *comments* into live policies.**
+Caught only because the mirror was regenerated afterwards: the world-readable
+policy was **back**, after my own drop. `scripts/build_catchup.py` rewrites
+`create policy X on T` → `drop … ; create …` with a regex over the raw file, with
+no idea what a comment is. So the migration's own explanation —
+
+```sql
+--   create policy public_creator_tips_read on creator_tips for select
+--     using (true);
+```
+
+— was emitted into `catch_up.sql` as a **live statement**, re-creating the exact
+policy being removed. Permissive policies OR together, so the resurrected one
+wins. And since the `using (…)` line stayed commented, the injected policy was
+**unqualified — granting more than the text it was copied from.**
+
+This is general: *any* migration quoting SQL in its comments silently gains
+objects. `idempotent()` now masks `--` comments (quote-aware) before rewriting.
+Pinned by `__tests__/catchup-generator-ignores-comments.test.ts`: every policy in
+the generated output must trace to a real migration statement, not to prose about
+one.
+
+⚠️ Second time in one session that **a migration was undone by something that ran
+after it** (the first: a future-dated migration re-creating a partial index).
+Both were invisible in the migration file and obvious in the replayed mirror.
+**Regenerate and read the end state — a migration file records an intention, not
+an outcome.**
+
+**📋 NOTED, not changed — `creator_tips_insert_public` (`for insert with check
+(true)`)** is inert: `anon` holds no INSERT grant after the write-lockdown
+migration. Recorded rather than "fixed" so it isn't mistaken for a live hole.
+
 **🔴 FIXED — a failed *recurring* donation record was permanent; the one-time path
 already retried.** A Stripe webhook returning 2xx means *"handled, do not retry."*
 The one-time donation path knows this and **throws** if `record_donation` fails, so
