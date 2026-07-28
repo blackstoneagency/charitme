@@ -767,6 +767,39 @@ otherwise it would fire on every legitimate scroll region (`.kind-pills`,
 Any check depending on an external fetch (images, fonts, `load`) is unverifiable here and
 must not be reported as a site defect.
 
+## 👤 USER ROLES — audited, and the map is now self-verifying (Claude, 2026-07-28)
+
+Goal criterion *"each user role is clearly mapped out and different from the other
+roles"*. The map already existed (`lib/role-capabilities.ts`, rendered in `/admin/users`
+and `/admin/super/roles`, 20+ tests). What was missing was any check that its claims are
+**true**.
+
+**The honest state of roles, unchanged and worth repeating:** 6 roles, **7 enforced
+capabilities vs 14 advisory**. Only `admin` and `super_admin` gate anything. `donor`,
+`organizer`, `beneficiary`, `nonprofit` are display labels — real authorization comes
+from session + row ownership, `campaigns.nonprofit_verified` (per-campaign, NOT the
+`nonprofit` role), and `profiles.status`. That is recorded honestly rather than papered
+over, and **enforcing the other four is a product decision, not a bug** — the module's
+own comment warns that inventing restrictions is the fastest way to lock an organizer out
+of their own campaign.
+
+**Audited all 7 `enforced: true` claims against the code. All accurate:**
+- admin console → `isAdmin()` in `app/admin/layout.tsx` ✓
+- `isAdmin()` admits `super_admin`, so super admins inherit admin ✓
+- all **7** `/api/admin/super` routes guard **every** exported handler (3 handlers → 3
+  guard calls on announcements, etc.) ✓
+- both cron routes carry `CRON_SECRET` **and** the admin-session fallback ✓
+
+**Those four facts are now tests.** The module claims "the two can never quietly drift
+apart" — nothing enforced that, so deleting a guard would have left the map asserting
+protection that was gone. Worse than having no map, because this one is trusted.
+
+The route check counts guard calls against exported handlers rather than looking for an
+import: a file with three handlers and one guard call leaves two open while still
+"importing the guard". **Verified non-vacuous** — stubbing one of the two
+`guardSuperAdmin` calls in the flags route fails with *"has 2 handler(s) but 1 guard
+call(s)"*, naming the file.
+
 ## ✅ CLOSED — the `?? 0` fail-open register, and the boundedQuery rollout (Claude, 2026-07-28)
 
 **The register is complete.** Of the four sites still listed open, three were already
