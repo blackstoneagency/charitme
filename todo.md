@@ -2610,6 +2610,42 @@ before and after** (no loss), picking up other agents' drifted `is_demo` indexes
 plus the tax-receipt fix. This also *proves* the new migration applies cleanly on
 top of the full migration history, since the script replays all of them.
 
+**📋 "Every image unique, 0 duplicates" — measured, and narrower than it reads.**
+The audit warns that one photo is used by **15 of 18 categories**, which sounds
+like the criterion is far off. Tracing what actually reaches a visitor:
+
+- `getCoverForCategory()` returns `pool[0]`, and the audit **already fails** on a
+  shared `pool[0]` — so **every category cover is unique today**. That covers 3 of
+  the 4 call sites (home page ×2, `CampaignImage`).
+- The only consumer of pool *depth* is `campaigns/[slug]` →
+  `getPhotosForCategory(category, 4)`, the gallery fallback shown **only when a
+  campaign has no images of its own**.
+
+So the residual is: two image-less campaigns in *different* categories show
+overlapping gallery photos. Real, but not the front-door problem the warning
+implies.
+
+**Two ways to fix it without new photos — both tested, both dead ends:**
+
+1. **Redistribute the existing photos.** Impossible, by arithmetic: the pools
+   have **111 slots** and there are **45 distinct photos**. Uniqueness needs ≥111.
+2. **Reorder each pool so category-specific photos precede the shared `C.*`
+   ones.** Measured across all 18 categories: **35 shared slots in the visible
+   first-4 → 35.** Zero gain — the pools are *already* ordered specific-first.
+   12 categories simply don't have 4 specific photos to give.
+
+**Unblocked by exactly one thing: `UNSPLASH_ACCESS_KEY`.** ~66 more curated photos
+are needed. Candidate IDs can be *verified* from here (`--live` does real HTTP and
+passes), but they cannot be *found* without the search API — and guessing IDs
+would ship images whose subject matter nobody has seen onto live category pages,
+which is worse than the duplicate it replaces.
+
+**⚠️ `apps/web/.env.local` is a PLACEHOLDER file** (`placeholder.supabase.co` —
+the proxy rejects CONNECT to it). So there are **no live Supabase credentials** in
+this sandbox: live row counts ("≥100 seed records"), live cover-image duplication,
+and the 61 drifted-column query all remain unmeasurable here. I briefly believed
+otherwise on seeing the key names — the values are what matter.
+
 **🔴 FIXED — a beneficiary invite could be accepted by the wrong person.**
 `POST /api/beneficiaries/invites/accept` writes `campaigns.beneficiary_profile_id`
 — it decides who a fundraiser is understood to be raising money *for*. The invite
