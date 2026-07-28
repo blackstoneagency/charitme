@@ -20,6 +20,7 @@
 // finding; 300ms vs 200ms is not.
 // ─────────────────────────────────────────────────────────────────────────────
 import { readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
@@ -29,7 +30,15 @@ const arg = (name, fallback) => {
 };
 const BASE = arg('--base', 'http://127.0.0.1:3000');
 const AS_JSON = process.argv.includes('--json');
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
+// Prefer an explicit path, then the sandbox's prebuilt browser. Without a
+// fallback this dies with Playwright's "run npx playwright install" banner,
+// which reads as a setup problem rather than "set PLAYWRIGHT_CHROMIUM_PATH" —
+// and an audit that cannot launch produces NO signal, which is indistinguishable
+// from a clean run to anyone reading a passing exit code.
+const SANDBOX_CHROMIUM = '/opt/pw-browsers/chromium';
+const EXECUTABLE =
+  process.env.PLAYWRIGHT_CHROMIUM_PATH ||
+  (existsSync(SANDBOX_CHROMIUM) ? SANDBOX_CHROMIUM : undefined);
 
 const BUDGET = { lcp: 4000, fcp: 3000, ttfb: 1500, cls: 0.1, long: 6 };
 

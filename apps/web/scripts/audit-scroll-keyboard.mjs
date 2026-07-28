@@ -15,6 +15,7 @@
 // the navigation-failure check below.
 // ─────────────────────────────────────────────────────────────────────────────
 import { readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
@@ -30,7 +31,15 @@ function parseBase(argv) {
   return positional ?? 'http://127.0.0.1:3000';
 }
 const BASE = parseBase(process.argv);
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined;
+// Prefer an explicit path, then the sandbox's prebuilt browser. Without a
+// fallback this dies with Playwright's "run npx playwright install" banner,
+// which reads as a setup problem rather than "set PLAYWRIGHT_CHROMIUM_PATH" —
+// and an audit that cannot launch produces NO signal, which is indistinguishable
+// from a clean run to anyone reading a passing exit code.
+const SANDBOX_CHROMIUM = '/opt/pw-browsers/chromium';
+const EXECUTABLE =
+  process.env.PLAYWRIGHT_CHROMIUM_PATH ||
+  (existsSync(SANDBOX_CHROMIUM) ? SANDBOX_CHROMIUM : undefined);
 
 // Preflight. Without it an unreachable base produces a confident pass, which is
 // strictly worse than a failure: it tells you the accessibility check ran.
