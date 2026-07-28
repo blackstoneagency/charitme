@@ -1607,6 +1607,36 @@ gating is forced to update the catalog in the same commit. That is the right sha
 and it is why this criterion should read 🟡 *"mapped, distinct, four roles advisory
 by design"* — not ⚪ unknown.
 
+## ✅ Other bots' work checked into main (Claude, 2026-07-28)
+
+Owner asked to confirm other agents' code reaches main. **One PR was open: #127**
+(`claude/charitme-github-integration-tbaz3i`, mobile overflow on `/ai-fundraising`),
+still a **draft** since 27 Jul.
+
+**Its content is already on master** — verified in the CSS, not assumed:
+- `.aif-hero-grid { grid-template-columns: minmax(0, 1fr); }` — globals.css:4168
+- `.aif-live-stats { flex-wrap: wrap; min-width: 0; }` + `> div { min-width: 0; }` — 4170–4171
+
+Both of #127's two fixes landed via another route, so the PR is **fully superseded**.
+Confirmed behaviourally on a production build at a 320px viewport:
+
+```
+/ai-fundraising  scrollWidth=320  viewport=320  clean
+/pricing         scrollWidth=320  viewport=320  clean
+/blog            scrollWidth=320  viewport=320  clean
+/for-donors      scrollWidth=320  viewport=320  clean
+```
+
+**Recommend closing #127 as superseded** — not merging it. Re-applying CSS that is
+already present risks a conflict for no behavioural gain. Left open rather than
+closed by me, since it belongs to another agent's session and closing someone
+else's PR is their call, not mine.
+
+_Also worth keeping from that PR's own write-up:_ it caught a **regression** in a page
+"fixed in #49" — master had moved ~90 commits and "verified earlier" had quietly
+stopped being true. That is the same lesson as everything else in this file: a past
+green result is not a current one.
+
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
