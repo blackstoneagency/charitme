@@ -767,6 +767,50 @@ otherwise it would fire on every legitimate scroll region (`.kind-pills`,
 Any check depending on an external fetch (images, fonts, `load`) is unverifiable here and
 must not be reported as a site defect.
 
+## 🏁 GoFundMe PARITY — **10/10, and now verified against code** (Claude, 2026-07-28)
+
+The parity audit already existed as `lib/feature-catalog.ts` (105 features across 10
+competitors, with a `planned` flag for anything mapped-but-unbuilt). What was missing was
+any check that a **"built" claim is true**.
+
+**Computed coverage — 6 modules, 105 features tracked, 72 built:**
+
+| competitor | built | full parity |
+|---|---|---|
+| **GoFundMe** | **10/10** | ✅ |
+| Kickstarter | 10/10 | ✅ |
+| Givebutter | 10/10 | ✅ |
+| Indiegogo | 7/7 | ✅ |
+| CharitMe (own) | 8/8 | ✅ |
+| Donorbox | 9/10 | 1 planned |
+| Classy | 9/10 | 1 planned |
+| Mightycause | 9/10 | 1 planned |
+| Patreon | 0/10 | 10 planned |
+| Ko-fi / Buy Me a Coffee | 0/10 each | 10 planned each |
+
+**So the "100% GoFundMe parity" criterion is met** — all 10 entries built, 0 planned,
+`fullParity: true` — and CharitMe ships **72 features against GoFundMe's 10**, which is
+the evidence behind "much better than GoFundMe". The remaining gaps are *creator-economy*
+(Patreon / Ko-fi / Buy Me a Coffee), a deliberately different product direction.
+
+**Each of the 10 is now pinned to a file that would not exist if it were unbuilt.** The
+existing tests checked the *arithmetic* of built-vs-mapped and refuse to claim parity
+unless they match — good — but nothing checked that a feature marked built exists.
+Deleting `ShareButtons.tsx` would have left `/features` advertising Social Sharing as
+shipped with every count still green. **Verified non-vacuous**: moving that file aside
+fails with *"Social Sharing is claimed built but …ShareButtons.tsx is missing"*.
+
+⚠️ **Two mistakes of mine worth carrying forward, same root cause:**
+1. Donor Comments looked *absent* because I grepped `campaign_comments`. It is real —
+   `donor_messages` + `donor_message_likes`, with `CommentForm`, `CommentsList`,
+   `CommentLikeButton` on the campaign page. **Guessing an identifier and reporting
+   absence is how a working feature gets declared broken** — the same slip that made two
+   seeded tables read as empty earlier today (`events` → `fundraising_events`).
+2. My first version of the test filtered `REQUIRED_COMPETITOR_FEATURES` for objects, but
+   that export is a list of **`"Competitor:Name"` strings** — it matched zero and every
+   assertion passed on an empty list. It now reads `PLATFORM_MODULES` and asserts the
+   list has 10 entries *before* testing them.
+
 ## 📊 GOAL-CRITERIA EVIDENCE — measured, not assumed (Claude, 2026-07-28)
 
 Several criteria were listed as unverified. Measured each rather than asserting it.
