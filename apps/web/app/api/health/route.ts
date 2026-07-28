@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdmin } from '../admin/users/_auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import {
+  ONE_TIME_PAYMENT_METHOD_TYPES,
+  RECURRING_PAYMENT_METHOD_TYPES,
+  reconcilePaymentMethods,
+} from '../../../lib/stripe-payment-methods';
 
 // GET /api/health — public liveness; append ?details=1 for admin diagnostics.
 export async function GET(request: NextRequest) {
@@ -82,6 +87,43 @@ export async function GET(request: NextRequest) {
     checks.supabase = 'error';
     checks.errorCode = 'SUPABASE_UNAVAILABLE';
   }
+
+  // ── Payment methods actually enabled on the Stripe account ────────────────
+  //
+  // ONE_TIME_PAYMENT_METHOD_TYPES is hand-maintained and its comment records a
+  // one-off verification. Nothing re-checked it, and the failure is silent:
+  // Stripe rejects the WHOLE Checkout session when it names an inactive method,
+  // often without saying which, so a single deactivation in the Dashboard
+  // collapses every donation to card-only. Donors stop being offered Cash App,
+  // Klarna, bank debit and the rest, and no error is raised.
+  //
+  // Read-only (`GET /v1/account`) — it never creates a charge.
+  checks.paymentMethods = await (async () => {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) return { status: 'not-configured', reason: 'STRIPE_SECRET_KEY is not set' };
+    try {
+      const res = await fetch('https://api.stripe.com/v1/account', {
+        headers: { Authorization: `Bearer ${key}` },
+        signal: AbortSignal.timeout(8_000),
+        cache: 'no-store',
+      });
+      // Status only — a Stripe error body can echo the request.
+      if (!res.ok) return { status: 'unreadable', reason: `Stripe returned ${res.status}` };
+      const account = (await res.json()) as { capabilities?: Record<string, unknown> };
+      const oneTime = reconcilePaymentMethods(ONE_TIME_PAYMENT_METHOD_TYPES, account.capabilities);
+      const recurring = reconcilePaymentMethods(RECURRING_PAYMENT_METHOD_TYPES, account.capabilities);
+      return {
+        // `degraded` is the actionable state: we are offering a method the
+        // account cannot process, which breaks the whole session.
+        status: oneTime.inactive.length === 0 && recurring.inactive.length === 0 ? 'ok' : 'degraded',
+        oneTime,
+        recurring,
+      };
+    } catch (err) {
+      const timedOut = err instanceof Error && err.name === 'TimeoutError';
+      return { status: 'unreadable', reason: timedOut ? 'Stripe did not respond within 8s' : 'Stripe request failed' };
+    }
+  })();
 
   const isHealthy = checks.supabase === 'connected';
   return NextResponse.json(checks, { status: isHealthy ? 200 : 503 });
