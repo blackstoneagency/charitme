@@ -852,6 +852,31 @@ cannot see this, because the failure is about events nobody wrote a handler for.
 
 ## 🔓 RUNBOOK — apply the 3 pending migrations (Claude, 2026-07-28)
 
+### ✅ MEASURED — mobile has no horizontal overflow, and now has a script that says so
+
+*"Mobile works perfectly"* had **no evidence and no tooling** — PR #49 and PR #127
+each fixed horizontal overflow on `/ai-fundraising`, the second time as a
+**regression**, because the check only ever lived in a session transcript.
+
+`npm run audit:mobile` (new, `scripts/audit-mobile.mjs`) sweeps every public route
+at **320px** (iPhone SE, narrowest phone still in use) and **390px** (current
+iPhone) and fails on any document wider than its viewport. Result:
+
+> **✅ No horizontal overflow across 76 page loads (38 routes × 2 widths)**
+
+Both directions verified, because a green that cannot go red is worthless:
+- pointed at a dead port → *"76 page load(s) failed… a clean result here would be
+  meaningless"*, exit 1;
+- with a 900px `<div>` injected into a passing page → document width **900**, one
+  element past the edge. The detector genuinely fires.
+
+When a page does overflow it **names the offending elements** with their widths
+and right edges — "the page is 410px" doesn't tell you which node did it, which is
+what made the earlier fixes archaeology.
+
+⚠️ This covers overflow, the most visible mobile defect. It does **not** claim tap
+target sizing, or anything below the fold that needs interaction.
+
 ### 🔴 Three migrations merged in #146 are UNAPPLIED — the code shipped, the fixes did not
 
 `bf42c91` is on `master` and deploying. Its code changes are safe without the
