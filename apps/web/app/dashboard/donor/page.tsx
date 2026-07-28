@@ -4,6 +4,7 @@ import { CharitMeShell, TopBar, MetricGrid, KFIcon, type Metric } from '../../..
 import DegradedReadNotice from '../../../components/DegradedReadNotice';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
 import DonorTagEditor from './DonorTagEditor';
 
 export const dynamic = 'force-dynamic';
@@ -71,10 +72,12 @@ async function fetchDonorData(userId: string): Promise<{
 
   try {
     // Step 1: get user's campaign IDs
-    const { data: campData, error: campError } = await supabaseAdmin
-      .from('campaigns')
-      .select('id')
-      .eq('user_id', userId);
+    const { data: campData, error: campError } = await boundedQuery(
+      supabaseAdmin
+        .from('campaigns')
+        .select('id')
+        .eq('user_id', userId),
+    );
 
     // An errored read is not the same statement as "no campaigns yet".
     if (campError || !campData) return unread;
@@ -83,12 +86,14 @@ async function fetchDonorData(userId: string): Promise<{
     const campaignIds = (campData as { id: string }[]).map(c => c.id);
 
     // Step 2: get all completed donations for those campaigns
-    const { data: donData, error: donError } = await supabaseAdmin
-      .from('donations')
-      .select('id, donor_id, amount_cents, anonymous, created_at')
-      .in('campaign_id', campaignIds)
-      .eq('status', 'completed')
-      .order('created_at', { ascending: false });
+    const { data: donData, error: donError } = await boundedQuery(
+      supabaseAdmin
+        .from('donations')
+        .select('id, donor_id, amount_cents, anonymous, created_at')
+        .in('campaign_id', campaignIds)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false }),
+    );
 
     if (donError || !donData) return unread;
     if (donData.length === 0) return empty;
@@ -113,10 +118,12 @@ async function fetchDonorData(userId: string): Promise<{
 
     const profileMap = new Map<string, { name: string; email: string }>();
     if (knownDonorIds.length > 0) {
-      const { data: profileData } = await supabaseAdmin
-        .from('profiles')
-        .select('id, full_name, email')
-        .in('id', knownDonorIds);
+      const { data: profileData } = await boundedQuery(
+        supabaseAdmin
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', knownDonorIds),
+      );
       for (const p of (profileData ?? []) as {
         id: string;
         full_name: string | null;
@@ -130,11 +137,13 @@ async function fetchDonorData(userId: string): Promise<{
     }
 
     // Step 4: fetch CRM tags for this organizer's donor contacts
-    const { data: contactData } = await supabaseAdmin
-      .from('donor_crm_contacts')
-      .select('email, tags')
-      .eq('owner_id', userId)
-      .is('nonprofit_id', null);
+    const { data: contactData } = await boundedQuery(
+      supabaseAdmin
+        .from('donor_crm_contacts')
+        .select('email, tags')
+        .eq('owner_id', userId)
+        .is('nonprofit_id', null),
+    );
 
     const tagsByEmail = new Map<string, string[]>();
     for (const c of (contactData ?? []) as { email: string | null; tags: string[] | null }[]) {

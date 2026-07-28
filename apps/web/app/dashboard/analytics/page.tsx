@@ -3,6 +3,7 @@ import { CharitMeShell, TopBar, MetricGrid, KFIcon } from '../../../components/C
 import DegradedReadNotice from '../../../components/DegradedReadNotice';
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
 import { attachCampaignCurrencies } from '../../../lib/home-data';
 import { formatMoneyCompact } from '@shared/currencies';
 
@@ -96,10 +97,12 @@ export default async function AnalyticsPage({
   // Step 1: get campaigns
   // supabase-js resolves on a query error, so an unchecked read turns a timeout
   // into `data: null` → an empty list → "$0 raised" stated as fact.
-  const { data: campaignData, error: campaignError } = await supabaseAdmin
-    .from('campaigns')
-    .select('id,title,slug,raised_amount,backer_count,goal_amount,status')
-    .eq('user_id', userId);
+  const { data: campaignData, error: campaignError } = await boundedQuery(
+    supabaseAdmin
+      .from('campaigns')
+      .select('id,title,slug,raised_amount,backer_count,goal_amount,status')
+      .eq('user_id', userId),
+  );
   let unavailable = Boolean(campaignError) || campaignData == null;
 
   const campaigns = await attachCampaignCurrencies((campaignData ?? []) as CampaignRow[]);
@@ -108,11 +111,13 @@ export default async function AnalyticsPage({
   // Step 2: get completed donations for these campaigns
   let donations: DonationRow[] = [];
   if (cids.length > 0) {
-    const { data: donationData, error: donationError } = await supabaseAdmin
-      .from('donations')
-      .select('amount_cents,created_at,campaign_id')
-      .in('campaign_id', cids)
-      .eq('status', 'completed');
+    const { data: donationData, error: donationError } = await boundedQuery(
+      supabaseAdmin
+        .from('donations')
+        .select('amount_cents,created_at,campaign_id')
+        .in('campaign_id', cids)
+        .eq('status', 'completed'),
+    );
     if (donationError || donationData == null) unavailable = true;
     donations = (donationData ?? []) as DonationRow[];
   }

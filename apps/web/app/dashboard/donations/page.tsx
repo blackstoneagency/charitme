@@ -5,6 +5,7 @@ import DegradedReadNotice from '../../../components/DegradedReadNotice';
 // Donors can request refunds for their own donations at /dashboard/refund.
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { boundedQuery } from '../../../lib/query-timeout';
 import { formatMoneyCompact } from '@shared/currencies';
 
 export const dynamic = 'force-dynamic';
@@ -98,10 +99,12 @@ async function fetchDonationsData(userId: string): Promise<{
 }> {
   try {
     // Step 1: get user's campaigns
-    const { data: campData, error: campError } = await supabaseAdmin
-      .from('campaigns')
-      .select('id,title')
-      .eq('user_id', userId);
+    const { data: campData, error: campError } = await boundedQuery(
+      supabaseAdmin
+        .from('campaigns')
+        .select('id,title')
+        .eq('user_id', userId),
+    );
 
     if (campError || !campData) {
       return { donations: [], campaignMap: new Map(), failed: true };
@@ -118,13 +121,15 @@ async function fetchDonationsData(userId: string): Promise<{
     const campaignIds = campaigns.map((c) => c.id);
 
     // Step 2: get completed donations
-    const { data: donData, error: donError } = await supabaseAdmin
-      .from('donations')
-      .select('id,amount_cents,currency,status,created_at,anonymous,donor_id,campaign_id')
-      .in('campaign_id', campaignIds)
-      .eq('status', 'completed')
-      .order('created_at', { ascending: false })
-      .limit(200);
+    const { data: donData, error: donError } = await boundedQuery(
+      supabaseAdmin
+        .from('donations')
+        .select('id,amount_cents,currency,status,created_at,anonymous,donor_id,campaign_id')
+        .in('campaign_id', campaignIds)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(200),
+    );
 
     if (donError || !donData) {
       return { donations: [], campaignMap, failed: true };
@@ -144,10 +149,12 @@ async function fetchDonationsData(userId: string): Promise<{
     const profileMap = new Map<string, string>();
 
     if (uniqueDonorIds.length > 0) {
-      const { data: profileData } = await supabaseAdmin
-        .from('profiles')
-        .select('id,full_name')
-        .in('id', uniqueDonorIds);
+      const { data: profileData } = await boundedQuery(
+        supabaseAdmin
+          .from('profiles')
+          .select('id,full_name')
+          .in('id', uniqueDonorIds),
+      );
 
       for (const p of (profileData ?? []) as Profile[]) {
         if (p.full_name) profileMap.set(p.id, p.full_name);
