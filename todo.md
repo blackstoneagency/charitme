@@ -1547,6 +1547,33 @@ connected" — the same false-green shape as the audit that swept a dead port an
 called it 222 findings. Always sanity-check the target responds 200 before trusting
 a timing number.
 
+## 🔐 Client bundle scanned for secrets (Claude, 2026-07-28) — clean
+
+Direct check of the owner's stated constraint, *"no secrets may be exposed in
+browser bundles"*. Scanned **all 421 client chunks** of a production build for both
+secret **names** and secret-shaped **values**:
+
+```
+secret VALUES (sk_live_/sk_test_/whsec_/re_/sk-/ghp_/service-role JWT):  NONE
+```
+
+Two secret *names* do appear, and both are benign — checked rather than assumed:
+- `CRON_SECRET` — inside role-matrix UI copy: *"Run cron endpoints without CRON_SECRET"*.
+- `STRIPE_SECRET_KEY` — inside an operator hint when Connect onboarding fails:
+  *"Ensure STRIPE_SECRET_KEY is set in Vercel."*
+
+Neither carries a value; both are the variable's *name* in explanatory text, which is
+public knowledge. Mild information disclosure at worst, on an admin/fundraiser path.
+**Not** worth "fixing" by obfuscating the names — that would make a real
+misconfiguration harder to diagnose while removing no secret.
+
+_Scope, stated honestly:_ this proves nothing leaked into the **static client
+bundle**. It does not cover runtime API responses, server logs, or values injected
+at deploy time by Vercel. Those need production access. Note also that this sandbox
+has no real secrets set, so a value-pattern scan here cannot fail the way it would
+on a machine that does — re-run it against a Vercel build to make the value half of
+this check meaningful.
+
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
