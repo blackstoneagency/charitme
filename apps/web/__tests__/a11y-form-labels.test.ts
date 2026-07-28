@@ -59,7 +59,7 @@ function attributesOf(src: string, tagStart: number): string {
 const SKIP_TYPES = new Set(['hidden', 'submit', 'button', 'image']);
 
 /** Current known debt. Lower it when controls are fixed; never raise it. */
-const BASELINE = 30;
+const BASELINE = 22;
 
 function tsxFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {

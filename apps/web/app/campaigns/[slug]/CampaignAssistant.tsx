@@ -108,6 +108,7 @@ export default function CampaignAssistant({ campaignId }: Props) {
       <form onSubmit={(e) => { e.preventDefault(); ask(question); }} style={{ display: 'flex', gap: 8 }}>
         <input
           type="text"
+          aria-label="Ask a question about this campaign"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           placeholder="Ask a question about this campaign…"

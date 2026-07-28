@@ -52,6 +52,7 @@ export default function AiCampaignPage() {
 
         <div className="ai-builder-input">
           <textarea
+            aria-label="Describe the cause you want to raise money for"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Describe what you're looking for..."
