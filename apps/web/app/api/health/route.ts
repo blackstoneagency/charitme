@@ -8,7 +8,7 @@ import {
 } from '../../../lib/stripe-payment-methods';
 
 // GET /api/health — public liveness; append ?details=1 for admin diagnostics.
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const details = new URL(request.url).searchParams.get('details') === '1';
   if (!details) return NextResponse.json({ status: 'ok', ts: Date.now() });
 
@@ -131,51 +131,22 @@ export async function GET(request: NextRequest) {
 
 // POST /api/health — force PostgREST schema cache reload
 // This fixes the "tables exist but queries fail" issue after schema migrations.
-export async function POST(_req: NextRequest) {
+export async function POST(_req: NextRequest): Promise<NextResponse> {
   const user = await verifyAdmin();
   if (!user) return NextResponse.json({ error: 'Forbidden', code: 'ADMIN_REQUIRED' }, { status: 403 });
 
-  const ref   = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').match(/https?:\/\/([^.]+)\.supabase\.co/)?.[1];
-  const token = process.env.SUPABASE_ACCESS_TOKEN;
-
-  if (!ref || !token) {
-    // Fall back: use supabaseAdmin to notify PostgREST directly
-    try {
-      // NOTIFY pgrst forces PostgREST to reload its schema cache
-      await supabaseAdmin.rpc('pg_notify' as never, {
-        channel: 'pgrst',
-        payload: 'reload schema',
-      } as never);
-    } catch {
-      // rpc fallback may fail — use Management API below
-    }
+  const { error: reloadError } = await supabaseAdmin.rpc('reload_postgrest_schema_cache');
+  if (reloadError) {
+    return NextResponse.json(
+      {
+        error: 'PostgREST schema cache reload failed.',
+        code: 'SCHEMA_RELOAD_FAILED',
+      },
+      { status: 503 },
+    );
   }
 
-  // Primary: Supabase Management API — grant permissions AND reload cache
-  if (ref && token) {
-    try {
-      // Step 1: grant all permissions to PostgREST roles (the real fix)
-      await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body:    JSON.stringify({ query: `
-          grant usage on schema public to anon, authenticated, service_role;
-          grant all   on all tables    in schema public to anon, authenticated, service_role;
-          grant all   on all sequences in schema public to anon, authenticated, service_role;
-          grant all   on all routines  in schema public to anon, authenticated, service_role;
-        ` }),
-      });
-      // Step 2: reload PostgREST schema cache
-      await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body:    JSON.stringify({ query: "SELECT pg_notify('pgrst', 'reload schema');" }),
-      });
-    } catch { /* ignore */ }
-  }
-
-  // Wait a moment for PostgREST to reload, then re-check
-  await new Promise(r => setTimeout(r, 2000));
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
   const [
     { count: profileCount,  error: e1 },
@@ -187,14 +158,16 @@ export async function POST(_req: NextRequest) {
     supabaseAdmin.from('donations').select('*', { count: 'exact', head: true }),
   ]);
 
+  const ok = !e1 && !e2 && !e3;
   return NextResponse.json({
-    ok: !e1 && !e2 && !e3,
-    message: (!e1 && !e2 && !e3)
-      ? 'PostgREST schema cache reloaded. All tables now accessible.'
-      : 'Cache reload attempted. Tables may need another moment.',
+    ok,
+    message: ok
+      ? 'PostgREST schema cache reloaded. All tables are accessible.'
+      : 'PostgREST reloaded, but required tables are not accessible.',
+    ...(!ok ? { error: 'Schema cache verification failed.', code: 'SCHEMA_CACHE_UNAVAILABLE' } : {}),
     profiles:  e1 ? { status: 'error', code: e1.code ?? 'QUERY_FAILED' } : profileCount,
     campaigns: e2 ? { status: 'error', code: e2.code ?? 'QUERY_FAILED' } : campaignCount,
     donations: e3 ? { status: 'error', code: e3.code ?? 'QUERY_FAILED' } : donationCount,
     ts: Date.now(),
-  });
+  }, { status: ok ? 200 : 503 });
 }

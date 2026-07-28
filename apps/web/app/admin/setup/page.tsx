@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { requireAdmin } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { CharitMeShell, TopBar } from '../../../components/CharitMeShellServer';
-import ApplySchemaButton from './_components/ApplySchemaButton';
 import ReloadCacheButton from './_components/ReloadCacheButton';
 
 export const dynamic = 'force-dynamic';
@@ -53,7 +52,7 @@ async function runChecks(): Promise<Check[]> {
           label: `DB: ${table}`,
           status: 'error',
           value: tableNotFound ? 'TABLE MISSING' : `${error.code}: ${error.message}`,
-          fix: tableNotFound ? '→ Click "Apply Schema Now" above' : 'Check RLS policies',
+          fix: tableNotFound ? 'Apply pending migrations through the release workflow' : 'Check RLS policies',
         });
       } else {
         checks.push({
@@ -128,14 +127,13 @@ export default async function AdminSetupPage() {
               <strong>If tables exist in Supabase Table Editor:</strong> PostgREST schema cache is stale — click <strong>Reload Cache</strong>.
             </p>
             <p style={{ fontSize: 14, color: '#7f1d1d', margin: '0 0 18px', lineHeight: 1.6 }}>
-              <strong>If tables do not exist yet:</strong> Click <strong>Apply Schema Now</strong>.
+              <strong>If tables do not exist yet:</strong> apply reviewed migrations through the staging-gated release workflow.
             </p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
               <ReloadCacheButton />
-              <ApplySchemaButton />
             </div>
             <p style={{ fontSize: 12, color: '#be123c', margin: 0, lineHeight: 1.5 }}>
-              Safe to run both — <code>CREATE TABLE IF NOT EXISTS</code> and schema reload are idempotent.
+              Cache reload only refreshes PostgREST metadata and does not change database privileges.
             </p>
           </div>
         )}

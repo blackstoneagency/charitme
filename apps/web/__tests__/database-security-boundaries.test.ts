@@ -7,7 +7,7 @@ const migration = readFileSync(
   'utf8',
 ).toLowerCase();
 const profileSync = readFileSync(resolve(process.cwd(), 'lib/profile-sync.ts'), 'utf8').toLowerCase();
-const applySchema = readFileSync(
+const retiredApplySchema = readFileSync(
   resolve(process.cwd(), 'app/api/admin/apply-schema/route.ts'),
   'utf8',
 ).toLowerCase();
@@ -42,12 +42,9 @@ describe('privileged database boundaries migration', () => {
     expect(migration).not.toContain('set search_path = public, pg_catalog');
   });
 
-  it('keeps profile repair and schema repair from restoring metadata roles', () => {
+  it('keeps profile repair from restoring metadata roles', () => {
     expect(profileSync).not.toContain('parseroles(metadata.roles)');
     expect(profileSync).toContain("roles: ['donor']");
-    expect(applySchema).not.toContain("raw_user_meta_data -> 'roles'");
-    expect(applySchema).toMatch(/roles\)\s+values \(new\.id, new\.email/);
-    expect(applySchema).toContain(`'["donor"]'::jsonb`);
   });
 
   it('removes public financial inserts', () => {
@@ -83,13 +80,12 @@ describe('privileged database boundaries migration', () => {
     expect(migration).toContain('check (tip_cents >= 0 and processing_fee_cents >= 0) not valid');
   });
 
-  it('leaves schema repair with the same fail-closed grants', () => {
-    expect(applySchema).toContain("name: 'final privileged boundary enforcement'");
-    expect(applySchema).toContain(
-      'revoke insert on table public.donations from public, anon, authenticated',
-    );
-    expect(applySchema).toMatch(
-      /revoke all on function public\.record_donation\([\s\S]*?from public, anon, authenticated/,
+  it('retires in-app schema mutation in favor of the release workflow', () => {
+    expect(retiredApplySchema).toContain("code: 'release_workflow_required'");
+    expect(retiredApplySchema).toContain('{ status: 410 }');
+    expect(retiredApplySchema).not.toContain('database/query');
+    expect(retiredApplySchema).not.toMatch(
+      /\b(create|alter|drop|grant|revoke)\s+(table|function|policy|role|default)/,
     );
   });
 });
