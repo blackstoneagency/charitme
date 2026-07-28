@@ -263,6 +263,20 @@ Fixed: the publish response already returns `{id, slug}`, so the id is now
 captured and the link opens the real poster (which carries its own print
 stylesheet) in a new tab.
 
+**Verified against PRODUCTION, not just by inspection** (real campaign
+`010d396b…`, `curl` — both routes predate the fix, so production is a valid
+oracle for the claim). The preview deployment could not be used: Vercel SSO
+returns 302 on every path.
+
+| Request | Result | What it proves |
+|---|---|---|
+| `/api/campaigns/{id}/poster` | **404** | the path the button used is genuinely dead |
+| `/api/campaigns/{id}/qr-poster` | **200**, 3629 bytes | the fix target works and returns the poster |
+| `/api/campaigns/{slug}/qr-poster` | **404** | it keys on **id** — correcting only the route name would still have failed |
+
+That third row is the one worth keeping: the two defects were independent, so a
+partial fix would have looked right in review and stayed broken in production.
+
 It runs in **`npm test`** (`__tests__/internal-links.test.ts`), not only as a
 script: CI is dead, and a script nobody invokes is not a check.
 
