@@ -13,8 +13,8 @@ export default async function NewCustomersPage() {
   // On environments where it hasn't been applied yet, selecting that column
   // hard-errors ("column ... does not exist"), which would crash the whole
   // page. Select it when present, but transparently fall back to a column set
-  // without it so the page keeps working until the migration is applied via
-  // /admin/setup → "Apply Schema Now".
+  // without it so the page keeps working until the migration is applied through
+  // the release workflow.
   const BASE_COLUMNS = 'id, business_name, entity_type, state, filing_date, filing_status, registered_agent, owner_name, industry, address, website, email, phone, enrichment_notes, enrichment_model, enriched_at, lead_score, lead_grade, status, alerted, source, created_at';
 
   const primary = await supabaseAdmin

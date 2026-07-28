@@ -9873,3 +9873,21 @@ grant insert, update, delete on table public.donation_receipts to service_role;
 grant insert, update, delete on table public.campaign_status_log to service_role;
 grant insert, update, delete on table public.campaign_builder_events to service_role;
 grant insert, update, delete on table public.creator_tips to service_role;
+
+
+-- ============ 20260811000000_secure_schema_cache_reload.sql ============
+create or replace function public.reload_postgrest_schema_cache()
+returns void
+language sql
+security definer
+set search_path = pg_catalog
+as $$
+  select pg_notify('pgrst', 'reload schema');
+$$;
+
+revoke all on function public.reload_postgrest_schema_cache()
+  from public, anon, authenticated;
+grant execute on function public.reload_postgrest_schema_cache()
+  to service_role;
+
+select pg_notify('pgrst', 'reload schema');

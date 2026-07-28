@@ -24,7 +24,7 @@ minutes and produces logs. These finish in ~2 seconds with none. If you see that
 stop debugging your diff.
 
 **Local verification is therefore the real gate, and it is green:**
-`npm run typecheck` (0) · `npm test` (**1731/1731, 157 files**) · `npm run build`
+`npm run typecheck` (0) · `npm test` (**1750/1750, 162 files**) · `npm run build`
 (exit 0) · `scripts/audit-contrast.mjs --strict-gradients` (**0 WCAG AA failures,
 37 pages × 2 themes, 3,638 text elements per theme**).
 
@@ -34,7 +34,7 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 
 ## CLEAN DATABASE REPLAY - verified locally, staging application pending (Codex, 2026-07-28)
 
-- [x] Replayed all **96/96** ordered migrations against a brand-new local
+- [x] Replayed all **97/97** ordered migrations against a brand-new local
   Supabase PostgreSQL database.
 - [x] Added additive dependency migrations so `profiles`, `admin_settings`, and
   `feature_flags` exist before historical functions and data migrations consume
@@ -43,7 +43,7 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   hardening migration replaces them, eliminating duplicate-policy failure.
 - [x] Replaced seed-time promotion of the oldest real customer with two
   deterministic, non-login `.invalid` synthetic identities.
-- [x] Verified the completed local database contains 96 migration records,
+- [x] Verified the completed local database contains 97 migration records,
   2 auth users, 2 trigger-created profiles, 3 campaigns, 4 donations,
   7 admin settings, and 3 feature flags.
 - [x] Provisioning now requires an explicit staging or production target,
@@ -60,6 +60,10 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 
 ## SECURITY BOUNDARIES - code complete, production migration pending (Codex, 2026-07-27)
 
+- [x] Retired the in-app raw-SQL schema repair endpoint and removed schema-wide
+  privilege grants from the admin cache reload. Cache refresh now uses a
+  service-role-only notification function and fails closed when reload or
+  verification fails.
 - [x] New auth users always receive the baseline `donor` role. Signup metadata
   can no longer request `admin`, `super_admin`, or another privileged role.
 - [x] Missing-profile repair also assigns `donor`; it no longer promotes from
@@ -78,7 +82,7 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 - [x] Anonymous support-ticket submissions now have a durable 5/minute/IP limit
   before request parsing, database writes, or email delivery.
 - [x] `supabase/catch_up.sql` regenerated from the migration chain.
-- [x] Regression coverage added; full local suite passes 1,731 tests, typecheck,
+- [x] Regression coverage added; full local suite passes 1,750 tests, typecheck,
   zero-warning lint, and the 150-page production build.
 - [ ] Apply `20260809000000_harden_privileged_database_boundaries.sql` to staging,
   followed by `20260810000000_lock_down_service_managed_writes.sql`,
@@ -2996,9 +3000,8 @@ time** and never sits in CharitMe's platform balance."* If the platform never
 custodies the funds, it has nothing to hold for 7 days and nothing to freeze.
 
 Supporting evidence: **`first_payout_hold_until` exists as a column and is read by
-NOTHING** — the only occurrence in the entire codebase is the `create table` DDL in
-`app/api/admin/apply-schema/route.ts`. No writer, no reader. Someone started this
-and stopped.
+NOTHING** — its schema definition remains in the migration chain, but there is no
+application writer or reader. Someone started this and stopped.
 
 **Being fair to the current state:** donors are not necessarily unprotected. Stripe
 applies its own payout timing to connected accounts (new accounts typically wait
