@@ -874,8 +874,35 @@ When a page does overflow it **names the offending elements** with their widths
 and right edges — "the page is 410px" doesn't tell you which node did it, which is
 what made the earlier fixes archaeology.
 
-⚠️ This covers overflow, the most visible mobile defect. It does **not** claim tap
-target sizing, or anything below the fold that needs interaction.
+**Tap targets too** — WCAG 2.2 SC 2.5.8 (AA, 24×24), honouring the spec's inline
+and spacing exceptions so inline links don't bury the real defects:
+
+> **✅ No tap targets under 24px at 320px**
+
+Two genuine failures found and fixed: `/login`'s "Forgot password?" link (**125×19**
+— padding added, absorbed by the existing negative margin so form spacing is
+unchanged) and `/volunteer`'s "Remote only" label (**113×20** — `minHeight: 24`).
+
+⚠️ **A third "failure" was mine, not the app's.** `/transparency`'s checkbox
+measured 16×16 — but it sits inside a `<label>`, and clicking a label activates
+its control, so the **label** is the target a thumb has to hit, and it is large
+enough. The audit now measures the *effective* target (`el.closest('label')`, or
+`label[for=...]`). Enlarging that checkbox would have "fixed" a control that was
+already easy to tap.
+
+**⚠️⚠️ And 42 more were an unstyled page.** Mid-run the numbers jumped to 4
+overflows and 42 tap violations across 37 routes — a shared header button
+measuring 107×**17**. A pill that short means padding is not applying. It wasn't:
+`next start` had failed (port already held), so a **stale server was serving old
+HTML against a rebuilt `.next`**; the HTML asked for `9118722686befb3e.css` while
+the build had produced `1f2d65f2664ad9d9.css`, Next returned **400**, and every
+element was measured at its intrinsic unstyled size. `document.body` was rendering
+in *Times New Roman* — the tell.
+
+The script now **refuses to measure a page whose stylesheets have 0 rules**, and
+reports it as a failed load rather than a finding. This is the third time this
+session a metric taken against a broken dependency nearly became a false report
+(after TTFB and CLS); it is the first time the tool itself can now catch it.
 
 ### 🔴 Three migrations merged in #146 are UNAPPLIED — the code shipped, the fixes did not
 

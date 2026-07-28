@@ -23,8 +23,15 @@ const list = Array.isArray(routes) ? routes : (routes.routes ?? routes.public ??
 const BASE = process.argv[2] || 'http://127.0.0.1:3000';
 const WIDTHS = [320, 390];
 
+// WCAG 2.2 SC 2.5.8 "Target Size (Minimum)", Level AA: 24×24 CSS px. The spec's
+// exceptions are honoured — inline targets inside a sentence, and targets with
+// enough surrounding spacing, both pass — because flagging every inline link
+// would bury the real defects under noise nobody would read.
+const MIN_TARGET = 24;
+
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
 const failures = [];
+const tapFailures = [];
 const errors = [];
 let analyzed = 0;
 
@@ -43,6 +50,26 @@ for (const width of WIDTHS) {
       await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 30000 });
       await page.waitForLoadState('load', { timeout: 10000 }).catch(() => {});
       await page.waitForTimeout(350);
+
+      // Refuse to measure an UNSTYLED page. Layout audits are meaningless
+      // without CSS, and they do not fail quietly — they fail *loudly and
+      // wrongly*: a stale `next start` serving old HTML against a rebuilt
+      // `.next` returned 400 for the CSS bundle, and this script then reported
+      // 4 overflows and 42 tap-target violations that did not exist. Every
+      // "defect" was an unstyled element at its intrinsic size.
+      //
+      // One cheap check separates the two: a loaded stylesheet has rules.
+      const styled = await page.evaluate(() =>
+        [...document.styleSheets].reduce((n, s) => {
+          try { return n + s.cssRules.length; } catch { return n; }
+        }, 0),
+      );
+      if (styled === 0) {
+        errors.push(`${width}px ${path} (no CSS)`);
+        console.log(`! ${width}px ${path} — stylesheet has 0 rules; page is unstyled, refusing to measure`);
+        continue;
+      }
+
       analyzed++;
 
       const result = await page.evaluate((vw) => {
@@ -67,6 +94,76 @@ for (const width of WIDTHS) {
         return { scrollW, guilty: guilty.slice(0, 4) };
       }, width);
 
+      // Tap targets — only at the narrowest width, where they are tightest.
+      if (width === WIDTHS[0]) {
+        const small = await page.evaluate((min) => {
+          const out = [];
+          const sel = 'a[href], button, input:not([type=hidden]), select, textarea, [role="button"], [role="link"], [role="tab"], [role="checkbox"], [role="switch"]';
+          for (const el of document.querySelectorAll(sel)) {
+            const cs = getComputedStyle(el);
+            if (cs.display === 'none' || cs.visibility === 'hidden' || cs.pointerEvents === 'none') continue;
+            // Measure the EFFECTIVE target. A checkbox inside (or named by) a
+            // <label> is activated by clicking the label, so the label's box is
+            // what a thumb has to hit. Measuring the 16×16 input instead would
+            // report a failure that isn't one — and "fixing" it would enlarge a
+            // control that was already easy to tap.
+            let target = el;
+            const labelled = el.closest('label')
+              || (el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`) : null);
+            if (labelled) {
+              const lr = labelled.getBoundingClientRect();
+              const er = el.getBoundingClientRect();
+              if (lr.width >= er.width && lr.height >= er.height) target = labelled;
+            }
+
+            const r = target.getBoundingClientRect();
+            if (r.width === 0 || r.height === 0) continue;
+            if (r.bottom < 0 || r.top > (window.innerHeight * 4)) continue; // ignore far-offscreen
+            if (r.width >= min && r.height >= min) continue;
+
+            // Exception: a target inline within a sentence of text.
+            const parent = el.parentElement;
+            const inlineInText =
+              cs.display.startsWith('inline') &&
+              parent &&
+              (parent.textContent || '').trim().length > (el.textContent || '').trim().length + 12;
+            if (inlineInText) continue;
+
+            // Exception: sufficient spacing — no other target within the 24px
+            // circle the spec allows in place of raw size.
+            const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+            let crowded = false;
+            for (const other of document.querySelectorAll(sel)) {
+              if (other === el) continue;
+              const o = other.getBoundingClientRect();
+              if (o.width === 0 || o.height === 0) continue;
+              const dx = Math.max(o.left - cx, 0, cx - o.right);
+              const dy = Math.max(o.top - cy, 0, cy - o.bottom);
+              if (Math.hypot(dx, dy) < min) { crowded = true; break; }
+            }
+            if (!crowded) continue;
+
+            out.push({
+              tag: el.tagName.toLowerCase(),
+              via: target === el ? '' : ` (via <${target.tagName.toLowerCase()}>)`,
+              cls: (el.className || '').toString().slice(0, 40),
+              label: (el.getAttribute('aria-label') || target.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 30),
+              w: Math.round(r.width),
+              h: Math.round(r.height),
+            });
+          }
+          return out;
+        }, MIN_TARGET);
+
+        if (small.length) {
+          tapFailures.push({ path, count: small.length, sample: small.slice(0, 3) });
+          console.log(`✗ tap ${path} — ${small.length} target(s) under ${MIN_TARGET}px`);
+          for (const s of small.slice(0, 3)) {
+            console.log(`      <${s.tag}>${s.via} "${s.label}" ${s.w}×${s.h} class="${s.cls}"`);
+          }
+        }
+      }
+
       if (result) {
         failures.push({ path, width, ...result });
         console.log(`✗ ${width}px ${path} — document is ${result.scrollW}px`);
@@ -90,8 +187,15 @@ if (errors.length) {
   process.exit(1);
 }
 
+const tapTotal = tapFailures.reduce((a, t) => a + t.count, 0);
+
 if (failures.length) {
   console.log(`\n${failures.length} horizontal overflow(s) across ${analyzed} page loads.`);
-  process.exit(1);
 }
+if (tapTotal) {
+  console.log(`\n${tapTotal} tap target(s) under ${MIN_TARGET}px on ${tapFailures.length} route(s) (WCAG 2.2 SC 2.5.8, AA).`);
+}
+if (failures.length || tapTotal) process.exit(1);
+
 console.log(`\n✅ No horizontal overflow across ${analyzed} page loads (${list.length} routes × ${WIDTHS.length} widths)`);
+console.log(`✅ No tap targets under ${MIN_TARGET}px at ${WIDTHS[0]}px (WCAG 2.2 SC 2.5.8)`);
