@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
   const blockers: Blocker[] = [];
 
   if (campaign.payout_frozen) {
-    blockers.push({ code: 'payout_frozen', label: 'Payouts are frozen for this campaign pending admin review.', actionUrl: '/dashboard/support' });
+    blockers.push({ code: 'payout_frozen', label: 'Payouts are frozen for this campaign pending admin review.', actionUrl: '/contact' });
   }
   if (!destination) {
     blockers.push({ code: 'connect_incomplete', label: 'Connect a Stripe account to receive payouts.', actionUrl: `/dashboard/campaigns/${campaignId}/payout-setup` });
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
     blockers.push({
       code: `risk_${flag.id}`,
       label: flag.description ?? `Open ${flag.severity} risk flag: ${String(flag.flag_type).replace(/_/g, ' ')}`,
-      actionUrl: '/dashboard/support',
+      actionUrl: '/contact',
     });
   }
 

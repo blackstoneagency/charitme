@@ -2459,10 +2459,18 @@ function QuickSharePanel({ slug }: { slug: string }) {
             ))}
           </div>
 
+          {/* Opens the real poster route, which renders the campaign title, QR
+              code and progress ready to print. This used to point at a
+              non-existent route (the path lacked its qr- prefix) and cancel the
+              navigation to call window.print() instead, so it printed whatever
+              page the user was on rather than the poster. Wording avoids quoting
+              the old path: the internal-link audit scans source text and would
+              flag the example itself. */}
           <a
-            href={`/api/campaigns/${slug}/poster`}
+            href={`/api/campaigns/${slug}/qr-poster`}
             className="cr2-qs-poster-link"
-            onClick={e => { e.preventDefault(); window.print(); }}
+            target="_blank"
+            rel="noopener noreferrer"
           >
             🖨 Download printable poster →
           </a>
