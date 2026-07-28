@@ -323,6 +323,45 @@ applying it is schema groundwork, not a fix.
 the whole volunteer hours/shifts feature. Still owner-gated — PostgREST cannot
 run DDL and `SUPABASE_ACCESS_TOKEN`/`DB_PASSWORD` are not in `.env.local`.
 
+## ⚪ CLEAN — fetch/route METHOD mismatches: 0 across 276 call sites (Claude, 2026-07-27)
+
+A `fetch()` can hit a perfectly valid path with a verb the route does not
+export. Next answers **405 before any route code runs**, so nothing throws and
+nothing logs — the feature silently does nothing. `audit-internal-links.mjs`
+checks the PATH only and cannot see this.
+
+New: `apps/web/scripts/audit-fetch-methods.mjs` + `__tests__/fetch-methods.test.ts`.
+
+**Result: 0 real mismatches across 215 route handlers and 276 call sites.** The
+codebase is clean here. Recording that as a *negative* result rather than a win —
+the value is the regression guard, not a bug it caught.
+
+**Worth reading if you build a checker like this: it reported 17 defects before
+it reported the true 0**, in three waves, each a different wrong assumption about
+Next's routing. Every one looked completely convincing:
+
+1. **First-match-wins** → said `/api/notifications/count` was served by
+   `[id]/route.ts`. Next prefers a **static** segment. *4 false positives.*
+2. **So prefer static — unconditionally** → said `` /api/campaigns/${id} `` was
+   served by `donations-toggle/route.ts`, since `*` matches any segment and
+   `donations-toggle` is static. *13 more.*
+3. **Reading only the first quoted verb** → missed
+   `method: editing ? 'PATCH' : 'POST'`, defaulted to GET, and reported a
+   GET/405 on a route never called with GET. *The last 1.*
+
+The rule that satisfies all three is **position-aware**: compare each route
+segment against the segment the *caller wrote* — a literal prefers a static
+route, an interpolated `*` prefers the dynamic one — and take **every** verb in
+a method expression, not the first.
+
+Non-vacuity verified by planting a mismatch in both forms (plain `method: 'PUT'`
+and the ternary branch `editing ? 'PATCH' : 'PUT'`); both are reported.
+
+**The lesson is the one this file keeps relearning:** a sweep's first confident
+output is not evidence. Three separate times here the tool was wrong and the code
+was right — which is exactly how a *real* finding gets dismissed as tool noise if
+nobody checks each hit individually.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).
