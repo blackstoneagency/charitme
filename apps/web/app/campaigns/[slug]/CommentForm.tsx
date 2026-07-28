@@ -53,6 +53,7 @@ export default function CommentForm({
   return (
     <div style={{ marginBottom: 16 }}>
       <textarea
+        aria-label="Message of support"
         value={message}
         onChange={(e) => setMessage(e.target.value.slice(0, 1000))}
         placeholder="Leave a message of support…"

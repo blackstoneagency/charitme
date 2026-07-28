@@ -124,7 +124,7 @@ export default function HomeStoriesClient({ initialCampaigns, initialFilters }: 
         </div>
         <form className="kind-story-search" onSubmit={submitSearch}>
           <Icon name="search" className="h-4 w-4" />
-          <input name="storyQ" value={storyQ} onChange={event => setStoryQ(event.target.value)} placeholder="Search stories..." />
+          <input name="storyQ" aria-label="Search stories" value={storyQ} onChange={event => setStoryQ(event.target.value)} placeholder="Search stories..." />
           <button type="submit" aria-label="Search stories"><Icon name="search" className="h-4 w-4" /></button>
         </form>
         <div className="kind-story-sort">
