@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { CharitMeShell, TopBar, MetricGrid } from '../../../components/CharitMeShellServer';
 import { requireUser } from '../../../lib/auth';
 import { getNonprofitSummary, type VerificationStatus } from '../../../lib/nonprofit-data';
-import { Badge, Btn, EmptyState, ProgressBar } from '../../../components/ui';
+import { Badge, BtnLink, EmptyState, ProgressBar } from '../../../components/ui';
 
 export const metadata: Metadata = { title: 'Your organization' };
 
@@ -41,7 +41,7 @@ export default async function NonprofitPage() {
               icon="🏛️"
               title="No organization on your account"
               body="This page shows your nonprofit profile, verification status, and whether your donors are receiving tax-deductible receipts. Contact us to have an organization added to your account."
-              action={<Link href="/contact"><Btn>Contact our nonprofit team</Btn></Link>}
+              action={<BtnLink href="/contact">Contact our nonprofit team</BtnLink>}
             />
           </section>
         </div>
@@ -138,7 +138,7 @@ export default async function NonprofitPage() {
               icon="✨"
               title="No campaigns yet"
               body="Start a fundraiser to begin accepting donations for your organization."
-              action={<Link href="/create"><Btn>Start a campaign</Btn></Link>}
+              action={<BtnLink href="/create">Start a campaign</BtnLink>}
             />
           ) : (
             <div style={{ display: 'grid', gap: 12, padding: '4px 0 8px' }}>

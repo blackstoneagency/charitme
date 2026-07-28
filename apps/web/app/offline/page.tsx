@@ -1,5 +1,4 @@
-import Link from 'next/link';
-import { Btn } from '../../components/ui';
+import { BtnLink } from '../../components/ui';
 
 export const metadata = { title: "You're offline" };
 
@@ -20,9 +19,7 @@ export default function OfflinePage() {
           CharitMe couldn&apos;t reach the network. Check your connection and try again — pages
           you&apos;ve already visited may still be available.
         </p>
-        <Link href="/">
-          <Btn variant="primary">Back to home</Btn>
-        </Link>
+        <BtnLink href="/" variant="primary">Back to home</BtnLink>
       </div>
     </div>
   );

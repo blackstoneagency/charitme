@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import Link from 'next/link';
 
 // ── Btn ──────────────────────────────────────────────────────────────────────
 type BtnVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -20,6 +21,19 @@ const btnSizes: Record<BtnSize, React.CSSProperties> = {
   lg: { padding: '13px 28px', fontSize: '15px', borderRadius: 'var(--rl)' },
 };
 
+/** The visual identity of a button, shared by Btn and BtnLink so they cannot drift. */
+function btnAppearance(variant: BtnVariant, size: BtnSize): React.CSSProperties {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontWeight: 600,
+    transition: 'opacity .15s, background .15s',
+    ...btnStyles[variant],
+    ...btnSizes[size],
+  };
+}
+
 export function Btn({
   variant = 'primary',
   size = 'md',
@@ -36,15 +50,9 @@ export function Btn({
     <button
       disabled={loading || props.disabled}
       style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '8px',
-        fontWeight: 600,
+        ...btnAppearance(variant, size),
         cursor: loading || props.disabled ? 'not-allowed' : 'pointer',
         opacity: loading || props.disabled ? 0.65 : 1,
-        transition: 'opacity .15s, background .15s',
-        ...btnStyles[variant],
-        ...btnSizes[size],
         ...style,
       }}
       {...props}
@@ -52,6 +60,43 @@ export function Btn({
       {loading && <Spinner size={14} />}
       {children}
     </button>
+  );
+}
+
+// ── BtnLink ──────────────────────────────────────────────────────────────────
+/**
+ * A navigation control that LOOKS like a button but IS a link.
+ *
+ * Use this instead of `<Link><Btn>…</Btn></Link>`. That pattern renders a
+ * `<button>` inside an `<a>`, which is invalid HTML — interactive content may
+ * not nest — and it produced a real axe failure: the button covers the anchor,
+ * leaving a 2px sliver of link exposed, so `target-size` (WCAG 2.2 AA 2.5.8)
+ * fails at "147.5px by 2px". It also gives assistive tech two overlapping
+ * controls for one action.
+ *
+ * Appearance comes from the same btnAppearance() as Btn, so the two cannot
+ * drift apart visually.
+ */
+export function BtnLink({
+  href,
+  variant = 'primary',
+  size = 'md',
+  style,
+  children,
+  ...props
+}: Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> & {
+  href: string;
+  variant?: BtnVariant;
+  size?: BtnSize;
+}) {
+  return (
+    <Link
+      href={href}
+      style={{ ...btnAppearance(variant, size), cursor: 'pointer', textDecoration: 'none', ...style }}
+      {...props}
+    >
+      {children}
+    </Link>
   );
 }
 
