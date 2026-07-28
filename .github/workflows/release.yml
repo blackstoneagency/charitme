@@ -1,0 +1,190 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify release candidate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck --workspace=apps/web
+
+      - name: Lint
+        run: npm run lint --workspace=apps/web
+
+      - name: Unit and integration tests
+        run: npm test --workspace=apps/web
+
+      - name: Production build
+        run: npm run build --workspace=apps/web
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_APP_URL: https://www.charitme.com
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+
+  migration-replay:
+    name: Replay migrations from zero
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start local Supabase without Edge Functions
+        run: npx supabase start --exclude edge-runtime
+
+      - name: Reset database through every migration and seed
+        run: npx supabase db reset --local
+
+      - name: Stop local Supabase
+        if: always()
+        run: npx supabase stop --no-backup
+
+  staging:
+    name: Apply and smoke test staging
+    needs: [verify, migration-replay]
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      commit: ${{ steps.candidate.outputs.commit }}
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      DEPLOY_ENVIRONMENT: staging
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_PRODUCTION_PROJECT_REF: ${{ secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_APP_URL: ${{ vars.APP_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply migrations and configure staging
+        run: npm run provision
+
+      - name: Verify staging RLS
+        run: npm run test:rls-live
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          CHARITME_RLS_TEST_USERS_JSON: ${{ secrets.CHARITME_RLS_TEST_USERS_JSON }}
+          REQUIRE_AUTHENTICATED_RLS_PERSONAS: 'true'
+
+      - name: Deploy staging
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(npx vercel deploy --yes --token "$VERCEL_TOKEN")"
+          url="$(printf '%s\n' "$output" | grep -E '^https://' | tail -n 1)"
+          test -n "$url"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+
+      - name: Run staging smoke tests
+        run: >-
+          npx playwright test
+          e2e/smoke.spec.ts
+          e2e/auth-gates.spec.ts
+          e2e/security-headers.spec.ts
+          --project=chromium
+        working-directory: apps/web
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ steps.deploy.outputs.url }}
+
+      - name: Record staging-verified commit
+        id: candidate
+        run: echo "commit=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload staging Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 14
+
+  production:
+    name: Apply and deploy production
+    needs: staging
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DEPLOY_ENVIRONMENT: production
+      ALLOW_PRODUCTION_DATABASE_PUSH: 'true'
+      STAGING_VERIFIED_COMMIT: ${{ needs.staging.outputs.commit }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_PRODUCTION_PROJECT_REF: ${{ secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_APP_URL: ${{ vars.APP_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply production migrations and configuration
+        run: npm run provision
+
+      - name: Deploy production
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(npx vercel deploy --prod --yes --token "$VERCEL_TOKEN")"
+          url="$(printf '%s\n' "$output" | grep -E '^https://' | tail -n 1)"
+          test -n "$url"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Verify production liveness
+        run: curl --fail --show-error --silent "${{ steps.deploy.outputs.url }}/api/health"
