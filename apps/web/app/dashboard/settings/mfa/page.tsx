@@ -173,6 +173,7 @@ export default function MfaPage() {
                   <div style={{ display: 'flex', gap: 10 }}>
                     <input
                       type="text"
+                      aria-label="Six-digit authentication code"
                       inputMode="numeric"
                       maxLength={6}
                       value={verifyCode}

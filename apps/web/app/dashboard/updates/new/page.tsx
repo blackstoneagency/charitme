@@ -158,6 +158,7 @@ export default function NewUpdatePage() {
                     {scheduleMode && (
                       <input
                         type="datetime-local"
+                        aria-label="Schedule this update for a later date and time"
                         value={scheduledAt}
                         onChange={e => setScheduledAt(e.target.value)}
                         required={scheduleMode}

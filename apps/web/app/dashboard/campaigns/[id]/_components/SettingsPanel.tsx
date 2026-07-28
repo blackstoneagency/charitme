@@ -227,6 +227,7 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
 
         {field('Currency', 'Currency donations are collected in.',
           <select
+            aria-label="Campaign currency"
             value={currency}
             onChange={e => setCurrency(e.target.value)}
             style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid var(--b1)', fontSize: 14, color: 'var(--t2)' }}
