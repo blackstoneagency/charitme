@@ -11,11 +11,13 @@ import {
   type NonprofitTaxInfo,
   type TaxStatement,
 } from './tax';
+import { normalizeReceiptEmail } from './tax-receipt-access';
 
 const TAX_PAGE_SIZE = 1000;
 
 type DonorDonationRow = {
   id: string;
+  donor_id: string | null;
   amount_cents: number;
   tip_cents: number | null;
   currency: string | null;
@@ -28,6 +30,11 @@ type DonorDonationRow = {
 type TaxReceiptRow = {
   donation_id: string | null;
   receipt_number: string;
+};
+
+type DonationReceiptRow = TaxReceiptRow & {
+  donor_id: string | null;
+  donor_email: string | null;
 };
 
 type OwnedCampaignRow = {
@@ -49,7 +56,7 @@ async function loadDonorDonationRows(donorId: string): Promise<DonorDonationRow[
   for (let offset = 0; ; offset += TAX_PAGE_SIZE) {
     const { data, error } = await supabaseAdmin
       .from('donations')
-      .select('id, amount_cents, tip_cents, currency, status, created_at, campaign_id, campaigns:campaign_id(title, user_id)')
+      .select('id, donor_id, amount_cents, tip_cents, currency, status, created_at, campaign_id, campaigns:campaign_id(title, user_id)')
       .eq('donor_id', donorId)
       .eq('status', 'completed')
       .order('created_at', { ascending: false })
@@ -72,6 +79,40 @@ async function loadTaxReceiptRows(donorId: string): Promise<TaxReceiptRow[]> {
     rows.push(...(data as TaxReceiptRow[]));
     if (data.length < TAX_PAGE_SIZE) return rows;
   }
+}
+
+async function loadGuestReceiptRows(donorEmail: string): Promise<DonationReceiptRow[]> {
+  const rows: DonationReceiptRow[] = [];
+  for (let offset = 0; ; offset += TAX_PAGE_SIZE) {
+    const { data, error } = await supabaseAdmin
+      .from('donation_receipts')
+      .select('donation_id, donor_id, donor_email, receipt_number')
+      .eq('donor_email', donorEmail)
+      .range(offset, offset + TAX_PAGE_SIZE - 1);
+    if (error || data == null) throw new Error('TAX_DATA_UNAVAILABLE');
+    rows.push(...(data as DonationReceiptRow[]));
+    if (data.length < TAX_PAGE_SIZE) return rows;
+  }
+}
+
+async function loadDonorDonationRowsByIds(donationIds: string[]): Promise<DonorDonationRow[]> {
+  const rows: DonorDonationRow[] = [];
+  for (let index = 0; index < donationIds.length; index += 200) {
+    const chunk = donationIds.slice(index, index + 200);
+    for (let offset = 0; ; offset += TAX_PAGE_SIZE) {
+      const { data, error } = await supabaseAdmin
+        .from('donations')
+        .select('id, donor_id, amount_cents, tip_cents, currency, status, created_at, campaign_id, campaigns:campaign_id(title, user_id)')
+        .in('id', chunk)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + TAX_PAGE_SIZE - 1);
+      if (error || data == null) throw new Error('TAX_DATA_UNAVAILABLE');
+      rows.push(...(data as unknown as DonorDonationRow[]));
+      if (data.length < TAX_PAGE_SIZE) break;
+    }
+  }
+  return rows;
 }
 
 async function loadOwnedCampaignRows(ownerId: string): Promise<OwnedCampaignRow[]> {
@@ -118,13 +159,35 @@ async function loadFundraiserDonationRows(campaignIds: string[]): Promise<Fundra
  * pure tax-statement builder's input. Shared by the JSON/CSV API route and the
  * printable statement page so deductibility is computed identically in both.
  */
-export async function loadDonorTaxInputs(donorId: string): Promise<TaxDonationInput[]> {
-  const [donations, rawReceipts] = await Promise.all([
+export async function loadDonorTaxInputs(
+  donorId: string,
+  donorEmail?: string | null,
+): Promise<TaxDonationInput[]> {
+  const [ownedDonations, rawReceipts] = await Promise.all([
     loadDonorDonationRows(donorId),
     loadTaxReceiptRows(donorId),
   ]);
+  const normalizedEmail = normalizeReceiptEmail(donorEmail);
+  const guestReceipts = normalizedEmail
+    ? (await loadGuestReceiptRows(normalizedEmail)).filter(
+      (receipt) => receipt.donor_id === null || receipt.donor_id === donorId,
+    )
+    : [];
+  const ownedDonationIds = new Set(ownedDonations.map((donation) => donation.id));
+  const guestDonationIds = guestReceipts
+    .map((receipt) => receipt.donation_id)
+    .filter((donationId): donationId is string => Boolean(donationId) && !ownedDonationIds.has(donationId as string));
+  const guestDonations = guestDonationIds.length > 0
+    ? await loadDonorDonationRowsByIds(guestDonationIds)
+    : [];
+  const donations = [
+    ...ownedDonations,
+    ...guestDonations.filter(
+      (donation) => donation.donor_id === null || donation.donor_id === donorId,
+    ),
+  ];
   const receiptByDonation = new Map(
-    rawReceipts
+    [...guestReceipts, ...rawReceipts]
       .filter((receipt) => Boolean(receipt.donation_id))
       .map((receipt) => [receipt.donation_id as string, receipt.receipt_number]),
   );
@@ -173,8 +236,9 @@ export async function getDonorTaxStatement(
   donorId: string,
   year: number,
   currency?: string,
+  donorEmail?: string | null,
 ): Promise<{ statement: TaxStatement; availableYears: number[] }> {
-  const inputs = await loadDonorTaxInputs(donorId);
+  const inputs = await loadDonorTaxInputs(donorId, donorEmail);
   const selected = currency
     ? inputs.filter((input) => (input.currency ?? 'usd').toLowerCase() === currency.toLowerCase())
     : inputs;
