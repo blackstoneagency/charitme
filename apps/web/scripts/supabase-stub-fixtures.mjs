@@ -250,6 +250,20 @@ export function buildFixtures() {
     // columns a list view needs. A page that reads a column not present here
     // renders it blank — which is a legitimate audit subject (blank cell, wrong
     // colour) but NOT evidence the column is missing in production.
+    notifications: genericRows('notf', 30, (i) => ({
+      kind: ['donation', 'comment', 'payout', 'campaign', 'system'][i % 5],
+      title: [
+        'You received a new donation',
+        'Someone commented on your campaign',
+        'A payout is on its way',
+        'Your campaign was approved',
+        'Scheduled maintenance this weekend',
+      ][i % 5],
+      body: 'Seeded by the audit stub so the notification list renders with rows.',
+      link: ['/dashboard/donations', '/dashboard/messages', '/dashboard/payouts', '/dashboard/campaigns', null][i % 5],
+      read_at: i % 3 === 0 ? null : daysAgo(i),
+      meta: {},
+    })),
     audit_logs: genericRows('audt', 50, (i) => ({
       action: ['campaign.approve', 'payout.release', 'user.suspend', 'settings.update'][i % 4],
       actor_email: 'audit-stub@charitme.local',
@@ -264,10 +278,11 @@ export function buildFixtures() {
       email: `donor${i + 2}@charitme.local`,
     })),
     webhook_events: genericRows('whev', 40, (i) => ({
-      type: ['checkout.session.completed', 'account.updated', 'payout.paid'][i % 3],
+      event_type: ['checkout.session.completed', 'account.updated', 'payout.paid'][i % 3],
       stripe_event_id: `evt_stub_${i + 1}`,
-      processed: i % 4 !== 0,
-      error: i % 9 === 0 ? 'Signature verification failed' : null,
+      payload: {},
+      processed_at: i % 4 !== 0 ? daysAgo(i % 30) : null,
+      processing_error: i % 9 === 0 ? 'Signature verification failed' : null,
     })),
     refunds: genericRows('refn', 20, (i) => ({
       amount_cents: (i + 1) * 1_500,
@@ -276,8 +291,9 @@ export function buildFixtures() {
     })),
     recurring_donations: genericRows('recr', 25, (i) => ({
       amount_cents: [1000, 2500, 5000][i % 3],
-      interval: 'month',
-      next_charge_at: daysAgo(-((i % 28) + 1)),
+      cadence: ['weekly', 'monthly', 'quarterly', 'annual'][i % 4],
+      status: ['active', 'active', 'paused', 'cancelled'][i % 4],
+      next_bill_at: daysAgo(-((i % 28) + 1)),
       donor_id: USER_ID,
     })),
     donor_messages: genericRows('dmsg', 25, (i) => ({

@@ -62,7 +62,8 @@ begin
     with ins as (
       insert into public.campaigns
         (user_id, slug, title, tagline, description, category, goal_amount,
-         raised_amount, backer_count, status, trust_status, campaign_health_score)
+         raised_amount, backer_count, status, trust_status, campaign_health_score,
+         is_demo)
       select
         v_users[1 + (g % n_users)],
         'seed-campaign-' || v_suffix || '-' || g,
@@ -77,7 +78,8 @@ begin
         (g % 40),                               -- backers
         v_stat[1 + (g % 5)],
         (array['Verified','Established','Highly Trusted','Needs More Info'])[1 + (g % 4)],
-        (g % 101)
+        (g % 101),
+        true
       from generate_series(1, 120) g
       returning id
     )
@@ -129,7 +131,8 @@ begin
   -- Columns limited to those present in every deployed variant. tip_cents /
   -- processing_fee_cents (schema.sql only) default to 0 where they exist.
   insert into public.donations
-    (campaign_id, donor_id, amount_cents, status, anonymous, message, currency, created_at)
+    (campaign_id, donor_id, amount_cents, status, anonymous, message, currency,
+     created_at, is_demo)
   select v_camps[1 + (g % n_camps)],
          case when g % 5 = 0 then null else v_users[1 + (g % n_users)] end,
          ((g % 20) + 1) * 2500,                                   -- $25 .. $500
@@ -137,7 +140,8 @@ begin
          (g % 5 = 0),
          (array['Sending love and support.','Praying for a full recovery.','Happy to help!','Stay strong.'])[1 + (g % 4)],
          'usd',
-         now() - ((g % 90) || ' days')::interval
+         now() - ((g % 90) || ' days')::interval,
+         true
   from generate_series(1, 120) g;
 
   -- saved_campaigns (unique user+campaign) -----------------------------------

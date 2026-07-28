@@ -177,7 +177,7 @@ describe('checkout receipts include guest donors', () => {
     const renewal = src.slice(src.indexOf('async function handleInvoiceSucceeded'));
     expect(renewal).toContain('const renewalDonationId = await findDonationId');
     expect(renewal).toContain('await sendDonorReceipt(');
-    expect(renewal).toContain("renewalDonationId ?? undefined,\n    'recurring'");
+    expect(renewal).toMatch(/renewalDonationId \?\? undefined,\r?\n\s+'recurring'/);
   });
 });
 
