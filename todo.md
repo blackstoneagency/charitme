@@ -767,6 +767,41 @@ otherwise it would fire on every legitimate scroll region (`.kind-pills`,
 Any check depending on an external fetch (images, fonts, `load`) is unverifiable here and
 must not be reported as a site defect.
 
+## ✅ CLOSED — the `?? 0` fail-open register, and the boundedQuery rollout (Claude, 2026-07-28)
+
+**The register is complete.** Of the four sites still listed open, three were already
+correct and needed nothing: `admin/settings` gates on `integrationsUnknown ? null : …`,
+`marketing/_components/overview.ts` already returns `null` per count (its remaining
+`?? 0` is a histogram accumulator, not a fail-open), and the hero rotator already renders
+`—`. Only one was a real defect.
+
+**`app/admin/users` showed the page size as the total.** `totalsUnreliable` required
+**both** the count query *and* the profile row read to fail, so a count-only failure
+showed no notice and silently substituted `users.length` under the label "total users" —
+and that row query is **capped at 2000**. On a site with more than 2000 profiles a failed
+count would confidently report exactly **"2,000 total users"**, indefinitely.
+
+*Latent, not live:* production holds 1,133 profiles, so today the substitution happens to
+equal the truth. It stops being true the day the platform passes 2,000 users — a growth
+milestone, not an incident, so the wrong number would appear at the least suspicious
+possible moment. Unknown is now `null` → em dash, and the "Active Users" tile no longer
+prints a percentage **of** an unknown total.
+
+⚠️ **This overrode a deliberate earlier decision.** A test pinned the old conjunction with
+the reasoning *"a failed count with rows loaded still yields a real page-limited number."*
+That is true — and the **label** is what makes it wrong. The test now encodes the
+corrected reasoning rather than dropping the assertion.
+
+**boundedQuery rollout finished.** `dashboard/donations`, `analytics`, `donor` and
+`recurring` were the last dashboard pages issuing unbounded reads. Each already had an
+error branch that degrades sensibly, which is boundedQuery's documented precondition, so
+a timeout now takes the existing branch. Most valuable on `recurring`, per its own
+comment: a donor shown "no recurring donations" while their giving is live could set up a
+duplicate subscription and **double-charge themselves**.
+
+*(This was the genuine remnant of PR #93. Redone against current master rather than
+merging a branch 205 commits behind — its truth-preservation half was already superseded.)*
+
 ## 🔍 BRANCH AUDIT — is every bot's work actually on master? (Claude, 2026-07-28)
 
 Audited all 20 remote branches. **A branch showing "N commits ahead" is NOT evidence of
