@@ -24,6 +24,10 @@ const SRC = readFileSync(
   path.join(__dirname, '..', 'app', 'api', 'stripe', 'webhook', 'route.ts'),
   'utf8',
 );
+const RECURRING_ROUTE = readFileSync(
+  path.join(__dirname, '..', 'app', 'api', 'donations', 'recurring', 'route.ts'),
+  'utf8',
+);
 
 /**
  * Every event the dispatcher actually routes — and it routes them in TWO shapes.
@@ -117,6 +121,31 @@ describe('stripe webhook event coverage', () => {
       'The switch handles these, but the live endpoint does not subscribe to them, ' +
         'so they never arrive:\n  ' + neverDelivered.join('\n  '),
     ).toEqual([]);
+  });
+});
+
+describe('recurring renewal accounting contract', () => {
+  it('copies principal, tip, and anonymity into subscription metadata', () => {
+    const subscriptionData = RECURRING_ROUTE.slice(
+      RECURRING_ROUTE.indexOf('subscription_data:'),
+    );
+    expect(subscriptionData).toContain('donationAmountCents: String(amountCents)');
+    expect(subscriptionData).toContain('tipCents: String(tipCents)');
+    expect(subscriptionData).toContain("anonymous: anonymous ? '1' : '0'");
+  });
+
+  it('resolves and records principal and tip separately for renewals', () => {
+    expect(SRC).toContain('resolveRecurringRenewalAmounts({');
+    expect(SRC).toContain('p_amount_cents: donationAmountCents');
+    expect(SRC).toContain('p_tip_cents: tipCents');
+    expect(SRC).toContain('grossAmount: donationAmountCents');
+    expect(SRC).toContain('platformFeeAmount: tipCents');
+    expect(SRC).toContain('ownerNetAmount: donationAmountCents');
+  });
+
+  it('fails the webhook when the donation write fails', () => {
+    expect(SRC).toContain("throw new Error('Recurring donation renewal could not be recorded.')");
+    expect(SRC).toContain("throw new Error('Recurring renewal payment reporting failed.')");
   });
 });
 
