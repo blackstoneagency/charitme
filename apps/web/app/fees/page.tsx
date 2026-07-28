@@ -56,11 +56,13 @@ export default function FeePolicyPage() {
           <strong> processor, not to CharitMe</strong>. Typical rates:
         </p>
         <ul>
-          <li><strong>Card / Google Pay:</strong> 2.9% + $0.30</li>
+          <li><strong>Card / Google Pay / Apple Pay:</strong> 2.9% + $0.30</li>
           <li><strong>Bank transfer (ACH):</strong> 0.8% (capped at $5.00)</li>
-          <li><strong>PayPal:</strong> 3.49% + $0.49</li>
-          <li><strong>Venmo:</strong> 1.9% + $0.10</li>
+          <li><strong>Cash App, Link, Amazon Pay, Klarna, Afterpay:</strong> vary by provider</li>
         </ul>
+        <p style={{ fontSize: 13, color: 'var(--t3)' }}>
+          PayPal and Venmo are not currently accepted at checkout.
+        </p>
         <p>
           If a donor chooses to cover the processing fee, <strong>100% of their donation reaches the
           recipient</strong>. If they don&apos;t, only the processor&apos;s fee is deducted from the gift — CharitMe

@@ -852,6 +852,44 @@ cannot see this, because the failure is about events nobody wrote a handler for.
 
 ## 🔓 RUNBOOK — apply the 3 pending migrations (Claude, 2026-07-28)
 
+### 🔴 FIXED — the site advertised two payment methods checkout rejects, with cheaper fees
+
+*"All payment methods work properly"* — the **server** side is genuinely solid
+(`reconcilePaymentMethods`, the `nextPaymentMethodTypes` retry recovery, the
+"one inactive method collapses checkout to card-only" comment). The gap was the
+**donor-facing promise**.
+
+`paypal_payments` is **not active** on the Stripe account, so
+`ONE_TIME_PAYMENT_METHOD_TYPES` omits paypal and `POST /api/donations` normalizes
+`paypal`/`venmo` → `card`. Meanwhile the public site said:
+
+| surface | claim |
+|---|---|
+| `/fees` | *"**PayPal:** 3.49% + $0.49"*, *"**Venmo:** 1.9% + $0.10"* — as processing-fee tiers |
+| `/transparency` | *"Your card (or bank/**PayPal/Venmo**) is charged…"* |
+| `/transparency` calculator | **PayPal** and **Venmo** as selectable methods, priced at those rates |
+
+⚠️ **The fee angle is what makes this more than stale copy.** Venmo's advertised
+rate is **cheaper than card**. A donor sizing their *"I'll cover the processing
+fee"* contribution off 1.9% + $0.10 was quoted a price they can never be charged
+at — the server correctly bills card rates (2.9% + $0.30) off the *normalized*
+method. Quoted one number, charged another.
+
+Copy now matches the accepted set, and `/fees` says plainly that PayPal and Venmo
+are not currently accepted. The calculator offers only Card and Bank (ACH).
+
+**`PaymentMethod` in `@shared/fees` deliberately still includes them** — the API
+must keep accepting and normalizing both so a stale cached client cannot 400 and
+lose a real donation. (Narrowing that enum was proposed earlier this session and
+reversed for exactly that reason.)
+
+Pinned by `__tests__/advertised-payment-methods.test.ts`, which fails in **both**
+directions: it fails if the copy re-advertises an unavailable method, **and** it
+fails once `paypal` is added to `ONE_TIME_PAYMENT_METHOD_TYPES` — so enabling the
+capability prompts restoring the copy rather than leaving it wrong the other way.
+It also asserts the real rates stay documented, so the fix cannot degenerate into
+deleting the fee table.
+
 ### ✅ MEASURED — mobile has no horizontal overflow, and now has a script that says so
 
 *"Mobile works perfectly"* had **no evidence and no tooling** — PR #49 and PR #127
