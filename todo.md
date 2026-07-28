@@ -767,6 +767,59 @@ otherwise it would fire on every legitimate scroll region (`.kind-pills`,
 Any check depending on an external fetch (images, fonts, `load`) is unverifiable here and
 must not be reported as a site defect.
 
+## 📊 GOAL-CRITERIA EVIDENCE — measured, not assumed (Claude, 2026-07-28)
+
+Several criteria were listed as unverified. Measured each rather than asserting it.
+
+### ♿ Accessibility — **0 axe violations, 38 routes × 2 themes (76 renders)**
+Ran axe-core (WCAG 2.0/2.1/2.2, A + AA). Found **one real violation**, in both themes:
+`target-size` (serious, WCAG 2.2 AA 2.5.8) — *"partially obscured (smallest space is
+147.5px by 2px)"*.
+
+Cause: `<Link><Btn>…</Btn></Link>`, which puts a `<button>` inside an `<a>` — invalid
+HTML, and the button covers the anchor leaving a 2px sliver. Assistive tech sees two
+overlapping controls for one action. **axe found 1 because it only reaches public pages;
+grep found 8**, the rest behind auth.
+
+Fixed with a new `BtnLink` (single anchor, styled as a button; both it and `Btn` draw from
+one `btnAppearance()` so they cannot drift). All 8 converted. **Verified the converted
+controls actually navigate** — my first click check looked like a failure only because it
+did not await navigation.
+
+**`npm run audit:a11y` is now a permanent script** (exits non-zero on any violation, pins
+the theme via localStorage *before* load — setting it after lets ThemeProvider overwrite
+it, which is how an earlier suite audited dark twice and never checked light).
+
+### 🖼 Image uniqueness — **500 / 500 / 0**
+Measured against production `campaigns`: 500 campaigns, 500 with a cover, **500 distinct
+URLs, 0 duplicates, 0 null**. (The catalog audit's "shared photo" warnings are about the
+*fallback catalog* across categories, not per-campaign covers.)
+
+### 🌱 Seed coverage — every table ≥100 except one
+| table | rows | | table | rows |
+|---|---|---|---|---|
+| marketing_contacts | 2020 | | risk_flags | 620 |
+| profiles | 1133 | | recurring_donations | 620 |
+| donations | 740 | | payouts | 620 |
+| campaign_updates | 740 | | campaigns | 500 |
+| campaign_reports | 501 | | support_cases | 500 |
+| subscriptions | 500 | | fundraising_events | 240 |
+| event_registrations | 240 | | event_tickets | 240 |
+| event_checkins | 240 | | sponsorship_opportunities | 240 |
+| sponsorship_requests | 240 | | grants | 240 |
+| volunteer_opportunities | 240 | | notifications | 240 |
+| **sponsors** | **50** ⚠️ | | | |
+
+⚠️ **`sponsors` is at 50, below the 100 target**, and it is genuinely used
+(`/api/sponsors`, `/api/admin/sponsors`). Topping it up means **writing to the production
+database**, which is an owner decision — not taken unilaterally, consistent with the rest
+of this session.
+
+Two tables first read as "unreadable"; that was **my wrong table names**, not a failure —
+the real ones are `fundraising_events` and `sponsorship_opportunities`/`_requests`
+(PostgREST `PGRST205` even suggested the alternatives). Recorded because "unreadable" and
+"empty" must never be conflated, including when I am the one guessing wrong.
+
 ## 👤 USER ROLES — audited, and the map is now self-verifying (Claude, 2026-07-28)
 
 Goal criterion *"each user role is clearly mapped out and different from the other
