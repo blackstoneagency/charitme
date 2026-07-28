@@ -2564,6 +2564,38 @@ creation just doesn't ask. Fix is small (one step in the wizard writing the
 launch-settings row) but it is a product decision about the create flow, so it is
 recorded rather than added unilaterally.
 
+**📋 SWEEP #2 — the same bug without the `void`: `await`ed writes whose result is
+discarded.** The sweep below searched `void supabaseAdmin`, which misses the more
+common shape — `await supabaseAdmin.from(x).insert(...)` with no destructuring.
+PostgREST **resolves** with `{ data: null, error }` instead of throwing, so those
+are dropped just as silently. There are **172** of them across `app/api` + `lib`.
+
+172 is a count, not a defect list, and shipping it as one would repeat the
+"31 unbounded queries" overclaim. Triaged on the criterion this audit already
+uses — *would a silent failure lose something unrecoverable, or cause someone to
+fail to act?* — with one sharpening: **the write follows an irreversible side
+effect**, so the platform's record ends up disagreeing with what really happened.
+That leaves **4**:
+
+| write | what already happened | consequence if dropped | action |
+|---|---|---|---|
+| `refunds` insert (`admin/donations/[id]/refund`) | **money refunded at Stripe** | a **partial** refund leaves the donation `completed`, so this row is the *only* record any money went back | ✅ logged + `ledger_recorded:false` |
+| `tax_receipts` upsert (`admin/donations/tax-receipt`) | **IRS receipt emailed to the donor** | a tax document exists in the donor's inbox with no record on our side | ✅ logged + `recorded:false` |
+| `risk_flags` insert (`ai/fraud-monitor`) | scan reported *N campaigns flagged* to an admin | response counts **in-memory** rows → "3 flagged" while the review queue is **empty** | ✅ logged + `flagsPersisted` |
+| `risk_flags` insert (`ai/impact-summary`) | ledger item parked in `pending_review` | item waits forever on a moderator who was never told | ✅ logged |
+
+The remaining ~168 are **deliberately untouched**: mostly `ai_generations` usage
+logging and `marketing_audit_logs`, where silent loss costs an analytics row —
+the same trade already accepted for `source_utm`/`share_events`.
+
+⚠️ **The fix is NOT "return 500 on failure."** Every one of these runs *after* the
+side effect succeeded, so an error status reads as "it didn't happen" and invites
+a retry — and retrying the refund path issues a **second refund**. They return
+2xx with an explicit `warning`, and the admin refund modal now holds that warning
+on screen instead of flashing its success state. Pinned by
+`__tests__/post-money-writes-are-checked.test.ts`, which also **ratchets**: a bare
+awaited write to `refunds`/`tax_receipts`/`risk_flags` in those files fails the suite.
+
 **📋 SWEEP — every silent `void supabaseAdmin` write, triaged by consequence.**
 Prompted by the reward-claim finding (a *write* whose failure was unobservable, a
 new variant of the audit's usual "missing read path"). Found **10** bare

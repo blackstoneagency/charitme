@@ -390,8 +390,13 @@ function RefundModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount_cents: cents, reason }),
       });
-      const data: { error?: string } = await r.json();
+      const data: { error?: string; warning?: string } = await r.json();
       if (!r.ok) throw new Error(data.error ?? 'Refund failed');
+      // The refund succeeded at Stripe but the ledger row was not written. Keep
+      // the modal open on the warning instead of flashing the success state —
+      // this is the one outcome that needs a human to follow up, and the retry
+      // the admin would otherwise attempt would double-refund.
+      if (data.warning) { setErr(data.warning); return; }
       onSuccess();
     } catch (e) {
       setErr((e as Error).message);

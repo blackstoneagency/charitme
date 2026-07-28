@@ -123,8 +123,16 @@ export async function POST(
 
   if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
 
-  // Insert refund record
-  await supabaseAdmin.from('refunds').insert({
+  // Insert refund record.
+  //
+  // The money has ALREADY moved at Stripe by this point, so a failed ledger write
+  // must not turn into an error status: the admin would read it as "the refund
+  // did not happen" and retry, issuing a second refund against the remaining
+  // balance. Instead log enough detail to rebuild the row by hand and tell the
+  // caller the ledger is incomplete. This matters most for a PARTIAL refund —
+  // the donation stays `completed`, so this row is the only record that anything
+  // was returned to the donor.
+  const { error: ledgerErr } = await supabaseAdmin.from('refunds').insert({
     donation_id: id,
     amount_cents: refundCents,
     reason,
@@ -134,9 +142,19 @@ export async function POST(
     stripe_refund_id: stripeRefundId,
     processed_at: now,
   });
+  if (ledgerErr) {
+    console.error('[admin/refund] refunds ledger insert failed', {
+      donation_id: id,
+      amount_cents: refundCents,
+      stripe_refund_id: stripeRefundId,
+      requested_by: admin.id,
+      processed_at: now,
+      message: ledgerErr.message,
+    });
+  }
 
   // Audit log
-  await supabaseAdmin.from('audit_logs').insert({
+  const { error: auditErr } = await supabaseAdmin.from('audit_logs').insert({
     actor_id: admin.id,
     action: 'donation.refunded',
     target_type: 'donation',
@@ -144,6 +162,24 @@ export async function POST(
     metadata: { amount_cents: refundCents, reason, stripe_refund_id: stripeRefundId },
     created_at: now,
   });
+  if (auditErr) {
+    console.error('[admin/refund] audit_logs insert failed', {
+      donation_id: id,
+      actor_id: admin.id,
+      message: auditErr.message,
+    });
+  }
 
-  return NextResponse.json({ ok: true, donation: updated, stripe_refund_id: stripeRefundId });
+  return NextResponse.json({
+    ok: true,
+    donation: updated,
+    stripe_refund_id: stripeRefundId,
+    ledger_recorded: !ledgerErr,
+    ...(ledgerErr
+      ? {
+          warning:
+            'The refund was issued at Stripe but could not be written to the refunds ledger. Do not retry — record it manually before reconciling.',
+        }
+      : {}),
+  });
 }

@@ -200,7 +200,10 @@ export async function POST(request: NextRequest) {
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
 
   if (reviewStatus === 'pending_review') {
-    await supabaseAdmin.from('risk_flags').insert({
+    // The ledger item is already parked in `pending_review` above. If this flag
+    // is lost the item stays parked with nothing in the review queue pointing at
+    // it, so it waits on a moderator who was never told.
+    const { error: flagErr } = await supabaseAdmin.from('risk_flags').insert({
       campaign_id: campaign.id,
       user_id: campaign.user_id,
       code: 'ledger_item_review',
@@ -210,6 +213,14 @@ export async function POST(request: NextRequest) {
       description: `Ledger entry "${item.title}" (${item.item_type}) on "${campaign.title}" was flagged for review — AI risk score ${riskScore}/100.`,
       metadata: { ledger_item_id: item.id, risk_score: riskScore },
     });
+    if (flagErr) {
+      console.error('[ai/impact-summary] risk_flags insert failed', {
+        campaign_id: campaign.id,
+        ledger_item_id: item.id,
+        risk_score: riskScore,
+        message: flagErr.message,
+      });
+    }
   }
 
   return NextResponse.json({ ...updated, model });
