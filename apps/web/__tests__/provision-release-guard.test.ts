@@ -26,8 +26,8 @@ describe('Supabase provisioning release guard', () => {
   });
 
   it('does not copy production credentials into preview or development', () => {
-    expect(source).toContain(
-      "deployEnvironment === 'production'\n    ? ['production']\n    : ['preview', 'development']",
+    expect(source).toMatch(
+      /deployEnvironment\s*===\s*'production'\s*\?\s*\['production'\]\s*:\s*\['preview',\s*'development'\]/,
     );
     expect(source).not.toContain("const targets = ['production', 'preview', 'development']");
   });
