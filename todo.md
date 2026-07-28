@@ -689,6 +689,63 @@ enforcement would be the fastest way to lock an organizer out of their own campa
 `role-capabilities.ts` has warned since it was written. The criterion is met by the roles
 being *clearly mapped and clearly differentiated*, not by gating for its own sake.
 
+## 📱 SHIPPED — mobile content was being clipped off-screen (Claude, 2026-07-28)
+
+Chasing draft PR #127 turned into a site-wide fix. Its report — `/ai-fundraising`
+overflowing to 410px at 320px — looked *fixed* on master: `document.scrollWidth` read
+exactly 320. It was not fixed, only **hidden**.
+
+`html` and `body` both set `overflow-x: hidden`, so **the document always reports the
+viewport width no matter how far content spills**. Measuring painted geometry instead
+found **26 elements reaching 410px** at 320px on `/ai-fundraising` — the h1, the body
+copy, the stats row and *both CTA buttons*. Clipped is worse than overflowing: you
+cannot scroll to it. ~90px of the hero, including the call to action, was unreachable.
+
+PR #127's diagnosis was right and still reproduced: a bare `1fr` track is
+`minmax(auto, 1fr)`, whose auto floor is the widest child's min-content, so the track
+grows past its own container (measured: 390.344px track inside a 280px container).
+
+**Sweeping 17 routes × 320/360/390 found the same bug on four more pages no audit had
+ever flagged — including the homepage, whose h1 was cut off:**
+
+| Route | Clipped | Cause |
+|---|---|---|
+| `/` | 27 elems → 360px | hero track 320px inside a 280px container |
+| `/about-us` | 12 → 450px | impact strip `repeat(2, 1fr)` |
+| `/success-stories` | 10 → 347px | featured grid; also a **90px** div at x=257 |
+| `/for-nonprofits` | 3 → 343px | plan cards, `min-width:auto` floor |
+| `/contact` | 6 → 366px | `clamp()` **minimum** of 48px cannot fit 282px |
+
+Each fixed at its cause, re-measuring after every step (the first `/ai-fundraising` fix
+moved it 410 → 395 while still clipping). **Result: 51/51 route+viewport combos clean,
+up from 44/51. 390px is now entirely clean.**
+
+### The audit was blind to all of it — that is the durable half
+`scripts/audit-responsive.mjs` had two blind spots:
+- overflow came from `de.scrollWidth`, which `overflow-x: hidden` **pins to the viewport
+  width** — the check literally could not fail on these pages;
+- its element check was `width > viewport`, which misses a **narrow** element pushed
+  sideways (the `/success-stories` div was 90px wide sitting at x=257).
+
+It now also flags any element whose **painted right edge** passes the viewport, excluding
+absolutely-positioned decorative layers with no text (what `overflow-x: hidden`
+legitimately clips).
+
+### Two more defects found by trying to actually run it
+1. **It hung forever.** `document.fonts.ready` was awaited with no timeout; with no
+   proxy in Chromium, external subresources never settle so that promise stays
+   **pending** — not rejected, so its `.catch` can never fire. Sat at 0.1% CPU for 13
+   minutes with zero output. Both waits are now bounded (8s / 5s).
+2. **It cried wolf on images.** The same missing proxy fails every cross-origin image,
+   so it reported campaign covers as broken. They are not — that exact URL returns
+   `200 image/webp 83KB` over curl. Cross-origin failures are now an explicit **note**
+   ("checks this environment could not perform"), not a finding, and deliberately *not*
+   dropped: an empty list would be indistinguishable from "all images verified".
+
+⚠️ **For anyone running audits in this sandbox: Chromium does not inherit `HTTPS_PROXY`.**
+Any check depending on an external fetch (images, fonts, `load`) is unverifiable here and
+must not be reported as a site defect.
+
 ## 🔍 BRANCH AUDIT — is every bot's work actually on master? (Claude, 2026-07-28)
 
 Audited all 20 remote branches. **A branch showing "N commits ahead" is NOT evidence of
