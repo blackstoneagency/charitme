@@ -24,7 +24,7 @@ minutes and produces logs. These finish in ~2 seconds with none. If you see that
 stop debugging your diff.
 
 **Local verification is therefore the real gate, and it is green:**
-`npm run typecheck` (0) · `npm test` (**1722/1722, 155 files**) · `npm run build`
+`npm run typecheck` (0) · `npm test` (**1731/1731, 157 files**) · `npm run build`
 (exit 0) · `scripts/audit-contrast.mjs --strict-gradients` (**0 WCAG AA failures,
 37 pages × 2 themes, 3,638 text elements per theme**).
 
@@ -53,6 +53,10 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 - [ ] Apply the new compatibility migrations to staging and run authenticated
   RLS/payment smoke tests. Production remains gated on that exact staging commit
   and the external release blockers above.
+- [x] Added a tag-only release workflow that verifies a zero-state migration
+  replay, provisions staging, runs live RLS and three Playwright smoke suites,
+  then gates production on the exact staging-verified commit and protected
+  GitHub environment approval.
 
 ## SECURITY BOUNDARIES - code complete, production migration pending (Codex, 2026-07-27)
 
@@ -74,7 +78,7 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 - [x] Anonymous support-ticket submissions now have a durable 5/minute/IP limit
   before request parsing, database writes, or email delivery.
 - [x] `supabase/catch_up.sql` regenerated from the migration chain.
-- [x] Regression coverage added; full local suite passes 1,722 tests, typecheck,
+- [x] Regression coverage added; full local suite passes 1,731 tests, typecheck,
   zero-warning lint, and the 150-page production build.
 - [ ] Apply `20260809000000_harden_privileged_database_boundaries.sql` to staging,
   followed by `20260810000000_lock_down_service_managed_writes.sql`,

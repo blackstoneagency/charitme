@@ -59,13 +59,14 @@ key. It verifies that anonymous callers cannot read `profiles`, `donations`, or
 of real staging test users through `CHARITME_RLS_TEST_USERS_JSON`:
 
 ```json
-[{"name":"donor-a","accessToken":"<access token>","userId":"<uuid>"},{"name":"donor-b","accessToken":"<access token>","userId":"<uuid>"}]
+[{"name":"donor-a","email":"<staging email>","password":"<staging password>","userId":"<uuid>"},{"name":"donor-b","email":"<staging email>","password":"<staging password>","userId":"<uuid>"}]
 ```
 
 The harness verifies each user's own profile is readable and another supplied
 persona's profile is not. It never writes data, uses the service-role key, or
-prints access tokens. Run it only against a staging project with dedicated test
-users before recording a new certification.
+prints credentials. It creates fresh sessions on each run, so release checks do
+not depend on stored access tokens. Run it only against a staging project with
+dedicated test users before recording a new certification.
 
 ## Remaining (gated on live DB access)
 
