@@ -68,6 +68,7 @@ const THEMES = ['light', 'dark'];
 
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
 let findings = 0;
+const notes = new Set();
 
 for (const vp of VIEWPORTS) {
   for (const theme of THEMES) {
@@ -96,6 +97,32 @@ for (const vp of VIEWPORTS) {
           findings++;
           continue;
         }
+        // Readiness gate, not a guess.
+        //
+        // `domcontentloaded` fires before stylesheets and webfonts are applied, so
+        // a fixed sleep is a race: under CPU contention (five dev servers running)
+        // this sweep measured UNSTYLED pages and reported **84–86 phantom
+        // "overlapping controls"**, varying run to run, where a single-server run
+        // reproducibly reported 0. Someone would have spent a day chasing layout
+        // bugs that do not exist — the false-positive mirror of the vacuous passes
+        // recorded elsewhere in this file.
+        //
+        // Waiting for `load` (stylesheets in) plus `document.fonts.ready` (metrics
+        // final) makes the measurement deterministic, because overlap detection is
+        // entirely a function of text metrics.
+        //
+        // Both waits are BOUNDED. `load` does not fire in a sandbox whose Chromium
+        // does not inherit HTTPS_PROXY, because external subresources never
+        // settle, and `document.fonts.ready` then stays pending forever — a
+        // pending promise, not a rejection, so the `.catch` below cannot end it.
+        // Unbounded, this sweep hung at 0.1% CPU with no output and had to be
+        // killed; an audit that can hang indefinitely is an audit nobody runs.
+        // Degrading to a slightly less settled measurement beats never finishing.
+        await page.waitForLoadState('load', { timeout: 8_000 }).catch(() => {});
+        await Promise.race([
+          page.evaluate(() => document.fonts?.ready ?? Promise.resolve()).catch(() => {}),
+          page.waitForTimeout(5_000),
+        ]);
         await page.waitForTimeout(350);
         const r = await page.evaluate(() => {
           const de = document.documentElement;
@@ -109,9 +136,21 @@ for (const vp of VIEWPORTS) {
               if (wide.length >= 3) break;
             }
           }
-          const badImgs = [...document.images]
-            .filter((i) => i.complete && i.naturalWidth === 0)
-            .map((i) => (i.currentSrc || i.src || '').slice(-48));
+          // Broken images, split by origin.
+          //
+          // Chromium here does not inherit HTTPS_PROXY, so every CROSS-ORIGIN
+          // image (campaign covers on Supabase storage) fails to load in the
+          // browser while fetching fine over curl — 200, image/webp, 83KB.
+          // Reporting those as broken is a phantom finding that sends the next
+          // agent chasing a storage bug that does not exist. Same-origin failures
+          // are still real and still reported.
+          const brokenAll = [...document.images].filter((i) => i.complete && i.naturalWidth === 0);
+          const isSameOrigin = (i) => {
+            try { return new URL(i.currentSrc || i.src, location.href).origin === location.origin; }
+            catch { return true; }
+          };
+          const badImgs = brokenAll.filter(isSameOrigin).map((i) => (i.currentSrc || i.src || '').slice(-48));
+          const crossOriginUnverifiable = brokenAll.length - badImgs.length;
 
           // Interactive controls sitting on top of each other.
           //
@@ -153,11 +192,68 @@ for (const vp of VIEWPORTS) {
             }
           }
 
-          return { overflow, wide, badImgs: badImgs.slice(0, 3), overlaps, theme: de.getAttribute('data-theme') };
+          // Content painted PAST the right edge.
+          //
+          // The two checks above both missed an entire class of real bug:
+          //
+          //  - `de.scrollWidth` is defeated by `html, body { overflow-x: hidden }`,
+          //    which this stylesheet sets. The document then reports exactly the
+          //    viewport width no matter how far content spills, so the page reads
+          //    as clean while the overflow is merely CLIPPED — strictly worse than
+          //    scrolling, because the content is unreachable. Measured on
+          //    /ai-fundraising at 320px: 26 elements painted out to 410px,
+          //    including the h1 and both CTA buttons, with `overflow` reading 0.
+          //
+          //  - `b.width > vw` only catches elements WIDER than the viewport. A
+          //    narrow element pushed sideways is invisible to it — on
+          //    /success-stories a 90px div sat at x=257, so it ended at 347px on a
+          //    320px screen while being nowhere near 320px wide.
+          //
+          // Decorative layers are excluded: absolutely-positioned, no text. Those
+          // are what `overflow-x: hidden` legitimately exists to clip.
+          //
+          // Content inside a genuinely scrollable ancestor is REACHABLE, not
+          // clipped, so it must not be reported. /fast-payouts is the case that
+          // proved this: its comparison table paints out to 579px, but it sits in
+          // `.fp-table-wrap { overflow-x: auto }` whose own right edge is 302px
+          // and whose scrollWidth (560) exceeds its clientWidth (282). That is a
+          // correctly built horizontal-scroll region, and this site has several
+          // (.kind-pills, .pc-carousel-thumbs). Flagging them would train everyone
+          // to ignore this check -- the same way the phantom broken images did.
+          const inScrollableRegion = (el) => {
+            for (let n = el.parentElement; n && n !== document.documentElement; n = n.parentElement) {
+              const ox = getComputedStyle(n).overflowX;
+              if ((ox === 'auto' || ox === 'scroll') && n.scrollWidth > n.clientWidth + 1) return true;
+            }
+            return false;
+          };
+          const clipped = [];
+          for (const el of document.querySelectorAll('body *')) {
+            const b = el.getBoundingClientRect();
+            if (b.width <= 0 || b.height <= 0 || b.right <= vw + 1) continue;
+            const cs = getComputedStyle(el);
+            if (cs.position === 'absolute' && !(el.innerText || '').trim()) continue;
+            if (inScrollableRegion(el)) continue;
+            clipped.push(`${nameOf(el)}@${Math.round(b.right)}`);
+            if (clipped.length >= 3) break;
+          }
+
+          return { overflow, wide, clipped, badImgs: badImgs.slice(0, 3), crossOriginUnverifiable, overlaps, theme: de.getAttribute('data-theme') };
         });
         const issues = [];
+        // The applied theme was already being collected and then thrown away.
+        // Assert it: if the attribute does not match what this pass asked for,
+        // every colour-dependent finding below describes the OTHER theme, and the
+        // run would still print "× 2 themes". That is exactly how
+        // e2e/accessibility.spec.ts audited dark twice and never once checked
+        // light — the theme was set after load and the ThemeProvider overwrote it.
+        if (r.theme !== theme) issues.push(`THEME-NOT-APPLIED: asked ${theme}, rendered ${r.theme ?? 'none'}`);
         if (r.overflow > 2) issues.push(`overflow +${r.overflow}px ${r.wide.join(',')}`);
-        if (r.badImgs.length) issues.push(`broken img: ${r.badImgs.join(', ')}`);
+        if (r.clipped.length) issues.push(`content clipped past viewport: ${r.clipped.join(', ')}`);
+        if (r.badImgs.length) issues.push(`broken img (same-origin): ${r.badImgs.join(', ')}`);
+        // Not a finding: unverifiable here, and silently dropping it would let a
+        // real cross-origin outage hide behind the sandbox's own limitation.
+        if (r.crossOriginUnverifiable > 0) notes.add(`${r.crossOriginUnverifiable} cross-origin image(s) unverifiable (browser has no proxy) on ${path}`);
         if (r.overlaps.length) issues.push(`overlapping controls: ${r.overlaps.join(' | ')}`);
         if (issues.length) { findings += issues.length; console.log(`✗ ${vp.name}/${theme} ${path} — ${issues.join(' | ')}`); }
       } catch (e) {
@@ -171,6 +267,12 @@ for (const vp of VIEWPORTS) {
 }
 
 await browser.close();
+// Surfaced, never counted as a finding: an empty notes list would otherwise be
+// indistinguishable from "all cross-origin images verified".
+if (notes.size) {
+  console.log(`\nℹ️  ${notes.size} note(s) — checks this environment could not perform:`);
+  for (const n of notes) console.log(`   · ${n}`);
+}
 console.log(findings === 0
   ? `\n✅ No responsive/theme regressions across ${PAGES.length} pages × ${VIEWPORTS.length} viewports × ${THEMES.length} themes.`
   : `\n${findings} finding(s).`);

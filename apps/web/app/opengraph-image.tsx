@@ -26,10 +26,9 @@ export default function Image() {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
           {/* A raw <img> on purpose: ImageResponse renders at the edge and cannot
-              use next/image. Kept as a plain comment because the eslint-disable it
-              used to carry no longer matches any active rule, and an unused
-              directive is itself a lint warning — but the reason still matters. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+              use next/image. The rule is turned off for this path in
+              eslint.config.mjs rather than with an inline directive — see the
+              comment there for why an inline one cannot be stable. */}
           <img src={LOGO} width={104} height={104} alt="" style={{ display: 'flex' }} />
           <div style={{ fontSize: 76, fontWeight: 900, letterSpacing: '-0.02em', display: 'flex' }}>CharitMe</div>
         </div>

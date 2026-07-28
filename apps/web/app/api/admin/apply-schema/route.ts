@@ -1,6 +1,6 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '../../../../lib/auth';
+import { verifyAdmin } from '../users/_auth';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Supabase Management API — the ONLY external endpoint that accepts raw SQL
@@ -82,15 +82,12 @@ const SCHEMA_CHUNKS: { name: string; sql: string }[] = [
     begin new.updated_at = now(); return new; end; $$;
 
     create or replace function public.handle_new_user()
-    returns trigger language plpgsql security definer set search_path = public as $$
-    declare v_roles jsonb;
+    returns trigger language plpgsql security definer set search_path = pg_catalog, public, pg_temp as $$
     begin
-      v_roles := coalesce(new.raw_user_meta_data -> 'roles', '["donor"]'::jsonb);
-      if jsonb_typeof(v_roles) <> 'array' then v_roles := '["donor"]'::jsonb; end if;
       insert into public.profiles (id, email, full_name, avatar_url, roles)
       values (new.id, new.email,
         coalesce(new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name'),
-        new.raw_user_meta_data ->> 'avatar_url', v_roles)
+        new.raw_user_meta_data ->> 'avatar_url', '["donor"]'::jsonb)
       on conflict (id) do update
         set email = excluded.email,
             full_name = coalesce(public.profiles.full_name, excluded.full_name),
@@ -602,6 +599,61 @@ const SCHEMA_CHUNKS: { name: string; sql: string }[] = [
       grant all on routines  to anon, authenticated, service_role;
     select pg_notify('pgrst', 'reload schema');
   ` },
+  { name: 'Privileged boundary hardening', sql: `
+    create or replace function public.protect_profile_privileged_fields()
+    returns trigger language plpgsql set search_path = pg_catalog, public, pg_temp as $$
+    begin
+      if coalesce(auth.role(), '') = 'service_role'
+        or current_user in ('postgres', 'supabase_admin')
+      then return new; end if;
+      if tg_op = 'INSERT' then
+        if new.roles is distinct from '["donor"]'::jsonb
+          or new.identity_verified is distinct from false
+          or new.trust_passport_score is distinct from 0
+          or coalesce(new.plan, 'free') <> 'free'
+          or new.stripe_customer_id is not null
+          or new.stripe_subscription_id is not null
+          or new.email is distinct from nullif(auth.jwt() ->> 'email', '')
+        then raise insufficient_privilege using
+          message = 'Privileged profile fields may only be changed by the service role';
+        end if;
+      elsif new.roles is distinct from old.roles
+        or new.identity_verified is distinct from old.identity_verified
+        or new.trust_passport_score is distinct from old.trust_passport_score
+        or new.plan is distinct from old.plan
+        or new.stripe_customer_id is distinct from old.stripe_customer_id
+        or new.stripe_subscription_id is distinct from old.stripe_subscription_id
+        or new.email is distinct from old.email
+      then raise insufficient_privilege using
+        message = 'Privileged profile fields may only be changed by the service role';
+      end if;
+      return new;
+    end; $$;
+
+    drop trigger if exists protect_profile_privileged_fields on public.profiles;
+    create trigger protect_profile_privileged_fields
+      before insert or update on public.profiles
+      for each row execute function public.protect_profile_privileged_fields();
+
+    drop policy if exists reports_insert_public on public.campaign_reports;
+    drop policy if exists donations_insert_service on public.donations;
+    drop policy if exists donor_tips_insert_service on public.donor_tips;
+    drop policy if exists platform_fees_insert_service on public.platform_fees;
+    revoke insert on table public.donations from public, anon, authenticated;
+    revoke insert on table public.donor_tips from public, anon, authenticated;
+    revoke insert on table public.platform_fees from public, anon, authenticated;
+    revoke insert on table public.campaign_reports from public, anon, authenticated;
+    revoke create on schema public from public, anon, authenticated;
+    alter function public.record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text)
+      set search_path = pg_catalog, public, pg_temp;
+    alter function public.claim_campaign_reward(uuid)
+      set search_path = pg_catalog, public, pg_temp;
+    revoke all on function public.record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text)
+      from public, anon, authenticated;
+    grant execute on function public.record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text)
+      to service_role;
+    select pg_notify('pgrst', 'reload schema');
+  ` },
   { name: 'Bootstrap data', sql: `
     insert into public.platform_settings (id, config) values (1, '{
       "platformName":"CharitMe","tagline":"Fundraising that thinks for you.",
@@ -763,10 +815,69 @@ const SCHEMA_CHUNKS: { name: string; sql: string }[] = [
 
     select pg_notify('pgrst', 'reload schema');
   ` },
+  { name: 'Final privileged boundary enforcement', sql: `
+    drop policy if exists reports_insert_public on public.campaign_reports;
+    drop policy if exists donations_insert_service on public.donations;
+    drop policy if exists donor_tips_insert_service on public.donor_tips;
+    drop policy if exists platform_fees_insert_service on public.platform_fees;
+    revoke insert on table public.donations from public, anon, authenticated;
+    revoke insert on table public.donor_tips from public, anon, authenticated;
+    revoke insert on table public.platform_fees from public, anon, authenticated;
+    revoke insert on table public.campaign_reports from public, anon, authenticated;
+    revoke all on function public.record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text)
+      from public, anon, authenticated;
+    revoke all on function public.claim_campaign_reward(uuid)
+      from public, anon, authenticated;
+    grant execute on function public.record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text)
+      to service_role;
+    grant execute on function public.claim_campaign_reward(uuid) to service_role;
+    select pg_notify('pgrst', 'reload schema');
+  ` },
+  { name: 'Final service-managed write enforcement', sql: `
+    do $service_write_lockdown$
+    declare
+      table_name text;
+    begin
+      foreach table_name in array array[
+        'contact_messages',
+        'support_cases',
+        'share_events',
+        'donation_receipts',
+        'campaign_status_log',
+        'campaign_builder_events',
+        'creator_tips'
+      ]
+      loop
+        if to_regclass('public.' || table_name) is not null then
+          execute format(
+            'revoke insert, update, delete on table public.%I from public, anon, authenticated',
+            table_name
+          );
+          execute format(
+            'grant insert, update, delete on table public.%I to service_role',
+            table_name
+          );
+        end if;
+      end loop;
+    end;
+    $service_write_lockdown$;
+
+    drop policy if exists contact_messages_insert on public.contact_messages;
+    drop policy if exists support_own_insert on public.support_cases;
+    drop policy if exists share_insert_any on public.share_events;
+    drop policy if exists receipts_svc_insert on public.donation_receipts;
+    drop policy if exists status_log_svc_insert on public.campaign_status_log;
+    drop policy if exists creator_tips_insert_public on public.creator_tips;
+    select pg_notify('pgrst', 'reload schema');
+  ` },
 ];
 
+// API routes must DENY, not redirect: `requireAdmin()` is the PAGE helper and
+// calls redirect(), which hands a fetch caller HTML and makes res.json() throw.
+// `verifyAdmin()` is the API-side equivalent and returns null. Same gate.
 export async function POST(_request: NextRequest) {
-  await requireAdmin();
+  const admin = await verifyAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const token = process.env.SUPABASE_ACCESS_TOKEN;
   if (!token) {

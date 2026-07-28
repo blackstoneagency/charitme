@@ -1,11 +1,17 @@
 import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
-import { requireAdmin } from '../../../../../lib/auth';
+import { verifyAdmin } from '../../users/_auth';
 import { getPaymentAdminData, type PaymentFilters } from '../../../../../lib/payment-admin-data';
 import { escapeCsvCell } from '../../../../../lib/csv';
 
+// API routes must DENY, not redirect. `requireAdmin()` is the page helper: it
+// calls redirect('/dashboard'), so a fetch caller received a 307 and then HTML,
+// making res.json() throw — the UI showed a generic connection error instead of
+// "your session expired". `verifyAdmin()` is the API-side equivalent and returns
+// null. Same gate, correct protocol.
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  await requireAdmin();
+  const admin = await verifyAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const params = request.nextUrl.searchParams;
   const filters: PaymentFilters = {
     processor: param(params, 'processor'),

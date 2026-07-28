@@ -283,7 +283,7 @@ export default function PricingPage() {
         <h2 style={{ textAlign: 'center', fontWeight: 900, fontSize: 26, marginBottom: 8 }}>
           Real fee comparison
         </h2>
-        <p style={{ textAlign: 'center', color: '#64748b', marginBottom: 28, fontSize: 15 }}>
+        <p style={{ textAlign: 'center', color: 'var(--t3, #64748b)', marginBottom: 28, fontSize: 15 }}>
           On a $1,000 campaign — what actually reaches the fundraiser?
         </p>
         <FeeCalculator />

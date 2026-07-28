@@ -36,9 +36,7 @@
     "offline_donor_email",
     "offline_donor_name",
     "offline_method",
-    "processing_fee_cents",
-    "stripe_checkout_session_id",
-    "tip_cents"
+    "stripe_checkout_session_id"
   ],
   "donor_crm_contacts": [
     "donor_id",

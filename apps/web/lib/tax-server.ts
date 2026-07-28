@@ -1,12 +1,116 @@
 import 'server-only';
 import { supabaseAdmin } from './supabase';
 import {
+  buildFundraiserTaxSummary,
   buildTaxStatement,
   donationYears,
+  fundraiserYears,
+  type FundraiserDonationInput,
+  type FundraiserTaxSummary,
   type TaxDonationInput,
   type NonprofitTaxInfo,
   type TaxStatement,
 } from './tax';
+
+const TAX_PAGE_SIZE = 1000;
+
+type DonorDonationRow = {
+  id: string;
+  amount_cents: number;
+  tip_cents: number | null;
+  currency: string | null;
+  status: string;
+  created_at: string;
+  campaign_id: string;
+  campaigns: { title: string; user_id: string } | null;
+};
+
+type TaxReceiptRow = {
+  donation_id: string | null;
+  receipt_number: string;
+};
+
+type OwnedCampaignRow = {
+  id: string;
+  title: string;
+};
+
+type FundraiserDonationRow = {
+  amount_cents: number;
+  tip_cents: number | null;
+  currency: string | null;
+  status: string;
+  created_at: string;
+  campaign_id: string;
+};
+
+async function loadDonorDonationRows(donorId: string): Promise<DonorDonationRow[]> {
+  const rows: DonorDonationRow[] = [];
+  for (let offset = 0; ; offset += TAX_PAGE_SIZE) {
+    const { data, error } = await supabaseAdmin
+      .from('donations')
+      .select('id, amount_cents, tip_cents, currency, status, created_at, campaign_id, campaigns:campaign_id(title, user_id)')
+      .eq('donor_id', donorId)
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + TAX_PAGE_SIZE - 1);
+    if (error || data == null) throw new Error('TAX_DATA_UNAVAILABLE');
+    rows.push(...(data as unknown as DonorDonationRow[]));
+    if (data.length < TAX_PAGE_SIZE) return rows;
+  }
+}
+
+async function loadTaxReceiptRows(donorId: string): Promise<TaxReceiptRow[]> {
+  const rows: TaxReceiptRow[] = [];
+  for (let offset = 0; ; offset += TAX_PAGE_SIZE) {
+    const { data, error } = await supabaseAdmin
+      .from('tax_receipts')
+      .select('donation_id, receipt_number')
+      .eq('donor_id', donorId)
+      .range(offset, offset + TAX_PAGE_SIZE - 1);
+    if (error || data == null) throw new Error('TAX_DATA_UNAVAILABLE');
+    rows.push(...(data as TaxReceiptRow[]));
+    if (data.length < TAX_PAGE_SIZE) return rows;
+  }
+}
+
+async function loadOwnedCampaignRows(ownerId: string): Promise<OwnedCampaignRow[]> {
+  const rows: OwnedCampaignRow[] = [];
+  for (let offset = 0; ; offset += TAX_PAGE_SIZE) {
+    const { data, error } = await supabaseAdmin
+      .from('campaigns')
+      .select('id, title')
+      .eq('user_id', ownerId)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + TAX_PAGE_SIZE - 1);
+    if (error || data == null) throw new Error('TAX_DATA_UNAVAILABLE');
+    rows.push(...(data as OwnedCampaignRow[]));
+    if (data.length < TAX_PAGE_SIZE) return rows;
+  }
+}
+
+async function loadFundraiserDonationRows(campaignIds: string[]): Promise<FundraiserDonationRow[]> {
+  const rows: FundraiserDonationRow[] = [];
+  const campaignIdChunks: string[][] = [];
+  for (let index = 0; index < campaignIds.length; index += 200) {
+    campaignIdChunks.push(campaignIds.slice(index, index + 200));
+  }
+  for (const campaignChunk of campaignIdChunks) {
+    for (let offset = 0; ; offset += TAX_PAGE_SIZE) {
+      const { data, error } = await supabaseAdmin
+        .from('donations')
+        .select('amount_cents, tip_cents, currency, status, created_at, campaign_id')
+        .in('campaign_id', campaignChunk)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + TAX_PAGE_SIZE - 1);
+      if (error || data == null) throw new Error('TAX_DATA_UNAVAILABLE');
+      rows.push(...(data as FundraiserDonationRow[]));
+      if (data.length < TAX_PAGE_SIZE) break;
+    }
+  }
+  return rows;
+}
 
 /**
  * Load a donor's completed donations (across every campaign), resolve which
@@ -15,35 +119,12 @@ import {
  * printable statement page so deductibility is computed identically in both.
  */
 export async function loadDonorTaxInputs(donorId: string): Promise<TaxDonationInput[]> {
-  const [donationResult, receiptResult] = await Promise.all([
-    supabaseAdmin
-      .from('donations')
-      .select('id, amount_cents, tip_cents, currency, status, created_at, campaign_id, campaigns:campaign_id(title, user_id)')
-      .eq('donor_id', donorId)
-      .eq('status', 'completed')
-      .order('created_at', { ascending: false }),
-    supabaseAdmin
-      .from('tax_receipts')
-      .select('donation_id, receipt_number')
-      .eq('donor_id', donorId),
+  const [donations, rawReceipts] = await Promise.all([
+    loadDonorDonationRows(donorId),
+    loadTaxReceiptRows(donorId),
   ]);
-  if (donationResult.error || receiptResult.error) throw new Error('TAX_DATA_UNAVAILABLE');
-  const { data: rawDonations } = donationResult;
-  const { data: rawReceipts } = receiptResult;
-
-  type DonRow = {
-    id: string;
-    amount_cents: number;
-    tip_cents: number | null;
-    currency: string | null;
-    status: string;
-    created_at: string;
-    campaign_id: string;
-    campaigns: { title: string; user_id: string } | null;
-  };
-  const donations = (rawDonations ?? []) as unknown as DonRow[];
   const receiptByDonation = new Map(
-    ((rawReceipts ?? []) as { donation_id: string | null; receipt_number: string }[])
+    rawReceipts
       .filter((receipt) => Boolean(receipt.donation_id))
       .map((receipt) => [receipt.donation_id as string, receipt.receipt_number]),
   );
@@ -98,4 +179,38 @@ export async function getDonorTaxStatement(
     ? inputs.filter((input) => (input.currency ?? 'usd').toLowerCase() === currency.toLowerCase())
     : inputs;
   return { statement: buildTaxStatement(selected, year), availableYears: donationYears(inputs) };
+}
+
+export async function loadFundraiserTaxInputs(ownerId: string): Promise<FundraiserDonationInput[]> {
+  const ownedCampaigns = await loadOwnedCampaignRows(ownerId);
+  if (ownedCampaigns.length === 0) return [];
+
+  const titleById = new Map(ownedCampaigns.map((campaign) => [campaign.id, campaign.title]));
+  const donations = await loadFundraiserDonationRows(
+    ownedCampaigns.map((campaign) => campaign.id),
+  );
+  return donations.map((donation) => ({
+    amountCents: donation.amount_cents,
+    tipCents: donation.tip_cents ?? 0,
+    currency: donation.currency,
+    status: donation.status,
+    createdAt: donation.created_at,
+    campaignId: donation.campaign_id,
+    campaignTitle: titleById.get(donation.campaign_id) ?? 'CharitMe campaign',
+  }));
+}
+
+export async function getFundraiserTaxSummary(
+  ownerId: string,
+  year: number,
+  currency?: string,
+): Promise<{ summary: FundraiserTaxSummary; availableYears: number[] }> {
+  const inputs = await loadFundraiserTaxInputs(ownerId);
+  const selected = currency
+    ? inputs.filter((input) => (input.currency ?? 'usd').toLowerCase() === currency.toLowerCase())
+    : inputs;
+  return {
+    summary: buildFundraiserTaxSummary(selected, year),
+    availableYears: fundraiserYears(inputs),
+  };
 }

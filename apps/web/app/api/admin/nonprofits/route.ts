@@ -1,7 +1,7 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireAdmin } from '../../../../lib/auth';
+import { verifyAdmin } from '../users/_auth';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { normalizeEin, canTransitionVerification } from '../../../../lib/nonprofit-core';
 
@@ -24,8 +24,14 @@ const UpdateSchema = z.object({
   country: z.string().optional(),
 });
 
+// API routes must DENY, not redirect. `requireAdmin()` is the page helper: it
+// calls redirect('/dashboard'), so a fetch caller received a 307 and then HTML,
+// making res.json() throw — the UI showed a generic connection error instead of
+// "your session expired". `verifyAdmin()` is the API-side equivalent and returns
+// null. Same gate, correct protocol.
 export async function GET(request: NextRequest) {
-  await requireAdmin();
+  const admin = await verifyAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const page = parseInt(searchParams.get('page') ?? '1', 10);
@@ -50,7 +56,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const admin = await requireAdmin();
+  const admin = await verifyAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await request.json().catch(() => null);
   const parsed = UpdateSchema.safeParse(body);

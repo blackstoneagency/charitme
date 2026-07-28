@@ -9,7 +9,7 @@ them can be cleared by another agent** — they are owner/environment actions.
 | # | Blocker | Evidence | Who can clear it |
 |---|---------|----------|------------------|
 | 1 | **GitHub Actions assigns no runner.** Every CI job fails in ~2s with `runner_id: 0`, `runner_name: ""`, and **no logs at all** (`get_job_logs` → 404). Repo-wide, including pushes straight to `master`. | 30 of 30 most recent runs | **Owner** — Actions minutes / billing |
-| 2 | **Vercel free-tier deploy cap** was hit (`api-deployments-free-per-day`, >100/day). Previews have since resumed; the cap will recur at this push rate. | Vercel bot comments, 2026-07-26/27 | **Owner** — plan, or batch commits per push |
+| 2 | **Vercel free-tier deploy cap — now a HARD 24h block, not a transient one.** The commit status is `failure / "Deployment rate limited — retry in 24 hours"` (`api-deployments-free-per-day`, >100/day). An earlier note here said "previews have since resumed"; that is no longer true. **Nothing merged to `master` will reach production until the window resets or the plan is upgraded** — this is now the binding constraint on the "is it live on Production, not Preview" goal line, and no amount of batching clears it today. | Vercel commit status + bot comment on PR #131, 2026-07-27 | **Owner** — upgrade plan, or wait out the 24h window |
 | 3 | **Sandbox egress is firewalled.** The proxy answers **403 to CONNECT** for non-allowlisted hosts, so `*.supabase.co`, `images.unsplash.com` and `www.charitme.com` are all unreachable (`curl` → `000`). | `$HTTPS_PROXY/__agentproxy/status` → `recentRelayFailures` | **Owner/env** — allowlist, or run the sweeps somewhere with egress |
 | 4 | Consequently: **live seed verification, signed-in dashboard/admin audits, real payment flows, and "is it live on production" cannot be checked from here.** | — | **Owner** |
 
@@ -70,8 +70,41 @@ minutes and produces logs. These finish in ~2 seconds with none. If you see that
 stop debugging your diff.
 
 **Local verification is therefore the real gate, and it is green:**
-`npm run typecheck` (0) · `npm test` (**1625/1625, 145 files**) · `npm run build`
-(exit 0) · `scripts/audit-contrast.mjs` (**0 WCAG AA failures, 38 pages × 2 themes**).
+`npm run typecheck` (0) · `npm test` (**1690/1690, 152 files**) · `npm run build`
+(exit 0) · `scripts/audit-contrast.mjs --strict-gradients` (**0 WCAG AA failures,
+37 pages × 2 themes, 3,638 text elements per theme**).
+
+⚠️ Run `npm test` from **`apps/web`**, not the repo root. Root-level `npx vitest run`
+picks up a different config and reports ~24 failing files (`server-only` imports that
+the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
+
+## SECURITY BOUNDARIES - code complete, production migration pending (Codex, 2026-07-27)
+
+- [x] New auth users always receive the baseline `donor` role. Signup metadata
+  can no longer request `admin`, `super_admin`, or another privileged role.
+- [x] Missing-profile repair also assigns `donor`; it no longer promotes from
+  self-asserted auth metadata.
+- [x] Browser writes cannot change profile roles, plan, verification state,
+  trust score, Stripe billing identifiers, or profile email.
+- [x] Direct browser inserts into donations, donor tips, platform fees, and
+  campaign reports are revoked. Existing server routes use `supabaseAdmin`.
+- [x] Donation accounting, reward claims, campaign stat mutation, and system
+  resource RPCs are executable by `service_role` only.
+- [x] The admin schema-repair flow ends by reapplying the same secure grants,
+  so it cannot silently restore the old public permissions.
+- [x] Contact, support, share attribution, donation receipt, campaign status,
+  builder analytics, and creator-tip mutations are service-managed. Browser
+  clients can no longer bypass API validation or durable rate limits.
+- [x] Anonymous support-ticket submissions now have a durable 5/minute/IP limit
+  before request parsing, database writes, or email delivery.
+- [x] `supabase/catch_up.sql` regenerated from the migration chain.
+- [x] Regression coverage added; full local suite passes 1,690 tests, typecheck,
+  zero-warning lint, and the 150-page production build.
+- [ ] Apply `20260809000000_harden_privileged_database_boundaries.sql` to staging,
+  followed by `20260810000000_lock_down_service_managed_writes.sql`,
+  run authenticated/anonymous RLS probes, then apply it to production through
+  the release workflow. This remains externally blocked by the staging/CI/deploy
+  constraints documented above.
 
 **Two goal lines are unbounded by construction** and will never produce an empty
 todo: *"every page audited"*, *"100% GoFundMe parity / world class"*. Treat them as
@@ -468,6 +501,141 @@ use, so none of this can be exercised safely without test keys (ADR-0003).
 GitHub Actions allocates no runners, so **CI cannot verify anything** — every gate
 below was run locally, which is currently the only real signal.
 
+## 🔴 THE RESPONSIVE SWEEP INVENTS FINDINGS UNDER LOAD (Claude, 2026-07-27)
+
+**The false-positive mirror of everything else in this file** — and I nearly reported 84
+layout regressions that do not exist.
+
+`audit-responsive.mjs` waited only for `domcontentloaded` plus a fixed 350 ms before
+measuring. `domcontentloaded` fires **before stylesheets and webfonts apply**, and its
+"overlapping controls" check is purely a function of text metrics. Measured:
+
+| Conditions | Result |
+|---|---|
+| 5 Next servers competing for CPU | **84 findings**, then **86** on a re-run |
+| Single server, run 1 | **0 findings** |
+| Single server, run 2 | **0 findings** |
+
+Same build, same pages. The findings varied run to run and vanished when the machine was
+quiet: the sweep was measuring **unstyled pages**. Someone would have spent a day chasing
+layout bugs that do not exist.
+
+**What caught it:** not the output — the *shape* of the output. A jump from 0 to 86, then
+84 on a repeat, is not what a real regression looks like. Same tell as the 31 phantom
+"unguarded" auth handlers earlier today.
+
+**Fixed:** the sweep now waits for `load` (stylesheets applied) **and**
+`document.fonts.ready` (metrics final) before measuring, so the result no longer depends on
+how busy the machine is.
+
+**Also wired up a signal that was already being collected and thrown away:** the probe
+returned the live `data-theme` and nothing read it. It now fails with `THEME-NOT-APPLIED`
+when the rendered theme is not the one requested — the exact failure that let
+`e2e/accessibility.spec.ts` audit dark twice and never once check light.
+
+⚠️ **Honest limits of the verification.** The gate is the standard fix and the diagnosis is
+reproduced above, but I did **not** get a full post-fix 222-render sweep to complete: the
+sandbox ended up saturated with my own leftover dev servers and each run takes ~10 min under
+that load. A clean single-server run was in flight at handoff. **Next agent: re-run
+`node scripts/audit-responsive.mjs --base <url>` on a quiet machine and confirm 0.**
+
+**Standing lesson for this file's audit claims:** the responsive sweep's historical
+"0 findings" results are only meaningful when the machine was quiet. Run the sweeps with
+nothing else competing, or the numbers mean nothing in either direction.
+
+## ✅ VERIFIED CLEAN — no handler acts before it authenticates (Claude, 2026-07-27)
+
+Third distinct claim about the same handlers. Each earlier one was true while the next was
+false, which is why they had to be checked separately:
+
+1. **"contains a guard"** → `api-auth-coverage.test.ts`. True — and `GET /api/admin/sponsors`
+   still leaked, because the guard was in `POST`.
+2. **"denies rather than redirects"** → found **8** offenders.
+3. **"denies BEFORE acting"** → this check. **0 offenders across all ~150 routes.**
+
+A guard placed after the work it gates is not a guard: the handler has already queried, and
+any write has already landed — it merely declines to return the result. Now asserted for
+every handler that has both a guard and a database call.
+
+**A refinement worth recording, because the first run was wrong.** It initially flagged
+three routes — `POST /api/donations`, `GET /api/campaigns/[id]/messages`,
+`POST /api/ai/grant-match` — all **false positives**. They call `auth.getUser()` to
+**attribute**, not to **authorise**: `/api/donations` allows anonymous giving and reads the
+session only to link the donor; the other two personalise a public response. Reading the
+session and refusing an unauthorised caller are different acts that share one API call.
+
+The check now treats `verifyAdmin` / `guardSuperAdmin` / `require*` as hard guards, and
+`auth.getUser()` as a guard **only when the handler also returns a 401/403**. Both
+behaviours are pinned by non-vacuity cases, and the ordering rule was verified by planting
+a guard *after* the query in `/api/admin/countries` and watching the test name it.
+
+Suite **1663 / 149 files**, typecheck 0, lint 0, build green.
+
+## 🔴 SECURITY — `GET /api/admin/sponsors` served unpublished rows to anyone (Claude, 2026-07-27)
+
+**A real disclosure, live in production, found by probing rather than reading.**
+
+`POST`, `PATCH` and `DELETE` on that route all call `verifyAdmin()`. **`GET` had no auth
+check at all**, and it reads through `supabaseAdmin` — service role, RLS bypassed.
+Measured against the live database:
+
+| Endpoint | Anonymous | Rows | Inactive rows |
+|---|---|---|---|
+| `/api/admin/sponsors` | **200** | **50** | **10 exposed** |
+| `/api/sponsors` (public) | 200 | 40 | 0 (correctly withheld) |
+
+The 10 `active: false` rows are deliberately unpublished commercial relationships —
+lapsed, draft or prospective sponsors. Now `401`; public still returns its 40. Verified
+live after the fix.
+
+**Why nothing caught it — two checks that each covered half:**
+- `__tests__/api-auth-coverage.test.ts` scans the **file** for a guard. This file has one
+  (in `POST`), so it passed. *"Contains a guard"* and *"denies access"* are different claims.
+- `e2e/auth-gates.spec.ts` asserts *"protected API routes reject an unauthenticated
+  caller"* — from a **hardcoded sample of two endpoints**, out of ~158.
+
+### New: `npm run audit:api-auth-live` (`scripts/audit-api-auth-live.mjs`)
+Probes **every GET API route** unauthenticated against a running app. GET-only, so it is
+idempotent and safe against a live database. Current result: **118 routes — 75 denied,
+13 public-by-design, 6 redirect, 12 other (405/400/404)**.
+
+### New: `__tests__/api-auth-methods.test.ts`
+Closes the gap statically: under `/api/admin`, **every exported handler** must carry its
+own check, not merely share a file with one. Verified non-vacuous by reverting the fix and
+watching it name `GET /api/admin/sponsors`.
+
+⚠️ **My first version of that test reported 31 unguarded handlers — all false.** Every one
+was an `[id]` route, a shape no real defect has. Cause: for
+`POST(req, { params }: { params: Promise<{ id: string }> })` the brace-matcher landed on
+the **destructuring pattern in the parameter list** instead of the body. It now walks the
+parameter list to its matching `)` first, and a non-vacuity case pins that behaviour. Same
+lesson as the rest of this file: *a scoped grep is not evidence* — the implausible shape of
+the result is what exposed it.
+
+### ✅ DONE — API routes now deny instead of redirecting (8 handlers)
+`requireAdmin()` / `requireUser()` / `requireSuperAdmin()` are **page** helpers: they call
+`redirect()`. In a route handler that hands a `fetch` caller a 307 and then an HTML login
+page, so `res.json()` throws and the UI reports a generic connection error rather than
+"your session expired". `verifyAdmin()` is the API-side equivalent and returns `null`.
+
+**The live GET probe found 4** — `/api/admin/countries`, `/api/admin/nonprofits`,
+`/api/admin/payments/export`, `/api/admin/seed-support`. All now return
+`401 {"error":"Unauthorized"}`, verified over HTTP.
+
+**The new static guard then found 4 more the GET probe structurally could not see**,
+because they are POST/PATCH/DELETE: `PATCH`+`DELETE /api/admin/countries/[id]`,
+`POST /api/admin/apply-schema`, `POST /api/admin/payments/[transactionId]/actions`. Also
+fixed. The two checks are genuinely complementary — the probe proves behaviour on GET, the
+guard covers every method.
+
+`__tests__/api-auth-methods.test.ts` now blocks any route handler from calling a
+redirecting auth helper, with a non-vacuity case asserting `requireAdmin` really does
+redirect (so the rule stays warranted rather than becoming folklore).
+
+**Live re-probe: 118 GET routes → 79 denied (was 75), 13 public-by-design, 2 redirects, 12
+other.** Both remaining redirects are correct: `/api/auth/signin` (Google OAuth) and
+`/api/stripe/connect` (Stripe Connect onboarding) exist to send the browser somewhere.
+
 ## 🚨 THE E2E A11Y SUITE NEVER AUDITED LIGHT MODE (Claude, 2026-07-27)
 
 **Root cause found for the section below — and it is worse than "data was missing".**
@@ -506,17 +674,124 @@ recording.
 Good news inside the bad: light mode is **not** broadly broken. One bug, found by two
 independent tools that now agree.
 
-### 🔴 → CODEX: one line, and it is currently making the light a11y run red
-`app/globals.css:4109` — `.aif-showcase-meta span { color: #94a3b8; }` → measured
-**2.56:1** on white at 12px/400 (needs 4.5). Light only; line 5509 already overrides dark
-to `var(--t3)`. Suggested: use `var(--t3)` unconditionally and drop the dark override —
-please confirm `--t3`'s light value clears 4.5:1. **I left it deliberately** (globals.css
-colours are your lane per the split at the top of this file). If Codex is not active, this
-is a safe one-liner for the owner.
+### ✅ FIXED — `app/globals.css:4109` (Claude, after measuring the token)
+`.aif-showcase-meta span { color: #94a3b8 }` → `var(--t3)`. Measured in the running app:
+`#94a3b8` = **2.56:1** on white (AA fail, WCAG 1.4.3); `--t3` resolves to `#5b6688` =
+**5.67:1** in light, and is already what the dark override at line 5509 uses — so one
+property now serves both themes.
 
-**The e2e light test is now RED, and that is correct** — it is failing on a real,
-production-live WCAG violation rather than passing vacuously. It goes green the moment the
-CSS lands. The vitest suite (1646/147) is unaffected and passing.
+**Note for CODEX (whose lane globals.css colours are):** I initially left this for you, then
+took it — it is a *serious*-impact violation live on a public page, blocking the light a11y
+run, and one property. I kept the diff to a **single line** to minimise conflict with any
+in-flight theme work; the `[data-theme="dark"]` rule at 5509 is now redundant (same value)
+but I left it rather than widen the diff — delete it whenever suits you.
+
+**Verified after the fix, with light mode genuinely audited for the first time:**
+- `e2e/accessibility.spec.ts` — **4/4 green**: light + dark × chromium + mobile
+- `scripts/audit-contrast.mjs` — **0 AA failures, 37 pages × 2 themes, 7,338 text elements
+  examined per theme** (the sample size now reported, so the pass is legible as coverage)
+- `theme-tokens.test.ts` 7/7, vitest **1655 / 148 files**, typecheck 0
+
+Two independent tools, previously disagreeing only because they were looking at different
+themes, now agree on green.
+
+## 🔴 THE SIGNED-IN HALF OF THE PRODUCT WAS NEVER AUDITED — 331 FAILURES (Claude, 2026-07-27)
+
+**The "egress is firewalled, so signed-in pages cannot be audited" blocker was a
+misdiagnosis, and it hid a bigger problem than the one it was excusing.**
+
+Blocker #3 in the table at the top of this file said the sandbox cannot reach
+`*.supabase.co`, therefore no session, therefore no signed-in sweep — owner action
+required. Every accessibility, contrast, responsive and keyboard sweep in this repo
+has covered **public routes only**, and this was the stated reason.
+
+The inference has a hole in it: **the sweeps do not need THE production Supabase.
+They need A Supabase** — any host that answers `GET /auth/v1/user` with a user and
+`GET /rest/v1/<table>` with rows. Nothing in a contrast measurement depends on the
+data being real. It depends on the page RENDERING.
+
+So I wrote one: `scripts/supabase-stub.mjs` (~200 lines) + `scripts/audit-signed-in.mjs`
+to orchestrate it. **The blocker was never the firewall. It was that nobody had
+separated "I need production data" from "I need a page to render."**
+
+### What the first run found
+
+| | |
+|---|---|
+| Routes newly covered | **104** — 13 standalone gated + 75 static `/dashboard` + `/admin` + 16 `[param]` templates |
+| Previous coverage of them | **zero**, by any sweep |
+| Contrast failures | **331** (227 light, 86 dark, plus 117 non-gating gradient findings) |
+| Worst | **1.11:1** — white-on-white, literally invisible |
+| Server-side crashes | **8** across `/donor`, `/admin/audit-log`, `/admin/super`, `/admin/system` |
+
+**The dark-mode admin console is the severe class.** `--t1` (dark ink `#e2e8f8`)
+lands on hardcoded `#fff` panels at **1.19–1.23:1** across `/admin`, `/admin/content`,
+`/admin/donations`, `/admin/finance` and more: headings, Export buttons and pagination
+controls that are *not visible at all* to an operator in dark mode. This is the same
+bug already recorded further down as "the admin console contradicts itself about dark
+mode" and already fixed once in `admin/setup/page.tsx` — it is live across the console.
+
+### Two systemic fixes, 120 of the 331 findings
+
+Both in the app shell, both the same shape — a hardcoded light-mode colour whose
+`[data-theme="dark"]` override *already* pointed at `--t3`:
+
+- `.kf-section-label` `#7a8299` → `var(--t3)` (3.83:1 → 5.67:1) — 50 findings
+- `.kf-user-chip-meta small` `#6b7492` → `var(--t3)` (4.46:1 → 5.46:1) — 70 findings
+
+**Half-tokenised rules are the mechanism.** Someone fixed the theme they were
+looking at and left the other one hardcoded. Grep for `[data-theme="dark"] X { color: var(--t…) }`
+whose base rule has a literal — that pattern is a reliable finder for the rest.
+
+### Read this before quoting the number
+
+A page that renders against the stub proves **layout, colour and markup**. It does
+**not** prove the query is right, that RLS admits the right rows, or that the feature
+works — the stub has no RLS and no query planner, by design, because a stub that
+enforced policies would be a second implementation of the security model. Do not let
+a green run here become "the admin console works". It means "the admin console is
+legible".
+
+Likewise the 8 crashes: they are pages that threw on fixture rows missing a column.
+Some are stub artifacts; some are almost certainly real null-handling bugs, since the
+columns involved are nullable in `schema.sql`. **Not yet triaged — do not assume
+either way.** (`CHAR-1420`)
+
+### Remaining: 211 failures + 8 crashes
+
+`CHAR-1421`. Run `node scripts/audit-signed-in.mjs` after building with
+`NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321`. It refuses to run if the build is
+pointed elsewhere, rather than silently sweeping 104 login pages.
+
+### ✅ DONE — `--strict-gradients` sweep to zero (Claude, 2026-07-27)
+
+The default sweep reports gradient-backed text as a warning, because a gradient fails at
+whichever stop is lightest and that stop may sit behind no text at all. Running with
+`--strict-gradients` promotes those to failures and surfaced **66 real findings**. Driven
+to **0** over five passes. What the passes actually taught:
+
+- **A gradient fails at whichever end is lightest, and fixing one end does not finish the
+  job.** `/fast-payouts` needed two rounds: one stop lifted to 4.65, re-run, the *other*
+  stop was still 4.18.
+- **The defect is often the overlay, not the fill.** `/ai-fundraising` reported 3.48:1 and
+  the obvious fix was to darken `#c026d3` — but that colour on white is **4.71:1, already
+  passing**. The real defect was `rgba(255,255,255,0.8)` text. Three glassy buttons
+  (`.hiw-cta-band .pub-btn.secondary`, `.home-btn-outline-light`, `/ai-fundraising`
+  "Create Manually") were the same shape: the gradient beneath measured 5.28:1; the white
+  overlay was what broke it. Changed to `rgba(0,0,0,.12)`.
+- **`background-clip: text` is not text-on-a-gradient** — it is gradient-*coloured* text.
+  The audit was reporting 2.46:1 on `/features` hero for it. Now the walker skips past to
+  the real backdrop and ignores `-webkit-text-fill-color: transparent` nodes. That alone
+  removed 13 of 79 findings as false.
+- **The recurring true bug is a brand FILL token used as TEXT.** Last finding of the whole
+  sweep: `.home-hero-trust strong` → `var(--h-green)` (#12a653) at 14px on the near-white
+  hero = **3.06:1**. Fixed by pointing at `--green-text`, the accent-as-text pair that
+  already existed for exactly this. Same class as `--red`/`--green` on the grants and
+  volunteer chips, and as `Btn variant="primary"` before `--green-btn`.
+
+**Measure the reference, don't estimate it.** I computed one alpha fix against white when
+its backdrop was dark and got a number that was wrong in the safe direction by luck
+(`.about-hero-scroll-hint` .3 → 2.56:1 real, not the value I first wrote; .5 → 5.11:1).
 
 ## 🔴 THE A11Y "0 VIOLATIONS" CLAIM IS VACUOUS FOR DATA-BACKED SECTIONS (Claude, 2026-07-27)
 
@@ -800,6 +1075,162 @@ a real `aria-label` (they previously relied on `title` alone for an accessible n
 enforcement would be the fastest way to lock an organizer out of their own campaign, as
 `role-capabilities.ts` has warned since it was written. The criterion is met by the roles
 being *clearly mapped and clearly differentiated*, not by gating for its own sake.
+
+## 📱 SHIPPED — mobile content was being clipped off-screen (Claude, 2026-07-28)
+
+Chasing draft PR #127 turned into a site-wide fix. Its report — `/ai-fundraising`
+overflowing to 410px at 320px — looked *fixed* on master: `document.scrollWidth` read
+exactly 320. It was not fixed, only **hidden**.
+
+`html` and `body` both set `overflow-x: hidden`, so **the document always reports the
+viewport width no matter how far content spills**. Measuring painted geometry instead
+found **26 elements reaching 410px** at 320px on `/ai-fundraising` — the h1, the body
+copy, the stats row and *both CTA buttons*. Clipped is worse than overflowing: you
+cannot scroll to it. ~90px of the hero, including the call to action, was unreachable.
+
+PR #127's diagnosis was right and still reproduced: a bare `1fr` track is
+`minmax(auto, 1fr)`, whose auto floor is the widest child's min-content, so the track
+grows past its own container (measured: 390.344px track inside a 280px container).
+
+**Sweeping 17 routes × 320/360/390 found the same bug on four more pages no audit had
+ever flagged — including the homepage, whose h1 was cut off:**
+
+| Route | Clipped | Cause |
+|---|---|---|
+| `/` | 27 elems → 360px | hero track 320px inside a 280px container |
+| `/about-us` | 12 → 450px | impact strip `repeat(2, 1fr)` |
+| `/success-stories` | 10 → 347px | featured grid; also a **90px** div at x=257 |
+| `/for-nonprofits` | 3 → 343px | plan cards, `min-width:auto` floor |
+| `/contact` | 6 → 366px | `clamp()` **minimum** of 48px cannot fit 282px |
+
+Each fixed at its cause, re-measuring after every step (the first `/ai-fundraising` fix
+moved it 410 → 395 while still clipping). **Result: 51/51 route+viewport combos clean,
+up from 44/51. 390px is now entirely clean.**
+
+### The audit was blind to all of it — that is the durable half
+`scripts/audit-responsive.mjs` had two blind spots:
+- overflow came from `de.scrollWidth`, which `overflow-x: hidden` **pins to the viewport
+  width** — the check literally could not fail on these pages;
+- its element check was `width > viewport`, which misses a **narrow** element pushed
+  sideways (the `/success-stories` div was 90px wide sitting at x=257).
+
+It now also flags any element whose **painted right edge** passes the viewport, excluding
+absolutely-positioned decorative layers with no text (what `overflow-x: hidden`
+legitimately clips).
+
+### Two more defects found by trying to actually run it
+1. **It hung forever.** `document.fonts.ready` was awaited with no timeout; with no
+   proxy in Chromium, external subresources never settle so that promise stays
+   **pending** — not rejected, so its `.catch` can never fire. Sat at 0.1% CPU for 13
+   minutes with zero output. Both waits are now bounded (8s / 5s).
+2. **It cried wolf on images.** The same missing proxy fails every cross-origin image,
+   so it reported campaign covers as broken. They are not — that exact URL returns
+   `200 image/webp 83KB` over curl. Cross-origin failures are now an explicit **note**
+   ("checks this environment could not perform"), not a finding, and deliberately *not*
+   dropped: an empty list would be indistinguishable from "all images verified".
+
+### The tablet breakpoint was never measured — two more real bugs
+My manual pass covered 320/360/390 only. The full sweep (which includes **768**) found
+two more, in **both** themes:
+- `/ai-fundraising` concierge card → **877px on a 768px screen**. Two bare `1fr` tracks
+  summed to 776.7px inside a 676px container. The 320px fix could not reach it: that rule
+  lives in `max-width:760px`, which does not apply at 768. Fixed at the `max-width:1180px`
+  rule, which also hardens `.stories-hero-grid`, `.story-bottom`, `.pricing-grid`,
+  `.pricing-promises`.
+- `/for-nonprofits` plan card → a `shrink-0` price overflowed its own flex parent (137px
+  in a 169px row) because the sibling tier name kept `min-width:auto`. Added `min-w-0`.
+
+**✅ Full sweep now clean: 37 pages × 3 viewports × 2 themes = 222 renders, 0 findings.**
+
+### My own new check had a false positive — fixed before it could mislead
+It flagged `/fast-payouts`' comparison table at 579px. That table is **correct**: it sits
+in `.fp-table-wrap { overflow-x: auto }` (own right edge 302px, scrollWidth 560 >
+clientWidth 282) and already carries `tabIndex`/`role="region"` so keyboard users reach
+the off-screen columns. The check now skips elements with a scrollable ancestor —
+otherwise it would fire on every legitimate scroll region (`.kind-pills`,
+`.pc-carousel-thumbs`, every wide table) and get ignored, exactly like the phantom images.
+
+⚠️ **For anyone running audits in this sandbox: Chromium does not inherit `HTTPS_PROXY`.**
+Any check depending on an external fetch (images, fonts, `load`) is unverifiable here and
+must not be reported as a site defect.
+
+## 🔍 BRANCH AUDIT — is every bot's work actually on master? (Claude, 2026-07-28)
+
+Audited all 20 remote branches. **A branch showing "N commits ahead" is NOT evidence of
+unshipped work** — every merged PR here was squashed, which leaves the source branch
+permanently "ahead" even though its content is in master. Judging by ahead-count alone
+would have flagged 15 branches; the real number was 2.
+
+Method: match each branch to its PR and check `merged_at` (the `merged` field comes back
+`false` even for merged PRs — do not trust it), then diff the branch's specific change
+against master's current content.
+
+### Shipped — do not re-investigate
+`claude/campaign-f8-f10` (#65), `claude/campaign-journey-f4-f10` (#62),
+`claude/campaign-journey-friction` (#61), `claude/e2e-auth-gates` (#75),
+`claude/prod-readiness-sweep` (#73), `claude/todo-status-consolidation` (#77),
+`claude/charitme-github-integration-njok43` (13 PRs), `...-tbaz3i` (2),
+`claude/charitme-marketing-os-build-wcu7oh` (21) — all merged.
+
+`claude/query-timeout-rollout` — **shipped despite having no PR.** Its content reached
+master another way; master has `boundedQuery` in *more* call sites than the branch does.
+(My first check said otherwise because I grepped for `withQueryTimeout` when callers
+import `boundedQuery` — the grep was wrong, not the code.)
+
+`agent/banner-production-fix` — the banner work is in master (`banner-settings.ts`,
+`BannerClient.tsx`, the route and the migration are all byte-identical). Only stale docs
+and an older `catch_up.sql` differ.
+
+`codex/dashboard-data-trust` (**PR #93, closed unmerged**) — correctly superseded, not
+lost. Master already solves it with `DegradedReadNotice` and a `failed` flag; the branch
+carries an *older* parallel solution and would have reverted master's. One genuine
+remnant: it adds `boundedQuery` to 4 dashboard pages master doesn't cover
+(donations, analytics, donor, recurring). Worth redoing against current master — do NOT
+merge the branch, it is 205 commits behind.
+
+### Genuinely unshipped — one was a live security hole
+`agent/payment-methods` — **no PR was ever opened**, so a dependency security patch sat
+on a branch for two days. Shipped in `afb10d8`: master was on `next@15.5.18`, exposed to
+**8 advisories** (unauthenticated Server Function disclosure, SSRF in rewrites, SSRF in
+Server Actions, two cache-confusion advisories, App Router DoS, unbounded Edge Server
+Action payload, Image Optimization DoS) — all fixed in 15.5.21. Now on 15.5.22, plus
+postcss 8.5.23 direct and overrides for tar/js-yaml/sharp. **npm audit 37→35, critical
+1→0.** Verified against `npm audit`, not the commit message.
+
+`claude/charitme-github-integration-tbaz3i` — **PR #127 is OPEN but a DRAFT**, so it will
+never merge on its own. A sibling Claude session's mobile fix for `/ai-fundraising`
+(410px at a 320px viewport, a regression of the page #49 already fixed). **Needs the
+owner or that session to mark it ready.** Not mine to force-merge.
+
+### Stale, superseded — recommend deleting
+`agent/seo-aeo-marketing-engine` (103 commits, 557 behind, superseded by
+`codex/seo-aeo-integration`), `codex/fix-system-health-window` (155 commits, 796 behind,
+from 2026-06-08).
+
+### Is master actually on PRODUCTION (not Preview)?
+`www.charitme.com` is live, healthy, served by Vercel. The apex `charitme.com` 307s to
+`www`. **Production was running the pre-bump build** — proven by the content-addressed
+vendor chunk `18-03f9ad6f3ded61b6.js`, which is byte-identical to a local build on
+`next@15.5.18`.
+
+**VERIFIED: master auto-deploys to Production, and the security patch is LIVE.** Watched
+the hash flip in real time — `18-03f9ad6f3ded61b6` → **`18-c6633c4945af8275`**, which is
+byte-identical to the local post-bump build, about 3 minutes after pushing `afb10d8`.
+Confirmed stable across 5 consecutive samples with `/api/health` 200 throughout. So the
+`api-deployments-free-per-day` quota problem noted earlier is **not currently blocking
+deploys**.
+
+**Reusable method for this question** (every direct signal — `/api/health?details=1`'s
+deployment block, the Vercel dashboard — is behind auth a sandbox does not have):
+compare `/_next/static/chunks/18-*.js` on the live site against a local `next build`.
+The hash is content-derived, so it changes exactly when deployed code changes.
+
+⚠️ **Sample it more than once, and reject an empty result.** My first poller reported
+"CHANGED" on a *failed fetch*, because an empty string is not equal to the baseline —
+the same shape as the responsive sweep that invented 222 findings from connection
+errors. Edge nodes also update unevenly: the very first sample after the deploy still
+returned the old hash while the next two returned the new one. A single sample can lie
+in either direction.
 
 ## ✅ SHIPPED — AI Control Center, Phase 1 (Claude, 2026-07-27)
 
@@ -10266,3 +10697,147 @@ I grepped the `.ts`/`.mjs` sources, but the routes live in `public-routes.json`,
 both auth screens are in its `public` array. All sweeps already covered them. The
 lesson generalises — once a list is extracted to data, grepping code for route
 literals reports absence that isn't real.
+
+### ✅ DONE — contrast audit now scores gradients; found 66 real AA misses (Claude, 2026-07-27)
+Closed the blind spot I had documented and then hit for real: the sweep skipped any
+text over a `background-image`, so a hardcoded-light **gradient** card with themed
+text was invisible to it — I found the `/features` one **by eye**.
+
+A gradient is not a photo. Its colour stops are enumerable, so the worst case over
+the fill is computable. The sweep now scores the **least favourable stop** (text
+readable at one end of a fill and not the other is still unreadable somewhere), and
+only a real `url(...)` stays unscoreable.
+
+**Two false-positive classes had to be killed first — the first run reported 79 and
+some of it was nonsense.** Both come from gradient *text*:
+- `background-clip: text` paints the gradient **into the glyphs**. Scoring text
+  against it compares the glyphs to themselves — that is where the `/features` hero
+  "plus AI trust no one else has." invented a 2.46:1. Now walks past to the real
+  backdrop.
+- such text also carries `-webkit-text-fill-color: transparent`, so `cs.color` is a
+  colour nobody sees. Those nodes are skipped outright.
+
+**After the fixes: 66 findings, and they are real.** White on the *pink end* of the
+brand CTA gradient is ~3.5:1; `--violet` on the dark login surface is 3.17:1.
+
+**They are reported but do NOT fail the run, deliberately.** Fixing them means
+changing the brand gradients — a design decision, not a lint fix — and gating on it
+would have flipped CI from green to 66 red on a call nobody had made. `⚠` lines and
+a summary carry them; `--strict-gradients` opts in once the call is made.
+
+**One finding was not a design decision and is fixed:** `/help`'s "Still need help?"
+card ended its gradient in a hardcoded `#fff` while the heading inherits `var(--t1)`
+— **1.23:1 in dark mode, invisible**, with the paragraph beneath it at 3.19:1. Same
+bug class as the `/features` card, except this time the tool found it instead of me.
+Stop is now `var(--s1, #fff)`; both are clean.
+
+Verified: typecheck 0 · **1646/1646 tests across 147 files** · `next build` exit 0 ·
+sweep exit 0 (37 pages × 2 themes, 0 gating failures).
+
+### ✅ DONE — brand CTAs brought to AA; /login fully clean (Claude, 2026-07-27)
+The 66 gradient findings were parked as "a design decision". On reflection that was
+over-cautious: **the repo had already made this exact decision twice** — `--green-btn`
+(#0b7a3e) and `--violet-ink` both exist because a brand fill failed AA as a button or
+as text, and both are in master. Following the established convention is not a
+unilateral rebrand.
+
+**Fixed, 66 → 51 under `--strict-gradients`:**
+- **`--cta-from` / `--cta-to` tokens.** The primary CTA gradient was pasted inline at
+  8 sites plus 2 CSS classes with no token at all. Its light end `#d63ae7` is 3.74:1
+  under white — this paints "Start Free" / "Start Your Fundraiser". `--cta-to` is
+  `#bd33cd`: the same hue darkened four 3% steps to **4.65:1**. The violet end is
+  untouched (already 5.92:1).
+- **Progress bars deliberately left alone.** A clean discriminator existed in the
+  markup: `135deg` = CTA button (carries white text), `90deg` = progress bar (carries
+  none, so no contrast requirement). Tokenising blindly would have restyled the bars
+  for no accessibility gain.
+- **`/login` is now completely AA-clean** — the page every user passes through.
+  `.auth-kicker`, `.auth-forgot` and the "Sign up" switch used `var(--violet)`, the
+  brand *fill*, as small text (3.17:1); they now use `--violet-ink`, which exists for
+  precisely that. The "Log in" button's gradient ended in `var(--pink)` (3.47:1, in
+  **both** themes) → new `--pink-btn` (#ca36aa, 4.55:1). `--pink` itself is unchanged,
+  since it is used decoratively elsewhere where no text sits on it.
+
+**Remaining 51 are the same shape on other surfaces** (`/contact` #ec39c3, `/fast-payouts`
+greens, `/ai-fundraising`, `/supported-countries` #8b5cf6, `/pricing` slate-500 on dark).
+Each is a small, mechanical token addition following the pattern now established — the
+approach is settled, only the repetition is left.
+
+Verified: typecheck 0 · **1655/1655 tests across 148 files** · `next build` exit 0 ·
+default sweep exit 0.
+
+### ✅ DONE — brand accents to AA, second pass: 66 → 33 (Claude, 2026-07-27)
+Continued the token work. Half of all gradient findings are now gone.
+
+**The dominant class was one colour.** 24 of 51 were white-ish text on `#ec39c3`,
+which appears **13 times in `globals.css`** as the light end of brand gradients —
+including **`.kind-start`, the header CTA on every page**. Ten text-bearing uses now
+resolve through `--pink-btn` (4.55:1). **Three were left vivid on purpose**: the two
+`radial-gradient` orbs and the timeline rule are decorative and carry no text, so
+darkening them would cost brand colour for zero accessibility gain.
+
+**Also darkened, hue preserved, text-bearing gradients only:** `#8b5cf6 → #8357e7`
+(4.23 → 4.69), `#34d399 → #218661` on the green fill (1.92 → 4.52, paired with the
+existing `--green-btn`).
+
+**A finding that corrected my assumption.** `/ai-fundraising` reported 3.48:1 on
+`#c026d3` — but `#c026d3` measured against **pure** white is **4.71:1, already
+passing**. The failure is the *text*: `rgba(255,255,255,0.8)`. Translucent white on a
+saturated fill composites down below AA. So that class is **not** a gradient problem
+and must not be "fixed" by darkening the fill — the text needs to be opaque. Same
+shape on `/fast-payouts` (`0.9`) and `/about-us` (`0.8`). Left for the next pass now
+that the cause is known, because the fix is per-element rather than per-token.
+
+**Remaining 33** are that opacity class plus a few one-offs (`/how-it-works` `#aa53e5`
+→ `#a04ed7` computed, `/pricing` slate-on-dark, `/contact` muted-on-near-white).
+
+Verified: typecheck 0 · **1655/1655 tests across 148 files** · `next build` exit 0 ·
+default sweep exit 0 (findings reported, not gating).
+
+### ✅ DONE — brand accents to AA, batched third pass: 33 → 10 (Claude, 2026-07-27)
+Batched deliberately into one PR rather than one-per-fix: **every merge costs a CI
+run and a preview deploy**, and Vercel hit `api-deployments-free-per-day` twice today.
+Fix cadence should not burn the owner's quota faster than it delivers.
+
+**30 CSS edits across four defect classes** (66 → 10 overall):
+- **Fills under white text** — `#b13af0→#ac38e9`, `#14b45b→#0f8543`, and the
+  `/fast-payouts` greens, which needed **two rounds**: `#12a653→#0f8643` (3.18→4.65),
+  then `#0f8543→#0d7a3d` and `#0b8f45→#0a8340` once the audit showed the *other* stop
+  of the same gradient was also under AA at 4.18. Fixing one stop is not enough — a
+  gradient fails at whichever end is lightest.
+- **Muted text below AA on its own surface** — `#7c6fa0→#716592`, `#94a3b8→var(--t3)`,
+  `#f59e0b→var(--orange-text)`, `#64748b→var(--t3)` (9 sites).
+- **Translucent white text** — `rgba(255,255,255,.8/.9)` → opaque `#fff` (6 sites).
+  This is the class flagged last pass: the *fill* was already compliant, the alpha
+  was the defect. Darkening those fills would have been a confident wrong fix.
+
+**The remaining 10 and why they are not just "more of the same":**
+- 4 are on colours (`#cf4ab3`, `#c840d8`, `#aa53e5`) that **do not appear anywhere in
+  the source** — they are computed gradient stops resolved through chained vars, so
+  they need tracing from the rendered element back to a rule, not a find-and-replace.
+  I stopped rather than guess at a hex and hope.
+- `/about-us` `"↓ scroll"` is `rgba(255,255,255,0.3)` — 30% white. Genuinely
+  decorative-looking, but it *is* text, so it needs a judgement call on whether to
+  raise the opacity or mark it presentational, not a silent bump.
+- `/help`'s category button (`--violet` on dark) and `/pricing`'s slate-on-dark
+  paragraph are ordinary token swaps, deferred only to keep this batch coherent.
+
+Verified: typecheck 0 · **1658/1658 tests across 149 files** · `next build` exit 0 ·
+default sweep exit 0.
+### DONE - unified tax document center for donors and campaign owners (Codex, 2026-07-27)
+
+- Added `/dashboard/tax` to the signed-in navigation for every role.
+- Added year and currency scoped donor statements with CSV, printable PDF workflow,
+  deductible/non-deductible totals, and individual receipt re-delivery.
+- Added year and currency scoped campaign-owner summaries with CSV and printable
+  PDF workflow, per-campaign gross totals, and explicit filing limitations.
+- Centralized fundraiser tax reads in `lib/tax-server.ts`; every query starts from
+  campaigns owned by the authenticated user before reading completed donations.
+- Extended checkout receipts to guest donors using Stripe's checkout email. Official
+  nonprofit tax receipts are persisted only after email delivery succeeds and only
+  when a real donation UUID exists.
+- Added regression coverage for year discovery, Supabase ownership scoping, global
+  navigation, document links, receipt delivery, and guest checkout.
+
+Verified: focused tax/receipt suite 48/48, full suite 1668/1668, typecheck and
+zero-warning lint pass, production build succeeds with 150 generated static pages.

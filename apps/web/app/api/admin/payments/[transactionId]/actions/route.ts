@@ -1,7 +1,7 @@
 import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { requireAdmin } from '../../../../../../lib/auth';
+import { verifyAdmin } from '../../../users/_auth';
 import { supabaseAdmin } from '../../../../../../lib/supabase';
 import { reconcileMoneyFlow } from '../../../../../../lib/payment-flow';
 
@@ -14,8 +14,12 @@ type RouteContext = {
   params: Promise<{ transactionId: string }>;
 };
 
+// API routes must DENY, not redirect: `requireAdmin()` is the PAGE helper and
+// calls redirect(), which hands a fetch caller HTML and makes res.json() throw.
+// `verifyAdmin()` is the API-side equivalent and returns null. Same gate.
 export async function POST(request: NextRequest, context: RouteContext): Promise<NextResponse> {
-  const admin = await requireAdmin();
+  const admin = await verifyAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { transactionId } = await context.params;
   const parsed = actionSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {

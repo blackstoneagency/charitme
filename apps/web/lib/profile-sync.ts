@@ -1,7 +1,6 @@
 import 'server-only';
 import type { User } from '@supabase/supabase-js';
 import { supabaseAdmin } from './supabase';
-import { parseRoles } from './roles';
 
 function metadataText(metadata: User['user_metadata'], key: string): string | null {
   const value = metadata[key];
@@ -37,7 +36,7 @@ export async function ensureUserProfile(user: User): Promise<void> {
       email: user.email ?? null,
       full_name: metadataText(metadata, 'full_name') ?? metadataText(metadata, 'name'),
       avatar_url: metadataText(metadata, 'avatar_url'),
-      roles: parseRoles(metadata.roles),
+      roles: ['donor'],
     }, { onConflict: 'id', ignoreDuplicates: true });
 
   if (insertError) {

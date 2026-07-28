@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import { requireAdmin } from '../../../../lib/auth';
+import { verifyAdmin } from '../users/_auth';
 
+// API routes must DENY, not redirect. `requireAdmin()` is the page helper: it
+// calls redirect('/dashboard'), so a fetch caller received a 307 and then HTML,
+// making res.json() throw — the UI showed a generic connection error instead of
+// "your session expired". `verifyAdmin()` is the API-side equivalent and returns
+// null. Same gate, correct protocol.
 export async function GET() {
-  await requireAdmin();
+  const admin = await verifyAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { data, error } = await supabaseAdmin
     .from('supported_countries')
     .select('*')
@@ -14,7 +20,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  await requireAdmin();
+  const admin = await verifyAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const body = await req.json() as {
     name?: string;
     flag_emoji?: string;

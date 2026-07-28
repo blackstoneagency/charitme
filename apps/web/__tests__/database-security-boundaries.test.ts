@@ -1,0 +1,95 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+const migration = readFileSync(
+  resolve(process.cwd(), '../../supabase/migrations/20260809000000_harden_privileged_database_boundaries.sql'),
+  'utf8',
+).toLowerCase();
+const profileSync = readFileSync(resolve(process.cwd(), 'lib/profile-sync.ts'), 'utf8').toLowerCase();
+const applySchema = readFileSync(
+  resolve(process.cwd(), 'app/api/admin/apply-schema/route.ts'),
+  'utf8',
+).toLowerCase();
+
+describe('privileged database boundaries migration', () => {
+  it('does not trust signup metadata for roles', () => {
+    const handleNewUser = migration.match(
+      /create or replace function public\.handle_new_user\(\)[\s\S]*?\n\$\$;/,
+    )?.[0];
+
+    expect(handleNewUser).toBeDefined();
+    expect(handleNewUser).not.toContain("raw_user_meta_data -> 'roles'");
+    expect(handleNewUser).toContain(`'["donor"]'::jsonb`);
+  });
+
+  it('guards privilege-bearing profile fields from browser mutations', () => {
+    expect(migration).toContain('create trigger protect_profile_privileged_fields');
+    for (const field of [
+      'roles',
+      'identity_verified',
+      'trust_passport_score',
+      'plan',
+      'stripe_customer_id',
+      'stripe_subscription_id',
+      'email',
+    ]) {
+      expect(migration).toContain(`new.${field}`);
+    }
+    expect(migration).toContain("auth.role(), '') = 'service_role'");
+    expect(migration).toContain("new.email is distinct from nullif(auth.jwt() ->> 'email', '')");
+    expect(migration).toContain('revoke create on schema public from public, anon, authenticated');
+    expect(migration).not.toContain('set search_path = public, pg_catalog');
+  });
+
+  it('keeps profile repair and schema repair from restoring metadata roles', () => {
+    expect(profileSync).not.toContain('parseroles(metadata.roles)');
+    expect(profileSync).toContain("roles: ['donor']");
+    expect(applySchema).not.toContain("raw_user_meta_data -> 'roles'");
+    expect(applySchema).toMatch(/roles\)\s+values \(new\.id, new\.email/);
+    expect(applySchema).toContain(`'["donor"]'::jsonb`);
+  });
+
+  it('removes public financial inserts', () => {
+    for (const table of ['donations', 'donor_tips', 'platform_fees', 'campaign_reports']) {
+      expect(migration).toContain(
+        `revoke insert on table public.${table} from public, anon, authenticated`,
+      );
+      expect(migration).toContain(`grant insert on table public.${table} to service_role`);
+    }
+  });
+
+  it('makes privileged RPCs service-role only', () => {
+    for (const fn of [
+      'record_donation',
+      'increment_campaign_stats',
+      'decrement_campaign_stats',
+      'claim_campaign_reward',
+      'get_admin_system_resource_usage',
+    ]) {
+      expect(migration).toMatch(
+        new RegExp(`revoke all on function public\\.${fn}\\([\\s\\S]*?from public, anon, authenticated`),
+      );
+      expect(migration).toMatch(
+        new RegExp(`grant execute on function public\\.${fn}\\([\\s\\S]*?to service_role`),
+      );
+    }
+  });
+
+  it('enforces valid go-forward financial amounts', () => {
+    expect(migration).toContain('add column if not exists tip_cents bigint');
+    expect(migration).toContain('add column if not exists processing_fee_cents bigint');
+    expect(migration).toContain('check (amount_cents > 0) not valid');
+    expect(migration).toContain('check (tip_cents >= 0 and processing_fee_cents >= 0) not valid');
+  });
+
+  it('leaves schema repair with the same fail-closed grants', () => {
+    expect(applySchema).toContain("name: 'final privileged boundary enforcement'");
+    expect(applySchema).toContain(
+      'revoke insert on table public.donations from public, anon, authenticated',
+    );
+    expect(applySchema).toMatch(
+      /revoke all on function public\.record_donation\([\s\S]*?from public, anon, authenticated/,
+    );
+  });
+});

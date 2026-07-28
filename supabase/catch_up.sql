@@ -9464,3 +9464,331 @@ drop policy if exists brands_editor_write on brands;
 create policy brands_editor_write on brands for all
   using (is_org_member(org_id, 'editor') or coalesce(is_admin(), false))
   with check (is_org_member(org_id, 'editor') or coalesce(is_admin(), false));
+
+
+-- ============ 20260808000000_demo_data_labeling.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- CHAR-1402 (second half) — demo-data labelling.
+--
+-- Problem: roughly 500 seeded demo campaigns are live and nothing distinguishes
+-- them from real ones. A donor browsing the site cannot tell which fundraisers
+-- are real. (They cannot currently take money — demo campaigns have no connected
+-- Stripe account, so the page renders "Donations open soon" instead of the donate
+-- form — but that is a safety net, not a label.)
+--
+-- This migration is deliberately ADDITIVE AND INERT:
+--   • adds `is_demo` (default false) to the seeded tables + a partial index;
+--   • does NOT guess which existing rows are demo.
+--
+-- Why no automatic backfill: the seed generations use different slug shapes
+-- (`seed-campaign-*` in supabase/seeds/01, `campaign-<n>-<hash>` in the batch
+-- already live), so any single pattern is incomplete — and a wrong guess
+-- mislabels a REAL fundraiser as fake, which is far worse than no label at all.
+-- The backfill is therefore left as a reviewed, explicit statement (below) that
+-- an operator runs after confirming the pattern matches only seeded rows.
+--
+-- Safe to apply to production: adding a defaulted boolean rewrites no rows on
+-- PostgreSQL 11+, and every read path ignores the column until someone opts in.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+alter table if exists public.campaigns
+  add column if not exists is_demo boolean not null default false;
+
+alter table if exists public.donations
+  add column if not exists is_demo boolean not null default false;
+
+alter table if exists public.profiles
+  add column if not exists is_demo boolean not null default false;
+
+-- Partial indexes: demo rows are the small minority, and the common query is
+-- "exclude demo", so indexing only the true rows keeps these tiny.
+create index if not exists campaigns_is_demo_idx on public.campaigns (is_demo) where is_demo;
+create index if not exists donations_is_demo_idx on public.donations (is_demo) where is_demo;
+create index if not exists profiles_is_demo_idx  on public.profiles  (is_demo) where is_demo;
+
+comment on column public.campaigns.is_demo is
+  'True for seeded/demo rows. Set explicitly by an operator — never auto-inferred, because a wrong guess would mark a real fundraiser as fake.';
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- BACKFILL — NOT run by this migration. Review, then run by hand.
+--
+-- 1. Inspect first. Confirm the count and a sample look like seed data ONLY:
+--
+--      select count(*), min(slug), max(slug)
+--        from public.campaigns
+--       where slug like 'seed-campaign-%'
+--          or slug ~ '^campaign-[0-9]+-[0-9a-f]{8}$';
+--
+-- 2. Only if that is exclusively seed data, label it:
+--
+--      update public.campaigns set is_demo = true
+--       where slug like 'seed-campaign-%'
+--          or slug ~ '^campaign-[0-9]+-[0-9a-f]{8}$';
+--
+--      update public.donations d set is_demo = true
+--        from public.campaigns c
+--       where d.campaign_id = c.id and c.is_demo;
+--
+-- 3. Verify nothing with a real Stripe payment got labelled:
+--
+--      select count(*) from public.donations
+--       where is_demo and stripe_payment_intent_id is not null;   -- expect 0
+-- ─────────────────────────────────────────────────────────────────────────────
+
+
+-- ============ 20260809000000_harden_privileged_database_boundaries.sql ============
+-- Close browser-accessible privilege escalation and financial mutation paths.
+
+create or replace function public.protect_profile_privileged_fields()
+returns trigger
+language plpgsql
+set search_path = pg_catalog, public, pg_temp
+as $$
+begin
+  if coalesce(auth.role(), '') = 'service_role'
+    or current_user in ('postgres', 'supabase_admin')
+  then
+    return new;
+  end if;
+
+  if tg_op = 'INSERT' then
+    if new.roles is distinct from '["donor"]'::jsonb
+      or new.identity_verified is distinct from false
+      or new.trust_passport_score is distinct from 0
+      or coalesce(new.plan, 'free') <> 'free'
+      or new.stripe_customer_id is not null
+      or new.stripe_subscription_id is not null
+      or new.email is distinct from nullif(auth.jwt() ->> 'email', '')
+    then
+      raise insufficient_privilege using
+        message = 'Privileged profile fields may only be changed by the service role';
+    end if;
+  elsif new.roles is distinct from old.roles
+    or new.identity_verified is distinct from old.identity_verified
+    or new.trust_passport_score is distinct from old.trust_passport_score
+    or new.plan is distinct from old.plan
+    or new.stripe_customer_id is distinct from old.stripe_customer_id
+    or new.stripe_subscription_id is distinct from old.stripe_subscription_id
+    or new.email is distinct from old.email
+  then
+    raise insufficient_privilege using
+      message = 'Privileged profile fields may only be changed by the service role';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists protect_profile_privileged_fields on public.profiles;
+drop trigger if exists protect_profile_privileged_fields on public.profiles;
+create trigger protect_profile_privileged_fields
+  before insert or update on public.profiles
+  for each row execute function public.protect_profile_privileged_fields();
+
+drop policy if exists profiles_update_own on public.profiles;
+drop policy if exists profiles_update_own on public.profiles;
+create policy profiles_update_own on public.profiles
+  for update
+  using (auth.uid() = id or public.is_admin())
+  with check (auth.uid() = id or public.is_admin());
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = pg_catalog, public, pg_temp
+as $$
+declare
+  display_name text;
+begin
+  display_name := coalesce(
+    nullif(new.raw_user_meta_data ->> 'full_name', ''),
+    nullif(new.raw_user_meta_data ->> 'name', '')
+  );
+
+  insert into public.profiles (id, email, full_name, avatar_url, roles)
+  values (
+    new.id,
+    new.email,
+    display_name,
+    nullif(new.raw_user_meta_data ->> 'avatar_url', ''),
+    '["donor"]'::jsonb
+  )
+  on conflict (id) do update
+  set
+    email = excluded.email,
+    full_name = coalesce(public.profiles.full_name, excluded.full_name),
+    avatar_url = coalesce(public.profiles.avatar_url, excluded.avatar_url),
+    updated_at = now();
+
+  if new.email is not null then
+    update public.marketing_contacts
+    set
+      user_id = new.id,
+      first_name = coalesce(first_name, display_name),
+      last_active_at = now()
+    where lower(email) = lower(new.email)
+      and user_id is null;
+
+    if not found then
+      insert into public.marketing_contacts (
+        user_id, email, first_name, client_type, lifecycle_stage, status
+      )
+      values (new.id, new.email, display_name, 'donor', 'subscriber', 'active')
+      on conflict do nothing;
+    end if;
+
+    insert into public.marketing_identities (contact_id, kind, value)
+    select c.id, 'email', lower(new.email)
+    from public.marketing_contacts c
+    where lower(c.email) = lower(new.email)
+    order by c.created_at
+    limit 1
+    on conflict (kind, value) do nothing;
+
+    insert into public.marketing_identities (contact_id, kind, value)
+    select c.id, 'user_id', new.id::text
+    from public.marketing_contacts c
+    where c.user_id = new.id
+    order by c.created_at
+    limit 1
+    on conflict (kind, value) do nothing;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop policy if exists donations_insert_service on public.donations;
+drop policy if exists donor_tips_insert_service on public.donor_tips;
+drop policy if exists platform_fees_insert_service on public.platform_fees;
+drop policy if exists reports_insert_public on public.campaign_reports;
+
+revoke insert on table public.donations from public, anon, authenticated;
+revoke insert on table public.donor_tips from public, anon, authenticated;
+revoke insert on table public.platform_fees from public, anon, authenticated;
+revoke insert on table public.campaign_reports from public, anon, authenticated;
+
+grant insert on table public.donations to service_role;
+grant insert on table public.donor_tips to service_role;
+grant insert on table public.platform_fees to service_role;
+grant insert on table public.campaign_reports to service_role;
+
+revoke create on schema public from public, anon, authenticated;
+
+alter table public.donations
+  add column if not exists tip_cents bigint not null default 0;
+alter table public.donations
+  add column if not exists processing_fee_cents bigint not null default 0;
+
+alter function public.record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text)
+  set search_path = pg_catalog, public, pg_temp;
+alter function public.increment_campaign_stats(uuid, bigint)
+  set search_path = pg_catalog, public, pg_temp;
+alter function public.decrement_campaign_stats(uuid, bigint)
+  set search_path = pg_catalog, public, pg_temp;
+alter function public.claim_campaign_reward(uuid)
+  set search_path = pg_catalog, public, pg_temp;
+alter function public.get_admin_system_resource_usage()
+  set search_path = pg_catalog, public, pg_temp;
+
+revoke all on function public.record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text)
+  from public, anon, authenticated;
+revoke all on function public.increment_campaign_stats(uuid, bigint)
+  from public, anon, authenticated;
+revoke all on function public.decrement_campaign_stats(uuid, bigint)
+  from public, anon, authenticated;
+revoke all on function public.claim_campaign_reward(uuid)
+  from public, anon, authenticated;
+revoke all on function public.get_admin_system_resource_usage()
+  from public, anon, authenticated;
+
+grant execute on function public.record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text)
+  to service_role;
+grant execute on function public.increment_campaign_stats(uuid, bigint)
+  to service_role;
+grant execute on function public.decrement_campaign_stats(uuid, bigint)
+  to service_role;
+grant execute on function public.claim_campaign_reward(uuid)
+  to service_role;
+grant execute on function public.get_admin_system_resource_usage()
+  to service_role;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'donations_amount_cents_positive'
+      and conrelid = 'public.donations'::regclass
+  ) then
+    alter table public.donations drop constraint if exists donations_amount_cents_positive;
+alter table public.donations add constraint donations_amount_cents_positive
+      check (amount_cents > 0) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'donations_fee_cents_nonnegative'
+      and conrelid = 'public.donations'::regclass
+  ) then
+    alter table public.donations drop constraint if exists donations_fee_cents_nonnegative;
+alter table public.donations add constraint donations_fee_cents_nonnegative
+      check (tip_cents >= 0 and processing_fee_cents >= 0) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'donor_tips_amount_cents_positive'
+      and conrelid = 'public.donor_tips'::regclass
+  ) then
+    alter table public.donor_tips drop constraint if exists donor_tips_amount_cents_positive;
+alter table public.donor_tips add constraint donor_tips_amount_cents_positive
+      check (amount_cents > 0) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'platform_fees_amount_cents_nonnegative'
+      and conrelid = 'public.platform_fees'::regclass
+  ) then
+    alter table public.platform_fees drop constraint if exists platform_fees_amount_cents_nonnegative;
+alter table public.platform_fees add constraint platform_fees_amount_cents_nonnegative
+      check (amount_cents >= 0) not valid;
+  end if;
+end;
+$$;
+
+
+-- ============ 20260810000000_lock_down_service_managed_writes.sql ============
+-- Route all public-facing service writes through validated, rate-limited APIs.
+
+drop policy if exists contact_messages_insert on public.contact_messages;
+drop policy if exists support_own_insert on public.support_cases;
+drop policy if exists share_insert_any on public.share_events;
+drop policy if exists receipts_svc_insert on public.donation_receipts;
+drop policy if exists status_log_svc_insert on public.campaign_status_log;
+drop policy if exists cbe_insert_any on public.campaign_builder_events;
+drop policy if exists creator_tips_insert_public on public.creator_tips;
+
+revoke insert, update, delete on table public.contact_messages
+  from public, anon, authenticated;
+revoke insert, update, delete on table public.support_cases
+  from public, anon, authenticated;
+revoke insert, update, delete on table public.share_events
+  from public, anon, authenticated;
+revoke insert, update, delete on table public.donation_receipts
+  from public, anon, authenticated;
+revoke insert, update, delete on table public.campaign_status_log
+  from public, anon, authenticated;
+revoke insert, update, delete on table public.campaign_builder_events
+  from public, anon, authenticated;
+revoke insert, update, delete on table public.creator_tips
+  from public, anon, authenticated;
+
+grant insert, update, delete on table public.contact_messages to service_role;
+grant insert, update, delete on table public.support_cases to service_role;
+grant insert, update, delete on table public.share_events to service_role;
+grant insert, update, delete on table public.donation_receipts to service_role;
+grant insert, update, delete on table public.campaign_status_log to service_role;
+grant insert, update, delete on table public.campaign_builder_events to service_role;
+grant insert, update, delete on table public.creator_tips to service_role;

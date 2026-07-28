@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '../../../../../lib/supabase';
-import { requireAdmin } from '../../../../../lib/auth';
+import { verifyAdmin } from '../../users/_auth';
 
+// API routes must DENY, not redirect: `requireAdmin()` is the PAGE helper and
+// calls redirect(), which hands a fetch caller HTML and makes res.json() throw.
+// `verifyAdmin()` is the API-side equivalent and returns null. Same gate.
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  await requireAdmin();
+  const admin = await verifyAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await params;
   const body = await req.json() as Record<string, unknown>;
 
@@ -37,7 +41,8 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  await requireAdmin();
+  const admin = await verifyAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await params;
   const { error } = await supabaseAdmin
     .from('supported_countries')

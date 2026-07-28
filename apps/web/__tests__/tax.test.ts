@@ -5,6 +5,7 @@ import {
   buildTaxStatement,
   buildFundraiserTaxSummary,
   donationYears,
+  fundraiserYears,
   type TaxDonationInput,
   type NonprofitTaxInfo,
   type FundraiserDonationInput,
@@ -196,6 +197,38 @@ describe('donationYears', () => {
       don({ createdAt: '2024-05-01T00:00:00Z' }),
       don({ createdAt: '2026-09-01T00:00:00Z' }),
       don({ createdAt: '2025-01-01T00:00:00Z', status: 'pending' }), // excluded
+    ]);
+    expect(years).toEqual([2026, 2024]);
+  });
+});
+
+describe('fundraiserYears', () => {
+  it('returns distinct completed-donation years, descending', () => {
+    const years = fundraiserYears([
+      {
+        amountCents: 5000,
+        currency: 'usd',
+        status: 'completed',
+        createdAt: '2026-05-01T00:00:00Z',
+        campaignId: 'campaign-1',
+        campaignTitle: 'Campaign',
+      },
+      {
+        amountCents: 3000,
+        currency: 'usd',
+        status: 'completed',
+        createdAt: '2024-08-01T00:00:00Z',
+        campaignId: 'campaign-1',
+        campaignTitle: 'Campaign',
+      },
+      {
+        amountCents: 1000,
+        currency: 'usd',
+        status: 'refunded',
+        createdAt: '2025-01-01T00:00:00Z',
+        campaignId: 'campaign-1',
+        campaignTitle: 'Campaign',
+      },
     ]);
     expect(years).toEqual([2026, 2024]);
   });
