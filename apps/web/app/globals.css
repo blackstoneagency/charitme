@@ -2416,43 +2416,7 @@ a.task-row:hover .task-row-dot { border-color: #6c35ff; }
 .price-cta-solid { color: #fff; background: #4b1af2; border: none; }
 .price-cta-outline { color: #4015e8; background: #fff; border: 1px solid #5e38ff; }
 
-/* ── Fee Calculator ── */
-.fee-calc { }
-.fee-calc-controls { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-.fee-calc-label { font-size: 14px; font-weight: 700; color: #26335c; }
-.fee-calc-input-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
-.fee-calc-dollar { font-size: 18px; font-weight: 900; color: var(--t3, #64748b); }
-.fee-calc-input { width: 120px; height: 42px; border: 1.5px solid #e0d5ff; border-radius: 10px; padding: 0 12px; font-size: 16px; font-weight: 700; outline: none; background: #fff; color: #101842; }
-.fee-calc-presets { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 22px; }
-.fee-calc-preset { height: 36px; padding: 0 16px; border-radius: 8px; border: 1.5px solid #e0d5ff; background: #fff; color: var(--t3, #64748b); font-size: 13px; font-weight: 700; cursor: pointer; transition: border-color .12s, background .12s, color .12s; }
-.fee-calc-preset.active { border-color: #6c35ff; background: #f0eaff; color: #551cf2; }
-.fee-calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.fee-calc-box { border-radius: 16px; padding: 24px; }
-.fee-calc-box--green { background: #f0fff8; border: 2px solid #19b86a; }
-.fee-calc-box--neutral { background: #faf8ff; border: 1px solid #e0d5ff; }
-.fee-calc-box-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-weight: 900; font-size: 16px; color: #065f46; }
-.fee-calc-box--neutral .fee-calc-box-head { color: #334064; }
-.fee-calc-badge { background: #08763b; color: #fff; font-size: 11px; font-weight: 900; padding: 3px 10px; border-radius: 20px; }
-.fee-calc-amount { font-size: 28px; font-weight: 900; margin-bottom: 4px; }
-.fee-calc-amount--green { color: #047857; }
-.fee-calc-amount--neutral { color: #4b5676; }
-.fee-calc-reach { font-size: 13px; color: #065f46; margin-bottom: 16px; }
-.fee-calc-box--neutral .fee-calc-reach { color: var(--t3, #64748b); }
-.fee-calc-breakdown { font-size: 12px; line-height: 1.8; }
-.fee-calc-breakdown--green { color: #047857; }
-.fee-calc-breakdown--neutral { color: #4b5676; }
-.fee-calc-recurring { margin-top: 8px; font-weight: 900; }
-.fee-calc-warning { color: var(--red-text); font-weight: 700; }
-/* Dark surfaces need a lighter rose for AA contrast (rose-400 ≈ 6:1 on the dark card). */
-[data-theme="dark"] .fee-calc-warning { color: #fb7185; }
-.fee-calc-bad { color: var(--red-text, #c42d49); }
-[data-theme="dark"] .fee-calc-bad { color: #fb7185; }
-.fee-calc-note { text-align: center; font-size: 12px; color: var(--t3, #6a7584); margin-top: 16px; }
-/* Two fee boxes side-by-side overflow narrow phones — stack them. */
-@media (max-width: 640px) {
-  .fee-calc-grid { grid-template-columns: 1fr; }
-  .fee-calc-box { padding: 18px; }
-}
+/* ── Pricing: misc ── */
 .all-faqs { display: inline-flex; align-items: center; gap: 8px; color: #4015e8; font-weight: 950; }
 
 /* ── Success Stories page ── */
@@ -5668,24 +5632,6 @@ a.task-row:hover .task-row-dot { border-color: #6c35ff; }
 [data-theme="dark"] .no-card { background: var(--s3); color: var(--t1); }
 [data-theme="dark"] .price-cta-solid { background: linear-gradient(135deg, #6c35ff, #4b1af2); }
 [data-theme="dark"] .price-cta-outline { background: var(--s2); border-color: #6c35ff; color: #a78bfa; }
-
-/* ── Pricing: fee calculator ── */
-[data-theme="dark"] .fee-calc-label { color: var(--t2); }
-[data-theme="dark"] .fee-calc-dollar { color: var(--t3); }
-[data-theme="dark"] .fee-calc-input { background: var(--s2); border-color: var(--b1); color: var(--t1); }
-[data-theme="dark"] .fee-calc-preset { background: var(--s2); border-color: var(--b1); color: var(--t3); }
-[data-theme="dark"] .fee-calc-preset.active { background: var(--s3); border-color: #6c35ff; color: #c4b5fd; }
-[data-theme="dark"] .fee-calc-box--green { background: #071a10; border-color: #1a6040; }
-[data-theme="dark"] .fee-calc-box--green .fee-calc-box-head { color: #4cce86; }
-[data-theme="dark"] .fee-calc-box--green .fee-calc-reach { color: #4cce86; opacity: .8; }
-[data-theme="dark"] .fee-calc-amount--green { color: #4cce86; }
-[data-theme="dark"] .fee-calc-breakdown--green { color: #3ab876; }
-[data-theme="dark"] .fee-calc-box--neutral { background: var(--s1); border-color: var(--line); }
-[data-theme="dark"] .fee-calc-box--neutral .fee-calc-box-head { color: var(--t1); }
-[data-theme="dark"] .fee-calc-box--neutral .fee-calc-reach { color: var(--t3); }
-[data-theme="dark"] .fee-calc-amount--neutral { color: var(--t2); }
-[data-theme="dark"] .fee-calc-breakdown--neutral { color: var(--t3); }
-[data-theme="dark"] .fee-calc-note { color: var(--t4); }
 
 /* ── Pricing: misc ── */
 [data-theme="dark"] .all-faqs { color: #a78bfa; }
