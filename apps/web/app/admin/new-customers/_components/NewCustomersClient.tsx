@@ -339,7 +339,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
 
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b', whiteSpace: 'nowrap' }}>🏛️ Free state registry:</span>
-          <select value={stateFeed} onChange={(e) => setStateFeed(e.target.value as StateFeedCode)} style={selectStyle}>
+          <select aria-label="State business registry" value={stateFeed} onChange={(e) => setStateFeed(e.target.value as StateFeedCode)} style={selectStyle}>
             {stateFeedOptions.map(([code, src]) => <option key={code} value={code}>{src.label}</option>)}
           </select>
           <button
@@ -355,7 +355,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
 
           <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b', whiteSpace: 'nowrap' }}>🔎 OpenCorporates:</span>
           <input
-            value={ocQuery}
+            aria-label="Business registry search query" value={ocQuery}
             onChange={(e) => setOcQuery(e.target.value)}
             placeholder="Search query (optional)…"
             style={{ padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13, width: 200 }}
@@ -411,20 +411,20 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
       {/* Filters */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
         <input
-          value={search}
+          aria-label="Search leads" value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name or owner…"
           style={{ padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13, flex: '1 1 220px' }}
         />
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={selectStyle}>
+        <select aria-label="Filter by lead status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={selectStyle}>
           <option value="all">All statuses</option>
           {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select value={stateFilter} onChange={(e) => setStateFilter(e.target.value)} style={selectStyle}>
+        <select aria-label="Filter by state" value={stateFilter} onChange={(e) => setStateFilter(e.target.value)} style={selectStyle}>
           <option value="all">All states</option>
           {states.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
-        <select value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} style={selectStyle}>
+        <select aria-label="Minimum lead score" value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} style={selectStyle}>
           <option value={0}>Any score</option>
           <option value={40}>Score ≥ 40</option>
           <option value={60}>Score ≥ 60</option>
@@ -503,6 +503,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                     {/* Status */}
                     <td style={{ padding: '12px 16px' }}>
                       <select
+                        aria-label="Lead status"
                         value={l.status}
                         onChange={(e) => void changeStatus(l.id, e.target.value)}
                         style={{

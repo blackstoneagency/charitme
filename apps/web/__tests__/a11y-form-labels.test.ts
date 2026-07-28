@@ -34,11 +34,32 @@ import { join, relative } from 'node:path';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const WEB = join(__dirname, '..');
-const CONTROL = /<(input|select|textarea)\b([^>]*?)\/?>/g;
+const CONTROL_OPEN = /<(input|select|textarea)\b/g;
+
+/**
+ * Attributes of one JSX element, read to the tag's real closing `>`.
+ *
+ * A naive `[^>]*` stops at the FIRST `>` — which, in this codebase, is usually
+ * the arrow of an inline handler like `onChange={(e) => …}`. That truncates the
+ * attribute list, so any `aria-label` written after a handler is invisible and
+ * the control is reported unnamed. Two already-correct date inputs in
+ * admin/new-customers were miscounted exactly that way. Brace depth is tracked
+ * so a `>` inside `{…}` never ends the tag.
+ */
+function attributesOf(src: string, tagStart: number): string {
+  let depth = 0;
+  for (let i = tagStart; i < src.length; i++) {
+    const ch = src[i];
+    if (ch === '{') depth++;
+    else if (ch === '}') depth--;
+    else if (ch === '>' && depth === 0) return src.slice(tagStart, i);
+  }
+  return src.slice(tagStart);
+}
 const SKIP_TYPES = new Set(['hidden', 'submit', 'button', 'image']);
 
 /** Current known debt. Lower it when controls are fixed; never raise it. */
-const BASELINE = 115;
+const BASELINE = 75;
 
 function tsxFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -103,8 +124,8 @@ function findOffenders(): string[] {
     for (const file of tsxFiles(join(WEB, dir))) {
       const src = readFileSync(file, 'utf8');
       const wrappers = labellingWrappers(src);
-      for (const m of src.matchAll(CONTROL)) {
-        const attrs = m[2] ?? '';
+      for (const m of src.matchAll(CONTROL_OPEN)) {
+        const attrs = attributesOf(src, m.index ?? 0);
         const type = /type=["{]?\s*['"]?(\w+)/.exec(attrs)?.[1] ?? 'text';
         if (SKIP_TYPES.has(type)) continue;
         if (/aria-label|aria-labelledby|\bid=/.test(attrs)) continue;
