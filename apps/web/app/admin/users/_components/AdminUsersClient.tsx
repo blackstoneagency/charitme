@@ -498,35 +498,35 @@ export default function AdminUsersClient({
           <label className="kf-search" style={{ flex: 1, minWidth: 200, height: 40 }}>
             <KFIcon name="search" />
             <input
-              value={query}
+              aria-label="Search users by name or email" value={query}
               onChange={(e) => { setQuery(e.target.value); setPage(0); }}
               placeholder="Search by name, email..."
             />
           </label>
-          <select className="users-filter-select" value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(0); }}>
+          <select className="users-filter-select" aria-label="Filter by role" value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(0); }}>
             <option value="All Roles">All Roles</option>
             {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
-          <select className="users-filter-select" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}>
+          <select className="users-filter-select" aria-label="Filter by status" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}>
             <option>All Status</option>
             <option>Active</option>
             <option>Inactive</option>
             <option>Suspended</option>
           </select>
-          <select className="users-filter-select" value={joinedFilter} onChange={(e) => { setJoinedFilter(e.target.value); setPage(0); }}>
+          <select className="users-filter-select" aria-label="Filter by join date" value={joinedFilter} onChange={(e) => { setJoinedFilter(e.target.value); setPage(0); }}>
             <option>All Time</option>
             <option>Last 7 Days</option>
             <option>Last 30 Days</option>
             <option>Last 90 Days</option>
             <option>This Year</option>
           </select>
-          <select className="users-filter-select" value={registeredVia} onChange={(e) => setRegisteredVia(e.target.value)}>
+          <select className="users-filter-select" aria-label="Filter by registration source" value={registeredVia} onChange={(e) => setRegisteredVia(e.target.value)}>
             <option>All</option>
             <option>Web</option>
             <option>Google</option>
             <option>Email</option>
           </select>
-          <select className="users-filter-select" value={sort} onChange={(e) => setSort(e.target.value)}>
+          <select className="users-filter-select" aria-label="Sort users" value={sort} onChange={(e) => setSort(e.target.value)}>
             <option>Newest</option>
             <option>Name</option>
             <option>Most Raised</option>
@@ -544,7 +544,7 @@ export default function AdminUsersClient({
             <button className="kf-outline" style={{ height: 34, fontSize: 12 }} onClick={() => setSelectedIds([])}>
               Clear Selection
             </button>
-            <select className="users-filter-select" value={bulkAction} onChange={(e) => setBulkAction(e.target.value)}>
+            <select className="users-filter-select" aria-label="Bulk action" value={bulkAction} onChange={(e) => setBulkAction(e.target.value)}>
               <option value="">Select action</option>
               <option value="activate">Activate Users</option>
               <option value="suspend">Suspend Users</option>
