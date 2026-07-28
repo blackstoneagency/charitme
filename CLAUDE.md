@@ -193,6 +193,18 @@ Phase 1 of the AI Context Manager: an agent roster plus one-click context packs.
 
 ## ⚠️ CI is currently DEAD — a red check does NOT mean your PR is broken
 
+**Re-verified 2026-07-28 with the decisive evidence: `runner_id: 0`,
+`runner_name: ""`.** No runner is ever assigned — the job is created and failed
+in the SAME SECOND (`started_at 04:29:11` → `completed_at 04:29:12`), with no
+steps, empty check output, and logs 404. That is not a fast failure, it is the
+absence of a machine to run on, which no code change can affect. Query it
+yourself with `actions_get(get_workflow_job, <jobId>)`; do not rely on the
+timing alone.
+
+⚠️ Vercel's deploy rate-limit cleared on 2026-07-28 while Actions stayed dead.
+**They are separate billing buckets** — do not infer that Actions is fixed
+because deploys started working again.
+
 **Verified 2026-07-26.** Every GitHub Actions run — on `master` and on PRs — fails in
 **2–5 seconds**. A real run (`npm ci` + build + 1281 tests + Playwright) takes minutes,
 so the workflow is dying **before it executes any step**. Symptoms that confirm it:
