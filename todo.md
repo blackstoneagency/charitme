@@ -456,6 +456,54 @@ that is 18 false positives versus 2 real defects. Every hit needs opening the
 file before it gets called a bug — a grep that reports something is missing has
 only proved that *the grep* did not find it.
 
+## 🔴 FOUND + FIXED — /admin/super 500'd on every visit (Claude, 2026-07-28)
+
+`app/admin/super/page.tsx` is a **Server Component** and imported
+`SUPER_ADMIN_NAV` — a plain array — from `components/SuperAdminNav.tsx`, which
+is a **`'use client'` module**. Next replaces a client module with a
+client-reference proxy on the server, so the import was an object, not the
+array, and `SUPER_ADMIN_NAV.filter(...)` threw. The super-admin console overview
+crashed every time it was opened.
+
+**Why three separate safety nets all missed it:**
+- it **typechecks cleanly** — the types are real, only the runtime value is not
+- **lint is silent** on it
+- the page is behind `requireSuperAdmin()`, so **no public sweep ever opens it**
+
+A default-exported *component* crosses that boundary fine — which is why
+`components/CharitMeApp.tsx` imports the same module and has never broken. It is
+specifically **plain data** that does not survive the boundary.
+
+Fixed by moving the list to **`lib/super-admin-nav.ts`** (no `'use client'`) and
+importing it from both sides. New guard `__tests__/rsc-client-value-imports.test.ts`
+catches the class — a server file importing a named non-component value from a
+client module — verified non-vacuous by restoring the original import.
+
+`ai-control-center.test.ts` asserted the AI nav entry by reading the component
+file, so it went red on the move. Repointed at the list's new home: the data
+moved, the assertion follows it. **Not** weakened.
+
+### The stub's two crashes were NOT product bugs — checked, not assumed
+
+The same sweep 500'd `/donor` and `/admin/audit-log`. Both were **stub fixture
+bugs**, confirmed against `supabase/schema.sql`:
+
+| Fixture | had | schema has |
+|---|---|---|
+| `recurring_donations` | `interval`, `next_charge_at` | **`cadence`** (NOT NULL + CHECK), **`next_bill_at`** |
+| `webhook_events` | `type`, `processed`, `error` | **`event_type`**, **`processed_at`**, **`processing_error`** |
+
+Every one of those columns is `NOT NULL` in production, so neither crash can
+occur against the real database. Fixed the fixtures instead of the app.
+
+**The cost was silence, not noise:** both pages dropped out of the sweep
+entirely. `/admin/audit-log` reported **5 text elements** and was never audited —
+surfaced only by the sweep's own "fewer than 15 text elements" warning, which is
+the single most valuable thing in that script's output.
+
+**Score for the day: 3 crashes investigated → 1 real bug.** Same discipline as
+the fetch-method audit: open the file before calling it a defect.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).
