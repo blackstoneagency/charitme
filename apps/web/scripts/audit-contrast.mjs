@@ -195,15 +195,31 @@ function collectContrast() {
 
     // Over a gradient, score the LEAST favourable stop: text that is readable at
     // one end of the fill and not the other is still unreadable somewhere.
-    const overGradient = Boolean(bgResult.stops);
     const candidates = bgResult.stops ?? [bgResult];
     let bg = candidates[0];
     let r = Infinity;
+    let rMax = -Infinity;
     for (const c of candidates) {
       const composited = fg.a < 1 ? over(fg, c) : fg;
       const cr = ratio(composited, c);
       if (cr < r) { r = cr; bg = c; }
+      if (cr > rMax) rMax = cr;
     }
+
+    // Gradient findings are REPORTED rather than failed, because fixing them
+    // means changing a brand gradient — a design call. That leniency only makes
+    // sense when the ratio actually varies along the fill. It does not when an
+    // opaque layer sits between the text and the gradient: every stop composites
+    // to nearly the same colour, so the failure is an ordinary solid-background
+    // failure wearing a gradient's clothes.
+    //
+    // Real case: `.aif-showcase-cat` ("Medical") on /ai-fundraising in dark —
+    // rgb(108,53,255) on a 96%-opaque rgba(18,21,52,.96) card at 11px/950,
+    // measured 3.04:1 against a required 4.5:1. The card's ancestor carries a
+    // gradient contributing ~4%, which was enough to downgrade a genuine AA
+    // failure to a non-failing warning.
+    const GRADIENT_SPREAD_EPSILON = 0.5;
+    const overGradient = Boolean(bgResult.stops) && rMax - r >= GRADIENT_SPREAD_EPSILON;
 
     // WCAG large text: >=24px, or >=18.66px when bold.
     const size = parseFloat(cs.fontSize);
