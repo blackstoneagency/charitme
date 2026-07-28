@@ -161,6 +161,23 @@ async function handleEvent(event: Stripe.Event) {
     case 'payout.failed':
       await handlePayoutFailed(event.data.object as Stripe.Payout);
       break;
+    default:
+      // Stripe delivers whatever the Dashboard subscribes to, which changes
+      // independently of this file — this project's endpoint went from 2 events
+      // to 20 in one sitting. Without this branch an event with no case here is
+      // dropped in TOTAL silence: no log, no error, no row, and a 200 back to
+      // Stripe so it never retries and nothing appears in the delivery log as
+      // failed. The consequence surfaces much later as a data inconsistency
+      // (a cancelled subscription still entitled, a refund never recorded) with
+      // nothing linking it back to the missed event.
+      //
+      // Logged, not thrown: an unhandled event is not an error to Stripe, and
+      // throwing would turn every newly-subscribed event into a retry storm.
+      console.warn('[webhook] no handler for event type — dropped', {
+        type: event.type,
+        id: event.id,
+      });
+      break;
   }
 }
 

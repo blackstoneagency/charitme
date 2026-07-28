@@ -119,3 +119,39 @@ describe('stripe webhook event coverage', () => {
     ).toEqual([]);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The dispatch switch had no `default:`.
+//
+// Stripe delivers whatever the Dashboard subscribes to, and that list changes
+// independently of this file — this endpoint went from 2 subscribed events to
+// 20 in a single sitting. An event with no `case` was dropped in total silence:
+// no log, no error, no row, and a 200 back to Stripe, so it never retried and
+// nothing showed as failed in the delivery log either. The damage surfaces much
+// later as a data inconsistency with nothing tying it back to the missed event.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('an unsubscribed-for event cannot vanish silently', () => {
+  const src = readFileSync(
+    path.join(__dirname, '..', 'app/api/stripe/webhook/route.ts'),
+    'utf8',
+  );
+
+  it('has a default branch on the event dispatch', () => {
+    expect(src).toMatch(/\n\s*default:/);
+  });
+
+  it('logs the event type and id, so the gap is diagnosable', () => {
+    // "something was dropped" is not actionable without knowing what.
+    expect(src).toMatch(/no handler for event type/);
+    expect(src).toMatch(/type: event\.type/);
+    expect(src).toMatch(/id: event\.id/);
+  });
+
+  it('does not throw on an unhandled event', () => {
+    // Throwing would make Stripe retry every newly-subscribed event forever.
+    const defaultBlock = src.slice(src.search(/\n\s*default:/));
+    const untilBreak = defaultBlock.slice(0, defaultBlock.indexOf('break;'));
+    expect(untilBreak).not.toMatch(/\bthrow\b/);
+    expect(untilBreak).not.toMatch(/status:\s*(4|5)\d\d/);
+  });
+});
