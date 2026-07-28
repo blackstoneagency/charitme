@@ -1517,6 +1517,36 @@ it up: merge master into `codex/dashboard-data-trust`, keep master's page bodies
 re-apply the alert component + payouts/refunds/AI-plan coverage on top, then verify
 the four pages still distinguish "no data" from "read failed".
 
+## ⏱️ Server response measured (Claude, 2026-07-28) — fast, but read the caveat
+
+Measured every public route on a **production build** (`next build` + `next start`),
+warm and cold, 37 routes each:
+
+```
+COLD first-hit   median 19ms   p95 34ms   max 55ms  (/)
+WARM             median 17ms   p95 30ms   max 41ms  (/)
+routes over 500ms: 0        over 1000ms: 0
+```
+
+Largest payloads: `/features` 114KB, `/` 92KB, `/faq` 70KB.
+
+**⚠️ This does NOT prove production latency, and must not be quoted as if it does.**
+There is no Supabase in this sandbox, so every data query fails fast and returns
+empty. What is measured here is the app's own render + serialisation overhead with
+the database effectively free. Real TTFB adds query time, connection setup and
+Vercel's cold starts. The honest claim is: **the framework layer is not the
+bottleneck** — 17–19ms median leaves the whole budget to data and network. It is
+not "the site loads in 19ms".
+
+To get the real number, run this against production with `?details` timing, or read
+Vercel's analytics. That is owner-gated like the rest.
+
+_Method note worth keeping:_ my first cold run pointed at a port with nothing on it
+and reported `0.000000` for every route. Zero looks like "instant" and means "never
+connected" — the same false-green shape as the audit that swept a dead port and
+called it 222 findings. Always sanity-check the target responds 200 before trusting
+a timing number.
+
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
