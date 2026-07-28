@@ -38,7 +38,7 @@ const CONTROL = /<(input|select|textarea)\b([^>]*?)\/?>/g;
 const SKIP_TYPES = new Set(['hidden', 'submit', 'button', 'image']);
 
 /** Current known debt. Lower it when controls are fixed; never raise it. */
-const BASELINE = 154;
+const BASELINE = 115;
 
 function tsxFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -60,7 +60,18 @@ function labellingWrappers(src: string): Set<string> {
     const start = m.index ?? 0;
     const next = src.slice(start + 1).search(/\nfunction\s+[A-Z]\w*\s*\(|\nexport default/);
     const body = src.slice(start, next === -1 ? undefined : start + 1 + next);
-    if (/htmlFor=\{/.test(body) && /cloneElement/.test(body)) found.add(m[1]);
+    // Two valid wrapper shapes:
+    //   explicit — renders <label htmlFor> and clones the id onto its child
+    //   implicit — renders <label>…{children}…</label>, nesting the control
+    // The implicit form is ordinary valid HTML, but the <label> lives in the
+    // wrapper's DEFINITION while the control sits at the CALL SITE, so a scan
+    // looking for a nearby <label> cannot see the association at all.
+    const explicit = /htmlFor=\{/.test(body) && /cloneElement/.test(body);
+    const labelOpen = body.indexOf('<label');
+    const labelClose = body.indexOf('</label>', labelOpen === -1 ? 0 : labelOpen);
+    const implicit =
+      labelOpen !== -1 && labelClose > labelOpen && body.slice(labelOpen, labelClose).includes('{children}');
+    if (explicit || implicit) found.add(m[1]);
   }
   return found;
 }
