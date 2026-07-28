@@ -116,7 +116,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  await supabaseAdmin.from('tax_receipts').upsert({
+  // The receipt has already been emailed to the donor, so a failed write cannot
+  // become an error status — that would read as "not sent" and invite a re-send.
+  // But dropping it silently leaves an IRS-facing document with no record on our
+  // side, which is the same compliance problem the email guard above refuses to
+  // create. Log the row and tell the caller the record is missing.
+  const { error: receiptErr } = await supabaseAdmin.from('tax_receipts').upsert({
     donation_id: donation.id,
     donor_id: donation.donor_id,
     nonprofit_id: nonprofit.id,
@@ -124,6 +129,14 @@ export async function POST(req: NextRequest) {
     amount_cents: donation.amount_cents,
     emailed_at: new Date().toISOString(),
   }, { onConflict: 'donation_id' });
+  if (receiptErr) {
+    console.error('[admin/tax-receipt] tax_receipts upsert failed', {
+      donation_id: donation.id,
+      receipt_number: receiptNumber,
+      amount_cents: donation.amount_cents,
+      message: receiptErr.message,
+    });
+  }
 
   // Audit log
   try {
@@ -136,5 +149,12 @@ export async function POST(req: NextRequest) {
     });
   } catch { /* non-fatal */ }
 
-  return NextResponse.json({ ok: true, receiptNumber });
+  return NextResponse.json({
+    ok: true,
+    receiptNumber,
+    recorded: !receiptErr,
+    ...(receiptErr
+      ? { warning: 'The receipt was emailed but could not be recorded. Do not re-send — file it manually.' }
+      : {}),
+  });
 }

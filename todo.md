@@ -2654,6 +2654,355 @@ creation just doesn't ask. Fix is small (one step in the wizard writing the
 launch-settings row) but it is a product decision about the create flow, so it is
 recorded rather than added unilaterally.
 
+**🔴 FIXED — two admin buttons that could never have worked, and said "ok" anyway.**
+Follow-on from sweep #2 below. Chasing *who reads a donor's refund request* led to
+`refunds.upsert(..., { onConflict: 'donation_id' })` in `admin/support/[id]` — and
+`refunds` has **no unique index on `donation_id`**, correctly so (a donation can
+carry a donor request *and* the admin's processed row, or two partials). Postgres
+therefore raises **42P10** on every call. The same statement also omits
+`amount_cents`, which is **NOT NULL**. Two independent guaranteed failures, both
+swallowed by a bare `await`, and the handler still returned `{ ok: true }`.
+**"Trigger refund" on a support case has never once queued a refund.**
+
+Replaced with an explicit find-then-insert-or-update that supplies `amount_cents`
+and **surfaces** failure — nothing irreversible happens here, so a 500 is correct.
+
+That raised the same question for the *other* `onConflict: 'donation_id'` upsert,
+`tax_receipts`, which **does** have a purpose-built unique index (20260726000000)
+— but a **partial** one, `where donation_id is not null`. **Verified on a real
+Postgres 16** (`initdb` is present at `/usr/lib/postgresql/16/bin`, just off PATH):
+
+| statement | index | result |
+|---|---|---|
+| `on conflict (donation_id)` — what PostgREST emits | partial | **42P10** |
+| `on conflict (donation_id) where donation_id is not null` | partial | ✅ |
+| `on conflict (donation_id)` | plain | ✅ |
+| two `null` donation_id rows | plain | ✅ **allowed** |
+
+Postgres only infers a partial index when the statement repeats the predicate, and
+supabase-js `onConflict` takes column names only — there is no way to attach one.
+So the tax-receipt upsert **also failed every time**: the donor got an IRS receipt
+by email and nothing was recorded. The predicate was never needed — a plain
+`UNIQUE` already treats NULLs as distinct (row 4 above), so it bought nothing and
+cost the upsert. Migration `20260728020000_fix_tax_receipt_upsert_inference.sql`
+drops the predicate.
+
+⚠️ Note what nearly happened: the sweep below had just added *error logging* to
+that same tax-receipt call. Logging alone would have been a fix that made a
+100%-reproducible failure merely **visible**. Reading the constraint — not the
+call site — is what turned it into a repair.
+
+**✅ UNBLOCKED — `supabase/schema.sql` regenerated (was "needs `initdb`").**
+`initdb` exists; it just refuses to run as root and isn't on PATH, which is what
+the earlier "blocked" note actually hit. `scripts/regen_schema.sh` run as the
+`postgres` user replays every migration and dumps a fresh mirror: **155 tables
+before and after** (no loss), picking up other agents' drifted `is_demo` indexes
+plus the tax-receipt fix. This also *proves* the new migration applies cleanly on
+top of the full migration history, since the script replays all of them.
+
+**🔴 FIXED — `audit:a11y` printed ✅ over a run where nothing loaded.**
+Ran it and got *"✅ 0 axe violations across 38 routes × 2 themes"* — from a sweep in
+which **76 of 76 page loads had failed** with `ERR_CONNECTION_REFUSED`. The script
+defaults to port **3260** and only ever counted *violations*: an unreachable page
+contributes 0, so a totally dead run was indistinguishable from a clean one. It
+then `exit 0`'d. Any CI job or session that ran it without an explicit URL got a
+**false green**.
+
+`audit-contrast.mjs` already got this right (*"74 connection error(s) — findings
+above are not real"*, exit 1). `audit-a11y.mjs` now matches: it counts pages
+actually analyzed, names the failures, and exits 1 if any page could not be
+reached. Verified both directions — against a live server it reports **76 page
+loads analyzed**, against the dead default it reports **76 of 76 failed**.
+
+Same principle as the `?? 0` rule on the AI console: **0 is the reassuring answer
+here, so it has to be measured rather than defaulted.**
+
+**✅ MEASURED — accessibility, contrast and keyboard now have real evidence.**
+All run against a live production build (`next start`), not asserted:
+
+| audit | result |
+|---|---|
+| `audit:a11y` (axe, WCAG 2.0/2.1/2.2 A+AA) | **0 violations**, 76 page loads (38 routes × 2 themes) |
+| `audit:contrast` | **0 AA failures**, 37 pages × 2 themes, **7,230 text elements** |
+| `audit:scroll-keyboard` | **0 keyboard-unreachable** scroll regions, 44/44 loads |
+
+That covers "Accessibility passes" and "Dark and light mode solved for every page"
+with numbers rather than adjectives.
+
+**📋 MEASURED — web vitals: 27/37 within budget, and the 10 misses split in two.**
+⚠️ **Do not "optimize" the slow ones — most are an artifact of this sandbox.**
+`/faq`, `/grants`, `/impact` measured TTFB **7.06s each**, `/ai-fundraising`
+**14.07s** — uniform multiples of ~7s, which is a *connect timeout*, not
+computation. `.env.local` points at `placeholder.supabase.co`, so any page doing a
+DB read stalls until the socket gives up. Control: `/fees` (no DB) is **14 ms**.
+These pages are fine; the environment isn't.
+
+**⚠️ CORRECTION — the CLS numbers are NOT actionable either.** I recorded them as
+"real — layout shift is measured client-side and owes nothing to the database."
+**That was wrong**, and acting on it would have damaged production.
+
+`scripts/diagnose-cls.mjs` (added here) reports the shifting *element* rather than
+just the score. Every failing route had **exactly one** shift, the same one:
+
+```
+/leaderboard  CLS=0.2066  <FOOTER class="kind-footer">  0x0@0 -> 1240x440@460
+/campaigns    CLS=0.1520  <FOOTER class="kind-footer">  0x0@0 -> 1240x250@650
+```
+
+The cause is the **empty database**, not the layout. The five over-budget routes
+are *exactly* the five with a `loading.tsx`, and each skeleton correctly reserves
+space for a populated grid — then the page renders an **empty state** because
+Supabase is unreachable, and the footer snaps upward into the gap:
+
+| route | skeleton reserves | actually rendered |
+|---|---|---|
+| `/leaderboard` | ~750px (10 rows) | **392px** — *"No active campaigns yet"* |
+| `/campaigns` | ~1200px (9 cards) | **582px** |
+| `/events` | grid | **472px** |
+| `/matching` | grid | **495px** |
+
+So the obvious fix — *"tighten the skeletons"* — would size them to an empty state
+and produce a **worse** shift in production, where the data exists.
+
+Same trap as the TTFB numbers two entries up, and I walked into it after warning
+about it: **a metric measured against a broken dependency describes the
+dependency, not the code.** Re-run `diagnose-cls.mjs` against an instance with
+real data before touching any skeleton. If the source is still the footer, the
+mismatch is genuine; if it is an `<img>`, that image lacks width/height.
+
+**📋 "Every image unique, 0 duplicates" — measured, and narrower than it reads.**
+The audit warns that one photo is used by **15 of 18 categories**, which sounds
+like the criterion is far off. Tracing what actually reaches a visitor:
+
+- `getCoverForCategory()` returns `pool[0]`, and the audit **already fails** on a
+  shared `pool[0]` — so **every category cover is unique today**. That covers 3 of
+  the 4 call sites (home page ×2, `CampaignImage`).
+- The only consumer of pool *depth* is `campaigns/[slug]` →
+  `getPhotosForCategory(category, 4)`, the gallery fallback shown **only when a
+  campaign has no images of its own**.
+
+So the residual is: two image-less campaigns in *different* categories show
+overlapping gallery photos. Real, but not the front-door problem the warning
+implies.
+
+**Two ways to fix it without new photos — both tested, both dead ends:**
+
+1. **Redistribute the existing photos.** Impossible, by arithmetic: the pools
+   have **111 slots** and there are **45 distinct photos**. Uniqueness needs ≥111.
+2. **Reorder each pool so category-specific photos precede the shared `C.*`
+   ones.** Measured across all 18 categories: **35 shared slots in the visible
+   first-4 → 35.** Zero gain — the pools are *already* ordered specific-first.
+   12 categories simply don't have 4 specific photos to give.
+
+**Unblocked by exactly one thing: `UNSPLASH_ACCESS_KEY`.** ~66 more curated photos
+are needed. Candidate IDs can be *verified* from here (`--live` does real HTTP and
+passes), but they cannot be *found* without the search API — and guessing IDs
+would ship images whose subject matter nobody has seen onto live category pages,
+which is worse than the duplicate it replaces.
+
+**⚠️ `apps/web/.env.local` is a PLACEHOLDER file** (`placeholder.supabase.co` —
+the proxy rejects CONNECT to it). So there are **no live Supabase credentials** in
+this sandbox: live row counts ("≥100 seed records"), live cover-image duplication,
+and the 61 drifted-column query all remain unmeasurable here. I briefly believed
+otherwise on seeing the key names — the values are what matter.
+
+**🔴 FIXED — a beneficiary invite could be accepted by the wrong person.**
+`POST /api/beneficiaries/invites/accept` writes `campaigns.beneficiary_profile_id`
+— it decides who a fundraiser is understood to be raising money *for*. The invite
+names an email, and the accept screen displays it ("this invite is for <email>"),
+but the column was **SELECTed and then never compared**. Any signed-in user
+holding the token could accept an invite addressed to someone else.
+
+Possession of a link is not identity: tokens get forwarded, links get shared, and
+the invite itself states who it is for. Now compared case-insensitively **before
+any write** — order matters, because the invite is marked accepted and cannot be
+retried, so a check running afterwards would lock the real invitee out
+permanently. The 403 names the expected address, since the legitimate way to hit
+this is signing up under a different one.
+
+Same route: the `campaigns` link write was unchecked, so a failure showed
+*"You're set as a beneficiary!"* over a campaign with **no beneficiary**, with the
+invite already consumed. Now a 500. The `roles` write is logged but non-fatal —
+nothing branches on the role; the entitlement comes from
+`beneficiary_profile_id`.
+
+**📋 ROLE SYSTEM — the earlier "roles enforce nothing" note needs a correction.**
+Re-checked: `getUserRoles()` still has **no callers** outside `isAdmin` /
+`isSuperAdmin`, so `donor` / `organizer` / `beneficiary` / `nonprofit` remain
+decorative. But calling that an *authorization hole* was wrong — the role-specific
+areas are scoped by **data ownership**, not by role: `/donor` filters on
+`donor_id = user.id`, `/dashboard` on the owner, the beneficiary portal on
+`beneficiary_profile_id`. A donor opening an organizer page sees their own (empty)
+data, not someone else's. So this is a **product/UX** gap — the roles aren't
+distinct experiences — not a security one, and it should not be fixed by bolting
+role checks onto routes that are already correctly scoped.
+
+**🔴 FIXED — `creator_tips` was world-readable, Stripe payment intent IDs and all.**
+RLS audit, run against a **local replay of every migration** (Postgres 16) rather
+than by reading policy files. Two checks came back clean and are recorded so they
+aren't redone: **no** table granted to `anon`/`authenticated` has RLS disabled, and
+of the 18 tables with an unconditional `using (true)` read, all but one are public
+by design (rewards, milestones, updates, countries, badges…).
+
+The exception: `creator_tips`, holding `supporter_id`, `amount_cents`, `message`
+and **`stripe_payment_intent_id`** — enumerable by anyone, signed in or not.
+
+It reads as an oversight, not a decision, because the same migration locks both
+siblings on the **adjacent lines**:
+
+```sql
+create policy product_orders_private      … using (auth.uid() = buyer_id     or is_admin());
+create policy commission_requests_private … using (auth.uid() = requester_id or is_admin());
+create policy public_creator_tips_read    … using (true);   -- ← the odd one out
+```
+
+Same shape (payer, amount, payment reference), same file, opposite policy — and
+`creator_tips` is the only one exposing a Stripe identifier at all. Safe to
+tighten: **no app code queries it** (it appears only as a table *name* in
+`feature-catalog.ts`), and `anon`/`authenticated` hold only SELECT, so every write
+already goes through `service_role`. Verified on real rows across four identities:
+anonymous **0**, supporter **1**, creator **1**, unrelated signed-in user **0**.
+
+**🔴 FIXED — the generator turned SQL *comments* into live policies.**
+Caught only because the mirror was regenerated afterwards: the world-readable
+policy was **back**, after my own drop. `scripts/build_catchup.py` rewrites
+`create policy X on T` → `drop … ; create …` with a regex over the raw file, with
+no idea what a comment is. So the migration's own explanation —
+
+```sql
+--   create policy public_creator_tips_read on creator_tips for select
+--     using (true);
+```
+
+— was emitted into `catch_up.sql` as a **live statement**, re-creating the exact
+policy being removed. Permissive policies OR together, so the resurrected one
+wins. And since the `using (…)` line stayed commented, the injected policy was
+**unqualified — granting more than the text it was copied from.**
+
+This is general: *any* migration quoting SQL in its comments silently gains
+objects. `idempotent()` now masks `--` comments (quote-aware) before rewriting.
+Pinned by `__tests__/catchup-generator-ignores-comments.test.ts`: every policy in
+the generated output must trace to a real migration statement, not to prose about
+one.
+
+⚠️ Second time in one session that **a migration was undone by something that ran
+after it** (the first: a future-dated migration re-creating a partial index).
+Both were invisible in the migration file and obvious in the replayed mirror.
+**Regenerate and read the end state — a migration file records an intention, not
+an outcome.**
+
+**📋 NOTED, not changed — `creator_tips_insert_public` (`for insert with check
+(true)`)** is inert: `anon` holds no INSERT grant after the write-lockdown
+migration. Recorded rather than "fixed" so it isn't mistaken for a live hole.
+
+**🔴 FIXED — a failed *recurring* donation record was permanent; the one-time path
+already retried.** A Stripe webhook returning 2xx means *"handled, do not retry."*
+The one-time donation path knows this and **throws** if `record_donation` fails, so
+the webhook 500s and Stripe redelivers until it lands. The two **recurring** paths —
+subscription checkout (`~207`) and invoice renewal (`~657`) — discarded the result
+entirely. A failure there left a **charged** donor with no donation row, no receipt
+and campaign totals that never moved, with nothing to retry it. Both now throw, as
+the one-time path does.
+
+Throwing is safe *specifically* because `record_donation` is idempotent on
+`p_stripe_event_id` — a Stripe retry cannot double-count. Pinned by the ratchet.
+
+⚠️ **This was a miss in my own sweep #2, not a new discovery.** These two were
+inside the 172; the listing I triaged from was truncated at 60 lines and never
+showed the `.rpc(` sites. The consequence is worse than 3 of the 4 I *did* fix.
+The lesson isn't "look harder" — it's that **triaging from a truncated listing is
+triaging from a sample you didn't choose.** What actually surfaced it was checking
+a different invariant (every `.rpc()` name and argument against the schema) and
+reading the call sites on the way past.
+
+**📋 CLEAN — the RPC surface itself.** All 6 `.rpc()` names exist in the schema and
+every call supplies every argument (none have defaults, so a missing one is a
+runtime `PGRST202`). No action needed; recorded so it isn't re-checked.
+Fixed a stale `CLAUDE.md` claim found doing it: the donation flow calls
+**`record_donation`**, not `increment_campaign_stats` — which exists nowhere in the
+schema and has no callers.
+
+**🔴 FIXED — the same 42P10 across 5 more upserts, incl. the payment ledgers and
+unsubscribe.** Rather than stop at the two found by hand, the invariant got a test:
+`__tests__/upsert-onconflict-has-index.test.ts` parses every `onConflict:` target
+out of `app/` + `lib/` and checks it against a **non-partial** unique index in the
+regenerated mirror. It flagged 5 more — all confirmed against the schema:
+
+| upsert | index present | why it fails |
+|---|---|---|
+| `campaign_processor_fees(processor,processor_object_id)` | **none** | — |
+| `campaign_payment_refunds(…)` | **none** | — |
+| `campaign_owner_transfers(…)` | **none** | — |
+| `marketing_opportunities(dedupe_key)` | partial | predicate not repeatable |
+| `marketing_suppression_list(email)` | `lower(email)`, partial | **expression** index; `onConflict` can't match it |
+
+The three payment ledgers are the serious ones. `20260608020000` created **four**
+sibling tables, all upserted on the same webhook-replay key — and only
+`campaign_payment_disputes` ever got the constraint. So every processor-fee,
+refund and owner-transfer row the Stripe webhook tried to record was **rejected**,
+which is why those reconciliation views had nothing in them. The fix isn't a
+judgement call: it copies the constraint its own sibling already has.
+
+`marketing_suppression_list` is the one with a compliance edge — **"unsubscribe"
+wrote nothing**, so the address kept receiving mail. (`unsubscribeEmail()`
+normalizes before writing, so a plain unique on `email` is equivalent for every
+caller; the `lower(email)` index is kept as the case-insensitivity backstop.)
+
+⚠️ **A migration can be silently undone by a later one.** The first draft of this
+sat at `20260728030000` and did nothing: `20260730000000_marketing_opportunities.sql`
+is future-dated and **re-creates** the partial index afterwards. Only regenerating
+`schema.sql` caught it — the mirror replays migrations in order, so it shows the
+state that *results*, not the one each file intends. Re-dated `20260812000000`,
+after every existing migration. **Check the regenerated mirror, not the migration
+you just wrote.**
+
+**🟠 FIXED — `maybeSingle()` on `refunds`, a table where multi-row is normal.**
+`maybeSingle()` tolerates 0 rows but **errors** on more than one (PGRST116). Both
+uses in `donations/[id]/refund-request` discarded that error:
+- **GET** → reported `refundRequest: null`, i.e. *"you have no pending request"*,
+  as soon as a second `refunds` row existed — which the admin refund path now
+  creates routinely.
+- **POST** duplicate guard → a guard that **fails open**, letting the duplicate
+  through. Now `order(created_at desc).limit(1)`, and an unreadable check is a
+  503, not a pass — matching the donor page, which already refuses to submit
+  rather than risk a duplicate when it can't verify eligibility.
+
+There are **275** `maybeSingle()` calls repo-wide. **Not sweeping them** — most key
+on a genuinely unique column, and the count is not the defect list. Acted only
+where multi-row was *established* rather than suspected.
+
+**📋 SWEEP #2 — the same bug without the `void`: `await`ed writes whose result is
+discarded.** The sweep below searched `void supabaseAdmin`, which misses the more
+common shape — `await supabaseAdmin.from(x).insert(...)` with no destructuring.
+PostgREST **resolves** with `{ data: null, error }` instead of throwing, so those
+are dropped just as silently. There are **172** of them across `app/api` + `lib`.
+
+172 is a count, not a defect list, and shipping it as one would repeat the
+"31 unbounded queries" overclaim. Triaged on the criterion this audit already
+uses — *would a silent failure lose something unrecoverable, or cause someone to
+fail to act?* — with one sharpening: **the write follows an irreversible side
+effect**, so the platform's record ends up disagreeing with what really happened.
+That leaves **4**:
+
+| write | what already happened | consequence if dropped | action |
+|---|---|---|---|
+| `refunds` insert (`admin/donations/[id]/refund`) | **money refunded at Stripe** | a **partial** refund leaves the donation `completed`, so this row is the *only* record any money went back | ✅ logged + `ledger_recorded:false` |
+| `tax_receipts` upsert (`admin/donations/tax-receipt`) | **IRS receipt emailed to the donor** | a tax document exists in the donor's inbox with no record on our side | ✅ logged + `recorded:false` |
+| `risk_flags` insert (`ai/fraud-monitor`) | scan reported *N campaigns flagged* to an admin | response counts **in-memory** rows → "3 flagged" while the review queue is **empty** | ✅ logged + `flagsPersisted` |
+| `risk_flags` insert (`ai/impact-summary`) | ledger item parked in `pending_review` | item waits forever on a moderator who was never told | ✅ logged |
+
+The remaining ~168 are **deliberately untouched**: mostly `ai_generations` usage
+logging and `marketing_audit_logs`, where silent loss costs an analytics row —
+the same trade already accepted for `source_utm`/`share_events`.
+
+⚠️ **The fix is NOT "return 500 on failure."** Every one of these runs *after* the
+side effect succeeded, so an error status reads as "it didn't happen" and invites
+a retry — and retrying the refund path issues a **second refund**. They return
+2xx with an explicit `warning`, and the admin refund modal now holds that warning
+on screen instead of flashing its success state. Pinned by
+`__tests__/post-money-writes-are-checked.test.ts`, which also **ratchets**: a bare
+awaited write to `refunds`/`tax_receipts`/`risk_flags` in those files fails the suite.
+
 **📋 SWEEP — every silent `void supabaseAdmin` write, triaged by consequence.**
 Prompted by the reward-claim finding (a *write* whose failure was unobservable, a
 new variant of the audit's usual "missing read path"). Found **10** bare

@@ -34,7 +34,52 @@ drop policy if exists admin_settings_admin_all on public.admin_settings;
 create policy admin_settings_admin_all on public.admin_settings for all using (is_admin()) with check (is_admin());
 """
 
+def _mask_comments(sql):
+    """Hide `--` line comments so the rewrites below cannot fire inside prose.
+
+    Without this, a migration that QUOTES SQL in its comments has that SQL
+    injected into catch_up.sql as live statements. It is not hypothetical: a
+    migration documenting the policy it removes —
+
+        -- create policy public_creator_tips_read on creator_tips
+        --   for select using (true);
+
+    — had exactly that policy re-created in the generated output, silently
+    undoing the migration. Permissive policies OR together, so the resurrected
+    one would have won. Worse, the `using (...)` clause stays commented out, so
+    the injected policy is unqualified and grants MORE than the text it came
+    from.
+
+    `--` inside a string literal is not a comment, so quotes are tracked.
+    """
+    out, masked = [], []
+    for line in sql.split('\n'):
+        in_str, cut = False, None
+        i = 0
+        while i < len(line):
+            ch = line[i]
+            if ch == "'":
+                in_str = not in_str
+            elif ch == '-' and not in_str and line[i:i + 2] == '--':
+                cut = i
+                break
+            i += 1
+        if cut is None:
+            out.append(line)
+        else:
+            masked.append(line[cut:])
+            out.append(line[:cut] + f'\x00CMT{len(masked) - 1}\x00')
+    return '\n'.join(out), masked
+
+
+def _restore_comments(sql, masked):
+    for i, text in enumerate(masked):
+        sql = sql.replace(f'\x00CMT{i}\x00', text)
+    return sql
+
+
 def idempotent(sql):
+    sql, _masked_comments = _mask_comments(sql)
     # inject `drop policy if exists NAME on TABLE;` before each create policy
     pol = re.compile(r'(?is)\bcreate\s+policy\s+("(?:[^"]|"")+"|[a-zA-Z0-9_]+)\s+on\s+((?:[a-zA-Z0-9_]+\.)?[a-zA-Z0-9_]+)')
     sql = pol.sub(lambda m: f'drop policy if exists {m.group(1)} on {m.group(2)};\ncreate policy {m.group(1)} on {m.group(2)}', sql)
@@ -46,7 +91,7 @@ def idempotent(sql):
     # inject `alter table T drop constraint if exists C;` before each add constraint
     con = re.compile(r'(?is)\balter\s+table\s+(?:only\s+)?((?:[a-zA-Z0-9_]+\.)?[a-zA-Z0-9_]+)\s+add\s+constraint\s+([a-zA-Z0-9_]+)')
     sql = con.sub(lambda m: f'alter table {m.group(1)} drop constraint if exists {m.group(2)};\nalter table {m.group(1)} add constraint {m.group(2)}', sql)
-    return sql
+    return _restore_comments(sql, _masked_comments)
 
 parts = ['-- ============================================================================='
 ,'-- CharitMe production catch-up (schema only, idempotent). Safe to run ONCE on'

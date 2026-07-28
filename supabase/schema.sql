@@ -169,7 +169,7 @@ end; $$;
 
 CREATE FUNCTION public.claim_campaign_reward(p_reward_id uuid) RETURNS void
     LANGUAGE sql SECURITY DEFINER
-    SET search_path TO 'public'
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
   update public.campaign_rewards
   set claimed_count = claimed_count + 1
@@ -184,6 +184,7 @@ $$;
 
 CREATE FUNCTION public.decrement_campaign_stats(p_campaign_id uuid, p_amount_cents bigint) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
 begin
   update public.campaigns
@@ -200,7 +201,7 @@ end; $$;
 
 CREATE FUNCTION public.get_admin_system_resource_usage() RETURNS TABLE(label text, value integer, color text)
     LANGUAGE sql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_catalog'
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
   with db as (
     select
@@ -252,17 +253,11 @@ $$;
 
 CREATE FUNCTION public.handle_new_user() RETURNS trigger
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'public'
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
 declare
-  requested_roles jsonb;
   display_name text;
 begin
-  requested_roles := coalesce(new.raw_user_meta_data -> 'roles', '["donor"]'::jsonb);
-  if jsonb_typeof(requested_roles) <> 'array' then
-    requested_roles := '["donor"]'::jsonb;
-  end if;
-
   display_name := coalesce(
     nullif(new.raw_user_meta_data ->> 'full_name', ''),
     nullif(new.raw_user_meta_data ->> 'name', '')
@@ -274,7 +269,7 @@ begin
     new.email,
     display_name,
     nullif(new.raw_user_meta_data ->> 'avatar_url', ''),
-    requested_roles
+    '["donor"]'::jsonb
   )
   on conflict (id) do update
   set
@@ -328,6 +323,7 @@ $$;
 
 CREATE FUNCTION public.increment_campaign_stats(p_campaign_id uuid, p_amount bigint) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
 begin
   update campaigns
@@ -455,11 +451,56 @@ end; $$;
 
 
 --
+-- Name: protect_profile_privileged_fields(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.protect_profile_privileged_fields() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $$
+begin
+  if coalesce(auth.role(), '') = 'service_role'
+    or current_user in ('postgres', 'supabase_admin')
+  then
+    return new;
+  end if;
+
+  if tg_op = 'INSERT' then
+    if new.roles is distinct from '["donor"]'::jsonb
+      or new.identity_verified is distinct from false
+      or new.trust_passport_score is distinct from 0
+      or coalesce(new.plan, 'free') <> 'free'
+      or new.stripe_customer_id is not null
+      or new.stripe_subscription_id is not null
+      or new.email is distinct from nullif(auth.jwt() ->> 'email', '')
+    then
+      raise insufficient_privilege using
+        message = 'Privileged profile fields may only be changed by the service role';
+    end if;
+  elsif new.roles is distinct from old.roles
+    or new.identity_verified is distinct from old.identity_verified
+    or new.trust_passport_score is distinct from old.trust_passport_score
+    or new.plan is distinct from old.plan
+    or new.stripe_customer_id is distinct from old.stripe_customer_id
+    or new.stripe_subscription_id is distinct from old.stripe_subscription_id
+    or new.email is distinct from old.email
+  then
+    raise insufficient_privilege using
+      message = 'Privileged profile fields may only be changed by the service role';
+  end if;
+
+  return new;
+end;
+$$;
+
+
+--
 -- Name: record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.record_donation(p_stripe_event_id text, p_campaign_id uuid, p_donor_id uuid, p_amount_cents bigint, p_tip_cents bigint, p_processing_fee_cents bigint, p_message text, p_anonymous boolean, p_stripe_payment_intent_id text, p_stripe_checkout_session_id text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
 declare
   v_existing uuid;
@@ -509,6 +550,18 @@ exception when others then
   on conflict (stripe_event_id) do nothing;
   raise;
 end; $$;
+
+
+--
+-- Name: reload_postgrest_schema_cache(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.reload_postgrest_schema_cache() RETURNS void
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+  select pg_notify('pgrst', 'reload schema');
+$$;
 
 
 --
@@ -1611,6 +1664,7 @@ CREATE TABLE public.campaigns (
     accept_donations boolean DEFAULT true NOT NULL,
     deleted_at timestamp with time zone,
     visibility text DEFAULT 'public'::text NOT NULL,
+    is_demo boolean DEFAULT false NOT NULL,
     CONSTRAINT campaigns_category_check CHECK ((category = ANY (ARRAY['Medical'::text, 'Memorial'::text, 'Emergency'::text, 'Nonprofit'::text, 'Education'::text, 'Animal'::text, 'Environment'::text, 'Business'::text, 'Community'::text, 'Competition'::text, 'Creative'::text, 'Event'::text, 'Faith'::text, 'Family'::text, 'Sports'::text, 'Travel'::text, 'Volunteer'::text, 'Wishes'::text]))),
     CONSTRAINT campaigns_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'paused'::text, 'completed'::text, 'rejected'::text, 'frozen'::text]))),
     CONSTRAINT campaigns_visibility_check CHECK ((visibility = ANY (ARRAY['public'::text, 'unlisted'::text, 'private'::text])))
@@ -1864,6 +1918,9 @@ CREATE TABLE public.donations (
     source_utm jsonb DEFAULT '{}'::jsonb NOT NULL,
     reward_id uuid,
     currency text DEFAULT 'usd'::text NOT NULL,
+    is_demo boolean DEFAULT false NOT NULL,
+    tip_cents bigint DEFAULT 0 NOT NULL,
+    processing_fee_cents bigint DEFAULT 0 NOT NULL,
     CONSTRAINT donations_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'completed'::text, 'refunded'::text, 'failed'::text])))
 );
 
@@ -3250,7 +3307,8 @@ CREATE TABLE public.profiles (
     org_website text,
     plan text DEFAULT 'free'::text,
     stripe_customer_id text,
-    stripe_subscription_id text
+    stripe_subscription_id text,
+    is_demo boolean DEFAULT false NOT NULL
 );
 
 
@@ -4416,6 +4474,22 @@ ALTER TABLE ONLY public.donation_receipts
 
 
 --
+-- Name: donations donations_amount_cents_positive; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.donations
+    ADD CONSTRAINT donations_amount_cents_positive CHECK ((amount_cents > 0)) NOT VALID;
+
+
+--
+-- Name: donations donations_fee_cents_nonnegative; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.donations
+    ADD CONSTRAINT donations_fee_cents_nonnegative CHECK (((tip_cents >= 0) AND (processing_fee_cents >= 0))) NOT VALID;
+
+
+--
 -- Name: donations donations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4469,6 +4543,14 @@ ALTER TABLE ONLY public.donor_segment_members
 
 ALTER TABLE ONLY public.donor_segments
     ADD CONSTRAINT donor_segments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: donor_tips donor_tips_amount_cents_positive; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.donor_tips
+    ADD CONSTRAINT donor_tips_amount_cents_positive CHECK ((amount_cents > 0)) NOT VALID;
 
 
 --
@@ -5088,6 +5170,14 @@ ALTER TABLE ONLY public.peer_fundraisers
 
 
 --
+-- Name: platform_fees platform_fees_amount_cents_nonnegative; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.platform_fees
+    ADD CONSTRAINT platform_fees_amount_cents_nonnegative CHECK ((amount_cents >= 0)) NOT VALID;
+
+
+--
 -- Name: platform_fees platform_fees_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5598,6 +5688,13 @@ CREATE INDEX campaign_owner_transfers_payment_idx ON public.campaign_owner_trans
 
 
 --
+-- Name: campaign_owner_transfers_processor_object_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX campaign_owner_transfers_processor_object_uidx ON public.campaign_owner_transfers USING btree (processor, processor_object_id);
+
+
+--
 -- Name: campaign_payment_admin_notes_payment_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5637,6 +5734,13 @@ CREATE INDEX campaign_payment_reconciliation_status_idx ON public.campaign_payme
 --
 
 CREATE INDEX campaign_payment_refunds_payment_idx ON public.campaign_payment_refunds USING btree (campaign_payment_id);
+
+
+--
+-- Name: campaign_payment_refunds_processor_object_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX campaign_payment_refunds_processor_object_uidx ON public.campaign_payment_refunds USING btree (processor, processor_object_id);
 
 
 --
@@ -5700,6 +5804,20 @@ CREATE INDEX campaign_platform_fees_payment_idx ON public.campaign_platform_fees
 --
 
 CREATE INDEX campaign_processor_fees_payment_idx ON public.campaign_processor_fees USING btree (campaign_payment_id);
+
+
+--
+-- Name: campaign_processor_fees_processor_object_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX campaign_processor_fees_processor_object_uidx ON public.campaign_processor_fees USING btree (processor, processor_object_id);
+
+
+--
+-- Name: campaigns_is_demo_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX campaigns_is_demo_idx ON public.campaigns USING btree (is_demo) WHERE is_demo;
 
 
 --
@@ -5784,6 +5902,13 @@ CREATE INDEX donations_campaign_id_idx ON public.donations USING btree (campaign
 --
 
 CREATE INDEX donations_donor_id_idx ON public.donations USING btree (donor_id);
+
+
+--
+-- Name: donations_is_demo_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX donations_is_demo_idx ON public.donations USING btree (is_demo) WHERE is_demo;
 
 
 --
@@ -6368,6 +6493,13 @@ CREATE INDEX marketing_submissions_form_idx ON public.marketing_form_submissions
 
 
 --
+-- Name: marketing_suppression_email_plain_uq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX marketing_suppression_email_plain_uq ON public.marketing_suppression_list USING btree (email);
+
+
+--
 -- Name: marketing_suppression_email_uq; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6522,6 +6654,13 @@ CREATE INDEX privacy_requests_user_idx ON public.privacy_requests USING btree (u
 
 
 --
+-- Name: profiles_is_demo_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX profiles_is_demo_idx ON public.profiles USING btree (is_demo) WHERE is_demo;
+
+
+--
 -- Name: rate_limit_hits_reset_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6665,7 +6804,7 @@ CREATE UNIQUE INDEX supported_countries_iso_code_key ON public.supported_countri
 -- Name: tax_receipts_donation_id_unique; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX tax_receipts_donation_id_unique ON public.tax_receipts USING btree (donation_id) WHERE (donation_id IS NOT NULL);
+CREATE UNIQUE INDEX tax_receipts_donation_id_unique ON public.tax_receipts USING btree (donation_id);
 
 
 --
@@ -6679,7 +6818,7 @@ CREATE INDEX tax_receipts_donor_created_at_idx ON public.tax_receipts USING btre
 -- Name: uq_marketing_opps_dedupe; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_marketing_opps_dedupe ON public.marketing_opportunities USING btree (dedupe_key) WHERE (dedupe_key IS NOT NULL);
+CREATE UNIQUE INDEX uq_marketing_opps_dedupe ON public.marketing_opportunities USING btree (dedupe_key);
 
 
 --
@@ -7107,6 +7246,13 @@ CREATE TRIGGER privacy_requests_updated_at BEFORE UPDATE ON public.privacy_reque
 --
 
 CREATE TRIGGER profiles_set_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: profiles protect_profile_privileged_fields; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER protect_profile_privileged_fields BEFORE INSERT OR UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.protect_profile_privileged_fields();
 
 
 --
@@ -10696,13 +10842,6 @@ CREATE POLICY campaigns_update_own ON public.campaigns FOR UPDATE USING (((auth.
 
 
 --
--- Name: campaign_builder_events cbe_insert_any; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY cbe_insert_any ON public.campaign_builder_events FOR INSERT TO anon, authenticated WITH CHECK (true);
-
-
---
 -- Name: challenge_participants; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -10844,10 +10983,12 @@ CREATE POLICY creator_profiles_owner_write ON public.creator_profiles USING (((a
 ALTER TABLE public.creator_tips ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: creator_tips creator_tips_insert_public; Type: POLICY; Schema: public; Owner: -
+-- Name: creator_tips creator_tips_private; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY creator_tips_insert_public ON public.creator_tips FOR INSERT WITH CHECK (true);
+CREATE POLICY creator_tips_private ON public.creator_tips FOR SELECT USING (((auth.uid() = supporter_id) OR (EXISTS ( SELECT 1
+   FROM public.creator_profiles cp
+  WHERE ((cp.id = creator_tips.creator_profile_id) AND (cp.user_id = auth.uid())))) OR public.is_admin()));
 
 
 --
@@ -10954,13 +11095,6 @@ CREATE POLICY donations_donor_or_owner_read ON public.donations FOR SELECT USING
 
 
 --
--- Name: donations donations_insert_service; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY donations_insert_service ON public.donations FOR INSERT WITH CHECK (true);
-
-
---
 -- Name: donor_crm_contacts; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -11044,13 +11178,6 @@ CREATE POLICY donor_segments_owner_private ON public.donor_segments USING ((publ
 --
 
 ALTER TABLE public.donor_tips ENABLE ROW LEVEL SECURITY;
-
---
--- Name: donor_tips donor_tips_insert_service; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY donor_tips_insert_service ON public.donor_tips FOR INSERT WITH CHECK (true);
-
 
 --
 -- Name: donor_tips donor_tips_owner_read; Type: POLICY; Schema: public; Owner: -
@@ -12141,13 +12268,6 @@ CREATE POLICY peer_fundraisers_owner_write ON public.peer_fundraisers USING (((a
 ALTER TABLE public.platform_fees ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: platform_fees platform_fees_insert_service; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY platform_fees_insert_service ON public.platform_fees FOR INSERT WITH CHECK (true);
-
-
---
 -- Name: platform_fees platform_fees_owner_read; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -12274,7 +12394,7 @@ CREATE POLICY profiles_read ON public.profiles FOR SELECT USING (((auth.uid() = 
 -- Name: profiles profiles_update_own; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY profiles_update_own ON public.profiles FOR UPDATE USING (((auth.uid() = id) OR public.is_admin()));
+CREATE POLICY profiles_update_own ON public.profiles FOR UPDATE USING (((auth.uid() = id) OR public.is_admin())) WITH CHECK (((auth.uid() = id) OR public.is_admin()));
 
 
 --
@@ -12300,13 +12420,6 @@ CREATE POLICY public_campaign_launch_read ON public.campaign_launch_settings FOR
 CREATE POLICY public_creator_profiles_read ON public.creator_profiles FOR SELECT USING ((EXISTS ( SELECT 1
    FROM public.campaigns c
   WHERE ((c.user_id = creator_profiles.user_id) AND (c.deleted_at IS NULL) AND (c.status = 'active'::text) AND (c.visibility = 'public'::text)))));
-
-
---
--- Name: creator_tips public_creator_tips_read; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY public_creator_tips_read ON public.creator_tips FOR SELECT USING (true);
 
 
 --
@@ -12437,13 +12550,6 @@ CREATE POLICY receipts_own_read ON public.donation_receipts FOR SELECT USING (((
 
 
 --
--- Name: donation_receipts receipts_svc_insert; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY receipts_svc_insert ON public.donation_receipts FOR INSERT WITH CHECK (true);
-
-
---
 -- Name: reconciliation_exceptions; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -12489,13 +12595,6 @@ ALTER TABLE public.refunds ENABLE ROW LEVEL SECURITY;
 --
 
 CREATE POLICY reports_admin_read ON public.campaign_reports FOR SELECT USING (public.is_admin());
-
-
---
--- Name: campaign_reports reports_insert_public; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY reports_insert_public ON public.campaign_reports FOR INSERT WITH CHECK (true);
 
 
 --
@@ -12579,13 +12678,6 @@ ALTER TABLE public.seo_settings ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.share_events ENABLE ROW LEVEL SECURITY;
-
---
--- Name: share_events share_insert_any; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY share_insert_any ON public.share_events FOR INSERT WITH CHECK (true);
-
 
 --
 -- Name: share_events share_owner_read; Type: POLICY; Schema: public; Owner: -
@@ -12692,13 +12784,6 @@ CREATE POLICY status_log_owner_read ON public.campaign_status_log FOR SELECT USI
 
 
 --
--- Name: campaign_status_log status_log_svc_insert; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY status_log_svc_insert ON public.campaign_status_log FOR INSERT WITH CHECK (true);
-
-
---
 -- Name: subscriptions; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -12729,13 +12814,6 @@ ALTER TABLE public.support_cases ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.support_notes ENABLE ROW LEVEL SECURITY;
-
---
--- Name: support_cases support_own_insert; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY support_own_insert ON public.support_cases FOR INSERT WITH CHECK (true);
-
 
 --
 -- Name: support_cases support_own_read; Type: POLICY; Schema: public; Owner: -

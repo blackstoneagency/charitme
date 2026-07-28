@@ -8082,6 +8082,46 @@ create policy public_creator_profiles_read on public.creator_profiles
   );
 
 
+-- ============ 20260728020000_fix_tax_receipt_upsert_inference.sql ============
+-- The admin "send tax receipt" upsert could never work.
+--
+-- 20260726000000 added the right constraint for the wrong reason:
+--
+--   create unique index tax_receipts_donation_id_unique
+--     on public.tax_receipts (donation_id)
+--     where donation_id is not null;
+--
+-- `donation_id` is nullable, so the predicate looks like it is what permits
+-- receipts that aren't tied to a donation. It isn't: a plain UNIQUE index
+-- already treats NULLs as distinct, so multiple NULL rows are allowed either
+-- way. The predicate adds nothing — and it costs the upsert.
+--
+-- Postgres will only infer a PARTIAL unique index for `ON CONFLICT (col)` when
+-- the statement repeats the index predicate. PostgREST emits a bare
+-- `ON CONFLICT (donation_id)` (supabase-js `onConflict` takes column names
+-- only, with no way to attach a WHERE clause), so the arbiter never matched and
+-- every call raised 42P10:
+--
+--   ERROR: there is no unique or exclusion constraint matching the
+--          ON CONFLICT specification
+--
+-- Verified on Postgres 16: the bare form errors against the partial index,
+-- succeeds once the predicate is repeated, and succeeds against a plain index —
+-- which still accepts multiple NULL donation_ids.
+--
+-- The failure was invisible because the call discarded its result, so the route
+-- emailed the donor an IRS receipt and reported ok while recording nothing.
+--
+-- Dropping the predicate keeps the semantics and makes the index inferable.
+-- The dedupe from 20260726000000 already ran, so the plain index can be built
+-- without repeating it.
+
+drop index if exists public.tax_receipts_donation_id_unique;
+
+create unique index if not exists tax_receipts_donation_id_unique
+  on public.tax_receipts (donation_id);
+
+
 -- ============ 20260729000000_marketing_goals.sql ============
 -- =============================================================================
 -- Marketing Goals — goal-based marketing entry point ("tell CharitMe the outcome")
@@ -9891,3 +9931,145 @@ grant execute on function public.reload_postgrest_schema_cache()
   to service_role;
 
 select pg_notify('pgrst', 'reload schema');
+
+
+-- ============ 20260812000000_make_onconflict_targets_inferable.sql ============
+-- Make every `upsert(..., { onConflict: ... })` target actually inferable.
+--
+-- `ON CONFLICT (cols)` is resolved by INFERENCE: Postgres needs a unique index or
+-- constraint on exactly those columns. It will NOT use a partial index unless the
+-- statement repeats the index predicate, and it will NOT use an expression index
+-- unless the expression matches. supabase-js `onConflict` takes bare column names,
+-- so neither is expressible — those upserts raise 42P10 and write nothing:
+--
+--   ERROR: there is no unique or exclusion constraint matching the
+--          ON CONFLICT specification
+--
+-- Every one of these discarded its result, so the failures were invisible.
+--
+-- Dated last on purpose. An earlier draft sat at 20260728030000 and was silently
+-- undone: 20260730000000_marketing_opportunities.sql re-creates
+-- uq_marketing_opps_dedupe as a partial index, so it simply ran afterwards and
+-- put the predicate back. Regenerating supabase/schema.sql is what caught that —
+-- the mirror replays every migration in order, so it shows the state that
+-- actually results rather than the one each file intends.
+-- Companion to 20260728020000 (tax_receipts), found by the same check, which is
+-- now pinned by apps/web/__tests__/upsert-onconflict-has-index.test.ts.
+--
+-- Note a plain UNIQUE is enough in all of these cases: NULLs are distinct under a
+-- unique index (and a composite row containing a NULL never conflicts), so the
+-- `where ... is not null` predicates were never what allowed the nullable rows.
+
+-- ── 1. Payment reconciliation ledgers ───────────────────────────────────────
+-- `20260608020000_campaign_payment_observability.sql` created four sibling
+-- tables, all upserted on (processor, processor_object_id) as the webhook replay
+-- key. Only `campaign_payment_disputes` ever got the constraint
+-- (`campaign_payment_disputes_processor_processor_object_id_key`). The other
+-- three had none at all, so every processor-fee, refund and owner-transfer row
+-- the Stripe webhook tried to record was rejected.
+--
+-- Dedupe before building: without a constraint, duplicates were free to
+-- accumulate. Keep the newest row per key, matching the reconciliation view,
+-- which reads the latest state.
+
+delete from public.campaign_processor_fees older
+using public.campaign_processor_fees newer
+where older.processor_object_id is not null
+  and older.processor = newer.processor
+  and older.processor_object_id = newer.processor_object_id
+  and (older.created_at, older.id) < (newer.created_at, newer.id);
+
+create unique index if not exists campaign_processor_fees_processor_object_uidx
+  on public.campaign_processor_fees (processor, processor_object_id);
+
+delete from public.campaign_payment_refunds older
+using public.campaign_payment_refunds newer
+where older.processor_object_id is not null
+  and older.processor = newer.processor
+  and older.processor_object_id = newer.processor_object_id
+  and (older.created_at, older.id) < (newer.created_at, newer.id);
+
+create unique index if not exists campaign_payment_refunds_processor_object_uidx
+  on public.campaign_payment_refunds (processor, processor_object_id);
+
+delete from public.campaign_owner_transfers older
+using public.campaign_owner_transfers newer
+where older.processor_object_id is not null
+  and older.processor = newer.processor
+  and older.processor_object_id = newer.processor_object_id
+  and (older.created_at, older.id) < (newer.created_at, newer.id);
+
+create unique index if not exists campaign_owner_transfers_processor_object_uidx
+  on public.campaign_owner_transfers (processor, processor_object_id);
+
+-- ── 2. Marketing opportunities ──────────────────────────────────────────────
+-- Partial index; same shape as the tax_receipts case. The predicate bought
+-- nothing and blocked inference, so the AI opportunity drafts were never saved.
+
+drop index if exists public.uq_marketing_opps_dedupe;
+
+create unique index if not exists uq_marketing_opps_dedupe
+  on public.marketing_opportunities (dedupe_key);
+
+-- ── 3. Email suppression list ───────────────────────────────────────────────
+-- This one was BOTH partial and an EXPRESSION index — `unique (lower(email))
+-- where email is not null` — against an `onConflict: 'email'`. So clicking
+-- "unsubscribe" in a marketing email wrote nothing and the address kept
+-- receiving mail. That is the one failure here with a compliance edge.
+--
+-- `unsubscribeEmail()` lowercases before writing, so a plain unique on `email`
+-- is equivalent for every current caller. The lower(email) index is KEPT as
+-- well: it is what actually enforces case-insensitivity if a future writer
+-- forgets to normalize, and it guarantees no case-variant duplicates exist
+-- today, so the plain index below can be built without a dedupe pass.
+
+create unique index if not exists marketing_suppression_email_plain_uq
+  on public.marketing_suppression_list (email);
+
+
+-- ============ 20260812010000_creator_tips_not_world_readable.sql ============
+-- `creator_tips` was readable by anyone, including unauthenticated visitors.
+--
+--   create policy public_creator_tips_read on creator_tips for select using (true);
+--
+-- The row carries `supporter_id`, `amount_cents`, `message` and
+-- `stripe_payment_intent_id`. So an anonymous caller could enumerate who tipped
+-- whom, how much, what they said — and pull a Stripe payment intent identifier
+-- for each one.
+--
+-- This reads as an oversight rather than a decision, because the same migration
+-- (20260525002000_competitor_parity_features.sql) locks down both of its
+-- siblings on the adjacent lines:
+--
+--   create policy product_orders_private on product_orders for select
+--     using (auth.uid() = buyer_id or is_admin());
+--   create policy commission_requests_private on commission_requests for select
+--     using (auth.uid() = requester_id or is_admin());
+--   create policy public_creator_tips_read on creator_tips for select
+--     using (true);                                  -- ← the odd one out
+--
+-- Same shape (a payer, an amount, a payment reference), same file, opposite
+-- policy — and `creator_tips` is the only one of the three exposing a Stripe
+-- identifier at all.
+--
+-- Safe to tighten: no application code queries `creator_tips` (it appears only
+-- as a table NAME in lib/feature-catalog.ts), and `anon`/`authenticated` hold
+-- only SELECT on it — every write already goes through `service_role`, which
+-- bypasses RLS. So nothing that works today stops working.
+--
+-- The replacement follows the siblings, plus the one grant the product plainly
+-- needs: a creator can see the tips they received.
+
+drop policy if exists public_creator_tips_read on public.creator_tips;
+
+drop policy if exists creator_tips_private on public.creator_tips;
+create policy creator_tips_private on public.creator_tips
+  for select using (
+    auth.uid() = supporter_id
+    or exists (
+      select 1 from public.creator_profiles cp
+      where cp.id = creator_tips.creator_profile_id
+        and cp.user_id = auth.uid()
+    )
+    or is_admin()
+  );
