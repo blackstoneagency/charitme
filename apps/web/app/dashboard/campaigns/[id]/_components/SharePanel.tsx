@@ -157,7 +157,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
                 {copied ? '✓ Copied!' : 'Copy'}
               </button>
             </div>
-            <textarea value={content} onChange={e => setContent(e.target.value)} rows={10}
+            <textarea aria-label="Share message" value={content} onChange={e => setContent(e.target.value)} rows={10}
               style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--b2)', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', resize: 'vertical', outline: 'none', lineHeight: 1.6, background: 'var(--s1)' }} />
           </div>
         )}
