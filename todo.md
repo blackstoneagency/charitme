@@ -2647,20 +2647,38 @@ computation. `.env.local` points at `placeholder.supabase.co`, so any page doing
 DB read stalls until the socket gives up. Control: `/fees` (no DB) is **14 ms**.
 These pages are fine; the environment isn't.
 
-**The CLS numbers are real** — layout shift is measured client-side and owes
-nothing to the database:
+**⚠️ CORRECTION — the CLS numbers are NOT actionable either.** I recorded them as
+"real — layout shift is measured client-side and owes nothing to the database."
+**That was wrong**, and acting on it would have damaged production.
 
-| route | CLS | budget 0.1 |
+`scripts/diagnose-cls.mjs` (added here) reports the shifting *element* rather than
+just the score. Every failing route had **exactly one** shift, the same one:
+
+```
+/leaderboard  CLS=0.2066  <FOOTER class="kind-footer">  0x0@0 -> 1240x440@460
+/campaigns    CLS=0.1520  <FOOTER class="kind-footer">  0x0@0 -> 1240x250@650
+```
+
+The cause is the **empty database**, not the layout. The five over-budget routes
+are *exactly* the five with a `loading.tsx`, and each skeleton correctly reserves
+space for a populated grid — then the page renders an **empty state** because
+Supabase is unreachable, and the footer snaps upward into the gap:
+
+| route | skeleton reserves | actually rendered |
 |---|---|---|
-| `/leaderboard` | **0.207** | ✗ |
-| `/campaigns` | **0.152** | ✗ |
-| `/events` | 0.13 | ✗ |
-| `/matching` | 0.115 | ✗ |
-| `/volunteer` | 0.088 | ok |
+| `/leaderboard` | ~750px (10 rows) | **392px** — *"No active campaigns yet"* |
+| `/campaigns` | ~1200px (9 cards) | **582px** |
+| `/events` | grid | **472px** |
+| `/matching` | grid | **495px** |
 
-Unclaimed and genuinely actionable — most likely cards/images without reserved
-dimensions. Left for whoever picks up performance so as not to collide with the
-mobile/perf work already in flight.
+So the obvious fix — *"tighten the skeletons"* — would size them to an empty state
+and produce a **worse** shift in production, where the data exists.
+
+Same trap as the TTFB numbers two entries up, and I walked into it after warning
+about it: **a metric measured against a broken dependency describes the
+dependency, not the code.** Re-run `diagnose-cls.mjs` against an instance with
+real data before touching any skeleton. If the source is still the footer, the
+mismatch is genuine; if it is an `<img>`, that image lacks width/height.
 
 **📋 "Every image unique, 0 duplicates" — measured, and narrower than it reads.**
 The audit warns that one photo is used by **15 of 18 categories**, which sounds
