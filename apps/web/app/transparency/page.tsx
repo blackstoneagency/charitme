@@ -76,7 +76,7 @@ export default function TransparencyPage() {
         <h2>How payments work</h2>
         <ol>
           <li>
-            <strong>You give.</strong> Your card (or bank/PayPal/Venmo) is charged the amount you see —
+            <strong>You give.</strong> Your card, bank account, or digital wallet is charged the amount you see —
             your donation, any optional support, and processing if you choose to cover it.
           </li>
           <li>

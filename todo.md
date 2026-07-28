@@ -852,6 +852,115 @@ cannot see this, because the failure is about events nobody wrote a handler for.
 
 ## 🔓 RUNBOOK — apply the 3 pending migrations (Claude, 2026-07-28)
 
+### 🔴 FIXED — the site advertised two payment methods checkout rejects, with cheaper fees
+
+*"All payment methods work properly"* — the **server** side is genuinely solid
+(`reconcilePaymentMethods`, the `nextPaymentMethodTypes` retry recovery, the
+"one inactive method collapses checkout to card-only" comment). The gap was the
+**donor-facing promise**.
+
+`paypal_payments` is **not active** on the Stripe account, so
+`ONE_TIME_PAYMENT_METHOD_TYPES` omits paypal and `POST /api/donations` normalizes
+`paypal`/`venmo` → `card`. Meanwhile the public site said:
+
+| surface | claim |
+|---|---|
+| `/fees` | *"**PayPal:** 3.49% + $0.49"*, *"**Venmo:** 1.9% + $0.10"* — as processing-fee tiers |
+| `/transparency` | *"Your card (or bank/**PayPal/Venmo**) is charged…"* |
+| `/transparency` calculator | **PayPal** and **Venmo** as selectable methods, priced at those rates |
+
+⚠️ **The fee angle is what makes this more than stale copy.** Venmo's advertised
+rate is **cheaper than card**. A donor sizing their *"I'll cover the processing
+fee"* contribution off 1.9% + $0.10 was quoted a price they can never be charged
+at — the server correctly bills card rates (2.9% + $0.30) off the *normalized*
+method. Quoted one number, charged another.
+
+Copy now matches the accepted set, and `/fees` says plainly that PayPal and Venmo
+are not currently accepted. The calculator offers only Card and Bank (ACH).
+
+**`PaymentMethod` in `@shared/fees` deliberately still includes them** — the API
+must keep accepting and normalizing both so a stale cached client cannot 400 and
+lose a real donation. (Narrowing that enum was proposed earlier this session and
+reversed for exactly that reason.)
+
+Pinned by `__tests__/advertised-payment-methods.test.ts`, which fails in **both**
+directions: it fails if the copy re-advertises an unavailable method, **and** it
+fails once `paypal` is added to `ONE_TIME_PAYMENT_METHOD_TYPES` — so enabling the
+capability prompts restoring the copy rather than leaving it wrong the other way.
+It also asserts the real rates stay documented, so the fix cannot degenerate into
+deleting the fee table.
+
+### ✅ MEASURED — mobile has no horizontal overflow, and now has a script that says so
+
+*"Mobile works perfectly"* had **no evidence and no tooling** — PR #49 and PR #127
+each fixed horizontal overflow on `/ai-fundraising`, the second time as a
+**regression**, because the check only ever lived in a session transcript.
+
+`npm run audit:mobile` (new, `scripts/audit-mobile.mjs`) sweeps every public route
+at **320px** (iPhone SE, narrowest phone still in use) and **390px** (current
+iPhone) and fails on any document wider than its viewport. Result:
+
+> **✅ No horizontal overflow across 76 page loads (38 routes × 2 widths)**
+
+Both directions verified, because a green that cannot go red is worthless:
+- pointed at a dead port → *"76 page load(s) failed… a clean result here would be
+  meaningless"*, exit 1;
+- with a 900px `<div>` injected into a passing page → document width **900**, one
+  element past the edge. The detector genuinely fires.
+
+When a page does overflow it **names the offending elements** with their widths
+and right edges — "the page is 410px" doesn't tell you which node did it, which is
+what made the earlier fixes archaeology.
+
+**Tap targets too** — WCAG 2.2 SC 2.5.8 (AA, 24×24), honouring the spec's inline
+and spacing exceptions so inline links don't bury the real defects:
+
+> **✅ No tap targets under 24px at 320px**
+
+Two genuine failures found and fixed: `/login`'s "Forgot password?" link (**125×19**
+— padding added, absorbed by the existing negative margin so form spacing is
+unchanged) and `/volunteer`'s "Remote only" label (**113×20** — `minHeight: 24`).
+
+⚠️ **A third "failure" was mine, not the app's.** `/transparency`'s checkbox
+measured 16×16 — but it sits inside a `<label>`, and clicking a label activates
+its control, so the **label** is the target a thumb has to hit, and it is large
+enough. The audit now measures the *effective* target (`el.closest('label')`, or
+`label[for=...]`). Enlarging that checkbox would have "fixed" a control that was
+already easy to tap.
+
+**⚠️⚠️ And 42 more were an unstyled page.** Mid-run the numbers jumped to 4
+overflows and 42 tap violations across 37 routes — a shared header button
+measuring 107×**17**. A pill that short means padding is not applying. It wasn't:
+`next start` had failed (port already held), so a **stale server was serving old
+HTML against a rebuilt `.next`**; the HTML asked for `9118722686befb3e.css` while
+the build had produced `1f2d65f2664ad9d9.css`, Next returned **400**, and every
+element was measured at its intrinsic unstyled size. `document.body` was rendering
+in *Times New Roman* — the tell.
+
+The script now **refuses to measure a page whose stylesheets have 0 rules**, and
+reports it as a failed load rather than a finding. This is the third time this
+session a metric taken against a broken dependency nearly became a false report
+(after TTFB and CLS); it is the first time the tool itself can now catch it.
+
+### 🔴 Three migrations merged in #146 are UNAPPLIED — the code shipped, the fixes did not
+
+`bf42c91` is on `master` and deploying. Its code changes are safe without the
+migrations (nothing errors), but **three fixes stay broken until this runbook is
+run**, because each one *is* a schema change:
+
+| migration | what stays broken without it |
+|---|---|
+| `20260728020000_fix_tax_receipt_upsert_inference` | tax receipt still emailed to the donor and **never recorded** (partial index → 42P10) |
+| `20260812000000_make_onconflict_targets_inferable` | Stripe webhook still **rejects** every processor-fee / refund / owner-transfer row; **"unsubscribe" still writes nothing** |
+| `20260812010000_creator_tips_not_world_readable` | `creator_tips` stays **world-readable** — supporter IDs, amounts, Stripe payment intent IDs |
+
+The third is the one to prioritise: it is a live data exposure, and it is a
+single `drop policy` + `create policy`, safe to run on its own.
+
+⚠️ The code half of the tax-receipt fix now **logs** the failure it previously
+swallowed. Expect `[admin/tax-receipt] tax_receipts upsert failed` in production
+logs until the migration lands — that is the bug becoming visible, not a new one.
+
 This has been the #1 blocker all session. It is still blocked *here* — but Codex's PR #136
 added the tooling, so it is now a **copy-paste command** rather than an open question.
 

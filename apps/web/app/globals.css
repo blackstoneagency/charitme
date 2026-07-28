@@ -1502,7 +1502,10 @@ img, video, iframe { max-width: 100%; }
 .auth-success { background: var(--green-light); color: var(--green-dark) !important; }
 .auth-submit { border: 0; color: #fff; background: linear-gradient(135deg, var(--violet), var(--violet-2), var(--pink-btn)); box-shadow: 0 16px 30px rgba(109,53,255,.20); }
 .auth-submit:disabled, .auth-google:disabled, .auth-apple:disabled { opacity: .65; cursor: wait; }
-.auth-forgot { align-self: flex-end; margin-top: -8px; font-size: 12.5px; font-weight: 800; color: var(--violet-ink); text-decoration: none; }
+/* Padding, not a larger font: the link measured 125×19 on a 320px screen, under
+   the 24px minimum of WCAG 2.2 SC 2.5.8 (AA). The negative margin absorbs the
+   added padding so the form's spacing is unchanged. */
+.auth-forgot { align-self: flex-end; margin-top: -13px; padding: 5px 0; font-size: 12.5px; font-weight: 800; color: var(--violet-ink); text-decoration: none; }
 .auth-forgot:hover { text-decoration: underline; }
 .auth-switch { text-align: center; }
 .auth-switch button { border: 0; background: transparent; color: var(--violet-ink); font-weight: 700; margin-left: 8px; }
