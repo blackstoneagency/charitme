@@ -1574,6 +1574,7 @@ has no real secrets set, so a value-pattern scan here cannot fail the way it wou
 on a machine that does — re-run it against a Vercel build to make the value half of
 this check meaningful.
 
+=======
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
