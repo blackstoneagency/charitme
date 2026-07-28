@@ -767,6 +767,38 @@ otherwise it would fire on every legitimate scroll region (`.kind-pills`,
 Any check depending on an external fetch (images, fonts, `load`) is unverifiable here and
 must not be reported as a site defect.
 
+## ⚡ PERFORMANCE + KEYBOARD — measured on current master (Claude, 2026-07-28)
+
+Re-measured **after** the Next 15.5.22 bump and the mobile/tablet CSS changes, so these
+describe current master rather than an earlier build.
+
+**Web vitals: 37/37 routes within budget**, with real headroom:
+
+| metric | worst observed | budget |
+|---|---|---|
+| LCP | **500ms** (`/campaigns`) | 4000ms |
+| TTFB | **176ms** (`/grants`) | 1500ms |
+| CLS | **0 on every route** | 0.1 |
+| long tasks | **≤1 anywhere** | 6 |
+
+**Scroll/keyboard: 44/44 page loads clean.** Exactly one scrollable region exists on the
+site and it is keyboard-reachable — the `/fast-payouts` comparison table, carrying
+`tabIndex` and `role="region"` as it should. (This is the same table the clipping detector
+correctly learned to ignore.)
+
+### ⚠️ Both audits had been silently producing nothing
+Neither could launch a browser. They read `PLAYWRIGHT_CHROMIUM_PATH` and, unset, fell
+through to Playwright's bundled headless shell — not installed here — dying with *"run
+npx playwright install"*, which reads as a setup problem rather than a missing env var.
+
+**An audit that cannot launch produces no findings, and no findings is indistinguishable
+from a clean run** to anyone reading a passing exit code. This is the **third instance of
+that shape today**: the responsive sweep that hung forever, the one that reported phantom
+broken images, and now two that never started. Every one of them looked like success.
+
+Both now fall back to the sandbox's prebuilt browser, matching what `audit-responsive` and
+`audit-contrast` already hardcode.
+
 ## 💳 PAYMENT METHODS — made checkable (Claude, 2026-07-28)
 
 **I could not verify this, and did not pretend to.** This container has no
