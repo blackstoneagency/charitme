@@ -2610,6 +2610,58 @@ before and after** (no loss), picking up other agents' drifted `is_demo` indexes
 plus the tax-receipt fix. This also *proves* the new migration applies cleanly on
 top of the full migration history, since the script replays all of them.
 
+**🔴 FIXED — `audit:a11y` printed ✅ over a run where nothing loaded.**
+Ran it and got *"✅ 0 axe violations across 38 routes × 2 themes"* — from a sweep in
+which **76 of 76 page loads had failed** with `ERR_CONNECTION_REFUSED`. The script
+defaults to port **3260** and only ever counted *violations*: an unreachable page
+contributes 0, so a totally dead run was indistinguishable from a clean one. It
+then `exit 0`'d. Any CI job or session that ran it without an explicit URL got a
+**false green**.
+
+`audit-contrast.mjs` already got this right (*"74 connection error(s) — findings
+above are not real"*, exit 1). `audit-a11y.mjs` now matches: it counts pages
+actually analyzed, names the failures, and exits 1 if any page could not be
+reached. Verified both directions — against a live server it reports **76 page
+loads analyzed**, against the dead default it reports **76 of 76 failed**.
+
+Same principle as the `?? 0` rule on the AI console: **0 is the reassuring answer
+here, so it has to be measured rather than defaulted.**
+
+**✅ MEASURED — accessibility, contrast and keyboard now have real evidence.**
+All run against a live production build (`next start`), not asserted:
+
+| audit | result |
+|---|---|
+| `audit:a11y` (axe, WCAG 2.0/2.1/2.2 A+AA) | **0 violations**, 76 page loads (38 routes × 2 themes) |
+| `audit:contrast` | **0 AA failures**, 37 pages × 2 themes, **7,230 text elements** |
+| `audit:scroll-keyboard` | **0 keyboard-unreachable** scroll regions, 44/44 loads |
+
+That covers "Accessibility passes" and "Dark and light mode solved for every page"
+with numbers rather than adjectives.
+
+**📋 MEASURED — web vitals: 27/37 within budget, and the 10 misses split in two.**
+⚠️ **Do not "optimize" the slow ones — most are an artifact of this sandbox.**
+`/faq`, `/grants`, `/impact` measured TTFB **7.06s each**, `/ai-fundraising`
+**14.07s** — uniform multiples of ~7s, which is a *connect timeout*, not
+computation. `.env.local` points at `placeholder.supabase.co`, so any page doing a
+DB read stalls until the socket gives up. Control: `/fees` (no DB) is **14 ms**.
+These pages are fine; the environment isn't.
+
+**The CLS numbers are real** — layout shift is measured client-side and owes
+nothing to the database:
+
+| route | CLS | budget 0.1 |
+|---|---|---|
+| `/leaderboard` | **0.207** | ✗ |
+| `/campaigns` | **0.152** | ✗ |
+| `/events` | 0.13 | ✗ |
+| `/matching` | 0.115 | ✗ |
+| `/volunteer` | 0.088 | ok |
+
+Unclaimed and genuinely actionable — most likely cards/images without reserved
+dimensions. Left for whoever picks up performance so as not to collide with the
+mobile/perf work already in flight.
+
 **📋 "Every image unique, 0 duplicates" — measured, and narrower than it reads.**
 The audit warns that one photo is used by **15 of 18 categories**, which sounds
 like the criterion is far off. Tracing what actually reaches a visitor:
