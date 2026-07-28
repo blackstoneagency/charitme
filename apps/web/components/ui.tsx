@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useId } from 'react';
 import Link from 'next/link';
 
 // ── Btn ──────────────────────────────────────────────────────────────────────
@@ -108,10 +108,17 @@ export function Input({
   style,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string; hint?: string }) {
+  // The label was a bare sibling with no htmlFor, so it named nothing. This is
+  // the SHARED input, so every consumer that passes `label` inherited that —
+  // the highest-leverage instance of the same defect found in three local
+  // wrappers. `props.id` wins when a caller supplies one.
+  const autoId = useId();
+  const inputId = props.id ?? autoId;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      {label && <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t2)' }}>{label}</label>}
+      {label && <label htmlFor={inputId} style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t2)' }}>{label}</label>}
       <input
+        id={inputId}
         style={{
           padding: '10px 12px',
           border: `1px solid ${error ? 'var(--red)' : 'var(--b1)'}`,
@@ -140,10 +147,13 @@ export function Textarea({
   style,
   ...props
 }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label?: string; error?: string; hint?: string }) {
+  const autoId = useId();
+  const textareaId = props.id ?? autoId;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      {label && <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t2)' }}>{label}</label>}
+      {label && <label htmlFor={textareaId} style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t2)' }}>{label}</label>}
       <textarea
+        id={textareaId}
         style={{
           padding: '10px 12px',
           border: `1px solid ${error ? 'var(--red)' : 'var(--b1)'}`,
@@ -257,10 +267,13 @@ export function Select({
   style,
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string; error?: string }) {
+  const autoId = useId();
+  const selectId = props.id ?? autoId;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      {label && <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t2)' }}>{label}</label>}
+      {label && <label htmlFor={selectId} style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t2)' }}>{label}</label>}
       <select
+        id={selectId}
         style={{
           padding: '10px 12px',
           border: `1px solid ${error ? 'var(--red)' : 'var(--b1)'}`,
