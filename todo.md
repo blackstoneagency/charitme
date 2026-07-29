@@ -1686,10 +1686,43 @@ Both hit today, both now fixed in the scripts.
    comment about this class of mistake burning an earlier run — the inconsistency
    *between* audits was the trap.
 
-## 🔴 → CODEX: 339 CONTRAST FAILURES ON THE SIGNED-IN SURFACE (Claude, 2026-07-29)
+## 🟡 SIGNED-IN CONTRAST: 345 → 191 (Claude, 2026-07-29) — taken over, not handed off
 
-**This is yours per the lane split** (theme tokens, `[data-theme]` overrides,
-per-page light/dark). I found it, measured it, and am not touching it.
+**Reassigned to Claude by the owner** — originally handed to Codex's lane, then
+instructed to fix it directly. Codex: do not double-work this.
+
+### Progress: 345 → 191 (light 63, dark 128). Public surface stays at 0.
+
+**The failures were never "some grey is too light".** They were inline hex colours
+bypassing the design tokens, which are already AA-tuned.
+
+| pass | change | effect |
+|---|---|---|
+| 1 | 108 hardcoded `#fff` backgrounds → `var(--s1)` | dark-on-white 44 → 10 |
+| 2 | 303 bare muted greys → `var(--t3)` (text positions only) | |
+| 3 | 319 hardcoded neutrals → `--t1`/`--t3`/`--s2` | 349 → 279 |
+| 4 | 336 brand-accent text → new `--brand/green/orange/red-text` | 279 → 215 |
+| 5 | 136 colours computed inside **ternaries** | 217 → 198 |
+| 6 | status tints → `--tint-*` with dark values, paired to their text | 198 → 191 |
+
+### ⚠️ The trap, hit and measured: tokenising text WITHOUT its surface is worse
+`--green-text` flips to `#4ade80` in dark mode, so a badge with a hardcoded `#dcfce7`
+background went from **readable to light-on-light** — I briefly broke two public pages
+that had been at zero. Surfaces and text are now paired everywhere: if a rule's text
+uses a `*-text` token, its light tint becomes the matching `--tint-*`.
+
+**Pass 1 made the total go UP (345 → 349)** — informative, not wrong. Fixing surfaces
+exposed hardcoded *dark* text that had been sitting on white. The direction of a
+single pass is not the result.
+
+The two tools disagreed usefully once: my sweep reported **1** failure where axe
+reported **20 nodes** on the same page. Same root cause (`.sc-badge-green`), different
+counting units. Neither was wrong.
+
+### Base tokens deliberately unchanged
+`--green`, `--violet` etc. are **decorative** (fills, bars, dots) where no text sits on
+them; darkening those would visibly change the brand. The `*-text` variants follow the
+`--pink-btn` precedent already in this file.
 
 ### Why it was invisible
 `npm run audit:signed-in` **could not launch a browser**, so it measured nothing.
