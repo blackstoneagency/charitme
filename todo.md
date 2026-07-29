@@ -1396,7 +1396,35 @@ Class B.
 
 Muted text plus the status-badge palette. Six pairs ≈ half the light failures.
 
-### 🎯 CLASS A's ROOT CAUSE FOUND — 15 rules in globals.css, and the guard cannot see them
+### ⚠️ CORRECTION — these 15 rules are NOT the /admin Class A source. That is still unfound.
+
+I fixed the 15 rules below and re-ran the sweep. **The number did not move: 321
+before, 321 after (145 light / 176 dark), byte-identical.**
+
+The error: I matched a colour *pair* (`#e2e8f8` on white) to the CSS rules that
+produce that pair and treated it as the cause. The sweep's Class A hits are on
+`/admin/*`; these rules are `.auth-*`, `.pc-*`, `.cr2-*` — login, campaign page,
+campaign builder. Same symptom, different source. **`/admin` Class A is still
+undiagnosed** — do not treat the table below as its answer.
+
+**The fix is still worth keeping, on its own merit.** Verified in a live browser,
+not by the detector that proposed it:
+
+| `/login` `.auth-card input`, dark | ratio |
+|---|---|
+| before | `#e2e8f8` on `#ffffff` = **1.23:1** — unreadable |
+| after | `#e2e8f8` on `#181c3c` = **13.49:1** — AA pass |
+
+The signed-in sweep never saw it because **`/login` renders 0 text elements
+there** — it is in that sweep's own thin-render list. So these were real bugs,
+invisible to the measurement being used to hunt them. That is the lesson worth
+keeping: a sweep's blind spots are printed in its own output, and a fix aimed at
+a route it cannot measure will never show up in its totals.
+
+Light mode is byte-identical before/after (145 identical failures), so the change
+has no side effects.
+
+### The 15 rules (fixed) — `background: <light literal>` → `var(--s1)`
 
 Class A is `var(--t1)` text on a hardcoded white surface. In dark mode
 `--t1: #e2e8f8` — near-white — and the surface never flips.
