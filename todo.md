@@ -117,7 +117,7 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   inheritance succeeds.
 - [x] Typecheck, zero-warning lint, 1,825 tests across 174 files, and the
   150-page production build pass.
-- [ ] Apply `20260814000000_harden_role_and_team_boundaries.sql` to CharitMe
+- [ ] Apply `20260814010000_harden_role_and_team_boundaries.sql` to CharitMe
   staging and run authenticated team/admin smoke tests before production
   migration application through the release workflow.
 
