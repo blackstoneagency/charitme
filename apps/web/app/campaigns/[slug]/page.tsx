@@ -22,6 +22,7 @@ import DonorWall, { type WallDonation } from './DonorWall';
 import DonationTicker from './DonationTicker';
 import Milestones from './Milestones';
 import TeamFundraisers, { type TeamFundraiser } from './TeamFundraisers';
+import JoinTeamButton from './JoinTeamButton';
 import CommentForm from './CommentForm';
 import CommentsList, { type WallComment } from './CommentsList';
 import SaveCampaignButton from './SaveCampaignButton';
@@ -120,6 +121,7 @@ async function getRewards(campaignId: string) {
 
 type PeerRow = {
   id: string;
+  fundraiser_id: string;
   title: string;
   goal_amount: number;
   raised_amount: number;
@@ -133,7 +135,7 @@ async function getTeamFundraisers(campaignId: string): Promise<TeamFundraiser[]>
   // `completed` stays — a finished team member is part of the team's story.
   const { data, error } = await supabaseAdmin
     .from('peer_fundraisers')
-    .select('id, title, goal_amount, raised_amount, status, profiles:fundraiser_id(full_name, avatar_url, show_public_profile)')
+    .select('id, title, goal_amount, raised_amount, status, fundraiser_id, profiles:fundraiser_id(full_name, avatar_url, show_public_profile)')
     .eq('parent_campaign_id', campaignId)
     .in('status', ['active', 'completed'])
     .order('raised_amount', { ascending: false })
@@ -157,6 +159,7 @@ async function getTeamFundraisers(campaignId: string): Promise<TeamFundraiser[]>
       name: isPublic ? (profile.full_name ?? null) : null,
       avatarUrl: isPublic ? (profile.avatar_url ?? null) : null,
       completed: row.status === 'completed',
+      fundraiserId: row.fundraiser_id,
     };
   });
 }
@@ -838,7 +841,21 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
       </section>
 
-      <TeamFundraisers fundraisers={teamFundraisers} currency={currency} />
+      <TeamFundraisers
+        fundraisers={teamFundraisers}
+        currency={currency}
+        action={
+          // The organizer is not offered a page on their own campaign — it would
+          // split their total across two goals and double-count them in the list.
+          campaign.user_id === user?.id ? null : (
+            <JoinTeamButton
+              campaignSlug={campaign.slug}
+              isSignedIn={Boolean(user)}
+              alreadyOnTeam={teamFundraisers.some((f) => f.fundraiserId === user?.id)}
+            />
+          )
+        }
+      />
 
       {/* ── Similar campaigns ── */}
       {similarCampaigns.length > 0 && (

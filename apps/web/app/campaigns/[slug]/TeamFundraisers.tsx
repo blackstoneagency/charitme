@@ -17,16 +17,23 @@ export interface TeamFundraiser {
   name: string | null;
   avatarUrl: string | null;
   completed: boolean;
+  /** Used only to tell the viewer they are already on this team. */
+  fundraiserId: string;
 }
 
 export default function TeamFundraisers({
   fundraisers,
   currency = DEFAULT_CURRENCY,
+  action,
 }: {
   fundraisers: TeamFundraiser[];
   currency?: string;
+  /** The join control. Rendered even with an empty team — that is exactly when
+   *  the first supporter needs it, and returning null here made the feature
+   *  unreachable until someone had already joined by other means. */
+  action?: React.ReactNode;
 }) {
-  if (fundraisers.length === 0) return null;
+  if (fundraisers.length === 0 && !action) return null;
 
   const teamRaised = fundraisers.reduce((sum, f) => sum + f.raisedCents, 0);
 
@@ -36,12 +43,15 @@ export default function TeamFundraisers({
         Fundraising team
       </h2>
       <p style={{ fontSize: 13.5, color: 'var(--t3)', margin: '0 0 16px' }}>
-        {fundraisers.length === 1
-          ? '1 supporter is raising money toward this goal'
-          : `${fundraisers.length} supporters are raising money toward this goal`}
+        {fundraisers.length === 0
+          ? 'Be the first to raise money alongside this campaign.'
+          : fundraisers.length === 1
+            ? '1 supporter is raising money toward this goal'
+            : `${fundraisers.length} supporters are raising money toward this goal`}
         {teamRaised > 0 && ` — ${formatMoneyShort(teamRaised, currency)} together`}
       </p>
 
+      {fundraisers.length > 0 && (
       <ul
         style={{
           listStyle: 'none',
@@ -152,6 +162,8 @@ export default function TeamFundraisers({
           );
         })}
       </ul>
+      )}
+      {action}
     </section>
   );
 }
