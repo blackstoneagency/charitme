@@ -686,6 +686,7 @@ Run after today's changes (campaign team grid, grant attachment chips):
 | contrast | **0 AA failures / 7,539 text elements per theme** (re-certified against the *committed* state — see correction below) |
 | mobile 320/390px | **0 overflow / 80 loads**, 0 tap targets under 24px |
 | web vitals | **40/40 routes within budget** — worst LCP 116ms, CLS 0 on 39 of 40 |
+| page images | **0 duplicate images within any page**, 60 routes incl. 20 real campaigns |
 | orphan tables | 122 of 155 tables have a reader; 3 orphaned, all with a measured reason |
 
 ### ✅ FIXED — the audits disagreed on how to take a server URL (three misfires)
@@ -712,6 +713,41 @@ for an Unsplash URL constant, and `audit-signed-in` spawns its own server on `--
 and *passes* `--base` to a child audit, so it never reads one. It matches argv *reads*
 now. An existing non-vacuity test also caught the refactor, asserting the inline
 parser that had moved.
+
+### ✅ NEW — "every image is unique" had no evidence; now it has a sweep
+`audit:campaign-images` checks the photo **catalog** — that category→photo mappings
+resolve and IDs are not missing. It says nothing about what a visitor sees, because
+one catalog entry can render many times on a page. The criterion was unverified.
+
+**`npm run audit:page-images`** reads the rendered DOM across every public route plus
+a sample of **real campaign detail pages** — the actual risk surface, since a cover,
+a carousel and a similar-campaigns grid all draw from one catalog, and only a fixture
+slug is in `public-routes.json`. It **refuses to pass if it cannot sample them**.
+
+**Result: no page shows the same image twice across 60 routes (20 real campaigns).**
+192 distinct images; 34 appear on more than one page, which is *allowed* — a category
+hero belongs on both the category page and the home rail, and failing that would
+force 40 unrelated photos for no user benefit.
+
+**Three false positives had to be removed first — each would have had me "fixing"
+correct behaviour:**
+1. The carousel main image and its **own thumbnail** are the same photo by design.
+   The rule that separates them is **control vs content**: an in-page `<button>` is a
+   control; a campaign card is an `<a>` that navigates elsewhere. Excluding buttons
+   keeps the audit blind to carousels *and* still sensitive to the real defect — a
+   grid of card links sharing one photo.
+2. **Stripping query strings collapsed two different DiceBear avatars into one
+   identity.** Safe only where the query is presentation (Unsplash `w/q/auto/fit`);
+   for generator services **the query IS the image**.
+3. Generated avatars render a *person*, not page imagery. The same person legitimately
+   appears in several sections — a team fundraiser who also donated is in both lists.
+
+Plus a real gap in my own first pass: the background-image scan filtered only
+header/nav/footer, so the avatar and control exclusions applied to `<img>` **silently
+did not apply to backgrounds**. Same rules, both sources now.
+
+Non-vacuous, re-proved after *every* exclusion since each could blind it: **48
+duplicates** with controls un-excluded, 0 with them, exit 1 on a dead port.
 
 ### ⚠️ CORRECTION — the first contrast run certified my working tree, not master
 The "0 AA failures" I first recorded was measured with **uncommitted changes present
