@@ -86,10 +86,20 @@ for (const vp of VIEWPORTS) {
 
     for (const path of PAGES) {
       try {
-        await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 25000 });
+        const response = await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 25000 });
         // Measure the page we asked for, or report it — never something we were
         // sent to. A redirect to /login (or to an SSO wall on an external target)
         // otherwise gets measured as if it were this route, and passes.
+        //
+        // A 404 is served AT the requested path, so it passes the redirect check
+        // below and gets measured as a swept route. See the longer note in
+        // audit-contrast.mjs.
+        const status = response?.status() ?? 0;
+        if (status !== 200) {
+          console.log(`\u2717 ${vp.name}/${theme} ${path} — HTTP ${status}; not measured`);
+          findings++;
+          continue;
+        }
         const landed = new URL(page.url()).pathname.replace(/\/$/, '') || '/';
         const asked = path.replace(/\/$/, '') || '/';
         if (landed !== asked) {

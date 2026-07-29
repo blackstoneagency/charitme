@@ -610,6 +610,61 @@ does not render. Neither subsumes the other.
 I nearly recorded this as "my new test is vacuous" on the strength of the first
 non-vacuity attempt. It was the test that was right.
 
+## ⚪ NO BUG — the audit scripts do NOT sweep the 404 fixture route (Claude, 2026-07-28)
+
+Recording a **disproved hypothesis**, because the reasoning that produced it is
+the same one that produced two real findings and it is worth knowing where it
+fails.
+
+I noticed `/campaigns/security-header-fixture/embed` is in `public` in
+`e2e/public-routes.json` and **404s in production** (verified by curl). Having
+just found `/volunteer/manage` inflating sweep coverage the same way, I grepped
+the four `audit-*.mjs` scripts for `data-routes` / `isDataDependent` /
+`security-header`, got no hits, and concluded all four were auditing a 404 and
+counting it as a swept route.
+
+**Wrong. None of them audit it.** They solve it a different way than the string I
+grepped for:
+
+| script | how it avoids the route |
+|---|---|
+| `audit-contrast.mjs:81` | `public.filter(r => !r.includes('/embed'))` |
+| `audit-responsive.mjs:58` | same filter |
+| `audit-web-vitals.mjs:38` | same filter — "embeds are framed fragments, not pages" |
+| `audit-scroll-keyboard.mjs` | curated 22-route subset; the fixture is not in it |
+
+The e2e specs handle it independently and deliberately: `e2e/data-routes.ts`
+documents it as data-dependent, probes it once and skips when absent, so a
+fresh/placeholder database does not fail the whole sweep.
+
+**Everything here was already correct.** Third time this session that a
+grep-based inference looked like a finding and was not — the pattern is always
+the same: absence of the string I searched for is not absence of the behaviour.
+
+### Kept: a status check in two sweeps (hardening, NOT a fix)
+
+Both scripts already refuse to measure a route that **redirects** — a 307 to
+`/login` would otherwise be measured under the original route's name and pass on
+the login page's colours. A **404 is served AT the requested path**, so it sails
+through that guard and gets measured as a swept route.
+
+Nothing currently triggers it, so this fixes no live bug. It closes the same
+latent gap that produced `/admin/super` (crashed, counted as swept) and
+`/volunteer/manage` (404, counted as swept) — both of which were found late and
+by accident.
+
+Verification: `audit-contrast` re-run end-to-end after the change — 37 pages × 2
+themes, no failures, unchanged result. `audit-responsive` is structurally
+identical and passes `node --check`.
+
+### Also checked and clean: are there other `/volunteer/manage`-shaped entries?
+
+Swept all **126 listed routes** for the shape "listed, but only matches via a
+dynamic sibling". Two hits, both legitimate dynamic instances
+(`/features/fundraising-core` → `/features/[slug]`, and the embed fixture →
+`/campaigns/[slug]/embed`). So `/volunteer/manage` was the only one, and that
+class is now clean.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).
