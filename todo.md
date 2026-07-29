@@ -1851,15 +1851,37 @@ balances is money transmission and DAF-adjacent — **product and legal decision
 first, not an engineering ticket.** Superior *if* pursued: a fund that
 auto-allocates on the donor's stated priorities and reports blended impact.
 
-**Donor guarantee page (missing).** Highest trust-per-effort item on this list and
-mostly policy + content. Superior = state the guarantee *and* publish the payout
-dispute rate, which no competitor discloses.
+**Donor guarantee page (missing).** ⚠️ **I called this "mostly policy + content"
+in the first draft of this analysis. That was wrong, and I stopped before
+building it.**
+
+CharitMe's *existing* policy is the opposite of a guarantee. The only two places
+the word appears in the app both disclaim it:
+
+- `app/terms/page.tsx:32` — "CharitMe does **not** verify the truth of campaign
+  claims, **guarantee** fundraising outcomes, or …"
+- `app/dashboard/refund/RefundForm.tsx:359` — "… cannot **guarantee** a refund."
+
+GoFundMe's Giving Guarantee is a **financial commitment** — they refund donors up
+to $25,000 when a fundraiser is fraudulent. A page saying anything comparable
+would contradict the Terms of Service and commit the business to underwriting
+fraud losses. That is not a content task and no agent should write it: it needs a
+decision about whether CharitMe will actually pay out, funded from somewhere, with
+the ToS amended to match.
+
+**Owner decision required before any build.** If the answer is yes, the superior
+version is: state the guarantee, cap it, *and* publish the payout dispute rate —
+which no competitor discloses. If the answer is no, the honest alternative is a
+trust page that leads with what CharitMe *does* do (CharitScore inputs,
+verification state, payout destination, spend receipts) and makes no promise about
+refunds — which is defensible and still stronger than a vague assurance.
 
 ### Recommended order
 
 1. **Peer-to-peer** — one feature, three competitors to full parity, and it is a
    growth loop rather than a checkbox.
-2. **Donor guarantee page** — hours of content work for a top-level trust surface.
+2. ~~**Donor guarantee page** — hours of content work.~~ **RECLASSIFIED: owner/legal
+   decision, not content.** The ToS currently disclaims exactly this; see above.
 3. **Proximity discovery** — needs lat/long on campaigns; strongest known donation driver.
 4. **Creator economy** — largest build; schema already exists, so it is code + UI, not migrations.
 5. **Giving Funds** — blocked on a legal decision, not on engineering.
