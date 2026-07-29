@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { CharitMeShell, TopBar } from '../../../components/CharitMeApp';
+import { TopBar } from '../../../components/CharitMeApp';
+import { CharitMeShell } from '../../../components/ShellSessionProvider';
 import { createClient } from '../../../lib/supabase-browser';
 
 type Message = { role: 'user' | 'assistant'; content: string };

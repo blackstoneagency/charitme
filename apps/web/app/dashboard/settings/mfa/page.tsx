@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '../../../../lib/supabase-browser';
-import { CharitMeShell, TopBar } from '../../../../components/CharitMeApp';
+import { TopBar } from '../../../../components/CharitMeApp';
+import { CharitMeShell } from '../../../../components/ShellSessionProvider';
 
 type MfaFactor = {
   id: string;

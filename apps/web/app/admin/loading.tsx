@@ -1,4 +1,4 @@
-import { CharitMeShell } from '../../components/CharitMeApp';
+import { CharitMeShell } from '../../components/ShellSessionProvider';
 
 // Admin-console-wide loading skeleton. Rendered inside the admin shell so the
 // sidebar stays put during navigation; covers every /admin route that lacks its

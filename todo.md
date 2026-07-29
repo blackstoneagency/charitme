@@ -143,8 +143,12 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 - [ ] Remediate the **355 WCAG AA contrast failures** exposed by the first honest
   signed-in sweep across 136 pages and both themes. These were previously hidden
   because only public routes were audited; do not waive or baseline them.
-- [ ] Add six independent role sessions and certify each persona's own
-  navigation, allowed routes, denied routes, and displayed role label.
+- [x] Added six independent token-aware Supabase stub sessions and certified
+  each persona's displayed role, exact navigation, campaign creation access,
+  admin boundary, and super-admin boundary in a production Chromium build.
+- [x] Replaced the one-size-fits-all dashboard menu with donor, organizer,
+  beneficiary, nonprofit, admin, and super-admin navigation; propagated the
+  server-resolved session through loading states and client-only dashboard pages.
 
 ## SECURITY BOUNDARIES - code complete, production migration pending (Codex, 2026-07-27)
 

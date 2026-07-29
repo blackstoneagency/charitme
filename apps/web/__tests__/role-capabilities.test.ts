@@ -7,6 +7,7 @@ import {
   ROLE_ORDER,
   enforcedRoles,
   advisoryRoles,
+  effectivePrimaryRole,
   primaryRole,
 } from '../lib/role-capabilities';
 
@@ -67,6 +68,12 @@ describe('role capability map', () => {
     expect(primaryRole(['admin', 'super_admin'])).toBe('super_admin');
     expect(primaryRole(['organizer', 'donor'])).toBe('organizer');
     expect(primaryRole([])).toBe('donor');
+  });
+
+  it('uses effective admin access without hiding a stored super-admin role', () => {
+    expect(effectivePrimaryRole(['donor'], true)).toBe('admin');
+    expect(effectivePrimaryRole(['donor', 'organizer'], false)).toBe('organizer');
+    expect(effectivePrimaryRole(['donor', 'admin', 'super_admin'], true)).toBe('super_admin');
   });
 });
 

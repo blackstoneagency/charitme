@@ -16,6 +16,7 @@
     "audit:campaign-images": "node scripts/audit-campaign-images.mjs",
     "audit:contrast": "node scripts/audit-contrast.mjs",
     "audit:signed-in": "node scripts/audit-signed-in.mjs --build --strict-gradients",
+    "audit:personas": "node scripts/audit-personas.mjs --build",
     "audit:a11y": "node scripts/audit-a11y.mjs",
     "audit:authed": "node scripts/audit-authed.mjs",
     "audit:mobile": "node scripts/audit-mobile.mjs",

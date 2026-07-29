@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { CharitMeShell, TopBar } from '../../../../components/CharitMeApp';
+import { TopBar } from '../../../../components/CharitMeApp';
+import { CharitMeShell } from '../../../../components/ShellSessionProvider';
 
 export default function CancelRecurringPage() {
   const params = useSearchParams();
