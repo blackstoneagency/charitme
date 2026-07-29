@@ -68,6 +68,72 @@ const browser = await chromium.launch({
   args: ['--no-sandbox'],
 });
 
+// Mints a real session with the same password grant the login form uses, then
+// writes it as the @supabase/ssr cookie. Returns false when the env has no
+// Supabase config, so the caller falls through to the hard exit(3) rather than
+// pretending it signed in.
+async function injectSession(ctx) {
+  const envFile = new URL('../.env.local', import.meta.url);
+  const env = {};
+  if (existsSync(envFile)) {
+    for (const line of readFileSync(envFile, 'utf8').split('\n')) {
+      const t = line.trim();
+      if (!t || t.startsWith('#') || !t.includes('=')) continue;
+      const i = t.indexOf('=');
+      env[t.slice(0, i).trim()] = t.slice(i + 1).trim().replace(/^["']|["']$/g, '');
+    }
+  }
+  const supaUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+  if (!supaUrl || !anon) return false;
+
+  // node's fetch ignores HTTPS_PROXY; without this the grant 401s/hangs in a
+  // proxied sandbox and the fallback looks like bad credentials.
+  if (process.env.HTTPS_PROXY) {
+    try {
+      const { ProxyAgent, setGlobalDispatcher } = await import('undici');
+      setGlobalDispatcher(new ProxyAgent(process.env.HTTPS_PROXY));
+    } catch { /* undici unavailable — direct fetch may still work */ }
+  }
+
+  const res = await fetch(`${supaUrl}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { apikey: anon, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: EMAIL, password: PASSWORD }),
+  });
+  if (!res.ok) return false;
+  const s = await res.json();
+
+  const session = {
+    access_token: s.access_token,
+    refresh_token: s.refresh_token,
+    expires_in: s.expires_in,
+    expires_at: Math.floor(Date.now() / 1000) + s.expires_in,
+    token_type: s.token_type,
+    user: s.user,
+  };
+  const ref = new URL(supaUrl).hostname.split('.')[0];
+  const raw = 'base64-' + Buffer.from(JSON.stringify(session)).toString('base64');
+  const CHUNK = 3180; // @supabase/ssr splits above this and reassembles by .N suffix
+  const name = `sb-${ref}-auth-token`;
+  const parts =
+    raw.length <= CHUNK
+      ? [{ name, value: raw }]
+      : Array.from({ length: Math.ceil(raw.length / CHUNK) }, (_, i) => ({
+          name: `${name}.${i}`,
+          value: raw.slice(i * CHUNK, (i + 1) * CHUNK),
+        }));
+
+  const { hostname, protocol } = new URL(BASE);
+  await ctx.addCookies(
+    parts.map((c) => ({
+      ...c, domain: hostname, path: '/', httpOnly: false,
+      secure: protocol === 'https:', sameSite: 'Lax',
+    })),
+  );
+  return true;
+}
+
 let total = 0;
 let swept = 0;
 let skipped = 0;
@@ -83,13 +149,38 @@ try {
     const page = await ctx.newPage();
 
     // ── Sign in ──────────────────────────────────────────────────────────────
+    // Preferred path: drive the real login form, so the sweep exercises what a
+    // user exercises. The form calls Supabase from the BROWSER, which needs
+    // browser→auth-host egress.
     await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+    await page.locator('button.auth-submit').waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {});
     await page.fill('input[type="email"]', EMAIL);
     await page.fill('input[type="password"]', PASSWORD);
     await Promise.all([
       page.waitForURL((u) => !new URL(u).pathname.startsWith('/login'), { timeout: 30_000 }).catch(() => {}),
-      page.click('button[type="submit"]'),
+      page.locator('button.auth-submit').click(),
     ]);
+
+    // Fallback: some sandboxes (this one) allow node→Supabase but NOT
+    // browser→Supabase, so the form dies on `Failed to fetch` with zero token
+    // calls and nothing gets audited. The session is still real — it is minted
+    // by the same password grant the form would have used — and injected as the
+    // @supabase/ssr cookie the server already trusts. This audits the
+    // SERVER-RENDERED surface, which is the whole point of the sweep.
+    //
+    // It is a fallback and never the default: when browser egress works, the
+    // form path proves login itself works. The chosen path is printed, because
+    // a sweep that quietly changed how it authenticated would be reporting on
+    // something other than what the reader thinks.
+    let usedFallback = false;
+    await page.goto(`${BASE}/dashboard`, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+    if (new URL(page.url()).pathname.startsWith('/login')) {
+      const injected = await injectSession(ctx).catch((e) => {
+        console.error(`  session injection failed: ${String(e).slice(0, 160)}`);
+        return false;
+      });
+      usedFallback = injected;
+    }
 
     // Prove the login worked before measuring anything. Without this the sweep
     // would audit the login page N times and report it as a clean dashboard.
@@ -100,7 +191,9 @@ try {
       await browser.close();
       process.exit(3);
     }
-    console.log(`· signed in as ${EMAIL} (${theme})`);
+    console.log(
+      `· signed in as ${EMAIL} (${theme})${usedFallback ? ' [via injected session — browser→auth egress blocked]' : ' [via login form]'}`,
+    );
 
     for (const [group, paths] of Object.entries(ROUTES)) {
       for (const path of paths) {
