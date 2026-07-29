@@ -117,6 +117,12 @@ describe('signed-in audit integrity', () => {
     expect(signedInSource).toContain('`${BASE}/admin`');
   });
 
+  it('passes machine-readable output through without orchestration text', () => {
+    expect(signedInSource).toContain("const AS_JSON = argv.includes('--json')");
+    expect(signedInSource).toContain("...(AS_JSON ? ['--json'] : [])");
+    expect(signedInSource).toContain('if (!AS_JSON) console.log');
+  });
+
   it('verifies redirect contracts in a real browser', () => {
     expect(contrastSource).toContain('ROUTE_DATA.authGated.redirects');
     expect(contrastSource).toContain('actualTarget !== wantedTarget');
