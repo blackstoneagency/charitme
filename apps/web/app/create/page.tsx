@@ -2356,13 +2356,15 @@ function scoreColor(total: number) {
 function ScorePill({ state, label }: { state: ScoreState; label: string }) {
   const icon  = state === 'verified' ? '✓' : state === 'watch' ? '⚠' : '○';
   const cls   = `cr2-score-pill cr2-score-pill-${state}`;
-  const color = state === 'verified' ? '#16a34a' : state === 'watch' ? '#ca8a04' : '#94a3b8';
+  // Colour comes from --score-* tokens keyed off the state class, not an inline hex.
+  // A single hardcoded value cannot satisfy AA on both a light pill and a dark one —
+  // these measured 2.56:1 as inline hex, in BOTH themes.
   return (
     <div className={cls}>
-      <span className="cr2-score-pill-icon" style={{ color }}>{icon}</span>
+      <span className="cr2-score-pill-icon">{icon}</span>
       <div>
         <div className="cr2-score-pill-label">{label}</div>
-        <div className="cr2-score-pill-status" style={{ color }}>
+        <div className="cr2-score-pill-status">
           {state === 'verified' ? 'Verified' : state === 'watch' ? 'Watch' : 'Pending'}
         </div>
       </div>

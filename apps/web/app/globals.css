@@ -46,6 +46,9 @@
   --green: #12a653;
   --green-dark: #08763b;
   --green-light: #e8f8ee;
+  --score-ok: #15803d;
+  --score-watch: #92660a;
+  --score-pending: #55607a;
   --blue: #2878ff;
   --orange: #ff8a1c;
   --red: #ff3b5f;
@@ -4587,7 +4590,16 @@ a.task-row:hover .task-row-dot { border-color: #6c35ff; }
 .cr2-score-status { font-size: 12px; font-weight: 700; }
 .cr2-score-pills { display: flex; flex-direction: column; gap: 7px; }
 .cr2-score-pill { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; background: var(--s2); border: 1px solid var(--b1); }
-.cr2-score-pill-pending { opacity: .7; }
+/* opacity:.7 blended the status text toward the pill background and was the single
+   biggest contributor to the /create contrast failures (#94a3b8 measured 2.56:1).
+   Dimming is decorative; legibility is not. Kept a token-driven muted colour instead. */
+.cr2-score-pill-pending { opacity: 1; }
+.cr2-score-pill-verified .cr2-score-pill-status,
+.cr2-score-pill-verified .cr2-score-pill-icon { color: var(--score-ok); }
+.cr2-score-pill-watch .cr2-score-pill-status,
+.cr2-score-pill-watch .cr2-score-pill-icon { color: var(--score-watch); }
+.cr2-score-pill-pending .cr2-score-pill-status,
+.cr2-score-pill-pending .cr2-score-pill-icon { color: var(--score-pending); }
 .cr2-score-pill-icon { font-size: 13px; font-weight: 700; width: 16px; text-align: center; flex-shrink: 0; }
 .cr2-score-pill-label { font-size: 12px; font-weight: 700; color: var(--t1); line-height: 1; margin-bottom: 1px; }
 .cr2-score-pill-status { font-size: 10px; font-weight: 650; letter-spacing: .03em; }
@@ -4765,6 +4777,9 @@ a.task-row:hover .task-row-dot { border-color: #6c35ff; }
   --s1: #121530;
   --s2: #181c3c;
   --s3: #1e2348;
+  --score-ok: #4ade80;
+  --score-watch: #fbbf24;
+  --score-pending: #a3b0c9;
   --b1: #252948;
   --b2: #303668;
   --green-light: #0a2018;
@@ -5171,9 +5186,22 @@ a.task-row:hover .task-row-dot { border-color: #6c35ff; }
 [data-theme="dark"] .dash-search input { color: var(--t1); }
 [data-theme="dark"] .dash-search kbd { background: var(--s2); border-color: var(--b1); color: var(--t3); }
 [data-theme="dark"] .dash-bell { background: var(--s1); border-color: var(--b1); }
+/* The settings "Plan & Usage" card had NO dark override at all, so `background:#fff`
+   from .kf-setright-card survived into dark mode. Both white-background failures on
+   this screen came from that one omission — var(--t2) #b8c2de on white at 1.77:1, and
+   .kf-status-ok #0fa456 on white at 3.24:1. Fixing the surface fixes both; recolouring
+   the text would have kept a white card glowing in a dark UI. */
+[data-theme="dark"] .kf-setright-card { background: rgba(18,21,52,.96); border-color: var(--line); }
+[data-theme="dark"] .kf-setright-head { border-bottom-color: var(--line); color: var(--t1); }
+
 [data-theme="dark"] .dash-card { background: rgba(18,21,52,.96); border-color: var(--line); box-shadow: none; }
 [data-theme="dark"] .dash-card-title { border-bottom-color: var(--line); }
-[data-theme="dark"] .dash-card-title h2 { color: var(--t1); }
+/* .source-card h2 shares the light rule at .dash-card-title h2 (color:#10163f) but
+   was missing from this dark override, so "Donor Breakdown" rendered near-black on a
+   near-black card: 1.02:1. Not low contrast — invisible. Keep both selectors in step
+   with the light rule above. */
+[data-theme="dark"] .dash-card-title h2,
+[data-theme="dark"] .source-card h2 { color: var(--t1); }
 [data-theme="dark"] .dash-card-title button { background: var(--s2); border-color: var(--b1); color: var(--t2); }
 [data-theme="dark"] .dash-metric p { color: var(--t2); }
 [data-theme="dark"] .dash-metric strong { color: var(--t1); }

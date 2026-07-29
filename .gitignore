@@ -16,3 +16,6 @@ DANIEL_ENV.txt
 *_ENV.txt
 *.secrets
 .env.*.local
+
+# Agent scratch scripts — ad-hoc probes, never part of the build.
+*.tmp.mjs
