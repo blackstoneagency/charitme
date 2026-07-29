@@ -146,7 +146,7 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 - [x] Verify typecheck, zero-warning lint, 1,878 tests, a 151-page production
   build without the incorrect workspace-root warning, and all six persona checks.
 
-## PUBLIC SEARCH AND AEO CONTRACT - verified locally, release pending (Codex, 2026-07-29)
+## PUBLIC SEARCH AND AEO CONTRACT - production verified (Codex, 2026-07-29)
 
 - [x] Verified the production sitemap returns HTTP 200 with 1,259 unique URLs,
   including 350 campaigns, 180 events, 180 grants, 120 matching programs, 180
@@ -164,9 +164,11 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 - [x] Verified typecheck, zero-warning lint, 1,879 tests across 181 files, a
   151-page production build, all six role personas, and five targeted Chromium
   SEO/accessibility/CSP tests.
-- [ ] Merge through a pull request and verify the exact commit on the production
-  deployment plus live `/help`, `/pricing`, `/ai-campaign`, `/impact`,
-  `/sitemap.xml`, and `/robots.txt`.
+- [x] Merged PR #158 as exact master commit
+  `e85237bdc56de25fe5d9e9ba7361089e29c90587`; Vercel deployment
+  `dpl_CELMCYcf8KZHNrZoV49dGzvPdepM` is Ready, Current, and assigned to
+  `www.charitme.com`. Re-verified live `/help`, `/pricing`, `/ai-campaign`,
+  `/impact`, `/sitemap.xml`, `/robots.txt`, and `/api/health`.
 
 ## SIGNED-IN PAGE CERTIFICATION - audit infrastructure complete, contrast remediation active (Codex, 2026-07-28)
 
