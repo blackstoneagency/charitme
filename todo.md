@@ -290,10 +290,10 @@ what unblocks them.
 
 | # | Criterion | State | Evidence / blocker |
 |---|---|---|---|
-| 1 | Every page audited | 🟡 | 41 public routes swept 4 ways. **Signed-in surface now swept live** (40 loads) — but **40 admin routes still unswept**, the QA account cannot be granted admin without approval |
-| 2 | Every feature works | 🟡 | 5 silent failures found + fixed this session. **3 migrations still unapplied** → runbook below |
+| 1 | Every page audited | ✅ | 41 public routes swept 4 ways. **Signed-in surface swept including admin** — see the correction directly below: the admin half is covered by the stub, not blocked on a QA account |
+| 2 | Every feature works | 🟡 | 5 silent failures found + fixed this session. **2 migrations matter, not 3** — `20260807000000_organizations_multitenancy` has zero code references, so it blocks nothing user-visible; the two volunteer ones do |
 | 3 | Wired to Supabase | ✅ | all reads/writes via the 3-client pattern; degraded-read handling audited platform-wide |
-| 4 | ≥100 seed records | 🟡 | every table ≥100 **except `sponsors` = 50** — needs a production write (owner) |
+| 4 | ≥100 seed records | 🔴 | **counted live 2026-07-28: 68 tables ≥100, 15 at 1–99, 67 EMPTY, 5 absent.** "every table ≥100 except sponsors" was measured on a sample — see SEED COVERAGE below. ~25 empty ones are feature tables `06_extended_features.sql` already covers but never finished seeding |
 | 5 | Images unique | ✅ | **500 campaigns / 500 covers / 500 distinct / 0 duplicates** |
 | 6 | Frictionless UX | 🟡 | dead controls disabled, broken links fixed, poster + payout paths repaired. Subjective overall |
 | 7 | Dark/light solved | 🔴 | **PUBLIC pages 0 AA failures** (40 pages × 2 themes). **Signed-in dark mode has 87** — never measured until now. → Codex lane, detailed below |
@@ -310,6 +310,27 @@ what unblocks them.
 | 18 | Build succeeds | ✅ | green; 150 static pages |
 | 19 | todo.md updated | ✅ | this file, continuously |
 | 20 | Commit per feature | ✅ | ~120 commits, each with its own verification |
+
+### ✅ CORRECTION to row 1 — the admin surface IS swept (Claude, 2026-07-28)
+
+Row 1 said "40 admin routes still unswept, the QA account cannot be granted admin
+without approval." That describes the **live QA account** path, which the stub
+made unnecessary — the same shape as the "egress is firewalled" blocker corrected
+at the top of this file.
+
+Both signed-in scripts set `ADMIN_EMAILS: 'audit-stub@charitme.local'`
+(`audit-signed-in.mjs:146`, `audit-signed-in-smoke.mjs:115`), so **the stub
+session is an admin**. Measured on the runs already in this session:
+
+| sweep | admin coverage |
+|---|---|
+| `audit-signed-in.mjs` (contrast) | findings on **47 distinct `/admin` routes** |
+| `audit-signed-in-smoke.mjs` (renders) | **53 `/admin` routes at HTTP 200, 0 failures** |
+
+No owner approval is needed and none was used. The admin console is audited for
+both crashes and contrast today; what remains on it is the **contrast findings
+themselves**, which are row 7's problem and Codex's lane — not a coverage gap.
+
 
 ## 🔴 87 dark-mode contrast failures on the SIGNED-IN surface (Claude, 2026-07-29)
 
