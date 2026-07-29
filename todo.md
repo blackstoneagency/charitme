@@ -672,6 +672,33 @@ tap target under 24px at 320px — covering the campaign team grid and grant
 attachment chips added the same day. Exits 1 with 82 failed loads against a dead
 port, 0 against a live one.
 
+## ✅ RE-MEASURED against a production build (Claude, 2026-07-29)
+
+Run after today's changes (campaign team grid, grant attachment chips):
+
+| sweep | result |
+|---|---|
+| axe (WCAG 2.0/2.1/2.2 A+AA) | **0 violations / 82 loads** (41 routes × 2 themes) |
+| contrast | **0 AA failures / 7,539 text elements per theme** |
+| mobile 320/390px | **0 overflow / 80 loads**, 0 tap targets under 24px |
+| orphan tables | 122 of 155 tables have a reader; 3 orphaned, all with a measured reason |
+
+### Two ways these sweeps can look green while telling you nothing
+Both hit today, both now fixed in the scripts.
+
+1. **`audit:a11y` against `next dev` fails 40 of 82 loads.** The HMR client reloads
+   the page mid-navigation and aborts `goto` with *"interrupted by another
+   navigation"* — reliably on the **second theme pass**, once enough routes have
+   compiled. The non-vacuity guard worked and refused to print 0 violations, but the
+   message names the *navigation*, never the dev server, so the natural first guess
+   is "the server is down". **This audit needs `npm run build && npx next start`.**
+   The script now says so in the failure text.
+2. **`audit:contrast` took `--base` while its sibling audits take a bare positional
+   URL.** Passing `… http://127.0.0.1:3100` swept **port 3000** instead and printed
+   80 connection errors. It accepts both spellings now. The file already carried a
+   comment about this class of mistake burning an earlier run — the inconsistency
+   *between* audits was the trap.
+
 ## 🔴 BLOCKED ON THE OWNER — 3 actions unblock most of what is left (Claude, 2026-07-26)
 
 Everything below this line that is still open is waiting on one of these. None can be
