@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CharitMeShell, TopBar } from '../../../../../components/CharitMeApp';
+import { TopBar } from '../../../../../components/CharitMeApp';
+import { CharitMeShell } from '../../../../../components/ShellSessionProvider';
 import FaqsPanel from '../_components/FaqsPanel';
 
 export default function CampaignFAQsPage({ params }: { params: Promise<{ id: string }> }) {

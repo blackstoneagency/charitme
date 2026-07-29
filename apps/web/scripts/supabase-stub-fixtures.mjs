@@ -20,6 +20,57 @@
 
 const USER_ID = '00000000-0000-4000-8000-000000000001';
 
+export const STUB_PERSONAS = [
+  {
+    key: 'donor',
+    id: '00000000-0000-4000-8000-000000000011',
+    token: 'stub-donor-access-token',
+    email: 'donor-persona@charitme.local',
+    name: 'Dana Donor',
+    roles: ['donor'],
+  },
+  {
+    key: 'organizer',
+    id: '00000000-0000-4000-8000-000000000012',
+    token: 'stub-organizer-access-token',
+    email: 'organizer-persona@charitme.local',
+    name: 'Owen Organizer',
+    roles: ['donor', 'organizer'],
+  },
+  {
+    key: 'beneficiary',
+    id: '00000000-0000-4000-8000-000000000013',
+    token: 'stub-beneficiary-access-token',
+    email: 'beneficiary-persona@charitme.local',
+    name: 'Bailey Beneficiary',
+    roles: ['donor', 'beneficiary'],
+  },
+  {
+    key: 'nonprofit',
+    id: '00000000-0000-4000-8000-000000000014',
+    token: 'stub-nonprofit-access-token',
+    email: 'nonprofit-persona@charitme.local',
+    name: 'Nora Nonprofit',
+    roles: ['donor', 'nonprofit'],
+  },
+  {
+    key: 'admin',
+    id: '00000000-0000-4000-8000-000000000015',
+    token: 'stub-admin-access-token',
+    email: 'admin-persona@charitme.local',
+    name: 'Avery Admin',
+    roles: ['donor', 'admin'],
+  },
+  {
+    key: 'super_admin',
+    id: USER_ID,
+    token: 'stub-access-token',
+    email: 'audit-stub@charitme.local',
+    name: 'Sam Super Admin',
+    roles: ['donor', 'admin', 'super_admin'],
+  },
+];
+
 /** Seeded LCG (numerical recipes constants) — no dependency, stable across Node versions. */
 function rng(seed = 1337) {
   let s = seed >>> 0;
@@ -56,6 +107,24 @@ const LAST = ['Okafor', 'Bennett', 'Nakamura', 'Silva', 'Adeyemi', 'Kowalski', '
 
 export function buildFixtures() {
   const rand = rng(20260727);
+  const personaUsers = STUB_PERSONAS.map((persona) => ({
+    id: persona.id,
+    aud: 'authenticated',
+    role: 'authenticated',
+    email: persona.email,
+    email_confirmed_at: daysAgo(400),
+    phone: '',
+    confirmed_at: daysAgo(400),
+    last_sign_in_at: daysAgo(0),
+    app_metadata: { provider: 'email', providers: ['email'] },
+    user_metadata: { full_name: persona.name },
+    identities: [],
+    created_at: daysAgo(400),
+    updated_at: daysAgo(0),
+    is_anonymous: false,
+  }));
+  const defaultUser = personaUsers.find((user) => user.id === USER_ID);
+  if (!defaultUser) throw new Error('The default audit persona is missing.');
 
   const campaigns = Array.from({ length: 120 }, (_, i) => {
     const goal = (Math.floor(rand() * 90) + 10) * 100_000;
@@ -127,15 +196,12 @@ export function buildFixtures() {
   });
 
   const profiles = [
-    {
-      id: USER_ID,
-      email: 'audit-stub@charitme.local',
-      full_name: 'Audit Stub',
+    ...STUB_PERSONAS.map((persona) => ({
+      id: persona.id,
+      email: persona.email,
+      full_name: persona.name,
       avatar_url: null,
-      // Every role at once, on purpose: the point of the sweep is to render every
-      // role-conditional branch of the shell and nav in one pass. This is exactly
-      // the shape you must NOT reuse to reason about permissions.
-      roles: ['donor', 'fundraiser', 'nonprofit', 'corporate', 'admin', 'super_admin'],
+      roles: persona.roles,
       identity_verified: true,
       trust_passport_score: 82,
       plan: 'pro',
@@ -159,7 +225,7 @@ export function buildFixtures() {
       stripe_onboarded: true,
       created_at: daysAgo(400),
       updated_at: daysAgo(1),
-    },
+    })),
     ...Array.from({ length: 60 }, (_, i) => ({
       id: uuid('prof', i + 2),
       email: `donor${i + 2}@charitme.local`,
@@ -306,23 +372,12 @@ export function buildFixtures() {
     }));
 
   return {
-    _user: {
-      id: USER_ID,
-      aud: 'authenticated',
-      role: 'authenticated',
-      email: 'audit-stub@charitme.local',
-      email_confirmed_at: daysAgo(400),
-      phone: '',
-      confirmed_at: daysAgo(400),
-      last_sign_in_at: daysAgo(0),
-      app_metadata: { provider: 'email', providers: ['email'] },
-      user_metadata: { full_name: 'Audit Stub' },
-      identities: [],
-      created_at: daysAgo(400),
-      updated_at: daysAgo(0),
-      is_anonymous: false,
-    },
+    _user: defaultUser,
     _access_token: 'stub-access-token',
+    _personas: STUB_PERSONAS.map((persona, index) => ({
+      ...persona,
+      user: personaUsers[index],
+    })),
 
     // RPC results the app reads. `null` is a valid PostgREST scalar reply.
     _rpc: {

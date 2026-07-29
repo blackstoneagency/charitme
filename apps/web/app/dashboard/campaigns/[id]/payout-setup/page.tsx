@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { CharitMeShell, TopBar } from '../../../../../components/CharitMeApp';
+import { TopBar } from '../../../../../components/CharitMeApp';
+import { CharitMeShell } from '../../../../../components/ShellSessionProvider';
 import { createClient } from '../../../../../lib/supabase-browser';
 
 type PayoutStatus = {

@@ -66,23 +66,29 @@ const VERBOSE = args.includes('--verbose');
 const fixtures = buildFixtures();
 
 const USER = fixtures._user;
+const PERSONAS = fixtures._personas;
+const DEFAULT_PERSONA = PERSONAS.find((persona) => persona.user.id === USER.id);
+const PERSONA_BY_TOKEN = new Map(PERSONAS.map((persona) => [persona.token, persona]));
 
 /** GoTrue returns the user object at the top level, not wrapped in `data`. */
-function authUser() {
-  return USER;
+function personaFromRequest(req) {
+  const header = req.headers.authorization ?? '';
+  const token = header.replace(/^Bearer\s+/i, '');
+  if (!token) return DEFAULT_PERSONA;
+  return PERSONA_BY_TOKEN.get(token) ?? null;
 }
 
-function session() {
+function session(persona = DEFAULT_PERSONA) {
   const now = Math.floor(Date.now() / 1000);
   return {
-    access_token: fixtures._access_token,
-    refresh_token: 'stub-refresh-token',
+    access_token: persona.token,
+    refresh_token: `stub-${persona.key}-refresh-token`,
     token_type: 'bearer',
     // Far future so the client never tries to refresh mid-sweep; a refresh storm
     // would make page timings meaningless.
     expires_in: 60 * 60 * 24 * 365,
     expires_at: now + 60 * 60 * 24 * 365,
-    user: USER,
+    user: persona.user,
   };
 }
 
@@ -182,8 +188,9 @@ const server = createServer((req, res) => {
 
   // ── auth ──────────────────────────────────────────────────────────────────
   if (path === '/auth/v1/user') {
-    if (req.method === 'PUT') return send(res, 200, authUser());
-    return send(res, 200, authUser());
+    const persona = personaFromRequest(req);
+    if (!persona) return send(res, 401, { message: 'Invalid stub access token' });
+    return send(res, 200, persona.user);
   }
   if (path === '/auth/v1/token') return send(res, 200, session());
   if (path === '/auth/v1/logout') return send(res, 204, '');

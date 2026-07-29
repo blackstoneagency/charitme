@@ -144,3 +144,9 @@ export function primaryRole(roles: UserRole[]): UserRole {
   }
   return 'donor';
 }
+
+export function effectivePrimaryRole(roles: UserRole[], hasAdminAccess: boolean): UserRole {
+  const storedRole = primaryRole(roles);
+  if (hasAdminAccess && storedRole !== 'super_admin') return 'admin';
+  return storedRole;
+}

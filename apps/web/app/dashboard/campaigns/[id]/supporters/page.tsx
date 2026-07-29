@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CharitMeShell, TopBar } from '../../../../../components/CharitMeApp';
+import { TopBar } from '../../../../../components/CharitMeApp';
+import { CharitMeShell } from '../../../../../components/ShellSessionProvider';
 import SupportersPanel from '../_components/SupportersPanel';
 
 export default function SupportersPage({ params }: { params: Promise<{ id: string }> }) {
