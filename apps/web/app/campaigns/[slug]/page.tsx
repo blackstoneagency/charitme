@@ -21,6 +21,7 @@ import CampaignCarousel from './CampaignCarousel';
 import DonorWall, { type WallDonation } from './DonorWall';
 import DonationTicker from './DonationTicker';
 import Milestones from './Milestones';
+import TeamFundraisers, { type TeamFundraiser } from './TeamFundraisers';
 import CommentForm from './CommentForm';
 import CommentsList, { type WallComment } from './CommentsList';
 import SaveCampaignButton from './SaveCampaignButton';
@@ -115,6 +116,49 @@ async function getRewards(campaignId: string) {
     .order('sort_order', { ascending: true })
     .order('amount_cents', { ascending: true });
   return (data ?? []) as { id: string; title: string; description: string | null; amount_cents: number; estimated_delivery: string | null; item_limit: number | null; claimed_count: number; sort_order: number }[];
+}
+
+type PeerRow = {
+  id: string;
+  title: string;
+  goal_amount: number;
+  raised_amount: number;
+  status: string;
+  profiles?: unknown;
+};
+
+async function getTeamFundraisers(campaignId: string): Promise<TeamFundraiser[]> {
+  // `paused` is excluded deliberately: it is the supporter taking their own page
+  // down, and listing it would keep soliciting for a page that is not collecting.
+  // `completed` stays — a finished team member is part of the team's story.
+  const { data, error } = await supabaseAdmin
+    .from('peer_fundraisers')
+    .select('id, title, goal_amount, raised_amount, status, profiles:fundraiser_id(full_name, avatar_url, show_public_profile)')
+    .eq('parent_campaign_id', campaignId)
+    .in('status', ['active', 'completed'])
+    .order('raised_amount', { ascending: false })
+    .limit(24);
+  // supabase-js RESOLVES rather than throws on a query error, so `data` would be
+  // null and the section would silently vanish. Nothing to show and "we could not
+  // read this" are the same rendering here (the section hides either way), but the
+  // error is worth surfacing rather than swallowing.
+  if (error) {
+    console.warn('[campaign] team fundraisers unavailable', { campaignId, code: error.code });
+    return [];
+  }
+  return ((data ?? []) as PeerRow[]).map((row) => {
+    const profile = asProfile(row.profiles);
+    const isPublic = profile.show_public_profile ?? true;
+    return {
+      id: row.id,
+      title: row.title,
+      goalCents: row.goal_amount,
+      raisedCents: row.raised_amount,
+      name: isPublic ? (profile.full_name ?? null) : null,
+      avatarUrl: isPublic ? (profile.avatar_url ?? null) : null,
+      completed: row.status === 'completed',
+    };
+  });
 }
 
 type SimilarCampaign = {
@@ -272,12 +316,13 @@ export default async function CampaignPage({ params, searchParams }: Props) {
     referrerId,
   };
 
-  const [donations, updates, faqs, donorMessages, milestones, rewards, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
+  const [donations, updates, faqs, donorMessages, milestones, teamFundraisers, rewards, currency, payoutDestination, trustInput, similarCampaigns] = await Promise.all([
     getRecentDonations(campaign.id),
     getUpdates(campaign.id),
     getFAQs(campaign.id),
     getDonorMessages(campaign.id),
     getMilestones(campaign.id),
+    getTeamFundraisers(campaign.id),
     getRewards(campaign.id),
     getCampaignCurrency(campaign.id),
     resolvePayoutDestination(campaign),
@@ -792,6 +837,8 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         <DonorWall campaignId={campaign.id} initialDonations={wallDonations} totalCount={campaign.backer_count ?? donations.length} currency={currency} />
 
       </section>
+
+      <TeamFundraisers fundraisers={teamFundraisers} currency={currency} />
 
       {/* ── Similar campaigns ── */}
       {similarCampaigns.length > 0 && (
