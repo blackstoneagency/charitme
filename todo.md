@@ -125,6 +125,19 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   staging and run authenticated team/admin smoke tests before production
   migration application through the release workflow.
 
+## NODE 20 DEPENDENCY CONTRACT - verified locally (Codex, 2026-07-29)
+
+- [x] Pin the Supabase JavaScript client family to `2.109.0`, the last release
+  line that supports the production Node 20 runtime.
+- [x] Deduplicate the app dependency and `@supabase/ssr` peer to the same
+  Node-compatible client tree.
+- [x] Enable npm strict engine enforcement so a future incompatible transitive
+  upgrade fails installation instead of shipping with an `EBADENGINE` warning.
+- [x] Add a lockfile contract test covering all six Supabase JavaScript packages.
+- [x] Verify a zero-state `npm ci`, 0 production dependency vulnerabilities,
+  typecheck, zero-warning lint, 1,877 tests, a 151-page production build, and all
+  six role persona checks.
+
 ## SIGNED-IN PAGE CERTIFICATION - audit infrastructure complete, contrast remediation active (Codex, 2026-07-28)
 
 - [x] Reconciled the route manifest with the app tree: 10 standalone gated
