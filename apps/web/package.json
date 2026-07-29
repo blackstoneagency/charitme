@@ -16,6 +16,7 @@
     "audit:campaign-images": "node scripts/audit-campaign-images.mjs",
     "audit:contrast": "node scripts/audit-contrast.mjs",
     "audit:a11y": "node scripts/audit-a11y.mjs",
+    "audit:authed": "node scripts/audit-authed.mjs",
     "audit:mobile": "node scripts/audit-mobile.mjs",
     "audit:scroll-keyboard": "node scripts/audit-scroll-keyboard.mjs",
     "audit:web-vitals": "node scripts/audit-web-vitals.mjs",
