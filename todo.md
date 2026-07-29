@@ -685,7 +685,33 @@ Run after today's changes (campaign team grid, grant attachment chips):
 | axe (WCAG 2.0/2.1/2.2 A+AA) | **0 violations / 82 loads** (41 routes × 2 themes) |
 | contrast | **0 AA failures / 7,539 text elements per theme** (re-certified against the *committed* state — see correction below) |
 | mobile 320/390px | **0 overflow / 80 loads**, 0 tap targets under 24px |
+| web vitals | **40/40 routes within budget** — worst LCP 116ms, CLS 0 on 39 of 40 |
 | orphan tables | 122 of 155 tables have a reader; 3 orphaned, all with a measured reason |
+
+### ✅ FIXED — the audits disagreed on how to take a server URL (three misfires)
+Five audits wanted `--base <url>`; two wanted a bare positional. **Passing the wrong
+spelling does not error** — the script falls back to its default port and audits
+whatever is there, or nothing.
+
+That has now cost three runs: one documented earlier, and two in a single session —
+`audit-contrast` swept **:3000** while the build under test was on :3100 (80
+connection errors), and `audit-web-vitals` reported *"nothing usable on :3000"* while
+:3101 was serving fine. Both failed loudly, which is the saving grace, but the first
+guess is always "the server is down" and that guess costs a full multi-minute re-run.
+
+`scripts/lib/audit-base.mjs` now resolves **both spellings for all eight audits**. It
+matches the positional on **URL shape**, not "first non-flag argument" — the generic
+rule breaks on boolean flags, and `--json <url>` would swallow the URL as if it were
+`--json`'s value. **Per-script defaults are deliberately untouched** (audit-a11y's
+:3260, audit-responsive's :3100): changing a default silently repoints someone's
+existing invocation. Only the parsing is unified.
+
+The guard test paid for itself immediately — it caught **four scripts I had missed**,
+then **two false positives in my own detection**: `audit-campaign-images` uses `BASE`
+for an Unsplash URL constant, and `audit-signed-in` spawns its own server on `--port`
+and *passes* `--base` to a child audit, so it never reads one. It matches argv *reads*
+now. An existing non-vacuity test also caught the refactor, asserting the inline
+parser that had moved.
 
 ### ⚠️ CORRECTION — the first contrast run certified my working tree, not master
 The "0 AA failures" I first recorded was measured with **uncommitted changes present
