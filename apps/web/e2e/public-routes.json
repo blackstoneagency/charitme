@@ -10,7 +10,7 @@
     "sweeps were auditing the login page under two other names and passing.",
     "",
     "Before adding a route to `public`, load it signed-out and confirm it renders",
-    "itself. If it redirects, it belongs in `authGated` instead — the sweeps assert",
+    "itself. If it redirects, it belongs in `authGated` instead \u2014 the sweeps assert",
     "the landed path matches the requested one and will fail loudly either way."
   ],
   "public": [
@@ -54,7 +54,7 @@
     "/volunteer"
   ],
   "authGated": {
-    "_comment": "Verified to redirect signed-out, or to require a session/token. Auditing these needs a signed-in sweep; including them in `public` measures the login page instead. `routes` are the gated routes outside /dashboard and /admin; `consoles` are every static route inside them; `dynamicSamples` instantiate the [param] routes against stub fixture ids so the parameterised templates get swept too.",
+    "_comment": "Verified to redirect signed-out, or to require a session/token. Auditing these needs a signed-in sweep; including them in `public` measures the login page instead. `routes` are the gated routes outside /dashboard and /admin; `consoles` are every static route inside them; `dynamicSamples` instantiate the [param] routes against stub fixture ids so the parameterised templates get swept too. NOTE: /volunteer/manage was listed here but app/volunteer/manage contains only [id] \u2014 there is no page at that path, so the contrast sweep was auditing a 404 and counting it as a swept route. Removed. It is not replaced with a /volunteer/manage/<id> sample because the stub has no volunteer fixtures, so the page would render empty and simply move the blind spot rather than close it.",
     "routes": [
       "/achievements",
       "/privacy-center",
@@ -67,8 +67,7 @@
       "/matching/manage",
       "/sponsor/manage",
       "/beneficiary/accept",
-      "/volunteer/hours",
-      "/volunteer/manage"
+      "/volunteer/hours"
     ],
     "consoles": [
       "/admin",

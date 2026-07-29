@@ -557,6 +557,59 @@ pages as error pages. That was **my harness being wrong** — `/admin/super` and
 rejected and both rendered the same login page. The sweep's own report is the
 measurement to trust here; the ad-hoc check was discarded, not reported.
 
+## ✅ NEW — a crash smoke test for the signed-in surface (Claude, 2026-07-28)
+
+`audit-signed-in.mjs` measures **contrast**. A page that has crashed to an error
+boundary still has contrast — the boundary's own text — so it yields a few
+findings and the sweep moves on. `/admin/super` was broken for every visitor and
+its only symptom was one line in that script's "fewer than 15 text elements"
+footnote. A page that does not load deserves to be the headline, not a footnote.
+
+New: **`apps/web/scripts/audit-signed-in-smoke.mjs`** — asserts the thing the
+contrast sweep assumes, that the page rendered. Non-200s, Next error boundaries,
+and server exception digests, across all gated routes.
+
+**Result: 105 of 106 render.** The one failure was real but not what it looked
+like — see below.
+
+Two guardrails built in from mistakes made earlier in the session:
+- **It refuses to run if the stub session is rejected.** Otherwise every route
+  redirects to `/login`, follows to a 200, and it reports a clean sweep of the
+  login page 106 times. An ad-hoc `curl` check of mine did exactly that before I
+  caught it.
+- The header states that **a crash here is not automatically a product bug** —
+  3 of the 4 crashes found this way were stub fixtures whose columns did not
+  match `supabase/schema.sql`, on columns the schema declares NOT NULL.
+
+### `/volunteer/manage` — a phantom route that was inflating coverage
+
+It sat in `authGated.routes`, but **there is no page at that path**:
+`app/volunteer/manage` holds only `[id]`. So the contrast sweep visited it,
+got a 404, and **audited the 404 page in both themes while counting it as a
+swept route**. Removed from the list. Not replaced with a
+`/volunteer/manage/<id>` sample, because the stub has no volunteer fixtures — that
+would move the blind spot rather than close it.
+
+### ⚠️ The static guard for this class CANNOT catch this case — read before "fixing" it
+
+I added `every listed route actually exists` to `route-list-single-source.test.ts`
+and it passes with the phantom route **re-added**. That is not a vacuous test, and
+the reason matters:
+
+`/volunteer/manage` **is** matched — by the dynamic sibling
+`app/volunteer/[slug]/page.tsx`. Next routes it there too, and that page correctly
+calls `notFound()` because no opportunity has the slug `"manage"`. **Statically the
+route is indistinguishable from a legitimate one.** Any attempt to tighten the
+pattern match would start rejecting real dynamic routes.
+
+So the division of labour is deliberate: the static test catches a route matching
+**no pattern at all** (verified by planting `/dashboard/nope-not-real` and
+watching it fail); the **runtime smoke test** catches a route that resolves but
+does not render. Neither subsumes the other.
+
+I nearly recorded this as "my new test is vacuous" on the strength of the first
+non-vacuity attempt. It was the test that was right.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).

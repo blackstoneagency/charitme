@@ -124,6 +124,79 @@ describe('public route list has a single source of truth', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// The inverse of the console check: every route the lists CLAIM must exist.
+//
+// A listed route that has no page is worse than a missing one. The sweeps visit
+// it, Next answers 404, and the 404 page gets contrast-audited and counted as
+// covered — so the coverage number goes UP while a real page goes unaudited.
+//
+// ⚠️ KNOWN LIMIT, and it is the interesting part. This matches route PATTERNS,
+// so it cannot see a phantom route swallowed by a dynamic sibling.
+// `/volunteer/manage` is exactly that case: there is no page at that path
+// (app/volunteer/manage holds only [id]), but app/volunteer/[slug]/page.tsx
+// matches it, so this test says it exists — and Next agrees, routing there and
+// correctly calling notFound() because no opportunity has the slug "manage".
+// Statically it is indistinguishable from a real route.
+//
+// Only a RUNTIME check catches that, which is what
+// scripts/audit-signed-in-smoke.mjs is for — and it is what actually found it.
+// Do not try to "strengthen" this test to cover the case: it cannot, and the
+// attempt would start rejecting legitimate dynamic routes.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('every listed route actually exists', () => {
+  const data = JSON.parse(
+    readFileSync(path.join(WEB_ROOT, 'e2e', 'public-routes.json'), 'utf8'),
+  ) as { public: string[]; authGated: { routes: string[]; consoles: string[] } };
+
+  /** Route patterns from app/**\/page.tsx, honouring [param] and (groups). */
+  function routeTable(): string[][] {
+    const out: string[][] = [];
+    const walk = (dir: string, segs: string[]) => {
+      for (const entry of readdirSync(dir)) {
+        const full = path.join(dir, entry);
+        if (statSync(full).isDirectory()) {
+          walk(full, entry.startsWith('(') && entry.endsWith(')') ? segs : [...segs, entry]);
+        } else if (entry === 'page.tsx') {
+          out.push(segs);
+        }
+      }
+    };
+    walk(path.join(WEB_ROOT, 'app'), []);
+    return out;
+  }
+
+  const table = routeTable();
+
+  function exists(route: string): boolean {
+    const want = route.split('/').filter(Boolean);
+    return table.some((pattern) => {
+      if (pattern.length !== want.length) return false;
+      return pattern.every((seg, i) => seg.startsWith('[') || seg === want[i]);
+    });
+  }
+
+  it('built a real route table', () => {
+    expect(table.length, 'no pages found — the walk is broken').toBeGreaterThan(100);
+    expect(exists('/dashboard')).toBe(true);
+    expect(exists('/campaigns/some-slug'), 'dynamic segments should match').toBe(true);
+    // Non-vacuity: a path no pattern matches must come back false. (Verified by
+    // planting '/dashboard/nope-not-real' in the JSON and watching this fail.)
+    expect(exists('/definitely/not/a/real/route/at/all')).toBe(false);
+    expect(exists('/dashboard/nope-not-real')).toBe(false);
+  });
+
+  it('has no listed route without a page', () => {
+    const listed = [...data.public, ...data.authGated.routes, ...data.authGated.consoles];
+    const missing = listed.filter((r) => !exists(r));
+    expect(
+      missing,
+      'These routes are in e2e/public-routes.json but no page.tsx serves them, so ' +
+        'the sweeps audit a 404 and count it as coverage:\n  ' + missing.join('\n  '),
+    ).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // The signed-in console list must track the filesystem.
 //
 // `authGated.consoles` is what the signed-in sweep (scripts/audit-signed-in.mjs)
