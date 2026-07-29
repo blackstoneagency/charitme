@@ -204,6 +204,96 @@ export function buildFixtures() {
     created_at: daysAgo(i * 3),
   }));
 
+  const campaign_payments = [
+    {
+      id: uuid('paym', 1),
+      campaign_id: campaigns[0].id,
+      campaign_owner_id: USER_ID,
+      donor_id: USER_ID,
+      donation_id: donations[0].id,
+      processor: 'stripe',
+      processor_charge_id: 'ch_stub_1',
+      processor_payment_intent_id: 'pi_stub_1',
+      processor_checkout_session_id: 'cs_stub_1',
+      processor_transfer_id: 'tr_stub_1',
+      processor_payout_id: 'po_stub_1',
+      gross_amount: 5_000,
+      tip_amount: 500,
+      platform_fee_amount: 500,
+      processor_fee_amount: 175,
+      campaign_owner_net_amount: 4_825,
+      refunded_amount: 0,
+      disputed_amount: 0,
+      currency: 'usd',
+      payment_status: 'succeeded',
+      transfer_status: 'paid',
+      payout_status: 'paid',
+      refund_status: 'none',
+      dispute_status: 'none',
+      settlement_status: 'settled',
+      reconciliation_status: 'reconciled',
+      reconciliation_reason: null,
+      created_at: daysAgo(4),
+      campaigns: {
+        title: campaigns[0].title,
+        slug: campaigns[0].slug,
+      },
+    },
+  ];
+
+  const volunteer_opportunities = [
+    {
+      id: uuid('volu', 1),
+      slug: 'stub-community-pantry',
+      title: 'Community pantry packing shift',
+      org_name: 'Stub Foundation',
+      summary: 'Pack grocery boxes for local families.',
+      description: 'A populated volunteer fixture for signed-in route certification.',
+      location: '123 Main Street',
+      is_remote: false,
+      starts_at: daysAgo(-14),
+      ends_at: daysAgo(-13),
+      created_by: USER_ID,
+      status: 'active',
+      deleted_at: null,
+      created_at: daysAgo(20),
+      updated_at: daysAgo(1),
+    },
+  ];
+
+  const volunteer_shifts = [
+    {
+      id: uuid('vshf', 1),
+      opportunity_id: volunteer_opportunities[0].id,
+      title: 'Morning packing',
+      starts_at: daysAgo(-14),
+      ends_at: daysAgo(-13),
+      location: '123 Main Street',
+      capacity: 20,
+      filled_count: 8,
+      status: 'open',
+      checkin_code: 'STUB01',
+      deleted_at: null,
+      created_at: daysAgo(10),
+      updated_at: daysAgo(1),
+    },
+  ];
+
+  const volunteer_hours = [
+    {
+      id: uuid('vhour', 1),
+      opportunity_id: volunteer_opportunities[0].id,
+      volunteer_user_id: USER_ID,
+      checked_in_at: daysAgo(2),
+      checked_out_at: daysAgo(2),
+      hours: 3,
+      status: 'pending',
+      deleted_at: null,
+      created_at: daysAgo(2),
+      updated_at: daysAgo(1),
+    },
+  ];
+
   const genericRows = (prefix, count, extra = () => ({})) =>
     Array.from({ length: count }, (_, i) => ({
       id: uuid(prefix, i + 1),
@@ -245,6 +335,39 @@ export function buildFixtures() {
     donations,
     payouts,
     campaign_updates,
+    campaign_payments,
+    campaign_payment_events: [
+      {
+        id: uuid('pevt', 1),
+        campaign_payment_id: campaign_payments[0].id,
+        event_type: 'payment.succeeded',
+        event_status: 'processed',
+        amount: campaign_payments[0].gross_amount,
+        currency: 'usd',
+        occurred_at: campaign_payments[0].created_at,
+        processor_object_id: campaign_payments[0].processor_payment_intent_id,
+        metadata: {},
+      },
+    ],
+    campaign_payment_breakdowns: [
+      {
+        id: uuid('pbrk', 1),
+        campaign_payment_id: campaign_payments[0].id,
+        gross_amount: 5_000,
+        tip_amount: 500,
+        processor_fee_amount: 175,
+        platform_fee_amount: 500,
+        owner_net_amount: 4_825,
+        currency: 'usd',
+        status: 'recorded',
+        created_at: campaign_payments[0].created_at,
+      },
+    ],
+    campaign_payment_webhook_events: [],
+    campaign_payment_admin_notes: [],
+    volunteer_opportunities,
+    volunteer_shifts,
+    volunteer_hours,
 
     // Long tail: every other table the gated pages touch. These carry only the
     // columns a list view needs. A page that reads a column not present here

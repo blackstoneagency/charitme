@@ -1,6 +1,16 @@
 import { expect, type Page } from '@playwright/test';
 import routeData from './public-routes.json';
 
+export type DynamicRouteSample = {
+  template: string;
+  path: string;
+};
+
+export type ExpectedRedirect = {
+  from: string;
+  to: string;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared public-route list + the guard that keeps it honest.
 //
@@ -23,6 +33,16 @@ export const PUBLIC_ROUTES: readonly string[] = routeData.public;
 
 /** Routes that redirect or need a session — auditing these needs a signed-in sweep. */
 export const AUTH_GATED_ROUTES: readonly string[] = routeData.authGated.routes;
+
+/** Static dashboard/admin pages that must render their own content when signed in. */
+export const AUTH_GATED_CONSOLES: readonly string[] = routeData.authGated.consoles;
+
+/** Intentional compatibility aliases and their exact destinations. */
+export const AUTH_GATED_REDIRECTS: readonly ExpectedRedirect[] = routeData.authGated.redirects;
+
+/** Populated URLs paired one-to-one with every parameterized signed-in template. */
+export const AUTH_GATED_DYNAMIC_SAMPLES: readonly DynamicRouteSample[] =
+  routeData.authGated.dynamicSamples;
 
 /** Normalise for comparison: drop a trailing slash, keep root as "/". */
 export function normalizePath(path: string): string {

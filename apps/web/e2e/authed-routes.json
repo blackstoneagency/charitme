@@ -23,7 +23,6 @@
       "/dashboard/corporate"
     ],
     "create": [
-      "/create/choose-path",
       "/create"
     ],
     "admin": [

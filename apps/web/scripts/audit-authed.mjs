@@ -27,10 +27,21 @@ const BASE = argBase ?? process.env.AUDIT_BASE_URL ?? 'http://127.0.0.1:3000';
 const EMAIL = process.env.QA_EMAIL ?? '';
 const PASSWORD = process.env.QA_PASSWORD ?? '';
 
-const SANDBOX_CHROMIUM = '/opt/pw-browsers/chromium';
-const EXECUTABLE =
-  process.env.PLAYWRIGHT_CHROMIUM_PATH ||
-  (existsSync(SANDBOX_CHROMIUM) ? SANDBOX_CHROMIUM : undefined);
+const EXECUTABLE = [
+  process.env.PLAYWRIGHT_CHROMIUM_PATH,
+  chromium.executablePath(),
+  process.env.PROGRAMFILES
+    ? `${process.env.PROGRAMFILES}\\Google\\Chrome\\Application\\chrome.exe`
+    : null,
+  process.env['PROGRAMFILES(X86)']
+    ? `${process.env['PROGRAMFILES(X86)']}\\Google\\Chrome\\Application\\chrome.exe`
+    : null,
+  process.env.LOCALAPPDATA
+    ? `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`
+    : null,
+  '/usr/bin/google-chrome',
+  '/usr/bin/chromium',
+].find((candidate) => candidate && existsSync(candidate));
 
 // The signed-in surface, read from the shared list rather than duplicated here.
 // e2e/authed-routes.json is deliberately separate from public-routes.json: that
@@ -60,6 +71,7 @@ const browser = await chromium.launch({
 let total = 0;
 let swept = 0;
 let skipped = 0;
+let errors = 0;
 const byRule = new Map();
 
 try {
@@ -93,7 +105,17 @@ try {
     for (const [group, paths] of Object.entries(ROUTES)) {
       for (const path of paths) {
         try {
-          await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+          const response = await page.goto(BASE + path, {
+            waitUntil: 'domcontentloaded',
+            timeout: 30_000,
+          });
+          if (!response || response.status() >= 400) {
+            errors++;
+            console.log(
+              `! ${theme} ${path} [${group}] - HTTP ${response?.status() ?? 'NO_RESPONSE'}`,
+            );
+            continue;
+          }
           await page.waitForLoadState('load', { timeout: 8_000 }).catch(() => {});
           await page.waitForTimeout(400);
 
@@ -107,6 +129,17 @@ try {
             continue;
           }
 
+          const activeTheme = await page.evaluate(
+            () => document.documentElement.getAttribute('data-theme'),
+          );
+          if (activeTheme !== theme) {
+            errors++;
+            console.log(
+              `! ${theme} ${path} [${group}] - theme reverted to "${activeTheme}"`,
+            );
+            continue;
+          }
+
           const res = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
             .analyze();
@@ -117,8 +150,9 @@ try {
             console.log(`✗ ${theme} ${path} — ${v.id} (${v.impact}) ×${v.nodes.length}`);
           }
         } catch (e) {
-          skipped++;
-          console.log(`! ${theme} ${path} [${group}] — ERROR ${String(e.message).slice(0, 70)}`);
+          errors++;
+          const message = e instanceof Error ? e.message : String(e);
+          console.log(`! ${theme} ${path} [${group}] - ERROR ${message.slice(0, 70)}`);
         }
       }
     }
@@ -128,11 +162,15 @@ try {
   await browser.close();
 }
 
-console.log(`\nswept ${swept} page loads, skipped ${skipped}`);
+console.log(`\nswept ${swept} page loads, skipped ${skipped}, errors ${errors}`);
 if (swept === 0) {
   // Zero violations across zero pages is not a pass.
   console.error('✗ Nothing was audited — every route was skipped or errored.');
   process.exit(4);
+}
+if (errors > 0) {
+  console.error(`\u2717 ${errors} page load or theme error(s); the audit is incomplete.`);
+  process.exit(5);
 }
 console.log(
   total === 0

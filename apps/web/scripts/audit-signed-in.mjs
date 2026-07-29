@@ -6,8 +6,8 @@
  * WHAT THIS UNBLOCKS
  *
  * Every sweep in this repo — axe, contrast, responsive, keyboard — has only ever
- * covered public routes. The gated half (13 standalone routes + 75 static
- * /dashboard and /admin routes + 16 [param] templates) had ZERO coverage from any
+ * covered public routes. The gated half (10 standalone routes + 68 renderable
+ * console routes + 19 [param] templates) had ZERO coverage from any
  * of them, and the tracker attributed that to firewalled egress: the sandbox
  * cannot reach `*.supabase.co`, so no session, so no signed-in page.
  *
@@ -32,7 +32,7 @@
  * `NEXT_PUBLIC_*` is inlined at build time, so the app must be BUILT against the
  * stub URL — a running server started with different env vars is not enough, and
  * silently keeps talking to the real (unreachable) host. This script refuses to
- * run against a server it did not verify, rather than producing a sweep of 104
+ * run against a server it did not verify, rather than producing a sweep of 97
  * login pages.
  *
  * Usage:
@@ -41,7 +41,11 @@
  */
 
 import { spawn } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { setTimeout as sleep } from 'node:timers/promises';
+
+const require = createRequire(import.meta.url);
+const nextBin = require.resolve('next/dist/bin/next');
 
 const argv = process.argv.slice(2);
 const argOf = (flag, fallback) => {
@@ -51,6 +55,7 @@ const argOf = (flag, fallback) => {
 
 const APP_PORT = Number(argOf('--port', '3000'));
 const STUB_PORT = Number(argOf('--stub-port', '54321'));
+const ONLY = argOf('--only', null);
 const STUB_URL = `http://127.0.0.1:${STUB_PORT}`;
 const BASE = `http://127.0.0.1:${APP_PORT}`;
 const USER_ID = '00000000-0000-4000-8000-000000000001';
@@ -107,6 +112,16 @@ function spawnChild(cmd, args, opts = {}) {
   children.push(child);
   return child;
 }
+function runChild(cmd, args, opts = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawnChild(cmd, args, opts);
+    child.once('error', reject);
+    child.once('exit', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`${cmd} exited with ${code ?? 'no status'}`));
+    });
+  });
+}
 function cleanup() {
   for (const c of children) { try { c.kill('SIGTERM'); } catch { /* already gone */ } }
 }
@@ -127,10 +142,17 @@ const env = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: 'stub-anon-key',
   SUPABASE_SERVICE_ROLE_KEY: 'stub-service-key',
   // Grants the fixture user the admin console. Without it /admin/* 302s to
-  // /dashboard and 53 routes drop out of the sweep with no visible reason.
+  // /admin and the rest of the admin console drop out of the sweep.
   ADMIN_EMAILS: 'audit-stub@charitme.local',
 };
-spawnChild('npx', ['next', 'start', '-p', String(APP_PORT)], {
+if (argv.includes('--build')) {
+  console.log('Â· building the app against the signed-in Supabase stub');
+  await runChild(process.execPath, [nextBin, 'build'], {
+    env,
+    stdio: ['ignore', 'inherit', 'inherit'],
+  });
+}
+spawnChild(process.execPath, [nextBin, 'start', '-p', String(APP_PORT)], {
   env,
   stdio: ['ignore', 'ignore', 'inherit'],
 });
@@ -144,33 +166,36 @@ console.log(`· app up on ${BASE}`);
 // port, the sweep passes, and the numbers describe code that is not on disk.
 // Here the stakes are higher — a build made against the REAL Supabase URL cannot
 // reach it from the sandbox, so every gated route redirects and the sweep would
-// report 104 clean pages that were all /login.
+// report 97 clean pages that were all /login.
 const cookieName = cookieNameFor(STUB_URL);
-const probe = await fetch(`${BASE}/dashboard`, {
-  headers: { cookie: `${cookieName}=${sessionCookieValue()}` },
+const cookieValue = sessionCookieValue();
+const sessionHeader = `${cookieName}=${cookieValue}`;
+const probe = await fetch(`${BASE}/admin`, {
+  headers: { cookie: sessionHeader },
   redirect: 'manual',
 });
 if (probe.status !== 200) {
   console.error(
-    `\n✗ /dashboard answered ${probe.status} with a stub session.\n` +
+    `\n✗ /admin answered ${probe.status} with the admin stub session.\n` +
     '  The build is almost certainly pointed at the real Supabase URL. Rebuild with:\n' +
     `    NEXT_PUBLIC_SUPABASE_URL=${STUB_URL} NEXT_PUBLIC_SUPABASE_ANON_KEY=stub-anon-key \\\n` +
     '    SUPABASE_SERVICE_ROLE_KEY=stub-service-key npm run build --workspace=apps/web\n',
   );
   process.exit(2);
 }
-console.log('· signed-in probe: /dashboard renders (200)');
+console.log('· signed-in probe: /admin renders (200)');
 
 // ─── 4. sweep ───────────────────────────────────────────────────────────────
 const sweep = spawnChild(process.execPath, [
   'scripts/audit-contrast.mjs',
   '--base', BASE,
   '--auth',
+  ...(ONLY ? ['--only', ONLY] : []),
   ...(argv.includes('--strict-gradients') ? ['--strict-gradients'] : []),
 ], {
   env: {
     ...env,
-    STUB_SESSION_COOKIE: JSON.stringify({ name: cookieName, value: sessionCookieValue() }),
+    STUB_SESSION_COOKIE: JSON.stringify({ name: cookieName, value: cookieValue }),
   },
 });
 
