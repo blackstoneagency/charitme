@@ -170,7 +170,7 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   `www.charitme.com`. Re-verified live `/help`, `/pricing`, `/ai-campaign`,
   `/impact`, `/sitemap.xml`, `/robots.txt`, and `/api/health`.
 
-## SITEMAP RESILIENCE AND CACHE - verified locally, release pending (Codex, 2026-07-29)
+## SITEMAP RESILIENCE AND CACHE - production verified (Codex, 2026-07-29)
 
 - [x] Measured the production baseline over five uncached requests: 1.06-1.21
   seconds warm and 2.33 seconds cold for 1,259 URLs.
@@ -189,9 +189,13 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   cached static route with 15-minute revalidation.
 - [x] Verified local production responses preserve the generated URL set and
   return `x-nextjs-cache: HIT`; repeat latency was 9-15 ms.
-- [ ] Merge through a pull request, verify all 1,259 production URLs remain
-  present, measure live repeat latency, and confirm the exact master deployment
-  is Ready and Current on `www.charitme.com`.
+- [x] Merged PR #160 as exact master commit
+  `c07220bf3dfaaadc328a500c0a88b065f162bc9a`; Vercel deployment
+  `dpl_EMs4CBo6Fx6fWJ3XNsPDnuBqNzkk` is Ready, Current, and assigned to
+  `www.charitme.com`.
+- [x] Re-verified all 1,259 production URLs after deployment. The first request
+  returned `x-vercel-cache: PRERENDER` in 440 ms, followed by four cache hits in
+  61-122 ms; `/api/health` also returned HTTP 200.
 
 ## SIGNED-IN PAGE CERTIFICATION - audit infrastructure complete, contrast remediation active (Codex, 2026-07-28)
 
