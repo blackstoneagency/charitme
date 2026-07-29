@@ -26,6 +26,7 @@ test('all mutating SQL seed files require the database session guard', () => {
     '05_engagement_financial.sql',
     '06_extended_features.sql',
     '07_operational_features.sql',
+    '08_sponsors.sql',
     'super_admin_console_seed.sql',
   ];
   for (const file of files) {
@@ -56,6 +57,7 @@ test('local reset runs the complete ordered seed suite and verifier', () => {
     './seeds/05_engagement_financial.sql',
     './seeds/06_extended_features.sql',
     './seeds/07_operational_features.sql',
+    './seeds/08_sponsors.sql',
     './seeds/99_verify_counts.sql',
   ];
   let previous = -1;
