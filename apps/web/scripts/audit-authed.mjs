@@ -21,9 +21,11 @@
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { existsSync, readFileSync } from 'node:fs';
+import { resolveBase } from './lib/audit-base.mjs';
 
-const argBase = process.argv.find((a) => a.startsWith('http'));
-const BASE = argBase ?? process.env.AUDIT_BASE_URL ?? 'http://127.0.0.1:3000';
+// AUDIT_BASE_URL stays as a fallback for CI, but argv parsing is shared so this
+// agrees with every sibling audit on what `--base` and a positional URL mean.
+const BASE = resolveBase(process.argv, process.env.AUDIT_BASE_URL ?? 'http://127.0.0.1:3000');
 const EMAIL = process.env.QA_EMAIL ?? '';
 const PASSWORD = process.env.QA_PASSWORD ?? '';
 

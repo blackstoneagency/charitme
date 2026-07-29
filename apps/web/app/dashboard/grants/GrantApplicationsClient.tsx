@@ -5,6 +5,14 @@ import Link from 'next/link';
 import { Badge, Btn, BtnLink, EmptyState, Spinner } from '../../../components/ui';
 import { grantApplicationStatusLabel, type GrantApplicationStatus } from '../../../lib/grants';
 
+interface GrantDocument {
+  id: string;
+  file_name: string;
+  file_url: string;
+  doc_type: string | null;
+  created_at: string;
+}
+
 interface AppRow {
   id: string;
   grant_id: string;
@@ -16,6 +24,7 @@ interface AppRow {
   award_amount: number | null;
   updated_at: string;
   grants: { id: string; slug: string; title: string; funder_name: string; deadline_at: string | null; currency: string } | null;
+  documents?: GrantDocument[];
 }
 
 const statusColor: Record<GrantApplicationStatus, 'green' | 'blue' | 'gray' | 'red'> = {
@@ -32,22 +41,76 @@ function money(cents: number | null, currency = 'USD'): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(Math.round(cents / 100));
 }
 
+function docTypeLabel(type: string | null): string {
+  if (!type) return 'Document';
+  return type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ');
+}
+
+function Documents({ docs, available }: { docs: GrantDocument[]; available: boolean }) {
+  // Nothing to say when an application simply has no attachments — an empty
+  // "Attachments (0)" block is noise on every draft.
+  if (docs.length === 0) {
+    if (available) return null;
+    return (
+      <div style={{ flexBasis: '100%', fontSize: 12, color: 'var(--t3)' }}>
+        Attachments could not be loaded — they have not been removed.
+      </div>
+    );
+  }
+  return (
+    <div style={{ flexBasis: '100%', minWidth: 0, borderTop: '1px solid var(--b1)', paddingTop: 10 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 6 }}>
+        {docs.length === 1 ? '1 attachment' : `${docs.length} attachments`}
+      </div>
+      <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {docs.map((d) => (
+          <li key={d.id} style={{ minWidth: 0 }}>
+            <a
+              href={d.file_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6, maxWidth: '100%',
+                fontSize: 12.5, padding: '6px 10px', borderRadius: 999,
+                border: '1px solid var(--b1)', background: 'var(--s2)', color: 'var(--t2)',
+                textDecoration: 'none',
+                // 24px min keeps the chip a valid WCAG 2.2 SC 2.5.8 tap target.
+                minHeight: 24,
+              }}
+            >
+              <span aria-hidden="true">📎</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {d.file_name}
+              </span>
+              <span style={{ color: 'var(--t3)', flexShrink: 0 }}>· {docTypeLabel(d.doc_type)}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function GrantApplicationsClient() {
   const [apps, setApps] = useState<AppRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // Attachments failing to load is NOT the same as an application having none —
+  // the API says which happened, so the UI can stop short of implying the files
+  // are gone.
+  const [docsAvailable, setDocsAvailable] = useState(true);
 
   function load() {
     return fetch('/api/grants/applications')
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error('load failed'))))
-      .then((json) => { setApps(json.applications ?? []); setError(null); })
+      .then((json) => { setApps(json.applications ?? []); setDocsAvailable(json.documentsAvailable !== false); setError(null); })
       .catch(() => { setApps([]); setError('Could not load your applications.'); });
   }
 
   useEffect(() => {
     fetch('/api/grants/applications')
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error('load failed'))))
-      .then((json) => { setApps(json.applications ?? []); setError(null); })
+      .then((json) => { setApps(json.applications ?? []); setDocsAvailable(json.documentsAvailable !== false); setError(null); })
       .catch(() => { setApps([]); setError('Could not load your applications.'); });
   }, []);
 
@@ -109,6 +172,7 @@ export default function GrantApplicationsClient() {
               {a.status === 'awarded' && a.award_amount != null && ` · Awarded ${money(a.award_amount, a.grants?.currency)}`}
             </div>
           </div>
+          <Documents docs={a.documents ?? []} available={docsAvailable} />
           <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
             {a.status === 'draft' && (
               <Btn size="sm" loading={busy === a.id} onClick={() => transition(a.id, 'submitted')}>Submit</Btn>

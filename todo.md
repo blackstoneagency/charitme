@@ -216,6 +216,57 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 - [x] Verify typecheck, zero-warning lint, 1,878 tests, a 151-page production
   build without the incorrect workspace-root warning, and all six persona checks.
 
+## PUBLIC SEARCH AND AEO CONTRACT - production verified (Codex, 2026-07-29)
+
+- [x] Verified the production sitemap returns HTTP 200 with 1,259 unique URLs,
+  including 350 campaigns, 180 events, 180 grants, 120 matching programs, 180
+  volunteer opportunities, 144 sponsorships, and 57 impact reports.
+- [x] Added route-specific title, description, canonical, and Open Graph
+  metadata to `/help` and `/pricing`; enriched `/ai-campaign` with
+  `WebApplication` structured data and a social-sharing contract.
+- [x] Added visible-answer-aligned `FAQPage` structured data to the help center
+  and routed every changed schema through the XSS-safe JSON-LD serializer.
+- [x] Replaced the impact index's raw JSON-LD script with the nonce-aware shared
+  component so its Supabase-backed `ItemList` complies with the CSP.
+- [x] Added a route-inventory guard that prevents searchable public pages from
+  drifting out of the sitemap and a browser gate for title, description,
+  canonical URL, indexability, JSON-LD nonces, and CSP console violations.
+- [x] Verified typecheck, zero-warning lint, 1,879 tests across 181 files, a
+  151-page production build, all six role personas, and five targeted Chromium
+  SEO/accessibility/CSP tests.
+- [x] Merged PR #158 as exact master commit
+  `e85237bdc56de25fe5d9e9ba7361089e29c90587`; Vercel deployment
+  `dpl_CELMCYcf8KZHNrZoV49dGzvPdepM` is Ready, Current, and assigned to
+  `www.charitme.com`. Re-verified live `/help`, `/pricing`, `/ai-campaign`,
+  `/impact`, `/sitemap.xml`, `/robots.txt`, and `/api/health`.
+
+## SITEMAP RESILIENCE AND CACHE - production verified (Codex, 2026-07-29)
+
+- [x] Measured the production baseline over five uncached requests: 1.06-1.21
+  seconds warm and 2.33 seconds cold for 1,259 URLs.
+- [x] Replaced forced dynamic rendering with a 15-minute ISR contract so crawler
+  traffic is served from the route cache while new public content appears
+  within a bounded interval.
+- [x] Parallelized the independent campaign, event, grant, matching, volunteer,
+  sponsorship, and impact-plan Supabase reads.
+- [x] Isolated query and transport failures by content family so one unavailable
+  table cannot turn the entire sitemap into a 500; campaign visibility probing
+  still fails toward private filtering.
+- [x] Removed fabricated request-time `lastModified` timestamps from static and
+  feature routes while preserving real publication and database timestamps.
+- [x] Verified typecheck, zero-warning lint, 1,904 tests across 184 files, a
+  152-page production build, all six role personas, and `/sitemap.xml` as a
+  cached static route with 15-minute revalidation.
+- [x] Verified local production responses preserve the generated URL set and
+  return `x-nextjs-cache: HIT`; repeat latency was 9-15 ms.
+- [x] Merged PR #160 as exact master commit
+  `c07220bf3dfaaadc328a500c0a88b065f162bc9a`; Vercel deployment
+  `dpl_EMs4CBo6Fx6fWJ3XNsPDnuBqNzkk` is Ready, Current, and assigned to
+  `www.charitme.com`.
+- [x] Re-verified all 1,259 production URLs after deployment. The first request
+  returned `x-vercel-cache: PRERENDER` in 440 ms, followed by four cache hits in
+  61-122 ms; `/api/health` also returned HTTP 200.
+
 ## SIGNED-IN PAGE CERTIFICATION - audit infrastructure complete, contrast remediation active (Codex, 2026-07-28)
 
 - [x] Reconciled the route manifest with the app tree: 10 standalone gated
@@ -1353,6 +1404,352 @@ anonymous request (gated, not broken), CSS `30ca23b3fd61bc8b.css` identical to t
 local build. Honest limit: `ae5448c` touched only server data code and a test, so
 the CSS hash cannot by itself distinguish it from its parent — the pricing-copy
 check is what pins the deploy to recent work.
+
+## 🔴 SEEDED, ADVERTISED, NEVER READ — 4 tables left (Claude, 2026-07-29)
+
+`npm run audit:orphan-tables` crosses live row counts against the app's actual
+`.from()` call sites, because **row count alone cannot tell "wired to Supabase"
+from "has data nothing reads"** — a table with 500 rows and no reader satisfies
+the ≥100-seed-records criterion while failing the wiring one.
+
+**Result: 155 declared tables, 122 with a reader, 3 orphaned with ≥100 rows** (was 5 at the
+start of this sweep — `peer_fundraisers` and `grant_documents` shipped).
+
+| table | rows | claimed by `feature-catalog.ts` as |
+|---|---|---|
+| `coach_sessions` | 500 | — |
+| `creator_profiles` | 500 | Creator Platform, Membership, Digital Products |
+| `trust_scores` | 500 | Trust & Safety |
+| `grant_documents` | 240 | — |
+
+### ✅ SHIPPED — supporters can now JOIN a team (the write half)
+The read path landed first, which left a subtler kind of unwired than an orphan
+table: the section rendered 240 seeded rows, but **nothing in the app could create
+one**, so it could only ever display data that arrived by other means.
+
+`POST /api/campaigns/[id]/peer-fundraisers` + a control on the campaign page.
+
+**Four things the happy path alone would have gotten wrong:**
+1. The section returned `null` on an empty team — so the invitation was invisible in
+   exactly the case where it is needed, **the first supporter**. Empty teams now read
+   "Be the first to raise money alongside this campaign" and still show the control.
+2. `peer_fundraisers.slug` is **UNIQUE platform-wide**, so a name-derived slug
+   collides between two supporters sharing a display name. On `23505` the insert
+   retries with a new suffix rather than surfacing a 500 that reads as "joining is
+   broken".
+3. **Idempotent per (campaign, user)** — and the existing-row query checks `error`,
+   since supabase-js resolves rather than throws and an unchecked failure reads as
+   "no existing page", inserting the duplicate the unique slug then rejects.
+4. The **organizer is refused** a peer page on their own campaign: it would split
+   their total across two goals and double-count them in the team list. UI hides it;
+   the API enforces it independently.
+
+Verified against a production build: 401 unauthenticated, 405 on GET, CTA renders for
+signed-out visitors, empty-team invitation renders. **Signed-in creation is not
+verifiable here** — needs the QA login (owner item #3).
+
+### ✅ FIXED — `peer_fundraisers` (240 rows, 120 campaigns) → shipped
+Peer-to-peer/team fundraising had a **complete** schema — FKs to `campaigns` and
+`profiles`, RLS, a `parent_campaign_id` index — 240 seeded rows, and a
+`feature-catalog.ts` entry marked **Production Ready** advertising "peer-to-peer,
+team fundraising". **Zero `.from('peer_fundraisers')` anywhere in the app.**
+
+The catalog file already stated the standard it was failing, in a comment saying
+why `auctions` is deliberately *not* listed: *"there is no auction API, lib or UI
+— only tables. A 'Production Ready' module must not advertise a capability this
+same file says is unbuilt."* Peer-to-peer was in that exact state with the claim
+left in.
+
+Campaign pages now render a **Fundraising team** section (`TeamFundraisers.tsx`),
+ranked by amount raised. Verified live in both directions: real names and progress
+on a campaign with a team, section absent on one without.
+
+Two existing rules carried over rather than reinvented — supporter names/avatars
+gated on `show_public_profile` (the same account-wide setting the donor wall
+honours; a private supporter still counts, shown by page title alone), and the
+read checks `error`, since supabase-js resolves rather than throws and a failed
+query would otherwise have looked like a campaign with no team. `paused` rows are
+excluded: that status is a supporter taking their own page down.
+
+**`__tests__/peer-fundraisers-wired.test.ts` fails in both directions** — dropping
+the reader while keeping the catalog claim, and vice versa. Every assertion was
+verified red by breaking it, which is how the privacy assertion caught itself
+being too weak: a single `/isPublic\s*\?/` still passed with the *name* ungated,
+because the avatar line matched it. Both fields are asserted separately now.
+
+### ✅ FIXED — the catalog advertised 4 tables the app never reads
+The orphan audit only flags tables with **≥100 rows**, so it cannot see a claim
+backed by an *empty* table. Crossing every `databaseTables` entry against real
+`.from()` call sites found **31 claimed, 13 with no reader** — but 11 of those
+belong to `memberships` and `creator-commerce`, both marked **Planned**, where
+listing the intended schema is honest. Reporting "13 of 31" would have been a
+misleading headline for what is really **4 bad claims across 3 shipped modules**.
+
+| module | status | bad claim | reality |
+|---|---|---|---|
+| `projects-perks` | Production Ready | `reward_tiers` | **empty table, wrong name** — perks live in `campaign_rewards` (240 rows, read). Corrected, not dropped. |
+| `projects-perks` | Production Ready | `creator_profiles` | 500 rows, no reader, no creator surface exists |
+| `nonprofit-suite` | Production Ready | `donation_forms` | 0 rows, no reader. Feature entry stays — embeddable giving is served by `app/campaigns/[slug]/embed` off the campaign, so this table is not what backs it |
+| `ai-trust-growth` | Live | `trust_scores` | 500 rows, **no reader *or* writer** |
+
+**`trust_scores` is the one worth reading twice.** Trust scoring is genuinely
+live — `calculateTrustScore`/`getTrustSignals` compute it per request from current
+campaign state. The stored rows are a **stale April snapshot with `status` null and
+`signals` empty**, one per campaign. Wiring them up would have shown donors an
+out-of-date safety signal — *the wiring would have been the regression*. Dropping
+the claim is the fix. "Orphaned table" does not automatically mean "go connect it".
+(Also noted: the live table has `identity_score`/`story_score`/`activity_score`/
+`transparency_score`/`computed_at` columns that `schema.sql` does not declare — the
+mirror is drifted for this table.)
+
+`__tests__/catalog-claims-backed.test.ts` makes the rule mechanical. Planned
+modules are exempt **and that exemption is asserted to be load-bearing**, so it
+cannot quietly become dead scaffolding. Two anti-vacuity guards: the parse must
+find a plausible catalog, and the reader matcher must return true for a table that
+is read and false for one that is not.
+
+### Deciding the remaining 4 — the catalog's own rule applies
+For each: either build the reader, or drop the claim. Resolved so far —
+`trust_scores` and `creator_profiles` had their claims dropped (above); the tables
+remain seeded but unread, which is now honestly recorded rather than advertised.
+
+Still open, both **unclaimed** by the catalog, so dead weight rather than false
+promise:
+- **`coach_sessions`** (500 rows) — `/dashboard/ai-coach` and `/api/ai/coach` never
+  write it, so a coaching conversation is lost on reload. But the table stores only
+  `message_count`, **not a transcript**, so it cannot restore a conversation; wiring
+  it buys usage metrics, not the continuity the UX gap actually needs. Fixing that
+  properly means a schema change, not a reader.
+- ~~**`grant_documents`** (240 rows)~~ — **✅ SHIPPED.** 240 documents across 240
+  applications, and an applicant could not see the files attached to their own
+  application. `/api/grants/applications` now returns them and `/dashboard/grants`
+  renders each as a named chip. The scoping is the property that matters:
+  `.in('application_id', ids)` where `ids` comes from the query already filtered by
+  `applicant_user_id`, so it cannot reach another applicant's files — and the test
+  asserts the ids are derived *after* that owner-scoped query, not merely that both
+  strings appear. `documentsAvailable` distinguishes "no attachments" from "could
+  not load", because a null `docs` would otherwise render as "your files are gone".
+  Signed-in render still unverifiable without a QA login (owner item #3).
+- **`creator_profiles`** (500 rows) — **measured, and the answer is "not yet".**
+  `handle` and `display_name` are 500/500 populated, but `bio`, `hero_image_url` and
+  `website_url` are **0/500** — every distinguishing field is null. Each creator owns
+  **exactly one** campaign, so `/creator/[handle]` would render 500 near-empty pages
+  each pointing at a single campaign the visitor can already reach: thin, duplicative
+  for SEO, and the features that would fill them (`creator_tips`, `digital_products`,
+  `membership_tiers`) belong to modules openly marked **Planned**. Building it now
+  would satisfy "wired to Supabase" by gaming the metric — the same trap as
+  `trust_scores`. It is legitimately listed by the Planned modules; the shipped-module
+  claim has already been removed.
+
+**All three remaining orphans now have a measured reason not to be naively wired.**
+That is the finding, not a dodge: "orphaned table" does not imply "go connect it".
+Two needed a schema or product decision first (`coach_sessions` stores a counter, not
+a transcript; `creator_profiles` has no content), and one would have been an active
+regression (`trust_scores`).
+
+### ⚠️ Shared working tree — commit by path, never `git add -A`
+Mid-task, `app/create/page.tsx` and `globals.css` appeared modified in my tree with
+two `*.tmp.mjs` scratch files: another agent's in-flight contrast fix, in Codex's
+declared theme lane. `git add -A` would have committed someone's half-finished work
+under my message. **Stage the explicit paths you touched.** To rebase over it:
+`git stash push -m … <their paths>` → rebase → `git stash pop`.
+
+## 🔴 FIXED — `audit:mobile` exited 1 on EVERY run (Claude, 2026-07-29)
+
+The sweep reported `/campaigns/security-header-fixture/embed — stylesheet has 0
+rules; page is unstyled, refusing to measure` at both widths, so it never once
+passed. **The page is not unstyled — it 404s.** That slug resolves a real
+`campaigns` row and is absent from most databases; Next's 404 ships almost no CSS,
+so the unstyled guard fired and reported a true statement about an entirely
+different problem.
+
+A wrong diagnosis costs more than none — and a permanently-red audit is an ignored
+audit, the same way red-by-default CI trained everyone to stop reading it.
+
+- The audit now reads the response status: `HTTP 404; route did not render`.
+- Data-dependent routes are **skipped**, which is the policy `e2e/data-routes.ts`
+  already set for exactly these routes — the audit just never shared it.
+- The list moved to `e2e/data-dependent-routes.json` so both read one source
+  (`audit-mobile.mjs` is `.mjs` and cannot import the `.ts`; a second copy is the
+  drift `route-list-single-source` already caught once here).
+
+**Now green and non-vacuous:** no horizontal overflow across **80 page loads**, no
+tap target under 24px at 320px — covering the campaign team grid and grant
+attachment chips added the same day. Exits 1 with 82 failed loads against a dead
+port, 0 against a live one.
+
+## ✅ RE-MEASURED against a production build (Claude, 2026-07-29)
+
+Run after today's changes (campaign team grid, grant attachment chips):
+
+| sweep | result |
+|---|---|
+| axe (WCAG 2.0/2.1/2.2 A+AA) | **0 violations / 82 loads** (41 routes × 2 themes) |
+| contrast | **0 AA failures / 7,539 text elements per theme** (re-certified against the *committed* state — see correction below) |
+| mobile 320/390px | **0 overflow / 80 loads**, 0 tap targets under 24px |
+| web vitals | **40/40 routes within budget** — worst LCP 116ms, CLS 0 on 39 of 40 |
+| page images | **0 duplicate images within any page**, 60 routes incl. 20 real campaigns |
+| orphan tables | 122 of 155 tables have a reader; 3 orphaned, all with a measured reason |
+
+### ✅ FIXED — the audits disagreed on how to take a server URL (three misfires)
+Five audits wanted `--base <url>`; two wanted a bare positional. **Passing the wrong
+spelling does not error** — the script falls back to its default port and audits
+whatever is there, or nothing.
+
+That has now cost three runs: one documented earlier, and two in a single session —
+`audit-contrast` swept **:3000** while the build under test was on :3100 (80
+connection errors), and `audit-web-vitals` reported *"nothing usable on :3000"* while
+:3101 was serving fine. Both failed loudly, which is the saving grace, but the first
+guess is always "the server is down" and that guess costs a full multi-minute re-run.
+
+`scripts/lib/audit-base.mjs` now resolves **both spellings for all eight audits**. It
+matches the positional on **URL shape**, not "first non-flag argument" — the generic
+rule breaks on boolean flags, and `--json <url>` would swallow the URL as if it were
+`--json`'s value. **Per-script defaults are deliberately untouched** (audit-a11y's
+:3260, audit-responsive's :3100): changing a default silently repoints someone's
+existing invocation. Only the parsing is unified.
+
+The guard test paid for itself immediately — it caught **four scripts I had missed**,
+then **two false positives in my own detection**: `audit-campaign-images` uses `BASE`
+for an Unsplash URL constant, and `audit-signed-in` spawns its own server on `--port`
+and *passes* `--base` to a child audit, so it never reads one. It matches argv *reads*
+now. An existing non-vacuity test also caught the refactor, asserting the inline
+parser that had moved.
+
+### ✅ NEW — "every image is unique" had no evidence; now it has a sweep
+`audit:campaign-images` checks the photo **catalog** — that category→photo mappings
+resolve and IDs are not missing. It says nothing about what a visitor sees, because
+one catalog entry can render many times on a page. The criterion was unverified.
+
+**`npm run audit:page-images`** reads the rendered DOM across every public route plus
+a sample of **real campaign detail pages** — the actual risk surface, since a cover,
+a carousel and a similar-campaigns grid all draw from one catalog, and only a fixture
+slug is in `public-routes.json`. It **refuses to pass if it cannot sample them**.
+
+**Result: no page shows the same image twice across 60 routes (20 real campaigns).**
+192 distinct images; 34 appear on more than one page, which is *allowed* — a category
+hero belongs on both the category page and the home rail, and failing that would
+force 40 unrelated photos for no user benefit.
+
+**Three false positives had to be removed first — each would have had me "fixing"
+correct behaviour:**
+1. The carousel main image and its **own thumbnail** are the same photo by design.
+   The rule that separates them is **control vs content**: an in-page `<button>` is a
+   control; a campaign card is an `<a>` that navigates elsewhere. Excluding buttons
+   keeps the audit blind to carousels *and* still sensitive to the real defect — a
+   grid of card links sharing one photo.
+2. **Stripping query strings collapsed two different DiceBear avatars into one
+   identity.** Safe only where the query is presentation (Unsplash `w/q/auto/fit`);
+   for generator services **the query IS the image**.
+3. Generated avatars render a *person*, not page imagery. The same person legitimately
+   appears in several sections — a team fundraiser who also donated is in both lists.
+
+Plus a real gap in my own first pass: the background-image scan filtered only
+header/nav/footer, so the avatar and control exclusions applied to `<img>` **silently
+did not apply to backgrounds**. Same rules, both sources now.
+
+Non-vacuous, re-proved after *every* exclusion since each could blind it: **48
+duplicates** with controls un-excluded, 0 with them, exit 1 on a dead port.
+
+### ⚠️ CORRECTION — the first contrast run certified my working tree, not master
+The "0 AA failures" I first recorded was measured with **uncommitted changes present
+on disk**. Master still carried three real failures at that moment. Confirmed by
+checking `git show HEAD:` rather than trusting the working tree: HEAD still had the
+inline hex in `ScorePill` and no dark override for `.kf-setright-card`.
+
+**A green audit certifies the bytes on disk, not the branch.** In a tree several
+agents share, those are routinely different things. Re-run after committing.
+
+### ✅ LANDED — three dark-mode AA failures, stranded uncommitted (theme lane)
+Authored in **Codex's theme lane** and left uncommitted in the shared tree; landed
+rather than rewritten, since the analysis was correct and it is their work.
+
+- `/create` score pills used **one inline hex** for icon and status text — a single
+  value cannot satisfy AA on both a light and a dark pill. **2.56:1 in both themes.**
+  Now driven by `--score-*` tokens keyed off the state class. The pending pill's
+  `opacity:.7` blended status text into the pill background: dimming is decorative,
+  legibility is not.
+- The settings **"Plan & Usage" card had no dark override at all**, so
+  `background:#fff` survived into dark mode → 1.77:1 body text, 3.24:1 status text.
+  Fixing the *surface* fixes both; recolouring the text would have left a white card
+  glowing in a dark UI.
+- `.source-card h2` was missing from the dark override its light rule pairs with, so
+  "Donor Breakdown" rendered near-black on a near-black card at **1.02:1** —
+  invisible, not merely low contrast.
+
+`*.tmp.mjs` is now gitignored: agent scratch probes were accumulating as untracked
+noise in a tree several agents share, and the stop-hook cleanliness check cannot
+tell them from real work.
+
+### Two ways these sweeps can look green while telling you nothing
+Both hit today, both now fixed in the scripts.
+
+1. **`audit:a11y` against `next dev` fails 40 of 82 loads.** The HMR client reloads
+   the page mid-navigation and aborts `goto` with *"interrupted by another
+   navigation"* — reliably on the **second theme pass**, once enough routes have
+   compiled. The non-vacuity guard worked and refused to print 0 violations, but the
+   message names the *navigation*, never the dev server, so the natural first guess
+   is "the server is down". **This audit needs `npm run build && npx next start`.**
+   The script now says so in the failure text.
+2. **`audit:contrast` took `--base` while its sibling audits take a bare positional
+   URL.** Passing `… http://127.0.0.1:3100` swept **port 3000** instead and printed
+   80 connection errors. It accepts both spellings now. The file already carried a
+   comment about this class of mistake burning an earlier run — the inconsistency
+   *between* audits was the trap.
+
+## 🔴 → CODEX: 339 CONTRAST FAILURES ON THE SIGNED-IN SURFACE (Claude, 2026-07-29)
+
+**This is yours per the lane split** (theme tokens, `[data-theme]` overrides,
+per-page light/dark). I found it, measured it, and am not touching it.
+
+### Why it was invisible
+`npm run audit:signed-in` **could not launch a browser**, so it measured nothing.
+`audit-contrast.mjs` built its own Chromium candidate list and that list omitted
+`/opt/pw-browsers/chromium`, the sandbox's prebuilt browser every other audit
+hardcodes. It only failed when `audit-signed-in` ran it as a **child process**
+without `PLAYWRIGHT_CHROMIUM_PATH` set — running `audit-contrast` directly with the
+env var worked, which is exactly why this hid. There is no system Chrome here
+either, so every fallback missed.
+
+That candidate list landed **2026-07-28**, so this sweep has been unable to run
+since. **These failures are therefore unmeasured, not necessarily new** — some are
+likely long-standing, some may be recent. Do not assume a regression.
+
+Fixed by `scripts/lib/audit-browser.mjs` (shared resolver, every candidate
+existence-checked). `audit-scroll-keyboard.mjs` already carried a comment about this
+exact failure mode — *an audit that cannot launch produces NO signal, which is
+indistinguishable from a clean run to anyone reading an exit code.* It was right,
+and it was the only script guarded.
+
+### The measurement
+`npm run audit:signed-in` — 137 pages × 2 themes, 18,855 text elements:
+
+| | count |
+|---|---|
+| **Total AA failures** | **339** |
+| light theme | 154 |
+| dark theme | 185 |
+| worst ratio | **1.02:1** — invisible, not merely low |
+| **dark-theme failures on a WHITE background** | **44** |
+
+**Start with those 44.** They are the same class already fixed today for
+`.kf-setright-card`: a card with **no `[data-theme="dark"]` override**, so
+`background:#fff` survives into dark mode and drags every child's contrast with it.
+Fixing the *surface* fixes all of its text at once — recolouring the text instead
+leaves a white card glowing in a dark UI.
+
+**Most affected routes** (admin-heavy, so low user-facing blast radius but high
+operator pain): `/admin/donations` 24, `/admin/payouts` 20, `/admin/finance` 18,
+`/admin/campaigns` 18, `/admin/marketing` 12, `/admin/content` 12, `/admin` 11,
+`/donor` 10.
+
+**Most common pairs:** `rgb(148,163,184)` on white ×30, `rgb(140,154,181)` on white
+×17, `rgb(226,232,248)` on white ×16 — muted greys chosen for a light card, applied
+where the surface is not the one assumed.
+
+Also flagged by the sweep: **3 pages rendered fewer than 15 text elements**, so any
+data-conditional section on them went unchecked. `/dashboard/campaigns/<id>/updates`
+is one — an empty-data state under the stub. Real credentials would audit those.
 
 ## 🔴 BLOCKED ON THE OWNER — 3 actions unblock most of what is left (Claude, 2026-07-26)
 

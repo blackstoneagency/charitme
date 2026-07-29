@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { INDEXABLE_PUBLIC_ROUTES, publicUrl } from '../lib/public-routes';
 import { resolveRoutes } from './data-routes';
 import { PUBLIC_ROUTES, expectNoRedirect } from './public-routes';
+
+const INDEXABLE_PATHS = new Set(INDEXABLE_PUBLIC_ROUTES.map((route) => route.path));
 
 // This accessibility sweep walks every public route in one test. Supabase-backed pages cost
 // several seconds each when the database is a placeholder (CI), so the default
@@ -23,6 +26,10 @@ test('public routes meet baseline document accessibility', async ({ page, reques
 
     const audit = await page.evaluate(() => ({
       language: document.documentElement.lang,
+      title: document.title.trim(),
+      description: document.querySelector<HTMLMetaElement>('meta[name="description"]')?.content.trim() ?? '',
+      canonical: document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href ?? '',
+      robots: document.querySelector<HTMLMetaElement>('meta[name="robots"]')?.content ?? '',
       unnamedButtons: Array.from(document.querySelectorAll('button')).filter((element) => {
         const label = element.getAttribute('aria-label') ?? element.textContent ?? '';
         return !label.trim() && !element.hasAttribute('aria-hidden');
@@ -36,9 +43,17 @@ test('public routes meet baseline document accessibility', async ({ page, reques
     }));
 
     expect(audit.language, route).toBeTruthy();
+    expect(audit.title, route).not.toBe('');
     expect(audit.unnamedButtons, route).toBe(0);
     expect(audit.unnamedLinks, route).toBe(0);
     expect(audit.imagesWithoutAlt, route).toBe(0);
     expect(audit.horizontalOverflow, route).toBe(false);
+
+    if (INDEXABLE_PATHS.has(route)) {
+      expect(audit.description.length, `${route} meta description`).toBeGreaterThanOrEqual(50);
+      expect(audit.description.length, `${route} meta description`).toBeLessThanOrEqual(180);
+      expect(audit.canonical, `${route} canonical URL`).toBe(new URL(publicUrl(route)).href);
+      expect(audit.robots.toLowerCase(), `${route} robots metadata`).not.toContain('noindex');
+    }
   }
 });

@@ -28,16 +28,17 @@
  * eye (`linear-gradient(…, var(--s2), var(--s3))` is the fix that keeps light
  * rendering identical).
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import { resolveBase } from './lib/audit-base.mjs';
+import { resolveChromium } from './lib/audit-browser.mjs';
 
 const argv = process.argv;
-const baseIdx = argv.indexOf('--base');
 // Defaults to 3000 (a plain `next start`). The responsive audit defaults to 3100,
 // which has burned a previous run: pointing it at 3000 yields a wall of identical
 // ERR_CONNECTION_REFUSED lines that read like real findings.
-const BASE = baseIdx > -1 ? argv[baseIdx + 1] : 'http://127.0.0.1:3000';
+const BASE = resolveBase(argv);
 const AS_JSON = argv.includes('--json');
 const onlyIdx = argv.indexOf('--only');
 const ONLY = onlyIdx > -1 ? argv[onlyIdx + 1].split(',') : null;
@@ -250,21 +251,7 @@ function collectContrast() {
   return out;
 }
 
-const browserExecutable = [
-  process.env.PLAYWRIGHT_CHROMIUM_PATH,
-  chromium.executablePath(),
-  process.env.PROGRAMFILES
-    ? `${process.env.PROGRAMFILES}\\Google\\Chrome\\Application\\chrome.exe`
-    : null,
-  process.env['PROGRAMFILES(X86)']
-    ? `${process.env['PROGRAMFILES(X86)']}\\Google\\Chrome\\Application\\chrome.exe`
-    : null,
-  process.env.LOCALAPPDATA
-    ? `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`
-    : null,
-  '/usr/bin/google-chrome',
-  '/usr/bin/chromium',
-].find((candidate) => candidate && existsSync(candidate));
+const browserExecutable = resolveChromium();
 
 const browser = await chromium.launch({
   ...(browserExecutable ? { executablePath: browserExecutable } : {}),

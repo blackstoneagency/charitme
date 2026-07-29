@@ -53,7 +53,12 @@ describe('the keyboard sweep cannot report green from zero measurements', () => 
   });
 
   it('still accepts a bare positional base for compatibility', () => {
-    expect(source).toMatch(/argv\.slice\(2\)\.find\(\(a\) => !a\.startsWith\('--'\)\)/);
+    // The inline parser this used to assert on moved into scripts/lib/audit-base.mjs
+    // when all the audits were unified on one resolver. The behaviour it protects —
+    // a bare positional URL still works — is unchanged, and is now covered directly
+    // by __tests__/audit-base-resolution.test.ts rather than by matching source text.
+    expect(source).toMatch(/resolveBase\(/);
+    expect(source).toMatch(/from '\.\/lib\/audit-base\.mjs'/);
   });
 });
 
@@ -84,8 +89,26 @@ describe('signed-in audit integrity', () => {
   });
 
   it('uses Playwright browser discovery unless an explicit override is supplied', () => {
-    expect(contrastSource).toContain('PLAYWRIGHT_CHROMIUM_PATH');
+    // The property is unchanged — discovery with an env override, never a hardcoded
+    // sandbox path as THE executable — but it moved into scripts/lib/audit-browser.mjs
+    // when all the audits were unified on one resolver. Assert it where it now lives,
+    // and that audit-contrast actually uses it.
+    expect(contrastSource).toContain('resolveChromium()');
     expect(contrastSource).not.toContain("executablePath: '/opt/pw-browsers/chromium'");
+
+    const browserHelper = readFileSync(
+      path.join(WEB_ROOT, 'scripts', 'lib', 'audit-browser.mjs'),
+      'utf8',
+    );
+    expect(browserHelper).toContain('PLAYWRIGHT_CHROMIUM_PATH');
+    expect(browserHelper).toContain('chromium.executablePath()');
+    // Every candidate is existence-checked, so a stale path never beats a real one —
+    // the omission that left the signed-in sweep unable to launch at all.
+    expect(browserHelper).toContain('existsSync(candidate)');
+    expect(browserHelper).toContain("'/opt/pw-browsers/chromium'");
+    // Explicit override must win over both.
+    expect(browserHelper.indexOf('PLAYWRIGHT_CHROMIUM_PATH'))
+      .toBeLessThan(browserHelper.indexOf("'/opt/pw-browsers/chromium'"));
   });
 
   it('starts Next portably and verifies the admin build target', () => {

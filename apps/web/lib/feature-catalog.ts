@@ -84,7 +84,11 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     audience: 'Creators, makers, startup launches, product campaigns, and community projects',
     status: 'Production Ready',
     primaryCta: 'Launch a project',
-    databaseTables: ['reward_tiers', 'campaign_launch_settings', 'creator_profiles', 'campaign_media', 'campaign_updates'],
+    // 'reward_tiers' was the listed name, but that table is EMPTY and unread —
+    // perks are stored in and read from 'campaign_rewards' (240 rows). The
+    // capability was real; the claim pointed at the wrong table. 'creator_profiles'
+    // is dropped: 500 rows, no reader, and no creator surface exists yet.
+    databaseTables: ['campaign_rewards', 'campaign_launch_settings', 'campaign_media', 'campaign_updates'],
     operatingModel: [
       'Funding mode supports flexible, fixed, and InDemand continuation without changing the donation ledger.',
       'Reward tiers store perks, quantities, delivery estimates, and fulfillment notes.',
@@ -148,7 +152,11 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     audience: 'Nonprofits, schools, churches, community groups, and enterprise fundraising teams',
     status: 'Production Ready',
     primaryCta: 'Open nonprofit suite',
-    databaseTables: ['nonprofit_profiles', 'donation_forms', 'recurring_donations', 'donor_crm_contacts', 'tax_receipts', 'team_members', 'peer_fundraisers'],
+    // 'donation_forms' dropped: 0 rows, no reader. The Donation Forms feature
+    // below stays — embeddable giving is served by app/campaigns/[slug]/embed,
+    // derived from the campaign, so the feature is built and this table is not
+    // what backs it.
+    databaseTables: ['nonprofit_profiles', 'recurring_donations', 'donor_crm_contacts', 'tax_receipts', 'team_members', 'peer_fundraisers'],
     operatingModel: [
       'Nonprofit profiles own campaigns, forms, contacts, segments, recurring donors, and receipts.',
       'Team and peer fundraising tables support multi-user nonprofit workflows and supporter-led fundraising.',
@@ -242,7 +250,12 @@ export const PLATFORM_MODULES: PlatformModule[] = [
     audience: 'Every CharitMe organizer, donor, nonprofit, creator, and admin',
     status: 'Live',
     primaryCta: 'Use AI copilot',
-    databaseTables: ['trust_scores', 'risk_flags', 'verification_documents', 'transparency_ledger_items', 'ai_generations', 'payouts'],
+    // 'trust_scores' dropped: 500 rows, no reader or writer. Trust scoring is very
+    // much live — calculateTrustScore/getTrustSignals compute it per request from
+    // current campaign state. The stored rows are a stale April snapshot with null
+    // status and empty signals; reading them would show donors an out-of-date
+    // safety signal, so the fix is to stop claiming the table, not to wire it.
+    databaseTables: ['risk_flags', 'verification_documents', 'transparency_ledger_items', 'ai_generations', 'payouts'],
     operatingModel: [
       'AI copilot generates authentic campaign copy, social posts, donor FAQs, update drafts, and trust improvement tasks.',
       'Trust score combines identity, beneficiary, Stripe, evidence, completeness, duplicate text, urgency language, velocity, account age, and admin review signals.',

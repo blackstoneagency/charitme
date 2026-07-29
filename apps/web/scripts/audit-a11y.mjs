@@ -17,10 +17,14 @@
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import routes from '../e2e/public-routes.json' with { type: 'json' };
+import { resolveBase } from './lib/audit-base.mjs';
+import { chromiumLaunchOptions } from './lib/audit-browser.mjs';
 
-const BASE = process.argv[2] || 'http://127.0.0.1:3260';
+// Default kept at 3260 — divergent from its siblings, but changing a default
+// silently repoints anyone's existing invocation. Only the PARSING is unified.
+const BASE = resolveBase(process.argv, 'http://127.0.0.1:3260');
 const list = Array.isArray(routes) ? routes : (routes.routes ?? routes.public ?? []);
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+const b = await chromium.launch(chromiumLaunchOptions());
 let total = 0; const byRule = new Map();
 // A page that never loaded contributes 0 violations, so counting only
 // violations made an unreachable sweep indistinguishable from a clean one: this
@@ -67,6 +71,15 @@ if (errors.length) {
   console.log(`\n⚠️  ${errors.length} of ${expected} page loads failed — is the server up on ${BASE}?`);
   console.log(`   Only ${analyzed} page(s) were actually analyzed, so a "0 violations" result here would be meaningless.`);
   console.log(`   First few: ${errors.slice(0, 5).join(', ')}`);
+  // Most common cause after "server is down": pointing this at `next dev`. Its HMR
+  // client reloads the page mid-navigation, which aborts Playwright's goto with
+  // "interrupted by another navigation" — reliably for the second theme pass, once
+  // enough routes have been compiled. The sweep is clean against `next build &&
+  // next start`. This hint exists because the failure text names the navigation,
+  // never the dev server, and the wrong first guess costs a full re-run.
+  console.log('   If the server IS up: this audit needs a PRODUCTION build.');
+  console.log('   `npm run build && npx next start -p 3100`, then re-run against that port —');
+  console.log('   `next dev` HMR reloads interrupt navigation and abort the sweep.');
   process.exit(1);
 }
 

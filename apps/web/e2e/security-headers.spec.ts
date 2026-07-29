@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+test.setTimeout(120_000);
+
 test('normal pages send baseline security headers', async ({ request }) => {
   const response = await request.get('/');
   expect(response.status()).toBeLessThan(400);
@@ -22,7 +24,7 @@ test('campaign embeds remain frameable by third-party sites', async ({ request }
 });
 
 test('JSON-LD scripts receive the request nonce', async ({ request }) => {
-  for (const path of ['/', '/help', '/pricing', '/faq']) {
+  for (const path of ['/', '/help', '/pricing', '/faq', '/impact']) {
     const response = await request.get(path);
     expect(response.status(), path).toBeLessThan(400);
     const html = await response.text();
@@ -42,7 +44,7 @@ test('representative pages produce no CSP console violations', async ({ page }) 
     }
   });
 
-  for (const path of ['/', '/campaigns', '/campaigns/security-header-fixture/embed']) {
+  for (const path of ['/', '/campaigns', '/impact', '/campaigns/security-header-fixture/embed']) {
     await page.goto(path, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(500);
   }
