@@ -202,19 +202,75 @@ what unblocks them.
 | 5 | Images unique | ✅ | **500 campaigns / 500 covers / 500 distinct / 0 duplicates** |
 | 6 | Frictionless UX | 🟡 | dead controls disabled, broken links fixed, poster + payout paths repaired. Subjective overall |
 | 7 | Dark/light solved | ✅ | **0 AA contrast failures**, 37 pages × 2 themes, 7,313 elements each |
-| 8 | Mobile responsive | ✅ | **222 renders (37 × 3 viewports × 2 themes), 0 findings** |
+| 8 | Mobile responsive | ✅ | **222 renders (37 × 3 viewports × 2 themes), 0 findings**; plus **0 horizontal overflow across 82 loads** at 320/390px |
 | 9 | Fast pages | ✅ | **37/37 within budget** — worst LCP 500ms/4000, TTFB 176ms/1500, **CLS 0 everywhere** |
-| 10 | Roles mapped + distinct | 🟡 | mapped + all 7 `enforced` claims verified. **Only 2 of 6 gate anything** — product decision |
+| 10 | Roles mapped + distinct | 🟡 | **`/roles` now maps all 6 for every user type**, rendered from `lib/role-capabilities.ts`. **Only 2 of 6 gate anything** — enforcement is still a product decision |
 | 11 | 100% GoFundMe parity | ✅ | **10/10 built**, each pinned to real code by test |
 | 12 | Better than GoFundMe | ✅ | **72 of 105 features built** vs GoFundMe's 10. Gaps are creator-economy (Patreon/Ko-fi) — different direction |
-| 13 | Accessibility passes | ✅ | **0 axe violations** (76 loads) + **0 unlabelled form controls**, hard-guarded |
+| 13 | Accessibility passes | ✅ | **0 axe violations** (82 loads, 41 routes × 2 themes) + **0 unlabelled form controls** + **0 tap targets under 24px** (SC 2.5.8), hard-guarded |
 | 14 | Payment methods work | 🔴 | **Cannot verify — no `STRIPE_SECRET_KEY` here, and live keys must not be charged.** `/api/health?details=1` now reports it |
 | 15 | Performance optimized | ✅ | see #9 |
 | 16 | Security resolved | ✅ | **8 Next.js CVEs patched** (15.5.18 → 15.5.22); npm audit critical **1 → 0** |
-| 17 | Tests pass | ✅ | **1836 / 173 files** |
+| 17 | Tests pass | ✅ | **1866 / 177 files** |
 | 18 | Build succeeds | ✅ | green; 150 static pages |
 | 19 | todo.md updated | ✅ | this file, continuously |
 | 20 | Commit per feature | ✅ | ~120 commits, each with its own verification |
+
+## ✅ SHIPPED — `/roles`, because roles were only explained to super admins (Claude, 2026-07-29)
+
+I had parked criterion #10 entirely as "an owner decision". That was too broad. The
+criterion is *"each user role is clearly mapped out and different"* — **enforcement**
+is the owner's call, but **being clearly mapped out was never blocked**, and the only
+page that explained the six roles was `/admin/super/roles`. A donor or organizer had
+no way to find out what their own account's roles meant.
+
+`/roles` is public and renders `lib/role-capabilities.ts` directly — no restated copy,
+guarded by a test that fails if any label or description is inlined. Linked from
+`/profile` ("What my roles mean →").
+
+**The copy problem was the interesting part.** Four of six roles gate nothing, so a
+card reading "Organizer — create and publish campaigns" would be read as a
+*requirement* and send a signed-in user hunting for a role they do not need in order
+to fundraise. Worse UX than no page. So every non-privileged role is badged **"Open to
+every account"**, the intro states outright that you never need to request a role, and
+`__tests__/roles-page.test.ts` fails **in both directions**:
+- enforce a non-privileged role → the "Open to every account" copy is now a false
+  promise, and the test names the role and the file to fix;
+- mark a role privileged without enforcing it → the reciprocal check fires.
+
+Proven red before being trusted green: flipping `organizer`'s
+`enforced: false → true` fails 2 tests; restored.
+
+Also corrected on this page: **tax-deductibility is per campaign, not per role.**
+`campaigns.nonprofit_verified` is the real gate, so a verified organization can still
+run a non-deductible campaign. That is a compliance statement, not copy polish, and
+it is pinned by test.
+
+**Registered in BOTH route registries** — `lib/public-routes.ts` (sitemap/SEO) and
+`e2e/public-routes.json` (every audit sweep). A new public page in neither ships
+unindexed *and* unaudited, which would quietly falsify criterion #1.
+
+### ♿ Found while sweeping it: a real SC 2.5.8 failure on `/transparency`
+Adding `/roles` to the audit list re-ran the tap-target sweep, which flagged the
+"I'll cover the processing fee" control at **227×20** — wide enough, 4px short. The
+label is the real thumb target (clicking a label activates its control), so the fix is
+`minHeight: 24` on the label, not on the 16×16 checkbox inside it. Enlarging the
+checkbox would have "fixed" a control that was already easy to hit.
+
+**Measured after, on a server verified to be serving the new build** (the stale-server
+trap that produced false readings twice before — served CSS bundle checked against
+`.next/static/css/` on disk):
+```
+✅ No horizontal overflow across 82 page loads (41 routes × 2 widths)
+✅ No tap targets under 24px at 320px (WCAG 2.2 SC 2.5.8)
+✅ 0 axe violations across 82 page loads (41 routes × 2 themes)
+✅ No AA contrast failures across 40 pages × 2 themes   (40 = 41 − /embed, excluded by design)
+```
+
+**Still not done, and still the owner's:** whether `organizer` / `beneficiary` /
+`nonprofit` should actually *deny* anything. Inventing restrictions risks locking an
+organizer out of their own campaign, and the page above is honest about the status quo
+rather than papering over it.
 
 ### 🔴 The five things only the owner can do
 1. **Apply the 3 migrations** → runbook below. Needs `SUPABASE_ACCESS_TOKEN` +

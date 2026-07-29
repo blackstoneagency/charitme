@@ -209,6 +209,9 @@ export default async function ProfilePage() {
             <Link href="/donor" className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:border-blue-300 hover:text-blue-700">
               Donation History →
             </Link>
+            <Link href="/roles" className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:border-emerald-300 hover:text-emerald-700">
+              What my roles mean →
+            </Link>
             {roles.includes('admin') && (
               <Link href="/admin" className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 hover:border-red-300 hover:text-red-700">
                 Admin Panel →
