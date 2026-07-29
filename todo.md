@@ -547,11 +547,55 @@ verified red by breaking it, which is how the privacy assertion caught itself
 being too weak: a single `/isPublic\s*\?/` still passed with the *name* ungated,
 because the avatar line matched it. Both fields are asserted separately now.
 
+### ✅ FIXED — the catalog advertised 4 tables the app never reads
+The orphan audit only flags tables with **≥100 rows**, so it cannot see a claim
+backed by an *empty* table. Crossing every `databaseTables` entry against real
+`.from()` call sites found **31 claimed, 13 with no reader** — but 11 of those
+belong to `memberships` and `creator-commerce`, both marked **Planned**, where
+listing the intended schema is honest. Reporting "13 of 31" would have been a
+misleading headline for what is really **4 bad claims across 3 shipped modules**.
+
+| module | status | bad claim | reality |
+|---|---|---|---|
+| `projects-perks` | Production Ready | `reward_tiers` | **empty table, wrong name** — perks live in `campaign_rewards` (240 rows, read). Corrected, not dropped. |
+| `projects-perks` | Production Ready | `creator_profiles` | 500 rows, no reader, no creator surface exists |
+| `nonprofit-suite` | Production Ready | `donation_forms` | 0 rows, no reader. Feature entry stays — embeddable giving is served by `app/campaigns/[slug]/embed` off the campaign, so this table is not what backs it |
+| `ai-trust-growth` | Live | `trust_scores` | 500 rows, **no reader *or* writer** |
+
+**`trust_scores` is the one worth reading twice.** Trust scoring is genuinely
+live — `calculateTrustScore`/`getTrustSignals` compute it per request from current
+campaign state. The stored rows are a **stale April snapshot with `status` null and
+`signals` empty**, one per campaign. Wiring them up would have shown donors an
+out-of-date safety signal — *the wiring would have been the regression*. Dropping
+the claim is the fix. "Orphaned table" does not automatically mean "go connect it".
+(Also noted: the live table has `identity_score`/`story_score`/`activity_score`/
+`transparency_score`/`computed_at` columns that `schema.sql` does not declare — the
+mirror is drifted for this table.)
+
+`__tests__/catalog-claims-backed.test.ts` makes the rule mechanical. Planned
+modules are exempt **and that exemption is asserted to be load-bearing**, so it
+cannot quietly become dead scaffolding. Two anti-vacuity guards: the parse must
+find a plausible catalog, and the reader matcher must return true for a table that
+is read and false for one that is not.
+
 ### Deciding the remaining 4 — the catalog's own rule applies
-For each: either build the reader, or drop the claim. `coach_sessions` and
-`grant_documents` are unclaimed, so they are dead weight rather than a false
-promise. `creator_profiles` and `trust_scores` are claimed by four
-`Production Ready` modules and are the higher-priority pair.
+For each: either build the reader, or drop the claim. Resolved so far —
+`trust_scores` and `creator_profiles` had their claims dropped (above); the tables
+remain seeded but unread, which is now honestly recorded rather than advertised.
+
+Still open, both **unclaimed** by the catalog, so dead weight rather than false
+promise:
+- **`coach_sessions`** (500 rows) — `/dashboard/ai-coach` and `/api/ai/coach` never
+  write it, so a coaching conversation is lost on reload. But the table stores only
+  `message_count`, **not a transcript**, so it cannot restore a conversation; wiring
+  it buys usage metrics, not the continuity the UX gap actually needs. Fixing that
+  properly means a schema change, not a reader.
+- **`grant_documents`** (240 rows) — attachments on grant applications, with
+  `/grants/[slug]` and `/dashboard/grants` as the plausible surfaces. The most
+  bounded of what is left.
+- **`creator_profiles`** (500 rows, `handle`/`display_name`/`brand_color`) — needs a
+  whole creator-page surface (`/creator/[handle]`) that does not exist. Largest of
+  the three, and the one with real parity value.
 
 ### ⚠️ Shared working tree — commit by path, never `git add -A`
 Mid-task, `app/create/page.tsx` and `globals.css` appeared modified in my tree with
