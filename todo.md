@@ -1547,6 +1547,32 @@ exclusion hides exactly the bug the regex was written to catch.
 
 **164 occurrences** of guard-matched dark-text literals sit in `app/admin`.
 
+### ❌ DISPROVED SHORTCUT — forcing admin to light does NOT fix it
+
+`todo.md` describes admin as "intentionally light-only internal tooling", and
+nothing scopes it out of the theme. The obvious one-line fix follows: pin
+`data-theme="light"` on the admin shell and all 164 literals become correct
+again. **I tested it before proposing it, and it fails.**
+
+Injected `data-theme="light"` on the rendered admin pages and re-counted:
+
+| route | dark as shipped | forced light |
+|---|---|---|
+| `/admin/donations` | 99 | 84 |
+| `/admin/payouts` | 78 | 76 |
+| `/admin/finance` | 168 | **190 — worse** |
+
+**Admin fails AA in BOTH themes.** So this is not "dark mode broke a light-only
+console" — the console's palette is unsound on its own terms, and the light-only
+framing in this file is describing an intent that was never true in either
+direction. Do not spend a cycle on the theme-pinning shortcut.
+
+⚠️ **Caveat on those numbers:** this counter flags anything under 4.5:1, without
+WCAG's large-text exemption (3.0:1 for ≥18.66px bold / ≥24px). The sweep applies
+the size rules properly, so these are **inflated in absolute terms** and are only
+meaningful as a before/after comparison of the same measure. The authoritative
+per-route figures are `audit-signed-in.mjs`'s.
+
 ### The fix, and who does what
 
 - **Codex (theme):** the 164 literals → text tokens, and the inline `#fff`
