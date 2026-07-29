@@ -3,6 +3,8 @@ import {
   nextPaymentMethodTypes,
   ONE_TIME_PAYMENT_METHOD_TYPES,
   RECURRING_PAYMENT_METHOD_TYPES,
+  reconcilePaymentMethods,
+  METHOD_CAPABILITY,
   type PaymentMethodType,
 } from '../lib/stripe-payment-methods';
 
@@ -63,5 +65,82 @@ describe('payment method lists reflect the active Stripe account', () => {
 
   it('recurring methods are all savable for off-session charges', () => {
     expect(RECURRING_PAYMENT_METHOD_TYPES).toEqual(['card', 'link', 'us_bank_account']);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The declared payment-method list is hand-maintained, and its own comment
+// records a one-off check ("Verified against the live account 2026-07-23").
+// Nothing re-verified it, and the failure mode is silent: Stripe rejects the
+// WHOLE Checkout session when it names an inactive method — often without
+// saying which — so one deactivation in the Dashboard collapses every donation
+// to card-only. Donors stop being offered Cash App, Klarna and bank debit, and
+// nothing errors.
+//
+// reconcilePaymentMethods is what /api/health?details=1 uses to catch that.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('reconciling declared payment methods against account capabilities', () => {
+  const allActive = {
+    card_payments: 'active',
+    link_payments: 'active',
+    cashapp_payments: 'active',
+    us_bank_account_ach_payments: 'active',
+    amazon_pay_payments: 'active',
+    klarna_payments: 'active',
+    afterpay_clearpay_payments: 'active',
+  };
+
+  it('reports every declared method active when the account has them', () => {
+    const r = reconcilePaymentMethods(ONE_TIME_PAYMENT_METHOD_TYPES, allActive);
+    expect(r.inactive).toEqual([]);
+    expect(r.unmapped).toEqual([]);
+    expect(r.active).toEqual([...ONE_TIME_PAYMENT_METHOD_TYPES]);
+  });
+
+  it('flags a method that has been deactivated in the Dashboard', () => {
+    const r = reconcilePaymentMethods(ONE_TIME_PAYMENT_METHOD_TYPES, {
+      ...allActive,
+      klarna_payments: 'inactive',
+    });
+    expect(r.inactive).toEqual([{ method: 'klarna', status: 'inactive' }]);
+    expect(r.active).not.toContain('klarna');
+  });
+
+  it('treats a pending capability as not usable', () => {
+    const r = reconcilePaymentMethods(['cashapp'], { cashapp_payments: 'pending' });
+    expect(r.inactive).toEqual([{ method: 'cashapp', status: 'pending' }]);
+  });
+
+  it('treats an ABSENT capability as broken, never as fine', () => {
+    // An absent capability is exactly the state that breaks checkout, so
+    // "Stripe did not mention it" must not read as healthy.
+    const r = reconcilePaymentMethods(['klarna'], {});
+    expect(r.inactive).toEqual([{ method: 'klarna', status: 'not_present' }]);
+  });
+
+  it('does not assume anything when capabilities could not be read at all', () => {
+    for (const caps of [null, undefined]) {
+      const r = reconcilePaymentMethods(['card', 'link'], caps);
+      expect(r.active, String(caps)).toEqual([]);
+      expect(r.inactive.map((i) => i.method)).toEqual(['card', 'link']);
+    }
+  });
+
+  it('reports an unmapped method as unknown rather than active', () => {
+    const r = reconcilePaymentMethods(['some_new_method'], allActive);
+    expect(r.unmapped).toEqual(['some_new_method']);
+    expect(r.active).toEqual([]);
+  });
+
+  it('maps every declared method, so none can silently go unchecked', () => {
+    for (const m of [...ONE_TIME_PAYMENT_METHOD_TYPES, ...RECURRING_PAYMENT_METHOD_TYPES]) {
+      expect(METHOD_CAPABILITY[m], `"${m}" has no capability mapping`).toBeTruthy();
+    }
+  });
+
+  it('knows the two methods deliberately omitted, for when they are activated', () => {
+    expect(METHOD_CAPABILITY.paypal).toBe('paypal_payments');
+    expect(METHOD_CAPABILITY.affirm).toBe('affirm_payments');
+    expect(ONE_TIME_PAYMENT_METHOD_TYPES as readonly string[]).not.toContain('paypal');
   });
 });

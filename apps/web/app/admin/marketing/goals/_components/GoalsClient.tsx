@@ -127,7 +127,7 @@ export default function GoalsClient() {
           e.g. “Grow verified education fundraisers in New Jersey by 15% before year-end” or “Generate more recurring donors for animal rescue campaigns.”
         </div>
         <textarea
-          value={text}
+          aria-label="Describe the marketing goal in plain language" value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Describe the outcome you want…"
           rows={2}
@@ -144,30 +144,30 @@ export default function GoalsClient() {
           <div style={{ marginTop: 16, padding: 16, background: '#faf7ff', border: '1px solid #e9deff', borderRadius: 12 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: '#6c35ff', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.05em' }}>Review draft — edit before saving</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
-              <div><span style={label}>Title</span><input style={input} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></div>
+              <div><span style={label}>Title</span><input style={input} aria-label="Goal title" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></div>
               <div>
                 <span style={label}>Metric</span>
-                <select style={input} value={draft.target_metric} onChange={(e) => setDraft({ ...draft, target_metric: e.target.value })}>
+                <select style={input} aria-label="Target metric" value={draft.target_metric} onChange={(e) => setDraft({ ...draft, target_metric: e.target.value })}>
                   {Object.entries(METRIC_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </div>
               <div>
                 <span style={label}>Target ({draft.unit === 'cents' ? '$' : draft.unit})</span>
-                <input style={input} type="number" value={draft.unit === 'cents' && draft.target_value != null ? draft.target_value / 100 : draft.target_value ?? ''} onChange={(e) => {
+                <input aria-label="Target value" style={input} type="number" value={draft.unit === 'cents' && draft.target_value != null ? draft.target_value / 100 : draft.target_value ?? ''} onChange={(e) => {
                   const raw = e.target.value === '' ? null : Number(e.target.value);
                   setDraft({ ...draft, target_value: raw == null ? null : draft.unit === 'cents' ? Math.round(raw * 100) : raw });
                 }} />
               </div>
-              <div><span style={label}>Deadline</span><input style={input} type="date" value={draft.deadline ?? ''} onChange={(e) => setDraft({ ...draft, deadline: e.target.value || null })} /></div>
+              <div><span style={label}>Deadline</span><input aria-label="Deadline" style={input} type="date" value={draft.deadline ?? ''} onChange={(e) => setDraft({ ...draft, deadline: e.target.value || null })} /></div>
               <div>
                 <span style={label}>Priority</span>
-                <select style={input} value={draft.priority} onChange={(e) => setDraft({ ...draft, priority: e.target.value })}>
+                <select style={input} aria-label="Priority" value={draft.priority} onChange={(e) => setDraft({ ...draft, priority: e.target.value })}>
                   {['low', 'medium', 'high', 'critical'].map((p) => <option key={p} value={p}>{p}</option>)}
                 </select>
               </div>
-              <div><span style={label}>Geography</span><input style={input} value={draft.geography ?? ''} onChange={(e) => setDraft({ ...draft, geography: e.target.value || null })} /></div>
-              <div><span style={label}>Category</span><input style={input} value={draft.category ?? ''} onChange={(e) => setDraft({ ...draft, category: e.target.value || null })} /></div>
-              <div><span style={label}>Audience</span><input style={input} value={draft.audience ?? ''} onChange={(e) => setDraft({ ...draft, audience: e.target.value || null })} /></div>
+              <div><span style={label}>Geography</span><input aria-label="Geography" style={input} value={draft.geography ?? ''} onChange={(e) => setDraft({ ...draft, geography: e.target.value || null })} /></div>
+              <div><span style={label}>Category</span><input aria-label="Category" style={input} value={draft.category ?? ''} onChange={(e) => setDraft({ ...draft, category: e.target.value || null })} /></div>
+              <div><span style={label}>Audience</span><input aria-label="Audience" style={input} value={draft.audience ?? ''} onChange={(e) => setDraft({ ...draft, audience: e.target.value || null })} /></div>
             </div>
             {draft.channels.length > 0 && <div style={{ marginTop: 10, fontSize: 12, color: '#64748b' }}>Channels detected: {draft.channels.join(', ')}</div>}
             <button onClick={create} disabled={busy} style={{ ...btn, marginTop: 14, opacity: busy ? 0.5 : 1 }}>{busy ? 'Saving…' : 'Create goal'}</button>

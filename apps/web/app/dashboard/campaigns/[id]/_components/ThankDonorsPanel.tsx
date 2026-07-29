@@ -136,7 +136,7 @@ export default function ThankDonorsPanel({ campaignId }: { campaignId: string })
                 </button>
               ))}
             </div>
-            <textarea value={message} onChange={e => setMessage(e.target.value)} rows={6} maxLength={2000}
+            <textarea aria-label="Thank-you message to donors" value={message} onChange={e => setMessage(e.target.value)} rows={6} maxLength={2000}
               style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--b2)', borderRadius: 10, padding: '12px 14px', fontSize: 14, fontFamily: 'inherit', resize: 'vertical', outline: 'none', lineHeight: 1.6 }} />
             <p style={{ fontSize: 11, color: 'var(--t3)', textAlign: 'right', margin: '4px 0 0' }}>{message.length}/2000</p>
           </section>

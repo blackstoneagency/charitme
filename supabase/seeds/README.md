@@ -7,16 +7,19 @@ admin consoles) against realistic volume.
 They are written for the **Supabase SQL editor** (or `psql`). They use the
 service/`postgres` role, so RLS does not block the inserts.
 
-These are demo fixtures, not production data. Before running any SQL seed file,
-set the guard in the same database session:
+These are disposable local/staging fixtures, not production data. Never run this
+suite with `supabase db reset --linked`. Before running individual SQL seed
+files, set both guards in the same database session:
 
 ```sql
+set charitme.allow_demo_seed = 'true';
 set app.charitme_allow_demo_seed = 'true';
 ```
 
-The mutating SQL files fail closed when that setting is absent. The JavaScript
-marketing seeders additionally require `CHARITME_ALLOW_DEMO_SEED=true` and
-refuse to run with `NODE_ENV=production`.
+The base seed refuses to start when it finds any auth identity outside the
+reserved demo domains. Mutating SQL files fail closed when either session guard
+is absent. The JavaScript marketing seeders additionally require
+`CHARITME_ALLOW_DEMO_SEED=true` and refuse to run with `NODE_ENV=production`.
 
 ## One-command run (psql)
 
@@ -24,9 +27,9 @@ If you have a Postgres connection string (Supabase → Project Settings →
 Database → Connection string, "URI"), run the whole suite in order with:
 
 ```bash
-# from the repo root; runs 00→06 then the 99 verifier, stopping on first error
+# from the repo root; runs 00→07 then the 99 verifier, stopping on first error
 export DATABASE_URL='postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres'
-for f in 00 01 02 03 04 05 06 99; do
+for f in 00 01 02 03 04 05 06 07 99; do
   echo "── running ${f} ──"
   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "supabase/seeds/${f}"_*.sql || break
 done
@@ -53,6 +56,8 @@ Run these **in order**, once each, top to bottom:
 | 04 | `04_impact_gamification.sql` | `impact_plans`, `impact_plan_items`, `impact_updates`, `impact_evidence`, `impact_metrics`, `challenges`, `challenge_participants`, `user_badges` | 120 each |
 | 05 | `05_engagement_financial.sql` | `donor_messages`, `recurring_donations`, `refunds`, `payouts`, `verification_documents`, `risk_flags`, `tax_receipts`, `business_leads` | 120 each |
 | 06 | `06_extended_features.sql` | `creator_profiles`, `membership_tiers`, `member_subscriptions`, `exclusive_posts`, `creator_tips`, `digital_products`, `product_orders`, `auction_items`, `auction_bids`, `livestreams`, `giving_days`, `donor_crm_contacts`, `donor_segments`, `campaign_media`, `transparency_ledger_items` | 120 each |
+| 07 | `07_operational_features.sql` | Role personas, organizations/brands, volunteer shifts/hours, tax-delivery ledgers, teams, beneficiaries, messaging, privacy, embeds, analytics, outreach, and Marketing Engine plans/assets | 120 each |
+| 08 | `08_sponsors.sql` | `sponsors` — the homepage/`/sponsor` logo list, **not** the sponsorship marketplace in 02 | tops up to 120 |
 | 99 | `99_verify_counts.sql` | *(read-only)* reports row counts + an `ok` flag (≥100) per feature | — |
 
 Each feature file re-reads whatever `profiles`/`campaigns` already exist, so if
@@ -84,6 +89,6 @@ sponsors have existing seed migrations. Ask if you want any of these added.
 
 ## Verifying
 
-After running 00–06, run `99_verify_counts.sql`. Every row should show `ok = true`
+After running 00–07, run `99_verify_counts.sql`. Every row should show `ok = true`
 (≥100). Anything showing `false` on a per-user table means you need more profiles —
 run `00_test_users.sql`.

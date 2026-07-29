@@ -59,3 +59,62 @@ export function nextPaymentMethodTypes(
   }
   return ['card'];
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Capability reconciliation — is what we DECLARE still active on the account?
+//
+// ONE_TIME_PAYMENT_METHOD_TYPES is hand-maintained, and its comment records a
+// one-off check ("Verified against the live account 2026-07-23"). Nothing
+// re-checks it. That matters more than a stale comment usually would, because
+// Stripe rejects the WHOLE session when it contains an inactive method, and the
+// rejection often names no index — so one method deactivated in the Dashboard
+// silently collapses every donation to card-only. Donors stop seeing Cash App,
+// Klarna, bank debit and the rest, and nothing errors.
+//
+// This maps each declared method to the account capability that gates it, so an
+// admin health check can compare the two. Pure — the caller fetches the account.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Declared method → the Stripe account capability that must be `active`. */
+export const METHOD_CAPABILITY: Record<string, string> = {
+  card: 'card_payments',
+  link: 'link_payments',
+  cashapp: 'cashapp_payments',
+  us_bank_account: 'us_bank_account_ach_payments',
+  amazon_pay: 'amazon_pay_payments',
+  klarna: 'klarna_payments',
+  afterpay_clearpay: 'afterpay_clearpay_payments',
+  paypal: 'paypal_payments',
+  affirm: 'affirm_payments',
+};
+
+export type CapabilityReport = {
+  /** Declared and confirmed active. */
+  active: string[];
+  /** Declared but NOT active — each one can collapse checkout to card-only. */
+  inactive: { method: string; status: string }[];
+  /** Declared but we have no capability name for it; unknown, not assumed fine. */
+  unmapped: string[];
+};
+
+/**
+ * Compare the declared payment methods against an account's capabilities.
+ *
+ * A capability Stripe does not return at all is reported as `not_present`
+ * rather than treated as active — an absent capability is exactly the state
+ * that breaks checkout, so it must never read as healthy.
+ */
+export function reconcilePaymentMethods(
+  declared: readonly string[],
+  capabilities: Readonly<Record<string, unknown>> | null | undefined,
+): CapabilityReport {
+  const report: CapabilityReport = { active: [], inactive: [], unmapped: [] };
+  for (const method of declared) {
+    const capability = METHOD_CAPABILITY[method];
+    if (!capability) { report.unmapped.push(method); continue; }
+    const status = capabilities?.[capability];
+    if (status === 'active') report.active.push(method);
+    else report.inactive.push({ method, status: typeof status === 'string' ? status : 'not_present' });
+  }
+  return report;
+}

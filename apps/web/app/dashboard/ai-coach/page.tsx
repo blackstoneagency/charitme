@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { CharitMeShell, TopBar } from '../../../components/CharitMeApp';
+import { TopBar } from '../../../components/CharitMeApp';
+import { CharitMeShell } from '../../../components/ShellSessionProvider';
 import { createClient } from '../../../lib/supabase-browser';
 
 type Message = { role: 'user' | 'assistant'; content: string };
@@ -127,7 +128,7 @@ export default function AiCoachPage() {
         {campaigns.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '12px 0', borderBottom: '1px solid var(--b1)' }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)', whiteSpace: 'nowrap' }}>Campaign context:</span>
-            <select value={selectedCampaign} onChange={e => setSelectedCampaign(e.target.value)}
+            <select aria-label="Campaign to coach on" value={selectedCampaign} onChange={e => setSelectedCampaign(e.target.value)}
               style={{ height: 36, border: '1px solid var(--b2)', borderRadius: 8, padding: '0 12px', fontSize: 13, maxWidth: 280, background: 'var(--s1, #fff)', color: 'var(--t1)' }}>
               <option value="">No campaign selected</option>
               {campaigns.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -197,6 +198,7 @@ export default function AiCoachPage() {
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
             <textarea
               ref={inputRef}
+              aria-label="Ask the AI fundraising coach"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKey}

@@ -1,8 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect } from 'react';
-import { EmptyState, Btn } from '../components/ui';
+import { Btn, BtnLink, EmptyState } from '../components/ui';
 
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
@@ -18,9 +17,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         action={
           <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Btn variant="primary" onClick={() => reset()}>Try again</Btn>
-            <Link href="/">
-              <Btn variant="secondary">Back to home</Btn>
-            </Link>
+            <BtnLink href="/" variant="secondary">Back to home</BtnLink>
           </div>
         }
       />

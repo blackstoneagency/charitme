@@ -2,7 +2,7 @@ import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { createClient } from '../../../../../lib/supabase-server';
-import { isAdmin } from '../../../../../lib/roles';
+import { canViewCampaignAnalytics } from '../../../../../lib/campaign-access';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +15,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Verify ownership or team membership
+  // Financial analytics are available to owners, platform admins, and team
+  // members with a working role. Read-only viewers cannot see donor data.
   const { data: campaign } = await supabaseAdmin
     .from('campaigns')
     .select('id, title, slug, user_id, raised_amount, goal_amount, backer_count, status')
@@ -25,12 +26,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   if (!campaign) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  if (campaign.user_id !== user.id) {
-    const { data: tm } = await supabaseAdmin
-      .from('team_members').select('id').eq('campaign_id', id).eq('user_id', user.id).maybeSingle();
-    if (!tm && !(await isAdmin(user.id, user.email))) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+  if (!(await canViewCampaignAnalytics(user, id, campaign.user_id))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const thirtyDaysAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();

@@ -3,6 +3,8 @@ import Link from 'next/link';
 import ShellAccountControls from './ShellAccountControls';
 import CampaignsSidebarNav from './CampaignsSidebarNav';
 import SuperAdminNav from './SuperAdminNav';
+import { dashboardNavigationFor } from '../lib/persona-navigation';
+import type { UserRole } from '../lib/roles-shared';
 
 export type Metric = {
   label: string;
@@ -32,8 +34,7 @@ export type ShellProps = {
   userName?: string | null;
   userEmail?: string;
   userRole?: string | null;
-  /** Raw profile roles, used to show role-scoped nav entries. */
-  navRoles?: string[];
+  navRole?: UserRole;
   userAvatarUrl?: string | null;
   guestMode?: boolean;
   hideSidebar?: boolean;
@@ -42,36 +43,6 @@ export type ShellProps = {
 };
 
 export type ShellVariant = 'dashboard' | 'admin';
-
-// Nav entries that only make sense for a specific role. Without these the
-// beneficiary and nonprofit dashboards are reachable only by typing the URL —
-// a nonprofit would never find its own verification/tax-receipt page.
-const roleScopedNav: Record<string, [string, string, string]> = {
-  beneficiary: ['Campaigns for you', '/dashboard/beneficiary', 'gift'],
-  nonprofit:   ['Your organization', '/dashboard/nonprofit', 'check'],
-};
-
-const dashboardNav = [
-  ['Dashboard', '/dashboard', 'home'],
-  ['My Campaigns', '/dashboard/campaigns', 'stack'],
-  ['AI Growth Plan', '/dashboard/ai-growth-plan', 'send', 'New'],
-  ['AI Coach', '/dashboard/ai-coach', 'send', 'AI'],
-  ['Donations', '/dashboard/donations', 'gift'],
-  ['Tax Documents', '/dashboard/tax', 'doc'],
-  ['Recurring', '/dashboard/recurring', 'gift'],
-  ['Donors', '/dashboard/donor', 'users'],
-  ['Grants', '/dashboard/grants', 'audit'],
-  ['Volunteering', '/dashboard/volunteer', 'team'],
-  ['Corporate Giving', '/dashboard/corporate', 'crown'],
-  ['Referrals', '/dashboard/referrals', 'crown'],
-  ['Updates', '/dashboard/updates', 'doc'],
-  ['Payouts', '/dashboard/payouts', 'wallet'],
-  ['Analytics', '/dashboard/analytics', 'chart'],
-  ['Messages', '/dashboard/messages', 'chat'],
-  ['Team', '/dashboard/team', 'team'],
-  ['Integrations', '/dashboard/integrations', 'link'],
-  ['Settings', '/dashboard/settings', 'gear'],
-] as const;
 
 const adminNav = [
   ['Dashboard', '/admin', 'home'],
@@ -141,8 +112,8 @@ export function Logo() {
   );
 }
 
-export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAccess: _hasAdminAccess = false, userName, userEmail, userRole, navRoles = [], userAvatarUrl, guestMode = false, hideSidebar = false, sidebarCampaigns = [], sidebarCampaignsHasMore = false }: ShellProps) {
-  const _nav = mode === 'admin' ? adminNav : dashboardNav; void _nav;
+export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAccess: _hasAdminAccess = false, userName, userEmail, userRole, navRole = 'donor', userAvatarUrl, guestMode = false, hideSidebar = false, sidebarCampaigns = [], sidebarCampaignsHasMore = false }: ShellProps) {
+  const dashboardNav = dashboardNavigationFor(navRole);
 
   if (hideSidebar) {
     return (
@@ -183,8 +154,7 @@ export function CharitMeShell({ active, children, mode = 'dashboard', hasAdminAc
           <>
             <Link href="/create/choose-path" className="kf-create"><KFIcon name="plus" /> Create New Campaign</Link>
             <nav className="kf-nav">
-              {/* Base nav + any role-scoped entries the signed-in user qualifies for. */}
-              {[...dashboardNav, ...navRoles.flatMap((r) => (roleScopedNav[r] ? [roleScopedNav[r]] : []))].map(([label, href, icon, badge]) => {
+              {dashboardNav.map(({ label, href, icon, badge }) => {
                 const isActive = active === label || (active === 'Campaigns' && label === 'My Campaigns');
                 const isGuestDisabled = guestMode && label !== 'My Campaigns';
                 if (isGuestDisabled) {

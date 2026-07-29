@@ -93,6 +93,7 @@ export default function HelpPage() {
           </svg>
           <input
             type="search"
+            aria-label="Search help articles"
             placeholder="Search help articles…"
             value={search}
             onChange={e => setSearch(e.target.value)}

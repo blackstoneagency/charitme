@@ -231,10 +231,10 @@ function AudienceTab({ flash }: { flash: (m: string) => void }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && void load(q)} placeholder="Search email or name…" style={{ ...input, flex: '1 1 220px' }} />
+        <input aria-label="Search contacts by email or name" value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => e.key === 'Enter' && void load(q)} placeholder="Search email or name…" style={{ ...input, flex: '1 1 220px' }} />
         <button onClick={() => void load(q)} style={btnGhost}>Search</button>
         <button onClick={() => void sync()} disabled={syncing} style={btn}>{syncing ? 'Syncing…' : '⟳ Sync platform users'}</button>
-        <input value={leadEmail} onChange={e => setLeadEmail(e.target.value)} placeholder="new-lead@email.com" style={{ ...input, width: 200 }} />
+        <input aria-label="New lead email address" value={leadEmail} onChange={e => setLeadEmail(e.target.value)} placeholder="new-lead@email.com" style={{ ...input, width: 200 }} />
         <button onClick={() => void addLead()} style={btnGhost}>+ Add lead</button>
       </div>
 
@@ -383,21 +383,21 @@ function SegmentsTab({ flash }: { flash: (m: string) => void }) {
       <div style={card}>
         <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>Create segment</div>
         <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Segment name" style={{ ...input, flex: '1 1 220px' }} />
-          <select value={logic} onChange={e => setLogic(e.target.value as 'and' | 'or')} style={input}>
+          <input aria-label="Segment name" value={name} onChange={e => setName(e.target.value)} placeholder="Segment name" style={{ ...input, flex: '1 1 220px' }} />
+          <select aria-label="Segment match logic" value={logic} onChange={e => setLogic(e.target.value as 'and' | 'or')} style={input}>
             <option value="and">Match ALL conditions</option>
             <option value="or">Match ANY condition</option>
           </select>
         </div>
         {conditions.map((c, i) => (
           <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-            <select value={c.field} onChange={e => setConditions(cs => cs.map((x, j) => j === i ? { ...x, field: e.target.value } : x))} style={input}>
+            <select aria-label="Condition field" value={c.field} onChange={e => setConditions(cs => cs.map((x, j) => j === i ? { ...x, field: e.target.value } : x))} style={input}>
               {FIELD_OPTIONS.map(f => <option key={f} value={f}>{f}</option>)}
             </select>
-            <select value={c.op} onChange={e => setConditions(cs => cs.map((x, j) => j === i ? { ...x, op: e.target.value } : x))} style={input}>
+            <select aria-label="Condition operator" value={c.op} onChange={e => setConditions(cs => cs.map((x, j) => j === i ? { ...x, op: e.target.value } : x))} style={input}>
               {OP_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
             </select>
-            <input value={c.value} onChange={e => setConditions(cs => cs.map((x, j) => j === i ? { ...x, value: e.target.value } : x))} placeholder="value" style={{ ...input, width: 160 }} />
+            <input aria-label="Condition value" value={c.value} onChange={e => setConditions(cs => cs.map((x, j) => j === i ? { ...x, value: e.target.value } : x))} placeholder="value" style={{ ...input, width: 160 }} />
             {conditions.length > 1 && <button onClick={() => setConditions(cs => cs.filter((_, j) => j !== i))} style={{ ...btnGhost, padding: '6px 12px' }}>✕</button>}
           </div>
         ))}
@@ -482,19 +482,19 @@ function CampaignsTab({ flash }: { flash: (m: string) => void }) {
       <div style={card}>
         <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>New email campaign</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-          <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Internal name" style={input} />
-          <select value={form.segment_id} onChange={e => setForm(f => ({ ...f, segment_id: e.target.value }))} style={input}>
+          <input aria-label="Campaign internal name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Internal name" style={input} />
+          <select aria-label="Audience segment" value={form.segment_id} onChange={e => setForm(f => ({ ...f, segment_id: e.target.value }))} style={input}>
             <option value="">Choose audience segment…</option>
             {segments.map(s => <option key={s.id} value={s.id}>{s.name} ({s.member_count})</option>)}
           </select>
         </div>
-        <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder="Subject — supports {{first_name}} and {{tracking_url}}" style={{ ...input, width: '100%', boxSizing: 'border-box', marginBottom: 10 }} />
-        <textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} placeholder={'Email body (plain text). Personalize with {{first_name}}. Include {{tracking_url}} to add a click-tracked link back to the site.'} rows={5} style={{ ...input, width: '100%', boxSizing: 'border-box', marginBottom: 10, resize: 'vertical' }} />
+        <input aria-label="Email subject" value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder="Subject — supports {{first_name}} and {{tracking_url}}" style={{ ...input, width: '100%', boxSizing: 'border-box', marginBottom: 10 }} />
+        <textarea aria-label="Email body" value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} placeholder={'Email body (plain text). Personalize with {{first_name}}. Include {{tracking_url}} to add a click-tracked link back to the site.'} rows={5} style={{ ...input, width: '100%', boxSizing: 'border-box', marginBottom: 10, resize: 'vertical' }} />
         <button onClick={() => void create()} disabled={busy} style={btn}>{busy ? 'Creating…' : 'Create draft'}</button>
       </div>
 
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12 }}>
-        <input value={testEmail} onChange={e => setTestEmail(e.target.value)} placeholder="test@you.com (for Send test)" style={{ ...input, width: 260 }} />
+        <input aria-label="Send test to email address" value={testEmail} onChange={e => setTestEmail(e.target.value)} placeholder="test@you.com (for Send test)" style={{ ...input, width: 260 }} />
       </div>
 
       <div style={{ ...card, padding: 0 }}>
@@ -629,7 +629,7 @@ function CopilotTab({ flash }: { flash: (m: string) => void }) {
             </button>
           ))}
         </div>
-        <textarea value={context} onChange={e => setContext(e.target.value)} rows={3}
+        <textarea aria-label="Optional goal or context for generation" value={context} onChange={e => setContext(e.target.value)} rows={3}
           placeholder="Optional goal/context — e.g. 'Reactivate donors who gave to medical campaigns last spring'"
           style={{ ...input, width: '100%', boxSizing: 'border-box', marginBottom: 10, resize: 'vertical' }} />
         <button onClick={() => void run()} disabled={busy} style={btn}>{busy ? 'Thinking…' : '✨ Generate'}</button>
@@ -735,8 +735,8 @@ function OutreachTab({ flash }: { flash: (m: string) => void }) {
       </div>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search business, owner, or email…" style={{ ...input, flex: '1 1 240px' }} />
-        <select value={filter} onChange={e => setFilter(e.target.value as typeof filter)} style={input}>
+        <input aria-label="Search businesses by name, owner, or email" value={q} onChange={e => setQ(e.target.value)} placeholder="Search business, owner, or email…" style={{ ...input, flex: '1 1 240px' }} />
+        <select aria-label="Filter leads by status" value={filter} onChange={e => setFilter(e.target.value as typeof filter)} style={input}>
           <option value="all">All leads</option>
           <option value="new">Not contacted</option>
           <option value="ready">Link ready</option>
@@ -915,8 +915,8 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
 
         {/* 3 — Compose + send */}
         <Section title="③ Compose & send">
-          <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" style={{ ...input, width: '100%', boxSizing: 'border-box', marginBottom: 8 }} />
-          <textarea value={body} onChange={e => setBody(e.target.value)} rows={9} style={{ ...input, width: '100%', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6 }} />
+          <input aria-label="Email subject" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" style={{ ...input, width: '100%', boxSizing: 'border-box', marginBottom: 8 }} />
+          <textarea aria-label="Email body" value={body} onChange={e => setBody(e.target.value)} rows={9} style={{ ...input, width: '100%', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6 }} />
           <p style={{ fontSize: 11.5, color: '#94a3b8', margin: '6px 0 12px' }}>
             Variables: <code>{'{{first_name}}'}</code> <code>{'{{business_name}}'}</code> <code>{'{{tracking_url}}'}</code> (inserts the unique link above).
           </p>

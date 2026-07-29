@@ -1,4 +1,4 @@
-import { CharitMeShell } from '../../components/CharitMeApp';
+import { CharitMeShell } from '../../components/ShellSessionProvider';
 
 // Dashboard-wide loading skeleton. Rendered inside the shell so the sidebar
 // stays put during navigation (instead of the content area freezing on the

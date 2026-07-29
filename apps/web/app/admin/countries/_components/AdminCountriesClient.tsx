@@ -65,35 +65,35 @@ function CountryRow({
     return (
       <tr style={{ background: '#faf8ff' }}>
         <td style={{ padding: '10px 14px' }}>
-          <input value={form.flag_emoji} onChange={e => upd('flag_emoji', e.target.value)}
+          <input aria-label="Flag emoji" value={form.flag_emoji} onChange={e => upd('flag_emoji', e.target.value)}
             style={{ ...iStyle, width: 52 }} placeholder="🇺🇸" maxLength={4} />
         </td>
         <td style={{ padding: '10px 14px' }}>
-          <input value={form.name} onChange={e => upd('name', e.target.value)}
+          <input aria-label="Country name" value={form.name} onChange={e => upd('name', e.target.value)}
             style={{ ...iStyle, width: 160 }} placeholder="Country name" />
         </td>
         <td style={{ padding: '10px 14px' }}>
-          <input value={form.iso_code} onChange={e => upd('iso_code', e.target.value.toUpperCase())}
+          <input aria-label="ISO country code" value={form.iso_code} onChange={e => upd('iso_code', e.target.value.toUpperCase())}
             style={{ ...iStyle, width: 52 }} placeholder="US" maxLength={2} />
         </td>
         <td style={{ padding: '10px 14px' }}>
-          <input value={form.currency_code} onChange={e => upd('currency_code', e.target.value.toUpperCase())}
+          <input aria-label="Currency code" value={form.currency_code} onChange={e => upd('currency_code', e.target.value.toUpperCase())}
             style={{ ...iStyle, width: 60 }} placeholder="USD" maxLength={3} />
         </td>
         <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-          <input type="checkbox" checked={form.can_fundraise} onChange={e => upd('can_fundraise', e.target.checked)}
+          <input type="checkbox" aria-label="Can fundraise" checked={form.can_fundraise} onChange={e => upd('can_fundraise', e.target.checked)}
             style={{ accentColor: '#6c35ff', width: 16, height: 16 }} />
         </td>
         <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-          <input type="checkbox" checked={form.can_donate} onChange={e => upd('can_donate', e.target.checked)}
+          <input type="checkbox" aria-label="Can donate" checked={form.can_donate} onChange={e => upd('can_donate', e.target.checked)}
             style={{ accentColor: '#6c35ff', width: 16, height: 16 }} />
         </td>
         <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-          <input type="checkbox" checked={form.active} onChange={e => upd('active', e.target.checked)}
+          <input type="checkbox" aria-label="Active" checked={form.active} onChange={e => upd('active', e.target.checked)}
             style={{ accentColor: '#19b86a', width: 16, height: 16 }} />
         </td>
         <td style={{ padding: '10px 14px' }}>
-          <input value={form.notes ?? ''} onChange={e => upd('notes', e.target.value)}
+          <input aria-label="Notes" value={form.notes ?? ''} onChange={e => upd('notes', e.target.value)}
             style={{ ...iStyle, width: 200 }} placeholder="Optional notes" />
         </td>
         <td style={{ padding: '10px 14px' }}>
@@ -303,6 +303,7 @@ export default function AdminCountriesClient() {
           </button>
         ))}
         <input
+          aria-label="Search countries by name or ISO code"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by name or ISO…"

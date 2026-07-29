@@ -1,16 +1,30 @@
 -- =============================================================================
 -- RaiseMoney / CharitMe — seed data
 -- =============================================================================
--- HOW TO USE:
---   1. Sign up at least ONE account through your app first.
---   2. Paste this entire file into Supabase SQL Editor and run it.
---   The seed automatically uses the first signed-up user as the organizer.
+-- Local reset data. The synthetic identities have no password and use the
+-- reserved .invalid domain, so they cannot receive mail or authenticate.
 -- =============================================================================
 
 do $$
+begin
+  if exists (
+    select 1
+    from auth.users
+    where coalesce(lower(email), '') not like '%@charitme.invalid'
+      and coalesce(lower(email), '') not like '%@charitme.test'
+      and coalesce(lower(email), '') not like '%@example.test'
+  ) then
+    raise exception 'Local demo seed blocked: non-demo auth users already exist.';
+  end if;
+end $$;
+
+set charitme.allow_demo_seed = 'true';
+set app.charitme_allow_demo_seed = 'true';
+
+do $$
 declare
-  v_admin_id   uuid;
-  v_donor_id   uuid;
+  v_admin_id   uuid := '10000000-0000-4000-8000-000000000001';
+  v_donor_id   uuid := '10000000-0000-4000-8000-000000000002';
   v_c1_id      uuid := gen_random_uuid();
   v_c2_id      uuid := gen_random_uuid();
   v_c3_id      uuid := gen_random_uuid();
@@ -18,26 +32,58 @@ declare
 begin
 
   -- -------------------------------------------------------------------------
-  -- Find real users from auth.users (must exist before running seed)
+  -- Create deterministic synthetic users without login credentials.
   -- -------------------------------------------------------------------------
-  select id into v_admin_id from auth.users order by created_at asc limit 1;
-  select id into v_donor_id from auth.users order by created_at asc offset 1 limit 1;
-
-  if v_admin_id is null then
-    raise exception 'No users found in auth.users. Sign up at least one account through the app first, then re-run this seed.';
-  end if;
-
-  -- If only one user exists, use them as both organizer and donor
-  if v_donor_id is null then
-    v_donor_id := v_admin_id;
-  end if;
+  insert into auth.users (
+    instance_id,
+    id,
+    aud,
+    role,
+    email,
+    email_confirmed_at,
+    raw_app_meta_data,
+    raw_user_meta_data,
+    created_at,
+    updated_at
+  ) values
+    (
+      '00000000-0000-0000-0000-000000000000',
+      v_admin_id,
+      'authenticated',
+      'authenticated',
+      'seed-organizer@charitme.invalid',
+      now(),
+      '{"provider":"email","providers":["email"]}'::jsonb,
+      '{"full_name":"Seed Organizer"}'::jsonb,
+      now(),
+      now()
+    ),
+    (
+      '00000000-0000-0000-0000-000000000000',
+      v_donor_id,
+      'authenticated',
+      'authenticated',
+      'seed-donor@charitme.invalid',
+      now(),
+      '{"provider":"email","providers":["email"]}'::jsonb,
+      '{"full_name":"Seed Donor"}'::jsonb,
+      now(),
+      now()
+    )
+  on conflict (id) do nothing;
 
   -- -------------------------------------------------------------------------
-  -- Promote first user to admin + fundraiser role
+  -- Assign representative roles to the synthetic users.
   -- -------------------------------------------------------------------------
   update public.profiles
-  set roles = '["admin","fundraiser","donor"]'::jsonb
+  set roles = '["admin","super_admin","organizer","donor"]'::jsonb,
+      is_demo = true
   where id = v_admin_id;
+
+  update public.profiles
+  set roles = '["donor"]'::jsonb,
+      is_demo = true
+  where id = v_donor_id;
 
   -- -------------------------------------------------------------------------
   -- Campaigns
@@ -45,7 +91,7 @@ begin
   insert into public.campaigns(
     id, user_id, slug, title, tagline, description, category,
     goal_amount, raised_amount, backer_count, status, deadline,
-    trust_status, campaign_health_score
+    trust_status, campaign_health_score, is_demo
   ) values
     (
       v_c1_id, v_admin_id,
@@ -61,7 +107,7 @@ begin
       'Medical',
       1500000, 427850, 83, 'active',
       current_date + interval '45 days',
-      'Verified', 82
+      'Verified', 82, true
     ),
     (
       v_c2_id, v_admin_id,
@@ -73,10 +119,10 @@ begin
       'We are raising funds to provide temporary housing, clear debris, and begin rebuilding. Local '
       'volunteers are already on the ground. Every dollar is tracked through our transparency ledger. '
       '100% of donations go to affected families — CharitMe charges no platform fee.',
-      'Disaster Relief',
+      'Emergency',
       5000000, 1823400, 312, 'active',
       current_date + interval '30 days',
-      'Established', 74
+      'Established', 74, true
     ),
     (
       v_c3_id, v_admin_id,
@@ -91,7 +137,7 @@ begin
       'Education',
       2400000, 965000, 148, 'active',
       current_date + interval '60 days',
-      'Highly Trusted', 91
+      'Highly Trusted', 91, true
     )
   on conflict (slug) do nothing;
 
@@ -111,12 +157,12 @@ begin
   -- Sample donations
   -- -------------------------------------------------------------------------
   insert into public.donations(
-    campaign_id, donor_id, amount_cents, message, anonymous, status
+    campaign_id, donor_id, amount_cents, message, anonymous, status, is_demo
   ) values
-    (v_c1_id, v_donor_id,  5000, 'Sending love and prayers, Sarah!', false, 'completed'),
-    (v_c1_id, v_donor_id, 10000, null,                                true,  'completed'),
-    (v_c2_id, v_donor_id,  2500, 'Stay strong, Millbrook!',          false, 'completed'),
-    (v_c3_id, v_donor_id, 15000, 'Education changes everything.',    false, 'completed')
+    (v_c1_id, v_donor_id,  5000, 'Sending love and prayers, Sarah!', false, 'completed', true),
+    (v_c1_id, null,       10000, null,                                true,  'completed', true),
+    (v_c2_id, v_donor_id,  2500, 'Stay strong, Millbrook!',          false, 'completed', true),
+    (v_c3_id, v_donor_id, 15000, 'Education changes everything.',    false, 'completed', true)
   on conflict do nothing;
 
   raise notice 'Seed complete. Admin user: %, Donor user: %', v_admin_id, v_donor_id;

@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { CharitMeShell, TopBar } from '../../../../components/CharitMeApp';
+import { TopBar } from '../../../../components/CharitMeApp';
+import { CharitMeShell } from '../../../../components/ShellSessionProvider';
 import { createClient } from '../../../../lib/supabase-browser'; // used for auth check + campaign list
 
 type Campaign = { id: string; title: string };
@@ -158,6 +159,7 @@ export default function NewUpdatePage() {
                     {scheduleMode && (
                       <input
                         type="datetime-local"
+                        aria-label="Schedule this update for a later date and time"
                         value={scheduledAt}
                         onChange={e => setScheduledAt(e.target.value)}
                         required={scheduleMode}

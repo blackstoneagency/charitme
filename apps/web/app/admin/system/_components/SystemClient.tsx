@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import Link from 'next/link';
 import { KFIcon, StatusPill } from '../../../../components/CharitMeApp';
 
@@ -79,6 +79,14 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
   );
 }
 
+// Same defect, and same fix, as dashboard/settings' SetField: a bare sibling
+// <label> names nothing. Every control routed through this wrapper was announced
+// as an unnamed edit field. The id is generated once and forwarded onto the
+// single form control passed as `children` (unless it brings its own), so no
+// call site changes — the label text was always there, it just was not wired to
+// anything. The hint is associated at the same time via aria-describedby.
+const LABELLABLE = new Set(['input', 'select', 'textarea']);
+
 function Field({
   label,
   hint,
@@ -90,11 +98,21 @@ function Field({
   full?: boolean;
   children: React.ReactNode;
 }) {
+  const fieldId = useId();
+  const hintId = `${fieldId}-hint`;
+
+  const control = React.isValidElement(children) && LABELLABLE.has(children.type as string)
+    ? React.cloneElement(children as React.ReactElement<{ id?: string; 'aria-describedby'?: string }>, {
+        id: (children.props as { id?: string }).id ?? fieldId,
+        'aria-describedby': hint ? hintId : (children.props as { 'aria-describedby'?: string })['aria-describedby'],
+      })
+    : children;
+
   return (
     <div className={`sys-field${full ? ' full' : ''}`}>
-      <label>{label}</label>
-      {children}
-      {hint && <small>{hint}</small>}
+      <label htmlFor={fieldId}>{label}</label>
+      {control}
+      {hint && <small id={hintId}>{hint}</small>}
     </div>
   );
 }
@@ -582,7 +600,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                 <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>Google Analytics</strong>
                 <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>Track page views and user behaviour</small>
                 {Boolean(s.googleAnalyticsEnabled) && (
-                  <input className="sys-input" type="text" value={String(s.gaId ?? '')} onChange={e => setField('integrations', 'gaId', e.target.value)} placeholder="G-XXXXXXXXXX" style={{ marginTop: 10, maxWidth: 240 }} />
+                  <input className="sys-input" type="text" aria-label="Google Analytics ID" value={String(s.gaId ?? '')} onChange={e => setField('integrations', 'gaId', e.target.value)} placeholder="G-XXXXXXXXXX" style={{ marginTop: 10, maxWidth: 240 }} />
                 )}
               </div>
               <Toggle label="Enable Google Analytics" checked={Boolean(s.googleAnalyticsEnabled)} onChange={v => setField('integrations', 'googleAnalyticsEnabled', v)} />
@@ -593,7 +611,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                 <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>Mailchimp</strong>
                 <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>Sync donors to your Mailchimp audience</small>
                 {Boolean(s.mailchimpEnabled) && (
-                  <input className="sys-input" type="text" value={String(s.mailchimpKey ?? '')} onChange={e => setField('integrations', 'mailchimpKey', e.target.value)} placeholder="Mailchimp API Key" style={{ marginTop: 10, maxWidth: 300 }} />
+                  <input className="sys-input" type="text" aria-label="Mailchimp API key" value={String(s.mailchimpKey ?? '')} onChange={e => setField('integrations', 'mailchimpKey', e.target.value)} placeholder="Mailchimp API Key" style={{ marginTop: 10, maxWidth: 300 }} />
                 )}
               </div>
               <Toggle label="Enable Mailchimp" checked={Boolean(s.mailchimpEnabled)} onChange={v => setField('integrations', 'mailchimpEnabled', v)} />
@@ -604,7 +622,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                 <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>Slack</strong>
                 <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>Post admin alerts to Slack channels</small>
                 {Boolean(s.slackEnabled) && (
-                  <input className="sys-input" type="text" value={String(s.slackWebhook ?? '')} onChange={e => setField('integrations', 'slackWebhook', e.target.value)} placeholder="https://hooks.slack.com/services/..." style={{ marginTop: 10, maxWidth: 340 }} />
+                  <input className="sys-input" type="text" aria-label="Slack webhook URL" value={String(s.slackWebhook ?? '')} onChange={e => setField('integrations', 'slackWebhook', e.target.value)} placeholder="https://hooks.slack.com/services/..." style={{ marginTop: 10, maxWidth: 340 }} />
                 )}
               </div>
               <Toggle label="Enable Slack" checked={Boolean(s.slackEnabled)} onChange={v => setField('integrations', 'slackEnabled', v)} />

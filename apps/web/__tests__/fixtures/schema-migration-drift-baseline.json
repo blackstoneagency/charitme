@@ -42,9 +42,6 @@
     "donor_id",
     "notes"
   ],
-  "donor_messages": [
-    "anonymous"
-  ],
   "membership_tiers": [
     "interval"
   ],

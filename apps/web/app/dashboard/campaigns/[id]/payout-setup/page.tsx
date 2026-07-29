@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { CharitMeShell, TopBar } from '../../../../../components/CharitMeApp';
+import { TopBar } from '../../../../../components/CharitMeApp';
+import { CharitMeShell } from '../../../../../components/ShellSessionProvider';
 import { createClient } from '../../../../../lib/supabase-browser';
 
 type PayoutStatus = {
@@ -142,6 +143,7 @@ export default function PayoutSetupPage({ params }: { params: Promise<{ id: stri
           <div style={{ display: 'flex', gap: 10 }}>
             <input
               type="email"
+              aria-label="Email address to invite as beneficiary"
               value={inviteEmail}
               onChange={e => setInviteEmail(e.target.value)}
               placeholder="beneficiary@email.com"

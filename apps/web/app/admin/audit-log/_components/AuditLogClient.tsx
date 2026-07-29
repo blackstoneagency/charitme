@@ -250,6 +250,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
               />
             </label>
             <select
+              aria-label="Filter by category"
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value)}
               style={{ height: 40, border: '1px solid #e0e4ef', borderRadius: 8, padding: '0 12px', fontSize: 12, background: '#fff', cursor: 'pointer' }}
@@ -257,6 +258,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
               {categoryNames.map(c => <option key={c}>{c}</option>)}
             </select>
             <select
+              aria-label="Filter by status"
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
               style={{ height: 40, border: '1px solid #e0e4ef', borderRadius: 8, padding: '0 12px', fontSize: 12, background: '#fff', cursor: 'pointer' }}

@@ -159,6 +159,13 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: 'weekly',
   },
   {
+    path: '/roles',
+    title: 'Account Roles Explained',
+    description: 'What Donor, Organizer, Beneficiary, Nonprofit and staff roles mean on CharitMe, in plain language.',
+    priority: 0.5,
+    changeFrequency: 'monthly',
+  },
+  {
     path: '/fees',
     title: 'Fundraising Fees',
     description: 'Compare CharitMe platform fees, processing fees, and donor-supported fundraising costs.',

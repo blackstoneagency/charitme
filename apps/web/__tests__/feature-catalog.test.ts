@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getFeatureCoverage, isFeatureBuilt, PLATFORM_MODULES, REQUIRED_COMPETITOR_FEATURES } from '../lib/feature-catalog';
 
@@ -247,5 +247,78 @@ describe('peer-to-peer is not counted as shipped', () => {
     const team = PLATFORM_MODULES.flatMap((m) => m.features).filter((f) => /team/i.test(f.name));
     expect(team.length).toBeGreaterThan(0);
     for (const f of team) expect(f.planned, f.name).not.toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GoFundMe parity: verify "built" against the code, not just the flag.
+//
+// The catalog's `planned` flag is maintained by hand — its own doc says to
+// clear it "only when a real route, API and UI read those tables". The tests
+// above check the ARITHMETIC of built-vs-mapped; none check that a feature
+// marked built actually exists. So deleting ShareButtons.tsx would leave
+// /features advertising Social Sharing as shipped, with every count still
+// green.
+//
+// Audited 2026-07-28: all ten GoFundMe parity entries are genuinely built.
+// (Two earlier "missing" readings were my own wrong guesses at names — donor
+// comments live in `donor_messages`, not `campaign_comments`. Guessing an
+// identifier and reporting absence is how a working feature gets declared
+// broken, so the evidence below is by real path.)
+// ─────────────────────────────────────────────────────────────────────────────
+describe('every GoFundMe parity feature has code behind it', () => {
+  const WEB = join(__dirname, '..');
+  const exists = (p: string) => existsSync(join(WEB, p));
+
+  // Feature name in the catalog → a file that would not exist if it were unbuilt.
+  const EVIDENCE: Record<string, string[]> = {
+    'Campaign Creation Wizard': ['app/create/page.tsx', 'lib/wizard-steps.ts'],
+    'Donation Checkout':        ['app/api/donations/route.ts', 'lib/stripe.ts'],
+    'Social Sharing':           ['app/campaigns/[slug]/ShareButtons.tsx'],
+    'Progress Bar':             ['components/ui.tsx'],
+    'Campaign Updates':         ['app/dashboard/updates/page.tsx'],
+    'Beneficiary Setup':        ['app/beneficiary/accept/page.tsx'],
+    'Mobile Experience':        ['scripts/audit-responsive.mjs'],
+    'Donor Comments':           ['app/campaigns/[slug]/CommentForm.tsx', 'app/campaigns/[slug]/CommentsList.tsx'],
+    'Trust & Safety':           ['app/trust-safety/page.tsx', 'lib/trust-signals.ts'],
+    'Organizer Dashboard':      ['app/dashboard/page.tsx'],
+  };
+
+  // REQUIRED_COMPETITOR_FEATURES is a list of "Competitor:Name" STRINGS; the
+  // objects live on the modules, so the entries come from there.
+  const gofundme = PLATFORM_MODULES.flatMap((m) =>
+    m.features.filter((f) => f.competitor === 'GoFundMe').map((f) => ({ ...f, module: m })),
+  );
+
+  it('is reading real entries, not an empty list', () => {
+    // Guards the assertions below against silently passing on nothing — the
+    // first version of this block filtered the string array and matched zero.
+    expect(gofundme.length).toBe(10);
+  });
+
+  it('tracks exactly the ten GoFundMe features the evidence map covers', () => {
+    expect(gofundme.map((f) => f.name).sort()).toEqual(Object.keys(EVIDENCE).sort());
+  });
+
+  it('has real code for every GoFundMe feature not marked planned', () => {
+    for (const feature of gofundme) {
+      if (feature.planned) continue;
+      for (const path of EVIDENCE[feature.name]) {
+        expect(exists(path), `"${feature.name}" is claimed built but ${path} is missing`).toBe(true);
+      }
+    }
+  });
+
+  it('claims no GoFundMe feature as planned-but-unbuilt right now', () => {
+    // Pins the audited state. If a future entry is added as planned, this fails
+    // and forces the parity claim on /features to be re-stated honestly.
+    expect(gofundme.filter((f) => f.planned).map((f) => f.name)).toEqual([]);
+  });
+
+  it('backs donor comments with the table the code actually reads', () => {
+    // donor_messages, NOT campaign_comments — the name that made this look absent.
+    const form = readFileSync(join(WEB, 'app/campaigns/[slug]/CommentForm.tsx'), 'utf8');
+    const list = readFileSync(join(WEB, 'app/campaigns/[slug]/CommentsList.tsx'), 'utf8');
+    expect(form + list).toMatch(/donor_messages|\/api\/campaigns\//);
   });
 });

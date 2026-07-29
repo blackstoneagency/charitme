@@ -92,7 +92,15 @@ describe('public route list has a single source of truth', () => {
       // A file that READS the shared list is anchored to it and cannot drift
       // silently — a curated subset is legitimate provided every entry is
       // validated against the shared file (see scripts/audit-scroll-keyboard.mjs).
-      if (source.includes('public-routes.json') || source.includes('./public-routes')) continue;
+      // `authed-routes.json` counts too. It is a second SHARED list, not a
+      // second hardcoded one: the signed-in surface is a different set from the
+      // anonymous one (public routes must not redirect, authed routes must), so
+      // one file cannot express both. What this guard forbids is a private copy.
+      if (
+        source.includes('public-routes.json') ||
+        source.includes('./public-routes') ||
+        source.includes('authed-routes.json')
+      ) continue;
       const count = countRouteLiterals(source);
       if (count >= MIN_ROUTES_TO_COUNT_AS_A_LIST) offenders.push(`${rel} (${count} routes)`);
     }
@@ -109,16 +117,42 @@ describe('public route list has a single source of truth', () => {
   it('the shared list is the real one — non-trivial and free of auth-gated routes', () => {
     const data = JSON.parse(
       readFileSync(path.join(WEB_ROOT, 'e2e', 'public-routes.json'), 'utf8'),
-    ) as { public: string[]; authGated: { routes: string[] } };
+    ) as {
+      public: string[];
+      authGated: {
+        routes: string[];
+        consoles: string[];
+        redirects: Array<{ from: string; to: string }>;
+        dynamicSamples: Array<{ template: string; path: string }>;
+      };
+    };
 
     expect(data.public.length).toBeGreaterThan(30);
 
     // The original bug, pinned: a route cannot be in both lists, and the known
     // offenders must stay on the auth-gated side.
-    const overlap = data.public.filter((r) => data.authGated.routes.includes(r));
+    const gatedPaths = [
+      ...data.authGated.routes,
+      ...data.authGated.consoles,
+      ...data.authGated.redirects.map((redirect) => redirect.from),
+      ...data.authGated.dynamicSamples.map((sample) => sample.path),
+    ];
+    const overlap = data.public.filter((route) => gatedPaths.includes(route));
     expect(overlap, `Routes claimed as both public and auth-gated: ${overlap.join(', ')}`).toEqual([]);
     expect(data.authGated.routes).toContain('/achievements');
     expect(data.authGated.routes).toContain('/privacy-center');
+    expect(data.public).toContain('/create/choose-path');
+    expect(data.public).toContain('/beneficiary/accept');
+
+    const authedData = JSON.parse(
+      readFileSync(path.join(WEB_ROOT, 'e2e', 'authed-routes.json'), 'utf8'),
+    ) as { groups: Record<string, string[]> };
+    const authedRoutes = Object.values(authedData.groups).flat();
+    const publicAuthedOverlap = data.public.filter((route) => authedRoutes.includes(route));
+    expect(
+      publicAuthedOverlap,
+      `Routes claimed as both public and login-only: ${publicAuthedOverlap.join(', ')}`,
+    ).toEqual([]);
   });
 
 });
@@ -229,27 +263,50 @@ describe('signed-in console routes are derived from the app directory', () => {
     return out;
   }
 
-  const onDisk = [
+  const consoleOnDisk = [
     ...pageRoutes(path.join(WEB_ROOT, 'app', 'dashboard'), '/dashboard'),
     ...pageRoutes(path.join(WEB_ROOT, 'app', 'admin'), '/admin'),
+  ].sort();
+  const signedInDynamicOnDisk = [
+    ...consoleOnDisk.filter((route) => route.includes('[')),
+    ...pageRoutes(
+      path.join(WEB_ROOT, 'app', 'donor', 'tax-statement'),
+      '/donor/tax-statement',
+    ).filter((route) => route.includes('[')),
+    ...pageRoutes(
+      path.join(WEB_ROOT, 'app', 'volunteer', 'manage'),
+      '/volunteer/manage',
+    ).filter((route) => route.includes('[')),
   ].sort();
 
   const data = JSON.parse(
     readFileSync(path.join(WEB_ROOT, 'e2e', 'public-routes.json'), 'utf8'),
-  ) as { authGated: { consoles: string[]; dynamicSamples: string[] } };
+  ) as {
+    authGated: {
+      routes: string[];
+      consoles: string[];
+      redirects: Array<{ from: string; to: string }>;
+      dynamicSamples: Array<{ template: string; path: string }>;
+    };
+  };
 
   it('scans a real tree', () => {
-    expect(onDisk.length).toBeGreaterThan(50);
-    expect(onDisk).toContain('/dashboard');
-    expect(onDisk).toContain('/admin/super');
+    expect(consoleOnDisk.length).toBeGreaterThan(50);
+    expect(consoleOnDisk).toContain('/dashboard');
+    expect(consoleOnDisk).toContain('/admin/super');
+    expect(signedInDynamicOnDisk).toContain('/donor/tax-statement/[year]');
+    expect(signedInDynamicOnDisk).toContain('/volunteer/manage/[id]');
   });
 
   it('lists every static /dashboard and /admin page, and nothing that is gone', () => {
-    const staticOnDisk = onDisk.filter((r) => !r.includes('['));
-    const listed = [...data.authGated.consoles].sort();
+    const staticOnDisk = consoleOnDisk.filter((route) => !route.includes('['));
+    const listed = [
+      ...data.authGated.consoles,
+      ...data.authGated.redirects.map((redirect) => redirect.from),
+    ].sort();
 
-    const missing = staticOnDisk.filter((r) => !listed.includes(r));
-    const stale = listed.filter((r) => !staticOnDisk.includes(r));
+    const missing = staticOnDisk.filter((route) => !listed.includes(route));
+    const stale = listed.filter((route) => !staticOnDisk.includes(route));
 
     expect(
       missing,
@@ -263,13 +320,72 @@ describe('signed-in console routes are derived from the app directory', () => {
     ).toEqual([]);
   });
 
-  it('instantiates every [param] template exactly once', () => {
-    const dynamicOnDisk = onDisk.filter((r) => r.includes('['));
-    // Each sample is the template with its params substituted, so the shapes must
-    // correspond one-to-one; a template with no sample is an unswept page type.
-    expect(data.authGated.dynamicSamples).toHaveLength(dynamicOnDisk.length);
+  it('keeps standalone auth-gated routes anchored to real pages', () => {
+    const missing = data.authGated.routes.filter((route) => {
+      const page = path.join(WEB_ROOT, 'app', ...route.slice(1).split('/'), 'page.tsx');
+      return !statExists(page);
+    });
+    expect(
+      missing,
+      `Auth-gated routes without a page on disk: ${missing.join(', ')}`,
+    ).toEqual([]);
+  });
+
+  it('records every intentional redirect and its exact destination', () => {
+    expect(data.authGated.redirects.length).toBeGreaterThan(0);
+    for (const expected of data.authGated.redirects) {
+      const page = path.join(
+        WEB_ROOT,
+        'app',
+        ...expected.from.slice(1).split('/'),
+        'page.tsx',
+      );
+      expect(statExists(page), `${expected.from} has no page.tsx`).toBe(true);
+      const source = readFileSync(page, 'utf8');
+      const singleQuoted = `redirect('${expected.to}')`;
+      const doubleQuoted = `redirect("${expected.to}")`;
+      expect(
+        source.includes(singleQuoted) || source.includes(doubleQuoted),
+        `${expected.from} no longer redirects exactly to ${expected.to}`,
+      ).toBe(true);
+    }
+  });
+
+  it('instantiates every signed-in [param] template exactly once', () => {
+    const templates = data.authGated.dynamicSamples
+      .map((sample) => sample.template)
+      .sort();
+    expect(templates).toEqual(signedInDynamicOnDisk);
+    expect(new Set(templates).size).toBe(templates.length);
+
     for (const sample of data.authGated.dynamicSamples) {
-      expect(sample, `sample still contains an unsubstituted param: ${sample}`).not.toMatch(/[[\]]/);
+      expect(
+        sample.path,
+        `sample still contains an unsubstituted param: ${sample.path}`,
+      ).not.toMatch(/[[\]]/);
+      expect(
+        samplePathMatchesTemplate(sample.template, sample.path),
+        `${sample.path} does not instantiate ${sample.template}`,
+      ).toBe(true);
     }
   });
 });
+
+function statExists(file: string): boolean {
+  try {
+    return statSync(file).isFile();
+  } catch {
+    return false;
+  }
+}
+
+function samplePathMatchesTemplate(template: string, samplePath: string): boolean {
+  const pattern = template
+    .split('/')
+    .map((segment) => {
+      if (/^\[[^\]]+\]$/.test(segment)) return '[^/]+';
+      return segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    })
+    .join('/');
+  return new RegExp(`^${pattern}$`).test(samplePath);
+}

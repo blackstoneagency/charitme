@@ -3,15 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-// Defined in a non-client module: a Server Component cannot read a plain value
-// through the client boundary. See lib/super-admin-nav.ts.
 import { SUPER_ADMIN_NAV } from '../lib/super-admin-nav';
 
-export { SUPER_ADMIN_NAV };
-
-// Super-admin-only feature set. Each item renders in the main content area when
-// clicked (standard App-Router navigation). The parent "Admin" row is a
-// collapsible dropdown, auto-expanded while on any /admin/super route.
+// The list itself lives in lib/super-admin-nav.ts, a module with NO 'use client'
+// directive: app/admin/super/page.tsx is a Server Component, and plain data does not
+// survive the client boundary. Re-exported here for existing importers.
+export { SUPER_ADMIN_NAV } from '../lib/super-admin-nav';
 
 function Icon({ name }: { name: string }) {
   const p = { width: 18, height: 18, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };

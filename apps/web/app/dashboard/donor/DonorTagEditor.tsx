@@ -82,6 +82,7 @@ export default function DonorTagEditor({ email, fullName, initialTags, lifetimeV
       })}
       {editing ? (
         <input
+          aria-label="Add a donor tag"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { ASSIGNABLE_ROLES, type UserRole } from '../lib/roles-shared';
 import {
@@ -7,6 +7,7 @@ import {
   ROLE_ORDER,
   enforcedRoles,
   advisoryRoles,
+  effectivePrimaryRole,
   primaryRole,
 } from '../lib/role-capabilities';
 
@@ -67,6 +68,12 @@ describe('role capability map', () => {
     expect(primaryRole(['admin', 'super_admin'])).toBe('super_admin');
     expect(primaryRole(['organizer', 'donor'])).toBe('organizer');
     expect(primaryRole([])).toBe('donor');
+  });
+
+  it('uses effective admin access without hiding a stored super-admin role', () => {
+    expect(effectivePrimaryRole(['donor'], true)).toBe('admin');
+    expect(effectivePrimaryRole(['donor', 'organizer'], false)).toBe('organizer');
+    expect(effectivePrimaryRole(['donor', 'admin', 'super_admin'], true)).toBe('super_admin');
   });
 });
 
@@ -178,5 +185,86 @@ describe('the advisory/enforced split is real, not decorative', () => {
 
   it('the other four are advisory, and the UI banner names them', () => {
     expect(advisoryRoles().sort()).toEqual(['beneficiary', 'donor', 'nonprofit', 'organizer']);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// `enforced: true` is a claim about code, so it needs verifying against code.
+//
+// role-capabilities.ts states its own contract: "Gating a capability means
+// changing the real check AND flipping `enforced` here, so the two can never
+// quietly drift apart." Nothing actually held that. The assertions above pin
+// WHICH roles claim enforcement; these pin that the named mechanisms exist — so
+// deleting a guard fails here instead of silently turning the map into a lie
+// that an operator reads as an access-control reference.
+//
+// Audited 2026-07-28: all seven `enforced: true` capabilities were accurate.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('every enforced capability is backed by a real check', () => {
+  const WEB = join(__dirname, '..');
+  const read = (p: string) => readFileSync(join(WEB, p), 'utf8');
+  const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
+
+  // "Open the admin console — isAdmin() on the admin layout"
+  it('the admin console is gated by isAdmin', () => {
+    const layout = strip(read('app/admin/layout.tsx'));
+    expect(layout).toMatch(/isAdmin\(/);
+    expect(layout).toMatch(/redirect\(/);
+  });
+
+  // "Everything an Admin can do — isAdmin() returns true for super_admin"
+  it('isAdmin admits super_admin, so super admins inherit admin access', () => {
+    expect(strip(read('lib/roles.ts'))).toMatch(
+      /roles\.includes\('admin'\) \|\| roles\.includes\('super_admin'\)/,
+    );
+  });
+
+  // "Assign and revoke roles" + "Edit platform-wide settings and banners"
+  it('every method of every /api/admin/super route calls a super-admin guard', () => {
+    // A file merely importing the guard is not enough — a route with three
+    // handlers and one guard call leaves two open.
+    const dir = join(WEB, 'app/api/admin/super');
+    const routes: string[] = [];
+    const walk = (d: string) => {
+      for (const e of readdirSync(d)) {
+        const full = join(d, e);
+        if (statSync(full).isDirectory()) walk(full);
+        else if (e === 'route.ts') routes.push(full);
+      }
+    };
+    walk(dir);
+    expect(routes.length).toBeGreaterThanOrEqual(7);
+
+    for (const file of routes) {
+      const src = strip(readFileSync(file, 'utf8'));
+      const methods = (src.match(/export async function (GET|POST|PATCH|PUT|DELETE)/g) ?? []).length;
+      const guards = (src.match(/await (guardSuperAdmin|isSuperAdmin)\(/g) ?? []).length;
+      expect(guards, `${file} has ${methods} handler(s) but ${guards} guard call(s)`)
+        .toBeGreaterThanOrEqual(methods);
+    }
+  });
+
+  // "Run cron endpoints without CRON_SECRET — admin session fallback"
+  it('cron routes accept CRON_SECRET or an admin session, not neither', () => {
+    const dir = join(WEB, 'app/api/cron');
+    const routes: string[] = [];
+    const walk = (d: string) => {
+      for (const e of readdirSync(d)) {
+        const full = join(d, e);
+        if (statSync(full).isDirectory()) walk(full);
+        else if (e === 'route.ts') routes.push(full);
+      }
+    };
+    walk(dir);
+    expect(routes.length).toBeGreaterThan(0);
+
+    for (const file of routes) {
+      const src = strip(readFileSync(file, 'utf8'));
+      // Both must be present: CRON_SECRET alone locks admins out when unset
+      // (it fails safe, per CLAUDE.md), and an admin check alone would let the
+      // scheduler through with no secret at all.
+      expect(src, `${file} is missing CRON_SECRET`).toMatch(/CRON_SECRET/);
+      expect(src, `${file} is missing the admin fallback`).toMatch(/verifyAdmin|isAdmin|requireAdmin/);
+    }
   });
 });

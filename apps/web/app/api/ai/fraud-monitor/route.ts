@@ -249,8 +249,20 @@ export async function POST(_request: NextRequest) {
     }
   }
 
+  // The response below reports `flaggedCampaigns` from the in-memory array, so a
+  // dropped insert would tell an admin "3 campaigns flagged" while the review
+  // queue stays empty — a flag nobody can act on is worse than no flag at all.
+  let flagsPersisted = true;
   if (newFlagRows.length > 0) {
-    await supabaseAdmin.from('risk_flags').insert(newFlagRows);
+    const { error: flagErr } = await supabaseAdmin.from('risk_flags').insert(newFlagRows);
+    if (flagErr) {
+      flagsPersisted = false;
+      console.error('[ai/fraud-monitor] risk_flags insert failed', {
+        rows: newFlagRows.length,
+        campaign_ids: newFlagRows.map((r) => (r as { campaign_id?: string }).campaign_id),
+        message: flagErr.message,
+      });
+    }
   }
 
   let message = fallbackSummary(campaigns.length, newFlagRows.length, flaggedCampaigns);
@@ -315,5 +327,9 @@ export async function POST(_request: NextRequest) {
     flaggedCampaigns,
     message,
     model,
+    flagsPersisted,
+    ...(flagsPersisted
+      ? {}
+      : { warning: 'Flags were detected but could not be saved to the review queue — re-run the scan.' }),
   });
 }

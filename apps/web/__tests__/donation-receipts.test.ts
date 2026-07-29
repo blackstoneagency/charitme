@@ -49,10 +49,13 @@ describe('sendReceiptEmail reports whether it actually sent', () => {
 });
 
 describe('receipt endpoints record only what actually happened', () => {
-  it.each([ADMIN_ROUTE, DONOR_ROUTE])('%s branches on the send result', (path) => {
-    const src = read(path);
-    expect(src, `${path} ignores whether the email sent`).toMatch(/\{\s*sent\s*\}\s*=\s*await sendReceiptEmail/);
-    expect(src, `${path} does not bail out when the send failed`).toMatch(/if\s*\(!sent\)/);
+  it('both routes branch on the send result', () => {
+    const admin = read(ADMIN_ROUTE);
+    expect(admin).toMatch(/\{\s*sent\s*\}\s*=\s*await sendReceiptEmail/);
+    expect(admin).toMatch(/if\s*\(!sent\)/);
+
+    const donor = read(DONOR_ROUTE);
+    expect(donor).toContain('if (!delivery.sent)');
   });
 
   it('the admin route sends BEFORE it stamps receipt_sent_at', () => {
@@ -73,9 +76,9 @@ describe('receipt endpoints record only what actually happened', () => {
   });
 
   it('both routes address the donor, never the requesting user', () => {
-    // The donor route's bug was `.eq('id', user.id)` when loading the profile.
     const donor = read(DONOR_ROUTE);
-    expect(donor).toContain("don.donor_id ?? user.id");
+    expect(donor).toContain("canAccessDonationReceipt({");
+    expect(donor).toContain(".eq('id', don.donor_id)");
     expect(donor).not.toMatch(/select\('full_name, email'\)\s*\n?\s*\.eq\('id', user\.id\)/);
 
     const admin = read(ADMIN_ROUTE);
@@ -104,6 +107,29 @@ describe('receipt endpoints record only what actually happened', () => {
     // who do not also hold `admin`.
     expect(src).not.toMatch(/roles\.includes\('admin'\)/);
   });
+
+  it('lets an authenticated former guest re-send only an unclaimed email-owned receipt', () => {
+    const src = read(DONOR_ROUTE);
+    expect(src).toContain('canAccessDonationReceipt({');
+    expect(src).toContain('receiptEmail: receipt?.donor_email ?? null');
+    expect(src).toContain('if (!ownsReceipt && !(await isAdmin(');
+  });
+
+  it('preserves official tax receipt details on re-send', () => {
+    const src = read(DONOR_ROUTE);
+    expect(src).toContain("from('tax_receipts')");
+    expect(src).toContain('await sendTaxReceiptEmail({');
+    expect(src).toContain('receiptNumber: taxReceipt.receipt_number');
+  });
+
+  it('durably rate limits donor and admin receipt sends', () => {
+    const donor = read(DONOR_ROUTE);
+    const admin = read('app/api/admin/donations/tax-receipt/route.ts');
+    expect(donor).toContain('await checkRateLimitDurable(`donation-receipt:${user.id}`');
+    expect(admin).toContain('await checkRateLimitDurable(`admin-tax-receipt:${user.id}`');
+    expect(donor).toContain("code: 'RATE_LIMITED'");
+    expect(admin).toContain("code: 'RATE_LIMITED'");
+  });
 });
 
 describe('checkout receipts include guest donors', () => {
@@ -117,17 +143,41 @@ describe('checkout receipts include guest donors', () => {
     const src = read(STRIPE_WEBHOOK);
     expect(src).toContain('session.customer_details?.email ?? session.customer_email');
     expect(src).toContain('if (!recipient.donorId && !recipient.email) return');
-    expect(src).toContain('donor_id: recipient.donorId ?? null');
+    expect(src).toContain('donor_id: donationRow.donor_id ?? recipient.donorId ?? null');
   });
 
   it('persists official tax-receipt delivery only after the email sends', () => {
     const src = read(STRIPE_WEBHOOK);
-    const sendAt = src.indexOf('const { sent } = await sendTaxReceiptEmail');
-    const bailAt = src.indexOf('if (!sent) return', sendAt);
+    const sendAt = src.indexOf('const taxDelivery = await sendTaxReceiptEmail');
+    const bailAt = src.indexOf('if (!taxDelivery.sent) return', sendAt);
     const persistAt = src.indexOf("from('tax_receipts').upsert", sendAt);
     expect(sendAt).toBeGreaterThan(-1);
     expect(bailAt).toBeGreaterThan(sendAt);
     expect(persistAt).toBeGreaterThan(bailAt);
+  });
+
+  it('records every automatic receipt in the receipt ledger', () => {
+    const src = read(STRIPE_WEBHOOK);
+    expect(src).toContain("from('donation_receipts')");
+    expect(src).toContain('donor_email: normalizeReceiptEmail(donorEmail)');
+    expect(src).toContain('receipt_type: receiptType');
+  });
+
+  it('does not treat notification preferences as a transactional receipt opt-out', () => {
+    const src = read(STRIPE_WEBHOOK);
+    const receiptSender = src.slice(
+      src.indexOf('async function sendDonorReceipt'),
+      src.indexOf('async function sendOrganizerDonationNotification'),
+    );
+    expect(receiptSender).not.toContain('notification_email');
+  });
+
+  it('issues a discrete receipt for every recurring renewal', () => {
+    const src = read(STRIPE_WEBHOOK);
+    const renewal = src.slice(src.indexOf('async function handleInvoiceSucceeded'));
+    expect(renewal).toContain('const renewalDonationId = await findDonationId');
+    expect(renewal).toContain('await sendDonorReceipt(');
+    expect(renewal).toMatch(/renewalDonationId \?\? undefined,\r?\n\s+'recurring'/);
   });
 });
 
@@ -157,6 +207,13 @@ describe('tax receipts record only real sends', () => {
     // The property write, not the comment above it that mentions the column.
     expect(src.indexOf('emailed_at:')).toBeGreaterThan(bail);
     expect(src.indexOf("action: 'donation.tax_receipt_sent'")).toBeGreaterThan(bail);
+  });
+
+  it('the admin route can use the persisted guest receipt recipient', () => {
+    const src = read('app/api/admin/donations/tax-receipt/route.ts');
+    expect(src).toContain("from('donation_receipts')");
+    expect(src).toContain('receiptRecipient?.donor_email');
+    expect(src).not.toContain('Cannot send tax receipt for anonymous donation');
   });
 });
 

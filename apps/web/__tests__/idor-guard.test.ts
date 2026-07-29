@@ -29,12 +29,39 @@ import path from 'node:path';
 const WEB_ROOT = path.join(__dirname, '..');
 const API_DIR = path.join(WEB_ROOT, 'app', 'api');
 
-/** Named authorization helpers actually used by this codebase. */
-const NAMED_GUARDS = [
-  'isAdmin', 'isSuperAdmin', 'canManageCampaign', 'guardSuperAdmin',
-  'requireAdmin', 'requireSuperAdmin', 'requireUser', 'verifyAdmin',
-  'verifyOwner', 'rolesFor',
-];
+/**
+ * Authorization helpers, DERIVED PER FILE from what the route imports.
+ *
+ * This was a hardcoded array, and the comment above it already said the list
+ * should be discovered rather than guessed — then it was hardcoded anyway. It
+ * went stale within a day: Codex added `lib/campaign-access.ts` with
+ * `canViewCampaignAnalytics`, and `/api/campaigns/[id]/analytics` — which calls
+ * it and returns 403 — was reported as an unprotected IDOR surface. That is the
+ * fifth false positive this class of scan produced.
+ *
+ * So: any identifier imported from a module whose path looks like an
+ * authorization concern counts as a guard for that file. A new helper in a new
+ * module is picked up the moment a route imports it.
+ */
+const GUARD_MODULE = /(^|\/)(_auth|auth|auth-config|roles|guard|access|campaign-access|permissions?)(\.|$|\/)/;
+
+function importedGuardNames(src: string): string[] {
+  const names: string[] = [];
+  for (const m of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g)) {
+    const [, clause, from] = m;
+    if (!GUARD_MODULE.test(from)) continue;
+    for (const part of clause.split(',')) {
+      const name = part.split(/\s+as\s+/).pop()!.trim();
+      if (name) names.push(name);
+    }
+  }
+  return names;
+}
+
+/** True when the file calls something it imported from an authorization module. */
+function callsAnImportedGuard(src: string): boolean {
+  return importedGuardNames(src).some((n) => new RegExp(`\\b${n}\\s*\\(`).test(src));
+}
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -67,7 +94,7 @@ describe('service-role routes with a caller-supplied id verify ownership', () =>
       const src = readFileSync(file, 'utf8');
       if (!MUTATING.test(src)) continue;          // read-only: covered by the GET case below
       if (!/auth\.getUser/.test(src)) continue;   // public route; not an IDOR surface
-      const hasNamedGuard = NAMED_GUARDS.some((g) => new RegExp(`\\b${g}\\b`).test(src));
+      const hasNamedGuard = callsAnImportedGuard(src);
       const comparesCaller = /user\.id/.test(src);
       if (!hasNamedGuard && !comparesCaller) offenders.push(path.relative(WEB_ROOT, file));
     }
@@ -89,8 +116,7 @@ describe('service-role routes with a caller-supplied id verify ownership', () =>
       const src = readFileSync(file, 'utf8');
       if (MUTATING.test(src)) continue;
       if (!/auth\.getUser/.test(src)) continue;
-      const hasNamedGuard = NAMED_GUARDS.some((g) => new RegExp(`\\b${g}\\b`).test(src));
-      if (!hasNamedGuard && !/user\.id/.test(src)) offenders.push(path.relative(WEB_ROOT, file));
+      if (!callsAnImportedGuard(src) && !/user\.id/.test(src)) offenders.push(path.relative(WEB_ROOT, file));
     }
     expect(
       offenders,

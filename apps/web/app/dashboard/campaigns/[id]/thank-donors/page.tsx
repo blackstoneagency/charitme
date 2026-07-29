@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CharitMeShell, TopBar } from '../../../../../components/CharitMeApp';
+import { TopBar } from '../../../../../components/CharitMeApp';
+import { CharitMeShell } from '../../../../../components/ShellSessionProvider';
 import ThankDonorsPanel from '../_components/ThankDonorsPanel';
 
 export default function ThankDonorsPage({ params }: { params: Promise<{ id: string }> }) {

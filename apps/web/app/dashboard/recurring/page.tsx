@@ -3,6 +3,7 @@ import { CharitMeShell, TopBar, KFIcon } from '../../../components/CharitMeShell
 import { requireUser } from '../../../lib/auth';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { formatCents } from '../../../lib/stripe';
+import { boundedQuery } from '../../../lib/query-timeout';
 import PauseResumeButton from './PauseResumeButton';
 
 export const dynamic = 'force-dynamic';
@@ -39,11 +40,13 @@ export default async function RecurringPage() {
   // total $0" and "No recurring donations yet" presented as fact. On this page
   // that is actively dangerous: a donor whose giving is live could conclude it had
   // stopped and set up a duplicate subscription, double-charging themselves.
-  const { data: subs, error: subsError } = await supabaseAdmin
-    .from('recurring_donations')
-    .select('id, campaign_id, amount_cents, cadence, status, stripe_subscription_id, next_bill_at, created_at')
-    .eq('donor_id', user.id)
-    .order('created_at', { ascending: false });
+  const { data: subs, error: subsError } = await boundedQuery(
+    supabaseAdmin
+      .from('recurring_donations')
+      .select('id, campaign_id, amount_cents, cadence, status, stripe_subscription_id, next_bill_at, created_at')
+      .eq('donor_id', user.id)
+      .order('created_at', { ascending: false }),
+  );
 
   const unavailable = Boolean(subsError) || subs == null;
   const recurringList = (subs ?? []) as RecurringRow[];
@@ -54,8 +57,8 @@ export default async function RecurringPage() {
   const currencyMap = new Map<string, string>();
   if (campaignIds.length > 0) {
     const [campaignsRes, launchRes] = await Promise.all([
-      supabaseAdmin.from('campaigns').select('id, title, slug').in('id', campaignIds),
-      supabaseAdmin.from('campaign_launch_settings').select('campaign_id, currency').in('campaign_id', campaignIds),
+      boundedQuery(supabaseAdmin.from('campaigns').select('id, title, slug').in('id', campaignIds)),
+      boundedQuery(supabaseAdmin.from('campaign_launch_settings').select('campaign_id, currency').in('campaign_id', campaignIds)),
     ]);
     for (const c of (campaignsRes.data ?? []) as CampaignRef[]) {
       campaignMap.set(c.id, c);

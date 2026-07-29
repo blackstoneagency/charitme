@@ -1500,6 +1500,7 @@ export default function CreatePage() {
                   <div className="cr2-title-input-wrap">
                     <input
                       type="text"
+                      aria-label="Campaign title"
                       className="cr2-title-big"
                       ref={titleInputRef}
                       value={form.title}
@@ -1571,6 +1572,7 @@ export default function CreatePage() {
                       <span className="cr2-goal-prefix">$</span>
                       <input
                         type="number"
+                        aria-label="Fundraising goal amount in dollars"
                         className="cr2-goal-input"
                         ref={goalInputRef}
                         value={form.goal}
@@ -1627,7 +1629,7 @@ export default function CreatePage() {
                       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
                       aria-label="Upload campaign images"
                     >
-                      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/avif" multiple style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files)} onClick={e => { (e.target as HTMLInputElement).value = ''; }} />
+                      <input ref={fileInputRef} aria-label="Upload campaign images" type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/avif" multiple style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files)} onClick={e => { (e.target as HTMLInputElement).value = ''; }} />
                       <div className="cr2-upload-icon"><KFIcon name="upload" /></div>
                       <strong>{dragging ? 'Release to upload' : 'Drop images here or click to browse'}</strong>
                       <span>JPG, PNG, GIF, WebP, AVIF · up to {MAX_IMAGES} images · 10 MB each</span>
@@ -2467,7 +2469,12 @@ function QuickSharePanel({ slug, campaignId }: { slug: string; campaignId: strin
               onClick hid both by calling window.print(), which printed the
               BUILDER page rather than a poster, so the button never once did
               what it says. It now opens the real poster, which carries its own
-              print stylesheet. */}
+              print stylesheet.
+
+              NOTE: master briefly carried a half-fix here that corrected the
+              route name but kept ${slug}. The handler does .eq('id', id), so
+              that form 404s — verified against production. The two defects were
+              independent; fixing only the path leaves the button broken. */}
           {campaignId && (
             <a
               href={`/api/campaigns/${campaignId}/qr-poster`}

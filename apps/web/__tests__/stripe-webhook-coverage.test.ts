@@ -24,6 +24,10 @@ const SRC = readFileSync(
   path.join(__dirname, '..', 'app', 'api', 'stripe', 'webhook', 'route.ts'),
   'utf8',
 );
+const RECURRING_ROUTE = readFileSync(
+  path.join(__dirname, '..', 'app', 'api', 'donations', 'recurring', 'route.ts'),
+  'utf8',
+);
 
 /**
  * Every event the dispatcher actually routes — and it routes them in TWO shapes.
@@ -117,5 +121,67 @@ describe('stripe webhook event coverage', () => {
       'The switch handles these, but the live endpoint does not subscribe to them, ' +
         'so they never arrive:\n  ' + neverDelivered.join('\n  '),
     ).toEqual([]);
+  });
+});
+
+describe('recurring renewal accounting contract', () => {
+  it('copies principal, tip, and anonymity into subscription metadata', () => {
+    const subscriptionData = RECURRING_ROUTE.slice(
+      RECURRING_ROUTE.indexOf('subscription_data:'),
+    );
+    expect(subscriptionData).toContain('donationAmountCents: String(amountCents)');
+    expect(subscriptionData).toContain('tipCents: String(tipCents)');
+    expect(subscriptionData).toContain("anonymous: anonymous ? '1' : '0'");
+    expect(subscriptionData).toContain("donorEmail: stripeEmail ?? ''");
+  });
+
+  it('resolves and records principal and tip separately for renewals', () => {
+    expect(SRC).toContain('resolveRecurringRenewalAmounts({');
+    expect(SRC).toContain('p_amount_cents: donationAmountCents');
+    expect(SRC).toContain('p_tip_cents: tipCents');
+    expect(SRC).toContain('grossAmount: donationAmountCents');
+    expect(SRC).toContain('platformFeeAmount: tipCents');
+    expect(SRC).toContain('ownerNetAmount: donationAmountCents');
+  });
+
+  it('fails the webhook when the donation write fails', () => {
+    expect(SRC).toContain("throw new Error('Recurring donation renewal could not be recorded.')");
+    expect(SRC).toContain("throw new Error('Recurring renewal payment reporting failed.')");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The dispatch switch had no `default:`.
+//
+// Stripe delivers whatever the Dashboard subscribes to, and that list changes
+// independently of this file — this endpoint went from 2 subscribed events to
+// 20 in a single sitting. An event with no `case` was dropped in total silence:
+// no log, no error, no row, and a 200 back to Stripe, so it never retried and
+// nothing showed as failed in the delivery log either. The damage surfaces much
+// later as a data inconsistency with nothing tying it back to the missed event.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('an unsubscribed-for event cannot vanish silently', () => {
+  const src = readFileSync(
+    path.join(__dirname, '..', 'app/api/stripe/webhook/route.ts'),
+    'utf8',
+  );
+
+  it('has a default branch on the event dispatch', () => {
+    expect(src).toMatch(/\n\s*default:/);
+  });
+
+  it('logs the event type and id, so the gap is diagnosable', () => {
+    // "something was dropped" is not actionable without knowing what.
+    expect(src).toMatch(/no handler for event type/);
+    expect(src).toMatch(/type: event\.type/);
+    expect(src).toMatch(/id: event\.id/);
+  });
+
+  it('does not throw on an unhandled event', () => {
+    // Throwing would make Stripe retry every newly-subscribed event forever.
+    const defaultBlock = src.slice(src.search(/\n\s*default:/));
+    const untilBreak = defaultBlock.slice(0, defaultBlock.indexOf('break;'));
+    expect(untilBreak).not.toMatch(/\bthrow\b/);
+    expect(untilBreak).not.toMatch(/status:\s*(4|5)\d\d/);
   });
 });

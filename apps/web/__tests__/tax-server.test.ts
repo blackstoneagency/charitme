@@ -126,6 +126,78 @@ describe('loadDonorTaxInputs', () => {
     expect(donationBuilder.range).toHaveBeenNthCalledWith(1, 0, 999);
     expect(donationBuilder.range).toHaveBeenNthCalledWith(2, 1000, 1999);
   });
+
+  it('includes an unclaimed guest donation after sign-in with the receipt email', async () => {
+    let donationQueryCount = 0;
+    from.mockImplementation((table: string) => {
+      if (table === 'donations') {
+        donationQueryCount += 1;
+        return resolvedBuilder(donationQueryCount === 1 ? [] : [{
+          id: 'guest-donation-1',
+          donor_id: null,
+          amount_cents: 7500,
+          tip_cents: 500,
+          currency: 'usd',
+          status: 'completed',
+          created_at: '2026-03-02T00:00:00Z',
+          campaign_id: 'campaign-1',
+          campaigns: { title: 'Guest-supported campaign', user_id: null },
+        }], 'range');
+      }
+      if (table === 'tax_receipts') return resolvedBuilder([], 'range');
+      if (table === 'donation_receipts') {
+        return resolvedBuilder([{
+          donation_id: 'guest-donation-1',
+          donor_id: null,
+          donor_email: 'donor@example.com',
+          receipt_number: 'RCP-2026-GUEST001',
+        }], 'range');
+      }
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    const inputs = await loadDonorTaxInputs('user-1', ' Donor@Example.com ');
+
+    expect(inputs).toHaveLength(1);
+    expect(inputs[0]).toMatchObject({
+      id: 'guest-donation-1',
+      receiptNumber: 'RCP-2026-GUEST001',
+      amountCents: 7500,
+      tipCents: 500,
+    });
+  });
+
+  it('does not let a guest receipt override a different donation owner', async () => {
+    let donationQueryCount = 0;
+    from.mockImplementation((table: string) => {
+      if (table === 'donations') {
+        donationQueryCount += 1;
+        return resolvedBuilder(donationQueryCount === 1 ? [] : [{
+          id: 'owned-by-someone-else',
+          donor_id: 'user-2',
+          amount_cents: 7500,
+          tip_cents: 0,
+          currency: 'usd',
+          status: 'completed',
+          created_at: '2026-03-02T00:00:00Z',
+          campaign_id: 'campaign-1',
+          campaigns: { title: 'Another donor campaign', user_id: null },
+        }], 'range');
+      }
+      if (table === 'tax_receipts') return resolvedBuilder([], 'range');
+      if (table === 'donation_receipts') {
+        return resolvedBuilder([{
+          donation_id: 'owned-by-someone-else',
+          donor_id: null,
+          donor_email: 'donor@example.com',
+          receipt_number: 'RCP-2026-CONFLICT',
+        }], 'range');
+      }
+      throw new Error(`Unexpected table: ${table}`);
+    });
+
+    await expect(loadDonorTaxInputs('user-1', 'donor@example.com')).resolves.toEqual([]);
+  });
 });
 
 describe('loadFundraiserTaxInputs', () => {

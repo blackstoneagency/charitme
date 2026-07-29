@@ -69,93 +69,6 @@ const FAQS = [
   ['Is there a free trial for paid plans?', 'Yes! Starter and Pro both come with a 14-day free trial. No credit card required to start.'],
 ] as const;
 
-function FeeCalculator() {
-  const [amount, setAmount] = useState(1000);
-  const cents = amount * 100;
-  const stripeFixed = 30;
-  const stripePct = 0.029;
-  const tipPct = 0.08;
-
-  // CharitMe with donor covering fee + 0% tip
-  const kfStripe = Math.round(cents * stripePct) + stripeFixed;
-  const kfNet = cents - kfStripe; // donor covers fee, 0% tip
-
-  // CharitMe with tip (default 8%)
-  const kfTip = Math.round(cents * tipPct);
-
-  // GoFundMe: 0% platform + ~2.9%+$0.30 Stripe (same), but 5% on recurring
-  const gfmStripe = kfStripe;
-  const gfmNet = cents - gfmStripe;
-  const gfmRecurringFee = Math.round(cents * 0.05);
-  const gfmNetRecurring = cents - gfmStripe - gfmRecurringFee;
-
-  const fmt = (n: number) => `$${n.toLocaleString('en-US')}`;
-  const pct = (n: number) => `${((n / cents) * 100).toFixed(1)}%`;
-
-  return (
-    <div className="fee-calc">
-      <div className="fee-calc-controls">
-        <label className="fee-calc-label">
-          Donation amount:
-          <div className="fee-calc-input-row">
-            <span className="fee-calc-dollar">$</span>
-            <input type="number" value={amount} onChange={e => setAmount(Math.max(1, Number(e.target.value)))}
-              min="1" className="fee-calc-input" aria-label="Donation amount in dollars" />
-          </div>
-        </label>
-        <div className="fee-calc-presets">
-          {[100, 500, 1000, 5000].map(v => (
-            <button key={v} type="button" onClick={() => setAmount(v)}
-              className={`fee-calc-preset${amount === v ? ' active' : ''}`}>
-              ${v.toLocaleString()}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="fee-calc-grid">
-        {/* CharitMe */}
-        <div className="fee-calc-box fee-calc-box--green">
-          <div className="fee-calc-box-head">
-            <span>💚 CharitMe</span>
-            <span className="fee-calc-badge">BEST VALUE</span>
-          </div>
-          <div className="fee-calc-amount fee-calc-amount--green">{fmt(kfNet)}</div>
-          <div className="fee-calc-reach">reaches the fundraiser ({pct(kfNet)} of {fmt(amount)})</div>
-          <div className="fee-calc-breakdown fee-calc-breakdown--green">
-            <div>Platform fee: <strong>$0</strong> (0%)</div>
-            <div>Stripe processing: <strong>−{fmt(kfStripe)}</strong></div>
-            <div>Optional donor tip: <strong>+{fmt(kfTip)}</strong> (8% default, donor chooses)</div>
-            <div className="fee-calc-recurring">Monthly recurring: <strong>$0 extra fee</strong></div>
-          </div>
-        </div>
-
-        {/* GoFundMe */}
-        <div className="fee-calc-box fee-calc-box--neutral">
-          <div className="fee-calc-box-head">
-            <span>GoFundMe</span>
-          </div>
-          <div className="fee-calc-amount fee-calc-amount--neutral">{fmt(gfmNet)}</div>
-          <div className="fee-calc-reach">reaches the fundraiser ({pct(gfmNet)} of {fmt(amount)})</div>
-          <div className="fee-calc-breakdown fee-calc-breakdown--neutral">
-            <div>Platform fee: <strong>$0</strong> (0%)</div>
-            <div>Stripe processing: <strong>−{fmt(gfmStripe)}</strong></div>
-            <div className="fee-calc-warning">
-              Monthly recurring: <strong>−{fmt(gfmRecurringFee)}</strong> extra (5% fee on recurring)
-            </div>
-            <div>Recurring fundraiser gets: <strong className="fee-calc-bad">{fmt(gfmNetRecurring)}</strong></div>
-          </div>
-        </div>
-      </div>
-
-      <p className="fee-calc-note">
-        * Stripe fees (2.9% + $0.30) apply to both platforms. CharitMe charges 0% on all donations including recurring. GoFundMe charges 5% on recurring donations.
-        Donors can optionally cover Stripe fees on CharitMe.
-      </p>
-    </div>
-  );
-}
-
 export default function PricingPage() {
   // Yearly is the default: it is the better-value plan (20% off) and the one we
   // want to lead with, so the page opens on it rather than making the visitor
@@ -276,17 +189,6 @@ export default function PricingPage() {
             </article>
           );
         })}
-      </section>
-
-      {/* ── Fee calculator vs GoFundMe ── */}
-      <section style={{ maxWidth: 760, margin: '0 auto 48px', padding: '0 24px' }}>
-        <h2 style={{ textAlign: 'center', fontWeight: 900, fontSize: 26, marginBottom: 8 }}>
-          Real fee comparison
-        </h2>
-        <p style={{ textAlign: 'center', color: 'var(--t3, #64748b)', marginBottom: 28, fontSize: 15 }}>
-          On a $1,000 campaign — what actually reaches the fundraiser?
-        </p>
-        <FeeCalculator />
       </section>
 
       <section className="pricing-promises">

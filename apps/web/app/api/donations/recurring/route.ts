@@ -195,6 +195,10 @@ export async function POST(request: NextRequest) {
       metadata: {
         campaignId,
         donorId: user?.id ?? '',
+        donorEmail: stripeEmail ?? '',
+        anonymous: anonymous ? '1' : '0',
+        donationAmountCents: String(amountCents),
+        tipCents: String(tipCents),
         cadence,
         isRecurring: '1',
       },

@@ -180,6 +180,7 @@ export default function SupportersPanel({
           Message — {'{{first_name}}'} personalizes per donor
         </label>
         <textarea
+          aria-label="Message to supporters"
           value={bodyDraft}
           onChange={e => setBodyDraft(e.target.value)}
           rows={9}

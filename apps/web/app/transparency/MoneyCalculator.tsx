@@ -27,11 +27,16 @@ const INK = 'var(--t1, #1a1a2e)';
 const SURF = 'var(--s1, #fff)';
 const SURF2 = 'var(--s2, #f5f0ff)';
 
+// Only methods a donor can actually choose at checkout. PayPal and Venmo were
+// offered here with their own (cheaper) rates — 3.49%+$0.49 and 1.9%+$0.10 —
+// while `paypal_payments` is NOT active on the Stripe account, so
+// POST /api/donations normalizes both to `card`. A donor could size their
+// "cover the processing fee" contribution off a Venmo rate they would never be
+// charged at. Re-add these once the capability is active in the Stripe
+// Dashboard and listed in ONE_TIME_PAYMENT_METHOD_TYPES.
 const METHODS: { id: PaymentMethod; label: string }[] = [
   { id: 'card', label: 'Card' },
   { id: 'bank', label: 'Bank (ACH)' },
-  { id: 'paypal', label: 'PayPal' },
-  { id: 'venmo', label: 'Venmo' },
 ];
 
 function money(cents: number): string {
@@ -172,7 +177,11 @@ export default function MoneyCalculator() {
             );
           })}
         </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: INK, cursor: 'pointer' }}>
+        {/* minHeight 24 is WCAG 2.2 SC 2.5.8 (AA), not spacing taste. Clicking a
+            label activates its control, so the LABEL is the thumb target — the
+            16x16 checkbox inside it is not what a user has to hit. It measured
+            227x20: wide enough, 4px short. */}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 24, fontSize: 13, fontWeight: 600, color: INK, cursor: 'pointer' }}>
           <input
             type="checkbox"
             checked={coverProcessing}

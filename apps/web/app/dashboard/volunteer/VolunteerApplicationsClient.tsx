@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Btn, Badge, EmptyState, Spinner } from '../../../components/ui';
+import { Badge, Btn, BtnLink, EmptyState, Spinner } from '../../../components/ui';
 import { volunteerApplicationStatusLabel, type VolunteerApplicationStatus } from '../../../lib/volunteers';
 
 interface AppRow {
@@ -61,7 +61,7 @@ export default function VolunteerApplicationsClient() {
     return (
       <EmptyState icon="🙌" title="No volunteer applications yet"
         body="Browse opportunities and apply — they'll show up here."
-        action={<Link href="/volunteer"><Btn>Find opportunities</Btn></Link>} />
+        action={<BtnLink href="/volunteer">Find opportunities</BtnLink>} />
     );
   }
 

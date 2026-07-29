@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { createClient } from '../../../../../lib/supabase-server';
 import { checkRateLimit } from '../../../../../lib/rate-limit';
+import { checkRateLimitDurable } from '../../../../../lib/rate-limit-durable';
 
 const Schema = z.object({
   message: z.string().trim().min(1).max(1000),
@@ -38,7 +39,7 @@ export async function GET(
 
   const { data, error } = await supabaseAdmin
     .from('donor_messages')
-    .select('id, message, anonymous, created_at, profiles:donor_id(full_name, avatar_url, show_public_profile)')
+    .select('id, message, anonymous, visibility, created_at, profiles:donor_id(full_name, avatar_url, show_public_profile)')
     .eq('campaign_id', campaignId)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
@@ -74,20 +75,18 @@ export async function GET(
 
   const comments = messages.map((m) => {
     const profile = asProfile(m.profiles);
+    const anonymous = m.anonymous || m.visibility === 'anonymous';
     return {
       id: m.id,
-      // Third copy of this mapping (page render + this pagination route + the
-      // donation wall). Both gates: the per-message `anonymous` flag and the
-      // account-wide Profile Visibility setting.
-      name: m.anonymous
+      name: anonymous
         ? 'Anonymous'
         : (profile.show_public_profile ?? true)
           ? (profile.full_name ?? 'Kind supporter')
           : 'Kind supporter',
-      avatarUrl: (m.anonymous || !(profile.show_public_profile ?? true))
+      avatarUrl: (anonymous || !(profile.show_public_profile ?? true))
         ? null
         : (profile.avatar_url ?? null),
-      anonymous: m.anonymous,
+      anonymous,
       message: m.message,
       createdAt: m.created_at,
       likeCount: likeCounts.get(m.id) ?? 0,
@@ -108,9 +107,9 @@ export async function POST(
 ) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 });
 
-  if (!checkRateLimit(`donor-message:${user.id}`, 10, 60 * 1000)) {
+  if (!(await checkRateLimitDurable(`donor-message:${user.id}`, 10, 60_000))) {
     return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
   }
 
@@ -118,33 +117,47 @@ export async function POST(
 
   let body: unknown;
   try { body = await request.json(); } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid JSON body', code: 'INVALID_JSON' }, { status: 400 });
   }
 
   const parsed = Schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
+    return NextResponse.json({
+      error: parsed.error.issues[0]?.message ?? 'Invalid input',
+      code: 'INVALID_INPUT',
+    }, { status: 400 });
   }
   const { message, anonymous } = parsed.data;
+  const isAnonymous = anonymous === true;
 
   const { data: campaign } = await supabaseAdmin
     .from('campaigns')
     .select('id')
     .eq('id', campaignId)
     .maybeSingle();
-  if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+  if (!campaign) {
+    return NextResponse.json({ error: 'Campaign not found', code: 'NOT_FOUND' }, { status: 404 });
+  }
 
   const { data, error } = await supabaseAdmin
     .from('donor_messages')
     .insert({
       campaign_id: campaignId,
-      donor_id: user.id,
+      donor_id: isAnonymous ? null : user.id,
       message,
-      anonymous: !!anonymous,
+      anonymous: isAnonymous,
+      visibility: isAnonymous ? 'anonymous' : 'public',
     })
-    .select('id, message, anonymous, created_at')
+    .select('id, message, anonymous, visibility, created_at')
     .single();
 
   if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
-  return NextResponse.json({ comment: data });
+  return NextResponse.json({
+    comment: {
+      id: data.id,
+      message: data.message,
+      anonymous: data.anonymous || data.visibility === 'anonymous',
+      created_at: data.created_at,
+    },
+  });
 }

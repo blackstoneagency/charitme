@@ -82,7 +82,9 @@ type Props = {
   users: AdminUser[];
   activities: AdminUserActivity[];
   roles: UserRoleSummary[];
-  totals: { total: number; newUsers: number; active: number; suspended: number };
+  // total/newUsers are `null` when the count query failed. Unknown is not zero,
+  // and it is not the length of a page-limited row read either.
+  totals: { total: number | null; newUsers: number | null; active: number; suspended: number };
   weeklyGrowth: GrowthPoint[];
   recentUsers: AdminUser[];
 };
@@ -378,9 +380,10 @@ export default function AdminUsersClient({
         {/* KPI Row */}
         <div className="users-kpi-row">
           {[
-            { label: 'Total Users',    value: totals.total.toLocaleString(),    sub: 'all time' },
-            { label: 'Active Users',   value: totals.active.toLocaleString(),   sub: `${totals.total > 0 ? Math.round((totals.active / totals.total) * 100) : 0}% of total` },
-            { label: 'New (30 days)',  value: totals.newUsers.toLocaleString(), sub: 'last 30 days' },
+            { label: 'Total Users',    value: totals.total === null ? '—' : totals.total.toLocaleString(), sub: totals.total === null ? 'unavailable' : 'all time' },
+            // A percentage OF an unknown total is not a number worth printing.
+            { label: 'Active Users',   value: totals.active.toLocaleString(),   sub: totals.total && totals.total > 0 ? `${Math.round((totals.active / totals.total) * 100)}% of total` : 'share of total unknown' },
+            { label: 'New (30 days)',  value: totals.newUsers === null ? '—' : totals.newUsers.toLocaleString(), sub: totals.newUsers === null ? 'unavailable' : 'last 30 days' },
             { label: 'Suspended',      value: totals.suspended.toLocaleString(), sub: 'requires review' },
           ].map(({ label, value, sub }) => (
             <div className="users-kpi-card" key={label}>
@@ -495,35 +498,35 @@ export default function AdminUsersClient({
           <label className="kf-search" style={{ flex: 1, minWidth: 200, height: 40 }}>
             <KFIcon name="search" />
             <input
-              value={query}
+              aria-label="Search users by name or email" value={query}
               onChange={(e) => { setQuery(e.target.value); setPage(0); }}
               placeholder="Search by name, email..."
             />
           </label>
-          <select className="users-filter-select" value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(0); }}>
+          <select className="users-filter-select" aria-label="Filter by role" value={roleFilter} onChange={(e) => { setRoleFilter(e.target.value); setPage(0); }}>
             <option value="All Roles">All Roles</option>
             {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
-          <select className="users-filter-select" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}>
+          <select className="users-filter-select" aria-label="Filter by status" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}>
             <option>All Status</option>
             <option>Active</option>
             <option>Inactive</option>
             <option>Suspended</option>
           </select>
-          <select className="users-filter-select" value={joinedFilter} onChange={(e) => { setJoinedFilter(e.target.value); setPage(0); }}>
+          <select className="users-filter-select" aria-label="Filter by join date" value={joinedFilter} onChange={(e) => { setJoinedFilter(e.target.value); setPage(0); }}>
             <option>All Time</option>
             <option>Last 7 Days</option>
             <option>Last 30 Days</option>
             <option>Last 90 Days</option>
             <option>This Year</option>
           </select>
-          <select className="users-filter-select" value={registeredVia} onChange={(e) => setRegisteredVia(e.target.value)}>
+          <select className="users-filter-select" aria-label="Filter by registration source" value={registeredVia} onChange={(e) => setRegisteredVia(e.target.value)}>
             <option>All</option>
             <option>Web</option>
             <option>Google</option>
             <option>Email</option>
           </select>
-          <select className="users-filter-select" value={sort} onChange={(e) => setSort(e.target.value)}>
+          <select className="users-filter-select" aria-label="Sort users" value={sort} onChange={(e) => setSort(e.target.value)}>
             <option>Newest</option>
             <option>Name</option>
             <option>Most Raised</option>
@@ -541,7 +544,7 @@ export default function AdminUsersClient({
             <button className="kf-outline" style={{ height: 34, fontSize: 12 }} onClick={() => setSelectedIds([])}>
               Clear Selection
             </button>
-            <select className="users-filter-select" value={bulkAction} onChange={(e) => setBulkAction(e.target.value)}>
+            <select className="users-filter-select" aria-label="Bulk action" value={bulkAction} onChange={(e) => setBulkAction(e.target.value)}>
               <option value="">Select action</option>
               <option value="activate">Activate Users</option>
               <option value="suspend">Suspend Users</option>
@@ -566,6 +569,7 @@ export default function AdminUsersClient({
           <div className="admin-user-row head">
             <span>
               <input
+                aria-label="Select all users on this page"
                 type="checkbox"
                 checked={selectedIds.length === paginated.length && paginated.length > 0}
                 onChange={(e) =>
@@ -584,6 +588,7 @@ export default function AdminUsersClient({
             <div className="admin-user-row" key={u.id}>
               <span>
                 <input
+                  aria-label={`Select ${u.name || u.email}`}
                   type="checkbox"
                   checked={selectedIds.includes(u.id)}
                   onChange={(e) =>

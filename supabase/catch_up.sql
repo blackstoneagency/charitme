@@ -1995,6 +1995,23 @@ drop policy if exists admin_settings_admin_all on public.admin_settings;
 create policy admin_settings_admin_all on public.admin_settings for all using (is_admin()) with check (is_admin());
 
 
+-- ============ 20260524000000_profile_function_dependency.sql ============
+-- The original schema defines is_admin() before it creates profiles.
+-- Pre-create the exact profile contract so fresh databases can compile that function.
+
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text,
+  full_name text,
+  avatar_url text,
+  roles jsonb not null default '["donor"]'::jsonb,
+  identity_verified boolean not null default false,
+  trust_passport_score integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+
 -- ============ 20260525001000_storage_buckets.sql ============
 -- CharitMe storage buckets and policies.
 
@@ -3027,6 +3044,51 @@ create policy audit_logs_admin_insert on audit_logs
   for insert with check (is_admin());
 
 
+-- ============ 20260528114000_runtime_config_dependencies.sql ============
+-- Foundational configuration tables used by later data migrations.
+-- This version intentionally sorts before the first admin_settings and
+-- feature_flags writes so a clean database can replay the chain in order.
+
+create table if not exists public.admin_settings (
+  key text primary key,
+  value text,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.feature_flags (
+  id uuid primary key default gen_random_uuid(),
+  key text not null unique,
+  enabled boolean not null default false,
+  description text,
+  rollout_pct integer not null default 100 check (rollout_pct between 0 and 100),
+  updated_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.admin_settings enable row level security;
+alter table public.feature_flags enable row level security;
+
+drop policy if exists admin_settings_admin_all on public.admin_settings;
+drop policy if exists admin_settings_admin_all on public.admin_settings;
+create policy admin_settings_admin_all on public.admin_settings
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+drop policy if exists feature_flags_admin_all on public.feature_flags;
+drop policy if exists feature_flags_admin_all on public.feature_flags;
+create policy feature_flags_admin_all on public.feature_flags
+  for all
+  using (public.is_admin())
+  with check (public.is_admin());
+
+revoke all on table public.admin_settings from public, anon, authenticated;
+revoke all on table public.feature_flags from public, anon, authenticated;
+grant select, insert, update, delete on table public.admin_settings to service_role;
+grant select, insert, update, delete on table public.feature_flags to service_role;
+
+
 -- ============ 20260528150000_campaigns_featured_pinned.sql ============
 -- Add featured and pinned flags to campaigns for admin controls
 ALTER TABLE campaigns
@@ -3143,6 +3205,25 @@ alter table public.campaigns add constraint campaigns_category_check
     'Environment','Business','Community','Competition','Creative','Event',
     'Faith','Family','Sports','Travel','Volunteer','Wishes'
   ));
+
+
+-- ============ 20260607900000_prepare_support_policy_hardening.sql ============
+-- The original support migration and production hardening reuse these policy names.
+-- Only clean replays need the earlier definitions removed. Existing environments
+-- may receive this older compatibility migration after hardening is already live.
+
+do $$
+begin
+  if not exists (
+    select 1
+    from supabase_migrations.schema_migrations
+    where version = '20260608000000'
+  ) then
+    drop policy if exists support_own_read on public.support_cases;
+    drop policy if exists support_own_insert on public.support_cases;
+  end if;
+end
+$$;
 
 
 -- ============ 20260608000000_production_hardening.sql ============
@@ -8001,6 +8082,46 @@ create policy public_creator_profiles_read on public.creator_profiles
   );
 
 
+-- ============ 20260728020000_fix_tax_receipt_upsert_inference.sql ============
+-- The admin "send tax receipt" upsert could never work.
+--
+-- 20260726000000 added the right constraint for the wrong reason:
+--
+--   create unique index tax_receipts_donation_id_unique
+--     on public.tax_receipts (donation_id)
+--     where donation_id is not null;
+--
+-- `donation_id` is nullable, so the predicate looks like it is what permits
+-- receipts that aren't tied to a donation. It isn't: a plain UNIQUE index
+-- already treats NULLs as distinct, so multiple NULL rows are allowed either
+-- way. The predicate adds nothing — and it costs the upsert.
+--
+-- Postgres will only infer a PARTIAL unique index for `ON CONFLICT (col)` when
+-- the statement repeats the index predicate. PostgREST emits a bare
+-- `ON CONFLICT (donation_id)` (supabase-js `onConflict` takes column names
+-- only, with no way to attach a WHERE clause), so the arbiter never matched and
+-- every call raised 42P10:
+--
+--   ERROR: there is no unique or exclusion constraint matching the
+--          ON CONFLICT specification
+--
+-- Verified on Postgres 16: the bare form errors against the partial index,
+-- succeeds once the predicate is repeated, and succeeds against a plain index —
+-- which still accepts multiple NULL donation_ids.
+--
+-- The failure was invisible because the call discarded its result, so the route
+-- emailed the donor an IRS receipt and reported ok while recording nothing.
+--
+-- Dropping the predicate keeps the semantics and makes the index inferable.
+-- The dedupe from 20260726000000 already ran, so the plain index can be built
+-- without repeating it.
+
+drop index if exists public.tax_receipts_donation_id_unique;
+
+create unique index if not exists tax_receipts_donation_id_unique
+  on public.tax_receipts (donation_id);
+
+
 -- ============ 20260729000000_marketing_goals.sql ============
 -- =============================================================================
 -- Marketing Goals — goal-based marketing entry point ("tell CharitMe the outcome")
@@ -9792,3 +9913,558 @@ grant insert, update, delete on table public.donation_receipts to service_role;
 grant insert, update, delete on table public.campaign_status_log to service_role;
 grant insert, update, delete on table public.campaign_builder_events to service_role;
 grant insert, update, delete on table public.creator_tips to service_role;
+
+
+-- ============ 20260811000000_secure_schema_cache_reload.sql ============
+create or replace function public.reload_postgrest_schema_cache()
+returns void
+language sql
+security definer
+set search_path = pg_catalog
+as $$
+  select pg_notify('pgrst', 'reload schema');
+$$;
+
+revoke all on function public.reload_postgrest_schema_cache()
+  from public, anon, authenticated;
+grant execute on function public.reload_postgrest_schema_cache()
+  to service_role;
+
+select pg_notify('pgrst', 'reload schema');
+
+
+-- ============ 20260812000000_make_onconflict_targets_inferable.sql ============
+-- Make every `upsert(..., { onConflict: ... })` target actually inferable.
+--
+-- `ON CONFLICT (cols)` is resolved by INFERENCE: Postgres needs a unique index or
+-- constraint on exactly those columns. It will NOT use a partial index unless the
+-- statement repeats the index predicate, and it will NOT use an expression index
+-- unless the expression matches. supabase-js `onConflict` takes bare column names,
+-- so neither is expressible — those upserts raise 42P10 and write nothing:
+--
+--   ERROR: there is no unique or exclusion constraint matching the
+--          ON CONFLICT specification
+--
+-- Every one of these discarded its result, so the failures were invisible.
+--
+-- Dated last on purpose. An earlier draft sat at 20260728030000 and was silently
+-- undone: 20260730000000_marketing_opportunities.sql re-creates
+-- uq_marketing_opps_dedupe as a partial index, so it simply ran afterwards and
+-- put the predicate back. Regenerating supabase/schema.sql is what caught that —
+-- the mirror replays every migration in order, so it shows the state that
+-- actually results rather than the one each file intends.
+-- Companion to 20260728020000 (tax_receipts), found by the same check, which is
+-- now pinned by apps/web/__tests__/upsert-onconflict-has-index.test.ts.
+--
+-- Note a plain UNIQUE is enough in all of these cases: NULLs are distinct under a
+-- unique index (and a composite row containing a NULL never conflicts), so the
+-- `where ... is not null` predicates were never what allowed the nullable rows.
+
+-- ── 1. Payment reconciliation ledgers ───────────────────────────────────────
+-- `20260608020000_campaign_payment_observability.sql` created four sibling
+-- tables, all upserted on (processor, processor_object_id) as the webhook replay
+-- key. Only `campaign_payment_disputes` ever got the constraint
+-- (`campaign_payment_disputes_processor_processor_object_id_key`). The other
+-- three had none at all, so every processor-fee, refund and owner-transfer row
+-- the Stripe webhook tried to record was rejected.
+--
+-- Dedupe before building: without a constraint, duplicates were free to
+-- accumulate. Keep the newest row per key, matching the reconciliation view,
+-- which reads the latest state.
+
+delete from public.campaign_processor_fees older
+using public.campaign_processor_fees newer
+where older.processor_object_id is not null
+  and older.processor = newer.processor
+  and older.processor_object_id = newer.processor_object_id
+  and (older.created_at, older.id) < (newer.created_at, newer.id);
+
+create unique index if not exists campaign_processor_fees_processor_object_uidx
+  on public.campaign_processor_fees (processor, processor_object_id);
+
+delete from public.campaign_payment_refunds older
+using public.campaign_payment_refunds newer
+where older.processor_object_id is not null
+  and older.processor = newer.processor
+  and older.processor_object_id = newer.processor_object_id
+  and (older.created_at, older.id) < (newer.created_at, newer.id);
+
+create unique index if not exists campaign_payment_refunds_processor_object_uidx
+  on public.campaign_payment_refunds (processor, processor_object_id);
+
+delete from public.campaign_owner_transfers older
+using public.campaign_owner_transfers newer
+where older.processor_object_id is not null
+  and older.processor = newer.processor
+  and older.processor_object_id = newer.processor_object_id
+  and (older.created_at, older.id) < (newer.created_at, newer.id);
+
+create unique index if not exists campaign_owner_transfers_processor_object_uidx
+  on public.campaign_owner_transfers (processor, processor_object_id);
+
+-- ── 2. Marketing opportunities ──────────────────────────────────────────────
+-- Partial index; same shape as the tax_receipts case. The predicate bought
+-- nothing and blocked inference, so the AI opportunity drafts were never saved.
+
+drop index if exists public.uq_marketing_opps_dedupe;
+
+create unique index if not exists uq_marketing_opps_dedupe
+  on public.marketing_opportunities (dedupe_key);
+
+-- ── 3. Email suppression list ───────────────────────────────────────────────
+-- This one was BOTH partial and an EXPRESSION index — `unique (lower(email))
+-- where email is not null` — against an `onConflict: 'email'`. So clicking
+-- "unsubscribe" in a marketing email wrote nothing and the address kept
+-- receiving mail. That is the one failure here with a compliance edge.
+--
+-- `unsubscribeEmail()` lowercases before writing, so a plain unique on `email`
+-- is equivalent for every current caller. The lower(email) index is KEPT as
+-- well: it is what actually enforces case-insensitivity if a future writer
+-- forgets to normalize, and it guarantees no case-variant duplicates exist
+-- today, so the plain index below can be built without a dedupe pass.
+
+create unique index if not exists marketing_suppression_email_plain_uq
+  on public.marketing_suppression_list (email);
+
+
+-- ============ 20260812010000_creator_tips_not_world_readable.sql ============
+-- `creator_tips` was readable by anyone, including unauthenticated visitors.
+--
+--   create policy public_creator_tips_read on creator_tips for select using (true);
+--
+-- The row carries `supporter_id`, `amount_cents`, `message` and
+-- `stripe_payment_intent_id`. So an anonymous caller could enumerate who tipped
+-- whom, how much, what they said — and pull a Stripe payment intent identifier
+-- for each one.
+--
+-- This reads as an oversight rather than a decision, because the same migration
+-- (20260525002000_competitor_parity_features.sql) locks down both of its
+-- siblings on the adjacent lines:
+--
+--   create policy product_orders_private on product_orders for select
+--     using (auth.uid() = buyer_id or is_admin());
+--   create policy commission_requests_private on commission_requests for select
+--     using (auth.uid() = requester_id or is_admin());
+--   create policy public_creator_tips_read on creator_tips for select
+--     using (true);                                  -- ← the odd one out
+--
+-- Same shape (a payer, an amount, a payment reference), same file, opposite
+-- policy — and `creator_tips` is the only one of the three exposing a Stripe
+-- identifier at all.
+--
+-- Safe to tighten: no application code queries `creator_tips` (it appears only
+-- as a table NAME in lib/feature-catalog.ts), and `anon`/`authenticated` hold
+-- only SELECT on it — every write already goes through `service_role`, which
+-- bypasses RLS. So nothing that works today stops working.
+--
+-- The replacement follows the siblings, plus the one grant the product plainly
+-- needs: a creator can see the tips they received.
+
+drop policy if exists public_creator_tips_read on public.creator_tips;
+
+drop policy if exists creator_tips_private on public.creator_tips;
+create policy creator_tips_private on public.creator_tips
+  for select using (
+    auth.uid() = supporter_id
+    or exists (
+      select 1 from public.creator_profiles cp
+      where cp.id = creator_tips.creator_profile_id
+        and cp.user_id = auth.uid()
+    )
+    or is_admin()
+  );
+
+
+-- ============ 20260812020000_recurring_tip_accounting.sql ============
+alter table public.recurring_donations
+  add column if not exists tip_cents bigint not null default 0;
+
+alter table public.recurring_donations
+  add column if not exists anonymous boolean not null default false;
+
+alter table public.recurring_donations
+  drop constraint if exists recurring_donations_tip_cents_check;
+alter table public.recurring_donations drop constraint if exists recurring_donations_tip_cents_check;
+alter table public.recurring_donations add constraint recurring_donations_tip_cents_check
+  check (tip_cents >= 0) not valid;
+alter table public.recurring_donations
+  validate constraint recurring_donations_tip_cents_check;
+
+update public.recurring_donations rd
+set
+  anonymous = source.anonymous,
+  updated_at = now()
+from (
+  select distinct on (cp.metadata ->> 'subscription_id')
+    cp.metadata ->> 'subscription_id' as subscription_id,
+    d.anonymous
+  from public.campaign_payments cp
+  join public.donations d on d.id = cp.donation_id
+  where coalesce(cp.metadata ->> 'subscription_id', '') <> ''
+  order by
+    cp.metadata ->> 'subscription_id',
+    coalesce(cp.paid_at, cp.created_at),
+    cp.id
+) source
+where rd.stripe_subscription_id = source.subscription_id
+  and rd.anonymous is distinct from source.anonymous;
+
+create temporary table recurring_renewal_repairs on commit drop as
+select
+  cp.id as campaign_payment_id,
+  cp.donation_id,
+  cp.campaign_id,
+  least(amounts.invoice_paid, rd.amount_cents) as principal_cents,
+  greatest(amounts.invoice_paid - least(amounts.invoice_paid, rd.amount_cents), 0) as tip_cents
+from public.campaign_payments cp
+join public.recurring_donations rd
+  on rd.stripe_subscription_id = cp.metadata ->> 'subscription_id'
+cross join lateral (
+  select coalesce(
+    nullif(cp.metadata ->> 'stripe_invoice_amount_paid', '')::bigint,
+    cp.gross_amount
+  ) as invoice_paid
+) amounts
+where coalesce((cp.metadata ->> 'renewal')::boolean, false)
+  and amounts.invoice_paid > 0
+  and rd.amount_cents > 0
+  and (
+    cp.gross_amount <> least(amounts.invoice_paid, rd.amount_cents)
+    or cp.tip_amount <> greatest(amounts.invoice_paid - least(amounts.invoice_paid, rd.amount_cents), 0)
+    or cp.campaign_owner_net_amount <> least(amounts.invoice_paid, rd.amount_cents)
+  );
+
+update public.donations d
+set
+  amount_cents = r.principal_cents,
+  tip_cents = r.tip_cents,
+  updated_at = now()
+from recurring_renewal_repairs r
+where d.id = r.donation_id;
+
+update public.tax_receipts tr
+set amount_cents = r.principal_cents
+from recurring_renewal_repairs r
+where tr.donation_id = r.donation_id;
+
+update public.donation_receipts dr
+set
+  amount_cents = r.principal_cents,
+  tip_cents = r.tip_cents
+from recurring_renewal_repairs r
+where dr.donation_id = r.donation_id;
+
+update public.campaign_payments cp
+set
+  gross_amount = r.principal_cents,
+  tip_amount = r.tip_cents,
+  platform_fee_amount = r.tip_cents,
+  campaign_owner_net_amount = r.principal_cents,
+  metadata = cp.metadata || jsonb_build_object(
+    'recurring_accounting_repaired', true,
+    'stripe_invoice_amount_paid', r.principal_cents + r.tip_cents
+  ),
+  updated_at = now()
+from recurring_renewal_repairs r
+where cp.id = r.campaign_payment_id;
+
+update public.campaign_payment_breakdowns b
+set
+  gross_amount = r.principal_cents,
+  tip_amount = r.tip_cents,
+  platform_fee_amount = r.tip_cents,
+  owner_net_amount = r.principal_cents,
+  updated_at = now()
+from recurring_renewal_repairs r
+where b.campaign_payment_id = r.campaign_payment_id;
+
+update public.campaign_platform_fees f
+set
+  gross_amount = r.principal_cents,
+  platform_fee_amount = r.tip_cents,
+  status = case when r.tip_cents > 0 then 'recorded' else f.status end,
+  updated_at = now()
+from recurring_renewal_repairs r
+where f.campaign_payment_id = r.campaign_payment_id;
+
+update public.campaign_processor_fees f
+set
+  gross_amount = r.principal_cents,
+  updated_at = now()
+from recurring_renewal_repairs r
+where f.campaign_payment_id = r.campaign_payment_id;
+
+update public.campaign_payment_reconciliation pr
+set
+  gross_amount = r.principal_cents,
+  platform_fee_amount = r.tip_cents,
+  owner_net_amount = r.principal_cents,
+  checked_at = now(),
+  updated_at = now()
+from recurring_renewal_repairs r
+where pr.campaign_payment_id = r.campaign_payment_id;
+
+update public.campaign_owner_transfers ot
+set
+  gross_amount = r.principal_cents,
+  owner_net_amount = r.principal_cents,
+  updated_at = now()
+from recurring_renewal_repairs r
+where ot.campaign_payment_id = r.campaign_payment_id;
+
+update public.campaign_owner_payouts op
+set
+  gross_amount = r.principal_cents,
+  owner_net_amount = r.principal_cents,
+  updated_at = now()
+from recurring_renewal_repairs r
+where op.campaign_payment_id = r.campaign_payment_id;
+
+update public.recurring_donations rd
+set
+  tip_cents = repair.tip_cents,
+  updated_at = now()
+from (
+  select
+    cp.metadata ->> 'subscription_id' as subscription_id,
+    max(r.tip_cents) as tip_cents
+  from recurring_renewal_repairs r
+  join public.campaign_payments cp on cp.id = r.campaign_payment_id
+  group by cp.metadata ->> 'subscription_id'
+) repair
+where rd.stripe_subscription_id = repair.subscription_id;
+
+update public.campaigns c
+set
+  raised_amount = totals.raised_amount,
+  backer_count = totals.backer_count,
+  updated_at = now()
+from (
+  select
+    affected.campaign_id,
+    coalesce(sum(d.amount_cents) filter (
+      where d.status = 'completed' and coalesce(d.is_spam, false) = false
+    ), 0)::bigint as raised_amount,
+    count(*) filter (
+      where d.status = 'completed' and coalesce(d.is_spam, false) = false
+    )::integer as backer_count
+  from (select distinct campaign_id from recurring_renewal_repairs) affected
+  left join public.donations d on d.campaign_id = affected.campaign_id
+  group by affected.campaign_id
+) totals
+where c.id = totals.campaign_id;
+
+select pg_notify('pgrst', 'reload schema');
+
+
+-- ============ 20260812030000_tax_document_guest_access.sql ============
+update public.donation_receipts
+set donor_email = lower(trim(donor_email))
+where donor_email is not null
+  and donor_email <> lower(trim(donor_email));
+
+delete from public.donation_receipts older
+using public.donation_receipts newer
+where older.donation_id = newer.donation_id
+  and (
+    greatest(
+      coalesce(older.resent_at, '-infinity'::timestamptz),
+      coalesce(older.email_sent_at, '-infinity'::timestamptz),
+      older.created_at
+    ),
+    older.id
+  ) < (
+    greatest(
+      coalesce(newer.resent_at, '-infinity'::timestamptz),
+      coalesce(newer.email_sent_at, '-infinity'::timestamptz),
+      newer.created_at
+    ),
+    newer.id
+  );
+
+create unique index if not exists donation_receipts_donation_id_unique
+  on public.donation_receipts (donation_id);
+
+create index if not exists donation_receipts_guest_email_idx
+  on public.donation_receipts (donor_email, created_at desc)
+  where donor_id is null and donor_email is not null;
+
+select pg_notify('pgrst', 'reload schema');
+
+
+-- ============ 20260813000000_donor_message_anonymity_contract.sql ============
+alter table public.donor_messages
+  add column if not exists anonymous boolean not null default false;
+
+update public.donor_messages
+set anonymous = true,
+    visibility = 'anonymous'
+where anonymous
+   or visibility = 'anonymous';
+
+create or replace function public.sync_donor_message_anonymity()
+returns trigger
+language plpgsql
+set search_path = pg_catalog, public
+as $$
+begin
+  if tg_op = 'INSERT' then
+    if new.anonymous or new.visibility = 'anonymous' then
+      new.anonymous := true;
+      new.visibility := 'anonymous';
+    else
+      new.anonymous := false;
+      new.visibility := 'public';
+    end if;
+  elsif new.anonymous is distinct from old.anonymous then
+    new.visibility := case when new.anonymous then 'anonymous' else 'public' end;
+  elsif new.visibility is distinct from old.visibility then
+    new.anonymous := new.visibility = 'anonymous';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists donor_messages_sync_anonymity on public.donor_messages;
+drop trigger if exists donor_messages_sync_anonymity on public.donor_messages;
+create trigger donor_messages_sync_anonymity
+before insert or update of anonymous, visibility on public.donor_messages
+for each row execute function public.sync_donor_message_anonymity();
+
+revoke all on function public.sync_donor_message_anonymity() from public;
+
+
+-- ============ 20260814000000_marketing_org_scoping.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- MASTER_SPEC §7 — scope the marketing tables to an organization.
+--
+-- Follows 20260807000000, which added `organizations` / `organization_members` /
+-- `brands`. This attaches the marketing data to them.
+--
+-- ── What this DOES and does NOT do ───────────────────────────────────────────
+--
+-- It adds a nullable `org_id` to the 15 ROOT marketing tables and indexes it.
+--
+-- It does NOT, on its own, isolate tenants. Every `marketing_*` table is
+-- service-role-only (RLS on, no anon/authenticated policies), so today the
+-- column is a scoping *key*, not an enforcement mechanism. Isolation arrives
+-- with the tenant-facing policies, when there is a tenant-facing UI to need
+-- them. Saying "multi-tenancy is done" because a column exists would be exactly
+-- the kind of claim this repo keeps having to retract.
+--
+-- ── Why nullable, and what NULL means ────────────────────────────────────────
+--
+-- `NOT NULL` would fail outright: rows exist that predate tenancy, and there is
+-- no correct organization to assign them to — inventing a "default org" would
+-- silently attribute real marketing history to a tenant that never owned it.
+--
+-- So NULL means *pre-tenancy / platform-owned*, and it is a deliberate, readable
+-- state rather than missing data. Once the owner designates a home organization,
+-- a follow-up migration can `UPDATE ... WHERE org_id IS NULL` and only then
+-- tighten to NOT NULL. Doing that in one step here would guess on the owner's
+-- behalf about who owns their existing audience.
+--
+-- ── Why only the ROOT tables ─────────────────────────────────────────────────
+--
+-- Six tables are children that derive scope through their parent FK:
+--   marketing_identities        → marketing_contacts
+--   marketing_segment_members   → marketing_segments
+--   marketing_campaign_recipients → marketing_campaigns
+--   marketing_automation_runs   → marketing_automations
+--   marketing_campaign_plan_assets → marketing_campaign_plans
+--   marketing_form_submissions  → marketing_forms
+--
+-- Denormalising `org_id` onto them is the conventional move for RLS speed, and
+-- it is the wrong trade here: a child column can DRIFT from its parent's, and a
+-- child whose org_id disagrees with its parent is a cross-tenant leak that reads
+-- as correct in every query that trusts the child. One authoritative owner per
+-- record. If profiling later proves the join is a bottleneck, denormalise then —
+-- with a trigger or generated column keeping the two in lockstep, not by hand.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+do $$
+declare
+  root_table text;
+  root_tables constant text[] := array[
+    'marketing_contacts',
+    'marketing_events',
+    'marketing_segments',
+    'marketing_campaigns',
+    'marketing_automations',
+    'marketing_email_templates',
+    'marketing_utm_links',
+    'marketing_referrals',
+    'marketing_forms',
+    'marketing_consent',
+    'marketing_suppression_list',
+    'marketing_goals',
+    'marketing_opportunities',
+    'marketing_campaign_plans',
+    'marketing_audit_logs'
+  ];
+begin
+  foreach root_table in array root_tables loop
+    -- Skip tables a given deployment has not created yet, rather than failing the
+    -- whole migration. These arrived across several migrations and an environment
+    -- part-way through the series is a legitimate state.
+    if to_regclass('public.' || root_table) is null then
+      raise notice 'skipping %, table not present', root_table;
+      continue;
+    end if;
+
+    execute format(
+      'alter table public.%I add column if not exists org_id uuid references public.organizations(id) on delete cascade',
+      root_table
+    );
+
+    -- Partial index: NULL is the pre-tenancy bucket and is never the target of a
+    -- tenant-scoped lookup, so indexing those rows would be dead weight.
+    execute format(
+      'create index if not exists %I on public.%I (org_id) where org_id is not null',
+      root_table || '_org_id_idx',
+      root_table
+    );
+  end loop;
+end $$;
+
+comment on column public.marketing_contacts.org_id is
+  'Owning organization. NULL = pre-tenancy / platform-owned, not missing data. See 20260814000000.';
+
+
+-- ============ 20260814010000_harden_role_and_team_boundaries.sql ============
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, public
+as $$
+  select exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+      and (roles ? 'admin' or roles ? 'super_admin')
+  );
+$$;
+
+update public.profiles
+set roles = roles || to_jsonb('admin'::text)
+where roles ? 'super_admin'
+  and not (roles ? 'admin');
+
+drop policy if exists team_members_admin_owner_write on public.team_members;
+drop policy if exists team_members_visible_to_team on public.team_members;
+
+drop policy if exists team_members_read_own on public.team_members;
+create policy team_members_read_own on public.team_members
+for select
+to authenticated
+using (auth.uid() = user_id or public.is_admin());
+
+revoke all on table public.team_members from anon;
+revoke insert, update, delete, truncate, references, trigger
+on table public.team_members
+from authenticated;
+grant select on table public.team_members to authenticated;
+grant all on table public.team_members to service_role;

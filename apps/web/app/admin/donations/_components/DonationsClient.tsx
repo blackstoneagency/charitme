@@ -390,8 +390,13 @@ function RefundModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount_cents: cents, reason }),
       });
-      const data: { error?: string } = await r.json();
+      const data: { error?: string; warning?: string } = await r.json();
       if (!r.ok) throw new Error(data.error ?? 'Refund failed');
+      // The refund succeeded at Stripe but the ledger row was not written. Keep
+      // the modal open on the warning instead of flashing the success state —
+      // this is the one outcome that needs a human to follow up, and the retry
+      // the admin would otherwise attempt would double-refund.
+      if (data.warning) { setErr(data.warning); return; }
       onSuccess();
     } catch (e) {
       setErr((e as Error).message);
@@ -1182,7 +1187,7 @@ export default function DonationsClient({
                   style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }}
                 />
               </div>
-              <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(0); }}
+              <select aria-label="Filter by donation status" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(0); }}
                 style={{ height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', fontSize: 13, background: '#fff' }}>
                 <option value="all">All Status</option>
                 <option value="completed">Completed</option>

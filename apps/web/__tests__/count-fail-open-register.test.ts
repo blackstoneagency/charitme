@@ -95,9 +95,31 @@ describe('the admin user directory does not report zero users on a failed read',
     expect(page).toMatch(/Boolean\(newUsersCountResult\.error\) \|\| newUsersCountResult\.count == null/);
   });
 
-  it('only calls the totals unknown when the row read failed too', () => {
-    // A failed count with rows loaded still yields a real page-limited number.
-    expect(page).toMatch(/totalsUnreliable = \(totalUnknown \|\| new30dUnknown\) && Boolean\(profileError\)/);
+  it('treats a failed COUNT alone as enough to make the total unknown', () => {
+    // This assertion used to require the row read to have failed too, on the
+    // reasoning that "a failed count with rows loaded still yields a real
+    // page-limited number". The number is real, but it is LABELLED "total
+    // users" and the row query is capped at 2000 — so on a site with more than
+    // 2000 profiles a count failure would confidently report exactly
+    // "2,000 total users", indefinitely, with no notice shown. Latent rather
+    // than live: production holds 1,133 profiles, so the substituted value
+    // currently happens to equal the true total.
+    expect(page).toMatch(/totalsUnreliable = totalUnknown \|\| new30dUnknown/);
+    expect(page).not.toMatch(/&& Boolean\(profileError\)/);
+  });
+
+  it('passes null rather than a page-limited substitute', () => {
+    expect(page).toMatch(/total:\s+totalUnknown \? null : exactTotal/);
+    expect(page).toMatch(/newUsers:\s+new30dUnknown \? null : exactNew30d/);
+    expect(page).not.toMatch(/exactTotal > 0 \? exactTotal : users\.length/);
+  });
+
+  it('renders the unknown total as an em dash, and no percentage of it', () => {
+    const client = read('app/admin/users/_components/AdminUsersClient.tsx');
+    expect(client).toMatch(/totals\.total === null \? '—'/);
+    expect(client).toMatch(/totals\.newUsers === null \? '—'/);
+    // A percentage OF an unknown total is not a number worth printing.
+    expect(client).toMatch(/share of total unknown/);
   });
 
   it('says so instead of printing a total it does not have', () => {

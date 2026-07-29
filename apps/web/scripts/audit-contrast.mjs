@@ -28,7 +28,7 @@
  * eye (`linear-gradient(…, var(--s2), var(--s3))` is the fix that keeps light
  * rendering identical).
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
@@ -62,9 +62,10 @@ const ROUTE_DATA = JSON.parse(
 );
 // ─── signed-in sweep ─────────────────────────────────────────────────────────
 //
-// `--auth` adds the gated half of the product: the 13 standalone gated routes
-// plus every static route under /dashboard and /admin, plus one instantiation of
-// each [param] template. That is ~104 routes which no contrast, axe or responsive
+// `--auth` adds the gated half of the product: 10 standalone gated routes,
+// 68 renderable static console routes, and one populated instantiation of each
+// of the 19 signed-in [param] templates. Those are routes which no contrast,
+// axe or responsive
 // sweep has ever measured — the tracker recorded them as blocked on "egress to
 // Supabase", which was a misdiagnosis: the sweeps need A Supabase, not THE
 // Supabase. `scripts/supabase-stub.mjs` is one, and `scripts/audit-signed-in.mjs`
@@ -73,7 +74,7 @@ const ROUTE_DATA = JSON.parse(
 // This flag does NOT mint a session on its own. It expects the caller to have
 // exported STUB_SESSION_COOKIE; without it every gated route redirects to /login
 // and the run fails loudly on the redirect guard below rather than quietly
-// measuring the login page 104 times.
+// measuring the login page 97 times.
 const WITH_AUTH = argv.includes('--auth');
 const SESSION_COOKIE = process.env.STUB_SESSION_COOKIE ?? '';
 
@@ -82,7 +83,7 @@ const ALL_PAGES = ROUTE_DATA.public.filter((r) => !r.includes('/embed'));
 const GATED_PAGES = [
   ...ROUTE_DATA.authGated.routes,
   ...ROUTE_DATA.authGated.consoles,
-  ...ROUTE_DATA.authGated.dynamicSamples,
+  ...ROUTE_DATA.authGated.dynamicSamples.map((sample) => sample.path),
 ];
 const PAGES = ONLY ?? (WITH_AUTH ? [...ALL_PAGES, ...GATED_PAGES] : ALL_PAGES);
 const THEMES = ['light', 'dark'];
@@ -195,15 +196,31 @@ function collectContrast() {
 
     // Over a gradient, score the LEAST favourable stop: text that is readable at
     // one end of the fill and not the other is still unreadable somewhere.
-    const overGradient = Boolean(bgResult.stops);
     const candidates = bgResult.stops ?? [bgResult];
     let bg = candidates[0];
     let r = Infinity;
+    let rMax = -Infinity;
     for (const c of candidates) {
       const composited = fg.a < 1 ? over(fg, c) : fg;
       const cr = ratio(composited, c);
       if (cr < r) { r = cr; bg = c; }
+      if (cr > rMax) rMax = cr;
     }
+
+    // Gradient findings are REPORTED rather than failed, because fixing them
+    // means changing a brand gradient — a design call. That leniency only makes
+    // sense when the ratio actually varies along the fill. It does not when an
+    // opaque layer sits between the text and the gradient: every stop composites
+    // to nearly the same colour, so the failure is an ordinary solid-background
+    // failure wearing a gradient's clothes.
+    //
+    // Real case: `.aif-showcase-cat` ("Medical") on /ai-fundraising in dark —
+    // rgb(108,53,255) on a 96%-opaque rgba(18,21,52,.96) card at 11px/950,
+    // measured 3.04:1 against a required 4.5:1. The card's ancestor carries a
+    // gradient contributing ~4%, which was enough to downgrade a genuine AA
+    // failure to a non-failing warning.
+    const GRADIENT_SPREAD_EPSILON = 0.5;
+    const overGradient = Boolean(bgResult.stops) && rMax - r >= GRADIENT_SPREAD_EPSILON;
 
     // WCAG large text: >=24px, or >=18.66px when bold.
     const size = parseFloat(cs.fontSize);
@@ -233,7 +250,26 @@ function collectContrast() {
   return out;
 }
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+const browserExecutable = [
+  process.env.PLAYWRIGHT_CHROMIUM_PATH,
+  chromium.executablePath(),
+  process.env.PROGRAMFILES
+    ? `${process.env.PROGRAMFILES}\\Google\\Chrome\\Application\\chrome.exe`
+    : null,
+  process.env['PROGRAMFILES(X86)']
+    ? `${process.env['PROGRAMFILES(X86)']}\\Google\\Chrome\\Application\\chrome.exe`
+    : null,
+  process.env.LOCALAPPDATA
+    ? `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`
+    : null,
+  '/usr/bin/google-chrome',
+  '/usr/bin/chromium',
+].find((candidate) => candidate && existsSync(candidate));
+
+const browser = await chromium.launch({
+  ...(browserExecutable ? { executablePath: browserExecutable } : {}),
+  args: ['--no-sandbox'],
+});
 const results = [];
 let failures = 0;
 let gradientFindings = 0;
@@ -263,9 +299,58 @@ for (const theme of THEMES) {
   }
   const page = await ctx.newPage();
 
+  if (WITH_AUTH && theme === THEMES[0]) {
+    for (const expected of ROUTE_DATA.authGated.redirects) {
+      try {
+        const response = await page.goto(BASE + expected.from, {
+          waitUntil: 'domcontentloaded',
+          timeout: 45000,
+        });
+        const wantedUrl = new URL(expected.to, BASE);
+        try {
+          await page.waitForURL(
+            (url) =>
+              `${url.pathname}${url.search}` ===
+              `${wantedUrl.pathname}${wantedUrl.search}`,
+            { timeout: 5000 },
+          );
+        } catch {
+          // The exact landed URL is reported below with the expected target.
+        }
+        const actualUrl = new URL(page.url());
+        const actualTarget = `${actualUrl.pathname}${actualUrl.search}`;
+        const wantedTarget = `${wantedUrl.pathname}${wantedUrl.search}`;
+        if (!response || response.status() >= 400 || actualTarget !== wantedTarget) {
+          failures++;
+          if (!AS_JSON) {
+            console.log(
+              `\u2717 redirect ${expected.from} - landed=${actualTarget}, expected=${wantedTarget}`,
+            );
+          }
+        }
+      } catch (error) {
+        failures++;
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes('ERR_CONNECTION')) connErrors++;
+        if (!AS_JSON) {
+          console.log(`\u2717 redirect ${expected.from} - ERROR ${message.slice(0, 80)}`);
+        }
+      }
+    }
+  }
+
   for (const path of PAGES) {
     try {
-      const response = await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 45000 });
+      const response = await page.goto(BASE + path, {
+        waitUntil: 'domcontentloaded',
+        timeout: 45000,
+      });
+      if (!response || response.status() >= 400) {
+        failures++;
+        const status = response?.status() ?? 'NO_RESPONSE';
+        if (!AS_JSON) console.log(`\u2717 ${theme} ${path} - HTTP ${status}; not measured`);
+        continue;
+      }
       // Measure the page we asked for, or report it — never something we were sent
       // to. Playwright follows redirects, so a route that 307s to /login otherwise
       // gets measured under this route's name and passes on the login page's colours.
@@ -290,6 +375,18 @@ for (const theme of THEMES) {
         continue;
       }
       await page.waitForTimeout(350); // let the theme script + fonts settle
+      const activeTheme = await page.evaluate(
+        () => document.documentElement.getAttribute('data-theme'),
+      );
+      if (activeTheme !== theme) {
+        failures++;
+        if (!AS_JSON) {
+          console.log(
+            `\u2717 ${theme} ${path} - theme reverted to "${activeTheme}"; not measured`,
+          );
+        }
+        continue;
+      }
       const textCount = await page.evaluate(() => {
         let n = 0;
         for (const el of document.querySelectorAll('body *')) {
@@ -315,7 +412,8 @@ for (const theme of THEMES) {
         }
       }
     } catch (e) {
-      const msg = String(e.message);
+      failures++;
+      const msg = e instanceof Error ? e.message : String(e);
       if (msg.includes('ERR_CONNECTION')) connErrors++;
       if (!AS_JSON) console.log(`✗ ${theme}/${path} — ERROR ${msg.slice(0, 80)}`);
     }
@@ -339,6 +437,20 @@ if (!AS_JSON && thin.length > 0) {
   console.log('  data state, so any data-conditional section on them went unchecked:');
   for (const r of thin) console.log(`    ${r.theme.padEnd(5)} ${r.path} — ${r.textCount}`);
   console.log('  Re-run against a server with database credentials to audit those sections.');
+}
+
+const MIN_TEXT = Number(process.env.CONTRAST_MIN_TEXT ?? (WITH_AUTH ? 5 : 1));
+const emptyRenders = sampled.filter((result) => result.textCount < MIN_TEXT);
+if (emptyRenders.length > 0) {
+  failures += emptyRenders.length;
+  if (!AS_JSON) {
+    console.log(
+      `\n\u2717 ${emptyRenders.length} page render(s) had fewer than ${MIN_TEXT} visible text elements`,
+    );
+    for (const result of emptyRenders) {
+      console.log(`    ${result.theme.padEnd(5)} ${result.path} - ${result.textCount}`);
+    }
+  }
 }
 
 if (AS_JSON) {

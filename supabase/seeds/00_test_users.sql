@@ -88,6 +88,18 @@ where not exists (
   select 1 from auth.users u where u.email = format('seed.user.%s@charitme.test', g)
 );
 
+update public.profiles p
+set roles = case mod(substring(u.email from 'seed\.user\.(\d+)@')::int, 4)
+      when 0 then '["organizer","donor"]'::jsonb
+      when 1 then '["beneficiary","donor"]'::jsonb
+      when 2 then '["nonprofit","organizer","donor"]'::jsonb
+      else '["donor"]'::jsonb
+    end,
+    is_demo = true
+from auth.users u
+where u.id = p.id
+  and u.email ~ '^seed\.user\.\d+@charitme\.test$';
+
 -- Report how many usable profiles now exist.
 do $$
 declare n int;

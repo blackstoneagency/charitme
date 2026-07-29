@@ -126,9 +126,9 @@ const Ico = {
 // call site unchanged — the label text is already there, it just needed wiring.
 //
 // Not unit-tested: vitest's rolldown transform refuses to compile an imported
-// `.tsx`, so this repo can render no component in a test. Verified instead by
-// the authenticated axe sweep (`scripts/audit-authed.mjs`), which is what found
-// it.
+// `.tsx`, so this repo cannot render a component in a test. The public axe sweep
+// cannot reach it either -- /dashboard/settings requires auth -- which is why 19
+// unlabelled controls survived a clean accessibility run.
 const LABELLABLE = new Set(['input', 'select', 'textarea']);
 
 function SetField({ label, hint, children, className }: { label: string; hint?: string; children: React.ReactNode; className?: string }) {
@@ -360,6 +360,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                     <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{userEmail}</div>
                     <input
                       ref={avatarFileRef}
+                      aria-label="Upload a profile photo"
                       type="file"
                       accept="image/jpeg,image/png,image/webp,image/gif"
                       style={{ display: 'none' }}
@@ -536,7 +537,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                       Preview →
                     </Link>
                   )}
-                  <select value={showPublicProfile ? 'public' : 'private'} disabled={saving} onChange={e => savePrivacy(e.target.value === 'public')} style={{ height: 36, border: '1px solid var(--b1)', borderRadius: 8, padding: '0 12px', fontSize: 13 }}>
+                  <select aria-label="Profile visibility" value={showPublicProfile ? 'public' : 'private'} disabled={saving} onChange={e => savePrivacy(e.target.value === 'public')} style={{ height: 36, border: '1px solid var(--b1)', borderRadius: 8, padding: '0 12px', fontSize: 13 }}>
                     <option value="public">Public</option>
                     <option value="private">Private</option>
                   </select>

@@ -20,7 +20,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # Latest Node 20.x — the deploy pin (.node-version = 20.11.0) is too old
+          # Match the supported Node 20 release line pinned in .node-version.
           # for the vitest 4 / rolldown toolchain, which needs util.styleText
           # (Node >= 20.12). Deploys (Vercel/Render) don't run the test toolchain.
           node-version: 20.x

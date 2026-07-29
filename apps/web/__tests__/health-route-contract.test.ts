@@ -4,6 +4,10 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const HEALTH_ROUTE = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../app/api/health/route.ts');
+const RELOAD_MIGRATION = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../../supabase/migrations/20260811000000_secure_schema_cache_reload.sql',
+);
 
 describe('health endpoint contract', () => {
   const source = readFileSync(HEALTH_ROUTE, 'utf8');
@@ -35,5 +39,33 @@ describe('health endpoint contract', () => {
     const adminGate = source.indexOf('const user = await verifyAdmin();');
     expect(adminGate).toBeGreaterThan(-1);
     expect(source.indexOf('checks.deployment')).toBeGreaterThan(adminGate);
+  });
+
+  it('reloads the schema cache without changing database privileges', () => {
+    expect(source).toContain("supabaseAdmin.rpc('reload_postgrest_schema_cache')");
+    expect(source).not.toMatch(/\bgrant\s+(?:all|usage)\b/i);
+    expect(source).not.toContain('SUPABASE_ACCESS_TOKEN');
+    expect(source).not.toContain('api.supabase.com/v1/projects');
+  });
+
+  it('fails closed when reload or verification fails', () => {
+    expect(source).toContain("code: 'SCHEMA_RELOAD_FAILED'");
+    expect(source).toContain("code: 'SCHEMA_CACHE_UNAVAILABLE'");
+    expect(source).toContain('{ status: 503 }');
+    expect(source).not.toContain('catch { /* ignore */ }');
+  });
+
+  it('keeps the reload function service-role only', () => {
+    const migration = readFileSync(RELOAD_MIGRATION, 'utf8').toLowerCase();
+
+    expect(migration).toContain('create or replace function public.reload_postgrest_schema_cache()');
+    expect(migration).toContain("select pg_notify('pgrst', 'reload schema')");
+    expect(migration).toMatch(
+      /revoke all on function public\.reload_postgrest_schema_cache\(\)\s+from public, anon, authenticated/,
+    );
+    expect(migration).toMatch(
+      /grant execute on function public\.reload_postgrest_schema_cache\(\)\s+to service_role/,
+    );
+    expect(migration).not.toMatch(/\bgrant\s+(?:all|usage)\s+on\s+(?:all\s+)?(?:tables|sequences|routines|schema)\b/);
   });
 });

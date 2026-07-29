@@ -1,7 +1,6 @@
 import 'server-only';
-import { createClient } from '../lib/supabase-server';
 import { supabaseAdmin } from '../lib/supabase';
-import { isAdmin } from '../lib/roles';
+import { loadShellSession } from '../lib/shell-session-server';
 import {
   CharitMeShell as _CharitMeShell,
   type ShellProps,
@@ -31,53 +30,6 @@ export {
 // ─────────────────────────────────────────────
 // User fetch helper
 // ─────────────────────────────────────────────
-type ShellUser = {
-  id: string | null;
-  name: string | null;
-  email: string;
-  role: string;
-  /** Raw roles from profiles.roles — drives role-scoped nav entries. */
-  roles: string[];
-  avatarUrl: string | null;
-  hasAdminAccess: boolean;
-};
-
-async function fetchShellUser(): Promise<ShellUser> {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { id: null, name: null, email: '', role: 'Organizer', roles: [], avatarUrl: null, hasAdminAccess: false };
-
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('full_name, avatar_url, roles')
-      .eq('id', user.id)
-      .single();
-
-    const roles: string[] = Array.isArray(profile?.roles) ? profile.roles : [];
-    const hasAdminAccess = await isAdmin(user.id, user.email);
-    const role = hasAdminAccess ? 'Admin'
-      : roles.includes('moderator') ? 'Moderator'
-      : 'Organizer';
-
-    // Fall back to the auth session's user_metadata (as the public AppShell
-    // header does) so the signed-in name/avatar are consistent everywhere.
-    const meta = (user.user_metadata ?? {}) as { full_name?: string; name?: string; avatar_url?: string; picture?: string };
-
-    return {
-      id: user.id,
-      name: profile?.full_name ?? meta.full_name ?? meta.name ?? null,
-      email: user.email ?? '',
-      role,
-      roles,
-      avatarUrl: profile?.avatar_url ?? meta.avatar_url ?? meta.picture ?? null,
-      hasAdminAccess,
-    };
-  } catch {
-    return { id: null, name: null, email: '', role: 'Organizer', roles: [], avatarUrl: null, hasAdminAccess: false };
-  }
-}
-
 // ─────────────────────────────────────────────
 // Sidebar campaign list — powers the "My Campaigns"
 // expandable nav item so organizers can jump straight
@@ -108,22 +60,22 @@ async function fetchSidebarCampaigns(userId: string | null): Promise<{ campaigns
 // that individual pages may have hard-coded.
 // ─────────────────────────────────────────────
 export async function CharitMeShell(props: ShellProps) {
-  const user = await fetchShellUser();
+  const session = await loadShellSession();
   const showCampaignsNav = (props.mode ?? 'dashboard') !== 'admin' && !props.guestMode && !props.hideSidebar;
   const { campaigns, hasMore } = showCampaignsNav
-    ? await fetchSidebarCampaigns(user.id)
+    ? await fetchSidebarCampaigns(session.id)
     : { campaigns: [], hasMore: false };
   return (
     <_CharitMeShell
       {...props}
       sidebarCampaigns={campaigns}
       sidebarCampaignsHasMore={hasMore}
-      userName={user.name ?? user.email}
-      userEmail={user.email}
-      userRole={user.role}
-      navRoles={user.roles}
-      userAvatarUrl={user.avatarUrl}
-      hasAdminAccess={user.hasAdminAccess}
+      userName={session.userName ?? session.userEmail}
+      userEmail={session.userEmail}
+      userRole={session.userRole}
+      navRole={session.navRole}
+      userAvatarUrl={session.userAvatarUrl}
+      hasAdminAccess={session.hasAdminAccess}
     />
   );
 }

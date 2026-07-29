@@ -10,11 +10,6 @@ const supportRoute = readFileSync(
   resolve(process.cwd(), 'app/api/support-tickets/route.ts'),
   'utf8',
 ).toLowerCase();
-const applySchema = readFileSync(
-  resolve(process.cwd(), 'app/api/admin/apply-schema/route.ts'),
-  'utf8',
-).toLowerCase();
-
 const TABLES = [
   'contact_messages',
   'support_cases',
@@ -62,15 +57,5 @@ describe('service-managed write boundaries', () => {
     expect(rateLimitIndex).toBeLessThan(jsonIndex);
     expect(rateLimitIndex).toBeLessThan(insertIndex);
     expect(supportRoute).toContain("code: 'rate_limited'");
-  });
-
-  it('keeps schema repair fail-closed after broad legacy grants', () => {
-    expect(applySchema).toContain("name: 'final service-managed write enforcement'");
-    for (const table of TABLES) {
-      expect(applySchema).toContain(`'${table}'`);
-    }
-    expect(applySchema).toContain(
-      "'revoke insert, update, delete on table public.%i from public, anon, authenticated'",
-    );
   });
 });

@@ -74,9 +74,9 @@ function SponsorRow({
       <div style={{ flex: '1 1 200px', minWidth: 0 }}>
         {editing ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <input value={editName} onChange={e => setEditName(e.target.value)}
+            <input aria-label="Sponsor name" value={editName} onChange={e => setEditName(e.target.value)}
               style={{ padding: '6px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 13, fontWeight: 700 }} placeholder="Company name" />
-            <input value={editSite} onChange={e => setEditSite(e.target.value)}
+            <input aria-label="Sponsor website URL" value={editSite} onChange={e => setEditSite(e.target.value)}
               style={{ padding: '6px 10px', borderRadius: 7, border: '1px solid #d1d5db', fontSize: 12, color: '#6b7280' }} placeholder="https://example.com (optional)" />
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => { onEdit(sponsor.id, editName, editSite); setEditing(false); }}
@@ -101,7 +101,7 @@ function SponsorRow({
           {sponsor.active ? 'Visible' : 'Hidden'}
         </label>
 
-        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" style={{ display: 'none' }}
+        <input aria-label="Upload sponsor logo" ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" style={{ display: 'none' }}
           onChange={e => { const f = e.target.files?.[0]; if (f) onLogoUpload(sponsor.id, f); e.target.value = ''; }} />
         <button onClick={() => fileRef.current?.click()} disabled={uploading === sponsor.id}
           style={{ padding: '6px 12px', border: '1px solid #6c35ff', borderRadius: 8, background: '#f0eaff', color: '#6c35ff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
@@ -218,10 +218,10 @@ export default function AdminSponsorsClient() {
       <div style={{ marginBottom: 24, padding: '20px 24px', background: '#f8f9fc', borderRadius: 14, border: '1px solid #eef0f7' }}>
         <div style={{ fontWeight: 650, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>Add Sponsor</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Company name *"
+          <input aria-label="New sponsor company name" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Company name *"
             style={{ flex: '1 1 180px', padding: '9px 14px', borderRadius: 9, border: '1px solid #d1d5db', fontSize: 13, fontWeight: 700 }}
             onKeyDown={e => e.key === 'Enter' && void addSponsor()} />
-          <input value={newSite} onChange={e => setNewSite(e.target.value)} placeholder="Website URL (optional)"
+          <input aria-label="New sponsor website URL" value={newSite} onChange={e => setNewSite(e.target.value)} placeholder="Website URL (optional)"
             style={{ flex: '2 1 240px', padding: '9px 14px', borderRadius: 9, border: '1px solid #d1d5db', fontSize: 13, color: '#6b7280' }} />
           <button onClick={() => void addSponsor()} disabled={adding || !newName.trim()}
             style={{ padding: '9px 22px', background: '#6c35ff', color: '#fff', borderRadius: 9, border: 'none', cursor: 'pointer', fontWeight: 650, fontSize: 13, flexShrink: 0 }}>

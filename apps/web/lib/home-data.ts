@@ -117,16 +117,48 @@ export function aggregateCategoryStats(rows: { category: string | null; backer_c
     .sort((a, b) => b.count - a.count);
 }
 
+/**
+ * Ceiling on the category-stats scan.
+ *
+ * This is the only whole-table read left on a request path: it pulls one row per
+ * ACTIVE campaign to aggregate the homepage grid. 500 rows today, but nothing
+ * bounded it, so the cost grew with the table forever — on the highest-traffic
+ * page on the site.
+ *
+ * The right fix is a `group by` at the database, but PostgREST has aggregates
+ * disabled here (PGRST123), and adding the RPC needs DDL credentials no agent
+ * holds — the same blocker as the pending migrations. Until then, a ceiling.
+ *
+ * Deliberately NOT a plain `.limit()`. Silently truncating the scan would
+ * under-report every category below the cut and the grid would look perfectly
+ * fine while being wrong — the precise failure this file's other reads were
+ * fixed for. Hitting the ceiling is detected and logged instead, so the day it
+ * starts mattering is a log line rather than a quiet drift in the numbers.
+ */
+const CATEGORY_STATS_CEILING = 20_000;
+
 /** Real campaign counts + supporter totals per category, for the "Discover causes" grid. */
 async function getCategoryStatsUncached(): Promise<CategoryStat[]> {
   const cols = await campaignColumns();
   const { data: result } = await withQueryTimeout(
-    applyLiveFilters(supabaseAdmin.from('campaigns').select('category, backer_count'), cols),
+    applyLiveFilters(
+      supabaseAdmin.from('campaigns').select('category, backer_count'),
+      cols,
+    ).limit(CATEGORY_STATS_CEILING),
     { data: null } as { data: unknown[] | null },
   );
-  return aggregateCategoryStats(
-    (result?.data ?? []) as { category: string | null; backer_count: number | null }[],
-  );
+  const rows = (result?.data ?? []) as { category: string | null; backer_count: number | null }[];
+
+  if (rows.length >= CATEGORY_STATS_CEILING) {
+    // Not thrown: a slightly stale grid is better than no homepage. But it must
+    // not pass unremarked, because from here the counts start under-reporting.
+    console.warn(
+      '[home-data] category stats hit the scan ceiling — counts are now an undercount.',
+      { ceiling: CATEGORY_STATS_CEILING, fix: 'add a group-by RPC; PostgREST aggregates are disabled' },
+    );
+  }
+
+  return aggregateCategoryStats(rows);
 }
 
 /** Recent completed donations for the live social-proof feed. Anonymous donors are redacted. */

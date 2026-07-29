@@ -370,6 +370,7 @@ export default function MessagesClient({ threads, campaignMap, replies, threadSt
             )}
             <div className="kf-composer">
               <textarea
+                aria-label="Reply message"
                 placeholder="Type your reply..."
                 value={compose}
                 onChange={e => setCompose(e.target.value)}

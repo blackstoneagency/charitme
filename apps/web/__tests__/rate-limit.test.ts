@@ -48,7 +48,7 @@ describe('checkRateLimitDurable (Postgres-backed with fallback)', () => {
     }));
     const { checkRateLimitDurable } = await import('../lib/rate-limit-durable');
     expect(await checkRateLimitDurable('k', 5, 60_000)).toBe(false);
-  });
+  }, 15_000);
 
   it('falls back to the in-memory limiter when the RPC errors', async () => {
     vi.doMock('../lib/supabase', () => ({

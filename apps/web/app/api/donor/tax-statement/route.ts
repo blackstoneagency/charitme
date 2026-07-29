@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
 
   let statement, availableYears;
   try {
-    ({ statement, availableYears } = await getDonorTaxStatement(user.id, year, currency));
+    ({ statement, availableYears } = await getDonorTaxStatement(user.id, year, currency, user.email));
   } catch (error) {
     if (error instanceof MixedCurrencyError) {
       return NextResponse.json({ error: 'This report contains multiple currencies. Select one currency and try again.', code: error.code, availableCurrencies: error.currencies }, { status: 422 });

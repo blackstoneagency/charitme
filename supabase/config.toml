@@ -12,6 +12,21 @@ port = 54322
 shadow_port = 54320
 major_version = 15
 
+[db.seed]
+enabled = true
+sql_paths = [
+  "./seed.sql",
+  "./seeds/00_test_users.sql",
+  "./seeds/01_campaigns_core.sql",
+  "./seeds/02_marketplaces.sql",
+  "./seeds/03_events.sql",
+  "./seeds/04_impact_gamification.sql",
+  "./seeds/05_engagement_financial.sql",
+  "./seeds/06_extended_features.sql",
+  "./seeds/07_operational_features.sql",
+  "./seeds/99_verify_counts.sql",
+]
+
 [db.pooler]
 enabled = false
 

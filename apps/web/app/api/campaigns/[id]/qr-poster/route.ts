@@ -14,10 +14,16 @@ export async function GET(
 ) {
   const { id } = await params;
 
+  // Accept an id OR a slug. Campaigns are addressed by slug everywhere public
+  // (/campaigns/[slug]), and the share panel that links here only ever has the
+  // slug — so an id-only lookup made the poster unreachable from the one place
+  // that offers it.
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
   const { data: campaign } = await supabaseAdmin
     .from('campaigns')
     .select('id, title, slug, tagline, raised_amount, goal_amount, cover_image_url')
-    .eq('id', id)
+    .eq(isUuid ? 'id' : 'slug', id)
     .eq('status', 'active')
     .single();
 

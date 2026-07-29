@@ -16,3 +16,30 @@ Production deploy checklist:
 - `npm run test --workspace=apps/web`
 - `npm run build`
 - Smoke test create, donate, auth, dashboard, admin review.
+
+## Release workflow
+
+Production releases run only from semantic version tags such as `v1.4.0`.
+`.github/workflows/release.yml` verifies the app and a clean database replay,
+applies migrations to staging, runs live RLS checks, deploys staging, and runs
+the critical Playwright smoke, auth-gate, and security-header suites. The exact
+staging-verified commit is then passed to the protected `production` environment.
+
+Configure both the `staging` and `production` GitHub environments with:
+
+- Secrets: `SUPABASE_PROJECT_REF`, `SUPABASE_PRODUCTION_PROJECT_REF`,
+  `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_ANON_KEY`,
+  `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID`.
+- Staging-only secret: `CHARITME_RLS_TEST_USERS_JSON` with dedicated test
+  personas using `name`, `email`, `password`, and expected `userId`. At least two
+  personas are required so cross-user isolation is exercised.
+- Variable: `APP_URL`.
+
+The staging `SUPABASE_PROJECT_REF` must differ from
+`SUPABASE_PRODUCTION_PROJECT_REF`. In the production environment they must
+match. Configure required reviewers on the GitHub `production` environment so
+the staging evidence is reviewed before migrations and deployment proceed.
+
+Rollback the web deployment with `vercel rollback <deployment-url>`. Every
+database migration in the release must retain its corresponding script under
+`supabase/rollbacks/`.

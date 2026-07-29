@@ -81,7 +81,10 @@ export default function AiFollowUps({
         </span>
       </div>
 
-      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1, #1a1a2e)' }}>{current.question}</div>
+      {/* The inputs below are named by this heading via aria-labelledby, so the
+          accessible name is the question actually being asked and changes with
+          it — better than a fixed aria-label that would go stale per step. */}
+      <div id="ai-followup-question" style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1, #1a1a2e)' }}>{current.question}</div>
       {current.help && (
         <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--t3, #64748b)' }}>{current.help}</p>
       )}
@@ -104,7 +107,7 @@ export default function AiFollowUps({
 
         {current.kind === 'text' && (
           <div>
-            <input ref={inputRef} type="text" value={draft} onChange={(e) => setDraft(e.target.value.slice(0, 120))} placeholder="Type your answer…" style={inputStyle} />
+            <input aria-labelledby="ai-followup-question" ref={inputRef} type="text" value={draft} onChange={(e) => setDraft(e.target.value.slice(0, 120))} placeholder="Type your answer…" style={inputStyle} />
             {continueBtn(draft.trim().length === 0)}
           </div>
         )}
@@ -113,7 +116,7 @@ export default function AiFollowUps({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--t3, #64748b)' }}>$</span>
-              <input ref={inputRef} type="number" min="1" step="1" inputMode="numeric" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="5000" style={inputStyle} />
+              <input aria-labelledby="ai-followup-question" ref={inputRef} type="number" min="1" step="1" inputMode="numeric" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="5000" style={inputStyle} />
             </div>
             {continueBtn(!(Number.parseFloat(draft) > 0))}
           </div>
@@ -121,7 +124,7 @@ export default function AiFollowUps({
 
         {current.kind === 'date' && (
           <div>
-            <input type="date" value={draft} onChange={(e) => setDraft(e.target.value)} style={inputStyle} />
+            <input aria-labelledby="ai-followup-question" type="date" value={draft} onChange={(e) => setDraft(e.target.value)} style={inputStyle} />
             {continueBtn(draft.trim().length === 0)}
           </div>
         )}

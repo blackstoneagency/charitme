@@ -46,7 +46,16 @@ Three separate clients, never mix them:
 - `campaign_updates` — campaign news posts by the fundraiser
 
 ### Stripe flows
-- **Donations**: POST /api/donations → Stripe Checkout Session → webhook `checkout.session.completed` → `increment_campaign_stats` RPC
+- **Donations**: POST /api/donations → Stripe Checkout Session → webhook
+  `checkout.session.completed` → **`record_donation` RPC**. ⚠️ This previously read
+  `increment_campaign_stats`, which **no longer exists as an RPC** — there is no such
+  function in the schema, and no code calls it. `record_donation` inserts the donation
+  and a DB trigger (`donations_increment_campaign_stats`) moves the campaign totals.
+  It is **idempotent on `p_stripe_event_id`**, which is why every caller may safely
+  throw and let Stripe retry — and why they all do. The full RPC surface is only
+  six functions: `record_donation`, `decrement_campaign_stats`,
+  `claim_campaign_reward`, `check_rate_limit`, `get_admin_system_resource_usage`,
+  `reload_postgrest_schema_cache`.
 - **Payouts**: POST /api/stripe/connect → Stripe Connect Express onboarding → GET /api/stripe/connect?return marks `stripe_onboarded = true`
 - **Platform fee is 0%.** `PLATFORM_FEE_PERCENT = 0`. The `application_fee_amount`
   on the payment_intent is `tipCents + processingFeeCents` — the donor's optional

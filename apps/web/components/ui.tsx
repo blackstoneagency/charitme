@@ -1,5 +1,6 @@
 'use client';
-import React from 'react';
+import React, { useId } from 'react';
+import Link from 'next/link';
 
 // ── Btn ──────────────────────────────────────────────────────────────────────
 type BtnVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -20,6 +21,19 @@ const btnSizes: Record<BtnSize, React.CSSProperties> = {
   lg: { padding: '13px 28px', fontSize: '15px', borderRadius: 'var(--rl)' },
 };
 
+/** The visual identity of a button, shared by Btn and BtnLink so they cannot drift. */
+function btnAppearance(variant: BtnVariant, size: BtnSize): React.CSSProperties {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontWeight: 600,
+    transition: 'opacity .15s, background .15s',
+    ...btnStyles[variant],
+    ...btnSizes[size],
+  };
+}
+
 export function Btn({
   variant = 'primary',
   size = 'md',
@@ -36,15 +50,9 @@ export function Btn({
     <button
       disabled={loading || props.disabled}
       style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '8px',
-        fontWeight: 600,
+        ...btnAppearance(variant, size),
         cursor: loading || props.disabled ? 'not-allowed' : 'pointer',
         opacity: loading || props.disabled ? 0.65 : 1,
-        transition: 'opacity .15s, background .15s',
-        ...btnStyles[variant],
-        ...btnSizes[size],
         ...style,
       }}
       {...props}
@@ -52,6 +60,43 @@ export function Btn({
       {loading && <Spinner size={14} />}
       {children}
     </button>
+  );
+}
+
+// ── BtnLink ──────────────────────────────────────────────────────────────────
+/**
+ * A navigation control that LOOKS like a button but IS a link.
+ *
+ * Use this instead of `<Link><Btn>…</Btn></Link>`. That pattern renders a
+ * `<button>` inside an `<a>`, which is invalid HTML — interactive content may
+ * not nest — and it produced a real axe failure: the button covers the anchor,
+ * leaving a 2px sliver of link exposed, so `target-size` (WCAG 2.2 AA 2.5.8)
+ * fails at "147.5px by 2px". It also gives assistive tech two overlapping
+ * controls for one action.
+ *
+ * Appearance comes from the same btnAppearance() as Btn, so the two cannot
+ * drift apart visually.
+ */
+export function BtnLink({
+  href,
+  variant = 'primary',
+  size = 'md',
+  style,
+  children,
+  ...props
+}: Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> & {
+  href: string;
+  variant?: BtnVariant;
+  size?: BtnSize;
+}) {
+  return (
+    <Link
+      href={href}
+      style={{ ...btnAppearance(variant, size), cursor: 'pointer', textDecoration: 'none', ...style }}
+      {...props}
+    >
+      {children}
+    </Link>
   );
 }
 
@@ -63,10 +108,17 @@ export function Input({
   style,
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement> & { label?: string; error?: string; hint?: string }) {
+  // The label was a bare sibling with no htmlFor, so it named nothing. This is
+  // the SHARED input, so every consumer that passes `label` inherited that —
+  // the highest-leverage instance of the same defect found in three local
+  // wrappers. `props.id` wins when a caller supplies one.
+  const autoId = useId();
+  const inputId = props.id ?? autoId;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      {label && <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t2)' }}>{label}</label>}
+      {label && <label htmlFor={inputId} style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t2)' }}>{label}</label>}
       <input
+        id={inputId}
         style={{
           padding: '10px 12px',
           border: `1px solid ${error ? 'var(--red)' : 'var(--b1)'}`,
@@ -95,10 +147,13 @@ export function Textarea({
   style,
   ...props
 }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & { label?: string; error?: string; hint?: string }) {
+  const autoId = useId();
+  const textareaId = props.id ?? autoId;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      {label && <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t2)' }}>{label}</label>}
+      {label && <label htmlFor={textareaId} style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t2)' }}>{label}</label>}
       <textarea
+        id={textareaId}
         style={{
           padding: '10px 12px',
           border: `1px solid ${error ? 'var(--red)' : 'var(--b1)'}`,
@@ -212,10 +267,13 @@ export function Select({
   style,
   ...props
 }: React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string; error?: string }) {
+  const autoId = useId();
+  const selectId = props.id ?? autoId;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      {label && <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t2)' }}>{label}</label>}
+      {label && <label htmlFor={selectId} style={{ fontSize: '13px', fontWeight: 600, color: 'var(--t2)' }}>{label}</label>}
       <select
+        id={selectId}
         style={{
           padding: '10px 12px',
           border: `1px solid ${error ? 'var(--red)' : 'var(--b1)'}`,

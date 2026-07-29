@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Btn, Badge, EmptyState, Spinner } from '../../../components/ui';
+import { Badge, Btn, BtnLink, EmptyState, Spinner } from '../../../components/ui';
 import { grantApplicationStatusLabel, type GrantApplicationStatus } from '../../../lib/grants';
 
 interface AppRow {
@@ -81,7 +81,7 @@ export default function GrantApplicationsClient() {
         icon="📄"
         title="No grant applications yet"
         body="Browse open grants and start an application — your drafts will appear here."
-        action={<Link href="/grants"><Btn>Browse grants</Btn></Link>}
+        action={<BtnLink href="/grants">Browse grants</BtnLink>}
       />
     );
   }

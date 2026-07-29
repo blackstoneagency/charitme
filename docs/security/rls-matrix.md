@@ -16,9 +16,9 @@
 ## Finding & remediation
 
 **Finding (Medium → latent High):** the 34 service-role-only tables had no RLS
-declaration. Because the schema-cache-reload path (`POST /api/health`) grants
-`anon`/`authenticated` broad table privileges, a table left without RLS could be
-read directly through PostgREST even though the app never does so.
+declaration. A legacy schema-cache-reload path granted `anon`/`authenticated`
+broad table privileges, so a table left without RLS could be read directly
+through PostgREST even though the app never did so.
 
 **Remediation (this session):** migration
 `20260723002000_rls_hardening_admin_tables.sql` enables RLS (deny-all, no
@@ -26,6 +26,11 @@ policies) on all 34. Because `service_role` bypasses RLS (`BYPASSRLS`), every
 existing admin route, webhook handler, and marketing function keeps working
 unchanged; anon/authenticated direct-PostgREST access is now denied. Idempotent
 and existence-guarded, so safe on clean or existing databases.
+
+The legacy privilege-changing cache reload and in-app raw-SQL schema repair
+paths are retired. `POST /api/health` now invokes a service-role-only function
+that can only notify PostgREST, while all schema changes must pass through the
+staging-gated release workflow.
 
 **Verification method used:** for each table, `grep` confirmed every `.from('<t>')`
 call site resides in a file whose only Supabase client is `supabaseAdmin`
@@ -59,13 +64,14 @@ key. It verifies that anonymous callers cannot read `profiles`, `donations`, or
 of real staging test users through `CHARITME_RLS_TEST_USERS_JSON`:
 
 ```json
-[{"name":"donor-a","accessToken":"<access token>","userId":"<uuid>"},{"name":"donor-b","accessToken":"<access token>","userId":"<uuid>"}]
+[{"name":"donor-a","email":"<staging email>","password":"<staging password>","userId":"<uuid>"},{"name":"donor-b","email":"<staging email>","password":"<staging password>","userId":"<uuid>"}]
 ```
 
 The harness verifies each user's own profile is readable and another supplied
 persona's profile is not. It never writes data, uses the service-role key, or
-prints access tokens. Run it only against a staging project with dedicated test
-users before recording a new certification.
+prints credentials. It creates fresh sessions on each run, so release checks do
+not depend on stored access tokens. Run it only against a staging project with
+dedicated test users before recording a new certification.
 
 ## Remaining (gated on live DB access)
 

@@ -105,12 +105,27 @@ export async function POST(
   }
 
   // ── 5. Duplicate guard — block a second pending request ──────────────────
-  const { data: existingRequest } = await supabaseAdmin
+  // Same shape as the GET below: several `refunds` rows per donation are normal,
+  // so `maybeSingle()` alone would error on the multi-row case — and because the
+  // error was discarded, the guard would fall open and let the duplicate through.
+  // A guard that fails open is worse than no guard, so an unreadable check is an
+  // error, not a pass. This mirrors the donor page, which refuses to submit
+  // rather than risk a duplicate when it cannot verify eligibility.
+  const { data: existingRequest, error: existingErr } = await supabaseAdmin
     .from('refunds')
     .select('id, status')
     .eq('donation_id', donationId)
     .in('status', ['requested', 'approved'])
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
+
+  if (existingErr) {
+    return NextResponse.json(
+      { error: 'We could not verify your refund eligibility. Please try again.', code: 'REFUND_CHECK_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
 
   if (existingRequest) {
     return NextResponse.json(
@@ -167,11 +182,27 @@ export async function GET(
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  const { data: existing } = await supabaseAdmin
+  // A donation can legitimately have SEVERAL `refunds` rows — a donor request
+  // plus the admin's processed row, or two partial refunds. A bare `maybeSingle()`
+  // errors on more than one match (PGRST116), and since the error was discarded
+  // that surfaced as `refundRequest: null` — "you have no pending request" —
+  // exactly when the donor most needs to see one. Take the newest instead.
+  const { data: existing, error: existingErr } = await supabaseAdmin
     .from('refunds')
     .select('id, status, created_at')
     .eq('donation_id', donationId)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
+
+  // Never report "no request" because the lookup failed — the donor would file a
+  // duplicate.
+  if (existingErr) {
+    return NextResponse.json(
+      { error: 'Could not check refund status', code: 'REFUND_STATUS_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
 
   return NextResponse.json({ refundRequest: existing ?? null });
 }
