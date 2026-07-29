@@ -1886,6 +1886,40 @@ refunds — which is defensible and still stronger than a vague assurance.
 4. **Creator economy** — largest build; schema already exists, so it is code + UI, not migrations.
 5. **Giving Funds** — blocked on a legal decision, not on engineering.
 
+## ✅ REGRESSION SWEEP after the 73-commit master merge (Claude, 2026-07-29)
+
+**All 97 signed-in routes render.** No crashes introduced by the merge — the
+`/admin/super` class of failure has not recurred.
+
+### ⚠️ My own smoke script broke on merged master, and failed LOUDLY the wrong way
+
+Master changed `authGated.dynamicSamples` from strings to objects
+(`{ template, path }`). The script spread them straight into a URL, producing
+`http://127.0.0.1:4195[object Object]`, and reported **19 routes as crashed**.
+
+A tooling break that presents as 19 product failures is worse than having no
+check — it is exactly the noise that teaches people to ignore a red result. Fixed
+by normalising (`entry.path ?? entry.url`) and filtering to strings that start
+with `/`, so a future shape change drops the entry rather than inventing failures.
+
+### `audit:orphan-tables` — 3 tables with ≥100 rows and no reader
+
+Ran the existing audit rather than writing another. Results, each checked:
+
+| table | rows | verdict |
+|---|---|---|
+| `trust_scores` | 500 | **already resolved, correctly.** Trust scoring is computed live per request; the stored rows are a stale April snapshot with null status and empty signals. Reading them would show donors an out-of-date safety signal, so the table was deliberately dropped from the catalog rather than wired. Documented at `feature-catalog.ts:253`. |
+| `creator_profiles` | 500 | expected — the creator-economy module is schema-only (see the gap analysis above). |
+| `coach_sessions` | 500 | genuinely orphaned, but **not a lie**: the catalog never claims it. |
+
+**On `coach_sessions` — I chose not to wire it, and the reason matters.** The
+table holds only `message_count`, not conversation text, so it is a usage-metrics
+table. `/api/ai/coach` neither reads nor writes it. Adding a writer would satisfy
+the audit's "has a `.from()` call site" check while producing analytics **no
+surface consumes** — moving the orphan-ness from the table to the data, and
+turning a real signal into a green tick. Wiring it needs a consumer decision
+(most naturally the AI Control Center at `/admin/ai`), not code.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).

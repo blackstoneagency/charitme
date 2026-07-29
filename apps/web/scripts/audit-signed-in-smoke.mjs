@@ -56,11 +56,18 @@ const BASE = `http://127.0.0.1:${APP_PORT}`;
 const USER_ID = '00000000-0000-4000-8000-000000000001';
 
 const routesDoc = JSON.parse(readFileSync(path.join(WEB_ROOT, 'e2e', 'public-routes.json'), 'utf8'));
+// `dynamicSamples` entries are OBJECTS ({ template, path }), not strings — master
+// changed the shape and this script silently built URLs like
+// `http://127.0.0.1:4195[object Object]`, then reported every one of them as a
+// crash. A tooling break that reads as 19 product failures is worse than no
+// check, so normalise rather than assume.
+const samplePath = (entry) => (typeof entry === 'string' ? entry : entry.path ?? entry.url);
+
 const ROUTES = [
   ...routesDoc.authGated.routes,
   ...routesDoc.authGated.consoles,
-  ...routesDoc.authGated.dynamicSamples,
-];
+  ...routesDoc.authGated.dynamicSamples.map(samplePath),
+].filter((r) => typeof r === 'string' && r.startsWith('/'));
 
 /** Same cookie shape @supabase/ssr writes — see audit-signed-in.mjs. */
 function sessionCookie() {
