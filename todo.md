@@ -1692,6 +1692,125 @@ nothing about real database latency. Query count is the transferable number.
 there — memoization is a request-scope optimisation, and losing it in a unit test
 changes only whether the query is deduped.
 
+## 🥊 COMPETITOR GAP ANALYSIS — grounded in code, not marketing (Claude, 2026-07-29)
+
+Requested: enumerate every competitor feature, compare, and for each one — equal
+or missing — say what would make CharitMe *far superior*. The parity dashboard
+(`/features`) reports:
+
+| | score | | | score |
+|---|---|---|---|---|
+| GoFundMe | **10/10** ✅ | | Donorbox | 9/10 |
+| Kickstarter | **10/10** ✅ | | Classy | 9/10 |
+| Indiegogo | **7/7** ✅ | | Mightycause | 9/10 |
+| Givebutter | **10/10** ✅ | | Patreon | **0/10** |
+| CharitMe | **8/8** ✅ | | Ko-fi / Buy Me a Coffee | **0/10** |
+
+**Those scores are honest — I verified the zeros rather than trusting them.**
+
+### There are exactly TWO real product gaps, not ten
+
+**GAP 1 — Peer-to-peer fundraising.** Only **3** features in the whole catalog
+carry `planned: true`, and all three are the same capability under three names:
+`Peer-to-Peer Fundraising` (Donorbox), `Peer-to-Peer Campaigns` (Classy),
+`Peer Fundraising` (Mightycause). **One feature is the sole thing standing between
+CharitMe and 9/10 → 10/10 on three competitors at once.** Highest
+parity-per-effort item that exists.
+
+**GAP 2 — The creator economy module is schema-only.** Patreon / Ko-fi / Buy Me a
+Coffee score 0/10 because their module is `status: 'Planned'`. I checked whether
+that label is stale, and it is not:
+
+```
+membership_tiers      readers=0        exclusive_posts   readers=0
+member_subscriptions  readers=0        creator_tips      readers=0
+digital_products      readers=0        product_orders    readers=0
+```
+
+**Zero** API routes, UI files or lib modules reference any of the five tables the
+module declares. The tables exist and `creator_profiles` even holds 500 seeded
+rows, but nothing reads them. `status: 'Planned'` is accurate.
+
+### ⚠️ This CORRECTS my own seed analysis above
+
+I wrote that ~25 empty tables were "features whose UI ships with no data". **For
+11 of them that is wrong — nothing reads them at all:**
+
+`membership_tiers`, `member_subscriptions`, `exclusive_posts`, `creator_tips`,
+`digital_products`, `product_orders`, `giving_days`, `livestreams`,
+`reward_tiers`, `donor_segments`
+
+Seeding those achieves **nothing visible**, because there is no reader. They are
+*unbuilt*, not *unseeded*. The distinction matters: it moves them out of "run the
+seed file" and into "build the feature".
+
+**Genuinely "shipped UI, empty data" — seeding DOES help these:**
+`auction_items`, `auction_bids` (real code: `lib/auctions.ts` → `app/api/auctions/[id]/bids/route.ts`
+and `app/events/[slug]/page.tsx` — the older note in this file saying auctions have
+"no API, lib or UI" is out of date), plus `email_campaigns`, `sms_campaigns`,
+`marketing_forms`, `marketing_goals`, `marketing_opportunities`,
+`marketing_campaign_plans`.
+
+### Where CharitMe is EQUAL — what would make it far superior
+
+Parity is table stakes; these are the moves that would make each one best-in-class.
+
+**Campaign creation (GoFundMe/Kickstarter equal).** CharitMe already has the AI
+builder GoFundMe lacks. Superior = the builder writes the *whole* campaign from a
+two-sentence prompt — story, goal derived from comparable local outcomes, cover
+image, update schedule, and a share plan — then A/B tests the title and hero
+against live traffic and tells the organizer which won.
+
+**Donation checkout (equal).** Superior = one-tap repeat giving for returning
+donors, a donor-side receipt that shows exactly where the money went as the
+campaign spends it, and a "round up my change monthly" option that converts a
+one-off donor into recurring without a second decision.
+
+**Trust & safety (equal).** CharitMe has CharitScore, GoFundMe has the Giving
+Guarantee. Superior = publish the score's *inputs* on the campaign page
+(verification state, payout destination, spend receipts) so trust is auditable
+rather than asserted — no competitor shows their reasoning.
+
+**Discovery (equal).** Superior = proximity ranking ("15 miles away") *plus* the
+thing GoFundMe cannot do — rank by verified impact-per-dollar using
+`impact_metrics`, so donors can sort by outcomes rather than popularity.
+
+**Organizer dashboard (equal).** Superior = the AI growth plan already shipped,
+extended to act: draft the next update, pick the send window from donor activity,
+and flag the specific supporters most likely to give again.
+
+### Where CharitMe is MISSING — what to build, and how to leapfrog
+
+**Peer-to-peer (missing; blocks 3 competitors).** Minimum parity: each supporter
+gets a sub-page rolling into a parent total. Superior = auto-generated personal
+pages with the supporter's own photo and a pre-written story from the parent
+campaign, team leaderboards, and a share-to-raise flow that makes a supporter's
+page in one tap from the donation confirmation — the moment intent is highest.
+
+**Creator economy (missing; blocks 3 competitors).** Minimum parity: tiers,
+subscriptions, member-only posts. Superior = memberships that fund *causes* rather
+than personalities — a creator's members see the aggregate impact their
+subscription bought, with receipts, which is a proposition Patreon structurally
+cannot make.
+
+**Giving Funds / donor wallet (GoFundMe flagship; missing).** ⚠️ Holding donor
+balances is money transmission and DAF-adjacent — **product and legal decision
+first, not an engineering ticket.** Superior *if* pursued: a fund that
+auto-allocates on the donor's stated priorities and reports blended impact.
+
+**Donor guarantee page (missing).** Highest trust-per-effort item on this list and
+mostly policy + content. Superior = state the guarantee *and* publish the payout
+dispute rate, which no competitor discloses.
+
+### Recommended order
+
+1. **Peer-to-peer** — one feature, three competitors to full parity, and it is a
+   growth loop rather than a checkbox.
+2. **Donor guarantee page** — hours of content work for a top-level trust surface.
+3. **Proximity discovery** — needs lat/long on campaigns; strongest known donation driver.
+4. **Creator economy** — largest build; schema already exists, so it is code + UI, not migrations.
+5. **Giving Funds** — blocked on a legal decision, not on engineering.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).
