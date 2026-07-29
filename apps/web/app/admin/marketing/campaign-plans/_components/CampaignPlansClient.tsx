@@ -61,7 +61,7 @@ function ListView() {
 
   return (
     <div style={{ padding: '0 20px 48px', maxWidth: 900 }}>
-      {notice && <div style={{ ...card, padding: '12px 18px', background: '#fff0f3', borderColor: '#fecdd3', color: '#be123c', fontWeight: 700, fontSize: 13 }}>{notice}</div>}
+      {notice && <div style={{ ...card, padding: '12px 18px', background: 'var(--tint-rose)', borderColor: '#fecdd3', color: 'var(--red-text)', fontWeight: 700, fontSize: 13 }}>{notice}</div>}
 
       <div style={card}>
         <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', marginBottom: 6 }}>Generate a campaign from a goal</div>
@@ -79,7 +79,7 @@ function ListView() {
       {loading ? (
         <div style={{ ...card, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Loading…</div>
       ) : error ? (
-        <div style={{ ...card, background: '#fff0f3', borderColor: '#fecdd3', color: '#be123c' }}>{error} <button onClick={load} style={{ ...btnGhost, marginLeft: 8 }}>Retry</button></div>
+        <div style={{ ...card, background: 'var(--tint-rose)', borderColor: '#fecdd3', color: 'var(--red-text)' }}>{error} <button onClick={load} style={{ ...btnGhost, marginLeft: 8 }}>Retry</button></div>
       ) : plans.length === 0 ? (
         <div style={{ ...card, textAlign: 'center', padding: '40px 24px' }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#475569', marginBottom: 6 }}>No campaign plans yet</div>
@@ -148,13 +148,13 @@ function Detail({ planId }: { planId: string }) {
   };
 
   if (loading) return <div style={{ padding: 20 }}><div style={{ ...card, textAlign: 'center', color: 'var(--t3)' }}>Loading…</div></div>;
-  if (error || !plan) return <div style={{ padding: 20 }}><div style={{ ...card, background: '#fff0f3', borderColor: '#fecdd3', color: '#be123c' }}>{error || 'Not found.'} <button onClick={load} style={{ ...btnGhost, marginLeft: 8 }}>Retry</button></div></div>;
+  if (error || !plan) return <div style={{ padding: 20 }}><div style={{ ...card, background: 'var(--tint-rose)', borderColor: '#fecdd3', color: 'var(--red-text)' }}>{error || 'Not found.'} <button onClick={load} style={{ ...btnGhost, marginLeft: 8 }}>Retry</button></div></div>;
 
   const approvedCount = assets.filter((a) => a.status === 'approved').length;
 
   return (
     <div style={{ padding: '0 20px 48px', maxWidth: 900 }}>
-      {notice && <div style={{ ...card, padding: '12px 18px', background: notice.startsWith('❌') ? '#fff0f3' : '#f0fdf4', borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? '#be123c' : '#15803d' }}>{notice}</div>}
+      {notice && <div style={{ ...card, padding: '12px 18px', background: notice.startsWith('❌') ? 'var(--tint-red)' : '#f0fdf4', borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? 'var(--red-text)' : 'var(--green-text)' }}>{notice}</div>}
 
       <a href="/admin/marketing/campaign-plans" style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}>← All plans</a>
 
@@ -170,7 +170,7 @@ function Detail({ planId }: { planId: string }) {
           {plan.status === 'approved' && <span style={{ fontSize: 12, color: '#10b981', fontWeight: 700 }}>Approved · {approvedCount}/{assets.length} assets approved</span>}
           {plan.status !== 'draft' && plan.status !== 'approved' && <button onClick={() => setPlanStatus('draft')} style={btnGhost}>Back to draft</button>}
         </div>
-        <div style={{ fontSize: 11, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px', marginTop: 12 }}>
+        <div style={{ fontSize: 11, color: '#b45309', background: 'var(--tint-amber)', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px', marginTop: 12 }}>
           Assets are drafts for review. External publishing (social/email/ads) requires connected channels, which aren’t enabled — approve here, then export/publish once connectors exist.
         </div>
       </div>

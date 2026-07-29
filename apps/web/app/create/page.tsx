@@ -1168,7 +1168,7 @@ export default function CreatePage() {
           </span>
           <span style={{ fontSize: 13, opacity: .9 }}>Saved {draftAgeLabel(recoverableDraft.ts)}</span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={resumeDraft} style={{ background: 'var(--s1, #fff)', color: 'var(--violet)', border: 0, borderRadius: 999, padding: '8px 18px', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <button type="button" onClick={resumeDraft} style={{ background: 'var(--s1, #fff)', color: 'var(--brand-text)', border: 0, borderRadius: 999, padding: '8px 18px', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
               Resume
             </button>
             <button type="button" onClick={dismissDraft} style={{ background: 'rgba(255,255,255,.18)', color: '#fff', border: '1px solid rgba(255,255,255,.4)', borderRadius: 999, padding: '8px 16px', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -1634,7 +1634,7 @@ export default function CreatePage() {
                       <strong>{dragging ? 'Release to upload' : 'Drop images here or click to browse'}</strong>
                       <span>JPG, PNG, GIF, WebP, AVIF · up to {MAX_IMAGES} images · 10 MB each</span>
                     </div>
-                    {uploadError && <p role="alert" style={{ margin: '6px 0 0', fontSize: 12, color: '#ef4444', fontWeight: 700 }}>{uploadError}</p>}
+                    {uploadError && <p role="alert" style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--red-text)', fontWeight: 700 }}>{uploadError}</p>}
                   </div>
 
                   {uploadedImages.length > 0 && (
@@ -1975,7 +1975,7 @@ export default function CreatePage() {
                       <span aria-hidden style={{ fontSize: 17 }}>💡</span>
                       <span>
                         <strong>You can launch now.</strong> Your campaign goes live and is shareable immediately. To start <em>receiving</em> donations, connect a payout method — you can{' '}
-                        <button type="button" onClick={() => setStep('payout')} style={{ background: 'none', border: 0, padding: 0, color: 'var(--violet)', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>do it now</button>{' '}
+                        <button type="button" onClick={() => setStep('payout')} style={{ background: 'none', border: 0, padding: 0, color: 'var(--brand-text)', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>do it now</button>{' '}
                         or anytime from your dashboard.
                       </span>
                     </div>
@@ -2018,7 +2018,7 @@ export default function CreatePage() {
                     {/* Title */}
                     <div className="cr2-review-row">
                       <span className="cr2-review-label">Title</span>
-                      <span className="cr2-review-val">{form.title || <span style={{ color: '#ef4444' }}>Not set</span>}</span>
+                      <span className="cr2-review-val">{form.title || <span style={{ color: 'var(--red-text)' }}>Not set</span>}</span>
                       <button type="button" className="cr2-review-edit" onClick={() => setStep('title')}>Edit</button>
                     </div>
 
@@ -2026,7 +2026,7 @@ export default function CreatePage() {
                     <div className="cr2-review-row">
                       <span className="cr2-review-label">Goal</span>
                       <span className="cr2-review-val">
-                        {goalCents >= 100 ? `$${(goalCents / 100).toLocaleString()}` : <span style={{ color: '#ef4444' }}>Not set</span>}
+                        {goalCents >= 100 ? `$${(goalCents / 100).toLocaleString()}` : <span style={{ color: 'var(--red-text)' }}>Not set</span>}
                         {form.autoGoal === 'true' && <span className="cr2-automated-badge">AUTOMATED</span>}
                       </span>
                       <button type="button" className="cr2-review-edit" onClick={() => setStep('goal')}>Edit</button>
@@ -2047,7 +2047,7 @@ export default function CreatePage() {
                       <span className="cr2-review-val">
                         {form.description.length >= 20
                           ? `${form.description.slice(0, 80)}${form.description.length > 80 ? '…' : ''}`
-                          : <span style={{ color: '#ef4444' }}>Story too short (min 20 chars)</span>}
+                          : <span style={{ color: 'var(--red-text)' }}>Story too short (min 20 chars)</span>}
                       </span>
                       <button type="button" className="cr2-review-edit" onClick={() => setStep('story')}>Edit</button>
                     </div>
@@ -2294,7 +2294,7 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep, savedImages
           )}
           <label className="guest-modal-label">Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email" /></label>
           <label className="guest-modal-label">Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required minLength={6} autoComplete={modalMode === 'login' ? 'current-password' : 'new-password'} /></label>
-          {err && <p role="alert" style={{ margin: 0, color: '#be123c', fontSize: 13, fontWeight: 700 }}>{err}</p>}
+          {err && <p role="alert" style={{ margin: 0, color: 'var(--red-text)', fontSize: 13, fontWeight: 700 }}>{err}</p>}
           {ok  && <p style={{ margin: 0, color: 'var(--green-text)', fontSize: 13, fontWeight: 700 }}>{ok}</p>}
           <button className="guest-modal-submit" type="submit" disabled={busy}>
             {busy ? 'Working…' : modalMode === 'login' ? 'Log in' : 'Create account'}

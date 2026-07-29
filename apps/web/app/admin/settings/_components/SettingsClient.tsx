@@ -244,7 +244,7 @@ export default function SettingsClient({ categories, settings: initialSettings, 
         <nav className="kf-settings-nav">
           <h3 style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#4b5676', letterSpacing: '0.05em' }}>Settings</h3>
           {categories.map(cat => (
-            <button key={cat.key} onClick={() => setActiveCategory(cat.label)} style={{ minHeight: 46, display: 'flex', alignItems: 'center', gap: 13, padding: '0 14px', borderRadius: 9, border: 'none', cursor: 'pointer', fontWeight: 650, fontSize: 14, textAlign: 'left', width: '100%', background: activeCategory === cat.label ? '#f0eaff' : 'transparent', color: activeCategory === cat.label ? '#551cf2' : '#18234d' }}>
+            <button key={cat.key} onClick={() => setActiveCategory(cat.label)} style={{ minHeight: 46, display: 'flex', alignItems: 'center', gap: 13, padding: '0 14px', borderRadius: 9, border: 'none', cursor: 'pointer', fontWeight: 650, fontSize: 14, textAlign: 'left', width: '100%', background: activeCategory === cat.label ? 'var(--tint-violet)' : 'transparent', color: activeCategory === cat.label ? 'var(--brand-text)' : '#18234d' }}>
               <KFIcon name={cat.icon} />
               <div><span>{cat.label}</span><small style={{ display: 'block', fontSize: 11, fontWeight: 650, color: activeCategory === cat.label ? '#7c50f5' : '#67718e', marginTop: 2 }}>{cat.description}</small></div>
             </button>
@@ -260,7 +260,7 @@ export default function SettingsClient({ categories, settings: initialSettings, 
           </div>
           {renderDetailPanel()}
           <div style={{ padding: '16px 26px', borderTop: '1px solid #eef0f7', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-            {notice && <span style={{ color: notice.includes('could not') ? '#e11d48' : '#079447', fontSize: 13, fontWeight: 650, alignSelf: 'center' }}>{notice}</span>}
+            {notice && <span style={{ color: notice.includes('could not') ? 'var(--red-text)' : 'var(--green-text)', fontSize: 13, fontWeight: 650, alignSelf: 'center' }}>{notice}</span>}
             <button className="kf-outline" style={{ height: 44, padding: '0 20px' }} onClick={() => setSettings(initialSettings)} disabled={isPending}>Reset</button>
             <button className="kf-primary" style={{ height: 44, padding: '0 24px' }} onClick={handleSave} disabled={isPending}>{isPending ? 'Saving...' : 'Save Changes'}</button>
           </div>

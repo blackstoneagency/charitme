@@ -106,7 +106,7 @@ export default function CampaignWorkspace({
                 }}
               >
                 <KFIcon name={tool.icon} />
-                <strong style={{ fontSize: 13, color: active ? '#6c35ff' : 'var(--t1)', marginTop: 6 }}>{tool.label}</strong>
+                <strong style={{ fontSize: 13, color: active ? 'var(--brand-text)' : 'var(--t1)', marginTop: 6 }}>{tool.label}</strong>
                 <span style={{ fontSize: 11, color: 'var(--t3)' }}>{tool.desc}</span>
               </button>
             );

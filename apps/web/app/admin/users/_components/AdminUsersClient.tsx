@@ -927,7 +927,7 @@ export default function AdminUsersClient({
                       textAlign: 'left',
                       fontSize: 13,
                       fontWeight: 650,
-                      color: danger ? '#e11d48' : '#101842',
+                      color: danger ? 'var(--red-text)' : '#101842',
                       cursor: 'pointer',
                     }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = danger ? 'rgba(190,18,60,.08)' : 'rgba(108,53,255,.08)'; }}
@@ -1023,7 +1023,7 @@ function DonationsTab({
               <span style={{ color: 'var(--t1)', fontWeight: 700 }}>{money(d.amountCents)}</span>
               <span>{d.campaignTitle}</span>
               <span>
-                <span style={{ background: d.status === 'completed' ? '#dcfce7' : '#fef9c3', color: d.status === 'completed' ? '#166534' : '#854d0e', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 650 }}>
+                <span style={{ background: d.status === 'completed' ? '#dcfce7' : '#fef9c3', color: d.status === 'completed' ? '#166534' : 'var(--orange-text)', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 650 }}>
                   {d.status}
                 </span>
               </span>

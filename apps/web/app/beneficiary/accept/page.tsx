@@ -127,7 +127,7 @@ function AcceptForm() {
           You&apos;ve been invited to receive funds
         </h1>
         {invite && (
-          <p style={{ color: 'var(--violet)', fontSize: 15, fontWeight: 700, margin: '0 0 8px' }}>
+          <p style={{ color: 'var(--brand-text)', fontSize: 15, fontWeight: 700, margin: '0 0 8px' }}>
             {invite.campaigns?.title}
           </p>
         )}
@@ -136,7 +136,7 @@ function AcceptForm() {
         </p>
 
         <div style={{ background: 'var(--s2)', borderRadius: 12, padding: '16px 20px', marginBottom: 24, textAlign: 'left' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--violet)', textTransform: 'uppercase', marginBottom: 8 }}>How it works</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-text)', textTransform: 'uppercase', marginBottom: 8 }}>How it works</div>
           {[
             'Click "Accept" below (sign in or create a free account)',
             'Connect your bank via Stripe (2–3 minutes)',

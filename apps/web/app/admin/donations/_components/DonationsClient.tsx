@@ -776,7 +776,7 @@ function DetailView({
                   <span className="ado-info-label">{label}</span>
                   <span
                     className="ado-info-val"
-                    style={{ color: label === 'Marked as Spam' && detail.isSpam ? '#f97316' : undefined }}
+                    style={{ color: label === 'Marked as Spam' && detail.isSpam ? 'var(--orange-text)' : undefined }}
                   >
                     {val}
                   </span>
@@ -1076,7 +1076,7 @@ export default function DonationsClient({
               ...top5.map((c, idx) => ({
                 label: c.campaign_title.slice(0, 20) + (c.campaign_title.length > 20 ? '…' : ''),
                 value: Math.round(c.total_cents / 100),
-                color: (['#6c35ff', '#ec3fb4', '#2f80ed', '#19b86a', '#f59e0b'] as string[])[idx % 5],
+                color: (['var(--brand-text)', '#ec3fb4', '#2f80ed', '#19b86a', '#f59e0b'] as string[])[idx % 5],
               })),
               ...(othersTotal > 0 ? [{ label: 'Others', value: Math.round(othersTotal / 100), color: '#a9afc2' }] : []),
             ]} />
@@ -1166,7 +1166,7 @@ export default function DonationsClient({
                 height: 50, padding: '0 16px', border: 0,
                 borderBottom: `2px solid ${panelTab === t ? '#6c35ff' : 'transparent'}`,
                 background: 'none', fontWeight: panelTab === t ? 950 : 750, fontSize: 13,
-                color: panelTab === t ? '#551cf2' : '#202b55', cursor: 'pointer', whiteSpace: 'nowrap',
+                color: panelTab === t ? 'var(--brand-text)' : '#202b55', cursor: 'pointer', whiteSpace: 'nowrap',
               }}>
               {t}
             </button>
@@ -1213,7 +1213,7 @@ export default function DonationsClient({
                     height: 44, padding: '0 14px', border: 0,
                     borderBottom: `2px solid ${filterStatus === t.id ? '#6c35ff' : 'transparent'}`,
                     background: 'none', fontWeight: filterStatus === t.id ? 950 : 700, fontSize: 12,
-                    color: filterStatus === t.id ? '#551cf2' : '#66708d', cursor: 'pointer',
+                    color: filterStatus === t.id ? 'var(--brand-text)' : '#66708d', cursor: 'pointer',
                   }}>
                   {t.label}
                 </button>
@@ -1295,7 +1295,7 @@ export default function DonationsClient({
               {topDonors.slice(0, 20).map((d, i) => (
                 <div key={d.donor_id} style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.2fr 1fr 1fr', gap: 12, padding: '14px 18px', alignItems: 'center', borderBottom: i < topDonors.length - 1 ? '1px solid #f0f2f8' : 'none', background: 'var(--s1)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ width: 22, fontSize: 12, fontWeight: 700, color: i < 3 ? '#6c35ff' : '#8c9ab5', textAlign: 'center' }}>#{i + 1}</span>
+                    <span style={{ width: 22, fontSize: 12, fontWeight: 700, color: i < 3 ? 'var(--brand-text)' : 'var(--t3)', textAlign: 'center' }}>#{i + 1}</span>
                     <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#efe8ff,#6c35ff)', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
                       {d.donor_name.charAt(0).toUpperCase()}
                     </div>
@@ -1331,7 +1331,7 @@ export default function DonationsClient({
               if (recurring.length === 0) {
                 return (
                   <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--t3)' }}>
-                    <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#f3f0ff', display: 'grid', placeItems: 'center', margin: '0 auto 14px', color: 'var(--brand-text)' }}>
+                    <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--tint-violet)', display: 'grid', placeItems: 'center', margin: '0 auto 14px', color: 'var(--brand-text)' }}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={24} height={24} strokeLinecap="round" strokeLinejoin="round">
                         <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
                         <path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>

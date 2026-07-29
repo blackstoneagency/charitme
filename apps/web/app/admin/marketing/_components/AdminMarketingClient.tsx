@@ -89,14 +89,14 @@ export default function AdminMarketingClient({ initialTab = 'overview', overview
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             style={{ padding: '9px 18px', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 650, cursor: 'pointer',
-              background: tab === t.key ? '#fff' : 'transparent', color: tab === t.key ? '#6c35ff' : '#64748b',
+              background: tab === t.key ? '#fff' : 'transparent', color: tab === t.key ? 'var(--brand-text)' : 'var(--t3)',
               boxShadow: tab === t.key ? '0 1px 6px rgba(0,0,0,.08)' : 'none' }}>
             {t.label}
           </button>
         ))}
       </div>
 
-      {notice && <div style={{ ...card, padding: '12px 18px', background: notice.startsWith('❌') ? '#fff0f3' : '#f0fdf4', borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? '#be123c' : '#15803d' }}>{notice}</div>}
+      {notice && <div style={{ ...card, padding: '12px 18px', background: notice.startsWith('❌') ? 'var(--tint-red)' : '#f0fdf4', borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? 'var(--red-text)' : 'var(--green-text)' }}>{notice}</div>}
 
       {tab === 'overview'    && <OverviewTab overview={overview} go={setTab} />}
       {tab === 'audience'    && <AudienceTab flash={flash} />}
@@ -315,7 +315,7 @@ function ProfileDrawer({ profile, onClose }: { profile: ContactProfile; onClose:
 
         <Section title={`Consent history (${profile.consent.length})`}>
           {profile.consent.map((co, i) => (
-            <div key={i} style={{ fontSize: 12.5, color: co.granted ? '#059669' : '#dc2626', padding: '3px 0' }}>
+            <div key={i} style={{ fontSize: 12.5, color: co.granted ? 'var(--green-text)' : 'var(--red-text)', padding: '3px 0' }}>
               {co.granted ? '✓ granted' : '✕ revoked'} · {co.channel} · {co.source} · {dt(co.created_at)}
             </div>
           ))}
@@ -579,7 +579,7 @@ function AutomationsTab({ flash }: { flash: (m: string) => void }) {
         {runs.length === 0 && <p style={{ fontSize: 13, color: 'var(--t3)', margin: 0 }}>No runs yet — click “Run now” on an automation.</p>}
         {runs.map(r => (
           <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '6px 0', borderBottom: '1px solid #f5f6fa' }}>
-            <span><b style={{ color: 'var(--t1)' }}>{r.marketing_automations?.name ?? '—'}</b> · <span style={{ color: r.status === 'success' ? '#059669' : r.status === 'failed' ? '#dc2626' : '#94a3b8' }}>{r.status}</span>{r.detail ? ` · ${r.detail}` : ''}</span>
+            <span><b style={{ color: 'var(--t1)' }}>{r.marketing_automations?.name ?? '—'}</b> · <span style={{ color: r.status === 'success' ? 'var(--green-text)' : r.status === 'failed' ? 'var(--red-text)' : 'var(--t3)' }}>{r.status}</span>{r.detail ? ` · ${r.detail}` : ''}</span>
             <span style={{ color: 'var(--t3)' }}>{dt(r.created_at)}</span>
           </div>
         ))}
@@ -624,7 +624,7 @@ function CopilotTab({ flash }: { flash: (m: string) => void }) {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           {COPILOT_TASKS.map(t => (
             <button key={t.key} onClick={() => setTask(t.key)}
-              style={{ ...btnGhost, background: task === t.key ? '#f0eaff' : '#f8f9fc', color: task === t.key ? '#6c35ff' : '#374151', borderColor: task === t.key ? '#c4b0ff' : '#e2e8f0' }}>
+              style={{ ...btnGhost, background: task === t.key ? 'var(--tint-violet)' : '#f8f9fc', color: task === t.key ? 'var(--brand-text)' : '#374151', borderColor: task === t.key ? '#c4b0ff' : '#e2e8f0' }}>
               {t.label}
             </button>
           ))}
@@ -773,7 +773,7 @@ function OutreachTab({ flash }: { flash: (m: string) => void }) {
                   </td>
                   <td style={td}><ScoreBar value={l.lead_score} />{l.lead_grade && <Pill text={l.lead_grade} color="#6c35ff" />}</td>
                   <td style={td}><Pill text={st} color={OUTREACH_COLORS[st] ?? '#94a3b8'} /></td>
-                  <td style={td}><b style={{ color: l.outreach && l.outreach.click_count > 0 ? '#7c3aed' : '#94a3b8' }}>{l.outreach?.click_count ?? 0}</b></td>
+                  <td style={td}><b style={{ color: l.outreach && l.outreach.click_count > 0 ? 'var(--brand-text)' : 'var(--t3)' }}>{l.outreach?.click_count ?? 0}</b></td>
                   <td style={td}><button onClick={e => { e.stopPropagation(); setSelected(l); }} style={{ ...btn, padding: '6px 14px', fontSize: 12 }}>Outreach →</button></td>
                 </tr>
               );
@@ -900,7 +900,7 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
                 <button onClick={() => void copy()} style={{ ...btnGhost, padding: '6px 12px', fontSize: 12, whiteSpace: 'nowrap' }}>{copied ? '✓ Copied' : 'Copy'}</button>
               </div>
               <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 12.5, color: 'var(--t3)', flexWrap: 'wrap' }}>
-                <span>Clicks: <b style={{ color: o.click_count > 0 ? '#7c3aed' : '#94a3b8' }}>{o.click_count}</b></span>
+                <span>Clicks: <b style={{ color: o.click_count > 0 ? 'var(--brand-text)' : 'var(--t3)' }}>{o.click_count}</b></span>
                 <span>First click: <b>{dt(o.first_click_at)}</b></span>
                 <span>Last click: <b>{dt(o.last_click_at)}</b></span>
                 <span>Sent: <b>{dt(o.sent_at)}</b></span>

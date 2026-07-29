@@ -146,7 +146,7 @@ export default async function AdminSupportPage() {
             role="alert"
             style={{
               margin: '0 0 16px', padding: '14px 16px', borderRadius: 12,
-              background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e',
+              background: 'var(--tint-amber)', border: '1px solid #fde68a', color: 'var(--orange-text)',
             }}
           >
             <strong style={{ display: 'block', marginBottom: 4 }}>We couldn&apos;t load the case list</strong>
@@ -162,7 +162,7 @@ export default async function AdminSupportPage() {
           {[
             { label: 'Open Cases',          value: show(openFailed, open.length), color: 'var(--orange-text)' },
             { label: 'In Progress',          value: show(inProgFailed, inProg.length), color: 'var(--brand-text)' },
-            { label: 'Urgent',               value: show(urgentUnknown, urgent), color: '#ef4444' },
+            { label: 'Urgent',               value: show(urgentUnknown, urgent), color: 'var(--red-text)' },
             { label: 'Resolved (all time)',  value: show(resolvedUnknown, resolved), color: 'var(--green-text)' },
           ].map(m => (
             <div key={m.label} style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 14, padding: '20px 24px' }}>

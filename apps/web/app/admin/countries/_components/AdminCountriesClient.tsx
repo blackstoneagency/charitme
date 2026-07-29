@@ -33,7 +33,7 @@ const lStyle: React.CSSProperties = {
 const btnSave:   React.CSSProperties = { padding: '5px 14px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 650, cursor: 'pointer' };
 const btnCancel: React.CSSProperties = { padding: '5px 12px', background: 'var(--s2)', color: 'var(--t3)', border: 'none', borderRadius: 7, fontSize: 12, cursor: 'pointer' };
 const btnEdit:   React.CSSProperties = { padding: '5px 12px', background: 'var(--s2)', color: 'var(--brand-text)', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
-const btnDel:    React.CSSProperties = { padding: '5px 12px', background: '#fff0f3', color: '#be123c', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
+const btnDel:    React.CSSProperties = { padding: '5px 12px', background: 'var(--tint-rose)', color: 'var(--red-text)', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
 const pill = (bg: string, color: string): React.CSSProperties => ({
   display: 'inline-block', background: bg, color, padding: '3px 10px',
   borderRadius: 999, fontSize: 11, fontWeight: 700,
@@ -212,7 +212,7 @@ export default function AdminCountriesClient() {
 
       {/* Notice */}
       {notice && (
-        <div style={{ padding: '10px 16px', borderRadius: 10, background: notice.includes('❌') ? '#fff0f3' : '#f0fdf4', border: `1px solid ${notice.includes('❌') ? '#fecdd3' : '#bbf7d0'}`, color: notice.includes('❌') ? '#be123c' : '#15803d', fontWeight: 700, fontSize: 13 }}>
+        <div style={{ padding: '10px 16px', borderRadius: 10, background: notice.includes('❌') ? 'var(--tint-red)' : '#f0fdf4', border: `1px solid ${notice.includes('❌') ? '#fecdd3' : '#bbf7d0'}`, color: notice.includes('❌') ? 'var(--red-text)' : 'var(--green-text)', fontWeight: 700, fontSize: 13 }}>
           {notice}
         </div>
       )}
@@ -234,7 +234,7 @@ export default function AdminCountriesClient() {
 
       {/* Public page link */}
       <div style={{ padding: '12px 18px', background: 'var(--s2)', borderRadius: 12, border: '1px solid #c4b5fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#4c1d95' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)' }}>
           🌍 Public page:{' '}
           <code style={{ background: 'rgba(0,0,0,.06)', padding: '2px 6px', borderRadius: 4 }}>/supported-countries</code>
         </span>
@@ -265,14 +265,14 @@ export default function AdminCountriesClient() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={lStyle}>Fundraise?</span>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_fundraise ? '#15803d' : '#94a3b8' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_fundraise ? 'var(--green-text)' : 'var(--t3)' }}>
               <input type="checkbox" checked={newForm.can_fundraise} onChange={e => updNew('can_fundraise', e.target.checked)} style={{ accentColor: '#6c35ff', width: 16, height: 16 }} />
               {newForm.can_fundraise ? 'Yes' : 'No'}
             </label>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={lStyle}>Donate?</span>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_donate ? '#1d4ed8' : '#94a3b8' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_donate ? '#1d4ed8' : 'var(--t3)' }}>
               <input type="checkbox" checked={newForm.can_donate} onChange={e => updNew('can_donate', e.target.checked)} style={{ accentColor: '#6c35ff', width: 16, height: 16 }} />
               {newForm.can_donate ? 'Yes' : 'No'}
             </label>
@@ -297,7 +297,7 @@ export default function AdminCountriesClient() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            style={{ padding: '7px 16px', borderRadius: 999, border: '1.5px solid', borderColor: filter === f ? '#6c35ff' : '#e2e8f0', background: filter === f ? '#f0eaff' : '#fff', color: filter === f ? '#6c35ff' : '#64748b', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            style={{ padding: '7px 16px', borderRadius: 999, border: '1.5px solid', borderColor: filter === f ? '#6c35ff' : '#e2e8f0', background: filter === f ? 'var(--tint-violet)' : '#fff', color: filter === f ? 'var(--brand-text)' : 'var(--t3)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
           >
             {f === 'all' ? `All (${countries.length})` : f === 'fundraise' ? `Fundraise (${fundraiseCount})` : `Donate Only (${donateCount})`}
           </button>

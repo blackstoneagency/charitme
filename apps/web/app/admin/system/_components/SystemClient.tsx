@@ -534,7 +534,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                     {Boolean(s.stripeLive) ? 'Connected to live account' : 'Running in test mode'}
                   </small>
                 </div>
-                <span style={{ marginLeft: 'auto', marginRight: 12, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: Boolean(s.stripeLive) ? '#f0fdf5' : '#fffbeb', color: Boolean(s.stripeLive) ? '#15803d' : '#b45309', border: `1px solid ${Boolean(s.stripeLive) ? '#bbf7d0' : '#fde68a'}` }}>
+                <span style={{ marginLeft: 'auto', marginRight: 12, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: Boolean(s.stripeLive) ? '#f0fdf5' : 'var(--tint-amber)', color: Boolean(s.stripeLive) ? 'var(--green-text)' : '#b45309', border: `1px solid ${Boolean(s.stripeLive) ? '#bbf7d0' : '#fde68a'}` }}>
                   {Boolean(s.stripeLive) ? 'Live' : 'Test'}
                 </span>
               </div>
@@ -548,7 +548,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                   <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>PayPal</strong>
                   <small style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>PayPal checkout integration</small>
                 </div>
-                <span style={{ marginLeft: 'auto', marginRight: 12, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: Boolean(s.paypalEnabled) ? '#f0fdf5' : '#f5f5f5', color: Boolean(s.paypalEnabled) ? '#15803d' : '#6b7280', border: `1px solid ${Boolean(s.paypalEnabled) ? '#bbf7d0' : '#e5e7eb'}` }}>
+                <span style={{ marginLeft: 'auto', marginRight: 12, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: Boolean(s.paypalEnabled) ? '#f0fdf5' : '#f5f5f5', color: Boolean(s.paypalEnabled) ? 'var(--green-text)' : '#6b7280', border: `1px solid ${Boolean(s.paypalEnabled) ? '#bbf7d0' : '#e5e7eb'}` }}>
                   {Boolean(s.paypalEnabled) ? 'Enabled' : 'Disabled'}
                 </span>
               </div>
@@ -562,7 +562,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                   <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Bank Transfer</strong>
                   <small style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>ACH and wire transfer support</small>
                 </div>
-                <span style={{ marginLeft: 'auto', marginRight: 12, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: Boolean(s.bankTransferEnabled) ? '#f0fdf5' : '#f5f5f5', color: Boolean(s.bankTransferEnabled) ? '#15803d' : '#6b7280', border: `1px solid ${Boolean(s.bankTransferEnabled) ? '#bbf7d0' : '#e5e7eb'}` }}>
+                <span style={{ marginLeft: 'auto', marginRight: 12, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: Boolean(s.bankTransferEnabled) ? '#f0fdf5' : '#f5f5f5', color: Boolean(s.bankTransferEnabled) ? 'var(--green-text)' : '#6b7280', border: `1px solid ${Boolean(s.bankTransferEnabled) ? '#bbf7d0' : '#e5e7eb'}` }}>
                   {Boolean(s.bankTransferEnabled) ? 'Enabled' : 'Disabled'}
                 </span>
               </div>
@@ -764,8 +764,8 @@ export default function SystemClient({ categories, overview, recentActivity, res
           )}
           <div className="sys-toggle-card" style={{ marginTop: maintenanceOn ? 12 : 0 }}>
             <div>
-              <strong style={{ fontSize: 14, fontWeight: 700, color: maintenanceOn ? '#be123c' : '#0f1238' }}>Maintenance Mode</strong>
-              <small style={{ display: 'block', fontSize: 12, color: maintenanceOn ? '#e11d48' : '#67718e', marginTop: 2 }}>
+              <strong style={{ fontSize: 14, fontWeight: 700, color: maintenanceOn ? 'var(--red-text)' : '#0f1238' }}>Maintenance Mode</strong>
+              <small style={{ display: 'block', fontSize: 12, color: maintenanceOn ? 'var(--red-text)' : '#67718e', marginTop: 2 }}>
                 {maintenanceOn ? 'Site is currently in maintenance mode' : 'Enable to temporarily take down the site'}
               </small>
             </div>
@@ -797,7 +797,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{label}</strong>
-                      <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: enabled ? '#f0fdf5' : '#f5f5f5', color: enabled ? '#15803d' : '#6b7280', border: `1px solid ${enabled ? '#bbf7d0' : '#e5e7eb'}` }}>
+                      <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: enabled ? '#f0fdf5' : '#f5f5f5', color: enabled ? 'var(--green-text)' : '#6b7280', border: `1px solid ${enabled ? '#bbf7d0' : '#e5e7eb'}` }}>
                         {enabled ? 'Active' : 'Disabled'}
                       </span>
                     </div>
@@ -844,7 +844,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
             <div className={`sys-toggle-card${debugOn ? ' active' : ''}`}>
               <div>
                 <strong style={{ fontSize: 14, fontWeight: 700, color: debugOn ? '#c2410c' : '#0f1238' }}>Debug Mode</strong>
-                <small style={{ display: 'block', fontSize: 12, color: debugOn ? '#ea580c' : '#67718e', marginTop: 2 }}>Enable verbose logging — not for production</small>
+                <small style={{ display: 'block', fontSize: 12, color: debugOn ? 'var(--orange-text)' : '#67718e', marginTop: 2 }}>Enable verbose logging — not for production</small>
               </div>
               <Toggle checked={debugOn} onChange={v => setField('advanced', 'debugMode', v)} />
             </div>
@@ -900,7 +900,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
             { label: 'Scheduled Jobs', value: overview.scheduledJobs, icon: '⏱', color: '#2f80ed' },
             // '—' means the rate could not be read. It must not paint green: that
             // is the false all-clear this tile used to show during an outage.
-            { label: 'Error Rate', value: overview.errorRate, icon: overview.errorRate === '0%' ? '✓' : '⚠', color: overview.errorRate === '0%' ? '#15803d' : overview.errorRate === '—' ? '#67718e' : '#c2410c' },
+            { label: 'Error Rate', value: overview.errorRate, icon: overview.errorRate === '0%' ? '✓' : '⚠', color: overview.errorRate === '0%' ? 'var(--green-text)' : overview.errorRate === '—' ? '#67718e' : '#c2410c' },
           ].map(({ label, value, color }) => (
             <div key={label} style={{ padding: '16px 18px', border: '1px solid #eef0f7', borderRadius: 14, background: 'var(--s2)' }}>
               <small style={{ display: 'block', color: 'var(--t3)', fontSize: 11, fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</small>

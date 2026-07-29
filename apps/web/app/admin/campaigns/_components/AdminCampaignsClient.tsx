@@ -599,7 +599,7 @@ export default function AdminCampaignsClient({
 
       {/* Context banner for special tabs */}
       {statusTab === 'featured' && (
-        <div style={{ margin: '0 0 14px', padding: '10px 16px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 10, fontSize: 13, color: '#92400e', fontWeight: 600 }}>
+        <div style={{ margin: '0 0 14px', padding: '10px 16px', background: 'var(--tint-amber)', border: '1px solid #fcd34d', borderRadius: 10, fontSize: 13, color: 'var(--orange-text)', fontWeight: 600 }}>
           ⭐ Featured campaigns appear <strong>first</strong> in the homepage hero rotator. Toggle via the campaign&apos;s <em>More</em> tab → &ldquo;Feature on Homepage&rdquo;.
         </div>
       )}
@@ -654,7 +654,7 @@ export default function AdminCampaignsClient({
             <span className="ac-cell"><SPill status={c.status} /></span>
             <span className="ac-cell" style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
               {c.featured && (
-                <span style={{ fontSize: 10, fontWeight: 650, padding: '2px 7px', borderRadius: 6, background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e' }}>⭐ Featured</span>
+                <span style={{ fontSize: 10, fontWeight: 650, padding: '2px 7px', borderRadius: 6, background: 'var(--tint-amber)', border: '1px solid #fcd34d', color: 'var(--orange-text)' }}>⭐ Featured</span>
               )}
               {c.coverImageUrl?.startsWith('http') && c.status === 'active' && (
                 <span style={{ fontSize: 10, fontWeight: 650, padding: '2px 7px', borderRadius: 6, background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e40af' }}>🏠 Carousel</span>
@@ -834,7 +834,7 @@ export default function AdminCampaignsClient({
                   }}
                 >
                   <KFIcon name={tool.icon} />
-                  <strong style={{ fontSize: 13, color: active ? '#6c35ff' : 'var(--t1)', marginTop: 6 }}>
+                  <strong style={{ fontSize: 13, color: active ? 'var(--brand-text)' : 'var(--t1)', marginTop: 6 }}>
                     {tool.label}{tool.admin ? ' 🛡' : ''}
                   </strong>
                   <span style={{ fontSize: 11, color: 'var(--t3)' }}>{tool.desc}</span>
@@ -1452,7 +1452,7 @@ function EditForm({
     padding: '7px 16px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' as const,
     border: 'none',
     background: active ? '#6c35ff' : 'transparent',
-    color: active ? '#fff' : '#64748b',
+    color: active ? '#fff' : 'var(--t3)',
     transition: 'all .15s',
   });
 
@@ -1492,7 +1492,7 @@ function EditForm({
         </div>
 
         {mediaError && (
-          <div style={{ padding: '10px 14px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 9, color: '#be123c', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
+          <div style={{ padding: '10px 14px', background: 'var(--tint-rose)', border: '1px solid #fecdd3', borderRadius: 9, color: 'var(--red-text)', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>
             ⚠ {mediaError}
           </div>
         )}
@@ -1541,7 +1541,7 @@ function EditForm({
               </button>
               {draft.coverImageUrl && (
                 <button type="button" onClick={() => upd('coverImageUrl', null)}
-                  style={{ padding: '8px 18px', border: '1px solid #fca5a5', borderRadius: 9, background: '#fff0f3', color: '#be123c', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                  style={{ padding: '8px 18px', border: '1px solid #fca5a5', borderRadius: 9, background: 'var(--tint-rose)', color: 'var(--red-text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                   Remove Cover
                 </button>
               )}
@@ -1623,8 +1623,8 @@ function EditForm({
                 <p style={{ fontSize: 12, color: 'var(--t3)', marginTop: 6, wordBreak: 'break-all' }}>{draft.videoUrl}</p>
               </div>
             ) : draft.videoUrl ? (
-              <div style={{ padding: '14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, marginBottom: 14 }}>
-                <p style={{ fontSize: 13, color: '#92400e', margin: 0 }}>⚠ URL set but not a recognized YouTube/Vimeo link. It will still be saved.</p>
+              <div style={{ padding: '14px', background: 'var(--tint-amber)', border: '1px solid #fde68a', borderRadius: 10, marginBottom: 14 }}>
+                <p style={{ fontSize: 13, color: 'var(--orange-text)', margin: 0 }}>⚠ URL set but not a recognized YouTube/Vimeo link. It will still be saved.</p>
                 <p style={{ fontSize: 12, color: 'var(--t3)', margin: '4px 0 0', wordBreak: 'break-all' }}>{draft.videoUrl}</p>
               </div>
             ) : (
@@ -1642,7 +1642,7 @@ function EditForm({
               />
               {draft.videoUrl && (
                 <button type="button" onClick={() => upd('videoUrl', null)}
-                  style={{ padding: '8px 14px', border: '1px solid #fca5a5', borderRadius: 9, background: '#fff0f3', color: '#be123c', fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
+                  style={{ padding: '8px 14px', border: '1px solid #fca5a5', borderRadius: 9, background: 'var(--tint-rose)', color: 'var(--red-text)', fontSize: 13, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
                   Remove
                 </button>
               )}
@@ -1673,7 +1673,7 @@ function EditForm({
               height: 40, padding: '0 20px', borderRadius: 10, fontWeight: 650, fontSize: 13, cursor: 'pointer',
               border: draft.featured ? '1.5px solid #f59e0b' : '1.5px solid #6c35ff',
               background: draft.featured ? '#fffbeb' : '#f0eaff',
-              color: draft.featured ? '#92400e' : '#4d1ee0',
+              color: draft.featured ? 'var(--orange-text)' : '#4d1ee0',
               transition: 'all .15s', flexShrink: 0,
             }}
           >

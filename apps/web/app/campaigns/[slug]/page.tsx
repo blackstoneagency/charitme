@@ -513,7 +513,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span className="pc-verified">✓ Verified Campaign</span>
           {campaign.category && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: 'rgba(108,53,255,.12)', color: 'var(--violet)', fontSize: 12, fontWeight: 650, letterSpacing: '.04em' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: 'rgba(108,53,255,.12)', color: 'var(--brand-text)', fontSize: 12, fontWeight: 650, letterSpacing: '.04em' }}>
               {campaign.category}
             </span>
           )}
@@ -566,7 +566,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>CharitMe Score</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: trustScore >= 70 ? '#059669' : trustScore >= 45 ? '#d97706' : '#dc2626' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: trustScore >= 70 ? 'var(--green-text)' : trustScore >= 45 ? 'var(--orange-text)' : 'var(--red-text)' }}>
                 {trustScore >= 70 ? 'Strong Trust' : trustScore >= 45 ? 'Needs Attention' : 'Needs Review'}
               </div>
             </div>
@@ -796,7 +796,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '12px 0 0', padding: '12px 14px', background: 'rgba(108,53,255,.05)', border: '1px solid rgba(108,53,255,.12)', borderRadius: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
               <span style={{ fontWeight: 700 }}>Momentum</span>
-              <span style={{ fontWeight: 700, color: impact.momentum === 'surging' ? '#059669' : impact.momentum === 'steady' ? '#6c35ff' : 'var(--t3)' }}>
+              <span style={{ fontWeight: 700, color: impact.momentum === 'surging' ? 'var(--green-text)' : impact.momentum === 'steady' ? 'var(--brand-text)' : 'var(--t3)' }}>
                 {impact.momentum === 'surging' ? '🔥 Surging' : impact.momentum === 'steady' ? '📈 Steady' : '🌱 Just started'}
               </span>
             </div>

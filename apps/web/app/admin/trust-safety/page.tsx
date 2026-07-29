@@ -90,7 +90,7 @@ export default async function TrustSafetyPage() {
         {/* Summary stats */}
         <div className="kf-three-col">
           {[
-            { label: 'Unresolved Risk Flags', value: flagsTotal, color: '#ef4444' },
+            { label: 'Unresolved Risk Flags', value: flagsTotal, color: 'var(--red-text)' },
             { label: 'Open Reports', value: reportsTotal, color: 'var(--orange-text)' },
             { label: 'Frozen Payouts', value: frozen.length, color: 'var(--brand-text)' },
           ].map(m => (

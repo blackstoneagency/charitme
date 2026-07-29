@@ -72,7 +72,7 @@ export default function BannerClient({
         <div role="status" style={{ ...card, padding: '12px 18px', fontWeight: 700, fontSize: 13,
           background: notice.startsWith('❌') ? '#fff0f3' : '#f0fdf4',
           borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0',
-          color: notice.startsWith('❌') ? '#be123c' : '#15803d' }}>
+          color: notice.startsWith('❌') ? 'var(--red-text)' : 'var(--green-text)' }}>
           {notice}
         </div>
       )}
@@ -259,7 +259,7 @@ export default function BannerClient({
         <button onClick={() => setS(saved)} disabled={busy || !dirty} style={{ ...btnGhost, opacity: busy || !dirty ? 0.5 : 1 }}>
           Discard
         </button>
-        <span style={{ fontSize: 12.5, color: dirty ? '#b45309' : '#94a3b8', fontWeight: 700 }}>
+        <span style={{ fontSize: 12.5, color: dirty ? '#b45309' : 'var(--t3)', fontWeight: 700 }}>
           {dirty ? 'Unsaved changes' : 'All changes saved'}
         </span>
       </div>

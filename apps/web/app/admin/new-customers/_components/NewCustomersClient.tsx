@@ -393,7 +393,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
       {/* Self-test result */}
       {testResult && (
         <div style={{ ...card, borderColor: testResult.ok ? '#bbf7d0' : '#fecdd3', background: testResult.ok ? '#f0fff4' : '#fff0f3' }}>
-          <div style={{ fontSize: 14, fontWeight: 900, color: testResult.ok ? '#15803d' : '#be123c', marginBottom: 10 }}>
+          <div style={{ fontSize: 14, fontWeight: 900, color: testResult.ok ? 'var(--green-text)' : 'var(--red-text)', marginBottom: 10 }}>
             {testResult.ok ? '✅ All API checks passed' : '❌ Some API checks failed'}
           </div>
           <div style={{ display: 'grid', gap: 6 }}>
@@ -510,7 +510,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                           padding: '5px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
                           border: `1px solid ${STATUS_COLOR[l.status] ?? '#cbd5e1'}40`,
                           background: (STATUS_COLOR[l.status] ?? '#94a3b8') + '14',
-                          color: STATUS_COLOR[l.status] ?? '#64748b',
+                          color: STATUS_COLOR[l.status] ?? 'var(--t3)',
                         }}
                       >
                         {STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}

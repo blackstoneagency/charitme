@@ -190,7 +190,7 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
             <div>
               <span>{m.label}</span>
               <strong>{m.value}</strong>
-              <small style={{ color: m.change.startsWith('+') ? '#0f9f54' : '#334064' }}>{m.change}</small>
+              <small style={{ color: m.change.startsWith('+') ? 'var(--green-text)' : '#334064' }}>{m.change}</small>
             </div>
           </article>
         ))}
@@ -269,7 +269,7 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.status === 'Operational' ? '#19b86a' : s.status === 'Degraded' ? '#f59e0b' : s.status === 'Unknown' ? '#94a3b8' : '#ef4444' }} />
                   <span style={{ fontSize: 13, fontWeight: 650 }}>{s.name}</span>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: s.status === 'Operational' ? '#079447' : s.status === 'Degraded' ? '#f97316' : s.status === 'Unknown' ? '#64748b' : '#ef4444' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: s.status === 'Operational' ? 'var(--green-text)' : s.status === 'Degraded' ? 'var(--orange-text)' : s.status === 'Unknown' ? 'var(--t3)' : 'var(--red-text)' }}>
                   {s.status}
                 </span>
               </div>

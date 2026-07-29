@@ -155,10 +155,10 @@ function EditModal({ item, onClose, onSaved }: { item: ContentRecord; onClose: (
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Update title…" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
           </label>
           <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
-            Content <span style={{ color: '#e11d48' }}>*</span>
+            Content <span style={{ color: 'var(--red-text)' }}>*</span>
             <textarea value={body} onChange={e => setBody(e.target.value)} style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 160, resize: 'vertical' }} />
           </label>
-          {error && <p style={{ margin: 0, color: '#e11d48', fontSize: 13 }}>{error}</p>}
+          {error && <p style={{ margin: 0, color: 'var(--red-text)', fontSize: 13 }}>{error}</p>}
         </div>
         <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
@@ -204,7 +204,7 @@ function DeleteModal({ item, onClose, onDeleted }: { item: ContentRecord; onClos
           <strong>&ldquo;{item.title || 'Untitled'}&rdquo;</strong>
         </p>
         <p style={{ margin: '0 0 20px', color: 'var(--t3)', fontSize: 13 }}>This will permanently remove the update from the campaign. This action cannot be undone.</p>
-        {error && <p style={{ margin: '0 0 12px', color: '#e11d48', fontSize: 13 }}>{error}</p>}
+        {error && <p style={{ margin: '0 0 12px', color: 'var(--red-text)', fontSize: 13 }}>{error}</p>}
         <div style={{ display: 'flex', gap: 12 }}>
           <button onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleDelete} disabled={deleting} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#e11d48', color: '#fff', fontSize: 13, fontWeight: 700, cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.65 : 1 }}>
@@ -251,7 +251,7 @@ function ContentDetailPanel({
         <div style={{ display: 'flex', borderBottom: '1px solid #eef0f7', padding: '0 24px' }}>
           {tabs.map(t => (
             <button key={t} type="button" onClick={() => setActiveTab(t)}
-              style={{ height: 44, border: 0, borderBottom: `2px solid ${activeTab === t ? '#6c35ff' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? '#551cf2' : '#66708d', marginRight: 20, cursor: 'pointer' }}>
+              style={{ height: 44, border: 0, borderBottom: `2px solid ${activeTab === t ? '#6c35ff' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? 'var(--brand-text)' : '#66708d', marginRight: 20, cursor: 'pointer' }}>
               {capitalize(t)}
             </button>
           ))}
@@ -302,7 +302,7 @@ function ContentDetailPanel({
         <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'grid', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <button type="button" onClick={onEdit} style={{ height: 40, border: '1px solid #6c35ff', borderRadius: 9, background: '#f3ecff', color: 'var(--brand-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Edit Content</button>
-            <button type="button" onClick={onDelete} style={{ height: 40, border: '1px solid #ff3b5f30', borderRadius: 9, background: '#fff0f3', color: 'var(--red-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Delete Content</button>
+            <button type="button" onClick={onDelete} style={{ height: 40, border: '1px solid #ff3b5f30', borderRadius: 9, background: 'var(--tint-rose)', color: 'var(--red-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Delete Content</button>
           </div>
         </div>
       </div>
@@ -384,7 +384,7 @@ function CreateContentWizard({
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Campaign Target</div>
               <p style={{ margin: 0, fontSize: 13, color: 'var(--t3)' }}>Enter the Campaign ID this update belongs to. You can find campaign IDs in Admin → Campaigns.</p>
               <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
-                Campaign ID <span style={{ color: '#e11d48' }}>*</span>
+                Campaign ID <span style={{ color: 'var(--red-text)' }}>*</span>
                 <input
                   value={campaignId}
                   onChange={e => setCampaignId(e.target.value)}
@@ -402,7 +402,7 @@ function CreateContentWizard({
                 <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Update title…" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
               <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
-                Content <span style={{ color: '#e11d48' }}>*</span>
+                Content <span style={{ color: 'var(--red-text)' }}>*</span>
                 <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write the campaign update…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 140, resize: 'vertical' }} />
               </label>
             </div>
@@ -415,7 +415,7 @@ function CreateContentWizard({
                 <div><b>Title:</b> {title || '(untitled)'}</div>
                 <div><b>Content preview:</b> {body.slice(0, 120)}{body.length > 120 ? '…' : ''}</div>
               </div>
-              {error && <p style={{ margin: 0, color: '#e11d48', fontSize: 13 }}>{error}</p>}
+              {error && <p style={{ margin: 0, color: 'var(--red-text)', fontSize: 13 }}>{error}</p>}
             </div>
           )}
         </div>
@@ -562,7 +562,7 @@ export default function ContentClient({
           <div style={{ display: 'flex', gap: 0 }}>
             {panelTabs.map(t => (
               <button key={t} type="button" onClick={() => setActiveTab(t)}
-                style={{ height: 50, padding: '0 16px', border: 0, borderBottom: `2px solid ${activeTab === t ? '#6c35ff' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? '#551cf2' : '#202b55', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                style={{ height: 50, padding: '0 16px', border: 0, borderBottom: `2px solid ${activeTab === t ? '#6c35ff' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? 'var(--brand-text)' : '#202b55', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                 {capitalize(t)}
               </button>
             ))}

@@ -65,9 +65,18 @@ describe('the client can render the Unknown state', () => {
   });
 
   it('gives it its own colour, not the green of Operational', () => {
-    // Two call sites: the status dot and the label.
-    const greys = client.match(/'Unknown' \? '#(94a3b8|64748b)'/g) ?? [];
+    // Two call sites: the status dot (a background, still a literal grey) and the
+    // label (now var(--t3), which is grey in BOTH themes and AA on the surfaces it
+    // sits on). The assertion is the INTENT — Unknown reads grey, never the green
+    // of Operational — not a specific hex, so the contrast pass that tokenised the
+    // label does not have to be reverted to keep the guarantee.
+    const greys = client.match(/'Unknown' \? '(?:#(?:94a3b8|64748b)|var\(--t3\))'/g) ?? [];
     expect(greys.length).toBeGreaterThanOrEqual(2);
+
+    // And it must never share Operational's green token or hex.
+    const operationalGreen = /'Operational' \? '(?:#19b86a|var\(--green-text\))'/;
+    expect(client).toMatch(operationalGreen);
+    expect(client).not.toMatch(/'Unknown' \? '(?:#19b86a|var\(--green-text\))'/);
   });
 });
 

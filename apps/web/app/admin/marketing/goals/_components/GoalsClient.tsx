@@ -118,7 +118,7 @@ export default function GoalsClient() {
 
   return (
     <div style={{ padding: '0 20px 48px', maxWidth: 900 }}>
-      {notice && <div style={{ ...card, padding: '12px 18px', background: notice.startsWith('❌') ? '#fff0f3' : '#f0fdf4', borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? '#be123c' : '#15803d' }}>{notice}</div>}
+      {notice && <div style={{ ...card, padding: '12px 18px', background: notice.startsWith('❌') ? 'var(--tint-red)' : '#f0fdf4', borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? 'var(--red-text)' : 'var(--green-text)' }}>{notice}</div>}
 
       {/* ── Goal composer ── */}
       <div style={card}>
@@ -179,7 +179,7 @@ export default function GoalsClient() {
       {loading ? (
         <div style={{ ...card, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Loading goals…</div>
       ) : error ? (
-        <div style={{ ...card, background: '#fff0f3', borderColor: '#fecdd3', color: '#be123c' }}>
+        <div style={{ ...card, background: 'var(--tint-rose)', borderColor: '#fecdd3', color: 'var(--red-text)' }}>
           {error} <button onClick={load} style={{ ...btnGhost, marginLeft: 8 }}>Retry</button>
         </div>
       ) : goals.length === 0 ? (
@@ -229,7 +229,7 @@ function GoalCard({ g, onPatch }: { g: Goal; onPatch: (id: string, body: Record<
             <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 5 }}>{p.note}</div>
           </>
         ) : (
-          <div style={{ fontSize: 12, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px' }}>
+          <div style={{ fontSize: 12, color: '#b45309', background: 'var(--tint-amber)', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px' }}>
             Measurement pending — {p.note} Target: {fmt(p.target, g.unit)}.
           </div>
         )}

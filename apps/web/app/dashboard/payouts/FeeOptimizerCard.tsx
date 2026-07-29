@@ -92,7 +92,7 @@ export default function FeeOptimizerCard({ campaigns }: Props) {
             )}
           </div>
 
-          <div style={{ fontSize: 13.5, color: 'var(--violet)', background: 'rgba(109,53,255,.08)', border: '1px solid rgba(109,53,255,.18)', borderRadius: 8, padding: '10px 14px', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 13.5, color: 'var(--brand-text)', background: 'rgba(109,53,255,.08)', border: '1px solid rgba(109,53,255,.18)', borderRadius: 8, padding: '10px 14px', lineHeight: 1.5 }}>
             {result.message}
           </div>
 
@@ -109,13 +109,13 @@ export default function FeeOptimizerCard({ campaigns }: Props) {
                   <div>
                     <strong style={{ color: 'var(--t1)' }}>{opt.label}</strong>
                     {opt.speed === result.recommended && (
-                      <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 800, color: 'var(--violet)' }}>✨ Recommended</span>
+                      <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 800, color: 'var(--brand-text)' }}>✨ Recommended</span>
                     )}
                     <div style={{ fontSize: 12, color: 'var(--t3)' }}>{opt.etaLabel}</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: 800, color: 'var(--green-text)' }}>{fmt(opt.netCents)}</div>
-                    <div style={{ fontSize: 12, color: opt.feeCents > 0 ? '#f59e0b' : 'var(--t3)' }}>
+                    <div style={{ fontSize: 12, color: opt.feeCents > 0 ? 'var(--orange-text)' : 'var(--t3)' }}>
                       {opt.feeCents > 0 ? `−${fmt(opt.feeCents)} fee` : 'No fee'}
                     </div>
                   </div>

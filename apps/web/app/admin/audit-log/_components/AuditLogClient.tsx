@@ -217,7 +217,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
               style={{ padding: '10px 16px', borderBottom: '1px solid #eef0f7', cursor: 'pointer' }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                <span style={{ fontSize: 11, fontWeight: 650, color: CATEGORY_COLORS[e.category] ?? '#551cf2' }}>{e.category}</span>
+                <span style={{ fontSize: 11, fontWeight: 650, color: CATEGORY_COLORS[e.category] ?? 'var(--brand-text)' }}>{e.category}</span>
                 <StatusPill>{e.status}</StatusPill>
               </div>
               <strong style={{ display: 'block', fontSize: 12, fontWeight: 650, marginBottom: 2 }}>{e.action}</strong>
@@ -286,7 +286,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
                 <strong style={{ display: 'block', fontSize: 12, fontWeight: 650 }}>{e.action}</strong>
                 {e.stripeEventId && <small style={{ color: '#8c95b2', fontSize: 10 }}>{e.stripeEventId.slice(0, 20)}…</small>}
               </div>
-              <span style={{ fontSize: 11, fontWeight: 650, color: CATEGORY_COLORS[e.category] ?? '#551cf2' }}>{e.category}</span>
+              <span style={{ fontSize: 11, fontWeight: 650, color: CATEGORY_COLORS[e.category] ?? 'var(--brand-text)' }}>{e.category}</span>
               <StatusPill>{e.status}</StatusPill>
               <button
                 onClick={() => setSelectedEvent(e)}
@@ -356,8 +356,8 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
 
             {selectedEvent.processingError && (
               <div style={{ padding: 18, border: '1px solid #fee2e2', borderRadius: 12, background: '#fff8f8' }}>
-                <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: '#ef4444' }}>Processing Error</h3>
-                <code style={{ display: 'block', fontSize: 11, fontFamily: 'monospace', color: '#ef4444', wordBreak: 'break-all' }}>
+                <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: 'var(--red-text)' }}>Processing Error</h3>
+                <code style={{ display: 'block', fontSize: 11, fontFamily: 'monospace', color: 'var(--red-text)', wordBreak: 'break-all' }}>
                   {selectedEvent.processingError}
                 </code>
               </div>

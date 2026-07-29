@@ -62,11 +62,11 @@ export default async function AdminCampaignsPage() {
       <CharitMeShell active="Campaigns" mode="admin">
         <TopBar title="Campaigns" subtitle="Database error" actions={<></>} />
         <div style={{ padding: '32px', maxWidth: 700 }}>
-          <div style={{ padding: '20px 24px', background: '#fff0f3', border: '1.5px solid #fecdd3', borderRadius: 14 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#be123c', margin: '0 0 8px' }}>
+          <div style={{ padding: '20px 24px', background: 'var(--tint-rose)', border: '1.5px solid #fecdd3', borderRadius: 14 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--red-text)', margin: '0 0 8px' }}>
               ❌ Supabase Query Error
             </h2>
-            <p style={{ fontFamily: 'monospace', fontSize: 13, color: '#be123c', margin: '0 0 12px', lineHeight: 1.6 }}>
+            <p style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--red-text)', margin: '0 0 12px', lineHeight: 1.6 }}>
               {dbError.code}: {dbError.message}
             </p>
             <p style={{ fontSize: 13, color: 'var(--t3)', margin: 0, lineHeight: 1.6 }}>

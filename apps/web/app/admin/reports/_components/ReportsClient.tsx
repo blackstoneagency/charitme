@@ -208,7 +208,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
                     border: '1px solid', cursor: 'pointer',
                     borderColor: activeCategory === cat ? '#6c35ff' : '#e0e4ef',
                     background: activeCategory === cat ? '#f0eaff' : '#fff',
-                    color: activeCategory === cat ? '#551cf2' : '#111944',
+                    color: activeCategory === cat ? 'var(--brand-text)' : '#111944',
                   }}
                 >
                   {cat}
@@ -234,7 +234,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
                 <strong style={{ display: 'block', fontSize: 13, fontWeight: 650 }}>{r.name}</strong>
                 <small style={{ color: 'var(--t3)', fontSize: 11 }}>{r.description}</small>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 650, color: CATEGORY_COLORS[r.category] ?? '#551cf2' }}>
+              <span style={{ fontSize: 12, fontWeight: 650, color: CATEGORY_COLORS[r.category] ?? 'var(--brand-text)' }}>
                 {r.category}
               </span>
               <span style={{ fontSize: 12, fontWeight: 600, color: '#334064' }}>{r.createdBy}</span>
@@ -275,7 +275,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
                 </label>
               ))}
             </div>
-            {exportError && <p style={{ margin: '10px 0 0', color: '#e11d48', fontSize: 13 }}>{exportError}</p>}
+            {exportError && <p style={{ margin: '10px 0 0', color: 'var(--red-text)', fontSize: 13 }}>{exportError}</p>}
             <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
               <button onClick={() => { setExportReport(null); setExportError(''); }} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 8, background: 'var(--s1)', fontWeight: 650, cursor: 'pointer' }}>Cancel</button>
               <button className="kf-primary" style={{ height: 42, padding: '0 22px', opacity: exportLoading ? 0.7 : 1 }} onClick={downloadReport} disabled={exportLoading}>{exportLoading ? 'Exporting…' : 'Download'}</button>

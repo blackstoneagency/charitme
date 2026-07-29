@@ -77,7 +77,7 @@ export default function TrustScoreCard({ campaignId }: Props) {
             <span style={{ fontSize: 13, color: 'var(--t3)' }}>CharitScore: <strong style={{ color: 'var(--t1)' }}>{result.score}/99</strong></span>
           </div>
 
-          <div style={{ fontSize: 13.5, color: 'var(--violet)', background: 'rgba(109,53,255,.08)', border: '1px solid rgba(109,53,255,.2)', borderRadius: 8, padding: '10px 14px', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 13.5, color: 'var(--brand-text)', background: 'rgba(109,53,255,.08)', border: '1px solid rgba(109,53,255,.2)', borderRadius: 8, padding: '10px 14px', lineHeight: 1.5 }}>
             {result.message}
           </div>
 
@@ -110,7 +110,7 @@ export default function TrustScoreCard({ campaignId }: Props) {
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                         <span style={{ fontWeight: 800, color: 'var(--green-text)', fontSize: 12 }}>+{sug.pointsGain}</span>
                         {sug.actionUrl && (
-                          <span style={{ color: 'var(--violet)', fontWeight: 700, fontSize: 12 }}>{sug.actionLabel ?? 'Resolve'} →</span>
+                          <span style={{ color: 'var(--brand-text)', fontWeight: 700, fontSize: 12 }}>{sug.actionLabel ?? 'Resolve'} →</span>
                         )}
                       </span>
                     </>

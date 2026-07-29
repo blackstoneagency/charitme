@@ -95,7 +95,7 @@ function SponsorRow({
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: sponsor.active ? '#16a34a' : '#94a3b8' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: sponsor.active ? 'var(--green-text)' : 'var(--t3)' }}>
           <input type="checkbox" checked={sponsor.active} onChange={e => onToggle(sponsor.id, e.target.checked)}
             style={{ accentColor: '#6c35ff', width: 15, height: 15 }} />
           {sponsor.active ? 'Visible' : 'Hidden'}
@@ -116,7 +116,7 @@ function SponsorRow({
         )}
 
         <button onClick={() => { if (confirm(`Delete ${sponsor.name}?`)) onDelete(sponsor.id); }}
-          style={{ padding: '6px 12px', border: '1px solid #fca5a5', borderRadius: 8, background: '#fff0f3', color: '#be123c', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+          style={{ padding: '6px 12px', border: '1px solid #fca5a5', borderRadius: 8, background: 'var(--tint-rose)', color: 'var(--red-text)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
           Delete
         </button>
       </div>
@@ -195,7 +195,7 @@ export default function AdminSponsorsClient() {
   return (
     <div className="kf-admin-dash" style={{ maxWidth: 900 }}>
       {notice && (
-        <div style={{ margin: '0 0 16px', padding: '10px 16px', borderRadius: 10, background: notice.includes('❌') ? '#fff0f3' : '#f0fdf4', border: `1px solid ${notice.includes('❌') ? '#fecdd3' : '#bbf7d0'}`, color: notice.includes('❌') ? '#be123c' : '#15803d', fontWeight: 700, fontSize: 13 }}>
+        <div style={{ margin: '0 0 16px', padding: '10px 16px', borderRadius: 10, background: notice.includes('❌') ? 'var(--tint-red)' : '#f0fdf4', border: `1px solid ${notice.includes('❌') ? '#fecdd3' : '#bbf7d0'}`, color: notice.includes('❌') ? 'var(--red-text)' : 'var(--green-text)', fontWeight: 700, fontSize: 13 }}>
           {notice}
         </div>
       )}

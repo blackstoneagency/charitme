@@ -47,11 +47,11 @@ export default async function NewCustomersPage() {
       <CharitMeShell active="New Customers" mode="admin">
         <TopBar title="New Customers" subtitle="AI-sourced business leads from new LLC filings." actions={<></>} />
         <div style={{ padding: '32px' }}>
-          <div style={{ padding: '24px 28px', background: '#fff0f3', border: '1.5px solid #fecdd3', borderRadius: 14, maxWidth: 720 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 900, color: '#be123c', margin: '0 0 10px' }}>
+          <div style={{ padding: '24px 28px', background: 'var(--tint-rose)', border: '1.5px solid #fecdd3', borderRadius: 14, maxWidth: 720 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 900, color: 'var(--red-text)', margin: '0 0 10px' }}>
               {needsMigration ? '⚠ Migration not applied yet' : '❌ Database error'}
             </h2>
-            <p style={{ fontFamily: 'monospace', fontSize: 13, color: '#be123c', margin: '0 0 14px', lineHeight: 1.7 }}>
+            <p style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--red-text)', margin: '0 0 14px', lineHeight: 1.7 }}>
               {error.message}
             </p>
             {needsMigration && (

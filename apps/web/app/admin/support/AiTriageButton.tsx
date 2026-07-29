@@ -111,7 +111,7 @@ export default function AiTriageButton({ caseId, subject }: Props) {
             </div>
 
             {loading && <p style={{ fontSize: 13, color: 'var(--t3)' }}>Analyzing case…</p>}
-            {error && <div style={{ padding: '10px 14px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 8, color: '#be123c', fontSize: 13, fontWeight: 600 }}>⚠ {error}</div>}
+            {error && <div style={{ padding: '10px 14px', background: 'var(--tint-rose)', border: '1px solid #fecdd3', borderRadius: 8, color: 'var(--red-text)', fontSize: 13, fontWeight: 600 }}>⚠ {error}</div>}
 
             {result && (
               <div style={{ display: 'grid', gap: 14 }}>

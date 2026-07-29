@@ -87,7 +87,7 @@ export default function PayoutConciergeCard({ campaigns }: Props) {
             <span style={{ fontSize: 13, color: 'var(--t3)' }}>Available balance: <strong style={{ color: 'var(--t1)' }}>{fmt(result.availableCents)}</strong></span>
           </div>
 
-          <div style={{ fontSize: 13.5, color: 'var(--violet)', background: 'rgba(109,53,255,.08)', border: '1px solid rgba(109,53,255,.18)', borderRadius: 8, padding: '10px 14px', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 13.5, color: 'var(--brand-text)', background: 'rgba(109,53,255,.08)', border: '1px solid rgba(109,53,255,.18)', borderRadius: 8, padding: '10px 14px', lineHeight: 1.5 }}>
             {result.message}
           </div>
 
@@ -99,7 +99,7 @@ export default function PayoutConciergeCard({ campaigns }: Props) {
                   <Link key={b.code} href={b.actionUrl}
                     style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--b1)', textDecoration: 'none', color: 'var(--t1)' }}>
                     {b.label}
-                    <span style={{ color: 'var(--violet)', fontWeight: 700, fontSize: 12 }}>Resolve →</span>
+                    <span style={{ color: 'var(--brand-text)', fontWeight: 700, fontSize: 12 }}>Resolve →</span>
                   </Link>
                 ))}
               </div>

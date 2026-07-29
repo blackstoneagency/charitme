@@ -193,7 +193,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
         <div style={{ display: 'flex', borderBottom: '1px solid #eef0f7', padding: '0 24px' }}>
           {['info', 'history', 'action'].map(t => (
             <button key={t} type="button" onClick={() => setActiveTab(t)}
-              style={{ height: 44, border: 0, borderBottom: `2px solid ${activeTab === t ? '#6c35ff' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? '#551cf2' : '#66708d', marginRight: 20, cursor: 'pointer' }}>
+              style={{ height: 44, border: 0, borderBottom: `2px solid ${activeTab === t ? '#6c35ff' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? 'var(--brand-text)' : '#66708d', marginRight: 20, cursor: 'pointer' }}>
               {capitalize(t)}
             </button>
           ))}
@@ -459,7 +459,7 @@ export default function PayoutsClient({
         <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #eef0f7', padding: '0 20px', overflowX: 'auto' }}>
           {panelTabs.map(t => (
             <button key={t} type="button" onClick={() => handleTabChange(t)}
-              style={{ height: 50, padding: '0 14px', border: 0, borderBottom: `2px solid ${activeTab === t ? '#6c35ff' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? '#551cf2' : '#202b55', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              style={{ height: 50, padding: '0 14px', border: 0, borderBottom: `2px solid ${activeTab === t ? '#6c35ff' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? 'var(--brand-text)' : '#202b55', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               {capitalize(t)}
             </button>
           ))}
@@ -544,13 +544,13 @@ export default function PayoutsClient({
             <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700 }}>Add Manual Payout</h3>
             <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--t3)' }}>Create a payout for an existing platform user. Find User IDs in Admin → Users.</p>
             {addSuccess && (
-              <div style={{ padding: '12px 16px', borderRadius: 9, background: '#def7e7', color: 'var(--green-text)', fontSize: 13, fontWeight: 650, marginBottom: 16 }}>
+              <div style={{ padding: '12px 16px', borderRadius: 9, background: 'var(--tint-green)', color: 'var(--green-text)', fontSize: 13, fontWeight: 650, marginBottom: 16 }}>
                 ✓ Payout created successfully. Reload the page to see it in the list.
               </div>
             )}
             <div style={{ maxWidth: 460, display: 'grid', gap: 16 }}>
               <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
-                Recipient User ID <span style={{ color: '#e11d48' }}>*</span>
+                Recipient User ID <span style={{ color: 'var(--red-text)' }}>*</span>
                 <input type="text" value={addUserId} onChange={e => setAddUserId(e.target.value)} placeholder="e.g. 12a3bc45-6d7e-..." style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
               <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
@@ -558,7 +558,7 @@ export default function PayoutsClient({
                 <input type="text" value={addCampaignId} onChange={e => setAddCampaignId(e.target.value)} placeholder="Leave blank for unattached payout" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
               <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
-                Amount (USD) <span style={{ color: '#e11d48' }}>*</span>
+                Amount (USD) <span style={{ color: 'var(--red-text)' }}>*</span>
                 <input type="number" min="0.01" step="0.01" value={addAmount} onChange={e => setAddAmount(e.target.value)} placeholder="0.00" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
               <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
@@ -575,7 +575,7 @@ export default function PayoutsClient({
                 Internal Note
                 <textarea value={addNote} onChange={e => setAddNote(e.target.value)} placeholder="Reason for manual payout…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 80, resize: 'vertical' }} />
               </label>
-              {addError && <p style={{ margin: 0, color: '#e11d48', fontSize: 13, fontWeight: 600 }}>{addError}</p>}
+              {addError && <p style={{ margin: 0, color: 'var(--red-text)', fontSize: 13, fontWeight: 600 }}>{addError}</p>}
               <div style={{ display: 'flex', gap: 12 }}>
                 <button type="button" onClick={() => { setAddUserId(''); setAddCampaignId(''); setAddAmount(''); setAddNote(''); setAddError(''); setAddSuccess(false); }} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Clear</button>
                 <button type="button" onClick={handleCreatePayout} disabled={addSaving} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: addSaving ? 'default' : 'pointer', opacity: addSaving ? 0.65 : 1 }}>

@@ -71,7 +71,7 @@ export default async function AboutUsPage() {
       emoji: '🛡️',
       title: 'Trust by Design',
       body: 'AI-powered verification, real-time trust scores, and fraud prevention built into every campaign from day one.',
-      color: '#dc2626',
+      color: 'var(--red-text)',
       bg: '#fef2f2',
     },
     {

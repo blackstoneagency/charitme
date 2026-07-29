@@ -135,7 +135,7 @@ export default function SupportersPanel({
       </div>
 
       {notice && (
-        <div style={{ ...card, padding: '12px 18px', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? 'var(--red)' : notice.startsWith('⚠') ? '#d97706' : 'var(--green)' }}>
+        <div style={{ ...card, padding: '12px 18px', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? 'var(--red)' : notice.startsWith('⚠') ? 'var(--orange-text)' : 'var(--green)' }}>
           {notice}
         </div>
       )}

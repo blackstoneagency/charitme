@@ -46,7 +46,7 @@ export default async function FinancePage() {
     { label: 'Platform Revenue (Tips)', value: fmtCents(platformRevenue), sub: 'optional donor tips', color: 'var(--green-text)' },
     { label: 'Processing Fees Covered', value: fmtCents(totalFees), sub: 'donor-covered fees', color: 'var(--orange-text)' },
     { label: 'Total Payouts Sent', value: fmtCents(totalPaid), sub: 'paid to organizers', color: '#3b82f6' },
-    { label: 'Total Refunded', value: fmtCents(totalRefunds), sub: 'net reversal', color: '#ef4444' },
+    { label: 'Total Refunded', value: fmtCents(totalRefunds), sub: 'net reversal', color: 'var(--red-text)' },
     // `count` is null when the QUERY FAILS, not when the number is zero. A false
     // "0" on these two is operationally consequential: it reads as "no failed
     // donations to investigate" and "nothing awaiting release", so nobody acts.

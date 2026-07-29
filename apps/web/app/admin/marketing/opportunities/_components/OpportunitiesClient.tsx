@@ -74,7 +74,7 @@ export default function OpportunitiesClient() {
 
   return (
     <div style={{ padding: '0 20px 48px', maxWidth: 900 }}>
-      {notice && <div style={{ ...card, padding: '12px 18px', background: notice.startsWith('❌') ? '#fff0f3' : '#f0fdf4', borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? '#be123c' : '#15803d' }}>{notice}</div>}
+      {notice && <div style={{ ...card, padding: '12px 18px', background: notice.startsWith('❌') ? 'var(--tint-red)' : '#f0fdf4', borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? 'var(--red-text)' : 'var(--green-text)' }}>{notice}</div>}
 
       <div style={{ ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
         <div>
@@ -87,7 +87,7 @@ export default function OpportunitiesClient() {
       {loading ? (
         <div style={{ ...card, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Loading…</div>
       ) : error ? (
-        <div style={{ ...card, background: '#fff0f3', borderColor: '#fecdd3', color: '#be123c' }}>{error} <button onClick={load} style={{ ...btnGhost, marginLeft: 8 }}>Retry</button></div>
+        <div style={{ ...card, background: 'var(--tint-rose)', borderColor: '#fecdd3', color: 'var(--red-text)' }}>{error} <button onClick={load} style={{ ...btnGhost, marginLeft: 8 }}>Retry</button></div>
       ) : opps.length === 0 ? (
         <div style={{ ...card, textAlign: 'center', padding: '40px 24px' }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#475569', marginBottom: 6 }}>No opportunities yet</div>
@@ -133,7 +133,7 @@ function OppCard({ o, act }: { o: Opportunity; act: (id: string, body: Record<st
             )}
             {o.status === 'new' && <button onClick={() => act(o.id, { status: 'accepted' }, '✅ Accepted.')} style={btnGhost}>Accept</button>}
             {o.status === 'new' && <button onClick={() => act(o.id, { status: 'deferred' }, '✅ Deferred.')} style={btnGhost}>Defer</button>}
-            {o.status !== 'rejected' && o.status !== 'converted' && <button onClick={() => act(o.id, { status: 'rejected' }, '✅ Rejected.')} style={{ ...btnGhost, color: '#be123c' }}>Reject</button>}
+            {o.status !== 'rejected' && o.status !== 'converted' && <button onClick={() => act(o.id, { status: 'rejected' }, '✅ Rejected.')} style={{ ...btnGhost, color: 'var(--red-text)' }}>Reject</button>}
             {o.linked_goal_id && <span style={{ fontSize: 12, color: 'var(--brand-text)', fontWeight: 700, alignSelf: 'center' }}>Linked to a goal ✓</span>}
           </div>
         </div>

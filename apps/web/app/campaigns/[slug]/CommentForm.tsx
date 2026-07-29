@@ -22,7 +22,7 @@ export default function CommentForm({
   if (!isAuthenticated) {
     return (
       <div style={{ padding: '14px 16px', borderRadius: 12, border: '1px solid var(--b1)', background: 'var(--s2)', fontSize: 13, color: 'var(--t2)', marginBottom: 16 }}>
-        <Link href={`/login?next=${encodeURIComponent(loginNext)}`} style={{ color: 'var(--violet)', fontWeight: 800, textDecoration: 'none' }}>Sign in</Link> to leave a message of support.
+        <Link href={`/login?next=${encodeURIComponent(loginNext)}`} style={{ color: 'var(--brand-text)', fontWeight: 800, textDecoration: 'none' }}>Sign in</Link> to leave a message of support.
       </div>
     );
   }
@@ -88,7 +88,7 @@ export default function CommentForm({
           {submitting ? 'Posting…' : 'Post'}
         </button>
       </div>
-      {error && <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#ef4444', fontWeight: 600 }}>⚠ {error}</p>}
+      {error && <p style={{ margin: '8px 0 0', fontSize: 12.5, color: 'var(--red-text)', fontWeight: 600 }}>⚠ {error}</p>}
     </div>
   );
 }

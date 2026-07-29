@@ -84,7 +84,7 @@ export default function RunFraudScanButton() {
             </div>
 
             {loading && <p style={{ fontSize: 13, color: 'var(--t3)' }}>Scanning active campaigns for risk signals…</p>}
-            {error && <div style={{ padding: '10px 14px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 8, color: '#be123c', fontSize: 13, fontWeight: 600 }}>⚠ {error}</div>}
+            {error && <div style={{ padding: '10px 14px', background: 'var(--tint-rose)', border: '1px solid #fecdd3', borderRadius: 8, color: 'var(--red-text)', fontSize: 13, fontWeight: 600 }}>⚠ {error}</div>}
 
             {result && (
               <div style={{ display: 'grid', gap: 14 }}>
@@ -94,7 +94,7 @@ export default function RunFraudScanButton() {
                     <div style={{ fontSize: 11.5, color: 'var(--t3)', marginTop: 2 }}>Campaigns scanned</div>
                   </div>
                   <div style={{ flex: 1, minWidth: 120, background: 'var(--s2)', border: '1px solid #f0f4f8', borderRadius: 10, padding: '10px 14px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: result.newFlagsCount > 0 ? '#ef4444' : '#19b86a' }}>{result.newFlagsCount}</div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: result.newFlagsCount > 0 ? 'var(--red-text)' : 'var(--green-text)' }}>{result.newFlagsCount}</div>
                     <div style={{ fontSize: 11.5, color: 'var(--t3)', marginTop: 2 }}>New flags raised</div>
                   </div>
                 </div>

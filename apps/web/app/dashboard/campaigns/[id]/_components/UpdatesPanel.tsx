@@ -176,7 +176,7 @@ export default function UpdatesPanel({ campaignId }: { campaignId: string }) {
                   <div style={{ fontSize: 12, color: 'var(--t3)' }}>{timeAgo(u.created_at)}</div>
                 </div>
                 {u.ai_generated && (
-                  <span style={{ fontSize: 10, background: 'rgba(109,53,255,.14)', color: 'var(--violet)', fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}>AI</span>
+                  <span style={{ fontSize: 10, background: 'rgba(109,53,255,.14)', color: 'var(--brand-text)', fontWeight: 700, padding: '3px 8px', borderRadius: 6 }}>AI</span>
                 )}
               </div>
               <p style={{ fontSize: 14, color: 'var(--t2)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>
