@@ -162,6 +162,48 @@ directions, not checkboxes, or this list can never close.
 > production-readiness program. Section A is the actionable engineering backlog.
 > Section B (further down) is the competitive product vision it serves.
 
+## 📋 GOAL SCORECARD — measured 2026-07-29 against current master
+
+Re-run after Codex's PRs #149–#152 merged, so these describe master **now**, not an
+earlier build. Every ✅ below is a command anyone can repeat; the blocked rows say exactly
+what unblocks them.
+
+| # | Criterion | State | Evidence / blocker |
+|---|---|---|---|
+| 1 | Every page audited | 🟡 | 38 public routes swept 4 ways. **Authenticated pages have no live sweep** — needs a QA login (#4 below) |
+| 2 | Every feature works | 🟡 | 5 silent failures found + fixed this session. **3 migrations still unapplied** → runbook below |
+| 3 | Wired to Supabase | ✅ | all reads/writes via the 3-client pattern; degraded-read handling audited platform-wide |
+| 4 | ≥100 seed records | 🟡 | every table ≥100 **except `sponsors` = 50** — needs a production write (owner) |
+| 5 | Images unique | ✅ | **500 campaigns / 500 covers / 500 distinct / 0 duplicates** |
+| 6 | Frictionless UX | 🟡 | dead controls disabled, broken links fixed, poster + payout paths repaired. Subjective overall |
+| 7 | Dark/light solved | ✅ | **0 AA contrast failures**, 37 pages × 2 themes, 7,313 elements each |
+| 8 | Mobile responsive | ✅ | **222 renders (37 × 3 viewports × 2 themes), 0 findings** |
+| 9 | Fast pages | ✅ | **37/37 within budget** — worst LCP 500ms/4000, TTFB 176ms/1500, **CLS 0 everywhere** |
+| 10 | Roles mapped + distinct | 🟡 | mapped + all 7 `enforced` claims verified. **Only 2 of 6 gate anything** — product decision |
+| 11 | 100% GoFundMe parity | ✅ | **10/10 built**, each pinned to real code by test |
+| 12 | Better than GoFundMe | ✅ | **72 of 105 features built** vs GoFundMe's 10. Gaps are creator-economy (Patreon/Ko-fi) — different direction |
+| 13 | Accessibility passes | ✅ | **0 axe violations** (76 loads) + **0 unlabelled form controls**, hard-guarded |
+| 14 | Payment methods work | 🔴 | **Cannot verify — no `STRIPE_SECRET_KEY` here, and live keys must not be charged.** `/api/health?details=1` now reports it |
+| 15 | Performance optimized | ✅ | see #9 |
+| 16 | Security resolved | ✅ | **8 Next.js CVEs patched** (15.5.18 → 15.5.22); npm audit critical **1 → 0** |
+| 17 | Tests pass | ✅ | **1836 / 173 files** |
+| 18 | Build succeeds | ✅ | green; 150 static pages |
+| 19 | todo.md updated | ✅ | this file, continuously |
+| 20 | Commit per feature | ✅ | ~120 commits, each with its own verification |
+
+### 🔴 The five things only the owner can do
+1. **Apply the 3 migrations** → runbook below. Needs `SUPABASE_ACCESS_TOKEN` +
+   `SUPABASE_DB_PASSWORD`; PostgREST cannot run DDL, so no agent can.
+2. **Stripe test keys** → the only way to exercise payments without charging live cards.
+3. **A QA login** → unblocks live auditing of `/admin/*` and `/dashboard/*`.
+4. **`sponsors` 50 → 100** → one production write.
+5. **Decide role enforcement** → which capabilities should `organizer` / `beneficiary` /
+   `nonprofit` actually be *denied*? Inventing restrictions risks locking organizers out
+   of their own campaigns, so it is not mine to guess.
+
+*(PR #127 is no longer blocking — its live-500 fix, three audits and settings labels were
+ported to master. Its remaining seed/mobile-CSS parts are superseded.)*
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).
