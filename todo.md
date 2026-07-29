@@ -1577,6 +1577,22 @@ per-route figures are `audit-signed-in.mjs`'s.
 
 - **Codex (theme):** the 164 literals → text tokens, and the inline `#fff`
   containers → `var(--s1)`.
+
+  **Start with two files.** Counted across `app/admin`: **107** white-background
+  literals in 29 files (Class A) and **164** dark-text literals in 25 files
+  (Class B) — 271 total. They are not evenly spread:
+
+  | file | white bg | dark text | total |
+  |---|---|---|---|
+  | `payouts/_components/PayoutsClient.tsx` | 12 | 26 | **38** |
+  | `donations/_components/DonationsClient.tsx` | 11 | 26 | **37** |
+  | `content/_components/ContentClient.tsx` | 14 | — | 14 |
+  | `system/_components/SystemClient.tsx` | 7 | — | 7 |
+
+  `PayoutsClient` and `DonationsClient` alone are **75 of 271 literals (28%)** —
+  and they are exactly the two routes that measured worst for unreadable text
+  (`/admin/payouts` 7 instances, `/admin/donations` 9). Fixing those two files
+  clears the worst-measured routes and over a quarter of the total.
 - **Claude (guards):** once those land, **delete `'admin'` from `EXCLUDED_DIRS`**
   so the existing regex covers it. Not removed yet — doing so today fails the
   suite on 164 pre-existing hits, and this file records what happens when a guard
@@ -1598,10 +1614,22 @@ queries**. That is not N+1 — 27 of the 29 are *distinct*. Normalising ids befo
 counting is what showed it; without that step "29 queries on one page" would have
 been filed as a waterfall it isn't.
 
-**The real finding: `getUserRoles` was not memoized.** `isAdmin()` calls it, and
-`isAdmin` runs from `app/admin/layout.tsx:10`, `loadShellSession()` and
-`requireAdmin()` in the same render — 39 call sites overall. `getUser()` and
+**The real finding: `getUserRoles` was not memoized.** `getUser()` and
 `loadShellSession()` are both `cache()`-wrapped; this one was missed.
+
+⚠️ **Correcting my own first write-up of the mechanism.** I said the savings came
+via `isAdmin()`. They did not, in the run I measured. `getUserRoles` has exactly
+two callers — `isAdmin` and `isSuperAdmin` (`lib/roles.ts:58,70`) — and `isAdmin`
+**short-circuits on `ADMIN_EMAILS` before ever reaching it** (`roles.ts:50-55`).
+The measurement set `ADMIN_EMAILS=audit-stub@charitme.local`, so every `isAdmin`
+call returned at step 2. The queries that disappeared were `isSuperAdmin`'s,
+which only short-circuits on the two hardcoded owner emails and therefore always
+hits the database for anyone else.
+
+**The fix is worth more in production than the measurement shows**, for the same
+reason: a real admin whose rights come from the `roles` column rather than the env
+var falls through to `getUserRoles` on *every* `isAdmin` call — the admin layout,
+`loadShellSession()` and `requireAdmin()` all in one render.
 
 Wrapped it the same way. Measured before → after:
 
@@ -1635,9 +1663,25 @@ post-login landing page and is a prefetch/second-navigation candidate. The
 from the auth callback routes, not per render — consistent with a second
 auth-adjacent request rather than duplicated work inside one.
 
-**Not proven.** Confirming it means instrumenting how many document/RSC requests
-one `/dashboard` visit makes. Recorded here so the next person starts from the
-evidence rather than re-deriving it. Do not read the `/dashboard` row as a win.
+**Structural comparison rules out a code difference.** Read both paths end to end;
+they are the same shape at every point that could matter:
+
+| | `/dashboard` | `/admin` |
+|---|---|---|
+| layout calls `requireUser()` then `loadShellSession()` | yes (`layout.tsx:6-7`) | yes (`layout.tsx:9-12`) |
+| wraps children in `ShellSessionProvider` | yes | yes |
+| has a `loading.tsx` | yes | yes |
+| page imports `CharitMeShell` from `CharitMeShellServer` | yes (`page.tsx:3`) | yes (`page.tsx:4`) |
+
+`loading.tsx` is not the cause either: it renders `CharitMeShell` from
+`ShellSessionProvider` — the **client** component that reads context — so the
+skeleton issues no query of its own.
+
+Identical code, different measurement, so the difference is in the request rather
+than the render. **Still not proven.** Confirming it means counting the
+document/RSC requests one `/dashboard` visit makes; that experiment was written
+but not run. Recorded so the next person starts from the evidence rather than
+re-deriving it. Do not read the `/dashboard` row as a win.
 
 Timings, same run: median **99 ms**, worst **251 ms** (`/admin/audit-log`) —
 against an instant-responding stub, so these bound render overhead only and say
