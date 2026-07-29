@@ -1612,10 +1612,32 @@ Wrapped it the same way. Measured before → after:
 | `/admin` | 29, `profiles`×7 | **25**, `profiles`×5, 0 dupes |
 | `/dashboard` | 21 | **23 — unchanged, still 4 duplicates** |
 
-⚠️ **`/dashboard` did not improve**, and still shows 4 redundant identical
-queries. Its duplication comes from somewhere other than `getUserRoles`, and is
-**not diagnosed**. Do not read this row as a win. (23 vs 21 is within run-to-run
-noise from prefetch; it is not a regression claim either way.)
+⚠️ **`/dashboard` did not improve.** Followed up rather than leaving it open:
+
+A clean re-measure shows **27 queries, 25 distinct — exactly 2 duplicated pairs**,
+both on `profiles`:
+
+```
+2x  profiles?select=id&id=eq.<X>
+2x  profiles?select=full_name,avatar_url,roles&id=eq.<X>
+```
+
+The second is `loadShellSession()`'s own query, and that function **is**
+`cache()`-wrapped. It is called twice per render — `app/dashboard/layout.tsx:7`
+and `components/CharitMeShellServer.tsx:63` — which `cache()` should collapse.
+
+**Most likely a second render pass, not a caching defect.** `/admin` uses the
+identical structure (`app/admin/layout.tsx:12` + the same shell component) and
+measures **0** duplicates after the fix. Same code path, different result, so the
+difference is the request rather than the memoization — `/dashboard` is the
+post-login landing page and is a prefetch/second-navigation candidate. The
+`select=id` read is `ensureUserProfile()` (`lib/profile-sync.ts:21`), which runs
+from the auth callback routes, not per render — consistent with a second
+auth-adjacent request rather than duplicated work inside one.
+
+**Not proven.** Confirming it means instrumenting how many document/RSC requests
+one `/dashboard` visit makes. Recorded here so the next person starts from the
+evidence rather than re-deriving it. Do not read the `/dashboard` row as a win.
 
 Timings, same run: median **99 ms**, worst **251 ms** (`/admin/audit-log`) —
 against an instant-responding stub, so these bound render overhead only and say
