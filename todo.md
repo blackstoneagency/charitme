@@ -9,18 +9,22 @@ external release constraints after the latest production deployment.
 |---|---------|----------|------------------|
 | 1 | **GitHub Actions assigns no runner.** Every CI job fails in ~2s with `runner_id: 0`, `runner_name: ""`, and **no logs at all** (`get_job_logs` → 404). Repo-wide, including pushes straight to `master`. | 30 of 30 most recent runs | **Owner** — Actions minutes / billing |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project, so database release policy correctly blocks production migration application until the same commit is verified on a real CharitMe staging project. | Supabase project inventory, 2026-07-28 | **Owner** — provision/link CharitMe staging |
+| 3 | **Vercel has exhausted the free-project deployment quota.** Both the Git integration and an exact-master CLI deploy return `api-deployments-free-per-day`; the security release is merged but cannot become production until the quota resets. | Vercel CLI and PR #153 deployment check, 2026-07-28 | **External reset** — retry exact `master` after the 24-hour window |
 
-**Vercel production is operational again.** `master` commit `0148c675` deployed
-successfully and is aliased to both `www.charitme.com` and `charitme.com`.
+**Vercel production is operational, but behind `master`.** Commit `0148c675` is
+aliased to both `www.charitme.com` and `charitme.com`; merged security commit
+`d8db2c3c` is not production yet because of blocker 3.
 
 **How to tell an infra failure from a real one:** a genuine CI failure runs for
 minutes and produces logs. These finish in ~2 seconds with none. If you see that,
 stop debugging your diff.
 
-**Local verification is therefore the real gate, and it is green:**
+**Local application verification for merged security commit `d8db2c3c` is green:**
 `npm run typecheck` (0) · `npm test` (**1825/1825, 174 files**) · `npm run build`
-(exit 0) · `scripts/audit-contrast.mjs --strict-gradients` (**0 WCAG AA failures,
-37 pages × 2 themes, 3,638 text elements per theme**).
+(exit 0) · public `scripts/audit-contrast.mjs --strict-gradients` (**0 WCAG AA
+failures, 37 pages × 2 themes, 3,638 text elements per theme**). The new
+signed-in audit is intentionally red and tracked below; do not describe the whole
+authenticated product as contrast-clean.
 
 ⚠️ Run `npm test` from **`apps/web`**, not the repo root. Root-level `npx vitest run`
 picks up a different config and reports ~24 failing files (`server-only` imports that
@@ -112,14 +116,35 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   operations can create, modify, assign, or delete privileged accounts.
 - [x] Preserved multi-role accounts during bulk activation/suspension and made
   `super_admin` inherit `admin` consistently in the app, role API, and RLS.
-- [x] Replayed all 104 migrations locally, then proved with an authenticated SQL
+- [x] Replayed all 105 migrations locally, then proved with an authenticated SQL
   attack fixture that team self-enrollment is denied and super-admin RLS
   inheritance succeeds.
-- [x] Typecheck, zero-warning lint, 1,825 tests across 174 files, and the
+- [x] Typecheck, zero-warning lint, 1,856 tests across 175 files, and the
   150-page production build pass.
-- [ ] Apply `20260814000000_harden_role_and_team_boundaries.sql` to CharitMe
+- [ ] Apply `20260815000000_harden_role_and_team_boundaries.sql` to CharitMe
   staging and run authenticated team/admin smoke tests before production
   migration application through the release workflow.
+
+## SIGNED-IN PAGE CERTIFICATION - audit infrastructure complete, contrast remediation active (Codex, 2026-07-28)
+
+- [x] Reconciled the route manifest with the app tree: 10 standalone gated
+  routes, 68 renderable console pages, eight exact redirect aliases, and 19
+  populated dynamic-template samples.
+- [x] Removed the nonexistent `/volunteer/manage` route and classified
+  `/create/choose-path` plus `/beneficiary/accept` as public entry points.
+- [x] Added populated payment-flow and volunteer-management fixtures so dynamic
+  audits render real page states instead of 404 or empty shells.
+- [x] Made the signed-in runner portable on Windows/Linux, self-building against
+  its Supabase stub and discovering an installed Playwright/Chrome executable.
+- [x] Made HTTP errors, browser exceptions, theme reversion, unexpected
+  redirects, and near-empty signed-in renders fail the audit.
+- [x] Verified the route contract with 24 focused tests and a targeted
+  production-build browser run in both themes.
+- [ ] Remediate the **355 WCAG AA contrast failures** exposed by the first honest
+  signed-in sweep across 136 pages and both themes. These were previously hidden
+  because only public routes were audited; do not waive or baseline them.
+- [ ] Add six independent role sessions and certify each persona's own
+  navigation, allowed routes, denied routes, and displayed role label.
 
 ## SECURITY BOUNDARIES - code complete, production migration pending (Codex, 2026-07-27)
 

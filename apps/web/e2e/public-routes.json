@@ -22,6 +22,7 @@
     "/campaigns",
     "/campaigns/security-header-fixture/embed",
     "/contact",
+    "/create/choose-path",
     "/events",
     "/faq",
     "/features",
@@ -51,24 +52,22 @@
     "/terms",
     "/transparency",
     "/trust-safety",
+    "/beneficiary/accept",
     "/volunteer"
   ],
   "authGated": {
-    "_comment": "Verified to redirect signed-out, or to require a session/token. Auditing these needs a signed-in sweep; including them in `public` measures the login page instead. `routes` are the gated routes outside /dashboard and /admin; `consoles` are every static route inside them; `dynamicSamples` instantiate the [param] routes against stub fixture ids so the parameterised templates get swept too.",
+    "_comment": "Verified to redirect signed-out, or to require a session/token. `routes` are gated pages outside /dashboard and /admin. `consoles` are renderable static pages under those roots. `redirects` are compatibility aliases with an exact expected destination. `dynamicSamples` bind each parameterized signed-in template to one populated fixture URL.",
     "routes": [
       "/achievements",
       "/privacy-center",
       "/create",
-      "/create/choose-path",
       "/profile",
       "/donor",
       "/events/manage",
       "/impact/manage",
       "/matching/manage",
       "/sponsor/manage",
-      "/beneficiary/accept",
-      "/volunteer/hours",
-      "/volunteer/manage"
+      "/volunteer/hours"
     ],
     "consoles": [
       "/admin",
@@ -81,17 +80,10 @@
       "/admin/finance",
       "/admin/grants",
       "/admin/marketing",
-      "/admin/marketing/audience",
-      "/admin/marketing/automations",
       "/admin/marketing/campaign-plans",
-      "/admin/marketing/campaigns",
       "/admin/marketing/command-center",
-      "/admin/marketing/copilot",
       "/admin/marketing/goals",
       "/admin/marketing/opportunities",
-      "/admin/marketing/outreach",
-      "/admin/marketing/segments",
-      "/admin/marketing/seo",
       "/admin/new-customers",
       "/admin/payments/campaign-flows",
       "/admin/payments/disputes",
@@ -112,7 +104,6 @@
       "/admin/super/announcements",
       "/admin/super/banner",
       "/admin/super/flags",
-      "/admin/super/marketing",
       "/admin/super/roles",
       "/admin/super/settings",
       "/admin/super/users",
@@ -148,24 +139,117 @@
       "/dashboard/updates/new",
       "/dashboard/volunteer"
     ],
+    "redirects": [
+      {
+        "from": "/admin/marketing/audience",
+        "to": "/admin/marketing?tab=audience"
+      },
+      {
+        "from": "/admin/marketing/automations",
+        "to": "/admin/marketing?tab=automations"
+      },
+      {
+        "from": "/admin/marketing/campaigns",
+        "to": "/admin/marketing?tab=campaigns"
+      },
+      {
+        "from": "/admin/marketing/copilot",
+        "to": "/admin/marketing?tab=copilot"
+      },
+      {
+        "from": "/admin/marketing/outreach",
+        "to": "/admin/marketing?tab=outreach"
+      },
+      {
+        "from": "/admin/marketing/segments",
+        "to": "/admin/marketing?tab=segments"
+      },
+      {
+        "from": "/admin/marketing/seo",
+        "to": "/admin/marketing?tab=seo"
+      },
+      {
+        "from": "/admin/super/marketing",
+        "to": "/admin/marketing"
+      }
+    ],
     "dynamicSamples": [
-      "/admin/payments/campaign-flows/camp0000-0000-4000-8000-000000000001",
-      "/admin/payments/campaign-flows/camp0000-0000-4000-8000-000000000001/transactions",
-      "/admin/payments/campaign-flows/camp0000-0000-4000-8000-000000000001/transactions/dona0000-0000-4000-8000-000000000001",
-      "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001",
-      "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/analytics",
-      "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/edit",
-      "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/faqs",
-      "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/ledger",
-      "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/milestones",
-      "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/payout-setup",
-      "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/rewards",
-      "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/settings",
-      "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/share",
-      "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/supporters",
-      "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/thank-donors",
-      "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/updates",
-      "/dashboard/tax/fundraiser/2025"
+      {
+        "template": "/admin/payments/campaign-flows/[campaignId]",
+        "path": "/admin/payments/campaign-flows/camp0000-0000-4000-8000-000000000001"
+      },
+      {
+        "template": "/admin/payments/campaign-flows/[campaignId]/transactions",
+        "path": "/admin/payments/campaign-flows/camp0000-0000-4000-8000-000000000001/transactions"
+      },
+      {
+        "template": "/admin/payments/campaign-flows/[campaignId]/transactions/[transactionId]",
+        "path": "/admin/payments/campaign-flows/camp0000-0000-4000-8000-000000000001/transactions/paym0000-0000-4000-8000-000000000001"
+      },
+      {
+        "template": "/dashboard/campaigns/[id]",
+        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001"
+      },
+      {
+        "template": "/dashboard/campaigns/[id]/analytics",
+        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/analytics"
+      },
+      {
+        "template": "/dashboard/campaigns/[id]/edit",
+        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/edit"
+      },
+      {
+        "template": "/dashboard/campaigns/[id]/faqs",
+        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/faqs"
+      },
+      {
+        "template": "/dashboard/campaigns/[id]/ledger",
+        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/ledger"
+      },
+      {
+        "template": "/dashboard/campaigns/[id]/milestones",
+        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/milestones"
+      },
+      {
+        "template": "/dashboard/campaigns/[id]/payout-setup",
+        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/payout-setup"
+      },
+      {
+        "template": "/dashboard/campaigns/[id]/rewards",
+        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/rewards"
+      },
+      {
+        "template": "/dashboard/campaigns/[id]/settings",
+        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/settings"
+      },
+      {
+        "template": "/dashboard/campaigns/[id]/share",
+        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/share"
+      },
+      {
+        "template": "/dashboard/campaigns/[id]/supporters",
+        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/supporters"
+      },
+      {
+        "template": "/dashboard/campaigns/[id]/thank-donors",
+        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/thank-donors"
+      },
+      {
+        "template": "/dashboard/campaigns/[id]/updates",
+        "path": "/dashboard/campaigns/camp0000-0000-4000-8000-000000000001/updates"
+      },
+      {
+        "template": "/dashboard/tax/fundraiser/[year]",
+        "path": "/dashboard/tax/fundraiser/2025"
+      },
+      {
+        "template": "/donor/tax-statement/[year]",
+        "path": "/donor/tax-statement/2025"
+      },
+      {
+        "template": "/volunteer/manage/[id]",
+        "path": "/volunteer/manage/volu0000-0000-4000-8000-000000000001"
+      }
     ]
   }
 }

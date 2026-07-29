@@ -15,6 +15,7 @@
     "e2e": "playwright test",
     "audit:campaign-images": "node scripts/audit-campaign-images.mjs",
     "audit:contrast": "node scripts/audit-contrast.mjs",
+    "audit:signed-in": "node scripts/audit-signed-in.mjs --build --strict-gradients",
     "audit:a11y": "node scripts/audit-a11y.mjs",
     "audit:mobile": "node scripts/audit-mobile.mjs",
     "audit:scroll-keyboard": "node scripts/audit-scroll-keyboard.mjs",
