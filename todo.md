@@ -1740,10 +1740,28 @@ That is precisely the "surface that looks functional and silently does nothing"
 class this file keeps recording — building the page first would manufacture one.
 
 **Correct order, and the first step is owner-gated:**
-1. **Migration: `donations.peer_fundraiser_id uuid references peer_fundraisers(id)`**,
-   plus a trigger to roll the amount into both the peer row and the parent
-   campaign. **DDL — PostgREST cannot run it, so this needs the owner** (same
-   blocker as the volunteer migrations).
+1. ✅ **Migration WRITTEN — `supabase/migrations/20260815000000_peer_fundraiser_attribution.sql`.**
+   Adds `donations.peer_fundraiser_id` (nullable, `on delete set null` so removing
+   a supporter page never deletes the money that came through it), a partial index,
+   a rollup trigger, and an idempotent recompute that resets the 240 seeded totals
+   to what real donations support. **Still needs the owner to APPLY it** — PostgREST
+   cannot run DDL. It is now one file to run rather than a schema change to design.
+
+   Two things it deliberately does NOT do, both documented in its header:
+   - **It does not touch the parent-campaign total.**
+     `donations_increment_campaign_stats` already increments
+     `campaigns.raised_amount` for every completed donation regardless of peer, so
+     a peer gift counts once for the parent and once for the peer. Adding the
+     parent increment to the new trigger is the obvious-looking change that
+     double-counts — the same trap `record_donation`'s own header warns about.
+   - **It does not extend the `record_donation` RPC**, which is the webhook's path
+     and therefore most donations. ⚠️ The obvious fix is actively dangerous:
+     `create or replace` with an extra defaulted parameter creates an **overload**,
+     not a replacement, and the caller uses **named arguments** — which then match
+     both signatures and fail with *"function record_donation(...) is not unique"*.
+     Since the webhook rethrows so Stripe retries, every donation would error
+     repeatedly. The safe form is `drop function` + `create function` in one
+     transaction; spelled out in the migration header.
 2. Thread the peer id through `DonateButton` → `/api/donations` → the Stripe
    session metadata → `record_donation`, so attribution survives the webhook.
 3. *Then* the shareable page at `/campaigns/[slug]/team/[peerSlug]`, which is
