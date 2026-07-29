@@ -665,6 +665,45 @@ dynamic sibling". Two hits, both legitimate dynamic instances
 `/campaigns/[slug]/embed`). So `/volunteer/manage` was the only one, and that
 class is now clean.
 
+## ⚪ AUDITED CLEAN — IDOR on service-role routes (Claude, 2026-07-28)
+
+`supabaseAdmin` uses the service-role key and **bypasses RLS**. Combined with a
+caller-supplied `[id]`, that is the classic IDOR shape: the database will no
+longer refuse to hand over someone else's row, so the route itself must. Nothing
+else in the stack catches it.
+
+**Audited all 42 such routes. No gap found.** Every mutating route either calls a
+named authorization helper or compares against `user.id`. Locked in as
+`__tests__/idor-guard.test.ts` so a NEW route cannot land without one —
+non-vacuity verified by planting a route that authenticates and then does
+`supabaseAdmin.from('profiles').update(...).eq('id', id)` with no ownership
+check, and watching it fail.
+
+**What the test cannot prove:** referencing `user.id` is necessary, not
+sufficient — a route could reference it and still compare the wrong thing. Five
+routes were read in full to confirm the comparisons are real (campaign settings,
+notifications, integrations, team-members, admin users). The rest rest on the
+weaker signal. A pass means "nobody forgot", not "every check is correct".
+
+### ⚠️ FOUR false-positive rounds before the clean result — read this before trusting a scan
+
+Every round looked like a serious security finding and every one was wrong:
+
+| round | what it "found" | what was actually there |
+|---|---|---|
+| 1 | 26 routes with "0 ownership references" | `verifyOwner()` → `canManageCampaign()`, a helper not in my pattern |
+| 2 | `/api/admin/users/[id]` PATCH/DELETE **with no auth at all** | `verifyAdmin()` from `app/api/admin/_auth` |
+| 3 | notifications / integrations / team-members unprotected | inline `.user_id !== user.id`, `.eq('owner_id', user.id)`, campaign-owner lookup |
+| 4 | the remainder | every one references `user.id` |
+
+Round 2 is the one to remember: "admin route with no authentication" is about as
+alarming as a finding gets, and it was a grep artifact. **Absence of the string
+you searched for is not absence of the behaviour.**
+
+The guard list in the test is therefore **discovered from the imports**, not
+hand-written — `NAMED_GUARDS` came from grepping what routes actually import from
+`_auth`/`auth`/`roles` modules, which is how `verifyAdmin` and `rolesFor` got in.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).
