@@ -1829,6 +1829,46 @@ tip**, not a plausible-looking date.
 
 **1836 tests, typecheck 0, lint 0, build green.**
 
+## ✅ Marketing org backfill is now a one-command owner step
+
+`supabase/backfill/marketing_org_backfill.sql`. Companion to the §7 scoping
+migration: assigns the pre-tenancy (`org_id IS NULL`) marketing rows to a home
+organization.
+
+```
+psql "$DATABASE_URL" -v org_slug=your-org-slug \
+  -f supabase/backfill/marketing_org_backfill.sql
+```
+
+**Deliberately NOT a migration.** Migrations auto-apply on deploy, and this step
+needs a human to answer something no migration can: *which organization owns the
+existing audience?* Guessing that automatically would silently attribute real
+marketing history to a tenant that never owned it — and nobody would find out
+until a tenant saw someone else's contacts.
+
+**Verified against a real Postgres, all three paths, not just the happy one:**
+
+| case | result |
+|---|---|
+| wrong slug | hard error, **3 NULL rows unchanged** |
+| correct slug | assigns exactly the 3 pre-tenancy rows |
+| already-owned row | **not touched** (4 total, 0 NULL after) |
+| re-run | `Total rows assigned: 0` — idempotent |
+
+The wrong-slug case matters most: it raises rather than updating 0 rows and
+printing success, which is the "reported success for work it never did" shape
+this file keeps recording.
+
+_One implementation note:_ psql cannot substitute `:'org_slug'` inside a
+dollar-quoted PL/pgSQL block, so the value is handed over via `set local
+my.org_slug` and read with `current_setting`. My first draft used
+`current_setting` alone and would have silently seen NULL every time — caught by
+running it rather than reading it.
+
+This converts an owner-gated blocker into a single command. Columns stay NULLABLE;
+tightening to NOT NULL belongs in a later migration, once the printed counts look
+right.
+
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
