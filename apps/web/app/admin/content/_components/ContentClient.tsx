@@ -58,9 +58,9 @@ function StatusPill({ status }: { status: string }) {
     : s.includes('archived') ? 'violet'
     : s.includes('ai') ? 'blue' : 'violet';
   const colors: Record<string, { bg: string; color: string }> = {
-    green: { bg: '#def7e7', color: '#079447' },
-    orange: { bg: '#fff0dc', color: '#f97316' },
-    violet: { bg: '#efe8ff', color: '#551cf2' },
+    green: { bg: '#def7e7', color: 'var(--green-text)' },
+    orange: { bg: '#fff0dc', color: 'var(--orange-text)' },
+    violet: { bg: '#efe8ff', color: 'var(--brand-text)' },
     blue: { bg: '#e8f0ff', color: '#2563eb' },
   };
   const c = colors[tone] ?? colors.violet;
@@ -99,7 +99,7 @@ function TypeDonut({ items }: { items: { type: string; count: number }[] }) {
       </svg>
       <div style={{ display: 'grid', gap: 7 }}>
         {items.map((item, i) => (
-          <div key={item.type} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: '#26335c' }}>
+          <div key={item.type} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, color: 'var(--t1)' }}>
             <i style={{ width: 8, height: 8, borderRadius: '50%', background: colors[i % colors.length], flexShrink: 0, display: 'block' }} />
             <span>{item.type}</span>
             <b style={{ marginLeft: 'auto', color: '#0f0f30' }}>{item.count}</b>
@@ -144,24 +144,24 @@ function EditModal({ item, onClose, onSaved }: { item: ContentRecord; onClose: (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ width: 560, maxWidth: 'calc(100vw - 32px)', background: '#fff', borderRadius: 16, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
+      <div style={{ width: 560, maxWidth: 'calc(100vw - 32px)', background: 'var(--s1)', borderRadius: 16, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>Edit Content</h2>
-          <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5' }}>×</button>
+          <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: 'var(--s1)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3)' }}>×</button>
         </div>
         <div style={{ padding: '24px', display: 'grid', gap: 16 }}>
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
+          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
             Title (optional)
             <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Update title…" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
           </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
+          <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
             Content <span style={{ color: '#e11d48' }}>*</span>
             <textarea value={body} onChange={e => setBody(e.target.value)} style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 160, resize: 'vertical' }} />
           </label>
           {error && <p style={{ margin: 0, color: '#e11d48', fontSize: 13 }}>{error}</p>}
         </div>
         <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={onClose} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleSave} disabled={saving} style={{ height: 42, padding: '0 22px', border: 0, borderRadius: 9, background: '#551cf2', color: '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.65 : 1 }}>
             {saving ? 'Saving…' : 'Save Changes'}
           </button>
@@ -198,15 +198,15 @@ function DeleteModal({ item, onClose, onDeleted }: { item: ContentRecord; onClos
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(10,15,60,.38)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ width: 420, maxWidth: 'calc(100vw - 32px)', background: '#fff', borderRadius: 16, padding: 28, boxShadow: '0 24px 80px rgba(20,20,80,.18)' }}>
+      <div style={{ width: 420, maxWidth: 'calc(100vw - 32px)', background: 'var(--s1)', borderRadius: 16, padding: 28, boxShadow: '0 24px 80px rgba(20,20,80,.18)' }}>
         <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: '#0f0f30' }}>Delete Content?</h2>
-        <p style={{ margin: '0 0 4px', color: '#26335c', fontSize: 14 }}>
+        <p style={{ margin: '0 0 4px', color: 'var(--t1)', fontSize: 14 }}>
           <strong>&ldquo;{item.title || 'Untitled'}&rdquo;</strong>
         </p>
-        <p style={{ margin: '0 0 20px', color: '#66708d', fontSize: 13 }}>This will permanently remove the update from the campaign. This action cannot be undone.</p>
+        <p style={{ margin: '0 0 20px', color: 'var(--t3)', fontSize: 13 }}>This will permanently remove the update from the campaign. This action cannot be undone.</p>
         {error && <p style={{ margin: '0 0 12px', color: '#e11d48', fontSize: 13 }}>{error}</p>}
         <div style={{ display: 'flex', gap: 12 }}>
-          <button onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleDelete} disabled={deleting} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: '#e11d48', color: '#fff', fontSize: 13, fontWeight: 700, cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.65 : 1 }}>
             {deleting ? 'Deleting…' : 'Delete'}
           </button>
@@ -236,16 +236,16 @@ function ContentDetailPanel({
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ marginLeft: 'auto', width: 520, maxWidth: '100vw', background: '#fff', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginLeft: 'auto', width: 520, maxWidth: '100vw', background: 'var(--s1)', height: '100%', overflowY: 'auto', boxShadow: '-12px 0 56px rgba(20,20,80,.14)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
               <StatusPill status={item.status} />
-              <span style={{ fontSize: 12, color: '#8c9ab5' }}>Updated {fmtDate(item.updated_at)}</span>
+              <span style={{ fontSize: 12, color: 'var(--t3)' }}>Updated {fmtDate(item.updated_at)}</span>
             </div>
             <div style={{ fontSize: 17, fontWeight: 700, color: '#0f0f30', lineHeight: 1.3 }}>{item.title || 'Untitled'}</div>
           </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5', flexShrink: 0 }}>×</button>
+          <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: 'var(--s1)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3)', flexShrink: 0 }}>×</button>
         </div>
 
         <div style={{ display: 'flex', borderBottom: '1px solid #eef0f7', padding: '0 24px' }}>
@@ -270,28 +270,28 @@ function ContentDetailPanel({
                 ['Content ID', item.id.slice(0, 18) + '…'],
               ].map(([label, val]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
-                  <span style={{ color: '#66708d', fontWeight: 700 }}>{label}</span>
-                  <span style={{ color: '#101944', fontWeight: 600, textAlign: 'right', maxWidth: '55%', wordBreak: 'break-word' }}>{val}</span>
+                  <span style={{ color: 'var(--t3)', fontWeight: 700 }}>{label}</span>
+                  <span style={{ color: 'var(--t1)', fontWeight: 600, textAlign: 'right', maxWidth: '55%', wordBreak: 'break-word' }}>{val}</span>
                 </div>
               ))}
             </div>
           )}
           {activeTab === 'content' && (
-            <div style={{ fontSize: 14, color: '#26335c', lineHeight: 1.7, whiteSpace: 'pre-wrap', maxHeight: 500, overflowY: 'auto', padding: '16px', background: '#fbf9ff', borderRadius: 10, border: '1px solid #e6e9f2' }}>
+            <div style={{ fontSize: 14, color: 'var(--t1)', lineHeight: 1.7, whiteSpace: 'pre-wrap', maxHeight: 500, overflowY: 'auto', padding: '16px', background: 'var(--s2)', borderRadius: 10, border: '1px solid #e6e9f2' }}>
               {item.body || 'No content.'}
             </div>
           )}
           {activeTab === 'history' && (
             <div style={{ display: 'grid', gap: 12 }}>
               {[
-                { event: 'Content created', date: item.created_at, color: '#19b86a' },
-                { event: 'Content last updated', date: item.updated_at, color: '#6c35ff' },
+                { event: 'Content created', date: item.created_at, color: 'var(--green-text)' },
+                { event: 'Content last updated', date: item.updated_at, color: 'var(--brand-text)' },
               ].map((ev, i) => (
                 <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: ev.color, marginTop: 5, flexShrink: 0 }} />
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#101944' }}>{ev.event}</div>
-                    <div style={{ fontSize: 12, color: '#8c9ab5', marginTop: 2 }}>{fmtDate(ev.date)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>{ev.event}</div>
+                    <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{fmtDate(ev.date)}</div>
                   </div>
                 </div>
               ))}
@@ -301,7 +301,7 @@ function ContentDetailPanel({
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'grid', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <button type="button" onClick={onEdit} style={{ height: 40, border: '1px solid #6c35ff', borderRadius: 9, background: '#f3ecff', color: '#551cf2', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Edit Content</button>
+            <button type="button" onClick={onEdit} style={{ height: 40, border: '1px solid #6c35ff', borderRadius: 9, background: '#f3ecff', color: 'var(--brand-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Edit Content</button>
             <button type="button" onClick={onDelete} style={{ height: 40, border: '1px solid #ff3b5f30', borderRadius: 9, background: '#fff0f3', color: 'var(--red-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>Delete Content</button>
           </div>
         </div>
@@ -365,7 +365,7 @@ function CreateContentWizard({
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(10,15,60,.38)', backdropFilter: 'blur(2px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ width: 520, maxWidth: 'calc(100vw - 32px)', background: '#fff', borderRadius: 18, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
+      <div style={{ width: 520, maxWidth: 'calc(100vw - 32px)', background: 'var(--s1)', borderRadius: 18, boxShadow: '0 24px 80px rgba(20,20,80,.18)', overflow: 'hidden' }}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #eef0f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#0f0f30' }}>Create Campaign Update</div>
@@ -375,15 +375,15 @@ function CreateContentWizard({
               ))}
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: '#fff', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#8c9ab5' }}>×</button>
+          <button onClick={onClose} style={{ width: 32, height: 32, border: '1px solid #e6e9f2', borderRadius: '50%', background: 'var(--s1)', fontSize: 18, cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--t3)' }}>×</button>
         </div>
 
         <div style={{ padding: '24px' }}>
           {step === 1 && (
             <div style={{ display: 'grid', gap: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#101944', marginBottom: 4 }}>Campaign Target</div>
-              <p style={{ margin: 0, fontSize: 13, color: '#66708d' }}>Enter the Campaign ID this update belongs to. You can find campaign IDs in Admin → Campaigns.</p>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Campaign Target</div>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--t3)' }}>Enter the Campaign ID this update belongs to. You can find campaign IDs in Admin → Campaigns.</p>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Campaign ID <span style={{ color: '#e11d48' }}>*</span>
                 <input
                   value={campaignId}
@@ -396,12 +396,12 @@ function CreateContentWizard({
           )}
           {step === 2 && (
             <div style={{ display: 'grid', gap: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#101944', marginBottom: 4 }}>Content Details</div>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Content Details</div>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Title (optional)
                 <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Update title…" style={{ height: 42, border: '1px solid #dfe3ee', borderRadius: 9, padding: '0 14px', fontSize: 14 }} />
               </label>
-              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: '#26335c' }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--t1)' }}>
                 Content <span style={{ color: '#e11d48' }}>*</span>
                 <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Write the campaign update…" style={{ border: '1px solid #dfe3ee', borderRadius: 9, padding: '10px 14px', fontSize: 14, minHeight: 140, resize: 'vertical' }} />
               </label>
@@ -409,8 +409,8 @@ function CreateContentWizard({
           )}
           {step === 3 && (
             <div style={{ display: 'grid', gap: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#101944', marginBottom: 4 }}>Review & Publish</div>
-              <div style={{ padding: '14px', background: '#fbf9ff', borderRadius: 10, border: '1px solid #e6e9f2', fontSize: 13, lineHeight: 1.8 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t1)', marginBottom: 4 }}>Review & Publish</div>
+              <div style={{ padding: '14px', background: 'var(--s2)', borderRadius: 10, border: '1px solid #e6e9f2', fontSize: 13, lineHeight: 1.8 }}>
                 <div><b>Campaign ID:</b> {campaignId}</div>
                 <div><b>Title:</b> {title || '(untitled)'}</div>
                 <div><b>Content preview:</b> {body.slice(0, 120)}{body.length > 120 ? '…' : ''}</div>
@@ -422,7 +422,7 @@ function CreateContentWizard({
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid #eef0f7', display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
           {step > 1 && (
-            <button onClick={() => { setStep(s => s - 1); setError(''); }} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 9, background: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>← Back</button>
+            <button onClick={() => { setStep(s => s - 1); setError(''); }} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>← Back</button>
           )}
           {step < 3 ? (
             <button
@@ -545,13 +545,13 @@ export default function ContentClient({
               <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 20px', borderBottom: '1px solid #f0f2f8' }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6c35ff', marginTop: 5, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 650, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</div>
-                  <div style={{ fontSize: 12, color: '#66708d', marginTop: 2 }}>{a.type} · {a.author}</div>
+                  <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</div>
+                  <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{a.type} · {a.author}</div>
                 </div>
-                <div style={{ fontSize: 11, color: '#8c9ab5', flexShrink: 0 }}>{fmtDate(a.date)}</div>
+                <div style={{ fontSize: 11, color: 'var(--t3)', flexShrink: 0 }}>{fmtDate(a.date)}</div>
               </div>
             ))}
-            {recentActivity.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: '#8c9ab5', fontSize: 14 }}>No content yet</div>}
+            {recentActivity.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--t3)', fontSize: 14 }}>No content yet</div>}
           </div>
         </section>
       </div>
@@ -575,17 +575,17 @@ export default function ContentClient({
         {activeTab === 'content' && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px', borderBottom: '1px solid #eef0f7', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: '#fff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', background: 'var(--s1)' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="#8c9ab5" strokeWidth={2} width={15} height={15} aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
                 <input value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} placeholder="Search content…" aria-label="Search content" style={{ border: 0, outline: 0, background: 'transparent', fontSize: 13, width: '100%' }} />
               </div>
-              <select aria-label="Filter by content type" value={filterType} onChange={e => { setFilterType(e.target.value); setPage(0); }} style={{ height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', fontSize: 13, background: '#fff' }}>
+              <select aria-label="Filter by content type" value={filterType} onChange={e => { setFilterType(e.target.value); setPage(0); }} style={{ height: 42, border: '1px solid #e0e4ef', borderRadius: 9, padding: '0 14px', fontSize: 13, background: 'var(--s1)' }}>
                 <option value="all">All Types</option>
                 {contentByType.map(t => <option key={t.type} value={t.type}>{t.type}</option>)}
               </select>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '10px 20px', background: '#f8f9fc', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: '#8c9ab5', textTransform: 'uppercase', letterSpacing: '.06em' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 120px 130px', gap: 12, padding: '10px 20px', background: 'var(--s2)', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>
               <span>Title</span><span>Type</span><span>Campaign</span><span>Updated</span>
             </div>
 
@@ -604,22 +604,22 @@ export default function ContentClient({
                 onMouseEnter={e => (e.currentTarget.style.background = '#fbf9ff')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 650, color: '#101944', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title || 'Untitled'}</div>
-                  <div style={{ fontSize: 11, color: '#8c9ab5', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.body.slice(0, 70)}{c.body.length > 70 ? '…' : ''}</div>
+                  <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title || 'Untitled'}</div>
+                  <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.body.slice(0, 70)}{c.body.length > 70 ? '…' : ''}</div>
                 </div>
-                <span style={{ fontSize: 12, color: '#66708d', fontWeight: 700 }}>{c.type}</span>
-                <span style={{ fontSize: 12, color: '#66708d', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campaign_title}</span>
-                <span style={{ fontSize: 12, color: '#8c9ab5' }}>{fmtDate(c.updated_at)}</span>
+                <span style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 700 }}>{c.type}</span>
+                <span style={{ fontSize: 12, color: 'var(--t3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.campaign_title}</span>
+                <span style={{ fontSize: 12, color: 'var(--t3)' }}>{fmtDate(c.updated_at)}</span>
               </div>
             ))}
 
-            {currentPage.length === 0 && <div style={{ padding: '32px', textAlign: 'center', color: '#8c9ab5', fontSize: 14 }}>No content found</div>}
+            {currentPage.length === 0 && <div style={{ padding: '32px', textAlign: 'center', color: 'var(--t3)', fontSize: 14 }}>No content found</div>}
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderTop: '1px solid #eef0f7' }}>
-              <span style={{ fontSize: 13, color: '#66708d' }}>Showing {filtered.length === 0 ? 0 : page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}</span>
+              <span style={{ fontSize: 13, color: 'var(--t3)' }}>Showing {filtered.length === 0 ? 0 : page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}</span>
               <div style={{ display: 'flex', gap: 6 }}>
-                <button type="button" disabled={page === 0} onClick={() => setPage(p => p - 1)} style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', cursor: page === 0 ? 'default' : 'pointer', opacity: page === 0 ? 0.4 : 1, fontSize: 13 }}>← Prev</button>
-                <button type="button" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)} style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', cursor: page >= pages - 1 ? 'default' : 'pointer', opacity: page >= pages - 1 ? 0.4 : 1, fontSize: 13 }}>Next →</button>
+                <button type="button" disabled={page === 0} onClick={() => setPage(p => p - 1)} style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: 'var(--s1)', cursor: page === 0 ? 'default' : 'pointer', opacity: page === 0 ? 0.4 : 1, fontSize: 13 }}>← Prev</button>
+                <button type="button" disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)} style={{ height: 34, padding: '0 14px', border: '1px solid #e0e4ef', borderRadius: 8, background: 'var(--s1)', cursor: page >= pages - 1 ? 'default' : 'pointer', opacity: page >= pages - 1 ? 0.4 : 1, fontSize: 13 }}>Next →</button>
               </div>
             </div>
           </div>
@@ -632,20 +632,20 @@ export default function ContentClient({
               <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 0', borderBottom: '1px solid #f0f2f8', fontSize: 13 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6c35ff', marginTop: 4, flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
-                  <span style={{ fontWeight: 650, color: '#101944' }}>{c.title || 'Untitled'}</span>
-                  <span style={{ color: '#66708d', marginLeft: 6 }}>· {c.campaign_title}</span>
+                  <span style={{ fontWeight: 650, color: 'var(--t1)' }}>{c.title || 'Untitled'}</span>
+                  <span style={{ color: 'var(--t3)', marginLeft: 6 }}>· {c.campaign_title}</span>
                 </div>
-                <span style={{ color: '#8c9ab5', flexShrink: 0 }}>{fmtDate(c.updated_at)}</span>
+                <span style={{ color: 'var(--t3)', flexShrink: 0 }}>{fmtDate(c.updated_at)}</span>
               </div>
             ))}
-            {content.length === 0 && <p style={{ color: '#8c9ab5', fontSize: 14 }}>No content yet.</p>}
+            {content.length === 0 && <p style={{ color: 'var(--t3)', fontSize: 14 }}>No content yet.</p>}
           </div>
         )}
 
         {activeTab === 'audit' && (
           <div style={{ padding: '20px' }}>
             <h3 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700 }}>Audit Log</h3>
-            <p style={{ color: '#66708d', fontSize: 13 }}>Content actions (create, edit, delete) are logged in the platform audit log. View full logs in Admin → Audit Log, filtering by target type &ldquo;campaign_update&rdquo;.</p>
+            <p style={{ color: 'var(--t3)', fontSize: 13 }}>Content actions (create, edit, delete) are logged in the platform audit log. View full logs in Admin → Audit Log, filtering by target type &ldquo;campaign_update&rdquo;.</p>
           </div>
         )}
       </section>

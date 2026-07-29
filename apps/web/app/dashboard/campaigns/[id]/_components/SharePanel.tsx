@@ -16,8 +16,8 @@ const CHANNELS: { type: ContentType; label: string; icon: string; color: string 
   { type: 'linkedin', label: 'LinkedIn', icon: 'in', color: '#0a66c2' },
   { type: 'whatsapp', label: 'WhatsApp', icon: '💬', color: '#25d366' },
   { type: 'sms', label: 'SMS', icon: '💬', color: '#34c759' },
-  { type: 'email', label: 'Email', icon: '✉️', color: '#6c35ff' },
-  { type: 'update', label: 'Campaign Update', icon: '📝', color: '#19b86a' },
+  { type: 'email', label: 'Email', icon: '✉️', color: 'var(--brand-text)' },
+  { type: 'update', label: 'Campaign Update', icon: '📝', color: 'var(--green-text)' },
 ];
 
 export default function SharePanel({ campaignId }: { campaignId: string }) {

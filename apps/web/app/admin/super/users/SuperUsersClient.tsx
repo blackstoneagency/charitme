@@ -82,7 +82,7 @@ export default function SuperUsersClient({ users: initial, total }: { users: Dir
                   <td style={{ padding: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <span className="kf-avatar" style={{ width: 34, height: 34, fontSize: 12 }}>{initials(u.name)}</span>
-                      <div><strong style={{ display: 'block', fontSize: 13 }}>{u.name} {u.verified && <span title="Identity verified" style={{ color: 'var(--green)' }}>✓</span>}{u.suspended && <span className="kf-pill red" style={{ marginLeft: 6 }}>Suspended</span>}</strong><small style={{ color: 'var(--t3)', fontSize: 11 }}>{u.email}</small></div>
+                      <div><strong style={{ display: 'block', fontSize: 13 }}>{u.name} {u.verified && <span title="Identity verified" style={{ color: 'var(--green-text)' }}>✓</span>}{u.suspended && <span className="kf-pill red" style={{ marginLeft: 6 }}>Suspended</span>}</strong><small style={{ color: 'var(--t3)', fontSize: 11 }}>{u.email}</small></div>
                     </div>
                   </td>
                   <td style={{ fontSize: 12 }}>{u.roles.map((r) => <span key={r} className={`kf-pill ${r === 'super_admin' ? 'orange' : r === 'admin' ? 'pink' : 'violet'}`} style={{ marginRight: 4 }}>{r}</span>)}</td>

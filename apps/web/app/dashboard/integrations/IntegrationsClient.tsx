@@ -145,7 +145,7 @@ function ConnectModal({
           <button type="button" onClick={onClose} style={{ flex: 1, height: 42, border: '1px solid var(--b1)', borderRadius: 9, background: 'var(--s1)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             Cancel
           </button>
-          <button type="button" onClick={() => void handleConnect()} disabled={saving} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: 'var(--green)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1 }}>
+          <button type="button" onClick={() => void handleConnect()} disabled={saving} style={{ flex: 1, height: 42, border: 0, borderRadius: 9, background: 'var(--green-dark)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.6 : 1 }}>
             {saving ? 'Connecting…' : 'Connect'}
           </button>
         </div>
@@ -217,7 +217,7 @@ function IntegrationCard({
           <button
             type="button"
             onClick={() => onConnect(item)}
-            style={{ fontSize: 13, fontWeight: 600, padding: '6px 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--green)', color: '#fff', cursor: 'pointer' }}
+            style={{ fontSize: 13, fontWeight: 600, padding: '6px 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--green-dark)', color: '#fff', cursor: 'pointer' }}
           >
             Connect
           </button>

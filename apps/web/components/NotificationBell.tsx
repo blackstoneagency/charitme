@@ -141,7 +141,7 @@ export default function NotificationBell() {
                   Mark all read
                 </button>
               )}
-              <Link href="/dashboard/notifications" style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', fontWeight: 600, textDecoration: 'none' }} onClick={() => setOpen(false)}>
+              <Link href="/dashboard/notifications" style={{ fontSize: 11, color: 'var(--t3)', fontWeight: 600, textDecoration: 'none' }} onClick={() => setOpen(false)}>
                 See all
               </Link>
             </div>
@@ -150,12 +150,12 @@ export default function NotificationBell() {
           {/* List */}
           <div style={{ maxHeight: 360, overflowY: 'auto' }}>
             {loading && (
-              <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--t3, #94a3b8)', fontSize: 13 }}>Loading…</div>
+              <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Loading…</div>
             )}
             {!loading && notifications.length === 0 && (
               <div style={{ padding: '32px 16px', textAlign: 'center' }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>🔔</div>
-                <div style={{ fontSize: 13, color: 'var(--t3, #94a3b8)' }}>No notifications yet</div>
+                <div style={{ fontSize: 13, color: 'var(--t3)' }}>No notifications yet</div>
               </div>
             )}
             {!loading && notifications.map(n => (
@@ -175,8 +175,8 @@ export default function NotificationBell() {
                 <span style={{ fontSize: 18, flexShrink: 0, marginTop: 2 }}>{KIND_ICON[n.kind] ?? '🔔'}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: n.read_at ? 600 : 900, color: 'var(--t1, #1a1a2e)', lineHeight: 1.4 }}>{n.title}</div>
-                  {n.body && <div style={{ fontSize: 12, color: 'var(--t3, #64748b)', marginTop: 2, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.body}</div>}
-                  <div style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', marginTop: 4 }}>{timeAgo(n.created_at)}</div>
+                  {n.body && <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.body}</div>}
+                  <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4 }}>{timeAgo(n.created_at)}</div>
                 </div>
                 {!n.read_at && (
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--violet, #6c35ff)', flexShrink: 0, marginTop: 6 }} />

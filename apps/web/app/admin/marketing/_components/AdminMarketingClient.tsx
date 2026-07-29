@@ -4,12 +4,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import SeoAeoClient, { type SeoRow, type AeoRow, type SeoAeoCoverage } from '../seo/_components/SeoAeoClient';
 
 /* ── shared styles ── */
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #eef0f7', borderRadius: 14, padding: '20px 24px', marginBottom: 16 };
+const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid #eef0f7', borderRadius: 14, padding: '20px 24px', marginBottom: 16 };
 const btn: React.CSSProperties = { padding: '8px 18px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 650, cursor: 'pointer' };
-const btnGhost: React.CSSProperties = { padding: '8px 18px', background: '#f8f9fc', color: '#374151', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' };
+const btnGhost: React.CSSProperties = { padding: '8px 18px', background: 'var(--s2)', color: 'var(--t1)', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' };
 const input: React.CSSProperties = { padding: '9px 14px', borderRadius: 9, border: '1px solid #d1d5db', fontSize: 13, fontFamily: 'inherit' };
-const th: React.CSSProperties = { textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid #eef0f7' };
-const td: React.CSSProperties = { padding: '12px 14px', fontSize: 13, color: '#374151', borderBottom: '1px solid #f5f6fa' };
+const th: React.CSSProperties = { textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid #eef0f7' };
+const td: React.CSSProperties = { padding: '12px 14px', fontSize: 13, color: 'var(--t1)', borderBottom: '1px solid #f5f6fa' };
 
 function useEscape(onClose: () => void): void {
   useEffect(() => {
@@ -85,7 +85,7 @@ export default function AdminMarketingClient({ initialTab = 'overview', overview
   return (
     <div style={{ padding: '0 32px 48px', maxWidth: 1100 }}>
       {/* Tab bar */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: '#f8f9fc', borderRadius: 12, padding: 4, border: '1px solid #eef0f7', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'var(--s2)', borderRadius: 12, padding: 4, border: '1px solid #eef0f7', flexWrap: 'wrap' }}>
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             style={{ padding: '9px 18px', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 650, cursor: 'pointer',
@@ -130,7 +130,7 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
           <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginTop: 4 }}>Command Center →</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,.85)', marginTop: 4 }}>What changed overnight, active goals, and what needs attention — live.</div>
         </a>
-        <a href="/admin/marketing/goals" style={{ ...card, display: 'block', textDecoration: 'none', background: '#faf7ff', borderColor: '#e9deff', marginBottom: 0 }}>
+        <a href="/admin/marketing/goals" style={{ ...card, display: 'block', textDecoration: 'none', background: 'var(--s2)', borderColor: '#e9deff', marginBottom: 0 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '.05em' }}>Goals</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: '#4d1ee0', marginTop: 4 }}>Set an outcome →</div>
           <div style={{ fontSize: 13, color: '#6b5b95', marginTop: 4 }}>Describe a business objective in plain English; the OS turns it into a measurable goal.</div>
@@ -139,29 +139,29 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 20 }}>
         {kpis.map(k => (
           <button key={k.label} onClick={() => go(k.tab)} style={{ ...card, marginBottom: 0, textAlign: 'left', cursor: 'pointer' }}>
-            <div style={{ fontSize: 12, fontWeight: 650, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em' }}>{k.label}</div>
-            <div style={{ fontSize: 30, fontWeight: 700, color: '#1a1a2e', marginTop: 6 }}>{k.value}</div>
+            <div style={{ fontSize: 12, fontWeight: 650, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{k.label}</div>
+            <div style={{ fontSize: 30, fontWeight: 700, color: 'var(--t1)', marginTop: 6 }}>{k.value}</div>
           </button>
         ))}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div style={card}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>Contacts by type</div>
-          {Object.keys(overview.byType).length === 0 && <p style={{ fontSize: 13, color: '#94a3b8' }}>No contacts yet. Use Audience → “Sync platform users” to import donors and organizers, or capture leads from site forms.</p>}
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: 'var(--t1)' }}>Contacts by type</div>
+          {Object.keys(overview.byType).length === 0 && <p style={{ fontSize: 13, color: 'var(--t3)' }}>No contacts yet. Use Audience → “Sync platform users” to import donors and organizers, or capture leads from site forms.</p>}
           {Object.entries(overview.byType).sort((a, b) => b[1] - a[1]).map(([type, count]) => (
             <div key={type} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f5f6fa', fontSize: 13 }}>
-              <span style={{ color: '#64748b', fontWeight: 600 }}>{type.replaceAll('_', ' ')}</span>
-              <b style={{ color: '#1a1a2e' }}>{count}</b>
+              <span style={{ color: 'var(--t3)', fontWeight: 600 }}>{type.replaceAll('_', ' ')}</span>
+              <b style={{ color: 'var(--t1)' }}>{count}</b>
             </div>
           ))}
         </div>
         <div style={card}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>Top segments</div>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: 'var(--t1)' }}>Top segments</div>
           {overview.topSegments.map(s => (
             <div key={s.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #f5f6fa', fontSize: 13 }}>
-              <span style={{ color: '#64748b', fontWeight: 600 }}>{s.name}</span>
-              <b style={{ color: '#6c35ff' }}>{s.member_count}</b>
+              <span style={{ color: 'var(--t3)', fontWeight: 600 }}>{s.name}</span>
+              <b style={{ color: 'var(--brand-text)' }}>{s.member_count}</b>
             </div>
           ))}
           <button onClick={() => go('segments')} style={{ ...btnGhost, marginTop: 12 }}>Manage segments →</button>
@@ -171,10 +171,10 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
       <div style={{ ...card, background: '#f7f2ff', borderColor: '#e0d5ff' }}>
         <div style={{ fontWeight: 700, fontSize: 14, color: '#4d1ee0', marginBottom: 6 }}>Capture endpoint</div>
         <p style={{ fontSize: 13, color: '#5b3fa8', margin: 0, lineHeight: 1.6 }}>
-          POST <code style={{ background: '#fff', padding: '2px 8px', borderRadius: 6 }}>/api/marketing/capture</code> with{' '}
-          <code style={{ background: '#fff', padding: '2px 8px', borderRadius: 6 }}>{'{ email, event, utmSource, ... }'}</code> from any form, popup, or page.
+          POST <code style={{ background: 'var(--s1)', padding: '2px 8px', borderRadius: 6 }}>/api/marketing/capture</code> with{' '}
+          <code style={{ background: 'var(--s1)', padding: '2px 8px', borderRadius: 6 }}>{'{ email, event, utmSource, ... }'}</code> from any form, popup, or page.
           Identity is resolved automatically; events feed segments, scores, and attribution.
-          Unsubscribes: <code style={{ background: '#fff', padding: '2px 8px', borderRadius: 6 }}>/api/marketing/unsubscribe</code>.
+          Unsubscribes: <code style={{ background: 'var(--s1)', padding: '2px 8px', borderRadius: 6 }}>/api/marketing/unsubscribe</code>.
         </p>
       </div>
     </div>
@@ -251,8 +251,8 @@ function AudienceTab({ flash }: { flash: (m: string) => void }) {
             {contacts.map(c => (
               <tr key={c.id} onClick={() => void openProfile(c.id)} style={{ cursor: 'pointer' }}>
                 <td style={td}>
-                  <div style={{ fontWeight: 650, color: '#1a1a2e' }}>{[c.first_name, c.last_name].filter(Boolean).join(' ') || '—'}</div>
-                  <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.email}</div>
+                  <div style={{ fontWeight: 650, color: 'var(--t1)' }}>{[c.first_name, c.last_name].filter(Boolean).join(' ') || '—'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--t3)' }}>{c.email}</div>
                 </td>
                 <td style={td}><Pill text={c.client_type.replaceAll('_', ' ')} color="#6c35ff" /></td>
                 <td style={td}>{c.lifecycle_stage}</td>
@@ -266,7 +266,7 @@ function AudienceTab({ flash }: { flash: (m: string) => void }) {
           </tbody>
         </table>
       </div>
-      <p style={{ fontSize: 12, color: '#94a3b8' }}>{total.toLocaleString()} contacts total · click a row for the full profile</p>
+      <p style={{ fontSize: 12, color: 'var(--t3)' }}>{total.toLocaleString()} contacts total · click a row for the full profile</p>
 
       {profile && <ProfileDrawer profile={profile} onClose={() => setProfile(null)} />}
     </div>
@@ -280,12 +280,12 @@ function ProfileDrawer({ profile, onClose }: { profile: ContactProfile; onClose:
     // Backdrop dismissal is supplementary; Escape and the close button remain available.
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div onClick={event => { if (event.target === event.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
-      <div style={{ width: 'min(480px, 92vw)', background: '#fff', height: '100%', overflowY: 'auto', padding: '28px 28px 48px' }}>
+      <div style={{ width: 'min(480px, 92vw)', background: 'var(--s1)', height: '100%', overflowY: 'auto', padding: '28px 28px 48px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1a1a2e' }}>{[c.first_name, c.last_name].filter(Boolean).join(' ') || c.email}</h3>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--t1)' }}>{[c.first_name, c.last_name].filter(Boolean).join(' ') || c.email}</h3>
           <button onClick={onClose} style={{ ...btnGhost, padding: '4px 12px' }}>✕</button>
         </div>
-        <p style={{ margin: '0 0 18px', fontSize: 13, color: '#94a3b8' }}>{c.email}{c.country ? ` · ${c.country}` : ''}</p>
+        <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--t3)' }}>{c.email}{c.country ? ` · ${c.country}` : ''}</p>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
           {[
@@ -295,21 +295,21 @@ function ProfileDrawer({ profile, onClose }: { profile: ContactProfile; onClose:
             ['Churn risk', c.churn_risk], ['Status', c.status],
             ['First touch', c.last_touch_source ?? '—'], ['Last active', dt(c.last_active_at)],
           ].map(([k, v]) => (
-            <div key={k} style={{ background: '#f8f9fc', borderRadius: 10, padding: '10px 14px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{k}</div>
-              <div style={{ fontSize: 14, fontWeight: 650, color: '#1a1a2e', marginTop: 2 }}>{v}</div>
+            <div key={k} style={{ background: 'var(--s2)', borderRadius: 10, padding: '10px 14px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>{k}</div>
+              <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--t1)', marginTop: 2 }}>{v}</div>
             </div>
           ))}
         </div>
 
         <Section title={`Segments (${profile.segments.length})`}>
           {profile.segments.map((s, i) => <Pill key={i} text={s.marketing_segments?.name ?? '—'} color="#6c35ff" />)}
-          {profile.segments.length === 0 && <span style={{ fontSize: 13, color: '#94a3b8' }}>Not in any segment</span>}
+          {profile.segments.length === 0 && <span style={{ fontSize: 13, color: 'var(--t3)' }}>Not in any segment</span>}
         </Section>
 
         <Section title={`Identities (${profile.identities.length})`}>
           {profile.identities.map((idn, i) => (
-            <div key={i} style={{ fontSize: 12, color: '#64748b', fontFamily: 'monospace', padding: '3px 0' }}>{idn.kind}: {idn.value}</div>
+            <div key={i} style={{ fontSize: 12, color: 'var(--t3)', fontFamily: 'monospace', padding: '3px 0' }}>{idn.kind}: {idn.value}</div>
           ))}
         </Section>
 
@@ -319,17 +319,17 @@ function ProfileDrawer({ profile, onClose }: { profile: ContactProfile; onClose:
               {co.granted ? '✓ granted' : '✕ revoked'} · {co.channel} · {co.source} · {dt(co.created_at)}
             </div>
           ))}
-          {profile.consent.length === 0 && <span style={{ fontSize: 13, color: '#94a3b8' }}>No consent records</span>}
+          {profile.consent.length === 0 && <span style={{ fontSize: 13, color: 'var(--t3)' }}>No consent records</span>}
         </Section>
 
         <Section title={`Event timeline (${profile.events.length})`}>
           {profile.events.map(e => (
             <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '5px 0', borderBottom: '1px solid #f5f6fa' }}>
-              <span style={{ fontWeight: 700, color: '#374151' }}>{e.event_type}{e.amount_cents ? ` · ${money(e.amount_cents)}` : ''}</span>
-              <span style={{ color: '#94a3b8' }}>{dt(e.created_at)}</span>
+              <span style={{ fontWeight: 700, color: 'var(--t1)' }}>{e.event_type}{e.amount_cents ? ` · ${money(e.amount_cents)}` : ''}</span>
+              <span style={{ color: 'var(--t3)' }}>{dt(e.created_at)}</span>
             </div>
           ))}
-          {profile.events.length === 0 && <span style={{ fontSize: 13, color: '#94a3b8' }}>No events yet</span>}
+          {profile.events.length === 0 && <span style={{ fontSize: 13, color: 'var(--t3)' }}>No events yet</span>}
         </Section>
       </div>
     </div>
@@ -381,7 +381,7 @@ function SegmentsTab({ flash }: { flash: (m: string) => void }) {
   return (
     <div>
       <div style={card}>
-        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>Create segment</div>
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: 'var(--t1)' }}>Create segment</div>
         <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
           <input aria-label="Segment name" value={name} onChange={e => setName(e.target.value)} placeholder="Segment name" style={{ ...input, flex: '1 1 220px' }} />
           <select aria-label="Segment match logic" value={logic} onChange={e => setLogic(e.target.value as 'and' | 'or')} style={input}>
@@ -414,13 +414,13 @@ function SegmentsTab({ flash }: { flash: (m: string) => void }) {
             {segments.map(s => (
               <tr key={s.id}>
                 <td style={td}>
-                  <b style={{ color: '#1a1a2e' }}>{s.name}</b>{s.is_system && <Pill text="system" color="#94a3b8" />}
-                  {s.description && <div style={{ fontSize: 12, color: '#94a3b8' }}>{s.description}</div>}
+                  <b style={{ color: 'var(--t1)' }}>{s.name}</b>{s.is_system && <Pill text="system" color="#94a3b8" />}
+                  {s.description && <div style={{ fontSize: 12, color: 'var(--t3)' }}>{s.description}</div>}
                 </td>
-                <td style={{ ...td, fontSize: 11.5, fontFamily: 'monospace', color: '#64748b' }}>
+                <td style={{ ...td, fontSize: 11.5, fontFamily: 'monospace', color: 'var(--t3)' }}>
                   {s.rules.conditions.map((c, i) => `${i > 0 ? ` ${s.rules.logic.toUpperCase()} ` : ''}${c.field} ${c.op} ${c.value}`).join('')}
                 </td>
-                <td style={td}><b style={{ color: '#6c35ff', fontSize: 15 }}>{s.member_count}</b></td>
+                <td style={td}><b style={{ color: 'var(--brand-text)', fontSize: 15 }}>{s.member_count}</b></td>
                 <td style={td}><button onClick={() => void evaluate(s.id)} style={btnGhost}>⟳ Evaluate</button></td>
               </tr>
             ))}
@@ -480,7 +480,7 @@ function CampaignsTab({ flash }: { flash: (m: string) => void }) {
   return (
     <div>
       <div style={card}>
-        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: '#1a1a2e' }}>New email campaign</div>
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14, color: 'var(--t1)' }}>New email campaign</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
           <input aria-label="Campaign internal name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Internal name" style={input} />
           <select aria-label="Audience segment" value={form.segment_id} onChange={e => setForm(f => ({ ...f, segment_id: e.target.value }))} style={input}>
@@ -505,8 +505,8 @@ function CampaignsTab({ flash }: { flash: (m: string) => void }) {
             {campaigns.map(c => (
               <tr key={c.id}>
                 <td style={td}>
-                  <b style={{ color: '#1a1a2e' }}>{c.name}</b>
-                  <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.subject}</div>
+                  <b style={{ color: 'var(--t1)' }}>{c.name}</b>
+                  <div style={{ fontSize: 12, color: 'var(--t3)' }}>{c.subject}</div>
                 </td>
                 <td style={td}>{c.marketing_segments?.name ?? '—'}{c.marketing_segments ? ` (${c.marketing_segments.member_count})` : ''}</td>
                 <td style={td}><Pill text={c.status} color={c.status === 'sent' ? '#059669' : c.status === 'draft' ? '#94a3b8' : '#d97706'} /></td>
@@ -559,7 +559,7 @@ function AutomationsTab({ flash }: { flash: (m: string) => void }) {
           <tbody>
             {autos.map(a => (
               <tr key={a.id}>
-                <td style={td}><b style={{ color: '#1a1a2e' }}>{a.name}</b></td>
+                <td style={td}><b style={{ color: 'var(--t1)' }}>{a.name}</b></td>
                 <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{a.trigger_event}</td>
                 <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{a.action_type}</td>
                 <td style={td}>{a.run_count}{a.last_run_at ? ` · last ${dt(a.last_run_at)}` : ''}</td>
@@ -575,12 +575,12 @@ function AutomationsTab({ flash }: { flash: (m: string) => void }) {
       </div>
 
       <div style={card}>
-        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: '#1a1a2e' }}>Recent runs</div>
-        {runs.length === 0 && <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>No runs yet — click “Run now” on an automation.</p>}
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: 'var(--t1)' }}>Recent runs</div>
+        {runs.length === 0 && <p style={{ fontSize: 13, color: 'var(--t3)', margin: 0 }}>No runs yet — click “Run now” on an automation.</p>}
         {runs.map(r => (
           <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, padding: '6px 0', borderBottom: '1px solid #f5f6fa' }}>
-            <span><b style={{ color: '#374151' }}>{r.marketing_automations?.name ?? '—'}</b> · <span style={{ color: r.status === 'success' ? '#059669' : r.status === 'failed' ? '#dc2626' : '#94a3b8' }}>{r.status}</span>{r.detail ? ` · ${r.detail}` : ''}</span>
-            <span style={{ color: '#94a3b8' }}>{dt(r.created_at)}</span>
+            <span><b style={{ color: 'var(--t1)' }}>{r.marketing_automations?.name ?? '—'}</b> · <span style={{ color: r.status === 'success' ? '#059669' : r.status === 'failed' ? '#dc2626' : '#94a3b8' }}>{r.status}</span>{r.detail ? ` · ${r.detail}` : ''}</span>
+            <span style={{ color: 'var(--t3)' }}>{dt(r.created_at)}</span>
           </div>
         ))}
       </div>
@@ -619,8 +619,8 @@ function CopilotTab({ flash }: { flash: (m: string) => void }) {
   return (
     <div>
       <div style={card}>
-        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: '#1a1a2e' }}>AI Marketing Copilot</div>
-        <p style={{ fontSize: 13, color: '#94a3b8', margin: '0 0 14px' }}>Grounded in your live contact, event, and campaign data.</p>
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: 'var(--t1)' }}>AI Marketing Copilot</div>
+        <p style={{ fontSize: 13, color: 'var(--t3)', margin: '0 0 14px' }}>Grounded in your live contact, event, and campaign data.</p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
           {COPILOT_TASKS.map(t => (
             <button key={t.key} onClick={() => setTask(t.key)}
@@ -636,7 +636,7 @@ function CopilotTab({ flash }: { flash: (m: string) => void }) {
       </div>
 
       {result && (
-        <div style={{ ...card, whiteSpace: 'pre-wrap', fontSize: 13.5, lineHeight: 1.7, color: '#374151' }}>{result}</div>
+        <div style={{ ...card, whiteSpace: 'pre-wrap', fontSize: 13.5, lineHeight: 1.7, color: 'var(--t1)' }}>{result}</div>
       )}
     </div>
   );
@@ -721,15 +721,15 @@ function OutreachTab({ flash }: { flash: (m: string) => void }) {
         <p style={{ fontSize: 13, color: '#5b3fa8', margin: 0, lineHeight: 1.6 }}>
           Pulled live from <b>New Customers</b>. Validate each lead&apos;s email, then send a personal invite with a
           <b> unique tracking link</b> — when they click it and land on the site, the visit is captured back here
-          (clicked → converted). Every link is its own <code style={{ background: '#fff', padding: '1px 7px', borderRadius: 6 }}>/go/&lt;code&gt;</code> short URL.
+          (clicked → converted). Every link is its own <code style={{ background: 'var(--s1)', padding: '1px 7px', borderRadius: 6 }}>/go/&lt;code&gt;</code> short URL.
         </p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 18 }}>
         {kpis.map(k => (
           <div key={k.label} style={{ ...card, marginBottom: 0, padding: '14px 18px' }}>
-            <div style={{ fontSize: 11, fontWeight: 650, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em' }}>{k.label}</div>
-            <div style={{ fontSize: 26, fontWeight: 700, color: '#1a1a2e', marginTop: 4 }}>{k.value.toLocaleString()}</div>
+            <div style={{ fontSize: 11, fontWeight: 650, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em' }}>{k.label}</div>
+            <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--t1)', marginTop: 4 }}>{k.value.toLocaleString()}</div>
           </div>
         ))}
       </div>
@@ -762,11 +762,11 @@ function OutreachTab({ flash }: { flash: (m: string) => void }) {
               return (
                 <tr key={l.id} onClick={() => setSelected(l)} style={{ cursor: 'pointer' }}>
                   <td style={td}>
-                    <div style={{ fontWeight: 650, color: '#1a1a2e' }}>{l.business_name}</div>
-                    <div style={{ fontSize: 12, color: '#94a3b8' }}>{[l.owner_name, l.industry, l.state].filter(Boolean).join(' · ') || '—'}</div>
+                    <div style={{ fontWeight: 650, color: 'var(--t1)' }}>{l.business_name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--t3)' }}>{[l.owner_name, l.industry, l.state].filter(Boolean).join(' · ') || '—'}</div>
                   </td>
                   <td style={td}>
-                    <div style={{ fontSize: 12.5, color: '#374151' }}>{l.email}</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--t1)' }}>{l.email}</div>
                     {ev === true && <Pill text="deliverable" color="#059669" />}
                     {ev === false && <Pill text="risky" color="#dc2626" />}
                     {ev == null && <span style={{ fontSize: 11, color: '#cbd5e1' }}>not validated</span>}
@@ -850,11 +850,11 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
     // Backdrop dismissal is supplementary; Escape and the close button remain available.
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
     <div onClick={event => { if (event.target === event.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 1000, display: 'flex', justifyContent: 'flex-end' }}>
-      <div style={{ width: 'min(560px, 96vw)', background: '#fff', height: '100%', overflowY: 'auto', padding: '26px 28px 56px' }}>
+      <div style={{ width: 'min(560px, 96vw)', background: 'var(--s1)', height: '100%', overflowY: 'auto', padding: '26px 28px 56px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: '#1a1a2e' }}>{lead.business_name}</h3>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#94a3b8' }}>{[lead.owner_name, lead.industry, lead.state].filter(Boolean).join(' · ') || '—'}</p>
+            <h3 style={{ margin: 0, fontSize: 19, fontWeight: 800, color: 'var(--t1)' }}>{lead.business_name}</h3>
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--t3)' }}>{[lead.owner_name, lead.industry, lead.state].filter(Boolean).join(' · ') || '—'}</p>
           </div>
           <button onClick={onClose} style={{ ...btnGhost, padding: '4px 12px' }}>✕</button>
         </div>
@@ -862,9 +862,9 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
 
         {/* 1 — Email validation */}
         <Section title="① Validate email">
-          <div style={{ background: '#f8f9fc', borderRadius: 10, padding: '14px 16px' }}>
+          <div style={{ background: 'var(--s2)', borderRadius: 10, padding: '14px 16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-              <code style={{ fontSize: 13, color: '#374151' }}>{lead.email}</code>
+              <code style={{ fontSize: 13, color: 'var(--t1)' }}>{lead.email}</code>
               <button onClick={() => void validate()} disabled={busy === 'validate'} style={{ ...btnGhost, padding: '6px 12px', fontSize: 12 }}>
                 {busy === 'validate' ? 'Checking…' : 'Validate'}
               </button>
@@ -873,16 +873,16 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
               <div style={{ marginTop: 12 }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                   <Pill text={o.email_valid ? '✓ deliverable' : '⚠ risky'} color={o.email_valid ? '#059669' : '#dc2626'} />
-                  {typeof val?.score === 'number' && <span style={{ fontSize: 12, color: '#64748b' }}>score {val.score}/100</span>}
+                  {typeof val?.score === 'number' && <span style={{ fontSize: 12, color: 'var(--t3)' }}>score {val.score}/100</span>}
                   {val?.mx === true && <Pill text="MX ok" color="#059669" />}
                   {val?.mx === false && <Pill text="no MX" color="#dc2626" />}
                   {val?.disposable && <Pill text="disposable" color="#dc2626" />}
                   {val?.roleBased && <Pill text="role-based" color="#d97706" />}
                   {val?.freeProvider && <Pill text="free-mail" color="#94a3b8" />}
                 </div>
-                {val?.suggestion && <div style={{ fontSize: 12.5, color: '#d97706', marginTop: 8 }}>Did you mean <b>{val.suggestion}</b>?</div>}
+                {val?.suggestion && <div style={{ fontSize: 12.5, color: 'var(--orange-text)', marginTop: 8 }}>Did you mean <b>{val.suggestion}</b>?</div>}
                 {(val?.reasons ?? []).length > 0 && (
-                  <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: '#64748b' }}>
+                  <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--t3)' }}>
                     {val!.reasons!.map((r, i) => <li key={i}>{r}</li>)}
                   </ul>
                 )}
@@ -894,12 +894,12 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
         {/* 2 — Unique tracking link */}
         <Section title="② Unique tracking link">
           {o?.invite_url ? (
-            <div style={{ background: '#f8f9fc', borderRadius: 10, padding: '14px 16px' }}>
+            <div style={{ background: 'var(--s2)', borderRadius: 10, padding: '14px 16px' }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <code style={{ flex: 1, fontSize: 12, color: '#4d1ee0', wordBreak: 'break-all' }}>{o.invite_url}</code>
                 <button onClick={() => void copy()} style={{ ...btnGhost, padding: '6px 12px', fontSize: 12, whiteSpace: 'nowrap' }}>{copied ? '✓ Copied' : 'Copy'}</button>
               </div>
-              <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 12.5, color: '#64748b', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 12.5, color: 'var(--t3)', flexWrap: 'wrap' }}>
                 <span>Clicks: <b style={{ color: o.click_count > 0 ? '#7c3aed' : '#94a3b8' }}>{o.click_count}</b></span>
                 <span>First click: <b>{dt(o.first_click_at)}</b></span>
                 <span>Last click: <b>{dt(o.last_click_at)}</b></span>
@@ -917,7 +917,7 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
         <Section title="③ Compose & send">
           <input aria-label="Email subject" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" style={{ ...input, width: '100%', boxSizing: 'border-box', marginBottom: 8 }} />
           <textarea aria-label="Email body" value={body} onChange={e => setBody(e.target.value)} rows={9} style={{ ...input, width: '100%', boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6 }} />
-          <p style={{ fontSize: 11.5, color: '#94a3b8', margin: '6px 0 12px' }}>
+          <p style={{ fontSize: 11.5, color: 'var(--t3)', margin: '6px 0 12px' }}>
             Variables: <code>{'{{first_name}}'}</code> <code>{'{{business_name}}'}</code> <code>{'{{tracking_url}}'}</code> (inserts the unique link above).
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -944,7 +944,7 @@ function ScoreBar({ value }: { value: number }) {
   const color = value >= 70 ? '#059669' : value >= 40 ? '#d97706' : '#94a3b8';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ width: 56, height: 6, background: '#eef0f7', borderRadius: 999, overflow: 'hidden' }}>
+      <div style={{ width: 56, height: 6, background: 'var(--s2)', borderRadius: 999, overflow: 'hidden' }}>
         <div style={{ width: `${value}%`, height: '100%', background: color, borderRadius: 999 }} />
       </div>
       <b style={{ fontSize: 12, color }}>{value}</b>
@@ -954,7 +954,7 @@ function ScoreBar({ value }: { value: number }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>{title}</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 8 }}>{title}</div>
       {children}
     </div>
   );

@@ -17,16 +17,16 @@ type TrustScoreResult = {
 };
 
 const STATUS_STYLE: Record<string, { color: string; bg: string }> = {
-  'Verified':       { color: '#079447', bg: '#def7e7' },
-  'Strong Trust':   { color: '#079447', bg: '#def7e7' },
-  'Needs More Info': { color: '#f97316', bg: '#fff0dc' },
-  'Under Review':   { color: '#6b7280', bg: '#f1f5f9' },
+  'Verified':       { color: 'var(--green-text)', bg: '#def7e7' },
+  'Strong Trust':   { color: 'var(--green-text)', bg: '#def7e7' },
+  'Needs More Info': { color: 'var(--orange-text)', bg: '#fff0dc' },
+  'Under Review':   { color: 'var(--t3)', bg: '#f1f5f9' },
 };
 
 const SIGNAL_ICON: Record<Signal['state'], { icon: string; color: string }> = {
-  verified: { icon: '✓', color: '#19b86a' },
-  watch:    { icon: '⚠', color: '#f59e0b' },
-  pending:  { icon: '○', color: '#94a3b8' },
+  verified: { icon: '✓', color: 'var(--green-text)' },
+  watch:    { icon: '⚠', color: 'var(--orange-text)' },
+  pending:  { icon: '○', color: 'var(--t3)' },
 };
 
 export default function TrustScoreCard({ campaignId }: Props) {
@@ -108,7 +108,7 @@ export default function TrustScoreCard({ campaignId }: Props) {
                     <>
                       <span>{sug.label}</span>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                        <span style={{ fontWeight: 800, color: '#19b86a', fontSize: 12 }}>+{sug.pointsGain}</span>
+                        <span style={{ fontWeight: 800, color: 'var(--green-text)', fontSize: 12 }}>+{sug.pointsGain}</span>
                         {sug.actionUrl && (
                           <span style={{ color: 'var(--violet)', fontWeight: 700, fontSize: 12 }}>{sug.actionLabel ?? 'Resolve'} →</span>
                         )}

@@ -219,7 +219,7 @@ export default async function SuccessStoriesPage() {
                     ].map(s => (
                       <div key={s.lbl} style={{ textAlign: 'center', background: 'var(--s1, #fff)', borderRadius: 14, padding: '14px 10px', border: '1px solid var(--b1, #ede9fe)' }}>
                         <div style={{ fontSize: 22, fontWeight: 950, color: 'var(--violet-ink)' }}>{s.val}</div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3, #94a3b8)', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: 4 }}>{s.lbl}</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em', marginTop: 4 }}>{s.lbl}</div>
                       </div>
                     ))}
                   </div>
@@ -242,7 +242,7 @@ export default async function SuccessStoriesPage() {
           <div style={{ textAlign: 'center', marginBottom: 52 }}>
             <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet-ink)', textTransform: 'uppercase', letterSpacing: '.12em' }}>All Stories</span>
             <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 14px' }}>Every campaign tells a story</h2>
-            <p style={{ color: 'var(--t3, #64748b)', fontSize: 16, maxWidth: 500, margin: '0 auto' }}>Browse verified fundraisers from real people and nonprofits making a difference.</p>
+            <p style={{ color: 'var(--t3)', fontSize: 16, maxWidth: 500, margin: '0 auto' }}>Browse verified fundraisers from real people and nonprofits making a difference.</p>
           </div>
 
           {gridStories.length > 0 ? (
@@ -265,7 +265,7 @@ export default async function SuccessStoriesPage() {
                       </div>
                       <div style={{ padding: '20px 22px 22px' }}>
                         <h3 style={{ fontSize: 16, fontWeight: 900, color: 'var(--t1, #0e0520)', margin: '0 0 8px', lineHeight: 1.35 }}>{story.title}</h3>
-                        <p style={{ fontSize: 13, color: 'var(--t3, #64748b)', lineHeight: 1.6, margin: '0 0 18px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        <p style={{ fontSize: 13, color: 'var(--t3)', lineHeight: 1.6, margin: '0 0 18px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                           {story.description ?? 'Building momentum with live campaign data from the CharitMe community.'}
                         </p>
                         <div style={{ background: 'var(--s2, #f1eefe)', borderRadius: 999, height: 6, overflow: 'hidden', marginBottom: 14 }}>
@@ -274,7 +274,7 @@ export default async function SuccessStoriesPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
                             <div style={{ fontSize: 18, fontWeight: 950, color: 'var(--violet-ink)' }}>{formatCents(story.raised_amount, story.currency ?? 'usd')}</div>
-                            <div style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', fontWeight: 600 }}>of {formatCents(story.goal_amount, story.currency ?? 'usd')} goal</div>
+                            <div style={{ fontSize: 11, color: 'var(--t3)', fontWeight: 600 }}>of {formatCents(story.goal_amount, story.currency ?? 'usd')} goal</div>
                           </div>
                           <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--violet-ink)' }}>{progress}% funded &#8594;</span>
                         </div>
@@ -288,7 +288,7 @@ export default async function SuccessStoriesPage() {
             <div style={{ textAlign: 'center', padding: '80px 20px' }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>&#128156;</div>
               <h3 style={{ fontSize: 24, fontWeight: 900, color: 'var(--t1, #0e0520)', marginBottom: 12 }}>Stories coming soon</h3>
-              <p style={{ color: 'var(--t3, #64748b)', marginBottom: 28 }}>Be the first to create a campaign and share your story.</p>
+              <p style={{ color: 'var(--t3)', marginBottom: 28 }}>Be the first to create a campaign and share your story.</p>
               <Link href="/create/choose-path" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 48, padding: '0 28px', borderRadius: 12, background: 'linear-gradient(135deg, var(--cta-from, #6736ff), var(--cta-to, #bd33cd))', color: '#fff', fontWeight: 900, fontSize: 15, textDecoration: 'none' }}>
                 Start Your Fundraiser &#8594;
               </Link>
@@ -324,7 +324,7 @@ export default async function SuccessStoriesPage() {
                     <div style={{ width: 44, height: 44, borderRadius: '50%', backgroundImage: `url(${COMMUNITY_PHOTOS[i % COMMUNITY_PHOTOS.length]})`, backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0, border: '2px solid var(--b1, #ede9fe)' }} />
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--t1, #0e0520)' }}>{story.title.split(' ').slice(0, 3).join(' ')}</div>
-                      <div style={{ fontSize: 12, color: 'var(--t3, #94a3b8)', fontWeight: 600 }}>{story.category ?? 'Campaign'} &middot; {formatCents(story.raised_amount, story.currency ?? 'usd')} raised</div>
+                      <div style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 600 }}>{story.category ?? 'Campaign'} &middot; {formatCents(story.raised_amount, story.currency ?? 'usd')} raised</div>
                     </div>
                   </div>
                 </div>
@@ -352,7 +352,7 @@ export default async function SuccessStoriesPage() {
               <div key={s.label} style={{ textAlign: 'center', background: 'var(--s1, #fff)', border: '1.5px solid var(--b1, #ede9fe)', borderRadius: 20, padding: '32px 20px', boxShadow: '0 4px 20px rgba(108,53,255,.06)' }}>
                 <div style={{ fontSize: 36, marginBottom: 12 }} dangerouslySetInnerHTML={{ __html: s.icon }} />
                 <div style={{ fontSize: 32, fontWeight: 950, color: 'var(--violet-ink)', lineHeight: 1, marginBottom: 8 }}>{s.value}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3, #94a3b8)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{s.label}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{s.label}</div>
               </div>
             ))}
           </div>

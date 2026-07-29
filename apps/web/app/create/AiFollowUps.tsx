@@ -76,7 +76,7 @@ export default function AiFollowUps({
         <span style={{ fontWeight: 800, fontSize: 12.5, letterSpacing: '.03em', color: 'var(--violet, #6c35ff)' }}>
           ✨ A FEW QUICK QUESTIONS
         </span>
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3, #64748b)' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)' }}>
           {remaining.length} left
         </span>
       </div>
@@ -86,7 +86,7 @@ export default function AiFollowUps({
           it — better than a fixed aria-label that would go stale per step. */}
       <div id="ai-followup-question" style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1, #1a1a2e)' }}>{current.question}</div>
       {current.help && (
-        <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--t3, #64748b)' }}>{current.help}</p>
+        <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--t3)' }}>{current.help}</p>
       )}
 
       <div style={{ marginTop: 12 }}>
@@ -115,7 +115,7 @@ export default function AiFollowUps({
         {current.kind === 'money' && (
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--t3, #64748b)' }}>$</span>
+              <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--t3)' }}>$</span>
               <input aria-labelledby="ai-followup-question" ref={inputRef} type="number" min="1" step="1" inputMode="numeric" value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="5000" style={inputStyle} />
             </div>
             {continueBtn(!(Number.parseFloat(draft) > 0))}
@@ -134,7 +134,7 @@ export default function AiFollowUps({
         <button
           type="button"
           onClick={skip}
-          style={{ marginTop: 12, background: 'none', border: 'none', color: 'var(--t3, #64748b)', fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+          style={{ marginTop: 12, background: 'none', border: 'none', color: 'var(--t3)', fontSize: 13, fontWeight: 700, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
         >
           I&apos;m not sure — skip this
         </button>

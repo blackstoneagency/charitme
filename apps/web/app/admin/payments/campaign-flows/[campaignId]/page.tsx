@@ -24,9 +24,9 @@ export default async function CampaignPaymentFlowPage({ params }: PageProps): Pr
           <Link href={`/api/admin/payments/export?type=campaign-ledger&campaignId=${campaignId}`} style={buttonStyle}>Export Campaign Ledger</Link>
         </div>
         <SummaryCards data={data} />
-        <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: 18 }}>
-          <strong style={{ color: '#111944', display: 'block', marginBottom: 8 }}>Settlement Snapshot</strong>
-          <span style={{ color: '#64748b', fontWeight: 650 }}>
+        <div style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 14, padding: 18 }}>
+          <strong style={{ color: 'var(--t1)', display: 'block', marginBottom: 8 }}>Settlement Snapshot</strong>
+          <span style={{ color: 'var(--t3)', fontWeight: 650 }}>
             Gross {money(data.summary.totalGross)} · Platform revenue {money(data.summary.totalPlatformRevenue)} · Owner net {money(data.summary.totalOwnerNet)}
           </span>
         </div>

@@ -6,22 +6,22 @@ import { useRouter } from 'next/navigation';
 type Status = 'draft' | 'active' | 'paused' | 'completed' | 'frozen' | 'archived';
 
 const STATUS_ACTIONS: Record<Status, { label: string; next: Status; color: string; confirm?: string }[]> = {
-  draft:     [{ label: 'Publish Campaign', next: 'active', color: '#19b86a' }],
+  draft:     [{ label: 'Publish Campaign', next: 'active', color: 'var(--green-text)' }],
   active:    [
-    { label: 'Pause Donations', next: 'paused', color: '#f59e0b', confirm: 'Pausing stops new donations but keeps the page live. Continue?' },
-    { label: 'Close Campaign',  next: 'completed', color: '#64748b', confirm: 'Closing marks the campaign as completed. Donors will see it as ended. Continue?' },
+    { label: 'Pause Donations', next: 'paused', color: 'var(--orange-text)', confirm: 'Pausing stops new donations but keeps the page live. Continue?' },
+    { label: 'Close Campaign',  next: 'completed', color: 'var(--t3)', confirm: 'Closing marks the campaign as completed. Donors will see it as ended. Continue?' },
   ],
   paused:    [
-    { label: 'Resume Donations', next: 'active', color: '#19b86a' },
-    { label: 'Close Campaign',   next: 'completed', color: '#64748b', confirm: 'Close this campaign permanently?' },
+    { label: 'Resume Donations', next: 'active', color: 'var(--green-text)' },
+    { label: 'Close Campaign',   next: 'completed', color: 'var(--t3)', confirm: 'Close this campaign permanently?' },
   ],
-  completed: [{ label: 'Archive Campaign', next: 'archived', color: '#64748b', confirm: 'Archived campaigns are hidden from search. You can still view them in your dashboard.' }],
+  completed: [{ label: 'Archive Campaign', next: 'archived', color: 'var(--t3)', confirm: 'Archived campaigns are hidden from search. You can still view them in your dashboard.' }],
   frozen:    [],
   archived:  [],
 };
 
 const STATUS_BADGE: Record<Status, { bg: string; color: string; label: string }> = {
-  draft:     { bg: '#f1f5f9', color: '#64748b',  label: 'Draft'     },
+  draft:     { bg: '#f1f5f9', color: 'var(--t3)',  label: 'Draft'     },
   active:    { bg: '#f0fff8', color: '#065f46',  label: 'Active'    },
   paused:    { bg: '#fffbeb', color: '#92400e',  label: 'Paused'    },
   completed: { bg: '#e0f2fe', color: '#0369a1',  label: 'Completed' },

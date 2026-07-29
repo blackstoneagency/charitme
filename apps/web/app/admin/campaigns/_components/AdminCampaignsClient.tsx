@@ -129,18 +129,18 @@ const STATUS_PANEL_TEXT: Record<string, string> = {
 
 const STATUS_PANEL_ACTIONS: Record<string, { label: string; next: string; color: string; confirm?: string }[]> = {
   active: [
-    { label: 'Pause Donations', next: 'paused', color: '#f59e0b', confirm: 'Pausing stops new donations but keeps the page live. Continue?' },
-    { label: 'Close Campaign', next: 'completed', color: '#64748b', confirm: 'Closing marks the campaign as completed. Donors will see it as ended. Continue?' },
+    { label: 'Pause Donations', next: 'paused', color: 'var(--orange-text)', confirm: 'Pausing stops new donations but keeps the page live. Continue?' },
+    { label: 'Close Campaign', next: 'completed', color: 'var(--t3)', confirm: 'Closing marks the campaign as completed. Donors will see it as ended. Continue?' },
   ],
   paused: [
-    { label: 'Resume Donations', next: 'active', color: '#19b86a' },
-    { label: 'Close Campaign', next: 'completed', color: '#64748b', confirm: 'Close this campaign permanently?' },
+    { label: 'Resume Donations', next: 'active', color: 'var(--green-text)' },
+    { label: 'Close Campaign', next: 'completed', color: 'var(--t3)', confirm: 'Close this campaign permanently?' },
   ],
   draft: [
-    { label: 'Publish Campaign', next: 'active', color: '#19b86a' },
+    { label: 'Publish Campaign', next: 'active', color: 'var(--green-text)' },
   ],
   completed: [
-    { label: 'Archive Campaign', next: 'rejected', color: '#64748b', confirm: 'Archived campaigns are hidden from search.' },
+    { label: 'Archive Campaign', next: 'rejected', color: 'var(--t3)', confirm: 'Archived campaigns are hidden from search.' },
   ],
 };
 
@@ -1483,8 +1483,8 @@ function EditForm({
       {/* ── MEDIA MANAGEMENT ── */}
       <div className="ac-field full" style={{ borderTop: '1px solid #eef0f7', paddingTop: 20, marginTop: 4 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <strong style={{ fontSize: 14, fontWeight: 650, color: '#1a1a2e' }}>Media Management</strong>
-          <div style={{ display: 'flex', gap: 4, background: '#f8f9fc', borderRadius: 10, padding: 4 }}>
+          <strong style={{ fontSize: 14, fontWeight: 650, color: 'var(--t1)' }}>Media Management</strong>
+          <div style={{ display: 'flex', gap: 4, background: 'var(--s2)', borderRadius: 10, padding: 4 }}>
             <button style={sectionTabStyle(mediaSection === 'cover')}   onClick={() => setMediaSection('cover')}>Cover Image</button>
             <button style={sectionTabStyle(mediaSection === 'gallery')} onClick={() => setMediaSection('gallery')}>Gallery ({(draft.imageUrls ?? []).length})</button>
             <button style={sectionTabStyle(mediaSection === 'video')}   onClick={() => setMediaSection('video')}>Video</button>
@@ -1523,12 +1523,12 @@ function EditForm({
                     style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(190,18,60,.85)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >×</button>
                 </div>
-                <div style={{ marginTop: 6, fontSize: 11, color: '#64748b', wordBreak: 'break-all' }}>
+                <div style={{ marginTop: 6, fontSize: 11, color: 'var(--t3)', wordBreak: 'break-all' }}>
                   {draft.coverImageUrl.slice(0, 80)}{draft.coverImageUrl.length > 80 ? '…' : ''}
                 </div>
               </div>
             ) : (
-              <div style={{ width: '100%', maxWidth: 480, height: 160, borderRadius: 12, border: '2px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 14, fontWeight: 600, marginBottom: 14 }}>
+              <div style={{ width: '100%', maxWidth: 480, height: 160, borderRadius: 12, border: '2px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--t3)', fontSize: 14, fontWeight: 600, marginBottom: 14 }}>
                 No cover image set
               </div>
             )}
@@ -1536,7 +1536,7 @@ function EditForm({
               onChange={e => { const f = e.target.files?.[0]; if (f) void uploadCover(f); e.target.value = ''; }} />
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <button type="button" disabled={uploadingCover} onClick={() => coverInputRef.current?.click()}
-                style={{ padding: '8px 18px', border: '1px solid #6c35ff', borderRadius: 9, background: '#f0eaff', color: '#6c35ff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                style={{ padding: '8px 18px', border: '1px solid #6c35ff', borderRadius: 9, background: 'var(--s2)', color: 'var(--brand-text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                 {uploadingCover ? 'Uploading…' : draft.coverImageUrl ? '↑ Replace Cover Image' : '↑ Upload Cover Image'}
               </button>
               {draft.coverImageUrl && (
@@ -1553,7 +1553,7 @@ function EditForm({
         {mediaSection === 'gallery' && (
           <div>
             {(draft.imageUrls ?? []).length === 0 ? (
-              <div style={{ padding: '24px', textAlign: 'center', border: '2px dashed #e2e8f0', borderRadius: 12, color: '#94a3b8', fontSize: 14, marginBottom: 14 }}>
+              <div style={{ padding: '24px', textAlign: 'center', border: '2px dashed #e2e8f0', borderRadius: 12, color: 'var(--t3)', fontSize: 14, marginBottom: 14 }}>
                 No gallery images. Upload up to 10 photos.
               </div>
             ) : (
@@ -1595,11 +1595,11 @@ function EditForm({
             <button type="button"
               disabled={uploadingGallery || (draft.imageUrls ?? []).length >= 10}
               onClick={() => galleryInputRef.current?.click()}
-              style={{ padding: '8px 18px', border: '1px solid #6c35ff', borderRadius: 9, background: '#f0eaff', color: '#6c35ff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              style={{ padding: '8px 18px', border: '1px solid #6c35ff', borderRadius: 9, background: 'var(--s2)', color: 'var(--brand-text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               {uploadingGallery ? 'Uploading…' : `↑ Add Images (${(draft.imageUrls ?? []).length}/10)`}
             </button>
             {(draft.imageUrls ?? []).length > 0 && (
-              <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>
+              <p style={{ fontSize: 11, color: 'var(--t3)', marginTop: 8 }}>
                 First image is used as the cover on the campaign page if no separate cover image is set.
               </p>
             )}
@@ -1620,15 +1620,15 @@ function EditForm({
                     style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
                   />
                 </div>
-                <p style={{ fontSize: 12, color: '#64748b', marginTop: 6, wordBreak: 'break-all' }}>{draft.videoUrl}</p>
+                <p style={{ fontSize: 12, color: 'var(--t3)', marginTop: 6, wordBreak: 'break-all' }}>{draft.videoUrl}</p>
               </div>
             ) : draft.videoUrl ? (
               <div style={{ padding: '14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, marginBottom: 14 }}>
                 <p style={{ fontSize: 13, color: '#92400e', margin: 0 }}>⚠ URL set but not a recognized YouTube/Vimeo link. It will still be saved.</p>
-                <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0', wordBreak: 'break-all' }}>{draft.videoUrl}</p>
+                <p style={{ fontSize: 12, color: 'var(--t3)', margin: '4px 0 0', wordBreak: 'break-all' }}>{draft.videoUrl}</p>
               </div>
             ) : (
-              <div style={{ padding: '24px', textAlign: 'center', border: '2px dashed #e2e8f0', borderRadius: 12, color: '#94a3b8', fontSize: 14, marginBottom: 14 }}>
+              <div style={{ padding: '24px', textAlign: 'center', border: '2px dashed #e2e8f0', borderRadius: 12, color: 'var(--t3)', fontSize: 14, marginBottom: 14 }}>
                 No video set. Paste a YouTube or Vimeo URL below.
               </div>
             )}
@@ -1647,7 +1647,7 @@ function EditForm({
                 </button>
               )}
             </div>
-            <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>
+            <p style={{ fontSize: 11, color: 'var(--t3)', marginTop: 8 }}>
               Supported: YouTube (youtube.com/watch?v=, youtu.be/) and Vimeo (vimeo.com/). The video will be embedded on the public campaign page.
             </p>
           </div>
@@ -1658,10 +1658,10 @@ function EditForm({
       <div className="ac-field full" style={{ borderTop: '1px solid #eef0f7', paddingTop: 20, marginTop: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <strong style={{ fontSize: 14, fontWeight: 650, color: '#1a1a2e', display: 'block', marginBottom: 4 }}>
+            <strong style={{ fontSize: 14, fontWeight: 650, color: 'var(--t1)', display: 'block', marginBottom: 4 }}>
               {draft.featured ? '⭐ Featured on Homepage' : '☆ Feature on Homepage'}
             </strong>
-            <span style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
+            <span style={{ fontSize: 12, color: 'var(--t3)', lineHeight: 1.5 }}>
               Featured campaigns appear <strong>first</strong> in the homepage hero rotator.<br />
               Campaign must have a cover photo and be active to show in the rotator.
             </span>
@@ -1681,7 +1681,7 @@ function EditForm({
           </button>
         </div>
         {draft.featured && !draft.coverImageUrl && (
-          <p style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, margin: '8px 0 0' }}>
+          <p style={{ fontSize: 12, color: 'var(--orange-text)', fontWeight: 600, margin: '8px 0 0' }}>
             ⚠ This campaign has no cover image — it will not appear in the rotator until one is added.
           </p>
         )}

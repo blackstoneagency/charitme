@@ -156,7 +156,7 @@ export default async function AdminSetupPage() {
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--t1)', fontFamily: 'monospace' }}>{check.label}</div>
                   {check.fix && (
-                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2, lineHeight: 1.5 }}>
                       <strong>Fix:</strong> {check.fix}
                     </div>
                   )}
@@ -177,7 +177,7 @@ export default async function AdminSetupPage() {
           <a href="https://supabase.com/dashboard/project/yanexccimwooursawynm/editor" target="_blank" rel="noopener noreferrer" style={{ padding: '9px 20px', background: 'var(--s3)', border: '1px solid var(--b2)', color: 'var(--t1)', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
             Supabase SQL Editor ↗
           </a>
-          <Link href="/create/choose-path" style={{ padding: '9px 20px', background: 'var(--green)', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+          <Link href="/create/choose-path" style={{ padding: '9px 20px', background: 'var(--green-dark)', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
             Create Campaign →
           </Link>
         </div>

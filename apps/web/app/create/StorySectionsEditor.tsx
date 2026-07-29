@@ -70,7 +70,7 @@ export default function StorySectionsEditor({
               placeholder={sec.prompt}
               style={{ minHeight: 74 }}
             />
-            <span style={{ fontSize: 12, color: 'var(--t3, #64748b)' }}>{sec.hint}</span>
+            <span style={{ fontSize: 12, color: 'var(--t3)' }}>{sec.hint}</span>
           </div>
         );
       })}
@@ -98,7 +98,7 @@ export default function StorySectionsEditor({
             </button>
           ))}
         </div>
-        <span style={{ display: 'block', fontSize: 12, color: 'var(--t3, #64748b)', marginTop: 8 }}>
+        <span style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 8 }}>
           Uses AI to rewrite what you&apos;ve written — your words, a new voice. You can always edit after.
         </span>
       </div>

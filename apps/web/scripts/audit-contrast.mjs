@@ -394,7 +394,10 @@ for (const theme of THEMES) {
         if (!AS_JSON) {
           console.log(
             `${f.overGradient && !STRICT_GRADIENTS ? '⚠' : '✗'} ${theme.padEnd(5)} ${path} — ${f.ratio}:1 (need ${f.need}) ` +
-            `${f.color} on ${f.bg} · ${f.size}px/${f.weight} · <${f.tag}> "${f.text}"`,
+            `${f.color} on ${f.bg} · ${f.size}px/${f.weight} · <${f.tag}>` +
+            // The class chain is already captured for deduping — printing it is what
+            // turns "some grey text is too light" into a fixable CSS selector.
+            `${f.cls ? `.${f.cls.trim().split(/\s+/).join('.')}` : ''} "${f.text}"`,
           );
         }
       }

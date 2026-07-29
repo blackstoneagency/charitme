@@ -60,7 +60,7 @@ export default async function TransactionDetailPage({ params }: PageProps): Prom
             {timeline.map(([label, complete], index) => (
               <div key={label} style={{ display: 'grid', gridTemplateColumns: '30px 1fr', gap: 10, alignItems: 'center' }}>
                 <span style={{ width: 24, height: 24, borderRadius: 999, display: 'grid', placeItems: 'center', background: complete ? '#dcfce7' : '#fee2e2', color: complete ? '#15803d' : '#b91c1c', fontWeight: 700 }}>{index + 1}</span>
-                <span style={{ color: '#111944', fontWeight: 650 }}>{label}{complete ? '' : ' missing or pending'}</span>
+                <span style={{ color: 'var(--t1)', fontWeight: 650 }}>{label}{complete ? '' : ' missing or pending'}</span>
               </div>
             ))}
           </div>
@@ -72,7 +72,7 @@ export default async function TransactionDetailPage({ params }: PageProps): Prom
           <ObjectRow label="Checkout Session" value={payment.processor_checkout_session_id} />
           <ObjectRow label="Transfer" value={payment.processor_transfer_id} />
           <ObjectRow label="Payout" value={payment.processor_payout_id} />
-          <Link href={`https://dashboard.stripe.com/payments/${payment.processor_payment_intent_id ?? ''}`} style={{ color: '#6c35ff', fontWeight: 700, textDecoration: 'none' }}>Open processor dashboard</Link>
+          <Link href={`https://dashboard.stripe.com/payments/${payment.processor_payment_intent_id ?? ''}`} style={{ color: 'var(--brand-text)', fontWeight: 700, textDecoration: 'none' }}>Open processor dashboard</Link>
         </section>
 
         <section style={panel}>
@@ -97,8 +97,8 @@ export default async function TransactionDetailPage({ params }: PageProps): Prom
 function Metric({ label, value }: { label: string; value: string }): JSX.Element {
   return (
     <div>
-      <strong style={{ display: 'block', color: '#111944', fontSize: 22 }}>{value}</strong>
-      <span style={{ color: '#64748b', fontSize: 12, fontWeight: 700 }}>{label}</span>
+      <strong style={{ display: 'block', color: 'var(--t1)', fontSize: 22 }}>{value}</strong>
+      <span style={{ color: 'var(--t3)', fontSize: 12, fontWeight: 700 }}>{label}</span>
     </div>
   );
 }
@@ -119,7 +119,7 @@ function Rows({ rows, empty = 'No records.' }: { rows: string[][]; empty?: strin
         <tbody>
           {rows.map((row, index) => (
             <tr key={row.join('|')} style={{ borderTop: index > 0 ? '1px solid #edf1f7' : undefined }}>
-              {row.map(cell => <td key={cell} style={{ padding: '10px 12px', color: '#111944', whiteSpace: 'nowrap' }}>{cell}</td>)}
+              {row.map(cell => <td key={cell} style={{ padding: '10px 12px', color: 'var(--t1)', whiteSpace: 'nowrap' }}>{cell}</td>)}
             </tr>
           ))}
         </tbody>
@@ -128,6 +128,6 @@ function Rows({ rows, empty = 'No records.' }: { rows: string[][]; empty?: strin
   );
 }
 
-const panel = { background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, padding: 18 } as const;
-const h2 = { margin: '0 0 12px', color: '#111944', fontSize: 16 } as const;
-const muted = { color: '#64748b', fontSize: 13, fontWeight: 600 } as const;
+const panel = { background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 16, padding: 18 } as const;
+const h2 = { margin: '0 0 12px', color: 'var(--t1)', fontSize: 16 } as const;
+const muted = { color: 'var(--t3)', fontSize: 13, fontWeight: 600 } as const;

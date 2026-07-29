@@ -410,7 +410,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   boxShadow: '0 2px 8px rgba(0,0,0,.10)',
-                  fontSize: 16, color: '#6c35ff', fontWeight: 700,
+                  fontSize: 16, color: 'var(--brand-text)', fontWeight: 700,
                   transition: 'background .15s',
                 }}
               >{btn.label}</button>

@@ -23,7 +23,7 @@ type OptimizerResult = {
 
 const URGENCY_STYLE: Record<Urgency, { label: string; color: string; bg: string }> = {
   urgent:   { label: 'Time-sensitive', color: 'var(--red)', bg: 'rgba(255,59,95,.1)' },
-  moderate: { label: 'Some urgency', color: '#f59e0b', bg: 'rgba(245,158,11,.14)' },
+  moderate: { label: 'Some urgency', color: 'var(--orange-text)', bg: 'rgba(245,158,11,.14)' },
   flexible: { label: 'No rush', color: 'var(--green-dark)', bg: 'rgba(18,166,83,.14)' },
 };
 
@@ -114,7 +114,7 @@ export default function FeeOptimizerCard({ campaigns }: Props) {
                     <div style={{ fontSize: 12, color: 'var(--t3)' }}>{opt.etaLabel}</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 800, color: 'var(--green)' }}>{fmt(opt.netCents)}</div>
+                    <div style={{ fontWeight: 800, color: 'var(--green-text)' }}>{fmt(opt.netCents)}</div>
                     <div style={{ fontSize: 12, color: opt.feeCents > 0 ? '#f59e0b' : 'var(--t3)' }}>
                       {opt.feeCents > 0 ? `−${fmt(opt.feeCents)} fee` : 'No fee'}
                     </div>

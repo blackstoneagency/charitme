@@ -26,7 +26,7 @@ function SponsorImg({ src, website, name }: { src: string | null; website: strin
   const imgSrc = errorCount < candidates.length ? candidates[errorCount] : null;
 
   if (!imgSrc) {
-    return <span style={{ fontSize: 12, fontWeight: 800, color: '#94a3b8' }}>{name.slice(0, 2).toUpperCase()}</span>;
+    return <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--t3)' }}>{name.slice(0, 2).toUpperCase()}</span>;
   }
 
   return (

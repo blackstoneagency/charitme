@@ -69,7 +69,7 @@ export default async function AdminCampaignsPage() {
             <p style={{ fontFamily: 'monospace', fontSize: 13, color: '#be123c', margin: '0 0 12px', lineHeight: 1.6 }}>
               {dbError.code}: {dbError.message}
             </p>
-            <p style={{ fontSize: 13, color: '#64748b', margin: 0, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: 'var(--t3)', margin: 0, lineHeight: 1.6 }}>
               <strong>Likely causes:</strong>
               <br />1. <code>SUPABASE_SERVICE_ROLE_KEY</code> is not set in Vercel environment variables
               <br />2. The database schema has not been applied — run <code>supabase/catch_up.sql</code> in the Supabase SQL Editor (idempotent)

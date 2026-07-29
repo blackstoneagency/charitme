@@ -179,7 +179,7 @@ export default async function TaxDocumentsPage({
                 </div>
                 <div>
                   <div style={{ fontSize: 12, color: 'var(--t3)' }}>Marked deductible</div>
-                  <strong style={{ display: 'block', marginTop: 5, fontSize: 22, color: 'var(--green)' }}>{formatCents(statement.totals.deductibleCents, currency)}</strong>
+                  <strong style={{ display: 'block', marginTop: 5, fontSize: 22, color: 'var(--green-text)' }}>{formatCents(statement.totals.deductibleCents, currency)}</strong>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>

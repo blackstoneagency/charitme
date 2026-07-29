@@ -25,7 +25,7 @@ function Toggle({ label, k, on, warn, onSet }: { label: string; k: keyof Platfor
     <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--t2)', padding: '8px 0' }}>
       <button type="button" onClick={() => onSet(k, !on)} aria-pressed={on}
         style={{ width: 46, height: 26, borderRadius: 999, border: 'none', cursor: 'pointer', background: on ? (warn ? 'var(--red)' : 'var(--green)') : 'var(--b3)', position: 'relative', flexShrink: 0 }}>
-        <span style={{ position: 'absolute', top: 3, left: on ? 23 : 3, width: 20, height: 20, borderRadius: 999, background: '#fff', transition: 'left .15s' }} />
+        <span style={{ position: 'absolute', top: 3, left: on ? 23 : 3, width: 20, height: 20, borderRadius: 999, background: 'var(--s1)', transition: 'left .15s' }} />
       </button>
       {label}
     </label>

@@ -50,7 +50,7 @@ export default async function AboutUsPage() {
       emoji: '🔒',
       title: 'Radical Transparency',
       body: 'Every fee, every transaction, every dollar is visible — donors and organizers see exactly where money goes.',
-      color: '#7c3aed',
+      color: 'var(--brand-text)',
       bg: '#f5f3ff',
     },
     {
@@ -64,7 +64,7 @@ export default async function AboutUsPage() {
       emoji: '💚',
       title: 'Zero Mandatory Fees',
       body: 'We charge $0 platform fees. We\'re sustained by donors who choose to tip — proving giving can be generous all the way down.',
-      color: '#059669',
+      color: 'var(--green-text)',
       bg: '#ecfdf5',
     },
     {
@@ -78,14 +78,14 @@ export default async function AboutUsPage() {
       emoji: '🌍',
       title: 'Built for Everyone',
       body: 'From a family facing a medical crisis to a nonprofit scaling globally — one platform built for every kind of cause.',
-      color: '#d97706',
+      color: 'var(--orange-text)',
       bg: '#fffbeb',
     },
     {
       emoji: '⚡',
       title: 'Speed to Impact',
       body: 'Create a campaign in minutes. Get paid in days. No waiting, no bureaucracy — just real results for real people.',
-      color: '#6c35ff',
+      color: 'var(--brand-text)',
       bg: '#f5f0ff',
     },
   ];

@@ -259,9 +259,9 @@ export default async function AdminDashboardPage() {
   const pct = (n: number) => Math.round((n / cntTotal) * 100);
 
   const sources: SourceItem[] = [
-    { label: 'Completed', pct: pct(cntCompleted), color: '#19b86a' },
-    { label: 'Pending', pct: pct(cntPending), color: '#f59e0b' },
-    { label: 'Refunded', pct: pct(cntRefunded), color: '#8c9ab5' },
+    { label: 'Completed', pct: pct(cntCompleted), color: 'var(--green-text)' },
+    { label: 'Pending', pct: pct(cntPending), color: 'var(--orange-text)' },
+    { label: 'Refunded', pct: pct(cntRefunded), color: 'var(--t3)' },
     { label: 'Failed', pct: pct(cntFailed), color: '#ef4444' },
   ].filter(s => s.pct > 0);
 

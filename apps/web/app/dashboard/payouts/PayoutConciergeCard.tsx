@@ -21,7 +21,7 @@ type ConciergeResult = {
 
 const READINESS_STYLE: Record<Readiness, { label: string; color: string; bg: string }> = {
   ready:         { label: 'Ready for payout', color: 'var(--green-dark)', bg: 'rgba(18,166,83,.14)' },
-  action_needed: { label: 'Action needed', color: '#f97316', bg: 'rgba(245,158,11,.14)' },
+  action_needed: { label: 'Action needed', color: 'var(--orange-text)', bg: 'rgba(245,158,11,.14)' },
   blocked:       { label: 'On hold', color: 'var(--red)', bg: 'rgba(255,59,95,.1)' },
 };
 

@@ -71,7 +71,7 @@ const PIPELINE_STEPS = [
 ];
 
 const card: React.CSSProperties = {
-  background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '16px 20px',
+  background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 14, padding: '16px 20px',
 };
 
 // Local YYYY-MM-DD (not UTC) so the date pickers default to "today" for the
@@ -246,11 +246,11 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
   }
 
   const statItems: { label: string; value: number; color: string; href?: string }[] = [
-    { label: 'Total leads', value: stats.total, color: '#1a1a2e' },
-    { label: 'New', value: stats.new, color: '#6c35ff' },
+    { label: 'Total leads', value: stats.total, color: 'var(--t1)' },
+    { label: 'New', value: stats.new, color: 'var(--brand-text)' },
     { label: 'AI-enriched', value: stats.enriched, color: '#0ea5e9' },
-    { label: 'Hot (60+)', value: stats.hot, color: '#19b86a' },
-    { label: 'In outreach', value: stats.contacted, color: '#f59e0b' },
+    { label: 'Hot (60+)', value: stats.hot, color: 'var(--green-text)' },
+    { label: 'In outreach', value: stats.contacted, color: 'var(--orange-text)' },
     { label: 'Synced to Marketing', value: stats.synced, color: '#8b5cf6', href: '/admin/marketing?tab=campaigns' },
   ];
 
@@ -259,7 +259,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
 
       {/* Pipeline flow */}
       <div style={card}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: '#64748b', marginBottom: 12 }}>LEAD PIPELINE</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--t3)', marginBottom: 12 }}>LEAD PIPELINE</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
           {PIPELINE_STEPS.map((step, i) => (
             <React.Fragment key={step.label}>
@@ -279,7 +279,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
           const content = (
             <>
               <div style={{ fontSize: 26, fontWeight: 900, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 2 }}>
+              <div style={{ fontSize: 12.5, color: 'var(--t3)', marginTop: 2 }}>
                 {s.label}{s.href && <span style={{ color: '#8b5cf6' }}> →</span>}
               </div>
             </>
@@ -315,7 +315,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
               aria-label="Filed from"
               style={{ padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13 }}
             />
-            <span style={{ color: '#94a3b8', fontSize: 12 }}>to</span>
+            <span style={{ color: 'var(--t3)', fontSize: 12 }}>to</span>
             <input
               type="date"
               value={ocDateTo}
@@ -338,7 +338,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
         </div>
 
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b', whiteSpace: 'nowrap' }}>🏛️ Free state registry:</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', whiteSpace: 'nowrap' }}>🏛️ Free state registry:</span>
           <select aria-label="State business registry" value={stateFeed} onChange={(e) => setStateFeed(e.target.value as StateFeedCode)} style={selectStyle}>
             {stateFeedOptions.map(([code, src]) => <option key={code} value={code}>{src.label}</option>)}
           </select>
@@ -353,7 +353,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
 
           <span style={{ width: 1, height: 22, background: '#e8ecf4', margin: '0 4px' }} />
 
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b', whiteSpace: 'nowrap' }}>🔎 OpenCorporates:</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', whiteSpace: 'nowrap' }}>🔎 OpenCorporates:</span>
           <input
             aria-label="Business registry search query" value={ocQuery}
             onChange={(e) => setOcQuery(e.target.value)}
@@ -381,7 +381,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
             {Object.entries(autoPullResult.sources).map(([src, r]) => (
               <div key={src} style={{ display: 'flex', gap: 8, fontSize: 12.5, fontFamily: 'monospace' }}>
                 <strong style={{ minWidth: 140 }}>{src}</strong>
-                <span style={{ color: '#64748b' }}>
+                <span style={{ color: 'var(--t3)' }}>
                   {r.error ? `error: ${r.error}` : `${r.inserted} inserted, ${r.skipped} skipped`}
                 </span>
               </div>
@@ -401,7 +401,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
               <div key={c.name} style={{ display: 'flex', gap: 8, fontSize: 12.5, fontFamily: 'monospace' }}>
                 <span>{c.ok ? '✓' : '✗'}</span>
                 <strong style={{ minWidth: 180 }}>{c.name}</strong>
-                <span style={{ color: '#64748b' }}>{c.detail}</span>
+                <span style={{ color: 'var(--t3)' }}>{c.detail}</span>
               </div>
             ))}
           </div>
@@ -430,13 +430,13 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
           <option value={60}>Score ≥ 60</option>
           <option value={80}>Score ≥ 80</option>
         </select>
-        <span style={{ fontSize: 13, color: '#64748b' }}>{filtered.length} shown</span>
+        <span style={{ fontSize: 13, color: 'var(--t3)' }}>{filtered.length} shown</span>
       </div>
 
       {/* Table */}
-      <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
         {filtered.length === 0 ? (
-          <div style={{ padding: 48, textAlign: 'center', color: '#64748b' }}>
+          <div style={{ padding: 48, textAlign: 'center', color: 'var(--t3)' }}>
             {leads.length === 0
               ? 'No business leads yet. Click "Add sample filings" or pull from OpenCorporates to populate the pipeline.'
               : 'No leads match your filters.'}
@@ -445,9 +445,9 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr style={{ background: '#f8fafc' }}>
+                <tr style={{ background: 'var(--s2)' }}>
                   {['Business', 'Filing', 'Score', 'Contact info', 'Status', 'Actions'].map((h) => (
-                    <th key={h} style={{ padding: '11px 16px', textAlign: 'left', fontWeight: 700, color: '#64748b', fontSize: 12, whiteSpace: 'nowrap' }}>{h}</th>
+                    <th key={h} style={{ padding: '11px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--t3)', fontSize: 12, whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -456,20 +456,20 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                   <tr key={l.id} style={{ borderTop: i > 0 ? '1px solid #f0f4f8' : undefined, verticalAlign: 'top' }}>
                     {/* Business */}
                     <td style={{ padding: '12px 16px' }}>
-                      <div style={{ fontWeight: 700, color: '#1a1a2e', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ fontWeight: 700, color: 'var(--t1)', display: 'flex', alignItems: 'center', gap: 6 }}>
                         {l.business_name}
                         {l.alerted && <span title="Admin alerted">🔔</span>}
                       </div>
-                      <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>
+                      <div style={{ fontSize: 11.5, color: 'var(--t3)', marginTop: 2 }}>
                         {[l.entity_type, l.state, l.industry].filter(Boolean).join(' · ') || '—'}
                       </div>
-                      {l.owner_name && <div style={{ fontSize: 11.5, color: '#94a3b8' }}>Owner: {l.owner_name}</div>}
+                      {l.owner_name && <div style={{ fontSize: 11.5, color: 'var(--t3)' }}>Owner: {l.owner_name}</div>}
                     </td>
 
                     {/* Filing */}
-                    <td style={{ padding: '12px 16px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '12px 16px', color: 'var(--t3)', whiteSpace: 'nowrap' }}>
                       <div>{l.filing_date ?? '—'}</div>
-                      <div style={{ fontSize: 11.5, color: '#94a3b8' }}>{l.filing_status ?? l.source}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--t3)' }}>{l.filing_status ?? l.source}</div>
                     </td>
 
                     {/* Score */}
@@ -487,7 +487,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                       {l.enriched_at ? (
                         <div style={{ display: 'grid', gap: 2, fontSize: 12.5 }}>
                           {l.website ? <a href={l.website} target="_blank" rel="noopener noreferrer" style={{ color: '#0ea5e9', textDecoration: 'none' }}>🌐 {l.website.replace(/^https?:\/\//, '')}</a> : <span style={{ color: '#cbd5e1' }}>🌐 —</span>}
-                          {l.email ? <a href={`mailto:${l.email}`} style={{ color: '#6c35ff', textDecoration: 'none' }}>✉️ {l.email}</a> : <span style={{ color: '#cbd5e1' }}>✉️ —</span>}
+                          {l.email ? <a href={`mailto:${l.email}`} style={{ color: 'var(--brand-text)', textDecoration: 'none' }}>✉️ {l.email}</a> : <span style={{ color: '#cbd5e1' }}>✉️ —</span>}
                           {l.phone ? <span style={{ color: '#334064' }}>📞 {l.phone}</span> : <span style={{ color: '#cbd5e1' }}>📞 —</span>}
                           {l.marketing_contact_id && (
                             <a href="/admin/marketing?tab=campaigns" title="Targetable via the 'New Business Leads' segment" style={{ color: '#8b5cf6', textDecoration: 'none', fontWeight: 700 }}>
@@ -496,7 +496,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                           )}
                         </div>
                       ) : (
-                        <span style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>Not enriched yet</span>
+                        <span style={{ fontSize: 12, color: 'var(--t3)', fontStyle: 'italic' }}>Not enriched yet</span>
                       )}
                     </td>
 
@@ -557,7 +557,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
 
 const selectStyle: React.CSSProperties = {
   padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13,
-  background: '#fff', color: '#334064', cursor: 'pointer',
+  background: 'var(--s1)', color: '#334064', cursor: 'pointer',
 };
 
 function btnPrimary(disabled: boolean): React.CSSProperties {
@@ -567,5 +567,5 @@ function btnSecondary(disabled: boolean): React.CSSProperties {
   return { padding: '9px 16px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 13, cursor: disabled ? 'default' : 'pointer', background: '#6c35ff', color: '#fff', opacity: disabled ? 0.5 : 1 };
 }
 function btnGhost(disabled: boolean): React.CSSProperties {
-  return { padding: '9px 16px', borderRadius: 10, border: '1px solid #e2e8f0', fontWeight: 800, fontSize: 13, cursor: disabled ? 'default' : 'pointer', background: '#fff', color: '#334064', opacity: disabled ? 0.6 : 1 };
+  return { padding: '9px 16px', borderRadius: 10, border: '1px solid #e2e8f0', fontWeight: 800, fontSize: 13, cursor: disabled ? 'default' : 'pointer', background: 'var(--s1)', color: '#334064', opacity: disabled ? 0.6 : 1 };
 }

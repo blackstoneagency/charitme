@@ -10,12 +10,12 @@ export default async function PaymentProcessorsPage(): Promise<JSX.Element> {
     <CharitMeShell active="Payment Flows" mode="admin">
       <TopBar title="Payment Processors" subtitle="Enabled processors and disabled setup states from Supabase." />
       <div className="kf-admin-dash">
-        <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
           {processors.map(row => (
             <div key={row.processor} style={{ padding: 18, borderTop: '1px solid #edf1f7', display: 'flex', justifyContent: 'space-between', gap: 18 }}>
               <div>
-                <strong style={{ color: '#111944' }}>{row.display_name}</strong>
-                <p style={{ color: '#64748b', margin: '4px 0 0', fontWeight: 650 }}>{row.processor}</p>
+                <strong style={{ color: 'var(--t1)' }}>{row.display_name}</strong>
+                <p style={{ color: 'var(--t3)', margin: '4px 0 0', fontWeight: 650 }}>{row.processor}</p>
               </div>
               <Pill value={row.status} />
             </div>

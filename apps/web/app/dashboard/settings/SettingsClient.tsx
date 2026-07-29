@@ -569,7 +569,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                     <div className="kf-setpref-info"><strong>Stripe</strong><span>Payment processing</span></div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', background: 'rgba(18,166,83,.14)', padding: '3px 10px', borderRadius: 999 }}>Connected</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green-text)', background: 'rgba(18,166,83,.14)', padding: '3px 10px', borderRadius: 999 }}>Connected</span>
                     <BillingPortalButton />
                   </div>
                 </div>
@@ -659,7 +659,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                     <strong style={{ fontSize: 15 }}>Upgrade to CharitMe Pro</strong>
                     <p style={{ fontSize: 13, color: 'var(--t2)', margin: '4px 0 0' }}>Unlimited campaigns, custom branding, AI tools, and priority support.</p>
                   </div>
-                  <Link href="/pricing" style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, background: 'var(--green)', color: '#fff', textDecoration: 'none', borderRadius: 'var(--r)', padding: '10px 20px', whiteSpace: 'nowrap' }}>Upgrade Now</Link>
+                  <Link href="/pricing" style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, background: 'var(--green-dark)', color: '#fff', textDecoration: 'none', borderRadius: 'var(--r)', padding: '10px 20px', whiteSpace: 'nowrap' }}>Upgrade Now</Link>
                 </div>
               )}
 
@@ -775,7 +775,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 </div>
               </div>
               {currentPlan !== 'pro' && (
-                <Link href="/pricing" style={{ display: 'block', marginTop: 14, textAlign: 'center', fontSize: 13, fontWeight: 600, color: '#fff', background: 'var(--green)', borderRadius: 8, padding: '9px 0', textDecoration: 'none' }}>Upgrade Plan</Link>
+                <Link href="/pricing" style={{ display: 'block', marginTop: 14, textAlign: 'center', fontSize: 13, fontWeight: 600, color: '#fff', background: 'var(--green-dark)', borderRadius: 8, padding: '9px 0', textDecoration: 'none' }}>Upgrade Plan</Link>
               )}
             </div>
           </div>

@@ -43,7 +43,7 @@ export default function FlagsClient({ flags: initial }: { flags: Flag[] }) {
               aria-pressed={f.enabled}
               style={{ width: 46, height: 26, borderRadius: 999, border: 'none', cursor: 'pointer', background: f.enabled ? 'var(--green)' : 'var(--b3)', position: 'relative', flexShrink: 0 }}
             >
-              <span style={{ position: 'absolute', top: 3, left: f.enabled ? 23 : 3, width: 20, height: 20, borderRadius: 999, background: '#fff', transition: 'left .15s' }} />
+              <span style={{ position: 'absolute', top: 3, left: f.enabled ? 23 : 3, width: 20, height: 20, borderRadius: 999, background: 'var(--s1)', transition: 'left .15s' }} />
             </button>
             <div style={{ flex: 1, minWidth: 180 }}>
               <code style={{ fontSize: 13, fontWeight: 700 }}>{f.key}</code>

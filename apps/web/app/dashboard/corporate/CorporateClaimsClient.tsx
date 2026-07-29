@@ -85,7 +85,7 @@ export default function CorporateClaimsClient({ claims, currency }: { claims: Cl
                 {r.status === 'pending' && (
                   <>
                     <button type="button" disabled={busy === r.id} onClick={() => act(r.id, 'approved')}
-                      style={{ padding: '8px 14px', borderRadius: 9, border: 'none', background: 'var(--green)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: busy === r.id ? 'not-allowed' : 'pointer', opacity: busy === r.id ? 0.6 : 1 }}>
+                      style={{ padding: '8px 14px', borderRadius: 9, border: 'none', background: 'var(--green-dark)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: busy === r.id ? 'not-allowed' : 'pointer', opacity: busy === r.id ? 0.6 : 1 }}>
                       Approve
                     </button>
                     <button type="button" disabled={busy === r.id} onClick={() => act(r.id, 'declined')}
