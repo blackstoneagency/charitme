@@ -17,6 +17,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 import { resolveBase } from './lib/audit-base.mjs';
+import { chromiumLaunchOptions } from './lib/audit-browser.mjs';
 
 // Defaults to 3100, unlike its siblings — kept, since callers rely on it.
 const BASE = resolveBase(process.argv, 'http://127.0.0.1:3100');
@@ -67,7 +68,7 @@ const VIEWPORTS = [
 ];
 const THEMES = ['light', 'dark'];
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+const browser = await chromium.launch(chromiumLaunchOptions());
 let findings = 0;
 const notes = new Set();
 
