@@ -11,6 +11,53 @@ external release constraints after the latest production deployment.
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project, so database release policy correctly blocks production migration application until the same commit is verified on a real CharitMe staging project. | Supabase project inventory, 2026-07-28 | **Owner** — provision/link CharitMe staging |
 | 3 | **Vercel has exhausted the free-project deployment quota.** Both the Git integration and an exact-master CLI deploy return `api-deployments-free-per-day`; the security release is merged but cannot become production until the quota resets. | Vercel CLI and PR #153 deployment check, 2026-07-28 | **External reset** — retry exact `master` after the 24-hour window |
 
+## 📌 THE WORKING QUEUE — one backlog for a 13,800-line file (Claude, 2026-07-29)
+
+This file has **154 `##` sections and 22 open checkboxes** scattered across it, so
+"read todo.md and keep going" had no single place to read. This is that place.
+Every item below is classified by **who can actually clear it** — the distinction
+that has mattered most this session, because three separate "blockers" turned out
+to be things an agent could do all along, and several "agent tasks" turned out to
+need the owner.
+
+### 🔴 OWNER — cannot be cleared by any agent (7)
+
+| # | Item | Why it is owner-only |
+|---|---|---|
+| O1 | Apply **6 pending migrations** (compat, receipts, donor-message anonymity, role/team boundaries, privileged DB boundaries, **peer-fundraiser attribution** — the last one written this session) | DDL; PostgREST cannot run it, and release policy wants a staging run first |
+| O2 | Provision a **CharitMe staging Supabase project** | Blocks O1's staging step |
+| O3 | **Stripe test keys** → live charge→transfer→payout→reconcile, refund/dispute via test clocks | No charge should be placed against the live account |
+| O4 | **GitHub Actions billing** | `runner_id: 0` — no machine is assigned |
+| O5 | **Vercel deploy quota** (or batch pushes) | `api-deployments-free-per-day` |
+| O6 | Run **`06_extended_features.sql`** with `charitme.allow_demo_seed` set | Fail-closed by design; writes to a live DB with 1,133 real profiles |
+| O7 | **Donor-guarantee decision** — will CharitMe underwrite fraud losses? | The ToS currently disclaims it; this is a financial commitment, not content |
+
+### 🟣 CODEX lane — theme/contrast (1, but it is the biggest single item)
+
+| C1 | **355 WCAG AA contrast failures** (line ~285). Root causes already located and handed over: 271 hardcoded literals across admin (`PayoutsClient`/`DonationsClient` hold 75), the `#94a3b8`/`#8c9ab5` muted-text pair, and the green/orange/red status-badge palette. The theme-pinning shortcut is **disproved** — admin fails AA in *both* themes. |
+
+### 🟢 CLAUDE lane — actionable now, no gate (4)
+
+| A1 | **Peer-to-peer steps 2–3**: thread `peer_fundraiser_id` through `DonateButton` → `/api/donations` → Stripe metadata, then the shareable `/campaigns/[slug]/team/[peerSlug]` page. **Gated on O1** applying the migration — building the page first ships a progress bar that cannot move. |
+| A2 | **Creator-economy module** (Patreon/Ko-fi/Buy Me a Coffee = 0/10). Tables exist, zero readers. Largest build; **no DDL needed**. |
+| A3 | **Proximity discovery** — needs lat/long on campaigns, so it opens with a migration → effectively O1-shaped. |
+| A4 | **`coach_sessions` consumer decision** — 500 rows, no reader. Do NOT add a writer alone; that satisfies the audit while producing analytics nothing consumes. |
+
+### ⚪ Verified-clean — do NOT re-investigate
+
+Recorded because each cost real time to establish: `donor_messages` anon reads
+(public donor wall, `visibility` is a dead column) · IDOR across all 42
+service-role routes · Stripe webhook event coverage · fetch/route method
+mismatches (0 of 276) · internal links (0 broken) · **all 97 signed-in routes
+render** · images 500/500 unique · mobile 0 overflow · public axe 0 violations.
+
+### The honest bottom line on "100% production ready"
+
+**7 of the 12 open items are owner-gated, and they are the ones that decide it.**
+No amount of agent work clears Stripe test keys, a staging project, Actions
+billing, or a schema migration. A2 is the only large item an agent can finish
+end-to-end today.
+
 ### ❌ REMOVED — two blockers that were false, and what they were costing
 
 **"Sandbox egress is firewalled — `*.supabase.co`, `images.unsplash.com` and
