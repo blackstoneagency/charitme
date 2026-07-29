@@ -95,7 +95,7 @@ export default function HelpPage() {
             type="search"
             aria-label="Search help articles"
             placeholder="Search help articles…"
-            aria-label="Search help articles" value={search}
+            value={search}
             onChange={e => setSearch(e.target.value)}
             style={{
               width: '100%', paddingLeft: 44, paddingRight: 16, height: 48,
