@@ -31,7 +31,7 @@ from (
 where rd.stripe_subscription_id = source.subscription_id
   and rd.anonymous is distinct from source.anonymous;
 
-create temporary table recurring_renewal_repairs on commit drop as
+create temporary table recurring_renewal_repairs as
 select
   cp.id as campaign_payment_id,
   cp.donation_id,

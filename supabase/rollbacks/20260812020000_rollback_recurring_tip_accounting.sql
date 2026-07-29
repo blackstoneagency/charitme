@@ -1,4 +1,4 @@
-create temporary table recurring_renewal_rollbacks on commit drop as
+create temporary table recurring_renewal_rollbacks as
 select
   cp.id as campaign_payment_id,
   cp.donation_id,

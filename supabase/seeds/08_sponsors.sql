@@ -1,10 +1,9 @@
 -- =============================================================================
 -- CharitMe seed · 08 · Homepage sponsors
 --
--- `public.sponsors` is the only user-facing table the 00–07 suite never seeded,
--- and it is also missing from 99_verify_counts.sql — so the gap was invisible to
--- the project's own coverage check. Production holds 50 rows against a target of
--- 120; measured 2026-07-29.
+-- `public.sponsors` is the user-facing sponsor table that the 00–07 suite does
+-- not cover. This seed runs before 99_verify_counts.sql so local resets certify
+-- the same >=100-row coverage contract as every other feature table.
 --
 -- It is NOT the same table as `sponsorship_opportunities` / `sponsorship_requests`
 -- (seeded by 02). Those are the marketplace where organizers offer sponsorships.

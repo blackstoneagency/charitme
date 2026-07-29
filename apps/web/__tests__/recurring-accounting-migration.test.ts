@@ -47,6 +47,13 @@ describe('recurring tip accounting migration', () => {
     expect(migration).toContain('rd.anonymous is distinct from source.anonymous');
   });
 
+  it('keeps repair tables available across auto-committed statements', () => {
+    expect(migration).toContain('create temporary table recurring_renewal_repairs as');
+    expect(rollback).toContain('create temporary table recurring_renewal_rollbacks as');
+    expect(migration).not.toContain('on commit drop');
+    expect(rollback).not.toContain('on commit drop');
+  });
+
   it('ships an operational rollback for every repaired financial surface', () => {
     expect(rollback).toContain('recurring_renewal_rollbacks');
     expect(rollback).toContain('cp.gross_amount + cp.tip_amount as invoice_paid');
