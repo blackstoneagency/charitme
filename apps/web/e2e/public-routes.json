@@ -10,7 +10,7 @@
     "sweeps were auditing the login page under two other names and passing.",
     "",
     "Before adding a route to `public`, load it signed-out and confirm it renders",
-    "itself. If it redirects, it belongs in `authGated` instead — the sweeps assert",
+    "itself. If it redirects, it belongs in `authGated` instead \u2014 the sweeps assert",
     "the landed path matches the requested one and will fail loudly either way."
   ],
   "public": [
@@ -60,13 +60,13 @@
     "_comment": "Verified to redirect signed-out, or to require a session/token. `routes` are gated pages outside /dashboard and /admin. `consoles` are renderable static pages under those roots. `redirects` are compatibility aliases with an exact expected destination. `dynamicSamples` bind each parameterized signed-in template to one populated fixture URL.",
     "routes": [
       "/achievements",
-      "/privacy-center",
       "/create",
-      "/profile",
       "/donor",
       "/events/manage",
       "/impact/manage",
       "/matching/manage",
+      "/privacy-center",
+      "/profile",
       "/sponsor/manage",
       "/volunteer/hours"
     ],

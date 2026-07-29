@@ -28,10 +28,11 @@
  * eye (`linear-gradient(…, var(--s2), var(--s3))` is the fix that keeps light
  * rendering identical).
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 import { resolveBase } from './lib/audit-base.mjs';
+import { resolveChromium } from './lib/audit-browser.mjs';
 
 const argv = process.argv;
 // Defaults to 3000 (a plain `next start`). The responsive audit defaults to 3100,
@@ -250,21 +251,7 @@ function collectContrast() {
   return out;
 }
 
-const browserExecutable = [
-  process.env.PLAYWRIGHT_CHROMIUM_PATH,
-  chromium.executablePath(),
-  process.env.PROGRAMFILES
-    ? `${process.env.PROGRAMFILES}\\Google\\Chrome\\Application\\chrome.exe`
-    : null,
-  process.env['PROGRAMFILES(X86)']
-    ? `${process.env['PROGRAMFILES(X86)']}\\Google\\Chrome\\Application\\chrome.exe`
-    : null,
-  process.env.LOCALAPPDATA
-    ? `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`
-    : null,
-  '/usr/bin/google-chrome',
-  '/usr/bin/chromium',
-].find((candidate) => candidate && existsSync(candidate));
+const browserExecutable = resolveChromium();
 
 const browser = await chromium.launch({
   ...(browserExecutable ? { executablePath: browserExecutable } : {}),
@@ -354,6 +341,19 @@ for (const theme of THEMES) {
       // Measure the page we asked for, or report it — never something we were sent
       // to. Playwright follows redirects, so a route that 307s to /login otherwise
       // gets measured under this route's name and passes on the login page's colours.
+      //
+      // A 404 slips past the redirect check below, because the not-found page is
+      // served AT the requested path. It then gets contrast-audited and counted as
+      // a swept route, so coverage goes up while nothing real was measured.
+      // `/campaigns/security-header-fixture/embed` is in the public list and 404s
+      // on any database without that fixture row (including production) — the e2e
+      // specs already probe and skip it via e2e/data-routes.ts; this sweep did not.
+      const status = response?.status() ?? 0;
+      if (status !== 200) {
+        failures++;
+        if (!AS_JSON) console.log(`\u2717 ${theme} ${path} — HTTP ${status}; not measured`);
+        continue;
+      }
       const landed = new URL(page.url()).pathname.replace(/\/$/, '') || '/';
       const asked = path.replace(/\/$/, '') || '/';
       if (landed !== asked) {

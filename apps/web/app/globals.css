@@ -3437,7 +3437,11 @@ a.task-row:hover .task-row-dot { border-color: #6c35ff; }
   .hiw-cta-band h2 { font-size: 26px; }
   .hiw-cta-band-actions { flex-direction: column; align-items: stretch; }
   .hiw-cta-band .pub-btn { width: 100%; }
-  .pub-hero-grid, .stories-hero-grid, .story-bottom, .pricing-grid, .pricing-promises, .ai-tools, .ai-steps > div, .story-grid, .pricing-faq > div, .simple-grid, .blog-grid, .community-impact { grid-template-columns: 1fr; }
+  /* minmax(0, 1fr), not 1fr: a bare `1fr` track is `minmax(auto, 1fr)`, and the
+     `auto` minimum lets the track grow to its widest child instead of shrinking
+     to the container. On /ai-fundraising that pushed the hero track to 390px
+     inside a 280px container — a 410px page at a 320px viewport. */
+  .pub-hero-grid, .stories-hero-grid, .story-bottom, .pricing-grid, .pricing-promises, .ai-tools, .ai-steps > div, .story-grid, .pricing-faq > div, .simple-grid, .blog-grid, .community-impact { grid-template-columns: minmax(0, 1fr); }
   .pub-actions, .story-filters { display: grid; grid-template-columns: 1fr; }
   .pub-btn, .billing-toggle { width: 100%; min-width: 0; }
   .ai-console { grid-template-columns: 1fr; padding: 14px; }
