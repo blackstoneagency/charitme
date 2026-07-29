@@ -10,10 +10,10 @@ external release constraints after the latest production deployment.
 | 1 | **GitHub Actions assigns no runner.** Every CI job fails in ~2s with `runner_id: 0`, `runner_name: ""`, and **no logs at all** (`get_job_logs` → 404). Repo-wide, including pushes straight to `master`. | 30 of 30 most recent runs | **Owner** — Actions minutes / billing |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
 
-**Vercel production is operational.** Deployment
-`dpl_9dNeqEZYC5MQ3occZXEsmHM2NRmP` is Ready, targets production, and is aliased
-to both `www.charitme.com` and `charitme.com`. The former daily deployment quota
-blocker is cleared.
+**Vercel production is operational.** The current production deployment is
+Ready and aliased to both `www.charitme.com` and `charitme.com`; exact deployment
+evidence is recorded in the release sections below. The former daily deployment
+quota blocker is cleared.
 
 ### ❌ REMOVED — two blockers that were false, and what they were costing
 
@@ -128,6 +128,10 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 
 ## SUPABASE RELEASE LEDGER - audited and rehearsed, staging pending (Codex, 2026-07-29)
 
+- [x] Merged PR #162 as `db07b1d2622c7a92b4830651d256ab8d99e14a49`.
+  Vercel deployment `dpl_6SBYEUzPGtnxaESR5Qx8tKyvZZPr` reached Ready and both
+  production aliases; live home, health, robots, and sitemap checks returned
+  HTTP 200, with all 1,259 sitemap URLs intact.
 - [x] Compared every timestamped SQL migration with the linked production
   ledger: **105 local, 87 remote, 18 pending, 0 remote-only**.
   Pending versions: `20260524000000`, `20260528114000`, `20260607900000`,
@@ -151,6 +155,9 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   contract markers, including organizations, volunteer shifts/hours, demo
   labels, inferable tax indexes, guest receipt access, privileged-profile and
   anonymity triggers, private creator tips, and team boundaries.
+- [x] Rechecked the linked production ledger after the application deploy:
+  it remains **87/105**, proving Vercel did not apply or mark database migrations
+  outside the staging-gated release workflow.
 - [ ] Provision a real CharitMe staging project or enable a Supabase Preview
   Branch. Both paths were attempted: Preview Branches require Pro and a third
   free project exceeds the account's two-project limit. Once capacity exists,
