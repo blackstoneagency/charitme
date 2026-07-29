@@ -80,9 +80,19 @@ for (const f of findings) {
 
 if (findings.length) {
   console.log(
-    '\nFix by giving the rule a dark variant, or by pinning the text to the light\n' +
-      'palette so the rule stays consistently light. Do NOT silence this by\n' +
-      'switching the text to --t3: that trades invisible for merely illegible.',
+    '\nFIX: replace the hardcoded background with a SURFACE TOKEN — `var(--s1)`.\n' +
+      '\n' +
+      'Change the surface, not the text. The token palette is already sound: every\n' +
+      'text token passes AA against every surface token in BOTH themes (measured,\n' +
+      'worst case --t4 on --s3 = 4.51 light / 4.56 dark). These rules fail only\n' +
+      'because they opt out of it with a literal.\n' +
+      '\n' +
+      '  --t1 on var(--s1)  = 14.57:1 in dark   ✓\n' +
+      '  --t1 on #fff       =  1.23:1 in dark   ✗  ← what they do now\n' +
+      '  --t3 on #fff       =  3.19:1 in dark   ✗  ← swapping the TEXT does not fix it\n' +
+      '\n' +
+      'That last line is the trap: muting the text to --t3 makes the number look\n' +
+      'less alarming while the text stays unreadable. Only the surface change works.',
   );
 }
 
