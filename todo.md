@@ -500,6 +500,64 @@ local build. Honest limit: `ae5448c` touched only server data code and a test, s
 the CSS hash cannot by itself distinguish it from its parent — the pricing-copy
 check is what pins the deploy to recent work.
 
+## 🔴 SEEDED, ADVERTISED, NEVER READ — 4 tables left (Claude, 2026-07-29)
+
+`npm run audit:orphan-tables` crosses live row counts against the app's actual
+`.from()` call sites, because **row count alone cannot tell "wired to Supabase"
+from "has data nothing reads"** — a table with 500 rows and no reader satisfies
+the ≥100-seed-records criterion while failing the wiring one.
+
+**Result: 155 declared tables, 121 with a reader, 4 orphaned with ≥100 rows.**
+
+| table | rows | claimed by `feature-catalog.ts` as |
+|---|---|---|
+| `coach_sessions` | 500 | — |
+| `creator_profiles` | 500 | Creator Platform, Membership, Digital Products |
+| `trust_scores` | 500 | Trust & Safety |
+| `grant_documents` | 240 | — |
+
+### ✅ FIXED — `peer_fundraisers` (240 rows, 120 campaigns) → shipped
+Peer-to-peer/team fundraising had a **complete** schema — FKs to `campaigns` and
+`profiles`, RLS, a `parent_campaign_id` index — 240 seeded rows, and a
+`feature-catalog.ts` entry marked **Production Ready** advertising "peer-to-peer,
+team fundraising". **Zero `.from('peer_fundraisers')` anywhere in the app.**
+
+The catalog file already stated the standard it was failing, in a comment saying
+why `auctions` is deliberately *not* listed: *"there is no auction API, lib or UI
+— only tables. A 'Production Ready' module must not advertise a capability this
+same file says is unbuilt."* Peer-to-peer was in that exact state with the claim
+left in.
+
+Campaign pages now render a **Fundraising team** section (`TeamFundraisers.tsx`),
+ranked by amount raised. Verified live in both directions: real names and progress
+on a campaign with a team, section absent on one without.
+
+Two existing rules carried over rather than reinvented — supporter names/avatars
+gated on `show_public_profile` (the same account-wide setting the donor wall
+honours; a private supporter still counts, shown by page title alone), and the
+read checks `error`, since supabase-js resolves rather than throws and a failed
+query would otherwise have looked like a campaign with no team. `paused` rows are
+excluded: that status is a supporter taking their own page down.
+
+**`__tests__/peer-fundraisers-wired.test.ts` fails in both directions** — dropping
+the reader while keeping the catalog claim, and vice versa. Every assertion was
+verified red by breaking it, which is how the privacy assertion caught itself
+being too weak: a single `/isPublic\s*\?/` still passed with the *name* ungated,
+because the avatar line matched it. Both fields are asserted separately now.
+
+### Deciding the remaining 4 — the catalog's own rule applies
+For each: either build the reader, or drop the claim. `coach_sessions` and
+`grant_documents` are unclaimed, so they are dead weight rather than a false
+promise. `creator_profiles` and `trust_scores` are claimed by four
+`Production Ready` modules and are the higher-priority pair.
+
+### ⚠️ Shared working tree — commit by path, never `git add -A`
+Mid-task, `app/create/page.tsx` and `globals.css` appeared modified in my tree with
+two `*.tmp.mjs` scratch files: another agent's in-flight contrast fix, in Codex's
+declared theme lane. `git add -A` would have committed someone's half-finished work
+under my message. **Stage the explicit paths you touched.** To rebase over it:
+`git stash push -m … <their paths>` → rebase → `git stash pop`.
+
 ## 🔴 BLOCKED ON THE OWNER — 3 actions unblock most of what is left (Claude, 2026-07-26)
 
 Everything below this line that is still open is waiting on one of these. None can be
