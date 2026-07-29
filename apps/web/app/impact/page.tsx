@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { formatMoneyShort } from '@shared/currencies';
 import { Badge, EmptyState, ProgressBar } from '../../components/ui';
+import JsonLd from '../../components/JsonLd';
 import { listPublishedImpactSummaries } from '../../lib/impact';
 import { safeJsonLd } from '../../lib/json-ld';
 import { CHARITME_ORIGIN } from '../../lib/public-routes';
@@ -52,7 +53,7 @@ export default async function ImpactIndexPage() {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(itemListJsonLd) }} />
+      <JsonLd json={safeJsonLd(itemListJsonLd)} />
       <div className="container" style={{ padding: '40px 24px', maxWidth: 1180 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 28 }}>
           <div style={{ maxWidth: 720 }}>

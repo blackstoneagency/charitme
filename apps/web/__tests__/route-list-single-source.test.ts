@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { INDEXABLE_PUBLIC_ROUTES } from '../lib/public-routes';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // There must be exactly ONE list of public routes.
@@ -153,6 +154,27 @@ describe('public route list has a single source of truth', () => {
       publicAuthedOverlap,
       `Routes claimed as both public and login-only: ${publicAuthedOverlap.join(', ')}`,
     ).toEqual([]);
+  });
+
+  it('keeps every searchable static page in both the public sweep and sitemap catalog', () => {
+    const data = JSON.parse(
+      readFileSync(path.join(WEB_ROOT, 'e2e', 'public-routes.json'), 'utf8'),
+    ) as { public: string[] };
+    const nonIndexedWorkflows = new Set([
+      '/beneficiary/accept',
+      '/campaigns/security-header-fixture/embed',
+      '/create/choose-path',
+      '/features/fundraising-core',
+      '/forgot-password',
+      '/login',
+      '/offline',
+    ]);
+    const searchablePublicRoutes = data.public
+      .filter((route) => !nonIndexedWorkflows.has(route))
+      .sort();
+    const sitemapRoutes = INDEXABLE_PUBLIC_ROUTES.map((route) => route.path).sort();
+
+    expect(searchablePublicRoutes).toEqual(sitemapRoutes);
   });
 });
 

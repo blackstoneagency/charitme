@@ -146,6 +146,28 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 - [x] Verify typecheck, zero-warning lint, 1,878 tests, a 151-page production
   build without the incorrect workspace-root warning, and all six persona checks.
 
+## PUBLIC SEARCH AND AEO CONTRACT - verified locally, release pending (Codex, 2026-07-29)
+
+- [x] Verified the production sitemap returns HTTP 200 with 1,259 unique URLs,
+  including 350 campaigns, 180 events, 180 grants, 120 matching programs, 180
+  volunteer opportunities, 144 sponsorships, and 57 impact reports.
+- [x] Added route-specific title, description, canonical, and Open Graph
+  metadata to `/help` and `/pricing`; enriched `/ai-campaign` with
+  `WebApplication` structured data and a social-sharing contract.
+- [x] Added visible-answer-aligned `FAQPage` structured data to the help center
+  and routed every changed schema through the XSS-safe JSON-LD serializer.
+- [x] Replaced the impact index's raw JSON-LD script with the nonce-aware shared
+  component so its Supabase-backed `ItemList` complies with the CSP.
+- [x] Added a route-inventory guard that prevents searchable public pages from
+  drifting out of the sitemap and a browser gate for title, description,
+  canonical URL, indexability, JSON-LD nonces, and CSP console violations.
+- [x] Verified typecheck, zero-warning lint, 1,879 tests across 181 files, a
+  151-page production build, all six role personas, and five targeted Chromium
+  SEO/accessibility/CSP tests.
+- [ ] Merge through a pull request and verify the exact commit on the production
+  deployment plus live `/help`, `/pricing`, `/ai-campaign`, `/impact`,
+  `/sitemap.xml`, and `/robots.txt`.
+
 ## SIGNED-IN PAGE CERTIFICATION - audit infrastructure complete, contrast remediation active (Codex, 2026-07-28)
 
 - [x] Reconciled the route manifest with the app tree: 10 standalone gated
