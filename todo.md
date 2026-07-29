@@ -509,7 +509,8 @@ check is what pins the deploy to recent work.
 from "has data nothing reads"** — a table with 500 rows and no reader satisfies
 the ≥100-seed-records criterion while failing the wiring one.
 
-**Result: 155 declared tables, 121 with a reader, 4 orphaned with ≥100 rows.**
+**Result: 155 declared tables, 122 with a reader, 3 orphaned with ≥100 rows** (was 5 at the
+start of this sweep — `peer_fundraisers` and `grant_documents` shipped).
 
 | table | rows | claimed by `feature-catalog.ts` as |
 |---|---|---|
@@ -590,9 +591,16 @@ promise:
   `message_count`, **not a transcript**, so it cannot restore a conversation; wiring
   it buys usage metrics, not the continuity the UX gap actually needs. Fixing that
   properly means a schema change, not a reader.
-- **`grant_documents`** (240 rows) — attachments on grant applications, with
-  `/grants/[slug]` and `/dashboard/grants` as the plausible surfaces. The most
-  bounded of what is left.
+- ~~**`grant_documents`** (240 rows)~~ — **✅ SHIPPED.** 240 documents across 240
+  applications, and an applicant could not see the files attached to their own
+  application. `/api/grants/applications` now returns them and `/dashboard/grants`
+  renders each as a named chip. The scoping is the property that matters:
+  `.in('application_id', ids)` where `ids` comes from the query already filtered by
+  `applicant_user_id`, so it cannot reach another applicant's files — and the test
+  asserts the ids are derived *after* that owner-scoped query, not merely that both
+  strings appear. `documentsAvailable` distinguishes "no attachments" from "could
+  not load", because a null `docs` would otherwise render as "your files are gone".
+  Signed-in render still unverifiable without a QA login (owner item #3).
 - **`creator_profiles`** (500 rows, `handle`/`display_name`/`brand_color`) — needs a
   whole creator-page surface (`/creator/[handle]`) that does not exist. Largest of
   the three, and the one with real parity value.
