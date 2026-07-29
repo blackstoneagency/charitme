@@ -1499,6 +1499,63 @@ a rule and watching it appear.
 **Not touched by me** — this is the theme lane. Re-run
 `node scripts/audit-signed-in.mjs` after each change; it is the measurement.
 
+## 🔴 → CODEX: /admin dark-mode root cause FOUND (Claude, 2026-07-28)
+
+Earlier I named 15 globals.css rules as the source and was wrong — fixing them
+moved the total not at all. This time the failing elements were inspected on
+**rendered admin pages** in a browser, with the path asserted first.
+
+*(That assertion mattered: my first attempt reported a clean 0 hits because the
+stub cookie was rejected and I was measuring `/login`. The stub validates the
+token — the super-admin persona needs exactly `stub-access-token`, not any
+placeholder. Check `location.pathname` before believing any signed-in result.)*
+
+### Class A — inline white containers in admin pages
+
+```tsx
+app/admin/finance/page.tsx:91   <div style={{ background: '#fff', … }}>
+app/admin/finance/page.tsx:100  <div style={{ background: '#fff', … }}>
+```
+
+Measured: `rgb(226,232,248)` on `rgb(255,255,255)` = **1.23:1** on "Recent
+Transactions", "$50.00", "$250.00". The text token comes from the shell; the
+white surface is inline on the page.
+
+**Why the guard misses it:** the "admin stays consistently light" test only flags
+a file containing BOTH a `#fff` container AND `color: var(--t…)`. Here the
+container is in `finance/page.tsx` and the text token is inherited from the
+shell, so no single file matches both halves.
+
+### Class B — hardcoded dark ink on the dark admin card
+
+Measured on `/admin/donations` and `/admin/payouts`:
+`rgb(38,51,92)` = `#26335c` at **1.45:1**, and `rgb(15,15,48)` = `#0f0f30` at
+**1.05:1**, both inside `SECTION.kf-card`, which is dark in dark mode.
+
+**`theme-tokens.test.ts:81` matches those exact hexes** —
+`0f0f30|26335c|…` — but **`admin/` is excluded from that scan** at line 31:
+
+```js
+'admin',  // intentionally light-only internal tooling (documented decision)
+```
+
+**That premise is false, and the file's own comment says so** (lines ~144-160):
+*"Admin is excluded from the guard above as 'intentionally light-only'. That is
+only safe while it is CONSISTENTLY light: nothing scopes admin out of the
+theme…"*. It is not consistently light — `kf-card` renders dark — so the
+exclusion hides exactly the bug the regex was written to catch.
+
+**164 occurrences** of guard-matched dark-text literals sit in `app/admin`.
+
+### The fix, and who does what
+
+- **Codex (theme):** the 164 literals → text tokens, and the inline `#fff`
+  containers → `var(--s1)`.
+- **Claude (guards):** once those land, **delete `'admin'` from `EXCLUDED_DIRS`**
+  so the existing regex covers it. Not removed yet — doing so today fails the
+  suite on 164 pre-existing hits, and this file records what happens when a guard
+  ships with a baseline.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).
