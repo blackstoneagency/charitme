@@ -1582,6 +1582,50 @@ per-route figures are `audit-signed-in.mjs`'s.
   suite on 164 pre-existing hits, and this file records what happens when a guard
   ships with a baseline.
 
+## ⚡ PERF — the signed-in surface had never been measured; roles lookup was uncached (Claude, 2026-07-28)
+
+"Every page loads FAST — 37/37 within budget" covers **public** pages. The
+dashboard and admin do the heavy database work and had no measurement at all —
+the same blind spot contrast had.
+
+Measured DB round-trips per render across **all 68** gated dashboard/admin routes,
+by counting requests to the stub between marker calls. Server-side queries never
+appear in the browser network tab, so counting there would have reported ~0 and
+looked clean.
+
+**First result, and a correction to my own framing:** `/admin` issued **29
+queries**. That is not N+1 — 27 of the 29 are *distinct*. Normalising ids before
+counting is what showed it; without that step "29 queries on one page" would have
+been filed as a waterfall it isn't.
+
+**The real finding: `getUserRoles` was not memoized.** `isAdmin()` calls it, and
+`isAdmin` runs from `app/admin/layout.tsx:10`, `loadShellSession()` and
+`requireAdmin()` in the same render — 39 call sites overall. `getUser()` and
+`loadShellSession()` are both `cache()`-wrapped; this one was missed.
+
+Wrapped it the same way. Measured before → after:
+
+| route | before | after |
+|---|---|---|
+| `/admin/countries` | 11 queries, `profiles`×8 | **4**, `profiles`×2, 0 dupes |
+| `/admin/setup` | 15, `profiles`×9 | **9**, `profiles`×3, 0 dupes |
+| `/admin` | 29, `profiles`×7 | **25**, `profiles`×5, 0 dupes |
+| `/dashboard` | 21 | **23 — unchanged, still 4 duplicates** |
+
+⚠️ **`/dashboard` did not improve**, and still shows 4 redundant identical
+queries. Its duplication comes from somewhere other than `getUserRoles`, and is
+**not diagnosed**. Do not read this row as a win. (23 vs 21 is within run-to-run
+noise from prefetch; it is not a regression claim either way.)
+
+Timings, same run: median **99 ms**, worst **251 ms** (`/admin/audit-log`) —
+against an instant-responding stub, so these bound render overhead only and say
+nothing about real database latency. Query count is the transferable number.
+
+**Note on the guard:** `cache()` is unavailable in vitest's React build and
+`lib/roles` is imported directly by route tests, so it degrades to identity
+there — memoization is a request-scope optimisation, and losing it in a unit test
+changes only whether the query is deduped.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).

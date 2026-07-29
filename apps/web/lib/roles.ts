@@ -1,3 +1,11 @@
+import { cache } from 'react';
+
+// React's cache() is unavailable in the unit-test environment (vitest resolves a
+// React build without it), and lib/roles is imported directly by route tests.
+// Degrade to identity there: memoization is a request-scope optimisation, so
+// losing it in a test changes nothing except that the query is not deduped.
+const memoize: <A extends unknown[], R>(fn: (...a: A) => R) => (...a: A) => R =
+  typeof cache === 'function' ? cache : (fn) => fn;
 import { supabaseAdmin } from './supabase';
 import { ASSIGNABLE_ROLES, parseRoles, type UserRole } from './roles-shared';
 
@@ -8,10 +16,16 @@ export type { UserRole };
 
 
 
-export async function getUserRoles(userId: string): Promise<UserRole[]> {
+// Per-request memoized, for the same reason getUser() is (lib/auth.ts): the
+// admin layout, loadShellSession() and requireAdmin() each resolve roles during
+// one render, and every call was its own `profiles` round-trip. Measured against
+// the stub, /admin/setup issued the identical `profiles?select=roles&id=eq.<X>`
+// query twice per page load, and admin pages read `profiles` up to 9 times.
+// cache() collapses them to one; it is a no-op outside a request scope.
+export const getUserRoles = memoize(async (userId: string): Promise<UserRole[]> => {
   const { data } = await supabaseAdmin.from('profiles').select('roles').eq('id', userId).single();
   return parseRoles(data?.roles);
-}
+});
 
 // Emails that are always treated as SUPER admins (full platform control),
 // regardless of DB roles or env vars. Super admin implies admin.
