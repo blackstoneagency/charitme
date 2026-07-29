@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { isPlaceholderUrl, realUrlOrNull } from '../lib/placeholder-url';
 
 const WEB_ROOT = join(__dirname, '..');
 
@@ -73,16 +74,12 @@ describe('trust_scores stays out of the read path while it is stale', () => {
 // events and grants pages. Any future grant-document UI must route through it.
 // ─────────────────────────────────────────────────────────────────────────────
 describe('placeholder file URLs have a detector ready for use', () => {
-  it('the helper recognises the domain the seed data actually uses', async () => {
-    const { isPlaceholderUrl, realUrlOrNull } = await import('../lib/placeholder-url');
+  it('the helper recognises the domain the seed data actually uses', () => {
     expect(isPlaceholderUrl('https://example.org/docs/1.pdf')).toBe(true);
     expect(realUrlOrNull('https://example.org/docs/1.pdf')).toBeNull();
   });
 
   it('and does not reject a genuine document URL', () => {
-    // Non-vacuity: a detector that rejects everything is useless.
-    return import('../lib/placeholder-url').then(({ realUrlOrNull }) => {
-      expect(realUrlOrNull('https://files.charitme.com/docs/1.pdf')).toBe('https://files.charitme.com/docs/1.pdf');
-    });
+    expect(realUrlOrNull('https://files.charitme.com/docs/1.pdf')).toBe('https://files.charitme.com/docs/1.pdf');
   });
 });
