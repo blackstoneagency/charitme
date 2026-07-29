@@ -376,6 +376,35 @@ directions, not checkboxes, or this list can never close.
 > production-readiness program. Section A is the actionable engineering backlog.
 > Section B (further down) is the competitive product vision it serves.
 
+## ✅ CLOSED — the catalog under-claimed a shipped feature (Claude, 2026-07-29)
+
+Every parity guard in `feature-catalog.test.ts` catches a feature claiming **more**
+than ships. **Nothing caught one claiming less** — which is exactly how peer-to-peer
+stayed `planned: true` for three competitors after it landed the same day.
+
+**Measured effect of correcting it:** Donorbox **9/10 → 10/10**, Classy and
+Mightycause likewise reach full parity, total built **74 → 75** of 105 mapped, and
+**8 of 11 competitors** are now at full parity.
+
+The stale block that forced peer-to-peer to stay planned is **inverted, not deleted**:
+the entries must not be planned **and** the backing code must exist — the reader's
+`.from('peer_fundraisers')`, `TeamFundraisers.tsx`, and the create route. Remove
+either half and the test fails, so the honest response becomes restoring the flags
+rather than leaving the parity number wrong. Verified red both ways.
+
+**Remaining 0/10:** Patreon, Ko-fi, Buy Me a Coffee — 30 creator-economy features.
+`creator_profiles` (500 rows) belongs to those modules and is measured as *not worth
+wiring yet*: `bio`, `hero_image_url` and `website_url` are 0/500, so a creator surface
+would be 500 hollow pages. That is the honest reason they stay Planned.
+
+### ⚠️ `audit:signed-in --build` REBUILDS AGAINST THE STUB — re-build before public sweeps
+Found while verifying contrast work. Any public sweep run right after it measures a
+**stub build**, where data-conditional sections do not render: the contrast sample
+halved from ~7,500 text elements to **3,839**. A shrinking denominator makes
+"0 failures" mean *less*, not more. Re-run `npm run build` against the real env first.
+Full-sample re-verification on master: contrast **0 / 7,117 light + 7,539 dark**, axe
+**0 / 82 loads**, mobile **0 / 80 loads**, page images **0 duplicates / 48 routes**.
+
 ## 📋 GOAL SCORECARD — measured 2026-07-29 against current master
 
 Re-run after Codex's PRs #149–#152 merged, so these describe master **now**, not an
@@ -390,17 +419,17 @@ what unblocks them.
 | 4 | ≥100 seed records | 🟡 | every table ≥100 **except `sponsors` = 50** — needs a production write (owner) |
 | 5 | Images unique | ✅ | **500 campaigns / 500 covers / 500 distinct / 0 duplicates** |
 | 6 | Frictionless UX | 🟡 | dead controls disabled, broken links fixed, poster + payout paths repaired. Subjective overall |
-| 7 | Dark/light solved | 🔴 | **PUBLIC pages 0 AA failures** (40 pages × 2 themes). **Signed-in dark mode has 87** — never measured until now. → Codex lane, detailed below |
+| 7 | Dark/light solved | 🟡 | **PUBLIC 0 AA failures** at full sample (7,117 light / 7,539 dark elements). **Signed-in 345 → 182** (Claude, reassigned by owner) |
 | 8 | Mobile responsive | ✅ | **222 renders (37 × 3 viewports × 2 themes), 0 findings**; plus **0 horizontal overflow across 82 loads** at 320/390px |
 | 9 | Fast pages | ✅ | **37/37 within budget** — worst LCP 500ms/4000, TTFB 176ms/1500, **CLS 0 everywhere** |
 | 10 | Roles mapped + distinct | 🟡 | **`/roles` now maps all 6 for every user type**, rendered from `lib/role-capabilities.ts`. **Only 2 of 6 gate anything** — enforcement is still a product decision |
 | 11 | 100% GoFundMe parity | ✅ | **10/10 built**, each pinned to real code by test |
-| 12 | Better than GoFundMe | ✅ | **72 of 105 features built** vs GoFundMe's 10. Gaps are creator-economy (Patreon/Ko-fi) — different direction |
+| 12 | Better than GoFundMe | ✅ | **75 of 105 built** vs GoFundMe's 10; **8 of 11 competitors at full parity** (peer-to-peer shipped → Donorbox/Classy/Mightycause 10/10). Remaining 30 are creator-economy (Patreon/Ko-fi/BMAC) — different direction |
 | 13 | Accessibility passes | ✅ | **0 axe violations** (82 loads, 41 routes × 2 themes) + **0 unlabelled form controls** + **0 tap targets under 24px** (SC 2.5.8), hard-guarded |
 | 14 | Payment methods work | 🔴 | **Cannot verify — no `STRIPE_SECRET_KEY` here, and live keys must not be charged.** `/api/health?details=1` now reports it |
 | 15 | Performance optimized | ✅ | see #9 |
 | 16 | Security resolved | ✅ | **8 Next.js CVEs patched** (15.5.18 → 15.5.22); npm audit critical **1 → 0** |
-| 17 | Tests pass | ✅ | **1866 / 177 files** |
+| 17 | Tests pass | ✅ | **1920 tests** |
 | 18 | Build succeeds | ✅ | green; 150 static pages |
 | 19 | todo.md updated | ✅ | this file, continuously |
 | 20 | Commit per feature | ✅ | ~120 commits, each with its own verification |
