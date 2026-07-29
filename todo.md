@@ -262,6 +262,46 @@ narrow feature work rarely does.
 labels were equivalent in meaning; arguing phrasing would have cost more than the
 collision did.
 
+### ⚠️ 2026-07-29 — "N commits ahead" is NOT evidence a branch has unmerged work
+Integration sweep of every bot branch, per "check on other bots work to make sure
+their code gets pushed to Main". Three branches sat unmerged with **no open PR**:
+
+| branch | commits ahead | **actual content diff vs master** |
+|---|---|---|
+| `codex/health-schema-cache-security` | 0 | — |
+| `claude/charitme-production-ready-015tl4` | **4** | **empty** |
+| `claude/charitme-marketing-os-build-wcu7oh` | 1 | 1 real file (below) |
+
+I read "4 ahead" plus four substantial commit messages (a real donor-facing
+pricing bug: PayPal/Venmo advertised at rates checkout can never charge) and
+merged it as stranded work. **The merge produced a zero-byte diff.** All four had
+already landed via squash-merged **PR #147** — squash rewrites the commits, so the
+source branch stays permanently "ahead" of a master that already contains it. I
+reset the empty merge rather than push it.
+
+**This repo squash-merges, so commit counts are structurally meaningless here:**
+```bash
+git diff --stat master...origin/<branch>    # ← the only question that matters
+git rev-list --count master..origin/<branch>  # ← lies after every squash merge
+```
+Test count is the corroborating tell: 1860/176 before and after the merge. If a
+branch really added a test file, that number moves.
+
+**Genuinely unmerged, deliberately left alone:**
+`claude/charitme-marketing-os-build-wcu7oh` →
+`supabase/backfill/marketing_org_backfill.sql` (89 lines). It was force-pushed
+minutes before I looked, so that lane is live — and the backfill is blocked on
+`20260807000000_organizations_multitenancy`, which is still unapplied. Merging an
+in-flight branch to run a backfill against a schema that does not exist yet would
+have been worse than leaving it.
+
+**Production verified live at `ae5448c`:** health 200, `/pricing` 200 with 0
+occurrences of the removed "Real fee comparison" block, `/admin/ai` 307 for an
+anonymous request (gated, not broken), CSS `30ca23b3fd61bc8b.css` identical to the
+local build. Honest limit: `ae5448c` touched only server data code and a test, so
+the CSS hash cannot by itself distinguish it from its parent — the pricing-copy
+check is what pins the deploy to recent work.
+
 ## 🔴 BLOCKED ON THE OWNER — 3 actions unblock most of what is left (Claude, 2026-07-26)
 
 Everything below this line that is still open is waiting on one of these. None can be
