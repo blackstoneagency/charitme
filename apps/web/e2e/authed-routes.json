@@ -1,0 +1,52 @@
+{
+  "_comment": "Routes that only exist behind a login. Deliberately SEPARATE from public-routes.json: that file is the anonymous surface and is asserted to redirect nothing, this one is asserted to redirect everything when signed out. Keeping them in one file would make it impossible to state either property. Consumed by scripts/audit-authed.mjs.",
+  "groups": {
+    "dashboard": [
+      "/dashboard",
+      "/dashboard/campaigns",
+      "/dashboard/donations",
+      "/dashboard/recurring",
+      "/dashboard/donor",
+      "/dashboard/payouts",
+      "/dashboard/analytics",
+      "/dashboard/messages",
+      "/dashboard/updates",
+      "/dashboard/team",
+      "/dashboard/settings",
+      "/dashboard/tax",
+      "/dashboard/volunteer",
+      "/dashboard/grants",
+      "/dashboard/referrals",
+      "/dashboard/integrations",
+      "/dashboard/ai-coach",
+      "/dashboard/ai-growth-plan",
+      "/dashboard/corporate"
+    ],
+    "create": [
+      "/create/choose-path",
+      "/create"
+    ],
+    "admin": [
+      "/admin",
+      "/admin/users",
+      "/admin/campaigns",
+      "/admin/donations",
+      "/admin/payouts",
+      "/admin/finance",
+      "/admin/support",
+      "/admin/trust-safety",
+      "/admin/content",
+      "/admin/reports",
+      "/admin/settings",
+      "/admin/system",
+      "/admin/countries",
+      "/admin/sponsors",
+      "/admin/grants",
+      "/admin/volunteers",
+      "/admin/marketing",
+      "/admin/audit-log",
+      "/admin/privacy",
+      "/admin/new-customers"
+    ]
+  }
+}

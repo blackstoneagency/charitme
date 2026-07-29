@@ -92,7 +92,15 @@ describe('public route list has a single source of truth', () => {
       // A file that READS the shared list is anchored to it and cannot drift
       // silently — a curated subset is legitimate provided every entry is
       // validated against the shared file (see scripts/audit-scroll-keyboard.mjs).
-      if (source.includes('public-routes.json') || source.includes('./public-routes')) continue;
+      // `authed-routes.json` counts too. It is a second SHARED list, not a
+      // second hardcoded one: the signed-in surface is a different set from the
+      // anonymous one (public routes must not redirect, authed routes must), so
+      // one file cannot express both. What this guard forbids is a private copy.
+      if (
+        source.includes('public-routes.json') ||
+        source.includes('./public-routes') ||
+        source.includes('authed-routes.json')
+      ) continue;
       const count = countRouteLiterals(source);
       if (count >= MIN_ROUTES_TO_COUNT_AS_A_LIST) offenders.push(`${rel} (${count} routes)`);
     }

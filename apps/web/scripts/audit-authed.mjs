@@ -20,7 +20,7 @@
 
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const argBase = process.argv.find((a) => a.startsWith('http'));
 const BASE = argBase ?? process.env.AUDIT_BASE_URL ?? 'http://127.0.0.1:3000';
@@ -32,24 +32,13 @@ const EXECUTABLE =
   process.env.PLAYWRIGHT_CHROMIUM_PATH ||
   (existsSync(SANDBOX_CHROMIUM) ? SANDBOX_CHROMIUM : undefined);
 
-// The signed-in surface, grouped so a partial run still says what it covered.
-const ROUTES = {
-  dashboard: [
-    '/dashboard', '/dashboard/campaigns', '/dashboard/donations', '/dashboard/recurring',
-    '/dashboard/donor', '/dashboard/payouts', '/dashboard/analytics', '/dashboard/messages',
-    '/dashboard/updates', '/dashboard/team', '/dashboard/settings', '/dashboard/tax',
-    '/dashboard/volunteer', '/dashboard/grants', '/dashboard/referrals', '/dashboard/integrations',
-    '/dashboard/ai-coach', '/dashboard/ai-growth-plan', '/dashboard/corporate',
-  ],
-  create: ['/create/choose-path', '/create'],
-  admin: [
-    '/admin', '/admin/users', '/admin/campaigns', '/admin/donations', '/admin/payouts',
-    '/admin/finance', '/admin/support', '/admin/trust-safety', '/admin/content',
-    '/admin/reports', '/admin/settings', '/admin/system', '/admin/countries',
-    '/admin/sponsors', '/admin/grants', '/admin/volunteers', '/admin/marketing',
-    '/admin/audit-log', '/admin/privacy', '/admin/new-customers',
-  ],
-};
+// The signed-in surface, read from the shared list rather than duplicated here.
+// e2e/authed-routes.json is deliberately separate from public-routes.json: that
+// file is the anonymous surface, this one is asserted to redirect when signed
+// out, and a single file could not state both properties.
+const ROUTES = JSON.parse(
+  readFileSync(new URL('../e2e/authed-routes.json', import.meta.url), 'utf8'),
+).groups;
 
 if (!EMAIL || !PASSWORD) {
   console.error(
