@@ -148,6 +148,31 @@ directions, not checkboxes, or this list can never close.
   uniqueness, feature-wiring, and non-theme accessibility (labels/roles/alt)**.
   → Codex can rely on these not touching theme colors.
 
+### ⚠️ 2026-07-29 — the lanes did not hold, and the fix is a habit not a rule
+Both of us labelled the same form controls. Codex's **PR #150** ran the
+accessibility labelling pass while I was mid-sweep on it. The rebase hit **17
+conflicting files**, and where git auto-merged (same element, different line) it
+kept **both**, producing 5 duplicate `aria-label` props that only eslint caught.
+
+Being precise about the record, not to assign blame: **labels/roles/alt is
+Claude's declared lane above**, so this was a cross into it, not out of it. I
+initially reported the opposite and was wrong — I had not re-read this section.
+
+Neither of us could have seen it: the other's work was unpushed the whole time,
+and I checked for Codex activity twice before starting.
+
+**Protocol that would have prevented it — claim the sweep here BEFORE starting:**
+> `IN PROGRESS (Claude, 2026-07-29 18:00): labelling all unlabelled form controls
+> in app/ + components/. Touching ~40 files. ETA 1h.`
+
+A one-line claim in this file costs nothing and is visible to whoever pulls next.
+A broad *mechanical* sweep across many files is exactly the shape that collides;
+narrow feature work rarely does.
+
+**Resolution when it happens anyway: take whoever landed on master first.** The
+labels were equivalent in meaning; arguing phrasing would have cost more than the
+collision did.
+
 ## 🔴 BLOCKED ON THE OWNER — 3 actions unblock most of what is left (Claude, 2026-07-26)
 
 Everything below this line that is still open is waiting on one of these. None can be
@@ -759,6 +784,43 @@ a real `aria-label` (they previously relied on `title` alone for an accessible n
 enforcement would be the fastest way to lock an organizer out of their own campaign, as
 `role-capabilities.ts` has warned since it was written. The criterion is met by the roles
 being *clearly mapped and clearly differentiated*, not by gating for its own sake.
+
+## ♿ SHIPPED — every form control now has an accessible name (Claude, 2026-07-29)
+
+**0 unlabelled form controls** in `app/` + `components/`, from a starting real count
+of ~147. Enforced by a **hard guard** (`__tests__/a11y-form-labels.test.ts`), not a
+ratchet: a new unlabelled control fails immediately. Verified non-vacuous by removing a
+label → *"rose to 1 (baseline 0)"*.
+
+**Why this existed despite a clean axe run:** the public sweep reports 0 violations across
+38 routes, and that is true — but nearly every form on this platform is behind auth
+(`/admin/*`, `/dashboard/*`), where an anonymous crawler only gets a redirect to `/login`.
+**"0 axe violations" and "147 unlabelled controls" were both true at once.** Also, axe
+accepts a `placeholder` as a fallback accessible name, and the placeholder *disappears the
+moment the user types* — precisely when a screen-reader user still needs it. That pass was
+cosmetic, so placeholders deliberately do not count in the guard.
+
+**The big wins were shared wrappers, not individual fields:**
+- `components/ui.tsx` `Input`/`Textarea`/`Select` — bare `<label>` with no `htmlFor` next
+  to a control with no `id`. **36 call sites across 6 files** inherited it.
+- `dashboard/settings` `SetField` and `admin/system` `Field` — same defect, **46 controls**.
+
+⚠️ **My measuring instrument was wrong FIVE separate ways during this work.** Recording
+them because the pattern matters more than the count:
+| flaw | effect |
+|---|---|
+| blind to runtime-injected ids | **hid** 46 real fixes — the count did not move at all |
+| blind to `<label>`-nesting wrappers | **invented** ~39 failures |
+| attrs truncated at `=>` in a handler | **invented** 14 more |
+| matched `<select>` inside a **comment** | invented 1 |
+| — | original "200" was really ~147 |
+
+So the guard now also asserts **the scan still sees 400+ controls**: a scan matching
+nothing reports zero offenders too, and at a baseline of 0 those are indistinguishable.
+
+Also caught **two more scripts that printed success while changing nothing** (unasserted
+`replace()` with guessed indentation). Every edit now asserts its anchor first — and two
+of those assertions promptly failed, which is the point.
 
 ## 📱 SHIPPED — mobile content was being clipped off-screen (Claude, 2026-07-28)
 
