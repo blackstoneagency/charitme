@@ -359,6 +359,8 @@ export default function CreatePage() {
   const storyInputRef                 = useRef<HTMLTextAreaElement>(null);
   const goalInputRef                  = useRef<HTMLInputElement>(null);
   const [publishedSlug, setPublishedSlug] = useState('');
+  // The QR-poster endpoint keys on the campaign id, not the slug.
+  const [publishedId, setPublishedId] = useState('');
   const [userName, setUserName]       = useState<string | null>(null);
   const [userEmail, setUserEmail]     = useState<string | undefined>(undefined);
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
@@ -969,6 +971,7 @@ export default function CreatePage() {
       if (status === 'draft') { setError(''); window.location.href = '/dashboard/campaigns'; return; }
       if (typeof window !== 'undefined') localStorage.removeItem('charitme-builder-session');
       setPublishedSlug(typeof data.slug === 'string' ? data.slug : '');
+      setPublishedId(typeof data.id === 'string' ? data.id : '');
       setStep('live');
     } catch (e: unknown) {
       // Network/transport failure — the draft is still saved locally and remotely.
@@ -2140,7 +2143,7 @@ export default function CreatePage() {
             </div>
             {publishedSlug && (
               <div style={{ marginTop: 28 }}>
-                <QuickSharePanel slug={publishedSlug} />
+                <QuickSharePanel slug={publishedSlug} campaignId={publishedId} />
               </div>
             )}
           </div>
@@ -2413,7 +2416,7 @@ function ScoreBar({ score }: { score: ScoreResult }) {
 // ─────────────────────────────────────────────
 // Quick Share Panel
 // ─────────────────────────────────────────────
-function QuickSharePanel({ slug }: { slug: string }) {
+function QuickSharePanel({ slug, campaignId }: { slug: string; campaignId: string }) {
   const appUrl = (typeof window !== 'undefined' ? window.location.origin : 'https://www.charitme.com');
   const url = `${appUrl}/campaigns/${slug}`;
   const [copied, setCopied] = React.useState(false);
@@ -2463,21 +2466,27 @@ function QuickSharePanel({ slug }: { slug: string }) {
             ))}
           </div>
 
-          {/* Opens the real poster route, which renders the campaign title, QR
-              code and progress ready to print. This used to point at a
-              non-existent route (the path lacked its qr- prefix) and cancel the
-              navigation to call window.print() instead, so it printed whatever
-              page the user was on rather than the poster. Wording avoids quoting
-              the old path: the internal-link audit scans source text and would
-              flag the example itself. */}
-          <a
-            href={`/api/campaigns/${slug}/qr-poster`}
-            className="cr2-qs-poster-link"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            🖨 Download printable poster →
-          </a>
+          {/* Previously pointed at the slug-keyed "poster" path — wrong twice:
+              the route is qr-poster, and it keys on the campaign ID. The
+              onClick hid both by calling window.print(), which printed the
+              BUILDER page rather than a poster, so the button never once did
+              what it says. It now opens the real poster, which carries its own
+              print stylesheet.
+
+              NOTE: master briefly carried a half-fix here that corrected the
+              route name but kept ${slug}. The handler does .eq('id', id), so
+              that form 404s — verified against production. The two defects were
+              independent; fixing only the path leaves the button broken. */}
+          {campaignId && (
+            <a
+              href={`/api/campaigns/${campaignId}/qr-poster`}
+              className="cr2-qs-poster-link"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              🖨 Download printable poster →
+            </a>
+          )}
         </div>
 
         {/* QR code */}

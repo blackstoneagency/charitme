@@ -354,6 +354,19 @@ for (const theme of THEMES) {
       // Measure the page we asked for, or report it — never something we were sent
       // to. Playwright follows redirects, so a route that 307s to /login otherwise
       // gets measured under this route's name and passes on the login page's colours.
+      //
+      // A 404 slips past the redirect check below, because the not-found page is
+      // served AT the requested path. It then gets contrast-audited and counted as
+      // a swept route, so coverage goes up while nothing real was measured.
+      // `/campaigns/security-header-fixture/embed` is in the public list and 404s
+      // on any database without that fixture row (including production) — the e2e
+      // specs already probe and skip it via e2e/data-routes.ts; this sweep did not.
+      const status = response?.status() ?? 0;
+      if (status !== 200) {
+        failures++;
+        if (!AS_JSON) console.log(`\u2717 ${theme} ${path} — HTTP ${status}; not measured`);
+        continue;
+      }
       const landed = new URL(page.url()).pathname.replace(/\/$/, '') || '/';
       const asked = path.replace(/\/$/, '') || '/';
       if (landed !== asked) {

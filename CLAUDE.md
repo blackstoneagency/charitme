@@ -202,6 +202,18 @@ Phase 1 of the AI Context Manager: an agent roster plus one-click context packs.
 
 ## ⚠️ CI is currently DEAD — a red check does NOT mean your PR is broken
 
+**Re-verified 2026-07-28 with the decisive evidence: `runner_id: 0`,
+`runner_name: ""`.** No runner is ever assigned — the job is created and failed
+in the SAME SECOND (`started_at 04:29:11` → `completed_at 04:29:12`), with no
+steps, empty check output, and logs 404. That is not a fast failure, it is the
+absence of a machine to run on, which no code change can affect. Query it
+yourself with `actions_get(get_workflow_job, <jobId>)`; do not rely on the
+timing alone.
+
+⚠️ Vercel's deploy rate-limit cleared on 2026-07-28 while Actions stayed dead.
+**They are separate billing buckets** — do not infer that Actions is fixed
+because deploys started working again.
+
 **Verified 2026-07-26.** Every GitHub Actions run — on `master` and on PRs — fails in
 **2–5 seconds**. A real run (`npm ci` + build + 1281 tests + Playwright) takes minutes,
 so the workflow is dying **before it executes any step**. Symptoms that confirm it:
@@ -227,3 +239,34 @@ cd apps/web && PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright
 
 If `npm run typecheck` fails on a missing module, run `npm install` first — the lockfile
 moves when other agents add dependencies.
+
+### The `scripts/audit-*.mjs` suite — the strongest signal available, and easy to miss
+
+`apps/web/scripts/` holds a **browser-driven audit suite** that is far more thorough than
+any hand-rolled sweep, and it **runs fine locally** (unlike `e2e/*.spec.ts`, which only
+runs under the dead Playwright job and is therefore currently *decorative* — a real
+light-mode contrast bug reached production underneath a passing-by-default e2e spec).
+
+Start a production build on some port, then point the audits at it:
+
+```bash
+npm run build && npx next start -p 4123        # from apps/web
+npm run audit:contrast        -- --base http://localhost:4123   # 37 pages × 2 themes
+npm run audit:responsive      -- --base http://localhost:4123   # × 3 viewports × 2 themes
+npm run audit:image-dupes                                       # 500 covers, perceptual hash
+PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium \
+  npm run audit:web-vitals    -- --base http://localhost:4123   # LCP / CLS / INP
+PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium \
+  npm run audit:scroll-keyboard -- --base http://localhost:4123
+```
+
+**Two traps, both of which look like broken tooling and aren't:**
+1. `audit-web-vitals` and `audit-scroll-keyboard` read **`PLAYWRIGHT_CHROMIUM_PATH`**;
+   `audit-contrast` and `audit-responsive` hardcode `/opt/pw-browsers/chromium`. Omit the
+   env var and the first two abort with *"Please run npx playwright install"*.
+2. Default `--base` is `:3000`/`:3100`, so without `--base` they silently audit nothing
+   useful.
+
+**Prefer these over writing your own harness.** `audit:contrast` sweeps **both themes** by
+default — the site ships **dark**, so a hand-rolled axe run measures dark twice and reports
+a false all-clear. That is exactly how a 2.56:1 light-mode failure survived.

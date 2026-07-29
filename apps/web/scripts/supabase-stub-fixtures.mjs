@@ -428,6 +428,13 @@ export function buildFixtures() {
     // columns a list view needs. A page that reads a column not present here
     // renders it blank — which is a legitimate audit subject (blank cell, wrong
     // colour) but NOT evidence the column is missing in production.
+    // /dashboard/notifications is client-rendered from /api/notifications, which
+    // filters on user_id and selects kind/title/body/link/read_at. With no
+    // fixture the list came back empty and the page rendered 7 text elements —
+    // it appeared in the sweep's "fewer than 15 text elements" report, meaning
+    // its entire notification UI (rows, unread state, mark-read controls) went
+    // unaudited. Column names follow supabase/schema.sql: kind and title are
+    // NOT NULL, read_at is nullable and drives the unread filter.
     notifications: genericRows('notf', 30, (i) => ({
       kind: ['donation', 'comment', 'payout', 'campaign', 'system'][i % 5],
       title: [
@@ -439,9 +446,12 @@ export function buildFixtures() {
       ][i % 5],
       body: 'Seeded by the audit stub so the notification list renders with rows.',
       link: ['/dashboard/donations', '/dashboard/messages', '/dashboard/payouts', '/dashboard/campaigns', null][i % 5],
+      // A third unread, so the unread filter and the mark-all-read control both
+      // have something to render rather than collapsing to an empty state.
       read_at: i % 3 === 0 ? null : daysAgo(i),
       meta: {},
     })),
+
     audit_logs: genericRows('audt', 50, (i) => ({
       action: ['campaign.approve', 'payout.release', 'user.suspend', 'settings.update'][i % 4],
       actor_email: 'audit-stub@charitme.local',
@@ -455,6 +465,11 @@ export function buildFixtures() {
       priority: ['low', 'normal', 'high', 'urgent'][i % 4],
       email: `donor${i + 2}@charitme.local`,
     })),
+    // Same class of mismatch: the schema has `event_type`, `processed_at` and
+    // `processing_error`, not `type`/`processed`/`error`. /admin/audit-log maps
+    // webhook rows through actionCategory(e.event_type), so undefined threw
+    // "Cannot read properties of undefined (reading 'startsWith')" and that page
+    // 500'd out of the sweep too.
     webhook_events: genericRows('whev', 40, (i) => ({
       event_type: ['checkout.session.completed', 'account.updated', 'payout.paid'][i % 3],
       stripe_event_id: `evt_stub_${i + 1}`,
@@ -467,6 +482,12 @@ export function buildFixtures() {
       reason: 'Donor requested',
       donation_id: uuid('dona', i + 1),
     })),
+    // Column names must match supabase/schema.sql exactly. These were `interval`
+    // and `next_charge_at`, which exist nowhere in the schema — the real columns
+    // are `cadence` (NOT NULL, CHECK weekly|monthly|quarterly|annual) and
+    // `next_bill_at`. /donor calls cadenceLabel(r.cadence), so the mismatch threw
+    // "Cannot read properties of undefined (reading 'charAt')" and the page 500'd
+    // mid-sweep — it was never audited, and the failure looked like a product bug.
     recurring_donations: genericRows('recr', 25, (i) => ({
       amount_cents: [1000, 2500, 5000][i % 3],
       cadence: ['weekly', 'monthly', 'quarterly', 'annual'][i % 4],

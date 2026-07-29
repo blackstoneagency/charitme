@@ -381,6 +381,11 @@ describe('the page and its API are super-admin only', () => {
 
 describe('AI is reachable from the left navigation', () => {
   const nav = read('components/SuperAdminNav.tsx');
+  // The list itself moved to lib/super-admin-nav.ts, a module with no
+  // 'use client'. It had to: app/admin/super/page.tsx is a Server Component, and
+  // a plain value imported across the client boundary arrives as a reference
+  // proxy, so SUPER_ADMIN_NAV.filter threw and that page 500'd. The assertion
+  // follows the data; the rendering assertions below still read the component.
 
   it('appears in the super-admin nav list', () => {
     // The list moved to lib/super-admin-nav.ts, a module with NO 'use client':
