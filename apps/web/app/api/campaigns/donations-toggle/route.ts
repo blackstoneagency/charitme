@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { createClient } from '../../../../lib/supabase-server';
+import { isAdmin } from '../../../../lib/roles';
 
 const Schema = z.object({
   campaignId: z.string().uuid(),
@@ -29,12 +30,7 @@ export async function POST(request: NextRequest) {
 
   if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
 
-  // Check admin
-  const { data: profile } = await supabaseAdmin.from('profiles').select('roles').eq('id', user.id).single();
-  const roles: string[] = Array.isArray((profile as { roles?: unknown })?.roles) ? (profile as { roles: string[] }).roles : [];
-  const isAdmin = roles.includes('admin');
-
-  if (campaign.user_id !== user.id && !isAdmin) {
+  if (campaign.user_id !== user.id && !(await isAdmin(user.id, user.email))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

@@ -4,7 +4,7 @@ import { openai, OPENAI_MODEL } from '../../../../lib/openai';
 import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 import { createClient } from '../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../lib/supabase';
-import { isAdmin } from '../../../../lib/roles';
+import { canViewCampaignAnalytics } from '../../../../lib/campaign-access';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,15 +70,8 @@ export async function GET(request: NextRequest) {
   if (campaignError) return NextResponse.json({ error: campaignError.message }, { status: 500 });
   if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
 
-  const admin = await isAdmin(user.id, user.email);
-  if (campaign.user_id !== user.id && !admin) {
-    const { data: tm } = await supabaseAdmin
-      .from('team_members')
-      .select('id')
-      .eq('campaign_id', campaignId)
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (!tm) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!(await canViewCampaignAnalytics(user, campaignId, campaign.user_id))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const { data: events } = await supabaseAdmin

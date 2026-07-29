@@ -22,8 +22,9 @@ export async function PATCH(request: NextRequest) {
   }
   const { userId, roles } = parsed.data;
 
-  // De-dupe and guarantee a baseline 'donor' role so no account is left role-less.
-  const finalRoles = Array.from(new Set(roles.length ? roles : ['donor']));
+  const finalRoleSet = new Set<string>(['donor', ...roles]);
+  if (finalRoleSet.has('super_admin')) finalRoleSet.add('admin');
+  const finalRoles = Array.from(finalRoleSet);
 
   const { error } = await supabaseAdmin
     .from('profiles')

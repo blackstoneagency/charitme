@@ -10,7 +10,7 @@ external release constraints after the latest production deployment.
 | 1 | **GitHub Actions assigns no runner.** Every CI job fails in ~2s with `runner_id: 0`, `runner_name: ""`, and **no logs at all** (`get_job_logs` → 404). Repo-wide, including pushes straight to `master`. | 30 of 30 most recent runs | **Owner** — Actions minutes / billing |
 | 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project, so database release policy correctly blocks production migration application until the same commit is verified on a real CharitMe staging project. | Supabase project inventory, 2026-07-28 | **Owner** — provision/link CharitMe staging |
 
-**Vercel production is operational again.** `master` commit `e1cdb7cd` deployed
+**Vercel production is operational again.** `master` commit `0148c675` deployed
 successfully and is aliased to both `www.charitme.com` and `charitme.com`.
 
 **How to tell an infra failure from a real one:** a genuine CI failure runs for
@@ -18,7 +18,7 @@ minutes and produces logs. These finish in ~2 seconds with none. If you see that
 stop debugging your diff.
 
 **Local verification is therefore the real gate, and it is green:**
-`npm run typecheck` (0) · `npm test` (**1812/1812, 172 files**) · `npm run build`
+`npm run typecheck` (0) · `npm test` (**1825/1825, 174 files**) · `npm run build`
 (exit 0) · `scripts/audit-contrast.mjs --strict-gradients` (**0 WCAG AA failures,
 37 pages × 2 themes, 3,638 text elements per theme**).
 
@@ -98,6 +98,28 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   contract and proved bidirectional privacy synchronization in live local SQL.
 - [ ] Apply `20260813000000_donor_message_anonymity_contract.sql` to CharitMe
   staging and verify mixed-version comment reads/writes before production.
+
+## ROLE AND CAMPAIGN TEAM SECURITY - code complete, release pending (Codex, 2026-07-28)
+
+- [x] Removed the authenticated browser privilege that let any signed-in user
+  insert themselves into another campaign's team with an `admin` role.
+- [x] Made campaign team mutations service-managed; the owner-checked API
+  remains the only write path and self-removal remains supported there.
+- [x] Restricted donor, share-conversion, and AI performance analytics to the
+  campaign owner, platform admins, and working team roles. Read-only viewers no
+  longer receive financial or donor analytics.
+- [x] Required super-admin authorization before regular, bulk, or imported user
+  operations can create, modify, assign, or delete privileged accounts.
+- [x] Preserved multi-role accounts during bulk activation/suspension and made
+  `super_admin` inherit `admin` consistently in the app, role API, and RLS.
+- [x] Replayed all 104 migrations locally, then proved with an authenticated SQL
+  attack fixture that team self-enrollment is denied and super-admin RLS
+  inheritance succeeds.
+- [x] Typecheck, zero-warning lint, 1,825 tests across 174 files, and the
+  150-page production build pass.
+- [ ] Apply `20260814000000_harden_role_and_team_boundaries.sql` to CharitMe
+  staging and run authenticated team/admin smoke tests before production
+  migration application through the release workflow.
 
 ## SECURITY BOUNDARIES - code complete, production migration pending (Codex, 2026-07-27)
 
