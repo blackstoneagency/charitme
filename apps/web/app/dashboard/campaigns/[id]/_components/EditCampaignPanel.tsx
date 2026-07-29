@@ -244,7 +244,7 @@ export default function EditCampaignPanel({ campaignId }: { campaignId: string }
                 <img src={form.coverImageUrl} alt="Cover" style={{ width: 120, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--b2)' }} />
               )}
               <div>
-                <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
+                <input aria-label="Upload cover image" ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
                   onChange={e => void handleImageUpload(e.target.files)} />
                 <button type="button" onClick={() => fileRef.current?.click()}
                   className="kf-outline" style={{ height: 36, padding: '0 16px', fontSize: 13 }}>

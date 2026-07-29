@@ -372,7 +372,7 @@ export default function MessagesClient({ threads, campaignMap, replies, threadSt
               <textarea
                 aria-label="Reply message"
                 placeholder="Type your reply..."
-                value={compose}
+                aria-label="Type your reply" value={compose}
                 onChange={e => setCompose(e.target.value)}
                 onKeyDown={e => {
                   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {

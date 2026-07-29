@@ -28,10 +28,10 @@ import { join, relative } from 'node:path';
 // Without this the metric punishes the fix: 37 controls were repaired in
 // admin/system and the count did not move.
 //
-// This began as a RATCHET against ~200 offenders. The backlog is now CLEARED:
-// BASELINE is 0, so this is no longer "do not get worse" but "no unlabelled
-// control ships". Keep it at 0 — raising it to admit one is how a backlog
-// restarts.
+// This began as a ratchet against 200 offenders (really ~161 once the scanner
+// stopped miscounting). It is now a HARD GUARD at zero: every form control in
+// app/ and components/ has an accessible name, so any new one without a label
+// fails immediately rather than being absorbed into a backlog.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const WEB = join(__dirname, '..');
@@ -59,7 +59,7 @@ function attributesOf(src: string, tagStart: number): string {
 }
 const SKIP_TYPES = new Set(['hidden', 'submit', 'button', 'image']);
 
-/** Current known debt. Lower it when controls are fixed; never raise it. */
+/** Zero as of 2026-07-28. This is now a hard guard, not a ratchet. */
 const BASELINE = 0;
 
 function tsxFiles(dir: string, out: string[] = []): string[] {
@@ -119,33 +119,25 @@ function insideLabel(src: string, index: number): boolean {
   return close !== -1 && close > index;
 }
 
-/**
- * True when the match sits inside a `//` line comment.
- *
- * Prose about markup is not markup. `DonationsClient.tsx` carries the comment
- * "These two used to be unbound <select>s whose value was never read" — a note
- * about a fix that had already been made — and the scan counted that sentence as
- * an unlabelled control. Left alone it would have been "fixed" by editing a
- * comment, which changes the number without changing anything a user meets.
- */
-function inLineComment(src: string, index: number): boolean {
-  const lineStart = src.lastIndexOf('\n', index) + 1;
-  const slashes = src.indexOf('//', lineStart);
-  return slashes !== -1 && slashes < index;
-}
-
 function findOffenders(): string[] {
   const offenders: string[] = [];
   for (const dir of ['app', 'components']) {
     for (const file of tsxFiles(join(WEB, dir))) {
-      const src = readFileSync(file, 'utf8');
+      // Comments are blanked, length-preserving so line numbers stay accurate.
+      // Without this the scan matches prose: DonationsClient carries the comment
+      // "These two used to be unbound <select>s whose value was never read",
+      // which was reported as an unnamed control. A guard that flags its own
+      // explanatory text teaches people to ignore it.
+      const raw = readFileSync(file, 'utf8');
+      const src = raw
+        .replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length))
+        .replace(/(^|[^:])\/\/[^\n]*/g, (m, p1) => p1 + ' '.repeat(m.length - p1.length));
       const wrappers = labellingWrappers(src);
       for (const m of src.matchAll(CONTROL_OPEN)) {
         const attrs = attributesOf(src, m.index ?? 0);
         const type = /type=["{]?\s*['"]?(\w+)/.exec(attrs)?.[1] ?? 'text';
         if (SKIP_TYPES.has(type)) continue;
         if (/aria-label|aria-labelledby|\bid=/.test(attrs)) continue;
-        if (inLineComment(src, m.index ?? 0)) continue;
         if (insideLabel(src, m.index ?? 0)) continue;
         if (insideLabellingWrapper(src, m.index ?? 0, wrappers)) continue;
         offenders.push(`${relative(WEB, file)}:${src.slice(0, m.index).split('\n').length}`);
@@ -174,16 +166,17 @@ describe('form controls carry an accessible name', () => {
     ).toBeLessThanOrEqual(BASELINE);
   });
 
-  it('actually detects an unlabelled control', () => {
-    // At BASELINE 0 the suite passes when the scan finds nothing — which is also
-    // exactly what a broken scan does. The old check here compared the count to
-    // BASELINE - 25 to prompt lowering the baseline; at 0 that is always true and
-    // proves nothing. So assert the detector fires on a known-bad input instead.
-    const bad = '<div><input placeholder="Search" /></div>';
-    const good = '<div><input aria-label="Search" /></div>';
-    expect(CONTROL_OPEN.test(bad)).toBe(true);
-    CONTROL_OPEN.lastIndex = 0;
-    expect(/aria-label/.test(good)).toBe(true);
-    expect(/aria-label/.test(bad)).toBe(false);
+  it('is actually finding controls, so zero means checked rather than blind', () => {
+    // A scan that matches nothing also reports zero offenders. This asserts the
+    // scan still sees the controls it is passing judgement on — the difference
+    // between "all named" and "found none". The instrument was wrong three
+    // separate ways during this work, so zero needs corroboration.
+    let scanned = 0;
+    for (const dir of ['app', 'components']) {
+      for (const file of tsxFiles(join(WEB, dir))) {
+        scanned += [...readFileSync(file, 'utf8').matchAll(CONTROL_OPEN)].length;
+      }
+    }
+    expect(scanned).toBeGreaterThan(400);
   });
 });

@@ -125,7 +125,7 @@ export default function RolesClient({ users: initial }: { users: RoleUser[] }) {
           <input
             aria-label="Search users by name or email"
             placeholder="Search by name or email…"
-            value={query}
+            aria-label="Search users by name or email" value={query}
             onChange={(e) => setQuery(e.target.value)}
             style={{ flex: 1, minWidth: 220, padding: '10px 14px', borderRadius: 10, border: '1px solid var(--b2)', background: 'var(--s1)', color: 'var(--t1)' }}
           />

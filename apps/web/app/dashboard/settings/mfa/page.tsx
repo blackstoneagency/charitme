@@ -176,7 +176,7 @@ export default function MfaPage() {
                       aria-label="Six-digit authentication code"
                       inputMode="numeric"
                       maxLength={6}
-                      value={verifyCode}
+                      aria-label="Six-digit verification code" value={verifyCode}
                       onChange={e => setVerifyCode(e.target.value.replace(/\D/g, ''))}
                       placeholder="000000"
                       style={{ flex: 1, height: 44, border: '1px solid var(--b2)', borderRadius: 9, padding: '0 14px', fontSize: 20, letterSpacing: 6, textAlign: 'center' }}

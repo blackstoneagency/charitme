@@ -1199,7 +1199,7 @@ export default function AdminCampaignsClient({
                 type="file"
                 aria-label="Upload a campaign cover image"
                 accept="image/*"
-                ref={fileInputRef}
+                aria-label="Upload campaign image" ref={fileInputRef}
                 style={{ display: 'none' }}
                 onChange={async e => {
                   const file = e.target.files?.[0];
