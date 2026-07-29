@@ -601,9 +601,22 @@ promise:
   strings appear. `documentsAvailable` distinguishes "no attachments" from "could
   not load", because a null `docs` would otherwise render as "your files are gone".
   Signed-in render still unverifiable without a QA login (owner item #3).
-- **`creator_profiles`** (500 rows, `handle`/`display_name`/`brand_color`) — needs a
-  whole creator-page surface (`/creator/[handle]`) that does not exist. Largest of
-  the three, and the one with real parity value.
+- **`creator_profiles`** (500 rows) — **measured, and the answer is "not yet".**
+  `handle` and `display_name` are 500/500 populated, but `bio`, `hero_image_url` and
+  `website_url` are **0/500** — every distinguishing field is null. Each creator owns
+  **exactly one** campaign, so `/creator/[handle]` would render 500 near-empty pages
+  each pointing at a single campaign the visitor can already reach: thin, duplicative
+  for SEO, and the features that would fill them (`creator_tips`, `digital_products`,
+  `membership_tiers`) belong to modules openly marked **Planned**. Building it now
+  would satisfy "wired to Supabase" by gaming the metric — the same trap as
+  `trust_scores`. It is legitimately listed by the Planned modules; the shipped-module
+  claim has already been removed.
+
+**All three remaining orphans now have a measured reason not to be naively wired.**
+That is the finding, not a dodge: "orphaned table" does not imply "go connect it".
+Two needed a schema or product decision first (`coach_sessions` stores a counter, not
+a transcript; `creator_profiles` has no content), and one would have been an active
+regression (`trust_scores`).
 
 ### ⚠️ Shared working tree — commit by path, never `git add -A`
 Mid-task, `app/create/page.tsx` and `globals.css` appeared modified in my tree with
@@ -611,6 +624,30 @@ two `*.tmp.mjs` scratch files: another agent's in-flight contrast fix, in Codex'
 declared theme lane. `git add -A` would have committed someone's half-finished work
 under my message. **Stage the explicit paths you touched.** To rebase over it:
 `git stash push -m … <their paths>` → rebase → `git stash pop`.
+
+## 🔴 FIXED — `audit:mobile` exited 1 on EVERY run (Claude, 2026-07-29)
+
+The sweep reported `/campaigns/security-header-fixture/embed — stylesheet has 0
+rules; page is unstyled, refusing to measure` at both widths, so it never once
+passed. **The page is not unstyled — it 404s.** That slug resolves a real
+`campaigns` row and is absent from most databases; Next's 404 ships almost no CSS,
+so the unstyled guard fired and reported a true statement about an entirely
+different problem.
+
+A wrong diagnosis costs more than none — and a permanently-red audit is an ignored
+audit, the same way red-by-default CI trained everyone to stop reading it.
+
+- The audit now reads the response status: `HTTP 404; route did not render`.
+- Data-dependent routes are **skipped**, which is the policy `e2e/data-routes.ts`
+  already set for exactly these routes — the audit just never shared it.
+- The list moved to `e2e/data-dependent-routes.json` so both read one source
+  (`audit-mobile.mjs` is `.mjs` and cannot import the `.ts`; a second copy is the
+  drift `route-list-single-source` already caught once here).
+
+**Now green and non-vacuous:** no horizontal overflow across **80 page loads**, no
+tap target under 24px at 320px — covering the campaign team grid and grant
+attachment chips added the same day. Exits 1 with 82 failed loads against a dead
+port, 0 against a live one.
 
 ## 🔴 BLOCKED ON THE OWNER — 3 actions unblock most of what is left (Claude, 2026-07-26)
 
