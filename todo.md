@@ -8,7 +8,7 @@ external release constraints after the latest production deployment.
 | # | Blocker | Evidence | Who can clear it |
 |---|---------|----------|------------------|
 | 1 | **GitHub Actions assigns no runner.** Every CI job fails in ~2s with `runner_id: 0`, `runner_name: ""`, and **no logs at all** (`get_job_logs` → 404). Repo-wide, including pushes straight to `master`. | 30 of 30 most recent runs | **Owner** — Actions minutes / billing |
-| 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Supabase Preview Branch creation returns HTTP 402 because the account is not on Pro, so database release policy correctly blocks production migration application until the same commit is verified on a real CharitMe staging project. | Supabase project/branch inventory and branch-create probe, 2026-07-29 | **Owner** — provision/link CharitMe staging or enable Supabase Preview Branches |
+| 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
 
 **Vercel production is operational.** Deployment
 `dpl_9dNeqEZYC5MQ3occZXEsmHM2NRmP` is Ready, targets production, and is aliased
@@ -82,9 +82,11 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   labels, inferable tax indexes, guest receipt access, privileged-profile and
   anonymity triggers, private creator tips, and team boundaries.
 - [ ] Provision a real CharitMe staging project or enable a Supabase Preview
-  Branch, apply this exact commit there, and run authenticated RLS/payment/tax
-  smoke tests before the release workflow is allowed to apply the 18 migrations
-  to production. Do not bypass this gate.
+  Branch. Both paths were attempted: Preview Branches require Pro and a third
+  free project exceeds the account's two-project limit. Once capacity exists,
+  apply this exact commit there and run authenticated RLS/payment/tax smoke
+  tests before the release workflow is allowed to apply the 18 migrations to
+  production. Do not bypass this gate.
 
 ## RECURRING TIP ACCOUNTING - code complete, release pending (Codex, 2026-07-28)
 
