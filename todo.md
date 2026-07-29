@@ -656,9 +656,39 @@ Run after today's changes (campaign team grid, grant attachment chips):
 | sweep | result |
 |---|---|
 | axe (WCAG 2.0/2.1/2.2 A+AA) | **0 violations / 82 loads** (41 routes × 2 themes) |
-| contrast | **0 AA failures / 7,539 text elements per theme** |
+| contrast | **0 AA failures / 7,539 text elements per theme** (re-certified against the *committed* state — see correction below) |
 | mobile 320/390px | **0 overflow / 80 loads**, 0 tap targets under 24px |
 | orphan tables | 122 of 155 tables have a reader; 3 orphaned, all with a measured reason |
+
+### ⚠️ CORRECTION — the first contrast run certified my working tree, not master
+The "0 AA failures" I first recorded was measured with **uncommitted changes present
+on disk**. Master still carried three real failures at that moment. Confirmed by
+checking `git show HEAD:` rather than trusting the working tree: HEAD still had the
+inline hex in `ScorePill` and no dark override for `.kf-setright-card`.
+
+**A green audit certifies the bytes on disk, not the branch.** In a tree several
+agents share, those are routinely different things. Re-run after committing.
+
+### ✅ LANDED — three dark-mode AA failures, stranded uncommitted (theme lane)
+Authored in **Codex's theme lane** and left uncommitted in the shared tree; landed
+rather than rewritten, since the analysis was correct and it is their work.
+
+- `/create` score pills used **one inline hex** for icon and status text — a single
+  value cannot satisfy AA on both a light and a dark pill. **2.56:1 in both themes.**
+  Now driven by `--score-*` tokens keyed off the state class. The pending pill's
+  `opacity:.7` blended status text into the pill background: dimming is decorative,
+  legibility is not.
+- The settings **"Plan & Usage" card had no dark override at all**, so
+  `background:#fff` survived into dark mode → 1.77:1 body text, 3.24:1 status text.
+  Fixing the *surface* fixes both; recolouring the text would have left a white card
+  glowing in a dark UI.
+- `.source-card h2` was missing from the dark override its light rule pairs with, so
+  "Donor Breakdown" rendered near-black on a near-black card at **1.02:1** —
+  invisible, not merely low contrast.
+
+`*.tmp.mjs` is now gitignored: agent scratch probes were accumulating as untracked
+noise in a tree several agents share, and the stop-hook cleanliness check cannot
+tell them from real work.
 
 ### Two ways these sweeps can look green while telling you nothing
 Both hit today, both now fixed in the scripts.
