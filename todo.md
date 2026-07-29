@@ -1,17 +1,41 @@
 # CharitMe — Execution Tracker
 
-## 🛑 READ FIRST — what is blocked, and by whom (updated 2026-07-27)
+## 🛑 READ FIRST — what is blocked, and by whom (re-measured 2026-07-28)
 
-Everything below this box is engineering detail. These four items are the only
-things standing between "done in the repo" and "done in production", and **none of
-them can be cleared by another agent** — they are owner/environment actions.
+Two things are genuinely owner-gated. **Two entries that used to be here were
+wrong and have been removed** — they claimed capability the sandbox actually has,
+and acting on them costs real work. The old text is preserved further down for
+provenance; this table is the current one.
 
 | # | Blocker | Evidence | Who can clear it |
 |---|---------|----------|------------------|
-| 1 | **GitHub Actions assigns no runner.** Every CI job fails in ~2s with `runner_id: 0`, `runner_name: ""`, and **no logs at all** (`get_job_logs` → 404). Repo-wide, including pushes straight to `master`. | 30 of 30 most recent runs | **Owner** — Actions minutes / billing |
-| 2 | **Vercel free-tier deploy cap — now a HARD 24h block, not a transient one.** The commit status is `failure / "Deployment rate limited — retry in 24 hours"` (`api-deployments-free-per-day`, >100/day). An earlier note here said "previews have since resumed"; that is no longer true. **Nothing merged to `master` will reach production until the window resets or the plan is upgraded** — this is now the binding constraint on the "is it live on Production, not Preview" goal line, and no amount of batching clears it today. | Vercel commit status + bot comment on PR #131, 2026-07-27 | **Owner** — upgrade plan, or wait out the 24h window |
-| 3 | **Sandbox egress is firewalled.** The proxy answers **403 to CONNECT** for non-allowlisted hosts, so `*.supabase.co`, `images.unsplash.com` and `www.charitme.com` are all unreachable (`curl` → `000`). | `$HTTPS_PROXY/__agentproxy/status` → `recentRelayFailures` | **Owner/env** — allowlist, or run the sweeps somewhere with egress |
-| 4 | Consequently: **live seed verification, signed-in dashboard/admin audits, real payment flows, and "is it live on production" cannot be checked from here.** | — | **Owner** |
+| 1 | **GitHub Actions assigns no runner.** Every job fails within ~2s with `runner_id: 0`, `runner_name: ""`, no steps, empty check output, logs 404. Not a fast failure — the absence of a machine, which no code change affects. | Re-verified 2026-07-28 on jobs `90183711949`, `90184826630` via `actions_get(get_workflow_job)` | **Owner** — Actions minutes / billing |
+| 2 | **Vercel free-tier deploy cap (`api-deployments-free-per-day`).** Real, but it is a **daily quota, not a 24h lockout**: it cleared mid-session on 2026-07-28 and several deploys went green (`Ready`, preview served) before ~20 further pushes re-hit it. **Batching commits genuinely helps**; a long run of small pushes will exhaust it. | Vercel commit statuses across this session, both `Ready` and rate-limited | **Owner** — upgrade plan; or batch pushes and wait out the window |
+| 3 | **Stripe test keys** for a real end-to-end paid flow. Live keys are present and the live account is readable, but no charge should be placed against it. | ADR-0003 | **Owner** |
+| 4 | **Two volunteer migrations** (`20260806000000`, `20260806010000`). PostgREST cannot run DDL and `SUPABASE_ACCESS_TOKEN`/`DB_PASSWORD` are not in `.env.local`. *(The third pending migration, `20260807000000_organizations_multitenancy`, blocks nothing user-visible — zero code references its tables.)* | live 404 `PGRST205` on `volunteer_shifts` / `volunteer_hours` | **Owner** |
+
+### ❌ REMOVED — two blockers that were false, and what they were costing
+
+**"Sandbox egress is firewalled — `*.supabase.co`, `images.unsplash.com` and
+`www.charitme.com` are unreachable (`curl` → `000`)."** Measured again
+2026-07-28: `www.charitme.com/api/health` → **200**, Supabase REST (anon key) →
+**200**, `api.stripe.com` → **404**, `images.unsplash.com` → **404**. A 404 is a
+served HTTP response, i.e. the host is reachable; only `000` would mean blocked.
+Egress works, and it has been used all session to verify fixes against
+production and to read the live database and the live Stripe endpoint config.
+
+**"Signed-in dashboard/admin audits cannot be checked from here."** They can, and
+they have been. `scripts/audit-signed-in.mjs` (Codex) runs the whole gated
+surface against a **local Supabase stub** — no egress, no session, **no owner
+action of any kind**. 143 routes × 2 themes now sweep on demand, and
+`scripts/audit-signed-in-smoke.mjs` renders all 106 of them to catch crashes.
+
+⚠️ This is the expensive kind of error. A previous session read the egress claim,
+concluded a QA login was the only way to audit the signed-in surface, and
+declined to create one — correctly, since that meant writing to production auth.
+**The stub already made the whole question moot.** A false blocker does not just
+sit there; it redirects work toward worse options and stops real work happening.
+Re-measure before believing anything in this box.
 
 ## ⚠️ CORRECTION (2026-07-27) — egress is NOT fully firewalled, and seeds ARE verifiable
 
@@ -703,6 +727,73 @@ you searched for is not absence of the behaviour.**
 The guard list in the test is therefore **discovered from the imports**, not
 hand-written — `NAMED_GUARDS` came from grepping what routes actually import from
 `_auth`/`auth`/`roles` modules, which is how `verifyAdmin` and `rolesFor` got in.
+
+## 🔴 SEED COVERAGE — measured against the LIVE database, 2026-07-28 (Claude)
+
+The goal line "Supabase has at least 100 seed records to fully test every feature
+and service" is **not met**, and this is the first count of all 155 declared
+tables rather than a sample. Service-role key, `Prefer: count=exact`.
+
+| bucket | tables |
+|---|---|
+| ≥100 rows | **68** |
+| 1–99 rows | **15** |
+| **0 rows** | **67** |
+| absent from production | **5** |
+
+*(Method note: a first pass reported 5 tables as `ERR400`. That was my own
+artifact — I queried `select=id` and those tables have no `id` column. Re-queried
+with `select=*`: `volunteer_profiles`=1131, `rate_limit_hits`=22,
+`admin_settings`=7, `donor_segment_members`=0, `marketing_segment_members`=0.)*
+
+### Most of the 67 empty tables are CORRECTLY empty — do not "fix" them by seeding
+
+This is a judgement call and it is mine, so it is spelled out rather than
+asserted. Three groups are empty because nothing has happened yet, which is the
+right state for a platform without live traffic:
+
+- **event / audit / log** — `campaign_analytics_events`, `campaign_status_log`,
+  `campaign_payment_audit_logs`, `marketing_audit_logs`,
+  `marketing_automation_runs`, `marketing_form_submissions`, `lead_outreach`,
+  `organizer_sends`, `analytics_snapshots`
+- **payment-flow ledgers, which only fill on a real charge** — `campaign_payments`
+  and the nine `campaign_payment_*` tables, `campaign_owner_payouts`,
+  `campaign_owner_transfers`, `platform_fees`, `campaign_platform_fees`,
+  `campaign_processor_fees`, `ledger_entries`, `donation_receipts`,
+  `processor_accounts`. **These are gated on Stripe test keys (owner), not on
+  seeding** — seeding them would fabricate financial records, which is the
+  opposite of useful.
+- **inbox / request queues** — `contact_messages`, `privacy_requests`,
+  `commission_requests`, `beneficiary_invites`, `support_notes`, `admin_notes`,
+  `direct_messages`, `message_thread_state`, `donor_message_likes`
+
+### ~25 tables ARE a genuine gap — features whose UI ships with no data
+
+These have shipped UI and would render an empty state to anyone opening them:
+
+`auction_items`, `auction_bids`, `membership_tiers`, `member_subscriptions`,
+`exclusive_posts`, `creator_tips`, `digital_products`, `product_orders`,
+`giving_days`, `livestreams`, `reward_tiers`, `donor_segments`,
+`donor_segment_members`, `marketing_segment_members`, `email_campaigns`,
+`sms_campaigns`, `marketing_forms`, `marketing_goals`, `marketing_opportunities`,
+`marketing_campaign_plans`, `marketing_campaign_plan_assets`, `marketing_consent`,
+`marketing_referrals`, `marketing_suppression_list`, `marketing_utm_links`
+
+⚠️ **`auction_items` and `auction_bids` are empty**, while this file carries
+"✅ SHIPPED — Charity Auctions". Both statements are true — the code shipped —
+but the feature has **no data in production**, so anyone opening it sees an empty
+state. That is the gap between "shipped" and "works", and it is exactly the
+distinction this tracker keeps having to relearn.
+
+### What this contradicts
+
+The goal table further down still reads "≥100 seed records/feature ✅ done — 73
+non-empty tables, every feature ≥100". The live count is **83 non-empty of 155**,
+and 25 feature tables are empty. The old figure was measured on the seed suite's
+own report plus two spot-checked endpoints, not on a full count.
+
+**Not blocked on the owner.** Seeding these is `supabase/seeds/*.sql` work against
+a reachable database — the same egress that this session used to take this count.
 
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
