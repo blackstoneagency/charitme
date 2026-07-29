@@ -1787,6 +1787,48 @@ _Also worth keeping from that PR's own write-up:_ it caught a **regression** in 
 stopped being true. That is the same lesson as everything else in this file: a past
 green result is not a current one.
 
+## ✅ §7 org_id scoping SHIPPED — `20260814000000_marketing_org_scoping.sql`
+
+Follows the `organizations`/`brands` foundation. Adds a **nullable `org_id`** plus a
+partial index to the **15 root** `marketing_*` tables. Validated by replaying all
+migrations into a real Postgres; `schema.sql` regenerated (155 tables).
+
+**Deliberately NOT done, and this matters:** this does not isolate tenants on its
+own. Every `marketing_*` table is service-role-only (RLS on, no anon/authenticated
+policies), so today `org_id` is a scoping **key**, not an enforcement mechanism.
+Isolation arrives with tenant-facing policies, when there is a tenant-facing UI to
+need them. Calling multi-tenancy "done" because a column exists would be exactly the
+kind of claim this file keeps having to retract.
+
+**Nullable, on purpose.** `NOT NULL` fails outright — rows predate tenancy and there
+is no correct org to assign them to. Inventing a "default org" would silently
+attribute real marketing history to a tenant that never owned it. **NULL means
+pre-tenancy / platform-owned** — a readable state, not missing data. Once the owner
+designates a home organization, a follow-up can `UPDATE ... WHERE org_id IS NULL`
+and only then tighten to `NOT NULL`.
+
+**Roots only — the six child tables deliberately have no `org_id`:**
+`marketing_identities`, `_segment_members`, `_campaign_recipients`,
+`_automation_runs`, `_campaign_plan_assets`, `_form_submissions`. Denormalising onto
+them is the conventional move for RLS speed and the wrong trade here: a child column
+can **drift** from its parent's, and a child whose `org_id` disagrees with its parent
+is a cross-tenant leak that reads as correct in every query trusting the child. One
+authoritative owner per record. Denormalise later only with a trigger or generated
+column keeping them in lockstep.
+
+`__tests__/marketing-org-scoping.test.ts` pins **both** directions — 24 assertions.
+A test checking only the roots would pass happily while someone "helpfully"
+denormalised onto the children. **Mutation-tested:** injecting `org_id` into
+`marketing_segment_members` fails at exactly that assertion.
+
+⚠️ **Collision caught:** I first numbered this `20260808000000`, which another agent's
+`demo_data_labeling` already held. `migration-integrity.test.ts` failed on the
+duplicate — renamed to `20260814000000` (after master's `20260813` tip). Worth noting
+as the concrete "do not step on each other" hazard: pick a version **after the current
+tip**, not a plausible-looking date.
+
+**1836 tests, typecheck 0, lint 0, build green.**
+
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
