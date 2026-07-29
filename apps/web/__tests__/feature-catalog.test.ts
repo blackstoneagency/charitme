@@ -205,120 +205,48 @@ describe('the public features page does not hardcode parity', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Peer-to-peer was claimed for three competitors while unbuilt.
+// Peer-to-peer SHIPPED on 2026-07-29, and this block used to assert the opposite.
 //
-// `peer_fundraisers` is a purpose-built table — parent_campaign_id, slug, goal,
-// raised — holding 240 rows in production with ZERO `.from()` call sites, and
-// there is no alternate implementation (nothing in app code references a parent
-// campaign). Team fundraising is a different feature and IS wired
-// (`team_members`), so the two must not be conflated.
+// It was written when `peer_fundraisers` held 240 production rows with ZERO
+// `.from()` call sites, and it correctly forced the three competitor entries to
+// stay `planned`. Both halves now exist: the read path (the Fundraising team
+// section on the campaign page) and the write path
+// (POST /api/campaigns/[id]/peer-fundraisers).
 //
-// The module-level honesty check could not catch this: it flags a module only
-// when NONE of its tables are wired, and nonprofit-suite has most of them. That
-// is what `scripts/audit-orphan-tables.mjs` exists to find — it crosses live row
-// counts against real call sites.
+// So the guard is inverted rather than deleted. The catalog had gone stale in the
+// UNDER-claiming direction — every other check in this file catches a feature
+// claiming more than ships, and nothing caught one claiming less, which is exactly
+// why three entries sat wrong after the feature landed.
+//
+// Team fundraising remains a different feature backed by `team_members`; the two
+// must still not be conflated.
 // ─────────────────────────────────────────────────────────────────────────────
-describe('peer-to-peer is not counted as shipped', () => {
+describe('peer-to-peer ships, so it is counted and not marked planned', () => {
+  const WEB = join(__dirname, '..');
   const p2p = PLATFORM_MODULES.flatMap((m) =>
     m.features.filter((f) => /peer/i.test(f.name)).map((f) => ({ module: m, feature: f })),
   );
 
   it('finds the peer-to-peer entries', () => {
-    // Non-vacuity: if the names change, this test must fail rather than pass empty.
+    // Non-vacuity: if the names change, this must fail rather than pass empty.
     expect(p2p.length).toBe(3);
     expect(p2p.map((x) => x.feature.competitor).sort()).toEqual(['Classy', 'Donorbox', 'Mightycause']);
   });
 
-  it('marks every one of them planned', () => {
+  it('none of them is marked planned', () => {
     for (const { feature } of p2p) {
-      expect(feature.planned, `${feature.competitor}:${feature.name}`).toBe(true);
+      expect(feature.planned, `${feature.competitor}:${feature.name}`).not.toBe(true);
     }
   });
 
-  it('keeps them out of the built count', () => {
-    const byName = new Map(getFeatureCoverage().competitors.map((c) => [c.name, c]));
-    for (const competitor of ['Donorbox', 'Classy', 'Mightycause']) {
-      expect(byName.get(competitor)!.fullParity, competitor).toBe(false);
-    }
-  });
-
-  it('does not confuse peer fundraising with team fundraising', () => {
-    // Team fundraising is genuinely built on `team_members`; only P2P is unbuilt.
-    const team = PLATFORM_MODULES.flatMap((m) => m.features).filter((f) => /team/i.test(f.name));
-    expect(team.length).toBeGreaterThan(0);
-    for (const f of team) expect(f.planned, f.name).not.toBe(true);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GoFundMe parity: verify "built" against the code, not just the flag.
-//
-// The catalog's `planned` flag is maintained by hand — its own doc says to
-// clear it "only when a real route, API and UI read those tables". The tests
-// above check the ARITHMETIC of built-vs-mapped; none check that a feature
-// marked built actually exists. So deleting ShareButtons.tsx would leave
-// /features advertising Social Sharing as shipped, with every count still
-// green.
-//
-// Audited 2026-07-28: all ten GoFundMe parity entries are genuinely built.
-// (Two earlier "missing" readings were my own wrong guesses at names — donor
-// comments live in `donor_messages`, not `campaign_comments`. Guessing an
-// identifier and reporting absence is how a working feature gets declared
-// broken, so the evidence below is by real path.)
-// ─────────────────────────────────────────────────────────────────────────────
-describe('every GoFundMe parity feature has code behind it', () => {
-  const WEB = join(__dirname, '..');
-  const exists = (p: string) => existsSync(join(WEB, p));
-
-  // Feature name in the catalog → a file that would not exist if it were unbuilt.
-  const EVIDENCE: Record<string, string[]> = {
-    'Campaign Creation Wizard': ['app/create/page.tsx', 'lib/wizard-steps.ts'],
-    'Donation Checkout':        ['app/api/donations/route.ts', 'lib/stripe.ts'],
-    'Social Sharing':           ['app/campaigns/[slug]/ShareButtons.tsx'],
-    'Progress Bar':             ['components/ui.tsx'],
-    'Campaign Updates':         ['app/dashboard/updates/page.tsx'],
-    'Beneficiary Setup':        ['app/beneficiary/accept/page.tsx'],
-    'Mobile Experience':        ['scripts/audit-responsive.mjs'],
-    'Donor Comments':           ['app/campaigns/[slug]/CommentForm.tsx', 'app/campaigns/[slug]/CommentsList.tsx'],
-    'Trust & Safety':           ['app/trust-safety/page.tsx', 'lib/trust-signals.ts'],
-    'Organizer Dashboard':      ['app/dashboard/page.tsx'],
-  };
-
-  // REQUIRED_COMPETITOR_FEATURES is a list of "Competitor:Name" STRINGS; the
-  // objects live on the modules, so the entries come from there.
-  const gofundme = PLATFORM_MODULES.flatMap((m) =>
-    m.features.filter((f) => f.competitor === 'GoFundMe').map((f) => ({ ...f, module: m })),
-  );
-
-  it('is reading real entries, not an empty list', () => {
-    // Guards the assertions below against silently passing on nothing — the
-    // first version of this block filtered the string array and matched zero.
-    expect(gofundme.length).toBe(10);
-  });
-
-  it('tracks exactly the ten GoFundMe features the evidence map covers', () => {
-    expect(gofundme.map((f) => f.name).sort()).toEqual(Object.keys(EVIDENCE).sort());
-  });
-
-  it('has real code for every GoFundMe feature not marked planned', () => {
-    for (const feature of gofundme) {
-      if (feature.planned) continue;
-      for (const path of EVIDENCE[feature.name]) {
-        expect(exists(path), `"${feature.name}" is claimed built but ${path} is missing`).toBe(true);
-      }
-    }
-  });
-
-  it('claims no GoFundMe feature as planned-but-unbuilt right now', () => {
-    // Pins the audited state. If a future entry is added as planned, this fails
-    // and forces the parity claim on /features to be re-stated honestly.
-    expect(gofundme.filter((f) => f.planned).map((f) => f.name)).toEqual([]);
-  });
-
-  it('backs donor comments with the table the code actually reads', () => {
-    // donor_messages, NOT campaign_comments — the name that made this look absent.
-    const form = readFileSync(join(WEB, 'app/campaigns/[slug]/CommentForm.tsx'), 'utf8');
-    const list = readFileSync(join(WEB, 'app/campaigns/[slug]/CommentsList.tsx'), 'utf8');
-    expect(form + list).toMatch(/donor_messages|\/api\/campaigns\//);
+  it('the code backing the claim actually exists — both halves', () => {
+    // The claim is only honest while these do. If either is deleted, this fails and
+    // the `planned` flags must go back rather than the parity number staying wrong.
+    const reader = readFileSync(join(WEB, 'app', 'campaigns', '[slug]', 'page.tsx'), 'utf8');
+    expect(reader).toMatch(/\.from\(\s*'peer_fundraisers'\s*\)/);
+    expect(existsSync(join(WEB, 'app', 'campaigns', '[slug]', 'TeamFundraisers.tsx'))).toBe(true);
+    expect(
+      existsSync(join(WEB, 'app', 'api', 'campaigns', '[id]', 'peer-fundraisers', 'route.ts')),
+    ).toBe(true);
   });
 });
