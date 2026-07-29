@@ -579,6 +579,34 @@ $$;
 
 
 --
+-- Name: sync_donor_message_anonymity(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.sync_donor_message_anonymity() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog', 'public'
+    AS $$
+begin
+  if tg_op = 'INSERT' then
+    if new.anonymous or new.visibility = 'anonymous' then
+      new.anonymous := true;
+      new.visibility := 'anonymous';
+    else
+      new.anonymous := false;
+      new.visibility := 'public';
+    end if;
+  elsif new.anonymous is distinct from old.anonymous then
+    new.visibility := case when new.anonymous then 'anonymous' else 'public' end;
+  elsif new.visibility is distinct from old.visibility then
+    new.anonymous := new.visibility = 'anonymous';
+  end if;
+
+  return new;
+end;
+$$;
+
+
+--
 -- Name: volunteer_hours_guard_verification(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1969,7 +1997,8 @@ CREATE TABLE public.donor_messages (
     donor_id uuid,
     message text NOT NULL,
     visibility text DEFAULT 'public'::text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    anonymous boolean DEFAULT false NOT NULL
 );
 
 
@@ -2484,7 +2513,8 @@ CREATE TABLE public.marketing_audit_logs (
     entity text NOT NULL,
     entity_id uuid,
     detail jsonb DEFAULT '{}'::jsonb NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    org_id uuid
 );
 
 
@@ -2518,7 +2548,8 @@ CREATE TABLE public.marketing_automations (
     last_run_at timestamp with time zone,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    org_id uuid
 );
 
 
@@ -2561,6 +2592,7 @@ CREATE TABLE public.marketing_campaign_plans (
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    org_id uuid,
     CONSTRAINT marketing_cplans_source_chk CHECK ((source = ANY (ARRAY['generated'::text, 'manual'::text]))),
     CONSTRAINT marketing_cplans_status_chk CHECK ((status = ANY (ARRAY['draft'::text, 'in_review'::text, 'approved'::text, 'archived'::text])))
 );
@@ -2606,7 +2638,8 @@ CREATE TABLE public.marketing_campaigns (
     revenue_cents bigint DEFAULT 0 NOT NULL,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    org_id uuid
 );
 
 
@@ -2620,7 +2653,8 @@ CREATE TABLE public.marketing_consent (
     channel text NOT NULL,
     granted boolean NOT NULL,
     source text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    org_id uuid
 );
 
 
@@ -2657,7 +2691,8 @@ CREATE TABLE public.marketing_contacts (
     status text DEFAULT 'active'::text NOT NULL,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    org_id uuid
 );
 
 
@@ -2676,7 +2711,8 @@ CREATE TABLE public.marketing_email_templates (
     is_system boolean DEFAULT false NOT NULL,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    org_id uuid
 );
 
 
@@ -2699,7 +2735,8 @@ CREATE TABLE public.marketing_events (
     url text,
     device text,
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    org_id uuid
 );
 
 
@@ -2730,7 +2767,8 @@ CREATE TABLE public.marketing_forms (
     submission_count integer DEFAULT 0 NOT NULL,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    org_id uuid
 );
 
 
@@ -2764,6 +2802,7 @@ CREATE TABLE public.marketing_goals (
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    org_id uuid,
     CONSTRAINT marketing_goals_autonomy_chk CHECK (((autonomy_level >= 1) AND (autonomy_level <= 4))),
     CONSTRAINT marketing_goals_budget_cents_check CHECK (((budget_cents IS NULL) OR (budget_cents >= 0))),
     CONSTRAINT marketing_goals_confidence_chk CHECK (((confidence IS NULL) OR ((confidence >= (0)::numeric) AND (confidence <= (1)::numeric)))),
@@ -2815,6 +2854,7 @@ CREATE TABLE public.marketing_opportunities (
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    org_id uuid,
     CONSTRAINT marketing_opportunities_cost_cents_check CHECK (((cost_cents IS NULL) OR (cost_cents >= 0))),
     CONSTRAINT marketing_opps_confidence_chk CHECK (((confidence IS NULL) OR ((confidence >= (0)::numeric) AND (confidence <= (1)::numeric)))),
     CONSTRAINT marketing_opps_effort_chk CHECK ((effort = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text]))),
@@ -2838,7 +2878,8 @@ CREATE TABLE public.marketing_referrals (
     signup_count integer DEFAULT 0 NOT NULL,
     donation_count integer DEFAULT 0 NOT NULL,
     revenue_cents bigint DEFAULT 0 NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    org_id uuid
 );
 
 
@@ -2866,7 +2907,8 @@ CREATE TABLE public.marketing_segments (
     member_count integer DEFAULT 0 NOT NULL,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    org_id uuid
 );
 
 
@@ -2879,7 +2921,8 @@ CREATE TABLE public.marketing_suppression_list (
     email text,
     phone text,
     reason text DEFAULT 'unsubscribed'::text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    org_id uuid
 );
 
 
@@ -2902,7 +2945,8 @@ CREATE TABLE public.marketing_utm_links (
     revenue_cents bigint DEFAULT 0 NOT NULL,
     created_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    campaign_id uuid
+    campaign_id uuid,
+    org_id uuid
 );
 
 
@@ -3365,8 +3409,11 @@ CREATE TABLE public.recurring_donations (
     next_bill_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    tip_cents bigint DEFAULT 0 NOT NULL,
+    anonymous boolean DEFAULT false NOT NULL,
     CONSTRAINT recurring_donations_cadence_check CHECK ((cadence = ANY (ARRAY['weekly'::text, 'monthly'::text, 'quarterly'::text, 'annual'::text]))),
-    CONSTRAINT recurring_donations_status_check CHECK ((status = ANY (ARRAY['active'::text, 'paused'::text, 'cancelled'::text, 'past_due'::text])))
+    CONSTRAINT recurring_donations_status_check CHECK ((status = ANY (ARRAY['active'::text, 'paused'::text, 'cancelled'::text, 'past_due'::text]))),
+    CONSTRAINT recurring_donations_tip_cents_check CHECK ((tip_cents >= 0))
 );
 
 
@@ -5891,6 +5938,20 @@ CREATE INDEX donation_forms_nonprofit_id_idx ON public.donation_forms USING btre
 
 
 --
+-- Name: donation_receipts_donation_id_unique; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX donation_receipts_donation_id_unique ON public.donation_receipts USING btree (donation_id);
+
+
+--
+-- Name: donation_receipts_guest_email_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX donation_receipts_guest_email_idx ON public.donation_receipts USING btree (donor_email, created_at DESC) WHERE ((donor_id IS NULL) AND (donor_email IS NOT NULL));
+
+
+--
 -- Name: donations_campaign_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6395,6 +6456,34 @@ CREATE INDEX ledger_review_status_idx ON public.transparency_ledger_items USING 
 
 
 --
+-- Name: marketing_audit_logs_org_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX marketing_audit_logs_org_id_idx ON public.marketing_audit_logs USING btree (org_id) WHERE (org_id IS NOT NULL);
+
+
+--
+-- Name: marketing_automations_org_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX marketing_automations_org_id_idx ON public.marketing_automations USING btree (org_id) WHERE (org_id IS NOT NULL);
+
+
+--
+-- Name: marketing_campaign_plans_org_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX marketing_campaign_plans_org_id_idx ON public.marketing_campaign_plans USING btree (org_id) WHERE (org_id IS NOT NULL);
+
+
+--
+-- Name: marketing_campaigns_org_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX marketing_campaigns_org_id_idx ON public.marketing_campaigns USING btree (org_id) WHERE (org_id IS NOT NULL);
+
+
+--
 -- Name: marketing_campaigns_status_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6409,10 +6498,24 @@ CREATE INDEX marketing_consent_contact_idx ON public.marketing_consent USING btr
 
 
 --
+-- Name: marketing_consent_org_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX marketing_consent_org_id_idx ON public.marketing_consent USING btree (org_id) WHERE (org_id IS NOT NULL);
+
+
+--
 -- Name: marketing_contacts_email_uq; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX marketing_contacts_email_uq ON public.marketing_contacts USING btree (lower(email)) WHERE (email IS NOT NULL);
+
+
+--
+-- Name: marketing_contacts_org_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX marketing_contacts_org_id_idx ON public.marketing_contacts USING btree (org_id) WHERE (org_id IS NOT NULL);
 
 
 --
@@ -6451,10 +6554,24 @@ CREATE INDEX marketing_contacts_user_idx ON public.marketing_contacts USING btre
 
 
 --
+-- Name: marketing_email_templates_org_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX marketing_email_templates_org_id_idx ON public.marketing_email_templates USING btree (org_id) WHERE (org_id IS NOT NULL);
+
+
+--
 -- Name: marketing_events_contact_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX marketing_events_contact_idx ON public.marketing_events USING btree (contact_id, created_at DESC);
+
+
+--
+-- Name: marketing_events_org_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX marketing_events_org_id_idx ON public.marketing_events USING btree (org_id) WHERE (org_id IS NOT NULL);
 
 
 --
@@ -6465,10 +6582,31 @@ CREATE INDEX marketing_events_type_idx ON public.marketing_events USING btree (e
 
 
 --
+-- Name: marketing_forms_org_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX marketing_forms_org_id_idx ON public.marketing_forms USING btree (org_id) WHERE (org_id IS NOT NULL);
+
+
+--
+-- Name: marketing_goals_org_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX marketing_goals_org_id_idx ON public.marketing_goals USING btree (org_id) WHERE (org_id IS NOT NULL);
+
+
+--
 -- Name: marketing_identities_contact_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX marketing_identities_contact_idx ON public.marketing_identities USING btree (contact_id);
+
+
+--
+-- Name: marketing_opportunities_org_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX marketing_opportunities_org_id_idx ON public.marketing_opportunities USING btree (org_id) WHERE (org_id IS NOT NULL);
 
 
 --
@@ -6479,10 +6617,24 @@ CREATE INDEX marketing_recipients_campaign_idx ON public.marketing_campaign_reci
 
 
 --
+-- Name: marketing_referrals_org_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX marketing_referrals_org_id_idx ON public.marketing_referrals USING btree (org_id) WHERE (org_id IS NOT NULL);
+
+
+--
 -- Name: marketing_runs_automation_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX marketing_runs_automation_idx ON public.marketing_automation_runs USING btree (automation_id, created_at DESC);
+
+
+--
+-- Name: marketing_segments_org_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX marketing_segments_org_id_idx ON public.marketing_segments USING btree (org_id) WHERE (org_id IS NOT NULL);
 
 
 --
@@ -6507,10 +6659,24 @@ CREATE UNIQUE INDEX marketing_suppression_email_uq ON public.marketing_suppressi
 
 
 --
+-- Name: marketing_suppression_list_org_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX marketing_suppression_list_org_id_idx ON public.marketing_suppression_list USING btree (org_id) WHERE (org_id IS NOT NULL);
+
+
+--
 -- Name: marketing_utm_links_campaign_id_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX marketing_utm_links_campaign_id_key ON public.marketing_utm_links USING btree (campaign_id) WHERE (campaign_id IS NOT NULL);
+
+
+--
+-- Name: marketing_utm_links_org_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX marketing_utm_links_org_id_idx ON public.marketing_utm_links USING btree (org_id) WHERE (org_id IS NOT NULL);
 
 
 --
@@ -7064,6 +7230,13 @@ CREATE TRIGGER donations_increment_campaign_stats AFTER INSERT ON public.donatio
 --
 
 CREATE TRIGGER donor_crm_contacts_set_updated_at BEFORE UPDATE ON public.donor_crm_contacts FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: donor_messages donor_messages_sync_anonymity; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER donor_messages_sync_anonymity BEFORE INSERT OR UPDATE OF anonymous, visibility ON public.donor_messages FOR EACH ROW EXECUTE FUNCTION public.sync_donor_message_anonymity();
 
 
 --
@@ -9256,6 +9429,14 @@ ALTER TABLE ONLY public.marketing_audit_logs
 
 
 --
+-- Name: marketing_audit_logs marketing_audit_logs_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_audit_logs
+    ADD CONSTRAINT marketing_audit_logs_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
 -- Name: marketing_automation_runs marketing_automation_runs_automation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9277,6 +9458,14 @@ ALTER TABLE ONLY public.marketing_automation_runs
 
 ALTER TABLE ONLY public.marketing_automations
     ADD CONSTRAINT marketing_automations_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: marketing_automations marketing_automations_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_automations
+    ADD CONSTRAINT marketing_automations_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
 
 
 --
@@ -9304,6 +9493,14 @@ ALTER TABLE ONLY public.marketing_campaign_plans
 
 
 --
+-- Name: marketing_campaign_plans marketing_campaign_plans_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_campaign_plans
+    ADD CONSTRAINT marketing_campaign_plans_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
 -- Name: marketing_campaign_recipients marketing_campaign_recipients_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9328,6 +9525,14 @@ ALTER TABLE ONLY public.marketing_campaigns
 
 
 --
+-- Name: marketing_campaigns marketing_campaigns_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_campaigns
+    ADD CONSTRAINT marketing_campaigns_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
 -- Name: marketing_campaigns marketing_campaigns_segment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9344,11 +9549,27 @@ ALTER TABLE ONLY public.marketing_consent
 
 
 --
+-- Name: marketing_consent marketing_consent_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_consent
+    ADD CONSTRAINT marketing_consent_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
 -- Name: marketing_contacts marketing_contacts_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.marketing_contacts
     ADD CONSTRAINT marketing_contacts_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: marketing_contacts marketing_contacts_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_contacts
+    ADD CONSTRAINT marketing_contacts_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
 
 
 --
@@ -9368,11 +9589,27 @@ ALTER TABLE ONLY public.marketing_email_templates
 
 
 --
+-- Name: marketing_email_templates marketing_email_templates_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_email_templates
+    ADD CONSTRAINT marketing_email_templates_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
 -- Name: marketing_events marketing_events_contact_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.marketing_events
     ADD CONSTRAINT marketing_events_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES public.marketing_contacts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: marketing_events marketing_events_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_events
+    ADD CONSTRAINT marketing_events_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
 
 
 --
@@ -9400,11 +9637,27 @@ ALTER TABLE ONLY public.marketing_forms
 
 
 --
+-- Name: marketing_forms marketing_forms_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_forms
+    ADD CONSTRAINT marketing_forms_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
 -- Name: marketing_goals marketing_goals_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.marketing_goals
     ADD CONSTRAINT marketing_goals_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: marketing_goals marketing_goals_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_goals
+    ADD CONSTRAINT marketing_goals_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
 
 
 --
@@ -9440,6 +9693,22 @@ ALTER TABLE ONLY public.marketing_opportunities
 
 
 --
+-- Name: marketing_opportunities marketing_opportunities_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_opportunities
+    ADD CONSTRAINT marketing_opportunities_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
+-- Name: marketing_referrals marketing_referrals_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_referrals
+    ADD CONSTRAINT marketing_referrals_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
 -- Name: marketing_referrals marketing_referrals_referrer_contact_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9472,6 +9741,22 @@ ALTER TABLE ONLY public.marketing_segments
 
 
 --
+-- Name: marketing_segments marketing_segments_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_segments
+    ADD CONSTRAINT marketing_segments_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
+-- Name: marketing_suppression_list marketing_suppression_list_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_suppression_list
+    ADD CONSTRAINT marketing_suppression_list_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
+
+
+--
 -- Name: marketing_utm_links marketing_utm_links_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9485,6 +9770,14 @@ ALTER TABLE ONLY public.marketing_utm_links
 
 ALTER TABLE ONLY public.marketing_utm_links
     ADD CONSTRAINT marketing_utm_links_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: marketing_utm_links marketing_utm_links_org_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_utm_links
+    ADD CONSTRAINT marketing_utm_links_org_id_fkey FOREIGN KEY (org_id) REFERENCES public.organizations(id) ON DELETE CASCADE;
 
 
 --
