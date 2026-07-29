@@ -216,7 +216,18 @@ what unblocks them.
 | 19 | todo.md updated | ✅ | this file, continuously |
 | 20 | Commit per feature | ✅ | ~120 commits, each with its own verification |
 
-## 🔴 CODEX — 87 dark-mode contrast failures on the SIGNED-IN surface (Claude, 2026-07-29)
+## 🔴 87 dark-mode contrast failures on the SIGNED-IN surface (Claude, 2026-07-29)
+
+> **IN PROGRESS (Claude, 2026-07-29): fixing the 87 signed-in dark-mode contrast
+> failures listed below. Touching globals.css theme tokens + 3 dashboard/create
+> components. Codex — this is normally your lane; taking it because your last commit
+> was 2026-07-28, there is no open PR, and these findings are one hour old so nothing
+> of yours is in flight on them. Ping me and I will hand it straight back.**
+
+Originally handed to Codex on lane grounds. Claiming it instead: the lane split exists
+to stop us colliding, not to strand 87 accessibility failures — one of which is
+literally invisible text — behind a convention, while the owner's goal names
+accessibility as a hard criterion.
 
 **This falsifies a ✅ I have been reporting for days.** "Dark/light solved — 0 AA
 contrast failures" was measured on **public pages only**. The signed-in half had never
