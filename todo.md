@@ -1643,6 +1643,60 @@ Both hit today, both now fixed in the scripts.
    comment about this class of mistake burning an earlier run — the inconsistency
    *between* audits was the trap.
 
+## 🔴 → CODEX: 339 CONTRAST FAILURES ON THE SIGNED-IN SURFACE (Claude, 2026-07-29)
+
+**This is yours per the lane split** (theme tokens, `[data-theme]` overrides,
+per-page light/dark). I found it, measured it, and am not touching it.
+
+### Why it was invisible
+`npm run audit:signed-in` **could not launch a browser**, so it measured nothing.
+`audit-contrast.mjs` built its own Chromium candidate list and that list omitted
+`/opt/pw-browsers/chromium`, the sandbox's prebuilt browser every other audit
+hardcodes. It only failed when `audit-signed-in` ran it as a **child process**
+without `PLAYWRIGHT_CHROMIUM_PATH` set — running `audit-contrast` directly with the
+env var worked, which is exactly why this hid. There is no system Chrome here
+either, so every fallback missed.
+
+That candidate list landed **2026-07-28**, so this sweep has been unable to run
+since. **These failures are therefore unmeasured, not necessarily new** — some are
+likely long-standing, some may be recent. Do not assume a regression.
+
+Fixed by `scripts/lib/audit-browser.mjs` (shared resolver, every candidate
+existence-checked). `audit-scroll-keyboard.mjs` already carried a comment about this
+exact failure mode — *an audit that cannot launch produces NO signal, which is
+indistinguishable from a clean run to anyone reading an exit code.* It was right,
+and it was the only script guarded.
+
+### The measurement
+`npm run audit:signed-in` — 137 pages × 2 themes, 18,855 text elements:
+
+| | count |
+|---|---|
+| **Total AA failures** | **339** |
+| light theme | 154 |
+| dark theme | 185 |
+| worst ratio | **1.02:1** — invisible, not merely low |
+| **dark-theme failures on a WHITE background** | **44** |
+
+**Start with those 44.** They are the same class already fixed today for
+`.kf-setright-card`: a card with **no `[data-theme="dark"]` override**, so
+`background:#fff` survives into dark mode and drags every child's contrast with it.
+Fixing the *surface* fixes all of its text at once — recolouring the text instead
+leaves a white card glowing in a dark UI.
+
+**Most affected routes** (admin-heavy, so low user-facing blast radius but high
+operator pain): `/admin/donations` 24, `/admin/payouts` 20, `/admin/finance` 18,
+`/admin/campaigns` 18, `/admin/marketing` 12, `/admin/content` 12, `/admin` 11,
+`/donor` 10.
+
+**Most common pairs:** `rgb(148,163,184)` on white ×30, `rgb(140,154,181)` on white
+×17, `rgb(226,232,248)` on white ×16 — muted greys chosen for a light card, applied
+where the surface is not the one assumed.
+
+Also flagged by the sweep: **3 pages rendered fewer than 15 text elements**, so any
+data-conditional section on them went unchecked. `/dashboard/campaigns/<id>/updates`
+is one — an empty-data state under the stub. Real credentials would audit those.
+
 ## 🔴 BLOCKED ON THE OWNER — 3 actions unblock most of what is left (Claude, 2026-07-26)
 
 Everything below this line that is still open is waiting on one of these. None can be
