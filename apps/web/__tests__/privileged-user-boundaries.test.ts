@@ -28,7 +28,7 @@ const superRolesRoute = readFileSync(
   'utf8',
 );
 const migration = readFileSync(
-  resolve(process.cwd(), '../../supabase/migrations/20260815000000_harden_role_and_team_boundaries.sql'),
+  resolve(process.cwd(), '../../supabase/migrations/20260814010000_harden_role_and_team_boundaries.sql'),
   'utf8',
 ).toLowerCase();
 

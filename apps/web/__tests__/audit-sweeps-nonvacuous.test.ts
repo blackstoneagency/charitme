@@ -65,6 +65,10 @@ const signedInSource = readFileSync(
   path.join(WEB_ROOT, 'scripts', 'audit-signed-in.mjs'),
   'utf8',
 );
+const authedSource = readFileSync(
+  path.join(WEB_ROOT, 'scripts', 'audit-authed.mjs'),
+  'utf8',
+);
 const packageJson = JSON.parse(
   readFileSync(path.join(WEB_ROOT, 'package.json'), 'utf8'),
 ) as { scripts: Record<string, string> };
@@ -99,5 +103,13 @@ describe('signed-in audit integrity', () => {
   it('exposes the complete build-and-sweep command', () => {
     expect(packageJson.scripts['audit:signed-in']).toContain('--build');
     expect(packageJson.scripts['audit:signed-in']).toContain('--strict-gradients');
+  });
+
+  it('makes the live authenticated axe sweep fail on broken pages or theme drift', () => {
+    expect(authedSource).toContain('chromium.executablePath()');
+    expect(authedSource).toContain('response.status() >= 400');
+    expect(authedSource).toContain('activeTheme !== theme');
+    expect(authedSource).toContain('errors++');
+    expect(authedSource).toContain('if (errors > 0)');
   });
 });

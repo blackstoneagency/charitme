@@ -18,6 +18,9 @@ declare
     'impact_plans','impact_plan_items','impact_updates','impact_evidence','impact_metrics',
     'challenges','challenge_participants','user_badges',
     'donor_messages','recurring_donations','refunds','payouts',
+    -- sponsors was absent from this list, which is why its shortfall (50 of 120)
+    -- went unreported by the project's own coverage check.
+    'sponsors',
     'verification_documents','risk_flags','tax_receipts','business_leads',
     'creator_profiles','membership_tiers','member_subscriptions','exclusive_posts',
     'creator_tips','digital_products','product_orders','auction_items','auction_bids',

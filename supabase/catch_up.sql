@@ -10432,7 +10432,7 @@ comment on column public.marketing_contacts.org_id is
   'Owning organization. NULL = pre-tenancy / platform-owned, not missing data. See 20260814000000.';
 
 
--- ============ 20260815000000_harden_role_and_team_boundaries.sql ============
+-- ============ 20260814010000_harden_role_and_team_boundaries.sql ============
 create or replace function public.is_admin()
 returns boolean
 language sql

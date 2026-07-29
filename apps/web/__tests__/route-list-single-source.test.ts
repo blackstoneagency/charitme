@@ -92,7 +92,15 @@ describe('public route list has a single source of truth', () => {
       // A file that READS the shared list is anchored to it and cannot drift
       // silently — a curated subset is legitimate provided every entry is
       // validated against the shared file (see scripts/audit-scroll-keyboard.mjs).
-      if (source.includes('public-routes.json') || source.includes('./public-routes')) continue;
+      // `authed-routes.json` counts too. It is a second SHARED list, not a
+      // second hardcoded one: the signed-in surface is a different set from the
+      // anonymous one (public routes must not redirect, authed routes must), so
+      // one file cannot express both. What this guard forbids is a private copy.
+      if (
+        source.includes('public-routes.json') ||
+        source.includes('./public-routes') ||
+        source.includes('authed-routes.json')
+      ) continue;
       const count = countRouteLiterals(source);
       if (count >= MIN_ROUTES_TO_COUNT_AS_A_LIST) offenders.push(`${rel} (${count} routes)`);
     }
@@ -135,6 +143,16 @@ describe('public route list has a single source of truth', () => {
     expect(data.authGated.routes).toContain('/privacy-center');
     expect(data.public).toContain('/create/choose-path');
     expect(data.public).toContain('/beneficiary/accept');
+
+    const authedData = JSON.parse(
+      readFileSync(path.join(WEB_ROOT, 'e2e', 'authed-routes.json'), 'utf8'),
+    ) as { groups: Record<string, string[]> };
+    const authedRoutes = Object.values(authedData.groups).flat();
+    const publicAuthedOverlap = data.public.filter((route) => authedRoutes.includes(route));
+    expect(
+      publicAuthedOverlap,
+      `Routes claimed as both public and login-only: ${publicAuthedOverlap.join(', ')}`,
+    ).toEqual([]);
   });
 });
 
