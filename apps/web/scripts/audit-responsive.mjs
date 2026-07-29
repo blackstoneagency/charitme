@@ -16,9 +16,10 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import { resolveBase } from './lib/audit-base.mjs';
 
-const baseIdx = process.argv.indexOf('--base');
-const BASE = baseIdx > -1 ? process.argv[baseIdx + 1] : 'http://127.0.0.1:3100';
+// Defaults to 3100, unlike its siblings — kept, since callers rely on it.
+const BASE = resolveBase(process.argv, 'http://127.0.0.1:3100');
 
 // Preflight the target before sweeping.
 //

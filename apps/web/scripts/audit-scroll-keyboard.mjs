@@ -18,19 +18,14 @@ import { readFileSync } from 'node:fs';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import { resolveBase } from './lib/audit-base.mjs';
 
 // Accept `--base <url>` like audit-responsive.mjs and audit-web-vitals.mjs, and
 // still accept a bare positional for compatibility. The sweeps used to disagree
 // on this: passing `--base` here made the URL literally "--base", every
 // navigation failed, and the script printed "No keyboard-unreachable scrollable
 // regions" — a green result from zero measurements.
-function parseBase(argv) {
-  const flagIndex = argv.indexOf('--base');
-  if (flagIndex !== -1 && argv[flagIndex + 1]) return argv[flagIndex + 1];
-  const positional = argv.slice(2).find((a) => !a.startsWith('--'));
-  return positional ?? 'http://127.0.0.1:3000';
-}
-const BASE = parseBase(process.argv);
+const BASE = resolveBase(process.argv);
 // Prefer an explicit path, then the sandbox's prebuilt browser. Without a
 // fallback this dies with Playwright's "run npx playwright install" banner,
 // which reads as a setup problem rather than "set PLAYWRIGHT_CHROMIUM_PATH" —

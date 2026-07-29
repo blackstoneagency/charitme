@@ -18,10 +18,11 @@
 import { chromium } from 'playwright';
 import routes from '../e2e/public-routes.json' with { type: 'json' };
 import dataDependent from '../e2e/data-dependent-routes.json' with { type: 'json' };
+import { resolveBase } from './lib/audit-base.mjs';
 
 const list = Array.isArray(routes) ? routes : (routes.routes ?? routes.public ?? []);
 
-const BASE = process.argv[2] || 'http://127.0.0.1:3000';
+const BASE = resolveBase(process.argv);
 const WIDTHS = [320, 390];
 
 // WCAG 2.2 SC 2.5.8 "Target Size (Minimum)", Level AA: 24×24 CSS px. The spec's

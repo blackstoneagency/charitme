@@ -17,8 +17,11 @@
 import { chromium } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import routes from '../e2e/public-routes.json' with { type: 'json' };
+import { resolveBase } from './lib/audit-base.mjs';
 
-const BASE = process.argv[2] || 'http://127.0.0.1:3260';
+// Default kept at 3260 — divergent from its siblings, but changing a default
+// silently repoints anyone's existing invocation. Only the PARSING is unified.
+const BASE = resolveBase(process.argv, 'http://127.0.0.1:3260');
 const list = Array.isArray(routes) ? routes : (routes.routes ?? routes.public ?? []);
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
 let total = 0; const byRule = new Map();

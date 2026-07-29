@@ -23,12 +23,9 @@ import { readFileSync } from 'node:fs';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import { resolveBase } from './lib/audit-base.mjs';
 
-const arg = (name, fallback) => {
-  const i = process.argv.indexOf(name);
-  return i > -1 ? process.argv[i + 1] : fallback;
-};
-const BASE = arg('--base', 'http://127.0.0.1:3000');
+const BASE = resolveBase(process.argv);
 const AS_JSON = process.argv.includes('--json');
 // Prefer an explicit path, then the sandbox's prebuilt browser. Without a
 // fallback this dies with Playwright's "run npx playwright install" banner,

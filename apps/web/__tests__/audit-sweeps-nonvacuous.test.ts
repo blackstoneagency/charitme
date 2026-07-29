@@ -53,7 +53,12 @@ describe('the keyboard sweep cannot report green from zero measurements', () => 
   });
 
   it('still accepts a bare positional base for compatibility', () => {
-    expect(source).toMatch(/argv\.slice\(2\)\.find\(\(a\) => !a\.startsWith\('--'\)\)/);
+    // The inline parser this used to assert on moved into scripts/lib/audit-base.mjs
+    // when all the audits were unified on one resolver. The behaviour it protects —
+    // a bare positional URL still works — is unchanged, and is now covered directly
+    // by __tests__/audit-base-resolution.test.ts rather than by matching source text.
+    expect(source).toMatch(/resolveBase\(/);
+    expect(source).toMatch(/from '\.\/lib\/audit-base\.mjs'/);
   });
 });
 

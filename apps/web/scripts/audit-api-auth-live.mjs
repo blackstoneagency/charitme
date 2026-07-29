@@ -16,11 +16,11 @@
 import { readdirSync, statSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveBase } from './lib/audit-base.mjs';
 
 const WEB_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const API_DIR = join(WEB_ROOT, 'app', 'api');
-const flag = process.argv.indexOf('--base');
-const BASE = flag !== -1 ? process.argv[flag + 1] : 'http://127.0.0.1:3000';
+const BASE = resolveBase(process.argv);
 
 try {
   const probe = await fetch(`${BASE}/api/health`, { signal: AbortSignal.timeout(10_000) });

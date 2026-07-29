@@ -31,18 +31,13 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import { resolveBase } from './lib/audit-base.mjs';
 
 const argv = process.argv;
-const baseIdx = argv.indexOf('--base');
 // Defaults to 3000 (a plain `next start`). The responsive audit defaults to 3100,
 // which has burned a previous run: pointing it at 3000 yields a wall of identical
 // ERR_CONNECTION_REFUSED lines that read like real findings.
-// Also accept a bare positional URL. audit-mobile.mjs and audit-a11y.mjs both take
-// the base that way, and passing `… 3100` here silently ran the whole sweep against
-// 3000 and printed 80 connection errors. It failed loudly, which is right — but the
-// inconsistency between sibling audits is the trap, so this accepts both spellings.
-const positional = argv.slice(2).find((a) => /^https?:\/\//.test(a));
-const BASE = baseIdx > -1 ? argv[baseIdx + 1] : (positional ?? 'http://127.0.0.1:3000');
+const BASE = resolveBase(argv);
 const AS_JSON = argv.includes('--json');
 const onlyIdx = argv.indexOf('--only');
 const ONLY = onlyIdx > -1 ? argv[onlyIdx + 1].split(',') : null;
