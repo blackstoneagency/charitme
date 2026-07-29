@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { checkRateLimitDurable } from '../../../lib/rate-limit-durable';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
+import { canViewCampaignAnalytics } from '../../../lib/campaign-access';
 
 const Schema = z.object({
   campaignId: z.string().uuid(),
@@ -76,7 +77,8 @@ export async function GET(request: NextRequest) {
   const campaignId = searchParams.get('campaignId');
   if (!campaignId) return NextResponse.json({ error: 'campaignId required' }, { status: 400 });
 
-  // Verify ownership or admin
+  // Share conversion analytics include campaign performance data. Viewers may
+  // help share a campaign, but only working team roles can inspect the results.
   const { data: campaign } = await supabaseAdmin
     .from('campaigns')
     .select('user_id')
@@ -85,14 +87,8 @@ export async function GET(request: NextRequest) {
 
   if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
 
-  const { data: profile } = await supabaseAdmin.from('profiles').select('roles').eq('id', user.id).single();
-  const roles: string[] = Array.isArray((profile as { roles?: unknown })?.roles) ? (profile as { roles: string[] }).roles : [];
-  const isAdmin = roles.includes('admin');
-
-  if (campaign.user_id !== user.id && !isAdmin) {
-    // Check team membership
-    const { data: tm } = await supabaseAdmin.from('team_members').select('id').eq('campaign_id', campaignId).eq('user_id', user.id).maybeSingle();
-    if (!tm) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!(await canViewCampaignAnalytics(user, campaignId, campaign.user_id))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const { data: events } = await supabaseAdmin
