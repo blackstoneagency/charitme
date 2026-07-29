@@ -1194,6 +1194,39 @@ measurement.
 It is documented as idempotent — `to_regclass()` + `on conflict do nothing` —
 so the four already-populated tables should not duplicate.
 
+### ✅ VERIFIED it will actually work this time — not "try it and see"
+
+The earlier note said re-running "should" populate them. That was reasoning from
+one fallback. Both failure modes a re-run could hit have now been checked:
+
+**1. Column drift — none.** Every column the file inserts was compared against
+the live table definitions (`__tests__/fixtures/schema-columns.json`, generated
+from the real database). **15 inserts, ~100 columns, 0 drift.** This is the exact
+check that found the stub-fixture bugs (`interval`/`next_charge_at` vs
+`cadence`/`next_bill_at`), so it is not a formality.
+
+**2. Data preconditions — all satisfied.** Each skipped insert is gated on a
+parent array being non-empty, and every parent is populated live:
+
+| gate | requires | live rows |
+|---|---|---|
+| `membership_tiers`, `exclusive_posts`, `creator_tips`, `digital_products` | `v_creators` | `creator_profiles` = **500** |
+| `auction_items` | `n_events > 0` | `fundraising_events` = **240** |
+| `donor_segments`, `giving_days` | `n_nonprofits > 0` | `nonprofit_profiles` = **740** |
+| `livestreams` | table exists only | — |
+
+The rest are a **cascade inside the same `DO` block**: `member_subscriptions`
+needs `v_tiers` (set by `membership_tiers`), `product_orders` needs `v_products`
+(set by `digital_products`), `auction_bids` needs `v_auction` (set by
+`auction_items`). Because it is one transaction with shared variables, all three
+parents populate first and their children follow **in the same run**.
+
+So the only condition that can have failed before is `to_regclass()` — the tables
+not existing yet — and they exist now. **One run of 06 closes all 11.**
+
+That leaves the ~10 marketing tables, which the JS seeders own and which carry the
+same `CHARITME_ALLOW_DEMO_SEED` guard.
+
 
 ## 🔀 MERGED master (73 commits) — and one Codex fix is only HALF right (Claude, 2026-07-28)
 
