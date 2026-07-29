@@ -57,7 +57,7 @@ export default function FeaturesPage() {
             Every feature your donors expect,<br />
             <span style={{ background: 'linear-gradient(90deg, #a78bfa, #e879f9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>plus AI trust no one else has.</span>
           </h1>
-          <p style={{ color: 'rgba(255,255,255,.65)', fontSize: 18, lineHeight: 1.7, maxWidth: 620, margin: '0 0 40px' }}>
+          <p style={{ color: 'rgba(255,255,255,.92)', fontSize: 18, lineHeight: 1.7, maxWidth: 620, margin: '0 0 40px' }}>
             CharitMe combines campaign fundraising, recurring memberships, nonprofit CRM, creator commerce,
             events, auctions, and AI-powered trust in one production-ready platform — with 0% mandatory platform fees.
           </p>
@@ -230,7 +230,7 @@ export default function FeaturesPage() {
           <h2 style={{ fontSize: 'clamp(26px,4vw,46px)', fontWeight: 950, color: '#fff', margin: '0 0 16px' }}>
             Ready to raise more, faster?
           </h2>
-          <p style={{ color: 'rgba(255,255,255,.6)', fontSize: 17, margin: '0 0 36px' }}>
+          <p style={{ color: 'rgba(255,255,255,.92)', fontSize: 17, margin: '0 0 36px' }}>
             Join thousands of fundraisers who trust CharitMe&apos;s AI-powered platform.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 14 }}>

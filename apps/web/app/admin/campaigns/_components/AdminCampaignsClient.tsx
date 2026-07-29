@@ -555,13 +555,13 @@ export default function AdminCampaignsClient({
                 <KFIcon name={m.icon} />
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: isActive ? 'rgba(255,255,255,.75)' : '#94a3b8', letterSpacing: '.04em', marginBottom: 2 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: isActive ? 'rgba(255,255,255,.92)' : '#94a3b8', letterSpacing: '.04em', marginBottom: 2 }}>
                   {m.label.toUpperCase()}
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 700, color: isActive ? '#fff' : '#1a1a2e', lineHeight: 1 }}>
                   {m.value}
                 </div>
-                <div style={{ fontSize: 11, color: isActive ? 'rgba(255,255,255,.7)' : '#94a3b8', marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: isActive ? 'rgba(255,255,255,.92)' : '#94a3b8', marginTop: 2 }}>
                   {m.sub}
                 </div>
               </div>

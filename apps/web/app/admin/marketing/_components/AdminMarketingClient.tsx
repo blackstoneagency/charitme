@@ -126,7 +126,7 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 14, marginBottom: 20 }}>
         <a href="/admin/marketing/command-center" style={{ ...card, display: 'block', textDecoration: 'none', background: 'linear-gradient(135deg,#7035ff,#ec39c3)', borderColor: 'transparent', marginBottom: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,.75)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Marketing OS</div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,.92)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Marketing OS</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginTop: 4 }}>Command Center →</div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,.85)', marginTop: 4 }}>What changed overnight, active goals, and what needs attention — live.</div>
         </a>

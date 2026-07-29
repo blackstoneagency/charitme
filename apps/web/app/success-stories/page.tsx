@@ -152,7 +152,7 @@ export default async function SuccessStoriesPage() {
                 Real people. Real stories.<br />
                 <span style={{ background: 'linear-gradient(90deg, #a78bfa, #e879f9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Real impact.</span>
               </h1>
-              <p style={{ color: 'rgba(255,255,255,.65)', fontSize: 18, lineHeight: 1.7, maxWidth: 540, margin: '0 0 40px' }}>
+              <p style={{ color: 'rgba(255,255,255,.92)', fontSize: 18, lineHeight: 1.7, maxWidth: 540, margin: '0 0 40px' }}>
                 See how individuals, nonprofits, and communities achieved their goals with CharitMe — powered by AI and zero mandatory fees.
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 56 }}>
@@ -373,7 +373,7 @@ export default async function SuccessStoriesPage() {
           <h2 style={{ fontSize: 'clamp(26px,4vw,46px)', fontWeight: 950, color: '#fff', margin: '0 0 16px' }}>
             Ready to write your story?
           </h2>
-          <p style={{ color: 'rgba(255,255,255,.6)', fontSize: 17, margin: '0 auto 36px', maxWidth: 480 }}>
+          <p style={{ color: 'rgba(255,255,255,.92)', fontSize: 17, margin: '0 auto 36px', maxWidth: 480 }}>
             Join thousands of fundraisers who trust CharitMe&apos;s AI-powered platform to amplify their impact.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 14 }}>

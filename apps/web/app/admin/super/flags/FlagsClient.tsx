@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 export type Flag = { id: string; key: string; enabled: boolean; description: string | null; rollout_pct: number };
 
 const input: React.CSSProperties = { padding: '9px 12px', borderRadius: 9, border: '1px solid var(--b2)', background: 'var(--s1)', color: 'var(--t1)', fontSize: 13 };
-const btn: React.CSSProperties = { padding: '9px 16px', borderRadius: 9, border: 'none', background: 'var(--green)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13 };
+const btn: React.CSSProperties = { padding: '9px 16px', borderRadius: 9, border: 'none', background: 'var(--green-dark)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13 };
 
 export default function FlagsClient({ flags: initial }: { flags: Flag[] }) {
   const [flags, setFlags] = useState(initial);

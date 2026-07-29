@@ -9,7 +9,7 @@ export type Announcement = {
 };
 
 const input: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 9, border: '1px solid var(--b2)', background: 'var(--s1)', color: 'var(--t1)', fontSize: 13 };
-const btn: React.CSSProperties = { padding: '9px 16px', borderRadius: 9, border: 'none', background: 'var(--green)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13 };
+const btn: React.CSSProperties = { padding: '9px 16px', borderRadius: 9, border: 'none', background: 'var(--green-dark)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13 };
 const btnGhost: React.CSSProperties = { ...btn, background: 'transparent', color: 'var(--t2)', border: '1px solid var(--b2)' };
 const LEVEL_COLOR: Record<string, string> = { info: 'var(--blue)', success: 'var(--green)', warning: '#f59e0b', critical: 'var(--red)' };
 
