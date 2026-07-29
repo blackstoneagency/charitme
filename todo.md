@@ -792,8 +792,50 @@ non-empty tables, every feature ≥100". The live count is **83 non-empty of 155
 and 25 feature tables are empty. The old figure was measured on the seed suite's
 own report plus two spot-checked endpoints, not on a full count.
 
-**Not blocked on the owner.** Seeding these is `supabase/seeds/*.sql` work against
-a reachable database — the same egress that this session used to take this count.
+### ⚠️ CORRECTION to the line above — the seed files ALREADY EXIST. Do not write new ones.
+
+I was about to write a new seed file for these tables. **`06_extended_features.sql`
+already covers 15 of them** — `membership_tiers`, `member_subscriptions`,
+`exclusive_posts`, `creator_tips`, `digital_products`, `product_orders`,
+`auction_items`, `auction_bids`, `livestreams`, `giving_days`, `donor_segments`
+included. The gap is that it has **not been run to completion against
+production**, not that the fixtures are missing.
+
+The evidence is the split *within that one file*:
+
+| seeded by 06 | live rows |
+|---|---|
+| `creator_profiles` | **500** |
+| `donor_crm_contacts` | **500** |
+| `campaign_media` | **500** |
+| `transparency_ledger_items` | **500** |
+| the other **11** | **0** |
+
+Four populated, eleven empty, from a single file — so it ran, partially. Every
+insert in it is wrapped in `if to_regclass('public.<table>') is not null`, which
+**skips silently** when the table does not yet exist. The consistent explanation
+is that 06 was last run before the later migrations created those 11 tables; they
+exist now (PostgREST returns 0 rows, not `404 PGRST205`, which is what a genuinely
+absent table gives — see `volunteer_shifts`).
+
+**Re-running 06 should now populate them.** The creator-backed inserts need
+`v_creators` non-empty, and the file already handles the case where a re-run
+inserts no new creators: *"Fall back to any existing creators if this run
+inserted none"* (line ~87), which would pick up the existing 500.
+
+⚠️ **I have not verified that by running it, and I did not run it.** The seed
+files are deliberately fail-closed — they require
+`set charitme.allow_demo_seed = 'true'` in the same session, and the JS seeders
+refuse under `NODE_ENV=production`. That guard exists specifically because
+pasting these into the Supabase SQL editor is *"the path that actually loaded demo
+data into production"*. Seeding a live database with 1,133 real profiles is a
+deliberate human act, not something to do on an agent's initiative — so this is
+an **owner step**, and the claim above is reasoning from the file, not a
+measurement.
+
+**Owner action:** re-run `06_extended_features.sql` (guard set, single session).
+It is documented as idempotent — `to_regclass()` + `on conflict do nothing` —
+so the four already-populated tables should not duplicate.
 
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
