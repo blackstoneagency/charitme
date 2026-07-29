@@ -546,6 +546,32 @@ start of this sweep — `peer_fundraisers` and `grant_documents` shipped).
 | `trust_scores` | 500 | Trust & Safety |
 | `grant_documents` | 240 | — |
 
+### ✅ SHIPPED — supporters can now JOIN a team (the write half)
+The read path landed first, which left a subtler kind of unwired than an orphan
+table: the section rendered 240 seeded rows, but **nothing in the app could create
+one**, so it could only ever display data that arrived by other means.
+
+`POST /api/campaigns/[id]/peer-fundraisers` + a control on the campaign page.
+
+**Four things the happy path alone would have gotten wrong:**
+1. The section returned `null` on an empty team — so the invitation was invisible in
+   exactly the case where it is needed, **the first supporter**. Empty teams now read
+   "Be the first to raise money alongside this campaign" and still show the control.
+2. `peer_fundraisers.slug` is **UNIQUE platform-wide**, so a name-derived slug
+   collides between two supporters sharing a display name. On `23505` the insert
+   retries with a new suffix rather than surfacing a 500 that reads as "joining is
+   broken".
+3. **Idempotent per (campaign, user)** — and the existing-row query checks `error`,
+   since supabase-js resolves rather than throws and an unchecked failure reads as
+   "no existing page", inserting the duplicate the unique slug then rejects.
+4. The **organizer is refused** a peer page on their own campaign: it would split
+   their total across two goals and double-count them in the team list. UI hides it;
+   the API enforces it independently.
+
+Verified against a production build: 401 unauthenticated, 405 on GET, CTA renders for
+signed-out visitors, empty-team invitation renders. **Signed-in creation is not
+verifiable here** — needs the QA login (owner item #3).
+
 ### ✅ FIXED — `peer_fundraisers` (240 rows, 120 campaigns) → shipped
 Peer-to-peer/team fundraising had a **complete** schema — FKs to `campaigns` and
 `profiles`, RLS, a `parent_campaign_id` index — 240 seeded rows, and a
