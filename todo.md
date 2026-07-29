@@ -1430,6 +1430,37 @@ New `scripts/audit-theme-css.mjs` finds them at the source — **15 rules**:
 flows a new organizer meets first. Both are unreadable in dark mode at the point
 of typing into them.
 
+### ✅ THE TOKEN PALETTE IS FINE — the fix is one property, and it is derived not guessed
+
+Before handing this over I checked whether the design tokens themselves can
+satisfy AA, because "fix the contrast" is useless advice if the palette cannot.
+Computed every text token against every surface token, both themes:
+
+| | `--bg` | `--s1` | `--s2` | `--s3` |
+|---|---|---|---|---|
+| `--t1` light / dark | 16.96 / 15.61 | 17.37 / 14.57 | 16.35 / 13.49 | 15.14 / 12.33 |
+| `--t2` | 11.84 / 10.76 | 12.13 / 10.05 | 11.41 / 9.30 | 10.57 / 8.50 |
+| `--t3` | 5.33 / 5.99 | 5.46 / 5.59 | 5.14 / 5.18 | 4.76 / 4.73 |
+| `--t4` | 5.06 / 5.77 | 5.18 / 5.39 | 4.87 / 4.99 | 4.51 / 4.56 |
+
+**All 32 combinations pass AA in both themes.** Worst case `--t4` on `--s3` =
+4.51 / 4.56. The palette is well built; these 15 rules simply opt out of it with
+a literal.
+
+**So the fix is mechanical: `background: #fff` → `background: var(--s1)`.** No new
+colours, no judgement calls:
+
+```
+--t1 on var(--s1)  = 14.57:1 in dark   ✓
+--t1 on #fff       =  1.23:1 in dark   ✗   ← current
+--t3 on #fff       =  3.19:1 in dark   ✗   ← swapping the TEXT does not fix it
+```
+
+⚠️ **That last line is the trap.** The instinct on an unreadable-text report is to
+mute the text token. Here that takes 1.23 → 3.19, which *looks* like progress on
+a report and is still unreadable. **Change the surface, not the text.**
+`scripts/audit-theme-css.mjs` now prints this so it cannot be missed.
+
 ⚠️ **It is a script, not a test, on purpose.** 15 violations exist today, so a
 failing test would either break the build or ship a baseline of exceptions — and
 this file records repeatedly that a baselined guard is how a real regression gets
