@@ -1,6 +1,6 @@
 # CharitMe — Execution Tracker
 
-## 🛑 READ FIRST — what is blocked, and by whom (updated 2026-07-28)
+## 🛑 READ FIRST — what is blocked, and by whom (updated 2026-07-29)
 
 Everything below this box is engineering detail. These are the remaining
 external release constraints after the latest production deployment.
@@ -8,12 +8,12 @@ external release constraints after the latest production deployment.
 | # | Blocker | Evidence | Who can clear it |
 |---|---------|----------|------------------|
 | 1 | **GitHub Actions assigns no runner.** Every CI job fails in ~2s with `runner_id: 0`, `runner_name: ""`, and **no logs at all** (`get_job_logs` → 404). Repo-wide, including pushes straight to `master`. | 30 of 30 most recent runs | **Owner** — Actions minutes / billing |
-| 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project, so database release policy correctly blocks production migration application until the same commit is verified on a real CharitMe staging project. | Supabase project inventory, 2026-07-28 | **Owner** — provision/link CharitMe staging |
-| 3 | **Vercel has exhausted the free-project deployment quota.** Both the Git integration and an exact-master CLI deploy return `api-deployments-free-per-day`; the security release is merged but cannot become production until the quota resets. | Vercel CLI and PR #153 deployment check, 2026-07-28 | **External reset** — retry exact `master` after the 24-hour window |
+| 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Supabase Preview Branch creation returns HTTP 402 because the account is not on Pro, so database release policy correctly blocks production migration application until the same commit is verified on a real CharitMe staging project. | Supabase project/branch inventory and branch-create probe, 2026-07-29 | **Owner** — provision/link CharitMe staging or enable Supabase Preview Branches |
 
-**Vercel production is operational, but behind `master`.** Commit `0148c675` is
-aliased to both `www.charitme.com` and `charitme.com`; merged security commit
-`d8db2c3c` is not production yet because of blocker 3.
+**Vercel production is operational.** Deployment
+`dpl_9dNeqEZYC5MQ3occZXEsmHM2NRmP` is Ready, targets production, and is aliased
+to both `www.charitme.com` and `charitme.com`. The former daily deployment quota
+blocker is cleared.
 
 **How to tell an infra failure from a real one:** a genuine CI failure runs for
 minutes and produces logs. These finish in ~2 seconds with none. If you see that,
@@ -56,6 +56,36 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   then gates production on the exact staging-verified commit and protected
   GitHub environment approval.
 
+## SUPABASE RELEASE LEDGER - audited and rehearsed, staging pending (Codex, 2026-07-29)
+
+- [x] Compared every timestamped SQL migration with the linked production
+  ledger: **105 local, 87 remote, 18 pending, 0 remote-only**.
+  Pending versions: `20260524000000`, `20260528114000`, `20260607900000`,
+  `20260728020000`, `20260806000000`, `20260806010000`, `20260807000000`,
+  `20260808000000`, `20260809000000`, `20260810000000`, `20260811000000`,
+  `20260812000000`, `20260812010000`, `20260812020000`, `20260812030000`,
+  `20260813000000`, `20260814000000`, and `20260814010000`.
+- [x] Confirmed the 18 entries are genuine schema drift, not ledger-only drift,
+  using a read-only production `public` schema dump. The expected tables,
+  columns, indexes, triggers, functions, and policies are absent live.
+- [x] Verified `supabase db push --linked --dry-run --include-all` selects exactly
+  the 18 pending versions and made no production changes.
+- [x] Restored the production schema snapshot into disposable local Supabase and
+  applied all 18 pending migrations in order. Fixed the recurring-accounting
+  repair and rollback scripts so their temporary tables survive auto-committed
+  statements, then proved rollback and forward reapplication.
+- [x] Replayed all 105 migrations from zero after the repair and ran the complete
+  00-08 seed suite plus strict verifier: **94 of 94** covered feature tables
+  contain at least 100 rows.
+- [x] Verified the upgraded production clone contains all 18 representative
+  contract markers, including organizations, volunteer shifts/hours, demo
+  labels, inferable tax indexes, guest receipt access, privileged-profile and
+  anonymity triggers, private creator tips, and team boundaries.
+- [ ] Provision a real CharitMe staging project or enable a Supabase Preview
+  Branch, apply this exact commit there, and run authenticated RLS/payment/tax
+  smoke tests before the release workflow is allowed to apply the 18 migrations
+  to production. Do not bypass this gate.
+
 ## RECURRING TIP ACCOUNTING - code complete, release pending (Codex, 2026-07-28)
 
 - [x] Preserve donation principal, optional CharitMe tip, and anonymity in
@@ -85,13 +115,16 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 - [ ] Apply the migration to staging and run authenticated receipt/payment smoke
   tests before the release workflow is allowed to apply it to production.
 
-## REPEATABLE FEATURE SEED COVERAGE - verified locally (Codex, 2026-07-28)
+## REPEATABLE FEATURE SEED COVERAGE - verified locally (Codex, 2026-07-29)
 
-- [x] `supabase db reset --local` now runs the complete ordered 00-07 seed suite
+- [x] `supabase db reset --local` now runs the complete ordered 00-08 seed suite
   and strict verifier after every migration replay.
-- [x] Verified at least 100 rows in all 93 covered user-facing tables, including
+- [x] Verified at least 100 rows in all 94 covered user-facing tables, including
   tax receipt delivery, organizations, volunteer hours, campaign teams,
-  beneficiaries, messaging, analytics, outreach, and Marketing Engine plans.
+  beneficiaries, messaging, analytics, outreach, Marketing Engine plans, and
+  the public/admin sponsor catalog.
+- [x] Added the sponsor top-up and strict verifier to `config.toml`, and extended
+  the seed guard so either file falling out of reset order fails tests.
 - [x] Seeded donor, organizer, beneficiary, nonprofit, admin, and super-admin
   role cohorts; labeled every synthetic core profile, campaign, and donation.
 - [x] Added relational assertions for receipt/campaign ownership, beneficiary
