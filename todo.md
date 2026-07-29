@@ -138,6 +138,14 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   typecheck, zero-warning lint, 1,877 tests, a 151-page production build, and all
   six role persona checks.
 
+## MONOREPO BUILD TRACING - verified locally (Codex, 2026-07-29)
+
+- [x] Pin Next.js output-file tracing to the CharitMe monorepo instead of
+  inferring a parent directory from unrelated user-level lockfiles.
+- [x] Add a focused config contract test for the normalized absolute tracing root.
+- [x] Verify typecheck, zero-warning lint, 1,878 tests, a 151-page production
+  build without the incorrect workspace-root warning, and all six persona checks.
+
 ## SIGNED-IN PAGE CERTIFICATION - audit infrastructure complete, contrast remediation active (Codex, 2026-07-28)
 
 - [x] Reconciled the route manifest with the app tree: 10 standalone gated
