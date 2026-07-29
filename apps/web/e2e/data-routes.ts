@@ -14,10 +14,13 @@ import type { APIRequestContext } from '@playwright/test';
 // everything else.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// The list lives in JSON so scripts/audit-mobile.mjs can consume the SAME source.
+// It is a .mjs and cannot import this module, and a second hand-maintained copy is
+// exactly the drift `route-list-single-source` already caught once.
+import DATA_DEPENDENT from './data-dependent-routes.json' with { type: 'json' };
+
 /** Public routes that require seeded data to resolve. */
-export const DATA_DEPENDENT_ROUTES: readonly string[] = [
-  '/campaigns/security-header-fixture/embed',
-];
+export const DATA_DEPENDENT_ROUTES: readonly string[] = DATA_DEPENDENT;
 
 export function isDataDependent(route: string): boolean {
   return DATA_DEPENDENT_ROUTES.includes(route);

@@ -17,6 +17,7 @@
 // audit-a11y.mjs: a page that never loaded is a failed audit, not a silent pass.
 import { chromium } from 'playwright';
 import routes from '../e2e/public-routes.json' with { type: 'json' };
+import dataDependent from '../e2e/data-dependent-routes.json' with { type: 'json' };
 
 const list = Array.isArray(routes) ? routes : (routes.routes ?? routes.public ?? []);
 
@@ -47,9 +48,31 @@ for (const width of WIDTHS) {
   for (const r of list) {
     const path = typeof r === 'string' ? r : r.path;
     try {
-      await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      const response = await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 30000 });
       await page.waitForLoadState('load', { timeout: 10000 }).catch(() => {});
       await page.waitForTimeout(350);
+
+      // A missing route is not an unstyled one. Next's 404 ships almost no CSS,
+      // so the styled===0 check below caught it and reported "page is unstyled,
+      // refusing to measure" — a true statement about a completely different
+      // problem. The route list referenced a campaign fixture slug that does not
+      // exist in every database, so this audit exited 1 on every run while the
+      // real sweep was clean. A permanently-red audit is an ignored audit.
+      const status = response?.status() ?? 0;
+      // A data-dependent route 404s on a database without the fixture it needs.
+      // e2e/data-routes.ts already established that these are SKIPPED rather than
+      // failed; sharing the list means this audit agrees with the e2e sweep
+      // instead of exiting 1 on every run for a route the suite deliberately
+      // tolerates. Skipped, not counted as analyzed — it was not measured.
+      if (status === 404 && dataDependent.includes(path)) {
+        console.log(`· ${width}px ${path} — SKIPPED (needs seeded data, HTTP 404)`);
+        continue;
+      }
+      if (status >= 400) {
+        errors.push(`${width}px ${path} (HTTP ${status})`);
+        console.log(`! ${width}px ${path} — HTTP ${status}; route did not render, nothing to measure`);
+        continue;
+      }
 
       // Refuse to measure an UNSTYLED page. Layout audits are meaningless
       // without CSS, and they do not fail quietly — they fail *loudly and
