@@ -1396,6 +1396,47 @@ Class B.
 
 Muted text plus the status-badge palette. Six pairs ≈ half the light failures.
 
+### 🎯 CLASS A's ROOT CAUSE FOUND — 15 rules in globals.css, and the guard cannot see them
+
+Class A is `var(--t1)` text on a hardcoded white surface. In dark mode
+`--t1: #e2e8f8` — near-white — and the surface never flips.
+
+**`theme-tokens.test.ts` misses every one of them because it only scans `.tsx`
+inline styles and never reads `globals.css`.** The bug lives in the stylesheet:
+
+```css
+.cr2-field input { color: var(--t1); background: #fff; }   /* globals.css:4260 */
+```
+
+New `scripts/audit-theme-css.mjs` finds them at the source — **15 rules**:
+
+| line | selector | token on background |
+|---|---|---|
+| 1494 | `.auth-google` | `--ink` on `#fff` |
+| 1500 | `.auth-card input` | `--ink` on `#fff` |
+| 1757 | `.pc-org-message` | `--t1` on `#fff` |
+| 2584 | `.guest-modal-close` | `--t2` on `#f3f4f8` |
+| 4260 | `.cr2-field input, .cr2-field textarea` | `--t1` on `#fff` |
+| 4303 | `.cr2-nav-back` | `--t2` on `#fff` |
+| 4306 | `.cr2-nav-draft` | `--t2` on `#fff` |
+| 4337 | `.cr2-launch-manage` | `--t1` on `#fff` |
+| 4368 | `.cr2-cat-chip` | `--t2` on `#fff` |
+| 4380 | `.cr2-field select` | `--t1` on `#fff` |
+| 4398 | `.cr2-title-big` | `--t1` on `#fff` |
+| 4406–4407 | `.cr2-goal-prefix`, `.cr2-goal-input` | `--t1` on `#fff` |
+| 4424–4425 | `.cr2-suggested-nav button`, `.cr2-suggested-item` | `--t2` on `#fff` |
+
+`.auth-*` is the **login form** and `.cr2-*` is the **campaign builder** — the two
+flows a new organizer meets first. Both are unreadable in dark mode at the point
+of typing into them.
+
+⚠️ **It is a script, not a test, on purpose.** 15 violations exist today, so a
+failing test would either break the build or ship a baseline of exceptions — and
+this file records repeatedly that a baselined guard is how a real regression gets
+waved through. **The moment these 15 are fixed, fold the check into
+`theme-tokens.test.ts` with no exception list.** Non-vacuity verified by planting
+a rule and watching it appear.
+
 **Not touched by me** — this is the theme lane. Re-run
 `node scripts/audit-signed-in.mjs` after each change; it is the measurement.
 
