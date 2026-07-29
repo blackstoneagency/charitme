@@ -170,6 +170,29 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   `www.charitme.com`. Re-verified live `/help`, `/pricing`, `/ai-campaign`,
   `/impact`, `/sitemap.xml`, `/robots.txt`, and `/api/health`.
 
+## SITEMAP RESILIENCE AND CACHE - verified locally, release pending (Codex, 2026-07-29)
+
+- [x] Measured the production baseline over five uncached requests: 1.06-1.21
+  seconds warm and 2.33 seconds cold for 1,259 URLs.
+- [x] Replaced forced dynamic rendering with a 15-minute ISR contract so crawler
+  traffic is served from the route cache while new public content appears
+  within a bounded interval.
+- [x] Parallelized the independent campaign, event, grant, matching, volunteer,
+  sponsorship, and impact-plan Supabase reads.
+- [x] Isolated query and transport failures by content family so one unavailable
+  table cannot turn the entire sitemap into a 500; campaign visibility probing
+  still fails toward private filtering.
+- [x] Removed fabricated request-time `lastModified` timestamps from static and
+  feature routes while preserving real publication and database timestamps.
+- [x] Verified typecheck, zero-warning lint, 1,904 tests across 184 files, a
+  152-page production build, all six role personas, and `/sitemap.xml` as a
+  cached static route with 15-minute revalidation.
+- [x] Verified local production responses preserve the generated URL set and
+  return `x-nextjs-cache: HIT`; repeat latency was 9-15 ms.
+- [ ] Merge through a pull request, verify all 1,259 production URLs remain
+  present, measure live repeat latency, and confirm the exact master deployment
+  is Ready and Current on `www.charitme.com`.
+
 ## SIGNED-IN PAGE CERTIFICATION - audit infrastructure complete, contrast remediation active (Codex, 2026-07-28)
 
 - [x] Reconciled the route manifest with the app tree: 10 standalone gated
