@@ -1714,8 +1714,43 @@ or missing — say what would make CharitMe *far superior*. The parity dashboard
 carry `planned: true`, and all three are the same capability under three names:
 `Peer-to-Peer Fundraising` (Donorbox), `Peer-to-Peer Campaigns` (Classy),
 `Peer Fundraising` (Mightycause). **One feature is the sole thing standing between
-CharitMe and 9/10 → 10/10 on three competitors at once.** Highest
-parity-per-effort item that exists.
+CharitMe and 9/10 → 10/10 on three competitors at once.**
+
+**It is much closer to done than "planned" suggests — and blocked on one column.**
+Traced the whole path rather than assuming:
+
+| piece | state |
+|---|---|
+| `peer_fundraisers` table | exists, **240 live rows**, FKs + RLS + parent index |
+| `slug` column for per-supporter URLs | **already in the schema** (`schema.sql:3223`) |
+| join API | `POST /api/campaigns/[id]/peer-fundraisers` |
+| team list on the campaign page | `TeamFundraisers.tsx` + `JoinTeamButton.tsx` |
+| **individual shareable supporter page** | ❌ missing |
+| **donation → peer attribution** | ❌ **`donations` has no `peer_fundraiser_id`** |
+
+The second ❌ is the real blocker, and it is why the page must not be built first.
+`donations` carries `campaign_id` but nothing identifying which supporter's page
+drove the gift, and the donate flow (`app/api/donations/route.ts`,
+`DonateButton.tsx`) has no peer parameter. No trigger maintains
+`peer_fundraisers.raised_amount` either — **the 240 rows' totals are seeded
+fiction.**
+
+So a supporter page shipped today would show a progress bar that can never move.
+That is precisely the "surface that looks functional and silently does nothing"
+class this file keeps recording — building the page first would manufacture one.
+
+**Correct order, and the first step is owner-gated:**
+1. **Migration: `donations.peer_fundraiser_id uuid references peer_fundraisers(id)`**,
+   plus a trigger to roll the amount into both the peer row and the parent
+   campaign. **DDL — PostgREST cannot run it, so this needs the owner** (same
+   blocker as the volunteer migrations).
+2. Thread the peer id through `DonateButton` → `/api/donations` → the Stripe
+   session metadata → `record_donation`, so attribution survives the webhook.
+3. *Then* the shareable page at `/campaigns/[slug]/team/[peerSlug]`, which is
+   mostly rendering once the data is real.
+4. Flip the three `planned: true` entries — and only then.
+
+Steps 2–3 are ordinary work; step 1 gates all of them.
 
 **GAP 2 — The creator economy module is schema-only.** Patreon / Ko-fi / Buy Me a
 Coffee score 0/10 because their module is `status: 'Planned'`. I checked whether
