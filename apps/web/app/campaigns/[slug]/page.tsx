@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { cache } from 'react';
 import { safeJsonLd } from "../../../lib/json-ld";
 import { buildCampaignJsonLd } from "../../../lib/campaign-jsonld";
 import { notFound } from 'next/navigation';
@@ -78,6 +79,23 @@ async function getUpdates(campaignId: string) {
     .limit(4);
   return data ?? [];
 }
+
+// Null when the organizer has no creator profile, or has one that RLS hides.
+// Both mean the same thing to a visitor: there is no page worth linking to.
+const getOrganizerCreatorHandle = cache(async (userId: string | null): Promise<string | null> => {
+  if (!userId) return null;
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from('creator_profiles')
+      .select('handle')
+      .eq('user_id', userId)
+      .maybeSingle();
+    return (data as { handle: string } | null)?.handle ?? null;
+  } catch {
+    return null; // a creator link is decoration; never fail the campaign page for it
+  }
+});
 
 async function getDonorMessages(campaignId: string) {
   const { data } = await supabaseAdmin
@@ -334,6 +352,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   ]);
   const payoutReady = !!payoutDestination;
 
+  // Does this organizer have a PUBLIC creator page? Read through the RLS-enforced
+  // client on purpose: `public_creator_profiles_read` decides what "public
+  // creator" means, and 150 of the 500 profiles do not satisfy it. Linking via a
+  // service-role lookup would surface pages that 404 for the visitor who clicks.
+  const creatorHandle = await getOrganizerCreatorHandle(campaign.user_id);
+
   const raised = campaign.raised_amount ?? 0;
   const goal = campaign.goal_amount || 1;
   const pct = Math.min(100, Math.round((raised / goal) * 100));
@@ -536,7 +560,14 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             {(organizer.full_name ?? 'C')[0]}
           </div>
           <p className="pc-organizer" style={{ margin: 0 }}>
-            Organized by <b style={{ color: 'var(--ink)', fontWeight: 650 }}>{organizer.full_name ?? 'CharitMe Organizer'}</b>
+            Organized by{' '}
+            {creatorHandle ? (
+              <Link href={`/creators/${creatorHandle}`} style={{ color: 'var(--ink)', fontWeight: 650, textDecoration: 'underline' }}>
+                {organizer.full_name ?? 'CharitMe Organizer'}
+              </Link>
+            ) : (
+              <b style={{ color: 'var(--ink)', fontWeight: 650 }}>{organizer.full_name ?? 'CharitMe Organizer'}</b>
+            )}
             {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(16,185,129,.14)', color: '#15803d', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 650 }}>✓ Verified</span>
             {' '}· {campaign.location ?? 'New York, USA'}
           </p>

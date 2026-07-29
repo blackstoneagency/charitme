@@ -39,7 +39,7 @@ need the owner.
 ### 🟢 CLAUDE lane — actionable now, no gate (4)
 
 | A1 | **Peer-to-peer steps 2–3**: thread `peer_fundraiser_id` through `DonateButton` → `/api/donations` → Stripe metadata, then the shareable `/campaigns/[slug]/team/[peerSlug]` page. **Gated on O1** applying the migration — building the page first ships a progress bar that cannot move. |
-| A2 | **Creator-economy module** (Patreon/Ko-fi/Buy Me a Coffee = 0/10). Tables exist, zero readers. Largest build; **no DDL needed**. |
+| A2 | **Creator-economy module** (Patreon/Ko-fi/Buy Me a Coffee = 0/10). **STARTED — public creator page shipped**, see below. Remaining: tiers, subscriptions, member-only posts, DMs. **No DDL needed.** |
 | A3 | **Proximity discovery** — needs lat/long on campaigns, so it opens with a migration → effectively O1-shaped. |
 | A4 | **`coach_sessions` consumer decision** — 500 rows, no reader. Do NOT add a writer alone; that satisfies the audit while producing analytics nothing consumes. |
 
@@ -1966,6 +1966,43 @@ the audit's "has a `.from()` call site" check while producing analytics **no
 surface consumes** — moving the orphan-ness from the table to the data, and
 turning a real signal into a green tick. Wiring it needs a consumer decision
 (most naturally the AI Control Center at `/admin/ai`), not code.
+
+## ✅ A2 STARTED — `creator_profiles` has a reader for the first time (Claude, 2026-07-29)
+
+500 rows, zero readers, surfaced by `audit:orphan-tables` — the same signature as
+`peer_fundraisers`. Now `/creators/[handle]` renders them, and the campaign page
+links to it.
+
+**Reads through the RLS-ENFORCED client, not `supabaseAdmin` — a deliberate
+departure from every other public detail page.** The policy is not a formality;
+it *defines* what a public creator is:
+
+```sql
+exists (select 1 from campaigns c
+        where c.user_id = creator_profiles.user_id
+          and c.deleted_at is null
+          and c.status = 'active' and c.visibility = 'public')
+```
+
+**350 of the 500 rows satisfy it.** Following the `supabaseAdmin` convention here
+would have published the other **150** — a visibility change wearing the costume
+of a convention. Verified rather than assumed: a profile RLS hides from anon
+(`ava-garcia-c463a7`) returns **404** on the page.
+
+**No `loading.tsx` in the segment, on purpose.** A Suspense boundary lets Next
+commit a 200 before the body runs, so `notFound()` would paint the 404 UI under a
+200 — the soft-404 bug already fixed on seven routes here. Verified: unknown
+handle → **real HTTP 404**.
+
+**It is linked, not orphaned.** Shipping an unreachable page would just move the
+orphan-ness from the table to the route. The campaign organizer row now links to
+the creator page *when one exists and RLS permits it* — via a `cache()`d lookup
+that returns null on error, because a creator link is decoration and must never
+fail a campaign page. Verified end to end: `/campaigns/campaign-1-49b50f84`
+renders `href="/creators/james-smith-f17159"`.
+
+Deliberately NOT built: a Tip button. `creator_tips` has no writer, so the button
+would be decorative — the exact class of dead control this file keeps recording.
 
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
