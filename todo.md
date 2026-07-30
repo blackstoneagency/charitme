@@ -2117,6 +2117,49 @@ Moved to `giving_days`, with a note **not to weaken it** if it fails again — t
 right response is to check whether the table just acquired a reader and move the
 fixture, and a list of the nine still reader-less tables to move it to.
 
+## 📊 UPDATED GoFundMe DECK (23 slides) — the new intro is an AI-coaching flow (Claude, 2026-07-29)
+
+The refreshed deck adds 5 slides. The material change is the **create flow's new
+opening**: `/create/fundraiser/types` now leads with a modal —
+
+> **Get started with smart coaching** · "Personalized AI guidance to craft and
+> grow your fundraiser, informed by success." · **Continue** / *Create without
+> chat* · "While our AI is informed by successful fundraisers, it can still make
+> mistakes. Be sure to double check the results."
+
+So GoFundMe has moved onto ground CharitMe treated as its differentiator. Three
+things follow, and two were already fine:
+
+| GoFundMe's new intro | CharitMe | verdict |
+|---|---|---|
+| AI-first campaign creation | AI builder already shipped | **at parity** |
+| "Create without chat" escape hatch | `/create/choose-path` offers "Build with AI" **and** "Start step by step", each with its own time estimate | **already better** — the choice is explicit and framed, not a small link under a button |
+| AI accuracy disclaimer | **nothing, anywhere in the create flow** | ❌ was a real gap |
+
+### ✅ Fixed — the create flow now says what an AI draft is
+
+Verified there was no such copy first (`grep` for *can make mistakes / double
+check / may be inaccurate* across `app/create`, `app/api/ai`, `components` → the
+only hit was an unrelated "Review everything below before going live").
+
+Added at the moment the path is **chosen**, not buried in terms:
+
+> AI drafts are a starting point, not a finished fundraiser. They can get details
+> wrong — read every line and correct anything that is not exactly right before
+> you publish.
+
+**Why this one is mine to write and the "donor guarantee" page was not:** this is
+a factual statement about what generated text is. It promises nothing on the
+business's behalf. The guarantee page would have invented a financial commitment
+that the Terms explicitly disclaim — a different thing entirely.
+
+It also matters more here than on a general-purpose product: the organizer is
+about to publish that draft **under their own name, asking strangers for money**.
+A fundraiser that misstates a diagnosis or a cost is a trust problem for the
+donor as much as for the platform.
+
+Verified rendered: `/create/choose-path` returns the note plus both paths.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).

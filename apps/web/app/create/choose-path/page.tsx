@@ -152,6 +152,21 @@ export default function ChoosePathPage() {
           <span style={{ width: 15, height: 15, display: 'inline-flex', color: 'var(--t3, #64748b)' }}><PublicIcon name="refresh" /></span>
           Your progress saves automatically — pause and resume anytime.
         </p>
+
+        {/* AI accuracy note.
+            The AI path promises "AI writes a compelling first draft" and the
+            organizer is about to publish that draft under their own name, asking
+            strangers for money. Saying plainly that a draft can be wrong belongs
+            at the moment the path is CHOSEN, not buried in terms — a fundraiser
+            that misstates a diagnosis or a cost is a trust problem for the donor
+            as much as for the platform.
+            Factual and low-key: this states what generated text is, and does not
+            promise anything on the business's behalf. */}
+        <p style={{ marginTop: 10, textAlign: 'center', fontSize: 12.5, lineHeight: 1.5, color: 'var(--t3, #64748b)', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto' }}>
+          AI drafts are a starting point, not a finished fundraiser. They can get
+          details wrong — read every line and correct anything that is not exactly
+          right before you publish.
+        </p>
       </section>
     </div>
   );
