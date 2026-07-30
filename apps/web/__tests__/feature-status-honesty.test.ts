@@ -88,10 +88,21 @@ describe('feature status honesty', () => {
     expect(wired.has('campaigns')).toBe(true);
     expect(wired.has('donations')).toBe(true);
     expect(wired.has('profiles')).toBe(true);
-    // And a table with no reader must not. `auction_bids` used to be this
-    // fixture and correctly stopped qualifying once auctions were built —
-    // membership_tiers belongs to the still-unbuilt memberships module.
-    expect(wired.has('membership_tiers')).toBe(false);
+    // And a table with no reader must not.
+    //
+    // This fixture has now gone stale TWICE, which is the test working: it names
+    // a table nothing reads, and the moment someone builds that feature the
+    // assertion correctly fails. `auction_bids` was the first (auctions shipped);
+    // `membership_tiers` was the second — Codex built the creator/membership
+    // surface (`app/api/creators/tiers/route.ts`, `app/creators/[handle]/page.tsx`),
+    // so it is genuinely wired now.
+    //
+    // If this fails again, do NOT weaken it — check whether the table just
+    // acquired a reader, and if so move the fixture to one that still has none.
+    // Verified reader-less at the time of writing: giving_days, livestreams,
+    // reward_tiers, donor_segments, member_subscriptions, exclusive_posts,
+    // creator_tips, digital_products, product_orders.
+    expect(wired.has('giving_days')).toBe(false);
   });
 
   it('the two known-unbuilt modules are marked Planned', () => {

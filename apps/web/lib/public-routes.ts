@@ -61,6 +61,16 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: 'weekly',
   },
   {
+    // Crisis relief hub. Indexed deliberately: the point of the route is to be
+    // findable and shareable while an emergency is unfolding, which a
+    // `?category=` query string cannot do.
+    path: '/crisis',
+    title: 'Crisis Relief Fundraisers',
+    description: 'Active emergency and disaster-relief fundraisers, newest first, with 0% platform fee.',
+    priority: 0.80,
+    changeFrequency: 'daily',
+  },
+  {
     path: '/for-donors',
     title: 'Giving For Donors',
     description: 'Find trusted campaigns, give quickly, and follow the impact of your donations.',

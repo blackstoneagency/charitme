@@ -1817,7 +1817,16 @@ class this file keeps recording — building the page first would manufacture on
 
 Steps 2–3 are ordinary work; step 1 gates all of them.
 
-**GAP 2 — The creator economy module is schema-only.** Patreon / Ko-fi / Buy Me a
+**⚠️ GAP 2 IS NOW CLOSED — Codex built it while this analysis was being written.**
+`membership_tiers` has readers again: `app/api/creators/tiers/route.ts` and
+`app/creators/[handle]/page.tsx`. The finding below was true when measured and is
+kept for the reasoning, but **do not act on it** — check
+`feature-status-honesty.test.ts` for the current answer instead of trusting this
+paragraph. Still genuinely reader-less: `giving_days`, `livestreams`,
+`reward_tiers`, `donor_segments`, `member_subscriptions`, `exclusive_posts`,
+`creator_tips`, `digital_products`, `product_orders`.
+
+**GAP 2 (as measured 2026-07-29, now stale) — The creator economy module was schema-only.** Patreon / Ko-fi / Buy Me a
 Coffee score 0/10 because their module is `status: 'Planned'`. I checked whether
 that label is stale, and it is not:
 
@@ -2067,6 +2076,46 @@ in the follow-up: `create or replace function record_donation(…, p_peer_fundra
 uuid default null)` creates an **overload** rather than replacing the function,
 and the caller uses named arguments — so the new parameter would be silently
 ignored while appearing to work.
+
+## ✅ SHIPPED — /crisis relief hub (Claude, 2026-07-29)
+
+A curated emergency landing surface is one of the GoFundMe deck's features
+CharitMe lacked. The `Emergency` category existed but the only way in was
+`/campaigns?category=Emergency` — a query string nobody can say out loud or put
+in a press release.
+
+**Why it earns its place rather than duplicating the filter:** the point is a
+**shareable URL during a disaster**. `charitme.com/crisis` fits in a text message
+or a news article while an event is unfolding. So it stays a focused hub and
+deliberately does **not** rebuild the discovery UI — no search, sort, pagination
+or facets — and hands off to the filtered list for everything else.
+
+- Newest-first, **not** highest-raised: ranking a crisis hub by amount raised
+  buries the fundraiser that started this morning, which is exactly the one a
+  visitor arriving from a news story wants.
+- Distinguishes "no active appeals" from "the read failed" — an empty grid and a
+  broken query look identical to a visitor, and this file has recorded that
+  failure mode repeatedly.
+- Registered in `e2e/public-routes.json` and `lib/public-routes.ts`, so the
+  sweeps and the sitemap both cover it. A route-list guard caught the missing
+  sitemap entry immediately.
+
+**Verified against the LIVE production database, not the stub:** `HTTP 200`,
+**23 real campaign cards**, no error boundary, no empty state — matching the 23
+active `Emergency` campaigns counted directly against Supabase.
+
+### Also fixed: a stale fixture in Codex's honesty test
+
+`feature-status-honesty.test.ts` asserts some table has no reader, to prove the
+wiring check is not vacuous. It named `membership_tiers` — and **Codex built the
+creator/membership surface** (`api/creators/tiers`, `creators/[handle]`) while
+this was in flight, so the assertion failed correctly. That is the second time
+this fixture has gone stale (`auction_bids` was the first, when auctions
+shipped), which is the test doing its job rather than a defect.
+
+Moved to `giving_days`, with a note **not to weaken it** if it fails again — the
+right response is to check whether the table just acquired a reader and move the
+fixture, and a list of the nine still reader-less tables to move it to.
 
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
