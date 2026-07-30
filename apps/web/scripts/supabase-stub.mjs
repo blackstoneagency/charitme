@@ -52,6 +52,7 @@
  */
 
 import { createServer } from 'node:http';
+import { pathToFileURL } from 'node:url';
 import { buildFixtures } from './supabase-stub-fixtures.mjs';
 
 const args = process.argv.slice(2);
@@ -109,6 +110,33 @@ function coerce(raw) {
   return raw.replace(/^"|"$/g, '');
 }
 
+/**
+ * Ordered comparison for gt/gte/lt/lte. Returns -1 / 0 / 1.
+ *
+ * ⚠️ This was `Number(value) >= Number(raw)`, which is correct for amounts and
+ * silently WRONG for every timestamp: `Number('2026-07-28T00:00:00Z')` is NaN,
+ * and every NaN comparison is false, so a `created_at=gte.<cutoff>` filter
+ * excluded 100% of rows. Any page or route with a date window therefore rendered
+ * empty against the stub while working fine in production — the exact failure the
+ * header warns about, since an unsupported filter that quietly returns nothing
+ * shrinks audit coverage without reporting anything. Found when a leaderboard
+ * period query returned 0 rows from fixtures that contain 35 matching donations.
+ *
+ * Numbers still compare numerically; anything else compares as a string, which is
+ * correct for ISO-8601 (lexicographic order is chronological order) and is what
+ * Postgres does for text anyway.
+ */
+export function compare(value, raw) {
+  const a = Number(value);
+  const b = Number(raw);
+  if (value !== null && value !== '' && raw !== '' && !Number.isNaN(a) && !Number.isNaN(b)) {
+    return a === b ? 0 : a > b ? 1 : -1;
+  }
+  const sa = String(value ?? '');
+  const sb = String(raw);
+  return sa === sb ? 0 : sa > sb ? 1 : -1;
+}
+
 function matches(row, column, expr) {
   const [op, ...rest] = expr.split('.');
   const raw = rest.join('.');
@@ -117,10 +145,10 @@ function matches(row, column, expr) {
   switch (op) {
     case 'eq': return String(value) === String(coerce(raw));
     case 'neq': return String(value) !== String(coerce(raw));
-    case 'gt': return Number(value) > Number(raw);
-    case 'gte': return Number(value) >= Number(raw);
-    case 'lt': return Number(value) < Number(raw);
-    case 'lte': return Number(value) <= Number(raw);
+    case 'gt': return compare(value, raw) > 0;
+    case 'gte': return compare(value, raw) >= 0;
+    case 'lt': return compare(value, raw) < 0;
+    case 'lte': return compare(value, raw) <= 0;
     case 'is': return raw === 'null' ? value == null : Boolean(value) === (raw === 'true');
     case 'in': {
       const set = raw.replace(/^\(|\)$/g, '').split(',').map((v) => String(coerce(v)));
@@ -232,6 +260,13 @@ const server = createServer((req, res) => {
   send(res, 200, {});
 });
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`supabase-stub listening on http://127.0.0.1:${PORT}`);
-});
+// Only listen when RUN, not when imported. `compare()` is unit-tested, and
+// importing this file used to bind port 54321 as a side effect — which fails
+// outright if a stub is already running and would otherwise leave a server
+// listening for the length of the test process.
+const isMain = process.argv[1] ? import.meta.url === pathToFileURL(process.argv[1]).href : false;
+if (isMain) {
+  server.listen(PORT, '127.0.0.1', () => {
+    console.log(`supabase-stub listening on http://127.0.0.1:${PORT}`);
+  });
+}

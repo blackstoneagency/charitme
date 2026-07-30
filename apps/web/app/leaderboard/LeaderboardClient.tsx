@@ -40,6 +40,13 @@ const PERIOD_LABELS: Record<LeaderboardPeriod, string> = {
   week: 'This week',
 };
 
+/** Reads as a phrase under an amount ("$4,120 · in the last 7 days"). */
+const PERIOD_SUBLABELS: Record<LeaderboardPeriod, string> = {
+  all: 'all time',
+  month: 'in the last 30 days',
+  week: 'in the last 7 days',
+};
+
 export default function LeaderboardClient({
   initialCampaigns,
   initialDonors,
@@ -48,7 +55,11 @@ export default function LeaderboardClient({
   initialDonors: LeaderboardDonor[];
 }) {
   const [tab, setTab] = useState<'campaigns' | 'donors'>('campaigns');
-  const [campaigns] = useState(initialCampaigns);
+  // Cached per period, same as donors: switching back to a window already
+  // fetched must not re-hit the network or flash a loading state.
+  const [campaignsByPeriod, setCampaignsByPeriod] = useState<Partial<Record<LeaderboardPeriod, LeaderboardCampaign[]>>>({ all: initialCampaigns });
+  const [campaignPeriod, setCampaignPeriod] = useState<LeaderboardPeriod>('all');
+  const [loadingCampaigns, setLoadingCampaigns] = useState(false);
   const [donorsByPeriod, setDonorsByPeriod] = useState<Partial<Record<LeaderboardPeriod, LeaderboardDonor[]>>>({ all: initialDonors });
   const [period, setPeriod] = useState<LeaderboardPeriod>('all');
   const [loadingDonors, setLoadingDonors] = useState(false);
@@ -68,6 +79,22 @@ export default function LeaderboardClient({
     }
   }
 
+  async function selectCampaignPeriod(next: LeaderboardPeriod) {
+    setCampaignPeriod(next);
+    if (campaignsByPeriod[next] !== undefined) return;
+    setLoadingCampaigns(true);
+    try {
+      const res = await fetch(`/api/leaderboard/campaigns?period=${next}&limit=20`);
+      const data: { campaigns: LeaderboardCampaign[] } = await res.json();
+      setCampaignsByPeriod((prev) => ({ ...prev, [next]: data.campaigns ?? [] }));
+    } catch {
+      setCampaignsByPeriod((prev) => ({ ...prev, [next]: [] }));
+    } finally {
+      setLoadingCampaigns(false);
+    }
+  }
+
+  const campaigns = campaignsByPeriod[campaignPeriod];
   const donors = donorsByPeriod[period];
 
   return (
@@ -83,9 +110,24 @@ export default function LeaderboardClient({
 
       {tab === 'campaigns' ? (
         <article className="pc-card">
-          <h2 style={{ margin: '0 0 18px' }}>Top Fundraising Campaigns</h2>
-          {campaigns.length === 0 ? (
-            <p style={{ color: 'var(--t3)', fontSize: 13 }}>No active campaigns yet — be the first to launch one!</p>
+          <div className="pc-donor-wall-head">
+            <h2 style={{ margin: 0 }}>Top Fundraising Campaigns</h2>
+            <div className="lb-period">
+              {(Object.keys(PERIOD_LABELS) as LeaderboardPeriod[]).map((p) => (
+                <button key={p} type="button" className={campaignPeriod === p ? 'active' : ''} onClick={() => selectCampaignPeriod(p)}>
+                  {PERIOD_LABELS[p]}
+                </button>
+              ))}
+            </div>
+          </div>
+          {loadingCampaigns || campaigns === undefined ? (
+            <p style={{ color: 'var(--t3)', fontSize: 13, padding: '12px 0' }}>Loading top campaigns…</p>
+          ) : campaigns.length === 0 ? (
+            <p style={{ color: 'var(--t3)', fontSize: 13 }}>
+              {campaignPeriod === 'all'
+                ? 'No active campaigns yet — be the first to launch one!'
+                : 'No campaigns received donations in this period yet.'}
+            </p>
           ) : (
             <div>
               {campaigns.map((c) => (
@@ -112,9 +154,24 @@ export default function LeaderboardClient({
                       {c.nonprofitVerified && <Badge color="green">💚 Tax Deductible</Badge>}
                     </div>
                   </div>
+                  {/* In a period view the headline figure is what was raised
+                      IN that period — it is what the ranking is based on, so
+                      showing the lifetime total here would leave the order
+                      looking arbitrary. Lifetime moves to the sub-line. */}
                   <div className="lb-campaign-amount">
-                    <b>{formatMoneyShort(c.raisedAmount, c.currency ?? 'usd')}</b>
-                    <span>of {formatMoneyShort(c.goalAmount, c.currency ?? 'usd')} · {c.backerCount} donors</span>
+                    {c.periodRaisedCents === undefined ? (
+                      <>
+                        <b>{formatMoneyShort(c.raisedAmount, c.currency ?? 'usd')}</b>
+                        <span>of {formatMoneyShort(c.goalAmount, c.currency ?? 'usd')} · {c.backerCount} donors</span>
+                      </>
+                    ) : (
+                      <>
+                        <b>{formatMoneyShort(c.periodRaisedCents, c.currency ?? 'usd')}</b>
+                        <span>
+                          {PERIOD_SUBLABELS[campaignPeriod]} · {formatMoneyShort(c.raisedAmount, c.currency ?? 'usd')} all time
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}

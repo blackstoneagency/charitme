@@ -96,6 +96,44 @@ until O1/O3. And **there is no subscribe flow** — the dashboard states that
 plainly to the creator rather than letting them publish tiers and wait for
 signups that cannot happen.
 
+### 🏆 Leaderboard period parity + a stub bug that was hiding date-filtered data
+
+Generalising "who calls this?" across all **217 API routes** found 14 with no
+caller outside `app/api`. Most are redundant surface, not defects — `/admin/pricing`
+looked orphaned but the page reads `lib/pricing-analytics.ts` directly, so it is
+correctly wired. **One was a real product gap**: `/api/leaderboard/campaigns`
+existed and was never called, while the Top Donors tab had This week / This month
+/ All time and **Top Campaigns had no period control at all**.
+
+Shipped: `getTopCampaignsForPeriod()` aggregates `donations` by `campaign_id`
+inside the window (mirroring `getTopDonors`, same `DONOR_SCAN_LIMIT` bound), the
+route accepts `?period=`, and the tab gets the selector with per-period caching.
+The row shows the **period** amount as the headline with lifetime on the sub-line
+— ranking by one number and displaying another is how a metric becomes a lie.
+
+**Two bugs found by measuring rather than assuming:**
+
+1. *Mine.* `month` returned **14** campaigns while `week` returned **16** —
+   impossible, the 30-day window contains the 7-day one. Cause: take top 20 by
+   total, *then* drop hidden/deleted campaigns, so the list under-fills by however
+   many of the top 20 happened to be invisible. Fixed by over-fetching `limit * 3`
+   before the visibility filter and trimming after. Now 20 ≥ 16.
+
+2. ⚠️ *The audit stub's.* `scripts/supabase-stub.mjs` compared `gt/gte/lt/lte` with
+   `Number(value) >= Number(raw)`. `Number('2026-07-28T00:00:00Z')` is **NaN**, and
+   every NaN comparison is false — so **every `created_at` window matched zero
+   rows**. Any page with a date filter rendered EMPTY against the stub while
+   working in production, and an empty page still returns 200, still has contrast,
+   and still passes the smoke sweep. It shrank audit coverage while reporting
+   nothing, which is the one failure the stub's own header says it must not have.
+   Fixed (numeric when both parse, string otherwise — correct for ISO-8601) and
+   **regression-tested**; the stub now only `listen()`s when run, not when imported.
+   **Anything previously swept that filters by date is worth re-checking.**
+
+Verified: `all`/unknown → 20 lifetime-ranked, no period field · `week` → 16 ·
+`month` → 20, each with a different #1 · ranks contiguous, sorted, unique ·
+`/leaderboard` 200 with the selector present · 1941 tests, lint, typecheck, build.
+
 ### 🔎 Negative result — no dead buttons (do not re-run this scan)
 
 Swept `app/` + `components/` for `<button>` with no `onClick`, no

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getTopCampaigns } from '../../../../lib/leaderboard';
+import { getTopCampaignsForPeriod, LEADERBOARD_PERIODS, type LeaderboardPeriod } from '../../../../lib/leaderboard';
 import { checkRateLimit } from '../../../../lib/rate-limit';
 
 const MAX_LIMIT = 50;
@@ -13,7 +13,14 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const limit = Math.min(MAX_LIMIT, Math.max(1, Number(url.searchParams.get('limit')) || 20));
 
-  const campaigns = await getTopCampaigns(limit);
+  // Unknown or absent period falls back to 'all' rather than 400ing: this is a
+  // public read behind a CDN cache, and an empty leaderboard is a worse answer
+  // to a typo'd query string than the default view.
+  const raw = url.searchParams.get('period');
+  const period: LeaderboardPeriod =
+    raw && (LEADERBOARD_PERIODS as string[]).includes(raw) ? (raw as LeaderboardPeriod) : 'all';
+
+  const campaigns = await getTopCampaignsForPeriod(period, limit);
   return NextResponse.json(
     { campaigns },
     // See the donors route: public, identical per caller, slow-changing — cache at
