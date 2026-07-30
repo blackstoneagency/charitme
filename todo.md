@@ -20,7 +20,7 @@ that has mattered most this session, because three separate "blockers" turned ou
 to be things an agent could do all along, and several "agent tasks" turned out to
 need the owner.
 
-### 🔴 OWNER — cannot be cleared by any agent (7)
+### 🔴 OWNER — cannot be cleared by any agent (8)
 
 | # | Item | Why it is owner-only |
 |---|---|---|
@@ -31,6 +31,7 @@ need the owner.
 | O5 | **Vercel deploy quota** (or batch pushes) | `api-deployments-free-per-day` |
 | O6 | Run **`06_extended_features.sql`** with `charitme.allow_demo_seed` set | Fail-closed by design; writes to a live DB with 1,133 real profiles |
 | O7 | **Donor-guarantee decision** — will CharitMe underwrite fraud losses? | The ToS currently disclaims it; this is a financial commitment, not content |
+| O8 | **Reduced fee for verified nonprofits** — GoFundMe charges them 2.2% + $0.30, CharitMe charges all 2.9% + $0.30, so a nonprofit keeps **$0.70 more per $100 on GoFundMe** | Pricing decision, not a code change. The branch itself is trivial (`nonprofit_verified` is known at donation time in `app/api/donations/route.ts`) — what CharitMe *charges* is the owner's call. **The only place a competitor is measurably better on money.** |
 
 ### 🟣 CODEX lane — theme/contrast (1, but it is the biggest single item)
 
@@ -153,6 +154,130 @@ Swept `app/` + `components/` for `<button>` with no `onClick`, no
 docblock in `ui.tsx` explaining why `<button>` inside `<a>` is invalid. The
 detector found its own changelog. Not shipped — a comment-blind detector whose
 only hits are prose is noise.
+
+## 🥊 GoFundMe teardown — from the LIVE SITE, not a deck (Claude, 2026-07-30)
+
+⚠️ **This supersedes every earlier GoFundMe section in this file** (§0.1b, the
+two deck re-ingests, the parity tables). All of those were read off **screenshot
+decks**. A deck is a marketing artifact: it shows what GoFundMe chose to
+advertise on one day, not what the product does. Fetched `gofundme.com` and its
+product pages directly this time, and **three load-bearing claims in this file
+turned out to be wrong** — listed at the end.
+
+### What GoFundMe actually offers (live nav + product pages)
+
+**Donate:** Categories · Crisis relief · **Social Impact Funds** · Supporter Space
+**Fundraise:** How to start · Fundraising categories · **Team fundraising** ·
+Blog · Tips · Ideas · Charity fundraising · Sign up as a nonprofit
+**About:** How it works · **Giving Guarantee** · Supported countries · Pricing ·
+Help Center · About · Newsroom · Careers · GoFundMe.org · Partnerships ·
+**GoFundMe Pro for nonprofits**
+**Claims:** "No fee to start fundraising" · "More than $50 million is raised
+every week" · single hero CTA "Start a GoFundMe"
+
+**Fees (from `/c/pricing`, quoted):** 0% platform fee; **2.9% + $0.30** per
+donation US for individuals; **2.2% + $0.30 for certified nonprofits**; donor
+contributions "optional" and "never required". Lifecycle (`/c/how-it-works`):
+setup questions → photo/video → description → **suggested goal amount** derived
+from similar fundraisers → share → post updates → thank donors → add bank info,
+**"you don't need to hit your fundraising goal to receive your money"** →
+beneficiary designation.
+
+### Verdict against CharitMe — grounded in code, not assertion
+
+| GoFundMe surface | CharitMe | verdict |
+|---|---|---|
+| Categories, Crisis relief | `/campaigns`, **`/crisis`** (shipped this session) | **equal** |
+| Supporter Space | `/success-stories` `/help` `/faq` `/how-it-works` `/blog` `/transparency` `/trust-safety` | **CharitMe ahead** (7 surfaces vs 1) |
+| Team fundraising | `peer_fundraisers` + `/api/campaigns/[id]/peer-fundraisers`, **migration unapplied (O1)** | **gap — one migration away** |
+| Giving Guarantee | ToS explicitly **disclaims** it (`app/terms/page.tsx:32`) | **gap, owner decision (O7)** |
+| **Social Impact / Giving Funds** | **nothing** — verified, 0 real hits for DAF/giving-fund | **gap, largest one** |
+| GoFundMe Pro (from $299/mo) | `/dashboard/nonprofit`, Stripe plans, CRM, integrations, events, matching, grants, volunteers, auctions, sponsorships | **CharitMe ahead, and free** |
+| Suggested goal | `/api/campaigns/goal-guidance` **plus a full AI builder** | **CharitMe ahead** |
+| Updates / thank donors / beneficiary / no-goal-needed payout | all present | **equal** |
+| Mobile apps | PWA (`PWARegister`, `InstallPrompt`) | **equal-ish** — installable, no store presence |
+| Fees | **0% + 2.9% + $0.30 — identical** | **equal, except ⚠️ below** |
+
+⚠️ **Concrete, unflattering finding:** GoFundMe charges certified nonprofits
+**2.2% + $0.30**; CharitMe charges every nonprofit the full **2.9% + $0.30**
+(`PROCESSING_FEE_PERCENT = 2.9`, no nonprofit branch anywhere). On a $100
+donation a nonprofit keeps **$0.70 more on GoFundMe**. CharitMe's headline is
+"0% platform fee", and on nonprofit money that headline is currently **beaten by
+the competitor it is aimed at**.
+
+### Where "equal" must become "far superior"
+
+**Fees → verified-nonprofit rate.** Match or beat 2.2% for `nonprofit_verified`
+campaigns and *show the saving on the donation form* ("$2.50 in fees — $0.70 less
+than GoFundMe"). CharitMe already knows verification status at donation time, so
+this is a branch in `app/api/donations/route.ts`, not a new system. Nothing else
+in this section matters as much: it is the one place a competitor is measurably
+better on money.
+
+**Crisis relief → verified live, not curated.** GoFundMe's is editorially
+curated. `/crisis` reads the database. Superior = auto-promote on donation
+velocity, show *time since first donation*, and expose a machine-readable feed
+newsrooms can embed during an event — the thing a curated page structurally
+cannot do at wire speed.
+
+**Suggested goal → goal *plus* the honest forecast.** GoFundMe suggests a number
+from similar fundraisers. Superior = suggest it **and** state the probability of
+reaching it and what typically closes the gap, using this platform's own
+donation data. A goal is advice; a forecast is a decision.
+
+**Supporter Space → answer with data.** Seven static pages beats one, but they
+are static. Superior = "where should I give?" answered from live campaign data
+(urgency, verification, impact-per-dollar) rather than an inspiration page.
+
+**Updates/thanks → close the loop.** Both platforms let an organizer post an
+update. Superior = tie each update to the donations it followed and report to
+each donor what *their* money did — CharitMe already has `impact_*` tables and
+`donations` linkage; nothing else on the market closes that loop.
+
+### Where CharitMe has nothing — and what "far superior" means
+
+**1. Giving Funds (donor-advised fund).** ⚠️ Prior entries in this file called
+this a "donor wallet / donor balance". **That is wrong and the error matters.**
+It is a **DAF**: an irrevocable contribution to GoFundMe's own 501(c)(3), an
+**immediate tax deduction at contribution time**, funds invested, then granted
+out to qualified 501(c)(3)s — zero fees, no minimum, $5 grants. Building a
+"wallet" would be building a regulated charitable vehicle by accident: a DAF
+needs a sponsoring charity, IRS compliance and irrevocability. **Reclassify as
+OWNER/legal, not an agent task.** Superior *without* becoming a DAF sponsor:
+a **giving plan** — schedule and budget giving across campaigns, with the tax
+receipt consolidation that is the real day-to-day benefit — which CharitMe can
+ship today (`/api/donor/tax-statement` already consolidates) and which carries
+none of the custody risk.
+
+**2. Giving Guarantee.** GoFundMe: any amount, **one full year**, full refund,
+3–10 business days, forfeited if the donor charges back, and explicitly **"does
+not constitute insurance"**. CharitMe's ToS disclaims exactly this. Still O7 —
+a financial commitment, not content. Superior if adopted: **prevention beats
+reimbursement.** CharitScore + payout holds + `campaign_reports` mean CharitMe
+can refuse to release funds before harm; a guarantee pays after. Ship the
+guarantee *and* publish the fraud rate — GoFundMe publishes neither.
+
+**3. Team fundraising.** GoFundMe's is a headline surface. CharitMe's
+`peer_fundraisers` is **one unapplied migration** from working (O1). Superior =
+per-member pages with their own totals *and* attribution that survives sharing
+(the `peer_fundraiser_id` → Stripe metadata path already designed in A1).
+
+**4. Nonprofit reduced rate** — see the fee finding above.
+
+**5. Native mobile apps.** PWA is installable but absent from both stores.
+Genuinely lower priority than the fee gap; recorded so it is not mistaken for
+parity.
+
+### Corrections this teardown forces on earlier sections
+
+1. **"Giving Funds = donor wallet / holding donor balances"** → it is a
+   **donor-advised fund**. Different product, different regulator, different
+   owner. Any plan to "build a wallet" was scoped against a misreading.
+2. **"GoFundMe parity 10/10, criterion met"** → parity was scored against a
+   deck. Against the live site there are **3 real gaps** (Giving Funds,
+   Giving Guarantee, team fundraising) plus **1 place CharitMe is worse**
+   (nonprofit fee). 10/10 overstates it.
+3. **"Fees equal"** → equal for individuals, **worse for nonprofits**.
 
 ### The honest bottom line on "100% production ready"
 
