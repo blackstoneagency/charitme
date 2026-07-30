@@ -130,6 +130,17 @@ The row shows the **period** amount as the headline with lifetime on the sub-lin
    **regression-tested**; the stub now only `listen()`s when run, not when imported.
    **Anything previously swept that filters by date is worth re-checking.**
 
+   **Sized and re-swept.** `.gte/.lte/.gt/.lt` appears **49 times across 28
+   files**, and **45 of those are date columns** (35 × `.gte('created_at')`
+   alone). Every one matched zero rows against the stub, so every "last 30
+   days" / "this week" / date-windowed section in every prior signed-in sweep
+   was measured **empty**. Those sweeps were not wrong — the pages did render —
+   but "renders" was carrying much less weight than it appeared to, in the same
+   way the earlier "a11y 0 violations is vacuous for data-backed sections"
+   finding did. Re-ran `audit-signed-in-smoke` with the fix: **98/98 still
+   render**, no crashes surfaced by the newly-flowing rows. Contrast and
+   responsive sweeps are worth re-running on the same grounds (Codex lane).
+
 Verified: `all`/unknown → 20 lifetime-ranked, no period field · `week` → 16 ·
 `month` → 20, each with a different #1 · ranks contiguous, sorted, unique ·
 `/leaderboard` 200 with the selector present · 1941 tests, lint, typecheck, build.
