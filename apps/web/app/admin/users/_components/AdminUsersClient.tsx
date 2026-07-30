@@ -261,7 +261,6 @@ export default function AdminUsersClient({
   const [roleFilter, setRoleFilter] = useState('All Roles');
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [joinedFilter, setJoinedFilter] = useState('All Time');
-  const [registeredVia, setRegisteredVia] = useState('All');
   const [sort, setSort] = useState('Newest');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [page, setPage] = useState(0);
@@ -520,12 +519,12 @@ export default function AdminUsersClient({
             <option>Last 90 Days</option>
             <option>This Year</option>
           </select>
-          <select className="users-filter-select" aria-label="Filter by registration source" value={registeredVia} onChange={(e) => setRegisteredVia(e.target.value)}>
-            <option>All</option>
-            <option>Web</option>
-            <option>Google</option>
-            <option>Email</option>
-          </select>
+          {/* No "registration source" filter. It offered All / Web / Google /
+              Email, but `profiles` has no column recording how an account was
+              created — nothing could filter on it, and nothing did:
+              `registeredVia` was declared and rendered and read nowhere else.
+              An admin picking "Google" saw an unchanged list and no error.
+              Removed rather than faked, per the earlier dead-control sweep. */}
           <select className="users-filter-select" aria-label="Sort users" value={sort} onChange={(e) => setSort(e.target.value)}>
             <option>Newest</option>
             <option>Name</option>

@@ -890,7 +890,6 @@ export default function DonationsClient({
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [page, setPage] = useState(0);
-  const [exportFormat, setExportFormat] = useState('csv');
   // These two used to be unbound <select>s whose value was never read.
   const [exportDataType, setExportDataType] = useState('all');
   const [exportRange, setExportRange] = useState('all');
@@ -1440,15 +1439,12 @@ export default function DonationsClient({
                   <option value="donors">Donors</option>
                 </select>
               </div>
-              <div className="ado-field">
-                <label htmlFor="exp-format">Format</label>
-                {/* Excel and PDF used to be offered here, but the export endpoint
-                    only ever produces CSV — picking PDF downloaded a CSV named
-                    ".pdf". Offer only what the server can actually make. */}
-                <select id="exp-format" className="ac-input" value={exportFormat} onChange={e => setExportFormat(e.target.value)}>
-                  <option value="csv">CSV</option>
-                </select>
-              </div>
+              {/* No Format control. Excel and PDF were removed earlier because
+                  the endpoint only produces CSV — picking PDF downloaded a CSV
+                  named ".pdf". That left a select with ONE option whose value
+                  nothing read: `exportFormat` was declared and rendered and
+                  referenced nowhere else, so the export ignored it either way.
+                  A control offering no choice is not a choice; exports are CSV. */}
               <div className="ado-field">
                 <label htmlFor="exp-daterange">Date Range</label>
                 <select id="exp-daterange" className="ac-input" value={exportRange} onChange={e => setExportRange(e.target.value)}>

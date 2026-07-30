@@ -63,9 +63,26 @@ describe('the export honours what the operator selected', () => {
   const route = read(ROUTE);
 
   it('binds every filter select to state', () => {
-    for (const binding of ['setExportDataType', 'setExportRange', 'setExportFormat']) {
+    // `setExportFormat` used to be in this list. The Format select was removed:
+    // it offered exactly ONE option (CSV), and its value was read nowhere — the
+    // export payload is built from exportDataType and exportRange only, which is
+    // why the assertions below cover those two and never covered format.
+    //
+    // So the binding existed while the *honouring* never did. A control that
+    // offers no choice and changes no outcome is not a filter, and this test's
+    // own name is "the export honours what the operator selected".
+    for (const binding of ['setExportDataType', 'setExportRange']) {
       expect(client, `${binding} is not wired`).toContain(binding);
     }
+  });
+
+  it('does not reintroduce a Format control the endpoint cannot honour', () => {
+    // The endpoint emits CSV only (lib/csv escapeCsvCell). Offering Excel or PDF
+    // downloaded a CSV under the wrong extension, which is how this started; the
+    // single-option select left behind was the residue. If a real second format
+    // is ever implemented server-side, delete this test — do not weaken it.
+    expect(client, 'a Format select is back').not.toContain('exp-format');
+    expect(client, 'exportFormat state is back').not.toMatch(/const \[exportFormat/);
   });
 
   it('sends the chosen status and date range', () => {

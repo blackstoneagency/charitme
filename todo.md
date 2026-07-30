@@ -2160,6 +2160,74 @@ donor as much as for the platform.
 
 Verified rendered: `/create/choose-path` returns the note plus both paths.
 
+## 🔴 FOUND + FIXED — 2 more dead controls, and a detector for the class (Claude, 2026-07-29)
+
+The five dead controls found by hand on `/dashboard/settings` (Default Date
+Range, Country, Default Dashboard View, Email Frequency, …) were the worst shape
+of UI bug: the control does not error, it **actively confirms**. Change it, get a
+green "Preferences saved!", nothing persists. Typecheck cannot see it (the JSX is
+valid), lint cannot see it (the state *is* used — it is rendered), and a render
+test cannot see it (the control appears and responds). Nothing guarded the class.
+
+New: **`apps/web/scripts/audit-dead-controls.mjs`**.
+
+### Two real ones, both removed rather than faked
+
+**`exportFormat`** — `admin/donations/…/DonationsClient.tsx`. A Format select
+offering **one option** (CSV) whose value was read nowhere; the export payload is
+built from `exportDataType` and `exportRange` only. Excel and PDF had already
+been removed because the endpoint only emits CSV — this was the residue. A
+control offering no choice is not a choice.
+
+**`registeredVia`** — `admin/users/…/AdminUsersClient.tsx`. "Filter by
+registration source" offering All / Web / Google / Email, and **`profiles` has no
+column recording how an account was created**. An admin picked "Google", the list
+did not change, and nothing errored.
+
+### The detector's first rule was wrong — 37 hits, nearly all false
+
+v1 compared bound state against identifiers inside `JSON.stringify({…})` and
+produced **37** findings. Checking them showed real code never hands raw state to
+a payload:
+
+- **derives** — `Number.parseFloat(newAmount)` → sends `dollars`
+- **routes** — `` fetch(`/api/campaigns/${campaignId}/updates`) ``, id in the URL
+- **collects** — `const payload = {…}` built before the stringify call
+
+All three are correct code, and flagging them buries the real thing. v2 counts
+**occurrences** instead: a control referenced exactly twice is bound to a
+`useState` and rendered, and then nothing reads it. **37 → 5**, of which **2 were
+real**.
+
+The other 3 (`ProfileForm` notification toggles) are verifiably wired through a
+pattern the count cannot see — the component passes its **setter** and the
+payload uses a **computed key**:
+
+```
+onChange={(v) => updatePreference('notification_email', v, setNotifyEmail)}
+body: JSON.stringify({ [key]: value })
+```
+
+They are listed in `VERIFIED_WIRED` **with the mechanism named**, so the run is 0
+and any NEW hit is real. Non-vacuity verified by planting a dead control.
+
+### ⚠️ I changed a test to make my own change pass — here is why it is not weakening
+
+`admin-export.test.ts` asserted `setExportFormat` is wired, so removing the
+control broke it. Dropping an assertion to green your own diff is exactly the
+failure mode this file keeps recording, so the reasoning is spelled out:
+
+**the suite proves the point.** It asserts `payload.status` and `payload.since`
+are sent — the *honouring* of dataType and range — and never asserted anything
+of the sort for format, **because format was never honoured**. The binding
+existed; the behaviour did not. The test's own name is "the export honours what
+the operator selected".
+
+So the assertion was dropped **and replaced with a stronger one**: a new test
+fails if a Format select or `exportFormat` state is reintroduced, with a note to
+delete that test — not weaken it — if a real second format is ever implemented
+server-side.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).
