@@ -2004,6 +2004,70 @@ renders `href="/creators/james-smith-f17159"`.
 Deliberately NOT built: a Tip button. `creator_tips` has no writer, so the button
 would be decorative — the exact class of dead control this file keeps recording.
 
+## 📊 GoFundMe DECK RE-INGESTED first-hand — 3 corrections (Claude, 2026-07-29)
+
+Re-read the 18-slide deck directly (image-only; extracted `ppt/media` and viewed
+the screenshots) rather than trusting the 2026-07-25 teardown built from it.
+**The teardown's feature list is accurate** — I confirmed the two load-bearing
+items myself: GoFundMe's hero carries exactly **one** CTA ("Start a GoFundMe"),
+and the discovery rail is proximity-ranked with per-card mileage ("15 miles
+away", "1 mile away") behind a **Nearby** filter.
+
+Three things in the surrounding notes are now wrong, and acting on any of them
+would have been a mistake:
+
+### 1. ❌ DO NOT BUILD the "donor guarantee" page — it contradicts the Terms
+
+The teardown calls this "the highest trust-per-effort item on this list, and
+mostly content + policy rather than engineering." **It is not content work.**
+`app/terms/page.tsx:32` currently states CharitMe
+
+> "does not verify the truth of campaign claims, **guarantee fundraising
+> outcomes**, or …"
+
+and `RefundForm.tsx:359` says CharitMe cannot "guarantee a refund." A page
+promising a donor guarantee would directly contradict the published Terms and
+invent a **financial commitment the business has not made**. That is a
+product/legal decision, not a page to write. Left unbuilt deliberately.
+
+*If* the owner wants it, the order is: decide the policy → change the Terms →
+then build the page. Not the reverse.
+
+### 2. ✅ The hero-CTA friction item is already fixed
+
+The teardown flags **four** hero CTAs with "two near-duplicates". `app/page.tsx`
+now renders **two**: `Create My Fundraiser Now!` and `Donate Now` — one per side
+of a two-sided marketplace, not duplicates. GoFundMe's single CTA works because
+it is one-sided at that moment. No change made; further "simplification" here
+would be churn.
+
+### 3. ⚠️ DDL is disabled BY DESIGN — the migration blockers are process, not oversight
+
+`POST /api/admin/apply-schema` exists and deliberately returns **410
+`RELEASE_WORKFLOW_REQUIRED`**: *"In-app schema changes are disabled. Apply
+reviewed migrations through the release workflow."* So the pending migrations are
+not "the owner has not got round to it" — **the repo has a deliberate policy that
+schema changes go through review**. Framing them as an owner chore misreads the
+design. They need a release, and that is correct.
+
+### Peer-to-peer: the migration is WRITTEN and UNAPPLIED
+
+`supabase/migrations/20260815000000_peer_fundraiser_attribution.sql` already
+exists — it adds `donations.peer_fundraiser_id`, a rollup trigger that
+deliberately does **not** touch the parent-campaign trigger (which would
+double-count), and backfills the 240 seeded totals to 0 because no donation row
+supports them. Confirmed unapplied against production:
+
+```
+donations.peer_fundraiser_id → 400  42703 "column does not exist"
+```
+
+So P2P is **one release away**, not a build. Its own header also flags the trap
+in the follow-up: `create or replace function record_donation(…, p_peer_fundraiser_id
+uuid default null)` creates an **overload** rather than replacing the function,
+and the caller uses named arguments — so the new parameter would be silently
+ignored while appearing to work.
+
 ## 🤝 BOT LANE SPLIT (Claude ⇄ Codex — do not step on each other)
 - **Codex** owns the **dark/light theme sweep** (globals.css theme tokens,
   `[data-theme]` overrides, per-page light/dark, `theme-tokens.test.ts` guard).
