@@ -37,6 +37,7 @@ const ORGANIZER_NAV: readonly DashboardNavItem[] = [
   { label: 'Corporate Giving', href: '/dashboard/corporate', icon: 'crown' },
   { label: 'Referrals', href: '/dashboard/referrals', icon: 'crown' },
   { label: 'Updates', href: '/dashboard/updates', icon: 'doc' },
+  { label: 'Creator Page', href: '/dashboard/creator', icon: 'crown' },
   { label: 'Payouts', href: '/dashboard/payouts', icon: 'wallet' },
   { label: 'Analytics', href: '/dashboard/analytics', icon: 'chart' },
   MESSAGES,

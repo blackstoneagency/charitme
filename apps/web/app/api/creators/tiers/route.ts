@@ -107,3 +107,69 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
   return NextResponse.json({ tier: data }, { status: 201 });
 }
+
+// PATCH — edit a tier, or retire it with `active: false`.
+//
+// GET has always returned inactive tiers ("an owner needs to see what they have
+// hidden"), but nothing could make one inactive, so that branch was unreachable.
+// Retiring rather than deleting is deliberate: `member_subscriptions.tier_id`
+// is ON DELETE CASCADE, so deleting a tier would silently destroy the
+// subscription records of everyone on it. `active = false` hides it from the
+// public page and from new signups while leaving existing members intact.
+const TierPatchSchema = TierSchema.partial().extend({
+  id: z.string().uuid(),
+  active: z.boolean().optional(),
+});
+
+export async function PATCH(request: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  if (!checkRateLimit(`creator-tier:${user.id}`, 20, 60 * 1000)) {
+    return NextResponse.json({ error: 'Too many requests', code: 'RATE_LIMITED' }, { status: 429 });
+  }
+
+  let body: unknown;
+  try { body = await request.json(); } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const parsed = TierPatchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
+  }
+
+  const creatorProfileId = await callerCreatorProfileId(user.id);
+  if (!creatorProfileId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const { id, title, description, amountCents, interval, benefits, active } = parsed.data;
+  const patch: Record<string, unknown> = {};
+  if (title !== undefined) patch.title = title;
+  if (description !== undefined) patch.description = description;
+  if (amountCents !== undefined) patch.amount_cents = amountCents;
+  if (interval !== undefined) patch.interval = interval;
+  if (benefits !== undefined) patch.benefits = benefits;
+  if (active !== undefined) patch.active = active;
+  if (Object.keys(patch).length === 0) {
+    return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
+  }
+
+  // The ownership filter is part of the UPDATE, not a separate read: a
+  // check-then-write leaves a window, and this way a tier belonging to someone
+  // else simply matches no row. Same reason POST derives the profile id from the
+  // session rather than the body.
+  const { data, error } = await supabaseAdmin
+    .from('membership_tiers')
+    .update(patch)
+    .eq('id', id)
+    .eq('creator_profile_id', creatorProfileId)
+    .select('id, title, description, amount_cents, interval, benefits, active, created_at')
+    .maybeSingle();
+
+  if (error) return NextResponse.json({ error: 'Internal server error', code: 'INTERNAL_ERROR' }, { status: 500 });
+  if (!data) return NextResponse.json({ error: 'Tier not found' }, { status: 404 });
+  return NextResponse.json({ tier: data });
+}

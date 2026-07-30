@@ -121,6 +121,7 @@
       "/dashboard/beneficiary",
       "/dashboard/campaigns",
       "/dashboard/corporate",
+      "/dashboard/creator",
       "/dashboard/donations",
       "/dashboard/donor",
       "/dashboard/grants",

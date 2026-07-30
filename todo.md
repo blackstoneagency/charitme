@@ -39,7 +39,7 @@ need the owner.
 ### 🟢 CLAUDE lane — actionable now, no gate (4)
 
 | A1 | **Peer-to-peer steps 2–3**: thread `peer_fundraiser_id` through `DonateButton` → `/api/donations` → Stripe metadata, then the shareable `/campaigns/[slug]/team/[peerSlug]` page. **Gated on O1** applying the migration — building the page first ships a progress bar that cannot move. |
-| A2 | **Creator-economy module** (Patreon/Ko-fi/Buy Me a Coffee = 0/10). **STARTED — public creator page shipped**, see below. Remaining: tiers, subscriptions, member-only posts, DMs. **No DDL needed.** |
+| A2 | **Creator-economy module** (Patreon/Ko-fi/Buy Me a Coffee = 0/10). **Authoring loop now closed** — see "the module was unreachable" below. Public page + profile writer + tier CRUD + `/dashboard/creator` all ship. Remaining: **paid subscription checkout** (Stripe, gated on O3), member-only posts (`exclusive_posts` has a schema and no reader/writer), DMs. **No DDL needed for any of it.** |
 | A3 | **Proximity discovery** — needs lat/long on campaigns, so it opens with a migration → effectively O1-shaped. |
 | A4 | **`coach_sessions` consumer decision** — 500 rows, no reader. Do NOT add a writer alone; that satisfies the audit while producing analytics nothing consumes. |
 
@@ -48,8 +48,62 @@ need the owner.
 Recorded because each cost real time to establish: `donor_messages` anon reads
 (public donor wall, `visibility` is a dead column) · IDOR across all 42
 service-role routes · Stripe webhook event coverage · fetch/route method
-mismatches (0 of 276) · internal links (0 broken) · **all 97 signed-in routes
-render** · images 500/500 unique · mobile 0 overflow · public axe 0 violations.
+mismatches (0 of 276) · internal links (0 broken) · **all 98 signed-in routes
+render** · images 500/500 unique · mobile 0 overflow · public axe 0 violations ·
+**dead buttons: 0** (see below).
+
+### 🧩 A2 — the creator module was shipped and UNREACHABLE (Claude, 2026-07-30)
+
+Worth recording as a *class* of defect, not just a fix. Three things existed:
+
+| piece | state before |
+|---|---|
+| `/creators/[handle]` — public page | shipped, reads `creator_profiles` |
+| `/api/creators/tiers` — GET + POST | shipped, writes `membership_tiers` |
+| anything that creates a `creator_profiles` row | **did not exist** |
+
+So `POST /api/creators/tiers` answered **`409 NO_CREATOR_PROFILE` for every real
+account on the platform** — the only 350 profiles in the table were seeded — and
+`membership_tiers` sat at **0 rows in production**, which means the Memberships
+section rendered on **zero of the 350** creator pages. Every individual piece
+reviewed as complete. The gap was only visible by asking "who calls this?":
+`/api/creators/tiers` had **no UI callers anywhere in the app**.
+
+Shipped to close it:
+- `lib/creator-handle.ts` — handle policy, pure and tested (10 cases). A handle
+  is a permanent public URL in the same namespace as the app's routes, so
+  `/creators/settings` must not become a person. One test **derives** the
+  reserved list's floor from `app/creators/*` on disk, so adding a static
+  sibling route that shadows an existing handle fails the suite.
+- `PUT/GET /api/creators/profile` — the missing writer. Upsert on `user_id`
+  (`creator_profiles_user_id_unique` makes it one-per-user anyway), 409 on
+  handle conflict, empty strings stored as `NULL` so the public page's
+  `bio &&` guards behave.
+- `PATCH /api/creators/tiers` — GET always returned inactive tiers "so an owner
+  can see what they have hidden", but nothing could make one inactive. Retire,
+  **never delete**: `member_subscriptions.tier_id` is `ON DELETE CASCADE`, so
+  deleting a tier would destroy the subscription records of everyone on it.
+  Ownership is a filter *inside* the UPDATE, not a check-then-write.
+- `/dashboard/creator` + nav entry (organizer/nonprofit personas).
+
+**Verified**: 1936 tests · typecheck · lint · build · all 98 signed-in routes
+render · page returns 200 with the form present · 401 on all three handlers
+unauthenticated · every validation branch returns 400 with the right message.
+
+⚠️ **NOT verified, and the UI says so**: the write round-trip. The stub
+"accepts and discards writes" by design, so upsert/23505 behaviour is unproven
+until O1/O3. And **there is no subscribe flow** — the dashboard states that
+plainly to the creator rather than letting them publish tiers and wait for
+signups that cannot happen.
+
+### 🔎 Negative result — no dead buttons (do not re-run this scan)
+
+Swept `app/` + `components/` for `<button>` with no `onClick`, no
+`type="submit"`, not `disabled`. **3 hits, all 3 false**: two were comments in
+`AdminUsersClient.tsx` recording buttons already removed, one was the `BtnLink`
+docblock in `ui.tsx` explaining why `<button>` inside `<a>` is invalid. The
+detector found its own changelog. Not shipped — a comment-blind detector whose
+only hits are prose is noise.
 
 ### The honest bottom line on "100% production ready"
 
