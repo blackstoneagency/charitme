@@ -3,7 +3,14 @@ import { cache } from 'react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { createClient } from '../../../lib/supabase-server';
+import { supabaseAdmin } from '../../../lib/supabase';
 import { formatMoneyShort, DEFAULT_CURRENCY } from '@shared/currencies';
+import {
+  redactPosts,
+  isMembershipActive,
+  type RawPost,
+  type ViewerMembership,
+} from '../../../lib/creator-posts';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,6 +95,61 @@ const getTiers = cache(async (creatorProfileId: string) => {
   return data ?? [];
 });
 
+/**
+ * The viewer's active memberships to THIS creator, plus the creator's tier
+ * price/title maps that gating needs.
+ *
+ * Read through `supabaseAdmin` rather than the RLS client, deliberately and
+ * narrowly: `member_subscriptions` has no policy that would let a viewer read
+ * their own row here, and the alternative — loosening RLS — would widen access
+ * for every other caller too. The query is pinned to `member_id = <the signed-in
+ * user>`, so it cannot return anyone else's membership regardless.
+ */
+async function getViewerContext(creatorProfileId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data: tierRows } = await supabaseAdmin
+    .from('membership_tiers')
+    .select('id, title, amount_cents')
+    .eq('creator_profile_id', creatorProfileId);
+
+  const tiers = (tierRows ?? []) as { id: string; title: string; amount_cents: number }[];
+  const tierPrices = new Map(tiers.map((t) => [t.id, t.amount_cents]));
+  const tierTitles = new Map(tiers.map((t) => [t.id, t.title]));
+
+  if (!user || tiers.length === 0) {
+    return { userId: user?.id ?? null, memberships: [] as ViewerMembership[], tierPrices, tierTitles };
+  }
+
+  const { data: subs } = await supabaseAdmin
+    .from('member_subscriptions')
+    .select('tier_id, status, current_period_end')
+    .eq('member_id', user.id)
+    .in('tier_id', tiers.map((t) => t.id));
+
+  const memberships: ViewerMembership[] = ((subs ?? []) as {
+    tier_id: string;
+    status: string;
+    current_period_end: string | null;
+  }[])
+    .filter((s) => isMembershipActive(s))
+    .map((s) => ({ tierId: s.tier_id, amountCents: tierPrices.get(s.tier_id) ?? 0 }));
+
+  return { userId: user.id, memberships, tierPrices, tierTitles };
+}
+
+/** Newest first. Bodies are redacted before this leaves the server. */
+async function getPosts(creatorProfileId: string): Promise<RawPost[]> {
+  const { data } = await supabaseAdmin
+    .from('exclusive_posts')
+    .select('id, title, body, visibility, minimum_tier_id, created_at')
+    .eq('creator_profile_id', creatorProfileId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  return (data ?? []) as RawPost[];
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }): Promise<Metadata> {
   const { handle } = await params;
   const creator = await getCreator(handle);
@@ -109,10 +171,21 @@ export default async function CreatorPage({ params }: { params: Promise<{ handle
   const creator = await getCreator(handle);
   if (!creator) notFound();
 
-  const [campaigns, tiers] = await Promise.all([
+  const [campaigns, tiers, rawPosts, viewer] = await Promise.all([
     getCampaigns(creator.user_id),
     getTiers(creator.id),
+    getPosts(creator.id),
+    getViewerContext(creator.id),
   ]);
+  // Redaction happens HERE, before the rows reach JSX — a locked body must never
+  // enter the RSC payload, where view-source would read it straight back out.
+  const posts = redactPosts(
+    rawPosts,
+    viewer.memberships,
+    viewer.tierPrices,
+    viewer.tierTitles,
+    viewer.userId === creator.user_id,
+  );
   const accent = creator.brand_color || '#059669';
   const totalRaised = campaigns.reduce((s, c) => s + (c.raised_amount ?? 0), 0);
 
@@ -190,6 +263,60 @@ export default async function CreatorPage({ params }: { params: Promise<{ handle
                   <ul style={{ margin: '10px 0 0', padding: '0 0 0 16px', fontSize: 12.5, color: 'var(--t3)', lineHeight: 1.7 }}>
                     {t.benefits.map((b: string, i: number) => <li key={i}>{b}</li>)}
                   </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Posts. Locked entries show a title, a date and a reason — never a
+          truncated body, which would be a paywall that leaks a little. */}
+      {posts.length > 0 && (
+        <section style={{ marginTop: 32 }}>
+          <h2 style={{ fontSize: 19, fontWeight: 800, color: 'var(--t1)', margin: '0 0 18px' }}>Posts</h2>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 14 }}>
+            {posts.map((p) => (
+              <li
+                key={p.id}
+                style={{
+                  background: 'var(--s1)',
+                  border: '1px solid var(--b1)',
+                  borderRadius: 'var(--rl)',
+                  padding: 16,
+                }}
+              >
+                <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                  <h3 style={{ margin: 0, fontSize: 15.5, fontWeight: 800, color: 'var(--t1)' }}>{p.title}</h3>
+                  <time
+                    dateTime={p.created_at}
+                    style={{ fontSize: 12, color: 'var(--t3)' }}
+                  >
+                    {new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </time>
+                </div>
+                {p.locked ? (
+                  <p
+                    style={{
+                      margin: '10px 0 0',
+                      fontSize: 13,
+                      color: 'var(--t3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
+                    <span aria-hidden="true">🔒</span>
+                    {p.lockReason}
+                    {/* Says what is true today. Memberships cannot be bought yet,
+                        so a "Join" button would be a dead control — the exact
+                        defect class this repo has been removing. */}
+                    <span style={{ color: 'var(--t4)' }}>· memberships open soon</span>
+                  </p>
+                ) : (
+                  <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.6, color: 'var(--t2)', whiteSpace: 'pre-wrap' }}>
+                    {p.body}
+                  </p>
                 )}
               </li>
             ))}

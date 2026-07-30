@@ -371,6 +371,104 @@ export function buildFixtures() {
       ...extra(i),
     }));
 
+  // ── Creator economy ────────────────────────────────────────────────────────
+  //
+  // One creator page belonging to the default stub user, with a public post and
+  // two gated ones. The gated bodies are the literal string
+  // `LOCKED-BODY-MUST-NOT-APPEAR`, which exists so a sweep can assert the
+  // paywall by grepping the served HTML rather than by trusting the component:
+  // rendering a teaser while the full body sits in the RSC payload is the
+  // classic bypass, and it looks completely correct on screen.
+  const creator_profiles = [
+    {
+      id: uuid('crtr', 1),
+      user_id: USER_ID,
+      handle: 'stub-creator',
+      display_name: 'Stub Creator',
+      bio: 'A creator fixture with tiers and gated posts.',
+      hero_image_url: null,
+      website_url: null,
+      brand_color: '#059669',
+      accepts_tips: true,
+      accepts_commissions: false,
+      created_at: daysAgo(90),
+      updated_at: daysAgo(90),
+    },
+  ];
+
+  const membership_tiers = [
+    {
+      id: uuid('mtir', 1),
+      creator_profile_id: creator_profiles[0].id,
+      nonprofit_id: null,
+      title: 'Supporter',
+      description: 'Early access to updates.',
+      amount_cents: 500,
+      interval: 'month',
+      benefits: ['Early access', 'Name in the credits'],
+      active: true,
+      created_at: daysAgo(80),
+      updated_at: daysAgo(80),
+    },
+    {
+      id: uuid('mtir', 2),
+      creator_profile_id: creator_profiles[0].id,
+      nonprofit_id: null,
+      title: 'Producer',
+      description: 'Everything above, plus monthly calls.',
+      amount_cents: 5000,
+      interval: 'month',
+      benefits: ['Monthly call'],
+      active: true,
+      created_at: daysAgo(80),
+      updated_at: daysAgo(80),
+    },
+  ];
+
+  const exclusive_posts = [
+    {
+      id: uuid('xpst', 1),
+      creator_profile_id: creator_profiles[0].id,
+      nonprofit_id: null,
+      author_id: USER_ID,
+      title: 'A public update',
+      body: 'PUBLIC-BODY-IS-VISIBLE — anyone may read this one.',
+      visibility: 'public',
+      minimum_tier_id: null,
+      created_at: daysAgo(3),
+      updated_at: daysAgo(3),
+    },
+    {
+      id: uuid('xpst', 2),
+      creator_profile_id: creator_profiles[0].id,
+      nonprofit_id: null,
+      author_id: USER_ID,
+      title: 'Members-only update',
+      body: 'LOCKED-BODY-MUST-NOT-APPEAR',
+      visibility: 'members',
+      minimum_tier_id: null,
+      created_at: daysAgo(2),
+      updated_at: daysAgo(2),
+    },
+    {
+      id: uuid('xpst', 3),
+      creator_profile_id: creator_profiles[0].id,
+      nonprofit_id: null,
+      author_id: USER_ID,
+      title: 'Producer-tier update',
+      body: 'LOCKED-BODY-MUST-NOT-APPEAR',
+      visibility: 'tier',
+      minimum_tier_id: membership_tiers[1].id,
+      created_at: daysAgo(1),
+      updated_at: daysAgo(1),
+    },
+  ];
+
+  // Deliberately empty: no one has subscribed, which is the real production
+  // state until membership checkout ships. An anonymous visitor and a signed-in
+  // non-member must both see the two gated posts as locked.
+  const member_subscriptions = [];
+
   return {
     _user: defaultUser,
     _access_token: 'stub-access-token',
@@ -389,6 +487,10 @@ export function buildFixtures() {
     campaigns,
     donations,
     payouts,
+    creator_profiles,
+    membership_tiers,
+    exclusive_posts,
+    member_subscriptions,
     campaign_updates,
     campaign_payments,
     campaign_payment_events: [

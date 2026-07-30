@@ -36,17 +36,28 @@ export type Tier = {
   active: boolean;
 };
 
+export type Post = {
+  id: string;
+  title: string;
+  body: string;
+  visibility: 'public' | 'members' | 'tier';
+  minimum_tier_id: string | null;
+  created_at: string;
+};
+
 interface Props {
   initialProfile: CreatorProfile | null;
   initialTiers: Tier[];
+  initialPosts: Post[];
 }
 
 const money = (cents: number) =>
   (cents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: cents % 100 === 0 ? 0 : 2 });
 
-export function CreatorClient({ initialProfile, initialTiers }: Props) {
+export function CreatorClient({ initialProfile, initialTiers, initialPosts }: Props) {
   const [profile, setProfile] = useState<CreatorProfile | null>(initialProfile);
   const [tiers, setTiers] = useState<Tier[]>(initialTiers);
+  const [posts, setPosts] = useState<Post[]>(initialPosts);
 
   // Profile form
   const [handle, setHandle] = useState(initialProfile?.handle ?? '');
@@ -70,6 +81,65 @@ export function CreatorClient({ initialProfile, initialTiers }: Props) {
   const [savingTier, setSavingTier] = useState(false);
   const [tierError, setTierError] = useState<string | null>(null);
   const [busyTierId, setBusyTierId] = useState<string | null>(null);
+
+  // Post form
+  const [pTitle, setPTitle] = useState('');
+  const [pBody, setPBody] = useState('');
+  const [pVisibility, setPVisibility] = useState<'public' | 'members' | 'tier'>('public');
+  const [pTierId, setPTierId] = useState('');
+  const [savingPost, setSavingPost] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
+  const [busyPostId, setBusyPostId] = useState<string | null>(null);
+
+  const activeTiers = tiers.filter((t) => t.active);
+
+  async function addPost(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingPost(true);
+    setPostError(null);
+    try {
+      const res = await fetch('/api/creators/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: pTitle,
+          body: pBody,
+          visibility: pVisibility,
+          minimumTierId: pVisibility === 'tier' ? pTierId || null : null,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setPostError(json.error ?? 'Could not publish that post.');
+        return;
+      }
+      setPosts((prev) => [json.post, ...prev]);
+      setPTitle('');
+      setPBody('');
+    } catch {
+      setPostError('Could not reach the server. Check your connection and try again.');
+    } finally {
+      setSavingPost(false);
+    }
+  }
+
+  async function deletePost(id: string) {
+    setBusyPostId(id);
+    setPostError(null);
+    try {
+      const res = await fetch(`/api/creators/posts?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setPostError(json.error ?? 'Could not delete that post.');
+        return;
+      }
+      setPosts((prev) => prev.filter((p) => p.id !== id));
+    } catch {
+      setPostError('Could not reach the server. Check your connection and try again.');
+    } finally {
+      setBusyPostId(null);
+    }
+  }
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -376,6 +446,119 @@ export function CreatorClient({ initialProfile, initialTiers }: Props) {
               Tiers are shown publicly today, but paid membership checkout is not live yet — visitors
               can see what you offer and cannot subscribe. You will be notified before it turns on.
             </p>
+          </>
+        )}
+      </Card>
+
+      {/* ── Posts ────────────────────────────────────────────────────────── */}
+      <Card>
+        <h2 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 800, color: 'var(--t1)' }}>Posts</h2>
+        <p style={{ margin: '0 0 18px', fontSize: 13.5, color: 'var(--t3)', lineHeight: 1.55 }}>
+          Updates on your creator page. Public posts are visible to everyone; members-only posts show
+          as locked with their title and date, never a preview of the text.
+        </p>
+
+        {!profile ? (
+          <EmptyState
+            title="Create your creator page first"
+            body="Posts appear on your creator page, so there is nowhere to publish one until the form above is saved."
+          />
+        ) : (
+          <>
+            {posts.length > 0 && (
+              <ul style={{ listStyle: 'none', margin: '0 0 22px', padding: 0, display: 'grid', gap: 12 }}>
+                {posts.map((p) => (
+                  <li
+                    key={p.id}
+                    style={{
+                      border: '1px solid var(--b1)',
+                      borderRadius: 'var(--rl)',
+                      padding: 14,
+                      background: 'var(--s1)',
+                      display: 'flex',
+                      gap: 14,
+                      flexWrap: 'wrap',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <div style={{ minWidth: 220, flex: '1 1 280px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <strong style={{ fontSize: 14.5, color: 'var(--t1)' }}>{p.title}</strong>
+                        <Badge color={p.visibility === 'public' ? 'green' : 'blue'}>
+                          {p.visibility === 'public'
+                            ? 'Public'
+                            : p.visibility === 'members'
+                              ? 'Members'
+                              : `Tier: ${tiers.find((t) => t.id === p.minimum_tier_id)?.title ?? 'unknown'}`}
+                        </Badge>
+                      </div>
+                      <p style={{ margin: '6px 0 0', fontSize: 12.5, color: 'var(--t4)' }}>
+                        {new Date(p.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                      <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--t3)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                        {p.body.length > 220 ? `${p.body.slice(0, 220)}…` : p.body}
+                      </p>
+                    </div>
+                    <Btn
+                      variant="secondary"
+                      size="sm"
+                      loading={busyPostId === p.id}
+                      onClick={() => deletePost(p.id)}
+                    >
+                      Delete
+                    </Btn>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <form onSubmit={addPost} style={{ display: 'grid', gap: 14, borderTop: posts.length > 0 ? '1px solid var(--b1)' : 'none', paddingTop: posts.length > 0 ? 18 : 0 }}>
+              <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 800, color: 'var(--t1)' }}>Write a post</h3>
+              <Input label="Title" value={pTitle} onChange={(e) => setPTitle(e.target.value)} placeholder="What's new" required />
+              <Textarea
+                label="Post"
+                value={pBody}
+                onChange={(e) => setPBody(e.target.value)}
+                placeholder="Tell your supporters what you've been working on."
+                required
+                style={{ minHeight: 120 }}
+              />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 14 }}>
+                <Select
+                  label="Who can read it"
+                  value={pVisibility}
+                  onChange={(e) => setPVisibility(e.target.value as 'public' | 'members' | 'tier')}
+                >
+                  <option value="public">Everyone</option>
+                  <option value="members">Members only</option>
+                  {/* Only offered when a tier exists to point at — otherwise the
+                      option leads to a form that cannot be submitted. */}
+                  {activeTiers.length > 0 && <option value="tier">A specific tier and above</option>}
+                </Select>
+                {pVisibility === 'tier' && (
+                  <Select label="Minimum tier" value={pTierId} onChange={(e) => setPTierId(e.target.value)} required>
+                    <option value="">Choose a tier…</option>
+                    {activeTiers.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title} — {money(t.amount_cents)}/{t.interval}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </div>
+              {postError && <p role="alert" style={{ margin: 0, fontSize: 13, color: 'var(--red-text)' }}>{postError}</p>}
+              <div>
+                <Btn type="submit" loading={savingPost}>Publish post</Btn>
+              </div>
+            </form>
+
+            {activeTiers.length === 0 && (
+              <p style={{ margin: '14px 0 0', fontSize: 12.5, color: 'var(--t3)', lineHeight: 1.55 }}>
+                You have no active tiers, so a members-only post would currently be readable by nobody
+                but you. Public posts work today regardless.
+              </p>
+            )}
           </>
         )}
       </Card>

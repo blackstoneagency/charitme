@@ -40,7 +40,7 @@ need the owner.
 ### 🟢 CLAUDE lane — actionable now, no gate (4)
 
 | A1 | **Peer-to-peer steps 2–3**: thread `peer_fundraiser_id` through `DonateButton` → `/api/donations` → Stripe metadata, then the shareable `/campaigns/[slug]/team/[peerSlug]` page. **Gated on O1** applying the migration — building the page first ships a progress bar that cannot move. |
-| A2 | **Creator-economy module** (Patreon/Ko-fi/Buy Me a Coffee = 0/10). **Authoring loop now closed** — see "the module was unreachable" below. Public page + profile writer + tier CRUD + `/dashboard/creator` all ship. Remaining: **paid subscription checkout** (Stripe, gated on O3), member-only posts (`exclusive_posts` has a schema and no reader/writer), DMs. **No DDL needed for any of it.** |
+| A2 | **Creator-economy module** (Patreon/Ko-fi/Buy Me a Coffee = 0/10). Public page + profile writer + tier CRUD + `/dashboard/creator` + **member-only posts with a proven paywall** all ship. Remaining: **paid subscription checkout** — which is now the ONLY thing left, and it is **gated on O3** (Stripe test keys). DMs are optional polish, not parity. |
 | A3 | **Proximity discovery** — needs lat/long on campaigns, so it opens with a migration → effectively O1-shaped. |
 | A4 | **`coach_sessions` consumer decision** — 500 rows, no reader. Do NOT add a writer alone; that satisfies the audit while producing analytics nothing consumes. |
 
@@ -145,6 +145,48 @@ The row shows the **period** amount as the headline with lifetime on the sub-lin
 Verified: `all`/unknown → 20 lifetime-ranked, no period field · `week` → 16 ·
 `month` → 20, each with a different #1 · ranks contiguous, sorted, unique ·
 `/leaderboard` 200 with the selector present · 1941 tests, lint, typecheck, build.
+
+### 🔒 Member-only posts — a paywall, proven by contrast (Claude, 2026-07-30)
+
+`exclusive_posts` had a schema, two RLS policies, and **neither a reader nor a
+writer** — the same shape as `creator_profiles` earlier today. Now: authoring at
+`/dashboard/creator`, `POST/GET/DELETE /api/creators/posts`, and a redacted feed
+on `/creators/[handle]`.
+
+**The rule the design is built around: a locked body must never be SENT.** Not
+"must not be rendered" — rendering a teaser while the full text sits in the RSC
+payload is the classic bypass, and it looks perfect on screen. So gating happens
+by **redacting the row** (`lib/creator-posts.ts`) before it reaches JSX, and
+`VisiblePost` is a discriminated union where the locked variant **has no `body`
+field at all**, so a component cannot render what it was never given.
+
+`lib/creator-posts.ts` is pure and carries **16 tests**, because this is the one
+class of bug that fails silently: a broken gate does not throw, does not 500, and
+looks correct to the author testing their own page. Decisions worth knowing:
+tier gates compare **by price, not tier identity** (or every top-tier member is
+locked out of mid-tier posts); an unknown required price **denies**; a `tier`
+post with no tier named falls back to members-only, never public; `past_due`
+does **not** grant access; an unparseable `current_period_end` denies.
+
+**Verified end-to-end against the stub, three ways — the contrast is the point,
+since "0 leaks" would also be true of a page that renders no bodies at all:**
+
+| viewer | public body | locked body | lock reason |
+|---|---|---|---|
+| anonymous | ✅ present | **0 in 66 KB of HTML** | shown |
+| signed-in non-member | ✅ present | **0** | shown |
+| the author | ✅ present | ✅ **present** | — |
+
+Stub fixtures gained `creator_profiles` / `membership_tiers` / `exclusive_posts`
+with gated bodies set to the literal `LOCKED-BODY-MUST-NOT-APPEAR`, so any future
+sweep can assert the paywall by grepping the served HTML rather than trusting the
+component. `member_subscriptions` is deliberately **empty** — that is the real
+production state until checkout ships.
+
+⚠️ **No "Join" button anywhere**, on purpose. Memberships cannot be bought yet, so
+a subscribe CTA would be a dead control — the exact class removed earlier today.
+Locked posts say *"memberships open soon"*, and the dashboard warns a creator with
+no active tiers that a members-only post is currently readable by nobody but them.
 
 ### 🔎 Negative result — no dead buttons (do not re-run this scan)
 
