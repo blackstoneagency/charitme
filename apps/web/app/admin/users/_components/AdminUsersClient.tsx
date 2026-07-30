@@ -388,7 +388,7 @@ export default function AdminUsersClient({
             <div className="users-kpi-card" key={label}>
               <span>{label}</span>
               <strong>{value}</strong>
-              <small style={{ color: 'var(--t3, #64748b)' }}>{sub}</small>
+              <small style={{ color: 'var(--t3)' }}>{sub}</small>
             </div>
           ))}
         </div>
@@ -427,7 +427,7 @@ export default function AdminUsersClient({
                       </span>
                     )}
                   </th>
-                  <td style={{ color: 'var(--t3, #64748b)' }}>{r.description}</td>
+                  <td style={{ color: 'var(--t3)' }}>{r.description}</td>
                   <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
                     {r.count.toLocaleString()}
                   </td>
@@ -451,7 +451,7 @@ export default function AdminUsersClient({
             <button onClick={() => setView('list')}>View all users →</button>
           </div>
           <div style={{ display: 'grid' }}>
-            <div className="users-recent-row" style={{ fontWeight: 700, fontSize: 11, color: '#66708d', textTransform: 'uppercase' }}>
+            <div className="users-recent-row" style={{ fontWeight: 700, fontSize: 11, color: 'var(--t3)', textTransform: 'uppercase' }}>
               <span>User</span><span>Role</span><span>Joined</span>
             </div>
             {recentUsers.map((u) => (
@@ -459,8 +459,8 @@ export default function AdminUsersClient({
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Avatar name={u.name} imageUrl={u.avatarUrl} />
                   <span>
-                    <b style={{ display: 'block', fontSize: 13, color: '#0f1238', fontWeight: 650 }}>{u.name}</b>
-                    <span style={{ fontSize: 11, color: '#66708d' }}>{u.email}</span>
+                    <b style={{ display: 'block', fontSize: 13, color: 'var(--t1)', fontWeight: 650 }}>{u.name}</b>
+                    <span style={{ fontSize: 11, color: 'var(--t3)' }}>{u.email}</span>
                   </span>
                 </span>
                 <span style={rolePillColor(u.role)}>{u.role}</span>
@@ -673,8 +673,8 @@ export default function AdminUsersClient({
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
-        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: '#0f1238' }}>Success!</h2>
-        <p style={{ margin: 0, color: '#66708d', fontSize: 14 }}>
+        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--t1)' }}>Success!</h2>
+        <p style={{ margin: 0, color: 'var(--t3)', fontSize: 14 }}>
           {notice || 'The user has been updated successfully.'}
         </p>
         <button
@@ -742,7 +742,7 @@ export default function AdminUsersClient({
           <div className="users-detail-layout">
             {/* Left: User Information */}
             <div>
-              <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 700, color: '#0f1238' }}>User Information</h3>
+              <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>User Information</h3>
               <div className="users-detail-info">
                 {[
                   ['Full Name', selected.name],
@@ -770,7 +770,7 @@ export default function AdminUsersClient({
 
             {/* Right: More Actions panel */}
             <div>
-              <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 700, color: '#0f1238' }}>More Actions</h3>
+              <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>More Actions</h3>
               <div className="users-actions-panel">
                 <ActionBtn
                   icon="✏️"
@@ -839,13 +839,13 @@ export default function AdminUsersClient({
                     <KFIcon name={a.type === 'Donation' ? 'gift' : 'stack'} />
                   </div>
                   <div>
-                    <b style={{ display: 'block', fontWeight: 650, color: '#0f1238', fontSize: 13 }}>{a.title}</b>
-                    <span style={{ fontSize: 12, color: '#66708d' }}>
+                    <b style={{ display: 'block', fontWeight: 650, color: 'var(--t1)', fontSize: 13 }}>{a.title}</b>
+                    <span style={{ fontSize: 12, color: 'var(--t3)' }}>
                       {a.detail}
                       {a.amount ? ` • ${a.amount}` : ''}
                     </span>
                   </div>
-                  <span style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 11, color: 'var(--t3)', whiteSpace: 'nowrap' }}>
                     {fmtDateTime(a.createdAt)}
                   </span>
                 </div>
@@ -853,7 +853,7 @@ export default function AdminUsersClient({
               {selectedActivities.length > 0 && (
                 <Link
                   href={`/admin/audit-log?target=${encodeURIComponent(selected.id)}`}
-                  style={{ display: 'inline-block', marginTop: 12, border: 0, background: 'transparent', color: '#6c35ff', fontSize: 12, fontWeight: 650, cursor: 'pointer', textDecoration: 'none' }}
+                  style={{ display: 'inline-block', marginTop: 12, border: 0, background: 'transparent', color: 'var(--brand-text)', fontSize: 12, fontWeight: 650, cursor: 'pointer', textDecoration: 'none' }}
                 >
                   View all activity →
                 </Link>
@@ -926,7 +926,7 @@ export default function AdminUsersClient({
                       textAlign: 'left',
                       fontSize: 13,
                       fontWeight: 650,
-                      color: danger ? '#e11d48' : '#101842',
+                      color: danger ? 'var(--red-text)' : '#101842',
                       cursor: 'pointer',
                     }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = danger ? 'rgba(190,18,60,.08)' : 'rgba(108,53,255,.08)'; }}
@@ -1019,10 +1019,10 @@ function DonationsTab({
           </div>
           {donations.map((d) => (
             <div className="users-donations-row" key={d.id}>
-              <span style={{ color: '#0f1238', fontWeight: 700 }}>{money(d.amountCents)}</span>
+              <span style={{ color: 'var(--t1)', fontWeight: 700 }}>{money(d.amountCents)}</span>
               <span>{d.campaignTitle}</span>
               <span>
-                <span style={{ background: d.status === 'completed' ? '#dcfce7' : '#fef9c3', color: d.status === 'completed' ? '#166534' : '#854d0e', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 650 }}>
+                <span style={{ background: d.status === 'completed' ? '#dcfce7' : '#fef9c3', color: d.status === 'completed' ? '#166534' : 'var(--orange-text)', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 650 }}>
                   {d.status}
                 </span>
               </span>
@@ -1078,7 +1078,7 @@ function CampaignsTab({
           </div>
           {campaigns.map((c) => (
             <div className="users-campaigns-row" key={c.id}>
-              <span style={{ fontWeight: 650, color: '#0f1238' }}>{c.title}</span>
+              <span style={{ fontWeight: 650, color: 'var(--t1)' }}>{c.title}</span>
               <span>
                 <span style={{ background: c.status === 'active' ? '#dcfce7' : '#f1f5f9', color: c.status === 'active' ? '#166534' : '#475569', padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 650 }}>
                   {c.status}
@@ -1157,7 +1157,7 @@ function SettingsTab({
         <div className="users-add-field">
           <label htmlFor="au-password">
             New Password
-            <span style={{ fontWeight: 600, color: 'var(--t3, #8c9ab5)', marginLeft: 6, fontSize: 11 }}>(leave blank to keep current)</span>
+            <span style={{ fontWeight: 600, color: 'var(--t3)', marginLeft: 6, fontSize: 11 }}>(leave blank to keep current)</span>
           </label>
           <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
             <input
@@ -1171,11 +1171,11 @@ function SettingsTab({
               autoComplete="new-password"
             />
             <button type="button" onClick={() => setShowPw((v) => !v)}
-              style={{ position: 'absolute', right: 90, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3, #8c9ab5)', fontSize: 13, padding: '0 6px' }}>
+              style={{ position: 'absolute', right: 90, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3)', fontSize: 13, padding: '0 6px' }}>
               {showPw ? '🙈' : '👁'}
             </button>
             <button type="button" onClick={genPassword}
-              style={{ height: 42, padding: '0 12px', border: '1.5px solid #dfe3f0', borderRadius: 10, background: '#f8f7ff', color: '#551cf2', fontSize: 12, fontWeight: 650, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              style={{ height: 42, padding: '0 12px', border: '1.5px solid #dfe3f0', borderRadius: 10, background: '#f8f7ff', color: 'var(--brand-text)', fontSize: 12, fontWeight: 650, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}>
               Generate
             </button>
           </div>
@@ -1328,7 +1328,7 @@ function AddUserView({
       <div className="users-add-field">
         <label htmlFor="addPassword">
           Password
-          <span style={{ fontWeight: 600, color: 'var(--t3, #8c9ab5)', marginLeft: 6, fontSize: 11 }}>(leave blank to auto-generate)</span>
+          <span style={{ fontWeight: 600, color: 'var(--t3)', marginLeft: 6, fontSize: 11 }}>(leave blank to auto-generate)</span>
         </label>
         <div style={{ position: 'relative', display: 'flex', gap: 8 }}>
           <input
@@ -1344,14 +1344,14 @@ function AddUserView({
           <button
             type="button"
             onClick={() => setShowPw((v) => !v)}
-            style={{ position: 'absolute', right: 90, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3, #8c9ab5)', fontSize: 13, padding: '0 6px' }}
+            style={{ position: 'absolute', right: 90, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--t3)', fontSize: 13, padding: '0 6px' }}
           >
             {showPw ? '🙈' : '👁'}
           </button>
           <button
             type="button"
             onClick={genPassword}
-            style={{ height: 42, padding: '0 12px', border: '1.5px solid #dfe3f0', borderRadius: 10, background: '#f8f7ff', color: '#551cf2', fontSize: 12, fontWeight: 650, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+            style={{ height: 42, padding: '0 12px', border: '1.5px solid #dfe3f0', borderRadius: 10, background: '#f8f7ff', color: 'var(--brand-text)', fontSize: 12, fontWeight: 650, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
           >
             Generate
           </button>
@@ -1415,7 +1415,7 @@ function ExportOverlay({
     <div className="users-export-overlay" onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <div className="users-export-panel" role="dialog" aria-modal="true" aria-label="Export users">
         <div className="users-export-header">
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#0f1238' }}>Export Users</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--t1)' }}>Export Users</span>
           <button
             style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 20, color: 'var(--t3, #66708d)' }}
             onClick={onClose}

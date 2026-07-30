@@ -7,7 +7,7 @@ import { Btn } from '../../../components/ui';
 
 const linkButtonStyle: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 600, fontSize: 14,
-  padding: '10px 20px', borderRadius: 'var(--r)', background: 'var(--green)', color: '#fff', textDecoration: 'none',
+  padding: '10px 20px', borderRadius: 'var(--r)', background: 'var(--green-dark)', color: '#fff', textDecoration: 'none',
 };
 
 export default function RsvpPanel({

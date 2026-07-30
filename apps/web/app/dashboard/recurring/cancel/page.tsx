@@ -50,7 +50,7 @@ export default function CancelRecurringPage() {
             <p style={{ fontSize: 14, color: 'var(--green-dark)', margin: '0 0 20px', lineHeight: 1.6 }}>
               Your recurring donation has been cancelled. You won&apos;t be charged again. Your final billing period access continues until its end date.
             </p>
-            <button onClick={() => router.push('/dashboard/recurring')} style={{ padding: '10px 28px', background: 'var(--green)', color: '#fff', border: 0, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            <button onClick={() => router.push('/dashboard/recurring')} style={{ padding: '10px 28px', background: 'var(--green-dark)', color: '#fff', border: 0, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
               Back to Recurring
             </button>
           </div>

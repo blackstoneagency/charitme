@@ -530,7 +530,7 @@ export default async function DashboardPage({
   const db = data.donorBreakdown;
   const pct = (n: number) => (db.total > 0 ? Math.round((n / db.total) * 100) : 0);
   const donorSegments = [
-    { name: 'Returning Donors', count: db.returningCount, percent: pct(db.returningCount), color: 'var(--violet)' },
+    { name: 'Returning Donors', count: db.returningCount, percent: pct(db.returningCount), color: 'var(--brand-text)' },
     { name: 'New Donors',       count: db.newCount,       percent: pct(db.newCount),       color: '#ec3fb4' },
     { name: 'Anonymous',        count: db.anonymousCount, percent: pct(db.anonymousCount), color: 'var(--t3)' },
   ];

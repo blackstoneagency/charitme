@@ -42,7 +42,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 function MiniLineChart({ points }: { points: DayPoint[] }) {
-  if (points.length < 2) return <div style={{ height: 120, display: 'grid', placeItems: 'center', color: '#67718e', fontSize: 12 }}>No data</div>;
+  if (points.length < 2) return <div style={{ height: 120, display: 'grid', placeItems: 'center', color: 'var(--t3)', fontSize: 12 }}>No data</div>;
 
   const maxVal = Math.max(...points.map(p => p.count), 1);
   const W = 520;
@@ -102,7 +102,7 @@ function CategoryDonut({ categories }: { categories: CategoryCount[] }) {
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', textAlign: 'center' }}>
           <strong style={{ fontSize: 16, fontWeight: 700 }}>{total.toLocaleString()}</strong>
-          <small style={{ color: '#67718e', fontSize: 9 }}>events</small>
+          <small style={{ color: 'var(--t3)', fontSize: 9 }}>events</small>
         </div>
       </div>
       <div style={{ flex: 1 }}>
@@ -217,7 +217,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
               style={{ padding: '10px 16px', borderBottom: '1px solid #eef0f7', cursor: 'pointer' }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                <span style={{ fontSize: 11, fontWeight: 650, color: CATEGORY_COLORS[e.category] ?? '#551cf2' }}>{e.category}</span>
+                <span style={{ fontSize: 11, fontWeight: 650, color: CATEGORY_COLORS[e.category] ?? 'var(--brand-text)' }}>{e.category}</span>
                 <StatusPill>{e.status}</StatusPill>
               </div>
               <strong style={{ display: 'block', fontSize: 12, fontWeight: 650, marginBottom: 2 }}>{e.action}</strong>
@@ -253,7 +253,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
               aria-label="Filter by category"
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value)}
-              style={{ height: 40, border: '1px solid #e0e4ef', borderRadius: 8, padding: '0 12px', fontSize: 12, background: '#fff', cursor: 'pointer' }}
+              style={{ height: 40, border: '1px solid #e0e4ef', borderRadius: 8, padding: '0 12px', fontSize: 12, background: 'var(--s1)', cursor: 'pointer' }}
             >
               {categoryNames.map(c => <option key={c}>{c}</option>)}
             </select>
@@ -261,7 +261,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
               aria-label="Filter by status"
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-              style={{ height: 40, border: '1px solid #e0e4ef', borderRadius: 8, padding: '0 12px', fontSize: 12, background: '#fff', cursor: 'pointer' }}
+              style={{ height: 40, border: '1px solid #e0e4ef', borderRadius: 8, padding: '0 12px', fontSize: 12, background: 'var(--s1)', cursor: 'pointer' }}
             >
               <option>All</option>
               <option>Processed</option>
@@ -271,7 +271,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
           </div>
 
           {/* Table header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 110px 90px 80px', gap: 12, padding: '8px 20px', background: '#f8f9fc', borderTop: '1px solid #eef0f7', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: '#4b5676', textTransform: 'uppercase' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 110px 90px 80px', gap: 12, padding: '8px 20px', background: 'var(--s2)', borderTop: '1px solid #eef0f7', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: '#4b5676', textTransform: 'uppercase' }}>
             <span>Date & Time</span>
             <span>Action</span>
             <span>Category</span>
@@ -281,16 +281,16 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
 
           {filtered.slice(0, 15).map(e => (
             <div key={e.id} style={{ display: 'grid', gridTemplateColumns: '130px 1fr 110px 90px 80px', gap: 12, padding: '12px 20px', borderBottom: '1px solid #eef0f7', alignItems: 'center' }}>
-              <span style={{ fontSize: 11, color: '#67718e' }}>{e.dateTime}</span>
+              <span style={{ fontSize: 11, color: 'var(--t3)' }}>{e.dateTime}</span>
               <div>
                 <strong style={{ display: 'block', fontSize: 12, fontWeight: 650 }}>{e.action}</strong>
                 {e.stripeEventId && <small style={{ color: '#8c95b2', fontSize: 10 }}>{e.stripeEventId.slice(0, 20)}…</small>}
               </div>
-              <span style={{ fontSize: 11, fontWeight: 650, color: CATEGORY_COLORS[e.category] ?? '#551cf2' }}>{e.category}</span>
+              <span style={{ fontSize: 11, fontWeight: 650, color: CATEGORY_COLORS[e.category] ?? 'var(--brand-text)' }}>{e.category}</span>
               <StatusPill>{e.status}</StatusPill>
               <button
                 onClick={() => setSelectedEvent(e)}
-                style={{ height: 30, padding: '0 10px', borderRadius: 7, border: '1px solid #e0e4ef', background: '#fff', color: '#551cf2', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                style={{ height: 30, padding: '0 10px', borderRadius: 7, border: '1px solid #e0e4ef', background: 'var(--s1)', color: 'var(--brand-text)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
               >
                 View
               </button>
@@ -298,10 +298,10 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
           ))}
 
           {filtered.length === 0 && (
-            <div style={{ textAlign: 'center', padding: 32, color: '#67718e', fontSize: 13 }}>No events match your filter.</div>
+            <div style={{ textAlign: 'center', padding: 32, color: 'var(--t3)', fontSize: 13 }}>No events match your filter.</div>
           )}
           {filtered.length > 15 && (
-            <div style={{ textAlign: 'center', padding: '14px', color: '#551cf2', fontSize: 13, fontWeight: 700, borderTop: '1px solid #eef0f7' }}>
+            <div style={{ textAlign: 'center', padding: '14px', color: 'var(--brand-text)', fontSize: 13, fontWeight: 700, borderTop: '1px solid #eef0f7' }}>
               Showing 15 of {filtered.length} — use Export for full data
             </div>
           )}
@@ -317,14 +317,14 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
           onClick={event => { if (event.target === event.currentTarget) setSelectedEvent(null); }}
         >
           <div
-            style={{ width: 420, background: '#fff', overflowY: 'auto', padding: 28, display: 'grid', alignContent: 'start', gap: 18 }}
+            style={{ width: 420, background: 'var(--s1)', overflowY: 'auto', padding: 28, display: 'grid', alignContent: 'start', gap: 18 }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Event Details</h2>
-              <button onClick={() => setSelectedEvent(null)} style={{ border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer', color: '#67718e' }}>×</button>
+              <button onClick={() => setSelectedEvent(null)} style={{ border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer', color: 'var(--t3)' }}>×</button>
             </div>
 
-            <div style={{ padding: 18, border: '1px solid #e6e9f2', borderRadius: 12, background: '#fafbff' }}>
+            <div style={{ padding: 18, border: '1px solid #e6e9f2', borderRadius: 12, background: 'var(--s2)' }}>
               <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 700 }}>Event Summary</h3>
               {[
                 ['Date & Time', selectedEvent.dateTime],
@@ -333,7 +333,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
                 ['Performed By', selectedEvent.user],
               ].map(([label, val]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
-                  <span style={{ color: '#67718e', fontWeight: 600 }}>{label}</span>
+                  <span style={{ color: 'var(--t3)', fontWeight: 600 }}>{label}</span>
                   <strong style={{ fontWeight: 650 }}>{val}</strong>
                 </div>
               ))}
@@ -341,13 +341,13 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
 
             <div style={{ padding: 18, border: '1px solid #e6e9f2', borderRadius: 12 }}>
               <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700 }}>Event Type</h3>
-              <code style={{ display: 'block', fontSize: 12, fontFamily: 'monospace', background: '#f5f2ff', padding: '10px 12px', borderRadius: 8, wordBreak: 'break-all', color: '#551cf2' }}>
+              <code style={{ display: 'block', fontSize: 12, fontFamily: 'monospace', background: '#f5f2ff', padding: '10px 12px', borderRadius: 8, wordBreak: 'break-all', color: 'var(--brand-text)' }}>
                 {selectedEvent.eventType}
               </code>
               {selectedEvent.stripeEventId && (
                 <>
                   <p style={{ margin: '12px 0 4px', fontSize: 12, fontWeight: 600, color: '#4b5676' }}>Stripe Event ID</p>
-                  <code style={{ display: 'block', fontSize: 11, fontFamily: 'monospace', background: '#f5f2ff', padding: '8px 12px', borderRadius: 8, wordBreak: 'break-all', color: '#67718e' }}>
+                  <code style={{ display: 'block', fontSize: 11, fontFamily: 'monospace', background: '#f5f2ff', padding: '8px 12px', borderRadius: 8, wordBreak: 'break-all', color: 'var(--t3)' }}>
                     {selectedEvent.stripeEventId}
                   </code>
                 </>
@@ -356,8 +356,8 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
 
             {selectedEvent.processingError && (
               <div style={{ padding: 18, border: '1px solid #fee2e2', borderRadius: 12, background: '#fff8f8' }}>
-                <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: '#ef4444' }}>Processing Error</h3>
-                <code style={{ display: 'block', fontSize: 11, fontFamily: 'monospace', color: '#ef4444', wordBreak: 'break-all' }}>
+                <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: 'var(--red-text)' }}>Processing Error</h3>
+                <code style={{ display: 'block', fontSize: 11, fontFamily: 'monospace', color: 'var(--red-text)', wordBreak: 'break-all' }}>
                   {selectedEvent.processingError}
                 </code>
               </div>
@@ -370,7 +370,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
                 ['User Agent', 'Stripe/1.0 (+https://stripe.com/docs/webhooks)'],
               ].map(([label, val]) => (
                 <div key={label} style={{ marginBottom: 8, fontSize: 12 }}>
-                  <span style={{ color: '#67718e', fontWeight: 600 }}>{label}: </span>
+                  <span style={{ color: 'var(--t3)', fontWeight: 600 }}>{label}: </span>
                   <span style={{ fontWeight: 600 }}>{val}</span>
                 </div>
               ))}
@@ -388,9 +388,9 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
         // Backdrop dismissal is supplementary; Escape and the visible buttons remain available.
         // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999 }} onClick={event => { if (event.target === event.currentTarget) setShowExportModal(false); }}>
-          <div style={{ width: 380, padding: 28, borderRadius: 16, background: '#fff', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }}>
+          <div style={{ width: 380, padding: 28, borderRadius: 16, background: 'var(--s1)', boxShadow: '0 24px 80px rgba(55,42,130,.18)' }}>
             <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800 }}>Export Audit Logs</h2>
-            <p style={{ margin: '0 0 20px', color: '#67718e', fontSize: 13 }}>Choose the format to export {totalEvents.toLocaleString()} events.</p>
+            <p style={{ margin: '0 0 20px', color: 'var(--t3)', fontSize: 13 }}>Choose the format to export {totalEvents.toLocaleString()} events.</p>
             <div style={{ display: 'grid', gap: 10 }}>
               {(['CSV', 'Excel', 'PDF'] as const).map(fmt => (
                 <label key={fmt} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', border: `1px solid ${exportFmt === fmt ? '#6c35ff' : '#e0e4ef'}`, borderRadius: 9, cursor: 'pointer', fontSize: 14, fontWeight: 650 }}>
@@ -399,11 +399,11 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
                 </label>
               ))}
             </div>
-            <p style={{ margin: '8px 0 0', color: '#67718e', fontSize: 12 }}>
+            <p style={{ margin: '8px 0 0', color: 'var(--t3)', fontSize: 12 }}>
               {filtered.length.toLocaleString()} filtered events will be exported
             </p>
             <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowExportModal(false)} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 8, background: '#fff', fontWeight: 650, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => setShowExportModal(false)} style={{ height: 42, padding: '0 20px', border: '1px solid #e0e4ef', borderRadius: 8, background: 'var(--s1)', fontWeight: 650, cursor: 'pointer' }}>Cancel</button>
               <button className="kf-primary" style={{ height: 42, padding: '0 22px' }} onClick={() => { exportEventsCsv(filtered); setShowExportModal(false); }}>Download</button>
             </div>
           </div>

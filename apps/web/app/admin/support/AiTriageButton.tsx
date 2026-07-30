@@ -101,17 +101,17 @@ export default function AiTriageButton({ caseId, subject }: Props) {
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }}
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
         >
-          <div role="dialog" aria-modal="true" aria-label="AI Complaint Resolver" style={{ background: '#fff', borderRadius: 20, padding: 28, width: '100%', maxWidth: 520, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,.2)' }}>
+          <div role="dialog" aria-modal="true" aria-label="AI Complaint Resolver" style={{ background: 'var(--s1)', borderRadius: 20, padding: 28, width: '100%', maxWidth: 520, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
               <div style={{ minWidth: 0 }}>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#1a1a2e' }}>✨ AI Complaint Resolver</h2>
-                <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#64748b', maxWidth: 380, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{subject}</p>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: 'var(--t1)' }}>✨ AI Complaint Resolver</h2>
+                <p style={{ margin: '4px 0 0', fontSize: 12.5, color: 'var(--t3)', maxWidth: 380, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{subject}</p>
               </div>
-              <button type="button" onClick={() => setOpen(false)} style={{ border: 'none', background: 'transparent', fontSize: 18, cursor: 'pointer', color: '#94a3b8' }}>✕</button>
+              <button type="button" onClick={() => setOpen(false)} style={{ border: 'none', background: 'transparent', fontSize: 18, cursor: 'pointer', color: 'var(--t3)' }}>✕</button>
             </div>
 
-            {loading && <p style={{ fontSize: 13, color: '#64748b' }}>Analyzing case…</p>}
-            {error && <div style={{ padding: '10px 14px', background: '#fff0f3', border: '1px solid #fecdd3', borderRadius: 8, color: '#be123c', fontSize: 13, fontWeight: 600 }}>⚠ {error}</div>}
+            {loading && <p style={{ fontSize: 13, color: 'var(--t3)' }}>Analyzing case…</p>}
+            {error && <div style={{ padding: '10px 14px', background: 'var(--tint-rose)', border: '1px solid #fecdd3', borderRadius: 8, color: 'var(--red-text)', fontSize: 13, fontWeight: 600 }}>⚠ {error}</div>}
 
             {result && (
               <div style={{ display: 'grid', gap: 14 }}>
@@ -122,16 +122,16 @@ export default function AiTriageButton({ caseId, subject }: Props) {
                 </div>
 
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#64748b', marginBottom: 6 }}>Suggested action</div>
-                  <div style={{ fontSize: 13.5, color: '#1a1a2e', background: '#f8fafc', border: '1px solid #f0f4f8', borderRadius: 8, padding: '10px 14px', lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t3)', marginBottom: 6 }}>Suggested action</div>
+                  <div style={{ fontSize: 13.5, color: 'var(--t1)', background: 'var(--s2)', border: '1px solid #f0f4f8', borderRadius: 8, padding: '10px 14px', lineHeight: 1.5 }}>
                     {result.suggestedAction}
                   </div>
                 </div>
 
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: '#64748b' }}>Draft response</div>
-                    <button type="button" onClick={() => void handleCopy()} style={{ border: '1px solid #e8ecf4', background: '#fff', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', color: '#6c35ff' }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t3)' }}>Draft response</div>
+                    <button type="button" onClick={() => void handleCopy()} style={{ border: '1px solid #e8ecf4', background: 'var(--s1)', borderRadius: 8, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', color: 'var(--brand-text)' }}>
                       {copied ? 'Copied!' : 'Copy'}
                     </button>
                   </div>
@@ -140,7 +140,7 @@ export default function AiTriageButton({ caseId, subject }: Props) {
                   </div>
                 </div>
 
-                <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                <div style={{ fontSize: 11, color: 'var(--t3)' }}>
                   This draft has been saved as an internal note on the case.
                 </div>
               </div>

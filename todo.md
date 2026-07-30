@@ -1,6 +1,6 @@
 # CharitMe — Execution Tracker
 
-## 🛑 READ FIRST — what is blocked, and by whom (updated 2026-07-28)
+## 🛑 READ FIRST — what is blocked, and by whom (updated 2026-07-29)
 
 Everything below this box is engineering detail. These are the remaining
 external release constraints after the latest production deployment.
@@ -8,8 +8,13 @@ external release constraints after the latest production deployment.
 | # | Blocker | Evidence | Who can clear it |
 |---|---------|----------|------------------|
 | 1 | **GitHub Actions assigns no runner.** Every CI job fails in ~2s with `runner_id: 0`, `runner_name: ""`, and **no logs at all** (`get_job_logs` → 404). Repo-wide, including pushes straight to `master`. | 30 of 30 most recent runs | **Owner** — Actions minutes / billing |
-| 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project, so database release policy correctly blocks production migration application until the same commit is verified on a real CharitMe staging project. | Supabase project inventory, 2026-07-28 | **Owner** — provision/link CharitMe staging |
-| 3 | **Vercel has exhausted the free-project deployment quota.** Both the Git integration and an exact-master CLI deploy return `api-deployments-free-per-day`; the security release is merged but cannot become production until the quota resets. | Vercel CLI and PR #153 deployment check, 2026-07-28 | **External reset** — retry exact `master` after the 24-hour window |
+| 2 | **No CharitMe staging Supabase project is available.** The account exposes CharitMe production and an unrelated Auto Trading project. Preview Branch creation returns HTTP 402 because the account is not on Pro; dedicated `charitme-staging` creation is also rejected because the owner has reached the two-active-free-project limit. Database release policy correctly blocks production migration application until the same commit is verified on real staging. | Supabase project/branch inventory and both provisioning probes, 2026-07-29 | **Owner** — upgrade Supabase, pause/delete an unrelated project, or provision staging in another organization |
+| 3 | **Vercel's free daily deployment quota is exhausted again.** PR #163 reports `api-deployments-free-per-day` after more than 100 deployments. PR #162 is live, but the subsequent accessibility commit cannot become production in this quota window. | Vercel PR #163 check, 2026-07-29 | **External reset** — retry an exact-master deployment after the 24-hour window or upgrade Vercel |
+
+**Vercel production is operational.** The current production deployment is
+Ready and aliased to both `www.charitme.com` and `charitme.com`; exact deployment
+evidence is recorded in the release sections below. New deployments are
+temporarily blocked by item 3.
 
 ## 📌 THE WORKING QUEUE — one backlog for a 13,800-line file (Claude, 2026-07-29)
 
@@ -393,14 +398,10 @@ curl -sI -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY" \
 Use the **anon** key, not the service-role key: it is RLS-enforced and read-only, so it
 answers the seeding question without bypassing any protection.
 
-**What remains genuinely blocked:** signed-in dashboard/admin audits (need a session) and
-real payment flows (need Stripe **test** keys). Those are narrower than blockers #3/#4
-imply — and CI/Vercel (#1/#2) are unaffected by any of this.
-
-
-**Vercel production is operational, but behind `master`.** Commit `0148c675` is
-aliased to both `www.charitme.com` and `charitme.com`; merged security commit
-`d8db2c3c` is not production yet because of blocker 3.
+**What remains genuinely blocked:** production database migration application
+needs a real staging project, and real payment writes need Stripe test
+credentials. Signed-in dashboard/admin rendering is covered by the local
+Supabase stub; CI remains blocked by its no-runner infrastructure failure.
 
 **How to tell an infra failure from a real one:** a genuine CI failure runs for
 minutes and produces logs. These finish in ~2 seconds with none. If you see that,
@@ -443,6 +444,45 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
   then gates production on the exact staging-verified commit and protected
   GitHub environment approval.
 
+## SUPABASE RELEASE LEDGER - audited and rehearsed, staging pending (Codex, 2026-07-29)
+
+- [x] Merged PR #162 as `db07b1d2622c7a92b4830651d256ab8d99e14a49`.
+  Vercel deployment `dpl_6SBYEUzPGtnxaESR5Qx8tKyvZZPr` reached Ready and both
+  production aliases; live home, health, robots, and sitemap checks returned
+  HTTP 200, with all 1,259 sitemap URLs intact.
+- [x] Compared every timestamped SQL migration with the linked production
+  ledger: **105 local, 87 remote, 18 pending, 0 remote-only**.
+  Pending versions: `20260524000000`, `20260528114000`, `20260607900000`,
+  `20260728020000`, `20260806000000`, `20260806010000`, `20260807000000`,
+  `20260808000000`, `20260809000000`, `20260810000000`, `20260811000000`,
+  `20260812000000`, `20260812010000`, `20260812020000`, `20260812030000`,
+  `20260813000000`, `20260814000000`, and `20260814010000`.
+- [x] Confirmed the 18 entries are genuine schema drift, not ledger-only drift,
+  using a read-only production `public` schema dump. The expected tables,
+  columns, indexes, triggers, functions, and policies are absent live.
+- [x] Verified `supabase db push --linked --dry-run --include-all` selects exactly
+  the 18 pending versions and made no production changes.
+- [x] Restored the production schema snapshot into disposable local Supabase and
+  applied all 18 pending migrations in order. Fixed the recurring-accounting
+  repair and rollback scripts so their temporary tables survive auto-committed
+  statements, then proved rollback and forward reapplication.
+- [x] Replayed all 105 migrations from zero after the repair and ran the complete
+  00-08 seed suite plus strict verifier: **94 of 94** covered feature tables
+  contain at least 100 rows.
+- [x] Verified the upgraded production clone contains all 18 representative
+  contract markers, including organizations, volunteer shifts/hours, demo
+  labels, inferable tax indexes, guest receipt access, privileged-profile and
+  anonymity triggers, private creator tips, and team boundaries.
+- [x] Rechecked the linked production ledger after the application deploy:
+  it remains **87/105**, proving Vercel did not apply or mark database migrations
+  outside the staging-gated release workflow.
+- [ ] Provision a real CharitMe staging project or enable a Supabase Preview
+  Branch. Both paths were attempted: Preview Branches require Pro and a third
+  free project exceeds the account's two-project limit. Once capacity exists,
+  apply this exact commit there and run authenticated RLS/payment/tax smoke
+  tests before the release workflow is allowed to apply the 18 migrations to
+  production. Do not bypass this gate.
+
 ## RECURRING TIP ACCOUNTING - code complete, release pending (Codex, 2026-07-28)
 
 - [x] Preserve donation principal, optional CharitMe tip, and anonymity in
@@ -472,13 +512,16 @@ the workspace config stubs). Those are a wrong-cwd artifact, not regressions.
 - [ ] Apply the migration to staging and run authenticated receipt/payment smoke
   tests before the release workflow is allowed to apply it to production.
 
-## REPEATABLE FEATURE SEED COVERAGE - verified locally (Codex, 2026-07-28)
+## REPEATABLE FEATURE SEED COVERAGE - verified locally (Codex, 2026-07-29)
 
-- [x] `supabase db reset --local` now runs the complete ordered 00-07 seed suite
+- [x] `supabase db reset --local` now runs the complete ordered 00-08 seed suite
   and strict verifier after every migration replay.
-- [x] Verified at least 100 rows in all 93 covered user-facing tables, including
+- [x] Verified at least 100 rows in all 94 covered user-facing tables, including
   tax receipt delivery, organizations, volunteer hours, campaign teams,
-  beneficiaries, messaging, analytics, outreach, and Marketing Engine plans.
+  beneficiaries, messaging, analytics, outreach, Marketing Engine plans, and
+  the public/admin sponsor catalog.
+- [x] Added the sponsor top-up and strict verifier to `config.toml`, and extended
+  the seed guard so either file falling out of reset order fails tests.
 - [x] Seeded donor, organizer, beneficiary, nonprofit, admin, and super-admin
   role cohorts; labeled every synthetic core profile, campaign, and donation.
 - [x] Added relational assertions for receipt/campaign ownership, beneficiary
@@ -650,6 +693,35 @@ directions, not checkboxes, or this list can never close.
 > production-readiness program. Section A is the actionable engineering backlog.
 > Section B (further down) is the competitive product vision it serves.
 
+## ✅ CLOSED — the catalog under-claimed a shipped feature (Claude, 2026-07-29)
+
+Every parity guard in `feature-catalog.test.ts` catches a feature claiming **more**
+than ships. **Nothing caught one claiming less** — which is exactly how peer-to-peer
+stayed `planned: true` for three competitors after it landed the same day.
+
+**Measured effect of correcting it:** Donorbox **9/10 → 10/10**, Classy and
+Mightycause likewise reach full parity, total built **74 → 75** of 105 mapped, and
+**8 of 11 competitors** are now at full parity.
+
+The stale block that forced peer-to-peer to stay planned is **inverted, not deleted**:
+the entries must not be planned **and** the backing code must exist — the reader's
+`.from('peer_fundraisers')`, `TeamFundraisers.tsx`, and the create route. Remove
+either half and the test fails, so the honest response becomes restoring the flags
+rather than leaving the parity number wrong. Verified red both ways.
+
+**Remaining 0/10:** Patreon, Ko-fi, Buy Me a Coffee — 30 creator-economy features.
+`creator_profiles` (500 rows) belongs to those modules and is measured as *not worth
+wiring yet*: `bio`, `hero_image_url` and `website_url` are 0/500, so a creator surface
+would be 500 hollow pages. That is the honest reason they stay Planned.
+
+### ⚠️ `audit:signed-in --build` REBUILDS AGAINST THE STUB — re-build before public sweeps
+Found while verifying contrast work. Any public sweep run right after it measures a
+**stub build**, where data-conditional sections do not render: the contrast sample
+halved from ~7,500 text elements to **3,839**. A shrinking denominator makes
+"0 failures" mean *less*, not more. Re-run `npm run build` against the real env first.
+Full-sample re-verification on master: contrast **0 / 7,117 light + 7,539 dark**, axe
+**0 / 82 loads**, mobile **0 / 80 loads**, page images **0 duplicates / 48 routes**.
+
 ## 📋 GOAL SCORECARD — measured 2026-07-29 against current master
 
 Re-run after Codex's PRs #149–#152 merged, so these describe master **now**, not an
@@ -664,17 +736,17 @@ what unblocks them.
 | 4 | ≥100 seed records | 🔴 | **counted live 2026-07-28: 68 tables ≥100, 15 at 1–99, 67 EMPTY, 5 absent.** "every table ≥100 except sponsors" was measured on a sample — see SEED COVERAGE below. ~25 empty ones are feature tables `06_extended_features.sql` already covers but never finished seeding |
 | 5 | Images unique | ✅ | **500 campaigns / 500 covers / 500 distinct / 0 duplicates** |
 | 6 | Frictionless UX | 🟡 | dead controls disabled, broken links fixed, poster + payout paths repaired. Subjective overall |
-| 7 | Dark/light solved | 🔴 | **PUBLIC pages 0 AA failures** (40 pages × 2 themes). **Signed-in dark mode has 87** — never measured until now. → Codex lane, detailed below |
+| 7 | Dark/light solved | 🟡 | **PUBLIC 0 AA failures** at full sample (7,117 light / 7,539 dark elements). **Signed-in 345 → 182** (Claude, reassigned by owner) |
 | 8 | Mobile responsive | ✅ | **222 renders (37 × 3 viewports × 2 themes), 0 findings**; plus **0 horizontal overflow across 82 loads** at 320/390px |
 | 9 | Fast pages | ✅ | **37/37 within budget** — worst LCP 500ms/4000, TTFB 176ms/1500, **CLS 0 everywhere** |
 | 10 | Roles mapped + distinct | 🟡 | **`/roles` now maps all 6 for every user type**, rendered from `lib/role-capabilities.ts`. **Only 2 of 6 gate anything** — enforcement is still a product decision |
 | 11 | 100% GoFundMe parity | ✅ | **10/10 built**, each pinned to real code by test |
-| 12 | Better than GoFundMe | ✅ | **72 of 105 features built** vs GoFundMe's 10. Gaps are creator-economy (Patreon/Ko-fi) — different direction |
+| 12 | Better than GoFundMe | ✅ | **75 of 105 built** vs GoFundMe's 10; **8 of 11 competitors at full parity** (peer-to-peer shipped → Donorbox/Classy/Mightycause 10/10). Remaining 30 are creator-economy (Patreon/Ko-fi/BMAC) — different direction |
 | 13 | Accessibility passes | ✅ | **0 axe violations** (82 loads, 41 routes × 2 themes) + **0 unlabelled form controls** + **0 tap targets under 24px** (SC 2.5.8), hard-guarded |
 | 14 | Payment methods work | 🔴 | **Cannot verify — no `STRIPE_SECRET_KEY` here, and live keys must not be charged.** `/api/health?details=1` now reports it |
 | 15 | Performance optimized | ✅ | see #9 |
 | 16 | Security resolved | ✅ | **8 Next.js CVEs patched** (15.5.18 → 15.5.22); npm audit critical **1 → 0** |
-| 17 | Tests pass | ✅ | **1866 / 177 files** |
+| 17 | Tests pass | ✅ | **1920 tests** |
 | 18 | Build succeeds | ✅ | green; 150 static pages |
 | 19 | todo.md updated | ✅ | this file, continuously |
 | 20 | Commit per feature | ✅ | ~120 commits, each with its own verification |
@@ -2863,10 +2935,43 @@ Both hit today, both now fixed in the scripts.
    comment about this class of mistake burning an earlier run — the inconsistency
    *between* audits was the trap.
 
-## 🔴 → CODEX: 339 CONTRAST FAILURES ON THE SIGNED-IN SURFACE (Claude, 2026-07-29)
+## 🟡 SIGNED-IN CONTRAST: 345 → 191 (Claude, 2026-07-29) — taken over, not handed off
 
-**This is yours per the lane split** (theme tokens, `[data-theme]` overrides,
-per-page light/dark). I found it, measured it, and am not touching it.
+**Reassigned to Claude by the owner** — originally handed to Codex's lane, then
+instructed to fix it directly. Codex: do not double-work this.
+
+### Progress: 345 → 191 (light 63, dark 128). Public surface stays at 0.
+
+**The failures were never "some grey is too light".** They were inline hex colours
+bypassing the design tokens, which are already AA-tuned.
+
+| pass | change | effect |
+|---|---|---|
+| 1 | 108 hardcoded `#fff` backgrounds → `var(--s1)` | dark-on-white 44 → 10 |
+| 2 | 303 bare muted greys → `var(--t3)` (text positions only) | |
+| 3 | 319 hardcoded neutrals → `--t1`/`--t3`/`--s2` | 349 → 279 |
+| 4 | 336 brand-accent text → new `--brand/green/orange/red-text` | 279 → 215 |
+| 5 | 136 colours computed inside **ternaries** | 217 → 198 |
+| 6 | status tints → `--tint-*` with dark values, paired to their text | 198 → 191 |
+
+### ⚠️ The trap, hit and measured: tokenising text WITHOUT its surface is worse
+`--green-text` flips to `#4ade80` in dark mode, so a badge with a hardcoded `#dcfce7`
+background went from **readable to light-on-light** — I briefly broke two public pages
+that had been at zero. Surfaces and text are now paired everywhere: if a rule's text
+uses a `*-text` token, its light tint becomes the matching `--tint-*`.
+
+**Pass 1 made the total go UP (345 → 349)** — informative, not wrong. Fixing surfaces
+exposed hardcoded *dark* text that had been sitting on white. The direction of a
+single pass is not the result.
+
+The two tools disagreed usefully once: my sweep reported **1** failure where axe
+reported **20 nodes** on the same page. Same root cause (`.sc-badge-green`), different
+counting units. Neither was wrong.
+
+### Base tokens deliberately unchanged
+`--green`, `--violet` etc. are **decorative** (fills, bars, dots) where no text sits on
+them; darkening those would visibly change the brand. The `*-text` variants follow the
+`--pink-btn` precedent already in this file.
 
 ### Why it was invisible
 `npm run audit:signed-in` **could not launch a browser**, so it measured nothing.

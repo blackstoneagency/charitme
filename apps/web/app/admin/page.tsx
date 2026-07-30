@@ -80,11 +80,11 @@ export default async function AdminDashboardPage() {
     return (
       <CharitMeShell active="Dashboard" mode="admin">
         <div style={{ padding: '40px 32px', maxWidth: 720 }}>
-          <div style={{ padding: '24px 28px', background: '#fff0f3', border: '1.5px solid #fecdd3', borderRadius: 14 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#be123c', margin: '0 0 10px' }}>
+          <div style={{ padding: '24px 28px', background: 'var(--tint-rose)', border: '1.5px solid #fecdd3', borderRadius: 14 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--red-text)', margin: '0 0 10px' }}>
               ❌ {isKeyMissing ? 'Missing Supabase credentials' : 'Database connection error'}
             </h2>
-            <p style={{ fontFamily: 'monospace', fontSize: 13, color: '#be123c', margin: '0 0 14px', lineHeight: 1.7 }}>
+            <p style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--red-text)', margin: '0 0 14px', lineHeight: 1.7 }}>
               {donationsResult.error.code}: {errMsg}
             </p>
             <div style={{ fontSize: 14, color: '#334064', lineHeight: 1.8 }}>
@@ -259,10 +259,10 @@ export default async function AdminDashboardPage() {
   const pct = (n: number) => Math.round((n / cntTotal) * 100);
 
   const sources: SourceItem[] = [
-    { label: 'Completed', pct: pct(cntCompleted), color: '#19b86a' },
-    { label: 'Pending', pct: pct(cntPending), color: '#f59e0b' },
-    { label: 'Refunded', pct: pct(cntRefunded), color: '#8c9ab5' },
-    { label: 'Failed', pct: pct(cntFailed), color: '#ef4444' },
+    { label: 'Completed', pct: pct(cntCompleted), color: 'var(--green-text)' },
+    { label: 'Pending', pct: pct(cntPending), color: 'var(--orange-text)' },
+    { label: 'Refunded', pct: pct(cntRefunded), color: 'var(--t3)' },
+    { label: 'Failed', pct: pct(cntFailed), color: 'var(--red-text)' },
   ].filter(s => s.pct > 0);
 
   // System health services.

@@ -108,7 +108,7 @@ export default function DonationHistoryList({
     return (
       <div style={cardStyle}>
         <h2 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 16px' }}>Donation History</h2>
-        <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--t3, #94a3b8)' }}>
+        <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--t3)' }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>💚</div>
           <p style={{ fontWeight: 700, margin: '0 0 4px' }}>No donations yet.</p>
           <p style={{ fontSize: 13 }}>Find a campaign to support below.</p>
@@ -124,7 +124,7 @@ export default function DonationHistoryList({
     <div style={cardStyle}>
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <h2 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>
-          Donation History <span style={{ color: 'var(--t3, #94a3b8)', fontWeight: 600 }}>({filtered.length} of {items.length}{hasMore ? '+' : ''})</span>
+          Donation History <span style={{ color: 'var(--t3)', fontWeight: 600 }}>({filtered.length} of {items.length}{hasMore ? '+' : ''})</span>
         </h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           <select aria-label="Filter by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)} style={selectStyle}>
@@ -151,7 +151,7 @@ export default function DonationHistoryList({
       </div>
 
       {filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--t3, #94a3b8)', fontSize: 13 }}>
+        <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--t3)', fontSize: 13 }}>
           No donations match these filters.
         </div>
       ) : (
@@ -167,11 +167,11 @@ export default function DonationHistoryList({
                     ) : 'Campaign'}
                   </div>
                   {d.message && (
-                    <div style={{ fontSize: 12, color: 'var(--t3, #64748b)', fontStyle: 'italic', margin: '2px 0' }}>
+                    <div style={{ fontSize: 12, color: 'var(--t3)', fontStyle: 'italic', margin: '2px 0' }}>
                       &ldquo;{d.message.slice(0, 80)}{d.message.length > 80 ? '…' : ''}&rdquo;
                     </div>
                   )}
-                  <div style={{ fontSize: 12, color: 'var(--t3, #94a3b8)', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>
                     {fmtDate(d.created_at)}
                     {d.anonymous && ' · Anonymous'}
                   </div>
@@ -189,7 +189,7 @@ export default function DonationHistoryList({
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                       <ReceiptButton donationId={d.id} />
                       <Link href={`/dashboard/refund?donation_id=${d.id}`}
-                        style={{ fontSize: 11, color: 'var(--t3, #94a3b8)', textDecoration: 'none' }}>
+                        style={{ fontSize: 11, color: 'var(--t3)', textDecoration: 'none' }}>
                         Refund?
                       </Link>
                     </div>

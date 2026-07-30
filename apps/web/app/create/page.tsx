@@ -288,7 +288,7 @@ function CampaignPreviewModal({
                 <button type="button" className="cr2-donate-btn" disabled title="Donations are disabled in preview">
                   Donate Now
                 </button>
-                <p style={{ margin: '8px 0 0', fontSize: 11.5, color: 'var(--t3, #64748b)', textAlign: 'center' }}>
+                <p style={{ margin: '8px 0 0', fontSize: 11.5, color: 'var(--t3)', textAlign: 'center' }}>
                   Preview only — donations are disabled until you publish.
                 </p>
               </div>
@@ -298,7 +298,7 @@ function CampaignPreviewModal({
                 <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--t1, #1a1a2e)' }}>
                   How this looks to a donor
                 </div>
-                <div style={{ fontSize: 12.5, color: 'var(--t3, #64748b)', margin: '2px 0 10px' }}>
+                <div style={{ fontSize: 12.5, color: 'var(--t3)', margin: '2px 0 10px' }}>
                   {donorView.passedCount} of {donorView.total} things donors look for
                   {unmet.length === 0 ? ' — you are ready to publish.' : ''}
                 </div>
@@ -317,7 +317,7 @@ function CampaignPreviewModal({
                         </span>
                         {!c.passed && (
                           <>
-                            <span style={{ display: 'block', fontSize: 12, color: 'var(--t3, #64748b)', lineHeight: 1.45, marginTop: 2 }}>{c.why}</span>
+                            <span style={{ display: 'block', fontSize: 12, color: 'var(--t3)', lineHeight: 1.45, marginTop: 2 }}>{c.why}</span>
                             <button type="button" onClick={() => { onClose(); onGoToStep(c.step); }}
                               style={{ marginTop: 4, padding: 0, border: 'none', background: 'none', color: 'var(--violet, #6c35ff)', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
                               Fix this →
@@ -1118,7 +1118,7 @@ export default function CreatePage() {
             <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--t1, #1a1a2e)', marginBottom: 2 }}>
               You have {draftList.length} campaigns in progress
             </div>
-            <div style={{ fontSize: 13, color: 'var(--t3, #64748b)', marginBottom: 12 }}>
+            <div style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 12 }}>
               Pick up where you left off, or start something new. Nothing is published until you say so.
             </div>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1128,7 +1128,7 @@ export default function CreatePage() {
                     <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--t1, #1a1a2e)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {d.title?.trim() || 'Untitled campaign'}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--t3, #64748b)' }}>
+                    <div style={{ fontSize: 12, color: 'var(--t3)' }}>
                       {WIZARD_STEPS.find((w) => w.key === normalizeStep(d.step))?.label ?? 'In progress'}
                       {d.imageCount > 0 && ` · ${d.imageCount} photo${d.imageCount === 1 ? '' : 's'}`}
                       {` · saved ${draftAgeLabel(new Date(d.updated_at).getTime())}`}
@@ -1139,7 +1139,7 @@ export default function CreatePage() {
                     Continue
                   </button>
                   <button type="button" onClick={() => void deleteDraft(d.id)} aria-label={`Delete draft ${d.title?.trim() || 'Untitled campaign'}`}
-                    style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid var(--b2, #d7dced)', background: 'transparent', color: 'var(--t3, #64748b)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                    style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid var(--b2, #d7dced)', background: 'transparent', color: 'var(--t3)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
                     Delete
                   </button>
                 </li>
@@ -1151,7 +1151,7 @@ export default function CreatePage() {
                 + Start another campaign
               </button>
               <button type="button" onClick={() => setShowDraftPicker(false)}
-                style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: 'transparent', color: 'var(--t3, #64748b)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: 'transparent', color: 'var(--t3)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
                 Not now
               </button>
             </div>
@@ -1168,7 +1168,7 @@ export default function CreatePage() {
           </span>
           <span style={{ fontSize: 13, opacity: .9 }}>Saved {draftAgeLabel(recoverableDraft.ts)}</span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={resumeDraft} style={{ background: 'var(--s1, #fff)', color: 'var(--violet)', border: 0, borderRadius: 999, padding: '8px 18px', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <button type="button" onClick={resumeDraft} style={{ background: 'var(--s1, #fff)', color: 'var(--brand-text)', border: 0, borderRadius: 999, padding: '8px 18px', fontWeight: 800, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
               Resume
             </button>
             <button type="button" onClick={dismissDraft} style={{ background: 'rgba(255,255,255,.18)', color: '#fff', border: '1px solid rgba(255,255,255,.4)', borderRadius: 999, padding: '8px 16px', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -1529,7 +1529,7 @@ export default function CreatePage() {
                         Most {form.category.toLowerCase()} campaigns set{' '}
                         ${Math.round(goalGuidance.lowCents / 100).toLocaleString('en-US')}–${Math.round(goalGuidance.highCents / 100).toLocaleString('en-US')}
                       </div>
-                      <div style={{ fontSize: 12.5, color: 'var(--t3, #64748b)', marginTop: 4, lineHeight: 1.5 }}>
+                      <div style={{ fontSize: 12.5, color: 'var(--t3)', marginTop: 4, lineHeight: 1.5 }}>
                         {goalGuidance.note}
                         {goalGuidance.goalHitRate != null && ` About ${Math.round(goalGuidance.goalHitRate * 100)}% reach their goal.`}
                         {' '}A goal you can realistically pass builds momentum — you can raise it later.
@@ -1634,7 +1634,7 @@ export default function CreatePage() {
                       <strong>{dragging ? 'Release to upload' : 'Drop images here or click to browse'}</strong>
                       <span>JPG, PNG, GIF, WebP, AVIF · up to {MAX_IMAGES} images · 10 MB each</span>
                     </div>
-                    {uploadError && <p role="alert" style={{ margin: '6px 0 0', fontSize: 12, color: '#ef4444', fontWeight: 700 }}>{uploadError}</p>}
+                    {uploadError && <p role="alert" style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--red-text)', fontWeight: 700 }}>{uploadError}</p>}
                   </div>
 
                   {uploadedImages.length > 0 && (
@@ -1975,7 +1975,7 @@ export default function CreatePage() {
                       <span aria-hidden style={{ fontSize: 17 }}>💡</span>
                       <span>
                         <strong>You can launch now.</strong> Your campaign goes live and is shareable immediately. To start <em>receiving</em> donations, connect a payout method — you can{' '}
-                        <button type="button" onClick={() => setStep('payout')} style={{ background: 'none', border: 0, padding: 0, color: 'var(--violet)', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>do it now</button>{' '}
+                        <button type="button" onClick={() => setStep('payout')} style={{ background: 'none', border: 0, padding: 0, color: 'var(--brand-text)', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline' }}>do it now</button>{' '}
                         or anytime from your dashboard.
                       </span>
                     </div>
@@ -2018,7 +2018,7 @@ export default function CreatePage() {
                     {/* Title */}
                     <div className="cr2-review-row">
                       <span className="cr2-review-label">Title</span>
-                      <span className="cr2-review-val">{form.title || <span style={{ color: '#ef4444' }}>Not set</span>}</span>
+                      <span className="cr2-review-val">{form.title || <span style={{ color: 'var(--red-text)' }}>Not set</span>}</span>
                       <button type="button" className="cr2-review-edit" onClick={() => setStep('title')}>Edit</button>
                     </div>
 
@@ -2026,7 +2026,7 @@ export default function CreatePage() {
                     <div className="cr2-review-row">
                       <span className="cr2-review-label">Goal</span>
                       <span className="cr2-review-val">
-                        {goalCents >= 100 ? `$${(goalCents / 100).toLocaleString()}` : <span style={{ color: '#ef4444' }}>Not set</span>}
+                        {goalCents >= 100 ? `$${(goalCents / 100).toLocaleString()}` : <span style={{ color: 'var(--red-text)' }}>Not set</span>}
                         {form.autoGoal === 'true' && <span className="cr2-automated-badge">AUTOMATED</span>}
                       </span>
                       <button type="button" className="cr2-review-edit" onClick={() => setStep('goal')}>Edit</button>
@@ -2047,7 +2047,7 @@ export default function CreatePage() {
                       <span className="cr2-review-val">
                         {form.description.length >= 20
                           ? `${form.description.slice(0, 80)}${form.description.length > 80 ? '…' : ''}`
-                          : <span style={{ color: '#ef4444' }}>Story too short (min 20 chars)</span>}
+                          : <span style={{ color: 'var(--red-text)' }}>Story too short (min 20 chars)</span>}
                       </span>
                       <button type="button" className="cr2-review-edit" onClick={() => setStep('story')}>Edit</button>
                     </div>
@@ -2294,8 +2294,8 @@ function GuestLoginModal({ onClose, onSuccess, savedForm, savedStep, savedImages
           )}
           <label className="guest-modal-label">Email<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email" /></label>
           <label className="guest-modal-label">Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required minLength={6} autoComplete={modalMode === 'login' ? 'current-password' : 'new-password'} /></label>
-          {err && <p role="alert" style={{ margin: 0, color: '#be123c', fontSize: 13, fontWeight: 700 }}>{err}</p>}
-          {ok  && <p style={{ margin: 0, color: '#15803d', fontSize: 13, fontWeight: 700 }}>{ok}</p>}
+          {err && <p role="alert" style={{ margin: 0, color: 'var(--red-text)', fontSize: 13, fontWeight: 700 }}>{err}</p>}
+          {ok  && <p style={{ margin: 0, color: 'var(--green-text)', fontSize: 13, fontWeight: 700 }}>{ok}</p>}
           <button className="guest-modal-submit" type="submit" disabled={busy}>
             {busy ? 'Working…' : modalMode === 'login' ? 'Log in' : 'Create account'}
           </button>

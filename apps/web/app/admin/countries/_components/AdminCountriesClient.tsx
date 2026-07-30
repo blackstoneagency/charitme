@@ -27,13 +27,13 @@ const iStyle: React.CSSProperties = {
   fontSize: 13, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box',
 };
 const lStyle: React.CSSProperties = {
-  fontSize: 11, fontWeight: 650, color: '#64748b',
+  fontSize: 11, fontWeight: 650, color: 'var(--t3)',
   textTransform: 'uppercase', letterSpacing: '.04em',
 };
 const btnSave:   React.CSSProperties = { padding: '5px 14px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 650, cursor: 'pointer' };
-const btnCancel: React.CSSProperties = { padding: '5px 12px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: 7, fontSize: 12, cursor: 'pointer' };
-const btnEdit:   React.CSSProperties = { padding: '5px 12px', background: '#f0eaff', color: '#6c35ff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
-const btnDel:    React.CSSProperties = { padding: '5px 12px', background: '#fff0f3', color: '#be123c', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
+const btnCancel: React.CSSProperties = { padding: '5px 12px', background: 'var(--s2)', color: 'var(--t3)', border: 'none', borderRadius: 7, fontSize: 12, cursor: 'pointer' };
+const btnEdit:   React.CSSProperties = { padding: '5px 12px', background: 'var(--s2)', color: 'var(--brand-text)', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
+const btnDel:    React.CSSProperties = { padding: '5px 12px', background: 'var(--tint-rose)', color: 'var(--red-text)', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
 const pill = (bg: string, color: string): React.CSSProperties => ({
   display: 'inline-block', background: bg, color, padding: '3px 10px',
   borderRadius: 999, fontSize: 11, fontWeight: 700,
@@ -109,9 +109,9 @@ function CountryRow({
   return (
     <tr style={{ borderTop: '1px solid #f0f4f8' }}>
       <td style={{ padding: '11px 14px', fontSize: 24 }}>{country.flag_emoji}</td>
-      <td style={{ padding: '11px 14px', fontWeight: 700, color: '#1a1a2e', fontSize: 13 }}>{country.name}</td>
-      <td style={{ padding: '11px 14px', fontSize: 12, color: '#64748b', fontFamily: 'monospace', fontWeight: 700 }}>{country.iso_code}</td>
-      <td style={{ padding: '11px 14px', fontSize: 12, color: '#64748b', fontFamily: 'monospace', fontWeight: 700 }}>{country.currency_code}</td>
+      <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--t1)', fontSize: 13 }}>{country.name}</td>
+      <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--t3)', fontFamily: 'monospace', fontWeight: 700 }}>{country.iso_code}</td>
+      <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--t3)', fontFamily: 'monospace', fontWeight: 700 }}>{country.currency_code}</td>
       <td style={{ padding: '11px 14px', textAlign: 'center' }}>
         {country.can_fundraise
           ? <span style={pill('#f0fdf4','#15803d')}>✓ Yes</span>
@@ -130,7 +130,7 @@ function CountryRow({
           {country.active ? '● Active' : '○ Hidden'}
         </button>
       </td>
-      <td style={{ padding: '11px 14px', fontSize: 12, color: '#64748b', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--t3)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {country.notes || '—'}
       </td>
       <td style={{ padding: '11px 14px' }}>
@@ -212,7 +212,7 @@ export default function AdminCountriesClient() {
 
       {/* Notice */}
       {notice && (
-        <div style={{ padding: '10px 16px', borderRadius: 10, background: notice.includes('❌') ? '#fff0f3' : '#f0fdf4', border: `1px solid ${notice.includes('❌') ? '#fecdd3' : '#bbf7d0'}`, color: notice.includes('❌') ? '#be123c' : '#15803d', fontWeight: 700, fontSize: 13 }}>
+        <div style={{ padding: '10px 16px', borderRadius: 10, background: notice.includes('❌') ? 'var(--tint-red)' : '#f0fdf4', border: `1px solid ${notice.includes('❌') ? '#fecdd3' : '#bbf7d0'}`, color: notice.includes('❌') ? 'var(--red-text)' : 'var(--green-text)', fontWeight: 700, fontSize: 13 }}>
           {notice}
         </div>
       )}
@@ -220,32 +220,32 @@ export default function AdminCountriesClient() {
       {/* Stats row */}
       <div className="kf-metrics">
         {[
-          { label: 'Total Countries',  value: countries.length, color: '#6c35ff' },
-          { label: 'Can Fundraise',    value: fundraiseCount,   color: '#19b86a' },
+          { label: 'Total Countries',  value: countries.length, color: 'var(--brand-text)' },
+          { label: 'Can Fundraise',    value: fundraiseCount,   color: 'var(--green-text)' },
           { label: 'Donate Only',      value: donateCount,      color: '#0ea5e9' },
-          { label: 'Active / Visible', value: activeCount,      color: '#f59e0b' },
+          { label: 'Active / Visible', value: activeCount,      color: 'var(--orange-text)' },
         ].map(m => (
-          <div key={m.label} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '18px 22px' }}>
+          <div key={m.label} style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 14, padding: '18px 22px' }}>
             <div style={{ fontSize: 26, fontWeight: 700, color: m.color }}>{m.value}</div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>{m.label}</div>
+            <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 3 }}>{m.label}</div>
           </div>
         ))}
       </div>
 
       {/* Public page link */}
-      <div style={{ padding: '12px 18px', background: '#f0eaff', borderRadius: 12, border: '1px solid #c4b5fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#4c1d95' }}>
+      <div style={{ padding: '12px 18px', background: 'var(--s2)', borderRadius: 12, border: '1px solid #c4b5fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)' }}>
           🌍 Public page:{' '}
           <code style={{ background: 'rgba(0,0,0,.06)', padding: '2px 6px', borderRadius: 4 }}>/supported-countries</code>
         </span>
-        <Link href="/supported-countries" target="_blank" style={{ fontSize: 12, fontWeight: 650, color: '#6c35ff', textDecoration: 'none' }}>
+        <Link href="/supported-countries" target="_blank" style={{ fontSize: 12, fontWeight: 650, color: 'var(--brand-text)', textDecoration: 'none' }}>
           View Page →
         </Link>
       </div>
 
       {/* Add form */}
-      <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
-        <div style={{ fontWeight: 650, fontSize: 14, color: '#1a1a2e', marginBottom: 14 }}>+ Add Country</div>
+      <div style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 16, padding: '20px 24px', marginBottom: 24 }}>
+        <div style={{ fontWeight: 650, fontSize: 14, color: 'var(--t1)', marginBottom: 14 }}>+ Add Country</div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={lStyle} htmlFor="ctry-flag">Flag</label>
@@ -265,14 +265,14 @@ export default function AdminCountriesClient() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={lStyle}>Fundraise?</span>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_fundraise ? '#15803d' : '#94a3b8' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_fundraise ? 'var(--green-text)' : 'var(--t3)' }}>
               <input type="checkbox" checked={newForm.can_fundraise} onChange={e => updNew('can_fundraise', e.target.checked)} style={{ accentColor: '#6c35ff', width: 16, height: 16 }} />
               {newForm.can_fundraise ? 'Yes' : 'No'}
             </label>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={lStyle}>Donate?</span>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_donate ? '#1d4ed8' : '#94a3b8' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_donate ? '#1d4ed8' : 'var(--t3)' }}>
               <input type="checkbox" checked={newForm.can_donate} onChange={e => updNew('can_donate', e.target.checked)} style={{ accentColor: '#6c35ff', width: 16, height: 16 }} />
               {newForm.can_donate ? 'Yes' : 'No'}
             </label>
@@ -297,7 +297,7 @@ export default function AdminCountriesClient() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            style={{ padding: '7px 16px', borderRadius: 999, border: '1.5px solid', borderColor: filter === f ? '#6c35ff' : '#e2e8f0', background: filter === f ? '#f0eaff' : '#fff', color: filter === f ? '#6c35ff' : '#64748b', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            style={{ padding: '7px 16px', borderRadius: 999, border: '1.5px solid', borderColor: filter === f ? '#6c35ff' : '#e2e8f0', background: filter === f ? 'var(--tint-violet)' : '#fff', color: filter === f ? 'var(--brand-text)' : 'var(--t3)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
           >
             {f === 'all' ? `All (${countries.length})` : f === 'fundraise' ? `Fundraise (${fundraiseCount})` : `Donate Only (${donateCount})`}
           </button>
@@ -313,20 +313,20 @@ export default function AdminCountriesClient() {
 
       {/* Table */}
       {loading ? (
-        <div style={{ color: '#94a3b8', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Loading…</div>
+        <div style={{ color: 'var(--t3)', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Loading…</div>
       ) : (
-        <div className="kf-table-scroll" style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'auto' }}>
+        <div className="kf-table-scroll" style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 860 }}>
             <thead>
-              <tr style={{ background: '#f8fafc' }}>
+              <tr style={{ background: 'var(--s2)' }}>
                 {['Flag','Country','ISO','Currency','Fundraise','Donate','Status','Notes','Actions'].map(h => (
-                  <th key={h} style={{ padding: '10px 14px', textAlign: h === 'Fundraise' || h === 'Donate' || h === 'Status' ? 'center' : 'left', fontWeight: 700, color: '#64748b', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '10px 14px', textAlign: h === 'Fundraise' || h === 'Donate' || h === 'Status' ? 'center' : 'left', fontWeight: 700, color: 'var(--t3)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={9} style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>No countries found.</td></tr>
+                <tr><td colSpan={9} style={{ padding: '32px', textAlign: 'center', color: 'var(--t3)' }}>No countries found.</td></tr>
               ) : filtered.map(c => (
                 <CountryRow key={c.id} country={c} onUpdate={updateCountry} onDelete={deleteCountry} />
               ))}

@@ -537,12 +537,12 @@ export default async function CampaignPage({ params, searchParams }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span className="pc-verified">✓ Verified Campaign</span>
           {campaign.category && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: 'rgba(108,53,255,.12)', color: 'var(--violet)', fontSize: 12, fontWeight: 650, letterSpacing: '.04em' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: 'rgba(108,53,255,.12)', color: 'var(--brand-text)', fontSize: 12, fontWeight: 650, letterSpacing: '.04em' }}>
               {campaign.category}
             </span>
           )}
           {(campaign as { nonprofit_verified?: boolean }).nonprofit_verified && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: 'rgba(16,185,129,.14)', color: '#15803d', fontSize: 12, fontWeight: 650 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 28, padding: '0 12px', borderRadius: 999, background: 'rgba(16,185,129,.14)', color: 'var(--green-text)', fontSize: 12, fontWeight: 650 }}>
               Tax Deductible
             </span>
           )}
@@ -568,7 +568,10 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             ) : (
               <b style={{ color: 'var(--ink)', fontWeight: 650 }}>{organizer.full_name ?? 'CharitMe Organizer'}</b>
             )}
-            {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(16,185,129,.14)', color: '#15803d', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 650 }}>✓ Verified</span>
+            {/* `var(--green-text)` comes from master's contrast pass — the
+                hardcoded #15803d it replaced fails AA. Kept over my side of the
+                conflict, which only meant to add the creator link. */}
+            {' '}<span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, background: 'rgba(16,185,129,.14)', color: 'var(--green-text)', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 650 }}>✓ Verified</span>
             {' '}· {campaign.location ?? 'New York, USA'}
           </p>
         </div>
@@ -597,7 +600,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>CharitMe Score</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: trustScore >= 70 ? '#059669' : trustScore >= 45 ? '#d97706' : '#dc2626' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: trustScore >= 70 ? 'var(--green-text)' : trustScore >= 45 ? 'var(--orange-text)' : 'var(--red-text)' }}>
                 {trustScore >= 70 ? 'Strong Trust' : trustScore >= 45 ? 'Needs Attention' : 'Needs Review'}
               </div>
             </div>
@@ -827,7 +830,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '12px 0 0', padding: '12px 14px', background: 'rgba(108,53,255,.05)', border: '1px solid rgba(108,53,255,.12)', borderRadius: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
               <span style={{ fontWeight: 700 }}>Momentum</span>
-              <span style={{ fontWeight: 700, color: impact.momentum === 'surging' ? '#059669' : impact.momentum === 'steady' ? '#6c35ff' : 'var(--t3)' }}>
+              <span style={{ fontWeight: 700, color: impact.momentum === 'surging' ? 'var(--green-text)' : impact.momentum === 'steady' ? 'var(--brand-text)' : 'var(--t3)' }}>
                 {impact.momentum === 'surging' ? '🔥 Surging' : impact.momentum === 'steady' ? '📈 Steady' : '🌱 Just started'}
               </span>
             </div>
@@ -840,11 +843,11 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             {impact.projectedDaysToGoal !== null && impact.projectedDaysToGoal > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--t2)' }}>
                 <span style={{ fontWeight: 700 }}>On pace to hit goal in</span>
-                <span style={{ fontWeight: 700, color: '#059669' }}>~{impact.projectedDaysToGoal} day{impact.projectedDaysToGoal === 1 ? '' : 's'}</span>
+                <span style={{ fontWeight: 700, color: 'var(--green-text)' }}>~{impact.projectedDaysToGoal} day{impact.projectedDaysToGoal === 1 ? '' : 's'}</span>
               </div>
             )}
             {impact.projectedDaysToGoal === 0 && (
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: '#059669', textAlign: 'center' }}>🎉 Goal reached!</div>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--green-text)', textAlign: 'center' }}>🎉 Goal reached!</div>
             )}
           </div>
           {updates.length > 0 ? (
@@ -904,10 +907,10 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                       height: 130, background: `url(${optimizedCoverUrl(c.cover_image_url || getCoverForCampaign(c.category, c.slug), 420)}) center/cover`,
                     }} />
                     <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-                      {c.category && <span style={{ fontSize: 11, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: 0.4 }}>{c.category}</span>}
+                      {c.category && <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand-text)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{c.category}</span>}
                       <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--t1, #1a1a2e)', lineHeight: 1.3 }}>{c.title}</div>
                       {c.tagline && (
-                        <div style={{ fontSize: 12, color: 'var(--t3, #94a3b8)', lineHeight: 1.4 }}>
+                        <div style={{ fontSize: 12, color: 'var(--t3)', lineHeight: 1.4 }}>
                           {c.tagline.slice(0, 80)}{c.tagline.length > 80 ? '…' : ''}
                         </div>
                       )}
@@ -917,7 +920,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                           <strong style={{ color: 'var(--t1, #1a1a2e)' }}>{formatMoneyShort(c.raised_amount, c.currency ?? 'usd')}</strong>
-                          <span style={{ color: 'var(--t3, #94a3b8)' }}>{sPct}% funded</span>
+                          <span style={{ color: 'var(--t3)' }}>{sPct}% funded</span>
                         </div>
                       </div>
                     </div>
@@ -943,7 +946,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
                     {faq.question}
                     <span style={{ fontSize: 20, color: 'var(--violet, #6c35ff)', flexShrink: 0, marginLeft: 12 }}>+</span>
                   </summary>
-                  <div style={{ padding: '4px 20px 18px', fontSize: 14, color: 'var(--t3, #64748b)', lineHeight: 1.7 }}>
+                  <div style={{ padding: '4px 20px 18px', fontSize: 14, color: 'var(--t3)', lineHeight: 1.7 }}>
                     {faq.answer}
                   </div>
                 </details>

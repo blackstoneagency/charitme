@@ -135,7 +135,7 @@ export default async function DonorPortalPage() {
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 24px' }}>
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 4px' }}>Your Giving History</h1>
-        <p style={{ color: '#64748b', fontSize: 15, margin: 0 }}>
+        <p style={{ color: 'var(--t3)', fontSize: 15, margin: 0 }}>
           All your donations, receipts, and recurring giving in one place.
         </p>
       </div>
@@ -167,7 +167,7 @@ export default async function DonorPortalPage() {
         ].map(s => (
           <div key={s.label} style={{ ...cardStyle, textAlign: 'center' }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4, fontWeight: 700 }}>{s.label}</div>
+            <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 4, fontWeight: 700 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -178,7 +178,7 @@ export default async function DonorPortalPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
           <h2 style={{ fontSize: 16, fontWeight: 650, margin: 0 }}>Tax Statements</h2>
         </div>
-        <p style={{ color: '#64748b', fontSize: 13, margin: '0 0 14px' }}>
+        <p style={{ color: 'var(--t3)', fontSize: 13, margin: '0 0 14px' }}>
           Download a consolidated annual giving statement for your records, with a clear
           tax-deductible vs. non-deductible breakdown.
         </p>
@@ -191,7 +191,7 @@ export default async function DonorPortalPage() {
               <a
                 href={`/api/donor/tax-statement?year=${y}&format=csv`}
                 aria-label={`Download ${y} giving statement as CSV`}
-                style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3, #64748b)', textDecoration: 'none' }}
+                style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', textDecoration: 'none' }}
               >
                 CSV ↓
               </a>
@@ -223,7 +223,7 @@ export default async function DonorPortalPage() {
                         <Link href={`/campaigns/${camp.slug}`} style={{ color: 'var(--t1, #1a1a2e)', textDecoration: 'none' }}>{camp.title}</Link>
                       ) : 'Campaign'}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--t3, #64748b)', marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>
                       {cadenceLabel(r.cadence)} · {r.next_bill_at ? `Next: ${fmtDate(r.next_bill_at)}` : `Started ${fmtDate(r.created_at)}`}
                     </div>
                   </div>
@@ -236,7 +236,7 @@ export default async function DonorPortalPage() {
                     }}>{r.status}</span>
                     {r.status === 'active' && r.stripe_subscription_id && (
                       <Link href={`/dashboard/recurring/cancel?sub=${r.stripe_subscription_id}`}
-                        style={{ fontSize: 12, color: 'var(--t3, #94a3b8)', textDecoration: 'none', padding: '4px 10px', border: '1px solid var(--b2, #e2e8f0)', borderRadius: 8 }}>
+                        style={{ fontSize: 12, color: 'var(--t3)', textDecoration: 'none', padding: '4px 10px', border: '1px solid var(--b2, #e2e8f0)', borderRadius: 8 }}>
                         Cancel
                       </Link>
                     )}
@@ -255,7 +255,7 @@ export default async function DonorPortalPage() {
         hasMore={(donationCount ?? 0) > donations.length}
       />
 
-      <div style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: 'var(--t3, #94a3b8)' }}>
+      <div style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: 'var(--t3)' }}>
         Need help with a donation? <Link href="/contact" style={{ color: 'var(--violet, #6c35ff)', fontWeight: 700 }}>Contact support</Link>
       </div>
     </div>

@@ -57,8 +57,8 @@ type Props = {
   overview: OverviewStats;
 };
 
-const fieldStyle: React.CSSProperties = { height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 14, background: '#fff' };
-const labelStyle: React.CSSProperties = { display: 'grid', gap: 6, fontSize: 13, fontWeight: 650, color: '#26335c' };
+const fieldStyle: React.CSSProperties = { height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 14, background: 'var(--s1)' };
+const labelStyle: React.CSSProperties = { display: 'grid', gap: 6, fontSize: 13, fontWeight: 650, color: 'var(--t1)' };
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -68,7 +68,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
       onClick={() => onChange(!value)}
       aria-pressed={value}
     >
-      <span style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', display: 'block' }} />
+      <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--s1)', display: 'block' }} />
     </button>
   );
 }
@@ -78,7 +78,7 @@ function SettingToggle({ title, description, value, onChange }: { title: string;
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 16px', border: '1px solid #eef0f7', borderRadius: 10 }}>
       <div>
         <strong style={{ display: 'block', fontSize: 14, fontWeight: 650 }}>{title}</strong>
-        <small style={{ color: '#67718e', fontSize: 12 }}>{description}</small>
+        <small style={{ color: 'var(--t3)', fontSize: 12 }}>{description}</small>
       </div>
       <Toggle value={value} onChange={onChange} />
     </div>
@@ -210,7 +210,7 @@ export default function SettingsClient({ categories, settings: initialSettings, 
         <Panel title="Integration Switches">
           <SettingToggle title="Google OAuth" description="Enable Google as an auth provider." value={settings.googleOAuthEnabled} onChange={v => set('googleOAuthEnabled', v)} />
           <SettingToggle title="Stripe Connect" description="Enable connected accounts and payout onboarding." value={settings.stripeConnectEnabled} onChange={v => set('stripeConnectEnabled', v)} />
-          <p style={{ margin: 0, color: '#67718e', fontWeight: 600 }}>Connected integrations: {overview.integrations === null ? '—' : overview.integrations.toLocaleString()}</p>
+          <p style={{ margin: 0, color: 'var(--t3)', fontWeight: 600 }}>Connected integrations: {overview.integrations === null ? '—' : overview.integrations.toLocaleString()}</p>
         </Panel>
       );
     }
@@ -244,7 +244,7 @@ export default function SettingsClient({ categories, settings: initialSettings, 
         <nav className="kf-settings-nav">
           <h3 style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#4b5676', letterSpacing: '0.05em' }}>Settings</h3>
           {categories.map(cat => (
-            <button key={cat.key} onClick={() => setActiveCategory(cat.label)} style={{ minHeight: 46, display: 'flex', alignItems: 'center', gap: 13, padding: '0 14px', borderRadius: 9, border: 'none', cursor: 'pointer', fontWeight: 650, fontSize: 14, textAlign: 'left', width: '100%', background: activeCategory === cat.label ? '#f0eaff' : 'transparent', color: activeCategory === cat.label ? '#551cf2' : '#18234d' }}>
+            <button key={cat.key} onClick={() => setActiveCategory(cat.label)} style={{ minHeight: 46, display: 'flex', alignItems: 'center', gap: 13, padding: '0 14px', borderRadius: 9, border: 'none', cursor: 'pointer', fontWeight: 650, fontSize: 14, textAlign: 'left', width: '100%', background: activeCategory === cat.label ? 'var(--tint-violet)' : 'transparent', color: activeCategory === cat.label ? 'var(--brand-text)' : '#18234d' }}>
               <KFIcon name={cat.icon} />
               <div><span>{cat.label}</span><small style={{ display: 'block', fontSize: 11, fontWeight: 650, color: activeCategory === cat.label ? '#7c50f5' : '#67718e', marginTop: 2 }}>{cat.description}</small></div>
             </button>
@@ -260,7 +260,7 @@ export default function SettingsClient({ categories, settings: initialSettings, 
           </div>
           {renderDetailPanel()}
           <div style={{ padding: '16px 26px', borderTop: '1px solid #eef0f7', display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-            {notice && <span style={{ color: notice.includes('could not') ? '#e11d48' : '#079447', fontSize: 13, fontWeight: 650, alignSelf: 'center' }}>{notice}</span>}
+            {notice && <span style={{ color: notice.includes('could not') ? 'var(--red-text)' : 'var(--green-text)', fontSize: 13, fontWeight: 650, alignSelf: 'center' }}>{notice}</span>}
             <button className="kf-outline" style={{ height: 44, padding: '0 20px' }} onClick={() => setSettings(initialSettings)} disabled={isPending}>Reset</button>
             <button className="kf-primary" style={{ height: 44, padding: '0 24px' }} onClick={handleSave} disabled={isPending}>{isPending ? 'Saving...' : 'Save Changes'}</button>
           </div>

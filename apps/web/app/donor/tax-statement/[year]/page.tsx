@@ -62,7 +62,7 @@ export default async function TaxStatementPage({ params, searchParams }: { param
   const { totals, lines, organizations, currency } = statement;
 
   const line: React.CSSProperties = { borderBottom: '1px solid var(--b1, #e8ecf4)' };
-  const th: React.CSSProperties = { textAlign: 'left', padding: '8px 10px', fontSize: 11, fontWeight: 800, color: 'var(--t3, #64748b)', textTransform: 'uppercase', letterSpacing: '.04em' };
+  const th: React.CSSProperties = { textAlign: 'left', padding: '8px 10px', fontSize: 11, fontWeight: 800, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.04em' };
   const td: React.CSSProperties = { padding: '9px 10px', fontSize: 13, color: 'var(--t1, #0e0520)', verticalAlign: 'top' };
 
   return (
@@ -86,11 +86,11 @@ export default async function TaxStatementPage({ params, searchParams }: { param
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--t1, #0e0520)' }}>CharitMe</div>
-            <div style={{ fontSize: 13, color: 'var(--t3, #64748b)' }}>Annual Giving Statement</div>
+            <div style={{ fontSize: 13, color: 'var(--t3)' }}>Annual Giving Statement</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--violet, #6c35ff)' }}>{year}</div>
-            <div style={{ fontSize: 12, color: 'var(--t3, #64748b)' }}>Tax year (Jan 1 – Dec 31)</div>
+            <div style={{ fontSize: 12, color: 'var(--t3)' }}>Tax year (Jan 1 – Dec 31)</div>
           </div>
         </div>
 
@@ -103,17 +103,17 @@ export default async function TaxStatementPage({ params, searchParams }: { param
           {[
             { label: 'Total given', value: formatCents(totals.totalGiftCents, currency), color: 'var(--t1, #0e0520)' },
             { label: 'Tax-deductible', value: formatCents(totals.deductibleCents, currency), color: 'var(--green, #12a653)' },
-            { label: 'Non-deductible', value: formatCents(totals.nonDeductibleCents, currency), color: 'var(--t3, #64748b)' },
+            { label: 'Non-deductible', value: formatCents(totals.nonDeductibleCents, currency), color: 'var(--t3)' },
           ].map((s) => (
             <div key={s.label} style={{ border: '1px solid var(--b1, #e8ecf4)', borderRadius: 12, padding: '14px 16px', textAlign: 'center' }}>
               <div style={{ fontSize: 18, fontWeight: 900, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3, #94a3b8)', marginTop: 3 }}>{s.label}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)', marginTop: 3 }}>{s.label}</div>
             </div>
           ))}
         </div>
 
         {totals.donationCount === 0 ? (
-          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--t3, #64748b)', fontSize: 14 }}>
+          <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--t3)', fontSize: 14 }}>
             No completed donations recorded for {year}.
           </div>
         ) : (
@@ -121,12 +121,12 @@ export default async function TaxStatementPage({ params, searchParams }: { param
             {/* Deductible-by-organization block */}
             {organizations.length > 0 && (
               <div style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t3, #64748b)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 8 }}>Tax-deductible gifts by organization</div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 8 }}>Tax-deductible gifts by organization</div>
                 {organizations.map((o) => (
                   <div key={`${o.name}-${o.ein ?? ''}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', ...line }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1, #0e0520)' }}>{o.name}</div>
-                      {o.ein && <div style={{ fontSize: 11, color: 'var(--t3, #64748b)' }}>EIN {o.ein}</div>}
+                      {o.ein && <div style={{ fontSize: 11, color: 'var(--t3)' }}>EIN {o.ein}</div>}
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--green, #12a653)' }}>{formatCents(o.deductibleCents, currency)}</div>
                   </div>
@@ -150,10 +150,10 @@ export default async function TaxStatementPage({ params, searchParams }: { param
                   {lines.map((l) => (
                     <tr key={l.id} style={line}>
                       <td style={{ ...td, whiteSpace: 'nowrap' }}>{fmtDate(l.date)}</td>
-                      <td style={{ ...td, fontFamily: 'var(--mono, monospace)', fontSize: 11, color: 'var(--t3, #64748b)' }}>{l.receiptNumber}</td>
+                      <td style={{ ...td, fontFamily: 'var(--mono, monospace)', fontSize: 11, color: 'var(--t3)' }}>{l.receiptNumber}</td>
                       <td style={td}>
                         <div style={{ fontWeight: 600 }}>{l.campaignTitle}</div>
-                        {l.organization && <div style={{ fontSize: 11, color: 'var(--t3, #64748b)' }}>{l.organization}{l.ein ? ` · EIN ${l.ein}` : ''}</div>}
+                        {l.organization && <div style={{ fontSize: 11, color: 'var(--t3)' }}>{l.organization}{l.ein ? ` · EIN ${l.ein}` : ''}</div>}
                       </td>
                       <td style={{ ...td, textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>{formatCents(l.amountCents, l.currency)}</td>
                       <td style={{ ...td, textAlign: 'center' }}>
@@ -168,7 +168,7 @@ export default async function TaxStatementPage({ params, searchParams }: { param
         )}
 
         {/* Legal disclosure */}
-        <div style={{ marginTop: 28, paddingTop: 18, borderTop: '1px solid var(--b1, #e8ecf4)', fontSize: 11, lineHeight: 1.6, color: 'var(--t3, #64748b)' }}>
+        <div style={{ marginTop: 28, paddingTop: 18, borderTop: '1px solid var(--b1, #e8ecf4)', fontSize: 11, lineHeight: 1.6, color: 'var(--t3)' }}>
           <p style={{ margin: '0 0 8px' }}>
             <strong>Tax-deductibility:</strong> Only gifts to campaigns operated by a registered, verified
             nonprofit with tax receipts enabled are marked deductible above; the organization&apos;s legal

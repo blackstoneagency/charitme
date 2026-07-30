@@ -3,11 +3,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
 /* ── shared styles (match AdminMarketingClient) ── */
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #eef0f7', borderRadius: 14, padding: '20px 24px', marginBottom: 16 };
+const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid #eef0f7', borderRadius: 14, padding: '20px 24px', marginBottom: 16 };
 const btn: React.CSSProperties = { padding: '9px 18px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 650, cursor: 'pointer' };
-const btnGhost: React.CSSProperties = { padding: '7px 14px', background: '#f8f9fc', color: '#374151', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
+const btnGhost: React.CSSProperties = { padding: '7px 14px', background: 'var(--s2)', color: 'var(--t1)', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
 const input: React.CSSProperties = { padding: '10px 14px', borderRadius: 9, border: '1px solid #d1d5db', fontSize: 14, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' };
-const label: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 5 };
+const label: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em', display: 'block', marginBottom: 5 };
 
 const METRIC_LABEL: Record<string, string> = {
   fundraiser_starts: 'New fundraiser starts', donation_volume: 'Donation volume', recurring_donors: 'Recurring donors',
@@ -118,12 +118,12 @@ export default function GoalsClient() {
 
   return (
     <div style={{ padding: '0 20px 48px', maxWidth: 900 }}>
-      {notice && <div style={{ ...card, padding: '12px 18px', background: notice.startsWith('❌') ? '#fff0f3' : '#f0fdf4', borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? '#be123c' : '#15803d' }}>{notice}</div>}
+      {notice && <div style={{ ...card, padding: '12px 18px', background: notice.startsWith('❌') ? 'var(--tint-red)' : '#f0fdf4', borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? 'var(--red-text)' : 'var(--green-text)' }}>{notice}</div>}
 
       {/* ── Goal composer ── */}
       <div style={card}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: '#1e293b', marginBottom: 4 }}>Set a marketing goal</div>
-        <div style={{ fontSize: 13, color: '#64748b', marginBottom: 14 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', marginBottom: 4 }}>Set a marketing goal</div>
+        <div style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 14 }}>
           e.g. “Grow verified education fundraisers in New Jersey by 15% before year-end” or “Generate more recurring donors for animal rescue campaigns.”
         </div>
         <textarea
@@ -141,8 +141,8 @@ export default function GoalsClient() {
         </div>
 
         {draft && (
-          <div style={{ marginTop: 16, padding: 16, background: '#faf7ff', border: '1px solid #e9deff', borderRadius: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#6c35ff', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.05em' }}>Review draft — edit before saving</div>
+          <div style={{ marginTop: 16, padding: 16, background: 'var(--s2)', border: '1px solid #e9deff', borderRadius: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--brand-text)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.05em' }}>Review draft — edit before saving</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
               <div><span style={label}>Title</span><input style={input} aria-label="Goal title" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></div>
               <div>
@@ -169,7 +169,7 @@ export default function GoalsClient() {
               <div><span style={label}>Category</span><input aria-label="Category" style={input} value={draft.category ?? ''} onChange={(e) => setDraft({ ...draft, category: e.target.value || null })} /></div>
               <div><span style={label}>Audience</span><input aria-label="Audience" style={input} value={draft.audience ?? ''} onChange={(e) => setDraft({ ...draft, audience: e.target.value || null })} /></div>
             </div>
-            {draft.channels.length > 0 && <div style={{ marginTop: 10, fontSize: 12, color: '#64748b' }}>Channels detected: {draft.channels.join(', ')}</div>}
+            {draft.channels.length > 0 && <div style={{ marginTop: 10, fontSize: 12, color: 'var(--t3)' }}>Channels detected: {draft.channels.join(', ')}</div>}
             <button onClick={create} disabled={busy} style={{ ...btn, marginTop: 14, opacity: busy ? 0.5 : 1 }}>{busy ? 'Saving…' : 'Create goal'}</button>
           </div>
         )}
@@ -177,15 +177,15 @@ export default function GoalsClient() {
 
       {/* ── Goals list ── */}
       {loading ? (
-        <div style={{ ...card, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Loading goals…</div>
+        <div style={{ ...card, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Loading goals…</div>
       ) : error ? (
-        <div style={{ ...card, background: '#fff0f3', borderColor: '#fecdd3', color: '#be123c' }}>
+        <div style={{ ...card, background: 'var(--tint-rose)', borderColor: '#fecdd3', color: 'var(--red-text)' }}>
           {error} <button onClick={load} style={{ ...btnGhost, marginLeft: 8 }}>Retry</button>
         </div>
       ) : goals.length === 0 ? (
         <div style={{ ...card, textAlign: 'center', padding: '40px 24px' }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#475569', marginBottom: 6 }}>No goals yet</div>
-          <div style={{ fontSize: 13, color: '#94a3b8' }}>Describe an outcome above to create your first measurable marketing goal.</div>
+          <div style={{ fontSize: 13, color: 'var(--t3)' }}>Describe an outcome above to create your first measurable marketing goal.</div>
         </div>
       ) : (
         goals.map((g) => <GoalCard key={g.id} g={g} onPatch={patch} />)
@@ -200,8 +200,8 @@ function GoalCard({ g, onPatch }: { g: Goal; onPatch: (id: string, body: Record<
     <div style={card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#1e293b' }}>{g.title}</div>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)' }}>{g.title}</div>
+          <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 3 }}>
             {METRIC_LABEL[g.target_metric]}
             {g.geography ? ` · ${g.geography}` : ''}{g.category ? ` · ${g.category}` : ''}{g.audience ? ` · ${g.audience}` : ''}
             {g.deadline ? ` · due ${g.deadline}` : ''}
@@ -209,7 +209,7 @@ function GoalCard({ g, onPatch }: { g: Goal; onPatch: (id: string, body: Record<
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: PRIORITY_COLOR[g.priority], padding: '3px 8px', borderRadius: 20, textTransform: 'uppercase' }}>{g.priority}</span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>{AUTONOMY[g.autonomy_level]}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--t3)' }}>{AUTONOMY[g.autonomy_level]}</span>
         </div>
       </div>
 
@@ -221,15 +221,15 @@ function GoalCard({ g, onPatch }: { g: Goal; onPatch: (id: string, body: Record<
               <span style={{ color: '#475569', fontWeight: 700 }}>
                 {fmt(p.gained, g.unit)} of {fmt(p.target, g.unit)} {p.percent != null ? `(${Math.round(p.percent)}%)` : ''}
               </span>
-              <span style={{ color: '#94a3b8' }}>since goal set</span>
+              <span style={{ color: 'var(--t3)' }}>since goal set</span>
             </div>
-            <div style={{ height: 8, background: '#eef0f7', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ height: 8, background: 'var(--s2)', borderRadius: 6, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${p.percent ?? 0}%`, background: 'linear-gradient(90deg,#7035ff,#ec39c3)', borderRadius: 6 }} />
             </div>
-            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 5 }}>{p.note}</div>
+            <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 5 }}>{p.note}</div>
           </>
         ) : (
-          <div style={{ fontSize: 12, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px' }}>
+          <div style={{ fontSize: 12, color: '#b45309', background: 'var(--tint-amber)', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px' }}>
             Measurement pending — {p.note} Target: {fmt(p.target, g.unit)}.
           </div>
         )}
@@ -243,7 +243,7 @@ function GoalCard({ g, onPatch }: { g: Goal; onPatch: (id: string, body: Record<
         {g.status === 'paused' && <button onClick={() => onPatch(g.id, { status: 'active' })} style={btnGhost}>Resume</button>}
         {(g.status === 'active' || g.status === 'paused') && <button onClick={() => onPatch(g.id, { status: 'achieved' })} style={btnGhost}>Mark achieved</button>}
         <GenerateCampaignButton goalId={g.id} />
-        <button onClick={() => onPatch(g.id, { status: 'archived' })} style={{ ...btnGhost, color: '#94a3b8', marginLeft: 'auto' }}>Archive</button>
+        <button onClick={() => onPatch(g.id, { status: 'archived' })} style={{ ...btnGhost, color: 'var(--t3)', marginLeft: 'auto' }}>Archive</button>
       </div>
     </div>
   );
@@ -262,5 +262,5 @@ function GenerateCampaignButton({ goalId }: { goalId: string }) {
       window.location.href = `/admin/marketing/campaign-plans?id=${j.plan.id}`;
     } catch { setBusy(false); }
   };
-  return <button onClick={go} disabled={busy} style={{ ...btnGhost, color: '#6c35ff', borderColor: '#e9deff', opacity: busy ? 0.6 : 1 }}>{busy ? 'Generating…' : 'Generate campaign →'}</button>;
+  return <button onClick={go} disabled={busy} style={{ ...btnGhost, color: 'var(--brand-text)', borderColor: '#e9deff', opacity: busy ? 0.6 : 1 }}>{busy ? 'Generating…' : 'Generate campaign →'}</button>;
 }

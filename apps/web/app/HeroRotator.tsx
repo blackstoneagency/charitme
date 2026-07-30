@@ -289,7 +289,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
             {campaign?.trust_status === 'Verified' ? 'VERIFIED CAMPAIGN' : 'ACTIVE CAMPAIGN'}
           </div>
           {campaign?.featured && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px', borderRadius: 999, background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e', fontSize: 11, fontWeight: 950 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 26, padding: '0 10px', borderRadius: 999, background: 'var(--tint-amber)', border: '1px solid #fcd34d', color: 'var(--orange-text)', fontSize: 11, fontWeight: 950 }}>
               ⭐ FEATURED
             </span>
           )}
@@ -410,7 +410,7 @@ export default function HeroRotator({ campaigns: seed, fallbackImageUrl = '/hero
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   boxShadow: '0 2px 8px rgba(0,0,0,.10)',
-                  fontSize: 16, color: '#6c35ff', fontWeight: 700,
+                  fontSize: 16, color: 'var(--brand-text)', fontWeight: 700,
                   transition: 'background .15s',
                 }}
               >{btn.label}</button>

@@ -111,7 +111,7 @@ export default function RefundForm({
             style={{
               padding: '10px 22px',
               borderRadius: 9,
-              background: 'var(--green)',
+              background: 'var(--green-dark)',
               color: '#fff',
               fontSize: 13,
               fontWeight: 700,

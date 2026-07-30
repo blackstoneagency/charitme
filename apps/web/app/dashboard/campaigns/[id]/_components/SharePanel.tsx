@@ -16,8 +16,8 @@ const CHANNELS: { type: ContentType; label: string; icon: string; color: string 
   { type: 'linkedin', label: 'LinkedIn', icon: 'in', color: '#0a66c2' },
   { type: 'whatsapp', label: 'WhatsApp', icon: '💬', color: '#25d366' },
   { type: 'sms', label: 'SMS', icon: '💬', color: '#34c759' },
-  { type: 'email', label: 'Email', icon: '✉️', color: '#6c35ff' },
-  { type: 'update', label: 'Campaign Update', icon: '📝', color: '#19b86a' },
+  { type: 'email', label: 'Email', icon: '✉️', color: 'var(--brand-text)' },
+  { type: 'update', label: 'Campaign Update', icon: '📝', color: 'var(--green-text)' },
 ];
 
 export default function SharePanel({ campaignId }: { campaignId: string }) {
@@ -146,7 +146,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
           {generating ? 'Generating…' : `Generate ${CHANNELS.find(c => c.type === activeChannel)?.label} Content`}
         </button>
 
-        {error && <div style={{ padding: '10px 14px', background: 'rgba(244,63,94,.12)', border: '1px solid #fecdd3', borderRadius: 9, color: '#be123c', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>⚠ {error}</div>}
+        {error && <div style={{ padding: '10px 14px', background: 'rgba(244,63,94,.12)', border: '1px solid #fecdd3', borderRadius: 9, color: 'var(--red-text)', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>⚠ {error}</div>}
 
         {content && (
           <div>

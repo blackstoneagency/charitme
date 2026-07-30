@@ -32,19 +32,19 @@ const STATUS_COLOR: Record<string, string> = {
 
 function CaseTable({ cases, title }: { cases: SupportCase[]; title: string }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
+    <div style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
       <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8' }}>
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 650 }}>{title} ({cases.length})</h2>
       </div>
       {cases.length === 0 ? (
-        <div style={{ padding: 32, textAlign: 'center', color: '#64748b' }}>No cases</div>
+        <div style={{ padding: 32, textAlign: 'center', color: 'var(--t3)' }}>No cases</div>
       ) : (
         <div className="kf-table-scroll">
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
-            <tr style={{ background: '#f8fafc' }}>
+            <tr style={{ background: 'var(--s2)' }}>
               {['Submitter', 'Subject', 'Priority', 'Status', 'Created', 'AI'].map(h => (
-                <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, color: '#64748b', fontSize: 12 }}>{h}</th>
+                <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--t3)', fontSize: 12 }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -52,10 +52,10 @@ function CaseTable({ cases, title }: { cases: SupportCase[]; title: string }) {
             {cases.map((c, i) => (
               <tr key={c.id} style={{ borderTop: i > 0 ? '1px solid #f0f4f8' : undefined }}>
                 <td style={{ padding: '12px 16px' }}>
-                  <div style={{ fontWeight: 600, color: '#1a1a2e' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--t1)' }}>
                     {(c.profiles as { full_name?: string | null } | null)?.full_name ?? 'Guest'}
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                  <div style={{ fontSize: 11, color: 'var(--t3)' }}>
                     {(c.profiles as { email?: string | null } | null)?.email ?? ''}
                   </div>
                 </td>
@@ -72,7 +72,7 @@ function CaseTable({ cases, title }: { cases: SupportCase[]; title: string }) {
                     {c.status.replace(/_/g, ' ')}
                   </span>
                 </td>
-                <td style={{ padding: '12px 16px', color: '#64748b' }}>
+                <td style={{ padding: '12px 16px', color: 'var(--t3)' }}>
                   {new Date(c.created_at).toLocaleDateString()}
                 </td>
                 <td style={{ padding: '12px 16px' }}>
@@ -146,7 +146,7 @@ export default async function AdminSupportPage() {
             role="alert"
             style={{
               margin: '0 0 16px', padding: '14px 16px', borderRadius: 12,
-              background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e',
+              background: 'var(--tint-amber)', border: '1px solid #fde68a', color: 'var(--orange-text)',
             }}
           >
             <strong style={{ display: 'block', marginBottom: 4 }}>We couldn&apos;t load the case list</strong>
@@ -160,14 +160,14 @@ export default async function AdminSupportPage() {
         {/* Summary metrics */}
         <div className="kf-metrics">
           {[
-            { label: 'Open Cases',          value: show(openFailed, open.length), color: '#f59e0b' },
-            { label: 'In Progress',          value: show(inProgFailed, inProg.length), color: '#6c35ff' },
-            { label: 'Urgent',               value: show(urgentUnknown, urgent), color: '#ef4444' },
-            { label: 'Resolved (all time)',  value: show(resolvedUnknown, resolved), color: '#19b86a' },
+            { label: 'Open Cases',          value: show(openFailed, open.length), color: 'var(--orange-text)' },
+            { label: 'In Progress',          value: show(inProgFailed, inProg.length), color: 'var(--brand-text)' },
+            { label: 'Urgent',               value: show(urgentUnknown, urgent), color: 'var(--red-text)' },
+            { label: 'Resolved (all time)',  value: show(resolvedUnknown, resolved), color: 'var(--green-text)' },
           ].map(m => (
-            <div key={m.label} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '20px 24px' }}>
+            <div key={m.label} style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 14, padding: '20px 24px' }}>
               <div style={{ fontSize: 28, fontWeight: 700, color: m.color }}>{m.value}</div>
-              <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{m.label}</div>
+              <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 4 }}>{m.label}</div>
             </div>
           ))}
         </div>
@@ -176,9 +176,9 @@ export default async function AdminSupportPage() {
         {inProg.length > 0 && <CaseTable cases={inProg} title="In Progress" />}
 
         {open.length === 0 && inProg.length === 0 && (
-          <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, padding: '48px 32px', textAlign: 'center', color: '#64748b' }}>
+          <div style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 16, padding: '48px 32px', textAlign: 'center', color: 'var(--t3)' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🎉</div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#1a1a2e', marginBottom: 6 }}>No open support cases</div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--t1)', marginBottom: 6 }}>No open support cases</div>
             <div style={{ fontSize: 13 }}>All caught up! Resolved cases: {resolved}</div>
           </div>
         )}

@@ -43,7 +43,7 @@ export default function SavedCampaigns() {
     return (
       <div style={{ ...cardStyle, marginBottom: 24 }}>
         <h2 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 16px' }}>♥ Saved Campaigns</h2>
-        <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--t3, #94a3b8)' }}>
+        <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--t3)' }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>♥</div>
           <p style={{ fontWeight: 700, margin: '0 0 4px' }}>No saved campaigns yet.</p>
           <p style={{ fontSize: 13 }}>Tap the heart icon on any campaign to save it for later.</p>
@@ -58,7 +58,7 @@ export default function SavedCampaigns() {
   return (
     <div style={{ ...cardStyle, marginBottom: 24 }}>
       <h2 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 16px' }}>
-        ♥ Saved Campaigns <span style={{ color: 'var(--t3, #94a3b8)', fontWeight: 600 }}>({campaigns.length})</span>
+        ♥ Saved Campaigns <span style={{ color: 'var(--t3)', fontWeight: 600 }}>({campaigns.length})</span>
       </h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 14 }}>
         {campaigns.map((c) => {
@@ -70,7 +70,7 @@ export default function SavedCampaigns() {
                   height: 110, background: c.cover_image_url ? `url(${c.cover_image_url}) center/cover` : 'linear-gradient(135deg,#6c35ff,#4d1ee0)',
                 }} />
                 <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-                  {c.category && <span style={{ fontSize: 11, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: 0.4 }}>{c.category}</span>}
+                  {c.category && <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand-text)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{c.category}</span>}
                   <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--t1, #1a1a2e)', lineHeight: 1.3 }}>{c.title}</div>
                   <div style={{ marginTop: 'auto' }}>
                     <div style={{ background: 'var(--s3, #f1f5f9)', borderRadius: 99, height: 6, overflow: 'hidden', marginBottom: 6 }}>
@@ -78,7 +78,7 @@ export default function SavedCampaigns() {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                       <strong style={{ color: 'var(--t1, #1a1a2e)' }}>{formatCents(c.raised_amount, c.currency ?? 'usd')}</strong>
-                      <span style={{ color: 'var(--t3, #94a3b8)' }}>{pct}% funded</span>
+                      <span style={{ color: 'var(--t3)' }}>{pct}% funded</span>
                     </div>
                   </div>
                 </div>

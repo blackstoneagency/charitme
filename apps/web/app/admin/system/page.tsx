@@ -275,14 +275,14 @@ export default async function SystemSettingsPage() {
     computedResourceUsage.push({
       label: 'Webhook Success',
       value: percentage(totalHealthEvents - webhookErrors, totalHealthEvents),
-      color: '#6c35ff',
+      color: 'var(--brand-text)',
     });
   }
   if (integrationsActive !== null && integrationErrors !== null && integrationsActive + integrationErrors > 0) {
     computedResourceUsage.push({
       label: 'Integration Health',
       value: percentage(integrationsActive, integrationsActive + integrationErrors),
-      color: '#19b86a',
+      color: 'var(--green-text)',
     });
   }
   if (scheduledJobs !== null) {

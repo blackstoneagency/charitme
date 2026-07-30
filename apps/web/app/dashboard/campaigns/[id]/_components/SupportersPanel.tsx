@@ -135,7 +135,7 @@ export default function SupportersPanel({
       </div>
 
       {notice && (
-        <div style={{ ...card, padding: '12px 18px', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? 'var(--red)' : notice.startsWith('⚠') ? '#d97706' : 'var(--green)' }}>
+        <div style={{ ...card, padding: '12px 18px', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? 'var(--red)' : notice.startsWith('⚠') ? 'var(--orange-text)' : 'var(--green)' }}>
           {notice}
         </div>
       )}
@@ -212,13 +212,13 @@ export default function SupportersPanel({
                     <div style={{ fontWeight: 650, color: 'var(--t1)' }}>{s.name}</div>
                     <div style={{ fontSize: 11.5, color: 'var(--t4)', fontFamily: 'var(--mono)' }}>{s.emailMasked ?? 'no email on file'}</div>
                   </td>
-                  <td style={td}>{s.giftCount}{s.isRepeat && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--green)', background: 'rgba(5,150,105,.1)', padding: '2px 7px', borderRadius: 999 }}>REPEAT</span>}</td>
+                  <td style={td}>{s.giftCount}{s.isRepeat && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: 'var(--green-text)', background: 'rgba(5,150,105,.1)', padding: '2px 7px', borderRadius: 999 }}>REPEAT</span>}</td>
                   <td style={td}><b style={{ color: 'var(--t1)' }}>{money(s.totalCents)}</b></td>
                   <td style={td}>{dt(s.lastGiftAt)}</td>
                   <td style={td}>
                     {!s.reachable ? <span style={{ fontSize: 11, color: 'var(--t4)' }}>unreachable</span>
-                      : s.isLapsed ? <span style={{ fontSize: 11, fontWeight: 650, color: '#d97706' }}>lapsed</span>
-                      : <span style={{ fontSize: 11, fontWeight: 650, color: 'var(--green)' }}>active</span>}
+                      : s.isLapsed ? <span style={{ fontSize: 11, fontWeight: 650, color: 'var(--orange-text)' }}>lapsed</span>
+                      : <span style={{ fontSize: 11, fontWeight: 650, color: 'var(--green-text)' }}>active</span>}
                   </td>
                 </tr>
               ))}
@@ -234,7 +234,7 @@ export default function SupportersPanel({
             {data.attribution.map(a => (
               <div key={a.channel} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--b1)', fontSize: 13 }}>
                 <span style={{ fontWeight: 700, color: 'var(--t2)', textTransform: 'capitalize' }}>{a.channel}</span>
-                <span style={{ color: 'var(--t3)' }}>{a.clicks} clicks · <b style={{ color: 'var(--green)' }}>{a.conversions} gifts</b></span>
+                <span style={{ color: 'var(--t3)' }}>{a.clicks} clicks · <b style={{ color: 'var(--green-text)' }}>{a.conversions} gifts</b></span>
               </div>
             ))}
           </div>

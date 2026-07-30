@@ -90,34 +90,34 @@ export default async function TrustSafetyPage() {
         {/* Summary stats */}
         <div className="kf-three-col">
           {[
-            { label: 'Unresolved Risk Flags', value: flagsTotal, color: '#ef4444' },
-            { label: 'Open Reports', value: reportsTotal, color: '#f59e0b' },
-            { label: 'Frozen Payouts', value: frozen.length, color: '#6c35ff' },
+            { label: 'Unresolved Risk Flags', value: flagsTotal, color: 'var(--red-text)' },
+            { label: 'Open Reports', value: reportsTotal, color: 'var(--orange-text)' },
+            { label: 'Frozen Payouts', value: frozen.length, color: 'var(--brand-text)' },
           ].map(m => (
-            <div key={m.label} style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 14, padding: '20px 24px' }}>
+            <div key={m.label} style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 14, padding: '20px 24px' }}>
               <div style={{ fontSize: 28, fontWeight: 700, color: m.color }}>{m.value}</div>
-              <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{m.label}</div>
+              <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 4 }}>{m.label}</div>
             </div>
           ))}
         </div>
 
         {/* Risk Flags */}
-        <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8' }}>
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 650 }}>Unresolved Risk Flags</h2>
             {flagsTotal > flags.length ? (
-              <span style={{ fontSize: 12, color: '#64748b' }}>showing {flags.length} of {flagsTotal}</span>
+              <span style={{ fontSize: 12, color: 'var(--t3)' }}>showing {flags.length} of {flagsTotal}</span>
             ) : null}
           </div>
           {flags.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>✅ No unresolved risk flags</div>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--t3)' }}>✅ No unresolved risk flags</div>
           ) : (
             <div className="kf-table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr style={{ background: '#f8fafc' }}>
+                <tr style={{ background: 'var(--s2)' }}>
                   {['Campaign', 'Flag Type', 'Severity', 'Created', 'Action'].map(h => (
-                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, color: '#64748b', fontSize: 12 }}>{h}</th>
+                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--t3)', fontSize: 12 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -126,10 +126,10 @@ export default async function TrustSafetyPage() {
                   <tr key={f.id} style={{ borderTop: i > 0 ? '1px solid #f0f4f8' : undefined }}>
                     <td style={{ padding: '12px 16px' }}>
                       {f.campaigns ? (
-                        <Link href={`/campaigns/${f.campaigns.slug}`} style={{ color: '#1a1a2e', fontWeight: 600, textDecoration: 'none' }}>
+                        <Link href={`/campaigns/${f.campaigns.slug}`} style={{ color: 'var(--t1)', fontWeight: 600, textDecoration: 'none' }}>
                           {f.campaigns.title}
                         </Link>
-                      ) : <span style={{ color: '#94a3b8' }}>Unknown</span>}
+                      ) : <span style={{ color: 'var(--t3)' }}>Unknown</span>}
                     </td>
                     <td style={{ padding: '12px 16px', color: '#334064' }}>{f.flag_type.replace(/_/g, ' ')}</td>
                     <td style={{ padding: '12px 16px' }}>
@@ -137,7 +137,7 @@ export default async function TrustSafetyPage() {
                         {f.severity}
                       </span>
                     </td>
-                    <td style={{ padding: '12px 16px', color: '#64748b' }}>
+                    <td style={{ padding: '12px 16px', color: 'var(--t3)' }}>
                       {new Date(f.created_at).toLocaleDateString()}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
@@ -152,22 +152,22 @@ export default async function TrustSafetyPage() {
         </div>
 
         {/* Campaign Reports */}
-        <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
+        <div style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8' }}>
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 650 }}>Campaign Reports</h2>
             {reportsTotal > reports.length ? (
-              <span style={{ fontSize: 12, color: '#64748b' }}>showing {reports.length} of {reportsTotal} — oldest are not listed</span>
+              <span style={{ fontSize: 12, color: 'var(--t3)' }}>showing {reports.length} of {reportsTotal} — oldest are not listed</span>
             ) : null}
           </div>
           {reports.length === 0 ? (
-            <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>✅ No open reports</div>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--t3)' }}>✅ No open reports</div>
           ) : (
             <div className="kf-table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr style={{ background: '#f8fafc' }}>
+                <tr style={{ background: 'var(--s2)' }}>
                   {['Campaign', 'Reason', 'Status', 'Reported', 'Action'].map(h => (
-                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, color: '#64748b', fontSize: 12 }}>{h}</th>
+                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--t3)', fontSize: 12 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -176,10 +176,10 @@ export default async function TrustSafetyPage() {
                   <tr key={r.id} style={{ borderTop: i > 0 ? '1px solid #f0f4f8' : undefined }}>
                     <td style={{ padding: '12px 16px' }}>
                       {r.campaigns ? (
-                        <Link href={`/campaigns/${r.campaigns.slug}`} style={{ color: '#1a1a2e', fontWeight: 600, textDecoration: 'none' }}>
+                        <Link href={`/campaigns/${r.campaigns.slug}`} style={{ color: 'var(--t1)', fontWeight: 600, textDecoration: 'none' }}>
                           {r.campaigns.title}
                         </Link>
-                      ) : <span style={{ color: '#94a3b8' }}>Unknown</span>}
+                      ) : <span style={{ color: 'var(--t3)' }}>Unknown</span>}
                     </td>
                     <td style={{ padding: '12px 16px', color: '#334064' }}>{r.reason}</td>
                     <td style={{ padding: '12px 16px' }}>
@@ -187,12 +187,12 @@ export default async function TrustSafetyPage() {
                         {r.status}
                       </span>
                     </td>
-                    <td style={{ padding: '12px 16px', color: '#64748b' }}>
+                    <td style={{ padding: '12px 16px', color: 'var(--t3)' }}>
                       {new Date(r.created_at).toLocaleDateString()}
                     </td>
                     <td style={{ padding: '12px 16px', display: 'flex', gap: 8 }}>
                       <Link href={`/admin/campaigns?report=${r.id}`}
-                        style={{ fontSize: 12, padding: '5px 12px', background: '#f0f4ff', color: '#6c35ff', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}>
+                        style={{ fontSize: 12, padding: '5px 12px', background: '#f0f4ff', color: 'var(--brand-text)', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}>
                         Review
                       </Link>
                     </td>
@@ -206,16 +206,16 @@ export default async function TrustSafetyPage() {
 
         {/* Frozen Campaigns */}
         {frozen.length > 0 && (
-          <div style={{ background: '#fff', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
+          <div style={{ background: 'var(--s1)', border: '1px solid #e8ecf4', borderRadius: 16, overflow: 'hidden' }}>
             <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f4f8' }}>
               <h2 style={{ margin: 0, fontSize: 16, fontWeight: 650 }}>Frozen Payouts</h2>
             </div>
             <div className="kf-table-scroll">
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
-                <tr style={{ background: '#f8fafc' }}>
+                <tr style={{ background: 'var(--s2)' }}>
                   {['Campaign', 'Status', 'Trust Status'].map(h => (
-                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, color: '#64748b', fontSize: 12 }}>{h}</th>
+                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, color: 'var(--t3)', fontSize: 12 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -223,12 +223,12 @@ export default async function TrustSafetyPage() {
                 {frozen.map((c, i) => (
                   <tr key={c.id} style={{ borderTop: i > 0 ? '1px solid #f0f4f8' : undefined }}>
                     <td style={{ padding: '12px 16px' }}>
-                      <Link href={`/campaigns/${c.slug}`} style={{ color: '#1a1a2e', fontWeight: 600, textDecoration: 'none' }}>
+                      <Link href={`/campaigns/${c.slug}`} style={{ color: 'var(--t1)', fontWeight: 600, textDecoration: 'none' }}>
                         {c.title}
                       </Link>
                     </td>
-                    <td style={{ padding: '12px 16px', color: '#64748b', textTransform: 'capitalize' }}>{c.status}</td>
-                    <td style={{ padding: '12px 16px', color: '#f59e0b', fontWeight: 600 }}>{c.trust_status}</td>
+                    <td style={{ padding: '12px 16px', color: 'var(--t3)', textTransform: 'capitalize' }}>{c.status}</td>
+                    <td style={{ padding: '12px 16px', color: 'var(--orange-text)', fontWeight: 600 }}>{c.trust_status}</td>
                   </tr>
                 ))}
               </tbody>
@@ -244,7 +244,7 @@ export default async function TrustSafetyPage() {
 function ResolveFlag({ id }: { id: string }) {
   return (
     <form action={`/api/admin/trust/flags/${id}/resolve`} method="POST" style={{ display: 'inline' }}>
-      <button type="submit" style={{ fontSize: 12, padding: '5px 12px', background: '#f0fff4', color: '#19b86a', borderRadius: 8, fontWeight: 700, border: '1px solid #bbf7d0', cursor: 'pointer' }}>
+      <button type="submit" style={{ fontSize: 12, padding: '5px 12px', background: '#f0fff4', color: 'var(--green-text)', borderRadius: 8, fontWeight: 700, border: '1px solid #bbf7d0', cursor: 'pointer' }}>
         Resolve
       </button>
     </form>

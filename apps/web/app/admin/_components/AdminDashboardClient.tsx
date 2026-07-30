@@ -158,12 +158,12 @@ function SourceDonut({ sources, total }: { sources: SourceItem[]; total: string 
           textAlign: 'center',
         }}>
           <strong style={{ fontSize: 22, fontWeight: 800 }}>{total}</strong>
-          <small style={{ color: '#67718e', fontSize: 11 }}>Total</small>
+          <small style={{ color: 'var(--t3)', fontSize: 11 }}>Total</small>
         </div>
       </div>
       <div style={{ display: 'grid', gap: 10, flex: 1 }}>
         {sources.map((src) => (
-          <p key={src.label} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0, color: '#26335c', fontWeight: 650 }}>
+          <p key={src.label} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: 0, color: 'var(--t1)', fontWeight: 650 }}>
             <i style={{ width: 10, height: 10, borderRadius: '50%', background: src.color, flexShrink: 0 }} />
             {src.label}
             <b style={{ marginLeft: 'auto' }}>{src.pct}%</b>
@@ -190,7 +190,7 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
             <div>
               <span>{m.label}</span>
               <strong>{m.value}</strong>
-              <small style={{ color: m.change.startsWith('+') ? '#0f9f54' : '#334064' }}>{m.change}</small>
+              <small style={{ color: m.change.startsWith('+') ? 'var(--green-text)' : '#334064' }}>{m.change}</small>
             </div>
           </article>
         ))}
@@ -226,14 +226,14 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
                     <StatusPill>{c.status}</StatusPill>
                     <strong style={{ fontSize: 13, fontWeight: 650 }}>{c.title}</strong>
                   </div>
-                  <small style={{ color: '#67718e', fontSize: 11 }}>Goal: {c.goal}</small>
+                  <small style={{ color: 'var(--t3)', fontSize: 11 }}>Goal: {c.goal}</small>
                 </div>
                 <b style={{ fontSize: 15, fontWeight: 700 }}>{c.raised}</b>
               </div>
             ))}
           </div>
           {campaigns.length === 0 && (
-            <p style={{ textAlign: 'center', color: '#67718e', padding: '20px', fontSize: 13 }}>No campaigns yet</p>
+            <p style={{ textAlign: 'center', color: 'var(--t3)', padding: '20px', fontSize: 13 }}>No campaigns yet</p>
           )}
         </section>
 
@@ -248,14 +248,14 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <strong style={{ display: 'block', fontSize: 13, fontWeight: 650 }}>{d.donor}</strong>
-                  <small style={{ color: '#67718e', fontSize: 11 }}>{d.campaign} · {d.date}</small>
+                  <small style={{ color: 'var(--t3)', fontSize: 11 }}>{d.campaign} · {d.date}</small>
                 </div>
                 <b style={{ fontSize: 14, fontWeight: 700 }}>{d.amount}</b>
               </div>
             ))}
           </div>
           {donations.length === 0 && (
-            <p style={{ textAlign: 'center', color: '#67718e', padding: '20px', fontSize: 13 }}>No donations yet</p>
+            <p style={{ textAlign: 'center', color: 'var(--t3)', padding: '20px', fontSize: 13 }}>No donations yet</p>
           )}
         </section>
 
@@ -264,12 +264,12 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
           <div className="kf-card-head"><h2>System Health</h2></div>
           <div style={{ padding: '0 20px 16px', display: 'grid', gap: 10 }}>
             {services.map((s) => (
-              <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 9, border: '1px solid #eef0f7', background: '#fafbff' }}>
+              <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 9, border: '1px solid #eef0f7', background: 'var(--s2)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.status === 'Operational' ? '#19b86a' : s.status === 'Degraded' ? '#f59e0b' : s.status === 'Unknown' ? '#94a3b8' : '#ef4444' }} />
                   <span style={{ fontSize: 13, fontWeight: 650 }}>{s.name}</span>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: s.status === 'Operational' ? '#079447' : s.status === 'Degraded' ? '#f97316' : s.status === 'Unknown' ? '#64748b' : '#ef4444' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: s.status === 'Operational' ? 'var(--green-text)' : s.status === 'Degraded' ? 'var(--orange-text)' : s.status === 'Unknown' ? 'var(--t3)' : 'var(--red-text)' }}>
                   {s.status}
                 </span>
               </div>

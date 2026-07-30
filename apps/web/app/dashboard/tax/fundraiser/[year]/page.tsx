@@ -76,7 +76,7 @@ export default async function FundraiserTaxSummaryPage({
             <div style={{ marginTop: 3, color: 'var(--t3)', fontSize: 13 }}>Campaign activity summary</div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ color: 'var(--violet)', fontSize: 28, fontWeight: 900 }}>{year}</div>
+            <div style={{ color: 'var(--brand-text)', fontSize: 28, fontWeight: 900 }}>{year}</div>
             <div style={{ color: 'var(--t3)', fontSize: 12 }}>Jan 1 - Dec 31 | {summary.currency.toUpperCase()}</div>
           </div>
         </header>

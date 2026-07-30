@@ -84,11 +84,12 @@ Internal **plumbing** tables don't need 100 rows to test features and are left
 out: audit logs, webhook events, the `campaign_payment_*` observability tables,
 `ledger_entries`/`reconciliation_exceptions` (populated by the live donation/
 refund flow), rate-limit hits, and the `marketing_*` internals (there are already
-generator scripts under `scripts/seed-marketing-data.mjs`). Support cases and
-sponsors have existing seed migrations. Ask if you want any of these added.
+generator scripts under `scripts/seed-marketing-data.mjs`). Support cases still
+rely on their existing seed migration and are intentionally outside the
+repeatable feature suite.
 
 ## Verifying
 
-After running 00–07, run `99_verify_counts.sql`. Every row should show `ok = true`
+After running 00–08, run `99_verify_counts.sql`. Every row should show `ok = true`
 (≥100). Anything showing `false` on a per-user table means you need more profiles —
 run `00_test_users.sql`.

@@ -155,7 +155,7 @@ export default function HelpPage() {
                   gap: 16,
                 }}>
                 <span>{article.question}</span>
-                <span style={{ fontSize: 20, flexShrink: 0, color: 'var(--violet)', transform: openId === article.id ? 'rotate(45deg)' : 'none', transition: 'transform .2s' }}>+</span>
+                <span style={{ fontSize: 20, flexShrink: 0, color: 'var(--brand-text)', transform: openId === article.id ? 'rotate(45deg)' : 'none', transition: 'transform .2s' }}>+</span>
               </button>
               {openId === article.id && (
                 <div style={{ padding: '4px 20px 20px', fontSize: 14, color: 'var(--t2)', lineHeight: 1.7, background: 'var(--s2)' }}>

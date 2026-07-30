@@ -9,7 +9,7 @@ export type PlatformConfig = {
 };
 
 const input: React.CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: 9, border: '1px solid var(--b2)', background: 'var(--s1)', color: 'var(--t1)', fontSize: 13 };
-const btn: React.CSSProperties = { padding: '10px 20px', borderRadius: 9, border: 'none', background: 'var(--green)', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 14 };
+const btn: React.CSSProperties = { padding: '10px 20px', borderRadius: 9, border: 'none', background: 'var(--green-dark)', color: '#fff', fontWeight: 700, cursor: 'pointer', fontSize: 14 };
 
 function Field({ label, k, value, type = 'text', ph, onSet }: { label: string; k: keyof PlatformConfig; value: string | number | undefined; type?: string; ph?: string; onSet: (k: keyof PlatformConfig, v: unknown) => void }) {
   return (
@@ -25,7 +25,7 @@ function Toggle({ label, k, on, warn, onSet }: { label: string; k: keyof Platfor
     <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--t2)', padding: '8px 0' }}>
       <button type="button" onClick={() => onSet(k, !on)} aria-pressed={on}
         style={{ width: 46, height: 26, borderRadius: 999, border: 'none', cursor: 'pointer', background: on ? (warn ? 'var(--red)' : 'var(--green)') : 'var(--b3)', position: 'relative', flexShrink: 0 }}>
-        <span style={{ position: 'absolute', top: 3, left: on ? 23 : 3, width: 20, height: 20, borderRadius: 999, background: '#fff', transition: 'left .15s' }} />
+        <span style={{ position: 'absolute', top: 3, left: on ? 23 : 3, width: 20, height: 20, borderRadius: 999, background: 'var(--s1)', transition: 'left .15s' }} />
       </button>
       {label}
     </label>

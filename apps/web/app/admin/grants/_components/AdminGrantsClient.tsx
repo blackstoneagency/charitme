@@ -27,7 +27,7 @@ const STATUSES = ['open', 'upcoming', 'closed'];
 
 const input: React.CSSProperties = {
   padding: '9px 11px', border: '1px solid #e2e5ee', borderRadius: 9, fontSize: 13,
-  background: '#fff', color: '#0f1238', width: '100%', boxSizing: 'border-box',
+  background: 'var(--s1)', color: 'var(--t1)', width: '100%', boxSizing: 'border-box',
 };
 const label: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: '#4b5675', marginBottom: 4, display: 'block' };
 
@@ -152,12 +152,12 @@ export default function AdminGrantsClient() {
       )}
 
       {/* Create / edit form */}
-      <form onSubmit={submit} style={{ background: '#fff', border: '1px solid #eef0f7', borderRadius: 16, padding: 20 }}>
+      <form onSubmit={submit} style={{ background: 'var(--s1)', border: '1px solid #eef0f7', borderRadius: 16, padding: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#0f1238' }}>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--t1)' }}>
             {editId ? 'Edit grant' : 'Add a grant'}
           </h3>
-          {editId && <button type="button" onClick={resetForm} style={{ fontSize: 12, fontWeight: 700, color: '#6d35ff', background: 'none', border: 'none' }}>+ New instead</button>}
+          {editId && <button type="button" onClick={resetForm} style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-text)', background: 'none', border: 'none' }}>+ New instead</button>}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
@@ -238,19 +238,19 @@ export default function AdminGrantsClient() {
 
       {/* Existing grants list */}
       <div>
-        <h3 style={{ fontSize: 14, fontWeight: 800, color: '#0f1238', margin: '4px 0 12px' }}>
+        <h3 style={{ fontSize: 14, fontWeight: 800, color: 'var(--t1)', margin: '4px 0 12px' }}>
           All grants {loading ? '' : `(${grants.length})`}
         </h3>
         {loading ? (
           <div style={{ color: '#8c95b2', fontSize: 13, padding: 20 }}>Loading…</div>
         ) : grants.length === 0 ? (
-          <div style={{ color: '#8c95b2', fontSize: 13, padding: 20, background: '#fff', borderRadius: 12, border: '1px solid #eef0f7' }}>
+          <div style={{ color: '#8c95b2', fontSize: 13, padding: 20, background: 'var(--s1)', borderRadius: 12, border: '1px solid #eef0f7' }}>
             No grants yet. Add your first one above — it goes live on <strong>/grants</strong> immediately.
           </div>
         ) : (
           <div style={{ display: 'grid', gap: 8 }}>
             {grants.map((g) => (
-              <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '12px 16px', background: '#fff', border: '1px solid #eef0f7', borderRadius: 12 }}>
+              <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '12px 16px', background: 'var(--s1)', border: '1px solid #eef0f7', borderRadius: 12 }}>
                 <div style={{ minWidth: 0, flex: '1 1 220px' }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{
@@ -261,7 +261,7 @@ export default function AdminGrantsClient() {
                     {g.verified && <span style={{ fontSize: 11, fontWeight: 700, color: '#08763b' }}>✓ verified</span>}
                     <span style={{ fontSize: 12, color: '#8c95b2' }}>{g.funder_name}</span>
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#0f1238', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     <a href={`/grants/${g.slug}`} target="_blank" rel="noreferrer">{g.title}</a>
                   </div>
                 </div>

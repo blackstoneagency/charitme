@@ -74,10 +74,10 @@ async function runChecks(): Promise<Check[]> {
 }
 
 const STATUS_STYLE: Record<CheckStatus, { bg: string; color: string; icon: string }> = {
-  ok:      { bg: 'transparent', color: '#065f46', icon: '✓' },
-  empty:   { bg: '#fffbeb',     color: '#92400e', icon: '○' },
-  error:   { bg: '#fff0f3',     color: '#be123c', icon: '✗' },
-  missing: { bg: '#fff0f3',     color: '#be123c', icon: '✗' },
+  ok:      { bg: 'transparent', color: 'var(--green-text)', icon: '✓' },
+  empty:   { bg: '#fffbeb',     color: 'var(--orange-text)', icon: '○' },
+  error:   { bg: '#fff0f3',     color: 'var(--red-text)', icon: '✗' },
+  missing: { bg: '#fff0f3',     color: 'var(--red-text)', icon: '✗' },
 };
 
 export default async function AdminSetupPage() {
@@ -106,9 +106,9 @@ export default async function AdminSetupPage() {
         {/* Summary strip */}
         <div className="kf-three-col">
           {[
-            { label: 'Passing',  count: ok.length,      bg: '#f0fff8', color: '#065f46' },
-            { label: 'Warnings', count: empties.length,  bg: '#fffbeb', color: '#92400e' },
-            { label: 'Errors',   count: errors.length,   bg: '#fff0f3', color: '#be123c' },
+            { label: 'Passing',  count: ok.length,      bg: '#f0fff8', color: 'var(--green-text)' },
+            { label: 'Warnings', count: empties.length,  bg: '#fffbeb', color: 'var(--orange-text)' },
+            { label: 'Errors',   count: errors.length,   bg: '#fff0f3', color: 'var(--red-text)' },
           ].map(s => (
             <div key={s.label} style={{ padding: '14px 18px', background: s.bg, borderRadius: 12, textAlign: 'center' }}>
               <div style={{ fontSize: 30, fontWeight: 700, color: s.color }}>{s.count}</div>
@@ -119,20 +119,20 @@ export default async function AdminSetupPage() {
 
         {/* One-click apply */}
         {tableMissing > 0 && (
-          <div style={{ padding: '22px 26px', background: '#fff0f3', border: '2px solid #fca5a5', borderRadius: 16, marginBottom: 24 }}>
-            <h3 style={{ fontSize: 17, fontWeight: 700, color: '#be123c', margin: '0 0 8px' }}>
+          <div style={{ padding: '22px 26px', background: 'var(--tint-rose)', border: '2px solid #fca5a5', borderRadius: 16, marginBottom: 24 }}>
+            <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--red-text)', margin: '0 0 8px' }}>
               ❌ {tableMissing} table{tableMissing !== 1 ? 's' : ''} not reachable via API
             </h3>
-            <p style={{ fontSize: 14, color: '#7f1d1d', margin: '0 0 6px', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: 'var(--red-text)', margin: '0 0 6px', lineHeight: 1.6 }}>
               <strong>If tables exist in Supabase Table Editor:</strong> PostgREST schema cache is stale — click <strong>Reload Cache</strong>.
             </p>
-            <p style={{ fontSize: 14, color: '#7f1d1d', margin: '0 0 18px', lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: 'var(--red-text)', margin: '0 0 18px', lineHeight: 1.6 }}>
               <strong>If tables do not exist yet:</strong> apply reviewed migrations through the staging-gated release workflow.
             </p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
               <ReloadCacheButton />
             </div>
-            <p style={{ fontSize: 12, color: '#be123c', margin: 0, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 12, color: 'var(--red-text)', margin: 0, lineHeight: 1.5 }}>
               Cache reload only refreshes PostgREST metadata and does not change database privileges.
             </p>
           </div>
@@ -140,7 +140,7 @@ export default async function AdminSetupPage() {
 
         {tableMissing === 0 && tablesOk > 0 && (
           <div style={{ padding: '16px 22px', background: '#f0fff8', border: '1.5px solid #bbf7d0', borderRadius: 14, marginBottom: 24 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 650, color: '#065f46', margin: 0 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 650, color: 'var(--green-text)', margin: 0 }}>
               ✅ All {tablesOk} tables present — database is connected and ready
             </h3>
           </div>
@@ -156,7 +156,7 @@ export default async function AdminSetupPage() {
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--t1)', fontFamily: 'monospace' }}>{check.label}</div>
                   {check.fix && (
-                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2, lineHeight: 1.5 }}>
                       <strong>Fix:</strong> {check.fix}
                     </div>
                   )}
@@ -177,7 +177,7 @@ export default async function AdminSetupPage() {
           <a href="https://supabase.com/dashboard/project/yanexccimwooursawynm/editor" target="_blank" rel="noopener noreferrer" style={{ padding: '9px 20px', background: 'var(--s3)', border: '1px solid var(--b2)', color: 'var(--t1)', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
             Supabase SQL Editor ↗
           </a>
-          <Link href="/create/choose-path" style={{ padding: '9px 20px', background: 'var(--green)', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+          <Link href="/create/choose-path" style={{ padding: '9px 20px', background: 'var(--green-dark)', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
             Create Campaign →
           </Link>
         </div>

@@ -60,7 +60,7 @@ export default function GoalProceedsBreakdown({ goalCents }: { goalCents: number
         </span>
       </div>
 
-      <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--t3, #64748b)', lineHeight: 1.5 }}>
+      <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--t3)', lineHeight: 1.5 }}>
         You keep 100% of every donation — CharitMe never takes a cut. The only deduction is the
         payment processor&apos;s fee, and most donors choose to cover it at checkout. This estimate
         assumes one lump donation; real totals vary as gifts arrive.
@@ -84,7 +84,7 @@ function Row({
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, padding: '5px 0' }}>
       <span style={{ minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--t1, #1a1a2e)' }}>{label}</span>
-        {sub && <span style={{ display: 'block', fontSize: 12, color: 'var(--t3, #64748b)', marginTop: 1, lineHeight: 1.4 }}>{sub}</span>}
+        {sub && <span style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 1, lineHeight: 1.4 }}>{sub}</span>}
       </span>
       <span style={{ flexShrink: 0, fontSize: 14, fontWeight: 800, color: valueColor }}>{value}</span>
     </div>

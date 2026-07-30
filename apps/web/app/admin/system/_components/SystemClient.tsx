@@ -324,29 +324,29 @@ export default function SystemClient({ categories, overview, recentActivity, res
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
-              <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: '#0f1238' }}>Success!</h2>
+              <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: 'var(--t1)' }}>Success!</h2>
               <p style={{ margin: 0, color: '#4b5676', fontSize: 15 }}>System settings have been updated successfully.</p>
 
-              <div style={{ marginTop: 8, padding: '20px 28px', border: '1px solid #eef0f7', borderRadius: 14, background: '#fafbff', minWidth: 340 }}>
-                <p style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, color: '#0f1238' }}>What&apos;s Next?</p>
+              <div style={{ marginTop: 8, padding: '20px 28px', border: '1px solid #eef0f7', borderRadius: 14, background: 'var(--s2)', minWidth: 340 }}>
+                <p style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>What&apos;s Next?</p>
                 <div style={{ display: 'grid', gap: 10 }}>
                   <button
                     type="button"
-                    style={{ height: 40, border: '1px solid #d8d2ff', borderRadius: 9, background: '#fff', color: '#551cf2', fontSize: 13, fontWeight: 650, cursor: 'pointer', textAlign: 'left', padding: '0 14px' }}
+                    style={{ height: 40, border: '1px solid #d8d2ff', borderRadius: 9, background: 'var(--s1)', color: 'var(--brand-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer', textAlign: 'left', padding: '0 14px' }}
                     onClick={() => setSaveState('idle')}
                   >
                     View updated settings →
                   </button>
                   <button
                     type="button"
-                    style={{ height: 40, border: '1px solid #d8d2ff', borderRadius: 9, background: '#fff', color: '#551cf2', fontSize: 13, fontWeight: 650, cursor: 'pointer', textAlign: 'left', padding: '0 14px' }}
+                    style={{ height: 40, border: '1px solid #d8d2ff', borderRadius: 9, background: 'var(--s1)', color: 'var(--brand-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer', textAlign: 'left', padding: '0 14px' }}
                     onClick={() => { setActiveCategory(null); setSaveState('idle'); }}
                   >
                     Go to System Overview →
                   </button>
                   <button
                     type="button"
-                    style={{ height: 40, border: '1px solid #d8d2ff', borderRadius: 9, background: '#fff', color: '#551cf2', fontSize: 13, fontWeight: 650, cursor: 'pointer', textAlign: 'left', padding: '0 14px' }}
+                    style={{ height: 40, border: '1px solid #d8d2ff', borderRadius: 9, background: 'var(--s1)', color: 'var(--brand-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer', textAlign: 'left', padding: '0 14px' }}
                     onClick={() => { setActiveCategory(null); setSaveState('idle'); }}
                   >
                     Configure another setting →
@@ -500,7 +500,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
         </div>
         <div className="sys-form-section">
           <h3>Email Templates</h3>
-          <a href="/admin/content" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 38, padding: '0 16px', border: '1px solid #d8d2ff', borderRadius: 9, color: '#551cf2', fontWeight: 650, fontSize: 13, textDecoration: 'none' }}>
+          <a href="/admin/content" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 38, padding: '0 16px', border: '1px solid #d8d2ff', borderRadius: 9, color: 'var(--brand-text)', fontWeight: 650, fontSize: 13, textDecoration: 'none' }}>
             Manage Templates →
           </a>
         </div>
@@ -508,9 +508,9 @@ export default function SystemClient({ categories, overview, recentActivity, res
           <h3>Email Verification</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 13, color: '#4b5676', fontWeight: 600 }}>Last verified: today</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 99, color: '#15803d', fontSize: 12, fontWeight: 650 }}>Verified ✓</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 99, color: 'var(--green-text)', fontSize: 12, fontWeight: 650 }}>Verified ✓</span>
             {/* No re-verification endpoint exists; this did nothing when clicked. */}
-            <button type="button" disabled title="Re-running email verification is not built yet" style={{ height: 34, padding: '0 14px', border: '1px solid #d8d2ff', borderRadius: 8, background: '#fff', color: '#551cf2', fontSize: 12, fontWeight: 650, cursor: 'not-allowed', opacity: 0.5 }}>Verify Now</button>
+            <button type="button" disabled title="Re-running email verification is not built yet" style={{ height: 34, padding: '0 14px', border: '1px solid #d8d2ff', borderRadius: 8, background: 'var(--s1)', color: 'var(--brand-text)', fontSize: 12, fontWeight: 650, cursor: 'not-allowed', opacity: 0.5 }}>Verify Now</button>
           </div>
         </div>
       </div>
@@ -529,12 +529,12 @@ export default function SystemClient({ categories, overview, recentActivity, res
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 22 }}>💳</span>
                 <div>
-                  <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>Stripe</strong>
-                  <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>
+                  <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Stripe</strong>
+                  <small style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>
                     {Boolean(s.stripeLive) ? 'Connected to live account' : 'Running in test mode'}
                   </small>
                 </div>
-                <span style={{ marginLeft: 'auto', marginRight: 12, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: Boolean(s.stripeLive) ? '#f0fdf5' : '#fffbeb', color: Boolean(s.stripeLive) ? '#15803d' : '#b45309', border: `1px solid ${Boolean(s.stripeLive) ? '#bbf7d0' : '#fde68a'}` }}>
+                <span style={{ marginLeft: 'auto', marginRight: 12, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: Boolean(s.stripeLive) ? '#f0fdf5' : 'var(--tint-amber)', color: Boolean(s.stripeLive) ? 'var(--green-text)' : '#b45309', border: `1px solid ${Boolean(s.stripeLive) ? '#bbf7d0' : '#fde68a'}` }}>
                   {Boolean(s.stripeLive) ? 'Live' : 'Test'}
                 </span>
               </div>
@@ -545,10 +545,10 @@ export default function SystemClient({ categories, overview, recentActivity, res
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 22 }}>🅿</span>
                 <div>
-                  <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>PayPal</strong>
-                  <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>PayPal checkout integration</small>
+                  <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>PayPal</strong>
+                  <small style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>PayPal checkout integration</small>
                 </div>
-                <span style={{ marginLeft: 'auto', marginRight: 12, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: Boolean(s.paypalEnabled) ? '#f0fdf5' : '#f5f5f5', color: Boolean(s.paypalEnabled) ? '#15803d' : '#6b7280', border: `1px solid ${Boolean(s.paypalEnabled) ? '#bbf7d0' : '#e5e7eb'}` }}>
+                <span style={{ marginLeft: 'auto', marginRight: 12, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: Boolean(s.paypalEnabled) ? '#f0fdf5' : '#f5f5f5', color: Boolean(s.paypalEnabled) ? 'var(--green-text)' : '#6b7280', border: `1px solid ${Boolean(s.paypalEnabled) ? '#bbf7d0' : '#e5e7eb'}` }}>
                   {Boolean(s.paypalEnabled) ? 'Enabled' : 'Disabled'}
                 </span>
               </div>
@@ -559,10 +559,10 @@ export default function SystemClient({ categories, overview, recentActivity, res
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 22 }}>🏦</span>
                 <div>
-                  <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>Bank Transfer</strong>
-                  <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>ACH and wire transfer support</small>
+                  <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Bank Transfer</strong>
+                  <small style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>ACH and wire transfer support</small>
                 </div>
-                <span style={{ marginLeft: 'auto', marginRight: 12, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: Boolean(s.bankTransferEnabled) ? '#f0fdf5' : '#f5f5f5', color: Boolean(s.bankTransferEnabled) ? '#15803d' : '#6b7280', border: `1px solid ${Boolean(s.bankTransferEnabled) ? '#bbf7d0' : '#e5e7eb'}` }}>
+                <span style={{ marginLeft: 'auto', marginRight: 12, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: Boolean(s.bankTransferEnabled) ? '#f0fdf5' : '#f5f5f5', color: Boolean(s.bankTransferEnabled) ? 'var(--green-text)' : '#6b7280', border: `1px solid ${Boolean(s.bankTransferEnabled) ? '#bbf7d0' : '#e5e7eb'}` }}>
                   {Boolean(s.bankTransferEnabled) ? 'Enabled' : 'Disabled'}
                 </span>
               </div>
@@ -597,8 +597,8 @@ export default function SystemClient({ categories, overview, recentActivity, res
             {/* Google Analytics */}
             <div className={`sys-toggle-card${Boolean(s.googleAnalyticsEnabled) ? ' active' : ''}`}>
               <div>
-                <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>Google Analytics</strong>
-                <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>Track page views and user behaviour</small>
+                <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Google Analytics</strong>
+                <small style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>Track page views and user behaviour</small>
                 {Boolean(s.googleAnalyticsEnabled) && (
                   <input className="sys-input" type="text" aria-label="Google Analytics ID" value={String(s.gaId ?? '')} onChange={e => setField('integrations', 'gaId', e.target.value)} placeholder="G-XXXXXXXXXX" style={{ marginTop: 10, maxWidth: 240 }} />
                 )}
@@ -608,8 +608,8 @@ export default function SystemClient({ categories, overview, recentActivity, res
             {/* Mailchimp */}
             <div className={`sys-toggle-card${Boolean(s.mailchimpEnabled) ? ' active' : ''}`}>
               <div>
-                <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>Mailchimp</strong>
-                <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>Sync donors to your Mailchimp audience</small>
+                <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Mailchimp</strong>
+                <small style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>Sync donors to your Mailchimp audience</small>
                 {Boolean(s.mailchimpEnabled) && (
                   <input className="sys-input" type="text" aria-label="Mailchimp API key" value={String(s.mailchimpKey ?? '')} onChange={e => setField('integrations', 'mailchimpKey', e.target.value)} placeholder="Mailchimp API Key" style={{ marginTop: 10, maxWidth: 300 }} />
                 )}
@@ -619,8 +619,8 @@ export default function SystemClient({ categories, overview, recentActivity, res
             {/* Slack */}
             <div className={`sys-toggle-card${Boolean(s.slackEnabled) ? ' active' : ''}`}>
               <div>
-                <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>Slack</strong>
-                <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>Post admin alerts to Slack channels</small>
+                <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Slack</strong>
+                <small style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>Post admin alerts to Slack channels</small>
                 {Boolean(s.slackEnabled) && (
                   <input className="sys-input" type="text" aria-label="Slack webhook URL" value={String(s.slackWebhook ?? '')} onChange={e => setField('integrations', 'slackWebhook', e.target.value)} placeholder="https://hooks.slack.com/services/..." style={{ marginTop: 10, maxWidth: 340 }} />
                 )}
@@ -630,8 +630,8 @@ export default function SystemClient({ categories, overview, recentActivity, res
             {/* Zapier */}
             <div className={`sys-toggle-card${Boolean(s.zapierEnabled) ? ' active' : ''}`}>
               <div>
-                <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>Zapier</strong>
-                <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>Automate workflows with 5,000+ apps</small>
+                <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Zapier</strong>
+                <small style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>Automate workflows with 5,000+ apps</small>
               </div>
               <Toggle label="Enable Zapier" checked={Boolean(s.zapierEnabled)} onChange={v => setField('integrations', 'zapierEnabled', v)} />
             </div>
@@ -666,8 +666,8 @@ export default function SystemClient({ categories, overview, recentActivity, res
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: 20 }}>{icon}</span>
                   <div>
-                    <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>{label}</strong>
-                    <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>{desc}</small>
+                    <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{label}</strong>
+                    <small style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{desc}</small>
                   </div>
                 </div>
                 <Toggle label={label} checked={Boolean(s[key])} onChange={v => setField('notifications', key, v)} />
@@ -733,8 +733,8 @@ export default function SystemClient({ categories, overview, recentActivity, res
           <h3>Backup Settings</h3>
           <div className="sys-toggle-card" style={{ marginBottom: 12 }}>
             <div>
-              <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>Automated Backup</strong>
-              <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>Automatically back up your database on a schedule</small>
+              <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Automated Backup</strong>
+              <small style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>Automatically back up your database on a schedule</small>
             </div>
             <Toggle label="Enable automated backup" checked={backupEnabled} onChange={v => setField('maintenance', 'automatedBackup', v)} />
           </div>
@@ -764,8 +764,8 @@ export default function SystemClient({ categories, overview, recentActivity, res
           )}
           <div className="sys-toggle-card" style={{ marginTop: maintenanceOn ? 12 : 0 }}>
             <div>
-              <strong style={{ fontSize: 14, fontWeight: 700, color: maintenanceOn ? '#be123c' : '#0f1238' }}>Maintenance Mode</strong>
-              <small style={{ display: 'block', fontSize: 12, color: maintenanceOn ? '#e11d48' : '#67718e', marginTop: 2 }}>
+              <strong style={{ fontSize: 14, fontWeight: 700, color: maintenanceOn ? 'var(--red-text)' : '#0f1238' }}>Maintenance Mode</strong>
+              <small style={{ display: 'block', fontSize: 12, color: maintenanceOn ? 'var(--red-text)' : '#67718e', marginTop: 2 }}>
                 {maintenanceOn ? 'Site is currently in maintenance mode' : 'Enable to temporarily take down the site'}
               </small>
             </div>
@@ -796,12 +796,12 @@ export default function SystemClient({ categories, overview, recentActivity, res
                 <div key={key} className={`sys-toggle-card${enabled ? ' active' : ''}`}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>{label}</strong>
-                      <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: enabled ? '#f0fdf5' : '#f5f5f5', color: enabled ? '#15803d' : '#6b7280', border: `1px solid ${enabled ? '#bbf7d0' : '#e5e7eb'}` }}>
+                      <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>{label}</strong>
+                      <span style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, fontWeight: 700, background: enabled ? '#f0fdf5' : '#f5f5f5', color: enabled ? 'var(--green-text)' : '#6b7280', border: `1px solid ${enabled ? '#bbf7d0' : '#e5e7eb'}` }}>
                         {enabled ? 'Active' : 'Disabled'}
                       </span>
                     </div>
-                    <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 4 }}>{desc}</small>
+                    <small style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 4 }}>{desc}</small>
                   </div>
                   <Toggle checked={enabled} onChange={v => setField('flags', key, v)} />
                 </div>
@@ -844,14 +844,14 @@ export default function SystemClient({ categories, overview, recentActivity, res
             <div className={`sys-toggle-card${debugOn ? ' active' : ''}`}>
               <div>
                 <strong style={{ fontSize: 14, fontWeight: 700, color: debugOn ? '#c2410c' : '#0f1238' }}>Debug Mode</strong>
-                <small style={{ display: 'block', fontSize: 12, color: debugOn ? '#ea580c' : '#67718e', marginTop: 2 }}>Enable verbose logging — not for production</small>
+                <small style={{ display: 'block', fontSize: 12, color: debugOn ? 'var(--orange-text)' : '#67718e', marginTop: 2 }}>Enable verbose logging — not for production</small>
               </div>
               <Toggle checked={debugOn} onChange={v => setField('advanced', 'debugMode', v)} />
             </div>
             <div className={`sys-toggle-card${Boolean(s.allowNewRegistrations) ? ' active' : ''}`}>
               <div>
-                <strong style={{ fontSize: 14, fontWeight: 700, color: '#0f1238' }}>Allow New Registrations</strong>
-                <small style={{ display: 'block', fontSize: 12, color: '#67718e', marginTop: 2 }}>Allow new users to sign up for the platform</small>
+                <strong style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)' }}>Allow New Registrations</strong>
+                <small style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>Allow new users to sign up for the platform</small>
               </div>
               <Toggle checked={Boolean(s.allowNewRegistrations)} onChange={v => setField('advanced', 'allowNewRegistrations', v)} />
             </div>
@@ -873,7 +873,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
       case 'maintenance': return renderMaintenanceForm();
       case 'flags': return renderFlagsForm();
       case 'advanced': return renderAdvancedForm();
-      default: return <p style={{ color: '#67718e' }}>Select a category from the left.</p>;
+      default: return <p style={{ color: 'var(--t3)' }}>Select a category from the left.</p>;
     }
   }
 
@@ -895,15 +895,15 @@ export default function SystemClient({ categories, overview, recentActivity, res
         {/* KPI row */}
         <div className="kf-metrics" style={{ marginBottom: 20 }}>
           {[
-            { label: 'Services Online', value: overview.servicesOnline, icon: '✓', color: '#6c35ff' },
-            { label: 'Integrations Active', value: overview.integrationsActive, icon: '🔗', color: '#19b86a' },
+            { label: 'Services Online', value: overview.servicesOnline, icon: '✓', color: 'var(--brand-text)' },
+            { label: 'Integrations Active', value: overview.integrationsActive, icon: '🔗', color: 'var(--green-text)' },
             { label: 'Scheduled Jobs', value: overview.scheduledJobs, icon: '⏱', color: '#2f80ed' },
             // '—' means the rate could not be read. It must not paint green: that
             // is the false all-clear this tile used to show during an outage.
-            { label: 'Error Rate', value: overview.errorRate, icon: overview.errorRate === '0%' ? '✓' : '⚠', color: overview.errorRate === '0%' ? '#15803d' : overview.errorRate === '—' ? '#67718e' : '#c2410c' },
+            { label: 'Error Rate', value: overview.errorRate, icon: overview.errorRate === '0%' ? '✓' : '⚠', color: overview.errorRate === '0%' ? 'var(--green-text)' : overview.errorRate === '—' ? '#67718e' : '#c2410c' },
           ].map(({ label, value, color }) => (
-            <div key={label} style={{ padding: '16px 18px', border: '1px solid #eef0f7', borderRadius: 14, background: '#fafbff' }}>
-              <small style={{ display: 'block', color: '#67718e', fontSize: 11, fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</small>
+            <div key={label} style={{ padding: '16px 18px', border: '1px solid #eef0f7', borderRadius: 14, background: 'var(--s2)' }}>
+              <small style={{ display: 'block', color: 'var(--t3)', fontSize: 11, fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</small>
               <strong style={{ display: 'block', marginTop: 8, fontSize: 26, fontWeight: 800, color }}>{value}</strong>
             </div>
           ))}
@@ -912,10 +912,10 @@ export default function SystemClient({ categories, overview, recentActivity, res
         {/* Two-column bottom */}
         <div className="sys-overview-grid">
           {/* Recent activity */}
-          <div style={{ border: '1px solid #eef0f7', borderRadius: 14, background: '#fff', overflow: 'hidden' }}>
+          <div style={{ border: '1px solid #eef0f7', borderRadius: 14, background: 'var(--s1)', overflow: 'hidden' }}>
             <div style={{ padding: '14px 16px', borderBottom: '1px solid #eef0f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <strong style={{ fontSize: 13, fontWeight: 700, color: '#0f1238' }}>Recent System Activity</strong>
-              <Link href="/admin/audit-log" style={{ border: 0, background: 'transparent', color: '#6c35ff', fontSize: 12, fontWeight: 650, cursor: 'pointer', textDecoration: 'none' }}>View all activity →</Link>
+              <strong style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>Recent System Activity</strong>
+              <Link href="/admin/audit-log" style={{ border: 0, background: 'transparent', color: 'var(--brand-text)', fontSize: 12, fontWeight: 650, cursor: 'pointer', textDecoration: 'none' }}>View all activity →</Link>
             </div>
             <div className="sys-activity-list">
               {recentActivity.slice(0, 6).map(ev => (
@@ -925,25 +925,25 @@ export default function SystemClient({ categories, overview, recentActivity, res
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: 'block', fontWeight: 650, color: '#101842', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.action}</span>
-                    <span style={{ color: '#8c9ab5' }}>{ev.category}</span>
+                    <span style={{ color: 'var(--t3)' }}>{ev.category}</span>
                   </div>
-                  <span style={{ color: '#8c9ab5', flexShrink: 0 }}>{ev.time}</span>
+                  <span style={{ color: 'var(--t3)', flexShrink: 0 }}>{ev.time}</span>
                   <StatusPill>{ev.status}</StatusPill>
                 </div>
               ))}
               {recentActivity.length === 0 && (
-                <div style={{ padding: '20px 16px', color: '#8c9ab5', fontSize: 13 }}>No recent activity</div>
+                <div style={{ padding: '20px 16px', color: 'var(--t3)', fontSize: 13 }}>No recent activity</div>
               )}
             </div>
           </div>
 
           {/* Resource usage */}
-          <div style={{ border: '1px solid #eef0f7', borderRadius: 14, background: '#fff', overflow: 'hidden' }}>
+          <div style={{ border: '1px solid #eef0f7', borderRadius: 14, background: 'var(--s1)', overflow: 'hidden' }}>
             <div style={{ padding: '14px 16px', borderBottom: '1px solid #eef0f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <strong style={{ fontSize: 13, fontWeight: 700, color: '#0f1238' }}>Resource Usage</strong>
+              <strong style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>Resource Usage</strong>
               <button
                 type="button"
-                style={{ border: 0, background: 'transparent', color: '#6c35ff', fontSize: 12, fontWeight: 650, cursor: 'pointer' }}
+                style={{ border: 0, background: 'transparent', color: 'var(--brand-text)', fontSize: 12, fontWeight: 650, cursor: 'pointer' }}
                 onClick={() => setActiveCategory('general')}
               >
                 View all system settings →
@@ -1046,7 +1046,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                 {hasChanges && (
                   <button
                     type="button"
-                    style={{ border: 0, background: 'transparent', color: '#6c35ff', fontSize: 13, fontWeight: 650, cursor: 'pointer', padding: '0 8px' }}
+                    style={{ border: 0, background: 'transparent', color: 'var(--brand-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer', padding: '0 8px' }}
                     onClick={() => setDraft(prev => ({ ...prev, [activeCategory]: savedSettings[activeCategory as keyof AllSettings] }))}
                   >
                     Discard Changes
@@ -1067,13 +1067,13 @@ export default function SystemClient({ categories, overview, recentActivity, res
             <div className="sys-review-header">
               <button
                 type="button"
-                style={{ border: 0, background: 'transparent', color: '#6c35ff', fontSize: 13, fontWeight: 650, cursor: 'pointer', padding: 0, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}
+                style={{ border: 0, background: 'transparent', color: 'var(--brand-text)', fontSize: 13, fontWeight: 650, cursor: 'pointer', padding: 0, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}
                 onClick={() => setShowReview(false)}
               >
                 ← Back to {activeCat?.label}
               </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#0f1238' }}>Review Changes</h2>
+                <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--t1)' }}>Review Changes</h2>
                 <span className="sys-unsaved-badge">Unsaved Changes</span>
               </div>
             </div>
@@ -1081,13 +1081,13 @@ export default function SystemClient({ categories, overview, recentActivity, res
             <div className="sys-review-body">
               {/* Changes summary */}
               <div>
-                <h3 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: '#0f1238', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Changes Summary</h3>
+                <h3 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: 'var(--t1)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Changes Summary</h3>
                 {changes.length === 0 ? (
-                  <p style={{ color: '#67718e', fontSize: 13 }}>No changes detected.</p>
+                  <p style={{ color: 'var(--t3)', fontSize: 13 }}>No changes detected.</p>
                 ) : (
                   <div style={{ display: 'grid', gap: 8 }}>
                     {/* Header row */}
-                    <div className="sys-diff-row" style={{ background: '#f8f9fc', fontWeight: 700, fontSize: 11, color: '#67718e', textTransform: 'uppercase' }}>
+                    <div className="sys-diff-row" style={{ background: 'var(--s2)', fontWeight: 700, fontSize: 11, color: 'var(--t3)', textTransform: 'uppercase' }}>
                       <span>Field</span>
                       <span>Before</span>
                       <span>After</span>
@@ -1104,7 +1104,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
               </div>
 
               {/* Impact */}
-              <div style={{ padding: '14px 16px', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 10, color: '#15803d', fontSize: 13, fontWeight: 600 }}>
+              <div style={{ padding: '14px 16px', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 10, color: 'var(--green-text)', fontSize: 13, fontWeight: 600 }}>
                 <strong style={{ fontWeight: 700 }}>Impact:</strong> These changes will apply immediately. No downtime expected.
               </div>
             </div>
@@ -1131,7 +1131,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
               </button>
               <button
                 type="button"
-                style={{ width: '100%', height: 42, border: '1px solid #d8d2ff', borderRadius: 9, background: '#fff', color: '#551cf2', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                style={{ width: '100%', height: 42, border: '1px solid #d8d2ff', borderRadius: 9, background: 'var(--s1)', color: 'var(--brand-text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
                 onClick={() => setShowReview(false)}
               >
                 Cancel

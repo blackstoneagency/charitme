@@ -147,7 +147,7 @@ export default function MfaPage() {
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 14 }}>{f.friendly_name ?? 'Authenticator'}</div>
                         <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>
-                          Status: <span style={{ color: f.status === 'verified' ? 'var(--green)' : '#f59e0b', fontWeight: 700 }}>{f.status === 'verified' ? 'Verified' : 'Pending'}</span>
+                          Status: <span style={{ color: f.status === 'verified' ? 'var(--green)' : 'var(--orange-text)', fontWeight: 700 }}>{f.status === 'verified' ? 'Verified' : 'Pending'}</span>
                         </div>
                       </div>
                       <button

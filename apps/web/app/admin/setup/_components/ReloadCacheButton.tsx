@@ -47,14 +47,14 @@ export default function ReloadCacheButton() {
       </button>
 
       {state === 'done' && result && (
-        <div style={{ marginTop: 10, padding: '12px 16px', background: '#f0fff8', border: '1px solid #bbf7d0', borderRadius: 10, fontSize: 13, color: '#065f46' }}>
+        <div style={{ marginTop: 10, padding: '12px 16px', background: '#f0fff8', border: '1px solid #bbf7d0', borderRadius: 10, fontSize: 13, color: 'var(--green-text)' }}>
           ✅ {result.message}
           <br />profiles: {String(result.profiles)} · campaigns: {String(result.campaigns)} · donations: {String(result.donations)}
         </div>
       )}
 
       {state === 'error' && result && (
-        <div style={{ marginTop: 10, padding: '12px 16px', background: '#fff0f3', border: '1px solid #fca5a5', borderRadius: 10, fontSize: 13, color: '#be123c' }}>
+        <div style={{ marginTop: 10, padding: '12px 16px', background: 'var(--tint-rose)', border: '1px solid #fca5a5', borderRadius: 10, fontSize: 13, color: 'var(--red-text)' }}>
           ⚠ {result.message}
           <br />
           <button type="button" onClick={() => { setState('idle'); setResult(null); }}

@@ -3,11 +3,11 @@
 import React, { useMemo, useState } from 'react';
 import type { BannerSettings } from '../../../../lib/banner-settings';
 
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #eef0f7', borderRadius: 14, padding: '18px 22px', marginBottom: 16 };
+const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid #eef0f7', borderRadius: 14, padding: '18px 22px', marginBottom: 16 };
 const btn: React.CSSProperties = { padding: '10px 20px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' };
-const btnGhost: React.CSSProperties = { padding: '9px 16px', background: '#f8f9fc', color: '#374151', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' };
+const btnGhost: React.CSSProperties = { padding: '9px 16px', background: 'var(--s2)', color: 'var(--t1)', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' };
 const label: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 };
-const field: React.CSSProperties = { padding: '9px 12px', borderRadius: 9, border: '1px solid #d1d5db', fontSize: 13, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box', background: '#fff', color: '#1e293b' };
+const field: React.CSSProperties = { padding: '9px 12px', borderRadius: 9, border: '1px solid #d1d5db', fontSize: 13, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box', background: 'var(--s1)', color: 'var(--t1)' };
 const row: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 14 };
 
 type FontOption = { label: string; value: string };
@@ -72,15 +72,15 @@ export default function BannerClient({
         <div role="status" style={{ ...card, padding: '12px 18px', fontWeight: 700, fontSize: 13,
           background: notice.startsWith('❌') ? '#fff0f3' : '#f0fdf4',
           borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0',
-          color: notice.startsWith('❌') ? '#be123c' : '#15803d' }}>
+          color: notice.startsWith('❌') ? 'var(--red-text)' : 'var(--green-text)' }}>
           {notice}
         </div>
       )}
 
       {/* ── Live preview ── */}
       <div style={card}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: '#1e293b', marginBottom: 4 }}>Live preview</div>
-        <div style={{ fontSize: 12.5, color: '#64748b', marginBottom: 12 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', marginBottom: 4 }}>Live preview</div>
+        <div style={{ fontSize: 12.5, color: 'var(--t3)', marginBottom: 12 }}>
           Exactly how the bar renders on the public site with your current settings.
         </div>
         <div style={{ border: '1px solid #eef0f7', borderRadius: 10, overflow: 'hidden' }}>
@@ -109,7 +109,7 @@ export default function BannerClient({
               </div>
             </div>
           ) : (
-            <div style={{ padding: '18px 16px', textAlign: 'center', color: '#94a3b8', fontSize: 13, fontWeight: 600, background: '#f8f9fc' }}>
+            <div style={{ padding: '18px 16px', textAlign: 'center', color: 'var(--t3)', fontSize: 13, fontWeight: 600, background: 'var(--s2)' }}>
               Banner is hidden site-wide.
             </div>
           )}
@@ -118,8 +118,8 @@ export default function BannerClient({
 
       {/* ── Content ── */}
       <div style={card}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: '#1e293b', marginBottom: 4 }}>Banner text</div>
-        <div style={{ fontSize: 12.5, color: '#64748b', marginBottom: 14 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', marginBottom: 4 }}>Banner text</div>
+        <div style={{ fontSize: 12.5, color: 'var(--t3)', marginBottom: 14 }}>
           Saved copy appears site-wide immediately. Leave the title blank to use the newest active announcement instead.
         </div>
         <div style={{ display: 'grid', gap: 14 }}>
@@ -175,7 +175,7 @@ export default function BannerClient({
 
       {/* ── Visibility ── */}
       <div style={card}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: '#1e293b', marginBottom: 12 }}>Visibility</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', marginBottom: 12 }}>Visibility</div>
         <Toggle
           checked={s.enabled}
           onChange={(v) => set('enabled', v)}
@@ -198,14 +198,14 @@ export default function BannerClient({
 
       {/* ── Colours ── */}
       <div style={card}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: '#1e293b', marginBottom: 12 }}>Colours</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', marginBottom: 12 }}>Colours</div>
         <div style={row}>
           <ColorField id="bg" label="Background" value={s.backgroundColor} onChange={(v) => set('backgroundColor', v)} disabled={s.useLevelColors} />
           <ColorField id="fg" label="Text" value={s.textColor} onChange={(v) => set('textColor', v)} />
           <ColorField id="lk" label="Link" value={s.linkColor} onChange={(v) => set('linkColor', v)} />
         </div>
         {s.useLevelColors && (
-          <p style={{ margin: '10px 0 0', fontSize: 12, color: '#94a3b8' }}>
+          <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--t3)' }}>
             Background is controlled by each announcement&rsquo;s severity while that option is on.
           </p>
         )}
@@ -213,7 +213,7 @@ export default function BannerClient({
 
       {/* ── Typography ── */}
       <div style={card}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: '#1e293b', marginBottom: 12 }}>Typography</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', marginBottom: 12 }}>Typography</div>
         <div style={row}>
           <div>
             <label htmlFor="ff" style={label}>Font</label>
@@ -252,14 +252,14 @@ export default function BannerClient({
       </div>
 
       {/* ── Save ── */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', position: 'sticky', bottom: 0, background: '#fff', padding: '14px 0', borderTop: '1px solid #eef0f7' }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', position: 'sticky', bottom: 0, background: 'var(--s1)', padding: '14px 0', borderTop: '1px solid #eef0f7' }}>
         <button onClick={save} disabled={busy || !dirty} style={{ ...btn, opacity: busy || !dirty ? 0.5 : 1 }}>
           {busy ? 'Saving…' : 'Save changes'}
         </button>
         <button onClick={() => setS(saved)} disabled={busy || !dirty} style={{ ...btnGhost, opacity: busy || !dirty ? 0.5 : 1 }}>
           Discard
         </button>
-        <span style={{ fontSize: 12.5, color: dirty ? '#b45309' : '#94a3b8', fontWeight: 700 }}>
+        <span style={{ fontSize: 12.5, color: dirty ? '#b45309' : 'var(--t3)', fontWeight: 700 }}>
           {dirty ? 'Unsaved changes' : 'All changes saved'}
         </span>
       </div>
@@ -274,8 +274,8 @@ function Toggle({ checked, onChange, title, hint }: { checked: boolean; onChange
           text is nested/dynamic so it isn't statically detectable as the name. */}
       <input type="checkbox" aria-label={title} checked={checked} onChange={(e) => onChange(e.target.checked)} style={{ marginTop: 3, width: 16, height: 16, cursor: 'pointer' }} />
       <span>
-        <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: '#1e293b' }}>{title}</span>
-        <span style={{ display: 'block', fontSize: 12, color: '#64748b', marginTop: 2 }}>{hint}</span>
+        <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: 'var(--t1)' }}>{title}</span>
+        <span style={{ display: 'block', fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{hint}</span>
       </span>
     </label>
   );
@@ -287,7 +287,7 @@ function ColorField({ id, label: text, value, onChange, disabled }: { id: string
       <label htmlFor={id} style={label}>{text}</label>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <input id={id} type="color" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}
-          style={{ width: 44, height: 38, padding: 2, border: '1px solid #d1d5db', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', background: '#fff' }} />
+          style={{ width: 44, height: 38, padding: 2, border: '1px solid #d1d5db', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', background: 'var(--s1)' }} />
         <input type="text" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}
           aria-label={`${text} hex value`} style={{ ...field, fontFamily: 'ui-monospace, monospace' }} />
       </div>

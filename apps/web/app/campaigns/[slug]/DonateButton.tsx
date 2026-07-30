@@ -315,8 +315,8 @@ export default function DonateButton({
       )}
       {!isMonthly && (
         <div style={{ background: 'rgba(16,185,129,.10)', borderRadius: 10, padding: '10px 14px', border: '1px solid #bbf7d0' }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: '#065f46' }}>0% mandatory platform fee</div>
-          <div style={{ fontSize: 12, color: '#065f46', marginTop: 3 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--green-text)' }}>0% mandatory platform fee</div>
+          <div style={{ fontSize: 12, color: 'var(--green-text)', marginTop: 3 }}>
             CharitMe is supported by optional donor tips. Every fee is shown before checkout.
           </div>
         </div>
@@ -359,7 +359,7 @@ export default function DonateButton({
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
                     <span style={{ fontWeight: 900, fontSize: 14, color: active ? V : INK }}>{moneyShort(r.amount_cents)} or more</span>
-                    {soldOut && <span style={{ fontSize: 11, fontWeight: 800, color: '#ef4444' }}>Sold out</span>}
+                    {soldOut && <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--red-text)' }}>Sold out</span>}
                   </div>
                   <span style={{ fontWeight: 800, fontSize: 13, color: INK }}>{r.title}</span>
                   {r.description && <span style={{ fontSize: 12, color: MU, lineHeight: 1.5 }}>{r.description}</span>}
@@ -845,7 +845,7 @@ export default function DonateButton({
       {!isMonthly && <EmployerMatchWidget amountCents={amountCents} />}
 
       {error && (
-        <p style={{ margin: 0, padding: '10px 14px', borderRadius: 10, background: 'rgba(244,63,94,.12)', color: '#ef4444', fontSize: 13, fontWeight: 700, border: '1px solid #fecdd3' }}>
+        <p style={{ margin: 0, padding: '10px 14px', borderRadius: 10, background: 'rgba(244,63,94,.12)', color: 'var(--red-text)', fontSize: 13, fontWeight: 700, border: '1px solid #fecdd3' }}>
           ⚠ {error}
         </p>
       )}

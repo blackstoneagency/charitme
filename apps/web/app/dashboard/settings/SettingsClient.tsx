@@ -569,7 +569,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                     <div className="kf-setpref-info"><strong>Stripe</strong><span>Payment processing</span></div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green)', background: 'rgba(18,166,83,.14)', padding: '3px 10px', borderRadius: 999 }}>Connected</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green-text)', background: 'rgba(18,166,83,.14)', padding: '3px 10px', borderRadius: 999 }}>Connected</span>
                     <BillingPortalButton />
                   </div>
                 </div>
@@ -612,12 +612,12 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                   <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,rgba(109,53,255,.14),var(--violet))', display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>{(initialProfile.full_name || userEmail).charAt(0).toUpperCase()}</div>
                   <div className="kf-setpref-info"><strong>{initialProfile.full_name || userEmail}</strong><span>{userEmail}</span></div>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--violet)', background: 'rgba(109,53,255,.14)', padding: '3px 10px', borderRadius: 999 }}>Owner</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-text)', background: 'rgba(109,53,255,.14)', padding: '3px 10px', borderRadius: 999 }}>Owner</span>
               </div>
               <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--t3)', margin: '18px 0 12px' }}>Invite Team Member</div>
               <div style={{ padding: '14px 16px', background: 'var(--s3)', borderRadius: 'var(--r)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
                 <p style={{ fontSize: 13, color: 'var(--t2)', margin: 0 }}>Invite collaborators and manage permissions from the Team page.</p>
-                <Link href="/dashboard/team" style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: 'var(--violet)', textDecoration: 'none', background: 'rgba(109,53,255,.14)', borderRadius: 8, padding: '8px 16px', whiteSpace: 'nowrap' }}>Go to Team →</Link>
+                <Link href="/dashboard/team" style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, color: 'var(--brand-text)', textDecoration: 'none', background: 'rgba(109,53,255,.14)', borderRadius: 8, padding: '8px 16px', whiteSpace: 'nowrap' }}>Go to Team →</Link>
               </div>
             </div>
           </div>
@@ -659,7 +659,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                     <strong style={{ fontSize: 15 }}>Upgrade to CharitMe Pro</strong>
                     <p style={{ fontSize: 13, color: 'var(--t2)', margin: '4px 0 0' }}>Unlimited campaigns, custom branding, AI tools, and priority support.</p>
                   </div>
-                  <Link href="/pricing" style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, background: 'var(--green)', color: '#fff', textDecoration: 'none', borderRadius: 'var(--r)', padding: '10px 20px', whiteSpace: 'nowrap' }}>Upgrade Now</Link>
+                  <Link href="/pricing" style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, background: 'var(--green-dark)', color: '#fff', textDecoration: 'none', borderRadius: 'var(--r)', padding: '10px 20px', whiteSpace: 'nowrap' }}>Upgrade Now</Link>
                 </div>
               )}
 
@@ -775,7 +775,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 </div>
               </div>
               {currentPlan !== 'pro' && (
-                <Link href="/pricing" style={{ display: 'block', marginTop: 14, textAlign: 'center', fontSize: 13, fontWeight: 600, color: '#fff', background: 'var(--green)', borderRadius: 8, padding: '9px 0', textDecoration: 'none' }}>Upgrade Plan</Link>
+                <Link href="/pricing" style={{ display: 'block', marginTop: 14, textAlign: 'center', fontSize: 13, fontWeight: 600, color: '#fff', background: 'var(--green-dark)', borderRadius: 8, padding: '9px 0', textDecoration: 'none' }}>Upgrade Plan</Link>
               )}
             </div>
           </div>

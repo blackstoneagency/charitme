@@ -59,7 +59,7 @@ export default function ReadinessChecklist({
                   {item.label}{item.required && !item.done ? ' (required)' : ''}
                 </span>
                 {!item.done && item.hint && (
-                  <span style={{ display: 'block', fontSize: 12.5, color: 'var(--t3, #64748b)', marginTop: 1 }}>{item.hint}</span>
+                  <span style={{ display: 'block', fontSize: 12.5, color: 'var(--t3)', marginTop: 1 }}>{item.hint}</span>
                 )}
               </span>
               {!item.done && (

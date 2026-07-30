@@ -59,7 +59,7 @@ function PathCard({
 
       <div>
         <h2 style={{ margin: '4px 0 2px', fontSize: 21, fontWeight: 800, color: 'var(--t1, #1a1a2e)' }}>{title}</h2>
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--t3, #64748b)' }}>{time}</p>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--t3)' }}>{time}</p>
       </div>
 
       <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.55, color: 'var(--t2, #334064)' }}>{body}</p>
@@ -148,8 +148,8 @@ export default function ChoosePathPage() {
           />
         </div>
 
-        <p style={{ marginTop: 22, textAlign: 'center', fontSize: 13.5, color: 'var(--t3, #64748b)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
-          <span style={{ width: 15, height: 15, display: 'inline-flex', color: 'var(--t3, #64748b)' }}><PublicIcon name="refresh" /></span>
+        <p style={{ marginTop: 22, textAlign: 'center', fontSize: 13.5, color: 'var(--t3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+          <span style={{ width: 15, height: 15, display: 'inline-flex', color: 'var(--t3)' }}><PublicIcon name="refresh" /></span>
           Your progress saves automatically — pause and resume anytime.
         </p>
 

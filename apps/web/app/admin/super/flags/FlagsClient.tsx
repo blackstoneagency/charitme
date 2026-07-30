@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 export type Flag = { id: string; key: string; enabled: boolean; description: string | null; rollout_pct: number };
 
 const input: React.CSSProperties = { padding: '9px 12px', borderRadius: 9, border: '1px solid var(--b2)', background: 'var(--s1)', color: 'var(--t1)', fontSize: 13 };
-const btn: React.CSSProperties = { padding: '9px 16px', borderRadius: 9, border: 'none', background: 'var(--green)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13 };
+const btn: React.CSSProperties = { padding: '9px 16px', borderRadius: 9, border: 'none', background: 'var(--green-dark)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13 };
 
 export default function FlagsClient({ flags: initial }: { flags: Flag[] }) {
   const [flags, setFlags] = useState(initial);
@@ -43,7 +43,7 @@ export default function FlagsClient({ flags: initial }: { flags: Flag[] }) {
               aria-pressed={f.enabled}
               style={{ width: 46, height: 26, borderRadius: 999, border: 'none', cursor: 'pointer', background: f.enabled ? 'var(--green)' : 'var(--b3)', position: 'relative', flexShrink: 0 }}
             >
-              <span style={{ position: 'absolute', top: 3, left: f.enabled ? 23 : 3, width: 20, height: 20, borderRadius: 999, background: '#fff', transition: 'left .15s' }} />
+              <span style={{ position: 'absolute', top: 3, left: f.enabled ? 23 : 3, width: 20, height: 20, borderRadius: 999, background: 'var(--s1)', transition: 'left .15s' }} />
             </button>
             <div style={{ flex: 1, minWidth: 180 }}>
               <code style={{ fontSize: 13, fontWeight: 700 }}>{f.key}</code>

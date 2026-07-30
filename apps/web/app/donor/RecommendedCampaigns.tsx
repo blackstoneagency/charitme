@@ -51,7 +51,7 @@ export default function RecommendedCampaigns() {
 
   if (loading) {
     return (
-      <div style={{ ...cardStyle, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--t3, #94a3b8)' }}>
+      <div style={{ ...cardStyle, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--t3)' }}>
         <Spinner size={16} />
         <span style={{ fontSize: 13.5, fontWeight: 600 }}>Finding campaigns for you…</span>
       </div>
@@ -76,16 +76,16 @@ export default function RecommendedCampaigns() {
                 height: 110, background: r.coverImageUrl ? `url(${r.coverImageUrl}) center/cover` : 'linear-gradient(135deg,#6c35ff,#4d1ee0)',
               }} />
               <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#6c35ff', textTransform: 'uppercase', letterSpacing: 0.4 }}>{r.category}</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--brand-text)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{r.category}</span>
                 <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--t1, #1a1a2e)', lineHeight: 1.3 }}>{r.title}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--t3, #94a3b8)' }}>{r.matchReason}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--t3)' }}>{r.matchReason}</div>
                 <div style={{ marginTop: 'auto' }}>
                   <div style={{ background: 'var(--s3, #f1f5f9)', borderRadius: 99, height: 6, overflow: 'hidden', marginBottom: 6 }}>
                     <div style={{ height: '100%', width: `${r.percentFunded}%`, background: 'var(--green, #19b86a)', borderRadius: 99 }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
                     <strong style={{ color: 'var(--t1, #1a1a2e)' }}>{formatCents(r.raisedAmount, r.currency ?? 'usd')}</strong>
-                    <span style={{ color: 'var(--t3, #94a3b8)' }}>{r.percentFunded}% funded</span>
+                    <span style={{ color: 'var(--t3)' }}>{r.percentFunded}% funded</span>
                   </div>
                 </div>
               </div>

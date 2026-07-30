@@ -67,23 +67,23 @@ export default async function CampaignEmbedPage({ params }: Props) {
         {/* This route is a standalone embeddable widget: it renders its own
             <html>/<body> and never inherits the app's data-theme, so it keeps a
             fixed light palette for predictable rendering on third-party sites. */}
-        <h2 style={{ fontSize: 18, fontWeight: 800, color: '#1a1a2e', /* theme-keep: standalone embed widget */ marginBottom: 4, lineHeight: 1.3 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--t1)', /* theme-keep: standalone embed widget */ marginBottom: 4, lineHeight: 1.3 }}>
           {campaign.title}
         </h2>
         {campaign.tagline && (
-          <p style={{ fontSize: 13, color: '#64748b', marginBottom: 14 }}>{campaign.tagline}</p>
+          <p style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 14 }}>{campaign.tagline}</p>
         )}
 
         {/* Progress */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#6c35ff' }}>{fmt(raised)}</span>
-            <span style={{ fontSize: 13, color: '#64748b' }}>of {fmt(goal)}</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--brand-text)' }}>{fmt(raised)}</span>
+            <span style={{ fontSize: 13, color: 'var(--t3)' }}>of {fmt(goal)}</span>
           </div>
           <div style={{ background: 'var(--s3, #e8ecf4)', borderRadius: 99, height: 8, overflow: 'hidden' }}>
             <div style={{ background: '#6c35ff', width: `${pct}%`, height: '100%', borderRadius: 99 }} />
           </div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 5 }}>
+          <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 5 }}>
             {pct}% · {campaign.backer_count.toLocaleString()} donors
           </div>
         </div>
@@ -91,7 +91,7 @@ export default async function CampaignEmbedPage({ params }: Props) {
         {acceptDonations ? (
           <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} currency={currency} />
         ) : (
-          <div style={{ background: 'var(--s2, #f8fafc)', border: '1px solid #e8ecf4', borderRadius: 10, padding: '12px 14px', textAlign: 'center', fontSize: 13, color: '#64748b' }}>
+          <div style={{ background: 'var(--s2, #f8fafc)', border: '1px solid #e8ecf4', borderRadius: 10, padding: '12px 14px', textAlign: 'center', fontSize: 13, color: 'var(--t3)' }}>
             Donations are temporarily paused.
           </div>
         )}
@@ -101,7 +101,7 @@ export default async function CampaignEmbedPage({ params }: Props) {
             href={`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com'}/campaigns/${slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ fontSize: 11, color: '#94a3b8', textDecoration: 'none' }}
+            style={{ fontSize: 11, color: 'var(--t3)', textDecoration: 'none' }}
           >
             Powered by CharitMe
           </a>

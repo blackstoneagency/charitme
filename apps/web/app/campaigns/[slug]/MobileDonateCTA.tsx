@@ -60,7 +60,7 @@ export default function MobileDonateCTA({ campaignTitle, raised, pct, isActive, 
       className="mobile-donate-bar"
     >
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, color: 'var(--t3, #64748b)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {campaignTitle}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

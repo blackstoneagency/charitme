@@ -57,7 +57,7 @@ export default function FeaturesPage() {
             Every feature your donors expect,<br />
             <span style={{ background: 'linear-gradient(90deg, #a78bfa, #e879f9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>plus AI trust no one else has.</span>
           </h1>
-          <p style={{ color: 'rgba(255,255,255,.65)', fontSize: 18, lineHeight: 1.7, maxWidth: 620, margin: '0 0 40px' }}>
+          <p style={{ color: 'rgba(255,255,255,.92)', fontSize: 18, lineHeight: 1.7, maxWidth: 620, margin: '0 0 40px' }}>
             CharitMe combines campaign fundraising, recurring memberships, nonprofit CRM, creator commerce,
             events, auctions, and AI-powered trust in one production-ready platform — with 0% mandatory platform fees.
           </p>
@@ -94,7 +94,7 @@ export default function FeaturesPage() {
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet-ink, #6c35ff)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Why CharitMe</span>
             <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 14px' }}>Built different from the ground up</h2>
-            <p style={{ color: 'var(--t3, #64748b)', fontSize: 16, maxWidth: 540, margin: '0 auto' }}>Not a clone. A rethink — AI trust scores, 0% fees, beneficiary routing, and real-time fraud detection baked in.</p>
+            <p style={{ color: 'var(--t3)', fontSize: 16, maxWidth: 540, margin: '0 auto' }}>Not a clone. A rethink — AI trust scores, 0% fees, beneficiary routing, and real-time fraud detection baked in.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
             {[
@@ -108,7 +108,7 @@ export default function FeaturesPage() {
               <div key={f.title} style={{ background: 'linear-gradient(145deg, var(--s2, #faf8ff), var(--s3, #f3f0ff))', border: '1px solid var(--b1, #ede9fe)', borderRadius: 18, padding: '28px 24px' }}>
                 <div style={{ fontSize: 28, marginBottom: 12 }}>{f.icon}</div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--t1, #0e0520)', marginBottom: 8 }}>{f.title}</div>
-                <div style={{ fontSize: 13, color: 'var(--t3, #64748b)', lineHeight: 1.6 }}>{f.desc}</div>
+                <div style={{ fontSize: 13, color: 'var(--t3)', lineHeight: 1.6 }}>{f.desc}</div>
               </div>
             ))}
           </div>
@@ -136,7 +136,7 @@ export default function FeaturesPage() {
                     <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg,#f3f0ff,#ede9fe)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
                       {MODULE_ICONS[module.slug] ?? '✦'}
                     </div>
-                    <span style={{ background: module.status === 'Live' ? '#dcfce7' : module.status === 'Planned' ? '#fef3c7' : '#f3f0ff', color: module.status === 'Live' ? '#15803d' : module.status === 'Planned' ? '#92400e' : '#6c35ff', borderRadius: 999, padding: '4px 12px', fontSize: 11, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>
+                    <span style={{ background: module.status === 'Live' ? 'var(--tint-green)' : module.status === 'Planned' ? 'var(--tint-amber)' : 'var(--tint-violet)', color: module.status === 'Live' ? 'var(--green-text)' : module.status === 'Planned' ? 'var(--orange-text)' : 'var(--brand-text)', borderRadius: 999, padding: '4px 12px', fontSize: 11, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>
                       {module.status}
                     </span>
                   </div>
@@ -179,7 +179,7 @@ export default function FeaturesPage() {
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--violet-ink, #6c35ff)', textTransform: 'uppercase', letterSpacing: '.12em' }}>Competitive Coverage</span>
             <h2 style={{ fontSize: 'clamp(24px,3.5vw,40px)', fontWeight: 950, color: 'var(--t1, #0e0520)', margin: '10px 0 14px' }}>We mapped every competitor</h2>
-            <p style={{ color: 'var(--t3, #64748b)', fontSize: 16, maxWidth: 480, margin: '0 auto' }}>Every feature we track against each platform, and how many of them ship today — and we beat them on trust and transparency.</p>
+            <p style={{ color: 'var(--t3)', fontSize: 16, maxWidth: 480, margin: '0 auto' }}>Every feature we track against each platform, and how many of them ship today — and we beat them on trust and transparency.</p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, maxWidth: 900, margin: '0 auto' }}>
@@ -194,7 +194,7 @@ export default function FeaturesPage() {
                   </div>
                   <div style={{ fontSize: 26, fontWeight: 950, color: 'var(--t1, #0e0520)', lineHeight: 1 }}>
                     {competitor.built}
-                    <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--t3, #64748b)' }}>{` / ${competitor.total}`}</span>
+                    <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--t3)' }}>{` / ${competitor.total}`}</span>
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--t2, #475569)', marginTop: 4, fontWeight: 600 }}>required features shipped</div>
                   {/* Full parity is a competitive claim made to visitors, so it is
@@ -206,7 +206,7 @@ export default function FeaturesPage() {
                       <span>✓</span> Full parity
                     </div>
                   ) : (
-                    <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--t3, #64748b)' }}>
+                    <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--t3)' }}>
                       <span aria-hidden="true">◐</span> {competitor.planned} in development
                     </div>
                   )}
@@ -230,7 +230,7 @@ export default function FeaturesPage() {
           <h2 style={{ fontSize: 'clamp(26px,4vw,46px)', fontWeight: 950, color: '#fff', margin: '0 0 16px' }}>
             Ready to raise more, faster?
           </h2>
-          <p style={{ color: 'rgba(255,255,255,.6)', fontSize: 17, margin: '0 0 36px' }}>
+          <p style={{ color: 'rgba(255,255,255,.92)', fontSize: 17, margin: '0 0 36px' }}>
             Join thousands of fundraisers who trust CharitMe&apos;s AI-powered platform.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 14 }}>

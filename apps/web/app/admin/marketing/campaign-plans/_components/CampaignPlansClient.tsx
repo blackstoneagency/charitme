@@ -2,9 +2,9 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #eef0f7', borderRadius: 14, padding: '18px 22px', marginBottom: 14 };
+const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid #eef0f7', borderRadius: 14, padding: '18px 22px', marginBottom: 14 };
 const btn: React.CSSProperties = { padding: '9px 18px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 650, cursor: 'pointer' };
-const btnGhost: React.CSSProperties = { padding: '7px 14px', background: '#f8f9fc', color: '#374151', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
+const btnGhost: React.CSSProperties = { padding: '7px 14px', background: 'var(--s2)', color: 'var(--t1)', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
 const input: React.CSSProperties = { padding: '9px 12px', borderRadius: 9, border: '1px solid #d1d5db', fontSize: 13, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' };
 
 const CHANNEL_LABEL: Record<string, string> = { web: 'Web', email: 'Email', social: 'Social', search: 'Search', sms: 'SMS', paid: 'Paid' };
@@ -61,11 +61,11 @@ function ListView() {
 
   return (
     <div style={{ padding: '0 20px 48px', maxWidth: 900 }}>
-      {notice && <div style={{ ...card, padding: '12px 18px', background: '#fff0f3', borderColor: '#fecdd3', color: '#be123c', fontWeight: 700, fontSize: 13 }}>{notice}</div>}
+      {notice && <div style={{ ...card, padding: '12px 18px', background: 'var(--tint-rose)', borderColor: '#fecdd3', color: 'var(--red-text)', fontWeight: 700, fontSize: 13 }}>{notice}</div>}
 
       <div style={card}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: '#1e293b', marginBottom: 6 }}>Generate a campaign from a goal</div>
-        <div style={{ fontSize: 13, color: '#64748b', marginBottom: 12 }}>Pick a goal — the OS assembles a connected set of draft assets across every channel, linked to that goal.</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)', marginBottom: 6 }}>Generate a campaign from a goal</div>
+        <div style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 12 }}>Pick a goal — the OS assembles a connected set of draft assets across every channel, linked to that goal.</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <select aria-label="Goal to generate a campaign plan from" value={selGoal} onChange={(e) => setSelGoal(e.target.value)} style={{ ...input, maxWidth: 460 }}>
             <option value="">Select a goal…</option>
@@ -73,27 +73,27 @@ function ListView() {
           </select>
           <button onClick={generate} disabled={busy || !selGoal} style={{ ...btn, opacity: busy || !selGoal ? 0.5 : 1 }}>{busy ? 'Generating…' : 'Generate campaign'}</button>
         </div>
-        {goals.length === 0 && !loading && <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>No goals yet — create one on the Goals page first.</div>}
+        {goals.length === 0 && !loading && <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 8 }}>No goals yet — create one on the Goals page first.</div>}
       </div>
 
       {loading ? (
-        <div style={{ ...card, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Loading…</div>
+        <div style={{ ...card, textAlign: 'center', color: 'var(--t3)', fontSize: 13 }}>Loading…</div>
       ) : error ? (
-        <div style={{ ...card, background: '#fff0f3', borderColor: '#fecdd3', color: '#be123c' }}>{error} <button onClick={load} style={{ ...btnGhost, marginLeft: 8 }}>Retry</button></div>
+        <div style={{ ...card, background: 'var(--tint-rose)', borderColor: '#fecdd3', color: 'var(--red-text)' }}>{error} <button onClick={load} style={{ ...btnGhost, marginLeft: 8 }}>Retry</button></div>
       ) : plans.length === 0 ? (
         <div style={{ ...card, textAlign: 'center', padding: '40px 24px' }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#475569', marginBottom: 6 }}>No campaign plans yet</div>
-          <div style={{ fontSize: 13, color: '#94a3b8' }}>Generate one from a goal above.</div>
+          <div style={{ fontSize: 13, color: 'var(--t3)' }}>Generate one from a goal above.</div>
         </div>
       ) : (
         plans.map((p) => (
           <a key={p.id} href={`/admin/marketing/campaign-plans?id=${p.id}`} style={{ ...card, display: 'block', textDecoration: 'none' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#1e293b' }}>{p.title}</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--t1)' }}>{p.title}</div>
               <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: STATUS_COLOR[p.status], padding: '3px 8px', borderRadius: 20, textTransform: 'uppercase', height: 'fit-content' }}>{p.status.replace('_', ' ')}</span>
             </div>
-            {p.summary && <div style={{ fontSize: 13, color: '#64748b', marginTop: 5, lineHeight: 1.5 }}>{p.summary}</div>}
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>{p.asset_count ?? 0} assets · {new Date(p.created_at).toLocaleDateString('en-US')}</div>
+            {p.summary && <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 5, lineHeight: 1.5 }}>{p.summary}</div>}
+            <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 8 }}>{p.asset_count ?? 0} assets · {new Date(p.created_at).toLocaleDateString('en-US')}</div>
           </a>
         ))
       )}
@@ -147,30 +147,30 @@ function Detail({ planId }: { planId: string }) {
     } catch { flash('❌ Save failed.'); }
   };
 
-  if (loading) return <div style={{ padding: 20 }}><div style={{ ...card, textAlign: 'center', color: '#94a3b8' }}>Loading…</div></div>;
-  if (error || !plan) return <div style={{ padding: 20 }}><div style={{ ...card, background: '#fff0f3', borderColor: '#fecdd3', color: '#be123c' }}>{error || 'Not found.'} <button onClick={load} style={{ ...btnGhost, marginLeft: 8 }}>Retry</button></div></div>;
+  if (loading) return <div style={{ padding: 20 }}><div style={{ ...card, textAlign: 'center', color: 'var(--t3)' }}>Loading…</div></div>;
+  if (error || !plan) return <div style={{ padding: 20 }}><div style={{ ...card, background: 'var(--tint-rose)', borderColor: '#fecdd3', color: 'var(--red-text)' }}>{error || 'Not found.'} <button onClick={load} style={{ ...btnGhost, marginLeft: 8 }}>Retry</button></div></div>;
 
   const approvedCount = assets.filter((a) => a.status === 'approved').length;
 
   return (
     <div style={{ padding: '0 20px 48px', maxWidth: 900 }}>
-      {notice && <div style={{ ...card, padding: '12px 18px', background: notice.startsWith('❌') ? '#fff0f3' : '#f0fdf4', borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? '#be123c' : '#15803d' }}>{notice}</div>}
+      {notice && <div style={{ ...card, padding: '12px 18px', background: notice.startsWith('❌') ? 'var(--tint-red)' : '#f0fdf4', borderColor: notice.startsWith('❌') ? '#fecdd3' : '#bbf7d0', fontWeight: 700, fontSize: 13, color: notice.startsWith('❌') ? 'var(--red-text)' : 'var(--green-text)' }}>{notice}</div>}
 
-      <a href="/admin/marketing/campaign-plans" style={{ fontSize: 12, fontWeight: 700, color: '#6c35ff', textDecoration: 'none' }}>← All plans</a>
+      <a href="/admin/marketing/campaign-plans" style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}>← All plans</a>
 
       <div style={{ ...card, marginTop: 10 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 17, fontWeight: 800, color: '#1e293b' }}>{plan.title}</div>
+          <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--t1)' }}>{plan.title}</div>
           <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: STATUS_COLOR[plan.status], padding: '4px 10px', borderRadius: 20, textTransform: 'uppercase', height: 'fit-content' }}>{plan.status.replace('_', ' ')}</span>
         </div>
-        {plan.summary && <div style={{ fontSize: 13, color: '#64748b', marginTop: 6, lineHeight: 1.5 }}>{plan.summary}</div>}
+        {plan.summary && <div style={{ fontSize: 13, color: 'var(--t3)', marginTop: 6, lineHeight: 1.5 }}>{plan.summary}</div>}
         <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           {plan.status === 'draft' && <button onClick={() => setPlanStatus('in_review')} style={btnGhost}>Send to review</button>}
           {plan.status === 'in_review' && <button onClick={() => setPlanStatus('approved')} style={btn}>Approve plan</button>}
           {plan.status === 'approved' && <span style={{ fontSize: 12, color: '#10b981', fontWeight: 700 }}>Approved · {approvedCount}/{assets.length} assets approved</span>}
           {plan.status !== 'draft' && plan.status !== 'approved' && <button onClick={() => setPlanStatus('draft')} style={btnGhost}>Back to draft</button>}
         </div>
-        <div style={{ fontSize: 11, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px', marginTop: 12 }}>
+        <div style={{ fontSize: 11, color: '#b45309', background: 'var(--tint-amber)', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px', marginTop: 12 }}>
           Assets are drafts for review. External publishing (social/email/ads) requires connected channels, which aren’t enabled — approve here, then export/publish once connectors exist.
         </div>
       </div>
@@ -188,8 +188,8 @@ function AssetCard({ a, save }: { a: Asset; save: (id: string, body: Record<stri
     <div style={card}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
         <div>
-          <span style={{ fontSize: 10, fontWeight: 800, color: '#6c35ff', background: '#f3edff', padding: '3px 8px', borderRadius: 6, textTransform: 'uppercase', letterSpacing: '.04em' }}>{CHANNEL_LABEL[a.channel] ?? a.channel}</span>
-          <span style={{ fontSize: 14, fontWeight: 800, color: '#1e293b', marginLeft: 10 }}>{a.title}</span>
+          <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--brand-text)', background: '#f3edff', padding: '3px 8px', borderRadius: 6, textTransform: 'uppercase', letterSpacing: '.04em' }}>{CHANNEL_LABEL[a.channel] ?? a.channel}</span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--t1)', marginLeft: 10 }}>{a.title}</span>
         </div>
         <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: STATUS_COLOR[a.status] ?? '#94a3b8', padding: '3px 8px', borderRadius: 20, textTransform: 'uppercase', height: 'fit-content' }}>{a.status}</span>
       </div>

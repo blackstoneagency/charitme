@@ -83,7 +83,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2 style={{ fontSize: 24, fontWeight: 700, color: 'var(--t1)', margin: 0 }}>Analytics <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--t3)' }}>last 30 days</span></h2>
           <a href={`/campaigns/${campaign.slug}`} target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 13, color: 'var(--violet)', fontWeight: 700, textDecoration: 'none' }}>
+            style={{ fontSize: 13, color: 'var(--brand-text)', fontWeight: 700, textDecoration: 'none' }}>
             View campaign →
           </a>
         </div>
@@ -93,7 +93,7 @@ export default function AnalyticsPanel({ campaignId }: { campaignId: string }) {
       <div style={{ background: 'rgba(109,53,255,.08)', border: '1px solid var(--b2)', borderRadius: 14, padding: '16px 22px', marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <span style={{ fontWeight: 650, fontSize: 15, color: 'var(--t1)' }}>{fmt(campaign.raised_amount)} raised</span>
-          <span style={{ fontSize: 13, color: 'var(--violet)', fontWeight: 700 }}>{goalPct}% of {fmt(campaign.goal_amount)} goal</span>
+          <span style={{ fontSize: 13, color: 'var(--brand-text)', fontWeight: 700 }}>{goalPct}% of {fmt(campaign.goal_amount)} goal</span>
         </div>
         <div style={{ background: 'var(--b2)', borderRadius: 99, height: 8, overflow: 'hidden' }}>
           <div style={{ background: 'var(--violet)', width: `${Math.min(100, goalPct)}%`, height: '100%', borderRadius: 99, transition: 'width .6s' }} />
