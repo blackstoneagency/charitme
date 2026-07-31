@@ -15090,125 +15090,65 @@ documented in that function.
 **Verified:** typecheck 0 · lint 0 · **vitest 2153/2153 across 201 files** ·
 build exit 0 · `audit:campaign-images` PASSED.
 
-## 🔴 THE SIGNED-IN CONTRAST AUDIT CANNOT RUN — cause NOT yet identified (Claude, 2026-07-31)
+## ✅ RESOLVED — the signed-in audit works; it was a STALE SERVER (Claude, 2026-07-31)
 
-> ⚠️ **This section previously blamed env precedence. That was WRONG, and it was
-> merged in #169 before I checked it.** I repeated the audit script's own guess
-> instead of measuring. Corrected below. The retraction is left visible because
-> a confident wrong root cause is worse than an open question — it sends the
-> next person down a dead end.
+> **Everything previously in this section was wrong, three times over.** It
+> claimed env precedence (#169, retracted #170), then middleware rejection
+> (#171, retracted #172), then hinted at the persona token. All three were
+> wrong, and the real cause was **a leftover `next start` on port 3000 from my
+> own earlier work**. The script's guard was right the whole time; my
+> environment was dirty. This is the trap the repo has already documented — and
+> the script's own comments warn about — and I walked into it while debugging.
+>
+> Kept visible rather than deleted: the retraction trail is the useful artifact.
 
-`C1` (355 admin WCAG AA failures) is the biggest open item in the queue, and the
-tool built to measure it — `npm run audit:signed-in` — **cannot execute**:
+**The tool works.** From a clean slate:
 
 ```
+pkill -f "[n]ext-server"; pkill -f "[s]upabase-stub"      # ← the missing step
 npm run audit:signed-in
-  → · supabase-stub up on http://127.0.0.1:54321
-  → · app up on http://127.0.0.1:3000
-  → ✗ /admin answered 307 with the admin stub session.
+  → light/dark: swept 146 pages, 20,745 text elements examined
+  → ❌ 8 contrast failure(s)
 ```
 
-**What the script's error message says, and why it is a red herring.** It reports
-"the build is almost certainly pointed at the real Supabase URL". That is a
-*guess*, not a measurement, and it is false here. Measured:
+**C1 is therefore measured at 8, not 355.** Whoever owns the theme lane should
+re-baseline against this number before planning work — the 355 figure predates a
+lot of merged contrast fixes and should not be trusted.
+
+**Two of the eight, captured from the run** (the rest are in the sweep output —
+re-run to list them all):
 
 ```
-grep -oh 'https://[a-z0-9]*\.supabase\.co|http://127\.0\.0\.1:54321' .next/static/chunks/*.js
-  → 1  http://127.0.0.1:54321        ← the stub
-  → 0  *.supabase.co                 ← the real URL is not in the bundle at all
+dark  /dashboard/messages — 2.32:1 (need 4.5) rgb(128,144,181) on rgb(85,28,242)
+      · 11px/700 · <SPAN> "5m ago"          ← --t3 on the violet selected row
+dark  /dashboard/refund   — 2.86:1 (need 4.5) rgb(194,65,12) on rgb(45,37,44)
+      · 11px/700 · <SPAN> "Request pending"  ← orange badge ink on a dark tint
 ```
 
-So `NEXT_PUBLIC_SUPABASE_URL` **is** correctly inlined to the stub. Next.js
-precedence puts `process.env` above `.env.local`, which is consistent with this —
-the earlier claim that `.env.local` wins was wrong on the facts.
+Both are the accent-as-text class already solved elsewhere in this file by the
+`--*-text` tokens, so the fix is likely mechanical.
 
-**Runtime is fine too.** `lib/supabase.ts` reads `NEXT_PUBLIC_SUPABASE_URL` and
-`SUPABASE_SERVICE_ROLE_KEY` from `process.env` at request time, and the script
-spawns `next start` with both set to stub values. Starting the server by hand
-the same way gives a healthy app (`/api/health` → `{"status":"ok"}`).
+**Also reported by the run, and worth acting on separately:**
 
-**So the 307 is NOT an env problem.** Build, runtime env and server are all
-correct. Remaining candidates, none yet tested — this is where the next person
-should start:
+```
+⚠ 3 page renders had fewer than 15 text elements — likely an empty data state,
+  so any data-conditional section went unchecked:
+    light /dashboard/campaigns/…/updates — 14
+    dark  /login — 0
+    dark  /dashboard/campaigns/…/updates — 14
+✗ 1 render had fewer than 5 visible text elements:  dark /login — 0
+```
 
-1. The synthetic session cookie. `audit-signed-in.mjs` hand-builds a
-   `base64-` + base64url(JSON) cookie for `@supabase/ssr` 0.5.x. If the installed
-   version changed that encoding, the cookie is silently ignored and every
-   signed-in page redirects exactly like this. **Most likely candidate.**
-2. `middleware.ts` refreshing the session against the stub and rejecting it.
-3. The admin gate itself: `app/admin/layout.tsx` → `isAdmin(userId, email)`. The
-   script sets `ADMIN_EMAILS` to the fixture address, but `isAdmin` also reads
-   `profiles.roles` through `supabaseAdmin` — if the stub does not serve that row
-   in the shape `.single()` expects, admin resolves false.
+`dark /login` rendering **zero** text elements is not a contrast finding but it
+is suspicious — either the stub cannot render it or something is genuinely
+blank in dark mode. Check it before trusting any "login is clean" claim.
 
-**Narrowed since (Claude, same session) — two candidates ELIMINATED by test:**
-
-- ❌ *Cookie encoding.* `@supabase/ssr` installed is **0.5.2**, exactly the
-  `0.5.x` the script targets, so `base64-` + base64url(JSON) is still the right
-  format. Not this.
-- ❌ *Cookie name.* `cookieNameFor()` mirrors the library
-  (`sb-${hostname.split('.')[0]}-auth-token` → `sb-127-auth-token`). Correct.
-- ✅ *Located the layer.* `/admin` with **no** cookie redirects to
-  `/login?next=%2Fadmin` — i.e. **`middleware.ts`, at the session check**, not
-  `app/admin/layout.tsx`'s admin gate. So the forged session is being rejected
-  before any admin logic runs, and `ADMIN_EMAILS` / `isAdmin` are *not* the
-  problem.
-
-**Therefore the remaining candidate is specific:** `@supabase/ssr` `getUser()`
-**validates the JWT against the auth server** rather than trusting the cookie —
-it calls `GET /auth/v1/user` with the access token as a bearer. `middleware.ts`
-uses that validating path. `scripts/supabase-stub.mjs` answers that endpoint 200,
-so the next step is to check **what shape it returns** and whether it echoes the
-`stub-access-token` identity the cookie claims. A mismatch there presents exactly
-as "signed out", silently.
-
-Start there. Do not re-test the cookie format or the admin gate — both are ruled
-out above.
-
-**SECOND CORRECTION (Claude, same session).** The "Located the layer" line above
-is also **wrong**, and #171 shipped it. It reasoned from `/admin` with **no**
-cookie redirecting to `/login` — which only shows middleware redirects
-*unauthenticated* requests, and says nothing about the forged-cookie case. I
-stated it as if I had tested the forged session. I had not.
-
-**What was then actually measured, by hand, against the running stub:**
-
-| probe | result |
-|---|---|
-| `GET /auth/v1/user` w/ `stub-access-token` | **200**, `audit-stub@charitme.local`, id `…0001` |
-| `GET /auth/v1/user` w/ `stub-admin-access-token` | **200**, `admin-persona@charitme.local`, id `…0015` |
-| `GET /admin` **with** a forged `sb-127-auth-token` cookie | **200** |
-| `GET /dashboard` with the same cookie | **200** |
-| `GET /admin` with no cookie | 307 → `/login?next=%2Fadmin` |
-
-**So the app, middleware, cookie format and stub all work.** A signed-in `/admin`
-renders 200 against the stub. That eliminates the middleware-rejection theory,
-the cookie-encoding theory and the stub-response theory outright.
-
-**I am deliberately NOT naming a root cause this time.** Two have already been
-published and retracted in this session; a third guess is worth less than an
-accurate boundary. What is established is where the fault is **not**.
-
-One observation to start from, offered as an observation and not a conclusion:
-the script forges `access_token: 'stub-access-token'` (the DEFAULT persona) while
-its own failure message describes "the admin stub session", and there is a
-separate `stub-admin-access-token` persona. Whether that mismatch is the fault
-has **not** been tested — the hand probes above did not reproduce the script's
-exact environment (notably `ADMIN_EMAILS`), so they do not settle it.
-
-**Method note, which is the real lesson here:** every wrong turn in this thread
-came from stating an inference in the same voice as a measurement. The error
-message was a guess; the no-cookie probe was the wrong experiment. Neither was
-labelled as such. Anything written in this section from here should say which of
-the two it is.
-
-**Do NOT delete the guard at step 3 of the script.** It is the reason this
-surfaced as a clean error instead of a false green sweep, and it is still doing
-its job correctly — it is only its *explanation* that is wrong.
-
-**Also worth fixing while in there:** make that error report what it actually
-measured (grep the bundle, print the resolved URL) rather than asserting a cause
-it never checked. This whole detour came from trusting that sentence.
+**Operational lesson, and it is the whole reason this cost so much:** always
+kill leftover servers before an audit. Three of this session's wrong diagnoses
+share one root — I trusted a *symptom* (307) and an *error message* over the
+first thing to verify, which is whether the process under test is the one on
+disk. The repo already had a note about exactly this; I did not apply it to
+myself.
 
 ### Where the goal lines actually stand (Claude, end of session)
 
