@@ -15038,3 +15038,54 @@ arrow 17.37:1 (light) / 14.57:1 (dark).
 **Suite:** typecheck 0 · lint 0 errors · **vitest 2143/2143 across 200 files** ·
 build exit 0 · axe **4/4 projects** · contrast **0 failures, 47 pages × 2 themes**
 · responsive **0 regressions, 47 pages × 3 viewports × 2 themes**.
+
+## ✅ DONE (partly) — cover uniqueness: one real duplicate fixed, the rest is egress-blocked (Claude, 2026-07-31)
+
+Working the *"every image on every page is unique, 0 duplicates"* goal line.
+`npm run audit:campaign-images` **passes**, but its 10 warnings are real, so I
+measured the catalog rather than trusting the pass:
+
+```
+18 categories · 45 distinct verified photo IDs · ~110 slots
+10 IDs are used by more than one category
+6 categories have ZERO exclusive photos:
+   Nonprofit, Community, Competition, Family, Sports, Volunteer
+one photo (1469571486292…) leads 15 of the 18 categories
+```
+
+### The real bug, and it was not the catalog
+
+`getCoverForCategory()` returns **`pool[0]`** — the *same* image for every call
+with the same category. That is correct for the browse-by-category tile
+("Medical fundraisers"), and wrong anywhere keyed to a campaign.
+
+The homepage hero rotator used it as each slide's `fallbackCover`, so **two
+featured campaigns sharing a category whose covers both failed to load would
+show the identical photo, side by side in the rotator.** Fixed to
+`getCoverForCampaign(c.category, c.slug)`, which is distinct per campaign by
+construction. The remaining call is the category tile, which is the helper's
+actual purpose — asserted in the test, so a future "cleanup" cannot quietly
+re-point it at a campaign.
+
+### Why the catalog gap is NOT fixed, and must not be "fixed" carelessly
+
+`lib/photo-catalog.ts` states its contract in the header: *"Every ID in this
+file has been verified to return HTTP 200."* Verifying a new ID needs
+`images.unsplash.com`, which the sandbox proxy still refuses:
+
+```
+curl images.unsplash.com  -> 000   (connection refused by proxy)
+curl *.supabase.co        -> 000
+```
+
+So adding IDs here would trade **duplicate covers for broken ones**, which is
+strictly worse. Left alone deliberately.
+
+**When egress exists, this is the shape of the work:** ~110 slots need ~110
+verified IDs (45 today). Prioritise the 6 categories with zero exclusive photos.
+`getCoverForCampaign` already guarantees per-campaign uniqueness via Picsum, so
+this is about making covers *themed* as well as unique — the trade-off already
+documented in that function.
+
+**Verified:** typecheck 0 · lint 0 · **vitest 2153/2153 across 201 files** ·
+build exit 0 · `audit:campaign-images` PASSED.

@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { seoMetadata } from '../lib/seo';
 import { safeJsonLd } from '../lib/json-ld';
 import { getHomeData, getCategoryStats, getRecentDonations, profileName } from '../lib/home-data';
-import { getCoverForCategory } from '../lib/photo-catalog';
+import { getCoverForCategory, getCoverForCampaign } from '../lib/photo-catalog';
 import { resolveCampaignCover } from '../lib/covers';
 import { isRotatorEligible } from '../lib/featured';
 import CampaignImage from '../components/CampaignImage';
@@ -249,7 +249,11 @@ export default async function HomePage() {
     title: c.title,
     organizer: c.organizer,
     cover: await resolveCampaignCover(c.cover_image_url, c.category, c.slug),
-    fallbackCover: getCoverForCategory(c.category ?? 'Community'),
+    // Keyed on the slug, not the category. getCoverForCategory returns pool[0]
+    // — one fixed photo per category — so two featured campaigns sharing a
+    // category and both failing to load would fall back to the SAME image, side
+    // by side in the rotator. getCoverForCampaign is distinct per campaign.
+    fallbackCover: getCoverForCampaign(c.category, c.slug),
     currency: c.currency ?? 'usd',
     trust: c.campaign_health_score ?? 0,
     funded: pct(c.raised_amount, c.goal_amount),
