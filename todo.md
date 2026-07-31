@@ -15214,3 +15214,40 @@ worse, "fix" it.
 
 **Remaining: ~6 of the 8.** Re-run `npm run audit:signed-in` (after
 `pkill -f "[n]ext-server"`) to list them.
+
+## ✅ DONE — 3rd signed-in contrast fix; 5 → 4, and 1 of those is a false positive (Claude, 2026-07-31)
+
+Full re-run after the previous two fixes: **5 failures**, listed here in full so
+the next person does not need a 20-minute sweep to start.
+
+```
+✗ light /admin/campaigns  4.47:1  rgb(33,100,213) on rgb(219,234,254)  .ac-spill.blue "Completed"
+✗ light /dashboard/refund 1.93:1  #fff on rgb(196,174,255)             <BUTTON> "Submit Refund Request"
+✗ dark  /admin/countries  3.19:1  rgb(128,144,181) on rgb(255,255,255) <BUTTON> "Fundraise (0)"
+✗ dark  /admin/reports    1.81:1  rgb(185,165,255) on rgb(240,234,255) <BUTTON> "All"
+✗ 1 render had fewer than 5 visible text elements                       dark /login
+```
+
+**Fixed: `.ac-spill.blue`.** `--blue-text` (#2164d5) is AA on white but sits here
+on `--tint-blue`, and for this hue that tint is effectively lighter than white:
+**4.47:1 — three hundredths short** at 11px. Scoped the override to the badge
+rather than darkening the global token, whose other uses are on plain surfaces
+and already pass. `#1f5ec9` → **4.91:1**. Verified: `--only /admin/campaigns`
+now reports **0 failures across 1 page × 2 themes**.
+
+**Not fixed, and one must NOT be:**
+
+- `/dashboard/refund` — the **disabled** Submit button. WCAG 2.2 SC 1.4.3 exempts
+  inactive components. Darkening it makes a disabled button look enabled. Needs
+  an audit baseline entry, not a colour change. (Detail in the section above.)
+- `dark /admin/countries` — `--t3` ink on a **hardcoded `#ffffff`** button that
+  survives into dark mode. Real bug, same class as the `.sc-country-card` finding
+  already in this file: a light surface literal with token ink over it.
+- `dark /admin/reports` — light violet on `rgb(240,234,255)`, another hardcoded
+  light tint in dark mode. Same class.
+- `dark /login` renders **zero** text elements. Not contrast; unexplained. Do not
+  accept "login is clean" until someone looks.
+
+The two remaining real ones are both *hardcoded light surfaces*, i.e. the exact
+pattern the theme lane exists to remove — they belong with C1's remaining work
+rather than as one-off colour edits.

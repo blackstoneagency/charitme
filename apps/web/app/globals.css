@@ -4067,7 +4067,12 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 .ac-spill.green { background: var(--tint-green); color: var(--green-text); }
 .ac-spill.gray { background: var(--s3); color: var(--t2); }
 .ac-spill.orange { background: var(--tint-amber); color: var(--orange-text); }
-.ac-spill.blue { background: var(--tint-blue); color: var(--blue-text); }
+/* --blue-text (#2164d5) is AA on white, but this badge sits on --tint-blue,
+   which is lighter-weighted than white for this hue: 4.47:1 — three hundredths
+   short at 11px. Scoped override rather than darkening the global token, whose
+   other uses are on plain surfaces and already pass. #1f5ec9 → 4.91:1. */
+.ac-spill.blue { background: var(--tint-blue); color: #1f5ec9; }
+[data-theme="dark"] .ac-spill.blue { color: var(--blue-text); }
 .ac-spill.red { background: var(--tint-red); color: var(--red-text); }
 .ac-list-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 .ac-list-head h2 { font-size: 22px; font-weight: 800; color: #0f1238; margin: 0; }
