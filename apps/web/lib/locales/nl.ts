@@ -222,4 +222,14 @@ export const nl: Dictionary = {
   'footer.link.legal': 'Juridisch',
   'footer.link.accessibility': 'Toegankelijkheidsverklaring',
   'footer.link.cookies': 'Cookiebeleid',
+
+  // ── Header navigation groups ───────────────────────────────────────────────
+  'nav.group.explore': 'Ontdekken',
+  'nav.group.explore_blurb': 'Vind acties en zie wat werkt',
+  'nav.group.causes': 'Doelen',
+  'nav.group.causes_blurb': 'Manieren om te geven naast één actie',
+  'nav.group.resources': 'Hulpbronnen',
+  'nav.group.resources_blurb': 'Hoe CharitMe werkt en hoe we het veilig houden',
+  'nav.open_menu': 'Menu openen',
+  'nav.home': 'Home',
 };

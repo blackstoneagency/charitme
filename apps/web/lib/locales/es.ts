@@ -224,4 +224,14 @@ export const es: Dictionary = {
   'footer.link.legal': 'Aviso legal',
   'footer.link.accessibility': 'Declaración de accesibilidad',
   'footer.link.cookies': 'Política de cookies',
+
+  // ── Header navigation groups ───────────────────────────────────────────────
+  'nav.group.explore': 'Explorar',
+  'nav.group.explore_blurb': 'Encuentra campañas y mira qué funciona',
+  'nav.group.causes': 'Causas',
+  'nav.group.causes_blurb': 'Formas de donar más allá de una sola campaña',
+  'nav.group.resources': 'Recursos',
+  'nav.group.resources_blurb': 'Cómo funciona CharitMe y cómo lo mantenemos seguro',
+  'nav.open_menu': 'Abrir menú',
+  'nav.home': 'Inicio',
 };

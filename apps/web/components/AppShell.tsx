@@ -9,6 +9,7 @@ import { ThemeToggle } from './ThemeProvider';
 import AnnouncementBanner, { type Announcement, type BannerAppearance } from './AnnouncementBanner';
 import FooterLocalePicker from './FooterLocalePicker';
 import { useT } from './LocaleProvider';
+import PrimaryNavMenu from './PrimaryNavMenu';
 import { FOOTER_LEGAL_BAR, FOOTER_SETTINGS_DEFAULTS, resolveFooterSections, type FooterSettings } from '../lib/footer-nav';
 
 const NAV = [
@@ -220,13 +221,15 @@ export function AppShell({
       <header className="kind-header">
         <div className="container">
           <Logo />
-          <nav>
-            {NAV.map(([label, href]) => (
-              <Link key={href} href={href} className={path === href ? 'active' : ''}>
-                {label}
-                {label === 'AI Fundraising' && <span className="kind-new">New</span>}
-              </Link>
-            ))}
+          {/*
+            Grouped dropdowns replace eight flat links. The header used to expose
+            8 destinations while the footer carried 41, so Crisis Relief, Grants,
+            Volunteer, Matching Gifts and Events were reachable only by scrolling
+            past the whole page. Every destination in the groups already returns
+            200 — this reorganises discovery, it does not promise new pages.
+          */}
+          <nav aria-label={t('nav.menu')}>
+            <PrimaryNavMenu />
           </nav>
           <div className="kind-auth">
             <ThemeToggle />

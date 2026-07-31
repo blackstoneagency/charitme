@@ -222,4 +222,14 @@ export const it: Dictionary = {
   'footer.link.legal': 'Note legali',
   'footer.link.accessibility': 'Dichiarazione di accessibilità',
   'footer.link.cookies': 'Informativa sui cookie',
+
+  // ── Header navigation groups ───────────────────────────────────────────────
+  'nav.group.explore': 'Esplora',
+  'nav.group.explore_blurb': 'Trova raccolte e scopri cosa funziona',
+  'nav.group.causes': 'Cause',
+  'nav.group.causes_blurb': 'Modi per donare oltre una singola raccolta',
+  'nav.group.resources': 'Risorse',
+  'nav.group.resources_blurb': 'Come funziona CharitMe e come lo teniamo sicuro',
+  'nav.open_menu': 'Apri il menu',
+  'nav.home': 'Home',
 };

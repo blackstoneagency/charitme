@@ -242,4 +242,14 @@ export const en: Dictionary = {
   'footer.link.legal': 'Legal',
   'footer.link.accessibility': 'Accessibility Statement',
   'footer.link.cookies': 'Cookie Policy',
+
+  // ── Header navigation groups ───────────────────────────────────────────────
+  'nav.group.explore': 'Explore',
+  'nav.group.explore_blurb': 'Find campaigns and see what is working',
+  'nav.group.causes': 'Causes',
+  'nav.group.causes_blurb': 'Ways to give beyond a single campaign',
+  'nav.group.resources': 'Resources',
+  'nav.group.resources_blurb': 'How CharitMe works, and how we keep it safe',
+  'nav.open_menu': 'Open menu',
+  'nav.home': 'Home',
 };

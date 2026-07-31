@@ -223,4 +223,14 @@ export const fr: Dictionary = {
   'footer.link.legal': 'Mentions légales',
   'footer.link.accessibility': 'Déclaration d’accessibilité',
   'footer.link.cookies': 'Politique relative aux cookies',
+
+  // ── Header navigation groups ───────────────────────────────────────────────
+  'nav.group.explore': 'Explorer',
+  'nav.group.explore_blurb': 'Trouvez des cagnottes et voyez ce qui marche',
+  'nav.group.causes': 'Causes',
+  'nav.group.causes_blurb': 'Donner au-delà d’une seule cagnotte',
+  'nav.group.resources': 'Ressources',
+  'nav.group.resources_blurb': 'Comment CharitMe fonctionne et reste sûr',
+  'nav.open_menu': 'Ouvrir le menu',
+  'nav.home': 'Accueil',
 };
