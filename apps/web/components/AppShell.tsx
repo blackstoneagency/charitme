@@ -29,29 +29,46 @@ const ACCOUNT_MENU = [
   ['Account settings', '/dashboard/settings'],
 ] as const;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Footer navigation. This renders on EVERY public page, so every defect here is
+// a site-wide defect. What was wrong:
+//
+//  * 13 links under "Platform" against 6 / 6 / 8 elsewhere, so the column ran
+//    twice as long as its neighbours and left a large dead area beside them.
+//  * TWO links went to auth-gated routes — `/impact/manage` and
+//    `/privacy-center` — so a signed-out visitor clicking either was bounced to
+//    /login with no explanation. Checked by __tests__/footer-links.test.ts now,
+//    against the same e2e/public-routes.json the sweeps use.
+//  * "Fundraising Guides" and "How It Works" pointed at the same URL.
+//  * /give, /crisis, /nearby and /developers all shipped and were reachable
+//    from nowhere in the footer.
+//
+// Groups are kept to a similar length on purpose: four ragged columns is the
+// layout problem, and balancing the CONTENT fixes it at the source rather than
+// papering over it with CSS.
+// ─────────────────────────────────────────────────────────────────────────────
 const FOOTER_LINKS = {
   Platform: [
     ['How It Works', '/how-it-works'],
     ['AI Fundraising', '/ai-fundraising'],
     ['AI Campaign Builder', '/ai-campaign'],
     ['Platform Features', '/features'],
-    ['Success Stories', '/success-stories'],
-    ['Pricing', '/pricing'],
     ['Fast Payouts', '/fast-payouts'],
+    ['Pricing', '/pricing'],
+    ['Success Stories', '/success-stories'],
+    ['Leaderboard', '/leaderboard'],
+    ['Developers & API', '/developers'],
+  ],
+  'Ways to Give': [
+    ['Browse Campaigns', '/campaigns'],
+    ['Give to Many Causes', '/give'],
+    ['Crisis Relief', '/crisis'],
+    ['Fundraisers Near You', '/nearby'],
     ['Volunteer', '/volunteer'],
     ['Sponsor a Cause', '/sponsor'],
-    ['Grants', '/grants'],
     ['Matching Gifts', '/matching'],
+    ['Grants', '/grants'],
     ['Events', '/events'],
-    ['Impact & Transparency', '/impact/manage'],
-  ],
-  Resources: [
-    ['Blog', '/blog'],
-    ['Leaderboard', '/leaderboard'],
-    ['Help Center', '/help'],
-    ['FAQ', '/faq'],
-    ['Fundraising Guides', '/how-it-works'],
-    ['Supported Countries', '/supported-countries'],
   ],
   Company: [
     ['About Us', '/about-us'],
@@ -59,14 +76,19 @@ const FOOTER_LINKS = {
     ['For Nonprofits', '/for-nonprofits'],
     ['For Individuals', '/for-individuals'],
     ['For Donors', '/for-donors'],
-    ['Trust & Safety', '/trust-safety'],
+    ['Blog', '/blog'],
+    ['Help Center', '/help'],
+    ['FAQ', '/faq'],
+    ['Supported Countries', '/supported-countries'],
   ],
-  Legal: [
+  'Legal & Trust': [
+    ['Trust & Safety', '/trust-safety'],
+    // `/impact`, not `/impact/manage` — the latter requires a session.
+    ['Our Impact', '/impact'],
     ['Transparency Center', '/transparency'],
     ['Fee Policy', '/fees'],
     ['Refund Policy', '/refunds'],
     ['Privacy Policy', '/privacy'],
-    ['Privacy Center', '/privacy-center'],
     ['Terms of Service', '/terms'],
     ['Security', '/security'],
     ['Prohibited Use', '/prohibited-use'],
