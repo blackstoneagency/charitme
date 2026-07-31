@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   getGivingLevel,
   computeMonthlyStreak,
@@ -91,11 +91,65 @@ describe('DONOR_BADGES.earned predicates', () => {
 
 describe('computeMonthlyStreak', () => {
   const iso = (d: Date) => d.toISOString();
+  // Built from (year, month) integers on the 15th, NOT via setMonth().
+  //
+  // The original helper carried the same day-overflow bug as the function it was
+  // testing: run on the 31st, `setMonth(getMonth() - 1)` yields June 31 → July 1,
+  // so "one month ago" was the CURRENT month and the fixtures silently described
+  // a different scenario than the test name claimed. Two bugs that agreed with
+  // each other for 28 days a month.
+  //
+  // The 15th is chosen because no month lacks one, so the date is always real.
   const monthsAgo = (n: number) => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - n);
-    return d;
+    const now = new Date();
+    let year = now.getFullYear();
+    let month = now.getMonth() - n;
+    while (month < 0) {
+      month += 12;
+      year -= 1;
+    }
+    return new Date(year, month, 15, 12, 0, 0);
   };
+
+  // Pinned to the 31st, because that is the ONLY kind of day the bug appeared on.
+  // Written with fake timers rather than relative dates so it fails all month,
+  // not just for three days at the end of one — the original defect survived
+  // precisely because it was invisible 28 days out of 31.
+  it('does not double-count the current month when today is the 31st', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(2026, 6, 31, 12, 0, 0)); // 31 July 2026
+      // A single gift, this month. setMonth(6 - 1) builds June 31 → normalises
+      // forward to July 1, so the old loop saw July twice and answered 2.
+      expect(computeMonthlyStreak([new Date(2026, 6, 20, 12, 0, 0).toISOString()])).toBe(1);
+
+      // And a genuine two-month streak still reads as 2, so the fix did not just
+      // subtract one from everything.
+      expect(
+        computeMonthlyStreak([
+          new Date(2026, 6, 20, 12, 0, 0).toISOString(),
+          new Date(2026, 5, 20, 12, 0, 0).toISOString(),
+        ]),
+      ).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('crosses a year boundary backwards', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(2026, 0, 31, 12, 0, 0)); // 31 January 2026
+      expect(
+        computeMonthlyStreak([
+          new Date(2026, 0, 10, 12, 0, 0).toISOString(),
+          new Date(2025, 11, 10, 12, 0, 0).toISOString(), // December 2025
+        ]),
+      ).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 
   it('returns 0 with no donations', () => {
     expect(computeMonthlyStreak([])).toBe(0);

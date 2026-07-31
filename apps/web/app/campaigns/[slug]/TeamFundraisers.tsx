@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { formatMoneyShort, DEFAULT_CURRENCY } from '@shared/currencies';
 
 // Peer-to-peer / team fundraising — supporters who run their own page toward a
@@ -10,6 +11,8 @@ import { formatMoneyShort, DEFAULT_CURRENCY } from '@shared/currencies';
 
 export interface TeamFundraiser {
   id: string;
+  /** Used to build the supporter's shareable page URL. */
+  slug: string;
   title: string;
   goalCents: number;
   raisedCents: number;
@@ -23,10 +26,14 @@ export interface TeamFundraiser {
 
 export default function TeamFundraisers({
   fundraisers,
+  campaignSlug,
   currency = DEFAULT_CURRENCY,
   action,
 }: {
   fundraisers: TeamFundraiser[];
+  /** Parent campaign slug — the supporter page lives at
+   *  /campaigns/[slug]/team/[peerSlug], so the roster cannot link without it. */
+  campaignSlug: string;
   currency?: string;
   /** The join control. Rendered even with an empty team — that is exactly when
    *  the first supporter needs it, and returning null here made the feature
@@ -116,18 +123,24 @@ export default function TeamFundraisers({
                   </span>
                 )}
                 <div style={{ minWidth: 0 }}>
-                  <strong
+                  {/* The card links to the supporter's own page. Without this the
+                      roster listed people whose pages existed and could not be
+                      reached from anywhere in the product. */}
+                  <Link
+                    href={`/campaigns/${campaignSlug}/team/${f.slug}`}
                     style={{
                       display: 'block',
                       fontSize: 14.5,
+                      fontWeight: 700,
                       color: 'var(--t1)',
+                      textDecoration: 'none',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                     }}
                   >
                     {heading}
-                  </strong>
+                  </Link>
                   {f.completed && (
                     <span style={{ fontSize: 12, color: 'var(--t3)' }}>Goal reached 🎉</span>
                   )}

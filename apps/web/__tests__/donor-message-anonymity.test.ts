@@ -7,7 +7,7 @@ const read = (path: string): string => readFileSync(resolve(process.cwd(), path)
 describe('donor message anonymity', () => {
   it('honors both legacy and migration-native anonymity columns on every reader', () => {
     const route = read('app/api/campaigns/[id]/messages/route.ts');
-    const page = read('app/campaigns/[slug]/page.tsx');
+    const page = read('app/campaigns/[slug]/(detail)/page.tsx');
     for (const source of [route, page]) {
       expect(source).toContain("'id, message, anonymous, visibility, created_at");
       expect(source).toContain("anonymous ||");

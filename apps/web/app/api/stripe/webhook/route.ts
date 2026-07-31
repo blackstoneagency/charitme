@@ -2,6 +2,7 @@ import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import type Stripe from 'stripe';
 import { stripe, formatCents } from '../../../../lib/stripe';
+import { peerRpcArg } from '../../../../lib/peer-attribution';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { sendReceiptEmail, sendTaxReceiptEmail, sendOrganizerDonationAlert, sendPayoutEmail, sendRefundEmail } from '../../../../lib/email';
 import { canIssueTaxReceipt } from '../../../../lib/tax';
@@ -224,6 +225,11 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
         p_anonymous: meta.anonymous === '1',
         p_stripe_payment_intent_id: null,
         p_stripe_checkout_session_id: session.id,
+        // A recurring gift started from a supporter page is attributed like any
+        // other. Only the FIRST charge passes through here; later renewals are
+        // invoice events with their own metadata. Omitted when the migration has
+        // not run — see the note on the one-time path above.
+        ...(await peerRpcArg(meta.peerFundraiserId)),
       });
       if (recurringDonationError) throw new Error('Initial recurring donation could not be recorded.');
 
@@ -356,6 +362,16 @@ async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.
       p_anonymous:                 meta.anonymous === '1',
       p_stripe_payment_intent_id:  paymentIntentId,
       p_stripe_checkout_session_id: session.id,
+      // Peer-to-peer attribution, SPREAD rather than set literally: the key is
+      // omitted entirely on a deployment where the migration has not run, because
+      // an unknown named argument makes PostgREST resolve no function at all and
+      // would break every donation. See lib/peer-attribution.ts.
+      //
+      // `/api/donations` already verified this id belongs to the campaign before
+      // writing it to metadata, and `record_donation` verifies it AGAIN before
+      // inserting — metadata is client-influenced and that function runs
+      // SECURITY DEFINER.
+      ...(await peerRpcArg(meta.peerFundraiserId)),
     });
 
     if (error) throw new Error(`record_donation failed: ${error.message}`);

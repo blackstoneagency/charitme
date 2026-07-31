@@ -371,6 +371,28 @@ export function buildFixtures() {
       ...extra(i),
     }));
 
+  // ── Peer-to-peer ───────────────────────────────────────────────────────────
+  //
+  // A supporter running their own page toward campaign 1's goal, so
+  // /campaigns/[slug]/team/[peerSlug] renders against something. `raised_amount`
+  // is non-zero on purpose: the page must show a real figure AND, on a
+  // deployment without the attribution migration, the notice explaining that the
+  // figure is not moving. Both halves need data to be visible.
+  const peer_fundraisers = [
+    {
+      id: uuid('peer', 1),
+      parent_campaign_id: campaigns[0].id,
+      fundraiser_id: USER_ID,
+      slug: 'stub-supporter',
+      title: "Ada's page for this campaign",
+      goal_amount: 250_000,
+      raised_amount: 87_500,
+      status: 'active',
+      created_at: daysAgo(20),
+      updated_at: daysAgo(2),
+    },
+  ];
+
   // ── Creator economy ────────────────────────────────────────────────────────
   //
   // One creator page belonging to the default stub user, with a public post and
@@ -487,6 +509,7 @@ export function buildFixtures() {
     campaigns,
     donations,
     payouts,
+    peer_fundraisers,
     creator_profiles,
     membership_tiers,
     exclusive_posts,

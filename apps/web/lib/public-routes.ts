@@ -71,6 +71,16 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: 'daily',
   },
   {
+    // Proximity discovery. The page renders its own copy server-side and the
+    // results load client-side after the visitor opts in to sharing location,
+    // so there is a real, indexable page here even though the listing is not.
+    path: '/nearby',
+    title: 'Fundraisers Near You',
+    description: 'Find active fundraisers close to you and support causes in your own community.',
+    priority: 0.80,
+    changeFrequency: 'daily',
+  },
+  {
     path: '/for-donors',
     title: 'Giving For Donors',
     description: 'Find trusted campaigns, give quickly, and follow the impact of your donations.',

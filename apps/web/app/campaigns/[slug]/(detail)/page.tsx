@@ -1,36 +1,36 @@
 import Link from 'next/link';
 import { cache } from 'react';
-import { safeJsonLd } from "../../../lib/json-ld";
-import { buildCampaignJsonLd } from "../../../lib/campaign-jsonld";
+import { safeJsonLd } from "../../../../lib/json-ld";
+import { buildCampaignJsonLd } from "../../../../lib/campaign-jsonld";
 import { notFound } from 'next/navigation';
-import { getCampaign } from './get-campaign';
+import { getCampaign } from '../get-campaign';
 import type { Metadata } from 'next';
-import { supabaseAdmin } from '../../../lib/supabase';
-import { createClient } from '../../../lib/supabase-server';
+import { supabaseAdmin } from '../../../../lib/supabase';
+import { createClient } from '../../../../lib/supabase-server';
 import { formatMoneyShort, normalizeCurrency } from '@shared/currencies';
-import { resolvePayoutDestination } from '../../../lib/payout-destination';
-import { attachCampaignCurrencies } from '../../../lib/home-data';
-import { calculateTrustScore, getTrustSignals } from '../../../lib/ai-platform';
-import { buildCampaignTrustInput } from '../../../lib/trust-signals';
-import DonateButton from './DonateButton';
-import JsonLd from '../../../components/JsonLd';
-import ReportButton from './ReportButton';
-import ShareButtons from './ShareButtons';
-import DonationSuccess from './DonationSuccess';
-import MobileDonateCTA from './MobileDonateCTA';
-import CampaignCarousel from './CampaignCarousel';
-import DonorWall, { type WallDonation } from './DonorWall';
-import DonationTicker from './DonationTicker';
-import Milestones from './Milestones';
-import TeamFundraisers, { type TeamFundraiser } from './TeamFundraisers';
-import JoinTeamButton from './JoinTeamButton';
-import CommentForm from './CommentForm';
-import CommentsList, { type WallComment } from './CommentsList';
-import SaveCampaignButton from './SaveCampaignButton';
-import CampaignAssistant from './CampaignAssistant';
-import { getPhotosForCategory, getCoverForCampaign } from '../../../lib/photo-catalog';
-import { optimizedCoverUrl } from '../../../lib/img-optimize';
-import { optimizeAsks, computeImpact } from '../../../lib/donation-optimizer';
+import { resolvePayoutDestination } from '../../../../lib/payout-destination';
+import { attachCampaignCurrencies } from '../../../../lib/home-data';
+import { calculateTrustScore, getTrustSignals } from '../../../../lib/ai-platform';
+import { buildCampaignTrustInput } from '../../../../lib/trust-signals';
+import DonateButton from '../DonateButton';
+import JsonLd from '../../../../components/JsonLd';
+import ReportButton from '../ReportButton';
+import ShareButtons from '../ShareButtons';
+import DonationSuccess from '../DonationSuccess';
+import MobileDonateCTA from '../MobileDonateCTA';
+import CampaignCarousel from '../CampaignCarousel';
+import DonorWall, { type WallDonation } from '../DonorWall';
+import DonationTicker from '../DonationTicker';
+import Milestones from '../Milestones';
+import TeamFundraisers, { type TeamFundraiser } from '../TeamFundraisers';
+import JoinTeamButton from '../JoinTeamButton';
+import CommentForm from '../CommentForm';
+import CommentsList, { type WallComment } from '../CommentsList';
+import SaveCampaignButton from '../SaveCampaignButton';
+import CampaignAssistant from '../CampaignAssistant';
+import { getPhotosForCategory, getCoverForCampaign } from '../../../../lib/photo-catalog';
+import { optimizedCoverUrl } from '../../../../lib/img-optimize';
+import { optimizeAsks, computeImpact } from '../../../../lib/donation-optimizer';
 
 export const dynamic = 'force-dynamic';
 
@@ -139,6 +139,7 @@ async function getRewards(campaignId: string) {
 
 type PeerRow = {
   id: string;
+  slug: string;
   fundraiser_id: string;
   title: string;
   goal_amount: number;
@@ -153,7 +154,7 @@ async function getTeamFundraisers(campaignId: string): Promise<TeamFundraiser[]>
   // `completed` stays — a finished team member is part of the team's story.
   const { data, error } = await supabaseAdmin
     .from('peer_fundraisers')
-    .select('id, title, goal_amount, raised_amount, status, fundraiser_id, profiles:fundraiser_id(full_name, avatar_url, show_public_profile)')
+    .select('id, slug, title, goal_amount, raised_amount, status, fundraiser_id, profiles:fundraiser_id(full_name, avatar_url, show_public_profile)')
     .eq('parent_campaign_id', campaignId)
     .in('status', ['active', 'completed'])
     .order('raised_amount', { ascending: false })
@@ -171,6 +172,7 @@ async function getTeamFundraisers(campaignId: string): Promise<TeamFundraiser[]>
     const isPublic = profile.show_public_profile ?? true;
     return {
       id: row.id,
+      slug: row.slug,
       title: row.title,
       goalCents: row.goal_amount,
       raisedCents: row.raised_amount,
@@ -877,6 +879,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
 
       <TeamFundraisers
         fundraisers={teamFundraisers}
+        campaignSlug={campaign.slug}
         currency={currency}
         action={
           // The organizer is not offered a page on their own campaign — it would

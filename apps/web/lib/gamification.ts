@@ -73,11 +73,33 @@ export function computeMonthlyStreak(isoDates: string[]): number {
     }),
   );
 
+  // ⚠️ Walk back on (year, month) INTEGERS, not with Date.setMonth().
+  //
+  // `cursor.setMonth(cursor.getMonth() - 1)` looks like "go back one month" and
+  // is not. On the 31st of July it builds June 31, which does not exist, so the
+  // Date normalises it FORWARD to July 1 — the same month the cursor was already
+  // in. The loop then counts that month a second time.
+  //
+  // Effect on real donors: on the 29th, 30th and 31st of any month, every
+  // streak was inflated by one. A donor who had given once, this month, was
+  // shown a 2-month streak. It self-corrected on the 1st, which is precisely why
+  // it survived — the symptom appears and disappears on its own, and the number
+  // is plausible whenever anyone looks.
+  //
+  // Integer arithmetic has no invalid intermediate state, so there is nothing to
+  // normalise.
+  const now = new Date();
+  let year = now.getFullYear();
+  let month = now.getMonth();
+
   let streak = 0;
-  const cursor = new Date();
-  while (months.has(`${cursor.getFullYear()}-${cursor.getMonth()}`)) {
+  while (months.has(`${year}-${month}`)) {
     streak++;
-    cursor.setMonth(cursor.getMonth() - 1);
+    month -= 1;
+    if (month < 0) {
+      month = 11;
+      year -= 1;
+    }
   }
   return streak;
 }

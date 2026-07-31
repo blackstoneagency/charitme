@@ -42,6 +42,7 @@
     "/leaderboard",
     "/login",
     "/matching",
+    "/nearby",
     "/offline",
     "/pricing",
     "/privacy",

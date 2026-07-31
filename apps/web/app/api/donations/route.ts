@@ -39,6 +39,11 @@ const DonateSchema = z.object({
   donorEmail:         z.string().email().optional(),
   // "Subscribe to receive emails" checkbox — opts the donor into campaign update emails
   subscribeToUpdates: z.boolean().optional(),
+  // Peer-to-peer attribution: the supporter page this gift came through, when
+  // the donor arrived via /campaigns/[slug]/team/[peerSlug]. Validated against
+  // the campaign below — it is never trusted as given, because it decides who
+  // gets credited for the money.
+  peerFundraiserId:   z.string().uuid().optional(),
   // Share attribution — UTM params forwarded from the landing URL
   utmSource:          z.string().max(100).optional(),
   utmMedium:          z.string().max(100).optional(),
@@ -96,6 +101,7 @@ export async function POST(request: NextRequest) {
     referrerId,
     rewardId,
     subscribeToUpdates,
+    peerFundraiserId,
   } = parsed.data;
 
   // Normalise to a method Checkout actually offers, so the processing fee the
@@ -157,6 +163,30 @@ export async function POST(request: NextRequest) {
   const deadlineAt = (campaign as { deadline?: string | null }).deadline;
   if (deadlineAt && new Date(deadlineAt).getTime() <= Date.now()) {
     return NextResponse.json({ error: 'This campaign has ended.', code: 'CAMPAIGN_ENDED' }, { status: 400 });
+  }
+
+  // ── Peer-to-peer attribution ────────────────────────────────────────────────
+  //
+  // Verified against THIS campaign before it goes anywhere near Stripe metadata.
+  // An unverified id would let a crafted POST credit any supporter on the
+  // platform for a gift to an unrelated campaign — the peer's public total is a
+  // fundraising leaderboard, so that is a real incentive to forge.
+  //
+  // A bad id is dropped to NULL rather than rejected: the donor is trying to
+  // give money, and refusing the whole donation over a stale link would be a
+  // worse outcome than recording it as a direct gift. `record_donation` repeats
+  // this same check server-side — belt and braces, because that function runs
+  // SECURITY DEFINER and metadata is client-influenced.
+  let verifiedPeerId: string | null = null;
+  if (peerFundraiserId) {
+    const { data: peer } = await supabaseAdmin
+      .from('peer_fundraisers')
+      .select('id')
+      .eq('id', peerFundraiserId)
+      // `parent_campaign_id`, not `campaign_id` — this table is the exception.
+      .eq('parent_campaign_id', campaignId)
+      .maybeSingle();
+    verifiedPeerId = (peer as { id: string } | null)?.id ?? null;
   }
 
   // ── Campaign currency (defaults to USD) ─────────────────────────────────────
@@ -303,6 +333,9 @@ export async function POST(request: NextRequest) {
       processingFeeCents:   String(processingFeeCents),
       platformFeeCents:     String(tipCents),            // CharitMe's actual revenue
       paymentMethod,
+      // '' rather than omitted: Stripe metadata values must be strings, and the
+      // webhook reads `meta.peerFundraiserId || null`.
+      peerFundraiserId:     verifiedPeerId ?? '',
       // Connected account info (so webhook knows routing without extra DB lookup)
       connectedAccountId:   destination.stripeAccountId,
       hasConnectedAccount:  '1',

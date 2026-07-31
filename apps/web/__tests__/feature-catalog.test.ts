@@ -242,7 +242,7 @@ describe('peer-to-peer ships, so it is counted and not marked planned', () => {
   it('the code backing the claim actually exists — both halves', () => {
     // The claim is only honest while these do. If either is deleted, this fails and
     // the `planned` flags must go back rather than the parity number staying wrong.
-    const reader = readFileSync(join(WEB, 'app', 'campaigns', '[slug]', 'page.tsx'), 'utf8');
+    const reader = readFileSync(join(WEB, 'app', 'campaigns', '[slug]', '(detail)', 'page.tsx'), 'utf8');
     expect(reader).toMatch(/\.from\(\s*'peer_fundraisers'\s*\)/);
     expect(existsSync(join(WEB, 'app', 'campaigns', '[slug]', 'TeamFundraisers.tsx'))).toBe(true);
     expect(

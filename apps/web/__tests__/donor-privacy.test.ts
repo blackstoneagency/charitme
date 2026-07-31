@@ -81,7 +81,7 @@ describe('unpublished campaigns are owner-only', () => {
     // public URL to anyone holding or guessing the slug (slugs derive from the
     // title). Listings and the sitemap already excluded drafts via
     // applyLiveFilters, making the detail page the one reachable surface.
-    const src = read('app/campaigns/[slug]/page.tsx');
+    const src = read('app/campaigns/[slug]/(detail)/page.tsx');
     expect(src, 'drafts must be gated').toMatch(/campaign\.status === 'draft'/);
     // Gated on ownership, not blanket-404'd — the owner must still preview.
     const draftBlock = src.slice(src.indexOf("campaign.status === 'draft'"));
@@ -91,7 +91,7 @@ describe('unpublished campaigns are owner-only', () => {
 
   it('does not block completed or archived campaigns', () => {
     // People link to finished fundraisers; only 'draft' is unpublished.
-    const src = read('app/campaigns/[slug]/page.tsx');
+    const src = read('app/campaigns/[slug]/(detail)/page.tsx');
     expect(src).not.toMatch(/campaign\.status !== 'active'[\s\S]{0,60}notFound/);
     expect(src).not.toMatch(/campaign\.status === 'completed'[\s\S]{0,60}notFound/);
   });
@@ -102,7 +102,7 @@ describe('the campaign page applies the same gates as the API', () => {
   // server-rendered wall, and /api/campaigns/[id]/donations serves pagination.
   // Fixing only the API left a private donor's name in the page HTML on first
   // load — the leak survived the first fix because the copies disagreed.
-  const page = read('app/campaigns/[slug]/page.tsx');
+  const page = read('app/campaigns/[slug]/(detail)/page.tsx');
 
   it('toWallDonation gates on show_public_profile, not just anonymous', () => {
     expect(page, 'must derive an isPublic gate').toMatch(/const isPublic\s*=\s*profile\.show_public_profile/);

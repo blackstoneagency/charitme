@@ -14,7 +14,7 @@ import { join } from 'node:path';
 // same rule, from the other side — the claim stays, so the reader has to.
 
 const WEB_ROOT = join(__dirname, '..');
-const PAGE = join(WEB_ROOT, 'app', 'campaigns', '[slug]', 'page.tsx');
+const PAGE = join(WEB_ROOT, 'app', 'campaigns', '[slug]', '(detail)', 'page.tsx');
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {

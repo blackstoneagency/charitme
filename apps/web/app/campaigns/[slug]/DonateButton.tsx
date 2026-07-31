@@ -100,6 +100,7 @@ export default function DonateButton({
   currency = DEFAULT_CURRENCY,
   smartPresets,
   recommendedAmount,
+  peerFundraiserId,
 }: {
   campaignId: string;
   campaignTitle: string;
@@ -110,6 +111,13 @@ export default function DonateButton({
   smartPresets?: number[];
   /** Which preset to pre-select and badge as "popular". */
   recommendedAmount?: number;
+  /**
+   * Set only when the donor arrived through a supporter's page
+   * (`/campaigns/[slug]/team/[peerSlug]`). Credits that supporter as well as the
+   * parent campaign. Re-verified server-side against the campaign — this prop is
+   * a convenience, not the authority.
+   */
+  peerFundraiserId?: string;
 }) {
   const money      = (cents: number) => formatMoney(cents, currency);
   const moneyShort = (cents: number) => formatMoneyShort(cents, currency);
@@ -240,6 +248,7 @@ export default function DonateButton({
           ...(utm?.shareEventId ? { shareEventId: utm.shareEventId } : {}),
           ...(utm?.referrerId   ? { referrerId:   utm.referrerId }   : {}),
           ...(!isMonthly && selectedRewardId ? { rewardId: selectedRewardId } : {}),
+          ...(peerFundraiserId ? { peerFundraiserId } : {}),
         }),
       });
       const text = await res.text();
