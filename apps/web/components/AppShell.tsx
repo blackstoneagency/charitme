@@ -45,7 +45,12 @@ const SHELL_BYPASS = ['/dashboard', '/admin', '/profile'];
 // Campaign embed widgets (/campaigns/[slug]/embed) are designed to run inside an
 // <iframe> on third-party sites — they render their own minimal layout and must
 // never include the site nav/footer.
-function isEmbedRoute(path: string): boolean {
+//
+// Exported because BackToTop needs the same rule and is mounted in the root
+// layout rather than here. Two copies of this regex would eventually disagree,
+// and the failure mode is a floating button appearing inside somebody else's
+// page.
+export function isEmbedRoute(path: string): boolean {
   return /^\/campaigns\/[^/]+\/embed\/?$/.test(path);
 }
 

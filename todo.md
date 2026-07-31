@@ -14989,3 +14989,52 @@ manipulation, not just the colour. This was the only instance in `app/`.
 work-in-progress from the parallel agent that a rebase autostash could not
 reapply against the new master. It is intact but untouched — master has moved a
 long way since, so it may now be obsolete rather than pending.
+
+## ✅ DONE — Back-to-top control on every page, both themes (Claude, 2026-07-31)
+
+One floating control, mounted **in the root layout** rather than in a shell:
+`AppShell` short-circuits for `/dashboard`, `/admin` and `/profile`, which render
+their own shell — and those are the longest pages in the product, i.e. exactly
+where the control matters most. The single exclusion is the campaign embed
+widget, which runs in a third-party iframe and must render no CharitMe chrome.
+`isEmbedRoute` is now **exported** from `AppShell` and reused rather than copied;
+two copies of that regex would eventually disagree, and the failure mode is a
+floating CharitMe button appearing inside somebody else's page.
+
+**The bug the measurement caught: the ring was invisible.** First pass used
+`--b2` for the border, the obvious "subtle edge" token. But the button surface
+(`--s1`) is within a couple of points of the page background (`--bg`) in *both*
+themes, so the circle is identifiable **only** by its edge — and `--b2` rendered
+that edge at **1.34:1 light / 1.58:1 dark**. It looked fine in a thumbnail and
+was effectively a floating arrow with no button around it. `--t4` measures
+**5.38:1 / 3.31:1** against the page.
+
+Three accessibility decisions worth keeping:
+
+- **Unmounts rather than hides.** `hidden`/`opacity: 0` leaves a focusable
+  button that does nothing visible for a keyboard user near the top of a short
+  page.
+- **Moves focus, not just the viewport.** Scrolling alone leaves focus on a
+  now-offscreen button, so the next Tab resumes from the bottom of the page —
+  the keyboard user is teleported back to where they started. Focus goes to the
+  same `#main-content` target the skip link uses.
+- **Smooth scroll is opt-out**, read at click time so a mid-session
+  `prefers-reduced-motion` change is honoured.
+
+z-index deliberately sits **below** the install prompt (1000) and settings toast
+(9999): both are transient and both matter more than a scroll affordance.
+
+**Also fixed here (pre-existing, not from this change):** `/developers` failed
+axe `scrollable-region-focusable` in both themes — its `<pre>` code samples set
+`overflowX: auto`, so a keyboard-only reader could reach neither the scrollbar
+nor the part of the request body it hid. Same class as the `/cookies` table.
+
+**Verified in a real browser, both themes:** hidden at top / appears past 400px ·
+scrolls to 0 and moves focus to `main-content` · disappears again at the top ·
+keyboard focusable, activates on Enter · reduced-motion jumps instantly ·
+excluded on the embed route · ≥44px target and inside the viewport at 320/390px ·
+arrow 17.37:1 (light) / 14.57:1 (dark).
+
+**Suite:** typecheck 0 · lint 0 errors · **vitest 2143/2143 across 200 files** ·
+build exit 0 · axe **4/4 projects** · contrast **0 failures, 47 pages × 2 themes**
+· responsive **0 regressions, 47 pages × 3 viewports × 2 themes**.
