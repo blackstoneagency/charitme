@@ -5,6 +5,8 @@ import './globals.css';
 import { AppShell } from '../components/AppShell';
 import { getActiveAnnouncements } from '../lib/announcements-data';
 import { getBannerSettings } from '../lib/banner-settings';
+import { getFooterSettings } from '../lib/footer-settings';
+import { LOCALE_COOKIE } from '../lib/i18n';
 import SessionWatcher from '../components/SessionWatcher';
 import { ThemeProvider } from '../components/ThemeProvider';
 import PWARegister from '../components/PWARegister';
@@ -70,11 +72,18 @@ const platformJsonLd = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Cached (ISR) fetch — keeps the layout statically generated while putting the
   // banner in the initial HTML so it never injects post-hydration (no layout shift).
-  const [initialAnnouncements, bannerAppearance] = await Promise.all([
+  const [initialAnnouncements, bannerAppearance, footerSettings] = await Promise.all([
     getActiveAnnouncements(),
     getBannerSettings(),
+    getFooterSettings(),
   ]);
   const nonce = (await headers()).get('x-nonce') ?? undefined;
+  // Read straight off the request rather than through cookies(), which would opt
+  // the whole layout out of static rendering. Absent → the picker adopts the
+  // cookie on hydration instead.
+  const initialLocale = (await headers()).get('cookie')
+    ?.split('; ').find((c) => c.startsWith(`${LOCALE_COOKIE}=`))
+    ?.slice(LOCALE_COOKIE.length + 1);
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -90,7 +99,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Suspense fallback={null}>
             <MarketingTracker />
           </Suspense>
-          <AppShell initialAnnouncements={initialAnnouncements} bannerAppearance={bannerAppearance}>{children}</AppShell>
+          <AppShell
+            initialAnnouncements={initialAnnouncements}
+            bannerAppearance={bannerAppearance}
+            footerSettings={footerSettings}
+            initialLocale={initialLocale}
+          >{children}</AppShell>
         </ThemeProvider>
       </body>
     </html>

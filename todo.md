@@ -14819,4 +14819,134 @@ routes pass targeted axe and strict contrast checks in both themes; newly merged
 `/dashboard/creator` and `/dashboard/developers` routes return 0 strict signed-in
 contrast findings; focused regression suite 82/82; full suite 2037/2037 across 196
 files; typecheck pass; zero-warning lint pass; `git diff --check` clean; production
-build succeeds with 154 generated static pages.
+build succeeds with 154 generated static pages.## ✅ DONE — Global footer rebuild: locale picker, legal bar, no duplicate links (Claude, 2026-07-31)
+
+**Asked for:** match the footer design, add a language pop-up on the
+"United States · English" control, de-duplicate the Legal links between the
+column and the bottom bar, wire it to Supabase.
+
+### The de-duplication is DERIVED, not hand-maintained
+
+The footer linked the same destination twice under two names — "Terms of
+Service" (Legal column) and "Terms" (bottom bar) both → `/terms`; "Privacy
+Policy" / "Privacy Notice" both → `/privacy`. Hand-splitting the two lists
+guarantees they drift back together (this repo already lost that bet with
+`CAMPAIGN_CATEGORIES`, which had three copies that disagreed).
+
+So `lib/footer-nav.ts` declares every link once and **computes** the rendered
+columns by removing whatever the legal bar owns, comparing hrefs normalised for
+case and trailing slash. The test asserts no href appears twice **anywhere** in
+the footer, and separately that the authored column still contains what the bar
+removes — otherwise someone "tidying" the source list would leave the dedup
+passing vacuously.
+
+**That test immediately found a third duplicate nobody had mentioned:**
+"Fundraising Guides" (Resources) also pointed at `/how-it-works`, the same place
+as "How It Works" (Platform) — under a label promising a guide library that does
+not exist. Removed rather than exempted.
+
+### Three pages had to be built, not just linked
+
+`/legal`, `/accessibility` and `/cookies` did not exist. A bottom bar linking to
+404s would have been worse than the duplication it replaced.
+
+**`/privacy-center` cannot be the target of "Your Privacy Choices"** — it calls
+`requireUser()`, so an anonymous visitor clicking a privacy control gets a login
+wall. Both cookie/privacy controls point at anchors on the public `/cookies`
+page instead.
+
+### Wiring
+
+- **Locale** → `profiles.locale` (new, migration `20260809000000`) + the existing
+  `profiles.language`, written together so the footer and the dashboard settings
+  dropdown cannot disagree about the same person. `language` keeps storing the
+  primary subtag, which is what `/api/settings` validates against, so nothing
+  downstream changed. The column is treated as OPTIONAL (PGRST204/42703 →
+  language-only write), so this works before the migration is applied.
+- Anonymous visitors persist to a cookie, read server-side in the root layout —
+  so the collapsed trigger is correct in the FIRST paint, not after hydration.
+- **Social / app-store / contact** → `platform_settings.config.footer`, editable
+  in Super Admin → Settings → Footer (added `footer` to `VALID_CATEGORIES`; the
+  settings UI is generic, so it appears with no further work).
+
+### What the verification actually caught
+
+Three real defects, none of which the unit tests could have found:
+
+1. **The locale menu was clipped off the top of a 320px screen.** It opens
+   upward from a trigger at the foot of the page, so its height is bounded by
+   the space *above* that trigger — with 11 options the first few were
+   unreachable. Narrow screens now use a viewport-anchored bottom sheet, where
+   clipping is impossible regardless of scroll position.
+2. **`.legal-table-wrap` / `.legal-table` had no CSS at all.** I used the class
+   names and never wrote the rules, so the 4-column cookie table ran past the
+   viewport edge with no scroll container — the "Can you refuse it?" column was
+   unreachable on a phone. **The page-level overflow sweep did not catch this**,
+   because an ancestor clipped the document instead of letting it scroll: to
+   that check, content cut off looks identical to content that fits.
+3. **The new scroll container then failed WCAG 2.1.1** — a scrollable region
+   must be focusable or a keyboard user can reach neither the scrollbar nor the
+   columns it hides.
+
+**⚠️ axe cannot evaluate gradient backgrounds, and reports a confident wrong
+number rather than an inconclusive one.** It flagged `/cookies` at **1.22:1** in
+dark mode, having walked up for a solid `background-color`, found none (the page
+is painted by `.pub-page`'s gradient), and *assumed white*. The text really sits
+at ~15:1. Do not "fix" a colour on the strength of an axe contrast number for an
+element over a gradient — measure it. Giving the table an explicit surface made
+it genuinely measurable and the finding disappeared.
+
+**Verified:** typecheck 0 · lint 0 errors · vitest **1768 passed** (5 pre-existing
+failures in `gamification` / `admin-system-health`, not from this work — see
+below) · build exit 0 · axe **4/4 projects green, 40 routes × both themes ×
+desktop+mobile** · contrast sweep **0 failures, 40 pages × 2 themes** ·
+responsive sweep **0 regressions, 40 pages × 3 viewports × 2 themes** · locale
+picker driven in a real browser: opens, lists all 11 markets, arrow/Home/End/Esc
+keyboard, focus returns to the trigger, selection persists to cookie and survives
+a reload.
+
+### 🔴 master is RED and it is not from this work
+
+`master` at `deda06d` fails **14 tests** on a clean checkout — `gamification`
+(`computeMonthlyStreak`, date-sensitive) and `admin-system-health`. Another agent
+has uncommitted work in this same working tree that takes it to 5. Flagging
+rather than fixing, because it is someone else's lane and their fix is in flight.
+
+**Note for whoever is in this tree:** two agents are editing the same working
+directory, not just the same branch — 60 files changed underneath this task
+mid-edit and HEAD moved without this session doing it. Commit by explicit path.
+
+## ✅ DONE — Donate Now CTA: outlined → filled (Claude, 2026-07-31)
+
+The homepage hero paired a gradient "Create My Fundraiser Now!" with an
+*outlined* "Donate Now". Outlined next to filled reads as secondary, so the
+donor — the other half of the marketplace — was being offered the quieter
+button. Now filled, with a solid block arrow.
+
+**Two things worth keeping:**
+
+1. **The fill is a FIXED colour in both themes, on purpose.** White on
+   `#9b2fa0` measures **6.35:1**, past AA with room at any size. A token that
+   flipped per theme would need re-verifying twice and could drift; this cannot.
+2. **`.home-btn-donate .hi-arrow` silently lost to `.home svg.hi`.** The first
+   attempt at enlarging the arrow changed nothing: `.home svg.hi` is specificity
+   (0,2,1) and sets `width: 1em`, while `.home-btn-donate .hi-arrow` is (0,2,0).
+   The rule parsed fine, applied cleanly, and did nothing — measuring the
+   rendered width (still 16px) is what caught it. Selector is now
+   `.home .home-btn-donate svg.hi-arrow` (0,3,1) and the arrow renders at 24px.
+
+The stroked `arrow` icon is a hairline at that size, so a filled `arrowSolid`
+path was added that overrides the shared `fill:none / stroke:currentColor`.
+
+**Verified:** 6.35:1 in both themes · arrow genuinely filled (computed
+`fill: rgb(255,255,255)`, `stroke: none`) · height and baseline identical to the
+primary button beside it (52px, 0px offset) · no overflow at 320/390px ·
+contrast sweep **0 failures over 47 pages × 2 themes** · responsive sweep **0
+regressions over 47 pages × 3 viewports × 2 themes** · typecheck 0 · lint 0
+errors · **vitest 2131/2131 across 199 files** · build exit 0.
+
+Also fixed while landing this: my locale migration collided with master's
+`20260809000000_harden_privileged_database_boundaries.sql` (renumbered to
+`20260818000000`), and `/legal`, `/cookies`, `/accessibility` had to be added to
+`INDEXABLE_PUBLIC_ROUTES` — `route-list-single-source.test.ts` requires every
+searchable public page to appear in both the sweep list and the sitemap catalog.

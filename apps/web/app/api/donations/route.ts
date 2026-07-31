@@ -17,6 +17,7 @@ import { normalizeCurrency } from '@shared/currencies';
 import { resolvePayoutDestination } from '../../../lib/payout-destination';
 import { getAppOrigin } from '../../../lib/auth-config';
 import { checkRateLimit } from '../../../lib/rate-limit';
+import { getSuspensionState } from '../../../lib/roles';
 import { resolveContact, trackEvent } from '../../../lib/marketing-engine';
 import { marketingStatusForOptIn } from '../../../lib/marketing-core';
 
@@ -155,6 +156,20 @@ export async function POST(request: NextRequest) {
   // on older rows, and neither should block a campaign that never opted out.
   if ((campaign as { accept_donations?: boolean | null }).accept_donations === false)
     return NextResponse.json({ error: 'This campaign is not accepting donations right now.', code: 'DONATIONS_CLOSED' }, { status: 400 });
+
+  // The organizer's account status. Suspension was displayed in the admin console
+  // and enforced nowhere, so the realistic failure was: trust & safety suspends a
+  // fraudulent fundraiser, the console reads "Suspended", and the money keeps
+  // arriving. Not creating campaigns and not receiving donations are the two
+  // actions a suspended account unambiguously must not perform.
+  //
+  // The donor is not the suspended party, so the copy stays neutral — it does not
+  // disclose a moderation decision about a third party to whoever hits this route.
+  const organizerSuspension = await getSuspensionState(campaign.user_id);
+  if (organizerSuspension === 'suspended')
+    return NextResponse.json({ error: 'This campaign is not accepting donations right now.', code: 'DONATIONS_CLOSED' }, { status: 400 });
+  if (organizerSuspension === 'unknown')
+    return NextResponse.json({ error: 'We could not process this donation right now. Please try again.', code: 'ACCOUNT_STATUS_UNAVAILABLE' }, { status: 503 });
 
   // The campaign page renders "This campaign has ended." and hides the donate form
   // once the deadline passes, but the API never checked it — so a direct POST could
