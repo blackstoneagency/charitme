@@ -15090,13 +15090,16 @@ documented in that function.
 **Verified:** typecheck 0 · lint 0 · **vitest 2153/2153 across 201 files** ·
 build exit 0 · `audit:campaign-images` PASSED.
 
-## 🔴 THE SIGNED-IN CONTRAST AUDIT CANNOT RUN — and the reason is one line (Claude, 2026-07-31)
+## 🔴 THE SIGNED-IN CONTRAST AUDIT CANNOT RUN — cause NOT yet identified (Claude, 2026-07-31)
+
+> ⚠️ **This section previously blamed env precedence. That was WRONG, and it was
+> merged in #169 before I checked it.** I repeated the audit script's own guess
+> instead of measuring. Corrected below. The retraction is left visible because
+> a confident wrong root cause is worse than an open question — it sends the
+> next person down a dead end.
 
 `C1` (355 admin WCAG AA failures) is the biggest open item in the queue, and the
-tool built to measure it — `npm run audit:signed-in` — **cannot execute at all**.
-It is not egress this time. It is env precedence.
-
-**Reproduce:**
+tool built to measure it — `npm run audit:signed-in` — **cannot execute**:
 
 ```
 npm run audit:signed-in
@@ -15105,37 +15108,46 @@ npm run audit:signed-in
   → ✗ /admin answered 307 with the admin stub session.
 ```
 
-**Cause, confirmed:** `apps/web/.env.local` defines `NEXT_PUBLIC_SUPABASE_URL`,
-and it wins over the env `audit-signed-in.mjs` passes to the child build. So the
-bundle is compiled against the **real** Supabase URL, which is unreachable from
-here, so there is no session, so `/admin` 307s and the sweep aborts. Building
-manually with the documented override does **not** help either — verified:
+**What the script's error message says, and why it is a red herring.** It reports
+"the build is almost certainly pointed at the real Supabase URL". That is a
+*guess*, not a measurement, and it is false here. Measured:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 … npm run build   # then
-node scripts/audit-signed-in.mjs --strict-gradients                # same 307
+grep -oh 'https://[a-z0-9]*\.supabase\.co|http://127\.0\.0\.1:54321' .next/static/chunks/*.js
+  → 1  http://127.0.0.1:54321        ← the stub
+  → 0  *.supabase.co                 ← the real URL is not in the bundle at all
 ```
 
-The script's own guard is excellent — it refuses to report a green run against
-the wrong backend, which is exactly right and is why this surfaced as a clean
-error rather than a false pass. The bug is upstream of the guard.
+So `NEXT_PUBLIC_SUPABASE_URL` **is** correctly inlined to the stub. Next.js
+precedence puts `process.env` above `.env.local`, which is consistent with this —
+the earlier claim that `.env.local` wins was wrong on the facts.
 
-**This matters more than it looks.** Every "signed-in half is audited" claim in
-this file rests on a tool that currently cannot start. Nobody should mark C1
-progressed until this runs.
+**Runtime is fine too.** `lib/supabase.ts` reads `NEXT_PUBLIC_SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY` from `process.env` at request time, and the script
+spawns `next start` with both set to stub values. Starting the server by hand
+the same way gives a healthy app (`/api/health` → `{"status":"ok"}`).
 
-**Fix shape (NOT attempted — low context, and `audit-signed-in.mjs` is Codex's
-lane):** the child build needs an env `.env.local` cannot override. Options, in
-order of preference:
-1. Have the script write a temporary `.env.production.local` (higher precedence
-   than `.env.local` in Next's order) and remove it in a `finally`.
-2. Run the build in a temp copy of the workspace with no `.env.local`.
-3. Renaming `.env.local` for the duration works but mutates a developer's real
-   file — only acceptable with a `finally` restore, and it will still corrupt
-   state if the process is killed. Least preferred.
+**So the 307 is NOT an env problem.** Build, runtime env and server are all
+correct. Remaining candidates, none yet tested — this is where the next person
+should start:
 
-Do **not** "fix" this by deleting the guard at step 3 of the script. A green
-admin sweep measured against the wrong backend is worse than no sweep.
+1. The synthetic session cookie. `audit-signed-in.mjs` hand-builds a
+   `base64-` + base64url(JSON) cookie for `@supabase/ssr` 0.5.x. If the installed
+   version changed that encoding, the cookie is silently ignored and every
+   signed-in page redirects exactly like this. **Most likely candidate.**
+2. `middleware.ts` refreshing the session against the stub and rejecting it.
+3. The admin gate itself: `app/admin/layout.tsx` → `isAdmin(userId, email)`. The
+   script sets `ADMIN_EMAILS` to the fixture address, but `isAdmin` also reads
+   `profiles.roles` through `supabaseAdmin` — if the stub does not serve that row
+   in the shape `.single()` expects, admin resolves false.
+
+**Do NOT delete the guard at step 3 of the script.** It is the reason this
+surfaced as a clean error instead of a false green sweep, and it is still doing
+its job correctly — it is only its *explanation* that is wrong.
+
+**Also worth fixing while in there:** make that error report what it actually
+measured (grep the bundle, print the resolved URL) rather than asserting a cause
+it never checked. This whole detour came from trusting that sentence.
 
 ### Where the goal lines actually stand (Claude, end of session)
 
