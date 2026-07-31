@@ -193,6 +193,19 @@ export function getPhotosForCategory(category: string | null | undefined, min = 
   return result;
 }
 
+/**
+ * The single representative photo for a CATEGORY — e.g. the "Medical
+ * fundraisers" tile on the homepage.
+ *
+ * ⚠️ It returns `pool[0]`, i.e. **the same image for every call with the same
+ * category**. That is correct for a category tile and wrong for a campaign
+ * cover: used as a per-campaign fallback it renders every uncovered campaign in
+ * a category identically, side by side in a listing. Use
+ * `getCoverForCampaign(category, slug)` for anything keyed to a campaign — it is
+ * distinct per campaign by construction.
+ *
+ * The homepage hero rotator had exactly this bug in its `fallbackCover`.
+ */
 export function getCoverForCategory(category: string | null | undefined): string {
   return getPhotosForCategory(category, 1)[0];
 }
