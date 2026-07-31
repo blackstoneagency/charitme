@@ -5086,17 +5086,40 @@ failure in the header of every signed-out page); the campaign card was extracted
 to `components/CampaignCard.tsx`, which immediately exposed that `/campaigns`
 never selected `status` and would have rendered every card as "Ended".
 
-### ⛔ Still open — needs an owner decision, not more code
+### ✅ i18n — RESOLVED, no longer blocked
 
-- **i18n / "all languages".** There is still **no translation layer** in this
-  repo — no message catalogue, no `next-intl`-style provider. The footer locale
-  picker sets a preference nothing consumes. Adding one is a platform-wide
-  architecture change touching every string on every page, and the choice of
-  library, routing strategy (`/es/...` vs cookie), and which languages to
-  actually staff for are all owner calls. **This is the one part of the
-  design-mirror goal that is not done, and it cannot be honestly estimated
-  until those are decided.** It is called out here rather than quietly marked
-  complete.
+The earlier note here said "all languages" was blocked on an owner decision
+because no translation layer existed. **That is now out of date.** A parallel
+agent landed the layer on master (167 keys × 11 markets, `LocaleProvider` +
+`lib/locales/*`), and this branch merged it.
+
+The header renders through `t()`, and the 35 new nav keys are **genuinely
+translated into all six base languages** (es, fr, de, pt, it, nl; regional
+variants inherit). Their coverage test demands **100%** and explicitly does not
+accept English fallback — the right rule, and it is what forced real
+translations rather than stubs. Note `t()` falls back to the raw KEY, not to
+English, so any key missing from `en.ts` renders as "nav.cause.education" to
+the visitor.
+
+### 🔀 Nav collision with the parallel agent — resolved, nothing lost
+
+Both lanes rebuilt the header at the same time. Master shipped `PrimaryNavMenu`
+(grouped Explore / Causes / Resources); this branch shipped the design's two
+mega-dropdowns. Two nav systems cannot both render.
+
+Kept the design's structure — it was specified explicitly ("mirror this 100%,
+including each drop down") and it is the one with a hit-test spec — and removed
+`PrimaryNavMenu` + `lib/primary-nav.ts`. **Their unique destinations are
+preserved**: Crisis Relief, Give to Many Causes, Grants and Leaderboard moved to
+`/get-involved`, so everything their nav exposed is still within two clicks.
+
+### ⛔ Remaining owner-blocked items (unchanged)
+
+Nothing in the design-mirror goal is now blocked. The standing items are the
+ones recorded elsewhere in this file: Actions billing, the Vercel deploy cap,
+live Supabase/Stripe/Resend credentials for a real paid flow, and the
+≥100-seed-record verification that needs database access this sandbox does not
+have.
 
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
