@@ -20,37 +20,42 @@ export interface FooterLink {
   href: string;
 }
 
-export type FooterSectionName = 'Platform' | 'Resources' | 'Company' | 'Legal';
+export type FooterSectionName = 'Platform' | 'Ways to Give' | 'Company' | 'Legal';
 
 /** Column links as authored, BEFORE legal-bar de-duplication. */
 export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> = {
+  // ⚠️ Column LENGTHS are part of the design, not an accident. "Platform" carried
+  // 13 links against 5 / 6 / 8 elsewhere, so it ran roughly twice as long as its
+  // neighbours and left a large empty area beside them. Balancing the content is
+  // the fix; no CSS can make four lists of wildly different length look
+  // deliberate. footer-links.test.ts holds them within one of each other.
   Platform: [
     { label: 'How It Works', href: '/how-it-works' },
     { label: 'AI Fundraising', href: '/ai-fundraising' },
     { label: 'AI Campaign Builder', href: '/ai-campaign' },
     { label: 'Platform Features', href: '/features' },
-    { label: 'Success Stories', href: '/success-stories' },
-    { label: 'Pricing', href: '/pricing' },
     { label: 'Fast Payouts', href: '/fast-payouts' },
+    { label: 'Pricing', href: '/pricing' },
+    { label: 'Success Stories', href: '/success-stories' },
+    { label: 'Leaderboard', href: '/leaderboard' },
+    { label: 'Developers & API', href: '/developers' },
+  ],
+  // Splitting the ways to GIVE out of "Platform" is what balances the grid, and
+  // it is better navigation besides: a donor looking for somewhere to give was
+  // reading a list that opened with "AI Campaign Builder".
+  //
+  // /give, /crisis, /nearby and /developers had all shipped and were linked from
+  // nowhere in the footer.
+  'Ways to Give': [
+    { label: 'Browse Campaigns', href: '/campaigns' },
+    { label: 'Give to Many Causes', href: '/give' },
+    { label: 'Crisis Relief', href: '/crisis' },
+    { label: 'Fundraisers Near You', href: '/nearby' },
     { label: 'Volunteer', href: '/volunteer' },
     { label: 'Sponsor a Cause', href: '/sponsor' },
-    { label: 'Grants', href: '/grants' },
     { label: 'Matching Gifts', href: '/matching' },
+    { label: 'Grants', href: '/grants' },
     { label: 'Events', href: '/events' },
-    { label: 'Impact & Transparency', href: '/impact' },
-  ],
-  Resources: [
-    { label: 'Blog', href: '/blog' },
-    { label: 'Leaderboard', href: '/leaderboard' },
-    { label: 'Help Center', href: '/help' },
-    { label: 'FAQ', href: '/faq' },
-    // "Fundraising Guides" used to sit here pointing at /how-it-works — the same
-    // destination as the Platform column's "How It Works", under a label that
-    // promised a guide library the site does not have. Two links to one page
-    // under different names is the same defect as the Terms/Privacy duplication
-    // below, so it goes rather than being exempted. Restore it when a real
-    // /guides route exists.
-    { label: 'Supported Countries', href: '/supported-countries' },
   ],
   Company: [
     { label: 'About Us', href: '/about-us' },
@@ -58,14 +63,22 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
     { label: 'For Nonprofits', href: '/for-nonprofits' },
     { label: 'For Individuals', href: '/for-individuals' },
     { label: 'For Donors', href: '/for-donors' },
-    { label: 'Trust & Safety', href: '/trust-safety' },
+    { label: 'Blog', href: '/blog' },
+    { label: 'Help Center', href: '/help' },
+    { label: 'FAQ', href: '/faq' },
+    { label: 'Supported Countries', href: '/supported-countries' },
   ],
   Legal: [
+    { label: 'Trust & Safety', href: '/trust-safety' },
+    { label: 'Our Impact', href: '/impact' },
     { label: 'Transparency Center', href: '/transparency' },
     { label: 'Fee Policy', href: '/fees' },
     { label: 'Refund Policy', href: '/refunds' },
+    // "Privacy Center" (/privacy-center) used to sit here and REQUIRES A SESSION,
+    // so a signed-out visitor clicking it from any page landed on /login with no
+    // explanation. The legal bar already carries Privacy Notice, Cookie Policy
+    // and the privacy controls, so nothing public is lost by dropping it.
     { label: 'Privacy Policy', href: '/privacy' },
-    { label: 'Privacy Center', href: '/privacy-center' },
     { label: 'Terms of Service', href: '/terms' },
     { label: 'Security', href: '/security' },
     { label: 'Prohibited Use', href: '/prohibited-use' },
@@ -73,7 +86,7 @@ export const FOOTER_SECTIONS: Record<FooterSectionName, readonly FooterLink[]> =
 };
 
 export const FOOTER_SECTION_ORDER: readonly FooterSectionName[] = [
-  'Platform', 'Resources', 'Company', 'Legal',
+  'Platform', 'Ways to Give', 'Company', 'Legal',
 ];
 
 /**

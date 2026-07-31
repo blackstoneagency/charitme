@@ -70,8 +70,14 @@ describe('the footer never links to the same place twice', () => {
 
   it('keeps the Legal entries the bar does NOT own', () => {
     const hrefs = resolveFooterSections().find((s) => s.name === 'Legal')?.links.map((l) => l.href);
+    // `/privacy-center` was in this list and has been removed from the footer:
+    // it requires a session, so every signed-out visitor who clicked it from any
+    // page landed on /login with no explanation. Enumerating it here was
+    // incidental to what this test is about — that the bar strips ONLY what it
+    // owns — and footer-links.test.ts now fails the build if any gated route
+    // reappears in the footer.
     expect(hrefs).toEqual(
-      expect.arrayContaining(['/transparency', '/fees', '/refunds', '/privacy-center', '/security', '/prohibited-use']),
+      expect.arrayContaining(['/transparency', '/fees', '/refunds', '/security', '/prohibited-use']),
     );
   });
 
