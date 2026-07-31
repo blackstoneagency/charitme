@@ -9,6 +9,8 @@ import { getFooterSettings } from '../lib/footer-settings';
 import { LOCALE_COOKIE } from '../lib/i18n';
 import SessionWatcher from '../components/SessionWatcher';
 import { ThemeProvider } from '../components/ThemeProvider';
+import { LocaleProvider } from '../components/LocaleProvider';
+import { getLocaleTag } from '../lib/locale-server';
 import PWARegister from '../components/PWARegister';
 import InstallPrompt from '../components/InstallPrompt';
 import BackToTop from '../components/BackToTop';
@@ -79,6 +81,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     getFooterSettings(),
   ]);
   const nonce = (await headers()).get('x-nonce') ?? undefined;
+  // Resolved by middleware from the locale cookie or the OS's Accept-Language,
+  // so the very first response is already in the visitor's language.
+  const locale = await getLocaleTag();
   // Read straight off the request rather than through cookies(), which would opt
   // the whole layout out of static rendering. Absent → the picker adopts the
   // cookie on hydration instead.
@@ -86,12 +91,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     ?.split('; ').find((c) => c.startsWith(`${LOCALE_COOKIE}=`))
     ?.slice(LOCALE_COOKIE.length + 1);
   return (
-    <html lang="en" suppressHydrationWarning>
+    // `lang` must be the resolved locale, not a hardcoded "en": screen readers
+    // choose pronunciation from it, and German read with English phonetics is
+    // worse than untranslated text.
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script nonce={nonce} type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(platformJsonLd) }} />
       </head>
       <body>
+        <LocaleProvider locale={locale}>
         <ThemeProvider>
           {/* Watches for session expiry and signs out when the browser closes */}
           <SessionWatcher />
@@ -112,6 +121,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               self-excludes the campaign embed widget. */}
           <BackToTop />
         </ThemeProvider>
+        </LocaleProvider>
       </body>
     </html>
   );
