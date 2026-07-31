@@ -14,7 +14,7 @@ export default function ReadinessChecklist({
   onGoToStep: (step: ReadinessStep) => void;
 }) {
   const { items, score, readyToPublish } = readiness;
-  const barColor = readyToPublish ? 'var(--green, #059669)' : score >= 60 ? '#f59e0b' : '#ef4444';
+  const barColor = readyToPublish ? 'var(--green, #059669)' : score >= 60 ? '#f59e0b' : 'var(--red-text)';
 
   return (
     <div style={{ padding: '18px 18px 14px', borderRadius: 16, border: '1.5px solid var(--b1, #e8ecf4)', background: 'var(--s1, #fff)' }}>

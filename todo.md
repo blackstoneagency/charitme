@@ -14950,3 +14950,42 @@ Also fixed while landing this: my locale migration collided with master's
 `20260818000000`), and `/legal`, `/cookies`, `/accessibility` had to be added to
 `INDEXABLE_PUBLIC_ROUTES` — `route-list-single-source.test.ts` requires every
 searchable public page to appear in both the sweep list and the sitemap catalog.
+
+## ✅ DONE — landed a parallel agent's contrast fixes, and fixed the bug in one (Claude, 2026-07-31)
+
+Two files were left uncommitted in the shared working tree by a parallel agent,
+both moving a hardcoded `#ef4444` onto the AA-safe `--red-text` token. Picked up
+per the "check on other bots' work and get it pushed to main" goal line.
+
+**One of the two was broken, and it would not have shown up in any test.**
+`DonorTagEditor` builds the chip's tinted background by string-appending an alpha
+suffix: `` background: `${color}1a` ``. That only works while every `TAG_COLORS`
+entry is a bare hex literal — `#ef4444` + `1a` is a valid 8-digit hex. The moment
+one entry became `var(--red-text)`, the expression produced `var(--red-text)1a`,
+which is **invalid CSS**, so the chip silently lost its tint and rendered as bare
+text on the page background.
+
+Proved in a browser rather than argued:
+
+```
+var(--red-text)1a                                  -> rgba(0, 0, 0, 0)      ← transparent
+color-mix(in srgb, var(--red-text) 10%, transparent) -> srgb .77 .18 .29 / .1  ← correct
+#ef44441a                                          -> rgba(239,68,68,.1)   ← the old form
+```
+
+Fixed with `color-mix`, which accepts hex literals and custom properties alike,
+so the array is no longer quietly constrained to hex. `ReadinessChecklist` needed
+no change — it uses the value directly as `color`/`background` with no
+concatenation.
+
+**Generalisable:** a token migration is not a safe find-and-replace wherever the
+old value was a hex literal being *manipulated as a string*. Grep for the
+manipulation, not just the colour. This was the only instance in `app/`.
+
+**Verified:** typecheck 0 · lint 0 errors · vitest **2131/2131 across 199 files**
+· build exit 0 · computed background asserted in Chromium.
+
+**Still outstanding for whoever owns that tree:** `git stash@{0}` holds a 53-file
+work-in-progress from the parallel agent that a rebase autostash could not
+reapply against the new master. It is intact but untouched — master has moved a
+long way since, so it may now be obsolete rather than pending.
