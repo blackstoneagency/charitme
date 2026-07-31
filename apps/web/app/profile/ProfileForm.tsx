@@ -209,13 +209,13 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
                   id="pf-email"
                   value={email}
                   disabled
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-400 outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 outline-none"
                 />
-                <p className="mt-1 text-xs text-slate-400">Email cannot be changed here.</p>
+                <p className="mt-1 text-xs text-slate-500">Email cannot be changed here.</p>
               </div>
             </div>
             <div className="mt-5">
-              <label htmlFor="pf-bio" className="mb-1.5 block text-sm font-black text-slate-700">Bio <span className="font-normal text-slate-400">(optional)</span></label>
+              <label htmlFor="pf-bio" className="mb-1.5 block text-sm font-black text-slate-700">Bio <span className="font-normal text-slate-500">(optional)</span></label>
               <textarea
                 id="pf-bio"
                 value={bio}
@@ -225,7 +225,7 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
                 maxLength={500}
                 className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
               />
-              <p className="mt-1 text-right text-xs text-slate-400">{bio.length}/500</p>
+              <p className="mt-1 text-right text-xs text-slate-500">{bio.length}/500</p>
             </div>
 
             {status === 'error' && (
@@ -241,7 +241,7 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
                 {status === 'saving' ? 'Saving…' : 'Save changes'}
               </button>
               {status === 'saved' && (
-                <span className="text-sm font-bold text-emerald-600">✓ Saved successfully</span>
+                <span className="text-sm font-bold text-emerald-700">✓ Saved successfully</span>
               )}
             </div>
           </form>
@@ -270,7 +270,7 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
                 description="Occasional tips, product news, and offers from CharitMe"
               />
             </div>
-            {prefStatus === 'saved' && <p className="mt-3 text-xs font-bold text-emerald-600">✓ Preferences saved</p>}
+            {prefStatus === 'saved' && <p className="mt-3 text-xs font-bold text-emerald-700">✓ Preferences saved</p>}
             {prefStatus === 'error' && <p className="mt-3 text-xs font-bold text-red-600">Could not save. Please try again.</p>}
           </div>
 
@@ -313,7 +313,7 @@ export default function ProfileForm({ profile, email }: { profile: Profile; emai
                   <p className="mt-3 text-xs font-bold text-red-600">{pwChangeError}</p>
                 )}
                 {pwChangeStatus === 'saved' && (
-                  <p className="mt-3 text-xs font-bold text-emerald-600">✓ Password updated</p>
+                  <p className="mt-3 text-xs font-bold text-emerald-700">✓ Password updated</p>
                 )}
                 <div className="mt-3 flex items-center gap-3">
                   <button

@@ -129,7 +129,7 @@ export default async function DonorPortalPage() {
     padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,.04)',
   };
 
-  const statsColors = ['var(--violet)', 'var(--green)', '#f59e0b', 'var(--violet)'];
+  const statsColors = ['var(--brand-text)', 'var(--green-text)', 'var(--orange-text)', 'var(--brand-text)'];
 
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 24px' }}>
@@ -185,7 +185,7 @@ export default async function DonorPortalPage() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
           {taxYears.map(y => (
             <div key={y} style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--b1, #e8ecf4)', borderRadius: 'var(--r, 10px)', padding: '8px 12px' }}>
-              <Link href={`/donor/tax-statement/${y}`} style={{ fontSize: 13, fontWeight: 700, color: 'var(--violet, #6c35ff)', textDecoration: 'none' }}>
+              <Link href={`/donor/tax-statement/${y}`} style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}>
                 {y} statement
               </Link>
               <a
@@ -208,7 +208,7 @@ export default async function DonorPortalPage() {
         <div style={{ ...cardStyle, marginBottom: 24 }}>
           <h2 style={{ fontSize: 16, fontWeight: 650, margin: '0 0 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             Recurring Donations
-            <Link href="/dashboard/recurring" style={{ fontSize: 13, color: 'var(--violet, #6c35ff)', fontWeight: 700, textDecoration: 'none' }}>
+            <Link href="/dashboard/recurring" style={{ fontSize: 13, color: 'var(--brand-text)', fontWeight: 700, textDecoration: 'none' }}>
               Manage →
             </Link>
           </h2>
@@ -228,11 +228,11 @@ export default async function DonorPortalPage() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <strong style={{ color: 'var(--violet, #6c35ff)' }}>{formatCents(r.amount_cents, currencyMap.get(r.campaign_id) ?? 'usd')}/{r.cadence === 'monthly' ? 'mo' : r.cadence}</strong>
+                    <strong style={{ color: 'var(--brand-text)' }}>{formatCents(r.amount_cents, currencyMap.get(r.campaign_id) ?? 'usd')}/{r.cadence === 'monthly' ? 'mo' : r.cadence}</strong>
                     <span style={{
                       fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
                       background: r.status === 'active' ? 'rgba(22,163,74,.10)' : 'rgba(190,18,60,.08)',
-                      color: r.status === 'active' ? 'var(--green-dark, #065f46)' : 'var(--red, #be123c)',
+                      color: r.status === 'active' ? 'var(--green-text)' : 'var(--red-text)',
                     }}>{r.status}</span>
                     {r.status === 'active' && r.stripe_subscription_id && (
                       <Link href={`/dashboard/recurring/cancel?sub=${r.stripe_subscription_id}`}
@@ -256,7 +256,7 @@ export default async function DonorPortalPage() {
       />
 
       <div style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: 'var(--t3)' }}>
-        Need help with a donation? <Link href="/contact" style={{ color: 'var(--violet, #6c35ff)', fontWeight: 700 }}>Contact support</Link>
+        Need help with a donation? <Link href="/contact" style={{ color: 'var(--brand-text)', fontWeight: 700 }}>Contact support</Link>
       </div>
     </div>
   );

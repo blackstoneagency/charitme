@@ -3,11 +3,11 @@
 import React, { useMemo, useState } from 'react';
 import type { BannerSettings } from '../../../../lib/banner-settings';
 
-const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid #eef0f7', borderRadius: 14, padding: '18px 22px', marginBottom: 16 };
+const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 14, padding: '18px 22px', marginBottom: 16 };
 const btn: React.CSSProperties = { padding: '10px 20px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' };
-const btnGhost: React.CSSProperties = { padding: '9px 16px', background: 'var(--s2)', color: 'var(--t1)', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' };
-const label: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 };
-const field: React.CSSProperties = { padding: '9px 12px', borderRadius: 9, border: '1px solid #d1d5db', fontSize: 13, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box', background: 'var(--s1)', color: 'var(--t1)' };
+const btnGhost: React.CSSProperties = { padding: '9px 16px', background: 'var(--s2)', color: 'var(--t1)', border: '1px solid var(--b1)', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' };
+const label: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--t2)', marginBottom: 6 };
+const field: React.CSSProperties = { padding: '9px 12px', borderRadius: 9, border: '1px solid var(--b1)', fontSize: 13, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box', background: 'var(--s1)', color: 'var(--t1)' };
 const row: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 14 };
 
 type FontOption = { label: string; value: string };
@@ -259,7 +259,7 @@ export default function BannerClient({
         <button onClick={() => setS(saved)} disabled={busy || !dirty} style={{ ...btnGhost, opacity: busy || !dirty ? 0.5 : 1 }}>
           Discard
         </button>
-        <span style={{ fontSize: 12.5, color: dirty ? '#b45309' : 'var(--t3)', fontWeight: 700 }}>
+        <span style={{ fontSize: 12.5, color: dirty ? 'var(--orange-text)' : 'var(--t3)', fontWeight: 700 }}>
           {dirty ? 'Unsaved changes' : 'All changes saved'}
         </span>
       </div>

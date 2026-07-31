@@ -41,7 +41,7 @@ describe('the system page cannot invent a healthy reading', () => {
   it('does not paint the unknown error rate green', () => {
     // `'0%'` drove a green check mark, and an unread count produced exactly '0%'.
     const client = read('app/admin/system/_components/SystemClient.tsx');
-    expect(client).toMatch(/overview\.errorRate === '—' \? '#67718e'/);
+    expect(client).toMatch(/overview\.errorRate === '—' \? 'var\(--t3\)'/);
   });
 
   it('omits a resource bar whose inputs were not read', () => {

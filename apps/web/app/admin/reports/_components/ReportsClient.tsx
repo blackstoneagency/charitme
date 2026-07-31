@@ -40,12 +40,12 @@ type Props = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Finance: '#6c35ff',
-  Campaigns: '#ec3fb4',
-  Users: '#2f80ed',
-  Engagement: '#19b86a',
-  System: '#f59e0b',
-  Payouts: '#ff3b5f',
+  Finance: 'var(--brand-text)',
+  Campaigns: 'var(--pink-text)',
+  Users: 'var(--blue-text)',
+  Engagement: 'var(--green-text)',
+  System: 'var(--orange-text)',
+  Payouts: 'var(--red-text)',
 };
 
 export default function ReportsClient({ reports, categories, totalReports, scheduledReports, totalExports, dataPoints }: Props) {
@@ -218,7 +218,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
           </div>
 
           {/* Table header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 120px 90px 80px 80px', gap: 12, padding: '8px 20px', background: 'var(--s2)', borderTop: '1px solid #eef0f7', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: '#4b5676', textTransform: 'uppercase' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 120px 90px 80px 80px', gap: 12, padding: '8px 20px', background: 'var(--s2)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>
             <span>Report Name</span>
             <span>Category</span>
             <span>Created By</span>
@@ -237,7 +237,7 @@ export default function ReportsClient({ reports, categories, totalReports, sched
               <span style={{ fontSize: 12, fontWeight: 650, color: CATEGORY_COLORS[r.category] ?? 'var(--brand-text)' }}>
                 {r.category}
               </span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#334064' }}>{r.createdBy}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--t2)' }}>{r.createdBy}</span>
               <StatusPill>{r.status}</StatusPill>
               <span style={{ fontSize: 11, color: 'var(--t3)' }}>{r.createdOn}</span>
               <div style={{ display: 'flex', gap: 6 }}>

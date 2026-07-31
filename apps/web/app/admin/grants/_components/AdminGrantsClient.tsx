@@ -29,7 +29,7 @@ const input: React.CSSProperties = {
   padding: '9px 11px', border: '1px solid #e2e5ee', borderRadius: 9, fontSize: 13,
   background: 'var(--s1)', color: 'var(--t1)', width: '100%', boxSizing: 'border-box',
 };
-const label: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: '#4b5675', marginBottom: 4, display: 'block' };
+const label: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 4, display: 'block' };
 
 function dollarsToCents(v: string): number | null {
   const n = parseFloat(v.replace(/[^0-9.]/g, ''));
@@ -146,8 +146,8 @@ export default function AdminGrantsClient() {
       {msg && (
         <div style={{
           padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600,
-          background: msg.kind === 'ok' ? '#e8f8ee' : '#fdecec',
-          color: msg.kind === 'ok' ? '#08763b' : '#c0392b',
+          background: msg.kind === 'ok' ? 'var(--green-light)' : 'rgba(190,18,60,.12)',
+          color: msg.kind === 'ok' ? 'var(--green-text)' : 'var(--red-text)',
         }}>{msg.text}</div>
       )}
 
@@ -224,7 +224,7 @@ export default function AdminGrantsClient() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#4b5675' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
             <input type="checkbox" checked={form.verified} onChange={(e) => set('verified', e.target.checked)} />
             Verified (trusted badge + ranked first)
           </label>
@@ -242,9 +242,9 @@ export default function AdminGrantsClient() {
           All grants {loading ? '' : `(${grants.length})`}
         </h3>
         {loading ? (
-          <div style={{ color: '#8c95b2', fontSize: 13, padding: 20 }}>Loading…</div>
+          <div style={{ color: 'var(--t3)', fontSize: 13, padding: 20 }}>Loading…</div>
         ) : grants.length === 0 ? (
-          <div style={{ color: '#8c95b2', fontSize: 13, padding: 20, background: 'var(--s1)', borderRadius: 12, border: '1px solid #eef0f7' }}>
+          <div style={{ color: 'var(--t3)', fontSize: 13, padding: 20, background: 'var(--s1)', borderRadius: 12, border: '1px solid var(--line)' }}>
             No grants yet. Add your first one above — it goes live on <strong>/grants</strong> immediately.
           </div>
         ) : (
@@ -255,21 +255,21 @@ export default function AdminGrantsClient() {
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={{
                       fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-                      background: g.status === 'open' ? '#e8f8ee' : g.status === 'upcoming' ? '#eef3ff' : '#f1f2f6',
-                      color: g.status === 'open' ? '#08763b' : g.status === 'upcoming' ? '#2878ff' : '#65708f',
+                      background: g.status === 'open' ? 'var(--green-light)' : g.status === 'upcoming' ? 'var(--s3)' : 'var(--s2)',
+                      color: g.status === 'open' ? 'var(--green-text)' : g.status === 'upcoming' ? 'var(--blue-text)' : 'var(--t3)',
                     }}>{g.status}</span>
-                    {g.verified && <span style={{ fontSize: 11, fontWeight: 700, color: '#08763b' }}>✓ verified</span>}
-                    <span style={{ fontSize: 12, color: '#8c95b2' }}>{g.funder_name}</span>
+                    {g.verified && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green-text)' }}>✓ verified</span>}
+                    <span style={{ fontSize: 12, color: 'var(--t3)' }}>{g.funder_name}</span>
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--t1)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     <a href={`/grants/${g.slug}`} target="_blank" rel="noreferrer">{g.title}</a>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
-                  <button onClick={() => startEdit(g)} style={btn('#6d35ff')}>Edit</button>
-                  {g.status !== 'open' && <button onClick={() => quickStatus(g.id, 'open')} style={btn('#08763b')}>Open</button>}
-                  {g.status !== 'closed' && <button onClick={() => quickStatus(g.id, 'closed')} style={btn('#65708f')}>Close</button>}
-                  <button onClick={() => remove(g.id)} style={btn('#c0392b')}>Delete</button>
+                  <button onClick={() => startEdit(g)} style={btn('var(--brand-text)')}>Edit</button>
+                  {g.status !== 'open' && <button onClick={() => quickStatus(g.id, 'open')} style={btn('var(--green-text)')}>Open</button>}
+                  {g.status !== 'closed' && <button onClick={() => quickStatus(g.id, 'closed')} style={btn('var(--t3)')}>Close</button>}
+                  <button onClick={() => remove(g.id)} style={btn('var(--red-text)')}>Delete</button>
                 </div>
               </div>
             ))}
@@ -283,6 +283,6 @@ export default function AdminGrantsClient() {
 function btn(color: string): React.CSSProperties {
   return {
     fontSize: 12, fontWeight: 700, padding: '6px 12px', borderRadius: 8,
-    border: `1px solid ${color}33`, background: `${color}12`, color, cursor: 'pointer',
+    border: '1px solid var(--b1)', background: 'var(--s2)', color, cursor: 'pointer',
   };
 }

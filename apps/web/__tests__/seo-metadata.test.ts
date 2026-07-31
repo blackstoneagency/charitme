@@ -1,4 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The SEO override must never be able to delete a page's own metadata.
@@ -84,5 +86,18 @@ describe('seoMetadata', () => {
     });
     const meta = await seoMetadata('/', { title: 'Page default' });
     expect(meta.title).toBe('Page default');
+  });
+});
+
+describe('standalone embed metadata', () => {
+  it('uses generated metadata without nesting a second document', () => {
+    const source = readFileSync(
+      path.join(process.cwd(), 'app', 'campaigns', '[slug]', 'embed', 'page.tsx'),
+      'utf8',
+    );
+    expect(source).toContain("return { title: data?.title ?? 'Donate'");
+    expect(source).not.toContain('<html');
+    expect(source).not.toContain('<head');
+    expect(source).not.toContain('<body');
   });
 });

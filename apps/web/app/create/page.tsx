@@ -2354,9 +2354,9 @@ function scoreLabel(total: number) {
 }
 
 function scoreColor(total: number) {
-  if (total >= 70) return '#16a34a';
-  if (total >= 50) return '#ca8a04';
-  return '#dc2626';
+  if (total >= 70) return 'var(--green-text)';
+  if (total >= 50) return 'var(--orange-text)';
+  return 'var(--red-text)';
 }
 
 function ScorePill({ state, label }: { state: ScoreState; label: string }) {

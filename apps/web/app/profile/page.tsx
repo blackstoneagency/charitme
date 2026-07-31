@@ -167,10 +167,10 @@ export default async function ProfilePage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-4 text-xs font-bold text-emerald-600">🎉 You&apos;ve reached the top giving level!</div>
+                  <div className="mt-4 text-xs font-bold text-emerald-700">🎉 You&apos;ve reached the top giving level!</div>
                 )}
                 {monthStreak >= 2 && (
-                  <div className="mt-4 inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-orange-600">
+                  <div className="mt-4 inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-orange-800">
                     🔥 {monthStreak}-month giving streak
                   </div>
                 )}

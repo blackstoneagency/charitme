@@ -540,8 +540,8 @@ export default function AdminCampaignsClient({
               style={{
                 display: 'flex', alignItems: 'center', gap: 14,
                 padding: '16px 18px', borderRadius: 14, textAlign: 'left',
-                background: isActive ? m.tone : '#fff',
-                border: `2px solid ${isActive ? m.tone : '#eef0f7'}`,
+                background: isActive ? m.tone : 'var(--s1)',
+                border: `2px solid ${isActive ? m.tone : 'var(--line)'}`,
                 cursor: 'pointer', transition: 'all .15s',
                 boxShadow: isActive ? `0 4px 14px ${m.tone}33` : '0 1px 4px rgba(0,0,0,.06)',
               }}
@@ -555,13 +555,13 @@ export default function AdminCampaignsClient({
                 <KFIcon name={m.icon} />
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: isActive ? 'rgba(255,255,255,.92)' : '#94a3b8', letterSpacing: '.04em', marginBottom: 2 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: isActive ? '#fff' : 'var(--t3)', letterSpacing: '.04em', marginBottom: 2 }}>
                   {m.label.toUpperCase()}
                 </div>
-                <div style={{ fontSize: 24, fontWeight: 700, color: isActive ? '#fff' : '#1a1a2e', lineHeight: 1 }}>
+                <div style={{ fontSize: 24, fontWeight: 700, color: isActive ? '#fff' : 'var(--t1)', lineHeight: 1 }}>
                   {m.value}
                 </div>
-                <div style={{ fontSize: 11, color: isActive ? 'rgba(255,255,255,.92)' : '#94a3b8', marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: isActive ? '#fff' : 'var(--t3)', marginTop: 2 }}>
                   {m.sub}
                 </div>
               </div>

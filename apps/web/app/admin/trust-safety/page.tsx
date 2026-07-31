@@ -27,18 +27,20 @@ type CampaignReport = {
   campaigns: { title: string; slug: string } | null;
 };
 
-const SEV_COLOR: Record<string, string> = {
-  critical: '#ef4444',
-  high: '#f97316',
-  medium: '#f59e0b',
-  low: '#6b7280',
+type Tone = { color: string; background: string };
+
+const SEV_TONE: Record<string, Tone> = {
+  critical: { color: 'var(--red-text)', background: 'var(--red-soft)' },
+  high: { color: 'var(--orange-text)', background: 'var(--orange-soft)' },
+  medium: { color: 'var(--orange-text)', background: 'var(--orange-soft)' },
+  low: { color: 'var(--t3)', background: 'var(--s2)' },
 };
 
-const STATUS_COLOR: Record<string, string> = {
-  open: '#f59e0b',
-  investigating: '#6c35ff',
-  resolved: '#19b86a',
-  dismissed: '#6b7280',
+const STATUS_TONE: Record<string, Tone> = {
+  open: { color: 'var(--orange-text)', background: 'var(--orange-soft)' },
+  investigating: { color: 'var(--brand-text)', background: 'var(--s3)' },
+  resolved: { color: 'var(--green-text)', background: 'var(--green-light)' },
+  dismissed: { color: 'var(--t3)', background: 'var(--s2)' },
 };
 
 export default async function TrustSafetyPage() {
@@ -75,7 +77,10 @@ export default async function TrustSafetyPage() {
   const reportsTotal = reportsResult.count ?? reports.length;
   const frozen = frozenResult.data ?? [];
 
-  const sev = (s: string) => SEV_COLOR[s] ?? '#6b7280';
+  const severityTone = (severity: string): Tone =>
+    SEV_TONE[severity] ?? { color: 'var(--t3)', background: 'var(--s2)' };
+  const statusTone = (status: string): Tone =>
+    STATUS_TONE[status] ?? { color: 'var(--t3)', background: 'var(--s2)' };
 
   return (
     <CharitMeShell active="Trust & Safety" mode="admin">
@@ -131,9 +136,9 @@ export default async function TrustSafetyPage() {
                         </Link>
                       ) : <span style={{ color: 'var(--t3)' }}>Unknown</span>}
                     </td>
-                    <td style={{ padding: '12px 16px', color: '#334064' }}>{f.flag_type.replace(/_/g, ' ')}</td>
+                    <td style={{ padding: '12px 16px', color: 'var(--t2)' }}>{f.flag_type.replace(/_/g, ' ')}</td>
                     <td style={{ padding: '12px 16px' }}>
-                      <span style={{ background: sev(f.severity) + '18', color: sev(f.severity), padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, textTransform: 'capitalize' }}>
+                      <span style={{ background: severityTone(f.severity).background, color: severityTone(f.severity).color, padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, textTransform: 'capitalize' }}>
                         {f.severity}
                       </span>
                     </td>
@@ -181,9 +186,9 @@ export default async function TrustSafetyPage() {
                         </Link>
                       ) : <span style={{ color: 'var(--t3)' }}>Unknown</span>}
                     </td>
-                    <td style={{ padding: '12px 16px', color: '#334064' }}>{r.reason}</td>
+                    <td style={{ padding: '12px 16px', color: 'var(--t2)' }}>{r.reason}</td>
                     <td style={{ padding: '12px 16px' }}>
-                      <span style={{ background: (STATUS_COLOR[r.status] ?? '#6b7280') + '18', color: STATUS_COLOR[r.status] ?? '#6b7280', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, textTransform: 'capitalize' }}>
+                      <span style={{ background: statusTone(r.status).background, color: statusTone(r.status).color, padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, textTransform: 'capitalize' }}>
                         {r.status}
                       </span>
                     </td>
@@ -192,7 +197,7 @@ export default async function TrustSafetyPage() {
                     </td>
                     <td style={{ padding: '12px 16px', display: 'flex', gap: 8 }}>
                       <Link href={`/admin/campaigns?report=${r.id}`}
-                        style={{ fontSize: 12, padding: '5px 12px', background: '#f0f4ff', color: 'var(--brand-text)', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}>
+                        style={{ fontSize: 12, padding: '5px 12px', background: 'var(--s2)', color: 'var(--brand-text)', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}>
                         Review
                       </Link>
                     </td>

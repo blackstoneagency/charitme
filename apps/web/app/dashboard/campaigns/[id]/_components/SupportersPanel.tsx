@@ -151,9 +151,9 @@ export default function SupportersPanel({
           {data.templates.map(t => (
             <button key={t.key} onClick={() => pickTemplate(t.key)}
               style={{ padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 650, cursor: 'pointer',
-                border: `1.5px solid ${templateKey === t.key ? 'var(--violet)' : 'var(--b2)'}`,
-                background: templateKey === t.key ? 'rgba(108,53,255,.08)' : 'var(--s1)',
-                color: templateKey === t.key ? 'var(--violet)' : 'var(--t2)' }}>
+                border: `1.5px solid ${templateKey === t.key ? 'var(--brand-text)' : 'var(--b2)'}`,
+                background: templateKey === t.key ? 'var(--s3)' : 'var(--s1)',
+                color: templateKey === t.key ? 'var(--brand-text)' : 'var(--t2)' }}>
               {t.label}
             </button>
           ))}
@@ -168,9 +168,9 @@ export default function SupportersPanel({
           {data.targetGroups.map(g => (
             <button key={g.key} onClick={() => setTargetGroup(g.key)} title={g.description}
               style={{ padding: '8px 14px', borderRadius: 999, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-                border: `1.5px solid ${targetGroup === g.key ? 'var(--violet)' : 'var(--b2)'}`,
-                background: targetGroup === g.key ? 'rgba(108,53,255,.08)' : 'var(--s1)',
-                color: targetGroup === g.key ? 'var(--violet)' : 'var(--t2)' }}>
+                border: `1.5px solid ${targetGroup === g.key ? 'var(--brand-text)' : 'var(--b2)'}`,
+                background: targetGroup === g.key ? 'var(--s3)' : 'var(--s1)',
+                color: targetGroup === g.key ? 'var(--brand-text)' : 'var(--t2)' }}>
               {g.label} · {data.targetCounts[g.key] ?? 0}
             </button>
           ))}

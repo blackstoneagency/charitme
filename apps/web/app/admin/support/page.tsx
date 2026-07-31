@@ -16,18 +16,18 @@ type SupportCase = {
   profiles: { full_name: string | null; email: string | null } | null;
 };
 
-const PRIORITY_COLOR: Record<string, string> = {
-  urgent: '#ef4444',
-  high: '#f97316',
-  normal: '#6c35ff',
-  low: '#6b7280',
+const PRIORITY_TONE: Record<string, { color: string; background: string }> = {
+  urgent: { color: 'var(--red-text)', background: 'var(--red-soft)' },
+  high: { color: 'var(--orange-text)', background: 'var(--orange-soft)' },
+  normal: { color: 'var(--brand-text)', background: 'var(--s3)' },
+  low: { color: 'var(--t3)', background: 'var(--s2)' },
 };
 
-const STATUS_COLOR: Record<string, string> = {
-  open: '#f59e0b',
-  in_progress: '#6c35ff',
-  resolved: '#19b86a',
-  closed: '#6b7280',
+const STATUS_TONE: Record<string, { color: string; background: string }> = {
+  open: { color: 'var(--orange-text)', background: 'var(--orange-soft)' },
+  in_progress: { color: 'var(--brand-text)', background: 'var(--s3)' },
+  resolved: { color: 'var(--green-text)', background: 'var(--green-light)' },
+  closed: { color: 'var(--t3)', background: 'var(--s2)' },
 };
 
 function CaseTable({ cases, title }: { cases: SupportCase[]; title: string }) {
@@ -59,16 +59,16 @@ function CaseTable({ cases, title }: { cases: SupportCase[]; title: string }) {
                     {(c.profiles as { email?: string | null } | null)?.email ?? ''}
                   </div>
                 </td>
-                <td style={{ padding: '12px 16px', color: '#334064', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <td style={{ padding: '12px 16px', color: 'var(--t2)', maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {c.subject}
                 </td>
                 <td style={{ padding: '12px 16px' }}>
-                  <span style={{ background: (PRIORITY_COLOR[c.priority] ?? '#6b7280') + '18', color: PRIORITY_COLOR[c.priority] ?? '#6b7280', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'capitalize' }}>
+                  <span style={{ background: PRIORITY_TONE[c.priority]?.background ?? 'var(--s2)', color: PRIORITY_TONE[c.priority]?.color ?? 'var(--t3)', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'capitalize' }}>
                     {c.priority}
                   </span>
                 </td>
                 <td style={{ padding: '12px 16px' }}>
-                  <span style={{ background: (STATUS_COLOR[c.status] ?? '#6b7280') + '18', color: STATUS_COLOR[c.status] ?? '#6b7280', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'capitalize' }}>
+                  <span style={{ background: STATUS_TONE[c.status]?.background ?? 'var(--s2)', color: STATUS_TONE[c.status]?.color ?? 'var(--t3)', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'capitalize' }}>
                     {c.status.replace(/_/g, ' ')}
                   </span>
                 </td>

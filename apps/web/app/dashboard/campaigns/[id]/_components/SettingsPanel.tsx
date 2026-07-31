@@ -259,8 +259,8 @@ export default function SettingsPanel({ campaignId }: { campaignId: string }) {
         <button
           onClick={deleteCampaign}
           style={{
-            background: 'none', border: '1.5px solid var(--red)',
-            color: 'var(--red)', borderRadius: 10,
+            background: 'none', border: '1.5px solid var(--red-text)',
+            color: 'var(--red-text)', borderRadius: 10,
             padding: '10px 24px', fontWeight: 650, fontSize: 14, cursor: 'pointer',
           }}
         >

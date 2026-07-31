@@ -265,7 +265,7 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
             <React.Fragment key={step.label}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 78 }}>
                 <span style={{ fontSize: 22 }}>{step.icon}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#334064', textAlign: 'center', lineHeight: 1.3 }}>{step.label}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--t2)', textAlign: 'center', lineHeight: 1.3 }}>{step.label}</span>
               </div>
               {i < PIPELINE_STEPS.length - 1 && <span style={{ color: '#cbd5e1', fontSize: 18, fontWeight: 900 }}>→</span>}
             </React.Fragment>
@@ -486,11 +486,11 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
                     <td style={{ padding: '12px 16px', minWidth: 190 }}>
                       {l.enriched_at ? (
                         <div style={{ display: 'grid', gap: 2, fontSize: 12.5 }}>
-                          {l.website ? <a href={l.website} target="_blank" rel="noopener noreferrer" style={{ color: '#0ea5e9', textDecoration: 'none' }}>🌐 {l.website.replace(/^https?:\/\//, '')}</a> : <span style={{ color: '#cbd5e1' }}>🌐 —</span>}
-                          {l.email ? <a href={`mailto:${l.email}`} style={{ color: 'var(--brand-text)', textDecoration: 'none' }}>✉️ {l.email}</a> : <span style={{ color: '#cbd5e1' }}>✉️ —</span>}
-                          {l.phone ? <span style={{ color: '#334064' }}>📞 {l.phone}</span> : <span style={{ color: '#cbd5e1' }}>📞 —</span>}
+                          {l.website ? <a href={l.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue-text)', textDecoration: 'none' }}>🌐 {l.website.replace(/^https?:\/\//, '')}</a> : <span style={{ color: 'var(--t3)' }}>🌐 —</span>}
+                          {l.email ? <a href={`mailto:${l.email}`} style={{ color: 'var(--brand-text)', textDecoration: 'none' }}>✉️ {l.email}</a> : <span style={{ color: 'var(--t3)' }}>✉️ —</span>}
+                          {l.phone ? <span style={{ color: 'var(--t2)' }}>📞 {l.phone}</span> : <span style={{ color: 'var(--t3)' }}>📞 —</span>}
                           {l.marketing_contact_id && (
-                            <a href="/admin/marketing?tab=campaigns" title="Targetable via the 'New Business Leads' segment" style={{ color: '#8b5cf6', textDecoration: 'none', fontWeight: 700 }}>
+                            <a href="/admin/marketing?tab=campaigns" title="Targetable via the 'New Business Leads' segment" style={{ color: 'var(--brand-text)', textDecoration: 'none', fontWeight: 700 }}>
                               📣 In Marketing
                             </a>
                           )}
@@ -557,15 +557,15 @@ export default function NewCustomersClient({ initialLeads, stats }: { initialLea
 
 const selectStyle: React.CSSProperties = {
   padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 13,
-  background: 'var(--s1)', color: '#334064', cursor: 'pointer',
+  background: 'var(--s1)', color: 'var(--t2)', cursor: 'pointer',
 };
 
 function btnPrimary(disabled: boolean): React.CSSProperties {
-  return { padding: '9px 16px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 13, cursor: disabled ? 'default' : 'pointer', background: 'linear-gradient(135deg,#19b86a,#0f9454)', color: '#fff', opacity: disabled ? 0.6 : 1 };
+  return { padding: '9px 16px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 13, cursor: disabled ? 'default' : 'pointer', background: 'linear-gradient(135deg,var(--green-btn),#075c31)', color: '#fff', opacity: disabled ? 0.6 : 1 };
 }
 function btnSecondary(disabled: boolean): React.CSSProperties {
   return { padding: '9px 16px', borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 13, cursor: disabled ? 'default' : 'pointer', background: '#6c35ff', color: '#fff', opacity: disabled ? 0.5 : 1 };
 }
 function btnGhost(disabled: boolean): React.CSSProperties {
-  return { padding: '9px 16px', borderRadius: 10, border: '1px solid #e2e8f0', fontWeight: 800, fontSize: 13, cursor: disabled ? 'default' : 'pointer', background: 'var(--s1)', color: '#334064', opacity: disabled ? 0.6 : 1 };
+  return { padding: '9px 16px', borderRadius: 10, border: '1px solid var(--line)', fontWeight: 800, fontSize: 13, cursor: disabled ? 'default' : 'pointer', background: 'var(--s1)', color: 'var(--t2)', opacity: disabled ? 0.6 : 1 };
 }
