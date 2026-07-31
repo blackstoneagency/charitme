@@ -14,6 +14,7 @@ import UpdatesPanel from '../../../dashboard/campaigns/[id]/_components/UpdatesP
 import AnalyticsPanel from '../../../dashboard/campaigns/[id]/_components/AnalyticsPanel';
 import SettingsPanel from '../../../dashboard/campaigns/[id]/_components/SettingsPanel';
 import { QrPosterPanel } from '../../../dashboard/campaigns/[id]/_components/CampaignWorkspace';
+import { campaignTimeLabel } from '../../../../lib/campaign-lifecycle';
 
 // ─────────────────────────────────────────────────────────
 // Types
@@ -749,7 +750,11 @@ export default function AdminCampaignsClient({
               <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
                 {[
                   { label: 'Backers', value: selected.backerCount.toLocaleString() },
-                  { label: 'Deadline', value: days === null ? '—' : days === 0 ? 'Ended' : `${days} days left` },
+                  // Shared with the public campaign page, and it consults `status`.
+                  // The previous version read the deadline alone, so a completed
+                  // campaign with a future date showed "136 days left" directly
+                  // beside a status pill saying otherwise.
+                  { label: 'Deadline', value: selected.deadline === null ? '—' : campaignTimeLabel({ status: selected.status, deadline: selected.deadline }) },
                   { label: 'Organizer', value: selected.organizer },
                   // 0 means "never scored" — campaign_health_score defaults to 0 and
                   // only a manual admin edit writes it — so rendering "0/100" made

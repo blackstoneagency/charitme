@@ -31,6 +31,7 @@ import CampaignAssistant from '../CampaignAssistant';
 import { getPhotosForCategory, getCoverForCampaign } from '../../../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../../../lib/img-optimize';
 import { optimizeAsks, computeImpact } from '../../../../lib/donation-optimizer';
+import { campaignLifecycle, campaignTimeLabel } from '../../../../lib/campaign-lifecycle';
 
 export const dynamic = 'force-dynamic';
 
@@ -366,11 +367,18 @@ export default async function CampaignPage({ params, searchParams }: Props) {
   const trustScore = calculateTrustScore(trustInput);
   const trustSignals = getTrustSignals(trustInput).slice(0, 5);
   const organizer = asProfile(campaign.profiles);
-  const daysLeft: number | null = campaign.deadline
-    ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - RENDER_TIME) / 86_400_000))
-    : null;
   const acceptDonations = (campaign as { accept_donations?: boolean }).accept_donations !== false;
-  const isActive = campaign.status === 'active' && (daysLeft === null || daysLeft > 0) && acceptDonations;
+  // Countdown and call-to-action derive from ONE lifecycle. Computing them
+  // separately is how this panel rendered "136 days left" directly above
+  // "This campaign has ended." — the countdown read the deadline alone while the
+  // CTA also read status. See lib/campaign-lifecycle.ts.
+  const lifecycleInput = {
+    status: campaign.status,
+    deadline: campaign.deadline,
+    acceptDonations,
+  };
+  const timeLabel = campaignTimeLabel(lifecycleInput, RENDER_TIME);
+  const isActive = campaignLifecycle(lifecycleInput, RENDER_TIME) === 'active';
   const cover = campaign.cover_image_url || getCoverForCampaign(campaign.category, campaign.slug);
   const videoUrl: string | null = (campaign as { video_url?: string | null }).video_url ?? null;
   const ORIGIN = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.charitme.com';
@@ -766,7 +774,7 @@ export default async function CampaignPage({ params, searchParams }: Props) {
             <div className="pc-progress"><span style={{ width: `${pct}%` }} /></div>
             <div className="pc-statline">
               <span><b style={{ color: 'var(--t1)' }}>{campaign.backer_count ?? donations.length}</b> donations</span>
-              <span>{daysLeft !== null ? `${daysLeft} days left` : 'No deadline'}</span>
+              <span>{timeLabel}</span>
             </div>
 
             <Milestones milestones={milestones} raisedCents={raised} currency={currency} />
