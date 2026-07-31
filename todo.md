@@ -4990,7 +4990,68 @@ Not "a page renders". Each must clear the bars this repo already enforces:
 - **Cause taxonomy**: the design's 20 causes vs `CAMPAIGN_CATEGORIES`. Extend the
   shared list, or map labels to existing categories?
 
-_Status: gap analysis complete and pushed. Build in progress, page by page._
+### ✅ Status — nav + all 11 pages BUILT and verified (2026-07-31)
+
+Everything in sections 1 and 2 above is done. Verified against a **production
+build**, not a dev server:
+
+| check | result |
+|---|---|
+| header hit-test, 6 widths × 2 themes | **ALL CLEAR** — 0 obscured, 0 overflow, 0 undersized |
+| `e2e/header-nav.spec.ts` | **20/20** |
+| axe WCAG 2.0/2.1/2.2 A+AA, both themes | **0 violations** across 60 public routes |
+| `audit:contrast` | **0 AA failures**, 59 pages × 2 themes, 5,960 elements each |
+| `audit:responsive` | **0 regressions**, 59 pages × 3 viewports × 2 themes |
+| unit tests / typecheck / lint / build | **2212 pass**, all clean |
+
+**Nav.** Six top-level items + two mega-dropdowns, structure in `lib/main-nav.ts`
+so the desktop bar and mobile sheet derive from one source. Two real bugs were
+caught by hit-testing that a screenshot showed as perfectly normal:
+- `.kind-header nav a` styled the panel links too (panels live inside `<nav>`);
+  `white-space: nowrap` stretched each Resources link to 478px inside a 200px
+  column, putting column 1 on top of column 2 — **4 of 12 Resources links were
+  unclickable at every desktop width**. Fixed by scoping to `nav > a`.
+- Hover opened the panel and the click handler immediately closed it again.
+
+**Breakpoint improvement.** Collapse threshold measured down from 1365px →
+1199px (first clean width is 1180px; 1200 keeps headroom). **1280px laptops get
+real navigation back** instead of a hamburger.
+
+**Pages built (11 + 1).** `/causes`, `/causes/[slug]` (20 cause pages),
+`/fundraising-guide`, `/impact-education`, `/reports`, `/donate`, `/partner`,
+`/verification`, `/corporate-partnerships`, `/get-involved`, `/careers`,
+`/gallery`. All registered in **both** `e2e/public-routes.json` and the sitemap
+catalog in `lib/public-routes.ts` — two existing guards caught that omission.
+
+**Cause taxonomy — resolved.** `lib/causes.ts` maps the design's 20 causes onto
+`CAMPAIGN_CATEGORIES` rather than becoming a fourth hardcoded list. Where a
+cause is *narrower* than anything the schema records (Mental Health is a slice
+of Medical, and nothing tags that slice), the page says so — otherwise Mental
+Health and Medical Research would render identical campaign lists while each
+implying it had filtered something. 15 tests, both guards mutation-tested.
+
+**Nothing here fabricates a figure.** `/reports` reuses `getHomeData` +
+`shouldShowPlatformMetrics` so it cannot disagree with the homepage, and renders
+an em-dash — explicitly *not* a zero — when a value could not be measured.
+`/careers` lists no openings because there are none. `/donate`, `/gallery` and
+the cause pages each distinguish "query failed" from "genuinely empty".
+
+Also fixed en route: `.kind-signin` was a 21px tap target (WCAG 2.2 target-size
+failure in the header of every signed-out page); the campaign card was extracted
+to `components/CampaignCard.tsx`, which immediately exposed that `/campaigns`
+never selected `status` and would have rendered every card as "Ended".
+
+### ⛔ Still open — needs an owner decision, not more code
+
+- **i18n / "all languages".** There is still **no translation layer** in this
+  repo — no message catalogue, no `next-intl`-style provider. The footer locale
+  picker sets a preference nothing consumes. Adding one is a platform-wide
+  architecture change touching every string on every page, and the choice of
+  library, routing strategy (`/es/...` vs cookie), and which languages to
+  actually staff for are all owner calls. **This is the one part of the
+  design-mirror goal that is not done, and it cannot be honestly estimated
+  until those are decided.** It is called out here rather than quietly marked
+  complete.
 
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
