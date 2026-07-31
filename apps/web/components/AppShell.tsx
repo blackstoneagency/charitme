@@ -9,17 +9,11 @@ import { ThemeToggle } from './ThemeProvider';
 import AnnouncementBanner, { type Announcement, type BannerAppearance } from './AnnouncementBanner';
 import FooterLocalePicker from './FooterLocalePicker';
 import { FOOTER_LEGAL_BAR, FOOTER_SETTINGS_DEFAULTS, resolveFooterSections, type FooterSettings } from '../lib/footer-nav';
+import { MAIN_NAV, flattenNav, type NavItem } from '../lib/main-nav';
 
-const NAV = [
-  ['Home', '/'],
-  ['AI Fundraising', '/ai-fundraising'],
-  ['How It Works', '/how-it-works'],
-  ['Pricing', '/pricing'],
-  ['Success Stories', '/success-stories'],
-  ['About Us', '/about-us'],
-  ['Blog', '/blog'],
-  ['Contact Us', '/contact'],
-] as const;
+// Structure lives in lib/main-nav.ts so the desktop bar and the mobile sheet
+// render from ONE source. When each held its own list, a link added to one
+// silently missed the other; `flattenNav()` derives the mobile list instead.
 
 const ACCOUNT_MENU = [
   ['Dashboard', '/dashboard'],
@@ -52,6 +46,126 @@ const SHELL_BYPASS = ['/dashboard', '/admin', '/profile'];
 // page.
 export function isEmbedRoute(path: string): boolean {
   return /^\/campaigns\/[^/]+\/embed\/?$/.test(path);
+}
+
+/**
+ * One header dropdown.
+ *
+ * Opens on hover AND on click/keyboard, because hover alone is unusable by
+ * keyboard and touch. The trigger is a real <button> with aria-expanded and
+ * aria-controls so assistive tech announces the panel as an expandable region;
+ * a <div> with a click handler would announce nothing.
+ *
+ * `onDismiss` returns focus to the trigger — Escape that drops focus to the top
+ * of the document strands a keyboard user who was midway through the header.
+ */
+function NavMenu({
+  item,
+  open,
+  onOpen,
+  onClose,
+  align,
+}: {
+  item: Extract<NavItem, { kind: 'menu' }>;
+  open: boolean;
+  onOpen: () => void;
+  onClose: (returnFocus?: boolean) => void;
+  align: 'left' | 'right';
+}) {
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // Whether the panel currently open was opened by hover rather than by a click.
+  //
+  // Without this, a mouse user hovers the trigger (panel opens), clicks it, and
+  // the click handler sees `open === true` and closes it again — the menu
+  // flickers shut at the exact moment they tried to use it. It also made the
+  // e2e spec non-deterministic: Playwright moves the pointer before clicking,
+  // so whether the hover landed first decided the result, and the suite failed
+  // at 1440px while passing at 1280/1366/1920.
+  const hoverOpened = useRef(false);
+
+  // Escape is bound at the document rather than via onKeyDown on the wrapper:
+  // the wrapper is a plain <div>, and hanging a key handler on it makes it a
+  // non-native interactive element that keyboard users cannot reach in the
+  // first place. Bound here rather than in AppShell so this component can
+  // return focus to its own trigger — an Escape that drops focus to the top of
+  // the document strands someone midway through the header.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      onClose(true);
+      triggerRef.current?.focus();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  return (
+    // Hover here is a pure enhancement layered on top of a fully operable
+    // <button> — the menu opens and closes by click, Enter, Space and Escape
+    // without it, and the panel's links are ordinary anchors. The rule fires on
+    // any handler on a static element; adding a role to a div that exists only
+    // to scope mouseleave across trigger+panel would announce a widget that
+    // isn't one.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+    <div
+      className="kind-menu-wrap"
+      onMouseEnter={() => { hoverOpened.current = !open; onOpen(); }}
+      onMouseLeave={() => { hoverOpened.current = false; onClose(false); }}
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        className={`kind-menu-trigger${open ? ' open' : ''}`}
+        aria-expanded={open}
+        aria-controls={`nav-panel-${item.id}`}
+        onClick={() => {
+          // A click on a panel that hover already opened means "I want this
+          // open", not "close it". Claiming it for the click makes the NEXT
+          // click close it, so the toggle still works.
+          if (open && !hoverOpened.current) { onClose(false); return; }
+          hoverOpened.current = false;
+          onOpen();
+        }}
+      >
+        {item.label}
+        <svg className="kind-menu-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+
+      {/* Rendered only when open. Keeping it mounted and hidden with CSS would
+          leave up to 20 links in the tab order on every page of the site. */}
+      {open && (
+        <div id={`nav-panel-${item.id}`} className={`kind-menu-panel align-${align}`}>
+          <div className="kind-menu-cols" data-cols={item.columns.length}>
+            {item.columns.map((col) => (
+              <div key={col.heading} className="kind-menu-col">
+                <h2 className="kind-menu-heading">{col.heading}</h2>
+                <ul>
+                  {col.links.map((link) => (
+                    <li key={`${col.heading}-${link.href}-${link.label}`}>
+                      <Link href={link.href} onClick={() => onClose(false)}>
+                        <span className="kind-menu-label">{link.label}</span>
+                        {link.description && (
+                          <span className="kind-menu-desc">{link.description}</span>
+                        )}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                {col.footer && (
+                  <Link className="kind-menu-more" href={col.footer.href} onClick={() => onClose(false)}>
+                    {col.footer.label} <span aria-hidden="true">→</span>
+                  </Link>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Logo() {
@@ -164,8 +278,10 @@ export function AppShell({
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const accountRef = useRef<HTMLDivElement | null>(null);
+  const navRef = useRef<HTMLElement | null>(null);
   const supabase = useMemo(() => createClient(), []);
   const bypass = SHELL_BYPASS.some((p) => path === p || path.startsWith(p + '/')) || isEmbedRoute(path);
 
@@ -196,6 +312,30 @@ export function AppShell({
     return () => { cancelled = true; };
   }, [user, path]);
 
+  // Close both menus on navigation — a dropdown left open across a route change
+  // hangs over the new page. Done during render rather than in an effect: the
+  // effect version calls setState synchronously on every path change, which
+  // triggers a second render pass (and trips the lint rule that exists to catch
+  // exactly that). This is React's documented "adjust state while rendering"
+  // pattern, and it discards the stale render instead of committing it.
+  const [lastPath, setLastPath] = useState(path);
+  if (path !== lastPath) {
+    setLastPath(path);
+    setOpenMenu(null);
+    setMenuOpen(false);
+  }
+
+  // Outside click closes whichever mega-menu is open. Escape is handled inside
+  // NavMenu so it can also restore focus to the trigger it came from.
+  useEffect(() => {
+    if (!openMenu) return;
+    const onDown = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpenMenu(null);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [openMenu]);
+
   // Close the account dropdown on outside click
   useEffect(() => {
     if (!accountOpen) return;
@@ -218,13 +358,27 @@ export function AppShell({
       <header className="kind-header">
         <div className="container">
           <Logo />
-          <nav>
-            {NAV.map(([label, href]) => (
-              <Link key={href} href={href} className={path === href ? 'active' : ''}>
-                {label}
-                {label === 'AI Fundraising' && <span className="kind-new">New</span>}
-              </Link>
-            ))}
+          <nav ref={navRef} aria-label="Main">
+            {MAIN_NAV.map((item) =>
+              item.kind === 'link' ? (
+                <Link key={item.href} href={item.href} className={path === item.href ? 'active' : ''}>
+                  {item.label}
+                  {item.isNew && <span className="kind-new">New</span>}
+                </Link>
+              ) : (
+                <NavMenu
+                  key={item.id}
+                  item={item}
+                  open={openMenu === item.id}
+                  onOpen={() => setOpenMenu(item.id)}
+                  onClose={() => setOpenMenu(null)}
+                  // Resources is three columns wide; left-aligning it under a
+                  // trigger that sits near the end of the bar pushes the panel
+                  // off the right edge of the viewport.
+                  align={item.id === 'resources' ? 'right' : 'left'}
+                />
+              ),
+            )}
           </nav>
           <div className="kind-auth">
             <ThemeToggle />
@@ -289,7 +443,17 @@ export function AppShell({
         </div>
         {menuOpen && (
           <div className="kind-mobile">
-            {NAV.map(([label, href]) => <Link key={href} href={href} onClick={() => setMenuOpen(false)}>{label}</Link>)}
+            {/* Derived from MAIN_NAV, not a second hand-kept list. The headings
+                come through so the twenty cause links and twelve resource links
+                are not one undifferentiated column. */}
+            {flattenNav().map((link, i, all) => (
+              <React.Fragment key={`${link.heading ?? ''}-${link.href}-${link.label}`}>
+                {link.heading && link.heading !== all[i - 1]?.heading && (
+                  <span className="kind-mobile-heading">{link.heading}</span>
+                )}
+                <Link href={link.href} onClick={() => setMenuOpen(false)}>{link.label}</Link>
+              </React.Fragment>
+            ))}
             {user ? (
               <>
                 {ACCOUNT_MENU.map(([label, href]) => (
