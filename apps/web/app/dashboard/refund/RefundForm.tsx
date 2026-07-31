@@ -252,7 +252,11 @@ export default function RefundForm({
                       <span
                         style={{
                           background: 'rgba(245,158,11,.12)',
-                          color: '#c2410c',
+                          // #c2410c is a light-mode orange. Over the translucent
+                          // amber tint on a dark page it composites to 2.86:1
+                          // (caught by audit:signed-in). --orange-text is the
+                          // accent-as-text pair that flips per theme.
+                          color: 'var(--orange-text, #c2410c)',
                           padding: '1px 8px',
                           borderRadius: 6,
                           fontWeight: 700,
