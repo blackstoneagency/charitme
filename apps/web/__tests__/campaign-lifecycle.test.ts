@@ -156,8 +156,15 @@ describe('no surface re-implements the countdown', () => {
     };
 
     const offenders: string[] = [];
-    for (const dir of ['app', 'components']) {
+    // `lib` included deliberately: the first version of this guard walked only
+    // app/ and components/, and a TENTH copy was sitting in lib/home-data.ts —
+    // a guard is only as broad as the directories it looks in.
+    for (const dir of ['app', 'components', 'lib']) {
       for (const file of walk(join(process.cwd(), dir))) {
+        // The shared helper is the ONE place allowed to build the label; that is
+        // the entire point of it. Excluded by exact path, not by a pattern that
+        // could accidentally exempt a future file.
+        if (file.endsWith(join('lib', 'campaign-lifecycle.ts'))) continue;
         const src = readFileSync(file, 'utf8');
         // A template literal that prints "<something> days left" is the shape
         // that shipped the contradiction. Comments quoting the bug are fine.

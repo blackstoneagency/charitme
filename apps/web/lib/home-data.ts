@@ -8,6 +8,7 @@ import type { HomeCampaign, StoryFilters, StoryFilterValue } from './home-types'
 import { formatHomeCents, normalizeStoryFilters, shortHomeCount } from './home-utils';
 import { campaignColumns, applyLiveFilters } from './campaign-visibility';
 import { selectRotatorCampaigns } from './featured';
+import { campaignDaysLeft } from './campaign-lifecycle';
 
 const INDIVIDUAL_CATEGORIES: string[] = CAMPAIGN_CATEGORIES.filter(category =>
   !['Nonprofit', 'Community', 'Environment', 'Volunteer', 'Event'].includes(category),
@@ -343,9 +344,11 @@ async function getHomeDataUncached(filters: StoryFilters): Promise<{
   const heroCampaign = featuredCampaigns[0] ?? null;
   const raisedTotal = heroCampaign?.raised_amount ?? 0;
   const goalTotal = heroCampaign?.goal_amount ?? 1;
-  const daysLeft = heroCampaign?.deadline
-    ? Math.max(0, Math.ceil((new Date(heroCampaign.deadline).getTime() - Date.now()) / 86_400_000))
-    : 0;
+  // Shared helper, not a tenth private copy. Currently no consumer renders this
+  // — app/page.tsx does not destructure it — but an unrendered copy is exactly
+  // what a future caller picks up and ships, so it stays consistent with every
+  // other surface rather than being left to drift.
+  const daysLeft = campaignDaysLeft(heroCampaign?.deadline) ?? 0;
 
   return {
     heroCampaign,
