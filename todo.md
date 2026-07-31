@@ -4908,6 +4908,90 @@ This converts an owner-gated blocker into a single command. Columns stay NULLABL
 tightening to NOT NULL belongs in a later migration, once the printed counts look
 right.
 
+## 🚧 DESIGN-MIRROR BUILD — nav dropdowns + 11 missing pages (opened 2026-07-31)
+
+Owner supplied a full design reference (homepage, both nav dropdowns, footer, and a
+24-page sheet) and asked the site to mirror it 100%. Gap analysis below is measured,
+not estimated: the "have" list is every `page.tsx` under `app/` excluding `[param]`,
+`/admin` and `/dashboard` (**58 public routes**), diffed against every destination
+named in the design.
+
+### 1. Header nav — NOT BUILT, needs a rebuild not a tweak
+
+`components/AppShell.tsx` currently ships a flat 8-item `NAV` array:
+`Home · AI Fundraising · How It Works · Pricing · Success Stories · About Us · Blog · Contact Us`.
+
+The design is a different structure entirely — two mega-dropdowns:
+
+**Explore Causes ▾** — two columns
+- *Popular Causes* (8): Sports & Youth, People in Need, Community & Relief,
+  Health & Wellness, Education, Animals & Planet, Arts & Culture, Faith & Belief
+- *All Causes* (12): Sports & Recreation, Youth Development, Food & Hunger,
+  Disaster Relief, Mental Health, Medical Research, Environment,
+  Veterans & Military, Human Rights, Seniors & Elderly, Women & Girls,
+  LGBTQ+ Support
+- Both columns end with "View All Causes →"
+
+**Resources ▾** — three columns, each item with a one-line description
+- *Learn*: Blog & Insights · Fundraising Guide · Impact Education · Reports & Research
+- *Get Involved*: Volunteer · Events · Donate · Partner With Us
+- *For Organizations*: For Nonprofits · Verification Process · Nonprofit Dashboard ·
+  Corporate Partnerships
+
+Top level becomes: Explore Causes ▾ · How It Works · Impact · Stories · About Us ·
+Resources ▾ · search · Log In · Start a Fundraiser.
+
+⚠️ **The header already has a hard capacity limit.** #98 measured that the nav does
+not fit below 1366px and collapses to the menu button there; a mega-dropdown trigger
+row must be measured at 1366/1440 before it is called done, or it reintroduces the
+overlap that made three links unclickable sitewide.
+
+⚠️ **`CAMPAIGN_CATEGORIES` in `@shared/fees` is the single source of truth** for
+categories (three hand-maintained copies had already drifted once). The 20 cause
+entries above must map onto it — either by extending it or by an explicit
+design-label → category map. Do **not** hardcode a fourth list in the nav.
+
+### 2. Missing pages — 11, measured
+
+| route | design source |
+|---|---|
+| `/causes` | "View All Causes" in both dropdown columns |
+| `/careers` | page sheet #21 |
+| `/gallery` | page sheet #15 |
+| `/get-involved` | page sheet #13 |
+| `/donate` | Resources → Get Involved |
+| `/partner` | Resources → "Partner With Us" |
+| `/verification` | Resources → "Verification Process" |
+| `/corporate-partnerships` | Resources → For Organizations |
+| `/fundraising-guide` | Resources → Learn |
+| `/impact-education` | Resources → Learn |
+| `/reports` | Resources → "Reports & Research" |
+
+Everything else the design names already exists and is live.
+
+### 3. Definition of done for each new page
+Not "a page renders". Each must clear the bars this repo already enforces:
+- both themes (the theme-token guard + `audit-contrast`, which sweeps light AND dark —
+  the site ships dark, so a single-theme check measures dark twice)
+- 320/768/1920 with **no control overlap** (`audit-responsive` now detects overlap
+  after #98)
+- WCAG 2.0/2.1/**2.2** A+AA with no baseline, via `e2e/accessibility.spec.ts`
+- added to `e2e/public-routes.json` `public[]` — and it must render **itself** when
+  signed out, or the redirect assertion fails it
+- real Supabase data or an honest empty state; **never a fabricated number** — the
+  `$0`/`0 days left` class of bug has recurred repeatedly here
+- i18n: owner asked for "all languages" — the locale picker exists in the footer, but
+  **there is no translation layer**, so this is a platform decision (next item)
+
+### 4. Open questions that change the work
+- **i18n**: no message catalogue or `next-intl`-style layer exists today. "All
+  languages" is a platform-wide architecture addition, not a per-page task. Needs an
+  owner decision on scope before it can be estimated honestly.
+- **Cause taxonomy**: the design's 20 causes vs `CAMPAIGN_CATEGORIES`. Extend the
+  shared list, or map labels to existing categories?
+
+_Status: gap analysis complete and pushed. Build in progress, page by page._
+
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |
