@@ -10,7 +10,7 @@ interface Props {
   lastDonation: string;
 }
 
-const TAG_COLORS = ['#6c35ff', '#19b86a', '#2f80ed', '#ec3fb4', '#f59e0b', '#ef4444'];
+const TAG_COLORS = ['#6c35ff', '#19b86a', '#2f80ed', '#ec3fb4', '#f59e0b', 'var(--red-text)'];
 
 function tagColor(tag: string): string {
   let hash = 0;
@@ -70,7 +70,13 @@ export default function DonorTagEditor({ email, fullName, initialTags, lifetimeV
         return (
           <span key={tag} style={{
             fontSize: 11, fontWeight: 700, padding: '2px 6px 2px 8px', borderRadius: 12,
-            background: `${color}1a`, color, display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
+            // color-mix, not `${color}1a`. String-appending an alpha suffix only
+            // works when every TAG_COLORS entry is a bare hex literal: the moment
+            // one became `var(--red-text)` it produced `var(--red-text)1a`, which
+            // is invalid CSS, so the chip lost its tint entirely and rendered as
+            // bare text. color-mix accepts hex and custom properties alike.
+            background: `color-mix(in srgb, ${color} 10%, transparent)`,
+            color, display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap',
           }}>
             {tag}
             <button type="button" onClick={() => removeTag(tag)} aria-label={`Remove ${tag}`}
