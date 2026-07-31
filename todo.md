@@ -15089,3 +15089,71 @@ documented in that function.
 
 **Verified:** typecheck 0 · lint 0 · **vitest 2153/2153 across 201 files** ·
 build exit 0 · `audit:campaign-images` PASSED.
+
+## 🔴 THE SIGNED-IN CONTRAST AUDIT CANNOT RUN — and the reason is one line (Claude, 2026-07-31)
+
+`C1` (355 admin WCAG AA failures) is the biggest open item in the queue, and the
+tool built to measure it — `npm run audit:signed-in` — **cannot execute at all**.
+It is not egress this time. It is env precedence.
+
+**Reproduce:**
+
+```
+npm run audit:signed-in
+  → · supabase-stub up on http://127.0.0.1:54321
+  → · app up on http://127.0.0.1:3000
+  → ✗ /admin answered 307 with the admin stub session.
+```
+
+**Cause, confirmed:** `apps/web/.env.local` defines `NEXT_PUBLIC_SUPABASE_URL`,
+and it wins over the env `audit-signed-in.mjs` passes to the child build. So the
+bundle is compiled against the **real** Supabase URL, which is unreachable from
+here, so there is no session, so `/admin` 307s and the sweep aborts. Building
+manually with the documented override does **not** help either — verified:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 … npm run build   # then
+node scripts/audit-signed-in.mjs --strict-gradients                # same 307
+```
+
+The script's own guard is excellent — it refuses to report a green run against
+the wrong backend, which is exactly right and is why this surfaced as a clean
+error rather than a false pass. The bug is upstream of the guard.
+
+**This matters more than it looks.** Every "signed-in half is audited" claim in
+this file rests on a tool that currently cannot start. Nobody should mark C1
+progressed until this runs.
+
+**Fix shape (NOT attempted — low context, and `audit-signed-in.mjs` is Codex's
+lane):** the child build needs an env `.env.local` cannot override. Options, in
+order of preference:
+1. Have the script write a temporary `.env.production.local` (higher precedence
+   than `.env.local` in Next's order) and remove it in a `finally`.
+2. Run the build in a temp copy of the workspace with no `.env.local`.
+3. Renaming `.env.local` for the duration works but mutates a developer's real
+   file — only acceptable with a `finally` restore, and it will still corrupt
+   state if the process is killed. Least preferred.
+
+Do **not** "fix" this by deleting the guard at step 3 of the script. A green
+admin sweep measured against the wrong backend is worse than no sweep.
+
+### Where the goal lines actually stand (Claude, end of session)
+
+Closed and enforced by tests this session: footer + locale, Donate CTA,
+suspension enforcement, back-to-top, cover de-duplication, `/cookies` +
+`/developers` a11y. **vitest 2153/2153 across 201 files**, axe 4/4, contrast 0
+failures over 47 public pages × 2 themes, responsive 0 regressions.
+
+Blocked on the owner, and no further sandbox work moves them:
+
+| goal line | blocked by |
+|---|---|
+| ≥100 Supabase seed records | egress to `*.supabase.co` (`curl` → `000`) + O6 |
+| all payment methods work | O3 Stripe test keys |
+| every image unique + themed | egress to `images.unsplash.com` (`curl` → `000`) |
+| live on Production, not Preview | egress to `www.charitme.com` |
+| 355 admin contrast failures (C1) | the tooling bug above, then Codex's lane |
+
+**Highest-leverage owner action: allowlist `*.supabase.co`,
+`images.unsplash.com` and `www.charitme.com` for the sandbox.** That single
+change converts four blocked goal lines into work an agent can finish.
