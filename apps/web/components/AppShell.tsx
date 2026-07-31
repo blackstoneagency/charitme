@@ -8,6 +8,7 @@ import { createClient } from '../lib/supabase-browser';
 import { ThemeToggle } from './ThemeProvider';
 import AnnouncementBanner, { type Announcement, type BannerAppearance } from './AnnouncementBanner';
 import FooterLocalePicker from './FooterLocalePicker';
+import { useT } from './LocaleProvider';
 import { FOOTER_LEGAL_BAR, FOOTER_SETTINGS_DEFAULTS, resolveFooterSections, type FooterSettings } from '../lib/footer-nav';
 
 const NAV = [
@@ -159,6 +160,7 @@ export function AppShell({
   footerSettings?: FooterSettings;
   initialLocale?: string;
 }) {
+  const t = useT();
   const footer = footerSettings ?? FOOTER_SETTINGS_DEFAULTS;
   const path = usePathname();
   const [user, setUser] = useState<User | null>(null);
@@ -329,7 +331,7 @@ export function AppShell({
             {FOOTER_SECTIONS_RENDERED.map(({ name, links }) => (
               <div key={name}>
                 <h3>{name}</h3>
-                {links.map(({ label, href }) => <Link key={label} href={href}>{label}</Link>)}
+                {links.map(({ label, href, labelKey }) => <Link key={label} href={href}>{t(labelKey)}</Link>)}
               </div>
             ))}
           </div>
@@ -352,8 +354,8 @@ export function AppShell({
           <div className="foot-bottom-main">
             <nav className="foot-legal" aria-label="Legal">
               <span className="foot-copy">© {new Date().getFullYear()} CharitMe</span>
-              {FOOTER_LEGAL_BAR.map(({ label, href }) => (
-                <Link key={href} href={href}>{label}</Link>
+              {FOOTER_LEGAL_BAR.map(({ href, labelKey }) => (
+                <Link key={href} href={href}>{t(labelKey)}</Link>
               ))}
             </nav>
             <AppBadges settings={footer} />

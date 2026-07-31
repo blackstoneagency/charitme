@@ -61,6 +61,9 @@ describe('translation coverage', () => {
       // 'Contact' is standard in French and Dutch; Dutch uses the English
       // loanword 'supporters' for exactly this meaning.
       'footer.contact', 'dashboard.supporters',
+      // 'Blog' is the same word in de/es/fr/it/nl (Portuguese uses 'Blogue', and
+      // is correctly NOT exempt here). 'FAQ' is the same initialism in fr/it.
+      'footer.link.blog', 'footer.link.faq',
     ]);
     const leaks: string[] = [];
     for (const code of SUPPORTED_LOCALE_CODES) {
