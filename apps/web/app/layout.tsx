@@ -11,6 +11,7 @@ import SessionWatcher from '../components/SessionWatcher';
 import { ThemeProvider } from '../components/ThemeProvider';
 import PWARegister from '../components/PWARegister';
 import InstallPrompt from '../components/InstallPrompt';
+import BackToTop from '../components/BackToTop';
 import MarketingTracker from '../components/MarketingTracker';
 import { safeJsonLd } from '../lib/json-ld';
 import { CHARITME_ORIGIN } from '../lib/public-routes';
@@ -105,6 +106,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             footerSettings={footerSettings}
             initialLocale={initialLocale}
           >{children}</AppShell>
+          {/* Mounted here, not inside AppShell: AppShell short-circuits for
+              /dashboard, /admin and /profile, which render their own shell, and
+              those pages are the longest ones in the product. BackToTop
+              self-excludes the campaign embed widget. */}
+          <BackToTop />
         </ThemeProvider>
       </body>
     </html>

@@ -7233,6 +7233,57 @@ a.task-row:hover .task-row-dot { border-color: var(--brand-text); }
 /* The skip target must not draw its own ring when focused programmatically. */
 #main-content:focus { outline: none; }
 
+/* ── Back to top ──────────────────────────────────────────────────────────
+   One floating control, mounted once per shell (public + dashboard/admin).
+
+   Built on theme TOKENS so it flips on its own — no parallel
+   [data-theme="dark"] block to drift out of sync, which is how near-black text
+   ended up on dark cards elsewhere in this file.
+
+   z-index sits BELOW the install prompt (1000) and the settings toast (9999):
+   both are transient and both are more important than a scroll affordance, so
+   when they coincide they should win rather than be covered. */
+.back-to-top {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;              /* comfortably past the 44px target minimum */
+  padding: 0;
+  /* --t4, not --b2. The button surface (--s1) is within a couple of points of
+     the page background (--bg) in BOTH themes, so the circle is identifiable
+     only by its edge — and --b2 rendered that edge at 1.34:1 (light) / 1.58:1
+     (dark), i.e. a ring you cannot actually see. Measured, not guessed. */
+  border: 1px solid var(--t4, #616a84);
+  border-radius: 999px;
+  background: var(--s1, #fff);
+  color: var(--t1, #14193b);
+  cursor: pointer;
+  box-shadow: var(--shadow-lg, 0 10px 30px rgba(16, 22, 56, .18));
+  transition: transform .18s ease, background .18s ease, border-color .18s ease;
+}
+.back-to-top:hover {
+  transform: translateY(-2px);
+  background: var(--s2, #f4f2fb);
+  border-color: var(--t3, #5b6688);
+}
+.back-to-top:active { transform: translateY(0); }
+
+/* Clear of the thumb on small screens, and clear of the install prompt, which
+   spans nearly the full width there. */
+@media (max-width: 640px) {
+  .back-to-top { right: 16px; bottom: 16px; width: 44px; height: 44px; }
+}
+
+/* The hover lift is decoration, not feedback that carries meaning. */
+@media (prefers-reduced-motion: reduce) {
+  .back-to-top, .back-to-top:hover { transition: none; transform: none; }
+}
+
 /* WCAG 2.4.7 Focus Visible. ~25 rules across this file clear `outline` on
    inputs/textareas for styling, which leaves keyboard users with no focus
    indicator at all. Restore an unmistakable ring for keyboard/AT focus only —
