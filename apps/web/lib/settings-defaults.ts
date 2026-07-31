@@ -1,6 +1,8 @@
+import { FOOTER_SETTINGS_DEFAULTS } from './footer-nav';
+
 export const VALID_CATEGORIES = [
   'general', 'security', 'email', 'payment', 'integrations',
-  'notifications', 'storage', 'maintenance', 'flags', 'advanced',
+  'notifications', 'storage', 'maintenance', 'flags', 'advanced', 'footer',
 ] as const;
 
 export type SettingsCategory = typeof VALID_CATEGORIES[number];
@@ -86,4 +88,10 @@ export const DEFAULTS: Record<SettingsCategory, Record<string, unknown>> = {
     webhookTimeoutSeconds: 30,
     allowNewRegistrations: true,
   },
+  // Global footer — social profiles, app store listings, contact address.
+  // Values are re-validated on READ in lib/footer-nav.ts (https-only URLs,
+  // well-formed email) because they render as hrefs on every page. An empty
+  // string is meaningful: it hides that link. The app store URLs ship empty
+  // because the apps do not exist yet.
+  footer: { ...FOOTER_SETTINGS_DEFAULTS },
 };

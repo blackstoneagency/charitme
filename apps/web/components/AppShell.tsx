@@ -7,6 +7,8 @@ import type { User } from '@supabase/supabase-js';
 import { createClient } from '../lib/supabase-browser';
 import { ThemeToggle } from './ThemeProvider';
 import AnnouncementBanner, { type Announcement, type BannerAppearance } from './AnnouncementBanner';
+import FooterLocalePicker from './FooterLocalePicker';
+import { FOOTER_LEGAL_BAR, FOOTER_SETTINGS_DEFAULTS, resolveFooterSections, type FooterSettings } from '../lib/footer-nav';
 
 const NAV = [
   ['Home', '/'],
@@ -29,49 +31,11 @@ const ACCOUNT_MENU = [
   ['Account settings', '/dashboard/settings'],
 ] as const;
 
-const FOOTER_LINKS = {
-  Platform: [
-    ['How It Works', '/how-it-works'],
-    ['AI Fundraising', '/ai-fundraising'],
-    ['AI Campaign Builder', '/ai-campaign'],
-    ['Platform Features', '/features'],
-    ['Success Stories', '/success-stories'],
-    ['Pricing', '/pricing'],
-    ['Fast Payouts', '/fast-payouts'],
-    ['Volunteer', '/volunteer'],
-    ['Sponsor a Cause', '/sponsor'],
-    ['Grants', '/grants'],
-    ['Matching Gifts', '/matching'],
-    ['Events', '/events'],
-    ['Impact & Transparency', '/impact/manage'],
-  ],
-  Resources: [
-    ['Blog', '/blog'],
-    ['Leaderboard', '/leaderboard'],
-    ['Help Center', '/help'],
-    ['FAQ', '/faq'],
-    ['Fundraising Guides', '/how-it-works'],
-    ['Supported Countries', '/supported-countries'],
-  ],
-  Company: [
-    ['About Us', '/about-us'],
-    ['Contact Us', '/contact'],
-    ['For Nonprofits', '/for-nonprofits'],
-    ['For Individuals', '/for-individuals'],
-    ['For Donors', '/for-donors'],
-    ['Trust & Safety', '/trust-safety'],
-  ],
-  Legal: [
-    ['Transparency Center', '/transparency'],
-    ['Fee Policy', '/fees'],
-    ['Refund Policy', '/refunds'],
-    ['Privacy Policy', '/privacy'],
-    ['Privacy Center', '/privacy-center'],
-    ['Terms of Service', '/terms'],
-    ['Security', '/security'],
-    ['Prohibited Use', '/prohibited-use'],
-  ],
-} as const;
+// Footer structure lives in lib/footer-nav.ts, which DERIVES the rendered
+// columns by removing whatever the legal bar already links to. Keeping the two
+// lists here by hand is how "Terms of Service" and "Terms" ended up as two links
+// to /terms in the same footer.
+const FOOTER_SECTIONS_RENDERED = resolveFooterSections();
 
 // Bypass the public marketing shell for routes that have their own shell (dashboard/admin)
 // NOTE: /campaigns is intentionally NOT bypassed — public campaign pages need the header
@@ -95,7 +59,102 @@ function Logo() {
   );
 }
 
-export function AppShell({ children, initialAnnouncements, bannerAppearance }: { children: React.ReactNode; initialAnnouncements?: Announcement[]; bannerAppearance?: BannerAppearance }) {
+/** The CPRA "Your Privacy Choices" mark. Decorative — the link text carries it. */
+function PrivacyChoicesIcon() {
+  return (
+    <svg className="foot-pc-icon" viewBox="0 0 30 14" width="26" height="12" aria-hidden="true" focusable="false">
+      <rect x="0" y="0" width="30" height="14" rx="7" fill="#06f" />
+      <rect x="15" y="0" width="15" height="14" rx="7" fill="#fff" />
+      <path d="M20.2 3.6h5.6l-5.6 6.8h5.6" fill="none" stroke="#06f" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="7.5" cy="7" r="4.2" fill="#fff" />
+      <path d="M5.6 7l1.5 1.5 2.8-3" fill="none" stroke="#06f" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const SOCIAL_ICONS: Record<string, JSX.Element> = {
+  Facebook: <path d="M17 2h-3a5 5 0 0 0-5 5v3H6v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />,
+  YouTube: (
+    <>
+      <path d="M22.5 6.5a2.8 2.8 0 0 0-2-2C18.7 4 12 4 12 4s-6.7 0-8.5.5a2.8 2.8 0 0 0-2 2A29 29 0 0 0 1 12a29 29 0 0 0 .5 5.5 2.8 2.8 0 0 0 2 2C5.3 20 12 20 12 20s6.7 0 8.5-.5a2.8 2.8 0 0 0 2-2A29 29 0 0 0 23 12a29 29 0 0 0-.5-5.5z" />
+      <polygon points="9.8,15.3 15.6,12 9.8,8.7" fill="var(--s1, #fff)" stroke="none" />
+    </>
+  ),
+  X: <path d="M18.9 2H22l-7 8 8.2 12h-6.4l-5-7.3L5.9 22H2.8l7.5-8.6L2.4 2h6.6l4.5 6.6zM17.8 20h1.7L8.3 3.8H6.5z" />,
+  Instagram: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.2" cy="6.8" r="1.2" />
+    </>
+  ),
+};
+
+function SocialLinks({ settings }: { settings: FooterSettings }) {
+  // An empty URL means "not configured" — the icon is omitted rather than
+  // rendered pointing at '#', which scrolls to top and reads as a broken site.
+  const links = ([
+    ['Facebook', settings.facebookUrl],
+    ['YouTube', settings.youtubeUrl],
+    ['X', settings.twitterUrl],
+    ['Instagram', settings.instagramUrl],
+  ] as const).filter(([, url]) => Boolean(url));
+
+  if (links.length === 0) return null;
+
+  return (
+    <ul className="foot-social">
+      {links.map(([name, url]) => (
+        <li key={name}>
+          <a href={url} target="_blank" rel="noopener noreferrer" aria-label={`CharitMe on ${name}`}>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              {SOCIAL_ICONS[name]}
+            </svg>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function AppBadges({ settings }: { settings: FooterSettings }) {
+  const badges = ([
+    ['Google Play', settings.googlePlayUrl, 'Get it on Google Play'],
+    ['App Store', settings.appStoreUrl, 'Download on the App Store'],
+  ] as const).filter(([, url]) => Boolean(url));
+
+  // The apps are not shipped yet. Advertising a store badge that goes nowhere
+  // is worse than not showing one, so the whole row is omitted until a super
+  // admin sets the URLs in Settings → Footer.
+  if (badges.length === 0) return null;
+
+  return (
+    <div className="foot-badges">
+      {badges.map(([name, url, label]) => (
+        <a key={name} href={url} target="_blank" rel="noopener noreferrer" className="foot-badge">
+          <span className="foot-badge-sub">{label.split(' ').slice(0, -2).join(' ')}</span>
+          <span className="foot-badge-name">{name}</span>
+          <span className="sr-only">{label}</span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+export function AppShell({
+  children,
+  initialAnnouncements,
+  bannerAppearance,
+  footerSettings,
+  initialLocale,
+}: {
+  children: React.ReactNode;
+  initialAnnouncements?: Announcement[];
+  bannerAppearance?: BannerAppearance;
+  footerSettings?: FooterSettings;
+  initialLocale?: string;
+}) {
+  const footer = footerSettings ?? FOOTER_SETTINGS_DEFAULTS;
   const path = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -262,18 +321,48 @@ export function AppShell({ children, initialAnnouncements, bannerAppearance }: {
             <p>Intelligent fundraising.<br />Real world impact.</p>
           </div>
           <div className="kind-footer-links">
-            {(Object.entries(FOOTER_LINKS) as [string, readonly (readonly [string, string])[]][]).map(([section, links]) => (
-              <div key={section}>
-                <h3>{section}</h3>
-                {links.map(([label, href]) => <Link key={label} href={href}>{label}</Link>)}
+            {FOOTER_SECTIONS_RENDERED.map(({ name, links }) => (
+              <div key={name}>
+                <h3>{name}</h3>
+                {links.map(({ label, href }) => <Link key={label} href={href}>{label}</Link>)}
               </div>
             ))}
           </div>
-          <div className="kind-footer-apps">
-            <h3>Contact</h3>
-            <div>
-              <a href="mailto:hello@charitme.com">hello@charitme.com</a>
+          {footer.contactEmail && (
+            <div className="kind-footer-apps">
+              <h3>Contact</h3>
+              <div>
+                <a href={`mailto:${footer.contactEmail}`}>{footer.contactEmail}</a>
+              </div>
             </div>
+          )}
+        </div>
+
+        <div className="container foot-bottom">
+          <div className="foot-bottom-top">
+            <FooterLocalePicker initialLocale={initialLocale} />
+            <SocialLinks settings={footer} />
+          </div>
+
+          <div className="foot-bottom-main">
+            <nav className="foot-legal" aria-label="Legal">
+              <span className="foot-copy">© {new Date().getFullYear()} CharitMe</span>
+              {FOOTER_LEGAL_BAR.map(({ label, href }) => (
+                <Link key={href} href={href}>{label}</Link>
+              ))}
+            </nav>
+            <AppBadges settings={footer} />
+          </div>
+
+          <div className="foot-bottom-prefs">
+            {/* Both anchors land on /cookies, which is public. They must not point
+                at /privacy-center — it calls requireUser(), so a visitor would be
+                bounced to a login wall by a privacy control. */}
+            <Link href="/cookies#preferences">Manage Cookie Preferences</Link>
+            <Link href="/cookies#your-privacy-choices" className="foot-privacy-choices">
+              Your Privacy Choices
+              <PrivacyChoicesIcon />
+            </Link>
           </div>
         </div>
       </footer>

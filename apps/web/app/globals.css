@@ -801,6 +801,255 @@ img, video, iframe { max-width: 100%; }
 .kind-social > div { display: flex; gap: 18px; }
 .kind-social a { color: #101638; font-size: 12px; font-weight: 950; }
 
+/* ── Tables inside legal/policy pages ─────────────────────────────────────
+   The cookie table has four columns and cannot fit 320–390px. Without a scroll
+   container its last column simply ran past the viewport edge — the "Can you
+   refuse it?" answers were unreachable on a phone, and the page-level overflow
+   sweep did not catch it because an ancestor clipped the document rather than
+   letting it scroll (content cut off is worse than a scrollbar, and looks
+   identical to that check).
+
+   The surfaces are also given an explicit background rather than inheriting the
+   page gradient. That is what makes the contrast MEASURABLE: axe resolves a
+   solid background-color by walking ancestors and cannot evaluate a gradient,
+   so text over the bare page gradient is scored against an assumed white — a
+   false 1.22:1 in dark mode on text that really sits at ~15:1. */
+
+.legal-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 20px 0;
+  border: 1px solid var(--b1, #e6e1f3);
+  border-radius: 12px;
+  background: var(--s1, #fff);
+}
+.legal-table {
+  width: 100%;
+  min-width: 560px;          /* below this the columns become unreadable */
+  border-collapse: collapse;
+  background: var(--s1, #fff);
+  font-size: 14px;
+}
+.legal-table th,
+.legal-table td {
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--b1, #e9e5f5);
+}
+.legal-table thead th {
+  background: var(--s2, #f4f2fb);
+  color: var(--t1, #14193b);
+  font-weight: 800;
+  white-space: nowrap;
+}
+.legal-table tbody tr:last-child td { border-bottom: 0; }
+.legal-table td { color: var(--t2, #3c4463); }
+.legal-table code {
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12.5px;
+  color: var(--t1, #14193b);
+}
+
+.legal-index { list-style: none; margin: 22px 0; padding: 0; }
+.legal-index li {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--b1, #e9e5f5);
+}
+.legal-index li:last-child { border-bottom: 0; }
+.legal-index a { font-size: 16px; font-weight: 750; color: var(--violet-ink, #5b2fd6); }
+.legal-index span { display: block; margin-top: 4px; color: var(--t3, #5b6688); font-size: 14px; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FOOTER BOTTOM BAR — locale picker, social, legal, cookie preferences.
+
+   Written with theme TOKENS and light fallbacks (`var(--t3, #5b6688)`) rather
+   than the hardcoded hex the older footer rules above use. Those needed a
+   parallel [data-theme="dark"] block for every rule, and the block drifted —
+   that pattern is what put near-black text on dark cards elsewhere in this
+   file. Tokens flip on their own, so there is nothing to keep in sync.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.foot-bottom {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--b1, #e6e1f3);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.foot-bottom-top,
+.foot-bottom-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* ── Locale picker ─────────────────────────────────────────────────────── */
+
+.foot-locale { position: relative; }
+
+.foot-locale-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  min-height: 40px;              /* comfortable tap target on mobile */
+  border: 1px solid var(--b2, #d7d2e8);
+  border-radius: 999px;
+  background: var(--s1, #fff);
+  color: var(--t2, #3c4463);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.foot-locale-trigger:hover { border-color: var(--t4, #98a0bb); }
+.foot-locale-flag { font-size: 15px; line-height: 1; }
+.foot-locale-dot { color: var(--t4, #7b849f); }
+
+/* Opens UPWARD: the trigger sits at the bottom of the page, so a downward menu
+   would open off-screen and force a scroll to read its own options. */
+.foot-locale-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 40;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  min-width: 264px;
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  background: var(--s1, #fff);
+  border: 1px solid var(--b1, #e6e1f3);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg, 0 24px 60px rgba(16, 22, 56, .18));
+}
+
+.foot-locale-opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--t1, #14193b);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.foot-locale-opt:hover { background: var(--s2, #f4f2fb); }
+.foot-locale-opt.is-selected { font-weight: 800; }
+.foot-locale-check { margin-left: auto; color: var(--green-text, #0d783c); }
+
+/* ── Social ───────────────────────────────────────────────────────────── */
+
+.foot-social {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.foot-social a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;               /* WCAG 2.5.8 target size */
+  border-radius: 10px;
+  color: var(--t2, #3c4463);
+}
+.foot-social a:hover { background: var(--s2, #f4f2fb); color: var(--t1, #14193b); }
+
+/* ── Legal bar ────────────────────────────────────────────────────────── */
+
+.foot-legal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  font-size: 13px;
+}
+.foot-copy { color: var(--t3, #5b6688); font-weight: 700; }
+.foot-legal a {
+  padding: 6px 0;
+  color: var(--t3, #5b6688);
+  font-weight: 600;
+  text-decoration: none;
+}
+.foot-legal a:hover { color: var(--t1, #14193b); text-decoration: underline; }
+
+.foot-bottom-prefs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 20px;
+  font-size: 13px;
+}
+.foot-bottom-prefs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 0;
+  color: var(--t3, #5b6688);
+  font-weight: 600;
+}
+.foot-bottom-prefs a:hover { color: var(--t1, #14193b); text-decoration: underline; }
+.foot-pc-icon { flex: none; border-radius: 3px; }
+
+/* ── App store badges ─────────────────────────────────────────────────── */
+
+.foot-badges { display: flex; flex-wrap: wrap; gap: 10px; }
+.foot-badge {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 44px;
+  padding: 6px 16px;
+  border: 1px solid var(--b2, #d7d2e8);
+  border-radius: 8px;
+  background: var(--s1, #fff);
+  color: var(--t1, #14193b);
+  text-decoration: none;
+}
+.foot-badge:hover { border-color: var(--t4, #98a0bb); }
+.foot-badge-sub { font-size: 9px; font-weight: 600; color: var(--t3, #5b6688); text-transform: uppercase; letter-spacing: .06em; }
+.foot-badge-name { font-size: 14px; font-weight: 800; line-height: 1.15; }
+
+/* Mobile-first fallback: stack everything and let the locale menu use the full
+   width rather than overflowing a narrow viewport. */
+@media (max-width: 640px) {
+  .foot-bottom-top,
+  .foot-bottom-main { flex-direction: column; align-items: flex-start; }
+  .foot-locale, .foot-locale-trigger { width: 100%; }
+  .foot-locale-trigger { justify-content: center; }
+
+  /* Bottom sheet, not an upward popup.
+     The popup is anchored to the trigger and opens upward, so its height is
+     bounded by the space ABOVE the trigger inside the viewport. With 11 options
+     that ran off the top of a 320x700 screen — the first options were
+     unreachable. Anchoring to the viewport bottom instead makes clipping
+     impossible regardless of where the trigger sits when it is tapped. */
+  .foot-locale-menu {
+    position: fixed;
+    inset: auto 8px 8px;
+    min-width: 0;
+    max-height: 70vh;
+  }
+  .foot-badges { width: 100%; }
+  .foot-badge { flex: 1 1 140px; }
+}
+
 @media (max-width: 1100px) {
   .container { padding: 0 24px; }
   .kind-header, .kind-page, .kind-footer { width: min(100% - 24px, 1380px); }
