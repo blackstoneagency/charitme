@@ -371,6 +371,47 @@ export function buildFixtures() {
       ...extra(i),
     }));
 
+  // ── Public API keys ────────────────────────────────────────────────────────
+  //
+  // One ACTIVE key and one REVOKED key with the same scopes. The revoked row is
+  // the point: it lets a sweep prove that revocation actually denies, which a
+  // fixture with only valid credentials can never show.
+  const api_keys = [
+    {
+      id: uuid('akey', 1),
+      owner_id: USER_ID,
+      name: 'Stub integration key',
+      key_hash: 'bb9c54da4d099adbeb6c70318e131f81ae91926565a6452c49726d440d39e4f0',
+      scopes: ['campaigns:read', 'donations:read', 'profile:read'],
+      last_used_at: null,
+      revoked_at: null,
+      created_at: daysAgo(10),
+    },
+    {
+      id: uuid('akey', 2),
+      owner_id: USER_ID,
+      name: 'Stub revoked key',
+      key_hash: 'e7c6c8e5197624bcd1dcc1ebe0618e91334dddc156d493ed53a67df581a2567e',
+      scopes: ['campaigns:read', 'donations:read', 'profile:read'],
+      last_used_at: daysAgo(5),
+      revoked_at: daysAgo(1),
+      created_at: daysAgo(30),
+    },
+    {
+      id: uuid('akey', 3),
+      owner_id: USER_ID,
+      name: 'Stub campaigns-only key',
+      // Deliberately NARROW. Without a key that lacks a scope, the 403
+      // insufficient_scope branch can never be exercised, and an authorisation
+      // check that is never observed failing is an assumption.
+      key_hash: '3c3fa51181ff6bf5e3d18d26c66d0901263ab96466ea2780bc1d700d9bf560b4',
+      scopes: ['campaigns:read'],
+      last_used_at: null,
+      revoked_at: null,
+      created_at: daysAgo(3),
+    },
+  ];
+
   // ── Peer-to-peer ───────────────────────────────────────────────────────────
   //
   // A supporter running their own page toward campaign 1's goal, so
@@ -509,6 +550,7 @@ export function buildFixtures() {
     campaigns,
     donations,
     payouts,
+    api_keys,
     peer_fundraisers,
     creator_profiles,
     membership_tiers,

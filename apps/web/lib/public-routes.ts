@@ -81,6 +81,16 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: 'daily',
   },
   {
+    // Public API docs. Indexed on purpose: an open API that search engines
+    // cannot find is not meaningfully open, and this is the page that
+    // differentiates us from a competitor whose API is enterprise-gated.
+    path: '/developers',
+    title: 'CharitMe API — Developer Documentation',
+    description: 'Free, documented REST API over your campaigns and donations. No enterprise tier required.',
+    priority: 0.75,
+    changeFrequency: 'monthly',
+  },
+  {
     path: '/for-donors',
     title: 'Giving For Donors',
     description: 'Find trusted campaigns, give quickly, and follow the impact of your donations.',

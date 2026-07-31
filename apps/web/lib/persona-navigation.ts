@@ -43,6 +43,7 @@ const ORGANIZER_NAV: readonly DashboardNavItem[] = [
   MESSAGES,
   { label: 'Team', href: '/dashboard/team', icon: 'team' },
   { label: 'Integrations', href: '/dashboard/integrations', icon: 'link' },
+  { label: 'Developers', href: '/dashboard/developers', icon: 'doc' },
   SETTINGS,
 ];
 
