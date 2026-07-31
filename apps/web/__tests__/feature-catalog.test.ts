@@ -37,7 +37,10 @@ const requiredFeatures = [
   'Patreon:Community Posts',
   'Patreon:Direct Messaging',
   'Patreon:Analytics Dashboard',
-  'Patreon:Mobile App',
+  // Renamed from 'Mobile App'. There is no native app in this repo (no iOS,
+  // Android, Expo or React Native directory) — CharitMe is a PWA. The old name
+  // read as app-store parity in a competitor table; the row now says what ships.
+  'Patreon:Mobile Web Experience',
   'Patreon:Discord Integration',
   'Patreon:Membership Billing',
   'Patreon:Creator Pages',

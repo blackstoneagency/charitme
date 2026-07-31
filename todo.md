@@ -102,6 +102,134 @@ until O1/O3. And **there is no subscribe flow** — the dashboard states that
 plainly to the creator rather than letting them publish tiers and wait for
 signups that cannot happen.
 
+## 🥊 GOFUNDME TEARDOWN — from the live site, 2026-07-31 (Claude)
+
+**Method matters here.** This is fetched from `gofundme.com` and `pro.gofundme.com`
+directly, not from the sales deck and not from memory. The deck-based passes
+earlier in this file described the *consumer* product only and therefore missed
+**GoFundMe Pro entirely** — which is where most of the real competitive surface
+now lives, since Classy was folded into it. Any parity claim in this repo that
+predates this section was measuring against roughly half the competitor.
+
+### 1. Everything GoFundMe offers, as named on their own pages
+
+**Consumer (`gofundme.com`)**
+
+| # | Offering | CharitMe |
+|---|---|---|
+| 1 | Crowdfunding / donation platform | ✅ |
+| 2 | **GoFundMe Giving Guarantee** (donor refund protection) | ❌ **deliberate** — see below |
+| 3 | Categories: medical, memorial/funeral, emergency, nonprofit, education, animals | ✅ `CAMPAIGN_CATEGORIES` |
+| 4 | **Crisis relief** hub (shareable URL during a disaster) | ✅ `/crisis` |
+| 5 | **Social Impact Funds** (pooled, GoFundMe-managed funds) | ❌ gap |
+| 6 | **Supporter Space** (donor-side inspiration/guidance hub) | ❌ gap |
+| 7 | **GoFundMe.org** (separate 501(c)(3) entity) | ❌ not a software feature — out of scope |
+| 8 | Guided fundraiser creation w/ prompts | ✅ `/create/choose-path` |
+| 9 | Goal suggestion from similar successful campaigns | ✅ `lib/donation-optimizer.ts` |
+| 10 | Beneficiary designation | ✅ `beneficiary_invites` |
+| 11 | Share by text/email/social + **printable poster** | ✅ incl. QR poster |
+| 12 | **Team fundraising** (recruit members) | ✅ peer-to-peer, shipped today |
+| 13 | Fundraiser updates + donor thank-yous | ✅ |
+| 14 | Bank payout, **no goal requirement** | ✅ Stripe Connect |
+| 15 | Trust & Safety team, fraud protection | ✅ trust score + fraud detection |
+| 16 | Help Center / Newsroom / Blog / tips / success stories | ✅ mostly |
+
+**Fees, quoted exactly:** 0% platform fee to create. Transaction **2.9% + $0.30**
+(USD). Certified nonprofits **2.2% + $0.30** (US/CA), **1.9% + £0.20** (UK).
+Optional donor contribution, "never required."
+
+**GoFundMe Pro (`pro.gofundme.com`) — the Classy successor**
+
+| # | Offering | CharitMe |
+|---|---|---|
+| 17 | Donation Forms (embeddable, branded) | ✅ `donation_forms`, `embedded_buttons` |
+| 18 | Donation Pages | ✅ |
+| 19 | Recurring Giving (custom frequencies, AI prediction) | ✅ `recurring_donations` |
+| 20 | **Nonprofit Giving Cart** (several causes, one checkout) | ❌ gap |
+| 21 | Live Events (in-person + virtual) | ✅ `fundraising_events` |
+| 22 | Event Ticketing & Registration & check-in | ✅ `event_tickets`, `event_checkins` |
+| 23 | **Auctions & mobile bidding** | ✅ `auction_items`, `auction_bids` |
+| 24 | Peer-to-Peer | ✅ shipped today |
+| 25 | Corporate Giving / matching | ✅ `matching_programs` |
+| 26 | Nonprofit Pages on the consumer marketplace | ✅ `nonprofit_profiles` |
+| 27 | **Impact Creator Tools** (livestream + creator partnerships) | ✅ creator module + `livestreams` |
+| 28 | **GoFundMe Pay** (Venmo, Apple Pay, multi-method) | ⚠️ partial — Apple/Google Pay yes, **Venmo inactive** |
+| 29 | International / multi-currency | ✅ `@shared/currencies` |
+| 30 | Donor Dashboard (self-serve) | ✅ `/donor` |
+| 31 | GoFundMe Intelligence (AI optimisation + donor prediction) | ✅ — CharitMe's strongest area |
+| 32 | Reporting & channel analytics | ✅ |
+| 33 | Campaign Templates | ✅ |
+| 34 | Integrations Hub + **public API access** | ⚠️ `integration_connections` exists; **no public API** |
+| 35 | Enterprise security & scalability | ⚠️ unproven at scale |
+
+### 2. The real gaps — only six survive contact with the code
+
+Most "gaps" from earlier passes were catalog staleness, not missing product. What
+is genuinely absent:
+
+- **G1 — Giving Guarantee.** ❗ *Not a backlog item.* `app/terms/page.tsx:32` states
+  CharitMe "does not verify the truth of campaign claims, guarantee fundraising
+  outcomes". Shipping a guarantee page would contradict the ToS and commit real
+  money to underwriting fraud losses. **Owner decision (O7), not engineering.**
+- **G2 — Social Impact Funds.** Pooled funds a platform curates and disburses.
+  Needs a legal entity and disbursement policy before any code.
+- **G3 — Supporter Space.** Donor-side content hub. Pure product/content work.
+- **G4 — Giving Cart.** Multi-campaign single checkout. **Genuinely buildable,
+  no DDL** — the hardest part is one PaymentIntent splitting across several
+  connected accounts (Stripe supports this via separate transfers).
+- **G5 — Public API.** `integration_connections` and `api_keys` tables exist with
+  no public surface. A documented REST API + webhooks is the enterprise unlock.
+- **G6 — Venmo.** `ONE_TIME_PAYMENT_METHOD_TYPES` excludes it; the account has
+  `paypal_payments` inactive. **Owner/Stripe account task, not code.**
+
+⚠️ **One over-claim found in our own catalog.** `lib/feature-catalog.ts` lists
+**"Mobile App"** against Patreon with zero `planned: true` entries anywhere. There
+is **no native app** — no iOS/Android/Expo/React-Native directory in the repo. The
+description is honest ("responsive and mobile friendly"), but the *name* reads as
+a native app in a parity table. Rename to "Mobile Web Experience" or ship a real
+app; do not leave a row that a reader will score as parity.
+
+### 3. Where we are EQUAL — how to become decisively better
+
+For each, GoFundMe already does it well, so "matching" earns nothing:
+
+| Equal today | What would make CharitMe far superior |
+|---|---|
+| **Fees** (both 0% platform) | We are already ahead — GoFundMe still takes **2.9% + $0.30**; ours is tip + processing only. **This is the single strongest differentiator and it is under-marketed.** Put a live "you keep $X more than on GoFundMe" calculator on `/fees` and on every campaign page. |
+| **Crisis relief** | Theirs is an editorial list. Make ours *operational*: auto-detect emergency surges, verified-responder badges, and a live disbursement ledger showing money out, not just in. |
+| **Peer-to-peer** | Theirs is a page per supporter. Add live team leaderboards, per-supporter attribution ledgers, and AI-drafted outreach per supporter — attribution is already wired, so this is UI on existing data. |
+| **Recurring giving** | Add donor-controlled pause/skip/step-up, and an "impact receipt" each cycle showing what the last payment funded. Retention beats acquisition. |
+| **Events / ticketing / auctions** | Ours are schema-complete but thin in UI. Mobile bidding with live outbid push notifications is the gap that decides auction revenue. |
+| **AI** | Ours is genuinely broader (health score, fraud, payout risk, trust, transparency ledger, writer, targeting). Make it *visible*: a public "why this campaign is trustworthy" panel is something GoFundMe cannot copy without exposing their own moderation. |
+| **Donor dashboard** | Add cross-campaign impact aggregation and tax-ready year summaries in one click — we already have `tax_receipts` and `donation_receipts`. |
+
+### 4. Where they are AHEAD — how to leapfrog rather than match
+
+- **G4 Giving Cart → "Give once, fund many."** Don't clone the cart. Build a
+  one-checkout **portfolio**: pick a cause area, we split across vetted campaigns
+  by need, and the donor gets one receipt and one impact report. Strictly better
+  than a cart, and it uses the trust/health scores we already compute.
+- **G5 Public API → be the open platform.** GoFundMe's API is enterprise-gated.
+  A free, documented, webhook-driven public API with `api_keys` (already a table)
+  makes CharitMe the one nonprofits can build on.
+- **G3 Supporter Space → donor identity.** Not a content hub — a giving profile:
+  streaks, badges, impact totals, and a shareable public donor page. `user_badges`
+  and `gamification.ts` already exist and are under-used.
+- **G2 Social Impact Funds → transparent funds.** If it ever ships, the
+  differentiator is a public ledger of every disbursement — `transparency_ledger_items`
+  already exists.
+
+### 5. Honest bottom line
+
+On **software feature parity CharitMe is ahead** — 105 catalogued features against
+35 distinct GoFundMe offerings, and we are broader on AI, transparency and fees.
+What GoFundMe has that we cannot match with code is **trust at scale**: the Giving
+Guarantee, a 200M-user network, and a charitable entity. Those are capital and
+policy, not engineering. The engineering-addressable list is **G4 and G5**;
+everything else in this section is either owner policy or polish on features that
+already exist.
+
+
 ### 🏆 Leaderboard period parity + a stub bug that was hiding date-filtered data
 
 Generalising "who calls this?" across all **217 API routes** found 14 with no

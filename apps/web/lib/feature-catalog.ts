@@ -135,7 +135,7 @@ export const PLATFORM_MODULES: PlatformModule[] = [
       { competitor: 'Patreon', name: 'Community Posts', description: 'Creator communication feed for public or member-only updates.' },
       { competitor: 'Patreon', name: 'Direct Messaging', description: 'Creator-to-member messaging for supporter relationships.' },
       { competitor: 'Patreon', name: 'Analytics Dashboard', description: 'Subscriber and recurring revenue analytics.' },
-      { competitor: 'Patreon', name: 'Mobile App', description: 'All membership surfaces are responsive and mobile friendly.' },
+      { competitor: 'Patreon', name: 'Mobile Web Experience', description: 'All membership surfaces are responsive and mobile friendly. CharitMe is a PWA — installable from the browser — not a native app-store app; the row is named for what ships.' },
       { competitor: 'Patreon', name: 'Discord Integration', description: 'Integration records support Discord community access workflows.' },
       { competitor: 'Patreon', name: 'Membership Billing', description: 'Automated recurring billing through Stripe subscriptions.' },
       { competitor: 'Patreon', name: 'Creator Pages', description: 'Personalized public creator hubs.' },
