@@ -15141,6 +15141,30 @@ should start:
    `profiles.roles` through `supabaseAdmin` — if the stub does not serve that row
    in the shape `.single()` expects, admin resolves false.
 
+**Narrowed since (Claude, same session) — two candidates ELIMINATED by test:**
+
+- ❌ *Cookie encoding.* `@supabase/ssr` installed is **0.5.2**, exactly the
+  `0.5.x` the script targets, so `base64-` + base64url(JSON) is still the right
+  format. Not this.
+- ❌ *Cookie name.* `cookieNameFor()` mirrors the library
+  (`sb-${hostname.split('.')[0]}-auth-token` → `sb-127-auth-token`). Correct.
+- ✅ *Located the layer.* `/admin` with **no** cookie redirects to
+  `/login?next=%2Fadmin` — i.e. **`middleware.ts`, at the session check**, not
+  `app/admin/layout.tsx`'s admin gate. So the forged session is being rejected
+  before any admin logic runs, and `ADMIN_EMAILS` / `isAdmin` are *not* the
+  problem.
+
+**Therefore the remaining candidate is specific:** `@supabase/ssr` `getUser()`
+**validates the JWT against the auth server** rather than trusting the cookie —
+it calls `GET /auth/v1/user` with the access token as a bearer. `middleware.ts`
+uses that validating path. `scripts/supabase-stub.mjs` answers that endpoint 200,
+so the next step is to check **what shape it returns** and whether it echoes the
+`stub-access-token` identity the cookie claims. A mismatch there presents exactly
+as "signed out", silently.
+
+Start there. Do not re-test the cookie format or the admin gate — both are ruled
+out above.
+
 **Do NOT delete the guard at step 3 of the script.** It is the reason this
 surfaced as a clean error instead of a false green sweep, and it is still doing
 its job correctly — it is only its *explanation* that is wrong.
