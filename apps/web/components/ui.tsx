@@ -12,7 +12,7 @@ const btnStyles: Record<BtnVariant, React.CSSProperties> = {
   primary: { background: 'var(--green-btn)', color: '#fff', border: 'none' },
   secondary: { background: 'var(--s1)', color: 'var(--t1)', border: '1px solid var(--b1)' },
   ghost: { background: 'transparent', color: 'var(--t2)', border: '1px solid var(--b2)' },
-  danger: { background: 'var(--red)', color: '#fff', border: 'none' },
+  danger: { background: 'var(--red-btn)', color: '#fff', border: 'none' },
 };
 
 const btnSizes: Record<BtnSize, React.CSSProperties> = {

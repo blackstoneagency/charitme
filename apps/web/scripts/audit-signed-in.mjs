@@ -56,6 +56,7 @@ const argOf = (flag, fallback) => {
 const APP_PORT = Number(argOf('--port', '3000'));
 const STUB_PORT = Number(argOf('--stub-port', '54321'));
 const ONLY = argOf('--only', null);
+const AS_JSON = argv.includes('--json');
 const STUB_URL = `http://127.0.0.1:${STUB_PORT}`;
 const BASE = `http://127.0.0.1:${APP_PORT}`;
 const USER_ID = '00000000-0000-4000-8000-000000000001';
@@ -133,7 +134,7 @@ spawnChild(process.execPath, ['scripts/supabase-stub.mjs', '--port', String(STUB
   stdio: ['ignore', 'ignore', 'inherit'],
 });
 await waitForHttp(`${STUB_URL}/auth/v1/user`, 'supabase-stub');
-console.log(`· supabase-stub up on ${STUB_URL}`);
+if (!AS_JSON) console.log(`· supabase-stub up on ${STUB_URL}`);
 
 // ─── 2. app ─────────────────────────────────────────────────────────────────
 const env = {
@@ -146,10 +147,10 @@ const env = {
   ADMIN_EMAILS: 'audit-stub@charitme.local',
 };
 if (argv.includes('--build')) {
-  console.log('Â· building the app against the signed-in Supabase stub');
+  if (!AS_JSON) console.log('Â· building the app against the signed-in Supabase stub');
   await runChild(process.execPath, [nextBin, 'build'], {
     env,
-    stdio: ['ignore', 'inherit', 'inherit'],
+    stdio: AS_JSON ? ['ignore', 'ignore', 'inherit'] : ['ignore', 'inherit', 'inherit'],
   });
 }
 spawnChild(process.execPath, [nextBin, 'start', '-p', String(APP_PORT)], {
@@ -157,7 +158,7 @@ spawnChild(process.execPath, [nextBin, 'start', '-p', String(APP_PORT)], {
   stdio: ['ignore', 'ignore', 'inherit'],
 });
 await waitForHttp(`${BASE}/api/health`, 'next start');
-console.log(`· app up on ${BASE}`);
+if (!AS_JSON) console.log(`· app up on ${BASE}`);
 
 // ─── 3. prove the build is pointed at the stub ──────────────────────────────
 //
@@ -183,13 +184,14 @@ if (probe.status !== 200) {
   );
   process.exit(2);
 }
-console.log('· signed-in probe: /admin renders (200)');
+if (!AS_JSON) console.log('· signed-in probe: /admin renders (200)');
 
 // ─── 4. sweep ───────────────────────────────────────────────────────────────
 const sweep = spawnChild(process.execPath, [
   'scripts/audit-contrast.mjs',
   '--base', BASE,
   '--auth',
+  ...(AS_JSON ? ['--json'] : []),
   ...(ONLY ? ['--only', ONLY] : []),
   ...(argv.includes('--strict-gradients') ? ['--strict-gradients'] : []),
 ], {

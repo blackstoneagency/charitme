@@ -23,7 +23,13 @@ import { chromiumLaunchOptions } from './lib/audit-browser.mjs';
 // Default kept at 3260 — divergent from its siblings, but changing a default
 // silently repoints anyone's existing invocation. Only the PARSING is unified.
 const BASE = resolveBase(process.argv, 'http://127.0.0.1:3260');
-const list = Array.isArray(routes) ? routes : (routes.routes ?? routes.public ?? []);
+const allRoutes = Array.isArray(routes) ? routes : (routes.routes ?? routes.public ?? []);
+const onlyIndex = process.argv.indexOf('--only');
+const onlyPath = onlyIndex === -1 ? null : process.argv[onlyIndex + 1];
+const list = onlyPath
+  ? allRoutes.filter((route) => (typeof route === 'string' ? route : route.path) === onlyPath)
+  : allRoutes;
+if (onlyPath && list.length === 0) throw new Error(`Unknown public audit route: ${onlyPath}`);
 const b = await chromium.launch(chromiumLaunchOptions());
 let total = 0; const byRule = new Map();
 // A page that never loaded contributes 0 violations, so counting only
@@ -40,9 +46,16 @@ for (const theme of ['light', 'dark']) {
   const page = await ctx.newPage();
   for (const r of list) {
     const path = typeof r === 'string' ? r : r.path;
+    console.log(`> ${theme} ${path}`);
     try {
-      await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 25000 });
-      await page.waitForLoadState('load', { timeout: 8000 }).catch(() => {});
+      const response = await page.goto(BASE + path, { waitUntil: 'domcontentloaded', timeout: 25000 });
+      if (!response) throw new Error('Navigation completed without an HTTP response');
+      if (response.status() >= 400) throw new Error(`HTTP ${response.status()}`);
+      const expectedPath = new URL(BASE + path).pathname;
+      const actualPath = new URL(page.url()).pathname;
+      if (actualPath !== expectedPath) {
+        throw new Error(`Unexpected redirect to ${actualPath}`);
+      }
       await page.waitForTimeout(400);
       const res = await new AxeBuilder({ page })
         .withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa'])
@@ -52,6 +65,11 @@ for (const theme of ['light', 'dark']) {
         total += res.violations.length;
         for (const v of res.violations) {
           byRule.set(v.id, (byRule.get(v.id) ?? 0) + v.nodes.length);
+          for (const node of v.nodes.slice(0, 6)) {
+            const target = node.target.join(' ');
+            const summary = (node.failureSummary ?? '').replace(/\s+/g, ' ').trim();
+            console.log(`  ${target}${summary ? `: ${summary}` : ''}`);
+          }
           console.log(`✗ ${theme} ${path} — ${v.id} (${v.impact}) ×${v.nodes.length}`);
         }
       }

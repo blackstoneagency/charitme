@@ -90,7 +90,7 @@ export default function OpportunitiesClient() {
         <div style={{ ...card, background: 'var(--tint-rose)', borderColor: '#fecdd3', color: 'var(--red-text)' }}>{error} <button onClick={load} style={{ ...btnGhost, marginLeft: 8 }}>Retry</button></div>
       ) : opps.length === 0 ? (
         <div style={{ ...card, textAlign: 'center', padding: '40px 24px' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#475569', marginBottom: 6 }}>No opportunities yet</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t2)', marginBottom: 6 }}>No opportunities yet</div>
           <div style={{ fontSize: 13, color: 'var(--t3)' }}>Click “Generate from live data” to scan campaign momentum and surface scored opportunities.</div>
         </div>
       ) : (

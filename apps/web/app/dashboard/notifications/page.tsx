@@ -125,8 +125,8 @@ export default function NotificationsPage() {
           <button
             onClick={markAllRead}
             style={{
-              background: 'none', border: '1.5px solid var(--violet, var(--violet))',
-              color: 'var(--violet, var(--violet))', fontWeight: 700, fontSize: 13,
+              background: 'none', border: '1.5px solid var(--brand-text)',
+              color: 'var(--brand-text)', fontWeight: 700, fontSize: 13,
               padding: '8px 16px', borderRadius: 8, cursor: 'pointer',
             }}
           >
@@ -144,9 +144,9 @@ export default function NotificationsPage() {
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               fontWeight: filter === tab ? 800 : 500,
-              color: filter === tab ? 'var(--violet, var(--violet))' : 'var(--t3, var(--t3))',
+              color: filter === tab ? 'var(--brand-text)' : 'var(--t3)',
               fontSize: 14, padding: '8px 16px',
-              borderBottom: filter === tab ? '2px solid var(--violet, var(--violet))' : '2px solid transparent',
+              borderBottom: filter === tab ? '2px solid var(--brand-text)' : '2px solid transparent',
               marginBottom: -1.5, transition: 'color .15s',
               textTransform: 'capitalize',
             }}
@@ -206,8 +206,8 @@ export default function NotificationsPage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                   <span style={{
-                    fontSize: 10, fontWeight: 700, color: 'var(--violet, var(--violet))',
-                    background: 'var(--s3, rgba(109,53,255,.18))', padding: '2px 7px', borderRadius: 5, flexShrink: 0,
+                    fontSize: 10, fontWeight: 700, color: 'var(--brand-text)',
+                    background: 'var(--s3)', padding: '2px 7px', borderRadius: 5, flexShrink: 0,
                     textTransform: 'uppercase', letterSpacing: '0.05em',
                   }}>
                     {KIND_LABEL[n.kind] ?? 'Info'}

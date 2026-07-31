@@ -177,13 +177,13 @@ export default function DonationHistoryList({
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 16 }}>
-                  <strong style={{ fontSize: 15, color: d.status === 'refunded' ? 'var(--t3, #94a3b8)' : 'var(--violet, #6c35ff)', textDecoration: d.status === 'refunded' ? 'line-through' : 'none' }}>
+                  <strong style={{ fontSize: 15, color: d.status === 'refunded' ? 'var(--t3)' : 'var(--brand-text)', textDecoration: d.status === 'refunded' ? 'line-through' : 'none' }}>
                     {formatCents(d.amount_cents, d.currency ?? 'usd')}
                   </strong>
                   <span style={{
                     fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
                     background: d.status === 'completed' ? 'rgba(22,163,74,.10)' : d.status === 'refunded' ? 'var(--s2)' : 'rgba(190,18,60,.08)',
-                    color: d.status === 'completed' ? 'var(--green-dark, #065f46)' : d.status === 'refunded' ? 'var(--t3, #64748b)' : 'var(--red, #be123c)',
+                    color: d.status === 'completed' ? 'var(--green-text)' : d.status === 'refunded' ? 'var(--t3)' : 'var(--red-text)',
                   }}>{d.status}</span>
                   {d.status === 'completed' && (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
@@ -208,14 +208,14 @@ export default function DonationHistoryList({
             onClick={() => void loadMore()}
             disabled={loadingMore}
             style={{
-              fontSize: 13, fontWeight: 700, color: 'var(--violet, #6c35ff)', background: 'none',
+              fontSize: 13, fontWeight: 700, color: 'var(--brand-text)', background: 'none',
               border: '1px solid var(--b2, #e2e8f0)', borderRadius: 10, padding: '10px 24px',
               cursor: loadingMore ? 'wait' : 'pointer',
             }}
           >
             {loadingMore ? 'Loading…' : 'Load more'}
           </button>
-          {loadError && <div style={{ color: 'var(--red, #be123c)', fontSize: 12, marginTop: 6 }}>{loadError}</div>}
+          {loadError && <div style={{ color: 'var(--red-text)', fontSize: 12, marginTop: 6 }}>{loadError}</div>}
         </div>
       )}
     </div>

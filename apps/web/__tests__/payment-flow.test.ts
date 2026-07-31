@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { reconcileMoneyFlow, summarizePaymentRows, type AdminPaymentRow } from '../lib/payment-flow-core';
+import { paymentStatusTone, reconcileMoneyFlow, summarizePaymentRows, type AdminPaymentRow } from '../lib/payment-flow-core';
 
 describe('campaign payment reconciliation', () => {
+  it('maps payment states to theme-safe semantic text tokens', () => {
+    expect(paymentStatusTone('succeeded')).toBe('var(--green-text)');
+    expect(paymentStatusTone('failed')).toBe('var(--red-text)');
+    expect(paymentStatusTone('pending_data')).toBe('var(--orange-text)');
+    expect(paymentStatusTone('none')).toBe('var(--t3)');
+  });
+
   it('keeps successful Stripe payments pending until the real processor fee arrives', () => {
     const result = reconcileMoneyFlow({
       grossAmount: 10000,

@@ -86,7 +86,7 @@ function NavItem({ label, desc, icon, active, onClick }: { label: string; desc?:
         {icon}
         <span style={{ fontWeight: active ? 950 : 750, fontSize: 13 }}>{label}</span>
       </div>
-      {desc && <span style={{ fontSize: 11, color: active ? 'var(--violet)' : 'var(--t3)', paddingLeft: 24, marginTop: 2, lineHeight: 1.3 }}>{desc}</span>}
+      {desc && <span style={{ fontSize: 11, color: active ? 'var(--brand-text)' : 'var(--t3)', paddingLeft: 24, marginTop: 2, lineHeight: 1.3 }}>{desc}</span>}
     </button>
   );
 }
@@ -775,7 +775,7 @@ export default function SettingsClient({ initialProfile, campaignsCount, userEma
                 </div>
               </div>
               {currentPlan !== 'pro' && (
-                <Link href="/pricing" style={{ display: 'block', marginTop: 14, textAlign: 'center', fontSize: 13, fontWeight: 600, color: '#fff', background: 'var(--green-dark)', borderRadius: 8, padding: '9px 0', textDecoration: 'none' }}>Upgrade Plan</Link>
+                <Link href="/pricing" style={{ display: 'block', marginTop: 14, textAlign: 'center', fontSize: 13, fontWeight: 600, color: '#fff', background: 'var(--green-btn)', borderRadius: 8, padding: '9px 0', textDecoration: 'none' }}>Upgrade Plan</Link>
               )}
             </div>
           </div>

@@ -356,7 +356,7 @@ function StepCircle({ index, status }: { index: number; status: RoadmapStep['sta
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          color: 'var(--violet, var(--violet))',
+          color: 'var(--brand-text)',
           fontWeight: 700,
           fontSize: '14px',
         }}
@@ -389,9 +389,9 @@ function StepCircle({ index, status }: { index: number; status: RoadmapStep['sta
 function ImpactBadge({ impact }: { impact: RoadmapStep['impact'] }) {
   const color =
     impact === 'High'
-      ? { bg: 'rgba(25,184,106,0.10)', text: 'var(--green-dark, var(--green))' }
+      ? { bg: 'var(--green-light)', text: 'var(--green-text)' }
       : impact === 'Medium'
-      ? { bg: 'rgba(108,53,255,0.10)', text: 'var(--violet, var(--violet))' }
+      ? { bg: 'var(--s3)', text: 'var(--brand-text)' }
       : { bg: 'rgba(156,163,175,0.12)', text: 'var(--t3, var(--t3))' };
   return (
     <span
@@ -434,9 +434,9 @@ function StepActionBtn({ status, href }: { status: RoadmapStep['status']; href?:
     const style: React.CSSProperties = {
       padding: '6px 16px',
       borderRadius: '8px',
-      border: '1.5px solid var(--violet, var(--violet))',
+      border: '1.5px solid var(--brand-text)',
       background: 'rgba(108,53,255,0.07)',
-      color: 'var(--violet, var(--violet))',
+      color: 'var(--brand-text)',
       fontSize: '13px',
       fontWeight: 600,
       cursor: 'pointer',
@@ -455,7 +455,7 @@ function StepActionBtn({ status, href }: { status: RoadmapStep['status']; href?:
     padding: '6px 16px',
     borderRadius: '8px',
     border: 'none',
-    background: 'var(--green, var(--green))',
+    background: 'var(--green-btn)',
     color: '#fff',
     fontSize: '13px',
     fontWeight: 600,
@@ -692,7 +692,7 @@ export default async function AiGrowthPlanPage({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'var(--violet, var(--violet))',
+                color: 'var(--brand-text)',
               }}
             >
               <KFIcon name="send" />
@@ -811,7 +811,7 @@ export default async function AiGrowthPlanPage({
                 padding: '10px 20px',
                 borderRadius: '10px',
                 background: 'rgba(108,53,255,0.08)',
-                color: 'var(--violet, var(--violet))',
+                color: 'var(--brand-text)',
                 fontWeight: 600,
                 fontSize: '14px',
                 textDecoration: 'none',

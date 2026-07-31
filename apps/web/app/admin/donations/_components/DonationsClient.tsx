@@ -220,7 +220,7 @@ function DonutChart({ slices }: { slices: { label: string; value: number; color:
           <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>
             <i style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, flexShrink: 0, display: 'block' }} />
             <span>{s.label}</span>
-            <b style={{ marginLeft: 'auto', color: '#0f0f30' }}>{s.value}</b>
+            <b style={{ marginLeft: 'auto', color: 'var(--t1)' }}>{s.value}</b>
           </div>
         ))}
       </div>
@@ -1165,7 +1165,7 @@ export default function DonationsClient({
                 height: 50, padding: '0 16px', border: 0,
                 borderBottom: `2px solid ${panelTab === t ? '#6c35ff' : 'transparent'}`,
                 background: 'none', fontWeight: panelTab === t ? 950 : 750, fontSize: 13,
-                color: panelTab === t ? 'var(--brand-text)' : '#202b55', cursor: 'pointer', whiteSpace: 'nowrap',
+                color: panelTab === t ? 'var(--brand-text)' : 'var(--t2)', cursor: 'pointer', whiteSpace: 'nowrap',
               }}>
               {t}
             </button>
@@ -1212,7 +1212,7 @@ export default function DonationsClient({
                     height: 44, padding: '0 14px', border: 0,
                     borderBottom: `2px solid ${filterStatus === t.id ? '#6c35ff' : 'transparent'}`,
                     background: 'none', fontWeight: filterStatus === t.id ? 950 : 700, fontSize: 12,
-                    color: filterStatus === t.id ? 'var(--brand-text)' : '#66708d', cursor: 'pointer',
+                    color: filterStatus === t.id ? 'var(--brand-text)' : 'var(--t3)', cursor: 'pointer',
                   }}>
                   {t.label}
                 </button>

@@ -57,7 +57,7 @@ type Props = {
   overview: OverviewStats;
 };
 
-const fieldStyle: React.CSSProperties = { height: 44, border: '1px solid #dfe3ee', borderRadius: 8, padding: '0 14px', fontSize: 14, background: 'var(--s1)' };
+const fieldStyle: React.CSSProperties = { height: 44, border: '1px solid var(--b1)', borderRadius: 8, padding: '0 14px', fontSize: 14, background: 'var(--s1)', color: 'var(--t1)' };
 const labelStyle: React.CSSProperties = { display: 'grid', gap: 6, fontSize: 13, fontWeight: 650, color: 'var(--t1)' };
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
@@ -75,7 +75,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 
 function SettingToggle({ title, description, value, onChange }: { title: string; description: string; value: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 16px', border: '1px solid #eef0f7', borderRadius: 10 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 16px', border: '1px solid var(--b1)', borderRadius: 10 }}>
       <div>
         <strong style={{ display: 'block', fontSize: 14, fontWeight: 650 }}>{title}</strong>
         <small style={{ color: 'var(--t3)', fontSize: 12 }}>{description}</small>
@@ -153,10 +153,10 @@ export default function SettingsClient({ categories, settings: initialSettings, 
           <Field label="Primary Color"><input type="color" value={settings.brandPrimaryColor} onChange={e => set('brandPrimaryColor', e.target.value)} style={{ ...fieldStyle, padding: 6 }} /></Field>
           <Field label="Accent Color"><input type="color" value={settings.brandAccentColor} onChange={e => set('brandAccentColor', e.target.value)} style={{ ...fieldStyle, padding: 6 }} /></Field>
           <Field label="Logo URL"><input value={settings.logoUrl} onChange={e => set('logoUrl', e.target.value)} placeholder="https://..." style={fieldStyle} /></Field>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, border: '1px solid #eef0f7', borderRadius: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 16, border: '1px solid var(--b1)', borderRadius: 10 }}>
             <span style={{ width: 36, height: 36, borderRadius: 12, background: settings.brandPrimaryColor }} />
             <span style={{ width: 36, height: 36, borderRadius: 12, background: settings.brandAccentColor }} />
-            <strong style={{ color: '#101842' }}>{settings.platformName}</strong>
+            <strong style={{ color: 'var(--t1)' }}>{settings.platformName}</strong>
           </div>
         </Panel>
       );
@@ -242,11 +242,11 @@ export default function SettingsClient({ categories, settings: initialSettings, 
 
       <div className="kf-settings-layout" style={{ alignItems: 'start' }}>
         <nav className="kf-settings-nav">
-          <h3 style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#4b5676', letterSpacing: '0.05em' }}>Settings</h3>
+          <h3 style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--t2)', letterSpacing: '0.05em' }}>Settings</h3>
           {categories.map(cat => (
-            <button key={cat.key} onClick={() => setActiveCategory(cat.label)} style={{ minHeight: 46, display: 'flex', alignItems: 'center', gap: 13, padding: '0 14px', borderRadius: 9, border: 'none', cursor: 'pointer', fontWeight: 650, fontSize: 14, textAlign: 'left', width: '100%', background: activeCategory === cat.label ? 'var(--tint-violet)' : 'transparent', color: activeCategory === cat.label ? 'var(--brand-text)' : '#18234d' }}>
+            <button key={cat.key} onClick={() => setActiveCategory(cat.label)} style={{ minHeight: 46, display: 'flex', alignItems: 'center', gap: 13, padding: '0 14px', borderRadius: 9, border: 'none', cursor: 'pointer', fontWeight: 650, fontSize: 14, textAlign: 'left', width: '100%', background: activeCategory === cat.label ? 'var(--s3)' : 'transparent', color: activeCategory === cat.label ? 'var(--brand-text)' : 'var(--t2)' }}>
               <KFIcon name={cat.icon} />
-              <div><span>{cat.label}</span><small style={{ display: 'block', fontSize: 11, fontWeight: 650, color: activeCategory === cat.label ? '#7c50f5' : '#67718e', marginTop: 2 }}>{cat.description}</small></div>
+              <div><span>{cat.label}</span><small style={{ display: 'block', fontSize: 11, fontWeight: 650, color: activeCategory === cat.label ? 'var(--brand-text)' : 'var(--t3)', marginTop: 2 }}>{cat.description}</small></div>
             </button>
           ))}
         </nav>
@@ -255,7 +255,7 @@ export default function SettingsClient({ categories, settings: initialSettings, 
           <div className="kf-card-head">
             <div>
               <h2>{activeCategory}</h2>
-              <p style={{ margin: 0, fontSize: 13, color: '#4b5676' }}>{categories.find(c => c.label === activeCategory)?.description ?? ''}</p>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--t2)' }}>{categories.find(c => c.label === activeCategory)?.description ?? ''}</p>
             </div>
           </div>
           {renderDetailPanel()}

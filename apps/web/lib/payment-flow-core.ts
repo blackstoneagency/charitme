@@ -37,6 +37,13 @@ export type ReconciliationResult = {
   issues: string[];
 };
 
+export function paymentStatusTone(status: string): string {
+  if (['paid', 'succeeded', 'reconciled', 'processed', 'recorded', 'won', 'enabled'].includes(status)) return 'var(--green-text)';
+  if (['failed', 'lost', 'mismatch', 'disputed', 'error'].includes(status)) return 'var(--red-text)';
+  if (['pending', 'pending_data', 'requested', 'approved', 'needs_review', 'partially_refunded', 'opened'].includes(status)) return 'var(--orange-text)';
+  return 'var(--t3)';
+}
+
 export type PaymentFlowSummary = {
   totalGross: number;
   totalPlatformRevenue: number;

@@ -59,9 +59,9 @@ export type AgentView = {
 };
 
 const TONE_COLOR: Record<'green' | 'amber' | 'grey', string> = {
-  green: 'var(--green, #16a34a)',
-  amber: '#d97706',
-  grey: '#94a3b8',
+  green: 'var(--green-text)',
+  amber: 'var(--orange-text)',
+  grey: 'var(--t3)',
 };
 
 const SOURCE_LABEL: Record<SourceHealth, string> = {

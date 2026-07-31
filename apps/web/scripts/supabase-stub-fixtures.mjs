@@ -135,7 +135,7 @@ export function buildFixtures() {
     return {
       id: uuid('camp', i + 1),
       user_id: USER_ID,
-      slug: `stub-campaign-${i + 1}`,
+      slug: i === 0 ? 'security-header-fixture' : `stub-campaign-${i + 1}`,
       title: `${pick(rand, TITLES)} #${i + 1}`,
       tagline: 'Every contribution moves this a little closer.',
       description:

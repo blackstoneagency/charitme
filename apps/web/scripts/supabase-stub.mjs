@@ -54,6 +54,9 @@
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { buildFixtures } from './supabase-stub-fixtures.mjs';
+import { compare } from './lib/supabase-stub-compare.mjs';
+
+export { compare } from './lib/supabase-stub-compare.mjs';
 
 const args = process.argv.slice(2);
 const argOf = (flag, fallback) => {
@@ -126,17 +129,6 @@ function coerce(raw) {
  * correct for ISO-8601 (lexicographic order is chronological order) and is what
  * Postgres does for text anyway.
  */
-export function compare(value, raw) {
-  const a = Number(value);
-  const b = Number(raw);
-  if (value !== null && value !== '' && raw !== '' && !Number.isNaN(a) && !Number.isNaN(b)) {
-    return a === b ? 0 : a > b ? 1 : -1;
-  }
-  const sa = String(value ?? '');
-  const sb = String(raw);
-  return sa === sb ? 0 : sa > sb ? 1 : -1;
-}
-
 function matches(row, column, expr) {
   const [op, ...rest] = expr.split('.');
   const raw = rest.join('.');

@@ -217,7 +217,7 @@ function IntegrationCard({
           <button
             type="button"
             onClick={() => onConnect(item)}
-            style={{ fontSize: 13, fontWeight: 600, padding: '6px 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--green-dark)', color: '#fff', cursor: 'pointer' }}
+            style={{ fontSize: 13, fontWeight: 600, padding: '6px 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--green-btn)', color: '#fff', cursor: 'pointer' }}
           >
             Connect
           </button>

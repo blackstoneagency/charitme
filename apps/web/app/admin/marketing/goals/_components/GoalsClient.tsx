@@ -184,7 +184,7 @@ export default function GoalsClient() {
         </div>
       ) : goals.length === 0 ? (
         <div style={{ ...card, textAlign: 'center', padding: '40px 24px' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#475569', marginBottom: 6 }}>No goals yet</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--t2)', marginBottom: 6 }}>No goals yet</div>
           <div style={{ fontSize: 13, color: 'var(--t3)' }}>Describe an outcome above to create your first measurable marketing goal.</div>
         </div>
       ) : (

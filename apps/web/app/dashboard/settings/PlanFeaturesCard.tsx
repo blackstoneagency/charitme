@@ -98,7 +98,7 @@ export default function PlanFeaturesCard({
                   style={{
                     width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    background: on ? 'var(--green, var(--green))' : 'var(--s2)',
+                    background: on ? 'var(--green-btn)' : 'var(--s2)',
                     color: on ? '#fff' : 'var(--t4)',
                     fontSize: 11, fontWeight: 800,
                   }}
@@ -115,7 +115,7 @@ export default function PlanFeaturesCard({
       {!paid && (
         <p style={{ fontSize: 12.5, color: 'var(--t4)', margin: '16px 0 0', lineHeight: 1.6 }}>
           CharitMe is always free to raise money with a 0% platform fee. Paid plans add optional AI,
-          analytics, and team tools — <Link href="/pricing" style={{ color: 'var(--violet, var(--violet))', fontWeight: 600 }}>see what&apos;s included</Link>.
+          analytics, and team tools — <Link href="/pricing" style={{ color: 'var(--brand-text)', fontWeight: 600 }}>see what&apos;s included</Link>.
         </p>
       )}
     </section>
@@ -126,7 +126,7 @@ function Stat({ label, value, warn }: { label: string; value: string; warn?: boo
   return (
     <div style={{ background: 'var(--s2)', borderRadius: 10, padding: '12px 14px' }}>
       <div style={{ fontSize: 12, color: 'var(--t3)', fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 18, fontWeight: 800, color: warn ? 'var(--red, var(--red))' : 'var(--t1)', marginTop: 3 }}>{value}</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: warn ? 'var(--red-text)' : 'var(--t1)', marginTop: 3 }}>{value}</div>
     </div>
   );
 }

@@ -193,7 +193,7 @@ function PayoutDetailPanel({ payout, onClose }: { payout: PayoutRecord; onClose:
         <div style={{ display: 'flex', borderBottom: '1px solid #eef0f7', padding: '0 24px' }}>
           {['info', 'history', 'action'].map(t => (
             <button key={t} type="button" onClick={() => setActiveTab(t)}
-              style={{ height: 44, border: 0, borderBottom: `2px solid ${activeTab === t ? '#6c35ff' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? 'var(--brand-text)' : '#66708d', marginRight: 20, cursor: 'pointer' }}>
+              style={{ height: 44, border: 0, borderBottom: `2px solid ${activeTab === t ? 'var(--brand-text)' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? 'var(--brand-text)' : 'var(--t3)', marginRight: 20, cursor: 'pointer' }}>
               {capitalize(t)}
             </button>
           ))}
@@ -459,7 +459,7 @@ export default function PayoutsClient({
         <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #eef0f7', padding: '0 20px', overflowX: 'auto' }}>
           {panelTabs.map(t => (
             <button key={t} type="button" onClick={() => handleTabChange(t)}
-              style={{ height: 50, padding: '0 14px', border: 0, borderBottom: `2px solid ${activeTab === t ? '#6c35ff' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? 'var(--brand-text)' : '#202b55', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              style={{ height: 50, padding: '0 14px', border: 0, borderBottom: `2px solid ${activeTab === t ? 'var(--brand-text)' : 'transparent'}`, background: 'none', fontWeight: activeTab === t ? 950 : 750, fontSize: 13, color: activeTab === t ? 'var(--brand-text)' : 'var(--t2)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               {capitalize(t)}
             </button>
           ))}

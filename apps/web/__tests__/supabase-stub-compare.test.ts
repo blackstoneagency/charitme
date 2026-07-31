@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compare } from '../scripts/supabase-stub.mjs';
+import { compare } from '../scripts/lib/supabase-stub-compare.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The stub's ordered comparison, guarded because getting it wrong is INVISIBLE.

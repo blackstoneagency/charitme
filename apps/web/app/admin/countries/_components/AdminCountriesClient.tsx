@@ -23,8 +23,8 @@ const EMPTY: Omit<Country, 'id'> = {
 
 // ── Shared style constants (declared before components that use them) ──
 const iStyle: React.CSSProperties = {
-  padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 9,
-  fontSize: 13, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box',
+  padding: '9px 12px', border: '1.5px solid var(--line)', borderRadius: 9,
+  background: 'var(--s1)', color: 'var(--t1)', fontSize: 13, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box',
 };
 const lStyle: React.CSSProperties = {
   fontSize: 11, fontWeight: 650, color: 'var(--t3)',
@@ -33,7 +33,7 @@ const lStyle: React.CSSProperties = {
 const btnSave:   React.CSSProperties = { padding: '5px 14px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 650, cursor: 'pointer' };
 const btnCancel: React.CSSProperties = { padding: '5px 12px', background: 'var(--s2)', color: 'var(--t3)', border: 'none', borderRadius: 7, fontSize: 12, cursor: 'pointer' };
 const btnEdit:   React.CSSProperties = { padding: '5px 12px', background: 'var(--s2)', color: 'var(--brand-text)', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
-const btnDel:    React.CSSProperties = { padding: '5px 12px', background: 'var(--tint-rose)', color: 'var(--red-text)', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
+const btnDel:    React.CSSProperties = { padding: '5px 12px', background: 'var(--red-soft)', color: 'var(--red-text)', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' };
 const pill = (bg: string, color: string): React.CSSProperties => ({
   display: 'inline-block', background: bg, color, padding: '3px 10px',
   borderRadius: 999, fontSize: 11, fontWeight: 700,
@@ -63,7 +63,7 @@ function CountryRow({
 
   if (editing) {
     return (
-      <tr style={{ background: '#faf8ff' }}>
+      <tr style={{ background: 'var(--s2)' }}>
         <td style={{ padding: '10px 14px' }}>
           <input aria-label="Flag emoji" value={form.flag_emoji} onChange={e => upd('flag_emoji', e.target.value)}
             style={{ ...iStyle, width: 52 }} placeholder="🇺🇸" maxLength={4} />
@@ -114,18 +114,18 @@ function CountryRow({
       <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--t3)', fontFamily: 'monospace', fontWeight: 700 }}>{country.currency_code}</td>
       <td style={{ padding: '11px 14px', textAlign: 'center' }}>
         {country.can_fundraise
-          ? <span style={pill('#f0fdf4','#15803d')}>✓ Yes</span>
-          : <span style={pill('#f8f9fc','#94a3b8')}>—</span>}
+          ? <span style={pill('var(--green-light)','var(--green-text)')}>✓ Yes</span>
+          : <span style={pill('var(--s2)','var(--t3)')}>—</span>}
       </td>
       <td style={{ padding: '11px 14px', textAlign: 'center' }}>
         {country.can_donate
-          ? <span style={pill('#eff6ff','#1d4ed8')}>✓ Yes</span>
-          : <span style={pill('#f8f9fc','#94a3b8')}>—</span>}
+          ? <span style={pill('var(--s3)','var(--blue-text)')}>✓ Yes</span>
+          : <span style={pill('var(--s2)','var(--t3)')}>—</span>}
       </td>
       <td style={{ padding: '11px 14px', textAlign: 'center' }}>
         <button
           onClick={() => void onUpdate(country.id, { active: !country.active })}
-          style={{ ...pill(country.active ? '#f0fdf4' : '#fef2f2', country.active ? '#15803d' : '#dc2626'), border: 'none', cursor: 'pointer', fontWeight: 650 }}
+          style={{ ...pill(country.active ? 'var(--green-light)' : 'var(--red-soft)', country.active ? 'var(--green-text)' : 'var(--red-text)'), border: 'none', cursor: 'pointer', fontWeight: 650 }}
         >
           {country.active ? '● Active' : '○ Hidden'}
         </button>
@@ -233,7 +233,7 @@ export default function AdminCountriesClient() {
       </div>
 
       {/* Public page link */}
-      <div style={{ padding: '12px 18px', background: 'var(--s2)', borderRadius: 12, border: '1px solid #c4b5fd', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ padding: '12px 18px', background: 'var(--s2)', borderRadius: 12, border: '1px solid var(--b2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)' }}>
           🌍 Public page:{' '}
           <code style={{ background: 'rgba(0,0,0,.06)', padding: '2px 6px', borderRadius: 4 }}>/supported-countries</code>
@@ -272,7 +272,7 @@ export default function AdminCountriesClient() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={lStyle}>Donate?</span>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_donate ? '#1d4ed8' : 'var(--t3)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: newForm.can_donate ? 'var(--blue-text)' : 'var(--t3)' }}>
               <input type="checkbox" checked={newForm.can_donate} onChange={e => updNew('can_donate', e.target.checked)} style={{ accentColor: '#6c35ff', width: 16, height: 16 }} />
               {newForm.can_donate ? 'Yes' : 'No'}
             </label>

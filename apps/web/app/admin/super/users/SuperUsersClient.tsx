@@ -96,7 +96,7 @@ export default function SuperUsersClient({ users: initial, total }: { users: Dir
                   <td style={{ textAlign: 'right' }}>
                     {u.suspended
                       ? <button style={{ ...btnGhost, color: 'var(--green-dark)' }} onClick={() => action(u, 'restore')} disabled={busyId === u.id}>Restore</button>
-                      : <button style={{ ...btnGhost, color: 'var(--red)' }} onClick={() => action(u, 'suspend')} disabled={busyId === u.id}>Suspend</button>}
+                      : <button style={{ ...btnGhost, color: 'var(--red-text)' }} onClick={() => action(u, 'suspend')} disabled={busyId === u.id}>Suspend</button>}
                   </td>
                 </tr>
               ))}
