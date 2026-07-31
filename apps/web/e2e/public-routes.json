@@ -16,6 +16,7 @@
   "public": [
     "/",
     "/about-us",
+    "/accessibility",
     "/ai-campaign",
     "/ai-fundraising",
     "/beneficiary/accept",
@@ -23,6 +24,7 @@
     "/campaigns",
     "/campaigns/security-header-fixture/embed",
     "/contact",
+    "/cookies",
     "/create/choose-path",
     "/crisis",
     "/developers",
@@ -42,6 +44,7 @@
     "/how-it-works",
     "/impact",
     "/leaderboard",
+    "/legal",
     "/login",
     "/matching",
     "/nearby",

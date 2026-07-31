@@ -5,10 +5,13 @@ import './globals.css';
 import { AppShell } from '../components/AppShell';
 import { getActiveAnnouncements } from '../lib/announcements-data';
 import { getBannerSettings } from '../lib/banner-settings';
+import { getFooterSettings } from '../lib/footer-settings';
+import { LOCALE_COOKIE } from '../lib/i18n';
 import SessionWatcher from '../components/SessionWatcher';
 import { ThemeProvider } from '../components/ThemeProvider';
 import PWARegister from '../components/PWARegister';
 import InstallPrompt from '../components/InstallPrompt';
+import BackToTop from '../components/BackToTop';
 import MarketingTracker from '../components/MarketingTracker';
 import { safeJsonLd } from '../lib/json-ld';
 import { CHARITME_ORIGIN } from '../lib/public-routes';
@@ -70,11 +73,18 @@ const platformJsonLd = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // Cached (ISR) fetch — keeps the layout statically generated while putting the
   // banner in the initial HTML so it never injects post-hydration (no layout shift).
-  const [initialAnnouncements, bannerAppearance] = await Promise.all([
+  const [initialAnnouncements, bannerAppearance, footerSettings] = await Promise.all([
     getActiveAnnouncements(),
     getBannerSettings(),
+    getFooterSettings(),
   ]);
   const nonce = (await headers()).get('x-nonce') ?? undefined;
+  // Read straight off the request rather than through cookies(), which would opt
+  // the whole layout out of static rendering. Absent → the picker adopts the
+  // cookie on hydration instead.
+  const initialLocale = (await headers()).get('cookie')
+    ?.split('; ').find((c) => c.startsWith(`${LOCALE_COOKIE}=`))
+    ?.slice(LOCALE_COOKIE.length + 1);
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -90,7 +100,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Suspense fallback={null}>
             <MarketingTracker />
           </Suspense>
-          <AppShell initialAnnouncements={initialAnnouncements} bannerAppearance={bannerAppearance}>{children}</AppShell>
+          <AppShell
+            initialAnnouncements={initialAnnouncements}
+            bannerAppearance={bannerAppearance}
+            footerSettings={footerSettings}
+            initialLocale={initialLocale}
+          >{children}</AppShell>
+          {/* Mounted here, not inside AppShell: AppShell short-circuits for
+              /dashboard, /admin and /profile, which render their own shell, and
+              those pages are the longest ones in the product. BackToTop
+              self-excludes the campaign embed widget. */}
+          <BackToTop />
         </ThemeProvider>
       </body>
     </html>

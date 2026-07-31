@@ -17,7 +17,20 @@ export const metadata: Metadata = {
 // in the way that matters.
 
 const code = (s: string) => (
+  // `overflowX: 'auto'` makes this a scrollable region, so WCAG 2.1.1 requires
+  // it to be focusable — otherwise a keyboard-only reader can reach neither the
+  // scrollbar nor the part of the sample it hides, which on an API-docs page is
+  // the request body. role + aria-label give the focus stop a name instead of
+  // announcing as an unlabelled group.
+  //
+  // jsx-a11y/no-noninteractive-tabindex objects; axe's scrollable-region-
+  // focusable is the actual success criterion and it measures the rendered
+  // page, so it wins. Same trade as the cookie table on /cookies.
   <pre
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+    tabIndex={0}
+    role="region"
+    aria-label="Code sample"
     style={{
       background: 'var(--s2)',
       border: '1px solid var(--b1)',

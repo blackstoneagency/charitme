@@ -3352,7 +3352,8 @@ CREATE TABLE public.profiles (
     plan text DEFAULT 'free'::text,
     stripe_customer_id text,
     stripe_subscription_id text,
-    is_demo boolean DEFAULT false NOT NULL
+    is_demo boolean DEFAULT false NOT NULL,
+    locale text
 );
 
 

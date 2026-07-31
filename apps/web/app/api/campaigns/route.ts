@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../../../lib/supabase';
 import { createClient } from '../../../lib/supabase-server';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
 import { checkRateLimit } from '../../../lib/rate-limit';
+import { getSuspensionState } from '../../../lib/roles';
 import { applyCampaignSearch } from '../../../lib/campaign-search';
 import { totalPages } from '../../../lib/pagination';
 import { PUBLISH_MIN_STORY_CHARS, PUBLISH_MIN_GOAL_CENTS } from '../../../lib/campaign-readiness';
@@ -68,6 +69,25 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // Suspension was previously displayed and never enforced: staff suspended a
+  // fraudulent fundraiser, the admin console showed "Suspended", and nothing in
+  // any request path could see the marker (see lib/roles-shared.ts). Creating a
+  // campaign is one of the two actions everyone agrees a suspended account must
+  // not perform; the other is taking money (guarded in /api/donations).
+  const suspension = await getSuspensionState(user.id);
+  if (suspension === 'suspended') {
+    return NextResponse.json(
+      { error: 'This account is suspended and cannot create campaigns. Contact support.', code: 'ACCOUNT_SUSPENDED' },
+      { status: 403 },
+    );
+  }
+  if (suspension === 'unknown') {
+    return NextResponse.json(
+      { error: 'We could not verify your account status. Please try again.', code: 'ACCOUNT_STATUS_UNAVAILABLE' },
+      { status: 503 },
+    );
+  }
 
   const body = await request.json().catch(() => null);
   const parsed = CreateSchema.safeParse(body);
