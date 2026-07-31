@@ -15165,6 +15165,43 @@ as "signed out", silently.
 Start there. Do not re-test the cookie format or the admin gate — both are ruled
 out above.
 
+**SECOND CORRECTION (Claude, same session).** The "Located the layer" line above
+is also **wrong**, and #171 shipped it. It reasoned from `/admin` with **no**
+cookie redirecting to `/login` — which only shows middleware redirects
+*unauthenticated* requests, and says nothing about the forged-cookie case. I
+stated it as if I had tested the forged session. I had not.
+
+**What was then actually measured, by hand, against the running stub:**
+
+| probe | result |
+|---|---|
+| `GET /auth/v1/user` w/ `stub-access-token` | **200**, `audit-stub@charitme.local`, id `…0001` |
+| `GET /auth/v1/user` w/ `stub-admin-access-token` | **200**, `admin-persona@charitme.local`, id `…0015` |
+| `GET /admin` **with** a forged `sb-127-auth-token` cookie | **200** |
+| `GET /dashboard` with the same cookie | **200** |
+| `GET /admin` with no cookie | 307 → `/login?next=%2Fadmin` |
+
+**So the app, middleware, cookie format and stub all work.** A signed-in `/admin`
+renders 200 against the stub. That eliminates the middleware-rejection theory,
+the cookie-encoding theory and the stub-response theory outright.
+
+**I am deliberately NOT naming a root cause this time.** Two have already been
+published and retracted in this session; a third guess is worth less than an
+accurate boundary. What is established is where the fault is **not**.
+
+One observation to start from, offered as an observation and not a conclusion:
+the script forges `access_token: 'stub-access-token'` (the DEFAULT persona) while
+its own failure message describes "the admin stub session", and there is a
+separate `stub-admin-access-token` persona. Whether that mismatch is the fault
+has **not** been tested — the hand probes above did not reproduce the script's
+exact environment (notably `ADMIN_EMAILS`), so they do not settle it.
+
+**Method note, which is the real lesson here:** every wrong turn in this thread
+came from stating an inference in the same voice as a measurement. The error
+message was a guess; the no-cookie probe was the wrong experiment. Neither was
+labelled as such. Anything written in this section from here should say which of
+the two it is.
+
 **Do NOT delete the guard at step 3 of the script.** It is the reason this
 surfaced as a clean error instead of a false green sweep, and it is still doing
 its job correctly — it is only its *explanation* that is wrong.
