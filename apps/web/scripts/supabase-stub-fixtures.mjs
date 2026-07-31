@@ -372,6 +372,60 @@ export function buildFixtures() {
     }));
 
 
+  // Rotator eligibility fixtures.
+  //
+  // The exclusions are invisible without campaigns that SHOULD be excluded: an
+  // ended featured campaign and a fully-funded featured one. Plus 22 eligible
+  // featured campaigns, which is deliberately more than the old `.limit(20)` —
+  // that cap is exactly the bug, and a fixture of 20 or fewer could never show it.
+  const ROTATOR_DAY = 86_400_000;
+  const rotatorFixtures = [
+    {
+      key: 'ended',
+      deadline: new Date(Date.now() - 2 * ROTATOR_DAY).toISOString(),
+      goal_amount: 500000,
+      raised_amount: 10000,
+    },
+    {
+      key: 'funded',
+      deadline: new Date(Date.now() + 30 * ROTATOR_DAY).toISOString(),
+      goal_amount: 500000,
+      raised_amount: 500000,
+    },
+  ];
+  rotatorFixtures.forEach((f, i) => {
+    campaigns.push({
+      ...campaigns[0],
+      id: `aaaa${i}aaa-1111-4111-8111-aaaaaaaaaaa${i}`,
+      slug: `stub-rotator-${f.key}`,
+      title: `Rotator ${f.key} campaign`,
+      status: 'active',
+      visibility: 'public',
+      deleted_at: null,
+      featured: true,
+      cover_image_url: `https://picsum.photos/seed/rot-${f.key}/1200/675`,
+      deadline: f.deadline,
+      goal_amount: f.goal_amount,
+      raised_amount: f.raised_amount,
+    });
+  });
+  for (let i = 0; i < 22; i++) {
+    campaigns.push({
+      ...campaigns[0],
+      id: `bbbb${String(i).padStart(4, '0')}-2222-4222-8222-bbbbbbbbbbbb`,
+      slug: `stub-rotator-live-${i}`,
+      title: `Rotator eligible campaign ${i}`,
+      status: 'active',
+      visibility: 'public',
+      deleted_at: null,
+      featured: true,
+      cover_image_url: `https://picsum.photos/seed/rot-live-${i}/1200/675`,
+      deadline: new Date(Date.now() + 30 * ROTATOR_DAY).toISOString(),
+      goal_amount: 1000000,
+      raised_amount: 1000 * (i + 1),
+    });
+  }
+
   // Two campaigns with REAL hex uuids.
   //
   // `uuid('camp', n)` emits `camp0000-…`, and `m`/`p` are not hex — so those ids
@@ -718,10 +772,18 @@ export function buildFixtures() {
     })),
     platform_settings: [
       {
-        id: uuid('pset', 1),
+        // `id` is the INTEGER 1, matching the real table's
+        // `platform_settings_id_check CHECK (id = 1)`. It was a synthetic uuid,
+        // so every `.eq('id', 1)` lookup matched nothing and callers silently
+        // fell back to their defaults — including the featured-campaign price,
+        // which happened to equal the fixture value and so looked correct.
+        id: 1,
         key: 'default',
         config: {
-          payment: { featuredCampaignPriceCents: 500 },
+          // Deliberately NOT the $5 default: a fixture equal to the fallback
+          // cannot distinguish "read the configured price" from "ignored the
+          // config and used the default".
+          payment: { featuredCampaignPriceCents: 1750 },
           branding: { productName: 'CharitMe' },
         },
         created_at: daysAgo(200),

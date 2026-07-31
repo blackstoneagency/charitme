@@ -14712,3 +14712,81 @@ object now exists on the production Stripe account. **No charge was made and non
 can be** without someone completing payment; sessions expire on their own. Flagged
 rather than buried — and it is a second, independent reason O3 (Stripe **test**
 keys) matters: local verification currently touches the live account.
+
+## ⭐ Featured-campaign rotation + paid placement (Claude, 2026-07-31)
+
+**Requirement**: only featured campaigns that have *not ended* and have *not
+reached their goal* rotate on the homepage; **all** qualifying ones rotate; and a
+creator can pay (default **$5**, changeable any time in the admin portal) during
+the campaign build to be featured.
+
+### What was actually wrong
+
+1. **No exclusions existed at all.** `selectRotatorCampaigns` filtered on
+   `featured === true` and nothing else, so an ended or fully-funded campaign
+   rotated indefinitely. A paid slot pointing at a campaign that cannot take money
+   is worse than an empty slot — for the visitor *and* the creator who paid.
+2. **`.limit(20)` ran BEFORE the featured filter.** The rotator took the top 20 by
+   `(featured desc, raised desc)` and filtered afterwards, so a creator who paid
+   but sat 21st by amount raised **never appeared in the rotator at all** —
+   silently, forever. Filtering after a LIMIT is only correct when the limit
+   exceeds the population, and nothing enforced that.
+3. **Three separate paths feed the hero** and only one was ever going to be fixed
+   by touching the API: `/api/campaigns/rotator`, the server-rendered seed in
+   `lib/home-data.ts` (first paint), and `heroCandidates` in `app/page.tsx` —
+   which is fed by `featuredCampaigns`, a list that is *not* rotator-selected. All
+   three now apply the rule.
+4. **The paid upgrade existed only AFTER creation** (`/dashboard/campaigns/[id]`),
+   not during the build as asked.
+
+### Interpretation, stated because it is a judgement call
+
+The requirement reads *"not ended **or** not reached their goal"*. As literal
+boolean logic that admits an ended campaign so long as it is under goal — which
+would keep expired campaigns in the hero forever. Both conditions are required:
+**still running AND still short of goal**.
+
+### Shipped
+
+- `hasEnded` / `hasReachedGoal` / `isRotatorEligible` in `lib/featured.ts`, applied
+  on all three paths. `hasEnded` matches the campaign page's boundary exactly
+  (`deadline <= now`) — two surfaces disagreeing is how a campaign reads as closed
+  on its own page while still rotating on the homepage. A goal of 0/null can never
+  be "reached" (`0 >= 0` would otherwise exclude every goal-less campaign).
+- Rotator route rebuilt as **two queries**: featured (ceiling 200, no competition
+  for slots) and a fallback pool (20). Ended campaigns pruned in SQL; goal-reached
+  filtered in JS because PostgREST cannot compare two columns.
+- `FeatureUpsell` on the builder's success screen, **fetching the live price** —
+  a hardcoded `$5` would misquote the creator the moment an admin changed it, and
+  the mismatch would only surface on the Stripe page. `returnTo` is restricted to
+  a known set, never a URL (an open `returnTo` on a payment route is a redirect gadget).
+- Price now editable in the **super-admin** portal too. ⚠️ The PATCH merge is
+  **shallow**, so writing `featuredCampaignPriceCents` at the top level would store
+  a value nothing reads — the setting would look like it worked and change nothing.
+  It is lifted into `config.payment` explicitly, where `resolveFeaturePriceCents`
+  reads it and `/admin/settings` already writes it.
+
+### Verified (fixtures built to make failure visible)
+
+Fixtures include an **ended** featured campaign, a **fully-funded** featured one,
+and **22 eligible** featured ones — deliberately more than the old `.limit(20)`,
+because a fixture of 20 or fewer could never expose that cap.
+
+`rotator: 25 | ended: 0 | funded: 0 | all featured: true | eligible fixtures: 22/22`
+
+Homepage HTML: 0 ended, 0 funded, eligible featured present. Price: configured
+`1750` returned by the feature endpoint and rendered as `$17.50` in super-admin —
+**not** the `$5` fallback, which is the only way to tell "read the config" from
+"ignored it and used the default". PATCH rejects below-floor and above-ceiling.
+2031 tests, typecheck, lint, build, 99 signed-in routes render.
+
+### 🔎 Two more stub/schema mismatches found (same class as the uuid one)
+
+- **`platform_settings.id` was a synthetic uuid**, but the real table is
+  `CHECK (id = 1)`. Every `.eq('id', 1)` matched nothing, so every caller silently
+  fell back to its default — and the fixture's price *happened* to equal the
+  fallback, so it looked correct. Now `id: 1`, with a price that is deliberately
+  **not** the default.
+- **`unstable_cache` persisted an empty homepage** across builds run while no stub
+  was up, which reads exactly like "the exclusions broke the homepage". `rm -rf
+  .next/cache` before verifying a cached server-rendered page.

@@ -6,6 +6,7 @@ import { safeJsonLd } from '../lib/json-ld';
 import { getHomeData, getCategoryStats, getRecentDonations, profileName } from '../lib/home-data';
 import { getCoverForCategory } from '../lib/photo-catalog';
 import { resolveCampaignCover } from '../lib/covers';
+import { isRotatorEligible } from '../lib/featured';
 import CampaignImage from '../components/CampaignImage';
 import JsonLd from '../components/JsonLd';
 import { formatMoneyCompact } from '@shared/currencies';
@@ -232,6 +233,11 @@ export default async function HomePage() {
   ];
   const seenHeroSlugs = new Set<string>();
   const pickedHero = heroCandidates
+    // Only campaigns that are still running AND still short of their goal may
+    // occupy a hero slot. `heroCandidates` is fed by BOTH rotatorCampaigns and
+    // featuredCampaigns, and the second list is not rotator-selected — without
+    // this, a fully funded campaign reached the hero through that door.
+    .filter((c) => isRotatorEligible(c))
     .filter((c) => (seenHeroSlugs.has(c.slug) ? false : (seenHeroSlugs.add(c.slug), true)))
     .slice(0, 6);
 

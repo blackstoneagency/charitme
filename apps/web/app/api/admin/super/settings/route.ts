@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { supabaseAdmin } from '../../../../../lib/supabase';
 import { guardSuperAdmin, logSuperAdminAction } from '../../../../../lib/super-admin';
+import { FEATURE_PRICE_MIN_CENTS, FEATURE_PRICE_MAX_CENTS } from '../../../../../lib/featured';
 
 // Whitelisted, typed platform settings. Free-form config is never accepted raw.
 const Schema = z.object({
@@ -16,6 +17,16 @@ const Schema = z.object({
   defaultDonorTipPercent: z.number().min(0).max(100).optional(),
   maintenanceMode: z.boolean().optional(),
   allowNewRegistrations: z.boolean().optional(),
+  // The one-time fee a creator pays to be featured in the homepage rotator.
+  // In CENTS on the wire — the UI collects dollars and converts, because a
+  // number field that silently means a different unit at each end is how a $5
+  // fee becomes a $500 one. Bounded by the same constants the resolver clamps to.
+  featuredCampaignPriceCents: z
+    .number()
+    .int()
+    .min(FEATURE_PRICE_MIN_CENTS)
+    .max(FEATURE_PRICE_MAX_CENTS)
+    .optional(),
 });
 
 // PATCH /api/admin/super/settings — merge into platform_settings.config (id=1).
@@ -28,7 +39,23 @@ export async function PATCH(request: NextRequest) {
 
   const { data: existing } = await supabaseAdmin.from('platform_settings').select('id, config').eq('id', 1).maybeSingle();
   const currentConfig = (existing?.config as Record<string, unknown> | null) ?? {};
-  const nextConfig = { ...currentConfig, ...parsed.data };
+
+  // The featured price lives at `config.payment.featuredCampaignPriceCents`,
+  // which is where `resolveFeaturePriceCents` reads it and where /admin/settings
+  // writes it. This merge is SHALLOW, so writing the key at the top level would
+  // save a value nothing ever reads — the setting would appear to work and
+  // change nothing. Lift it into `payment` explicitly, preserving the other
+  // payment keys that page owns.
+  const { featuredCampaignPriceCents, ...flat } = parsed.data;
+  const nextConfig: Record<string, unknown> = { ...currentConfig, ...flat };
+
+  if (featuredCampaignPriceCents !== undefined) {
+    const currentPayment =
+      currentConfig.payment && typeof currentConfig.payment === 'object' && !Array.isArray(currentConfig.payment)
+        ? (currentConfig.payment as Record<string, unknown>)
+        : {};
+    nextConfig.payment = { ...currentPayment, featuredCampaignPriceCents };
+  }
 
   const { error } = existing
     ? await supabaseAdmin.from('platform_settings').update({ config: nextConfig }).eq('id', 1)

@@ -55,6 +55,7 @@ import ReadinessChecklist from './ReadinessChecklist';
 import GoalProceedsBreakdown from './GoalProceedsBreakdown';
 import StorySectionsEditor from './StorySectionsEditor';
 import { publishReadiness } from '../../lib/campaign-readiness';
+import FeatureUpsell from './FeatureUpsell';
 import { analyzeStory } from '../../lib/story-analysis';
 
 // ─────────────────────────────────────────────
@@ -2131,6 +2132,8 @@ export default function CreatePage() {
                 </button>
               </div>
             )}
+            {publishedId && <FeatureUpsell campaignId={publishedId} />}
+
             <div className="cr2-launch-actions">
               {publishedSlug && (
                 <Link href={`/campaigns/${publishedSlug}`} className="cr2-launch-view" style={{ textDecoration: 'none' }}>

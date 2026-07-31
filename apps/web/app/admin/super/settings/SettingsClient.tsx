@@ -6,6 +6,8 @@ export type PlatformConfig = {
   platformName?: string; tagline?: string; supportEmail?: string; supportPhone?: string;
   currency?: string; platformFeePercent?: number; donationFeePercent?: number;
   defaultDonorTipPercent?: number; maintenanceMode?: boolean; allowNewRegistrations?: boolean;
+  /** Stored under config.payment; surfaced here in DOLLARS and sent as cents. */
+  featuredCampaignPriceDollars?: number;
 };
 
 const input: React.CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: 9, border: '1px solid var(--b2)', background: 'var(--s1)', color: 'var(--t1)', fontSize: 13 };
@@ -42,10 +44,27 @@ export default function SettingsClient({ config: initial }: { config: PlatformCo
   async function save() {
     setBusy(true);
     try {
-      const res = await fetch('/api/admin/super/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) });
+      // Dollars in the field, CENTS on the wire — the API stores cents, and a
+      // number that means a different unit at each end is how a $5 fee becomes
+      // a $500 one. The dollars key is stripped so it is never persisted
+      // alongside the cents value it duplicates.
+      const { featuredCampaignPriceDollars, ...rest } = c;
+      const payload: Record<string, unknown> = { ...rest };
+      const dollars = Number(featuredCampaignPriceDollars);
+      if (Number.isFinite(dollars) && dollars > 0) {
+        payload.featuredCampaignPriceCents = Math.round(dollars * 100);
+      }
+      const res = await fetch('/api/admin/super/settings', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || 'Failed');
-      setC(j.config); flash('Settings saved');
+      // Re-surface the saved cents as dollars so the field shows what was stored
+      // rather than reverting to blank.
+      const savedCents = Number((j.config?.payment as Record<string, unknown> | undefined)?.featuredCampaignPriceCents);
+      setC({
+        ...j.config,
+        featuredCampaignPriceDollars: Number.isFinite(savedCents) && savedCents > 0 ? savedCents / 100 : undefined,
+      });
+      flash('Settings saved');
     } catch (e) { flash(`Error: ${(e as Error).message}`); } finally { setBusy(false); }
   }
 
@@ -68,6 +87,14 @@ export default function SettingsClient({ config: initial }: { config: PlatformCo
             <Field label="Platform fee %" k="platformFeePercent" value={c.platformFeePercent} type="number" onSet={set} />
             <Field label="Processing fee %" k="donationFeePercent" value={c.donationFeePercent} type="number" onSet={set} />
             <Field label="Default donor tip %" k="defaultDonorTipPercent" value={c.defaultDonorTipPercent} type="number" onSet={set} />
+            <Field
+              label="Featured campaign price (USD, one-time)"
+              k="featuredCampaignPriceDollars"
+              value={c.featuredCampaignPriceDollars}
+              type="number"
+              ph="5"
+              onSet={set}
+            />
           </div>
         </section>
       </div>

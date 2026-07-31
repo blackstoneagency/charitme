@@ -7,6 +7,7 @@ import type { RotatorCampaign } from '../app/HeroRotator';
 import type { HomeCampaign, StoryFilters, StoryFilterValue } from './home-types';
 import { formatHomeCents, normalizeStoryFilters, shortHomeCount } from './home-utils';
 import { campaignColumns, applyLiveFilters } from './campaign-visibility';
+import { selectRotatorCampaigns } from './featured';
 
 const INDIVIDUAL_CATEGORIES: string[] = CAMPAIGN_CATEGORIES.filter(category =>
   !['Nonprofit', 'Community', 'Environment', 'Volunteer', 'Event'].includes(category),
@@ -265,6 +266,9 @@ async function getHomeDataUncached(filters: StoryFilters): Promise<{
     )
       .not('cover_image_url', 'is', null)
       .neq('cover_image_url', '')
+      // Ended campaigns pruned in SQL so the row budget is not spent on rows
+      // that will be discarded. A null deadline runs indefinitely and stays.
+      .or(`deadline.is.null,deadline.gt.${new Date().toISOString()}`)
       .order('featured', { ascending: false })
       .order('raised_amount', { ascending: false })
       .limit(20),
@@ -317,7 +321,14 @@ async function getHomeDataUncached(filters: StoryFilters): Promise<{
         : ((c.profiles as { full_name: string | null } | null)?.full_name ?? null),
     }));
 
-  const rotatorCampaigns: RotatorCampaign[] = await attachCampaignCurrencies(rawRotatorCampaigns);
+  // The SERVER-SIDE SEED for HeroRotator. It applied no selection at all, so the
+  // first paint could show an ended or fully-funded campaign until the client's
+  // /api/campaigns/rotator fetch replaced it a moment later — a real flash of an
+  // ineligible campaign on every cold load. Same helper as the API route, so the
+  // two cannot disagree.
+  const rotatorCampaigns: RotatorCampaign[] = await attachCampaignCurrencies(
+    selectRotatorCampaigns(rawRotatorCampaigns),
+  );
 
   const platformRaised = ((completedDonationResult.data ?? []) as { amount_cents: number }[])
     .reduce((sum, r) => sum + (r.amount_cents ?? 0), 0);

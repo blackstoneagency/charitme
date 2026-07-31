@@ -16,8 +16,66 @@ export const dynamic = 'force-dynamic';
 // The fee is a platform charge (no connected-account transfer). On success the
 // Stripe webhook flips campaigns.featured = true (see stripe/webhook).
 // ─────────────────────────────────────────────────────────────────────────────
-export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+
+/**
+ * The admin-configured fee, in cents.
+ *
+ * Read on EVERY request rather than cached: the requirement is that the price can
+ * be changed "at any moment" in the admin portal, and a cached figure would keep
+ * charging the old amount — or, worse, quote one price in the UI and charge
+ * another. It is one indexed single-row lookup.
+ */
+async function featurePriceCents(): Promise<number> {
+  const { data: settingsRow } = await supabaseAdmin
+    .from('platform_settings')
+    .select('config')
+    .eq('id', 1)
+    .maybeSingle();
+  const payment =
+    settingsRow?.config && typeof settingsRow.config === 'object' && !Array.isArray(settingsRow.config)
+      ? (settingsRow.config as Record<string, unknown>).payment
+      : undefined;
+  return resolveFeaturePriceCents(payment);
+}
+
+// GET /api/campaigns/:id/feature — the current price and whether this campaign is
+// already featured. Exists so the campaign BUILDER (a client component) can show
+// the live admin-configured price without hardcoding $5, which would silently
+// misquote every time an admin changed it.
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+
+  const { data: campaign } = await supabaseAdmin
+    .from('campaigns')
+    .select('id, user_id, featured')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+  // Ownership checked even for a read: `featured` is not secret, but this route
+  // would otherwise confirm the existence of any campaign id to any signed-in
+  // user.
+  if (!(await canManageCampaign(user, campaign.user_id))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  return NextResponse.json({ priceCents: await featurePriceCents(), featured: Boolean(campaign.featured) });
+}
+
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  // Where to send the creator back to. The campaign BUILDER offers this at the
+  // moment a campaign goes live, and dropping that person into the dashboard
+  // would lose their share panel and the rest of the launch screen. Restricted
+  // to a known set rather than accepting a URL — an open `returnTo` on a
+  // payment route is a redirect gadget.
+  const body = await request.json().catch(() => ({}));
+  const returnTo = (body as { returnTo?: string })?.returnTo === 'create' ? 'create' : 'dashboard';
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -39,17 +97,7 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: 'This campaign is already featured.' }, { status: 400 });
   }
 
-  // Resolve the admin-configured fee from platform settings (default $5).
-  const { data: settingsRow } = await supabaseAdmin
-    .from('platform_settings')
-    .select('config')
-    .eq('id', 1)
-    .maybeSingle();
-  const payment =
-    settingsRow?.config && typeof settingsRow.config === 'object' && !Array.isArray(settingsRow.config)
-      ? (settingsRow.config as Record<string, unknown>).payment
-      : undefined;
-  const priceCents = resolveFeaturePriceCents(payment);
+  const priceCents = await featurePriceCents();
 
   const origin = getAppOrigin();
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
@@ -67,8 +115,14 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
         quantity: 1,
       },
     ],
-    success_url: `${origin}/dashboard/campaigns/${campaign.id}?featured=1`,
-    cancel_url: `${origin}/dashboard/campaigns/${campaign.id}?featured=0`,
+    success_url:
+      returnTo === 'create'
+        ? `${origin}/create?featured=1&campaign=${campaign.id}`
+        : `${origin}/dashboard/campaigns/${campaign.id}?featured=1`,
+    cancel_url:
+      returnTo === 'create'
+        ? `${origin}/create?featured=0&campaign=${campaign.id}`
+        : `${origin}/dashboard/campaigns/${campaign.id}?featured=0`,
     metadata: {
       type: 'feature_campaign',
       campaignId: campaign.id,
