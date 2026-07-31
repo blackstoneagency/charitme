@@ -14814,6 +14814,9 @@ Homepage HTML: 0 ended, 0 funded, eligible featured present. Price: configured
 
 Verified: strict signed-in contrast 0 findings; strict public contrast 0 findings;
 public axe 0 violations across 80 non-data-backed page loads plus the Supabase-backed
-embed in both themes; focused regression suite 82/82; full suite 1933/1933 across 188
+embed in both themes; newly merged `/crisis`, `/developers`, `/give`, and `/nearby`
+routes pass targeted axe and strict contrast checks in both themes; newly merged
+`/dashboard/creator` and `/dashboard/developers` routes return 0 strict signed-in
+contrast findings; focused regression suite 82/82; full suite 2015/2015 across 195
 files; typecheck pass; zero-warning lint pass; `git diff --check` clean; production
-build succeeds with 152 generated static pages.
+build succeeds with 154 generated static pages.
