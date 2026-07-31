@@ -1648,7 +1648,14 @@ img, video, iframe { max-width: 100%; }
 .kf-inbox .kf-inbox-row.active { background: var(--s2); }
 .kf-inbox strong, .kf-inbox p { display: block; margin: 0; }
 .kf-inbox p { margin-top: 5px; color: var(--t2); font-size: 13px; }
-.kf-inbox .kf-inbox-row > span { margin-left: auto; min-width: 24px; height: 24px; display: grid; place-items: center; border-radius: 999px; background: #551cf2; color: #fff; font-size: 12px; font-weight: 700; }
+/* This was an unread-COUNT pill (violet circle, white number). That element no
+   longer exists — MessagesClient now shows unread as an 8px dot inside the
+   <strong>, and the only remaining direct <span> child of the row is the
+   timestamp. So the rule had stopped styling a badge and started painting a
+   violet pill behind "5m ago", whose own inline `color: var(--t3)` beat the
+   `color: #fff` here: 2.32:1 in dark mode, caught by audit:signed-in.
+   The timestamp carries its own styles; it needs nothing from here. */
+.kf-inbox .kf-inbox-row > span { margin-left: auto; }
 .kf-thread { display: flex; flex-direction: column; padding: 20px; }
 .kf-thread-head { display: flex; align-items: center; gap: 14px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
 .kf-thread-head h2 { margin: 0; font-size: 20px; }

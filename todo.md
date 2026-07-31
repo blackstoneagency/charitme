@@ -15170,3 +15170,47 @@ Blocked on the owner, and no further sandbox work moves them:
 **Highest-leverage owner action: allowlist `*.supabase.co`,
 `images.unsplash.com` and `www.charitme.com` for the sandbox.** That single
 change converts four blocked goal lines into work an agent can finish.
+
+## ✅ DONE — 2 of the 8 signed-in contrast failures fixed (Claude, 2026-07-31)
+
+First work against the real C1 number (8, per the section above). Both fixes
+verified by re-running `audit:signed-in --only /dashboard/messages,/dashboard/refund`.
+
+**1. `/dashboard/messages` — a stale CSS rule was painting a pill behind a timestamp.**
+`.kf-inbox .kf-inbox-row > span` was written for an unread-COUNT pill (violet
+circle, white number). That element no longer exists — `MessagesClient` shows
+unread as an 8px dot *inside* the `<strong>`. So the only remaining direct
+`<span>` child of the row is the **timestamp**, and the rule had quietly stopped
+styling a badge and started painting a violet pill behind "5m ago". The
+timestamp's own inline `color: var(--t3)` beat the rule's `color: #fff` →
+**2.32:1**. Reduced the rule to the one declaration still needed (`margin-left:
+auto`). This also removes a visual bug nobody had reported.
+
+**2. `/dashboard/refund` — light-mode orange on a dark tint.** The "Request
+pending" badge hardcoded `#c2410c` over `rgba(245,158,11,.12)`, which composites
+to `rgb(45,37,44)` on a dark page → **2.86:1**. Now `var(--orange-text, #c2410c)`,
+the accent-as-text pair that flips per theme. Same class as the grants/volunteer
+chips and `.home-hero-trust strong`.
+
+### ⚠️ A third finding on the same page is a FALSE POSITIVE — do not "fix" it
+
+The re-run surfaced one more:
+
+```
+light /dashboard/refund — 1.93:1 rgb(255,255,255) on rgb(196,174,255)
+      · 14px/650 · <BUTTON> "Submit Refund Request"
+```
+
+That is the button's **disabled** state — `background: rgba(108,53,255,.4)` with
+`cursor: not-allowed`, because the stub renders the form empty and therefore
+invalid. **WCAG 2.2 SC 1.4.3 explicitly exempts inactive user interface
+components from contrast requirements.**
+
+Darkening it would be actively wrong: it would make a disabled button look
+enabled, which is a worse defect than the one it "fixes". The right move is an
+audit baseline entry for disabled controls, not a colour change. Left as-is
+deliberately — flagged here so the next person does not spend time on it or,
+worse, "fix" it.
+
+**Remaining: ~6 of the 8.** Re-run `npm run audit:signed-in` (after
+`pkill -f "[n]ext-server"`) to list them.
