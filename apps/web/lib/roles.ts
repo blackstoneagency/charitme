@@ -7,10 +7,10 @@ import { cache } from 'react';
 const memoize: <A extends unknown[], R>(fn: (...a: A) => R) => (...a: A) => R =
   typeof cache === 'function' ? cache : (fn) => fn;
 import { supabaseAdmin } from './supabase';
-import { ASSIGNABLE_ROLES, parseRoles, type UserRole } from './roles-shared';
+import { ASSIGNABLE_ROLES, parseRoles, isSuspendedRoles, type UserRole } from './roles-shared';
 
 // Re-exported so existing importers of lib/roles keep working unchanged.
-export { ASSIGNABLE_ROLES, parseRoles };
+export { ASSIGNABLE_ROLES, parseRoles, isSuspendedRoles };
 export type { UserRole };
 
 
@@ -26,6 +26,26 @@ export const getUserRoles = memoize(async (userId: string): Promise<UserRole[]> 
   const { data } = await supabaseAdmin.from('profiles').select('roles').eq('id', userId).single();
   return parseRoles(data?.roles);
 });
+
+/**
+ * Suspension state for an account, keeping "we could not tell" distinct from
+ * "not suspended".
+ *
+ * Callers must fail CLOSED on 'unknown' — if we cannot tell whether someone is
+ * suspended, they must not create a campaign or take money. But the two call
+ * sites owe the user different messages: a suspended organizer gets a permanent
+ * 403, whereas a failed read is transient and should say "try again" (503), not
+ * accuse anyone of being suspended. Collapsing both into one boolean produced
+ * the wrong message on whichever branch lost.
+ */
+export type SuspensionState = 'suspended' | 'active' | 'unknown';
+
+export async function getSuspensionState(userId: string): Promise<SuspensionState> {
+  const { data, error } = await supabaseAdmin
+    .from('profiles').select('roles').eq('id', userId).single();
+  if (error || !data) return 'unknown';
+  return isSuspendedRoles(data.roles) ? 'suspended' : 'active';
+}
 
 // Emails that are always treated as SUPER admins (full platform control),
 // regardless of DB roles or env vars. Super admin implies admin.
