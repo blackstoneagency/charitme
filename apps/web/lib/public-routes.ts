@@ -295,6 +295,27 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     priority: 0.38,
     changeFrequency: 'yearly',
   },
+  {
+    path: '/legal',
+    title: 'Legal',
+    description: 'Every CharitMe policy in one place — terms, privacy, fees, refunds, security, and acceptable use.',
+    priority: 0.38,
+    changeFrequency: 'yearly',
+  },
+  {
+    path: '/cookies',
+    title: 'Cookie Policy',
+    description: 'The cookies CharitMe sets, what each one does, and how to change your privacy choices.',
+    priority: 0.36,
+    changeFrequency: 'yearly',
+  },
+  {
+    path: '/accessibility',
+    title: 'Accessibility Statement',
+    description: 'CharitMe targets WCAG 2.2 Level AA — what is verified, what is still open, and how to report a barrier.',
+    priority: 0.36,
+    changeFrequency: 'yearly',
+  },
 ];
 
 export function publicUrl(path: string): string {

@@ -34,6 +34,10 @@ function Icon({ name, className = 'h-5 w-5' }: { name: string; className?: strin
   const paths: Record<string, React.ReactNode> = {
     sparkle: <path d="M12 3l1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6L12 3z" />,
     arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,
+    // Solid block arrow. The stroked `arrow` above is a hairline at this size;
+    // the donate CTA needs a filled glyph, so this path overrides the svg-level
+    // fill:none / stroke:currentColor rather than inheriting them.
+    arrowSolid: <path fill="currentColor" stroke="none" d="M3 9.4h9.4V5.2L21 12l-8.6 6.8v-4.2H3Z" />,
     check: <path d="M20 6L9 17l-5-5" />,
     heart: <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z" />,
     shield: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="M9 12l2 2 4-4" /></>,
@@ -297,7 +301,7 @@ export default async function HomePage() {
 
             <div className="home-hero-cta">
               <Link href="/create/choose-path" className="home-btn home-btn-primary">Create My Fundraiser Now!</Link>
-              <Link href="/campaigns" className="home-btn home-btn-ghost">Donate Now <Icon name="arrow" className="hi" /></Link>
+              <Link href="/campaigns" className="home-btn home-btn-donate">Donate Now <Icon name="arrowSolid" className="hi hi-arrow" /></Link>
             </div>
 
             <p className="home-hero-trust">

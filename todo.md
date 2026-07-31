@@ -14915,3 +14915,38 @@ rather than fixing, because it is someone else's lane and their fix is in flight
 **Note for whoever is in this tree:** two agents are editing the same working
 directory, not just the same branch — 60 files changed underneath this task
 mid-edit and HEAD moved without this session doing it. Commit by explicit path.
+
+## ✅ DONE — Donate Now CTA: outlined → filled (Claude, 2026-07-31)
+
+The homepage hero paired a gradient "Create My Fundraiser Now!" with an
+*outlined* "Donate Now". Outlined next to filled reads as secondary, so the
+donor — the other half of the marketplace — was being offered the quieter
+button. Now filled, with a solid block arrow.
+
+**Two things worth keeping:**
+
+1. **The fill is a FIXED colour in both themes, on purpose.** White on
+   `#9b2fa0` measures **6.35:1**, past AA with room at any size. A token that
+   flipped per theme would need re-verifying twice and could drift; this cannot.
+2. **`.home-btn-donate .hi-arrow` silently lost to `.home svg.hi`.** The first
+   attempt at enlarging the arrow changed nothing: `.home svg.hi` is specificity
+   (0,2,1) and sets `width: 1em`, while `.home-btn-donate .hi-arrow` is (0,2,0).
+   The rule parsed fine, applied cleanly, and did nothing — measuring the
+   rendered width (still 16px) is what caught it. Selector is now
+   `.home .home-btn-donate svg.hi-arrow` (0,3,1) and the arrow renders at 24px.
+
+The stroked `arrow` icon is a hairline at that size, so a filled `arrowSolid`
+path was added that overrides the shared `fill:none / stroke:currentColor`.
+
+**Verified:** 6.35:1 in both themes · arrow genuinely filled (computed
+`fill: rgb(255,255,255)`, `stroke: none`) · height and baseline identical to the
+primary button beside it (52px, 0px offset) · no overflow at 320/390px ·
+contrast sweep **0 failures over 47 pages × 2 themes** · responsive sweep **0
+regressions over 47 pages × 3 viewports × 2 themes** · typecheck 0 · lint 0
+errors · **vitest 2131/2131 across 199 files** · build exit 0.
+
+Also fixed while landing this: my locale migration collided with master's
+`20260809000000_harden_privileged_database_boundaries.sql` (renumbered to
+`20260818000000`), and `/legal`, `/cookies`, `/accessibility` had to be added to
+`INDEXABLE_PUBLIC_ROUTES` — `route-list-single-source.test.ts` requires every
+searchable public page to appear in both the sweep list and the sitemap catalog.
