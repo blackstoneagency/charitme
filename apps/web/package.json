@@ -27,7 +27,8 @@
     "audit:web-vitals": "node scripts/audit-web-vitals.mjs",
     "audit:campaign-images:live": "node scripts/audit-campaign-images.mjs --live",
     "check:env": "node scripts/check-env.mjs",
-    "audit:orphan-tables": "node scripts/audit-orphan-tables.mjs"
+    "audit:orphan-tables": "node scripts/audit-orphan-tables.mjs",
+    "audit:shell-seam": "node scripts/audit-shell-seam.mjs"
   },
   "dependencies": {
     "@shared/fees": "*",
