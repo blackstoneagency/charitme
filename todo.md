@@ -15038,3 +15038,122 @@ arrow 17.37:1 (light) / 14.57:1 (dark).
 **Suite:** typecheck 0 · lint 0 errors · **vitest 2143/2143 across 200 files** ·
 build exit 0 · axe **4/4 projects** · contrast **0 failures, 47 pages × 2 themes**
 · responsive **0 regressions, 47 pages × 3 viewports × 2 themes**.
+
+## ✅ DONE (partly) — cover uniqueness: one real duplicate fixed, the rest is egress-blocked (Claude, 2026-07-31)
+
+Working the *"every image on every page is unique, 0 duplicates"* goal line.
+`npm run audit:campaign-images` **passes**, but its 10 warnings are real, so I
+measured the catalog rather than trusting the pass:
+
+```
+18 categories · 45 distinct verified photo IDs · ~110 slots
+10 IDs are used by more than one category
+6 categories have ZERO exclusive photos:
+   Nonprofit, Community, Competition, Family, Sports, Volunteer
+one photo (1469571486292…) leads 15 of the 18 categories
+```
+
+### The real bug, and it was not the catalog
+
+`getCoverForCategory()` returns **`pool[0]`** — the *same* image for every call
+with the same category. That is correct for the browse-by-category tile
+("Medical fundraisers"), and wrong anywhere keyed to a campaign.
+
+The homepage hero rotator used it as each slide's `fallbackCover`, so **two
+featured campaigns sharing a category whose covers both failed to load would
+show the identical photo, side by side in the rotator.** Fixed to
+`getCoverForCampaign(c.category, c.slug)`, which is distinct per campaign by
+construction. The remaining call is the category tile, which is the helper's
+actual purpose — asserted in the test, so a future "cleanup" cannot quietly
+re-point it at a campaign.
+
+### Why the catalog gap is NOT fixed, and must not be "fixed" carelessly
+
+`lib/photo-catalog.ts` states its contract in the header: *"Every ID in this
+file has been verified to return HTTP 200."* Verifying a new ID needs
+`images.unsplash.com`, which the sandbox proxy still refuses:
+
+```
+curl images.unsplash.com  -> 000   (connection refused by proxy)
+curl *.supabase.co        -> 000
+```
+
+So adding IDs here would trade **duplicate covers for broken ones**, which is
+strictly worse. Left alone deliberately.
+
+**When egress exists, this is the shape of the work:** ~110 slots need ~110
+verified IDs (45 today). Prioritise the 6 categories with zero exclusive photos.
+`getCoverForCampaign` already guarantees per-campaign uniqueness via Picsum, so
+this is about making covers *themed* as well as unique — the trade-off already
+documented in that function.
+
+**Verified:** typecheck 0 · lint 0 · **vitest 2153/2153 across 201 files** ·
+build exit 0 · `audit:campaign-images` PASSED.
+
+## 🔴 THE SIGNED-IN CONTRAST AUDIT CANNOT RUN — and the reason is one line (Claude, 2026-07-31)
+
+`C1` (355 admin WCAG AA failures) is the biggest open item in the queue, and the
+tool built to measure it — `npm run audit:signed-in` — **cannot execute at all**.
+It is not egress this time. It is env precedence.
+
+**Reproduce:**
+
+```
+npm run audit:signed-in
+  → · supabase-stub up on http://127.0.0.1:54321
+  → · app up on http://127.0.0.1:3000
+  → ✗ /admin answered 307 with the admin stub session.
+```
+
+**Cause, confirmed:** `apps/web/.env.local` defines `NEXT_PUBLIC_SUPABASE_URL`,
+and it wins over the env `audit-signed-in.mjs` passes to the child build. So the
+bundle is compiled against the **real** Supabase URL, which is unreachable from
+here, so there is no session, so `/admin` 307s and the sweep aborts. Building
+manually with the documented override does **not** help either — verified:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 … npm run build   # then
+node scripts/audit-signed-in.mjs --strict-gradients                # same 307
+```
+
+The script's own guard is excellent — it refuses to report a green run against
+the wrong backend, which is exactly right and is why this surfaced as a clean
+error rather than a false pass. The bug is upstream of the guard.
+
+**This matters more than it looks.** Every "signed-in half is audited" claim in
+this file rests on a tool that currently cannot start. Nobody should mark C1
+progressed until this runs.
+
+**Fix shape (NOT attempted — low context, and `audit-signed-in.mjs` is Codex's
+lane):** the child build needs an env `.env.local` cannot override. Options, in
+order of preference:
+1. Have the script write a temporary `.env.production.local` (higher precedence
+   than `.env.local` in Next's order) and remove it in a `finally`.
+2. Run the build in a temp copy of the workspace with no `.env.local`.
+3. Renaming `.env.local` for the duration works but mutates a developer's real
+   file — only acceptable with a `finally` restore, and it will still corrupt
+   state if the process is killed. Least preferred.
+
+Do **not** "fix" this by deleting the guard at step 3 of the script. A green
+admin sweep measured against the wrong backend is worse than no sweep.
+
+### Where the goal lines actually stand (Claude, end of session)
+
+Closed and enforced by tests this session: footer + locale, Donate CTA,
+suspension enforcement, back-to-top, cover de-duplication, `/cookies` +
+`/developers` a11y. **vitest 2153/2153 across 201 files**, axe 4/4, contrast 0
+failures over 47 public pages × 2 themes, responsive 0 regressions.
+
+Blocked on the owner, and no further sandbox work moves them:
+
+| goal line | blocked by |
+|---|---|
+| ≥100 Supabase seed records | egress to `*.supabase.co` (`curl` → `000`) + O6 |
+| all payment methods work | O3 Stripe test keys |
+| every image unique + themed | egress to `images.unsplash.com` (`curl` → `000`) |
+| live on Production, not Preview | egress to `www.charitme.com` |
+| 355 admin contrast failures (C1) | the tooling bug above, then Codex's lane |
+
+**Highest-leverage owner action: allowlist `*.supabase.co`,
+`images.unsplash.com` and `www.charitme.com` for the sandbox.** That single
+change converts four blocked goal lines into work an agent can finish.
