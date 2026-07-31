@@ -6,6 +6,7 @@ import { checkRateLimitDurable } from '../../../../lib/rate-limit-durable';
 import { createClient } from '../../../../lib/supabase-server';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { formatMoney, normalizeCurrency } from '@shared/currencies';
+import { campaignDaysLeft, campaignLifecycle } from '../../../../lib/campaign-lifecycle';
 
 export const dynamic = 'force-dynamic';
 
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
   const [{ data: campaign, error: campaignError }, { data: launchSettings }, { data: faqRows }] = await Promise.all([
     supabaseAdmin
       .from('campaigns')
-      .select('id, title, tagline, description, category, location, goal_amount, raised_amount, backer_count, deadline, trust_status, nonprofit_verified')
+      .select('id, title, tagline, description, category, location, goal_amount, raised_amount, backer_count, deadline, status, trust_status, nonprofit_verified')
       .eq('id', campaignId)
       .maybeSingle<Campaign>(),
     supabaseAdmin
@@ -133,9 +134,17 @@ export async function POST(request: NextRequest) {
   const percentFunded = campaign.goal_amount > 0
     ? Math.min(100, (campaign.raised_amount / campaign.goal_amount) * 100)
     : 0;
-  const daysLeft = campaign.deadline
-    ? Math.max(0, Math.ceil((new Date(campaign.deadline).getTime() - Date.now()) / 86_400_000))
-    : null;
+  // null once the campaign is over, so the assistant cannot tell a donor there
+  // is time left to give on a campaign that has ended. `status` is selected
+  // above purely for this — the previous version read the deadline alone and
+  // would happily answer "136 days left" for a completed campaign.
+  const lifecycleInput = {
+    status: (campaign as { status?: string | null }).status,
+    deadline: campaign.deadline,
+  };
+  const daysLeft = campaignLifecycle(lifecycleInput) === 'ended'
+    ? null
+    : campaignDaysLeft(campaign.deadline);
 
   const facts = {
     title: campaign.title,
