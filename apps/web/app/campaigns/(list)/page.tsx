@@ -2,14 +2,10 @@ import Link from 'next/link';
 import { supabaseAdmin } from '../../../lib/supabase';
 import { campaignColumns, applyLiveFilters } from '../../../lib/campaign-visibility';
 import { applyCampaignSearch, likeTerm } from '../../../lib/campaign-search';
-import { ProgressBar, Badge, Card, EmptyState } from '../../../components/ui';
-import { formatCents } from '../../../lib/stripe';
+import { EmptyState } from '../../../components/ui';
+import { CampaignCard, CampaignGrid } from '../../../components/CampaignCard';
 import { CAMPAIGN_CATEGORIES } from '@shared/fees';
-import { calculateTrustScore, getTrustLabel } from '../../../lib/ai-platform';
-import { getCoverForCampaign } from '../../../lib/photo-catalog';
-import { optimizedCoverUrl } from '../../../lib/img-optimize';
 import type { Metadata } from 'next';
-import { campaignDaysLeft, campaignTimeLabel } from '../../../lib/campaign-lifecycle';
 
 export const metadata: Metadata = {
   title: 'Browse Campaigns',
@@ -48,7 +44,7 @@ async function getCampaigns(opts: {
     let query = applyLiveFilters(
       supabaseAdmin
         .from('campaigns')
-        .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, trust_status, nonprofit_verified, location, campaign_health_score', { count: 'exact' }),
+        .select('id, slug, title, tagline, cover_image_url, goal_amount, raised_amount, backer_count, deadline, category, status, trust_status, nonprofit_verified, location, campaign_health_score', { count: 'exact' }),
       cols,
     );
 
@@ -88,18 +84,6 @@ async function getCampaigns(opts: {
   } catch {
     return { campaigns: [], total: 0, unavailable: true };
   }
-}
-
-/**
- * Card countdown. `status: 'active'` is guaranteed, not assumed — this query
- * runs through `applyLiveFilters`, which pins `status = 'active'`.
- *
- * Shared with the campaign page via lib/campaign-lifecycle rather than
- * recomputed, because separate copies are exactly how a card and its campaign
- * page came to disagree about whether a campaign was still running.
- */
-function daysLeftLabel(deadline: string | null): string {
-  return campaignTimeLabel({ status: 'active', deadline });
 }
 
 const SORT_LABELS: Record<SortOption, string> = {
@@ -245,90 +229,11 @@ export default async function CampaignsPage({ searchParams }: Props) {
           action={<Link href="/campaigns" style={{ fontSize: '14px', color: 'var(--green-text)', fontWeight: 600 }}>Clear filters</Link>}
         />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: '24px' }}>
-          {campaigns.map((c) => {
-            const pct  = Math.min(100, Math.round(((c.raised_amount ?? 0) / c.goal_amount) * 100));
-            const daysLabel = daysLeftLabel(c.deadline);
-            // Numeric form for the urgency badge. Same shared helper, so the
-            // badge and the label cannot disagree about how much time is left.
-            const days = campaignDaysLeft(c.deadline);
-            const currency = currencyMap.get(c.id) ?? 'usd';
-            const trust = calculateTrustScore(c);
-            const isVerified = c.trust_status === 'Verified';
-            const isTaxDeductible = (c as { nonprofit_verified?: boolean }).nonprofit_verified;
-
-            return (
-              <Link key={c.id} href={`/campaigns/${c.slug}`} style={{ textDecoration: 'none' }}>
-                <Card style={{ cursor: 'pointer', transition: 'box-shadow .2s', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ height: '190px', position: 'relative', flexShrink: 0, overflow: 'hidden', background: 'var(--s3)' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={optimizedCoverUrl(c.cover_image_url || getCoverForCampaign(c.category, c.slug), 700)}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                    <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      <Badge color="gray">{c.category}</Badge>
-                      {isVerified && <Badge color="green">✓ Verified</Badge>}
-                      {isTaxDeductible && <Badge color="green">💚 Tax Deductible</Badge>}
-                      {days !== null && days <= 5 && days > 0 && <Badge color="red">⏰ {days}d left</Badge>}
-                    </div>
-                    <div style={{ position: 'absolute', bottom: '10px', right: '10px' }}>
-                      <Badge color={trust >= 70 ? 'green' : trust >= 40 ? 'blue' : 'gray'}>
-                        {getTrustLabel(trust)} {trust}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                    <h2 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '6px', color: 'var(--t1)', lineHeight: 1.35 }}>
-                      {c.title}
-                    </h2>
-                    {c.tagline && (
-                      <p style={{ fontSize: '13px', color: 'var(--t3)', marginBottom: '12px', lineHeight: 1.4 }}>
-                        {c.tagline.slice(0, 90)}{c.tagline.length > 90 ? '…' : ''}
-                      </p>
-                    )}
-                    {(c as { location?: string }).location && (
-                      <p style={{ fontSize: '12px', color: 'var(--t3)', marginBottom: '8px' }}>
-                        📍 {(c as { location?: string }).location}
-                      </p>
-                    )}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '12px' }}>
-                      {[
-                        { label: 'Trust', value: `${trust}` },
-                        { label: 'Donors', value: `${c.backer_count ?? 0}` },
-                        { label: 'Goal', value: formatCents(c.goal_amount, currency) },
-                      ].map((signal) => (
-                        <div key={signal.label} style={{ background: 'var(--s1)', border: '1px solid var(--b1)', borderRadius: 'var(--r)', padding: '8px' }}>
-                          <div style={{ fontSize: '12px', fontWeight: 650, color: 'var(--t1)' }}>{signal.value}</div>
-                          <div style={{ fontSize: '10px', color: 'var(--t4)', marginTop: '1px' }}>{signal.label}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <ProgressBar value={c.raised_amount ?? 0} max={c.goal_amount} />
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', flexWrap: 'wrap', gap: '4px' }}>
-                      <div>
-                        <span style={{ fontWeight: 700, color: 'var(--green-text)', fontSize: '14px' }}>
-                          {formatCents(c.raised_amount ?? 0, currency)}
-                        </span>
-                        <span style={{ fontSize: '12px', color: 'var(--t4)', marginLeft: '4px' }}>
-                          of {formatCents(c.goal_amount, currency)}
-                        </span>
-                      </div>
-                      <span style={{ fontSize: '12px', color: 'var(--t4)' }}>
-                        {/* Shared label, so a card can never say "0d left" on a
-                            campaign whose deadline has already passed. */}
-                        {pct}%{daysLabel === 'No deadline' ? '' : ` · ${daysLabel}`}
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
+        <CampaignGrid>
+          {campaigns.map((c) => (
+            <CampaignCard key={c.id} campaign={c} currency={currencyMap.get(c.id) ?? 'usd'} />
+          ))}
+        </CampaignGrid>
       )}
 
       {totalPages > 1 && (
