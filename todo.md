@@ -14817,6 +14817,6 @@ public axe 0 violations across 80 non-data-backed page loads plus the Supabase-b
 embed in both themes; newly merged `/crisis`, `/developers`, `/give`, and `/nearby`
 routes pass targeted axe and strict contrast checks in both themes; newly merged
 `/dashboard/creator` and `/dashboard/developers` routes return 0 strict signed-in
-contrast findings; focused regression suite 82/82; full suite 2015/2015 across 195
+contrast findings; focused regression suite 82/82; full suite 2037/2037 across 196
 files; typecheck pass; zero-warning lint pass; `git diff --check` clean; production
 build succeeds with 154 generated static pages.
