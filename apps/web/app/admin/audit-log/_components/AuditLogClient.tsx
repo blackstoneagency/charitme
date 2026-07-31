@@ -31,14 +31,14 @@ type Props = {
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Payments: '#6c35ff',
-  Charges: '#ec3fb4',
-  Customers: '#2f80ed',
-  Checkout: '#19b86a',
-  Payouts: '#f59e0b',
-  Invoices: '#ff3b5f',
-  Subscriptions: '#8b5cf6',
-  System: '#67718e',
+  Payments: 'var(--brand-text)',
+  Charges: 'var(--pink-text)',
+  Customers: 'var(--blue-text)',
+  Checkout: 'var(--green-text)',
+  Payouts: 'var(--orange-text)',
+  Invoices: 'var(--red-text)',
+  Subscriptions: 'var(--brand-text)',
+  System: 'var(--t3)',
 };
 
 function MiniLineChart({ points }: { points: DayPoint[] }) {
@@ -77,7 +77,7 @@ function MiniLineChart({ points }: { points: DayPoint[] }) {
       {points.filter((_, i) => i % 5 === 0).map((p, idx) => {
         const origIdx = idx * 5;
         return (
-          <text key={origIdx} x={coords[origIdx].x} y={H - 2} textAnchor="middle" fontSize={8} fill="#8c95b2">{p.label}</text>
+          <text key={origIdx} x={coords[origIdx].x} y={H - 2} textAnchor="middle" fontSize={8} fill="var(--t3)">{p.label}</text>
         );
       })}
     </svg>
@@ -186,7 +186,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
       {/* Charts row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 18 }}>
         <section className="kf-card" style={{ overflow: 'hidden' }}>
-          <div className="kf-card-head"><h2>Activity Over Time</h2><span style={{ color: '#4b5676', fontSize: 13 }}>Last 30 days</span></div>
+          <div className="kf-card-head"><h2>Activity Over Time</h2><span style={{ color: 'var(--t3)', fontSize: 13 }}>Last 30 days</span></div>
           <div style={{ padding: '0 10px 8px' }}>
             <MiniLineChart points={dayPoints} />
           </div>
@@ -221,7 +221,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
                 <StatusPill>{e.status}</StatusPill>
               </div>
               <strong style={{ display: 'block', fontSize: 12, fontWeight: 650, marginBottom: 2 }}>{e.action}</strong>
-              <small style={{ color: '#8c95b2', fontSize: 10 }}>{e.dateTime}</small>
+              <small style={{ color: 'var(--t3)', fontSize: 10 }}>{e.dateTime}</small>
             </div>
           ))}
         </section>
@@ -271,7 +271,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
           </div>
 
           {/* Table header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 110px 90px 80px', gap: 12, padding: '8px 20px', background: 'var(--s2)', borderTop: '1px solid #eef0f7', borderBottom: '1px solid #eef0f7', fontSize: 11, fontWeight: 700, color: '#4b5676', textTransform: 'uppercase' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 110px 90px 80px', gap: 12, padding: '8px 20px', background: 'var(--s2)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase' }}>
             <span>Date & Time</span>
             <span>Action</span>
             <span>Category</span>
@@ -284,7 +284,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
               <span style={{ fontSize: 11, color: 'var(--t3)' }}>{e.dateTime}</span>
               <div>
                 <strong style={{ display: 'block', fontSize: 12, fontWeight: 650 }}>{e.action}</strong>
-                {e.stripeEventId && <small style={{ color: '#8c95b2', fontSize: 10 }}>{e.stripeEventId.slice(0, 20)}…</small>}
+                {e.stripeEventId && <small style={{ color: 'var(--t3)', fontSize: 10 }}>{e.stripeEventId.slice(0, 20)}…</small>}
               </div>
               <span style={{ fontSize: 11, fontWeight: 650, color: CATEGORY_COLORS[e.category] ?? 'var(--brand-text)' }}>{e.category}</span>
               <StatusPill>{e.status}</StatusPill>
@@ -346,7 +346,7 @@ export default function AuditLogClient({ events, totalEvents, uniqueUsers, categ
               </code>
               {selectedEvent.stripeEventId && (
                 <>
-                  <p style={{ margin: '12px 0 4px', fontSize: 12, fontWeight: 600, color: '#4b5676' }}>Stripe Event ID</p>
+                  <p style={{ margin: '12px 0 4px', fontSize: 12, fontWeight: 600, color: 'var(--t3)' }}>Stripe Event ID</p>
                   <code style={{ display: 'block', fontSize: 11, fontFamily: 'monospace', background: '#f5f2ff', padding: '8px 12px', borderRadius: 8, wordBreak: 'break-all', color: 'var(--t3)' }}>
                     {selectedEvent.stripeEventId}
                   </code>

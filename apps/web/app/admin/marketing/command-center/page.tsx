@@ -7,7 +7,7 @@ import type { MarketingGoal, GoalProgress, GoalUnit } from '../../../../lib/mark
 
 export const dynamic = 'force-dynamic';
 
-const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid #eef0f7', borderRadius: 14, padding: '20px 24px' };
+const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid var(--line)', borderRadius: 14, padding: '20px 24px' };
 const METRIC_LABEL: Record<string, string> = {
   fundraiser_starts: 'New fundraiser starts', donation_volume: 'Donation volume', recurring_donors: 'Recurring donors',
   donation_conversion: 'Donation conversion', verified_charities: 'Verified charities', donor_acquisition_cost: 'Donor acq. cost',
@@ -41,9 +41,9 @@ export default async function CommandCenterPage() {
         title="Marketing Command Center"
         subtitle="What changed, what's active, and what's waiting — all on live data. Read-only executive view."
         actions={<div style={{ display: 'flex', gap: 8 }}>
-          <Link href="/admin/marketing/campaign-plans" style={{ height: 38, display: 'inline-flex', alignItems: 'center', padding: '0 16px', borderRadius: 10, background: 'var(--s2)', color: 'var(--t1)', border: '1px solid #e2e8f0', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>Campaigns</Link>
-          <Link href="/admin/marketing/opportunities" style={{ height: 38, display: 'inline-flex', alignItems: 'center', padding: '0 16px', borderRadius: 10, background: 'var(--s2)', color: 'var(--t1)', border: '1px solid #e2e8f0', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>Opportunities</Link>
-          <Link href="/admin/marketing/goals" style={{ height: 38, display: 'inline-flex', alignItems: 'center', padding: '0 16px', borderRadius: 10, background: 'linear-gradient(135deg,#7035ff,#ec39c3)', color: '#fff', fontWeight: 800, fontSize: 13, textDecoration: 'none' }}>Goals →</Link>
+          <Link href="/admin/marketing/campaign-plans" style={{ height: 38, display: 'inline-flex', alignItems: 'center', padding: '0 16px', borderRadius: 10, background: 'var(--s2)', color: 'var(--t1)', border: '1px solid var(--line)', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>Campaigns</Link>
+          <Link href="/admin/marketing/opportunities" style={{ height: 38, display: 'inline-flex', alignItems: 'center', padding: '0 16px', borderRadius: 10, background: 'var(--s2)', color: 'var(--t1)', border: '1px solid var(--line)', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>Opportunities</Link>
+          <Link href="/admin/marketing/goals" style={{ height: 38, display: 'inline-flex', alignItems: 'center', padding: '0 16px', borderRadius: 10, background: 'linear-gradient(135deg,var(--cta-from),var(--cta-to))', color: '#fff', fontWeight: 800, fontSize: 13, textDecoration: 'none' }}>Goals →</Link>
         </div>}
       />
       <div style={{ padding: '0 20px 48px', maxWidth: 1040 }}>
@@ -71,10 +71,10 @@ export default async function CommandCenterPage() {
 
           {/* Right column: needs attention + pulse + freshness */}
           <div style={{ display: 'grid', gap: 16 }}>
-            <div style={{ ...card, background: cc.goalsAwaitingActivation > 0 ? '#fffbeb' : '#fff', borderColor: cc.goalsAwaitingActivation > 0 ? '#fde68a' : '#eef0f7' }}>
+            <div style={{ ...card, background: cc.goalsAwaitingActivation > 0 ? 'var(--s2)' : 'var(--s1)', borderColor: cc.goalsAwaitingActivation > 0 ? 'var(--b2)' : 'var(--line)' }}>
               <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--t1)', marginBottom: 8 }}>Needs your attention</div>
               {cc.goalsAwaitingActivation > 0 ? (
-                <Link href="/admin/marketing/goals" style={{ fontSize: 13, color: '#b45309', fontWeight: 700, textDecoration: 'none' }}>
+                <Link href="/admin/marketing/goals" style={{ fontSize: 13, color: 'var(--orange-text)', fontWeight: 700, textDecoration: 'none' }}>
                   {cc.goalsAwaitingActivation} goal(s) awaiting activation →
                 </Link>
               ) : (
@@ -108,7 +108,7 @@ export default async function CommandCenterPage() {
           )}
         </div>
 
-        <div style={{ fontSize: 11, color: '#cbd5e1', marginTop: 14, textAlign: 'right' }}>
+        <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 14, textAlign: 'right' }}>
           Generated {new Date(cc.generatedAt).toLocaleString('en-US')} · live query
         </div>
       </div>
@@ -118,7 +118,7 @@ export default async function CommandCenterPage() {
 
 function DeltaCard({ d }: { d: Delta }) {
   const up = d.changePct != null && d.changePct >= 0;
-  const color = d.changePct == null ? '#94a3b8' : up ? '#10b981' : '#ef4444';
+  const color = d.changePct == null ? 'var(--t3)' : up ? 'var(--green-text)' : 'var(--red-text)';
   return (
     <div style={card}>
       <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{d.label}</div>
@@ -133,9 +133,9 @@ function DeltaCard({ d }: { d: Delta }) {
 function GoalRow({ g }: { g: MarketingGoal & { progress: GoalProgress } }) {
   const p = g.progress;
   return (
-    <div style={{ padding: '10px 0', borderBottom: '1px solid #f5f6fa' }}>
+    <div style={{ padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>{g.title}</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)' }}>{g.title}</div>
         <div style={{ fontSize: 11, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{METRIC_LABEL[g.target_metric]}</div>
       </div>
       {p.measurable ? (
@@ -148,7 +148,7 @@ function GoalRow({ g }: { g: MarketingGoal & { progress: GoalProgress } }) {
           </div>
         </>
       ) : (
-        <div style={{ fontSize: 11, color: '#b45309', marginTop: 5 }}>Measurement pending · target {fmtUnit(p.target, g.unit)}</div>
+        <div style={{ fontSize: 11, color: 'var(--orange-text)', marginTop: 5 }}>Measurement pending · target {fmtUnit(p.target, g.unit)}</div>
       )}
     </div>
   );
@@ -156,7 +156,7 @@ function GoalRow({ g }: { g: MarketingGoal & { progress: GoalProgress } }) {
 
 function PulseRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 13, borderBottom: '1px solid #f5f6fa' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 13, borderBottom: '1px solid var(--line)' }}>
       <span style={{ color: 'var(--t3)', fontWeight: 600 }}>{label}</span>
       <b style={{ color: 'var(--t1)' }}>{value}</b>
     </div>
@@ -165,12 +165,12 @@ function PulseRow({ label, value }: { label: string; value: string }) {
 
 function ActivityRow({ a }: { a: ActivityItem }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #f5f6fa' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--line)' }}>
       <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: a.actor === 'system' ? '#6c35ff' : '#64748b', padding: '2px 7px', borderRadius: 20, textTransform: 'uppercase' }}>{a.actor}</span>
-      <span style={{ fontSize: 13, color: '#334155', fontWeight: 600, flex: 1 }}>
+      <span style={{ fontSize: 13, color: 'var(--t2)', fontWeight: 600, flex: 1 }}>
         {a.action.replaceAll('_', ' ')} <span style={{ color: 'var(--t3)', fontWeight: 500 }}>· {a.summary}</span>
       </span>
-      <span style={{ fontSize: 11, color: '#cbd5e1', whiteSpace: 'nowrap' }}>{ago(a.created_at)}</span>
+      <span style={{ fontSize: 11, color: 'var(--t3)', whiteSpace: 'nowrap' }}>{ago(a.created_at)}</span>
     </div>
   );
 }

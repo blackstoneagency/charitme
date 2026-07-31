@@ -6,26 +6,26 @@ import { useRouter } from 'next/navigation';
 type Status = 'draft' | 'active' | 'paused' | 'completed' | 'frozen' | 'archived';
 
 const STATUS_ACTIONS: Record<Status, { label: string; next: Status; color: string; confirm?: string }[]> = {
-  draft:     [{ label: 'Publish Campaign', next: 'active', color: 'var(--green-text)' }],
+  draft:     [{ label: 'Publish Campaign', next: 'active', color: 'var(--green-btn)' }],
   active:    [
-    { label: 'Pause Donations', next: 'paused', color: 'var(--orange-text)', confirm: 'Pausing stops new donations but keeps the page live. Continue?' },
-    { label: 'Close Campaign',  next: 'completed', color: 'var(--t3)', confirm: 'Closing marks the campaign as completed. Donors will see it as ended. Continue?' },
+    { label: 'Pause Donations', next: 'paused', color: 'var(--orange-btn)', confirm: 'Pausing stops new donations but keeps the page live. Continue?' },
+    { label: 'Close Campaign',  next: 'completed', color: '#475569', confirm: 'Closing marks the campaign as completed. Donors will see it as ended. Continue?' },
   ],
   paused:    [
-    { label: 'Resume Donations', next: 'active', color: 'var(--green-text)' },
-    { label: 'Close Campaign',   next: 'completed', color: 'var(--t3)', confirm: 'Close this campaign permanently?' },
+    { label: 'Resume Donations', next: 'active', color: 'var(--green-btn)' },
+    { label: 'Close Campaign',   next: 'completed', color: '#475569', confirm: 'Close this campaign permanently?' },
   ],
-  completed: [{ label: 'Archive Campaign', next: 'archived', color: 'var(--t3)', confirm: 'Archived campaigns are hidden from search. You can still view them in your dashboard.' }],
+  completed: [{ label: 'Archive Campaign', next: 'archived', color: '#475569', confirm: 'Archived campaigns are hidden from search. You can still view them in your dashboard.' }],
   frozen:    [],
   archived:  [],
 };
 
 const STATUS_BADGE: Record<Status, { bg: string; color: string; label: string }> = {
   draft:     { bg: '#f1f5f9', color: 'var(--t3)',  label: 'Draft'     },
-  active:    { bg: '#f0fff8', color: 'var(--green-text)',  label: 'Active'    },
-  paused:    { bg: '#fffbeb', color: 'var(--orange-text)',  label: 'Paused'    },
-  completed: { bg: '#e0f2fe', color: '#0369a1',  label: 'Completed' },
-  frozen:    { bg: '#fff0f3', color: 'var(--red-text)',  label: 'Frozen'    },
+  active:    { bg: 'var(--green-light)', color: 'var(--green-text)',  label: 'Active'    },
+  paused:    { bg: 'var(--orange-soft)', color: 'var(--orange-text)',  label: 'Paused'    },
+  completed: { bg: 'var(--s3)', color: 'var(--blue-text)',  label: 'Completed' },
+  frozen:    { bg: 'var(--red-soft)', color: 'var(--red-text)',  label: 'Frozen'    },
   archived:  { bg: '#f1f5f9', color: '#475569',  label: 'Archived'  },
 };
 
@@ -137,7 +137,7 @@ export default function CampaignControls({
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
             <button type="button" onClick={() => void deleteCampaign()} disabled={loading}
-              style={{ padding: '8px 20px', border: 0, borderRadius: 8, background: 'var(--red)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              style={{ padding: '8px 20px', border: 0, borderRadius: 8, background: 'var(--red-btn)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               {loading ? 'Deleting…' : 'Yes, permanently delete'}
             </button>
             <button type="button" onClick={() => setShowDelete(false)}

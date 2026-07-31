@@ -141,19 +141,19 @@ export default async function AuditLogPage() {
   }
 
   const COLORS: Record<string, string> = {
-    Payments: '#6c35ff',
-    Payouts: '#f59e0b',
+    Payments: 'var(--brand-text)',
+    Payouts: 'var(--orange-text)',
     Campaigns: '#19b86a',
     Users: '#2f80ed',
     Donations: '#ec3fb4',
     Billing: '#8b5cf6',
-    Admin: '#ef4444',
-    System: '#67718e',
+    Admin: 'var(--red-text)',
+    System: 'var(--t3)',
   };
 
   const categories: CategoryCount[] = Object.entries(catMap)
     .sort((a, b) => b[1] - a[1])
-    .map(([label, count]) => ({ label, count, color: COLORS[label] ?? '#8c95b2' }));
+    .map(([label, count]) => ({ label, count, color: COLORS[label] ?? 'var(--t3)' }));
 
   // Build day points for last 30 days — combined from both sources
   const dayBuckets: Map<string, number> = new Map();

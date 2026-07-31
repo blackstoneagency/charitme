@@ -9,7 +9,7 @@ export type Announcement = {
 };
 
 const input: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 9, border: '1px solid var(--b2)', background: 'var(--s1)', color: 'var(--t1)', fontSize: 13 };
-const btn: React.CSSProperties = { padding: '9px 16px', borderRadius: 9, border: 'none', background: 'var(--green-dark)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13 };
+const btn: React.CSSProperties = { padding: '9px 16px', borderRadius: 9, border: 'none', background: 'var(--green-btn)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13 };
 const btnGhost: React.CSSProperties = { ...btn, background: 'transparent', color: 'var(--t2)', border: '1px solid var(--b2)' };
 const LEVEL_COLOR: Record<string, string> = { info: 'var(--blue)', success: 'var(--green)', warning: '#f59e0b', critical: 'var(--red)' };
 
@@ -53,7 +53,7 @@ export default function AnnouncementsClient({ rows: initial }: { rows: Announcem
                   <span className={`kf-pill ${r.active ? 'green' : 'red'}`}>{r.active ? 'Live' : 'Off'}</span>
                   <button style={{ ...btnGhost, padding: '3px 10px' }} onClick={() => toggle(r)}>{r.active ? 'Disable' : 'Activate'}</button>
                   <button style={{ ...btnGhost, padding: '3px 10px' }} onClick={() => setDraft(r)}>Edit</button>
-                  <button style={{ ...btnGhost, padding: '3px 10px', color: 'var(--red)' }} onClick={() => del(r.id)}>Delete</button>
+                  <button style={{ ...btnGhost, padding: '3px 10px', color: 'var(--red-text)' }} onClick={() => del(r.id)}>Delete</button>
                 </div>
               </div>
               {r.body && <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--t2)' }}>{r.body}</p>}

@@ -45,7 +45,7 @@ export default async function FinancePage() {
     { label: 'Gross Donations', value: fmtCents(totalGross), sub: 'all completed', color: 'var(--brand-text)' },
     { label: 'Platform Revenue (Tips)', value: fmtCents(platformRevenue), sub: 'optional donor tips', color: 'var(--green-text)' },
     { label: 'Processing Fees Covered', value: fmtCents(totalFees), sub: 'donor-covered fees', color: 'var(--orange-text)' },
-    { label: 'Total Payouts Sent', value: fmtCents(totalPaid), sub: 'paid to organizers', color: '#3b82f6' },
+    { label: 'Total Payouts Sent', value: fmtCents(totalPaid), sub: 'paid to organizers', color: 'var(--blue-text)' },
     { label: 'Total Refunded', value: fmtCents(totalRefunds), sub: 'net reversal', color: 'var(--red-text)' },
     // `count` is null when the QUERY FAILS, not when the number is zero. A false
     // "0" on these two is operationally consequential: it reads as "no failed
@@ -53,7 +53,7 @@ export default async function FinancePage() {
     // Same convention as dashboard/settings: render unknown, never a fake 0.
     { label: 'Failed Donations', value: failedRes.count == null ? '—' : String(failedRes.count), sub: 'payment failed', color: 'var(--t3)' },
     { label: 'Pending Payouts', value: pendingPayRes.count == null ? '—' : String(pendingPayRes.count), sub: 'awaiting release', color: 'var(--orange-text)' },
-    { label: 'Net to Fundraisers', value: fmtCents(totalGross - totalRefunds), sub: 'gross minus refunds', color: '#0ea5e9' },
+    { label: 'Net to Fundraisers', value: fmtCents(totalGross - totalRefunds), sub: 'gross minus refunds', color: 'var(--blue-text)' },
   ];
 
   type DonRow = {
@@ -68,12 +68,12 @@ export default async function FinancePage() {
   };
   const recentDons = (recentDonRes.data ?? []) as unknown as DonRow[];
 
-  const statusColor: Record<string, string> = {
-    completed: '#19b86a',
-    pending: '#f59e0b',
-    refunded: '#6b7280',
-    failed: '#ef4444',
-    disputed: '#f97316',
+  const statusTone: Record<string, { color: string; background: string }> = {
+    completed: { color: 'var(--green-text)', background: 'var(--green-light)' },
+    pending: { color: 'var(--orange-text)', background: 'var(--orange-soft)' },
+    refunded: { color: 'var(--t3)', background: 'var(--s2)' },
+    failed: { color: 'var(--red-text)', background: 'var(--red-soft)' },
+    disputed: { color: 'var(--orange-text)', background: 'var(--orange-soft)' },
   };
 
   return (
@@ -130,7 +130,7 @@ export default async function FinancePage() {
                       <td style={{ padding: '10px 14px', color: 'var(--orange-text)' }}>{d.processing_fee_cents > 0 ? fmtCents(d.processing_fee_cents) : '—'}</td>
                       <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--brand-text)' }}>{fmtCents(net)}</td>
                       <td style={{ padding: '10px 14px' }}>
-                        <span style={{ background: (statusColor[d.status] ?? '#6b7280') + '18', color: statusColor[d.status] ?? '#6b7280', padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'capitalize' }}>
+                        <span style={{ background: statusTone[d.status]?.background ?? 'var(--s2)', color: statusTone[d.status]?.color ?? 'var(--t3)', padding: '3px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'capitalize' }}>
                           {d.status}
                         </span>
                       </td>

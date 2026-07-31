@@ -74,6 +74,10 @@ const authedSource = readFileSync(
   path.join(WEB_ROOT, 'scripts', 'audit-authed.mjs'),
   'utf8',
 );
+const a11ySource = readFileSync(
+  path.join(WEB_ROOT, 'scripts', 'audit-a11y.mjs'),
+  'utf8',
+);
 const packageJson = JSON.parse(
   readFileSync(path.join(WEB_ROOT, 'package.json'), 'utf8'),
 ) as { scripts: Record<string, string> };
@@ -140,5 +144,19 @@ describe('signed-in audit integrity', () => {
     expect(authedSource).toContain('activeTheme !== theme');
     expect(authedSource).toContain('errors++');
     expect(authedSource).toContain('if (errors > 0)');
+  });
+});
+
+describe('public accessibility audit integrity', () => {
+  it('rejects HTTP errors and unexpected redirects before running axe', () => {
+    expect(a11ySource).toContain('response.status() >= 400');
+    expect(a11ySource).toContain('actualPath !== expectedPath');
+    expect(a11ySource.indexOf('response.status() >= 400'))
+      .toBeLessThan(a11ySource.indexOf('new AxeBuilder'));
+  });
+
+  it('supports a validated targeted route for fast regression certification', () => {
+    expect(a11ySource).toContain("process.argv.indexOf('--only')");
+    expect(a11ySource).toContain('Unknown public audit route');
   });
 });

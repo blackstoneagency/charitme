@@ -4,12 +4,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import SeoAeoClient, { type SeoRow, type AeoRow, type SeoAeoCoverage } from '../seo/_components/SeoAeoClient';
 
 /* ── shared styles ── */
-const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid #eef0f7', borderRadius: 14, padding: '20px 24px', marginBottom: 16 };
+const card: React.CSSProperties = { background: 'var(--s1)', border: '1px solid var(--line)', borderRadius: 14, padding: '20px 24px', marginBottom: 16 };
 const btn: React.CSSProperties = { padding: '8px 18px', background: '#6c35ff', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 650, cursor: 'pointer' };
-const btnGhost: React.CSSProperties = { padding: '8px 18px', background: 'var(--s2)', color: 'var(--t1)', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' };
-const input: React.CSSProperties = { padding: '9px 14px', borderRadius: 9, border: '1px solid #d1d5db', fontSize: 13, fontFamily: 'inherit' };
-const th: React.CSSProperties = { textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid #eef0f7' };
-const td: React.CSSProperties = { padding: '12px 14px', fontSize: 13, color: 'var(--t1)', borderBottom: '1px solid #f5f6fa' };
+const btnGhost: React.CSSProperties = { padding: '8px 18px', background: 'var(--s2)', color: 'var(--t1)', border: '1px solid var(--line)', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' };
+const input: React.CSSProperties = { padding: '9px 14px', borderRadius: 9, border: '1px solid var(--line)', background: 'var(--s1)', color: 'var(--t1)', fontSize: 13, fontFamily: 'inherit' };
+const th: React.CSSProperties = { textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: 'var(--t3)', textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid var(--line)' };
+const td: React.CSSProperties = { padding: '12px 14px', fontSize: 13, color: 'var(--t1)', borderBottom: '1px solid var(--line)' };
 
 function useEscape(onClose: () => void): void {
   useEffect(() => {
@@ -85,11 +85,11 @@ export default function AdminMarketingClient({ initialTab = 'overview', overview
   return (
     <div style={{ padding: '0 32px 48px', maxWidth: 1100 }}>
       {/* Tab bar */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'var(--s2)', borderRadius: 12, padding: 4, border: '1px solid #eef0f7', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'var(--s2)', borderRadius: 12, padding: 4, border: '1px solid var(--line)', flexWrap: 'wrap' }}>
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             style={{ padding: '9px 18px', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 650, cursor: 'pointer',
-              background: tab === t.key ? '#fff' : 'transparent', color: tab === t.key ? 'var(--brand-text)' : 'var(--t3)',
+              background: tab === t.key ? 'var(--s1)' : 'transparent', color: tab === t.key ? 'var(--brand-text)' : 'var(--t3)',
               boxShadow: tab === t.key ? '0 1px 6px rgba(0,0,0,.08)' : 'none' }}>
             {t.label}
           </button>
@@ -125,15 +125,15 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(260px,1fr))', gap: 14, marginBottom: 20 }}>
-        <a href="/admin/marketing/command-center" style={{ ...card, display: 'block', textDecoration: 'none', background: 'linear-gradient(135deg,#7035ff,#ec39c3)', borderColor: 'transparent', marginBottom: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: 'rgba(255,255,255,.92)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Marketing OS</div>
+        <a href="/admin/marketing/command-center" style={{ ...card, display: 'block', textDecoration: 'none', background: 'linear-gradient(135deg,var(--cta-from),var(--cta-to))', borderColor: 'transparent', marginBottom: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#fff', textTransform: 'uppercase', letterSpacing: '.05em' }}>Marketing OS</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', marginTop: 4 }}>Command Center →</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,.85)', marginTop: 4 }}>What changed overnight, active goals, and what needs attention — live.</div>
+          <div style={{ fontSize: 13, color: '#fff', marginTop: 4 }}>What changed overnight, active goals, and what needs attention — live.</div>
         </a>
         <a href="/admin/marketing/goals" style={{ ...card, display: 'block', textDecoration: 'none', background: 'var(--s2)', borderColor: '#e9deff', marginBottom: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '.05em' }}>Goals</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: '#4d1ee0', marginTop: 4 }}>Set an outcome →</div>
-          <div style={{ fontSize: 13, color: '#6b5b95', marginTop: 4 }}>Describe a business objective in plain English; the OS turns it into a measurable goal.</div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--brand-text)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Goals</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--brand-text)', marginTop: 4 }}>Set an outcome →</div>
+          <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 4 }}>Describe a business objective in plain English; the OS turns it into a measurable goal.</div>
         </a>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 20 }}>
@@ -168,9 +168,9 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
         </div>
       </div>
 
-      <div style={{ ...card, background: '#f7f2ff', borderColor: '#e0d5ff' }}>
-        <div style={{ fontWeight: 700, fontSize: 14, color: '#4d1ee0', marginBottom: 6 }}>Capture endpoint</div>
-        <p style={{ fontSize: 13, color: '#5b3fa8', margin: 0, lineHeight: 1.6 }}>
+      <div style={{ ...card, background: 'var(--s2)', borderColor: 'var(--b1)' }}>
+        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--brand-text)', marginBottom: 6 }}>Capture endpoint</div>
+        <p style={{ fontSize: 13, color: 'var(--t2)', margin: 0, lineHeight: 1.6 }}>
           POST <code style={{ background: 'var(--s1)', padding: '2px 8px', borderRadius: 6 }}>/api/marketing/capture</code> with{' '}
           <code style={{ background: 'var(--s1)', padding: '2px 8px', borderRadius: 6 }}>{'{ email, event, utmSource, ... }'}</code> from any form, popup, or page.
           Identity is resolved automatically; events feed segments, scores, and attribution.
@@ -716,9 +716,9 @@ function OutreachTab({ flash }: { flash: (m: string) => void }) {
 
   return (
     <div>
-      <div style={{ ...card, background: '#f7f2ff', borderColor: '#e0d5ff' }}>
-        <div style={{ fontWeight: 700, fontSize: 14, color: '#4d1ee0', marginBottom: 6 }}>🌱 New-business outreach</div>
-        <p style={{ fontSize: 13, color: '#5b3fa8', margin: 0, lineHeight: 1.6 }}>
+      <div style={{ ...card, background: 'var(--s2)', borderColor: 'var(--b1)' }}>
+        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--brand-text)', marginBottom: 6 }}>🌱 New-business outreach</div>
+        <p style={{ fontSize: 13, color: 'var(--t2)', margin: 0, lineHeight: 1.6 }}>
           Pulled live from <b>New Customers</b>. Validate each lead&apos;s email, then send a personal invite with a
           <b> unique tracking link</b> — when they click it and land on the site, the visit is captured back here
           (clicked → converted). Every link is its own <code style={{ background: 'var(--s1)', padding: '1px 7px', borderRadius: 6 }}>/go/&lt;code&gt;</code> short URL.
@@ -896,7 +896,7 @@ function OutreachComposer({ lead, onClose, onUpdate, flash }: {
           {o?.invite_url ? (
             <div style={{ background: 'var(--s2)', borderRadius: 10, padding: '14px 16px' }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <code style={{ flex: 1, fontSize: 12, color: '#4d1ee0', wordBreak: 'break-all' }}>{o.invite_url}</code>
+                <code style={{ flex: 1, fontSize: 12, color: 'var(--brand-text)', wordBreak: 'break-all' }}>{o.invite_url}</code>
                 <button onClick={() => void copy()} style={{ ...btnGhost, padding: '6px 12px', fontSize: 12, whiteSpace: 'nowrap' }}>{copied ? '✓ Copied' : 'Copy'}</button>
               </div>
               <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 12.5, color: 'var(--t3)', flexWrap: 'wrap' }}>

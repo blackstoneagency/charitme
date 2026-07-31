@@ -2,6 +2,7 @@ import 'server-only';
 import { requireAdmin } from './auth';
 import { supabaseAdmin } from './supabase';
 import { formatPaymentCents, summarizePaymentRows, type AdminPaymentRow, type PaymentFlowSummary } from './payment-flow';
+import { paymentStatusTone } from './payment-flow-core';
 
 export type PaymentFilters = {
   processor?: string;
@@ -32,10 +33,7 @@ export function money(cents: number, currency = 'usd'): string {
 }
 
 export function statusTone(status: string): string {
-  if (['paid', 'succeeded', 'reconciled', 'processed', 'recorded', 'won', 'enabled'].includes(status)) return '#15803d';
-  if (['failed', 'lost', 'mismatch', 'disputed', 'error'].includes(status)) return '#b91c1c';
-  if (['pending', 'pending_data', 'requested', 'approved', 'needs_review', 'partially_refunded', 'opened'].includes(status)) return '#c2410c';
-  return '#475569';
+  return paymentStatusTone(status);
 }
 
 export async function getPaymentAdminData(filters: PaymentFilters = {}, limit = 100): Promise<PaymentAdminData> {

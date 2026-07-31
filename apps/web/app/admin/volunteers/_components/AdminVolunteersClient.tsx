@@ -30,7 +30,7 @@ const input: React.CSSProperties = {
   padding: '9px 11px', border: '1px solid #e2e5ee', borderRadius: 9, fontSize: 13,
   background: 'var(--s1)', color: 'var(--t1)', width: '100%', boxSizing: 'border-box',
 };
-const label: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: '#4b5675', marginBottom: 4, display: 'block' };
+const label: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: 'var(--t3)', marginBottom: 4, display: 'block' };
 
 const emptyForm = {
   title: '', orgName: '', category: '', summary: '', description: '', skills: '',
@@ -141,8 +141,8 @@ export default function AdminVolunteersClient() {
       {msg && (
         <div style={{
           padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600,
-          background: msg.kind === 'ok' ? '#e8f8ee' : '#fdecec',
-          color: msg.kind === 'ok' ? '#08763b' : '#c0392b',
+          background: msg.kind === 'ok' ? 'var(--green-light)' : 'rgba(190,18,60,.12)',
+          color: msg.kind === 'ok' ? 'var(--green-text)' : 'var(--red-text)',
         }}>{msg.text}</div>
       )}
 
@@ -217,11 +217,11 @@ export default function AdminVolunteersClient() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#4b5675' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
             <input type="checkbox" checked={form.isRemote} onChange={(e) => set('isRemote', e.target.checked)} />
             Remote-friendly
           </label>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#4b5675' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--t2)' }}>
             <input type="checkbox" checked={form.verified} onChange={(e) => set('verified', e.target.checked)} />
             Verified (trusted badge + ranked first)
           </label>
@@ -239,9 +239,9 @@ export default function AdminVolunteersClient() {
           All opportunities {loading ? '' : `(${opps.length})`}
         </h3>
         {loading ? (
-          <div style={{ color: '#8c95b2', fontSize: 13, padding: 20 }}>Loading…</div>
+          <div style={{ color: 'var(--t3)', fontSize: 13, padding: 20 }}>Loading…</div>
         ) : opps.length === 0 ? (
-          <div style={{ color: '#8c95b2', fontSize: 13, padding: 20, background: 'var(--s1)', borderRadius: 12, border: '1px solid #eef0f7' }}>
+          <div style={{ color: 'var(--t3)', fontSize: 13, padding: 20, background: 'var(--s1)', borderRadius: 12, border: '1px solid var(--line)' }}>
             No opportunities yet. Add your first one above — it goes live on <strong>/volunteer</strong> immediately.
           </div>
         ) : (
@@ -249,18 +249,18 @@ export default function AdminVolunteersClient() {
             {opps.map((o) => {
               const full = o.slots != null && o.slots_filled >= o.slots;
               return (
-                <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '12px 16px', background: 'var(--s1)', border: '1px solid #eef0f7', borderRadius: 12 }}>
+                <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: '12px 16px', background: 'var(--s1)', border: '1px solid var(--line)', borderRadius: 12 }}>
                   <div style={{ minWidth: 0, flex: '1 1 220px' }}>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                       <span style={{
                         fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
-                        background: o.status === 'open' ? '#e8f8ee' : o.status === 'upcoming' ? '#eef3ff' : '#f1f2f6',
-                        color: o.status === 'open' ? '#08763b' : o.status === 'upcoming' ? '#2878ff' : '#65708f',
+                        background: o.status === 'open' ? 'var(--green-light)' : o.status === 'upcoming' ? 'var(--s3)' : 'var(--s2)',
+                        color: o.status === 'open' ? 'var(--green-text)' : o.status === 'upcoming' ? 'var(--blue-text)' : 'var(--t3)',
                       }}>{o.status}</span>
-                      {o.verified && <span style={{ fontSize: 11, fontWeight: 700, color: '#08763b' }}>✓ verified</span>}
-                      {o.is_remote && <span style={{ fontSize: 11, fontWeight: 700, color: '#2878ff' }}>remote</span>}
-                      <span style={{ fontSize: 12, color: '#8c95b2' }}>{o.org_name}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: full ? '#c0392b' : '#65708f' }}>
+                      {o.verified && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--green-text)' }}>✓ verified</span>}
+                      {o.is_remote && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--blue-text)' }}>remote</span>}
+                      <span style={{ fontSize: 12, color: 'var(--t3)' }}>{o.org_name}</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: full ? 'var(--red-text)' : 'var(--t3)' }}>
                         {o.slots == null ? 'unlimited spots' : `${o.slots_filled}/${o.slots} filled`}
                       </span>
                     </div>
@@ -269,10 +269,10 @@ export default function AdminVolunteersClient() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
-                    <button onClick={() => startEdit(o)} style={btn('#6d35ff')}>Edit</button>
-                    {o.status !== 'open' && <button onClick={() => quickStatus(o.id, 'open')} style={btn('#08763b')}>Open</button>}
-                    {o.status !== 'closed' && <button onClick={() => quickStatus(o.id, 'closed')} style={btn('#65708f')}>Close</button>}
-                    <button onClick={() => remove(o.id)} style={btn('#c0392b')}>Delete</button>
+                    <button onClick={() => startEdit(o)} style={btn('var(--brand-text)')}>Edit</button>
+                    {o.status !== 'open' && <button onClick={() => quickStatus(o.id, 'open')} style={btn('var(--green-text)')}>Open</button>}
+                    {o.status !== 'closed' && <button onClick={() => quickStatus(o.id, 'closed')} style={btn('var(--t3)')}>Close</button>}
+                    <button onClick={() => remove(o.id)} style={btn('var(--red-text)')}>Delete</button>
                   </div>
                 </div>
               );
@@ -287,6 +287,6 @@ export default function AdminVolunteersClient() {
 function btn(color: string): React.CSSProperties {
   return {
     fontSize: 12, fontWeight: 700, padding: '6px 12px', borderRadius: 8,
-    border: `1px solid ${color}33`, background: `${color}12`, color, cursor: 'pointer',
+    border: '1px solid var(--b1)', background: 'var(--s2)', color, cursor: 'pointer',
   };
 }

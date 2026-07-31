@@ -48,7 +48,7 @@ export default async function TaxStatementPage({ params, searchParams }: { param
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
             {error.currencies.map((code) => (
-              <Link key={code} href={`/donor/tax-statement/${year}?currency=${encodeURIComponent(code)}`} style={{ color: 'var(--violet, #6c35ff)', fontWeight: 700, textDecoration: 'none' }}>
+              <Link key={code} href={`/donor/tax-statement/${year}?currency=${encodeURIComponent(code)}`} style={{ color: 'var(--brand-text)', fontWeight: 700, textDecoration: 'none' }}>
                 View {code.toUpperCase()} statement
               </Link>
             ))}
@@ -69,11 +69,11 @@ export default async function TaxStatementPage({ params, searchParams }: { param
     <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 24px' }}>
       {/* Toolbar (not printed) */}
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <Link href={`/dashboard/tax?year=${year}&currency=${encodeURIComponent(currency)}`} style={{ fontSize: 13, fontWeight: 700, color: 'var(--violet, #6c35ff)', textDecoration: 'none' }}>Back to tax documents</Link>
+        <Link href={`/dashboard/tax?year=${year}&currency=${encodeURIComponent(currency)}`} style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none' }}>Back to tax documents</Link>
         <div style={{ display: 'flex', gap: 10 }}>
           <a
             href={`/api/donor/tax-statement?year=${year}&currency=${encodeURIComponent(currency)}&format=csv`}
-            style={{ fontSize: 13, fontWeight: 700, color: 'var(--violet, #6c35ff)', textDecoration: 'none', border: '1px solid var(--b2, #d7ddea)', borderRadius: 'var(--r, 10px)', padding: '8px 16px' }}
+            style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-text)', textDecoration: 'none', border: '1px solid var(--b2, #d7ddea)', borderRadius: 'var(--r, 10px)', padding: '8px 16px' }}
           >
             Download CSV
           </a>
@@ -89,7 +89,7 @@ export default async function TaxStatementPage({ params, searchParams }: { param
             <div style={{ fontSize: 13, color: 'var(--t3)' }}>Annual Giving Statement</div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--violet, #6c35ff)' }}>{year}</div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--brand-text)' }}>{year}</div>
             <div style={{ fontSize: 12, color: 'var(--t3)' }}>Tax year (Jan 1 – Dec 31)</div>
           </div>
         </div>
@@ -102,7 +102,7 @@ export default async function TaxStatementPage({ params, searchParams }: { param
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 28 }}>
           {[
             { label: 'Total given', value: formatCents(totals.totalGiftCents, currency), color: 'var(--t1, #0e0520)' },
-            { label: 'Tax-deductible', value: formatCents(totals.deductibleCents, currency), color: 'var(--green, #12a653)' },
+            { label: 'Tax-deductible', value: formatCents(totals.deductibleCents, currency), color: 'var(--green-text)' },
             { label: 'Non-deductible', value: formatCents(totals.nonDeductibleCents, currency), color: 'var(--t3)' },
           ].map((s) => (
             <div key={s.label} style={{ border: '1px solid var(--b1, #e8ecf4)', borderRadius: 12, padding: '14px 16px', textAlign: 'center' }}>
@@ -128,7 +128,7 @@ export default async function TaxStatementPage({ params, searchParams }: { param
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1, #0e0520)' }}>{o.name}</div>
                       {o.ein && <div style={{ fontSize: 11, color: 'var(--t3)' }}>EIN {o.ein}</div>}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--green, #12a653)' }}>{formatCents(o.deductibleCents, currency)}</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--green-text)' }}>{formatCents(o.deductibleCents, currency)}</div>
                   </div>
                 ))}
               </div>
@@ -157,7 +157,7 @@ export default async function TaxStatementPage({ params, searchParams }: { param
                       </td>
                       <td style={{ ...td, textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>{formatCents(l.amountCents, l.currency)}</td>
                       <td style={{ ...td, textAlign: 'center' }}>
-                        <span style={{ fontSize: 11, fontWeight: 800, color: l.deductible ? 'var(--green, #12a653)' : 'var(--t3, #94a3b8)' }}>{l.deductible ? 'Yes' : 'No'}</span>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: l.deductible ? 'var(--green-text)' : 'var(--t3)' }}>{l.deductible ? 'Yes' : 'No'}</span>
                       </td>
                     </tr>
                   ))}

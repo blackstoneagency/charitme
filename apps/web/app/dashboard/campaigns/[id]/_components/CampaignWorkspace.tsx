@@ -100,8 +100,8 @@ export default function CampaignWorkspace({
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4,
                   padding: '14px 14px', cursor: 'pointer', textAlign: 'left', font: 'inherit',
-                  border: active ? '1.5px solid #6c35ff' : undefined,
-                  background: active ? 'rgba(108,53,255,.06)' : undefined,
+                  border: active ? '1.5px solid var(--brand-text)' : undefined,
+                  background: active ? 'var(--s2)' : undefined,
                   transition: 'border-color .15s, background .15s',
                 }}
               >

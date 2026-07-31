@@ -172,17 +172,17 @@ export default async function AdminReportsPage() {
   }
 
   const COLORS: Record<string, string> = {
-    Finance: '#6c35ff',
-    Campaigns: '#ec3fb4',
-    Users: '#2f80ed',
-    Engagement: '#19b86a',
-    System: '#f59e0b',
+    Finance: 'var(--brand-text)',
+    Campaigns: 'var(--pink-text)',
+    Users: 'var(--blue-text)',
+    Engagement: 'var(--green-text)',
+    System: 'var(--orange-text)',
   };
 
   const categories = Object.entries(categoryMap).map(([label, count]) => ({
     label,
     count,
-    color: COLORS[label] ?? '#8c95b2',
+    color: COLORS[label] ?? 'var(--t3)',
   }));
 
   const dataPoints =

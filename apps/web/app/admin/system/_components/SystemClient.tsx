@@ -327,7 +327,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
               <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: 'var(--t1)' }}>Success!</h2>
               <p style={{ margin: 0, color: '#4b5676', fontSize: 15 }}>System settings have been updated successfully.</p>
 
-              <div style={{ marginTop: 8, padding: '20px 28px', border: '1px solid #eef0f7', borderRadius: 14, background: 'var(--s2)', minWidth: 340 }}>
+              <div style={{ marginTop: 8, padding: '20px 28px', border: '1px solid var(--b1)', borderRadius: 14, background: 'var(--s2)', minWidth: 340 }}>
                 <p style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>What&apos;s Next?</p>
                 <div style={{ display: 'grid', gap: 10 }}>
                   <button
@@ -764,8 +764,8 @@ export default function SystemClient({ categories, overview, recentActivity, res
           )}
           <div className="sys-toggle-card" style={{ marginTop: maintenanceOn ? 12 : 0 }}>
             <div>
-              <strong style={{ fontSize: 14, fontWeight: 700, color: maintenanceOn ? 'var(--red-text)' : '#0f1238' }}>Maintenance Mode</strong>
-              <small style={{ display: 'block', fontSize: 12, color: maintenanceOn ? 'var(--red-text)' : '#67718e', marginTop: 2 }}>
+              <strong style={{ fontSize: 14, fontWeight: 700, color: maintenanceOn ? 'var(--red-text)' : 'var(--t1)' }}>Maintenance Mode</strong>
+              <small style={{ display: 'block', fontSize: 12, color: maintenanceOn ? 'var(--red-text)' : 'var(--t3)', marginTop: 2 }}>
                 {maintenanceOn ? 'Site is currently in maintenance mode' : 'Enable to temporarily take down the site'}
               </small>
             </div>
@@ -843,8 +843,8 @@ export default function SystemClient({ categories, overview, recentActivity, res
           <div style={{ display: 'grid', gap: 10 }}>
             <div className={`sys-toggle-card${debugOn ? ' active' : ''}`}>
               <div>
-                <strong style={{ fontSize: 14, fontWeight: 700, color: debugOn ? '#c2410c' : '#0f1238' }}>Debug Mode</strong>
-                <small style={{ display: 'block', fontSize: 12, color: debugOn ? 'var(--orange-text)' : '#67718e', marginTop: 2 }}>Enable verbose logging — not for production</small>
+                <strong style={{ fontSize: 14, fontWeight: 700, color: debugOn ? 'var(--orange-text)' : 'var(--t1)' }}>Debug Mode</strong>
+                <small style={{ display: 'block', fontSize: 12, color: debugOn ? 'var(--orange-text)' : 'var(--t3)', marginTop: 2 }}>Enable verbose logging — not for production</small>
               </div>
               <Toggle checked={debugOn} onChange={v => setField('advanced', 'debugMode', v)} />
             </div>
@@ -897,12 +897,12 @@ export default function SystemClient({ categories, overview, recentActivity, res
           {[
             { label: 'Services Online', value: overview.servicesOnline, icon: '✓', color: 'var(--brand-text)' },
             { label: 'Integrations Active', value: overview.integrationsActive, icon: '🔗', color: 'var(--green-text)' },
-            { label: 'Scheduled Jobs', value: overview.scheduledJobs, icon: '⏱', color: '#2f80ed' },
+            { label: 'Scheduled Jobs', value: overview.scheduledJobs, icon: '⏱', color: 'var(--blue-text)' },
             // '—' means the rate could not be read. It must not paint green: that
             // is the false all-clear this tile used to show during an outage.
-            { label: 'Error Rate', value: overview.errorRate, icon: overview.errorRate === '0%' ? '✓' : '⚠', color: overview.errorRate === '0%' ? 'var(--green-text)' : overview.errorRate === '—' ? '#67718e' : '#c2410c' },
+            { label: 'Error Rate', value: overview.errorRate, icon: overview.errorRate === '0%' ? '✓' : '⚠', color: overview.errorRate === '0%' ? 'var(--green-text)' : overview.errorRate === '—' ? 'var(--t3)' : 'var(--orange-text)' },
           ].map(({ label, value, color }) => (
-            <div key={label} style={{ padding: '16px 18px', border: '1px solid #eef0f7', borderRadius: 14, background: 'var(--s2)' }}>
+            <div key={label} style={{ padding: '16px 18px', border: '1px solid var(--b1)', borderRadius: 14, background: 'var(--s2)' }}>
               <small style={{ display: 'block', color: 'var(--t3)', fontSize: 11, fontWeight: 650, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</small>
               <strong style={{ display: 'block', marginTop: 8, fontSize: 26, fontWeight: 800, color }}>{value}</strong>
             </div>
@@ -912,8 +912,8 @@ export default function SystemClient({ categories, overview, recentActivity, res
         {/* Two-column bottom */}
         <div className="sys-overview-grid">
           {/* Recent activity */}
-          <div style={{ border: '1px solid #eef0f7', borderRadius: 14, background: 'var(--s1)', overflow: 'hidden' }}>
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid #eef0f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ border: '1px solid var(--b1)', borderRadius: 14, background: 'var(--s1)', overflow: 'hidden' }}>
+            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--b1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <strong style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>Recent System Activity</strong>
               <Link href="/admin/audit-log" style={{ border: 0, background: 'transparent', color: 'var(--brand-text)', fontSize: 12, fontWeight: 650, cursor: 'pointer', textDecoration: 'none' }}>View all activity →</Link>
             </div>
@@ -924,7 +924,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                     {ev.status === 'Failed' ? '❌' : ev.status === 'Processed' ? '✓' : '⏳'}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'block', fontWeight: 650, color: '#101842', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.action}</span>
+                    <span style={{ display: 'block', fontWeight: 650, color: 'var(--t1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.action}</span>
                     <span style={{ color: 'var(--t3)' }}>{ev.category}</span>
                   </div>
                   <span style={{ color: 'var(--t3)', flexShrink: 0 }}>{ev.time}</span>
@@ -938,8 +938,8 @@ export default function SystemClient({ categories, overview, recentActivity, res
           </div>
 
           {/* Resource usage */}
-          <div style={{ border: '1px solid #eef0f7', borderRadius: 14, background: 'var(--s1)', overflow: 'hidden' }}>
-            <div style={{ padding: '14px 16px', borderBottom: '1px solid #eef0f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ border: '1px solid var(--b1)', borderRadius: 14, background: 'var(--s1)', overflow: 'hidden' }}>
+            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--b1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <strong style={{ fontSize: 13, fontWeight: 700, color: 'var(--t1)' }}>Resource Usage</strong>
               <button
                 type="button"
@@ -1094,7 +1094,7 @@ export default function SystemClient({ categories, overview, recentActivity, res
                     </div>
                     {changes.map(ch => (
                       <div key={ch.key} className="sys-diff-row">
-                        <span style={{ fontWeight: 650, color: '#101842' }}>{ch.label}</span>
+                        <span style={{ fontWeight: 650, color: 'var(--t1)' }}>{ch.label}</span>
                         <span className="sys-diff-old">{ch.old}</span>
                         <span className="sys-diff-new">{ch.new}</span>
                       </div>

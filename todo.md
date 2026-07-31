@@ -14712,7 +14712,6 @@ object now exists on the production Stripe account. **No charge was made and non
 can be** without someone completing payment; sessions expire on their own. Flagged
 rather than buried — and it is a second, independent reason O3 (Stripe **test**
 keys) matters: local verification currently touches the live account.
-
 ## ⭐ Featured-campaign rotation + paid placement (Claude, 2026-07-31)
 
 **Requirement**: only featured campaigns that have *not ended* and have *not
@@ -14790,3 +14789,31 @@ Homepage HTML: 0 ended, 0 funded, eligible featured present. Price: configured
 - **`unstable_cache` persisted an empty homepage** across builds run while no stub
   was up, which reads exactly like "the exclusions broke the homepage". `rm -rf
   .next/cache` before verifying a cached server-rendered page.
+
+### DONE - signed-in theme contrast and non-vacuous public accessibility release (Codex, 2026-07-31)
+
+- Eliminated the authenticated contrast baseline of 219 findings across dashboard,
+  donor, profile, campaign workspace, admin, marketing, payments, and super-admin
+  surfaces. The strict signed-in sweep now returns an empty JSON finding set in
+  both themes for every discovered role route.
+- Replaced hardcoded status, accent, and muted colors with semantic theme tokens;
+  preserved distinct warning, danger, success, and unknown states in light and dark
+  mode. Payment status tones now come from a pure tested utility.
+- Made the public campaign embed a valid App Router document instead of nesting a
+  second html/head/body tree. It now has generated metadata, an isolated fixed-light
+  palette, a real populated Supabase fixture, and AA-compliant donation breakdown
+  text in either host theme.
+- Hardened `audit-a11y.mjs` so HTTP errors and redirects fail before axe runs, added
+  observable per-route progress and a validated `--only` regression mode, and removed
+  reliance on third-party image load completion.
+- Changed homepage reveal motion to transform-only so text retains compliant contrast
+  at every animation frame instead of fading through unreadable intermediate opacity.
+- Fixed donor monthly streak arithmetic at month end by anchoring calculations to the
+  first day of each UTC month. July 31 previously caused June subtraction to roll back
+  into July and double-count the current month.
+
+Verified: strict signed-in contrast 0 findings; strict public contrast 0 findings;
+public axe 0 violations across 80 non-data-backed page loads plus the Supabase-backed
+embed in both themes; focused regression suite 82/82; full suite 1933/1933 across 188
+files; typecheck pass; zero-warning lint pass; `git diff --check` clean; production
+build succeeds with 152 generated static pages.

@@ -177,9 +177,9 @@ function rolePillColor(role: string): React.CSSProperties {
     organizer:     { bg: 'rgba(37,99,235,.08)',  color: 'var(--blue, #0369a1)' },
     nonprofit:     { bg: 'rgba(22,163,74,.10)',  color: 'var(--green-dark, #166534)' },
     beneficiary:   { bg: 'rgba(14,116,144,.10)', color: '#155e75' },
-    donor:         { bg: 'rgba(217,119,6,.08)',  color: 'var(--amber, #854d0e)' },
+    donor:         { bg: 'rgba(217,119,6,.08)',  color: 'var(--orange-text)' },
   };
-  const c = map[role.trim().toLowerCase()] ?? { bg: '#f1f5f9', color: '#334155' };
+  const c = map[role.trim().toLowerCase()] ?? { bg: 'var(--s3)', color: 'var(--t2)' };
   return { background: c.bg, color: c.color, padding: '2px 10px', borderRadius: 6, fontSize: 11, fontWeight: 650 };
 }
 

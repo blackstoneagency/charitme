@@ -174,8 +174,8 @@ export default function NewUpdatePage() {
                       disabled={saving || !body.trim() || (scheduleMode && !scheduledAt)}
                       style={{
                         height: 48, padding: '0 32px', border: 0, borderRadius: 11,
-                        background: saving || !body.trim() ? 'var(--b2)' : 'linear-gradient(135deg,var(--violet),var(--violet))',
-                        color: '#fff', fontWeight: 700, fontSize: 15, cursor: saving ? 'wait' : 'pointer',
+                        background: saving || !body.trim() ? 'var(--s3)' : 'linear-gradient(135deg,var(--cta-from),var(--cta-to))',
+                        color: saving || !body.trim() ? 'var(--t3)' : '#fff', fontWeight: 700, fontSize: 15, cursor: saving ? 'wait' : 'pointer',
                       }}
                     >
                       {saving ? (scheduleMode ? 'Scheduling…' : 'Posting…') : (scheduleMode ? 'Schedule Update' : 'Post Update')}

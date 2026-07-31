@@ -9,15 +9,15 @@ type Campaign = { id: string; title: string; slug: string };
 
 type ContentType = 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'whatsapp' | 'sms' | 'email' | 'update';
 
-const CHANNELS: { type: ContentType; label: string; icon: string; color: string }[] = [
-  { type: 'facebook', label: 'Facebook', icon: 'f', color: '#1877f2' },
-  { type: 'twitter', label: 'X / Twitter', icon: 'X', color: '#000' },
-  { type: 'instagram', label: 'Instagram', icon: '📸', color: '#e1306c' },
-  { type: 'linkedin', label: 'LinkedIn', icon: 'in', color: '#0a66c2' },
-  { type: 'whatsapp', label: 'WhatsApp', icon: '💬', color: '#25d366' },
-  { type: 'sms', label: 'SMS', icon: '💬', color: '#34c759' },
-  { type: 'email', label: 'Email', icon: '✉️', color: 'var(--brand-text)' },
-  { type: 'update', label: 'Campaign Update', icon: '📝', color: 'var(--green-text)' },
+const CHANNELS: { type: ContentType; label: string; icon: string; fill: string; text: string; tint: string }[] = [
+  { type: 'facebook', label: 'Facebook', icon: 'f', fill: 'var(--blue-btn)', text: 'var(--blue-text)', tint: 'var(--s2)' },
+  { type: 'twitter', label: 'X / Twitter', icon: 'X', fill: '#111827', text: 'var(--t1)', tint: 'var(--s2)' },
+  { type: 'instagram', label: 'Instagram', icon: '📸', fill: '#be185d', text: 'var(--pink-text)', tint: 'var(--s2)' },
+  { type: 'linkedin', label: 'LinkedIn', icon: 'in', fill: '#075985', text: 'var(--blue-text)', tint: 'var(--s2)' },
+  { type: 'whatsapp', label: 'WhatsApp', icon: '💬', fill: 'var(--green-btn)', text: 'var(--green-text)', tint: 'var(--green-light)' },
+  { type: 'sms', label: 'SMS', icon: '💬', fill: 'var(--green-btn)', text: 'var(--green-text)', tint: 'var(--green-light)' },
+  { type: 'email', label: 'Email', icon: '✉️', fill: '#551cf2', text: 'var(--brand-text)', tint: 'var(--s3)' },
+  { type: 'update', label: 'Campaign Update', icon: '📝', fill: 'var(--green-btn)', text: 'var(--green-text)', tint: 'var(--green-light)' },
 ];
 
 export default function SharePanel({ campaignId }: { campaignId: string }) {
@@ -102,7 +102,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
             if (!ch) return null;
             return (
               <a key={channel} href={url} target="_blank" rel="noopener noreferrer"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 18px', borderRadius: 10, background: ch.color, color: '#fff', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 18px', borderRadius: 10, background: ch.fill, color: '#fff', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
                 {ch.label}
               </a>
             );
@@ -110,7 +110,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
           <button type="button" onClick={async () => {
             await navigator.clipboard.writeText(utmUrl('direct')).catch(() => undefined);
             setCopied(true); setTimeout(() => setCopied(false), 2000);
-          }} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 18px', borderRadius: 10, background: copied ? '#19b86a' : 'var(--s3)', color: copied ? '#fff' : 'var(--t1)', fontSize: 13, fontWeight: 700, border: '1px solid var(--b2)', cursor: 'pointer' }}>
+          }} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 18px', borderRadius: 10, background: copied ? 'var(--green-btn)' : 'var(--s3)', color: copied ? '#fff' : 'var(--t1)', fontSize: 13, fontWeight: 700, border: '1px solid var(--b2)', cursor: 'pointer' }}>
             {copied ? '✓ Copied!' : '🔗 Copy Link'}
           </button>
         </div>
@@ -128,7 +128,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
           {CHANNELS.map(ch => (
             <button key={ch.type} type="button" onClick={() => { setActiveChannel(ch.type); setContent(''); }}
-              style={{ padding: '7px 16px', borderRadius: 20, border: '1.5px solid', borderColor: activeChannel === ch.type ? ch.color : 'var(--b2)', background: activeChannel === ch.type ? `${ch.color}15` : '#fff', color: activeChannel === ch.type ? ch.color : 'var(--t2)', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all .1s' }}>
+              style={{ padding: '7px 16px', borderRadius: 20, border: '1.5px solid', borderColor: activeChannel === ch.type ? ch.text : 'var(--b2)', background: activeChannel === ch.type ? ch.tint : 'var(--s1)', color: activeChannel === ch.type ? ch.text : 'var(--t2)', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all .1s' }}>
               {ch.label}
             </button>
           ))}
@@ -138,7 +138,7 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
         <label style={{ display: 'grid', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--t1)', marginBottom: 14 }}>
           Extra context <span style={{ fontWeight: 400, color: 'var(--t3)' }}>optional — e.g. &ldquo;we just hit 50% of our goal&rdquo;</span>
           <input value={context} onChange={e => setContext(e.target.value)} maxLength={200} placeholder="Any specific message or milestone to include..."
-            style={{ height: 42, border: '1.5px solid var(--b2)', borderRadius: 10, padding: '0 14px', fontSize: 14, outline: 'none' }} />
+            style={{ height: 42, border: '1.5px solid var(--b2)', borderRadius: 10, padding: '0 14px', fontSize: 14, outline: 'none', background: 'var(--s1)', color: 'var(--t1)' }} />
         </label>
 
         <button type="button" onClick={() => void generate()} disabled={generating}
@@ -146,14 +146,14 @@ export default function SharePanel({ campaignId }: { campaignId: string }) {
           {generating ? 'Generating…' : `Generate ${CHANNELS.find(c => c.type === activeChannel)?.label} Content`}
         </button>
 
-        {error && <div style={{ padding: '10px 14px', background: 'rgba(244,63,94,.12)', border: '1px solid #fecdd3', borderRadius: 9, color: 'var(--red-text)', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>⚠ {error}</div>}
+        {error && <div style={{ padding: '10px 14px', background: 'rgba(190,18,60,.14)', border: '1px solid var(--red-text)', borderRadius: 9, color: 'var(--red-text)', fontSize: 13, fontWeight: 600, marginBottom: 14 }}>⚠ {error}</div>}
 
         {content && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--t2)', margin: 0 }}>Generated content:</p>
               <button type="button" onClick={() => void copy()}
-                style={{ padding: '6px 16px', border: '1px solid var(--b2)', borderRadius: 8, background: copied ? '#19b86a' : '#fff', color: copied ? '#fff' : 'var(--t1)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                style={{ padding: '6px 16px', border: '1px solid var(--b2)', borderRadius: 8, background: copied ? 'var(--green-btn)' : 'var(--s1)', color: copied ? '#fff' : 'var(--t1)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                 {copied ? '✓ Copied!' : 'Copy'}
               </button>
             </div>

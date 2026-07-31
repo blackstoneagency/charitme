@@ -190,7 +190,7 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
             <div>
               <span>{m.label}</span>
               <strong>{m.value}</strong>
-              <small style={{ color: m.change.startsWith('+') ? 'var(--green-text)' : '#334064' }}>{m.change}</small>
+              <small style={{ color: m.change.startsWith('+') ? 'var(--green-text)' : 'var(--t2)' }}>{m.change}</small>
             </div>
           </article>
         ))}
@@ -202,7 +202,7 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
         <section className="kf-card kf-chart">
           <div className="kf-card-head">
             <h2>Donations Over Time</h2>
-            <span style={{ color: '#4b5676', fontSize: 13 }}>Last 8 weeks</span>
+            <span style={{ color: 'var(--t3)', fontSize: 13 }}>Last 8 weeks</span>
           </div>
           <WeeklyLineChart points={weekPoints} />
         </section>
@@ -264,7 +264,7 @@ export default function AdminDashboardClient({ metrics, campaigns, donations, we
           <div className="kf-card-head"><h2>System Health</h2></div>
           <div style={{ padding: '0 20px 16px', display: 'grid', gap: 10 }}>
             {services.map((s) => (
-              <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 9, border: '1px solid #eef0f7', background: 'var(--s2)' }}>
+              <div key={s.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 9, border: '1px solid var(--line)', background: 'var(--s2)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.status === 'Operational' ? '#19b86a' : s.status === 'Degraded' ? '#f59e0b' : s.status === 'Unknown' ? '#94a3b8' : '#ef4444' }} />
                   <span style={{ fontSize: 13, fontWeight: 650 }}>{s.name}</span>
