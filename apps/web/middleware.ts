@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { safeNextPath } from './lib/auth-config';
+import { LOCALE_COOKIE, LOCALE_HEADER, isSupportedMarketLocale, negotiateMarketLocale, resolveMarketLocale } from './lib/i18n';
 
 const PROTECTED = ['/create', '/dashboard', '/profile', '/admin'];
 // Public exceptions that fall UNDER a protected prefix. The campaign path chooser
@@ -102,6 +103,27 @@ export async function middleware(request: NextRequest) {
   ].join('; ');
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
+
+  // ── Automatic locale detection ─────────────────────────────────────────────
+  //
+  // `negotiateLocale` already existed but was called from nowhere, so the site
+  // could only ever be English until a visitor found the footer picker. This is
+  // the wiring that makes detection automatic.
+  //
+  // An explicit choice (the cookie the picker writes) always wins; otherwise
+  // Accept-Language decides — that header IS the operating system's language
+  // setting as the browser reports it. Resolved BEFORE render, so the first
+  // response is already in the visitor's language: no redirect, no flash of
+  // English, no client-side swap.
+  //
+  // Deliberately not a /de/ URL prefix: every link, canonical URL, sitemap entry
+  // and share link in this product is locale-free, and prefixing would rewrite
+  // all of them and split each campaign's SEO across eleven paths.
+  const storedLocale = request.cookies.get(LOCALE_COOKIE)?.value;
+  const marketLocale = isSupportedMarketLocale(storedLocale)
+    ? resolveMarketLocale(storedLocale)
+    : negotiateMarketLocale(request.headers.get('accept-language'));
+  requestHeaders.set(LOCALE_HEADER, marketLocale.tag);
   requestHeaders.set('Content-Security-Policy', contentSecurityPolicy);
   const nextResponse = () => NextResponse.next({ request: { headers: requestHeaders } });
   let response = nextResponse();

@@ -8,6 +8,7 @@ import { createClient } from '../lib/supabase-browser';
 import { ThemeToggle } from './ThemeProvider';
 import AnnouncementBanner, { type Announcement, type BannerAppearance } from './AnnouncementBanner';
 import FooterLocalePicker from './FooterLocalePicker';
+import { useT } from './LocaleProvider';
 import { FOOTER_LEGAL_BAR, FOOTER_SETTINGS_DEFAULTS, resolveFooterSections, type FooterSettings } from '../lib/footer-nav';
 import { MAIN_NAV, flattenNav, type NavItem } from '../lib/main-nav';
 
@@ -72,6 +73,7 @@ function NavMenu({
   onClose: (returnFocus?: boolean) => void;
   align: 'left' | 'right';
 }) {
+  const t = useT();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   // Whether the panel currently open was opened by hover rather than by a click.
   //
@@ -128,7 +130,7 @@ function NavMenu({
           onOpen();
         }}
       >
-        {item.label}
+        {item.labelKey ? t(item.labelKey) : item.label}
         <svg className="kind-menu-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M6 9l6 6 6-6" />
         </svg>
@@ -141,12 +143,12 @@ function NavMenu({
           <div className="kind-menu-cols" data-cols={item.columns.length}>
             {item.columns.map((col) => (
               <div key={col.heading} className="kind-menu-col">
-                <h2 className="kind-menu-heading">{col.heading}</h2>
+                <h2 className="kind-menu-heading">{col.headingKey ? t(col.headingKey) : col.heading}</h2>
                 <ul>
                   {col.links.map((link) => (
                     <li key={`${col.heading}-${link.href}-${link.label}`}>
                       <Link href={link.href} onClick={() => onClose(false)}>
-                        <span className="kind-menu-label">{link.label}</span>
+                        <span className="kind-menu-label">{link.labelKey ? t(link.labelKey) : link.label}</span>
                         {link.description && (
                           <span className="kind-menu-desc">{link.description}</span>
                         )}
@@ -156,7 +158,7 @@ function NavMenu({
                 </ul>
                 {col.footer && (
                   <Link className="kind-menu-more" href={col.footer.href} onClick={() => onClose(false)}>
-                    {col.footer.label} <span aria-hidden="true">→</span>
+                    {col.footer.labelKey ? t(col.footer.labelKey) : col.footer.label} <span aria-hidden="true">→</span>
                   </Link>
                 )}
               </div>
@@ -273,6 +275,7 @@ export function AppShell({
   footerSettings?: FooterSettings;
   initialLocale?: string;
 }) {
+  const t = useT();
   const footer = footerSettings ?? FOOTER_SETTINGS_DEFAULTS;
   const path = usePathname();
   const [user, setUser] = useState<User | null>(null);
@@ -358,11 +361,24 @@ export function AppShell({
       <header className="kind-header">
         <div className="container">
           <Logo />
-          <nav ref={navRef} aria-label="Main">
+          {/*
+            The design specifies two mega-dropdowns (Explore Causes, Resources).
+            This replaces the grouped `PrimaryNavMenu` that landed on master in
+            parallel: same goal — the header exposed 8 destinations while the
+            footer carried 41 — but the design's structure, and hit-tested at
+            every desktop width. Their groups' unique destinations (Crisis
+            Relief, Grants, Give, Leaderboard) are preserved one click deeper on
+            /get-involved rather than dropped.
+
+            aria-label is translated; the link labels resolve through `t()` with
+            keys registered in lib/locales/en.ts, so untranslated markets fall
+            back to English text rather than raw key strings.
+          */}
+          <nav ref={navRef} aria-label={t('nav.menu')}>
             {MAIN_NAV.map((item) =>
               item.kind === 'link' ? (
                 <Link key={item.href} href={item.href} className={path === item.href ? 'active' : ''}>
-                  {item.label}
+                  {item.labelKey ? t(item.labelKey) : item.label}
                   {item.isNew && <span className="kind-new">New</span>}
                 </Link>
               ) : (
@@ -449,9 +465,9 @@ export function AppShell({
             {flattenNav().map((link, i, all) => (
               <React.Fragment key={`${link.heading ?? ''}-${link.href}-${link.label}`}>
                 {link.heading && link.heading !== all[i - 1]?.heading && (
-                  <span className="kind-mobile-heading">{link.heading}</span>
+                  <span className="kind-mobile-heading">{link.headingKey ? t(link.headingKey) : link.heading}</span>
                 )}
-                <Link href={link.href} onClick={() => setMenuOpen(false)}>{link.label}</Link>
+                <Link href={link.href} onClick={() => setMenuOpen(false)}>{link.labelKey ? t(link.labelKey) : link.label}</Link>
               </React.Fragment>
             ))}
             {user ? (
@@ -493,7 +509,7 @@ export function AppShell({
             {FOOTER_SECTIONS_RENDERED.map(({ name, links }) => (
               <div key={name}>
                 <h3>{name}</h3>
-                {links.map(({ label, href }) => <Link key={label} href={href}>{label}</Link>)}
+                {links.map(({ label, href, labelKey }) => <Link key={label} href={href}>{t(labelKey)}</Link>)}
               </div>
             ))}
           </div>
@@ -516,8 +532,8 @@ export function AppShell({
           <div className="foot-bottom-main">
             <nav className="foot-legal" aria-label="Legal">
               <span className="foot-copy">© {new Date().getFullYear()} CharitMe</span>
-              {FOOTER_LEGAL_BAR.map(({ label, href }) => (
-                <Link key={href} href={href}>{label}</Link>
+              {FOOTER_LEGAL_BAR.map(({ href, labelKey }) => (
+                <Link key={href} href={href}>{t(labelKey)}</Link>
               ))}
             </nav>
             <AppBadges settings={footer} />

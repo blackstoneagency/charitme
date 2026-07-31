@@ -12,8 +12,12 @@ export const metadata: Metadata = {
 const GIVE = [
   { title: 'Donate', body: 'Give once or monthly to a campaign you choose. No mandatory platform fee.', href: '/donate' },
   { title: 'Explore causes', body: 'Twenty causes, from medical and education to animals, the environment, and disaster relief.', href: '/causes' },
+  { title: 'Crisis relief', body: 'Urgent appeals responding to disasters and emergencies happening now.', href: '/crisis' },
+  { title: 'Give to many causes', body: 'Split a single gift across several campaigns at once.', href: '/give' },
   { title: 'Double your gift', body: 'Many employers match donations. Find a matching programme that applies to you.', href: '/matching' },
   { title: 'Sponsor a campaign', body: 'Back a campaign publicly and encourage others in your network to follow.', href: '/sponsor' },
+  { title: 'Grants', body: 'Funding opportunities for nonprofits and community organisations.', href: '/grants' },
+  { title: 'Top fundraisers', body: 'See which campaigns and supporters are raising the most right now.', href: '/leaderboard' },
 ];
 
 const DO = [

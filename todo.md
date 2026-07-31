@@ -16,6 +16,51 @@ Ready and aliased to both `www.charitme.com` and `charitme.com`; exact deploymen
 evidence is recorded in the release sections below. New deployments are
 temporarily blocked by item 3.
 
+## 🌍 I18N + NAVIGATION — status and what is left (Claude, 2026-07-29)
+
+### ✅ Shipped
+- **OS language detection.** `negotiateLocale` existed on master but was called
+  from **nowhere** — the site could only ever be English until someone found the
+  footer picker. Middleware now resolves per request: explicit cookie choice wins,
+  else Accept-Language (the OS setting). Resolved before render, so the first
+  response is already correct. Not a `/de/` URL prefix — that would rewrite every
+  canonical URL, sitemap entry and share link and split each campaign's SEO across
+  eleven paths.
+- **216 translated keys × 7 languages + 4 market overrides**, 100% coverage for all
+  11 markets, guarded against English-pasted-in and dropped `{placeholder}`.
+- **Footer** (41 links) and **header** fully translated.
+- **Header dropdowns: Explore / Causes / Resources** — 18 destinations that were
+  previously footer-only. Click-only (hover handlers would sit on a non-interactive
+  wrapper), Escape + outside-click close, themed tokens so the panel is not white
+  in dark mode.
+
+Two real bugs found by testing the running site, both on master's negotiation:
+`es-MX` resolved to **es-ES** (the language-grain negotiator discarded the region
+the visitor explicitly named, with es-MX shipped as its own market), and `fr-CH`
+resolved to **fr-CA** because a bare language picked whichever market sorted first.
+
+### 🔜 The remaining i18n work, stated honestly
+**~2,300 hardcoded strings across 549 files still render English regardless of
+locale.** The machinery and vocabulary are in place; most components are not yet
+calling `t()`. Migration order by traffic: campaign detail → donate flow → home →
+create wizard → dashboard → admin.
+
+### ❓ BLOCKED ON THE OWNER — "mirror this 100%" has no attached reference
+The instruction names **"Explore, Causes and Resources"** dropdowns, which are now
+built. The broader "mirror this 100%" arrived **without a screenshot or URL in that
+message**, so there is nothing to diff against. Say which site/page to mirror and
+this becomes ordinary work.
+
+### ⚠️ Three GoFundMe gap pages — one must NOT be built by engineering
+`/supporter-space`, `/social-impact-funds` and `/giving-guarantee` all 404 today.
+- **Supporter Space** — buildable now, pure content/product.
+- **Social Impact Funds** — needs a legal entity and a disbursement policy first.
+- **Giving Guarantee** — ⛔ **owner decision, not engineering.** `app/terms/page.tsx`
+  states CharitMe "does not verify the truth of campaign claims, guarantee
+  fundraising outcomes". Shipping this page would contradict the live Terms of
+  Service and commit real money to underwriting fraud losses. It is listed as G1/O7
+  in the teardown for exactly this reason. **Do not build it to close a checklist.**
+
 ## 📌 THE WORKING QUEUE — one backlog for a 13,800-line file (Claude, 2026-07-29)
 
 This file has **154 `##` sections and 22 open checkboxes** scattered across it, so
