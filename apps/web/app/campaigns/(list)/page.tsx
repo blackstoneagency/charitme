@@ -9,6 +9,7 @@ import { calculateTrustScore, getTrustLabel } from '../../../lib/ai-platform';
 import { getCoverForCampaign } from '../../../lib/photo-catalog';
 import { optimizedCoverUrl } from '../../../lib/img-optimize';
 import type { Metadata } from 'next';
+import { campaignDaysLeft, campaignTimeLabel } from '../../../lib/campaign-lifecycle';
 
 export const metadata: Metadata = {
   title: 'Browse Campaigns',
@@ -89,9 +90,16 @@ async function getCampaigns(opts: {
   }
 }
 
-function daysLeft(deadline: string | null): number | null {
-  if (!deadline) return null;
-  return Math.max(0, Math.ceil((new Date(deadline).getTime() - Date.now()) / 86_400_000));
+/**
+ * Card countdown. `status: 'active'` is guaranteed, not assumed — this query
+ * runs through `applyLiveFilters`, which pins `status = 'active'`.
+ *
+ * Shared with the campaign page via lib/campaign-lifecycle rather than
+ * recomputed, because separate copies are exactly how a card and its campaign
+ * page came to disagree about whether a campaign was still running.
+ */
+function daysLeftLabel(deadline: string | null): string {
+  return campaignTimeLabel({ status: 'active', deadline });
 }
 
 const SORT_LABELS: Record<SortOption, string> = {
@@ -240,7 +248,10 @@ export default async function CampaignsPage({ searchParams }: Props) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: '24px' }}>
           {campaigns.map((c) => {
             const pct  = Math.min(100, Math.round(((c.raised_amount ?? 0) / c.goal_amount) * 100));
-            const days = daysLeft(c.deadline);
+            const daysLabel = daysLeftLabel(c.deadline);
+            // Numeric form for the urgency badge. Same shared helper, so the
+            // badge and the label cannot disagree about how much time is left.
+            const days = campaignDaysLeft(c.deadline);
             const currency = currencyMap.get(c.id) ?? 'usd';
             const trust = calculateTrustScore(c);
             const isVerified = c.trust_status === 'Verified';
@@ -307,7 +318,9 @@ export default async function CampaignsPage({ searchParams }: Props) {
                         </span>
                       </div>
                       <span style={{ fontSize: '12px', color: 'var(--t4)' }}>
-                        {pct}%{days !== null ? ` · ${days}d left` : ''}
+                        {/* Shared label, so a card can never say "0d left" on a
+                            campaign whose deadline has already passed. */}
+                        {pct}%{daysLabel === 'No deadline' ? '' : ` · ${daysLabel}`}
                       </span>
                     </div>
                   </div>

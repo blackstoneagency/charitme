@@ -13,6 +13,7 @@ import { formatMoneyCompact } from '@shared/currencies';
 import { shouldShowPlatformMetrics } from '../lib/home-utils';
 import { AiSearch, CountUp, Reveal } from './home-parts';
 import HeroSpotlightCarousel, { type HeroSpotItem } from './HeroSpotlightCarousel';
+import { campaignTimeLabel } from '../lib/campaign-lifecycle';
 
 // Cache the rendered homepage and revalidate every 2 minutes. The page has no
 // per-request/per-user inputs, so ISR removes ~8 Supabase round-trips from the
@@ -152,13 +153,23 @@ function pct(raised: number, goal: number): number {
   if (!goal || goal <= 0) return 0;
   return Math.min(100, Math.round((raised / goal) * 100));
 }
+/**
+ * Carousel countdown. Shares lib/campaign-lifecycle with the campaign page and
+ * the rest of the platform, so the two can never drift apart again — a separate
+ * copy here is how "136 days left" ended up beside "This campaign has ended".
+ *
+ * `status: 'active'` is not an assumption: the rotator query runs through
+ * `applyLiveFilters`, which pins `status = 'active'`, and prunes past deadlines
+ * in SQL.
+ *
+ * This also drops a real edge case. The old version returned 'Ends today' for
+ * `days === 0`, but `Math.ceil` of a deadline that passed a few hours ago is
+ * `-0`, which is not `< 0` — so a campaign that had already ended advertised
+ * that it ends today. The homepage is ISR-cached for 120s, so a deadline can
+ * pass between the query and the render.
+ */
 function deadlineLabel(iso: string | null): string {
-  if (!iso) return 'No deadline';
-  const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
-  if (!Number.isFinite(days)) return 'No deadline';
-  if (days < 0) return 'Ended';
-  if (days === 0) return 'Ends today';
-  return `${days} day${days === 1 ? '' : 's'} left`;
+  return campaignTimeLabel({ status: 'active', deadline: iso });
 }
 
 /**
