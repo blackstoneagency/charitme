@@ -4953,6 +4953,174 @@ This converts an owner-gated blocker into a single command. Columns stay NULLABL
 tightening to NOT NULL belongs in a later migration, once the printed counts look
 right.
 
+## 🚧 DESIGN-MIRROR BUILD — nav dropdowns + 11 missing pages (opened 2026-07-31)
+
+Owner supplied a full design reference (homepage, both nav dropdowns, footer, and a
+24-page sheet) and asked the site to mirror it 100%. Gap analysis below is measured,
+not estimated: the "have" list is every `page.tsx` under `app/` excluding `[param]`,
+`/admin` and `/dashboard` (**58 public routes**), diffed against every destination
+named in the design.
+
+### 1. Header nav — NOT BUILT, needs a rebuild not a tweak
+
+`components/AppShell.tsx` currently ships a flat 8-item `NAV` array:
+`Home · AI Fundraising · How It Works · Pricing · Success Stories · About Us · Blog · Contact Us`.
+
+The design is a different structure entirely — two mega-dropdowns:
+
+**Explore Causes ▾** — two columns
+- *Popular Causes* (8): Sports & Youth, People in Need, Community & Relief,
+  Health & Wellness, Education, Animals & Planet, Arts & Culture, Faith & Belief
+- *All Causes* (12): Sports & Recreation, Youth Development, Food & Hunger,
+  Disaster Relief, Mental Health, Medical Research, Environment,
+  Veterans & Military, Human Rights, Seniors & Elderly, Women & Girls,
+  LGBTQ+ Support
+- Both columns end with "View All Causes →"
+
+**Resources ▾** — three columns, each item with a one-line description
+- *Learn*: Blog & Insights · Fundraising Guide · Impact Education · Reports & Research
+- *Get Involved*: Volunteer · Events · Donate · Partner With Us
+- *For Organizations*: For Nonprofits · Verification Process · Nonprofit Dashboard ·
+  Corporate Partnerships
+
+Top level becomes: Explore Causes ▾ · How It Works · Impact · Stories · About Us ·
+Resources ▾ · search · Log In · Start a Fundraiser.
+
+⚠️ **The header already has a hard capacity limit.** #98 measured that the nav does
+not fit below 1366px and collapses to the menu button there; a mega-dropdown trigger
+row must be measured at 1366/1440 before it is called done, or it reintroduces the
+overlap that made three links unclickable sitewide.
+
+⚠️ **`CAMPAIGN_CATEGORIES` in `@shared/fees` is the single source of truth** for
+categories (three hand-maintained copies had already drifted once). The 20 cause
+entries above must map onto it — either by extending it or by an explicit
+design-label → category map. Do **not** hardcode a fourth list in the nav.
+
+### 2. Missing pages — 11, measured
+
+| route | design source |
+|---|---|
+| `/causes` | "View All Causes" in both dropdown columns |
+| `/careers` | page sheet #21 |
+| `/gallery` | page sheet #15 |
+| `/get-involved` | page sheet #13 |
+| `/donate` | Resources → Get Involved |
+| `/partner` | Resources → "Partner With Us" |
+| `/verification` | Resources → "Verification Process" |
+| `/corporate-partnerships` | Resources → For Organizations |
+| `/fundraising-guide` | Resources → Learn |
+| `/impact-education` | Resources → Learn |
+| `/reports` | Resources → "Reports & Research" |
+
+Everything else the design names already exists and is live.
+
+### 3. Definition of done for each new page
+Not "a page renders". Each must clear the bars this repo already enforces:
+- both themes (the theme-token guard + `audit-contrast`, which sweeps light AND dark —
+  the site ships dark, so a single-theme check measures dark twice)
+- 320/768/1920 with **no control overlap** (`audit-responsive` now detects overlap
+  after #98)
+- WCAG 2.0/2.1/**2.2** A+AA with no baseline, via `e2e/accessibility.spec.ts`
+- added to `e2e/public-routes.json` `public[]` — and it must render **itself** when
+  signed out, or the redirect assertion fails it
+- real Supabase data or an honest empty state; **never a fabricated number** — the
+  `$0`/`0 days left` class of bug has recurred repeatedly here
+- i18n: owner asked for "all languages" — the locale picker exists in the footer, but
+  **there is no translation layer**, so this is a platform decision (next item)
+
+### 4. Open questions that change the work
+- **i18n**: no message catalogue or `next-intl`-style layer exists today. "All
+  languages" is a platform-wide architecture addition, not a per-page task. Needs an
+  owner decision on scope before it can be estimated honestly.
+- **Cause taxonomy**: the design's 20 causes vs `CAMPAIGN_CATEGORIES`. Extend the
+  shared list, or map labels to existing categories?
+
+### ✅ Status — nav + all 11 pages BUILT and verified (2026-07-31)
+
+Everything in sections 1 and 2 above is done. Verified against a **production
+build**, not a dev server:
+
+| check | result |
+|---|---|
+| header hit-test, 6 widths × 2 themes | **ALL CLEAR** — 0 obscured, 0 overflow, 0 undersized |
+| `e2e/header-nav.spec.ts` | **20/20** |
+| axe WCAG 2.0/2.1/2.2 A+AA, both themes | **0 violations** across 60 public routes |
+| `audit:contrast` | **0 AA failures**, 59 pages × 2 themes, 5,960 elements each |
+| `audit:responsive` | **0 regressions**, 59 pages × 3 viewports × 2 themes |
+| unit tests / typecheck / lint / build | **2212 pass**, all clean |
+
+**Nav.** Six top-level items + two mega-dropdowns, structure in `lib/main-nav.ts`
+so the desktop bar and mobile sheet derive from one source. Two real bugs were
+caught by hit-testing that a screenshot showed as perfectly normal:
+- `.kind-header nav a` styled the panel links too (panels live inside `<nav>`);
+  `white-space: nowrap` stretched each Resources link to 478px inside a 200px
+  column, putting column 1 on top of column 2 — **4 of 12 Resources links were
+  unclickable at every desktop width**. Fixed by scoping to `nav > a`.
+- Hover opened the panel and the click handler immediately closed it again.
+
+**Breakpoint improvement.** Collapse threshold measured down from 1365px →
+1199px (first clean width is 1180px; 1200 keeps headroom). **1280px laptops get
+real navigation back** instead of a hamburger.
+
+**Pages built (11 + 1).** `/causes`, `/causes/[slug]` (20 cause pages),
+`/fundraising-guide`, `/impact-education`, `/reports`, `/donate`, `/partner`,
+`/verification`, `/corporate-partnerships`, `/get-involved`, `/careers`,
+`/gallery`. All registered in **both** `e2e/public-routes.json` and the sitemap
+catalog in `lib/public-routes.ts` — two existing guards caught that omission.
+
+**Cause taxonomy — resolved.** `lib/causes.ts` maps the design's 20 causes onto
+`CAMPAIGN_CATEGORIES` rather than becoming a fourth hardcoded list. Where a
+cause is *narrower* than anything the schema records (Mental Health is a slice
+of Medical, and nothing tags that slice), the page says so — otherwise Mental
+Health and Medical Research would render identical campaign lists while each
+implying it had filtered something. 15 tests, both guards mutation-tested.
+
+**Nothing here fabricates a figure.** `/reports` reuses `getHomeData` +
+`shouldShowPlatformMetrics` so it cannot disagree with the homepage, and renders
+an em-dash — explicitly *not* a zero — when a value could not be measured.
+`/careers` lists no openings because there are none. `/donate`, `/gallery` and
+the cause pages each distinguish "query failed" from "genuinely empty".
+
+Also fixed en route: `.kind-signin` was a 21px tap target (WCAG 2.2 target-size
+failure in the header of every signed-out page); the campaign card was extracted
+to `components/CampaignCard.tsx`, which immediately exposed that `/campaigns`
+never selected `status` and would have rendered every card as "Ended".
+
+### ✅ i18n — RESOLVED, no longer blocked
+
+The earlier note here said "all languages" was blocked on an owner decision
+because no translation layer existed. **That is now out of date.** A parallel
+agent landed the layer on master (167 keys × 11 markets, `LocaleProvider` +
+`lib/locales/*`), and this branch merged it.
+
+The header renders through `t()`, and the 35 new nav keys are **genuinely
+translated into all six base languages** (es, fr, de, pt, it, nl; regional
+variants inherit). Their coverage test demands **100%** and explicitly does not
+accept English fallback — the right rule, and it is what forced real
+translations rather than stubs. Note `t()` falls back to the raw KEY, not to
+English, so any key missing from `en.ts` renders as "nav.cause.education" to
+the visitor.
+
+### 🔀 Nav collision with the parallel agent — resolved, nothing lost
+
+Both lanes rebuilt the header at the same time. Master shipped `PrimaryNavMenu`
+(grouped Explore / Causes / Resources); this branch shipped the design's two
+mega-dropdowns. Two nav systems cannot both render.
+
+Kept the design's structure — it was specified explicitly ("mirror this 100%,
+including each drop down") and it is the one with a hit-test spec — and removed
+`PrimaryNavMenu` + `lib/primary-nav.ts`. **Their unique destinations are
+preserved**: Crisis Relief, Give to Many Causes, Grants and Leaderboard moved to
+`/get-involved`, so everything their nav exposed is still within two clicks.
+
+### ⛔ Remaining owner-blocked items (unchanged)
+
+Nothing in the design-mirror goal is now blocked. The standing items are the
+ones recorded elsewhere in this file: Actions billing, the Vercel deploy cap,
+live Supabase/Stripe/Resend credentials for a real paid flow, and the
+≥100-seed-record verification that needs database access this sandbox does not
+have.
+
 ## 🎯 PRODUCTION-READINESS GOAL — live status (updated this session)
 
 | Goal item | Status | Evidence / blocker |

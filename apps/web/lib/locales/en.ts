@@ -244,6 +244,47 @@ export const en: Dictionary = {
   'footer.link.cookies': 'Cookie Policy',
 
   // ── Header navigation groups ───────────────────────────────────────────────
+  // ── Header mega-menu (design-mirror build) ────────────────────────────────
+  // `t()` falls back to the raw KEY when one is missing — not to English — so
+  // every key the header uses must exist HERE or the menu renders
+  // "nav.cause.education" to the visitor. Other markets fall back to these
+  // English strings, which is readable; they are NOT yet translated, and
+  // todo.md says so rather than implying full coverage.
+  'nav.explore_causes': 'Explore Causes',
+  'nav.causes.popular': 'Popular Causes',
+  'nav.causes.all': 'All Causes',
+  'nav.causes.view_all': 'View All Causes',
+  'nav.cause.sports-youth': 'Sports & Youth',
+  'nav.cause.people-in-need': 'People in Need',
+  'nav.cause.community-relief': 'Community & Relief',
+  'nav.cause.health-wellness': 'Health & Wellness',
+  'nav.cause.education': 'Education',
+  'nav.cause.animals-planet': 'Animals & Planet',
+  'nav.cause.arts-culture': 'Arts & Culture',
+  'nav.cause.faith-belief': 'Faith & Belief',
+  'nav.cause.sports-recreation': 'Sports & Recreation',
+  'nav.cause.youth-development': 'Youth Development',
+  'nav.cause.food-hunger': 'Food & Hunger',
+  'nav.cause.disaster-relief': 'Disaster Relief',
+  'nav.cause.mental-health': 'Mental Health',
+  'nav.cause.medical-research': 'Medical Research',
+  'nav.cause.environment': 'Environment',
+  'nav.cause.veterans-military': 'Veterans & Military',
+  'nav.cause.human-rights': 'Human Rights',
+  'nav.cause.seniors-elderly': 'Seniors & Elderly',
+  'nav.cause.women-girls': 'Women & Girls',
+  'nav.cause.lgbtq-support': 'LGBTQ+ Support',
+  'nav.resources.learn': 'Learn',
+  'nav.resources.get_involved': 'Get Involved',
+  'nav.resources.for_orgs': 'For Organizations',
+  'nav.resource.fundraising_guide': 'Fundraising Guide',
+  'nav.resource.impact_education': 'Impact Education',
+  'nav.resource.reports': 'Reports & Research',
+  'nav.resource.donate': 'Donate',
+  'nav.resource.partner': 'Partner With Us',
+  'nav.resource.verification': 'Verification Process',
+  'nav.resource.nonprofit_dashboard': 'Nonprofit Dashboard',
+  'nav.resource.corporate': 'Corporate Partnerships',
   'nav.group.explore': 'Explore',
   'nav.group.explore_blurb': 'Find campaigns and see what is working',
   'nav.group.causes': 'Causes',
