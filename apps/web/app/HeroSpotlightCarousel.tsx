@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { formatMoneyCompact } from '@shared/currencies';
 
-// One featured-campaign slide. All relative-time labels (lastLabel, deadlineLabel)
+// One featured-campaign slide. All relative-time labels (deadlineLabel)
 // and funded% are precomputed on the server so the client render is pure and never
 // mismatches hydration.
 export type HeroSpotItem = {
@@ -19,7 +19,6 @@ export type HeroSpotItem = {
   raised: number;
   goal: number;
   backers: number;
-  lastLabel: string;
   deadlineLabel: string;
   verified: boolean;
   href: string;
@@ -148,10 +147,6 @@ export default function HeroSpotlightCarousel({ items }: { items: HeroSpotItem[]
         <li className="home-spot-stat">
           <span className="home-spot-ic home-spot-ic--amber"><Ic name="chart" /></span>
           <div><b>{c.funded}%</b><small>Funded</small></div>
-        </li>
-        <li className="home-spot-stat">
-          <span className="home-spot-ic home-spot-ic--violet"><Ic name="heart" /></span>
-          <div><b>{c.lastLabel}</b><small>Last Donation</small></div>
         </li>
       </ul>
 

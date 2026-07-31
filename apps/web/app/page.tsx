@@ -207,10 +207,6 @@ export default async function HomePage() {
   // then fall back to the top featured campaigns; the component itself shows a
   // static invitation card if nothing is live yet. ISR (revalidate=120) keeps the
   // seed fresh; the client rotates through the slides.
-  const lastLabelFor = (slug: string): string => {
-    const d = recentDonations.find((x) => x.campaignSlug === slug);
-    return d ? timeAgo(d.createdAt) : '—';
-  };
   type HeroCandidate = {
     slug: string; title: string; organizer: string; category: string | null;
     cover_image_url: string | null; currency?: string | null;
@@ -256,7 +252,6 @@ export default async function HomePage() {
     raised: c.raised_amount,
     goal: c.goal_amount,
     backers: c.backer_count ?? 0,
-    lastLabel: lastLabelFor(c.slug),
     deadlineLabel: deadlineLabel(c.deadline),
     verified: c.trust_status === 'Verified',
     href: `/campaigns/${c.slug}`,
