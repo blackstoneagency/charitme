@@ -14,7 +14,7 @@ import UpdatesPanel from '../../../dashboard/campaigns/[id]/_components/UpdatesP
 import AnalyticsPanel from '../../../dashboard/campaigns/[id]/_components/AnalyticsPanel';
 import SettingsPanel from '../../../dashboard/campaigns/[id]/_components/SettingsPanel';
 import { QrPosterPanel } from '../../../dashboard/campaigns/[id]/_components/CampaignWorkspace';
-import { campaignTimeLabel } from '../../../../lib/campaign-lifecycle';
+import { campaignDaysLeft, campaignTimeLabel } from '../../../../lib/campaign-lifecycle';
 
 // ─────────────────────────────────────────────────────────
 // Types
@@ -151,10 +151,14 @@ function fmtCents(cents: number): string {
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
+/**
+ * Delegates to the shared helper so admin cannot drift from the public page.
+ * Used only for a campaign just created in this session, which is active by
+ * construction — the detail panel above uses `campaignTimeLabel` with the real
+ * status.
+ */
 function daysLeft(deadline: string | null): number | null {
-  if (!deadline) return null;
-  const diff = new Date(deadline).getTime() - Date.now();
-  return Math.max(0, Math.ceil(diff / 86400000));
+  return campaignDaysLeft(deadline);
 }
 function pct(raised: number, goal: number): number {
   if (!goal) return 0;
@@ -693,7 +697,6 @@ export default function AdminCampaignsClient({
   // ── VIEW: DETAIL
   // ─────────────────────────────────────────────────────
   if (view === 'detail' && selected) {
-    const days = daysLeft(selected.deadline);
     const progress = pct(selected.raisedAmount, selected.goalAmount);
 
     return (
@@ -886,7 +889,9 @@ export default function AdminCampaignsClient({
                   </div>
                   <div className="ac-stat-row">
                     <div className="ac-stat"><b>{selected.backerCount.toLocaleString()}</b><span>Total Donors</span></div>
-                    {days !== null && <div className="ac-stat"><b>{days}</b><span>Days Left</span></div>}
+                    {/* Label, not a bare number: a completed campaign showed a
+                        "Days Left" figure counting down beside its status pill. */}
+                    {selected.deadline !== null && <div className="ac-stat"><b>{campaignTimeLabel({ status: selected.status, deadline: selected.deadline })}</b><span>Deadline</span></div>}
                     <div className="ac-stat"><b>{progress}%</b><span>Funded</span></div>
                   </div>
                 </div>

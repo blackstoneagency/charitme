@@ -163,7 +163,18 @@ describe('no surface re-implements the countdown', () => {
         // that shipped the contradiction. Comments quoting the bug are fine.
         for (const line of src.split('\n')) {
           if (/^\s*(\/\/|\*)/.test(line)) continue;
-          if (/\$\{[^}]*\}\s*days? left/.test(line)) {
+          // Any deadline arithmetic, not just the one phrasing that shipped.
+          // The first guard only caught `${x} days left`; the homepage carried a
+          // FIFTH copy that spelled it `${days} day${s} left` and slipped past.
+          const printsDaysLeft = /\$\{[^}]*\}[^`'"]*days? left/.test(line);
+          // Computing a DURATION from the deadline is the bug shape — that is
+          // what becomes a countdown. A plain comparison
+          // (`deadline.getTime() <= Date.now()`) is enforcement, not a label,
+          // and /api/donations correctly pairs it with a `status !== 'active'`
+          // check, so those are deliberately not flagged.
+          const derivesFromDeadline =
+            /deadline[^\n]*getTime\(\)\s*-/.test(line) || /-\s*new Date\([^)]*deadline/.test(line);
+          if (printsDaysLeft || derivesFromDeadline) {
             offenders.push(`${file.replace(process.cwd(), '')}: ${line.trim().slice(0, 80)}`);
           }
         }
