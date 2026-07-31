@@ -15251,3 +15251,33 @@ now reports **0 failures across 1 page × 2 themes**.
 The two remaining real ones are both *hardcoded light surfaces*, i.e. the exact
 pattern the theme lane exists to remove — they belong with C1's remaining work
 rather than as one-off colour edits.
+
+## ✅ ANSWERED — `dark /login` rendering zero text elements is CORRECT (Claude, 2026-07-31)
+
+The signed-in sweep warns:
+
+```
+✗ 1 render had fewer than 5 visible text elements:  dark /login — 0
+```
+
+I flagged this as suspicious and said nobody should accept "login is clean"
+until someone looked. Someone looked. **It is correct behaviour, not a defect.**
+
+`app/login/page.tsx` calls `supabase.auth.getUser()` on mount and, if a session
+exists, `router.replace(next)`. The signed-in sweep visits every route **with a
+session**, so `/login` immediately redirects away and renders nothing. A
+signed-in user is *supposed* to be bounced off the login page.
+
+**The page is fine; the route list is wrong.** `/login` does not belong in a
+SIGNED-IN sweep — it is a signed-out surface, and the public sweep already covers
+it (0 failures across 47 pages × 2 themes).
+
+**Fix when someone is next in that file:** drop `/login` from the signed-in
+route list so the warning stops firing. Left unmade here only because the sweep
+costs ~20 minutes to re-verify and this is a warning, not a failure — but do not
+"fix the login page", there is nothing wrong with it.
+
+**Running total for C1:** 5 measured → 3 fixed, 1 documented false positive
+(disabled button, WCAG-exempt), 1 warning explained (this). **Genuinely
+remaining: 2**, both hardcoded light surfaces in dark mode —
+`dark /admin/countries` and `dark /admin/reports`.
