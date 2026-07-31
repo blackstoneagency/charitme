@@ -371,6 +371,33 @@ export function buildFixtures() {
       ...extra(i),
     }));
 
+
+  // Two campaigns with REAL hex uuids.
+  //
+  // `uuid('camp', n)` emits `camp0000-…`, and `m`/`p` are not hex — so those ids
+  // fail `z.string().uuid()` and every route that validates a uuid rejects them
+  // before its own logic runs. That silently makes such routes unexercisable
+  // against the stub: the sweep sees 400 INVALID_INPUT and looks like it tested
+  // something. These two exist so uuid-validating routes (the portfolio gift,
+  // for one) can actually be reached.
+  const HEX_CAMPAIGN_IDS = [
+    '11111111-1111-4111-8111-111111111111',
+    '22222222-2222-4222-8222-222222222222',
+  ];
+  HEX_CAMPAIGN_IDS.forEach((id, i) => {
+    campaigns.push({
+      ...campaigns[i],
+      id,
+      slug: `stub-hex-campaign-${i + 1}`,
+      title: `Hex-id stub campaign ${i + 1}`,
+      status: 'active',
+      visibility: 'public',
+      accept_donations: true,
+      deadline: null,
+      deleted_at: null,
+    });
+  });
+
   // ── Public API keys ────────────────────────────────────────────────────────
   //
   // One ACTIVE key and one REVOKED key with the same scopes. The revoked row is

@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type Stripe from 'stripe';
 import { stripe, formatCents } from '../../../../lib/stripe';
 import { peerRpcArg } from '../../../../lib/peer-attribution';
+import { decodeSplit, lineSessionId } from '../../../../lib/portfolio-split';
 import { supabaseAdmin } from '../../../../lib/supabase';
 import { sendReceiptEmail, sendTaxReceiptEmail, sendOrganizerDonationAlert, sendPayoutEmail, sendRefundEmail } from '../../../../lib/email';
 import { canIssueTaxReceipt } from '../../../../lib/tax';
@@ -189,6 +190,17 @@ async function handleEvent(event: Stripe.Event) {
 // ─────────────────────────────────────────────────────────────────────────────
 async function handleCheckoutComplete(eventId: string, session: Stripe.Checkout.Session) {
   const meta = (session.metadata ?? {}) as Record<string, string>;
+
+  // ── Portfolio gift: one payment, several campaigns ────────────────────────
+  //
+  // Branches BEFORE every other path and returns, so a portfolio session can
+  // never fall through into the single-campaign handler — which would read a
+  // `campaignId` that portfolio sessions do not set and record the whole gift
+  // against nothing.
+  if (meta.portfolio === '1' && session.payment_status === 'paid') {
+    await handlePortfolioComplete(eventId, session, meta);
+    return;
+  }
 
   // ── Featured-campaign placement purchase ──────────────────────────────────
   if (meta.type === 'feature_campaign' && meta.campaignId && session.payment_status === 'paid') {
@@ -1887,5 +1899,101 @@ async function sendDonorRefundNotification(
     });
   } catch {
     // Non-fatal
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Portfolio gifts — record one donation per campaign, then fan the money out.
+//
+// The charge landed on the PLATFORM (no transfer_data), tagged with a
+// transfer_group. Two things have to happen, in this order and with different
+// failure semantics:
+//
+//   1. RECORD each line. Keyed `<session>#<campaignId>` because record_donation
+//      is idempotent on the session id, so N lines sharing one session would
+//      collapse into a single row. A failure here THROWS so Stripe retries —
+//      the donor has paid and a missing donation row is unrecoverable silently.
+//
+//   2. TRANSFER to each connected account. A failure here is logged and NOT
+//      thrown: the money is safely on the platform balance and a transfer can be
+//      retried by an operator, whereas throwing would make Stripe redeliver the
+//      whole event and re-run step 1 — which is idempotent, but would also retry
+//      transfers that already succeeded. Recording is the part that must be
+//      exactly-once; transferring is the part that must be re-runnable.
+// ─────────────────────────────────────────────────────────────────────────────
+async function handlePortfolioComplete(
+  eventId: string,
+  session: Stripe.Checkout.Session,
+  meta: Record<string, string>,
+) {
+  const parts = decodeSplit(meta.portfolioSplit);
+  if (parts.length === 0) {
+    console.error('[webhook] portfolio session had no decodable split', { session: session.id });
+    return;
+  }
+
+  for (const part of parts) {
+    const { error } = await supabaseAdmin.rpc('record_donation', {
+      p_stripe_event_id: `${eventId}#${part.campaignId}`,
+      p_campaign_id: part.campaignId,
+      p_donor_id: meta.donorId || null,
+      p_amount_cents: part.amountCents,
+      p_tip_cents: 0,
+      p_processing_fee_cents: 0,
+      p_message: meta.message || null,
+      p_anonymous: meta.anonymous === '1',
+      // NULL, deliberately. All lines share one payment intent, and
+      // record_donation treats a matching intent as already-processed — passing
+      // the real one would make every line after the first a no-op.
+      p_stripe_payment_intent_id: null,
+      p_stripe_checkout_session_id: lineSessionId(session.id, part.campaignId),
+    });
+    if (error) throw new Error(`portfolio line failed for ${part.campaignId}: ${error.message}`);
+  }
+
+  // Fan out. Resolved per campaign because the campaigns may belong to different
+  // people with different connected accounts — the whole reason this path exists.
+  for (const part of parts) {
+    try {
+      // resolvePayoutDestination takes the campaign ROW (it has to consult
+      // beneficiary_profile_id), not an id.
+      const { data: campaignRow } = await supabaseAdmin
+        .from('campaigns')
+        .select('user_id, beneficiary_profile_id')
+        .eq('id', part.campaignId)
+        .maybeSingle();
+      if (!campaignRow) {
+        console.error('[webhook] portfolio transfer: campaign vanished', { campaignId: part.campaignId });
+        continue;
+      }
+      const destination = await resolvePayoutDestination(
+        campaignRow as { user_id: string; beneficiary_profile_id?: string | null },
+      );
+      if (!destination?.stripeAccountId) {
+        // Not an error: an organizer who has not finished Stripe onboarding gets
+        // paid when they do. The donation row already exists and is correct.
+        console.warn('[webhook] portfolio transfer deferred, no connected account', {
+          campaignId: part.campaignId,
+        });
+        continue;
+      }
+      await stripe.transfers.create(
+        {
+          amount: part.amountCents,
+          currency: 'usd',
+          destination: destination.stripeAccountId,
+          transfer_group: `portfolio_${session.id}`,
+          metadata: { campaignId: part.campaignId, checkoutSessionId: session.id },
+        },
+        // Idempotent per (session, campaign) so a redelivered event cannot pay
+        // an organizer twice.
+        { idempotencyKey: `portfolio_transfer_${session.id}_${part.campaignId}` },
+      );
+    } catch (err) {
+      console.error('[webhook] portfolio transfer failed', {
+        campaignId: part.campaignId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 }

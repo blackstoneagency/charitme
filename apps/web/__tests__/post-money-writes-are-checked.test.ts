@@ -61,17 +61,24 @@ describe('every record_donation call can fail loudly', () => {
   //
   // Throwing is safe here specifically because `record_donation` is idempotent
   // on `p_stripe_event_id` — a Stripe retry cannot double-count.
-  it('checks the error and throws at all three sites', () => {
+  //
+  // FOUR sites now: the portfolio path ("give once, fund many") records one
+  // donation per campaign in a loop, and its failure semantics are the same —
+  // the donor has paid, so a missing row must make Stripe retry rather than be
+  // swallowed. The transfers that follow deliberately do NOT throw; see the
+  // handler's header for why recording must be exactly-once while transferring
+  // must be re-runnable.
+  it('checks the error and throws at every site', () => {
     const src = read(STRIPE_WEBHOOK);
     const calls = [...src.matchAll(/\.rpc\('record_donation'/g)];
-    expect(calls.length, 'call sites moved — re-check each one').toBe(3);
+    expect(calls.length, 'call sites moved — re-check each one').toBe(4);
 
     // The one-time path destructures `{ data, error }`; the recurring ones only
     // need the error.
     const checked = [
       ...src.matchAll(/\{(?:\s*data,)?\s*error(?:: (\w+))? \} = await supabaseAdmin\.rpc\('record_donation'/g),
     ];
-    expect(checked.length, 'a record_donation call discards its result').toBe(3);
+    expect(checked.length, 'a record_donation call discards its result').toBe(4);
 
     for (const [, alias] of checked) {
       const name = alias ?? 'error';

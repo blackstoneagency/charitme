@@ -91,6 +91,15 @@ export const INDEXABLE_PUBLIC_ROUTES: PublicRoute[] = [
     changeFrequency: 'monthly',
   },
   {
+    // "Give once, fund many". Indexed: this is the differentiated donor entry
+    // point, and the phrase people search for is a giving idea, not a campaign.
+    path: '/give',
+    title: 'Give Once, Fund Many',
+    description: 'Support several fundraisers with one donation, split to the cent. 0% platform fee.',
+    priority: 0.85,
+    changeFrequency: 'daily',
+  },
+  {
     path: '/for-donors',
     title: 'Giving For Donors',
     description: 'Find trusted campaigns, give quickly, and follow the impact of your donations.',

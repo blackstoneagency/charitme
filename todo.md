@@ -174,11 +174,11 @@ is genuinely absent:
 - **G2 — Social Impact Funds.** Pooled funds a platform curates and disburses.
   Needs a legal entity and disbursement policy before any code.
 - **G3 — Supporter Space.** Donor-side content hub. Pure product/content work.
-- **G4 — Giving Cart.** Multi-campaign single checkout. **Genuinely buildable,
-  no DDL** — the hardest part is one PaymentIntent splitting across several
-  connected accounts (Stripe supports this via separate transfers).
-- **G5 — Public API.** `integration_connections` and `api_keys` tables exist with
-  no public surface. A documented REST API + webhooks is the enterprise unlock.
+- ~~**G4 — Giving Cart.**~~ ✅ **SHIPPED** as `/give` — "give once, fund many",
+  which is deliberately not a cart: one amount, several causes, one receipt.
+  See the section below.
+- ~~**G5 — Public API.**~~ ✅ **SHIPPED** — `/api/v1/*` with scoped bearer keys,
+  management at `/dashboard/developers`, docs at `/developers`.
 - **G6 — Venmo.** `ONE_TIME_PAYMENT_METHOD_TYPES` excludes it; the account has
   `paypal_payments` inactive. **Owner/Stripe account task, not code.**
 
@@ -14627,3 +14627,88 @@ default sweep exit 0.
 
 Verified: focused tax/receipt suite 48/48, full suite 1668/1668, typecheck and
 zero-warning lint pass, production build succeeds with 150 generated static pages.
+
+## ✅ G4 + G5 SHIPPED — the two engineering-addressable GoFundMe gaps (Claude, 2026-07-31)
+
+### G5 — the public API (`api_keys` was the third orphan table)
+
+`api_keys` had `key_hash`, `scopes`, `revoked_at`, `last_used_at` and **no reader
+or writer anywhere**. Now: `/api/v1/me`, `/api/v1/campaigns`, `/api/v1/donations`,
+key management at `/dashboard/developers`, public docs at `/developers`.
+GoFundMe's API is enterprise-gated; ours is free on every account — that is the
+differentiator, so the docs are a real indexed page rather than a form.
+
+Security decisions, each for a stated reason:
+- **Only the SHA-256 hash is stored**; plaintext returned exactly once. SHA-256
+  rather than bcrypt is deliberate and is the *opposite* of the password case: a
+  256-bit CSPRNG key has no dictionary, and verification runs per request, so
+  stretching would be a self-inflicted rate limit.
+- Revocation is checked in the query **and** re-checked in `keyGrants` — both must
+  fail for a revoked key to work.
+- "Unknown key" and "revoked key" return the **same** 401, so probing with a
+  stolen key cannot learn whether it was ever real.
+- Rate limit is per **key**, not per IP: a fleet behind one NAT would otherwise
+  share a bucket while an attacker rotating IPs got an unlimited one.
+- `?campaign_id=` is **intersected** with owned ids, never trusted.
+
+⚠️ **The donor-identity test caught a real omission**: the donations endpoint
+joined `profiles` without consulting `show_public_profile`. Every other join in
+this repo honours it, and a public API — whose rows are piped into third-party
+tools by definition — is the last place to invent an exception. Hidden donors now
+return `donor_name: null` **and** `donor_id: null` (the id is a stable handle that
+would re-identify them across campaigns, making name redaction cosmetic). The
+amount still appears: the organizer's financial record is theirs, the identity is not.
+
+**Verified with purpose-built fixtures including a REVOKED key and a NARROW key**,
+because an authorisation check never observed *failing* is an assumption:
+no header 401 · garbage 401 · unknown 401 · revoked 401 · valid 200 · narrow key
+200 on campaigns and **403 insufficient_scope** on donations/me · unowned
+`campaign_id` returns `[]` · of 15 anonymous donations, **0 leaked a name or id**
+and all 15 kept their amount.
+
+### G4 — `/give`, "give once, fund many"
+
+Not a cart. One amount, several campaigns, split to the cent, one receipt. Ranked
+by campaign health rather than amount raised — a portfolio page sorted by size
+would funnel a "spread it around" donor into the campaigns needing it least.
+
+**Two hard constraints made this a separate path, not a flag on `/api/donations`:**
+1. `transfer_data.destination` takes exactly **one** connected account. A split
+   across campaigns owned by different people has no single destination, so this
+   uses Stripe **separate charges and transfers**: charge to the platform with a
+   `transfer_group`, then one Transfer per campaign in the webhook.
+2. `record_donation` is **idempotent on the checkout session id**, so N lines
+   sharing one session would collapse into a **single** donation row — first call
+   inserts, rest return `already_processed`. Each line is therefore keyed
+   `<session>#<campaignId>`, keeping lines independently idempotent while a Stripe
+   retry of the whole session still lands on the same keys.
+
+**The money invariant**: parts must sum to the whole, exactly. `Math.round` per
+part invents cents; `Math.floor` loses them. `splitEvenly` uses largest-remainder
+— exact by construction, asserted across ~5,800 total/count combinations.
+
+Failure semantics differ on purpose: **recording throws** (donor has paid; a
+missing row must make Stripe retry), **transferring does not** (money is safe on
+the platform balance and an operator can retry; throwing would re-run transfers
+that already succeeded). Recording must be exactly-once; transferring must be
+re-runnable.
+
+### 🔎 Two stub limitations found, both fixed
+
+- **`gte`/`lte` compared dates numerically** → `Number('2026-07-28…')` is NaN, so
+  every date window matched zero rows. Fixed earlier; sized at **45 date filters
+  across 28 files**.
+- **Synthetic ids are not valid UUIDs.** `uuid('camp', n)` emits `camp0000-…` and
+  `m`/`p` are not hex, so **any route validating `z.string().uuid()` rejects every
+  stub id before its own logic runs** — the sweep sees `400 INVALID_INPUT` and
+  looks like it tested something. Two hex-id campaigns added so uuid-validating
+  routes are reachable. Worth remembering for every future route with a uuid param.
+
+### ⚠️ Note for the owner — a live Stripe session was created during verification
+
+Verifying the valid path returned a real `cs_live_…` Checkout URL, i.e.
+`STRIPE_SECRET_KEY` in `.env.local` is a **live** key and a Checkout **Session**
+object now exists on the production Stripe account. **No charge was made and none
+can be** without someone completing payment; sessions expire on their own. Flagged
+rather than buried — and it is a second, independent reason O3 (Stripe **test**
+keys) matters: local verification currently touches the live account.
