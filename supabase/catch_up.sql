@@ -10109,7 +10109,7 @@ from (
 where rd.stripe_subscription_id = source.subscription_id
   and rd.anonymous is distinct from source.anonymous;
 
-create temporary table recurring_renewal_repairs on commit drop as
+create temporary table recurring_renewal_repairs as
 select
   cp.id as campaign_payment_id,
   cp.donation_id,
@@ -10468,3 +10468,714 @@ on table public.team_members
 from authenticated;
 grant select on table public.team_members to authenticated;
 grant all on table public.team_members to service_role;
+
+
+-- ============ 20260815000000_peer_fundraiser_attribution.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Peer-to-peer attribution — the one column that makes P2P real.
+--
+-- WHY THIS IS THE BLOCKER, not the supporter page
+--
+-- `peer_fundraisers` has existed for a long time: full schema, FKs, RLS, a
+-- parent-campaign index, a `slug` column ready for per-supporter URLs, and 240
+-- rows in production. `POST /api/campaigns/[id]/peer-fundraisers` lets a
+-- supporter join a team, and the campaign page renders the roster
+-- (TeamFundraisers.tsx). What has never existed is a way to say WHICH
+-- supporter's page a donation came through:
+--
+--   * `donations` carries `campaign_id` and nothing else identifying a peer
+--   * the donate flow has no peer parameter
+--   * nothing maintains `peer_fundraisers.raised_amount`
+--
+-- So every one of those 240 rows shows a total that no donation produced. Build
+-- the supporter page before this migration and it renders a progress bar that
+-- can never move — a surface that looks alive and silently does nothing.
+--
+-- WHAT THIS DOES
+--
+-- 1. Adds the attribution column, nullable: a donation that did not come through
+--    a supporter page has no peer, which is the overwhelmingly common case.
+-- 2. Rolls a completed donation into the peer's total, via a SEPARATE trigger
+--    from `donations_increment_campaign_stats`.
+--
+-- The parent campaign trigger is deliberately left untouched. It already
+-- increments `campaigns.raised_amount` for every completed donation regardless
+-- of peer, so a peer-attributed gift counts toward the parent exactly once and
+-- toward the peer exactly once. Adding the parent increment here as well is the
+-- obvious-looking change that would double-count the campaign total — the same
+-- mistake `record_donation`'s header already warns about.
+--
+-- 3. Backfills the 240 seeded rows to 0. Their current totals are fiction: no
+--    donation row supports them, so leaving them would mean the first real
+--    attributed gift lands on top of an invented number.
+--
+-- WHAT THIS DELIBERATELY DOES **NOT** DO — read before writing the follow-up
+--
+-- The main donation path is the `record_donation` RPC, called from the Stripe
+-- webhook. Its INSERT has a fixed column list that does not include
+-- `peer_fundraiser_id`, so until that function is extended, attribution works
+-- only for any path that inserts into `donations` directly. This migration
+-- stops short of touching it on purpose: it is the money path, and there is a
+-- specific trap in the obvious change.
+--
+--   ⚠️ `create or replace function record_donation(... , p_peer_fundraiser_id
+--      uuid default null)` does NOT replace the existing function. A different
+--      argument list makes it an OVERLOAD, and the caller uses NAMED arguments
+--      (`supabase.rpc('record_donation', { p_stripe_event_id: … })`), which then
+--      match BOTH the 10-arg and 11-arg signatures — Postgres fails the call
+--      with "function record_donation(...) is not unique". Every donation
+--      webhook would start erroring, and because the handler rethrows so Stripe
+--      retries, it would keep erroring.
+--
+--   The safe form is `drop function public.record_donation(text, uuid, uuid,
+--   bigint, bigint, bigint, text, boolean, text, text);` followed by a single
+--   `create function` carrying the new parameter — in one transaction, so no
+--   window exists where the function is missing.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+alter table public.donations
+  add column if not exists peer_fundraiser_id uuid
+    references public.peer_fundraisers(id) on delete set null;
+
+comment on column public.donations.peer_fundraiser_id is
+  'The supporter''s peer fundraiser page this gift came through, when any. NULL '
+  'for a direct campaign donation. ON DELETE SET NULL: removing a supporter page '
+  'must never delete the money that came through it.';
+
+-- Attribution is queried per peer page ("show this supporter''s donors"), so the
+-- partial index skips the majority of rows that have no peer.
+create index if not exists donations_peer_fundraiser_id_idx
+  on public.donations (peer_fundraiser_id)
+  where peer_fundraiser_id is not null;
+
+-- ── Roll a completed, peer-attributed donation into that peer's total ────────
+create or replace function public.increment_peer_fundraiser_after_donation()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- Mirrors increment_campaign_stats_after_donation's guard: only completed
+  -- money counts. A pending or failed row must not move a public total.
+  if new.status = 'completed' and new.peer_fundraiser_id is not null then
+    update public.peer_fundraisers
+    set raised_amount = raised_amount + new.amount_cents,
+        updated_at    = now()
+    where id = new.peer_fundraiser_id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists donations_increment_peer_fundraiser on public.donations;
+drop trigger if exists donations_increment_peer_fundraiser on public.donations;
+create trigger donations_increment_peer_fundraiser
+  after insert on public.donations
+  for each row
+  execute function public.increment_peer_fundraiser_after_donation();
+
+-- ── Reset the seeded fiction ─────────────────────────────────────────────────
+-- Recompute from the donations that actually exist. Written as a recompute
+-- rather than `set raised_amount = 0` so it is idempotent and stays correct if
+-- this file is ever re-run after real attributed donations exist.
+update public.peer_fundraisers p
+set raised_amount = coalesce((
+      select sum(d.amount_cents)
+      from public.donations d
+      where d.peer_fundraiser_id = p.id
+        and d.status = 'completed'
+    ), 0),
+    updated_at = now()
+where p.raised_amount is distinct from coalesce((
+      select sum(d.amount_cents)
+      from public.donations d
+      where d.peer_fundraiser_id = p.id
+        and d.status = 'completed'
+    ), 0);
+
+
+-- ============ 20260816000000_record_donation_peer_attribution.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Carry peer attribution through the money path.
+--
+-- `20260815000000_peer_fundraiser_attribution.sql` added
+-- `donations.peer_fundraiser_id` and the trigger that rolls an attributed gift
+-- into the supporter's total, then deliberately stopped: `record_donation` —
+-- the RPC the Stripe webhook calls — has a fixed INSERT column list that does
+-- not include the new column. Until this file runs, a donation made through a
+-- supporter page is recorded with `peer_fundraiser_id` NULL and the supporter's
+-- progress bar never moves.
+--
+-- ⚠️ THE TRAP, restated from that migration's header because it is the whole
+-- reason this is a drop-and-create rather than a `create or replace`:
+--
+--   `create or replace function record_donation(…, p_peer_fundraiser_id uuid
+--   default null)` does NOT replace the existing function. A different argument
+--   list makes it an OVERLOAD. The caller uses NAMED arguments
+--   (`supabase.rpc('record_donation', { p_stripe_event_id: … })`), which then
+--   match BOTH the 10-arg and the 11-arg signature, and Postgres fails the call
+--   with "function record_donation(…) is not unique". Every donation webhook
+--   would start erroring — and since the handler rethrows so Stripe retries, it
+--   would keep erroring, on the money path, until someone noticed.
+--
+-- So: DROP the exact 10-argument signature, then CREATE the 11-argument one, in
+-- a single transaction (migrations run in one by default) so no window exists
+-- where the function is missing and a webhook could 404 the RPC.
+--
+-- The body below is the existing function VERBATIM apart from three additions,
+-- marked `-- +peer`. Copying it wholesale is deliberate: the advisory lock, the
+-- idempotency check, the "do not increment here" note and the exception handler
+-- that records the failure before re-raising are all load-bearing, and
+-- paraphrasing them while transcribing is exactly how one of them would be lost.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+drop function if exists public.record_donation(
+  text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text
+);
+
+create function public.record_donation(
+  p_stripe_event_id text,
+  p_campaign_id uuid,
+  p_donor_id uuid,
+  p_amount_cents bigint,
+  p_tip_cents bigint,
+  p_processing_fee_cents bigint,
+  p_message text,
+  p_anonymous boolean,
+  p_stripe_payment_intent_id text,
+  p_stripe_checkout_session_id text,
+  p_peer_fundraiser_id uuid default null   -- +peer
+) returns jsonb
+  language plpgsql security definer
+  set search_path to 'pg_catalog', 'public', 'pg_temp'
+  as $$
+declare
+  v_existing uuid;
+  v_lock_key text;
+  v_peer_id uuid;                          -- +peer
+begin
+  -- Serialize concurrent processing of the SAME donation. Prefer the payment
+  -- intent id, then the checkout session id, then the event id as the lock key
+  -- so retried/duplicate deliveries collide while distinct donations do not.
+  v_lock_key := coalesce(
+    nullif(p_stripe_payment_intent_id, ''),
+    nullif(p_stripe_checkout_session_id, ''),
+    p_stripe_event_id
+  );
+  if v_lock_key is not null then
+    perform pg_advisory_xact_lock(hashtextextended(v_lock_key, 0));
+  end if;
+
+  -- Idempotency check (race-safe under the advisory lock above)
+  select id into v_existing from donations
+  where stripe_checkout_session_id = p_stripe_checkout_session_id
+     or (stripe_payment_intent_id = p_stripe_payment_intent_id and p_stripe_payment_intent_id is not null)
+  limit 1;
+
+  if v_existing is not null then
+    return jsonb_build_object('status','already_processed','id', v_existing);
+  end if;
+
+  -- +peer: the id arrives from Stripe metadata, which is client-influenced —
+  -- the donor picked the supporter page they gave through. Verify here rather
+  -- than trusting it, because this runs SECURITY DEFINER: a peer id belonging
+  -- to a DIFFERENT campaign would otherwise credit an unrelated supporter for
+  -- money that campaign never received. An id that does not check out is
+  -- dropped to NULL rather than raising: the donation is real and already paid
+  -- for, so it must be recorded as a direct gift, never lost.
+  if p_peer_fundraiser_id is not null then
+    -- NOTE the column is `parent_campaign_id`, not `campaign_id`. Every other
+    -- table in this schema names it `campaign_id`, so the wrong guess compiles
+    -- as a plain "column does not exist" only at RUN time, inside the money
+    -- path, where the handler rethrows and Stripe retries forever.
+    select id into v_peer_id
+    from peer_fundraisers
+    where id = p_peer_fundraiser_id
+      and parent_campaign_id = p_campaign_id
+    limit 1;
+  end if;
+
+  -- The AFTER INSERT trigger donations_increment_campaign_stats increments
+  -- campaigns.raised_amount / backer_count for this 'completed' row. Do NOT
+  -- increment again here — that double-counts (see migration header).
+  --
+  -- +peer: donations_increment_peer_fundraiser (previous migration) rolls the
+  -- same row into peer_fundraisers.raised_amount. It is a SEPARATE trigger on
+  -- the same INSERT, so the parent campaign is credited exactly once and the
+  -- supporter exactly once. Do not add a peer increment here either.
+  insert into donations (
+    campaign_id, donor_id, amount_cents, tip_cents, processing_fee_cents,
+    status, anonymous, message, stripe_payment_intent_id, stripe_checkout_session_id,
+    peer_fundraiser_id                                                    -- +peer
+  ) values (
+    p_campaign_id, p_donor_id, p_amount_cents, p_tip_cents, p_processing_fee_cents,
+    'completed', p_anonymous, p_message, p_stripe_payment_intent_id, p_stripe_checkout_session_id,
+    v_peer_id                                                             -- +peer
+  );
+
+  insert into webhook_events (stripe_event_id, event_type, payload, processed_at)
+  values (p_stripe_event_id, 'checkout.session.completed', '{}'::jsonb, now())
+  on conflict (stripe_event_id) do nothing;
+
+  return jsonb_build_object('status','recorded');
+exception when others then
+  insert into webhook_events (stripe_event_id, event_type, payload, processing_error)
+  values (p_stripe_event_id, 'checkout.session.completed', '{}'::jsonb, sqlerrm)
+  on conflict (stripe_event_id) do nothing;
+  raise;
+end; $$;
+
+comment on function public.record_donation(
+  text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text, uuid
+) is
+  'Idempotent on the Stripe event/intent/session. p_peer_fundraiser_id is '
+  'VERIFIED against p_campaign_id before use and dropped to NULL when it does '
+  'not belong to that campaign — never trusted from metadata as given.';
+
+-- PostgREST caches the function signature; without this the next RPC call still
+-- resolves against the dropped 10-arg form and fails until the pool recycles.
+select public.reload_postgrest_schema_cache();
+
+
+-- ============ 20260817000000_campaign_geolocation.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Proximity discovery — coordinates on campaigns.
+--
+-- `campaigns.location` is free text ("Austin, TX", "Leeds", "remote"). It is
+-- fine to display and useless to search by distance: "within 25 miles of me"
+-- cannot be answered by string matching, and the near-miss answers it gives are
+-- the worst kind — plausible and wrong.
+--
+-- WHY PLAIN COLUMNS AND NOT POSTGIS
+--
+-- PostGIS would give a real `geography` type and a GiST index over it. It is
+-- deliberately not used here:
+--
+--   1. `create extension postgis` needs privileges this project's release
+--      workflow does not grant, and it is a heavy dependency to add for one
+--      feature.
+--   2. At CharitMe's scale the query is "campaigns within N miles of a point",
+--      bounded by a bounding box on two indexed floats and then refined in the
+--      application with the haversine formula. That is exact enough — the error
+--      of the flat-earth box is a filter, not the answer — and it needs no
+--      extension.
+--
+-- If proximity ever becomes a primary ranking signal over millions of rows, the
+-- upgrade path is a PostGIS column alongside these, backfilled from them. These
+-- columns do not block that.
+--
+-- NULLABLE, and most rows will stay NULL. A campaign has no obligation to have a
+-- location, and an online-only fundraiser genuinely has none. Nothing may treat
+-- NULL as (0, 0) — that is a real point in the Gulf of Guinea, and a bug there
+-- reads as "there is a campaign 3,000 miles away" rather than as missing data.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- One column per statement. A combined `add column a, add column b` is valid SQL
+-- and is read as a single addition by the migration/schema drift checker, which
+-- then reports the second column as missing from a fresh provision.
+alter table public.campaigns
+  add column if not exists latitude double precision;
+
+alter table public.campaigns
+  add column if not exists longitude double precision;
+
+-- Reject impossible coordinates at the boundary. A swapped lat/long pair is the
+-- single most common geocoding bug, and a longitude of 120 in the latitude
+-- column would otherwise be stored happily and silently mislocate the campaign.
+-- NOT VALID so the constraint applies to new writes without a full table scan on
+-- deploy; existing rows are all NULL, which satisfies it anyway.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'campaigns_latitude_range'
+  ) then
+    alter table public.campaigns drop constraint if exists campaigns_latitude_range;
+alter table public.campaigns add constraint campaigns_latitude_range
+      check (latitude is null or (latitude >= -90 and latitude <= 90)) not valid;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'campaigns_longitude_range'
+  ) then
+    alter table public.campaigns drop constraint if exists campaigns_longitude_range;
+alter table public.campaigns add constraint campaigns_longitude_range
+      check (longitude is null or (longitude >= -180 and longitude <= 180)) not valid;
+  end if;
+end $$;
+
+-- Partial: the bounding-box query always filters `latitude is not null`, and the
+-- majority of rows have no coordinates, so indexing them wastes space and slows
+-- writes. Composite because the box constrains both axes together.
+create index if not exists campaigns_lat_lng_idx
+  on public.campaigns (latitude, longitude)
+  where latitude is not null and longitude is not null;
+
+comment on column public.campaigns.latitude is
+  'WGS84 latitude, NULL when the campaign has no physical location. Never treat '
+  'NULL as 0 — that is a real point at sea.';
+comment on column public.campaigns.longitude is
+  'WGS84 longitude, NULL when the campaign has no physical location.';
+
+select public.reload_postgrest_schema_cache();
+
+
+-- ============ 20260818000000_profile_market_locale.sql ============
+-- ─────────────────────────────────────────────────────────────────────────────
+-- profiles.locale — the visitor's chosen MARKET locale (full BCP 47 tag).
+--
+-- `profiles.language` already exists and stores the primary subtag only ('es'),
+-- which is the right grain for picking a translation file and is validated as
+-- such by /api/settings. It cannot express the distinction the footer picker
+-- offers, where "Español (México)" and "Español (España)" are separate choices
+-- that differ in currency, date and address conventions.
+--
+-- So this adds a sibling column rather than widening `language`: existing
+-- readers (the dashboard settings dropdown, the settings API validator) keep
+-- working unchanged against `language`, and the locale picker writes both —
+-- the full tag here, the primary subtag there.
+--
+-- Application code treats this column as OPTIONAL and falls back to `language`
+-- when PostgREST reports it missing (PGRST204 / 42703), so the footer works
+-- before this migration is applied.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS locale text;
+
+COMMENT ON COLUMN public.profiles.locale IS
+  'Full BCP 47 market locale tag chosen in the footer picker (e.g. es-MX). The primary subtag is mirrored into profiles.language.';
+
+
+-- ============ 20260819000000_donation_forms_slug_and_campaign_owner.sql ============
+-- Make `donation_forms` usable by the Donation Form Builder.
+--
+-- The table has shipped since 20260525002000 and has never had a reader or a
+-- writer — it appears in the codebase exactly once, as a table NAME in
+-- lib/feature-catalog.ts. Wiring the builder to it surfaced two gaps.
+--
+-- ── 1. `slug` was not unique ────────────────────────────────────────────────
+-- The slug is how an embedded form is addressed. Two forms sharing one meant the
+-- embed resolved to whichever row came back first — silently, and differently
+-- between requests. Nothing enforced it: the only index on the table was on
+-- `nonprofit_id`.
+--
+-- Plain (not partial) so `ON CONFLICT (slug)` can be inferred, per
+-- 20260812000000 — a partial index cannot be, and that is what made four other
+-- upserts fail 42P10 in production.
+--
+-- No dedupe pass is needed: the table has no writer, so it is empty of anything
+-- but rows created by hand.
+
+create unique index if not exists donation_forms_slug_uidx
+  on public.donation_forms (slug);
+
+-- ── 2. The write policy could not see campaign owners ───────────────────────
+-- `donation_forms_owner_write` granted writes only to the owner of the linked
+-- `nonprofit_profiles` row (or an admin). But the table also carries
+-- `campaign_id`, and a campaign-scoped donation form is the ordinary case — the
+-- builder is reached from a campaign. Under the old policy an organizer who runs
+-- a campaign but has no nonprofit profile could not touch their own form.
+--
+-- This matters beyond RLS: the API routes use the service-role client, which
+-- BYPASSES RLS, so the check that actually runs is the one in TypeScript. If the
+-- policy and the route disagree about who owns a form, the database stops being
+-- a backstop and the only real rule is the one in application code. Both are
+-- widened together here, deliberately, so they keep agreeing.
+--
+-- Mirrors `campaigns.user_id`, the same ownership column the campaign routes use.
+
+drop policy if exists donation_forms_owner_write on public.donation_forms;
+
+drop policy if exists donation_forms_owner_write on public.donation_forms;
+create policy donation_forms_owner_write on public.donation_forms
+  using (
+    public.is_admin()
+    or exists (
+      select 1 from public.nonprofit_profiles np
+      where np.id = donation_forms.nonprofit_id and np.owner_id = auth.uid()
+    )
+    or exists (
+      select 1 from public.campaigns c
+      where c.id = donation_forms.campaign_id and c.user_id = auth.uid()
+    )
+  )
+  with check (
+    public.is_admin()
+    or exists (
+      select 1 from public.nonprofit_profiles np
+      where np.id = donation_forms.nonprofit_id and np.owner_id = auth.uid()
+    )
+    or exists (
+      select 1 from public.campaigns c
+      where c.id = donation_forms.campaign_id and c.user_id = auth.uid()
+    )
+  );
+
+
+-- ============ 20260820000000_incidents_and_maintenance.sql ============
+-- Incidents (design #168) and scheduled maintenance (design #169).
+--
+-- Both feed the PUBLIC /status page, which already exists but could only report
+-- live probe results — it had no way to say "we know, here is what happened".
+-- A status page that shows a red dot and no explanation is the moment a user
+-- most needs words, so this is the missing half of a page that already ships.
+--
+-- ⚠️ These tables do NOT exist in production until this migration is applied.
+-- Every reader treats a failed query as "unknown", never as "no incidents" —
+-- see app/status/page.tsx. That distinction matters more here than anywhere
+-- else in the app: reporting "no incidents" because the incidents table is
+-- unreachable is the single most misleading thing a status page can do.
+
+create table if not exists public.incidents (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  -- Which surface is affected. Free text rather than an enum: the component
+  -- list on /status is authored in TypeScript and will change faster than a
+  -- Postgres enum can be migrated.
+  component text not null default 'platform',
+  status text not null default 'investigating'
+    check (status in ('investigating','identified','monitoring','resolved')),
+  impact text not null default 'minor'
+    check (impact in ('minor','major','critical')),
+  started_at timestamptz not null default now(),
+  resolved_at timestamptz,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  -- A resolved incident with no resolved_at renders as still-open forever, and
+  -- an unresolved one carrying a timestamp claims an all-clear that never
+  -- happened. Both directions are wrong, so both are refused.
+  constraint incidents_resolved_consistency check (
+    (status = 'resolved' and resolved_at is not null)
+    or (status <> 'resolved' and resolved_at is null)
+  )
+);
+
+-- Chronological updates on an incident, so the public page can show a timeline
+-- rather than only the latest state.
+create table if not exists public.incident_updates (
+  id uuid primary key default gen_random_uuid(),
+  incident_id uuid not null references public.incidents(id) on delete cascade,
+  body text not null,
+  status text not null
+    check (status in ('investigating','identified','monitoring','resolved')),
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.maintenance_windows (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  component text not null default 'platform',
+  starts_at timestamptz not null,
+  ends_at timestamptz not null,
+  status text not null default 'scheduled'
+    check (status in ('scheduled','in_progress','completed','cancelled')),
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint maintenance_time_order check (ends_at > starts_at)
+);
+
+create index if not exists incidents_started_at_idx on public.incidents (started_at desc);
+create index if not exists incidents_unresolved_idx on public.incidents (started_at desc)
+  where resolved_at is null;
+create index if not exists incident_updates_incident_idx
+  on public.incident_updates (incident_id, created_at desc);
+create index if not exists maintenance_windows_starts_at_idx
+  on public.maintenance_windows (starts_at desc);
+
+alter table public.incidents enable row level security;
+alter table public.incident_updates enable row level security;
+alter table public.maintenance_windows enable row level security;
+
+-- Public read is the POINT of a status page: an unauthenticated visitor during
+-- an outage is the primary audience, and they may well be unable to sign in.
+-- Writes are admin-only.
+--
+-- These rows are written to be read by strangers, so they carry no user data —
+-- unlike creator_tips, whose `using (true)` exposed supporter identities and
+-- Stripe payment intent IDs (20260812010000). Public-read is correct here and
+-- was wrong there; the difference is what is in the row, not the policy.
+drop policy if exists incidents_public_read on public.incidents;
+drop policy if exists incidents_public_read on public.incidents;
+create policy incidents_public_read on public.incidents for select using (true);
+drop policy if exists incidents_admin_write on public.incidents;
+drop policy if exists incidents_admin_write on public.incidents;
+create policy incidents_admin_write on public.incidents
+  using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists incident_updates_public_read on public.incident_updates;
+drop policy if exists incident_updates_public_read on public.incident_updates;
+create policy incident_updates_public_read on public.incident_updates for select using (true);
+drop policy if exists incident_updates_admin_write on public.incident_updates;
+drop policy if exists incident_updates_admin_write on public.incident_updates;
+create policy incident_updates_admin_write on public.incident_updates
+  using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists maintenance_public_read on public.maintenance_windows;
+drop policy if exists maintenance_public_read on public.maintenance_windows;
+create policy maintenance_public_read on public.maintenance_windows for select using (true);
+drop policy if exists maintenance_admin_write on public.maintenance_windows;
+drop policy if exists maintenance_admin_write on public.maintenance_windows;
+create policy maintenance_admin_write on public.maintenance_windows
+  using (public.is_admin()) with check (public.is_admin());
+
+drop trigger if exists incidents_touch on public.incidents;
+drop trigger if exists incidents_touch on public.incidents;
+create trigger incidents_touch before update on public.incidents
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists maintenance_windows_touch on public.maintenance_windows;
+drop trigger if exists maintenance_windows_touch on public.maintenance_windows;
+create trigger maintenance_windows_touch before update on public.maintenance_windows
+  for each row execute function public.set_updated_at();
+
+
+-- ============ 20260821000000_tasks.sql ============
+-- Tasks / to-do list (design #145).
+--
+-- A fundraiser's own checklist, optionally attached to a campaign. Deliberately
+-- narrow: the design shows an "Assigned to Me" filter, so `assignee_id` exists,
+-- but assignment is scoped to people who already share the campaign through
+-- `team_members` — inventing a wider sharing model here would create a second,
+-- competing notion of "who can see my campaign's work".
+--
+-- ⚠️ Not applied to production until the migrations runbook is run. Every reader
+-- treats a failed query as "unknown", never as "no tasks".
+
+create table if not exists public.tasks (
+  id uuid primary key default gen_random_uuid(),
+  owner_id uuid not null references public.profiles(id) on delete cascade,
+  -- Optional: a task can be general ("call the printer") or campaign-scoped.
+  campaign_id uuid references public.campaigns(id) on delete cascade,
+  assignee_id uuid references public.profiles(id) on delete set null,
+  title text not null,
+  notes text,
+  priority text not null default 'medium' check (priority in ('low','medium','high')),
+  status text not null default 'todo' check (status in ('todo','in_progress','done')),
+  due_at timestamptz,
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  -- Same shape as incidents_resolved_consistency: a done task with no
+  -- completed_at cannot be sorted or reported on, and an open one carrying a
+  -- completion time claims work that is still outstanding. Both are refused.
+  constraint tasks_completed_consistency check (
+    (status = 'done' and completed_at is not null)
+    or (status <> 'done' and completed_at is null)
+  )
+);
+
+-- The list is always filtered by owner (or assignee) and ordered by due date,
+-- so those are the indexes that matter.
+create index if not exists tasks_owner_due_idx on public.tasks (owner_id, due_at);
+create index if not exists tasks_assignee_idx on public.tasks (assignee_id)
+  where assignee_id is not null;
+create index if not exists tasks_campaign_idx on public.tasks (campaign_id)
+  where campaign_id is not null;
+-- "Overdue" is a first-class filter in the design, and it only ever looks at
+-- unfinished work.
+create index if not exists tasks_open_due_idx on public.tasks (due_at)
+  where status <> 'done';
+
+alter table public.tasks enable row level security;
+
+-- Private by default. A task list is working notes — it can name a donor, a
+-- problem with a beneficiary, or an unannounced plan — so unlike incidents,
+-- nothing here is public.
+--
+-- The API routes use the service-role client and therefore BYPASS this policy;
+-- lib/task-access.ts mirrors it exactly and is what actually runs. Both are
+-- written together so they cannot drift.
+drop policy if exists tasks_owner_or_assignee on public.tasks;
+drop policy if exists tasks_owner_or_assignee on public.tasks;
+create policy tasks_owner_or_assignee on public.tasks
+  using (
+    auth.uid() = owner_id
+    or auth.uid() = assignee_id
+    or public.is_admin()
+  )
+  with check (
+    auth.uid() = owner_id
+    or public.is_admin()
+  );
+
+drop trigger if exists tasks_touch on public.tasks;
+drop trigger if exists tasks_touch on public.tasks;
+create trigger tasks_touch before update on public.tasks
+  for each row execute function public.set_updated_at();
+
+
+-- ============ 20260822000000_data_retention_policies.sql ============
+-- Data retention policies (design #172).
+--
+-- Configuration for how long each category of non-financial data is kept, plus
+-- an explicit per-category opt-in before anything is actually deleted.
+--
+-- ⚠️ THE SAFETY MODEL IS THE POINT OF THIS TABLE, so it is stated here rather
+-- than only in the route:
+--
+--   1. `auto_delete` defaults to FALSE. With it off the retention job REPORTS
+--      what is past its window and deletes nothing. A scheduled job that
+--      destroys production data on the strength of a config screen someone
+--      clicked through is not a feature, and the damage is unrecoverable.
+--   2. Financial and identity records are NOT eligible. Donations, refunds,
+--      ledger entries, tax receipts and verification documents carry legal
+--      retention requirements that outlast any preference set here, so the
+--      category list is a closed allowlist in lib/retention.ts — not free text,
+--      and not "every table".
+--   3. Deleting is the only irreversible thing in this feature, so it is the
+--      one thing that requires a second, explicit action.
+
+create table if not exists public.data_retention_policies (
+  id uuid primary key default gen_random_uuid(),
+  -- Matches a key in RETENTION_CATEGORIES (lib/retention.ts). Unique so the
+  -- admin screen cannot create two conflicting rules for one category — with
+  -- two rows, which window applied would depend on row order.
+  category text not null unique,
+  retention_days integer not null check (retention_days between 1 and 3650),
+  auto_delete boolean not null default false,
+  updated_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Every run is recorded, deletions and dry runs alike. A retention job with no
+-- audit trail cannot answer the only question anyone asks after the fact:
+-- "what happened to that record?"
+create table if not exists public.data_retention_runs (
+  id uuid primary key default gen_random_uuid(),
+  category text not null,
+  cutoff_at timestamptz not null,
+  matched_count integer not null default 0,
+  deleted_count integer not null default 0,
+  dry_run boolean not null default true,
+  error text,
+  ran_at timestamptz not null default now()
+);
+
+create index if not exists data_retention_runs_ran_at_idx
+  on public.data_retention_runs (ran_at desc);
+
+alter table public.data_retention_policies enable row level security;
+alter table public.data_retention_runs enable row level security;
+
+-- Admin-only both ways: retention settings describe how long the platform keeps
+-- user data, which is a compliance disclosure, not public configuration.
+drop policy if exists retention_policies_admin_all on public.data_retention_policies;
+drop policy if exists retention_policies_admin_all on public.data_retention_policies;
+create policy retention_policies_admin_all on public.data_retention_policies
+  using (public.is_admin()) with check (public.is_admin());
+
+drop policy if exists retention_runs_admin_all on public.data_retention_runs;
+drop policy if exists retention_runs_admin_all on public.data_retention_runs;
+create policy retention_runs_admin_all on public.data_retention_runs
+  using (public.is_admin()) with check (public.is_admin());
+
+drop trigger if exists data_retention_policies_touch on public.data_retention_policies;
+drop trigger if exists data_retention_policies_touch on public.data_retention_policies;
+create trigger data_retention_policies_touch before update on public.data_retention_policies
+  for each row execute function public.set_updated_at();

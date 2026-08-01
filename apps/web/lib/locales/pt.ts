@@ -352,6 +352,7 @@ export const pt: Dictionary = {
   'footer.link.for_individuals': 'Para particulares',
   'footer.link.for_donors': 'Para doadores',
   'footer.link.blog': 'Blogue',
+  'footer.link.changelog': 'Novidades',
   'footer.link.help': 'Centro de ajuda',
   'footer.link.faq': 'Perguntas frequentes',
   'footer.link.supported_countries': 'Países suportados',

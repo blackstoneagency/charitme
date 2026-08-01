@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useId, useState } from 'react';
+import { SUPPORTED_CURRENCIES } from '@shared/currencies';
 import Link from 'next/link';
 import { KFIcon, StatusPill } from '../../../../components/CharitMeApp';
 
@@ -578,7 +579,8 @@ export default function SystemClient({ categories, overview, recentActivity, res
             </Field>
             <Field label="Currency">
               <select className="sys-select" value={String(s.currency ?? 'USD')} onChange={e => setField('payment', 'currency', e.target.value)}>
-                {['USD', 'EUR', 'GBP', 'CAD', 'AUD'].map(c => <option key={c} value={c}>{c}</option>)}
+                {/* Shared list — this was a local copy of five, while the API accepts 28. */}
+                {SUPPORTED_CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.code} — {c.name}</option>)}
               </select>
             </Field>
           </div>

@@ -356,17 +356,40 @@ $$;
 
 
 --
+-- Name: increment_peer_fundraiser_after_donation(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.increment_peer_fundraiser_after_donation() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+begin
+  -- Mirrors increment_campaign_stats_after_donation's guard: only completed
+  -- money counts. A pending or failed row must not move a public total.
+  if new.status = 'completed' and new.peer_fundraiser_id is not null then
+    update public.peer_fundraisers
+    set raised_amount = raised_amount + new.amount_cents,
+        updated_at    = now()
+    where id = new.peer_fundraiser_id;
+  end if;
+  return new;
+end;
+$$;
+
+
+--
 -- Name: is_admin(); Type: FUNCTION; Schema: public; Owner: -
 --
 
 CREATE FUNCTION public.is_admin() RETURNS boolean
     LANGUAGE sql STABLE SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
+    SET search_path TO 'pg_catalog', 'public'
     AS $$
   select exists (
-    select 1 from public.profiles
+    select 1
+    from public.profiles
     where id = auth.uid()
-      and roles ? 'admin'
+      and (roles ? 'admin' or roles ? 'super_admin')
   );
 $$;
 
@@ -495,16 +518,17 @@ $$;
 
 
 --
--- Name: record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text); Type: FUNCTION; Schema: public; Owner: -
+-- Name: record_donation(text, uuid, uuid, bigint, bigint, bigint, text, boolean, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.record_donation(p_stripe_event_id text, p_campaign_id uuid, p_donor_id uuid, p_amount_cents bigint, p_tip_cents bigint, p_processing_fee_cents bigint, p_message text, p_anonymous boolean, p_stripe_payment_intent_id text, p_stripe_checkout_session_id text) RETURNS jsonb
+CREATE FUNCTION public.record_donation(p_stripe_event_id text, p_campaign_id uuid, p_donor_id uuid, p_amount_cents bigint, p_tip_cents bigint, p_processing_fee_cents bigint, p_message text, p_anonymous boolean, p_stripe_payment_intent_id text, p_stripe_checkout_session_id text, p_peer_fundraiser_id uuid DEFAULT NULL::uuid) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog', 'public', 'pg_temp'
     AS $$
 declare
   v_existing uuid;
   v_lock_key text;
+  v_peer_id uuid;                          -- +peer
 begin
   -- Serialize concurrent processing of the SAME donation. Prefer the payment
   -- intent id, then the checkout session id, then the event id as the lock key
@@ -528,15 +552,41 @@ begin
     return jsonb_build_object('status','already_processed','id', v_existing);
   end if;
 
+  -- +peer: the id arrives from Stripe metadata, which is client-influenced —
+  -- the donor picked the supporter page they gave through. Verify here rather
+  -- than trusting it, because this runs SECURITY DEFINER: a peer id belonging
+  -- to a DIFFERENT campaign would otherwise credit an unrelated supporter for
+  -- money that campaign never received. An id that does not check out is
+  -- dropped to NULL rather than raising: the donation is real and already paid
+  -- for, so it must be recorded as a direct gift, never lost.
+  if p_peer_fundraiser_id is not null then
+    -- NOTE the column is `parent_campaign_id`, not `campaign_id`. Every other
+    -- table in this schema names it `campaign_id`, so the wrong guess compiles
+    -- as a plain "column does not exist" only at RUN time, inside the money
+    -- path, where the handler rethrows and Stripe retries forever.
+    select id into v_peer_id
+    from peer_fundraisers
+    where id = p_peer_fundraiser_id
+      and parent_campaign_id = p_campaign_id
+    limit 1;
+  end if;
+
   -- The AFTER INSERT trigger donations_increment_campaign_stats increments
   -- campaigns.raised_amount / backer_count for this 'completed' row. Do NOT
   -- increment again here — that double-counts (see migration header).
+  --
+  -- +peer: donations_increment_peer_fundraiser (previous migration) rolls the
+  -- same row into peer_fundraisers.raised_amount. It is a SEPARATE trigger on
+  -- the same INSERT, so the parent campaign is credited exactly once and the
+  -- supporter exactly once. Do not add a peer increment here either.
   insert into donations (
     campaign_id, donor_id, amount_cents, tip_cents, processing_fee_cents,
-    status, anonymous, message, stripe_payment_intent_id, stripe_checkout_session_id
+    status, anonymous, message, stripe_payment_intent_id, stripe_checkout_session_id,
+    peer_fundraiser_id                                                    -- +peer
   ) values (
     p_campaign_id, p_donor_id, p_amount_cents, p_tip_cents, p_processing_fee_cents,
-    'completed', p_anonymous, p_message, p_stripe_payment_intent_id, p_stripe_checkout_session_id
+    'completed', p_anonymous, p_message, p_stripe_payment_intent_id, p_stripe_checkout_session_id,
+    v_peer_id                                                             -- +peer
   );
 
   insert into webhook_events (stripe_event_id, event_type, payload, processed_at)
@@ -1693,6 +1743,8 @@ CREATE TABLE public.campaigns (
     deleted_at timestamp with time zone,
     visibility text DEFAULT 'public'::text NOT NULL,
     is_demo boolean DEFAULT false NOT NULL,
+    latitude double precision,
+    longitude double precision,
     CONSTRAINT campaigns_category_check CHECK ((category = ANY (ARRAY['Medical'::text, 'Memorial'::text, 'Emergency'::text, 'Nonprofit'::text, 'Education'::text, 'Animal'::text, 'Environment'::text, 'Business'::text, 'Community'::text, 'Competition'::text, 'Creative'::text, 'Event'::text, 'Faith'::text, 'Family'::text, 'Sports'::text, 'Travel'::text, 'Volunteer'::text, 'Wishes'::text]))),
     CONSTRAINT campaigns_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'paused'::text, 'completed'::text, 'rejected'::text, 'frozen'::text]))),
     CONSTRAINT campaigns_visibility_check CHECK ((visibility = ANY (ARRAY['public'::text, 'unlisted'::text, 'private'::text])))
@@ -1841,6 +1893,38 @@ CREATE TABLE public.creator_tips (
 
 
 --
+-- Name: data_retention_policies; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.data_retention_policies (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    category text NOT NULL,
+    retention_days integer NOT NULL,
+    auto_delete boolean DEFAULT false NOT NULL,
+    updated_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT data_retention_policies_retention_days_check CHECK (((retention_days >= 1) AND (retention_days <= 3650)))
+);
+
+
+--
+-- Name: data_retention_runs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.data_retention_runs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    category text NOT NULL,
+    cutoff_at timestamp with time zone NOT NULL,
+    matched_count integer DEFAULT 0 NOT NULL,
+    deleted_count integer DEFAULT 0 NOT NULL,
+    dry_run boolean DEFAULT true NOT NULL,
+    error text,
+    ran_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: digital_products; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1949,6 +2033,7 @@ CREATE TABLE public.donations (
     is_demo boolean DEFAULT false NOT NULL,
     tip_cents bigint DEFAULT 0 NOT NULL,
     processing_fee_cents bigint DEFAULT 0 NOT NULL,
+    peer_fundraiser_id uuid,
     CONSTRAINT donations_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'completed'::text, 'refunded'::text, 'failed'::text])))
 );
 
@@ -2403,6 +2488,42 @@ CREATE TABLE public.impact_updates (
 
 
 --
+-- Name: incident_updates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.incident_updates (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    incident_id uuid NOT NULL,
+    body text NOT NULL,
+    status text NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT incident_updates_status_check CHECK ((status = ANY (ARRAY['investigating'::text, 'identified'::text, 'monitoring'::text, 'resolved'::text])))
+);
+
+
+--
+-- Name: incidents; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.incidents (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text NOT NULL,
+    component text DEFAULT 'platform'::text NOT NULL,
+    status text DEFAULT 'investigating'::text NOT NULL,
+    impact text DEFAULT 'minor'::text NOT NULL,
+    started_at timestamp with time zone DEFAULT now() NOT NULL,
+    resolved_at timestamp with time zone,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT incidents_impact_check CHECK ((impact = ANY (ARRAY['minor'::text, 'major'::text, 'critical'::text]))),
+    CONSTRAINT incidents_resolved_consistency CHECK ((((status = 'resolved'::text) AND (resolved_at IS NOT NULL)) OR ((status <> 'resolved'::text) AND (resolved_at IS NULL)))),
+    CONSTRAINT incidents_status_check CHECK ((status = ANY (ARRAY['investigating'::text, 'identified'::text, 'monitoring'::text, 'resolved'::text])))
+);
+
+
+--
 -- Name: integration_connections; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2499,6 +2620,26 @@ CREATE TABLE public.livestreams (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT livestreams_status_check CHECK ((status = ANY (ARRAY['scheduled'::text, 'live'::text, 'ended'::text])))
+);
+
+
+--
+-- Name: maintenance_windows; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.maintenance_windows (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text NOT NULL,
+    description text,
+    component text DEFAULT 'platform'::text NOT NULL,
+    starts_at timestamp with time zone NOT NULL,
+    ends_at timestamp with time zone NOT NULL,
+    status text DEFAULT 'scheduled'::text NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT maintenance_time_order CHECK ((ends_at > starts_at)),
+    CONSTRAINT maintenance_windows_status_check CHECK ((status = ANY (ARRAY['scheduled'::text, 'in_progress'::text, 'completed'::text, 'cancelled'::text])))
 );
 
 
@@ -3700,6 +3841,29 @@ CREATE TABLE public.supported_countries (
 
 
 --
+-- Name: tasks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tasks (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    owner_id uuid NOT NULL,
+    campaign_id uuid,
+    assignee_id uuid,
+    title text NOT NULL,
+    notes text,
+    priority text DEFAULT 'medium'::text NOT NULL,
+    status text DEFAULT 'todo'::text NOT NULL,
+    due_at timestamp with time zone,
+    completed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT tasks_completed_consistency CHECK ((((status = 'done'::text) AND (completed_at IS NOT NULL)) OR ((status <> 'done'::text) AND (completed_at IS NULL)))),
+    CONSTRAINT tasks_priority_check CHECK ((priority = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text]))),
+    CONSTRAINT tasks_status_check CHECK ((status = ANY (ARRAY['todo'::text, 'in_progress'::text, 'done'::text])))
+);
+
+
+--
 -- Name: tax_receipts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -4362,6 +4526,22 @@ ALTER TABLE ONLY public.campaign_wizard_drafts
 
 
 --
+-- Name: campaigns campaigns_latitude_range; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.campaigns
+    ADD CONSTRAINT campaigns_latitude_range CHECK (((latitude IS NULL) OR ((latitude >= ('-90'::integer)::double precision) AND (latitude <= (90)::double precision)))) NOT VALID;
+
+
+--
+-- Name: campaigns campaigns_longitude_range; Type: CHECK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE public.campaigns
+    ADD CONSTRAINT campaigns_longitude_range CHECK (((longitude IS NULL) OR ((longitude >= ('-180'::integer)::double precision) AND (longitude <= (180)::double precision)))) NOT VALID;
+
+
+--
 -- Name: campaigns campaigns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4471,6 +4651,30 @@ ALTER TABLE ONLY public.creator_profiles
 
 ALTER TABLE ONLY public.creator_tips
     ADD CONSTRAINT creator_tips_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: data_retention_policies data_retention_policies_category_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.data_retention_policies
+    ADD CONSTRAINT data_retention_policies_category_key UNIQUE (category);
+
+
+--
+-- Name: data_retention_policies data_retention_policies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.data_retention_policies
+    ADD CONSTRAINT data_retention_policies_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: data_retention_runs data_retention_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.data_retention_runs
+    ADD CONSTRAINT data_retention_runs_pkey PRIMARY KEY (id);
 
 
 --
@@ -4818,6 +5022,22 @@ ALTER TABLE ONLY public.impact_updates
 
 
 --
+-- Name: incident_updates incident_updates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.incident_updates
+    ADD CONSTRAINT incident_updates_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: incidents incidents_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.incidents
+    ADD CONSTRAINT incidents_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: integration_connections integration_connections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4847,6 +5067,14 @@ ALTER TABLE ONLY public.ledger_entries
 
 ALTER TABLE ONLY public.livestreams
     ADD CONSTRAINT livestreams_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: maintenance_windows maintenance_windows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.maintenance_windows
+    ADD CONSTRAINT maintenance_windows_pkey PRIMARY KEY (id);
 
 
 --
@@ -5450,6 +5678,14 @@ ALTER TABLE ONLY public.supported_countries
 
 
 --
+-- Name: tasks tasks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tasks
+    ADD CONSTRAINT tasks_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: tax_receipts tax_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5869,6 +6105,13 @@ CREATE INDEX campaigns_is_demo_idx ON public.campaigns USING btree (is_demo) WHE
 
 
 --
+-- Name: campaigns_lat_lng_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX campaigns_lat_lng_idx ON public.campaigns USING btree (latitude, longitude) WHERE ((latitude IS NOT NULL) AND (longitude IS NOT NULL));
+
+
+--
 -- Name: campaigns_slug_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5925,6 +6168,13 @@ CREATE UNIQUE INDEX creator_profiles_user_id_unique ON public.creator_profiles U
 
 
 --
+-- Name: data_retention_runs_ran_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX data_retention_runs_ran_at_idx ON public.data_retention_runs USING btree (ran_at DESC);
+
+
+--
 -- Name: digital_products_creator_profile_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5936,6 +6186,13 @@ CREATE INDEX digital_products_creator_profile_id_idx ON public.digital_products 
 --
 
 CREATE INDEX donation_forms_nonprofit_id_idx ON public.donation_forms USING btree (nonprofit_id);
+
+
+--
+-- Name: donation_forms_slug_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX donation_forms_slug_uidx ON public.donation_forms USING btree (slug);
 
 
 --
@@ -5971,6 +6228,13 @@ CREATE INDEX donations_donor_id_idx ON public.donations USING btree (donor_id);
 --
 
 CREATE INDEX donations_is_demo_idx ON public.donations USING btree (is_demo) WHERE is_demo;
+
+
+--
+-- Name: donations_peer_fundraiser_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX donations_peer_fundraiser_id_idx ON public.donations USING btree (peer_fundraiser_id) WHERE (peer_fundraiser_id IS NOT NULL);
 
 
 --
@@ -6373,6 +6637,27 @@ CREATE INDEX impact_updates_campaign_idx ON public.impact_updates USING btree (c
 
 
 --
+-- Name: incident_updates_incident_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX incident_updates_incident_idx ON public.incident_updates USING btree (incident_id, created_at DESC);
+
+
+--
+-- Name: incidents_started_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX incidents_started_at_idx ON public.incidents USING btree (started_at DESC);
+
+
+--
+-- Name: incidents_unresolved_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX incidents_unresolved_idx ON public.incidents USING btree (started_at DESC) WHERE (resolved_at IS NULL);
+
+
+--
 -- Name: lead_outreach_contact_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6454,6 +6739,13 @@ CREATE INDEX ledger_entries_pi_idx ON public.ledger_entries USING btree (stripe_
 --
 
 CREATE INDEX ledger_review_status_idx ON public.transparency_ledger_items USING btree (review_status);
+
+
+--
+-- Name: maintenance_windows_starts_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX maintenance_windows_starts_at_idx ON public.maintenance_windows USING btree (starts_at DESC);
 
 
 --
@@ -6968,6 +7260,34 @@ CREATE UNIQUE INDEX supported_countries_iso_code_key ON public.supported_countri
 
 
 --
+-- Name: tasks_assignee_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tasks_assignee_idx ON public.tasks USING btree (assignee_id) WHERE (assignee_id IS NOT NULL);
+
+
+--
+-- Name: tasks_campaign_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tasks_campaign_idx ON public.tasks USING btree (campaign_id) WHERE (campaign_id IS NOT NULL);
+
+
+--
+-- Name: tasks_open_due_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tasks_open_due_idx ON public.tasks USING btree (due_at) WHERE (status <> 'done'::text);
+
+
+--
+-- Name: tasks_owner_due_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tasks_owner_due_idx ON public.tasks USING btree (owner_id, due_at);
+
+
+--
 -- Name: tax_receipts_donation_id_unique; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -7206,6 +7526,13 @@ CREATE TRIGGER creator_profiles_set_updated_at BEFORE UPDATE ON public.creator_p
 
 
 --
+-- Name: data_retention_policies data_retention_policies_touch; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER data_retention_policies_touch BEFORE UPDATE ON public.data_retention_policies FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
 -- Name: digital_products digital_products_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -7224,6 +7551,13 @@ CREATE TRIGGER donation_forms_set_updated_at BEFORE UPDATE ON public.donation_fo
 --
 
 CREATE TRIGGER donations_increment_campaign_stats AFTER INSERT ON public.donations FOR EACH ROW EXECUTE FUNCTION public.increment_campaign_stats_after_donation();
+
+
+--
+-- Name: donations donations_increment_peer_fundraiser; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER donations_increment_peer_fundraiser AFTER INSERT ON public.donations FOR EACH ROW EXECUTE FUNCTION public.increment_peer_fundraiser_after_donation();
 
 
 --
@@ -7283,6 +7617,13 @@ CREATE TRIGGER impact_updates_updated_at BEFORE UPDATE ON public.impact_updates 
 
 
 --
+-- Name: incidents incidents_touch; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER incidents_touch BEFORE UPDATE ON public.incidents FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
 -- Name: lead_outreach lead_outreach_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -7301,6 +7642,13 @@ CREATE TRIGGER ledger_entries_no_delete BEFORE DELETE ON public.ledger_entries F
 --
 
 CREATE TRIGGER ledger_entries_no_update BEFORE UPDATE ON public.ledger_entries FOR EACH ROW EXECUTE FUNCTION public.prevent_ledger_mutation();
+
+
+--
+-- Name: maintenance_windows maintenance_windows_touch; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER maintenance_windows_touch BEFORE UPDATE ON public.maintenance_windows FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -7623,6 +7971,13 @@ CREATE TRIGGER sponsorship_requests_updated_at BEFORE UPDATE ON public.sponsorsh
 --
 
 CREATE TRIGGER subscriptions_set_updated_at BEFORE UPDATE ON public.subscriptions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: tasks tasks_touch; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER tasks_touch BEFORE UPDATE ON public.tasks FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -8830,6 +9185,14 @@ ALTER TABLE ONLY public.creator_tips
 
 
 --
+-- Name: data_retention_policies data_retention_policies_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.data_retention_policies
+    ADD CONSTRAINT data_retention_policies_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
 -- Name: digital_products digital_products_creator_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -8915,6 +9278,14 @@ ALTER TABLE ONLY public.donations
 
 ALTER TABLE ONLY public.donations
     ADD CONSTRAINT donations_donor_id_fkey FOREIGN KEY (donor_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: donations donations_peer_fundraiser_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.donations
+    ADD CONSTRAINT donations_peer_fundraiser_id_fkey FOREIGN KEY (peer_fundraiser_id) REFERENCES public.peer_fundraisers(id) ON DELETE SET NULL;
 
 
 --
@@ -9342,6 +9713,30 @@ ALTER TABLE ONLY public.impact_updates
 
 
 --
+-- Name: incident_updates incident_updates_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.incident_updates
+    ADD CONSTRAINT incident_updates_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: incident_updates incident_updates_incident_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.incident_updates
+    ADD CONSTRAINT incident_updates_incident_id_fkey FOREIGN KEY (incident_id) REFERENCES public.incidents(id) ON DELETE CASCADE;
+
+
+--
+-- Name: incidents incidents_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.incidents
+    ADD CONSTRAINT incidents_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
 -- Name: integration_connections integration_connections_owner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -9419,6 +9814,14 @@ ALTER TABLE ONLY public.livestreams
 
 ALTER TABLE ONLY public.livestreams
     ADD CONSTRAINT livestreams_event_id_fkey FOREIGN KEY (event_id) REFERENCES public.fundraising_events(id) ON DELETE CASCADE;
+
+
+--
+-- Name: maintenance_windows maintenance_windows_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.maintenance_windows
+    ADD CONSTRAINT maintenance_windows_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id) ON DELETE SET NULL;
 
 
 --
@@ -10363,6 +10766,30 @@ ALTER TABLE ONLY public.support_notes
 
 ALTER TABLE ONLY public.support_notes
     ADD CONSTRAINT support_notes_case_id_fkey FOREIGN KEY (case_id) REFERENCES public.support_cases(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tasks tasks_assignee_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tasks
+    ADD CONSTRAINT tasks_assignee_id_fkey FOREIGN KEY (assignee_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: tasks tasks_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tasks
+    ADD CONSTRAINT tasks_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id) ON DELETE CASCADE;
+
+
+--
+-- Name: tasks tasks_owner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tasks
+    ADD CONSTRAINT tasks_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
 
 
 --
@@ -11314,6 +11741,18 @@ CREATE POLICY cwd_update_own ON public.campaign_wizard_drafts FOR UPDATE TO auth
 
 
 --
+-- Name: data_retention_policies; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.data_retention_policies ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: data_retention_runs; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.data_retention_runs ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: digital_products; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -11361,10 +11800,14 @@ ALTER TABLE public.donation_forms ENABLE ROW LEVEL SECURITY;
 --
 
 CREATE POLICY donation_forms_owner_write ON public.donation_forms USING ((public.is_admin() OR (EXISTS ( SELECT 1
-   FROM public.nonprofit_profiles
-  WHERE ((nonprofit_profiles.id = donation_forms.nonprofit_id) AND (nonprofit_profiles.owner_id = auth.uid())))))) WITH CHECK ((public.is_admin() OR (EXISTS ( SELECT 1
-   FROM public.nonprofit_profiles
-  WHERE ((nonprofit_profiles.id = donation_forms.nonprofit_id) AND (nonprofit_profiles.owner_id = auth.uid()))))));
+   FROM public.nonprofit_profiles np
+  WHERE ((np.id = donation_forms.nonprofit_id) AND (np.owner_id = auth.uid())))) OR (EXISTS ( SELECT 1
+   FROM public.campaigns c
+  WHERE ((c.id = donation_forms.campaign_id) AND (c.user_id = auth.uid())))))) WITH CHECK ((public.is_admin() OR (EXISTS ( SELECT 1
+   FROM public.nonprofit_profiles np
+  WHERE ((np.id = donation_forms.nonprofit_id) AND (np.owner_id = auth.uid())))) OR (EXISTS ( SELECT 1
+   FROM public.campaigns c
+  WHERE ((c.id = donation_forms.campaign_id) AND (c.user_id = auth.uid()))))));
 
 
 --
@@ -11890,6 +12333,46 @@ CREATE POLICY impact_updates_write ON public.impact_updates USING ((public.owns_
 
 
 --
+-- Name: incident_updates; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.incident_updates ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: incident_updates incident_updates_admin_write; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY incident_updates_admin_write ON public.incident_updates USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: incident_updates incident_updates_public_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY incident_updates_public_read ON public.incident_updates FOR SELECT USING (true);
+
+
+--
+-- Name: incidents; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.incidents ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: incidents incidents_admin_write; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY incidents_admin_write ON public.incidents USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: incidents incidents_public_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY incidents_public_read ON public.incidents FOR SELECT USING (true);
+
+
+--
 -- Name: integration_connections; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -11988,6 +12471,26 @@ CREATE POLICY livestreams_owner_write ON public.livestreams USING ((public.is_ad
      JOIN public.nonprofit_profiles ON ((nonprofit_profiles.id = fundraising_events.nonprofit_id)))
   WHERE ((fundraising_events.id = livestreams.event_id) AND (nonprofit_profiles.owner_id = auth.uid()))))));
 
+
+--
+-- Name: maintenance_windows maintenance_admin_write; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY maintenance_admin_write ON public.maintenance_windows USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: maintenance_windows maintenance_public_read; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY maintenance_public_read ON public.maintenance_windows FOR SELECT USING (true);
+
+
+--
+-- Name: maintenance_windows; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.maintenance_windows ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: marketing_audit_logs; Type: ROW SECURITY; Schema: public; Owner: -
@@ -12892,6 +13395,20 @@ CREATE POLICY reports_admin_read ON public.campaign_reports FOR SELECT USING (pu
 
 
 --
+-- Name: data_retention_policies retention_policies_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY retention_policies_admin_all ON public.data_retention_policies USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
+-- Name: data_retention_runs retention_runs_admin_all; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY retention_runs_admin_all ON public.data_retention_runs USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+
+--
 -- Name: reward_tiers; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -13123,6 +13640,19 @@ CREATE POLICY support_own_read ON public.support_cases FOR SELECT USING (((auth.
 ALTER TABLE public.supported_countries ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: tasks; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: tasks tasks_owner_or_assignee; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tasks_owner_or_assignee ON public.tasks USING (((auth.uid() = owner_id) OR (auth.uid() = assignee_id) OR public.is_admin())) WITH CHECK (((auth.uid() = owner_id) OR public.is_admin()));
+
+
+--
 -- Name: tax_receipts; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -13142,17 +13672,10 @@ CREATE POLICY tax_receipts_private ON public.tax_receipts FOR SELECT USING (((au
 ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: team_members team_members_admin_owner_write; Type: POLICY; Schema: public; Owner: -
+-- Name: team_members team_members_read_own; Type: POLICY; Schema: public; Owner: -
 --
 
-CREATE POLICY team_members_admin_owner_write ON public.team_members USING (((auth.uid() = user_id) OR public.is_admin())) WITH CHECK (((auth.uid() = user_id) OR public.is_admin()));
-
-
---
--- Name: team_members team_members_visible_to_team; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY team_members_visible_to_team ON public.team_members FOR SELECT USING (((auth.uid() = user_id) OR public.is_admin()));
+CREATE POLICY team_members_read_own ON public.team_members FOR SELECT TO authenticated USING (((auth.uid() = user_id) OR public.is_admin()));
 
 
 --

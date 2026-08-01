@@ -36,6 +36,18 @@ const ORGANIZER_NAV: readonly DashboardNavItem[] = [
   // inside one campaign's workspace — so a fundraiser had to know the tool
   // existed before they could find it.
   { label: 'Fundraising Tools', href: '/dashboard/tools', icon: 'stack' },
+  // `donation_forms` shipped with no reader and no writer, so the builder is the
+  // first thing that can put a row in it. Linked here rather than only from the
+  // tools hub: a page nothing navigates to is the same defect as a table nothing
+  // reads.
+  { label: 'Donation Forms', href: '/dashboard/forms', icon: 'gift' },
+  // Aggregates dates that already exist across campaigns, fundraising_events and
+  // grant_deadlines — no new table, so nothing here is inert in production.
+  { label: 'Calendar', href: '/dashboard/calendar', icon: 'stack' },
+  { label: 'Tasks', href: '/dashboard/tasks', icon: 'check' },
+  // Aggregates campaign_media, verification_documents and grant_documents —
+  // all applied tables, so nothing here is inert.
+  { label: 'Documents', href: '/dashboard/documents', icon: 'doc' },
   { label: 'AI Growth Plan', href: '/dashboard/ai-growth-plan', icon: 'send', badge: 'New' },
   { label: 'AI Coach', href: '/dashboard/ai-coach', icon: 'send', badge: 'AI' },
   { label: 'Donations Received', href: '/dashboard/donations', icon: 'gift' },
@@ -53,6 +65,9 @@ const ORGANIZER_NAV: readonly DashboardNavItem[] = [
   { label: 'Team', href: '/dashboard/team', icon: 'team' },
   { label: 'Integrations', href: '/dashboard/integrations', icon: 'link' },
   { label: 'Developers', href: '/dashboard/developers', icon: 'doc' },
+  // `outbound_webhook_endpoints` was the second orphan table found in this deck:
+  // shipped since 20260525002000, read only by a row count on /admin/system.
+  { label: 'Webhooks', href: '/dashboard/webhooks', icon: 'doc' },
   SETTINGS,
 ];
 

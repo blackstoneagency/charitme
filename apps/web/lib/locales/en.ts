@@ -333,6 +333,7 @@ export const en: Dictionary = {
   'footer.link.for_individuals': 'For Individuals',
   'footer.link.for_donors': 'For Donors',
   'footer.link.blog': 'Blog',
+  'footer.link.changelog': 'Changelog',
   'footer.link.help': 'Help Center',
   'footer.link.faq': 'FAQ',
   'footer.link.supported_countries': 'Supported Countries',

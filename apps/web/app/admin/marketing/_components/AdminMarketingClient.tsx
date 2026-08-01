@@ -135,6 +135,14 @@ function OverviewTab({ overview, go }: { overview: React.ComponentProps<typeof A
           <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--brand-text)', marginTop: 4 }}>Set an outcome →</div>
           <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 4 }}>Describe a business objective in plain English; the OS turns it into a measurable goal.</div>
         </a>
+        {/* marketing_email_templates had no UI at all — the automations runner
+            picked a template by category and sent it, with nothing able to show
+            an admin what that copy actually said. */}
+        <a href="/admin/marketing/templates" style={{ ...card, display: 'block', textDecoration: 'none', background: 'var(--s2)', marginBottom: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--t2)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Email</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--t1)', marginTop: 4 }}>Templates →</div>
+          <div style={{ fontSize: 13, color: 'var(--t2)', marginTop: 4 }}>The copy your automations send. Edit subject, preview text and body.</div>
+        </a>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 20 }}>
         {kpis.map(k => (

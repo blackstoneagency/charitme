@@ -317,6 +317,303 @@ full inventory — 60 designs measured against the 168 routes that exist — is 
 | #137 Receipt Preview | ✅ done | this lane — `/donor/receipt/[donationId]` + `GET /api/donations/receipt` |
 | #141, #95, #109–112 | 🚫 owner decision | promise things that do not exist, or change how card data is collected |
 
+### 🆕 SECOND DECK — pages 144–199 (Claude, 2026-08-01) — **CLAIMED: Donation Form Builder only**
+
+A new set of 56 designs (144–199) arrived. Measured against the **203** routes that
+now exist, most are already built or are *sections of an existing page*, not
+separate routes — worth stating plainly so nobody builds a duplicate:
+
+| design | reality |
+|---|---|
+| 175 Security Settings, 193 Payment Methods, 160/173 Export Center, 147 Integrations | **sections of `/dashboard/settings`** (8-section left nav: profile, preferences, notifications, security, integrations, team, billing, data) — not routes |
+| 165 API Docs, 176/199 API Playground | `/developers` + `/dashboard/developers` exist, backed by the real `api_keys` table |
+| 155/164 Mobile App, 156 Resource Center, 167 System Status, 157 Stories, 158/154/159 Leaderboard & Badges, 151 Impact, 170 System Health, 177 Announcements, 178 Support, 179 Activity Log, 180 Affiliate, 181 Payouts, 182/194 Tax Receipts, 183 Public Profile, 188–192, 195–198 | ✅ already built |
+
+**The genuinely-missing pages need a table before they can be "wired to Supabase".**
+Measured against `schema.sql` — this is the real constraint on the whole deck:
+
+| page | backing table | status |
+|---|---|---|
+| **148 Donation Form Builder** | `donation_forms` | ✅ **EXISTS + applied in prod, and has NO reader** — orphan table |
+| 184 Organization Profile | `organizations` | ⚠️ exists but **not applied in prod** (see the migrations runbook) — building on it ships inert code |
+| 145 Tasks, 153 Documents, 150 Custom Domain, 168 Incidents, 169 Maintenance, 171 Backups, 172 Retention | **none of these tables exist** | each needs a migration first — and migrations **cannot be applied from the sandbox**, so they would ship inert like the volunteer/organization work already has |
+
+**✅ #166 Changelog — BUILT, no table** (`/changelog`). Editorial content in
+`lib/changelog.ts`, the `lib/blog-posts.ts` convention. A changelog is written by
+a person at release time, not accumulated by the app.
+Two rules stated in that file: **only merged work** is listed (a changelog is a
+public claim, trivially checkable against the repo), and entries are anchored to
+**dates, not invented semver** — the mock shows "v2.4.1" but this repo has no
+release tags, so a version number would imply a process that does not exist.
+
+### 📉 My "needs a table" list has now been wrong THREE times
+
+Worth stating as a rule rather than three separate corrections, because the
+pattern is the expensive part:
+
+| # | page | I claimed | reality |
+|---|---|---|---|
+| 1 | 174 Webhooks | no table | `outbound_webhook_endpoints` — I probed a **guessed name** |
+| 2 | 146 Email Templates | no table | `marketing_email_templates` — same guess |
+| 3 | 144 Calendar | needs a table | the dates were **already there**, in 3 tables nothing joined |
+| 4 | 166 Changelog | needs a table | **no storage needed at all** — it is editorial copy |
+
+**The rule: "this page needs a table" is a claim requiring the same evidence as
+any other.** Before asserting it, (a) read the actual schema rather than probing
+invented names — `npm run audit:orphan-tables` prints all 155; (b) ask whether
+the data already exists somewhere else; (c) ask whether it needs storage at all.
+Four of the eleven "blocked" pages fell to those three questions.
+
+**Still genuinely blocked (7)** — these need storage that does not exist, and the
+migration cannot be applied from here:
+`145 Tasks`, `153 Documents` (also needs file storage), `150 Custom Domain` (also
+needs DNS/TLS infra), `168 Incidents`, `169 Maintenance`, `171 Backups` (Supabase
+owns backups — a page here would report someone else's state), `172 Retention`.
+
+**✅ #149 Multi-Currency — examined, and it found a real defect.**
+The user-facing halves were already built (personal display currency in
+`/dashboard/settings`; campaign currency in the campaign settings panel). But:
+
+**🔴 FIXED — the currency picker offered 5 of 28 supported currencies.**
+`SettingsPanel.tsx` hardcoded `['USD','EUR','GBP','CAD','AUD']` while
+`@shared/currencies` defines **28** and the API accepts every one of them
+(`isSupportedCurrency`). So 23 currencies were reachable by the backend and
+unreachable by the organizer — a limit with no rule behind it, and invisible from
+either side alone: the API looks permissive, the UI looks intentional.
+
+This is the **CAMPAIGN_CATEGORIES failure verbatim** — the one CLAUDE.md already
+warns about ("three hand-maintained copies had already drifted"). So it got a
+test, not just a fix: `__tests__/currency-list-single-source.test.ts` fails on any
+hardcoded currency array **narrower than the shared list**.
+
+That test immediately found **two more** I had not touched —
+`admin/system/_components/SystemClient.tsx` and
+`admin/users/_components/AdminUsersClient.tsx`, both the same five. Three copies,
+exactly as the category list went. All three now render from the shared source.
+
+⚠️ **`@shared/currencies` was untestable until now.** `vitest.config.ts` aliased
+`@shared/*` module-by-module — `fees` and `entitlements` only — so importing
+`@shared/currencies` in a test failed to resolve, and nobody found out because no
+test had tried. Replaced with one regex alias covering every current and future
+shared module. **A per-module allowlist in test config silently decides what can
+be tested at all.**
+
+**Still blocked in #149:** the design's admin *exchange-rate* table needs an
+`exchange_rates` table and a rate feed — real storage plus an external
+dependency, so it stays with the other seven.
+
+**✅ #168 Incidents + #169 Maintenance — BUILT, migration-first.**
+Built on the owner's explicit instruction to ship the blocked pages staged and
+ready rather than wait. Migration `20260820000000` adds `incidents`,
+`incident_updates` and `maintenance_windows`; `/admin/incidents` writes them and
+the **public `/status` page now reads them**.
+
+This pair was worth doing first because `/status` already existed and was half a
+page: it could probe *whether* a subsystem responds, but had no way to say what
+happened or that anyone was aware — which is precisely what a visitor wants when
+they see a red dot.
+
+**The rule every reader here follows: a failed query renders "unknown", never
+"no incidents".** On a status page that distinction is the whole point — an
+all-clear published because the incidents table was unreachable is the most
+misleading output the page can produce, and an outage is exactly when that table
+is most likely to be unreachable.
+
+Two details worth keeping:
+- `incidents_resolved_consistency` refuses a resolved incident with no
+  `resolved_at` **and** an unresolved one that carries one. Both render a lie
+  (still-open forever / an all-clear that never happened), so both are refused.
+  The API sets the timestamp itself, so the constraint stays a backstop rather
+  than the mechanism.
+- Public read is correct here and was **wrong** for `creator_tips` — the
+  difference is what is in the row, not the policy. These rows are written to be
+  read by strangers and carry no user data.
+
+⚠️ Inert until `20260820000000` is applied; the admin page says so by name.
+
+**✅ #172 Data Retention — BUILT with its enforcement** (`/admin/retention`,
+`20260822000000`, `/api/cron/apply-retention`).
+
+Built the job as well as the screen deliberately. A retention policy nobody
+applies is a compliance claim with nothing behind it — the same defect as a
+delivery log for webhooks that are never sent — so the config drives a real cron
+route that reads these policies and acts on them.
+
+**Deleting is the only irreversible thing here, so it needs TWO independent
+opt-ins, neither of them default:** `auto_delete = true` on the category **and**
+`?dryRun=false` on the run. With either missing the job counts what is past its
+window and removes nothing. A scheduled job that destroys production data on the
+strength of a switch someone clicked once, unattended and forever, is not a
+feature.
+
+**The category list is a closed allowlist in `lib/retention.ts`, and that is the
+safety mechanism.** The admin API rejects any category not in it, so the form
+cannot become the allowlist. Nothing financial or identity-related is eligible —
+donations, refunds, ledger entries, tax receipts and verification documents carry
+legal retention that outlasts any preference set here. Only operational exhaust:
+analytics events, builder telemetry, share events, rate-limit counters, marketing
+events.
+
+Every run is logged to `data_retention_runs`, dry runs included, because the only
+question asked afterwards is "what happened to that record?" And `matched` is
+`number | null` — a failed count renders **unknown**, never 0, since "0 records
+past retention" is a false all-clear on a compliance screen.
+
+⚠️ **My own ratchet caught this one mid-build.** `upsert-onconflict-has-index`
+failed on the new `data_retention_policies` upsert until the mirror was
+regenerated with the migration defining `category` as UNIQUE — exactly the 42P10
+class it was written for, working on new code rather than old.
+
+**✅ #153 Documents — BUILT, and it needed NO table either** (`/dashboard/documents`).
+Fifth time the "needs a table" call was wrong, and this one was caught *by the
+rule* rather than by accident. Four applied tables already hold a fundraiser's
+files, each reachable only from the workflow that created it:
+`campaign_media` (`media_type='document'`), `verification_documents`,
+`grant_documents`, and `impact_evidence` (receipts — noted as a fourth source,
+not yet wired: it needs a two-hop join through `campaign_updates`).
+
+Live in production today, no migration.
+
+⚠️ **`verification_documents` holds IDENTITY documents**, so aggregation is
+exactly where a scoping mistake becomes a document leak. They are included only
+because the query is keyed on the caller's own `user_id`, they carry a
+`sensitive` flag, and the UI renders them as a **record with no link** — the
+bucket is private, so a link would either 404 or, worse, not.
+
+**✅ #145 Tasks — BUILT, migration-first** (`/dashboard/tasks`, `20260821000000`).
+A fundraiser's checklist, optionally attached to a campaign, with the design's
+Open / Overdue / Mine / Assigned-to-me / Completed filters.
+
+**The interesting part is assignment, because it can widen who reads a row.**
+Tasks are private working notes — they can name a donor, a problem with a
+beneficiary, or an unannounced plan — so the read rule grants access to the owner
+*and the assignee*. That means an unchecked `assignee_id` would be a disclosure
+primitive: assign a task to any profile id on the platform and they can read it.
+
+So `canAssignTo()` requires the assignee to already share the campaign through
+`team_members`, and **fails closed** when that lookup errors. Two related rules
+fall out of the same reasoning:
+- An assignee may tick their own task off and **nothing else**. Editing the
+  title, reassigning, or moving the due date stays with the owner — otherwise
+  "assigned to you" quietly means "yours to rewrite".
+- A task must reference a campaign the caller owns before it can be created, or
+  `campaign_id` leaks which campaigns exist and the team lookup consults a team
+  the caller has no part in.
+
+`tasks_completed_consistency` mirrors the incidents constraint: a done task with
+no `completed_at` cannot be sorted or reported on, and an open one carrying a
+completion time claims work still outstanding. Both refused; the API sets the
+timestamp so the constraint stays a backstop.
+
+**✅ #144 Calendar — BUILT, with no new table** (`/dashboard/calendar`).
+Second correction to the "needs a table" list, and a more useful one: the page
+does not need a `calendar_events` table because **the dates already exist**,
+spread across three tables nothing brought together —
+
+| source | field |
+|---|---|
+| `campaigns` | `deadline` |
+| `fundraising_events` | `starts_at` / `ends_at` |
+| `grant_deadlines` | `due_at`, via this user's `grant_applications` |
+
+So it aggregates rather than inventing storage: nothing inert, works in
+production today. **The general lesson for the rest of this deck: check whether
+the data already exists somewhere before concluding a page needs a table.**
+
+⚠️ **`volunteer_shifts` is deliberately NOT a source**, though it carries
+`starts_at`/`ends_at`. Its migration is one of the unapplied ones, so querying it
+would put the page in its degraded state *permanently in production* while
+working perfectly here. Add it when that migration lands.
+
+Each of the three sources is read **independently** and can fail on its own — the
+page names which one failed rather than blanking, or (worse) showing the
+survivors as if they were the whole calendar.
+
+⚠️ **Correction to the row above — I probed guessed table names and got two wrong.**
+The first pass checked for `webhooks` and `email_templates`; the real tables are
+**`outbound_webhook_endpoints`** and **`marketing_email_templates`**, and both
+exist. What surfaced it was `npm run audit:orphan-tables` printing the actual
+155-table list — i.e. reading the schema instead of interrogating it with names I
+had made up. Corrected status:
+
+| page | table | reader today |
+|---|---|---|
+| **174 Webhooks** | `outbound_webhook_endpoints` ✅ exists | only `/admin/system` — **no user-facing management UI** |
+| **146 Email Templates** | `marketing_email_templates` ✅ exists | only the admin automations route — **no template CRUD page** |
+
+Both are therefore buildable *now*, on the same footing as #148.
+
+**✅ #146 Email Templates — BUILT** (this lane): `/admin/marketing/templates`, full
+CRUD on `marketing_email_templates`, linked from the marketing hub.
+**✅ #174 Webhooks — BUILT** (this lane): `/dashboard/webhooks`, real endpoint
+CRUD on `outbound_webhook_endpoints` (second orphan table in this deck — shipped
+since 20260525002000, read only by a row count on `/admin/system`).
+
+**🔴 BUT the feature cannot actually deliver, and the schema is why.**
+Two findings, both of which stopped the design from being built as drawn:
+
+1. **Nothing dispatches an outbound webhook.** There is no sender anywhere in the
+   codebase, and no delivery-log table — `webhook_events` and
+   `campaign_payment_webhook_events` are both **inbound** Stripe records.
+2. **Signing is impossible on the current schema.** The table stores
+   `secret_hash` and nothing else. HMAC-signing a payload needs the **secret**,
+   and SHA-256 cannot be reversed to recover it. There is no key to sign with.
+
+So the design's *"Last Triggered"* column and *Webhook Logs* panel were
+**deliberately not built**. A "Last triggered: never" column implies a mechanism
+that would eventually fill it; `Delivered ✓` rows would be invented outright. The
+page says plainly that delivery is not live instead of implying it is.
+
+**Owner decision needed before delivery can ship** — pick one:
+| option | trade |
+|---|---|
+| store the secret **encrypted** (app-held key) | standard (Stripe does this); needs a key-management decision |
+| **asymmetric** signing — store a public key per endpoint | no shared secret to leak; subscribers must verify a signature |
+| sign with `secret_hash` itself | no migration, but the "hash" *becomes* the shared secret, so storing it plaintext-equivalent defeats the point |
+
+Plus a `webhook_deliveries` table for the log. Both are migrations, so they land
+inert until the runbook is run.
+
+**What IS production-ready here:** endpoint CRUD, https-only + private-host
+rejection (SSRF: `169.254.169.254` is the metadata endpoint), re-validated on
+**update** as well as create, closed event list, secret shown once and stored
+only as a hash, never returned by any route. 18 tests pin it.
+
+**🟠 FOUND while wiring #146 — automations pick a template ambiguously.**
+The automations runner resolves the template it is about to send with:
+
+```ts
+.eq('category', cfg.template_category ?? 'general').limit(1).maybeSingle()
+```
+
+No `order()`. With two templates in one category, **which one gets emailed is
+whatever Postgres returns first**, and that can differ between calls — the same
+ambiguous-resolution family as the `donation_forms.slug` collision, except the
+output here is a message to real contacts.
+
+Mitigated, not fixed: the API refuses to move a **built-in** template out of its
+category, and the UI flags any category holding more than one template. The
+underlying fix is a decision — either a unique index on `category` for system
+templates, or an explicit `template_id` on the automation config — so it is
+recorded rather than guessed at.
+
+⚠️ **A guard I wrote first protected the wrong field.** I asserted automations
+looked templates up *by name* and blocked renames on that basis. Reading the
+resolver showed it keys on **category**; the name is read by nothing. Had I
+shipped the assumption, the guard would have blocked a harmless edit while
+leaving the damaging one open.
+
+⚠️ **This is why the deck is not "just build 17 pages".** 12 of them would land as
+code with no table behind them in production, repeating exactly the
+*code-complete but inert* state that `organizations` and `volunteer_shifts` are
+already in. Building them is not blocked on effort — it is blocked on the same
+owner action as the migrations runbook.
+
+**Claiming ONE: #148 Donation Form Builder.** It is the only missing page whose
+table already exists *and is live in production*, and `donation_forms` currently
+appears in exactly one file (`lib/feature-catalog.ts`) as a table **name** — no
+reader, no writer. Same "data with no reader" family this file keeps finding.
+
 **Every design-deck page an agent can build is now built.** What is left in the
 deck is the four rows above, all of which need the owner rather than code:
 #141 and #95 would promise a mobile app and a roadmap that do not exist, and
@@ -4779,6 +5076,10 @@ run**, because each one *is* a schema change:
 | `20260728020000_fix_tax_receipt_upsert_inference` | tax receipt still emailed to the donor and **never recorded** (partial index → 42P10) |
 | `20260812000000_make_onconflict_targets_inferable` | Stripe webhook still **rejects** every processor-fee / refund / owner-transfer row; **"unsubscribe" still writes nothing** |
 | `20260812010000_creator_tips_not_world_readable` | `creator_tips` stays **world-readable** — supporter IDs, amounts, Stripe payment intent IDs |
+| `20260819000000_donation_forms_slug_and_campaign_owner` | Donation Form Builder: `slug` not unique (embeds resolve ambiguously), and campaign owners cannot edit their own form |
+| `20260820000000_incidents_and_maintenance` | `/admin/incidents` and the incident/maintenance sections of `/status` report **unknown** — deliberately, never "no incidents" |
+| `20260821000000_tasks` | `/dashboard/tasks` reports **unknown** rather than an empty list |
+| `20260822000000_data_retention_policies` | `/admin/retention` unavailable; the retention job has no policy row to act on, so **nothing is deleted** — it fails safe |
 
 The third is the one to prioritise: it is a live data exposure, and it is a
 single `drop policy` + `create policy`, safe to run on its own.
